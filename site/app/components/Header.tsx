@@ -33,11 +33,16 @@ export default function Header() {
   return (
     <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href="/" className="text-2xl font-bold text-slate-900 dark:text-white hover:text-slate-700 dark:hover:text-gray-200">
-              Maenifold
+            <Link href="/" className="hover:opacity-80 transition-opacity">
+              <img
+                src="/maenifold/assets/branding/maenifold-logo.svg"
+                alt="maenifold"
+                className="h-16 w-auto"
+                style={{ minWidth: '200px' }}
+              />
             </Link>
           </div>
 
@@ -59,9 +64,6 @@ export default function Header() {
                 <Link href={'/docs/architecture' as Route} className="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">
                   Architecture
                 </Link>
-                <Link href={'/docs/philosophy' as Route} className="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">
-                  Philosophy
-                </Link>
                 <Link href={'/docs/technical-specs' as Route} className="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">
                   Technical Specs
                 </Link>
@@ -70,18 +72,6 @@ export default function Header() {
 
             <Link href={'/tools' as Route} className="text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors">
               Tools
-            </Link>
-
-            <Link href={'/workflows' as Route} className="text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors">
-              Workflows
-            </Link>
-
-            <Link href={'/cognitive-assets' as Route} className="text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors">
-              Cognitive Assets
-            </Link>
-
-            <Link href={'/demo' as Route} className="text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors">
-              Demo
             </Link>
           </div>
 
@@ -139,24 +129,12 @@ export default function Header() {
               <Link href={'/docs/architecture' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
                 Architecture
               </Link>
-              <Link href={'/docs/philosophy' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
-                Philosophy
-              </Link>
               <Link href={'/docs/technical-specs' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
                 Technical Specs
               </Link>
             </div>
             <Link href={'/tools' as Route} className="block px-4 py-2 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white">
               Tools
-            </Link>
-            <Link href={'/workflows' as Route} className="block px-4 py-2 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white">
-              Workflows
-            </Link>
-            <Link href={'/cognitive-assets' as Route} className="block px-4 py-2 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white">
-              Cognitive Assets
-            </Link>
-            <Link href={'/demo' as Route} className="block px-4 py-2 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white">
-              Demo
             </Link>
           </div>
         )}

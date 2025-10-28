@@ -44,11 +44,6 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href={'/docs/philosophy' as Route} className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                  Philosophy
-                </Link>
-              </li>
-              <li>
                 <Link href={'/docs/technical-specs' as Route} className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                   Technical Specs
                 </Link>
@@ -65,16 +60,6 @@ export default function Footer() {
               <li>
                 <Link href={'/tools' as Route} className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                   Tools
-                </Link>
-              </li>
-              <li>
-                <Link href={'/workflows' as Route} className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                  Workflows
-                </Link>
-              </li>
-              <li>
-                <Link href={'/cognitive-assets' as Route} className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                  Cognitive Assets
                 </Link>
               </li>
             </ul>

@@ -7,7 +7,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PACKAGES_DIR="$REPO_ROOT/packages"
 
-echo "Creating platform packages in $PACKAGES_DIR"
+# Read version from main package.json
+VERSION=$(node -p "require('$REPO_ROOT/package.json').version")
+echo "Creating platform packages version $VERSION in $PACKAGES_DIR"
 
 # Clean and create packages directory
 rm -rf "$PACKAGES_DIR"
@@ -35,7 +37,7 @@ for platform in "${PLATFORMS[@]}"; do
   cat > "$PKG_DIR/package.json" <<EOF
 {
   "name": "@ma-collective/$pkg_name",
-  "version": "1.0.0",
+  "version": "$VERSION",
   "description": "maenifold binary for $runtime_id",
   "main": "index.js",
   "os": ["${runtime_id%%-*}"],

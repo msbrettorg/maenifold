@@ -153,3 +153,4 @@ visx/*.vsix
 visx/out/
 visx/dist/
 visx/.test-workspace/
+temp-gh-pages-test/

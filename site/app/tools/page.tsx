@@ -63,7 +63,7 @@ export default function ToolsPage() {
           {tools.map((tool) => (
             <a
               key={tool.slug}
-              href={`/maenifold/tools/${tool.slug}`}
+              href={`/tools/${tool.slug}`}
               className="group border border-slate-200 dark:border-slate-700 rounded-lg p-6 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg dark:hover:shadow-blue-500/10 transition-all"
             >
               <h2 className="text-xl font-bold mb-3 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">

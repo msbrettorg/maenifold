@@ -1,7 +1,7 @@
 {
   "name": "@ma-collective/maenifold",
   "version": "1.0.0",
-  "description": "Persistent Graph-of-Thoughts with Graph-RAG retrieval. Eager MCP server where the corpus is chain-of-thought reasoning. Retrieve from HOW you thought, not just WHAT you know.",
+  "description": "Persistent knowledge graphs with WikiLinks and vector search. MCP server that transforms ephemeral AI sessions into continuous collective intelligence.",
   "main": "bin/maenifold.js",
   "directories": {
     "doc": "docs",

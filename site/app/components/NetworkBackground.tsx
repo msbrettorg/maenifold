@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 interface NetworkBackgroundProps {
   className?: string;
 }
@@ -56,17 +58,38 @@ function generateConnections(nodes: Node[], threshold: number = 300): Connection
 }
 
 export function NetworkBackground({ className = '' }: NetworkBackgroundProps) {
+  const [isClient, setIsClient] = useState(false);
+
   // Responsive node counts
   // Desktop (≥1024px): 25 nodes
   // Tablet (640-1023px): 18 nodes
   // Mobile (<640px): 12 nodes
-  const desktopNodes = generateNodes(25);
-  const tabletNodes = generateNodes(18);
-  const mobileNodes = generateNodes(12);
+  const [desktopNodes, setDesktopNodes] = useState<Node[]>([]);
+  const [tabletNodes, setTabletNodes] = useState<Node[]>([]);
+  const [mobileNodes, setMobileNodes] = useState<Node[]>([]);
+  const [desktopConnections, setDesktopConnections] = useState<Connection[]>([]);
+  const [tabletConnections, setTabletConnections] = useState<Connection[]>([]);
+  const [mobileConnections, setMobileConnections] = useState<Connection[]>([]);
 
-  const desktopConnections = generateConnections(desktopNodes);
-  const tabletConnections = generateConnections(tabletNodes);
-  const mobileConnections = generateConnections(mobileNodes);
+  useEffect(() => {
+    setIsClient(true);
+    const dNodes = generateNodes(25);
+    const tNodes = generateNodes(18);
+    const mNodes = generateNodes(12);
+
+    setDesktopNodes(dNodes);
+    setTabletNodes(tNodes);
+    setMobileNodes(mNodes);
+
+    setDesktopConnections(generateConnections(dNodes));
+    setTabletConnections(generateConnections(tNodes));
+    setMobileConnections(generateConnections(mNodes));
+  }, []);
+
+  // Render null on server to avoid hydration mismatch
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <div className={className}>

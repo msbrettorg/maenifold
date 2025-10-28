@@ -1,8 +1,10 @@
 import Link from 'next/link';
+import { NetworkBackground } from './components/NetworkBackground';
 
 export default function Home() {
   return (
-    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-white via-blue-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 px-6">
+    <div className="relative h-screen flex items-center justify-center bg-gradient-to-br from-white via-blue-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 px-6">
+      <NetworkBackground className="fixed inset-0 -z-10" />
       <div className="max-w-6xl mx-auto text-center">
         {/* Hero Text */}
         <div className="mb-8">

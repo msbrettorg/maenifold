@@ -38,7 +38,7 @@ export default function Header() {
           <div className="flex-shrink-0">
             <Link href="/" className="hover:opacity-80 transition-opacity">
               <img
-                src="/maenifold/assets/branding/maenifold-logo.svg"
+                src="/assets/branding/maenifold-logo.svg"
                 alt="maenifold"
                 className="h-16 w-auto"
                 style={{ minWidth: '200px' }}

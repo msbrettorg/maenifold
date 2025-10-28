@@ -1,7 +1,12 @@
-import type { NextConfig } from 'next';
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  output: 'export',
+  basePath: '/maenifold',
+  images: {
+    unoptimized: true,
+  },
+  typedRoutes: true,
+}
 
-export default nextConfig;
+export default nextConfig

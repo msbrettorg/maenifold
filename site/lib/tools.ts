@@ -29,13 +29,8 @@ export function filenameToSlug(filename: string): string {
  * write-memory -> writememory.md
  */
 export function slugToFilename(slug: string): string {
-  // Remove hyphens and capitalize each word after removing hyphens
-  const words = slug.split('-')
-  const baseName = words
-    .map((word, i) => (i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)))
-    .join('')
-
-  return `${baseName}.md`
+  // Remove hyphens and keep lowercase (files are all lowercase)
+  return `${slug.replace(/-/g, '')}.md`
 }
 
 /**

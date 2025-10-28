@@ -19,10 +19,11 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   try {
-    const toolData = await loadToolData(params.slug)
+    const { slug } = await params
+    const toolData = await loadToolData(slug)
     return {
       title: `${toolData.title} | Maenifold Tools`,
       description: toolData.description,
@@ -42,17 +43,18 @@ export async function generateMetadata({
 /**
  * Individual tool page component
  */
-export default async function ToolPage({ params }: { params: { slug: string } }) {
+export default async function ToolPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   let toolData
   try {
-    toolData = await loadToolData(params.slug)
+    toolData = await loadToolData(slug)
   } catch (error) {
     return (
       <div className="min-h-screen bg-white dark:bg-slate-950">
         <div className="max-w-4xl mx-auto px-4 py-12">
           <h1 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Tool Not Found</h1>
           <p className="text-slate-600 dark:text-slate-300 mb-6">
-            The tool "{params.slug}" could not be found.
+            The tool "{slug}" could not be found.
           </p>
           <Link href="/tools" className="text-blue-600 dark:text-blue-400 hover:underline">
             ← Back to Tools
@@ -79,34 +81,13 @@ export default async function ToolPage({ params }: { params: { slug: string } })
         <span className="text-slate-900 dark:text-white">{toolData.title}</span>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Main content */}
         <div className="lg:col-span-3">
           {/* Header */}
-          <h1 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">
+          <h1 className="text-4xl font-bold mb-8 text-slate-900 dark:text-white">
             {toolData.title}
           </h1>
-
-          {/* Table of Contents */}
-          {sections.length > 0 && (
-            <nav className="mb-8 bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800">
-              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wide">
-                Contents
-              </h2>
-              <ul className="space-y-2 text-sm">
-                {sections.map((section) => (
-                  <li key={section.id} style={{ marginLeft: `${(section.level - 2) * 1}rem` }}>
-                    <a
-                      href={`#${section.id}`}
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {section.title}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          )}
 
           {/* Content */}
           <article className="prose dark:prose-invert max-w-none">
@@ -130,28 +111,28 @@ export default async function ToolPage({ params }: { params: { slug: string } })
           </div>
         </div>
 
-        {/* Sidebar */}
-        <aside className="hidden lg:block">
-          <div className="sticky top-24 bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
-            <h3 className="font-semibold text-slate-900 dark:text-white mb-4">About This Tool</h3>
-            <dl className="space-y-4 text-sm">
-              <div>
-                <dt className="font-medium text-slate-700 dark:text-slate-300">Tool Name</dt>
-                <dd className="text-slate-600 dark:text-slate-400 mt-1">{toolData.title}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-slate-700 dark:text-slate-300">Slug</dt>
-                <dd className="text-slate-600 dark:text-slate-400 mt-1 font-mono text-xs break-all">
-                  {params.slug}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-medium text-slate-700 dark:text-slate-300">Sections</dt>
-                <dd className="text-slate-600 dark:text-slate-400 mt-1">{sections.length} sections</dd>
-              </div>
-            </dl>
-          </div>
-        </aside>
+        {/* Sidebar - Table of Contents */}
+        {sections.length > 0 && (
+          <aside className="hidden lg:block">
+            <nav className="sticky top-24 bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4 uppercase tracking-wide">
+                Contents
+              </h3>
+              <ul className="space-y-2 text-sm">
+                {sections.map((section) => (
+                  <li key={section.id} style={{ marginLeft: `${(section.level - 2) * 1}rem` }}>
+                    <a
+                      href={`#${section.id}`}
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      {section.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </aside>
+        )}
       </div>
     </div>
   )
@@ -176,8 +157,7 @@ function MarkdownContent({ htmlContent }: { htmlContent: string }) {
  */
 function sanitizeHtml(html: string): string {
   // Add classes to H2 headings
-  html = html.replace(/<h2([^>]*)>([^<]+)<\/h2>/g, () => {
-    const text = arguments[2] as string
+  html = html.replace(/<h2([^>]*)>([^<]+)<\/h2>/g, (match, attrs, text) => {
     const id = text
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
@@ -186,8 +166,7 @@ function sanitizeHtml(html: string): string {
   })
 
   // Add classes to H3 headings
-  html = html.replace(/<h3([^>]*)>([^<]+)<\/h3>/g, () => {
-    const text = arguments[2] as string
+  html = html.replace(/<h3([^>]*)>([^<]+)<\/h3>/g, (match, attrs, text) => {
     const id = text
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')

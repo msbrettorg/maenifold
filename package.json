@@ -1,6 +1,6 @@
 {
   "name": "@ma-collective/maenifold",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Persistent Graph-of-Thoughts with Graph-RAG retrieval. Eager MCP server where the corpus is chain-of-thought reasoning. Retrieve from HOW you thought, not just WHAT you know.",
   "main": "bin/maenifold.js",
   "directories": {
@@ -71,11 +71,11 @@
     "better-sqlite3": "^12.4.1"
   },
   "optionalDependencies": {
-    "@ma-collective/maenifold-linux-x64": "1.0.1",
-    "@ma-collective/maenifold-linux-arm64": "1.0.1",
-    "@ma-collective/maenifold-darwin-x64": "1.0.1",
-    "@ma-collective/maenifold-darwin-arm64": "1.0.1",
-    "@ma-collective/maenifold-win32-x64": "1.0.1",
-    "@ma-collective/maenifold-win32-arm64": "1.0.1"
+    "@ma-collective/maenifold-linux-x64": "1.0.2",
+    "@ma-collective/maenifold-linux-arm64": "1.0.2",
+    "@ma-collective/maenifold-darwin-x64": "1.0.2",
+    "@ma-collective/maenifold-darwin-arm64": "1.0.2",
+    "@ma-collective/maenifold-win32-x64": "1.0.2",
+    "@ma-collective/maenifold-win32-arm64": "1.0.2"
   }
 }

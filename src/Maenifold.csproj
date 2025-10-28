@@ -11,7 +11,7 @@
     <PackageId>Maenifold</PackageId>
     <AssemblyName>Maenifold</AssemblyName>
     <RootNamespace>Maenifold</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.0.2</Version>
     <Authors>MSBrett</Authors>
     <Company>MSBrett</Company>
     <Product>Maenifold</Product>

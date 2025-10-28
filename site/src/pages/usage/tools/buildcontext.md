@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # BuildContext
 
 Explore and traverse concept relationships in your Maenifold knowledge graph through intelligent graph navigation. This tool discovers connections between [[concepts]] by analyzing co-occurrence patterns in your memory files, building contextual understanding through relationship exploration and multi-hop graph traversal.

@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # Delete Memory
 
 **Permanently removes a memory FILE from the file system and knowledge graph.**

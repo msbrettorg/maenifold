@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # Sync
 
 Synchronize [[WikiLink]] concepts from memory files into the knowledge graph database, building searchable concept relationships and enabling graph-based operations. This tool extracts all [[concepts]] from your memory files, analyzes their co-occurrence patterns, and constructs the SQLite-based knowledge graph that powers BuildContext, Visualize, and enhanced SearchMemories functionality.

@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # Adopt
 
 Adopt a [[role]], [[color]], or [[perspective]] by loading its JSON configuration from Maenifold's assets directory. This tool enables AI agents to take on specialized thinking modes, [[Six Thinking Hats]] colors, or analytical perspectives by reading structured configuration that defines personality, approach, and evaluation criteria.

@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # ExtractConceptsFromFile
 
 ## Purpose

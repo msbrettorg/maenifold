@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # GetHelp
 
 Retrieves comprehensive tool documentation from Maenifold's help file system for detailed usage guidance. This tool provides the foundation for [[Progressive Disclosure]] in the [[Tool Help System]] architecture, enabling AI agents to access complete parameter documentation, usage examples, and troubleshooting information for any Maenifold tool.

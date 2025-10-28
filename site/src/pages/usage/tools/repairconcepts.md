@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # RepairConcepts
 
 ⚠️ **DANGER: This tool can PERMANENTLY DAMAGE your [[knowledge-graph]] if used incorrectly!** Repairs [[graph]] corruption by replacing [[concept]] variants with canonical form in source [[markdown]] files. Fixes the source of truth rather than just the database. Use this to consolidate [[concept]] families while preserving semantic meaning.

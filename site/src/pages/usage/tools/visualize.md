@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # Visualize
 
 Generate Mermaid diagrams of concept relationships to visually explore your Maenifold knowledge graph. This tool transforms abstract concept connections into interactive visual diagrams, enabling pattern recognition and knowledge structure understanding through graph visualization of co-occurrence relationships extracted from your memory files.

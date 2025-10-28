@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # ListMemories
 
 Explore memory system file structure and navigate folder hierarchies for content discovery and file organization understanding. ListMemories provides detailed directory listings with file counts, sizes, and folder structures to support memory system navigation and file organization decisions.

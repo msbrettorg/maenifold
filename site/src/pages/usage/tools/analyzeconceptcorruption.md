@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # AnalyzeConceptCorruption
 
 ⚠️ **MUST USE BEFORE RepairConcepts!** Analyzes [[knowledge-graph]] [[concept]] corruption patterns to identify what needs repair without making any changes to your memory files. This diagnostic tool reveals [[concept]] families and their variants to help plan SAFE [[graph]] repair operations that preserve semantic meaning.

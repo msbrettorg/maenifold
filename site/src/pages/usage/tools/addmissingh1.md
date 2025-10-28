@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # AddMissingH1
 
 One-time [[migration]] tool that prepends H1 titles (`# {title}`) to legacy [[memory]] files that lack a top-level H1 heading. Ensures all memory files follow consistent [[markdown]] structure for proper rendering and [[knowledge-graph]] integration. Safe, idempotent operation with dry-run preview mode.

@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # RecentActivity
 
 Track recent activity across your Maenifold knowledge system with time-based filtering and session monitoring. RecentActivity provides a comprehensive view of recent memory files, thinking sessions, and workflow progress, enabling effective progress monitoring and work discovery patterns.

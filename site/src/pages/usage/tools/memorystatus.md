@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # MemoryStatus
 
 Monitor Maenifold system health through comprehensive memory statistics and database metrics. This tool provides essential system monitoring capabilities to track knowledge graph growth, file storage utilization, and database health for system optimization and troubleshooting. Use for proactive system maintenance and performance analysis.

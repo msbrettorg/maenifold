@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # GetConfig
 
 Display current system configuration settings and operational parameters to understand Maenifold's runtime environment, debug setup issues, and verify system paths. This tool provides essential configuration information including memory paths, database locations, synchronization settings, and performance parameters for troubleshooting and system validation.

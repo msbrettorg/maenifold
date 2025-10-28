@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # RunFullBenchmark
 
 Comprehensive [[performance]] [[benchmark]] suite that validates all Maenifold performance claims including [[graph]] traversal ([[GRPH-009]] CTE vs N+1), [[search]] performance, [[sync]] timing, and complex traversal bottlenecks. Provides empirical validation of system performance characteristics under real workloads.

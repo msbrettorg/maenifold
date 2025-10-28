@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # Assumption Ledger
 
 A minimal, manifesto-aligned tool for agents to declare, revisit, and resolve assumptions.

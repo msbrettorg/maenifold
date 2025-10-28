@@ -1,3 +1,7 @@
+---
+layout: ../../../layouts/DocsLayout.astro
+---
+
 # WriteMemory
 
 Create new knowledge files in the Maenifold memory system with automatic knowledge graph integration. This tool builds your persistent knowledge base through [[WikiLink]] concepts that automatically connect related information. REQUIRES at least one [[concept]] in double brackets to ensure knowledge graph connectivity.

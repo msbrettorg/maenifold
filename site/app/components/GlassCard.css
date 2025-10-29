@@ -1,0 +1,66 @@
+/* GlassCard Component Styles */
+
+.glass-card {
+  /* Glassmorphism base layer */
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+  /* Smooth transitions for all properties */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* GPU acceleration for transforms */
+  will-change: transform;
+  transform-style: preserve-3d;
+
+  /* Prevent text selection during interactions */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Hover state: Lift up and scale */
+.glass-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not (backdrop-filter: blur(12px)) {
+  .glass-card {
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    background: rgba(15, 23, 42, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .glass-card:hover {
+    box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .glass-card {
+    transition: none;
+    will-change: auto;
+  }
+
+  .glass-card:hover {
+    transform: none;
+  }
+}
+
+/* Touch device: Disable 3D tilt (handled in JS) */
+@media (hover: none) and (pointer: coarse) {
+  .glass-card {
+    will-change: auto;
+  }
+}

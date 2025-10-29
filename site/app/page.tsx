@@ -31,7 +31,7 @@ export default function Home() {
         </p>
 
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 max-w-5xl mx-auto animate-fade-in-up animate-delay-300">
           <GlassCard className="p-6">
             <div className="text-4xl mb-3">🔄</div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
@@ -73,7 +73,7 @@ export default function Home() {
           </GlassCard>
         </div>
 
-        <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 mb-8 max-w-3xl mx-auto italic">
+        <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 mb-8 max-w-3xl mx-auto italic animate-fade-in-up animate-delay-400">
           Fully extensible. Work your way: Let agents explore freely with roles
           and thinking modes, guide them through structured workflows, or
           orchestrate multiple agents sharing the same knowledge sessions.
@@ -82,7 +82,7 @@ export default function Home() {
         </p>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center animate-fade-in-up animate-delay-400">
           <RippleButton
             href="/start"
             variant="primary"

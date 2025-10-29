@@ -23,10 +23,11 @@ jobs:
         language: [ 'csharp', 'javascript' ]
 
     steps:
+      # Checkout WITHOUT automatic LFS fetch to allow caching first
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          lfs: true
+          lfs: false
 
       # Cache LFS files to avoid re-downloading 86MB ONNX model on every run
       - name: Create LFS file hash
@@ -42,7 +43,7 @@ jobs:
           restore-keys: |
             lfs-
 
-      - name: Fetch LFS files
+      - name: Fetch LFS files (only if not cached)
         if: matrix.language == 'csharp'
         run: git lfs pull
 

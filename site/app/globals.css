@@ -2,8 +2,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* GPU-accelerated animations for network visualization and text effects */
-
+/* GPU-accelerated keyframe animations */
 @keyframes float {
   0%, 100% {
     transform: translate3d(0, 0, 0);
@@ -44,6 +43,18 @@
   }
 }
 
+@keyframes mesh-morph {
+  0%, 100% {
+    background-position: 0% 0%, 100% 100%, 50% 50%, 0% 0%;
+  }
+  33% {
+    background-position: 100% 0%, 0% 100%, 30% 70%, 0% 0%;
+  }
+  66% {
+    background-position: 0% 100%, 100% 0%, 70% 30%, 0% 0%;
+  }
+}
+
 /* Animation utility classes */
 .animate-float {
   animation: float 45s ease-in-out infinite;
@@ -80,18 +91,6 @@
 }
 
 /* Gradient mesh background animation (REQ-3.2) */
-@keyframes mesh-morph {
-  0%, 100% {
-    background-position: 0% 0%, 100% 100%, 50% 50%, 0% 0%;
-  }
-  33% {
-    background-position: 100% 0%, 0% 100%, 30% 70%, 0% 0%;
-  }
-  66% {
-    background-position: 0% 100%, 100% 0%, 70% 30%, 0% 0%;
-  }
-}
-
 .gradient-mesh-bg {
   background:
     radial-gradient(at 0% 0%, #0ea5e9 0%, transparent 50%),

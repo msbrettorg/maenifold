@@ -118,7 +118,7 @@ export default function Header() {
             </button>
 
             <a
-              href="https://github.com/maenifold/maenifold"
+              href="https://github.com/msbrettorg/maenifold"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg bg-gray-100 dark:bg-slate-800 text-slate-900 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"

@@ -6,13 +6,13 @@ PackageVersion: 1.0.0
 PackageLocale: en-US
 Publisher: MSBrett
 PublisherUrl: https://github.com/MSBrett
-PublisherSupportUrl: https://github.com/MSBrett/maenifold/issues
+PublisherSupportUrl: https://github.com/msbrettorg/maenifold/issues
 # PrivacyUrl:
 Author: MSBrett
 PackageName: Maenifold
-PackageUrl: https://github.com/MSBrett/maenifold
+PackageUrl: https://github.com/msbrettorg/maenifold
 License: MIT
-LicenseUrl: https://github.com/MSBrett/maenifold/blob/main/LICENSE
+LicenseUrl: https://github.com/msbrettorg/maenifold/blob/main/LICENSE
 Copyright: Copyright (c) 2025 MSBrett
 # CopyrightUrl:
 ShortDescription: Persistent Graph-of-Thoughts for AI agents and multi-agent systems
@@ -55,13 +55,13 @@ ReleaseNotes: |-
   - MCP protocol support
   - CLI and .NET library modes
   - Cross-platform binaries (self-contained)
-ReleaseNotesUrl: https://github.com/MSBrett/maenifold/releases/tag/v1.0.0
+ReleaseNotesUrl: https://github.com/msbrettorg/maenifold/releases/tag/v1.0.0
 # PurchaseUrl:
 # InstallationNotes:
 Documentations:
   - DocumentLabel: Documentation
-    DocumentUrl: https://github.com/MSBrett/maenifold/blob/main/docs/README.md
+    DocumentUrl: https://github.com/msbrettorg/maenifold/blob/main/docs/README.md
   - DocumentLabel: Development Guide
-    DocumentUrl: https://github.com/MSBrett/maenifold/blob/main/docs/DEVELOPMENT.md
+    DocumentUrl: https://github.com/msbrettorg/maenifold/blob/main/docs/DEVELOPMENT.md
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

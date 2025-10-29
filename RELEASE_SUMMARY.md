@@ -119,7 +119,7 @@ npm pack
    ```
 
 4. **Monitor release**:
-   - GitHub Actions: https://github.com/MSBrett/maenifold/actions
+   - GitHub Actions: https://github.com/msbrettorg/maenifold/actions
    - npm package: https://www.npmjs.com/package/@ma-collective/maenifold
 
 5. **Test installation**:

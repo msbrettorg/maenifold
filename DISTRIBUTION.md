@@ -106,7 +106,7 @@ This script will:
    ```
 
 2. **Create GitHub Release:**
-   - Go to: https://github.com/MSBrett/maenifold/releases/new
+   - Go to: https://github.com/msbrettorg/maenifold/releases/new
    - Select the tag `v1.0.0`
    - Use template from [distribution/GITHUB_RELEASE_TEMPLATE.md](distribution/GITHUB_RELEASE_TEMPLATE.md)
    - Attach the 5 files:

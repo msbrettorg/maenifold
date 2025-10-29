@@ -225,4 +225,4 @@ maenifold --tool SearchMemories --payload '{
 
 ## Stargazers over time
 
-[![Stargazers over time](https://starchart.cc/MSBrett/maenifold.svg?variant=adaptive)](https://starchart.cc/MSBrett/maenifold)
+[![Stargazers over time](https://starchart.cc/msbrettorg/maenifold.svg?variant=adaptive)](https://starchart.cc/msbrettorg/maenifold)

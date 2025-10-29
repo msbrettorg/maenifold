@@ -11,26 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout WITHOUT automatic LFS fetch to allow caching first
       - uses: actions/checkout@v5
         with:
-          lfs: false
-
-      # Cache LFS files to avoid re-downloading 86MB ONNX model on every run
-      # This reduces LFS bandwidth usage from ~86MB to ~0MB per run (after first run)
-      - name: Create LFS file hash
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
-
-      - name: Cache LFS files
-        uses: actions/cache@v4
-        with:
-          path: .git/lfs
-          key: lfs-${{ hashFiles('.lfs-assets-id') }}
-          restore-keys: |
-            lfs-
-
-      - name: Fetch LFS files (only if not cached)
-        run: git lfs pull
+          lfs: true
 
       - uses: actions/setup-dotnet@v5
         with:

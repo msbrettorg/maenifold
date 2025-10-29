@@ -34,7 +34,7 @@ GitHub Actions will:
 - ✅ Create GitHub Release with archives
 - ✅ Publish to npm automatically
 
-Monitor at: https://github.com/MSBrett/maenifold/actions
+Monitor at: https://github.com/msbrettorg/maenifold/actions
 
 ### 4. Verify
 

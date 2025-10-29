@@ -14,7 +14,7 @@ ReleaseDate: 2025-01-24
 Installers:
   - Architecture: x64
     InstallerType: portable
-    InstallerUrl: https://github.com/MSBrett/maenifold/releases/download/v1.0.0/maenifold-win-x64.zip
+    InstallerUrl: https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-win-x64.zip
     InstallerSha256: PLACEHOLDER_WIN_SHA256
     Commands:
       - maenifold

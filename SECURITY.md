@@ -163,8 +163,8 @@ regexes = [
 
 For security issues or questions about this project:
 
-- **Repository**: <https://github.com/MSBrett/maenifold>
-- **Issues**: <https://github.com/MSBrett/maenifold/issues> (for non-sensitive issues)
+- **Repository**: <https://github.com/msbrettorg/maenifold>
+- **Issues**: <https://github.com/msbrettorg/maenifold/issues> (for non-sensitive issues)
 
 **Please do not report security vulnerabilities through public GitHub issues.** 
 For sensitive security matters, please contact the maintainers directly through private channels or create a private security advisory on GitHub.

@@ -26,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MSBrett/maenifold.git"
+    "url": "git+https://github.com/msbrettorg/maenifold.git"
   },
   "keywords": [
     "mcp",
@@ -45,9 +45,9 @@
   "license": "MIT",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/MSBrett/maenifold/issues"
+    "url": "https://github.com/msbrettorg/maenifold/issues"
   },
-  "homepage": "https://github.com/MSBrett/maenifold",
+  "homepage": "https://github.com/msbrettorg/maenifold",
   "files": [
     "scripts/postinstall.js",
     "scripts/maenifold.js",

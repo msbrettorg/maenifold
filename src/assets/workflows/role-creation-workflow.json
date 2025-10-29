@@ -1,0 +1,153 @@
+{
+  "id": "role-creation-workflow",
+  "name": "Constitutional Role Architecture Workflow",
+  "emoji": "🧩",
+  "shortDescription": "Systematic workflow for creating/updating specialist roles using constitutional AI and prompt engineering excellence",
+  "triggers": [
+    "create role",
+    "update role", 
+    "new specialist",
+    "role creation",
+    "constitutional role",
+    "prompt engineering role",
+    "specialist role design",
+    "cognitive architecture role",
+    "role enhancement",
+    "10/10 role creation"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "assume-prompt-engineer-role",
+      "name": "🧩 Assume Prompt Engineer Role",
+      "description": "Activate constitutional prompt architecture expertise.\n\nUse adopt_role tool with roleId 'prompt-engineer' to activate The Prompt Architect cognitive framework with 10/10 constitutional AI capabilities.\n\n⚠️ CRITICAL: This role provides systematic methodology, evidence-based optimization, and meta-cognitive scaffolding for perfect role creation.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "define-role-specifications",
+      "name": "📋 Define Role Specifications",
+      "description": "Establish clear constitutional architecture requirements for the target role.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to systematically analyze role requirements.\n\nDefine: domain expertise, cognitive capabilities, constitutional principles, evaluation criteria, performance targets, and integration patterns. What specific intelligence amplification should this role provide?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "check-existing-role",
+      "name": "🔍 Check Existing Role",
+      "description": "Determine if role already exists and assess current implementation.\n\nSearch assets/roles/ directory for existing role files. If role exists, read and analyze current implementation against 10/10 constitutional architecture standards.\n\n⚠️ CRITICAL: Document gaps and enhancement opportunities for systematic improvement.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "review-existing-role-architecture",
+      "name": "🔬 Review Existing Role Architecture",
+      "description": "If role exists, conduct comprehensive constitutional architecture analysis.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for systematic evaluation.\n\nEvaluate against: constitutional coherence, architectural clarity, meta-cognitive scaffolding, context efficiency, failure resilience, dynamic adaptability. Apply 10/10 framework assessment.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "access-prompt-engineering-checklists",
+      "name": "📚 Access Prompt Engineering Checklists",
+      "description": "Load comprehensive evaluation frameworks from memory.\n\nSearch memory://prompt-engineering for all implementation checklists: GPT-4.1 System Prompt Patterns, Agentic Workflows, Instruction Following Framework, Chain of Thought Patterns, Error Handling Strategies, Performance Optimization.\n\n⚠️ CRITICAL: These checklists provide 10/10 validation criteria.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "research-domain-knowledge",
+      "name": "🔎 Research Domain Knowledge",
+      "description": "Systematic research for role domain expertise and patterns.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to coordinate comprehensive research.\n\nResearch sequence:\n1. Search memory:// for existing domain knowledge using search_memories tool\n2. Search codebase for relevant implementation patterns\n3. Use context7 for current industry standards and best practices\n4. Document all findings in memory:// using write_memory with proper [[Wiki Links]] and tags",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "analyze-constitutional-requirements",
+      "name": "⚖️ Analyze Constitutional Requirements", 
+      "description": "Define constitutional AI principles and frameworks for the role.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for constitutional analysis.\n\nDesign: core principles, anti-pattern recognition, value alignment mechanisms, evaluation criteria, transition triggers, and performance monitoring frameworks. How will this role embed persistent constitutional thinking?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "design-cognitive-architecture",
+      "name": "🏗️ Design Cognitive Architecture",
+      "description": "Create systematic cognitive scaffolding and meta-cognitive frameworks.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for architectural design.\n\nDesign: context loading strategies, systematic approaches, implementation patterns, quality frameworks, example integration protocols, state management, documentation architecture, and monitoring systems.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "implement-role-structure",
+      "name": "🔨 Implement Role Structure",
+      "description": "Create complete JSON role specification with constitutional architecture.\n\nImplement all components: id, name, emoji, shortDescription, triggers, personality (motto, principles), approach (contextLoading, systematic frameworks), responseStyle, requiredOutputs, checklist, antiPatterns, transitionTriggers.\n\n⚠️ CRITICAL: Follow exact schema with 10/10 constitutional integration.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "integrate-performance-monitoring",
+      "name": "📊 Integrate Performance Monitoring",
+      "description": "Add systematic performance measurement and optimization frameworks.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for monitoring design.\n\nImplement: specific KPI targets (>95% accuracy baselines), automated monitoring protocols, continuous improvement systems, regression detection, and validation mechanisms. How will role performance be measured and optimized?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "add-documentation-framework",
+      "name": "📖 Add Documentation Framework",
+      "description": "Implement comprehensive documentation and knowledge transfer systems.\n\nAdd: implementation documentation templates, troubleshooting guides with decision trees, team training protocols, maintenance specifications, and knowledge transfer frameworks.\n\n⚠️ CRITICAL: Enable systematic deployment and continuous improvement.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "implement-example-protocols",
+      "name": "💡 Implement Example Protocols",
+      "description": "Create concrete demonstration frameworks with progressive complexity.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for example design.\n\nDevelop: input-output demonstration pairs, progressive complexity models, anti-pattern illustrations, edge case protocols, and domain-specific example libraries. How will users understand role capabilities through examples?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "validate-against-system-prompt-patterns",
+      "name": "🎯 Validate Against System Prompt Patterns",
+      "description": "Systematic evaluation against GPT-4.1 System Prompt Patterns checklist.\n\nValidate: three-pillar architecture, context management, tool integration, chain of thought integration, instruction following, error handling patterns. Document compliance score and enhancement opportunities.\n\n⚠️ CRITICAL: Target 10/10 constitutional architecture score.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "validate-against-agentic-workflows",
+      "name": "🤖 Validate Against Agentic Workflows",
+      "description": "Systematic evaluation against GPT-4.1 Agentic Workflows checklist.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for systematic validation.\n\nValidate: three-pillar architecture, problem-solving workflows, meta-cognitive patterns, state management, tool integration, performance optimization. Does this role enable autonomous intelligent behavior?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "validate-against-instruction-following",
+      "name": "📋 Validate Against Instruction Following Framework",
+      "description": "Systematic evaluation against Instruction Following Framework checklist.\n\nValidate: structured instructions, example-driven guidance, conditional logic, meta-instruction framework, hierarchical architecture, behavioral consistency. Does this role provide clear, systematic guidance?",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "validate-against-fundamentals",
+      "name": "🔧 Validate Against Prompt Engineering Fundamentals",
+      "description": "Systematic evaluation against Fundamentals Implementation checklist.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for comprehensive validation.\n\nValidate: prompt structure architecture, template systems, variable frameworks, quality assurance, delimiter strategies, documentation standards. Does this role demonstrate foundational excellence?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "validate-against-error-handling",
+      "name": "🛡️ Validate Against Error Handling Strategies",
+      "description": "Systematic evaluation against Error Handling Strategies checklist.\n\nValidate: failure mode detection, validation patterns, recovery procedures, preventive design, monitoring integration, graceful degradation. Does this role prevent and handle systematic failures?",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "validate-against-chain-of-thought",
+      "name": "🔗 Validate Against Chain of Thought Patterns",
+      "description": "Systematic evaluation against Chain of Thought Patterns checklist.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for reasoning validation.\n\nValidate: basic CoT templates, advanced reasoning, error analysis, quality enhancement, integration patterns, performance tracking. Does this role enable systematic reasoning and meta-cognitive enhancement?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "calculate-overall-constitutional-score",
+      "name": "📈 Calculate Overall Constitutional Score",
+      "description": "Compute comprehensive constitutional architecture score across all frameworks.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for systematic scoring.\n\nCalculate scores for: constitutional coherence, architectural clarity, meta-cognitive scaffolding, context efficiency, failure resilience, dynamic adaptability. Target: 10/10 overall constitutional excellence.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "implement-enhancement-recommendations",
+      "name": "⚡ Implement Enhancement Recommendations",
+      "description": "Apply systematic improvements to achieve 10/10 constitutional architecture.\n\nImplement all identified enhancements: missing frameworks, performance targets, documentation systems, example protocols, validation mechanisms. Continue until 10/10 score achieved across all evaluation criteria.\n\n⚠️ CRITICAL: No compromises on constitutional excellence.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "final-validation-and-deployment",
+      "name": "✅ Final Validation and Deployment",
+      "description": "Comprehensive validation and role deployment to assets/roles/.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for final validation.\n\nValidate: all checklists score 10/10, constitutional architecture complete, performance monitoring integrated, documentation comprehensive, examples clear, deployment ready. Save to assets/roles/ with proper JSON formatting.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "document-creation-methodology",
+      "name": "📝 Document Creation Methodology",
+      "description": "Document the complete role creation process and lessons learned.\n\nSave to memory:// using write_memory: constitutional design patterns used, evaluation methodologies applied, enhancement techniques implemented, performance achievements, and process improvements for future role creation.\n\n⚠️ CRITICAL: Build institutional knowledge for systematic role excellence.",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

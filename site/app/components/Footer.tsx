@@ -25,7 +25,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="https://github.com/maenifold/maenifold" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                <a href="https://github.com/msbrettorg/maenifold" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                   GitHub
                 </a>
               </li>
@@ -77,7 +77,7 @@ export default function Footer() {
                 </span>
               </li>
               <li>
-                <a href="https://github.com/maenifold/maenifold/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                <a href="https://github.com/msbrettorg/maenifold/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                   License Details
                 </a>
               </li>
@@ -100,7 +100,7 @@ export default function Footer() {
                 v1.0.0
               </span>
               <a
-                href="https://github.com/maenifold/maenifold"
+                href="https://github.com/msbrettorg/maenifold"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white transition-colors"

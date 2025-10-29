@@ -25,6 +25,26 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          lfs: true
+
+      # Cache LFS files to avoid re-downloading 86MB ONNX model on every run
+      - name: Create LFS file hash
+        if: matrix.language == 'csharp'
+        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+
+      - name: Cache LFS files
+        if: matrix.language == 'csharp'
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          key: lfs-${{ hashFiles('.lfs-assets-id') }}
+          restore-keys: |
+            lfs-
+
+      - name: Fetch LFS files
+        if: matrix.language == 'csharp'
+        run: git lfs pull
 
       - name: Setup .NET 9 (C# only)
         if: matrix.language == 'csharp'

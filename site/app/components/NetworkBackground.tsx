@@ -86,9 +86,56 @@ export function NetworkBackground({ className = '' }: NetworkBackgroundProps) {
     setMobileConnections(generateConnections(mNodes));
   }, []);
 
-  // Render null on server to avoid hydration mismatch
+  // Render static placeholder on server to match client structure
   if (!isClient) {
-    return null;
+    return (
+      <div className={className}>
+        {/* Desktop placeholder */}
+        <svg
+          viewBox="0 0 1920 1080"
+          className="hidden lg:block w-full h-full"
+          role="presentation"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="node-gradient-desktop-static" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="rgb(139, 92, 246)" stopOpacity="0.8" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        {/* Tablet placeholder */}
+        <svg
+          viewBox="0 0 1920 1080"
+          className="hidden sm:block lg:hidden w-full h-full"
+          role="presentation"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="node-gradient-tablet-static" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="rgb(139, 92, 246)" stopOpacity="0.8" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        {/* Mobile placeholder */}
+        <svg
+          viewBox="0 0 1920 1080"
+          className="block sm:hidden w-full h-full"
+          role="presentation"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="node-gradient-mobile-static" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="rgb(139, 92, 246)" stopOpacity="0.8" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+    );
   }
 
   return (

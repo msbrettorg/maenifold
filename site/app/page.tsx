@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { NetworkBackground } from './components/NetworkBackground';
 import { GlassCard } from './components/GlassCard';
 import { AnimatedText } from './components/AnimatedText';
+import { RippleButton } from './components/RippleButton';
 
 export default function Home() {
   return (
@@ -12,15 +13,15 @@ export default function Home() {
       <div className="max-w-6xl mx-auto text-center">
         {/* Hero Text */}
         <div className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold mb-3">
+          <h1 className="text-4xl md:text-5xl font-bold mb-3 animate-fade-in-up">
             <AnimatedText>Your agent is ephemeral.</AnimatedText>
           </h1>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900 dark:text-white">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900 dark:text-white animate-fade-in-up animate-delay-100">
             Knowledge shouldn't be.
           </h2>
         </div>
 
-        <p className="text-lg md:text-xl text-slate-700 dark:text-slate-300 mb-6 leading-relaxed max-w-3xl mx-auto">
+        <p className="text-lg md:text-xl text-slate-700 dark:text-slate-300 mb-6 leading-relaxed max-w-3xl mx-auto animate-fade-in-up animate-delay-200">
           <strong>
             <AnimatedText>maenifold</AnimatedText>
           </strong>{' '}
@@ -82,24 +83,27 @@ export default function Home() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
+          <RippleButton
             href="/start"
+            variant="primary"
             className="px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold rounded-lg transition"
           >
             Get Started
-          </Link>
-          <Link
+          </RippleButton>
+          <RippleButton
             href="/tools"
+            variant="secondary"
             className="px-6 py-3 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 font-bold rounded-lg transition"
           >
             Browse Tools
-          </Link>
-          <Link
+          </RippleButton>
+          <RippleButton
             href="/docs/architecture"
+            variant="tertiary"
             className="px-6 py-3 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold rounded-lg transition"
           >
             Documentation
-          </Link>
+          </RippleButton>
         </div>
       </div>
     </div>

@@ -366,11 +366,11 @@ maenifold --tool Workflow --payload '{
           <li className="flex gap-3">
             <span className="text-blue-500 dark:text-blue-400 font-bold">→</span>
             <div>
-              <Link href="/workflows" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">
-                Explore Other Bundled Workflows
+              <Link href="/tools" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">
+                Explore Tools & Workflows
               </Link>
               <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
-                agentic-dev, agentic-test, agentic-troubleshooting
+                Browse workflow tools and memory management capabilities
               </p>
             </div>
           </li>

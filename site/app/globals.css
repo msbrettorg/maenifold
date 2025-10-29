@@ -2,151 +2,154 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* GPU-accelerated keyframe animations */
-@keyframes float {
-  0%, 100% {
-    transform: translate3d(0, 0, 0);
-    opacity: 0.5;
+/* CRITICAL: Wrap all custom CSS in @layer utilities so Tailwind 4.0 doesn't tree-shake it */
+@layer utilities {
+  /* GPU-accelerated keyframe animations */
+  @keyframes float {
+    0%, 100% {
+      transform: translate3d(0, 0, 0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translate3d(var(--float-x, 20px), var(--float-y, 20px), 0);
+      opacity: 0.8;
+    }
   }
-  50% {
-    transform: translate3d(var(--float-x, 20px), var(--float-y, 20px), 0);
-    opacity: 0.8;
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
-}
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.3;
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
   }
-  50% {
-    opacity: 0.8;
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-}
 
-@keyframes gradient-shift {
-  0%, 100% {
-    background-position: 0% 50%;
+  @keyframes mesh-morph {
+    0%, 100% {
+      background-position: 0% 0%, 100% 100%, 50% 50%, 0% 0%;
+    }
+    33% {
+      background-position: 100% 0%, 0% 100%, 30% 70%, 0% 0%;
+    }
+    66% {
+      background-position: 0% 100%, 100% 0%, 70% 30%, 0% 0%;
+    }
   }
-  50% {
-    background-position: 100% 50%;
+
+  /* Animation utility classes */
+  .animate-float {
+    animation: float 45s ease-in-out infinite;
   }
-}
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+  .animate-pulse-connection {
+    animation: pulse 4s infinite;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .animate-gradient-shift {
+    animation: gradient-shift 12.5s ease-in-out infinite;
   }
-}
 
-@keyframes mesh-morph {
-  0%, 100% {
-    background-position: 0% 0%, 100% 100%, 50% 50%, 0% 0%;
+  /* Page load animation (REQ-4.3) */
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    opacity: 0; /* Start hidden to prevent FOUC */
   }
-  33% {
-    background-position: 100% 0%, 0% 100%, 30% 70%, 0% 0%;
+
+  .animate-delay-100 {
+    animation-delay: 0.1s;
   }
-  66% {
-    background-position: 0% 100%, 100% 0%, 70% 30%, 0% 0%;
+
+  .animate-delay-200 {
+    animation-delay: 0.2s;
   }
-}
 
-/* Animation utility classes */
-.animate-float {
-  animation: float 45s ease-in-out infinite;
-}
+  .animate-delay-300 {
+    animation-delay: 0.3s;
+  }
 
-.animate-pulse-connection {
-  animation: pulse 4s infinite;
-}
+  .animate-delay-400 {
+    animation-delay: 0.4s;
+  }
 
-.animate-gradient-shift {
-  animation: gradient-shift 12.5s ease-in-out infinite;
-}
-
-/* Page load animation (REQ-4.3) */
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  opacity: 0; /* Start hidden to prevent FOUC */
-}
-
-.animate-delay-100 {
-  animation-delay: 0.1s;
-}
-
-.animate-delay-200 {
-  animation-delay: 0.2s;
-}
-
-.animate-delay-300 {
-  animation-delay: 0.3s;
-}
-
-.animate-delay-400 {
-  animation-delay: 0.4s;
-}
-
-/* Gradient mesh background animation (REQ-3.2) */
-.gradient-mesh-bg {
-  background:
-    radial-gradient(at 0% 0%, #0ea5e9 0%, transparent 50%),
-    radial-gradient(at 100% 100%, #a855f7 0%, transparent 50%),
-    radial-gradient(at 50% 50%, #06b6d4 0%, transparent 50%),
-    linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-  background-size: 200% 200%, 200% 200%, 200% 200%, 100% 100%;
-  background-attachment: fixed;
-  animation: mesh-morph 90s ease-in-out infinite;
-  will-change: background-position;
-}
-
-.gradient-mesh-bg.reduce-motion {
-  animation: none;
-  will-change: auto;
-}
-
-/* Enhanced hover states for buttons (REQ-4.2) */
-.button-hover {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.button-hover:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-}
-
-/* Accessibility: Respect user motion preferences */
-@media (prefers-reduced-motion: reduce) {
+  /* Gradient mesh background animation (REQ-3.2) */
   .gradient-mesh-bg {
+    background:
+      radial-gradient(at 0% 0%, #0ea5e9 0%, transparent 50%),
+      radial-gradient(at 100% 100%, #a855f7 0%, transparent 50%),
+      radial-gradient(at 50% 50%, #06b6d4 0%, transparent 50%),
+      linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+    background-size: 200% 200%, 200% 200%, 200% 200%, 100% 100%;
+    background-attachment: fixed;
+    animation: mesh-morph 90s ease-in-out infinite;
+    will-change: background-position;
+  }
+
+  .gradient-mesh-bg.reduce-motion {
     animation: none;
     will-change: auto;
   }
 
-  .animate-fade-in-up {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-
+  /* Enhanced hover states for buttons (REQ-4.2) */
   .button-hover {
-    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .button-hover:hover {
-    transform: none;
-    box-shadow: none;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
   }
 
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  /* Accessibility: Respect user motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    .gradient-mesh-bg {
+      animation: none;
+      will-change: auto;
+    }
+
+    .animate-fade-in-up {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .button-hover {
+      transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .button-hover:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

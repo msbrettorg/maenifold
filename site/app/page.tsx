@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { NetworkBackground } from './components/NetworkBackground';
 import { GlassCard } from './components/GlassCard';
 import { AnimatedText } from './components/AnimatedText';
 import { RippleButton } from './components/RippleButton';
@@ -9,7 +8,6 @@ export default function Home() {
     <div className="relative h-screen flex items-center justify-center bg-gradient-to-br from-white via-blue-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 px-6">
       {/* Gradient mesh background (REQ-3.2) */}
       <div className="gradient-mesh-bg fixed inset-0 -z-20 opacity-60 dark:opacity-40" />
-      <NetworkBackground className="fixed inset-0 -z-10" />
       <div className="max-w-6xl mx-auto text-center">
         {/* Hero Text */}
         <div className="mb-8">

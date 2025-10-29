@@ -368,11 +368,11 @@ export MAENIFOLD_ROOT="/shared/team-knowledge"
           <li className="flex gap-3">
             <span className="text-blue-500 dark:text-blue-400 font-bold">→</span>
             <div>
-              <Link href="/workflows" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">
-                Try Workflows
+              <Link href="/tools" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">
+                Explore Tools
               </Link>
               <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
-                Discover systematic development methodologies
+                Discover workflow and memory management tools
               </p>
             </div>
           </li>

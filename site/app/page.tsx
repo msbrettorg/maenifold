@@ -86,21 +86,21 @@ export default function Home() {
           <RippleButton
             href="/start"
             variant="primary"
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold rounded-lg transition"
+            className="button-hover px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold rounded-lg"
           >
             Get Started
           </RippleButton>
           <RippleButton
             href="/tools"
             variant="secondary"
-            className="px-6 py-3 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 font-bold rounded-lg transition"
+            className="button-hover px-6 py-3 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 font-bold rounded-lg"
           >
             Browse Tools
           </RippleButton>
           <RippleButton
             href="/docs/architecture"
             variant="tertiary"
-            className="px-6 py-3 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold rounded-lg transition"
+            className="button-hover px-6 py-3 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold rounded-lg"
           >
             Documentation
           </RippleButton>

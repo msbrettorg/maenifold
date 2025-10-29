@@ -52,6 +52,30 @@ export default function Header() {
               Start
             </Link>
 
+            {/* Use Cases Dropdown */}
+            <div className="relative group">
+              <button className="text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center">
+                Use Cases
+                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </button>
+              <div className="absolute left-0 mt-0 w-64 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <Link href={'/use-cases/knowledge-foundation' as Route} className="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+                  📚 Research & Discovery
+                </Link>
+                <Link href={'/use-cases/domain-extensibility' as Route} className="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+                  🔧 Domain Specialization
+                </Link>
+                <Link href={'/use-cases/dev-work' as Route} className="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+                  💾 Institutional Memory
+                </Link>
+                <Link href={'/use-cases/product-team' as Route} className="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+                  👥 Multi-Agent Collaboration
+                </Link>
+              </div>
+            </div>
+
             {/* Docs Dropdown */}
             <div className="relative group">
               <button className="text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center">
@@ -124,6 +148,21 @@ export default function Header() {
             <Link href={'/start' as Route} className="block px-4 py-2 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white">
               Start
             </Link>
+            <div className="px-4 py-2">
+              <div className="text-slate-700 dark:text-gray-300 font-medium mb-2">Use Cases</div>
+              <Link href={'/use-cases/knowledge-foundation' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
+                📚 Research & Discovery
+              </Link>
+              <Link href={'/use-cases/domain-extensibility' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
+                🔧 Domain Specialization
+              </Link>
+              <Link href={'/use-cases/dev-work' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
+                💾 Institutional Memory
+              </Link>
+              <Link href={'/use-cases/product-team' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
+                👥 Multi-Agent Collaboration
+              </Link>
+            </div>
             <div className="px-4 py-2">
               <div className="text-slate-700 dark:text-gray-300 font-medium mb-2">Docs</div>
               <Link href={'/docs/architecture' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">

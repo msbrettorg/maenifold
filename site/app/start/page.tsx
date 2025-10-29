@@ -137,6 +137,53 @@ env = { MAENIFOLD_ROOT = "~/maenifold" }`}</code>
         </div>
       </section>
 
+      {/* Use Cases Section */}
+      <section className="mb-16">
+        <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">Proven Use Cases</h2>
+        <p className="text-slate-700 dark:text-slate-300 mb-6">
+          Four patterns for integrating maenifold into your workflow—from knowledge building to multi-agent orchestration:
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <a href="/use-cases/knowledge-foundation" className="block p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+              📚 Research & Discovery
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Seed the graph with domain knowledge using research workflows
+            </p>
+          </a>
+          <a href="/use-cases/domain-extensibility" className="block p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+              🔧 Domain Specialization
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              AI creates custom roles & workflows from your knowledge
+            </p>
+          </a>
+          <a href="/use-cases/dev-work" className="block p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+              💾 Institutional Memory
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Persistent context across sessions for ongoing work
+            </p>
+          </a>
+          <a href="/use-cases/product-team" className="block p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+              👥 Multi-Agent Collaboration
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Deploy 25+ agents simulating an entire product team
+            </p>
+          </a>
+        </div>
+        <div className="mt-4 text-center">
+          <a href="/use-cases" className="inline-block text-blue-600 dark:text-blue-400 hover:underline font-semibold">
+            Explore All Use Cases →
+          </a>
+        </div>
+      </section>
+
       {/* Next Steps Section */}
       <section>
         <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">Next Steps</h2>

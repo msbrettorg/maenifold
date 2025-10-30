@@ -109,15 +109,23 @@ export async function loadToolData(slug: string) {
 export function extractSections(htmlContent: string): Array<{ id: string; title: string; level: number }> {
   const sections: Array<{ id: string; title: string; level: number }> = []
   const headingRegex = /<h([2-3])[^>]*[^>]*>(.+?)<\/h\1>/g
+  const idCounts = new Map<string, number>() // Track duplicate IDs
 
   let match
   while ((match = headingRegex.exec(htmlContent)) !== null) {
     const level = parseInt(match[1])
     const title = match[2].replace(/<[^>]*>/g, '') // Remove any nested tags
-    const id = title
+    let id = title
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
+
+    // Handle duplicate IDs by appending a counter
+    const count = idCounts.get(id) || 0
+    if (count > 0) {
+      id = `${id}-${count}`
+    }
+    idCounts.set(id, count + 1)
 
     sections.push({ id, title, level })
   }

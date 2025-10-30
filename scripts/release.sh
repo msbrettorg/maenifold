@@ -17,9 +17,11 @@ echo ""
 # Step 1: Clean previous builds
 echo "Step 1: Cleaning previous builds..."
 rm -rf "$ROOT_DIR/bin/linux-x64"
+rm -rf "$ROOT_DIR/bin/linux-arm64"
 rm -rf "$ROOT_DIR/bin/osx-arm64"
 rm -rf "$ROOT_DIR/bin/osx-x64"
 rm -rf "$ROOT_DIR/bin/win-x64"
+rm -rf "$ROOT_DIR/bin/win-arm64"
 rm -f "$ROOT_DIR"/*.tar.gz
 rm -f "$ROOT_DIR"/*.zip
 rm -f "$ROOT_DIR/SHA256SUMS"
@@ -38,6 +40,9 @@ echo "Step 3: Building all platforms..."
 echo "  - Building Linux x64..."
 dotnet publish src/Maenifold.csproj -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o bin/linux-x64
 
+echo "  - Building Linux ARM64..."
+dotnet publish src/Maenifold.csproj -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=true -o bin/linux-arm64
+
 echo "  - Building macOS ARM64..."
 dotnet publish src/Maenifold.csproj -c Release -r osx-arm64 --self-contained -p:PublishSingleFile=true -o bin/osx-arm64
 
@@ -47,29 +52,55 @@ dotnet publish src/Maenifold.csproj -c Release -r osx-x64 --self-contained -p:Pu
 echo "  - Building Windows x64..."
 dotnet publish src/Maenifold.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o bin/win-x64
 
+echo "  - Building Windows ARM64..."
+dotnet publish src/Maenifold.csproj -c Release -r win-arm64 --self-contained -p:PublishSingleFile=true -o bin/win-arm64
+
 echo "✓ Build complete"
 echo ""
 
-# Step 4: Package binaries
+# Step 4: Package binaries (include assets + README)
 echo "Step 4: Packaging binaries..."
 
-cd "$ROOT_DIR/bin/linux-x64"
-tar -czf "../../maenifold-linux-x64.tar.gz" Maenifold
+DIST_DIR="$ROOT_DIR/dist"
+rm -rf "$DIST_DIR"
+mkdir -p "$DIST_DIR"
+
+copy_runtime_payload () {
+  local runtime="$1"
+  local staging="$DIST_DIR/$runtime"
+
+  mkdir -p "$staging"
+  cp -R "$ROOT_DIR/bin/$runtime/"* "$staging/"
+  cp "$ROOT_DIR/README.md" "$staging/"
+  find "$staging" -name ".DS_Store" -delete
+}
+
+copy_runtime_payload "linux-x64"
+tar -czf "$ROOT_DIR/maenifold-linux-x64.tar.gz" -C "$DIST_DIR/linux-x64" .
 echo "  ✓ Linux tarball created"
 
-cd "$ROOT_DIR/bin/osx-arm64"
-tar -czf "../../maenifold-osx-arm64.tar.gz" Maenifold
+copy_runtime_payload "linux-arm64"
+tar -czf "$ROOT_DIR/maenifold-linux-arm64.tar.gz" -C "$DIST_DIR/linux-arm64" .
+echo "  ✓ Linux ARM64 tarball created"
+
+copy_runtime_payload "osx-arm64"
+tar -czf "$ROOT_DIR/maenifold-osx-arm64.tar.gz" -C "$DIST_DIR/osx-arm64" .
 echo "  ✓ macOS ARM64 tarball created"
 
-cd "$ROOT_DIR/bin/osx-x64"
-tar -czf "../../maenifold-osx-x64.tar.gz" Maenifold
+copy_runtime_payload "osx-x64"
+tar -czf "$ROOT_DIR/maenifold-osx-x64.tar.gz" -C "$DIST_DIR/osx-x64" .
 echo "  ✓ macOS x64 tarball created"
 
-cd "$ROOT_DIR/bin/win-x64"
-zip -r "../../maenifold-win-x64.zip" Maenifold.exe
+copy_runtime_payload "win-x64"
+(cd "$DIST_DIR/win-x64" && zip -qr "$ROOT_DIR/maenifold-win-x64.zip" .)
 echo "  ✓ Windows zip created"
 
-cd "$ROOT_DIR"
+copy_runtime_payload "win-arm64"
+(cd "$DIST_DIR/win-arm64" && zip -qr "$ROOT_DIR/maenifold-win-arm64.zip" .)
+echo "  ✓ Windows ARM64 zip created"
+
+rm -rf "$DIST_DIR"
+
 echo ""
 
 # Step 5: Generate checksums
@@ -88,15 +119,19 @@ echo ""
 echo "Step 6: Updating distribution files with checksums..."
 
 LINUX_SHA=$(shasum -a 256 maenifold-linux-x64.tar.gz | awk '{print $1}')
+LINUX_ARM64_SHA=$(shasum -a 256 maenifold-linux-arm64.tar.gz | awk '{print $1}')
 OSX_ARM64_SHA=$(shasum -a 256 maenifold-osx-arm64.tar.gz | awk '{print $1}')
 OSX_X64_SHA=$(shasum -a 256 maenifold-osx-x64.tar.gz | awk '{print $1}')
 WIN_SHA=$(shasum -a 256 maenifold-win-x64.zip | awk '{print $1}')
+WIN_ARM64_SHA=$(shasum -a 256 maenifold-win-arm64.zip | awk '{print $1}')
 
 echo "Checksums extracted:"
 echo "  Linux x64:     $LINUX_SHA"
+echo "  Linux ARM64:   $LINUX_ARM64_SHA"
 echo "  macOS ARM64:   $OSX_ARM64_SHA"
 echo "  macOS x64:     $OSX_X64_SHA"
 echo "  Windows x64:   $WIN_SHA"
+echo "  Windows ARM64: $WIN_ARM64_SHA"
 echo ""
 
 # Update Homebrew formula
@@ -121,9 +156,11 @@ echo "==================================="
 echo ""
 echo "Generated files:"
 echo "  - maenifold-linux-x64.tar.gz"
+echo "  - maenifold-linux-arm64.tar.gz"
 echo "  - maenifold-osx-arm64.tar.gz"
 echo "  - maenifold-osx-x64.tar.gz"
 echo "  - maenifold-win-x64.zip"
+echo "  - maenifold-win-arm64.zip"
 echo "  - SHA256SUMS"
 echo ""
 echo "Distribution files updated:"

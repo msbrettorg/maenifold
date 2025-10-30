@@ -71,6 +71,7 @@ logs/
 *.bak
 *.bak2
 *.zip
+*.tar.gz
 __pycache__/
 *.py[cod]
 .env
@@ -133,6 +134,9 @@ trufflehog-report.json
 # Release
 release/
 publish/
+dist/
+packages/
+SHA256SUMS
 
 # VSCode Extension (if applicable)
 vscode/node_modules/

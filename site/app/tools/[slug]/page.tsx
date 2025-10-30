@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { getAllToolSlugs, loadToolData, extractSections } from '@/lib/tools'
+import DOMPurify from 'isomorphic-dompurify'
 
 /**
  * Generate static parameters for all 26 tool pages
@@ -146,16 +147,37 @@ function MarkdownContent({ htmlContent }: { htmlContent: string }) {
     <div
       className="markdown-content"
       dangerouslySetInnerHTML={{
-        __html: sanitizeHtml(htmlContent),
+        __html: sanitizeAndStyleHtml(htmlContent),
       }}
     />
   )
 }
 
 /**
- * Apply Tailwind classes to markdown HTML elements
+ * Sanitize HTML to prevent XSS attacks, then apply Tailwind classes to markdown HTML elements
+ * Uses DOMPurify for real XSS protection (Ma Protocol: NO FAKE SECURITY)
  */
-function sanitizeHtml(html: string): string {
+function sanitizeAndStyleHtml(html: string): string {
+  // STEP 1: REAL SANITIZATION with DOMPurify to prevent XSS attacks
+  // This removes dangerous elements like <script>, event handlers, javascript: URLs, etc.
+  const cleanHtml = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'p', 'br', 'hr',
+      'ul', 'ol', 'li',
+      'table', 'thead', 'tbody', 'tr', 'th', 'td',
+      'code', 'pre',
+      'blockquote',
+      'strong', 'em', 'b', 'i',
+      'a',
+      'div', 'span',
+    ],
+    ALLOWED_ATTR: ['href', 'class', 'id'],
+    ALLOW_DATA_ATTR: false,
+  });
+
+  // STEP 2: Apply Tailwind classes to the now-safe HTML
+  html = cleanHtml;
   // Add classes to H2 headings
   html = html.replace(/<h2([^>]*)>([^<]+)<\/h2>/g, (match, attrs, text) => {
     const id = text

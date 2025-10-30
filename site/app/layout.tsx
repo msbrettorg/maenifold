@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -6,6 +6,11 @@ import Footer from './components/Footer';
 export const metadata: Metadata = {
   title: 'Maenifold',
   description: 'Ma Protocol documentation and tools',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -17,7 +22,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
         <Header />
-        <main className="min-h-screen">
+        <main id="main" className="min-h-screen">
           {children}
         </main>
         <Footer />

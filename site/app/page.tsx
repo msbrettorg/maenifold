@@ -72,7 +72,7 @@ export default function Home() {
         </div>
 
         <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 mb-8 max-w-3xl mx-auto italic animate-fade-in-up animate-delay-400">
-          Work your way: Let agents explore freely with fully extensivle roles
+          Work your way: Let agents explore freely with fully extensible roles
           and thinking modes, guide them through structured workflows, or
           orchestrate multiple agents sharing the same knowledge sessions.
           Everything flows into the graph—workflows spawn thinking sessions,

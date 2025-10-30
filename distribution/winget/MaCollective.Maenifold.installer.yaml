@@ -15,7 +15,7 @@ Installers:
   - Architecture: x64
     InstallerType: portable
     InstallerUrl: https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-win-x64.zip
-    InstallerSha256: PLACEHOLDER_WIN_SHA256
+    InstallerSha256: c8847031196df6197d96a81f76ff8b121bd12aaa2845445545a632e0bfd64e8b
     Commands:
       - maenifold
 ManifestType: installer

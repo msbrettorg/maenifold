@@ -57,9 +57,7 @@ for platform in "${PLATFORMS[@]}"; do
   "author": "MSBrett",
   "license": "MIT",
   "files": [
-    "$binary_name",
-    "index.js",
-    "README.md"
+    "**/*"
   ]
 }
 EOF
@@ -79,13 +77,14 @@ EOF
     echo "  ⚠ README.md not found"
   fi
 
-  # Copy binary if it exists
-  BIN_SOURCE="$REPO_ROOT/bin/$runtime_id/$binary_name"
-  if [ -f "$BIN_SOURCE" ]; then
-    cp "$BIN_SOURCE" "$PKG_DIR/"
-    echo "  ✓ Copied binary from bin/$runtime_id/$binary_name"
+  # Copy runtime payload (binary, assets, supporting libs)
+  RUNTIME_DIR="$REPO_ROOT/bin/$runtime_id"
+  if [ -d "$RUNTIME_DIR" ]; then
+    cp -R "$RUNTIME_DIR/"* "$PKG_DIR/"
+    find "$PKG_DIR" -name ".DS_Store" -delete
+    echo "  ✓ Copied runtime payload from bin/$runtime_id"
   else
-    echo "  ⚠ Binary not found: $BIN_SOURCE (run build first)"
+    echo "  ⚠ Runtime directory not found: $RUNTIME_DIR (run build first)"
   fi
 done
 

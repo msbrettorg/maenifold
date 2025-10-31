@@ -125,7 +125,7 @@ jobs:
 
             #### Via npm (recommended for MCP):
             ```bash
-            npm install -g @ma-collective/maenifold
+            npm install -g maenifold
             ```
 
             #### Direct binary download:

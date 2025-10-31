@@ -20,27 +20,27 @@ function getBinaryPath() {
 
   if (platform === 'darwin') {
     if (arch === 'arm64') {
-      platformPackageName = '@ma-collective/maenifold-darwin-arm64';
+      platformPackageName = 'maenifold-darwin-arm64';
       runtimeId = 'osx-arm64';
     } else {
-      platformPackageName = '@ma-collective/maenifold-darwin-x64';
+      platformPackageName = 'maenifold-darwin-x64';
       runtimeId = 'osx-x64';
     }
   } else if (platform === 'linux') {
     if (arch === 'arm64') {
-      platformPackageName = '@ma-collective/maenifold-linux-arm64';
+      platformPackageName = 'maenifold-linux-arm64';
       runtimeId = 'linux-arm64';
     } else {
-      platformPackageName = '@ma-collective/maenifold-linux-x64';
+      platformPackageName = 'maenifold-linux-x64';
       runtimeId = 'linux-x64';
     }
   } else if (platform === 'win32') {
     binaryName = 'Maenifold.exe';
     if (arch === 'arm64') {
-      platformPackageName = '@ma-collective/maenifold-win32-arm64';
+      platformPackageName = 'maenifold-win32-arm64';
       runtimeId = 'win-arm64';
     } else {
-      platformPackageName = '@ma-collective/maenifold-win32-x64';
+      platformPackageName = 'maenifold-win32-x64';
       runtimeId = 'win-x64';
     }
   } else {

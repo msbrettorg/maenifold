@@ -28,7 +28,7 @@ PLATFORMS=(
 for platform in "${PLATFORMS[@]}"; do
   IFS='|' read -r pkg_name runtime_id binary_name <<< "$platform"
 
-  echo "Creating package: @ma-collective/$pkg_name"
+  echo "Creating package: $pkg_name"
 
   PKG_DIR="$PACKAGES_DIR/$pkg_name"
   mkdir -p "$PKG_DIR"
@@ -36,7 +36,7 @@ for platform in "${PLATFORMS[@]}"; do
   # Create package.json
   cat > "$PKG_DIR/package.json" <<EOF
 {
-  "name": "@ma-collective/$pkg_name",
+  "name": "$pkg_name",
   "version": "$VERSION",
   "description": "maenifold binary for $runtime_id",
   "main": "index.js",

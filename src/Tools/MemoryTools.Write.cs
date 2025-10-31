@@ -65,7 +65,12 @@ Returns memory:// URI for future reference, checksum for safe editing, confirms 
         // Do not generate or write any embedding_* fields to frontmatter.
 
 
-        var fullContent = $"# {title}\n\n{content}";
+        // BUG-DUP-H1-001: Prevent duplicate H1 headings
+        var trimmedContent = content.TrimStart();
+        var hasH1 = trimmedContent.StartsWith("# ", StringComparison.Ordinal);
+        var fullContent = hasH1
+            ? content  // Content already has H1, use as-is
+            : $"# {title}\n\n{content}";  // No H1, prepend title
         Directory.CreateDirectory(folderPath);
         MarkdownIO.WriteMarkdown(filePath, frontmatter, fullContent);
 

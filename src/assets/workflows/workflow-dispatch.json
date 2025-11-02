@@ -33,7 +33,7 @@
     {
       "id": "recommend",
       "name": "Select and Execute Workflows - Choose and run complementary workflows",
-      "description": "Select complementary workflows for this problem. Use ListMcpResourcesTool to enumerate resource://workflows/ resources and see all available workflows.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nFirst, use ListMcpResourcesTool to enumerate resource://workflows/ resources to see all available workflows. Based on the problem characteristics and cognitive requirements, which numbered workflows would be most effective? Select complementary workflows that build on each other. Consider how they work together and in what sequence.\n\nWhen you've selected the workflows, immediately execute them using the Workflow tool with an array of workflow IDs.\n\nExample: Workflow([\"workflow-1\", \"workflow-2\", \"workflow-4\"])",
+      "description": "Select complementary workflows for this problem based on the problem characteristics and cognitive requirements.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBased on the problem characteristics and cognitive requirements, which workflows would be most effective? Select complementary workflows that build on each other. Consider how they work together and in what sequence.\n\nWhen you've selected the workflows, immediately execute them using the Workflow tool with an array of workflow IDs.\n\nExample: Workflow([\"workflow-1\", \"workflow-2\", \"workflow-4\"])",
       "requiresEnhancedThinking": true
     }
   ]

@@ -35,6 +35,9 @@ if (args.Contains("--mcp"))
         IncrementalSyncTools.StartWatcher();
     }
 
+    // Start asset hot-loading watcher (Wave 3: RTM-011 to RTM-016)
+    AssetWatcherTools.StartAssetWatcher();
+
     await app.RunAsync();
     return;
 }

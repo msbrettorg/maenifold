@@ -9,6 +9,7 @@ namespace Maenifold.Tools;
 /// <summary>
 /// Asset hot-loading via FileSystemWatcher for JSON asset files.
 /// Monitors ~/maenifold/assets/ for file changes and debounces notifications.
+/// Wave 4: Sends notifications/resources/list_changed to MCP clients when assets change.
 /// </summary>
 [McpServerToolType]
 public static class AssetWatcherTools
@@ -16,6 +17,7 @@ public static class AssetWatcherTools
     private static FileSystemWatcher? _watcher;
     private static System.Timers.Timer? _debounceTimer;
     private static readonly object _lock = new();
+    private static McpServer? _mcpServer;
 
     /// <summary>
     /// Start watching the assets directory for JSON file changes.
@@ -24,15 +26,19 @@ public static class AssetWatcherTools
     /// RTM-013: NotifyFilter = FileName | LastWrite
     /// RTM-014: Debounce delay = 150ms (Config.DefaultDebounceMs)
     /// RTM-016: InternalBufferSize = 64KB (Config.WatcherBufferSize)
+    /// Wave 4: Register MCP server for resource change notifications
     /// </summary>
     [McpServerTool]
     [Description("Start watching assets directory for JSON file changes with debouncing")]
-    public static string StartAssetWatcher()
+    public static string StartAssetWatcher(McpServer mcpServer)
     {
         lock (_lock)
         {
             if (_watcher != null)
                 return "Asset watcher already running";
+
+            // Store MCP server reference for Wave 4: Resource update notifications (RTM-017 to RTM-020)
+            _mcpServer = mcpServer;
 
             // Ensure the assets directory exists before creating the watcher
             Directory.CreateDirectory(Config.AssetsPath);
@@ -159,11 +165,49 @@ public static class AssetWatcherTools
 
     /// <summary>
     /// Called when debounce timer expires.
-    /// Wave 4 will implement MCP resource refresh notification.
+    /// Wave 4: RTM-017 to RTM-020 - Send resource list changed notification to MCP clients
+    /// MA PROTOCOL: Simple, direct notification. Let MCP SDK handle resource refresh.
     /// </summary>
     private static void OnDebounceElapsed(object? sender, ElapsedEventArgs e)
     {
-        // Wave 4: Implement actual resource refresh logic here
-        // For now, this is a placeholder - handlers are registered but empty
+        lock (_lock)
+        {
+            if (_mcpServer == null)
+            {
+                // MA PROTOCOL: NO FAKE AI - Let error propagate
+                // If _mcpServer is null, something went wrong during initialization
+                // The LLM needs to know this happened
+                throw new InvalidOperationException("MCP server not initialized in AssetWatcherTools");
+            }
+
+            // Wave 4: RTM-017, RTM-018, RTM-019, RTM-020
+            // Send notifications/resources/list_changed to notify MCP clients
+            // Clients automatically call ListResources to get updated asset list
+            _ = _mcpServer.SendNotificationAsync<object>(
+                "notifications/resources/list_changed",
+                new object(),
+                null,
+                CancellationToken.None
+            ).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Helper to determine resource type from file path.
+    /// Used to track which resource types changed during debounce window.
+    /// </summary>
+    private static string GetResourceTypeFromPath(string fullPath)
+    {
+        if (fullPath.Contains("/workflows/", StringComparison.OrdinalIgnoreCase))
+            return "workflow";
+        if (fullPath.Contains("/roles/", StringComparison.OrdinalIgnoreCase))
+            return "role";
+        if (fullPath.Contains("/colors/", StringComparison.OrdinalIgnoreCase))
+            return "color";
+        if (fullPath.Contains("/perspectives/", StringComparison.OrdinalIgnoreCase))
+            return "perspective";
+
+        // MA PROTOCOL: NO FAKE AI - Let error propagate with complete information
+        throw new ArgumentException($"Unknown resource type for path: {fullPath}", nameof(fullPath));
     }
 }

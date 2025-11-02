@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using ModelContextProtocol.Server;
 using Maenifold.Tools;
 using Maenifold.Utils;
 
@@ -36,7 +37,9 @@ if (args.Contains("--mcp"))
     }
 
     // Start asset hot-loading watcher (Wave 3: RTM-011 to RTM-016)
-    AssetWatcherTools.StartAssetWatcher();
+    // Wave 4: Pass MCP server for resource update notifications (RTM-017 to RTM-020)
+    var mcpServer = app.Services.GetRequiredService<McpServer>();
+    AssetWatcherTools.StartAssetWatcher(mcpServer);
 
     await app.RunAsync();
     return;

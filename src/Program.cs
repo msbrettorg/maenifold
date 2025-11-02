@@ -22,7 +22,8 @@ if (args.Contains("--mcp"))
     builder.Services
             .AddMcpServer()
             .WithStdioServerTransport()
-            .WithToolsFromAssembly();
+            .WithToolsFromAssembly()
+            .WithResourcesFromAssembly();
 
     var app = builder.Build();
 

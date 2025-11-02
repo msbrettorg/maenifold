@@ -183,31 +183,13 @@ public static class AssetWatcherTools
             // Wave 4: RTM-017, RTM-018, RTM-019, RTM-020
             // Send notifications/resources/list_changed to notify MCP clients
             // Clients automatically call ListResources to get updated asset list
-            _ = _mcpServer.SendNotificationAsync<object>(
+            // MA PROTOCOL: Let async operation complete - errors propagate naturally
+            _mcpServer.SendNotificationAsync<object>(
                 "notifications/resources/list_changed",
                 new object(),
                 null,
                 CancellationToken.None
-            ).ConfigureAwait(false);
+            );
         }
-    }
-
-    /// <summary>
-    /// Helper to determine resource type from file path.
-    /// Used to track which resource types changed during debounce window.
-    /// </summary>
-    private static string GetResourceTypeFromPath(string fullPath)
-    {
-        if (fullPath.Contains("/workflows/", StringComparison.OrdinalIgnoreCase))
-            return "workflow";
-        if (fullPath.Contains("/roles/", StringComparison.OrdinalIgnoreCase))
-            return "role";
-        if (fullPath.Contains("/colors/", StringComparison.OrdinalIgnoreCase))
-            return "color";
-        if (fullPath.Contains("/perspectives/", StringComparison.OrdinalIgnoreCase))
-            return "perspective";
-
-        // MA PROTOCOL: NO FAKE AI - Let error propagate with complete information
-        throw new ArgumentException($"Unknown resource type for path: {fullPath}", nameof(fullPath));
     }
 }

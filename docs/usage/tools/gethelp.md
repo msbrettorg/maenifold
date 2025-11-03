@@ -70,7 +70,9 @@ GetHelp provides documentation for all Maenifold tools:
 
 **System Tools**: GetConfig, GetHelp, ListMemories, MemoryStatus, RecentActivity, Sync
 
-**Thinking Tools**: SequentialThinking, Workflow, ListWorkflows  
+**Thinking Tools**: SequentialThinking, Workflow
+
+**Resource Tools**: ListMcpResources, ReadMcpResource
 
 **Visualization Tools**: Visualize
 

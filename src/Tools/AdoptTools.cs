@@ -13,9 +13,18 @@ public class AdoptTools
     [Description("Adopt a role, color, or perspective by reading its JSON configuration from assets")]
     public static async Task<string> Adopt(
         [Description("Type of asset to adopt: 'role', 'color', or 'perspective'")] string type,
-        [Description("Identifier of the asset (filename without .json extension)")] string identifier
+        [Description("Identifier of the asset (filename without .json extension)")] string identifier,
+        [Description("Return help documentation instead of executing")] bool learn = false
     )
     {
+        if (learn)
+        {
+            var toolName = nameof(Adopt).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(Adopt)}";
+            return File.ReadAllText(helpPath);
+        }
 
         var validTypes = new[] { "role", "color", "perspective" };
         if (!validTypes.Contains(type.ToLowerInvariant(), StringComparer.OrdinalIgnoreCase))

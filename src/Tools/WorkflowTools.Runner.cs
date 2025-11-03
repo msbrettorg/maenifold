@@ -1,5 +1,6 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using Maenifold.Utils;
 
 namespace Maenifold.Tools;
 
@@ -18,8 +19,18 @@ Returns structured guidance with step progression, tool hints, quality gates, an
         [Description("Set to 'completed' or 'cancelled' to end session")] string? status = null,
         [Description("Required conclusion/synthesis when status='completed' - MUST include [[concepts]]")] string? conclusion = null,
         [Description("View queue status")] bool view = false,
-        [Description("Append workflow(s) to queue")] string? append = null)
+        [Description("Append workflow(s) to queue")] string? append = null,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(Workflow).ToLowerInvariant();
+            var helpPath = System.IO.Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!System.IO.File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(Workflow)}";
+            return System.IO.File.ReadAllText(helpPath);
+        }
+
         ValidateParameters(workflowId, sessionId);
         return DispatchWorkflowOperation(sessionId, workflowId, response, thoughts, status, conclusion, view, append);
     }

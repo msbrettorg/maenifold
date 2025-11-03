@@ -14,8 +14,18 @@ Integrates with SearchMemories for discovery, EditMemory for modifications, Move
 Returns formatted content with timestamps, location, checksum, and full markdown content ready for analysis.")]
     public static string ReadMemory(
         [Description("Memory FILE identifier (memory://uri points to a FILE, or title of a FILE)")] string identifier,
-        [Description("Return checksum with content for safe editing")] bool includeChecksum = true)
+        [Description("Return checksum with content for safe editing")] bool includeChecksum = true,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(ReadMemory).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(ReadMemory)}";
+            return File.ReadAllText(helpPath);
+        }
+
         var path = identifier.StartsWithOrdinal("memory://") ? UriToPath(identifier) : FindFileByTitle(identifier);
 
         if (path == null || !File.Exists(path))
@@ -67,8 +77,18 @@ Returns updated URI with new checksum, confirms successful modification and cont
         [Description("File checksum from last read (prevents stale edits)")] string? checksum = null,
         [Description("Text to find (for find_replace)")] string? findText = null,
         [Description("Section name (for replace_section)")] string? sectionName = null,
-        [Description("Expected match count (for find_replace validation)")] int? expectedCount = null)
+        [Description("Expected match count (for find_replace validation)")] int? expectedCount = null,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(EditMemory).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(EditMemory)}";
+            return File.ReadAllText(helpPath);
+        }
+
         var path = identifier.StartsWithOrdinal("memory://") ? UriToPath(identifier) : FindFileByTitle(identifier);
 
         if (path == null || !File.Exists(path))
@@ -158,8 +178,18 @@ Integrates with SearchMemories for cleanup discovery, ReadMemory for content ver
 Returns deletion confirmation with removed URI, enables cleanup of orphaned references.")]
     public static string DeleteMemory(
         [Description("Memory FILE identifier")] string identifier,
-        [Description("Confirm deletion of the FILE")] bool confirm = false)
+        [Description("Confirm deletion of the FILE")] bool confirm = false,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(DeleteMemory).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(DeleteMemory)}";
+            return File.ReadAllText(helpPath);
+        }
+
         if (!confirm)
             return "ERROR: Must set confirm=true to delete a memory file";
 
@@ -181,8 +211,17 @@ Connects to ReadMemory for source verification, SearchMemories for organization 
 Returns movement confirmation showing old → new URIs, maintains all content and graph connections.")]
     public static string MoveMemory(
         [Description("Source FILE identifier")] string source,
-        [Description("Destination FILE name or path")] string destination)
+        [Description("Destination FILE name or path")] string destination,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(MoveMemory).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(MoveMemory)}";
+            return File.ReadAllText(helpPath);
+        }
 
         if (string.IsNullOrWhiteSpace(destination))
             return "ERROR: Destination parameter is required and cannot be empty.";
@@ -235,8 +274,18 @@ Requires memory file identifier (URI or title) for targeted concept analysis.
 Connects to ReadMemory for file access, BuildContext for relationship mapping, Sync for graph validation.
 Returns concept list with count statistics, enables graph connectivity analysis and relationship discovery.")]
     public static string ExtractConceptsFromFile(
-        [Description("Memory FILE identifier")] string identifier)
+        [Description("Memory FILE identifier")] string identifier,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(ExtractConceptsFromFile).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(ExtractConceptsFromFile)}";
+            return File.ReadAllText(helpPath);
+        }
+
         var path = identifier.StartsWithOrdinal("memory://") ? UriToPath(identifier) : FindFileByTitle(identifier);
 
         if (path == null || !File.Exists(path))

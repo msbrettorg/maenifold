@@ -17,8 +17,17 @@ Select when AI needs system configuration verification, debugging support, or op
 No parameters required - returns complete configuration state and system settings.
 Integrates with all tools for configuration-dependent behavior, MemoryStatus for system health correlation.
 Returns configuration settings with values, paths, and system state information for operational insight.")]
-    public static string GetConfig()
+    public static string GetConfig([Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(GetConfig).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(GetConfig)}";
+            return File.ReadAllText(helpPath);
+        }
+
         return Config.GetConfigSummary();
     }
 
@@ -27,8 +36,17 @@ Select when AI needs system overview, storage analysis, or health checks before 
 No parameters required - returns comprehensive system state and resource utilization metrics.
 Integrates with ListMemories for structure analysis, RecentActivity for usage patterns, Sync for graph health.
 Returns detailed statistics with file counts, concept metrics, and system health indicators.")]
-    public static string MemoryStatus()
+    public static string MemoryStatus([Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(MemoryStatus).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(MemoryStatus)}";
+            return File.ReadAllText(helpPath);
+        }
+
         var stats = new System.Text.StringBuilder("# Memory System Status\n\n");
 
 
@@ -72,8 +90,18 @@ Requires optional path parameter for targeted directory exploration, defaults to
 Connects to WriteMemory for organization planning, MoveMemory for restructuring, SearchMemories for content discovery.
 Returns hierarchical directory listing with file counts, sizes, and folder organization for structure understanding.")]
     public static string ListMemories(
-        [Description("Directory path (relative to memory)")] string? path = null)
+        [Description("Directory path (relative to memory)")] string? path = null,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(ListMemories).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(ListMemories)}";
+            return File.ReadAllText(helpPath);
+        }
+
         var targetPath = string.IsNullOrEmpty(path)
             ? MemoryPath
             : Path.Combine(MemoryPath, path);
@@ -143,8 +171,18 @@ Supports dry-run mode to preview changes before applying, with detailed summary 
 Integrates with asset initialization to provide explicit refresh mechanism after deployment.
 Returns summary of added/updated files with error reporting if refresh encounters issues.")]
     public static string UpdateAssets(
-        [Description("Preview changes without modifying files (default=true)")] bool dryRun = true)
+        [Description("Preview changes without modifying files (default=true)")] bool dryRun = true,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(UpdateAssets).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(UpdateAssets)}";
+            return File.ReadAllText(helpPath);
+        }
+
         var result = AssetManager.UpdateAssets(dryRun);
         return result.ToString();
     }

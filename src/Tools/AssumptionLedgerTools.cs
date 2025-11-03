@@ -22,8 +22,18 @@ Returns declarative next-step suggestions aligned with Ma Protocol restraint.")]
         [Description("Agent-supplied [[concept]] tags for knowledge graph integration")] string[]? concepts = null,
         [Description("Memory URI for update/read actions (e.g., memory://assumptions/2025/01/assumption-1234567890)")] string? uri = null,
         [Description("Status update: validated, invalidated, or refined")] string? status = null,
-        [Description("Additional notes for updates")] string? notes = null)
+        [Description("Additional notes for updates")] string? notes = null,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(AssumptionLedger).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(AssumptionLedger)}";
+            return File.ReadAllText(helpPath);
+        }
+
         try
         {
             return action.ToLowerInvariant() switch

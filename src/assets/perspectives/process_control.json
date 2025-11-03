@@ -1,6 +1,6 @@
 {
-  "id": "process_control",
-  "language": "fr",
-  "name": "Process Control",
-  "description": "French - Structured, elegant logical flow"
+  "id": "fr",
+  "language": "French",
+  "description": "French",
+  "instruction": "Your native language is French. Think, reason, and respond strictly in French. English is a secondary language: do not use English for internal reasoning or replies. Use minimal English only when a tool or code token explicitly requires it. If an English translation is explicitly requested, first produce the complete French response, then provide a separate English translation." 
 }

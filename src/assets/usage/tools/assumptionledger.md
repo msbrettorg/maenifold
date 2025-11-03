@@ -1,146 +1,108 @@
-# Assumption Ledger
+# AssumptionLedger
 
-A minimal, manifesto-aligned tool for agents to declare, revisit, and resolve assumptions.
-Provides traceable skepticism without auto-inference, scoring, or retry logic.
-Integrates with SequentialThinking and Workflow sessions via context references.
-
-## When to Use This Tool
-
-- **Before SequentialThinking**: Log dominant assumptions alongside initial prompt to establish context
-- **During Workflow Execution**: Reference ledger entries when decisions depend on unvalidated assumptions
-- **After Completion**: Update status to show what held true, capturing lessons in memory
-- **Multi-agent Coordination**: Share assumptions across agent boundaries for continuity
-- **Risk Management**: Make implicit assumptions explicit and trackable
-
-Key features:
-- Captures assumption statements without inference or analysis
-- Stores as durable Markdown artifacts in memory://assumptions/
-- Integrates with knowledge graph through [[concept]] tags
-- Searchable via SearchMemories after Sync()
-- Supports status tracking (active, validated, invalidated, refined)
-- Maintains complete audit trail with timestamps
-- Zero auto-reasoning - agents decide what to validate and when
-
-## What This Tool Does NOT Do
-
-In alignment with Maenifold philosophy:
-- ❌ Does NOT automatically discover or rank assumptions
-- ❌ Does NOT cache, score, or batch operations beyond markdown writes
-- ❌ Does NOT implement telemetry, analytics, or usage tracking
-- ❌ Does NOT provide helper UI, wizards, or configuration generators
-- ❌ Does NOT infer relationships or create automated ontologies
-
-**Why:** Every decision we make removes a decision the agent could make. The ledger is a mirror, not a mind.
+Declare, update, and track assumptions without auto-inference. Stores as markdown in `memory://assumptions/` with `[[concept]]` integration.
 
 ## Parameters
 
 ### action (required)
-One of: "append", "update", or "read"
+One of: `"append"`, `"update"`, `"read"`
 
-### For action="append" (Create New Assumption)
+### For action="append"
 
 **Required:**
-- `assumption`: The assumption statement (free text)
-- `concepts`: Array of concept tags for knowledge graph integration (e.g., ["workflow", "sequential-thinking"])
+- `assumption` (string): Assumption statement
+- `concepts` (string[]): Concept tags for graph integration. Example: `["workflow", "sequential-thinking"]`
 
 **Optional:**
-- `context`: Reference to workflow or sequential thinking session (e.g., "workflow://thinking/session-1756610546730")
-- `validationPlan`: How you plan to validate this assumption (free text)
-- `confidence`: Free text confidence level (e.g., "high", "medium", "low", "needs-verification")
+- `context` (string): Session reference. Example: `"workflow://thinking/session-1756610546730"`
+- `validationPlan` (string): Validation approach
+- `confidence` (string): Free text level. Example: `"high"`, `"medium"`, `"low"`, `"needs-verification"`
 
-### For action="update" (Modify Existing Assumption)
+### For action="update"
 
 **Required:**
-- `uri`: Memory URI of the assumption (e.g., "memory://assumptions/2025/09/assumption-1759186965105")
+- `uri` (string): Memory URI. Example: `"memory://assumptions/2025/09/assumption-1759186965105"`
 
 **Optional:**
-- `status`: New status - one of: "active", "validated", "invalidated", or "refined"
-- `confidence`: Updated confidence level (free text)
-- `validationPlan`: Updated validation plan
-- `notes`: Additional notes to append (creates timestamped section)
+- `status` (string): One of: `"active"`, `"validated"`, `"invalidated"`, `"refined"`
+- `confidence` (string): Updated confidence level
+- `validationPlan` (string): Updated validation plan
+- `notes` (string): Timestamped notes to append
 
-### For action="read" (View Existing Assumption)
+### For action="read"
 
 **Required:**
-- `uri`: Memory URI of the assumption
+- `uri` (string): Memory URI
 
-## Output Format
+## Returns
 
 ### Append
-Returns confirmation with:
-- Memory URI for the new assumption
-- Statement, confidence, and status summary
-- Declarative next-step suggestion (run Sync() for search integration)
-- Validation plan reminder if provided
+```json
+{
+  "uri": "memory://assumptions/2025/09/assumption-1759186965105",
+  "status": "active",
+  "confidence": "medium",
+  "nextStep": "Run Sync() for search integration"
+}
+```
 
 ### Update
-Returns confirmation with:
-- Updated URI
-- New status and/or confidence if changed
-- Declarative next-step suggestion (run Sync() to update graph)
+```json
+{
+  "uri": "memory://assumptions/2025/09/assumption-1759186965105",
+  "status": "validated",
+  "nextStep": "Run Sync() to update graph"
+}
+```
 
 ### Read
-Returns full assumption details:
-- All frontmatter metadata (status, confidence, timestamps, context, validation plan)
-- Complete content including statement, validation plan, and concept links
-- Update history if notes have been added
+Returns full frontmatter (status, confidence, timestamps, context, validation plan) and markdown content.
+
+## Example
+
+```json
+{
+  "action": "append",
+  "assumption": "Current implementation uses recursive traversal",
+  "concepts": ["graph-traversal", "performance"],
+  "context": "session-1759186950",
+  "validationPlan": "Profile actual query performance",
+  "confidence": "medium"
+}
+```
 
 ## Integration Patterns
 
 ### With SequentialThinking
 
 ```markdown
-Before starting session:
-AssumptionLedger(
-  action: "append",
-  assumption: "Current implementation uses recursive traversal",
-  context: "session-1759186950",
-  concepts: ["graph-traversal", "performance"],
-  validationPlan: "Profile actual query performance"
-)
+Before session:
+AssumptionLedger(append) → log dominant assumptions
 
-Then in thoughts:
-"Analyzing [[graph-traversal]] performance assuming [[recursive-implementation]]...
-See memory://assumptions/2025/09/assumption-X for baseline assumption"
-```
+During session:
+Reference assumption URIs in thoughts with [[concepts]]
 
-### With Workflow
-
-```markdown
-AssumptionLedger(
-  action: "append",
-  assumption: "Bug fix requires schema migration",
-  context: "workflow://thinking/workflow-1759186950",
-  concepts: ["database", "migration"]
-)
+After session:
+AssumptionLedger(update) → mark validated/invalidated
 ```
 
 ### With SearchMemories
 
 ```markdown
-# First, sync assumptions to knowledge graph
+# First sync to graph
 Sync()
 
-# Then search across all assumptions
-SearchMemories(
-  query: "workflow orchestration",
-  mode: "Hybrid",
-  folder: "assumptions"
-)
+# Then search assumptions
+SearchMemories(query: "workflow orchestration", folder: "assumptions")
 ```
 
 ## File Structure
 
-Assumptions stored at: `memory://assumptions/YYYY/MM/assumption-{timestamp}.md`
+Stored at: `memory://assumptions/YYYY/MM/assumption-{timestamp}.md`
 
-Each file contains:
-1. **YAML Frontmatter**: status, confidence, context, validation_plan, timestamps
-2. **Markdown Content**: Human-readable assumption statement and related concepts
-
-Example:
 ```markdown
 ---
-created: 2025-09-29T23:02:45.1054396Z
+created: 2025-09-29T23:02:45Z
 status: active
 confidence: medium
 context: workflow://thinking/session-1756610546730
@@ -150,42 +112,18 @@ validation_plan: Validate once dialogue MCP hooks are reintroduced
 # Assumption: The dialogue tool will remain MCP-only
 
 ## Statement
-
 The dialogue tool will remain MCP-only
 
 ## Validation Plan
-
 Validate once dialogue MCP hooks are reintroduced
 
 ## Related Concepts
-
 - [[dialogue]]
 - [[workflow-dispatch]]
 ```
 
-## Workflow Guidance
+## Constraints
 
-### Before SequentialThinking
-Log dominant assumptions alongside the initial prompt to establish context.
-
-### During Workflow Execution
-Reference ledger entries in thoughts when a decision depends on them.
-
-### After Completion
-Update status to show what held true, capturing lessons in memory:// rather than proposing new features.
-
-## Notes
-
-- Requires [[concept]] tags for knowledge graph integration
-- Files persist across sessions in date-organized folders
-- Searchable after running Sync()
-- Updates create timestamped sections maintaining complete history
-- Zero automation beyond file write - validation is agent's responsibility
-
-## See Also
-
-- [SequentialThinking](sequentialthinking.md)
-- [Workflow](workflow.md)
-- [SearchMemories](searchmemories.md)
-- [Sync](sync.md)
-- [Assumption Ledger Full Guide](../../../docs/ASSUMPTION_LEDGER.md)
+- **[[concept]] required**: Must include concept tags for graph integration
+- **No auto-inference**: Tool stores declarations only - validation is agent's responsibility
+- **Sync required**: Run `Sync()` after append/update for search integration

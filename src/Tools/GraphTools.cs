@@ -25,12 +25,21 @@ Select when AI needs to ensure graph accuracy, integrate new concepts, or refres
 No parameters required - processes all memory files for comprehensive graph database synchronization.
 Integrates with all memory tools for concept extraction, BuildContext for relationship verification, Visualize for graph display.
 Returns synchronization status with concept counts, relationship updates, and database health confirmation.")]
-    public static string Sync()
+    public static string Sync([Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(Sync).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(Sync)}";
+            return File.ReadAllText(helpPath);
+        }
+
         return ConceptSync.Sync();
     }
 
-    [McpServerTool, Description(@"Traverses concept relationships in Ma Core's graph database to discover connected knowledge networks.
+    [McpServerTool, Description(@"Traverses concept relationships in maenifold's graph database to discover connected knowledge networks.
 Select when AI needs to understand concept relationships, explore knowledge clusters, or find related information.
 Requires concept name with optional depth, entity limits, and content inclusion for comprehensive context building.
 Connects to SearchMemories for concept discovery, ReadMemory for content access, Visualize for relationship mapping.
@@ -152,7 +161,7 @@ Returns related concepts with relationship types, file references, and connectio
         return result;
     }
 
-    [McpServerTool, Description(@"Generates Mermaid diagram representations of concept relationships from Ma Core's graph database.
+    [McpServerTool, Description(@"Generates Mermaid diagram representations of concept relationships from maenifold's graph database.
 Select when AI needs visual understanding of knowledge connections, relationship mapping, or concept clustering analysis.
 Requires concept name with optional depth limits and node count controls for focused visualization.
 Integrates with BuildContext for relationship data, Sync for graph accuracy, SearchMemories for concept discovery.
@@ -160,8 +169,18 @@ Returns Mermaid diagram code ready for rendering, enables visual knowledge archi
     public static string Visualize(
             [Description("Central concept")] string conceptName,
             [Description("Graph depth")] int depth = 2,
-            [Description("Max nodes")] int maxNodes = 30)
+            [Description("Max nodes")] int maxNodes = 30,
+            [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(Visualize).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(Visualize)}";
+            return File.ReadAllText(helpPath);
+        }
+
         return GraphAnalyzer.Visualize(conceptName, depth, maxNodes);
     }
 

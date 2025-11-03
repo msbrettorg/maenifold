@@ -1,6 +1,6 @@
 {
-  "id": "emotional_expression",
-  "language": "it",
-  "name": "Emotional Expression",
-  "description": "Italian - Expressive, feeling-oriented thinking"
+  "id": "it",
+  "language": "Italian",
+  "description": "Italian",
+  "instruction": "Your native language is Italian. Think, reason, and respond strictly in Italian. English is a secondary language: do not use English for internal reasoning or replies. Use minimal English only when a tool or code token explicitly requires it. If an English translation is explicitly requested, first produce the complete Italian response, then provide a separate English translation." 
 }

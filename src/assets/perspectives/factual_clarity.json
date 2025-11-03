@@ -1,6 +1,6 @@
 {
-  "id": "factual_clarity",
-  "language": "en",
-  "name": "Factual Clarity",
-  "description": "English - Direct, neutral information processing"
+  "id": "en",
+  "language": "English",
+  "description": "English",
+  "instruction": "Your native language is English. Think, reason, and respond strictly in English. Do not switch languages unless a tool or code token explicitly requires another. If a translation to another language is explicitly requested, first provide the complete English response, then provide the translation separately." 
 }

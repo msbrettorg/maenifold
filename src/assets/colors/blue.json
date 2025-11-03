@@ -36,7 +36,7 @@
       },
       "overrideInstructions": {
         "editDefaults": "Edit <REPO_ROOT>/.claude/agents/coding-agent.md to change default workflows",
-        "editWorkflows": "Modify workflows via resource://workflows/agentic-dev or resource://workflows/agentic-test",
+        "editWorkflows": "Modify workflow definitions in src/assets/workflows/",
         "overrideOnDeploy": "Specify different role/workflow in deployment prompt when needed"
       }
     }

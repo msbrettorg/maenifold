@@ -1,0 +1,452 @@
+{
+  "id": "agentic-dev",
+  "name": "Agentic SLC (Simple, Lovable, Complete)",
+  "emoji": "\ud83c\udfaf",
+  "triggers": [
+    "agentic slc",
+    "simple lovable complete",
+    "slc agile",
+    "ai agent development",
+    "slc methodology",
+    "anti-slop development",
+    "agentic product development",
+    "simple complete lovable",
+    "agent assisted slc",
+    "slick development"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "adopt-role",
+      "name": "\ud83d\udccb Adopt Role",
+      "description": "FIRST STEP: Adopt the engineer role and white color",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Role clearly adopted",
+          "Engineering mindset established"
+        ],
+        "time_budget": "1-2 minutes",
+        "guardrails": {
+          "scope_limit": "Role adoption only, no implementation"
+        }
+      }
+    },
+    {
+      "id": "define-requirements",
+      "name": "\ud83d\udccb Define Clear Requirements",
+      "description": "FIRST: Read and restate the specifications EXACTLY as provided. If ANY ambiguity or uncertainty exists, STOP IMMEDIATELY with:\n1. Clear explanation of what is ambiguous\n2. Recommendation: \"Dispatch new agent with clarified instructions on: [specific unclear points]\"\n3. Do NOT proceed with guesses - failing fast is better than building wrong solutions.\n\nCreate unambiguous user stories with specific acceptance criteria. Challenge every assumption about user needs.\n\n**\ud83e\udde0 USE SEQUENTIAL THINKING TOOL**: Use the SequentialThinking tool to work through this systematically:\n\nWhat specific, measurable criteria define success? What assumptions am I making that could lead to over-engineering?\n\nBased on architecture analysis:\n- What dependencies must be integrated? (serana find_all_references)\n- What patterns are established? (SearchMemories + serana symbol_search)\n- What existing infrastructure should be used? (serana hover for signatures)\n- What related concepts exist in knowledge graph? (BuildContext)",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Requirement analysis needs systematic thinking to prevent over-engineering",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "User needs",
+              "Success criteria",
+              "Architecture constraints",
+              "Anti-slop measures"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Find similar implementations and patterns",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Understand concept relationships that inform requirements",
+            "priority": "recommended"
+          },
+          "Context7": {
+            "reason": "Need up-to-date patterns and best practices",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Requirements unambiguous",
+          "Success criteria measurable",
+          "Over-engineering risks identified"
+        ],
+        "next_actions": [
+          "Research similar implementations",
+          "Define test cases",
+          "Validate against architecture"
+        ],
+        "guardrails": {
+          "prevent_overengineering": "Challenge every assumption",
+          "measurable_criteria": "All success criteria must be testable",
+          "escape_hatch": "STOP if unclear - explain ambiguity and recommend re-dispatch with clarification",
+          "spec_restatement": "Must restate specs exactly before proceeding",
+          "fail_communication": "When stopping, must explain why and suggest specific clarifications needed"
+        }
+      }
+    },
+    {
+      "id": "research-knowledge-review",
+      "name": "\ud83d\udd0e Research & Knowledge Review",
+      "description": "Before planning or implementation, systematically search for relevant prior knowledge and conduct research.\n\n**\ud83e\udde0 USE SEQUENTIAL THINKING TOOL**: Use the SequentialThinking tool to work through this systematically:\n\n1. Use SearchMemories to find relevant prior knowledge and avoid duplication\n2. Use BuildContext to understand concept relationships in knowledge graph\n3. Use RecentActivity to see related recent work\n4. Conduct online research (WebSearch/Context7) for additional insights as needed\n5. Save new findings using WriteMemory with proper formatting\n\nWhen saving research, you MUST:\n- Use descriptive titles with [[Wiki Links]] to connect related entities\n- Include YAML frontmatter and proper formatting\n- Tag appropriately and organize in folders for discoverability\n- Connect new research to existing knowledge graph",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic research process requires structured thinking",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Prior knowledge review",
+              "Research gaps",
+              "Knowledge integration"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Find existing knowledge to avoid duplication",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Understand knowledge graph connections",
+            "priority": "recommended"
+          },
+          "RecentActivity": {
+            "reason": "See related recent work and context",
+            "priority": "recommended"
+          },
+          "WriteMemory": {
+            "reason": "Preserve research findings with proper formatting",
+            "priority": "mandatory"
+          },
+          "WebSearch": {
+            "reason": "Find up-to-date external information",
+            "priority": "optional"
+          },
+          "Context7": {
+            "reason": "Access up-to-date documentation and patterns",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Existing knowledge reviewed",
+          "Research gaps identified",
+          "New findings documented"
+        ],
+        "next_actions": [
+          "Validate requirements",
+          "Plan implementation",
+          "Write test cases"
+        ],
+        "guardrails": {
+          "avoid_duplication": "Check existing memory before researching",
+          "proper_format": "Must use Wiki Links and YAML frontmatter",
+          "knowledge_connection": "Connect to existing concepts"
+        }
+      }
+    },
+    {
+      "id": "quality-gate-requirements",
+      "name": "\ud83d\udeaa Quality Gate: Requirements Validation",
+      "description": "Validate requirements are clear, testable, and prevent AI over-engineering.\n\n\ud83e\udde0 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool and context7 to work through this systematically.\n\nCan AI misinterpret these requirements? Are success criteria measurable? Do requirements prevent unnecessary complexity?\n\n\ud83d\udea8 ESCAPE HATCH: If requirements are ambiguous or could be misinterpreted:\n1. STOP WORKFLOW IMMEDIATELY\n2. Document the specific ambiguities found\n3. Output: \"WORKFLOW STOPPED: [Explanation]. Recommend dispatching new agent with clarified [specific items]\"\n4. Remember: Building 2,300 lines for a 10-line config is worse than asking for clarity.",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Critical validation requires systematic analysis",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Requirement clarity",
+              "Measurable criteria",
+              "Over-engineering prevention"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Requirements validated",
+          "AI misinterpretation risks identified",
+          "Success criteria confirmed testable"
+        ],
+        "guardrails": {
+          "gate_criteria": "Must pass all validation checks before proceeding",
+          "prevent_complexity": "Requirements must prevent unnecessary complexity",
+          "fail_fast": "Stop immediately if requirements unclear",
+          "escape_trigger": "Any ambiguity in requirements",
+          "fail_communication": "Must document ambiguities and recommend re-dispatch with specific clarifications",
+          "lesson_learned": "2,300 lines for 10-line config = catastrophic failure. Always fail fast instead."
+        }
+      }
+    },
+    {
+      "id": "write-test-case",
+      "name": "\ud83d\udcdd Write Test Cases",
+      "description": "Create automated tests for each micro-task to ensure correctness.\n\n\ud83e\udde0 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool and context7 to work through this systematically.\n\nAre all edge cases covered? Do tests validate both positive and negative scenarios?",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Comprehensive test planning requires systematic analysis",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Edge cases",
+              "Positive scenarios",
+              "Negative scenarios",
+              "Test coverage"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All scenarios covered",
+          "Edge cases identified",
+          "Tests validate requirements"
+        ],
+        "next_actions": [
+          "Implement solution",
+          "Run tests",
+          "Validate coverage"
+        ],
+        "guardrails": {
+          "test_completeness": "Must cover both positive and negative scenarios",
+          "edge_case_coverage": "All edge cases must be tested"
+        }
+      }
+    },
+    {
+      "id": "implement-solution",
+      "name": "\ud83d\udd28 Implement Solution",
+      "description": "Execute micro-tasks exactly as specified. No additions beyond requirements.\n\nGit tracking: Commit after each micro-task completion with: `git add -A && git commit -m 'feat: [specific change description]'`\n\n\ud83e\udde0 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool and context7 to work through this systematically.\n\nDoes this implementation match specifications exactly? Am I adding complexity beyond what's specified?",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Implementation decisions need systematic validation against requirements",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Requirement adherence",
+              "Complexity prevention",
+              "Ma Protocol compliance",
+              "Test alignment"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Implementation matches specifications exactly",
+          "No unnecessary complexity added",
+          "Tests pass"
+        ],
+        "next_actions": [
+          "Run tests",
+          "Validate against requirements",
+          "Check for deprecated code"
+        ],
+        "guardrails": {
+          "no_additions": "No features beyond requirements",
+          "ma_protocol": "Must follow Ma Protocol principles",
+          "test_alignment": "Implementation must pass all tests",
+          "git_tracking": "Commit after each micro-task"
+        }
+      }
+    },
+    {
+      "id": "remove-deprecated-code",
+      "name": "\ud83d\uddd1\ufe0f Remove Deprecated Code",
+      "description": "Delete old implementations that have been replaced by new functionality.\n\n\ud83e\udde0 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool and context7 to work through this systematically.\n\nWhat old code conflicts with new implementation? Are there backwards compatibility shims that should be removed? No deprecated features or backward compatibility shims are allowed.",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic code analysis needed to identify all deprecated code and conflicts",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Code conflicts",
+              "Backward compatibility removal",
+              "Complete cleanup verification"
+            ]
+          },
+          "Context7": {
+            "reason": "Research deprecation patterns and cleanup best practices",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Old code conflicts identified",
+          "Backward compatibility reviewed",
+          "No deprecated features remaining"
+        ],
+        "next_actions": [
+          "Validate implementation",
+          "Run tests",
+          "Check for orphaned code"
+        ],
+        "guardrails": {
+          "complete_removal": "Must remove ALL deprecated code, not partial cleanup",
+          "no_compatibility_shims": "No backward compatibility allowed",
+          "evidence_based": "Must provide evidence of complete removal"
+        }
+      }
+    },
+    {
+      "id": "validate-implementation",
+      "name": "\u2705 Validate Implementation",
+      "description": "Run all tests and validate against acceptance criteria.\n\n\ud83e\udde0 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool and context7 to work through this systematically.\n\n1. Run all automated tests - must pass\n2. Validate against acceptance criteria - must meet all\n3. Document validation results before proceeding\n4. Verify git history: `git log --oneline` - all changes must be tracked\n\nNEVER claim completion without passing tests and meeting criteria.",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic validation required to ensure all criteria met and evidence documented",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Test execution",
+              "Acceptance criteria validation",
+              "Evidence documentation",
+              "Completion verification"
+            ]
+          },
+          "Bash": {
+            "required_commands": [
+              "test execution",
+              "build verification",
+              "validation commands"
+            ],
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All tests pass",
+          "Acceptance criteria validated",
+          "Evidence documented",
+          "No failures reported"
+        ],
+        "next_actions": [
+          "Quality gate validation",
+          "Retrospective analysis",
+          "Update tracking"
+        ],
+        "guardrails": {
+          "mandatory_evidence": "Must provide concrete evidence of validation, not self-reports",
+          "complete_validation": "All acceptance criteria must be verified",
+          "no_false_completion": "Never claim completion without passing tests"
+        }
+      }
+    },
+    {
+      "id": "quality-gate-build-test",
+      "name": "\ud83d\udeaa Quality Gate: Build & Test Validation",
+      "description": "MANDATORY: Code must build successfully and all tests must pass.\n\n\ud83e\udde0 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool and context7 to work through this systematically.\n\n1. Run `dotnet build` or `npm run build` - must return exit code 0\n2. For quality campaigns: Run specific validation commands\n   - `dotnet build 2>&1 | grep -E 'warning CA|error' | wc -l` must equal 0\n3. Run `dotnet test` or `npm test` - all tests must pass\n4. Document validation evidence before claiming completion\n5. Verify git history is clean: `git status` - no uncommitted changes\n\nCRITICAL: Self-reported completion without validation evidence is FORBIDDEN.",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Critical quality validation requires systematic verification",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Build validation",
+              "Test execution",
+              "Evidence documentation"
+            ]
+          },
+          "Bash": {
+            "required_commands": [
+              "dotnet build",
+              "dotnet test",
+              "validation commands"
+            ],
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Build succeeds",
+          "All tests pass",
+          "Evidence documented",
+          "No warnings for quality campaigns"
+        ],
+        "guardrails": {
+          "mandatory_validation": "Must provide evidence, not self-reported completion",
+          "zero_tolerance": "Build must succeed with exit code 0",
+          "test_requirement": "All tests must pass"
+        }
+      }
+    },
+    {
+      "id": "retrospective-analysis",
+      "name": "\ud83d\udd0d Anti-Slop Retrospective",
+      "description": "Analyze for AI-generated technical debt and process improvements.\n\n\ud83e\udde0 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool and context7 to work through this systematically.\n\nWhat patterns indicate AI over-engineering? How can specifications be clearer? What process improvements prevent slop?",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Deep pattern analysis required to identify AI over-engineering and extract actionable improvements",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "AI over-engineering patterns",
+              "Specification clarity",
+              "Process improvements",
+              "Anti-slop measures",
+              "Knowledge capture"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Must document patterns and improvements for future reference",
+            "priority": "mandatory"
+          },
+          "Context7": {
+            "reason": "Research best practices for preventing AI-generated technical debt",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "AI patterns identified",
+          "Process improvements documented",
+          "Anti-slop measures defined",
+          "Knowledge preserved"
+        ],
+        "next_actions": [
+          "Update tracking",
+          "Document learnings",
+          "Create improvement proposals"
+        ],
+        "guardrails": {
+          "pattern_extraction": "Must identify specific actionable patterns, not generic observations",
+          "knowledge_preservation": "All findings must be documented for future sprints",
+          "continuous_improvement": "Focus on preventing future technical debt, not just identifying current issues"
+        }
+      }
+    },
+    {
+      "id": "update-tracking",
+      "name": "\ud83d\udcdd Update TODO & CHANGELOG",
+      "description": "Update project tracking documents with completed work and validation evidence.\n\nTODO.md Updates:\n1. Mark completed tasks as done WITH VALIDATION EVIDENCE\n2. Include specific metrics (e.g., '16 violations \u2192 0 violations')\n3. Add any new tasks discovered during validation\n4. Update priorities if needed\n5. Note any blockers or dependencies\n\nCHANGELOG.md Updates (if significant changes):\n1. Add entry under [Unreleased]\n2. Use appropriate section: Added/Changed/Fixed/Removed\n3. Write clear, user-focused descriptions\n4. Include validation metrics and evidence\n5. Reference issue numbers if applicable\n\nOnly update CHANGELOG for significant changes, not minor refactoring.",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "TODO.md updated with evidence",
+          "CHANGELOG.md updated if needed",
+          "Metrics documented"
+        ],
+        "next_actions": [
+          "Commit changes",
+          "Create pull request if needed"
+        ],
+        "guardrails": {
+          "evidence_required": "Must include validation evidence, not just completion claims",
+          "appropriate_scope": "Only update CHANGELOG for significant changes"
+        }
+      }
+    }
+  ],
+  "description": "AI agent-assisted development using Simple, Lovable, Complete principles with anti-slop controls"
+}

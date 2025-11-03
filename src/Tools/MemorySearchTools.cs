@@ -25,7 +25,7 @@ public partial class MemorySearchTools
             "Provide at least one non-stopword keyword");
     }
 
-    [McpServerTool, Description(@"Discovers existing knowledge files through flexible search modes across Ma Core's memory system.
+    [McpServerTool, Description(@"Discovers existing knowledge files through flexible search modes across maenifold's memory system.
 Select when AI needs to find related information, verify existing knowledge, or explore concept connections.
 Supports three search modes: Hybrid (default - best of both), Semantic (concept similarity), FullText (exact matching).
 Returns ranked results with detailed scoring (text, semantic, fused) to help AI understand relevance.
@@ -37,8 +37,18 @@ Integrates with ReadMemory for content access, BuildContext for relationship exp
             [Description("Page number for results")] int page = 1,
             [Description("Filter by folder path")] string? folder = null,
             [Description("Filter by tags")] string[]? tags = null,
-            [Description("Minimum similarity score threshold (0.0-1.0)")] double minScore = 0.0)
+            [Description("Minimum similarity score threshold (0.0-1.0)")] double minScore = 0.0,
+            [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(SearchMemories).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(SearchMemories)}";
+            return File.ReadAllText(helpPath);
+        }
+
         var searchPath = folder != null ? Path.Combine(BasePath, folder) : BasePath;
         if (!Directory.Exists(searchPath))
             return "No memories found in specified folder";

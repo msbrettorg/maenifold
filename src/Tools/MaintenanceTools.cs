@@ -24,8 +24,18 @@ Parameters:
         [Description("Preview changes without modifying files")] bool dryRun = true,
         [Description("Max files to modify when dryRun=false")] int limit = 100,
         [Description("Optional subfolder under memory root to restrict scope")] string? folder = null,
-        [Description("Create .bak backup files before modification")] bool createBackups = false)
+        [Description("Create .bak backup files before modification")] bool createBackups = false,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(AddMissingH1).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(AddMissingH1)}";
+            return File.ReadAllText(helpPath);
+        }
+
         try
         {
             var root = GetScopedRoot(folder);

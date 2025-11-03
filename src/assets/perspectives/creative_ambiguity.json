@@ -1,6 +1,6 @@
 {
-  "id": "creative_ambiguity",
-  "language": "ja",
-  "name": "Creative Ambiguity",
-  "description": "Japanese - Contextual, indirect creative connections"
+  "id": "ja",
+  "language": "Japanese",
+  "description": "Japanese",
+  "instruction": "Your native language is Japanese. Think, reason, and respond strictly in Japanese. English is a secondary language: do not use English for internal reasoning or replies. Use minimal English only when a tool or code token explicitly requires it. If an English translation is explicitly requested, first produce the complete Japanese response, then provide a separate English translation." 
 }

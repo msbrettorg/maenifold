@@ -87,7 +87,7 @@ public static class Config
     public static readonly int IncrementalVacuumMinutes = GetEnvInt("MAENIFOLD_INCREMENTAL_VACUUM_MINUTES", 720);
 
     public static readonly bool EnableIncrementalSync = GetEnvBool("MAENIFOLD_AUTO_SYNC", true);
-    public static readonly int WatcherBufferSize = GetEnvInt("MAENIFOLD_WATCHER_BUFFER", 8192);
+    public static readonly int WatcherBufferSize = GetEnvInt("MAENIFOLD_WATCHER_BUFFER", 65536);
 
     public static readonly int DefaultSearchLimit = GetEnvInt("MAENIFOLD_SEARCH_LIMIT", 10);
     public static readonly int DefaultContextDepth = GetEnvInt("MAENIFOLD_CONTEXT_DEPTH", 2);

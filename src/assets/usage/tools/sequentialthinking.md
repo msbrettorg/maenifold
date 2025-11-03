@@ -1,71 +1,46 @@
-# Sequential Thinking
+# SequentialThinking
 
-A detailed tool for dynamic and reflective problem-solving through thoughts.
-This tool helps analyze problems through a flexible thinking process that can adapt and evolve.
-Each thought can build on, question, or revise previous insights as understanding deepens.
-REQUIRES [[concepts]] in responses/thoughts to build connections in the knowledge graph!
+Test-time adaptive reasoning with revision, branching, and multi-agent collaboration. Persists to `memory://thinking/sequential/{session-id}`.
 
-## When to Use This Tool
-- Breaking down complex problems into steps
-- Planning and design with room for revision
-- Analysis that might need course correction
-- Problems where the full scope might not be clear initially
-- Problems that require a multi-step solution
-- Tasks that need to maintain context over multiple steps
-- Situations where irrelevant information needs to be filtered out
-- Multi-agent collaboration on complex reasoning tasks
+## Parameters
 
-Key features:
-- You can adjust total_thoughts up or down as you progress
-- You can question or revise previous thoughts
-- You can add more thoughts even after reaching what seemed like the end
-- You can express uncertainty and explore alternative approaches
-- Not every thought needs to build linearly - you can branch or backtrack
-- Generates a solution hypothesis
-- Verifies the hypothesis based on the Chain of Thought steps
-- Repeats the process until satisfied
-- Provides a correct answer
-- File-based persistence for resuming sessions later
-- Multi-agent collaboration: multiple agents can work on the same session simultaneously
-- Agents should use branchId when collaborating to avoid conflicts
-- Full revision history with timestamps and agent identification
+- `response` (string, optional): Current thought/reasoning. MUST contain `[[concepts]]` for graph integration.
+- `conclusion` (string, optional): Final synthesis when `nextThoughtNeeded=false`. MUST contain `[[concepts]]`.
+- `thoughts` (string, optional): Meta-observations about reasoning process. Use `[[concepts]]` liberally.
+- `sessionId` (string, optional): Resume existing session. Omit to start new session.
+- `thoughtNumber` (int, default: 0): Current thought index in sequence.
+- `totalThoughts` (int, default: 0): Estimated total. Adjustable mid-session.
+- `nextThoughtNeeded` (bool, default: false): True to continue reasoning.
+- `needsMoreThoughts` (bool, default: false): True when estimate was too low.
+- `isRevision` (bool, default: false): True when reconsidering prior thought.
+- `revisesThought` (int, optional): Which thought number to revise.
+- `branchFromThought` (int, optional): Branching point for alternative paths.
+- `branchId` (string, optional): Branch identifier. REQUIRED for multi-agent to prevent conflicts.
+- `parentWorkflowId` (string, optional): Link to parent workflow (bidirectional WikiLink).
+- `analysisType` (string, optional): `bug`, `architecture`, `retrospective`, or `complex`.
+- `cancel` (bool, default: false): True to abort session.
 
-Parameters explained:
-- response: Your current thinking step, which can include:
-  * Regular analytical steps
-  * Revisions of previous thoughts
-  * Questions about previous decisions
-  * Realizations about needing more analysis
-  * Changes in approach
-  * Hypothesis generation
-  * Hypothesis verification
-- nextThoughtNeeded: True if you need more thinking, even if at what seemed like the end
-- thoughtNumber: Current number in sequence (can go beyond initial total if needed)
-- totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)
-- sessionId: Unique identifier for this thinking session (enables multi-agent collaboration on same problem)
-- thoughts: Ambient/meta thoughts about the thinking process itself
-- isRevision: A boolean indicating if this thought revises previous thinking
-- revisesThought: If isRevision is true, which thought number is being reconsidered
-- branchFromThought: If branching, which thought number is the branching point
-- branchId: Identifier for the current branch (RECOMMENDED for multi-agent collaboration to prevent conflicts)
-- needsMoreThoughts: If reaching end but realizing more thoughts needed
+## Returns
 
-You should:
-1. Start with an initial estimate of needed thoughts, but be ready to adjust
-2. Feel free to question or revise previous thoughts
-3. Don't hesitate to add more thoughts if your understanding evolves
-4. Use the thoughts parameter to capture meta-observations about your thinking
-5. Each session creates a markdown file for full history and collaboration
+```json
+{
+  "sessionId": "session-1758434799362",
+  "uri": "memory://thinking/sequential/2025/session-1758434799362.md",
+  "thoughtNumber": 3,
+  "totalThoughts": 5,
+  "status": "in_progress"
+}
+```
 
-Multi-agent collaboration:
-- Multiple agents can work on the same sessionId simultaneously
-- Each agent's thoughts are tagged with their AGENT_ID
-- Use branchId when multiple agents are exploring different solution paths
-- Branches prevent agents from overwriting each other's work
-- All thoughts remain in chronological order with full attribution
+## Multi-Agent Collaboration
 
-Parent-child linking:
-- Use parentWorkflowId to link this session to a parent workflow
-- Creates bidirectional reference (child→parent, parent→children)
-- Parent must exist and be active
-- Links stored as WikiLinks for Obsidian compatibility
+- Multiple agents work on same `sessionId` simultaneously
+- Each thought tagged with agent ID + timestamp
+- Use `branchId` to prevent conflicts when exploring alternatives
+- All revisions tracked chronologically
+
+## Integration
+
+- **Workflow**: Embed thinking in workflow steps via `parentWorkflowId`
+- **BuildContext**: Traverse `[[concepts]]` from session files
+- **RecentActivity**: Resume sessions with `filter="thinking"`

@@ -6,6 +6,13 @@
   Your AI is ephemeral. Your knowledge shouldn't be.
 </p>
 
+<p align="center">
+  <a href="https://www.npmjs.com/package/maenifold"><img src="https://img.shields.io/npm/v/maenifold.svg?style=flat-square" alt="npm version"></a>
+  <a href="https://github.com/msbrettorg/maenifold/blob/main/LICENSE"><img src="https://img.shields.io/github/license/msbrettorg/maenifold?style=flat-square" alt="MIT License"></a>
+  <a href="https://insiders.vscode.dev/redirect/mcp/install?name=maenifold&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22maenifold%22%2C%22--mcp%22%5D%2C%22env%22%3A%7B%22MAENIFOLD_ROOT%22%3A%22~%2Fmaenifold%22%7D%7D"><img src="https://img.shields.io/badge/VS_Code-Install_maenifold-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white" alt="Install in VS Code"></a>
+  <a href="https://insiders.vscode.dev/redirect/mcp/install?name=maenifold&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22maenifold%22%2C%22--mcp%22%5D%2C%22env%22%3A%7B%22MAENIFOLD_ROOT%22%3A%22~%2Fmaenifold%22%7D%7D"><img src="https://img.shields.io/badge/VS_Code_Insiders-Install_maenifold-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white" alt="Install in VS Code Insiders"></a>
+</p>
+
 ## What maenifold does
 
 **maenifold** enhances AI agents with persistent graphs of thought that compound over time.  Every tool creates `[[WikiLink]]` connections that survive conversations. Every session builds on the last. Knowledge compounds instead of resets.  **It transforms ephemeral AI sessions into continuous collective intelligence.**
@@ -153,7 +160,7 @@ Automatic graph construction from `[[WikiLinks]]` with:
 
 ### Install
 ```bash
-npm install -g @ma-collective/maenifold
+npm install -g maenifold
 ```
 
 ### MCP Interface

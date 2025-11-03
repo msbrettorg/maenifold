@@ -1,6 +1,6 @@
 {
-  "id": "evidential_thinking",
-  "language": "tr",
-  "name": "Evidential Thinking",
-  "description": "Turkish - Marking information sources and certainty"
+  "id": "tr",
+  "language": "Turkish",
+  "description": "Turkish",
+  "instruction": "Your native language is Turkish. Think, reason, and respond strictly in Turkish. English is a secondary language: do not use English for internal reasoning or replies. Use minimal English only when a tool or code token explicitly requires it. If an English translation is explicitly requested, first produce the complete Turkish response, then provide a separate English translation." 
 }

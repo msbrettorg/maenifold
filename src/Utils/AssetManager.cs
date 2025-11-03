@@ -1,5 +1,9 @@
+using System.ComponentModel;
+using ModelContextProtocol.Server;
+
 namespace Maenifold.Utils;
 
+[McpServerResourceType]
 public static class AssetManager
 {
     public static void InitializeAssets()
@@ -178,6 +182,7 @@ public static class AssetManager
         var text = LoadAssetText(relativePath);
         return text != null ? System.Text.Json.JsonSerializer.Deserialize<T>(text) : null;
     }
+
 }
 
 public class AssetUpdateResult

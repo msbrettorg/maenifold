@@ -11,12 +11,22 @@ namespace Maenifold.Tools;
 [McpServerToolType]
 public static partial class PerformanceBenchmark
 {
-    [McpServerTool, Description("Benchmarks all Ma Core performance claims including GRPH-009 CTE vs N+1, search performance, sync timing, and complex traversal bottlenecks")]
+    [McpServerTool, Description("Benchmarks all maenifold performance claims including GRPH-009 CTE vs N+1, search performance, sync timing, and complex traversal bottlenecks")]
     public static string RunFullBenchmark(
             [Description("Number of test iterations per benchmark")] int iterations = 5,
             [Description("Maximum test files to use for benchmarks")] int maxTestFiles = 1000,
-            [Description("Include expensive deep traversal tests")] bool includeDeepTraversal = true)
+            [Description("Include expensive deep traversal tests")] bool includeDeepTraversal = true,
+            [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(RunFullBenchmark).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(RunFullBenchmark)}";
+            return File.ReadAllText(helpPath);
+        }
+
         // ISSUE-006: Validate iterations parameter
         if (iterations <= 0)
         {

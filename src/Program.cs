@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using ModelContextProtocol.Server;
 using Maenifold.Tools;
 using Maenifold.Utils;
 
@@ -22,7 +23,8 @@ if (args.Contains("--mcp"))
     builder.Services
             .AddMcpServer()
             .WithStdioServerTransport()
-            .WithToolsFromAssembly();
+            .WithToolsFromAssembly()
+            .WithResourcesFromAssembly();
 
     var app = builder.Build();
 
@@ -33,6 +35,11 @@ if (args.Contains("--mcp"))
     {
         IncrementalSyncTools.StartWatcher();
     }
+
+    // Start asset hot-loading watcher (Wave 3: RTM-011 to RTM-016)
+    // Wave 4: Pass MCP server for resource update notifications (RTM-017 to RTM-020)
+    var mcpServer = app.Services.GetRequiredService<McpServer>();
+    AssetWatcherTools.StartAssetWatcher(mcpServer);
 
     await app.RunAsync();
     return;
@@ -92,10 +99,11 @@ void PrintUsage()
     System.Console.WriteLine("  Vector: FindSimilarConcepts");
     System.Console.WriteLine("  Graph:  Sync, BuildContext, Visualize");
     System.Console.WriteLine("  Think:  SequentialThinking");
-    System.Console.WriteLine("  Flow:   Workflow, ListWorkflows");
+    System.Console.WriteLine("  Flow:   Workflow");
     System.Console.WriteLine("  System: MemoryStatus, ListMemories, GetConfig, GetHelp");
     System.Console.WriteLine("  Sync:   StartWatcher, StopWatcher");
     System.Console.WriteLine("  Repair: RepairConcepts, AnalyzeConceptCorruption");
+    System.Console.WriteLine("  MCP:    ListMcpResources, ReadMcpResource");
     System.Console.WriteLine("  Bench:  RunFullBenchmark");
 }
 

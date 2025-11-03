@@ -45,13 +45,10 @@
       <DisallowedFiles Remove="$(RootDirectory)obj" />
     </ItemGroup>
     
-    <!-- Error if disallowed files found: CI-enforced error, local warning -->
-    <Warning
+    <!-- Error if disallowed files found -->
+    <Error
       Condition="'@(DisallowedFiles)' != ''"
       Text="Project root contains disallowed files: @(DisallowedFiles->'%(Filename)%(Extension)', ', '). Move these files to appropriate subdirectories (e.g., /scripts for scripts, /docs for documentation)." />
-    <Error
-      Condition="'$(CI)' == 'true' and '@(DisallowedFiles)' != ''"
-      Text="Project root contains disallowed files (CI enforcement): @(DisallowedFiles->'%(Filename)%(Extension)', ', '). Please move these files to appropriate subdirectories." />
   </Target>
   
   <!-- Target to clean common temporary files -->

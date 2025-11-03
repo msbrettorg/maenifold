@@ -8,7 +8,7 @@ namespace Maenifold.Tools;
 [McpServerToolType]
 public partial class MemoryTools
 {
-    [McpServerTool, Description(@"Creates new knowledge files with [[WikiLinks]] that automatically integrate into Ma Core's graph database.
+    [McpServerTool, Description(@"Creates new knowledge files with [[WikiLinks]] that automatically integrate into maenifold's graph database.
 Select when AI needs to persist new learning, research findings, or structured knowledge for future retrieval.
 Requires title, content with [[concepts]], optional folder organization and tag categorization.
 Connects to SearchMemories for discovery, Sync for graph updates, BuildContext for relationship mapping.
@@ -17,8 +17,17 @@ Returns memory:// URI for future reference, checksum for safe editing, confirms 
         [Description("Title for this MEMORY FILE")] string title,
         [Description("Content with [[Concept Names]] in brackets - REQUIRED: at least one [[concept]]!")] string content,
         [Description("Optional folder path for organizing FILES")] string? folder = null,
-        [Description("Optional tags for categorizing this FILE")] string[]? tags = null)
+        [Description("Optional tags for categorizing this FILE")] string[]? tags = null,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(WriteMemory).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(WriteMemory)}";
+            return File.ReadAllText(helpPath);
+        }
 
         title = SanitizeUserInput(title);
 

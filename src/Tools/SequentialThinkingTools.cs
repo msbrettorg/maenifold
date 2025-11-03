@@ -13,7 +13,7 @@ public class SequentialThinkingTools
 
     [McpServerTool, Description(@"Creates structured thinking sessions with [[concept]] integration and persistent markdown file storage.
 Requires response with [[concepts]], thought tracking, session management, and optional revision capabilities.
-Integrates with WriteMemory for session persistence and Ma Core tools.
+Integrates with WriteMemory for session persistence and maenifold tools.
 Returns session management with continuation guidance and checkpoint suggestions.")]
     public static string SequentialThinking(
         [Description("Main response/thought - MUST include [[concepts]] to build knowledge")] string? response = null,
@@ -30,8 +30,18 @@ Returns session management with continuation guidance and checkpoint suggestions
         [Description("Need more thoughts than estimated?")] bool needsMoreThoughts = false,
         [Description("Analysis type: bug, architecture, retrospective, or complex")] string? analysisType = null,
         [Description("Parent workflow session ID (creates bidirectional link)")] string? parentWorkflowId = null,
-        [Description("Required conclusion/synthesis when nextThoughtNeeded=false - MUST include [[concepts]]")] string? conclusion = null)
+        [Description("Required conclusion/synthesis when nextThoughtNeeded=false - MUST include [[concepts]]")] string? conclusion = null,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(SequentialThinking).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(SequentialThinking)}";
+            return File.ReadAllText(helpPath);
+        }
+
         // Skip validation if cancel operation
         if (!cancel)
         {

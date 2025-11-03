@@ -438,8 +438,18 @@ Test with dryRun=true first to see what would be changed.")]
                 [Description("Folder to process (default: all memory)")] string? folder = null,
                 [Description("⚠️ ALWAYS START WITH TRUE! Dry run shows what would be changed without modifying files")] bool dryRun = true,
                 [Description("Create WikiLinks from plain text instead of replacing existing WikiLinks")] bool createWikiLinks = false,
-                [Description("Minimum semantic similarity threshold (0.0-1.0) required for safe consolidation. Default 0.7. Set to 0.0 to skip semantic validation.")] double minSemanticSimilarity = 0.7)
+                [Description("Minimum semantic similarity threshold (0.0-1.0) required for safe consolidation. Default 0.7. Set to 0.0 to skip semantic validation.")] double minSemanticSimilarity = 0.7,
+                [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(RepairConcepts).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(RepairConcepts)}";
+            return File.ReadAllText(helpPath);
+        }
+
         var memoryPath = Config.MemoryPath;
         var searchPath = string.IsNullOrEmpty(folder)
             ? memoryPath
@@ -608,8 +618,18 @@ Test with dryRun=true first to see what would be changed.")]
     [McpServerTool, Description(@"⚠️ MUST USE BEFORE RepairConcepts! Analyzes concept corruption patterns to identify what needs repair.\nShows concept families and their variants to help plan SAFE repair operations.\n\nCRITICAL: This tool helps you UNDERSTAND concepts before changing them:\n- Identifies TRUE duplicates (plurals, case variations) that are safe to merge\n- Shows class names and entity types that MUST NOT be merged with generic concepts\n- Reveals the semantic structure of your knowledge graph\n\nINTERPRETATION GUIDE:\n- File Paths (e.g., GraphTools.cs): These are CLASS NAMES - DO NOT merge with [[tool]]\n- Compound forms (e.g., coding-agent): These are SPECIFIC TYPES - DO NOT merge with [[agent]]\n- Plurals (e.g., tools): Usually safe to merge with singular form\n- Case variants (e.g., MCP tools vs MCP Tools): Safe to standardize\n\nAlways analyze BEFORE repair to avoid destroying semantic meaning!")]
     public static string AnalyzeConceptCorruption(
                 [Description("Concept family to analyze (e.g., 'tool', 'agent', 'test')")] string conceptFamily,
-                [Description("Maximum variants to show")] int maxResults = 50)
+                [Description("Maximum variants to show")] int maxResults = 50,
+                [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(AnalyzeConceptCorruption).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(AnalyzeConceptCorruption)}";
+            return File.ReadAllText(helpPath);
+        }
+
         var memoryPath = Config.MemoryPath;
         var conceptCounts = AnalyzeConcepts(memoryPath, conceptFamily);
 

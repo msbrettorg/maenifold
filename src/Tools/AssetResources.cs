@@ -42,12 +42,12 @@ public class AssetResources
     [Description("Access role definition JSON file by ID")]
     public static string GetRole(string id)
     {
-        var path = Path.Combine(Config.AssetsPath, "roles", $"{id}.json");
-        if (!File.Exists(path))
+        var filePath = FindAssetFileById("roles", id);
+        if (filePath == null)
         {
-            throw new FileNotFoundException($"Role '{id}' not found", path);
+            throw new FileNotFoundException($"Role '{id}' not found");
         }
-        return File.ReadAllText(path);
+        return File.ReadAllText(filePath);
     }
 
     [McpServerResource(UriTemplate = "asset://colors/{id}", Name = "color", MimeType = "application/json")]
@@ -66,12 +66,51 @@ public class AssetResources
     [Description("Access perspective linguistic frame JSON file by ID")]
     public static string GetPerspective(string id)
     {
-        var path = Path.Combine(Config.AssetsPath, "perspectives", $"{id}.json");
-        if (!File.Exists(path))
+        var filePath = FindAssetFileById("perspectives", id);
+        if (filePath == null)
         {
-            throw new FileNotFoundException($"Perspective '{id}' not found", path);
+            throw new FileNotFoundException($"Perspective '{id}' not found");
         }
-        return File.ReadAllText(path);
+        return File.ReadAllText(filePath);
+    }
+
+    /// <summary>
+    /// Find asset file by searching for matching JSON id field (handles filename != id cases)
+    /// </summary>
+    private static string? FindAssetFileById(string assetType, string id)
+    {
+        var assetPath = Path.Combine(Config.AssetsPath, assetType);
+        if (!Directory.Exists(assetPath))
+        {
+            return null;
+        }
+
+        // First try direct filename match (fast path for most workflows/colors)
+        var directPath = Path.Combine(assetPath, $"{id}.json");
+        if (File.Exists(directPath))
+        {
+            return directPath;
+        }
+
+        // Search all files for matching id field (handles perspectives/roles with mismatched names)
+        foreach (var file in Directory.GetFiles(assetPath, "*.json"))
+        {
+            try
+            {
+                var json = File.ReadAllText(file);
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("id", out var idProp) && idProp.GetString() == id)
+                {
+                    return file;
+                }
+            }
+            catch
+            {
+                // Skip malformed files
+            }
+        }
+
+        return null;
     }
 
     private static object[] GetAssetMetadata(string assetType)

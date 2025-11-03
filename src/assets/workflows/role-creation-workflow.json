@@ -20,7 +20,7 @@
     {
       "id": "assume-prompt-engineer-role",
       "name": "🧩 Assume Prompt Engineer Role",
-      "description": "Activate constitutional prompt architecture expertise.\n\nUse adopt_role tool with roleId 'prompt-engineer' to activate The Prompt Architect cognitive framework with 10/10 constitutional AI capabilities.\n\n⚠️ CRITICAL: This role provides systematic methodology, evidence-based optimization, and meta-cognitive scaffolding for perfect role creation.",
+      "description": "Activate constitutional prompt architecture expertise.\n\nUse Adopt tool with roleId 'prompt-engineer' to activate The Prompt Architect cognitive framework with 10/10 constitutional AI capabilities.\n\n⚠️ CRITICAL: This role provides systematic methodology, evidence-based optimization, and meta-cognitive scaffolding for perfect role creation.",
       "requiresEnhancedThinking": false
     },
     {
@@ -50,7 +50,7 @@
     {
       "id": "research-domain-knowledge",
       "name": "🔎 Research Domain Knowledge",
-      "description": "Systematic research for role domain expertise and patterns.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to coordinate comprehensive research.\n\nResearch sequence:\n1. Search memory:// for existing domain knowledge using search_memories tool\n2. Search codebase for relevant implementation patterns\n3. Use context7 for current industry standards and best practices\n4. Document all findings in memory:// using write_memory with proper [[Wiki Links]] and tags",
+      "description": "Systematic research for role domain expertise and patterns.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to coordinate comprehensive research.\n\nResearch sequence:\n1. Search memory:// for existing domain knowledge using SearchMemories tool\n2. Search codebase for relevant implementation patterns\n3. Use context7 for current industry standards and best practices\n4. Document all findings in memory:// using WriteMemory with proper [[Wiki Links]] and tags",
       "requiresEnhancedThinking": true
     },
     {
@@ -146,7 +146,7 @@
     {
       "id": "document-creation-methodology",
       "name": "📝 Document Creation Methodology",
-      "description": "Document the complete role creation process and lessons learned.\n\nSave to memory:// using write_memory: constitutional design patterns used, evaluation methodologies applied, enhancement techniques implemented, performance achievements, and process improvements for future role creation.\n\n⚠️ CRITICAL: Build institutional knowledge for systematic role excellence.",
+      "description": "Document the complete role creation process and lessons learned.\n\nSave to memory:// using WriteMemory: constitutional design patterns used, evaluation methodologies applied, enhancement techniques implemented, performance achievements, and process improvements for future role creation.\n\n⚠️ CRITICAL: Build institutional knowledge for systematic role excellence.",
       "requiresEnhancedThinking": false
     }
   ]

@@ -30,8 +30,18 @@ Returns session management with continuation guidance and checkpoint suggestions
         [Description("Need more thoughts than estimated?")] bool needsMoreThoughts = false,
         [Description("Analysis type: bug, architecture, retrospective, or complex")] string? analysisType = null,
         [Description("Parent workflow session ID (creates bidirectional link)")] string? parentWorkflowId = null,
-        [Description("Required conclusion/synthesis when nextThoughtNeeded=false - MUST include [[concepts]]")] string? conclusion = null)
+        [Description("Required conclusion/synthesis when nextThoughtNeeded=false - MUST include [[concepts]]")] string? conclusion = null,
+        [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(SequentialThinking).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(SequentialThinking)}";
+            return File.ReadAllText(helpPath);
+        }
+
         // Skip validation if cancel operation
         if (!cancel)
         {

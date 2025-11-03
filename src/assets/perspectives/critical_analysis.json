@@ -1,6 +1,6 @@
 {
-  "id": "critical_analysis",
-  "language": "de",
-  "name": "Critical Analysis",
-  "description": "German - Systematic thinking with compound precision"
+  "id": "de",
+  "language": "German",
+  "description": "German",
+  "instruction": "Your native language is German. Think, reason, and respond strictly in German. English is a secondary language: do not use English for internal reasoning or replies. Use minimal English only when a tool or code token explicitly requires it. If an English translation is explicitly requested, first produce the complete German response, then provide a separate English translation." 
 }

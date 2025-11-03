@@ -69,7 +69,10 @@ namespace Maenifold.Tools
                 string? folder = null;
                 if (payload.TryGetProperty("folder", out var f)) folder = f.GetString();
                 var tags = PayloadReader.GetStringArray(payload, "tags");
-                return MemoryTools.WriteMemory(title, content, string.IsNullOrEmpty(folder) ? null : folder, tags);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return MemoryTools.WriteMemory(title, content, string.IsNullOrEmpty(folder) ? null : folder, tags, learn);
             }, new[] { "writememory" }, "Create a memory file");
 
         private static ToolDescriptor CreateReadMemoryDescriptor() =>
@@ -77,7 +80,10 @@ namespace Maenifold.Tools
             {
                 var identifier = PayloadReader.GetString(payload, "identifier");
                 bool includeChecksum = PayloadReader.GetBool(payload, "includeChecksum", true);
-                return MemoryTools.ReadMemory(identifier, includeChecksum);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return MemoryTools.ReadMemory(identifier, includeChecksum, learn);
             }, new[] { "readmemory" }, "Read a memory file");
 
         private static ToolDescriptor CreateEditMemoryDescriptor() =>
@@ -94,7 +100,10 @@ namespace Maenifold.Tools
                 if (payload.TryGetProperty("sectionName", out var sn)) sectionName = sn.GetString();
                 int? expectedCount = null;
                 if (payload.TryGetProperty("expectedCount", out var ec) && ec.ValueKind == JsonValueKind.Number) expectedCount = ec.GetInt32();
-                return MemoryTools.EditMemory(identifier, operation, content, checksum, findText, sectionName, expectedCount);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return MemoryTools.EditMemory(identifier, operation, content, checksum, findText, sectionName, expectedCount, learn);
             }, new[] { "editmemory" }, "Edit a memory file");
 
         private static ToolDescriptor CreateDeleteMemoryDescriptor() =>
@@ -102,7 +111,10 @@ namespace Maenifold.Tools
             {
                 var identifier = PayloadReader.GetString(payload, "identifier");
                 bool confirm = PayloadReader.GetBool(payload, "confirm", false);
-                return MemoryTools.DeleteMemory(identifier, confirm);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return MemoryTools.DeleteMemory(identifier, confirm, learn);
             }, new[] { "deletememory" }, "Delete a memory file");
 
         private static ToolDescriptor CreateMoveMemoryDescriptor() =>
@@ -126,18 +138,30 @@ namespace Maenifold.Tools
                 if (payload.TryGetProperty("folder", out var sf)) folder = sf.GetString();
                 var tags = PayloadReader.GetStringArray(payload, "tags");
                 var minScore = PayloadReader.GetDouble(payload, "minScore", 0.0);
-                return MemorySearchTools.SearchMemories(query, mode, pageSize, page, folder, tags, minScore);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return MemorySearchTools.SearchMemories(query, mode, pageSize, page, folder, tags, minScore, learn);
             }, new[] { "searchmemories" }, "Search memories");
 
         private static ToolDescriptor CreateExtractConceptsFromFileDescriptor() =>
             new("ExtractConceptsFromFile", payload =>
             {
                 var identifier = PayloadReader.GetString(payload, "identifier");
-                return MemoryTools.ExtractConceptsFromFile(identifier);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return MemoryTools.ExtractConceptsFromFile(identifier, learn);
             }, new[] { "extractconceptsfromfile" }, "Extract wiki link concepts from a file");
 
         private static ToolDescriptor CreateSyncDescriptor() =>
-            new("Sync", _ => GraphTools.Sync(), new[] { "sync" }, "Sync graph");
+            new("Sync", payload =>
+            {
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return GraphTools.Sync(learn);
+            }, new[] { "sync" }, "Sync graph");
 
         private static ToolDescriptor CreateBuildContextDescriptor() =>
             new("BuildContext", payload =>
@@ -155,7 +179,10 @@ namespace Maenifold.Tools
                 var conceptName = PayloadReader.GetString(payload, "conceptName");
                 var depth = PayloadReader.GetInt32(payload, "depth", 2);
                 var maxNodes = PayloadReader.GetInt32(payload, "maxNodes", 30);
-                return GraphTools.Visualize(conceptName, depth, maxNodes);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return GraphTools.Visualize(conceptName, depth, maxNodes, learn);
             }, new[] { "visualize" }, "Visualize concept graph");
 
         private static ToolDescriptor CreateSequentialThinkingDescriptor() =>
@@ -164,7 +191,7 @@ namespace Maenifold.Tools
                 // Make response optional for cancel operations
                 string? response = null;
                 if (payload.TryGetProperty("response", out var r)) response = r.GetString();
-                
+
                 var nextThoughtNeeded = PayloadReader.GetBool(payload, "nextThoughtNeeded", false);
                 var thoughtNumber = PayloadReader.GetInt32(payload, "thoughtNumber", 0);
                 var totalThoughts = PayloadReader.GetInt32(payload, "totalThoughts", 0);
@@ -187,8 +214,11 @@ namespace Maenifold.Tools
                 if (payload.TryGetProperty("parentWorkflowId", out var pw)) parentWorkflowId = pw.GetString();
                 string? conclusion = null;
                 if (payload.TryGetProperty("conclusion", out var c)) conclusion = c.GetString();
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
 
-                return SequentialThinkingTools.SequentialThinking(response, nextThoughtNeeded, thoughtNumber, totalThoughts, sessionId, cancel, thoughts, isRevision, revisesThought, branchFromThought, branchId, needsMoreThoughts, analysisType, parentWorkflowId, conclusion);
+                return SequentialThinkingTools.SequentialThinking(response, nextThoughtNeeded, thoughtNumber, totalThoughts, sessionId, cancel, thoughts, isRevision, revisesThought, branchFromThought, branchId, needsMoreThoughts, analysisType, parentWorkflowId, conclusion, learn);
             }, new[] { "sequentialthinking" }, "Sequential thinking tool");
 
         private static ToolDescriptor CreateWorkflowDescriptor() =>
@@ -196,11 +226,11 @@ namespace Maenifold.Tools
             {
                 string? sessionId = null;
                 if (payload.TryGetProperty("sessionId", out var s)) sessionId = s.GetString();
-                
+
                 // Support both string and array formats for workflowId
                 var workflowIds = PayloadReader.GetStringArray(payload, "workflowId");
                 string? workflowId = null;
-                
+
                 if (workflowIds != null && workflowIds.Length > 0)
                 {
                     // Pass array as JSON to Start method for sequential queueing
@@ -218,7 +248,7 @@ namespace Maenifold.Tools
                     // Fall back to single string format for backward compatibility
                     workflowId = w.GetString();
                 }
-                
+
                 string? response = null;
                 if (payload.TryGetProperty("response", out var r)) response = r.GetString();
                 string? thoughts = null;
@@ -230,8 +260,11 @@ namespace Maenifold.Tools
                 var view = PayloadReader.GetBool(payload, "view", false);
                 string? append = null;
                 if (payload.TryGetProperty("append", out var ap)) append = ap.GetString();
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
 
-                return WorkflowTools.Workflow(sessionId, workflowId, response, thoughts, status, conclusion, view, append);
+                return WorkflowTools.Workflow(sessionId, workflowId, response, thoughts, status, conclusion, view, append, learn);
             }, new[] { "workflow" }, "Workflow tool");
 
         private static ToolDescriptor CreateRecentActivityDescriptor() =>
@@ -243,14 +276,29 @@ namespace Maenifold.Tools
                 TimeSpan? timespan = null;
                 if (payload.TryGetProperty("timespan", out var ts) && TimeSpan.TryParse(ts.GetString(), out var parsed)) timespan = parsed;
                 var includeContent = PayloadReader.GetBool(payload, "includeContent", false);
-                return RecentActivityTools.RecentActivity(limit, filter, timespan, includeContent);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return RecentActivityTools.RecentActivity(limit, filter, timespan, includeContent, learn);
             }, new[] { "recentactivity" }, "Recent activity");
 
         private static ToolDescriptor CreateMemoryStatusDescriptor() =>
-            new("MemoryStatus", _ => SystemTools.MemoryStatus(), new[] { "memorystatus" }, "Memory status");
+            new("MemoryStatus", payload =>
+            {
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return SystemTools.MemoryStatus(learn);
+            }, new[] { "memorystatus" }, "Memory status");
 
         private static ToolDescriptor CreateGetConfigDescriptor() =>
-            new("GetConfig", _ => SystemTools.GetConfig(), new[] { "getconfig" }, "Get config");
+            new("GetConfig", payload =>
+            {
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return SystemTools.GetConfig(learn);
+            }, new[] { "getconfig" }, "Get config");
 
         private static ToolDescriptor CreateGetHelpDescriptor() =>
             new("GetHelp", payload =>
@@ -265,14 +313,20 @@ namespace Maenifold.Tools
             {
                 string? path = null;
                 if (payload.TryGetProperty("path", out var p)) path = p.GetString();
-                return SystemTools.ListMemories(path);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return SystemTools.ListMemories(path, learn);
             }, new[] { "listmemories" }, "List memories");
 
         private static ToolDescriptor CreateUpdateAssetsDescriptor() =>
             new("UpdateAssets", payload =>
             {
                 bool dryRun = PayloadReader.GetBool(payload, "dryRun", true);
-                return SystemTools.UpdateAssets(dryRun);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return SystemTools.UpdateAssets(dryRun, learn);
             }, new[] { "updateassets" }, "Update assets from package");
 
         private static ToolDescriptor CreateRepairConceptsDescriptor() =>
@@ -285,7 +339,10 @@ namespace Maenifold.Tools
                 bool dryRun = PayloadReader.GetBool(payload, "dryRun", true);
                 bool createWikiLinks = PayloadReader.GetBool(payload, "createWikiLinks", false);
                 var minSemantic = PayloadReader.GetDouble(payload, "minSemanticSimilarity", 0.7);
-                return ConceptRepairTool.RepairConcepts(concepts, canonical, folder, dryRun, createWikiLinks, minSemantic);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return ConceptRepairTool.RepairConcepts(concepts, canonical, folder, dryRun, createWikiLinks, minSemantic, learn);
             }, new[] { "repairconcepts" }, "Repair concepts");
 
         private static ToolDescriptor CreateAnalyzeConceptCorruptionDescriptor() =>
@@ -293,7 +350,10 @@ namespace Maenifold.Tools
             {
                 var family = PayloadReader.GetString(payload, "conceptFamily");
                 var max = PayloadReader.GetInt32(payload, "maxResults", 50);
-                return ConceptRepairTool.AnalyzeConceptCorruption(family, max);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return ConceptRepairTool.AnalyzeConceptCorruption(family, max, learn);
             }, new[] { "analyzeconceptcorruption" }, "Analyze concept corruption");
 
         private static ToolDescriptor CreateFindSimilarConceptsDescriptor() =>
@@ -301,7 +361,10 @@ namespace Maenifold.Tools
             {
                 var name = PayloadReader.GetString(payload, "conceptName", required: false);
                 var max = PayloadReader.GetInt32(payload, "maxResults", 10);
-                return VectorSearchTools.FindSimilarConcepts(name, max);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return VectorSearchTools.FindSimilarConcepts(name, max, learn);
             }, new[] { "findsimilarconcepts" }, "Find similar concepts");
 
         private static ToolDescriptor CreateStartWatcherDescriptor() =>
@@ -321,7 +384,10 @@ namespace Maenifold.Tools
                 var iterations = PayloadReader.GetInt32(payload, "iterations", 5);
                 var maxFiles = PayloadReader.GetInt32(payload, "maxTestFiles", 1000);
                 var includeDeep = PayloadReader.GetBool(payload, "includeDeepTraversal", true);
-                return PerformanceBenchmark.RunFullBenchmark(iterations, maxFiles, includeDeep);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return PerformanceBenchmark.RunFullBenchmark(iterations, maxFiles, includeDeep, learn);
             }, new[] { "runfullbenchmark" }, "Run full benchmark");
 
         private static ToolDescriptor CreateAdoptDescriptor() =>
@@ -329,7 +395,10 @@ namespace Maenifold.Tools
             {
                 var type = PayloadReader.GetString(payload, "type");
                 var identifier = PayloadReader.GetString(payload, "identifier");
-                return AdoptTools.Adopt(type, identifier).GetAwaiter().GetResult();
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return AdoptTools.Adopt(type, identifier, learn).GetAwaiter().GetResult();
             }, new[] { "adopt" }, "Adopt assets");
 
         private static ToolDescriptor CreateAssumptionLedgerDescriptor() =>
@@ -351,8 +420,11 @@ namespace Maenifold.Tools
                 if (payload.TryGetProperty("status", out var st)) status = st.GetString();
                 string? notes = null;
                 if (payload.TryGetProperty("notes", out var n)) notes = n.GetString();
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
 
-                return AssumptionLedgerTools.AssumptionLedger(action, assumption, context, validationPlan, confidence, concepts, uri, status, notes);
+                return AssumptionLedgerTools.AssumptionLedger(action, assumption, context, validationPlan, confidence, concepts, uri, status, notes, learn);
             }, new[] { "assumptionledger" }, "Assumption ledger");
 
         private static ToolDescriptor CreateAddMissingH1Descriptor() =>
@@ -363,7 +435,10 @@ namespace Maenifold.Tools
                 string? folder = null;
                 if (payload.TryGetProperty("folder", out var f)) folder = f.GetString();
                 bool createBackups = PayloadReader.GetBool(payload, "createBackups", false);
-                return MaintenanceTools.AddMissingH1(dryRun, limit, folder, createBackups);
+                bool learn = false;
+                if (payload.TryGetProperty("learn", out var learnProp))
+                    learn = learnProp.GetBoolean();
+                return MaintenanceTools.AddMissingH1(dryRun, limit, folder, createBackups, learn);
             }, new[] { "addmissingh1" }, "Add missing H1 headers to markdown files");
 
         private static ToolDescriptor CreateListMcpResourcesDescriptor() =>

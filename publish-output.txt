@@ -1,8 +1,0 @@
-  Determining projects to restore...
-  All projects are up-to-date for restore.
-  Maenifold -> /Users/brett/src/ma-collective/maenifold/src/bin/Release/net9.0/Maenifold.dll
-/Users/brett/src/ma-collective/maenifold/Directory.Build.targets(49,5): warning : Project root contains disallowed files: build-output.txt, maenifold-linux-arm64.tar.gz, maenifold-linux-x64.tar.gz, maenifold-osx-arm64.tar.gz, maenifold-osx-x64.tar.gz, maenifold-win-arm64.zip, maenifold-win-x64.zip, publish-output.txt, SHA256SUMS, sprint-baseline.txt, test-output.txt. Move these files to appropriate subdirectories (e.g., /scripts for scripts, /docs for documentation). [/Users/brett/src/ma-collective/maenifold/src/Maenifold.csproj]
-  Maenifold -> /Users/brett/src/ma-collective/maenifold/src/bin/Release/net9.0/publish/
-  Maenifold.Tests -> /Users/brett/src/ma-collective/maenifold/tests/Maenifold.Tests/bin/Release/net9.0/Maenifold.Tests.dll
-/Users/brett/src/ma-collective/maenifold/Directory.Build.targets(49,5): warning : Project root contains disallowed files: build-output.txt, maenifold-linux-arm64.tar.gz, maenifold-linux-x64.tar.gz, maenifold-osx-arm64.tar.gz, maenifold-osx-x64.tar.gz, maenifold-win-arm64.zip, maenifold-win-x64.zip, publish-output.txt, SHA256SUMS, sprint-baseline.txt, test-output.txt. Move these files to appropriate subdirectories (e.g., /scripts for scripts, /docs for documentation). [/Users/brett/src/ma-collective/maenifold/tests/Maenifold.Tests/Maenifold.Tests.csproj]
-  Maenifold.Tests -> /Users/brett/src/ma-collective/maenifold/tests/Maenifold.Tests/bin/Release/net9.0/publish/

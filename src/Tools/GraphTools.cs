@@ -25,8 +25,17 @@ Select when AI needs to ensure graph accuracy, integrate new concepts, or refres
 No parameters required - processes all memory files for comprehensive graph database synchronization.
 Integrates with all memory tools for concept extraction, BuildContext for relationship verification, Visualize for graph display.
 Returns synchronization status with concept counts, relationship updates, and database health confirmation.")]
-    public static string Sync()
+    public static string Sync([Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(Sync).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(Sync)}";
+            return File.ReadAllText(helpPath);
+        }
+
         return ConceptSync.Sync();
     }
 
@@ -160,8 +169,18 @@ Returns Mermaid diagram code ready for rendering, enables visual knowledge archi
     public static string Visualize(
             [Description("Central concept")] string conceptName,
             [Description("Graph depth")] int depth = 2,
-            [Description("Max nodes")] int maxNodes = 30)
+            [Description("Max nodes")] int maxNodes = 30,
+            [Description("Return help documentation instead of executing")] bool learn = false)
     {
+        if (learn)
+        {
+            var toolName = nameof(Visualize).ToLowerInvariant();
+            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
+            if (!File.Exists(helpPath))
+                return $"ERROR: Help file not found for {nameof(Visualize)}";
+            return File.ReadAllText(helpPath);
+        }
+
         return GraphAnalyzer.Visualize(conceptName, depth, maxNodes);
     }
 

@@ -37,7 +37,7 @@ export function slugToFilename(slug: string): string {
  * Get all available tool slugs
  */
 export function getAllToolSlugs(): string[] {
-  const toolsDir = path.join(process.cwd(), '../src/assets/usage/tools')
+  const toolsDir = path.join(process.cwd(), '../docs/usage/tools')
 
   if (!fs.existsSync(toolsDir)) {
     console.warn(`Tools directory not found: ${toolsDir}`)
@@ -54,7 +54,7 @@ export function getAllToolSlugs(): string[] {
  */
 function loadToolMarkdown(slug: string): string {
   const filename = slugToFilename(slug)
-  const toolPath = path.join(process.cwd(), '../src/assets/usage/tools', filename)
+  const toolPath = path.join(process.cwd(), '../docs/usage/tools', filename)
 
   if (!fs.existsSync(toolPath)) {
     throw new Error(`Tool not found: ${filename}`)

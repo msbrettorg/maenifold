@@ -1,14 +1,14 @@
-# Maenifold
+# maenifold
 
-**Test-time adaptive reasoning for AI agents.** Maenifold enables AI to think through complex problems systematically, building a persistent knowledge graph that compounds over time.
+**Test-time adaptive reasoning for AI agents.** maenifold enables AI to think through complex problems systematically, building a persistent knowledge graph that compounds over time.
 
 ---
 
-**Maenifold enables persistent AI reasoning through knowledge graphs.** Where typical AI interactions start fresh each time, Maenifold maintains context across sessions through a growing graph of relationships. Every `[[WikiLink]]` creates connections that persist beyond individual conversations.
+**maenifold enables persistent AI reasoning through knowledge graphs.** Where typical AI interactions start fresh each time, maenifold maintains context across sessions through a growing graph of relationships. Every `[[WikiLink]]` creates connections that persist beyond individual conversations.
 
 **The system operates at documented scale**: 1.1M+ graph relationships, 30+ reasoning methodologies, and 85% success rate in our comprehensive E2E testing. Our [Hero Demo](demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) orchestrated 12 agents across 4 waves and found actual bugs that traditional mocks would miss—including file extension loss during move operations.
 
-**Built on 間 (Ma) principles**: The space between thoughts becomes knowledge. Maenifold creates room for AI to think systematically through sequential reasoning sessions that can revise, branch, and persist across days. Not forcing intelligence, but creating space for it to emerge. The name "Maenifold" represents the multi-dimensional topology of knowledge—Ma (間) + manifold—where thoughts fold through dimensional space creating persistent reasoning patterns.
+**Built on 間 (Ma) principles**: The space between thoughts becomes knowledge. maenifold creates room for AI to think systematically through sequential reasoning sessions that can revise, branch, and persist across days. Not forcing intelligence, but creating space for it to emerge. The name "maenifold" represents the multi-dimensional topology of knowledge—Ma (間) + manifold—where thoughts fold through dimensional space creating persistent reasoning patterns.
 
 **This is test-time reasoning infrastructure.** A foundation for AI agents that build knowledge over time rather than starting from zero. Real markdown files you can read, real SQLite you can query, real tool orchestration that scales to production workloads.
 
@@ -66,7 +66,7 @@
 
 ## 1. Beyond RAG: Real Reasoning
 
-Maenifold isn't just retrieval—it's a cognitive architecture for AI agents that need to:
+maenifold isn't just retrieval—it's a cognitive architecture for AI agents that need to:
 
 - **Think through multi-step problems** with sequential thinking sessions that can revise and branch
 - **Select optimal reasoning approaches** through intelligent workflow dispatch and meta-cognitive analysis
@@ -139,12 +139,12 @@ Every `[[WikiLink]]` becomes a node. Every mention strengthens edges. Patterns e
 
 ### 3.1 For VSCode Users
 
-1. **Install Maenifold**:
+1. **Install maenifold**:
 ```bash
 npm install -g @ma-collective/maenifold
 ```
 
-2. **Configure your AI assistant** to use Maenifold:
+2. **Configure your AI assistant** to use maenifold:
 
 **Single-agent setup** (Continue, Cline, etc.):
 
@@ -400,11 +400,11 @@ Every interaction strengthens the graph. Every query can traverse relationships.
 
 ## 9. Real Testing, Real Bugs, Real Confidence
 
-Unlike traditional unit tests that validate mocks against mocks, Maenifold employs **multi-agent orchestration testing** that discovers actual issues:
+Unlike traditional unit tests that validate mocks against mocks, maenifold employs **multi-agent orchestration testing** that discovers actual issues:
 
 ### 9.1 The Hero Demo
 
-Our [comprehensive E2E test](demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) orchestrated **12 specialized agents** across 4 waves to validate Maenifold:
+Our [comprehensive E2E test](demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) orchestrated **12 specialized agents** across 4 waves to validate maenifold:
 
 - **Found and fixed a critical bug**: Move operations were losing file extensions - mocks would never catch this
 - **Discovered parameter inconsistencies**: minScore filtering wasn't working - only real queries revealed this
@@ -422,16 +422,16 @@ mockDB.save = jest.fn().mockResolvedValue({ id: 1 });
 expect(await service.save(data)).toBe(1); // ✅ Meaningless success
 ```
 
-**Maenifold's approach with real agents:**
+**maenifold's approach with real agents:**
 ```bash
 # Agent CORE-01 discovers actual behavior
-Maenifold --tool movememory --payload '{"source":"test","destination":"verified/test"}'
+maenifold --tool movememory --payload '{"source":"test","destination":"verified/test"}'
 # Result: File lost .md extension - REAL BUG FOUND
 ```
 
 ### 9.3 Adaptive Test Evolution
 
-When Maenifold evolves, tests don't break - they adapt:
+When maenifold evolves, tests don't break - they adapt:
 
 1. **Agents discover new capabilities** through tool exploration
 2. **PM-lite protocol orchestrates** comprehensive coverage automatically
@@ -517,4 +517,4 @@ Sequential Thinking implementation inspired by [MCP Sequential Thinking](https:/
 
 ---
 
-*Maenifold - Test-time reasoning that compounds.*
+*maenifold - Test-time reasoning that compounds.*

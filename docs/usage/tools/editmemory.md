@@ -1,6 +1,6 @@
 # EditMemory
 
-Edit an existing memory FILE to add, modify, or replace content while maintaining [[concept]] connections to the knowledge graph. This tool provides safe editing operations with checksum validation to prevent conflicting changes and ensures all edits contribute to the Maenifold graph structure.
+Edit an existing memory FILE to add, modify, or replace content while maintaining [[concept]] connections to the knowledge graph. This tool provides safe editing operations with checksum validation to prevent conflicting changes and ensures all edits contribute to the maenifold graph structure.
 
 ## When to Use This Tool
 

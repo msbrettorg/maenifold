@@ -1,6 +1,6 @@
 # BuildContext
 
-Explore and traverse concept relationships in your Maenifold knowledge graph through intelligent graph navigation. This tool discovers connections between [[concepts]] by analyzing co-occurrence patterns in your memory files, building contextual understanding through relationship exploration and multi-hop graph traversal.
+Explore and traverse concept relationships in your maenifold knowledge graph through intelligent graph navigation. This tool discovers connections between [[concepts]] by analyzing co-occurrence patterns in your memory files, building contextual understanding through relationship exploration and multi-hop graph traversal.
 
 ## When to Use This Tool
 
@@ -169,7 +169,7 @@ Relationships are ranked by co-occurrence count, ensuring most frequent concept 
 ### Source Provenance
 Every relationship tracks which memory files contain the co-occurring concepts, enabling verification and deeper investigation.
 
-## Integration with Maenifold Architecture
+## Integration with maenifold Architecture
 
 ### Sequential Thinking Integration
 Use BuildContext to gather conceptual context before thinking sessions:
@@ -191,7 +191,7 @@ BuildContext reveals the structure of your knowledge while SearchMemories finds 
 
 ## Ma Protocol Compliance
 
-BuildContext follows Maenifold's Ma Protocol principles:
+BuildContext follows maenifold's Ma Protocol principles:
 - **Simplicity**: Single responsibility for graph traversal and relationship discovery
 - **No Magic**: Real SQLite database with transparent concept relationship storage
 - **Minimal Complexity**: Static methods with clear graph algorithm implementation

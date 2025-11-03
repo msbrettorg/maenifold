@@ -338,7 +338,7 @@ SearchMemories query="testing quality-assurance validation"
 
 ## Ma Protocol Compliance
 
-FindSimilarConcepts follows Maenifold's Ma Protocol principles:
+FindSimilarConcepts follows maenifold's Ma Protocol principles:
 - **Real Mathematics**: Uses actual vector cosine similarity, no heuristics
 - **Transparent Scores**: Returns explicit similarity values, not opaque "relevance"
 - **No Magic**: Direct SQLite vector queries with standard operations

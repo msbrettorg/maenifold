@@ -620,7 +620,7 @@ Unknown tool: ListMcpResources
 
 ### Root Cause
 
-Maenifold has **dual registration system**:
+maenifold has **dual registration system**:
 1. **MCP Server Mode**: Tools auto-discovered via `[McpServerTool]` attribute (reflection-based)
 2. **CLI Mode**: Tools require manual registration in `ToolRegistry.Initialize()` method
 

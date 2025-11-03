@@ -11,7 +11,7 @@ Synchronize [[WikiLink]] concepts from memory files into the knowledge graph dat
 - For system maintenance to clean up abandoned sessions and optimize graph structure  
 - When concepts appear disconnected but should show relationships
 - To rebuild the full-text search index for improved content discovery
-- After file system changes outside of Maenifold tools
+- After file system changes outside of maenifold tools
 
 ## Key Features
 
@@ -103,7 +103,7 @@ Always sync before using BuildContext or Visualize to ensure you're working with
 Run Sync periodically as part of system maintenance to clean up abandoned sessions and optimize graph structure.
 
 ### After External Changes
-If memory files are modified outside Maenifold tools, run Sync to ensure graph database reflects current file state.
+If memory files are modified outside maenifold tools, run Sync to ensure graph database reflects current file state.
 
 ### Performance Optimization
 Sync rebuilds indexes and optimizes database structure, improving performance of subsequent graph operations.
@@ -137,7 +137,7 @@ All database operations occur within single transaction to maintain ACID propert
 ## Troubleshooting
 
 ### Error: "Database locked" during sync
-**Cause**: Another Maenifold operation is accessing the database  
+**Cause**: Another maenifold operation is accessing the database  
 **Solution**: Wait for concurrent operations to complete, then retry sync
 
 ### Warning: "No concepts found in files"
@@ -176,11 +176,11 @@ Concepts track first-seen timestamps, and files maintain creation/modification t
 
 ## Ma Protocol Compliance
 
-Sync follows Maenifold's Ma Protocol principles:
+Sync follows maenifold's Ma Protocol principles:
 - **Simplicity**: Single responsibility for graph synchronization  
 - **No Magic**: Direct SQLite operations with transparent schema
 - **Minimal Complexity**: Static methods, clear database transactions
 - **Real Testing**: End-to-end database and file system validation
 - **Performance Focus**: Optimized for large knowledge bases with efficient indexing
 
-This tool maintains the knowledge graph foundation that enables Maenifold's graph-augmented retrieval and relationship discovery capabilities.
+This tool maintains the knowledge graph foundation that enables maenifold's graph-augmented retrieval and relationship discovery capabilities.

@@ -1,6 +1,6 @@
 # Visualize
 
-Generate Mermaid diagrams of concept relationships to visually explore your Maenifold knowledge graph. This tool transforms abstract concept connections into interactive visual diagrams, enabling pattern recognition and knowledge structure understanding through graph visualization of co-occurrence relationships extracted from your memory files.
+Generate Mermaid diagrams of concept relationships to visually explore your maenifold knowledge graph. This tool transforms abstract concept connections into interactive visual diagrams, enabling pattern recognition and knowledge structure understanding through graph visualization of co-occurrence relationships extracted from your memory files.
 
 ## When to Use This Tool
 
@@ -217,7 +217,7 @@ Visualize concepts that appear in multiple domains to identify knowledge bridges
 
 ## Ma Protocol Compliance
 
-Visualize follows Maenifold's Ma Protocol principles:
+Visualize follows maenifold's Ma Protocol principles:
 - **Simplicity**: Single responsibility for Mermaid diagram generation from concept relationships
 - **No Magic**: Direct SQLite query to concept_graph table with transparent relationship retrieval  
 - **Static Implementation**: Pure function approach with no state management or complex object hierarchies

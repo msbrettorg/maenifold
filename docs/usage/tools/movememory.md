@@ -1,7 +1,7 @@
 # MoveMemory
 
 ## Purpose
-Move or rename memory FILES within the Maenifold system, updating URIs and maintaining file integrity with automatic timestamp tracking.
+Move or rename memory FILES within the maenifold system, updating URIs and maintaining file integrity with automatic timestamp tracking.
 
 ## When to Use This Tool
 - Renaming files to better reflect updated content or purpose
@@ -133,4 +133,4 @@ Move files through research stages as understanding deepens:
 - Use folder structures that mirror your conceptual hierarchies
 - Organize related files near each other to strengthen [[concept]] clustering
 
-This tool is essential for maintaining an organized, navigable knowledge base that supports effective [[concept]] discovery and relationship building within the Maenifold architecture.
+This tool is essential for maintaining an organized, navigable knowledge base that supports effective [[concept]] discovery and relationship building within the maenifold architecture.

@@ -142,4 +142,4 @@ ReadMemory returns formatted content with:
 5. **Checksum** (if requested) for edit safety
 6. **Full file content** after metadata separator
 
-This tool is essential for safe file operations and knowledge retrieval in the Maenifold memory system.
+This tool is essential for safe file operations and knowledge retrieval in the maenifold memory system.

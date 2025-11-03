@@ -121,7 +121,7 @@ Before deleting important files:
 - **Immediate effect**: File is removed from disk as soon as the tool executes successfully
 - **Confirmation requirement**: The `confirm` parameter prevents accidental execution
 - **Graph consistency**: Run Sync after deletions to maintain knowledge graph integrity
-- **Backup responsibility**: Maenifold does not create backups - use external version control
+- **Backup responsibility**: maenifold does not create backups - use external version control
 
 ## Performance Considerations
 

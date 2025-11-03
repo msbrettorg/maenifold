@@ -1,6 +1,6 @@
 # MemoryStatus
 
-Monitor Maenifold system health through comprehensive memory statistics and database metrics. This tool provides essential system monitoring capabilities to track knowledge graph growth, file storage utilization, and database health for system optimization and troubleshooting. Use for proactive system maintenance and performance analysis.
+Monitor maenifold system health through comprehensive memory statistics and database metrics. This tool provides essential system monitoring capabilities to track knowledge graph growth, file storage utilization, and database health for system optimization and troubleshooting. Use for proactive system maintenance and performance analysis.
 
 ## When to Use This Tool
 
@@ -167,4 +167,4 @@ MemoryStatus exemplifies Ma Protocol principles:
 - **Real Testing**: Actual file counts and database metrics, no mock data
 - **Transparent Operation**: Clear, readable output showing exactly what system contains
 
-This tool provides essential visibility into your Maenifold system health, enabling proactive maintenance and optimization of your growing knowledge architecture.
+This tool provides essential visibility into your maenifold system health, enabling proactive maintenance and optimization of your growing knowledge architecture.

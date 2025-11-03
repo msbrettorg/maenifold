@@ -8,7 +8,7 @@ One-time [[migration]] tool that prepends H1 titles (`# {title}`) to legacy [[me
 - **Consistency Enforcement**: Ensure all memory files have proper heading structure
 - **Rendering Fixes**: Fix display issues caused by missing top-level headings
 - **Pre-Export Cleanup**: Prepare memory files for export to other [[markdown]] tools
-- **New Installation**: Migrate memories from older Maenifold versions
+- **New Installation**: Migrate memories from older maenifold versions
 - **Quality Audit**: Identify files missing proper markdown structure
 
 ## Key Features
@@ -301,7 +301,7 @@ Rebuilds [[knowledge-graph]] with updated file structure.
 
 ## Ma Protocol Compliance
 
-AddMissingH1 follows Maenifold's Ma Protocol principles:
+AddMissingH1 follows maenifold's Ma Protocol principles:
 - **Safety First**: Dry run by default, batch limiting, thinking session protection
 - **Idempotent**: Safe to run multiple times without creating duplicates
 - **Transparent**: Shows exactly which files will be modified before changing anything

@@ -1,6 +1,6 @@
 # SearchMemories
 
-Search memory FILES by content to discover your [[concepts]] and knowledge. This tool provides full-text search across your Maenifold knowledge base with intelligent scoring, snippet extraction, and flexible filtering options. Essential for knowledge discovery before creating new content or finding existing solutions.
+Search memory FILES by content to discover your [[concepts]] and knowledge. This tool provides full-text search across your maenifold knowledge base with intelligent scoring, snippet extraction, and flexible filtering options. Essential for knowledge discovery before creating new content or finding existing solutions.
 
 ## When to Use This Tool
 
@@ -187,21 +187,21 @@ SearchMemories uses a simple but effective scoring system:
 
 ## Knowledge Graph Integration
 
-SearchMemories works seamlessly with Maenifold's knowledge graph:
+SearchMemories works seamlessly with maenifold's knowledge graph:
 - **Concept Discovery**: Find files containing specific [[WikiLink]] concepts
 - **Relationship Exploration**: Search results can be used with BuildContext for graph traversal
 - **URI Compatibility**: Results provide memory:// URIs compatible with all memory tools
 - **Graph Sync**: Use Sync after finding outdated results to refresh concept extraction
 
-This tool serves as the primary entry point for knowledge discovery in your Maenifold system, enabling efficient exploration of accumulated knowledge before creation of new content or analysis.
+This tool serves as the primary entry point for knowledge discovery in your maenifold system, enabling efficient exploration of accumulated knowledge before creation of new content or analysis.
 
 ## Ma Protocol Compliance
 
-SearchMemories follows Maenifold's Ma Protocol principles:
+SearchMemories follows maenifold's Ma Protocol principles:
 - **Simplicity**: Direct file system search without complex indexing
 - **No Magic**: Transparent scoring algorithm and real file access
 - **Minimal Complexity**: Static methods with clear search logic
 - **Real Testing**: End-to-end search validation with actual file content
 - **Graceful Degradation**: Continues operation even with malformed files
 
-The tool provides reliable knowledge discovery without unnecessary complexity, supporting the Maenifold philosophy of augmented intelligence through persistent, searchable knowledge.
+The tool provides reliable knowledge discovery without unnecessary complexity, supporting the maenifold philosophy of augmented intelligence through persistent, searchable knowledge.

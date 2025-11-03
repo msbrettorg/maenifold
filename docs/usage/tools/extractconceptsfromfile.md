@@ -80,7 +80,7 @@ Validate that a newly created file contains proper [[concept]] links before runn
 - **Solutions**:
   - ExtractConceptsFromFile is optimized for Ma Protocol 250-line files
   - For oversized files, consider splitting content using EditMemory with replace_section
-  - Large files may indicate violation of Maenifold architectural principles
+  - Large files may indicate violation of maenifold architectural principles
 
 ## Integration Examples
 
@@ -107,7 +107,7 @@ Validate that a newly created file contains proper [[concept]] links before runn
 ```
 
 ## Technical Notes
-- **File Format**: Works with Maenifold markdown files containing YAML frontmatter
+- **File Format**: Works with maenifold markdown files containing YAML frontmatter
 - **URI Resolution**: Supports both memory:// URIs and title-based file lookup
 - **Concept Format**: Extracts only [[double bracketed]] text as valid concepts
 - **Case Sensitivity**: Concept extraction preserves exact case from file content

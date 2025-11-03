@@ -23,7 +23,7 @@ Key features:
 
 ## What This Tool Does NOT Do
 
-In alignment with Maenifold philosophy:
+In alignment with maenifold philosophy:
 - ❌ Does NOT automatically discover or rank assumptions
 - ❌ Does NOT cache, score, or batch operations beyond markdown writes
 - ❌ Does NOT implement telemetry, analytics, or usage tracking

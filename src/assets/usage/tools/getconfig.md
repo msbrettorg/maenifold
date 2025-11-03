@@ -9,7 +9,7 @@ None - zero-parameter diagnostic tool.
 ## Returns
 
 ```
-Maenifold Configuration:
+maenifold Configuration:
   Memory Path: ~/maenifold/memory
   Database: ~/maenifold/memory.db
   Debounce: 150ms

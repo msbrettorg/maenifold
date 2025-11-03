@@ -105,7 +105,7 @@ McpServer server = ...;
 McpSession endpoint = ...;
 ```
 
-**Maenifold Impact**: ✅ **ZERO**
+**maenifold Impact**: ✅ **ZERO**
 - Grep search: 0 matches for `IMcpClient`, `IMcpServer`, `IMcpEndpoint`
 - Codebase uses extension methods, not direct interface usage
 
@@ -125,7 +125,7 @@ var server = await McpServerFactory.CreateAsync(...);
 var server = McpServer.Create(...);
 ```
 
-**Maenifold Impact**: ✅ **ZERO**
+**maenifold Impact**: ✅ **ZERO**
 - Grep search: 0 matches for `McpServerFactory`, `McpClientFactory`
 - Program.cs uses `.AddMcpServer()` extension method (safe for both versions)
 
@@ -145,8 +145,8 @@ var transport = new SseClientTransport(...);
 var transport = new HttpClientTransport(...);
 ```
 
-**Maenifold Impact**: ✅ **ZERO**
-- Maenifold is **MCP Server**, not HTTP/SSE client
+**maenifold Impact**: ✅ **ZERO**
+- maenifold is **MCP Server**, not HTTP/SSE client
 - Uses `StdioServerTransport` (stdio, not HTTP)
 - Program.cs:24: `.WithStdioServerTransport()` - unaffected
 
@@ -168,8 +168,8 @@ options.ToolCollection = ...;
 options.Handlers.CallToolHandler = handler;
 ```
 
-**Maenifold Impact**: ✅ **VERY LOW - Nearly Zero**
-- Maenifold uses **attribute-based tool discovery**, NOT manual handler registration
+**maenifold Impact**: ✅ **VERY LOW - Nearly Zero**
+- maenifold uses **attribute-based tool discovery**, NOT manual handler registration
 - Pattern: `[McpServerToolType]` + `[McpServerTool]` attributes
 - Grep search: 0 matches for `Capabilities.Tools`, `CallToolHandler`, `ToolCollection`
 - Extension method `.WithToolsFromAssembly()` handles all discovery - pattern unchanged
@@ -180,7 +180,7 @@ options.Handlers.CallToolHandler = handler;
 
 **Change**: Stateless HTTP transport no longer tracks `ClientInfo`.
 
-**Maenifold Impact**: ✅ **ZERO**
+**maenifold Impact**: ✅ **ZERO**
 - Uses stateful `StdioServerTransport`, not HTTP stateless mode
 - No code references `ClientInfo`
 

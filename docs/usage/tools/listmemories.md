@@ -19,7 +19,7 @@ Explore memory system file structure and navigate folder hierarchies for content
 - **File Count Indicators**: Displays markdown file count for each folder (e.g., "📁 projects/ (12 files)")
 - **File Size Information**: Shows individual file sizes in KB for storage management
 - **Relative Path Navigation**: Accepts relative paths from memory root for targeted exploration
-- **Memory System Focus**: Only shows .md files relevant to Maenifold knowledge system
+- **Memory System Focus**: Only shows .md files relevant to maenifold knowledge system
 - **Visual Organization**: Uses folder 📁 and file 📄 emojis for clear content type identification
 - **Root Directory Default**: Starts at memory root when no path specified
 - **Error Handling**: Clear feedback for non-existent or inaccessible directories
@@ -189,7 +189,7 @@ Use ListMemories to identify:
 **Cause**: Directory exists but is empty or contains no .md files  
 **Solution**:
 - This is normal for empty directories
-- Only .md files are shown (Maenifold knowledge files)
+- Only .md files are shown (maenifold knowledge files)
 - Other file types are filtered out intentionally
 
 ### **Issue**: Path navigation confusion  
@@ -214,7 +214,7 @@ Use ListMemories to identify:
 - Follow existing naming patterns discovered through exploration
 - Create new folders when existing structure doesn't fit new content type
 
-## Maenifold Integration
+## maenifold Integration
 
 ### Knowledge Graph Support
 - Directory structure influences [[concept]] organization
@@ -240,16 +240,16 @@ Use ListMemories as part of larger workflows:
 
 ## Ma Protocol Compliance
 
-ListMemories follows Maenifold's Ma Protocol principles:
+ListMemories follows maenifold's Ma Protocol principles:
 
 - **Single Responsibility**: Focused purely on directory structure exploration
 - **No Magic**: Direct filesystem interaction with transparent path handling
 - **Simple Parameters**: Single optional path parameter with clear defaults
 - **Real Data**: Shows actual directory structure with real file counts and sizes
 - **Minimal Complexity**: Static method, straightforward directory traversal
-- **Memory System Focus**: Only shows .md files relevant to Maenifold knowledge
+- **Memory System Focus**: Only shows .md files relevant to maenifold knowledge
 
-This tool provides essential **spatial navigation** within your Maenifold memory system, enabling informed decisions about content organization and knowledge structure while maintaining Ma Protocol simplicity and directness.
+This tool provides essential **spatial navigation** within your maenifold memory system, enabling informed decisions about content organization and knowledge structure while maintaining Ma Protocol simplicity and directness.
 
 ## Performance Characteristics
 
@@ -259,4 +259,4 @@ This tool provides essential **spatial navigation** within your Maenifold memory
 - **Path Validation**: Quick existence checks before processing
 - **Efficient Metadata**: File size calculation without content loading
 
-Use ListMemories as your **memory system compass** - the essential tool for understanding where you are, where your knowledge lives, and where new content should go in your Maenifold ecosystem.
+Use ListMemories as your **memory system compass** - the essential tool for understanding where you are, where your knowledge lives, and where new content should go in your maenifold ecosystem.

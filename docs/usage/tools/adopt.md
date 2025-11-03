@@ -1,6 +1,6 @@
 # Adopt
 
-Adopt a [[role]], [[color]], or [[perspective]] by loading its JSON configuration from Maenifold's assets directory. This tool enables AI agents to take on specialized thinking modes, [[Six Thinking Hats]] colors, or analytical perspectives by reading structured configuration that defines personality, approach, and evaluation criteria.
+Adopt a [[role]], [[color]], or [[perspective]] by loading its JSON configuration from maenifold's assets directory. This tool enables AI agents to take on specialized thinking modes, [[Six Thinking Hats]] colors, or analytical perspectives by reading structured configuration that defines personality, approach, and evaluation criteria.
 
 ## When to Use This Tool
 
@@ -337,7 +337,7 @@ Apply the role's checklist:
 
 ## Ma Protocol Compliance
 
-Adopt follows Maenifold's Ma Protocol principles:
+Adopt follows maenifold's Ma Protocol principles:
 - **Simplicity**: Direct file reading with validation
 - **No Hidden State**: Tool has no persistent state - pure data loading
 - **Transparent**: Returns complete configuration for agent to interpret

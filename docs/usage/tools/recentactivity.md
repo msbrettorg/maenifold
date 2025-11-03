@@ -1,6 +1,6 @@
 # RecentActivity
 
-Track recent activity across your Maenifold knowledge system with time-based filtering and session monitoring. RecentActivity provides a comprehensive view of recent memory files, thinking sessions, and workflow progress, enabling effective progress monitoring and work discovery patterns.
+Track recent activity across your maenifold knowledge system with time-based filtering and session monitoring. RecentActivity provides a comprehensive view of recent memory files, thinking sessions, and workflow progress, enabling effective progress monitoring and work discovery patterns.
 
 ## When to Use This Tool
 
@@ -184,7 +184,7 @@ Filter by "thinking" to find sessions with "active" status that need completion 
 
 ### "all" Filter (Default)
 - Includes: Everything - thinking sessions and memory files
-- Provides: Complete activity overview across your Maenifold system
+- Provides: Complete activity overview across your maenifold system
 
 ## Time Format Specifications
 
@@ -203,9 +203,9 @@ TimeSpan format follows .NET standard: `[days.]hours:minutes:seconds[.fractional
 - **Query Optimization**: Uses indexed last_modified timestamps for efficient time-based filtering
 - **Memory Usage**: Content snippets are truncated to prevent excessive memory usage with large result sets
 
-## Integration with Maenifold Ecosystem
+## Integration with maenifold Ecosystem
 
-RecentActivity serves as a **discovery and monitoring hub** for your Maenifold system:
+RecentActivity serves as a **discovery and monitoring hub** for your maenifold system:
 
 1. **Knowledge Graph Integration**: Files tracked by RecentActivity contain [[concepts]] that build your knowledge graph
 2. **Session Continuity**: Provides session IDs needed to continue Sequential Thinking and Workflow sessions  
@@ -213,15 +213,15 @@ RecentActivity serves as a **discovery and monitoring hub** for your Maenifold s
 4. **Quality Assurance**: Helps identify abandoned sessions that need completion or cleanup
 5. **Work Pattern Analysis**: Reveals your thinking and knowledge creation patterns over time
 
-Use RecentActivity as your **starting point** for understanding what's happening in your Maenifold system, then use other tools to dive deeper into specific sessions, memory files, or knowledge areas.
+Use RecentActivity as your **starting point** for understanding what's happening in your maenifold system, then use other tools to dive deeper into specific sessions, memory files, or knowledge areas.
 
 ## Ma Protocol Compliance
 
-RecentActivity follows Maenifold's Ma Protocol principles:
+RecentActivity follows maenifold's Ma Protocol principles:
 - **Single Responsibility**: Focused purely on activity discovery and monitoring
 - **No Magic**: Direct SQLite queries with transparent filtering logic
 - **Simple Parameters**: Clear, validated inputs with helpful error messages  
 - **Real Data**: Shows actual file activity, modification times, and session states
 - **Minimal Complexity**: Static methods, straightforward SQL queries, no caching complexity
 
-This tool provides essential visibility into your Maenifold activity patterns while maintaining the simplicity and directness that characterizes the Ma Protocol approach.
+This tool provides essential visibility into your maenifold activity patterns while maintaining the simplicity and directness that characterizes the Ma Protocol approach.

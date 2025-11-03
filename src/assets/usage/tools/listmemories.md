@@ -61,7 +61,7 @@ Deep navigation - nested directory exploration.
 
 ## Constraints
 
-- Shows only `.md` files (Maenifold knowledge files)
+- Shows only `.md` files (maenifold knowledge files)
 - Paths relative to memory root: `"projects"` not `"/Users/you/maenifold/memory/projects"`
 - Non-existent paths return error with directory list suggestion
 

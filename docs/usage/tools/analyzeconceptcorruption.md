@@ -238,7 +238,7 @@ Only consolidate the SAFE plurals:
 
 ## Ma Protocol Compliance
 
-AnalyzeConceptCorruption follows Maenifold's Ma Protocol principles:
+AnalyzeConceptCorruption follows maenifold's Ma Protocol principles:
 - **Read-Only Safety**: Never modifies files - pure analysis for informed decision-making
 - **Transparent Logic**: Clear pattern categorization showing exactly what was found
 - **No Magic**: Direct file scanning with straightforward WikiLink pattern matching

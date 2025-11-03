@@ -27,7 +27,7 @@ Execute structured workflow(s) for systematic problem-solving and complex orches
   - Git integration and tracking for development workflows
   - Enhanced thinking requirements with reasoning effort control
   - Process control with stop conditions and next actions
-  - Integration with Maenifold ecosystem (CodeNav, SearchMemories, WriteMemory, etc.)
+  - Integration with maenifold ecosystem (CodeNav, SearchMemories, WriteMemory, etc.)
 
   Workflow orchestration capabilities:
   - Wave-based execution (discovery wave, validation wave, implementation wave)
@@ -83,10 +83,10 @@ Execute structured workflow(s) for systematic problem-solving and complex orches
   5. Complete workflows fully rather than abandoning mid-orchestration
   6. Use multi-workflow approaches for comprehensive systematic analysis
   7. Respect tool hints and quality gates built into workflow steps
-  8. Leverage Maenifold ecosystem integration (CodeNav, SearchMemories, etc.)
+  8. Leverage maenifold ecosystem integration (CodeNav, SearchMemories, etc.)
 
-  Maenifold Integration:
-  - Workflows coordinate Maenifold's full tool ecosystem
+  maenifold Integration:
+  - Workflows coordinate maenifold's full tool ecosystem
   - SearchMemories and WriteMemory for knowledge graph integration
   - BuildContext for concept relationship exploration
   - Multi-agent dispatch with Task tool coordination

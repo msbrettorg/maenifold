@@ -1,10 +1,10 @@
 # RunFullBenchmark
 
-Comprehensive [[performance]] [[benchmark]] suite that validates all Maenifold performance claims including [[graph]] traversal ([[GRPH-009]] CTE vs N+1), [[search]] performance, [[sync]] timing, and complex traversal bottlenecks. Provides empirical validation of system performance characteristics under real workloads.
+Comprehensive [[performance]] [[benchmark]] suite that validates all maenifold performance claims including [[graph]] traversal ([[GRPH-009]] CTE vs N+1), [[search]] performance, [[sync]] timing, and complex traversal bottlenecks. Provides empirical validation of system performance characteristics under real workloads.
 
 ## When to Use This Tool
 
-- **Performance Validation**: Verify Maenifold meets documented performance targets
+- **Performance Validation**: Verify maenifold meets documented performance targets
 - **System Health Checks**: Assess overall system performance before/after changes
 - **Regression Detection**: Compare performance across versions or configurations
 - **Capacity Planning**: Understand performance at different dataset scales
@@ -353,7 +353,7 @@ RunFullBenchmark > benchmark-v1.2.3.txt
 
 ## Ma Protocol Compliance
 
-RunFullBenchmark follows Maenifold's Ma Protocol principles:
+RunFullBenchmark follows maenifold's Ma Protocol principles:
 - **Real Testing**: Uses actual memory files and live database, no mocks
 - **Transparent Metrics**: Reports exact timings and compares to documented claims
 - **No Magic**: Standard Stopwatch timing with clear measurement points

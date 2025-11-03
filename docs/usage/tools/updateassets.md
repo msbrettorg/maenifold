@@ -28,17 +28,17 @@ Returns `UpdateAssetsResult` with summary of added/updated files.
 
 **Dry Run (Preview Changes)**
 ```bash
-Maenifold --tool UpdateAssets --payload '{"dryRun":true}'
+maenifold --tool UpdateAssets --payload '{"dryRun":true}'
 ```
 
 **Execute Update**
 ```bash
-Maenifold --tool UpdateAssets --payload '{"dryRun":false}'
+maenifold --tool UpdateAssets --payload '{"dryRun":false}'
 ```
 
 **Default (Dry Run)**
 ```bash
-Maenifold --tool UpdateAssets --payload '{}'
+maenifold --tool UpdateAssets --payload '{}'
 ```
 
 ### MCP
@@ -67,10 +67,10 @@ Maenifold --tool UpdateAssets --payload '{}'
 ### After maenifold Upgrade
 ```bash
 # Check what assets need updating
-Maenifold --tool UpdateAssets --payload '{"dryRun":true}'
+maenifold --tool UpdateAssets --payload '{"dryRun":true}'
 
 # Apply updates
-Maenifold --tool UpdateAssets --payload '{"dryRun":false}'
+maenifold --tool UpdateAssets --payload '{"dryRun":false}'
 ```
 
 ## Integration Points

@@ -1,6 +1,6 @@
 # WriteMemory
 
-Create new knowledge files in the Maenifold memory system with automatic knowledge graph integration. This tool builds your persistent knowledge base through [[WikiLink]] concepts that automatically connect related information. REQUIRES at least one [[concept]] in double brackets to ensure knowledge graph connectivity.
+Create new knowledge files in the maenifold memory system with automatic knowledge graph integration. This tool builds your persistent knowledge base through [[WikiLink]] concepts that automatically connect related information. REQUIRES at least one [[concept]] in double brackets to ensure knowledge graph connectivity.
 
 ## When to Use This Tool
 
@@ -144,11 +144,11 @@ The [[concept]] requirement ensures no orphaned knowledge - every file connects 
 
 ## Ma Protocol Compliance
 
-WriteMemory follows Maenifold's Ma Protocol principles:
+WriteMemory follows maenifold's Ma Protocol principles:
 - **Simplicity**: Single responsibility for knowledge creation
 - **No Magic**: Real file system storage with transparent metadata
 - **Minimal Complexity**: Static methods, clear parameters, direct operation
 - **Real Testing**: End-to-end file creation and validation
 - **250-line Limit**: Encourages focused, coherent knowledge units
 
-This tool creates the foundation for your Maenifold knowledge system - every file becomes part of your growing cognitive infrastructure.
+This tool creates the foundation for your maenifold knowledge system - every file becomes part of your growing cognitive infrastructure.

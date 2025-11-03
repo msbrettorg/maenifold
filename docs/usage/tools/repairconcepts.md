@@ -349,7 +349,7 @@ Total replacements: 101
 
 ## Ma Protocol Compliance
 
-RepairConcepts follows Maenifold's Ma Protocol principles:
+RepairConcepts follows maenifold's Ma Protocol principles:
 - **Real File Modification**: Changes source markdown files, not just database caches
 - **Safety First**: Dry run mode and semantic validation prevent accidental damage
 - **Transparent Operation**: Shows exactly what will change before applying

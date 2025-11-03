@@ -114,12 +114,12 @@ dotnet test --collect:"XPlat Code Coverage"
 
 **CLI mode:**
 ```bash
-src/bin/Debug/net9.0/Maenifold --tool MemoryStatus --payload '{}'
+src/bin/Debug/net9.0/maenifold --tool MemoryStatus --payload '{}'
 ```
 
 **MCP mode (stdio):**
 ```bash
-src/bin/Debug/net9.0/Maenifold --mcp
+src/bin/Debug/net9.0/maenifold --mcp
 ```
 
 Then send MCP JSON-RPC messages via stdin.

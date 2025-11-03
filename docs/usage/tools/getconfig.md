@@ -1,13 +1,13 @@
 # GetConfig
 
-Display current system configuration settings and operational parameters to understand Maenifold's runtime environment, debug setup issues, and verify system paths. This tool provides essential configuration information including memory paths, database locations, synchronization settings, and performance parameters for troubleshooting and system validation.
+Display current system configuration settings and operational parameters to understand maenifold's runtime environment, debug setup issues, and verify system paths. This tool provides essential configuration information including memory paths, database locations, synchronization settings, and performance parameters for troubleshooting and system validation.
 
 ## When to Use This Tool
 
-- When troubleshooting Maenifold startup or runtime issues
+- When troubleshooting maenifold startup or runtime issues
 - Before diagnosing path-related problems with memory files or database
 - To verify environment variable configurations are properly loaded
-- When setting up Maenifold in new environments or deployment contexts
+- When setting up maenifold in new environments or deployment contexts
 - For debugging synchronization timing or performance issues
 - To confirm system configuration before complex operations
 - When providing system information for support or documentation
@@ -42,7 +42,7 @@ Shows complete system configuration including all paths, timing settings, and op
 ```json
 {}
 ```
-Use when Maenifold is not behaving as expected to verify configuration values and identify potential issues.
+Use when maenifold is not behaving as expected to verify configuration values and identify potential issues.
 
 ### Environment Validation
 ```json
@@ -74,11 +74,11 @@ Run in new deployment environments to confirm all configuration values are corre
 ## Configuration Sources
 
 ### Default Values
-Maenifold provides sensible defaults for all configuration parameters based on common usage patterns and optimal performance characteristics.
+maenifold provides sensible defaults for all configuration parameters based on common usage patterns and optimal performance characteristics.
 
 ### Environment Variable Overrides
 All configuration values can be customized via environment variables:
-- **MAENIFOLD_ROOT**: Base directory for all Maenifold data
+- **MAENIFOLD_ROOT**: Base directory for all maenifold data
 - **MAENIFOLD_DATABASE_PATH**: Custom database file location
 - **MAENIFOLD_DEBOUNCE_MS**: File change detection delay (default: 150)
 - **MAENIFOLD_AUTO_SYNC**: Enable/disable automatic synchronization (default: true)
@@ -94,16 +94,16 @@ Configuration automatically adapts to platform conventions while allowing full c
 ## Common Patterns
 
 ### Initial System Setup
-Run GetConfig immediately after Maenifold installation to verify all paths are correctly resolved and accessible.
+Run GetConfig immediately after maenifold installation to verify all paths are correctly resolved and accessible.
 
 ### Environment Migration
-Use GetConfig when moving Maenifold between development, staging, and production environments to ensure configuration consistency.
+Use GetConfig when moving maenifold between development, staging, and production environments to ensure configuration consistency.
 
 ### Troubleshooting Workflow
-Always check configuration first when investigating Maenifold issues - many problems stem from incorrect path configuration.
+Always check configuration first when investigating maenifold issues - many problems stem from incorrect path configuration.
 
 ### Performance Tuning
-Review timing and performance parameters when optimizing Maenifold for specific workloads or system constraints.
+Review timing and performance parameters when optimizing maenifold for specific workloads or system constraints.
 
 ### Documentation and Support
 Include GetConfig output when reporting issues or documenting system setup for team knowledge sharing.
@@ -114,7 +114,7 @@ Include GetConfig output when reporting issues or documenting system setup for t
 - **ListMemories**: Verifies that configured paths contain expected content
 - **Sync**: Relies on configuration paths for database and memory file operations
 - **RecentActivity**: Uses configuration parameters for time-based filtering and display limits
-- **All Tools**: Every Maenifold tool depends on configuration paths and settings
+- **All Tools**: Every maenifold tool depends on configuration paths and settings
 
 ## Configuration Validation
 
@@ -125,7 +125,7 @@ While GetConfig displays configured paths, it doesn't verify accessibility - use
 GetConfig shows the final resolved values after environment variable processing and type conversion.
 
 ### Default Behavior
-When environment variables are not set, GetConfig displays the built-in default values that ensure Maenifold operates correctly.
+When environment variables are not set, GetConfig displays the built-in default values that ensure maenifold operates correctly.
 
 ### Cross-Platform Compatibility
 Configuration automatically adapts to Windows, macOS, and Linux platform conventions for user directories and file paths.
@@ -169,24 +169,24 @@ Configuration values are loaded once at startup and cached statically for optima
 ## Integration Patterns
 
 ### Startup Validation
-Many Maenifold deployment scripts include GetConfig verification to ensure proper configuration before operation.
+Many maenifold deployment scripts include GetConfig verification to ensure proper configuration before operation.
 
 ### Error Context
-When Maenifold tools report errors, GetConfig output provides essential context for diagnosing configuration-related issues.
+When maenifold tools report errors, GetConfig output provides essential context for diagnosing configuration-related issues.
 
 ### Team Collaboration
-Teams often standardize Maenifold configuration through environment variables documented alongside GetConfig output.
+Teams often standardize maenifold configuration through environment variables documented alongside GetConfig output.
 
 ### Monitoring Integration
-System monitoring tools can call GetConfig to verify Maenifold configuration consistency across deployment environments.
+System monitoring tools can call GetConfig to verify maenifold configuration consistency across deployment environments.
 
 ## Ma Protocol Compliance
 
-GetConfig exemplifies Maenifold's Ma Protocol philosophy:
+GetConfig exemplifies maenifold's Ma Protocol philosophy:
 - **Simplicity**: Pure configuration display with no side effects or complexity
 - **Transparency**: Shows exactly what configuration values are active
 - **No Magic**: Direct configuration access without abstraction layers
 - **Static Behavior**: Consistent output based on startup configuration state
 - **Zero Dependencies**: Self-contained configuration display requiring no external resources
 
-This tool provides the foundational system information needed to understand, troubleshoot, and validate Maenifold configuration across all deployment contexts.
+This tool provides the foundational system information needed to understand, troubleshoot, and validate maenifold configuration across all deployment contexts.

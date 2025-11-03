@@ -99,7 +99,7 @@ void PrintUsage()
     System.Console.WriteLine("  Vector: FindSimilarConcepts");
     System.Console.WriteLine("  Graph:  Sync, BuildContext, Visualize");
     System.Console.WriteLine("  Think:  SequentialThinking");
-    System.Console.WriteLine("  Flow:   Workflow, ListWorkflows");
+    System.Console.WriteLine("  Flow:   Workflow");
     System.Console.WriteLine("  System: MemoryStatus, ListMemories, GetConfig, GetHelp");
     System.Console.WriteLine("  Sync:   StartWatcher, StopWatcher");
     System.Console.WriteLine("  Repair: RepairConcepts, AnalyzeConceptCorruption");

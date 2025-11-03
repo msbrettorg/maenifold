@@ -42,7 +42,6 @@ namespace Maenifold.Tools
             add(CreateVisualizeDescriptor());
             add(CreateSequentialThinkingDescriptor());
             add(CreateWorkflowDescriptor());
-            add(CreateListWorkflowsDescriptor());
             add(CreateRecentActivityDescriptor());
             add(CreateMemoryStatusDescriptor());
             add(CreateGetConfigDescriptor());
@@ -58,6 +57,8 @@ namespace Maenifold.Tools
             add(CreateAdoptDescriptor());
             add(CreateAssumptionLedgerDescriptor());
             add(CreateAddMissingH1Descriptor());
+            add(CreateListMcpResourcesDescriptor());
+            add(CreateReadMcpResourceDescriptor());
         }
 
         private static ToolDescriptor CreateWriteMemoryDescriptor() =>
@@ -233,9 +234,6 @@ namespace Maenifold.Tools
                 return WorkflowTools.Workflow(sessionId, workflowId, response, thoughts, status, conclusion, view, append);
             }, new[] { "workflow" }, "Workflow tool");
 
-        private static ToolDescriptor CreateListWorkflowsDescriptor() =>
-            new("ListWorkflows", _ => WorkflowTools.ListWorkflows(), new[] { "listworkflows" }, "List workflows");
-
         private static ToolDescriptor CreateRecentActivityDescriptor() =>
             new("RecentActivity", payload =>
             {
@@ -367,6 +365,17 @@ namespace Maenifold.Tools
                 bool createBackups = PayloadReader.GetBool(payload, "createBackups", false);
                 return MaintenanceTools.AddMissingH1(dryRun, limit, folder, createBackups);
             }, new[] { "addmissingh1" }, "Add missing H1 headers to markdown files");
+
+        private static ToolDescriptor CreateListMcpResourcesDescriptor() =>
+            new("ListMcpResources", _ => McpResourceTools.ListMcpResources(),
+                new[] { "listmcpresources" }, "List all MCP resources with metadata");
+
+        private static ToolDescriptor CreateReadMcpResourceDescriptor() =>
+            new("ReadMcpResource", payload =>
+            {
+                var uri = PayloadReader.GetString(payload, "uri");
+                return McpResourceTools.ReadMcpResource(uri);
+            }, new[] { "readmcpresource" }, "Read MCP resource by URI");
 
         public static bool TryInvoke(string name, JsonElement payload, out object? result)
         {

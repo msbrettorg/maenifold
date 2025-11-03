@@ -183,65 +183,6 @@ public static class AssetManager
         return text != null ? System.Text.Json.JsonSerializer.Deserialize<T>(text) : null;
     }
 
-    [McpServerResource, Description("Workflow methodology JSON definitions")]
-    public static string GetWorkflowResources()
-    {
-        var workflowsPath = Path.Combine(Config.AssetsPath, "workflows");
-        if (!Directory.Exists(workflowsPath))
-        {
-            return "[]";
-        }
-
-        var jsonFiles = Directory.GetFiles(workflowsPath, "*.json");
-        return System.Text.Json.JsonSerializer.Serialize(
-            jsonFiles.Select(f => new { uri = $"workflow://{Path.GetFileNameWithoutExtension(f)}", content = File.ReadAllText(f) })
-        );
-    }
-
-    [McpServerResource, Description("Role definition JSON files")]
-    public static string GetRoleResources()
-    {
-        var rolesPath = Path.Combine(Config.AssetsPath, "roles");
-        if (!Directory.Exists(rolesPath))
-        {
-            return "[]";
-        }
-
-        var jsonFiles = Directory.GetFiles(rolesPath, "*.json");
-        return System.Text.Json.JsonSerializer.Serialize(
-            jsonFiles.Select(f => new { uri = $"role://{Path.GetFileNameWithoutExtension(f)}", content = File.ReadAllText(f) })
-        );
-    }
-
-    [McpServerResource, Description("Color thinking hat JSON files")]
-    public static string GetColorResources()
-    {
-        var colorsPath = Path.Combine(Config.AssetsPath, "colors");
-        if (!Directory.Exists(colorsPath))
-        {
-            return "[]";
-        }
-
-        var jsonFiles = Directory.GetFiles(colorsPath, "*.json");
-        return System.Text.Json.JsonSerializer.Serialize(
-            jsonFiles.Select(f => new { uri = $"color://{Path.GetFileNameWithoutExtension(f)}", content = File.ReadAllText(f) })
-        );
-    }
-
-    [McpServerResource, Description("Perspective linguistic frames JSON files")]
-    public static string GetPerspectiveResources()
-    {
-        var perspectivesPath = Path.Combine(Config.AssetsPath, "perspectives");
-        if (!Directory.Exists(perspectivesPath))
-        {
-            return "[]";
-        }
-
-        var jsonFiles = Directory.GetFiles(perspectivesPath, "*.json");
-        return System.Text.Json.JsonSerializer.Serialize(
-            jsonFiles.Select(f => new { uri = $"perspective://{Path.GetFileNameWithoutExtension(f)}", content = File.ReadAllText(f) })
-        );
-    }
 }
 
 public class AssetUpdateResult

@@ -25,7 +25,7 @@ public partial class MemorySearchTools
             "Provide at least one non-stopword keyword");
     }
 
-    [McpServerTool, Description(@"Discovers existing knowledge files through flexible search modes across Maenifold's memory system.
+    [McpServerTool, Description(@"Discovers existing knowledge files through flexible search modes across maenifold's memory system.
 Select when AI needs to find related information, verify existing knowledge, or explore concept connections.
 Supports three search modes: Hybrid (default - best of both), Semantic (concept similarity), FullText (exact matching).
 Returns ranked results with detailed scoring (text, semantic, fused) to help AI understand relevance.

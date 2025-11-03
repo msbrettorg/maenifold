@@ -7,7 +7,7 @@ namespace Maenifold.Tools;
 
 public partial class MemoryTools
 {
-    [McpServerTool, Description(@"Retrieves existing knowledge files by URI or title with full content and metadata from Maenifold storage.
+    [McpServerTool, Description(@"Retrieves existing knowledge files by URI or title with full content and metadata from maenifold storage.
 Select when AI needs to access specific stored knowledge, verify information, or examine file structure.
 Requires memory:// URI or file title, optional checksum inclusion for edit safety validation.
 Integrates with SearchMemories for discovery, EditMemory for modifications, MoveMemory for organization.
@@ -171,7 +171,7 @@ Returns updated URI with new checksum, confirms successful modification and cont
         return $"Updated memory FILE: {PathToUri(path)}\nNew checksum: {newChecksum}";
     }
 
-    [McpServerTool, Description(@"Permanently removes knowledge files from Maenifold storage with confirmation safety mechanism.
+    [McpServerTool, Description(@"Permanently removes knowledge files from maenifold storage with confirmation safety mechanism.
 Select when AI needs to clean up outdated, duplicate, or incorrect knowledge that impacts accuracy.
 Requires file identifier and explicit confirm=true parameter to prevent accidental data loss.
 Integrates with SearchMemories for cleanup discovery, ReadMemory for content verification before deletion.

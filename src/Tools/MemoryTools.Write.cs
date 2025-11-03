@@ -8,7 +8,7 @@ namespace Maenifold.Tools;
 [McpServerToolType]
 public partial class MemoryTools
 {
-    [McpServerTool, Description(@"Creates new knowledge files with [[WikiLinks]] that automatically integrate into Maenifold's graph database.
+    [McpServerTool, Description(@"Creates new knowledge files with [[WikiLinks]] that automatically integrate into maenifold's graph database.
 Select when AI needs to persist new learning, research findings, or structured knowledge for future retrieval.
 Requires title, content with [[concepts]], optional folder organization and tag categorization.
 Connects to SearchMemories for discovery, Sync for graph updates, BuildContext for relationship mapping.

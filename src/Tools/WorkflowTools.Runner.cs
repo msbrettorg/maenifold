@@ -10,7 +10,7 @@ public partial class WorkflowTools
 Use ListMcpResources or ReadMcpResource with asset://catalog to discover available workflows before starting.
 Select when AI needs structured approaches, methodology frameworks, multi-step processes, or coordinated tool usage.
 Requires workflow selection, session management, response integration, and systematic progression through defined steps.
-Connects to SequentialThinking for embedded analysis, all Maenifold tools for orchestrated execution.
+Connects to SequentialThinking for embedded analysis, all maenifold tools for orchestrated execution.
 Returns structured guidance with step progression, tool hints, quality gates, and systematic methodology execution.")]
     public static string Workflow(
         [Description("Session ID (continue existing)")] string? sessionId = null,

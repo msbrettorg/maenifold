@@ -11,7 +11,7 @@ namespace Maenifold.Tools;
 [McpServerToolType]
 public static partial class PerformanceBenchmark
 {
-    [McpServerTool, Description("Benchmarks all Maenifold performance claims including GRPH-009 CTE vs N+1, search performance, sync timing, and complex traversal bottlenecks")]
+    [McpServerTool, Description("Benchmarks all maenifold performance claims including GRPH-009 CTE vs N+1, search performance, sync timing, and complex traversal bottlenecks")]
     public static string RunFullBenchmark(
             [Description("Number of test iterations per benchmark")] int iterations = 5,
             [Description("Maximum test files to use for benchmarks")] int maxTestFiles = 1000,

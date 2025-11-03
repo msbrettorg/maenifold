@@ -5,17 +5,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## ⚠️ CRITICAL: Git Workflow
 
 **Branch Policy (STRICTLY ENFORCED):**
-- **NEVER commit directly to `main`**
-- **ALL pull requests MUST target `dev` branch**
+- **NEVER commit directly to `main` or `dev`**
+- **ALL work happens on feature/sprint branches off `dev`**
+- **ALL merges use squash merge strategy**
 - Only `dev` branch (or dependabot) can create PRs to `main`
-- Work on feature/sprint branches, then PR to `dev`
 
-**Workflow:**
-1. Create feature/sprint branch from `dev`
-2. Make changes and commit
-3. Push branch to origin
-4. Create PR targeting `dev` (NOT `main`)
-5. After merge to `dev`, maintainers handle `dev` → `main` promotion
+**Local Development Workflow:**
+1. Create feature/sprint branch from `dev` (e.g., `sprint-20251103-fix-dotnet-version`)
+2. Make changes and commit to feature branch
+3. When feature complete, **merge feature branch to local `dev`** (squash merge)
+4. Delete feature branch after merge
+
+**Push to Origin Workflow:**
+1. Push `dev` branch to origin (`git push origin dev`)
+2. Create PR from `dev` to `main` on GitHub
+3. **Monitor PR for CI/build status** - ensure all checks pass
+4. After PR merged (squash merge by maintainers), pull latest from origin:
+   ```bash
+   git checkout main && git pull origin main
+   git checkout dev && git pull origin dev
+   ```
+
+**Never:**
+- Commit directly to `main` or `dev` branches
+- Push feature branches to origin
+- Create PRs from feature branches (always merge to local `dev` first)
+- Use regular merge (always squash merge to maintain clean history)
 
 **This is non-negotiable. Session will be terminated for violations.**
 

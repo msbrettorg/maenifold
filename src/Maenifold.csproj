@@ -28,6 +28,12 @@
 
     <!-- Console usage detection in MCP mode -->
     <DefineConstants>$(DefineConstants);MCP_SERVER</DefineConstants>
+
+    <!-- Runtime Version Resolution (Fix for .NET 9.x version mismatches) -->
+    <!-- Lock self-contained builds to latest installed patch version -->
+    <RuntimeFrameworkVersion>9.0.9</RuntimeFrameworkVersion>
+    <!-- Enable roll-forward to latest patch for framework-dependent deployments -->
+    <RollForward>LatestPatch</RollForward>
   </PropertyGroup>
 
   <ItemGroup>

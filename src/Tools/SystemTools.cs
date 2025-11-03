@@ -12,7 +12,7 @@ public class SystemTools
     private static string MemoryPath => Config.MemoryPath;
     private static string DbPath => Config.DatabasePath;
 
-    [McpServerTool, Description(@"Displays Ma Core system configuration settings and operational parameters for troubleshooting.
+    [McpServerTool, Description(@"Displays Maenifold system configuration settings and operational parameters for troubleshooting.
 Select when AI needs system configuration verification, debugging support, or operational parameter analysis.
 No parameters required - returns complete configuration state and system settings.
 Integrates with all tools for configuration-dependent behavior, MemoryStatus for system health correlation.
@@ -31,7 +31,7 @@ Returns configuration settings with values, paths, and system state information 
         return Config.GetConfigSummary();
     }
 
-    [McpServerTool, Description(@"Provides Ma Core system statistics including file counts, graph metrics, and storage health monitoring.
+    [McpServerTool, Description(@"Provides Maenifold system statistics including file counts, graph metrics, and storage health monitoring.
 Select when AI needs system overview, storage analysis, or health checks before major operations.
 No parameters required - returns comprehensive system state and resource utilization metrics.
 Integrates with ListMemories for structure analysis, RecentActivity for usage patterns, Sync for graph health.
@@ -141,10 +141,10 @@ Returns hierarchical directory listing with file counts, sizes, and folder organ
         return output.ToString();
     }
 
-    [McpServerTool, Description(@"Retrieves comprehensive tool documentation from Ma Core's help file system for detailed usage guidance.
+    [McpServerTool, Description(@"Retrieves comprehensive tool documentation from Maenifold's help file system for detailed usage guidance.
 Select when AI needs complete parameter documentation, usage examples, or troubleshooting information for any tool.
 Requires tool name parameter to load specific help file from /src/assets/usage/tools/{toolname}.md.
-Integrates with all Ma Core tools by providing detailed usage patterns, JSON examples, and troubleshooting guidance.
+Integrates with all Maenifold tools by providing detailed usage patterns, JSON examples, and troubleshooting guidance.
 Returns complete tool manual with parameters, examples, common patterns, and troubleshooting guidance.")]
     public static string GetHelp(
         [Description("Tool name to get help for (e.g., 'WriteMemory', 'SearchMemories')")] string toolName)
@@ -166,7 +166,7 @@ Returns complete tool manual with parameters, examples, common patterns, and tro
     }
 
     [McpServerTool, Description(@"Updates persistent assets from packaged assets on upgrades with dry-run capability.
-Select when asset changes (workflows, documentation, models) need refreshing after Ma Core upgrades.
+Select when asset changes (workflows, documentation, models) need refreshing after Maenifold upgrades.
 Supports dry-run mode to preview changes before applying, with detailed summary of modifications.
 Integrates with asset initialization to provide explicit refresh mechanism after deployment.
 Returns summary of added/updated files with error reporting if refresh encounters issues.")]

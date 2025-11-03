@@ -39,7 +39,7 @@ Returns synchronization status with concept counts, relationship updates, and da
         return ConceptSync.Sync();
     }
 
-    [McpServerTool, Description(@"Traverses concept relationships in Ma Core's graph database to discover connected knowledge networks.
+    [McpServerTool, Description(@"Traverses concept relationships in Maenifold's graph database to discover connected knowledge networks.
 Select when AI needs to understand concept relationships, explore knowledge clusters, or find related information.
 Requires concept name with optional depth, entity limits, and content inclusion for comprehensive context building.
 Connects to SearchMemories for concept discovery, ReadMemory for content access, Visualize for relationship mapping.
@@ -161,7 +161,7 @@ Returns related concepts with relationship types, file references, and connectio
         return result;
     }
 
-    [McpServerTool, Description(@"Generates Mermaid diagram representations of concept relationships from Ma Core's graph database.
+    [McpServerTool, Description(@"Generates Mermaid diagram representations of concept relationships from Maenifold's graph database.
 Select when AI needs visual understanding of knowledge connections, relationship mapping, or concept clustering analysis.
 Requires concept name with optional depth limits and node count controls for focused visualization.
 Integrates with BuildContext for relationship data, Sync for graph accuracy, SearchMemories for concept discovery.

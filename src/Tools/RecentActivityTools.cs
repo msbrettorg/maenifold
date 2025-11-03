@@ -7,7 +7,7 @@ namespace Maenifold.Tools;
 [McpServerToolType]
 public class RecentActivityTools
 {
-    [McpServerTool, Description(@"Monitors Ma Core system activity with time-based filtering for memory and thinking session tracking.
+    [McpServerTool, Description(@"Monitors Maenifold system activity with time-based filtering for memory and thinking session tracking.
 Select when AI needs to understand recent work patterns, find current sessions, or analyze usage trends.
 Requires optional filters for activity type, time span, and result limits for focused monitoring.
 Integrates with ReadMemory for session access, SearchMemories for activity analysis, MemoryStatus for system health.

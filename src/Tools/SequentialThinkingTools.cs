@@ -13,7 +13,7 @@ public class SequentialThinkingTools
 
     [McpServerTool, Description(@"Creates structured thinking sessions with [[concept]] integration and persistent markdown file storage.
 Requires response with [[concepts]], thought tracking, session management, and optional revision capabilities.
-Integrates with WriteMemory for session persistence and Ma Core tools.
+Integrates with WriteMemory for session persistence and Maenifold tools.
 Returns session management with continuation guidance and checkpoint suggestions.")]
     public static string SequentialThinking(
         [Description("Main response/thought - MUST include [[concepts]] to build knowledge")] string? response = null,

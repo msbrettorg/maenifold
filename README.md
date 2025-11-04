@@ -133,20 +133,20 @@ _16 specialized personas for domain expertise_
 **EDA (Electronic Design Automation)**
 | Role | Description |
 |------|-------------|
-| ⚡ Silicon Architect | Design silicon systems from RTL to tape-out with cloud-native workflows, AI-assisted optimization, and advanced node expertise |
+| 💾 Silicon Architect | Design silicon systems from RTL to tape-out with cloud-native workflows, AI-assisted optimization, and advanced node expertise |
 | 🏗️ Platform Operator | Build and operate cloud HPC infrastructure for EDA workloads with cost optimization, security, and extreme scalability |
 
 **AI**
 | Role | Description |
 |------|-------------|
 | 🧩 Prompt Architect | Design 10/10 prompts using constitutional AI, meta-prompting, and cognitive architecture principles |
-| 🧩 GPT-5 Prompt Architect | Design top-performing GPT-5 prompts: agentic predictability, calibrated reasoning_effort, verbosity steering, conflict-free instruction hierarchies, efficient tool preambles, minimal reasoning compensation, metaprompting, and Responses API reuse. |
-| ⚡ GPT-5-Codex Prompt Architect | Optimize prompts for GPT-5-Codex using minimal prompting principles from the official OpenAI guide |
+| 🎨 GPT-5 Prompt Architect | Design top-performing GPT-5 prompts: agentic predictability, calibrated reasoning_effort, verbosity steering, conflict-free instruction hierarchies, efficient tool preambles, minimal reasoning compensation, metaprompting, and Responses API reuse. |
+| 🎯 GPT-5-Codex Prompt Architect | Optimize prompts for GPT-5-Codex using minimal prompting principles from the official OpenAI guide |
 
 **Software**
 | Role | Description |
 |------|-------------|
-| 🧠 Architect | Design cognitive systems that scale intelligence and amplify human reasoning |
+| 🏛️ Architect | Design cognitive systems that scale intelligence and amplify human reasoning |
 | 🤖 Engineer | Build real AI systems that amplify intelligence, not fake AI that pretends to be smart |
 | 🔌 MCP Protocol Specialist | Deep expertise in Model Context Protocol implementation and best practices |
 | 📊 Product Manager | Define what we build and why it matters to customers |

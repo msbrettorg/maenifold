@@ -85,40 +85,73 @@ These aren't just templates - they're cognitive substrates that combine with the
 ### Workflows
 _32 structured methodologies for problem-solving and analysis_
 
+**Thinking & Reasoning** (12)
 | Workflow | Description |
 |----------|-------------|
 | 💭 Abductive Reasoning | Systematic hypothesis formation through inference to best explanation |
-| 📋 Agentic SLC (Simple, Lovable, Complete) | AI agent-assisted development using Simple, Lovable, Complete principles with anti-slop controls |
-| 📋 Advanced Research Agent | Sophisticated single-agent research workflow with HyDE enhancement, topic coverage analysis, reflexion loops, and knowledge integration |
-| 📋 Agentic SLC Sprint (Wave Orchestration) | Multi-agent sprint execution using synchronized waves with RTM validation and git-tracked delivery |
-| 📋 Agile Methodology | Iterative and incremental approach to project management |
 | 💭 Convergent Thinking | Systematic analysis and selection of the single best solution from alternatives |
 | 💭 Critical Thinking | Systematic evaluation, analysis, and logical assessment of information and arguments |
-| 📋 Compelling Reason to Act | Framework for creating urgency and motivating immediate action |
 | 💭 Data Thinking | User-centric systematic approach to data strategy and analytics |
 | 💭 Deductive Reasoning | Top-down logical inference from general principles to specific conclusions |
 | 💭 Design Thinking | Human-centered approach to innovation and problem-solving |
 | 💭 Divergent Thinking | Systematic generation of multiple creative alternatives and novel solutions |
-| 💰 FinOps Strategic Analysis & Reporting | Analyzes data from Microsoft FinOps hubs to create executive-grade insights with industry benchmarks and roadmaps |
-| 💰 FinOps Data Collection & Optimization | Pulls cost data from Microsoft FinOps hubs using Kusto queries for comprehensive optimization analysis |
-| 📋 Game Theory Strategic Analysis (Multi-Agent Equilibrium Finding) | Strategic analyst orchestrating parallel agent waves to analyze games, find equilibria, and generate optimal strategies |
 | 💭 Higher-Order Thinking | Meta-cognitive reflection and complex reasoning about thinking processes |
 | 💭 Inductive Reasoning | Bottom-up inference from specific observations to general patterns and theories |
 | 💭 Lateral Thinking | Creative problem-solving through indirect and non-linear approaches |
-| 📋 Lean Startup | Build-measure-learn approach to product development |
-| 📋 Oblique Strategies | Random creative prompts to break mental blocks and spark breakthrough thinking |
 | 💭 Parallel Thinking | Simultaneous exploration of multiple perspectives and approaches in parallel |
-| 📋 Pólya Problem Solving | George Pólya's systematic four-step approach to mathematical and general problem-solving |
-| 📋 Provocative Operation | Systematic use of deliberate provocations to escape conventional thinking patterns |
-| 📋 Constitutional Role Architecture Workflow | Systematic workflow for creating/updating specialist roles using constitutional AI and prompt engineering excellence |
-| 📋 SCAMPER Method | Creative problem-solving technique using 7 prompts |
-| 📋 Software Development Lifecycle | Systematic approach to software development phases |
-| 📋 Six Thinking Hats | Structured thinking using six different perspectives |
-| 📋 Debug Your Reasoning | Expose broken assumptions and flawed reasoning to fix stuck problems |
 | 💭 Strategic Thinking | Long-term competitive positioning and systematic strategic analysis |
+
+**Multi-Agent Orchestrated** (4)
+| Workflow | Description |
+|----------|-------------|
+| 📋 Advanced Research Agent | Sophisticated single-agent research workflow with HyDE enhancement, topic coverage analysis, reflexion loops, and knowledge integration |
+| 📋 Agentic SLC Sprint (Wave Orchestration) | Multi-agent sprint execution using synchronized waves with RTM validation and git-tracked delivery |
+| 📋 Game Theory Strategic Analysis (Multi-Agent Equilibrium Finding) | Strategic analyst orchestrating parallel agent waves to analyze games, find equilibria, and generate optimal strategies |
 | 📋 Research Think Tank (Multi-Agent Knowledge Construction) | Orchestrated research institution with parallel agent waves building rich knowledge graphs through collaborative investigation |
-| 📋 Workflow Dispatch | Intelligent cognitive strategy selection and thinking architecture design |
+
+**Development Methodologies** (4)
+| Workflow | Description |
+|----------|-------------|
+| 📋 Agile Methodology | Iterative and incremental approach to project management |
+| 📋 Agentic SLC (Simple, Lovable, Complete) | AI agent-assisted development using Simple, Lovable, Complete principles with anti-slop controls |
+| 📋 Lean Startup | Build-measure-learn approach to product development |
+| 📋 Software Development Lifecycle | Systematic approach to software development phases |
+
+**Creative Problem Solving** (3)
+| Workflow | Description |
+|----------|-------------|
+| 📋 Oblique Strategies | Random creative prompts to break mental blocks and spark breakthrough thinking |
+| 📋 Provocative Operation | Systematic use of deliberate provocations to escape conventional thinking patterns |
+| 📋 SCAMPER Method | Creative problem-solving technique using 7 prompts |
+
+**Structured Problem Solving** (2)
+| Workflow | Description |
+|----------|-------------|
+| 📋 Debug Your Reasoning | Expose broken assumptions and flawed reasoning to fix stuck problems |
+| 📋 Pólya Problem Solving | George Pólya's systematic four-step approach to mathematical and general problem-solving |
+
+**Collaborative Processes** (2)
+| Workflow | Description |
+|----------|-------------|
+| 📋 Six Thinking Hats | Structured thinking using six different perspectives |
 | 📋 World Café | Collaborative dialogue process leveraging diverse role perspectives across conversation rounds |
+
+**FinOps** (2)
+| Workflow | Description |
+|----------|-------------|
+| 💰 FinOps Data Collection & Optimization | Pulls cost data from Microsoft FinOps hubs using Kusto queries for comprehensive optimization analysis |
+| 💰 FinOps Strategic Analysis & Reporting | Analyzes data from Microsoft FinOps hubs to create executive-grade insights with industry benchmarks and roadmaps |
+
+**Business Strategy** (1)
+| Workflow | Description |
+|----------|-------------|
+| 📋 Compelling Reason to Act | Framework for creating urgency and motivating immediate action |
+
+**Meta/System** (2)
+| Workflow | Description |
+|----------|-------------|
+| 📋 Constitutional Role Architecture Workflow | Systematic workflow for creating/updating specialist roles using constitutional AI and prompt engineering excellence |
+| 📋 Workflow Dispatch | Intelligent cognitive strategy selection and thinking architecture design |
 
 ### Roles
 _16 specialized personas for domain expertise_

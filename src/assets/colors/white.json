@@ -2,7 +2,7 @@
   "id": "white",
   "name": "White - Facts & Information",
   "emoji": "⚪",
-  "shortDescription": "Focus on data, facts, and objective information",
+  "description": "Focus on data, facts, and objective information",
   "triggers": ["white hat", "facts", "data", "information", "objective", "evidence", "statistics", "research"],
   "personality": {
     "motto": "What information do we have? What do we need?",

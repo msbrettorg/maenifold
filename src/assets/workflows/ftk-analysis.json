@@ -1,0 +1,81 @@
+{
+  "id": "ftk-analysis",
+  "name": "FinOps Strategic Analysis & Reporting",
+  "emoji": "💵",
+  "description": "Analyzes data from Microsoft FinOps hubs to create executive-grade insights with industry benchmarks and roadmaps",
+  "triggers": [
+    "finops strategy",
+    "executive summary",
+    "strategic analysis",
+    "finops recommendations",
+    "cost strategy",
+    "finops reporting",
+    "executive report"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "load-data-summary",
+      "name": "📥 Load Data Collection Results",
+      "description": "ADOPT ROLE finops-practitioner. USE SEQUENTIAL_THINKING TOOL for data assessment. MANDATORY STEPS: STEP 1: READ results/data-collection-summary.json. STOP if not found. STEP 2: Verify ALL required files exist: fiscal-trends.json, service-breakdown.json, savings-summary.json, commitments.json, forecast.json, rightsizing.json, usage-patterns.json, volatility.json, marketplace.json, tags.json, variance.json, industry-benchmarks.md, market-context.md, data-quality-framework.md. STEP 3: Note missing files and adjust analysis. STEP 4: Load industry context for strategic positioning. CRITICAL: Foundation data required for executive analysis.\n\nOutput: None (data validation step)\nCheck: All required data files have been validated and missing files documented before proceeding.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "calculate-roi",
+      "name": "Calculate ROI and Business Impact with Industry Benchmarking",
+      "description": "USE SEQUENTIAL_THINKING TOOL for ROI thinking. EXECUTION: STEP 1: READ these files - MANDATORY: rightsizing.json, commitments.json, usage-patterns.json, forecast.json, industry-benchmarks.md. STEP 2: Calculate ROI = (Annual Savings / Implementation Cost) for EACH opportunity. STEP 3: Determine payback period in months. STEP 4: Compare against industry benchmarks (cost variance 3-5%, RI coverage 60-70%). STEP 5: Create opportunity matrix with: savings potential, effort, strategic alignment, percentile ranking. FORMULA: ROI must use Annual Savings divided by Implementation Cost.\n\nOutput: results/roi-analysis.json (JSON)\nCheck: File results/roi-analysis.json exists and contains ROI calculations with opportunity matrix before proceeding.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "brainstorm"
+    },
+    {
+      "id": "identify-quickwins",
+      "name": "Identify Quick Wins",
+      "description": "USE SEQUENTIAL_THINKING TOOL for quick wins thinking. MANDATORY FILTER CRITERIA: STEP 1: READ roi-analysis.json, rightsizing.json, commitments.json. STOP if missing. STEP 2: Filter by ALL criteria: implementation < 30 days AND risk = low AND savings > $1000/month. STEP 3: Evaluate: complexity, business risk, readiness, sustainability. STEP 4: Prioritize: commitment purchases, right-sizing, auto-shutdown. CRITICAL: Must meet ALL three filter criteria.\n\nOutput: results/quick-wins.json (JSON)\nCheck: File results/quick-wins.json exists and contains only opportunities meeting all three filter criteria before proceeding.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "roleplay"
+    },
+    {
+      "id": "document-findings",
+      "name": "Document Detailed Findings with Competitive Positioning",
+      "description": "USE SEQUENTIAL_THINKING TOOL for storytelling analysis. CREATE THESE EXACT SECTIONS: STEP 1: READ all results/*.json files, industry-benchmarks.md, market-context.md. STEP 2: Section 1: Cost Analysis (use fiscal-trends.json, service-breakdown.json, regions.json, resource-types.json). STEP 3: Section 2: Savings Analysis (use savings-summary.json, commitments.json, variance.json). STEP 4: Section 3: Optimization Opportunities (use rightsizing.json, usage-patterns.json, forecast.json). STEP 5: Section 4: Governance & Risk (use tags.json, anomalies.json, volatility.json, marketplace.json). STEP 6: Section 5: Strategic Market Positioning. STEP 7: Section 6: Temporal Themes. STEP 8: Section 7: Implementation Roadmap. STEP 9: Format with tables, executive headers. CRITICAL: Do NOT reference or link to JSON files or technical artifacts. All findings must be synthesized and presented in clear, executive-level language and visuals only.\n\nOutput: results/detailed-findings.md (Markdown)\nCheck: File results/detailed-findings.md exists, contains all 7 required sections with executive formatting, and has no technical references before proceeding.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "brainstorm"
+    },
+    {
+      "id": "create-recommendations",
+      "name": "Create Prioritized Recommendations with Performance Grading",
+      "description": "USE SEQUENTIAL_THINKING TOOL for recommendations. GRADING SYSTEM REQUIRED: STEP 1: READ roi-analysis.json, rightsizing.json, usage-patterns.json, forecast.json, industry-benchmarks.md. STEP 2: Create Current State Assessment with percentile ranking AND letter grade (A+ to F). STEP 3: Build prioritized actions: Immediate (<30 days): quick wins, commitments. Short-term (30-90 days): right-sizing, tagging. Long-term (90+ days): architecture. STEP 4: Include for EACH: $ savings amount, confidence %, clear owner. STEP 5: Add award potential (FinOps Foundation). MANDATORY: Must include letter grade and dollar amounts. CRITICAL: Do NOT reference or link to JSON files or technical artifacts. All recommendations must be narrative, actionable, and formatted for executive audiences only.\n\nOutput: results/recommendations.md (Markdown)\nCheck: File results/recommendations.md exists, includes letter grade, dollar amounts for each recommendation, and has no technical references before proceeding.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "roleplay"
+    },
+    {
+      "id": "create-roadmap",
+      "name": "Create Implementation Roadmap",
+      "description": "USE SEQUENTIAL_THINKING TOOL for roadmap planning. BUILD PHASED ROADMAP: STEP 1: READ recommendations.md, quick-wins.json, roi-analysis.json. MANDATORY files. STEP 2: Create Phase 1 (30 days): $X savings from quick wins. STEP 3: Create Phase 2 (60 days): $Y from commitments. STEP 4: Create Phase 3 (90 days): $Z from architecture. STEP 5: Include for EACH phase: dependencies, risks, success metrics. CRITICAL: Must include dollar amounts for each phase. Do NOT reference or link to JSON files or technical artifacts. All roadmap content must be synthesized and formatted for executive audiences only.\n\nOutput: results/implementation-roadmap.md (Markdown)\nCheck: File results/implementation-roadmap.md exists, includes dollar amounts for each phase, and has no technical references before proceeding.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "brainstorm"
+    },
+    {
+      "id": "checkpoint-reporting",
+      "name": "📊 Checkpoint: Strategic Analysis Complete",
+      "description": "USE SEQUENTIAL_THINKING TOOL for completeness check. VALIDATE ALL ITEMS: STEP 1: Quick wins with ROI calculations - CHECK. STEP 2: Executive summary with industry metrics - CHECK. STEP 3: Detailed findings documented - CHECK. STEP 4: Prioritized recommendations - CHECK. STEP 5: Implementation roadmap - CHECK. STEP 6: Industry benchmarking - CHECK. STEP 7: Performance grading (A+ to F) - CHECK. STEP 8: Confidence metrics (%) - CHECK. CRITICAL: All 8 items must be validated before proceeding. Ready for executive presentation.\n\nOutput: None (validation checkpoint)\nCheck: All 8 validation items confirmed complete and ready for executive presentation before proceeding.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "format-report",
+      "name": "Format Professional Report with Executive Architecture",
+      "description": "ADOPT ROLE writer. USE SEQUENTIAL_THINKING TOOL for executive formatting. DOCUMENT ARCHITECTURE: STEP 1: READ ALL: executive-summary.md, detailed-findings.md, recommendations.md, implementation-roadmap.md, industry-benchmarks.md, data-quality-framework.md. STEP 2: READ Microsoft report template from assets/templates/microsoft-finops-report-template.md for branding format. STEP 3: Add Microsoft branding header with 🔷 Azure logo and blue dividers (━━━). STEP 4: Structure with progressive detail: Executive Summary FIRST with confidence % and grade. STEP 5: Add multi-scenario forecasts (Conservative/Expected/Optimistic). STEP 6: Use enhanced emojis: 🔷 Microsoft/Azure, 📊 Analysis, 💰 Savings, 🚨 Alerts, 🎯 Actions, 🏆 Recognition. STEP 7: Create styled tables with | separators and section headers using ▓▓▓ bars. STEP 8: Bold dollar amounts and key findings. STEP 9: Include YoY/MoM comparisons. STEP 10: Add percentile positioning. STEP 11: Include footer with report metadata and Microsoft FinOps branding. CRITICAL: Follow template structure for professional Microsoft styling. The final report must not include any technical file references, code, or raw data. All findings must be presented in clear, executive-level language and visuals only.\n\nOutput: results/finops-strategic-report.md (Markdown)\nCheck: File results/finops-strategic-report.md exists, follows Microsoft branding template, and contains no technical references before proceeding.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "roleplay"
+    },
+    {
+      "id": "final-review",
+      "name": "Final Quality Review with Excellence Assessment",
+      "description": "ADOPT ROLE writer for QA. USE SEQUENTIAL_THINKING TOOL for final review. CHECKLIST - ALL MUST PASS: STEP 1: All data files loaded - CHECK. STEP 2: Calculations accurate with confidence % - CHECK. STEP 3: Dollar amounts consistent - CHECK. STEP 4: Multi-scenario forecasts complete - CHECK. STEP 5: Industry benchmarking included - CHECK. STEP 6: Performance grade (A+ to F) applied - CHECK. STEP 7: Award opportunities identified - CHECK. STEP 8: Clear owners assigned - CHECK. STEP 9: No sensitive data exposed - CHECK. STEP 10: Generate final confidence % for conclusions. STEP 11: Create results/analysis-complete.json with: deliverables list, confidence metrics, executive readiness score. STEP 12: No references to JSON files, raw data, or technical artifacts in any report. All deliverables are executive-ready, narrative, and visually polished. MANDATORY: All checks must pass before marking complete.\n\nOutput: results/analysis-complete.json (JSON)\nCheck: File results/analysis-complete.json exists with success status and confidence metrics before marking workflow complete.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "assumptions"
+    }
+  ]
+}

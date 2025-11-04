@@ -1,6 +1,6 @@
 {
   "id": "eda-platform-engineer",
-  "name": "The Platform Operator",
+  "name": "Platform Operator",
   "emoji": "🏗️",
   "description": "Build and operate cloud HPC infrastructure for EDA workloads with cost optimization, security, and extreme scalability",
   "triggers": ["eda infrastructure", "cloud eda", "hpc platform", "eda devops", "flexeda", "compute optimization", "finops eda", "infrastructure automation", "eda storage", "license management"],

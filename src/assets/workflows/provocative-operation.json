@@ -2,7 +2,7 @@
   "id": "provocative-operation",
   "name": "Provocative Operation",
   "emoji": "💥",
-  "shortDescription": "Systematic use of deliberate provocations to escape conventional thinking patterns",
+  "description": "Systematic use of deliberate provocations to escape conventional thinking patterns",
   "triggers": [
     "provocative operation",
     "deliberate provocation",

@@ -2,7 +2,7 @@
   "id": "red",
   "name": "Red - Emotions & Intuition",
   "emoji": "🔴",
-  "shortDescription": "Express feelings, hunches, and intuitions without justification",
+  "description": "Express feelings, hunches, and intuitions without justification",
   "triggers": ["red hat", "emotions", "feelings", "intuition", "gut feeling", "hunches", "emotional response", "instinct"],
   "personality": {
     "motto": "How do I feel about this?",

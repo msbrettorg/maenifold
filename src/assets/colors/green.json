@@ -2,7 +2,7 @@
   "id": "green",
   "name": "Green - Creative Thinking",
   "emoji": "🟢",
-  "shortDescription": "Generate new ideas, alternatives, and creative solutions",
+  "description": "Generate new ideas, alternatives, and creative solutions",
   "triggers": ["green hat", "creative thinking", "new ideas", "alternatives", "brainstorming", "innovation", "creative solutions", "what if"],
   "personality": {
     "motto": "What new ideas can we explore?",

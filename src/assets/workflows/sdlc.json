@@ -1,8 +1,8 @@
 {
   "id": "sdlc",
   "name": "Software Development Lifecycle",
-  "emoji": "⚙️",
-  "shortDescription": "Systematic approach to software development phases",
+  "emoji": "🔧",
+  "description": "Systematic approach to software development phases",
   "triggers": [
     "sdlc",
     "software development lifecycle",

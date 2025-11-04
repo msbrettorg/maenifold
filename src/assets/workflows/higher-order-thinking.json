@@ -1,8 +1,8 @@
 {
   "id": "higher-order-thinking",
   "name": "Higher-Order Thinking",
-  "emoji": "🧠",
-  "shortDescription": "Meta-cognitive reflection and complex reasoning about thinking processes",
+  "emoji": "💭",
+  "description": "Meta-cognitive reflection and complex reasoning about thinking processes",
   "triggers": [
     "higher order thinking",
     "metacognition",

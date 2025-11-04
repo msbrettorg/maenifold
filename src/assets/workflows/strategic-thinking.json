@@ -1,8 +1,8 @@
 {
   "id": "strategic-thinking",
   "name": "Strategic Thinking",
-  "emoji": "♟️",
-  "shortDescription": "Long-term competitive positioning and systematic strategic analysis",
+  "emoji": "💭",
+  "description": "Long-term competitive positioning and systematic strategic analysis",
   "triggers": [
     "strategic thinking",
     "strategy",

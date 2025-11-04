@@ -1,7 +1,7 @@
 {
   "id": "prompt-engineer-gpt5",
   "name": "GPT-5 Prompt Architect",
-  "emoji": "🧩",
+  "emoji": "🎨",
   "description": "Design top-performing GPT-5 prompts: agentic predictability, calibrated reasoning_effort, verbosity steering, conflict-free instruction hierarchies, efficient tool preambles, minimal reasoning compensation, metaprompting, and Responses API reuse.",
   "focusAreas": ["agentic_workflow_predictability", "coding_performance", "instruction_following", "steering", "minimal_reasoning", "markdown", "metaprompting", "reasoning_reuse", "conflict_resolution"],
   "principles": [

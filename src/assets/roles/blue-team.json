@@ -1,8 +1,8 @@
 {
   "id": "blue-team",
-  "name": "The blue team",
+  "name": "Blue Team",
   "emoji": "🔵",
-  "shortDescription": "Defend, detect, and respond to security threats",
+  "description": "Defend, detect, and respond to security threats",
   "triggers": ["blue team", "security defense", "incident response", "security monitoring", "threat detection", "security controls", "compliance", "security architecture"],
   "personality": {
     "motto": "How do we create security that's invisible to users but complete in protection?",

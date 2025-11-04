@@ -89,4 +89,4 @@ npm pack
 
 ---
 
-See [NPM_PUBLISHING.md](./NPM_PUBLISHING.md) for complete documentation.
+See [NPM_SETUP.md](../NPM_SETUP.md) for complete documentation.

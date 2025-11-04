@@ -1,7 +1,7 @@
 {
   "id": "think-tank",
   "name": "Research Think Tank (Multi-Agent Knowledge Construction)",
-  "emoji": "📋",
+  "emoji": "🏛️",
   "description": "Orchestrated research institution with parallel agent waves building rich knowledge graphs through collaborative investigation",
   "triggers": [
     "think tank",

@@ -1,7 +1,7 @@
 {
   "id": "agentic-research",
   "name": "Advanced Research Agent",
-  "emoji": "📋",
+  "emoji": "🔬",
   "description": "Sophisticated single-agent research workflow with HyDE enhancement, topic coverage analysis, reflexion loops, and knowledge integration",
   "triggers": [
     "research agent",

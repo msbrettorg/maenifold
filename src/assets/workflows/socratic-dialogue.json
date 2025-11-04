@@ -1,7 +1,7 @@
 {
   "id": "socratic-dialogue",
   "name": "Debug Your Reasoning",
-  "emoji": "📋",
+  "emoji": "🐛",
   "description": "Expose broken assumptions and flawed reasoning to fix stuck problems",
   "triggers": [
     "debug reasoning",

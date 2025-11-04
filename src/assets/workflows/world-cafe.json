@@ -1,7 +1,7 @@
 {
   "id": "world-cafe",
   "name": "World Café",
-  "emoji": "📋",
+  "emoji": "☕",
   "description": "Collaborative dialogue process leveraging diverse role perspectives across conversation rounds",
   "triggers": [
     "world cafe",

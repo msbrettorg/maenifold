@@ -1,7 +1,7 @@
 {
   "id": "polya-problem-solving",
   "name": "Pólya Problem Solving",
-  "emoji": "📋",
+  "emoji": "📐",
   "description": "George Pólya's systematic four-step approach to mathematical and general problem-solving",
   "triggers": [
     "polya",

@@ -1,7 +1,7 @@
 {
   "id": "ftk-agent",
   "name": "FinOps Hub Query Executor",
-  "emoji": "💰",
+  "emoji": "💵",
   "description": "Executes KQL queries against Microsoft FinOps hubs for cost optimization and preserves results for practitioner analysis",
   "triggers": [
     "kql query",

@@ -1,7 +1,7 @@
 {
   "id": "agentic-slc",
   "name": "Agentic SLC Sprint (Wave Orchestration)",
-  "emoji": "📋",
+  "emoji": "🌊",
   "description": "Multi-agent sprint execution using synchronized waves with RTM validation and git-tracked delivery",
   "triggers": [
     "agentic slc sprint",

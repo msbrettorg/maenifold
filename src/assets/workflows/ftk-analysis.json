@@ -1,7 +1,7 @@
 {
   "id": "ftk-analysis",
   "name": "FinOps Strategic Analysis & Reporting",
-  "emoji": "💰",
+  "emoji": "💵",
   "description": "Analyzes data from Microsoft FinOps hubs to create executive-grade insights with industry benchmarks and roadmaps",
   "triggers": [
     "finops strategy",

@@ -1,7 +1,7 @@
 {
   "id": "ftk-query",
   "name": "FinOps Data Collection & Optimization",
-  "emoji": "💰",
+  "emoji": "💵",
   "description": "Pulls cost data from Microsoft FinOps hubs using Kusto queries for comprehensive optimization analysis",
   "triggers": [
     "finops data",

@@ -1,7 +1,7 @@
 {
   "id": "workflow-dispatch",
   "name": "Workflow Dispatch",
-  "emoji": "📋",
+  "emoji": "🎮",
   "description": "Intelligent cognitive strategy selection and thinking architecture design",
   "triggers": [
     "workflow dispatch",

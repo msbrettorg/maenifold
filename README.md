@@ -39,9 +39,9 @@ That's what maenifold does: It provides the substrate (WikiLinks, memory, graph)
 
 ## Cognitive Assets
 
-**maenifold** ships with 67 pre-configured cognitive frameworks that agents can adopt dynamically: 32 workflows, 16 roles, 7 thinking colors, and 12 linguistic perspectives.
+**maenifold** includes 32 workflows, 16 roles, 7 thinking colors, and 12 linguistic perspectives that agents can adopt.
 
-These aren't just templates - they're cognitive substrates that combine with the knowledge graph to create emergent reasoning capabilities. An agent can start with strategic thinking, switch to red team perspective when finding vulnerabilities, then adopt the writer role to document findings - all while building on the persistent knowledge graph.
+Mix and match as needed - use a workflow, adopt a role, switch perspectives. The knowledge graph persists through everything.
 
 ### Workflows
 _32 structured methodologies for problem-solving and analysis_
@@ -65,54 +65,54 @@ _32 structured methodologies for problem-solving and analysis_
 **Multi-Agent Orchestrated** (4)
 | Workflow | Description |
 |----------|-------------|
-| 📋 Advanced Research Agent | Sophisticated single-agent research workflow with HyDE enhancement, topic coverage analysis, reflexion loops, and knowledge integration |
-| 📋 Agentic SLC Sprint (Wave Orchestration) | Multi-agent sprint execution using synchronized waves with RTM validation and git-tracked delivery |
-| 📋 Game Theory Strategic Analysis (Multi-Agent Equilibrium Finding) | Strategic analyst orchestrating parallel agent waves to analyze games, find equilibria, and generate optimal strategies |
-| 📋 Research Think Tank (Multi-Agent Knowledge Construction) | Orchestrated research institution with parallel agent waves building rich knowledge graphs through collaborative investigation |
+| 🔬 Advanced Research Agent | Sophisticated single-agent research workflow with HyDE enhancement, topic coverage analysis, reflexion loops, and knowledge integration |
+| 🌊 Agentic SLC Sprint (Wave Orchestration) | Multi-agent sprint execution using synchronized waves with RTM validation and git-tracked delivery |
+| ♟️ Game Theory Strategic Analysis (Multi-Agent Equilibrium Finding) | Strategic analyst orchestrating parallel agent waves to analyze games, find equilibria, and generate optimal strategies |
+| 🏛️ Research Think Tank (Multi-Agent Knowledge Construction) | Orchestrated research institution with parallel agent waves building rich knowledge graphs through collaborative investigation |
 
 **Development Methodologies** (4)
 | Workflow | Description |
 |----------|-------------|
-| 📋 Agile Methodology | Iterative and incremental approach to project management |
-| 📋 Agentic SLC (Simple, Lovable, Complete) | AI agent-assisted development using Simple, Lovable, Complete principles with anti-slop controls |
-| 📋 Lean Startup | Build-measure-learn approach to product development |
-| 📋 Software Development Lifecycle | Systematic approach to software development phases |
+| 🔄 Agile Methodology | Iterative and incremental approach to project management |
+| 🎯 Agentic SLC (Simple, Lovable, Complete) | AI agent-assisted development using Simple, Lovable, Complete principles with anti-slop controls |
+| 🚀 Lean Startup | Build-measure-learn approach to product development |
+| 🔧 Software Development Lifecycle | Systematic approach to software development phases |
 
 **Creative Problem Solving** (3)
 | Workflow | Description |
 |----------|-------------|
-| 📋 Oblique Strategies | Random creative prompts to break mental blocks and spark breakthrough thinking |
-| 📋 Provocative Operation | Systematic use of deliberate provocations to escape conventional thinking patterns |
-| 📋 SCAMPER Method | Creative problem-solving technique using 7 prompts |
+| 🎲 Oblique Strategies | Random creative prompts to break mental blocks and spark breakthrough thinking |
+| 💥 Provocative Operation | Systematic use of deliberate provocations to escape conventional thinking patterns |
+| 🎨 SCAMPER Method | Creative problem-solving technique using 7 prompts |
 
 **Structured Problem Solving** (2)
 | Workflow | Description |
 |----------|-------------|
-| 📋 Debug Your Reasoning | Expose broken assumptions and flawed reasoning to fix stuck problems |
-| 📋 Pólya Problem Solving | George Pólya's systematic four-step approach to mathematical and general problem-solving |
+| 🐛 Debug Your Reasoning | Expose broken assumptions and flawed reasoning to fix stuck problems |
+| 📐 Pólya Problem Solving | George Pólya's systematic four-step approach to mathematical and general problem-solving |
 
 **Collaborative Processes** (2)
 | Workflow | Description |
 |----------|-------------|
-| 📋 Six Thinking Hats | Structured thinking using six different perspectives |
-| 📋 World Café | Collaborative dialogue process leveraging diverse role perspectives across conversation rounds |
+| 🎩 Six Thinking Hats | Structured thinking using six different perspectives |
+| ☕ World Café | Collaborative dialogue process leveraging diverse role perspectives across conversation rounds |
 
 **FinOps** (2)
 | Workflow | Description |
 |----------|-------------|
-| 💰 FinOps Data Collection & Optimization | Pulls cost data from Microsoft FinOps hubs using Kusto queries for comprehensive optimization analysis |
-| 💰 FinOps Strategic Analysis & Reporting | Analyzes data from Microsoft FinOps hubs to create executive-grade insights with industry benchmarks and roadmaps |
+| 💵 FinOps Data Collection & Optimization | Pulls cost data from Microsoft FinOps hubs using Kusto queries for comprehensive optimization analysis |
+| 💵 FinOps Strategic Analysis & Reporting | Analyzes data from Microsoft FinOps hubs to create executive-grade insights with industry benchmarks and roadmaps |
 
 **Business Strategy** (1)
 | Workflow | Description |
 |----------|-------------|
-| 📋 Compelling Reason to Act | Framework for creating urgency and motivating immediate action |
+| ⏰ Compelling Reason to Act | Framework for creating urgency and motivating immediate action |
 
 **Meta/System** (2)
 | Workflow | Description |
 |----------|-------------|
-| 📋 Constitutional Role Architecture Workflow | Systematic workflow for creating/updating specialist roles using constitutional AI and prompt engineering excellence |
-| 📋 Workflow Dispatch | Intelligent cognitive strategy selection and thinking architecture design |
+| 👤 Constitutional Role Architecture Workflow | Systematic workflow for creating/updating specialist roles using constitutional AI and prompt engineering excellence |
+| 🎮 Workflow Dispatch | Intelligent cognitive strategy selection and thinking architecture design |
 
 ### Roles
 _16 specialized personas for domain expertise_
@@ -120,9 +120,9 @@ _16 specialized personas for domain expertise_
 **FinOps**
 | Role | Description |
 |------|-------------|
-| 💰 Chief Financial Officer | Drive strategic cloud financial management through fiduciary responsibility, risk mitigation, and stakeholder stewardship |
-| 💰 FinOps Practitioner | Drive cloud financial optimization through evidence-based decisions and cultural transformation |
-| 💰 FinOps Hub Query Executor | Executes KQL queries against Microsoft FinOps hubs for cost optimization and preserves results for practitioner analysis |
+| 💵 Chief Financial Officer | Drive strategic cloud financial management through fiduciary responsibility, risk mitigation, and stakeholder stewardship |
+| 💵 FinOps Practitioner | Drive cloud financial optimization through evidence-based decisions and cultural transformation |
+| 💵 FinOps Hub Query Executor | Executes KQL queries against Microsoft FinOps hubs for cost optimization and preserves results for practitioner analysis |
 
 **EDA (Electronic Design Automation)**
 | Role | Description |

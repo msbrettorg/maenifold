@@ -1,8 +1,8 @@
 {
   "id": "crta",
   "name": "Compelling Reason to Act",
-  "emoji": "⏰",
-  "shortDescription": "Framework for creating urgency and motivating immediate action",
+  "emoji": "📋",
+  "description": "Framework for creating urgency and motivating immediate action",
   "triggers": [
     "compelling reason to act",
     "crta",

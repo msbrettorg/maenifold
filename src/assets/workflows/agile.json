@@ -1,8 +1,8 @@
 {
   "id": "agile",
   "name": "Agile Methodology",
-  "emoji": "🏃",
-  "shortDescription": "Iterative and incremental approach to project management",
+  "emoji": "📋",
+  "description": "Iterative and incremental approach to project management",
   "triggers": [
     "agile",
     "sprint planning",

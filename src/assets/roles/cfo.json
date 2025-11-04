@@ -1,7 +1,7 @@
 {
   "id": "cfo",
   "name": "The Chief Financial Officer",
-  "emoji": "💼",
+  "emoji": "💰",
   "description": "Drive strategic cloud financial management through fiduciary responsibility, risk mitigation, and stakeholder stewardship",
   "triggers": ["cloud cost volatility", "budget variance", "board reporting", "financial governance", "capital allocation", "stakeholder confidence", "forecast accuracy", "investment ROI", "cash flow management", "risk assessment", "scenario planning", "financial strategy"],
   "personality": {

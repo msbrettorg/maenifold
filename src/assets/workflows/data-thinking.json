@@ -1,8 +1,8 @@
 {
   "id": "data-thinking",
   "name": "Data Thinking",
-  "emoji": "📊",
-  "shortDescription": "User-centric systematic approach to data strategy and analytics",
+  "emoji": "💭",
+  "description": "User-centric systematic approach to data strategy and analytics",
   "triggers": [
     "data thinking",
     "data strategy",

@@ -1,0 +1,186 @@
+{
+  "id": "ftk-query",
+  "name": "FinOps Data Collection & Optimization",
+  "emoji": "💰",
+  "description": "Pulls cost data from Microsoft FinOps hubs using Kusto queries for comprehensive optimization analysis",
+  "triggers": [
+    "finops data",
+    "cost queries",
+    "data collection",
+    "optimization analysis",
+    "cost data",
+    "query costs",
+    "analyze spending"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "establish-context",
+      "name": "Establish Analysis Context",
+      "description": "ADOPT ROLE ftk-agent. STEP 1: USE SEQUENTIAL_THINKING TOOL for deep thinking about: What environment are we analyzing? What's the current date and fiscal year? What time range should we analyze? What data quality assumptions are we making? STEP 2: Determine the specified environment using configuration from copilot-instructions.md, date range, and fiscal year boundaries. All environments use database=Hub. Document fiscal year as July-June. Note: KQL uses days not months, so FY=ago(365d) to now(). STEP 3: Save context details to results/analysis-context.json. CRITICAL: Upon completion, automatically proceed to the next step without waiting for user confirmation.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "verify-connectivity",
+      "name": "Verify Database Connectivity",
+      "description": "IMPORTANT: USE THE TOOL NAMED 'kusto-query' ONLY. DO NOT USE ANY OTHER TOOL OR WRITE YOUR OWN QUERY. Test database connectivity using: STEP 1: Execute this exact query: 'Costs | summarize DataPoints=count(), LatestDate=max(ChargePeriodStart) | project DataPoints, LatestDate, DataFreshness=datetime_diff(\"hour\", now(), LatestDate)'. STEP 2: Use kusto-query with tenant, cluster-uri, database-name='Hub' from environment configuration. STEP 3: Verify data is less than 24 hours old. STEP 4: Save connectivity results to results/connectivity-check.json. CRITICAL: Upon completion, automatically proceed to the next step without waiting for user confirmation.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "checkpoint-connectivity",
+      "name": "📋 Checkpoint: Connectivity Verified",
+      "description": "Validate: 1) Successfully connected to specified environment, 2) Data freshness < 24 hours old, 3) Database schema accessible, 4) Minimum 30 days of data available, 5) No data quality issues. CRITICAL: This checkpoint allows resuming from data analysis phase if needed. Upon validation completion, automatically proceed to the next step without waiting for user confirmation.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "query-fiscal-trends",
+      "name": "Query Fiscal Year Trends",
+      "description": "IMPORTANT: USE THE TOOL NAMED 'kusto-query' ONLY. DO NOT USE ANY OTHER TOOL OR WRITE YOUR OWN QUERY. STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/monthly-cost-trend.kql using web fetch tool. STOP if fetch fails or returns error. STEP 2: Copy the EXACT query text from the fetched content. DO NOT modify column names. STEP 3: Change ONLY the startDate parameter to ago(365d). STEP 4: Execute using kusto-query. STEP 5: Save results to results/fiscal-trends.json. VALID COLUMNS: BilledCost, EffectiveCost, ChargePeriodStart, x_ChargeMonth. ANY OTHER COLUMN NAMES ARE WRONG. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "analyze-service-breakdown",
+      "name": "Analyze Service Breakdown",
+      "description": "IMPORTANT: USE THE TOOL NAMED 'kusto-query' ONLY. DO NOT USE ANY OTHER TOOL OR WRITE YOUR OWN QUERY. STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/top-services-by-cost.kql using web fetch tool. STOP if fetch fails or returns error. STEP 2: Use the EXACT query from fetched content. STEP 3: Change ONLY these parameters: N=20, startDate=ago(30d). STEP 4: Execute and identify: commitment discount opportunities, right-sizing potential, optimization impact. STEP 5: Save to results/service-breakdown.json. VALID COLUMNS: EffectiveCost, ServiceName. DO NOT USE Cost, Service, or any other names. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "brainstorm"
+    },
+    {
+      "id": "analyze-resource-groups",
+      "name": "Analyze Resource Groups",
+      "description": "IMPORTANT: USE THE TOOL NAMED 'kusto-query' ONLY. DO NOT USE ANY OTHER TOOL OR WRITE YOUR OWN QUERY. STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/top-resource-groups-by-cost.kql using web fetch tool. FATAL ERROR if fetch fails or returns error - STOP. STEP 2: Use EXACT query text including x_ResourceGroupName enrichment. STEP 3: Execute with default parameters. STEP 4: Identify consolidation opportunities. STEP 5: Save to results/resource-groups.json. REMINDER: The catalog query already has proper aggregation logic. DO NOT REWRITE IT. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "detect-anomalies",
+      "name": "Detect Cost Anomalies",
+      "description": "IMPORTANT: USE THE TOOL NAMED 'kusto-query' ONLY. DO NOT USE ANY OTHER TOOL OR WRITE YOUR OWN QUERY. USE SEQUENTIAL_THINKING TOOL for thinking about anomalies. THEN: STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/cost-anomaly-detection.kql using web fetch tool - THIS IS MANDATORY. STOP if fetch fails or returns error. STEP 2: The catalog query ALREADY includes make-series and series_decompose_anomalies. USE IT AS-IS. STEP 3: Execute the complete catalog query WITHOUT MODIFICATIONS. STEP 4: Save to results/anomalies.json. WARNING: If you write your own time series query instead of using the catalog, you have failed. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "reverse"
+    },
+    {
+      "id": "calculate-savings",
+      "name": "Calculate Savings and ESR",
+      "description": "IMPORTANT: USE THE TOOL NAMED 'kusto-query' ONLY. DO NOT USE ANY OTHER TOOL OR WRITE YOUR OWN QUERY. CRITICAL: This query uses ENRICHED columns. STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/savings-summary-report.kql using web fetch tool. STOP if fetch fails or returns error. STEP 2: The query includes x_NegotiatedDiscountSavings, x_CommitmentDiscountSavings, x_TotalSavings, x_EffectiveSavingsRate. These are REAL column names prefixed with x_. STEP 3: Change ONLY startDate to ago(30d). STEP 4: Execute complete catalog query. STEP 5: Save to results/savings-summary.json. DO NOT use 'Savings' or 'DiscountSavings' without x_ prefix. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "analogy"
+    },
+    {
+      "id": "analyze-commitments",
+      "name": "Analyze Commitment Utilization",
+      "description": "IMPORTANT: USE THE TOOL NAMED 'kusto-query' ONLY. DO NOT USE ANY OTHER TOOL OR WRITE YOUR OWN QUERY. STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/commitment-discount-utilization.kql using web fetch tool FIRST. NO EXCEPTIONS. STOP if fetch fails or returns error. STEP 2: Query includes x_SkuCoreCount and x_ConsumedCoreHours calculations. These are CORRECT column names. STEP 3: Use default parameters (startDate=ago(30d)). STEP 4: Compare to 60-70% industry benchmark for commitment utilization. STEP 5: Save to results/commitments.json. FAILURE MODE: Writing your own core hours calculation instead of using the catalog query. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "checkpoint-analysis",
+      "name": "📊 Checkpoint: Core Analysis Complete",
+      "description": "Validate completion: 1) Fiscal trends analyzed, 2) Service breakdown completed, 3) Resource groups analyzed, 4) Anomalies detected, 5) Savings and commitments calculated. This checkpoint enables resuming from optimization phase. Upon validation, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "build-forecast",
+      "name": "Build Fiscal Year Forecast",
+      "description": "USE SEQUENTIAL_THINKING TOOL for forecasting thinking. MANDATORY: STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/cost-forecasting-model.kql using web fetch tool. STOP if fetch fails or returns error. STEP 2: Query ALREADY has make-series and series_decompose_forecast. DO NOT RECREATE. STEP 3: Adapt ONLY time range: 180 days historical, 90-day forecast. STEP 4: Execute catalog query. STEP 5: Save to results/forecast.json. The catalog query is sophisticated - trust it. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "analogy"
+    },
+    {
+      "id": "identify-rightsizing",
+      "name": "Identify Right-sizing Opportunities",
+      "description": "USE SEQUENTIAL_THINKING TOOL for rightsizing analysis. EXECUTION: STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/reservation-recommendation-breakdown.kql using web fetch tool. REQUIRED. STOP if fetch fails or returns error. STEP 2: Query has x_EffectiveCostBefore, x_EffectiveCostAfter, x_RecommendationDetails. These are ACTUAL column names. STEP 3: Focus on highest savings potential. STEP 4: Execute AS-IS. STEP 5: Save to results/rightsizing.json. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "reverse"
+    },
+    {
+      "id": "analyze-regions",
+      "name": "Analyze Regional Distribution",
+      "description": "STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/cost-by-region-trend.kql using web fetch tool. STOP AND REPORT ERROR if fetch fails or returns error. STEP 2: Query uses Location column for aggregation. This is CORRECT. STEP 3: Use default parameters. STEP 4: Identify regional optimization opportunities. STEP 5: Save to results/regions.json. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "brainstorm"
+    },
+    {
+      "id": "optimize-resources",
+      "name": "Optimize Resource Types",
+      "description": "MANDATORY FETCH FIRST: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/top-resource-types-by-cost.kql using web fetch tool. STOP if fetch fails or returns error. Query uses ResourceType column. Execute with default parameters. Identify legacy/inefficient types. Save to results/resource-types.json. DO NOT improvise column names. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "analyze-tags",
+      "name": "Analyze Tag-based Allocation",
+      "description": "TAG ANALYSIS REQUIRES SPECIAL HANDLING: STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/costs-enriched-base.kql using web fetch tool for Tags column pattern. STOP if fetch fails or returns error. STEP 2: Tags is stored as STRING, check for empty/null. STEP 3: Calculate tag coverage percentage. STEP 4: Identify untagged resources. STEP 5: Save to results/tags.json. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "brainstorm"
+    },
+    {
+      "id": "calculate-variance",
+      "name": "Calculate Cost Variance",
+      "description": "STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/service-price-benchmarking.kql using web fetch tool - MANDATORY. STOP if fetch fails or returns error. STEP 2: Query compares ListCost, ContractedCost, BilledCost, EffectiveCost. ALL are valid columns. STEP 3: Calculate savings rates per catalog logic. STEP 4: Identify negative savings anomalies and compare cost variance to 3-5% industry average benchmark. STEP 5: Save to results/variance.json. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "analyze-volatility",
+      "name": "Analyze Cost Volatility",
+      "description": "USE SEQUENTIAL_THINKING TOOL for volatility thinking. STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/cost-anomaly-detection.kql using web fetch tool. STOP if fetch fails or returns error. STEP 2: Adapt to find top daily spikes over 90 days. STEP 3: The query already handles daily aggregation correctly. STEP 4: Execute and find peak dates. STEP 5: Save to results/volatility.json. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "reverse"
+    },
+    {
+      "id": "investigate-marketplace",
+      "name": "Investigate Marketplace Purchases",
+      "description": "MARKETPLACE QUERY: STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/top-other-transactions.kql using web fetch tool FIRST. STOP if fetch fails or returns error. STEP 2: Query filters by ChargeCategory, CommitmentDiscountType, PublisherName. These are CORRECT. STEP 3: Look for large one-time purchases. STEP 4: Execute catalog query. STEP 5: Save to results/marketplace.json. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "brainstorm"
+    },
+    {
+      "id": "analyze-weekpatterns",
+      "name": "Analyze Usage Patterns",
+      "description": "USE SEQUENTIAL_THINKING TOOL for pattern analysis. CUSTOM QUERY ALLOWED HERE: STEP 1: FETCH the file from https://raw.githubusercontent.com/microsoft/finops-toolkit/dev/src/queries/catalog/cost-anomaly-detection.kql using web fetch tool for time patterns. STOP if fetch fails or returns error. STEP 2: CREATE weekday analysis by extending ChargePeriodStart with dayofweek(). STEP 3: Compare weekday vs weekend by service. STEP 4: Find scale-down opportunities. STEP 5: Save to results/usage-patterns.json. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "analogy"
+    },
+    {
+      "id": "research-industry-benchmarks",
+      "name": "Research Industry Benchmarking Data",
+      "description": "USE SEQUENTIAL_THINKING TOOL for benchmark research. Research 2025 standards: 1) Cost variance (3-5% industry avg), 2) RI coverage (60-70% target), 3) FinOps maturity indicators, 4) Cloud growth rates (Gartner/IDC), 5) Service efficiency benchmarks. Use web search for current reports. Save to results/industry-benchmarks.md. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "brainstorm"
+    },
+    {
+      "id": "analyze-market-context",
+      "name": "Analyze Market Trends & Context",
+      "description": "USE SEQUENTIAL_THINKING TOOL for market analysis. Research 2025 context: 1) Cloud growth predictions, 2) AI/ML workload cost impact, 3) Technology shifts (serverless, containers), 4) Economic factors, 5) Regulatory trends. Use web search for analyst reports. Save to results/market-context.md. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "analogy"
+    },
+    {
+      "id": "create-quality-framework",
+      "name": "Create Data Quality & Confidence Framework",
+      "description": "USE SEQUENTIAL_THINKING TOOL for quality assessment. Create framework: 1) Data freshness validation, 2) Scope documentation (records, time range), 3) Confidence metrics (high/medium/low), 4) Analysis limitations, 5) Reliability scoring with percentages (e.g., '85% forecast confidence'). Save to results/data-quality-framework.md. Upon completion, automatically proceed to the next step.",
+      "requiresEnhancedThinking": true,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "checkpoint-optimization",
+      "name": "🎯 Checkpoint: Data Collection Complete",
+      "description": "Confirm ALL completed: forecasting, rightsizing, regional analysis, usage patterns, marketplace, volatility, benchmarking, market context, quality framework. Ready for strategic analysis phase. Upon validation, automatically proceed to the next step.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "assumptions"
+    },
+    {
+      "id": "save-data-summary",
+      "name": "💾 Save Data Collection Summary",
+      "description": "Create final summary in results/data-collection-summary.json: 1) Analysis metadata, 2) Key metrics (costs, ESR, services), 3) File manifest of ALL results files, 4) Data quality notes, 5) Optimization opportunities, 6) Benchmarking data. Workflow complete.",
+      "requiresEnhancedThinking": false,
+      "thinkingMode": "assumptions"
+    }
+  ]
+}

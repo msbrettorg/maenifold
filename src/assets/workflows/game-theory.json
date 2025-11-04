@@ -1,8 +1,8 @@
 {
   "id": "game-theory",
   "name": "Game Theory Strategic Analysis (Multi-Agent Equilibrium Finding)",
-  "emoji": "🎲",
-  "shortDescription": "Strategic analyst orchestrating parallel agent waves to analyze games, find equilibria, and generate optimal strategies",
+  "emoji": "📋",
+  "description": "Strategic analyst orchestrating parallel agent waves to analyze games, find equilibria, and generate optimal strategies",
   "triggers": [
     "game theory",
     "nash equilibrium",

@@ -1,8 +1,8 @@
 {
   "id": "convergent-thinking",
   "name": "Convergent Thinking",
-  "emoji": "🎯",
-  "shortDescription": "Systematic analysis and selection of the single best solution from alternatives",
+  "emoji": "💭",
+  "description": "Systematic analysis and selection of the single best solution from alternatives",
   "triggers": [
     "convergent thinking",
     "solution selection",

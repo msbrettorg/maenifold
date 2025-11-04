@@ -1,8 +1,8 @@
 {
   "id": "lean-startup",
   "name": "Lean Startup",
-  "emoji": "🚀",
-  "shortDescription": "Build-measure-learn approach to product development",
+  "emoji": "📋",
+  "description": "Build-measure-learn approach to product development",
   "triggers": [
     "lean startup",
     "mvp",

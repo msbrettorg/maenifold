@@ -221,6 +221,26 @@ maenifold --tool SearchMemories --payload '{
 
 **MCP and CLI have full feature parity.** Start a session via MCP and continue it via CLI, or vice versa. The system supports concurrent agents using the same memory location - perfect for multi-agent pipelines or parallel workflows.
 
+## Claude Code Integration
+
+**Automatic graph-based context restoration for every session.** The knowledge graph becomes your continuous context window.
+
+### What it does
+Every Claude Code session automatically:
+- Queries recent activity from your knowledge graph
+- Extracts top concepts from your work
+- Builds semantic context with relationships
+- Injects ~5K tokens of relevant knowledge
+
+### Quick Setup
+```bash
+# Install the integration
+cd ~/maenifold/docs/integrations/claude-code
+./install.sh
+```
+
+This enables session continuity - every new conversation builds on all previous work through the shared knowledge graph. [Full integration guide](docs/integrations/claude-code/README.md).
+
 ## Learn more
 
 - [Complete Documentation](docs/README.md) - Architecture, examples, philosophy

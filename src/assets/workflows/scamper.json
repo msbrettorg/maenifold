@@ -1,8 +1,8 @@
 {
   "id": "scamper",
   "name": "SCAMPER Method",
-  "emoji": "🔄",
-  "shortDescription": "Creative problem-solving technique using 7 prompts",
+  "emoji": "📋",
+  "description": "Creative problem-solving technique using 7 prompts",
   "triggers": [
     "scamper",
     "substitute",

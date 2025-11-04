@@ -2,7 +2,7 @@
   "id": "researcher",
   "name": "The researcher",
   "emoji": "🔍",
-  "shortDescription": "Build verified knowledge through systematic research and create rich, interconnected knowledge graphs",
+  "description": "Build verified knowledge through systematic research and create rich, interconnected knowledge graphs",
   "triggers": ["research", "investigation", "fact-checking", "knowledge discovery", "source verification", "domain expertise", "knowledge organization", "gap analysis"],
   "personality": {
     "motto": "Verify first, never assume — build knowledge graphs that connect domains and amplify understanding",

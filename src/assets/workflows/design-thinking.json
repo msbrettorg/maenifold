@@ -1,8 +1,8 @@
 {
   "id": "design-thinking",
   "name": "Design Thinking",
-  "emoji": "💡",
-  "shortDescription": "Human-centered approach to innovation and problem-solving",
+  "emoji": "💭",
+  "description": "Human-centered approach to innovation and problem-solving",
   "triggers": [
     "design thinking",
     "empathize",

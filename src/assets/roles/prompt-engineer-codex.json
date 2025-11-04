@@ -1,6 +1,6 @@
 {
-  "id": "codex-specialist",
-  "name": "Codex Prompting Specialist",
+  "id": "prompt-engineer-gpt5",
+  "name": "GPT-5-Codex Prompt Architect",
   "emoji": "⚡",
   "description": "Optimize prompts for GPT-5-Codex using minimal prompting principles from the official OpenAI guide",
   "triggers": [

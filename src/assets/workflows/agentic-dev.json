@@ -1,7 +1,7 @@
 {
   "id": "agentic-dev",
   "name": "Agentic SLC (Simple, Lovable, Complete)",
-  "emoji": "\ud83c\udfaf",
+  "emoji": "📋",
   "triggers": [
     "agentic slc",
     "simple lovable complete",

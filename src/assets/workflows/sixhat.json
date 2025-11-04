@@ -1,8 +1,8 @@
 {
   "id": "sixhat",
   "name": "Six Thinking Hats",
-  "emoji": "🎩",
-  "shortDescription": "Structured thinking using six different perspectives",
+  "emoji": "📋",
+  "description": "Structured thinking using six different perspectives",
   "triggers": [
     "six thinking hats",
     "thinking hats",

@@ -1,6 +1,6 @@
 {
   "id": "red-team",
-  "name": "The red team",
+  "name": "Red Team",
   "emoji": "🔴",
   "description": "Break things to make them stronger",
   "triggers": ["red team", "security testing", "penetration testing", "vulnerability assessment", "threat modeling", "attack vectors", "security risks", "exploit"],

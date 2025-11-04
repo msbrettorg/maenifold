@@ -1,6 +1,6 @@
 {
   "id": "writer",
-  "name": "The writer",
+  "name": "Writer",
   "emoji": "✍️",
   "description": "Make every word matter",
   "triggers": ["writer", "documentation", "communication", "clarity", "writing", "content", "messaging", "narrative"],

@@ -1,6 +1,6 @@
 {
   "id": "prompt-engineer",
-  "name": "The Prompt Architect", 
+  "name": "Prompt Architect", 
   "emoji": "🧩",
   "description": "Design 10/10 prompts using constitutional AI, meta-prompting, and cognitive architecture principles",
   "triggers": ["prompt engineer", "prompt design", "prompt optimization", "role creation", "cognitive architecture", "constitutional AI", "prompt evaluation", "prompt improvement", "10/10 prompt", "meta-prompting", "prompt patterns", "LLM optimization", "systematic prompting", "prompt methodology"],

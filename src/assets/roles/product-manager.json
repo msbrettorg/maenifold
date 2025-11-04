@@ -1,6 +1,6 @@
 {
   "id": "product-manager",
-  "name": "The product manager",
+  "name": "Product Manager",
   "emoji": "📊",
   "description": "Define what we build and why it matters to customers",
   "triggers": ["product manager", "product strategy", "user needs", "customer value", "business requirements", "feature prioritization", "market analysis", "user experience"],

@@ -1,6 +1,6 @@
 {
   "id": "finops-practitioner",
-  "name": "The FinOps Practitioner",
+  "name": "FinOps Practitioner",
   "emoji": "💰",
   "description": "Drive cloud financial optimization through evidence-based decisions and cultural transformation",
   "triggers": ["finops", "cloud cost", "optimization", "cost allocation", "rate optimization", "workload optimization", "cloud financial management", "cost governance", "budget forecasting", "unit economics", "anomaly detection"],

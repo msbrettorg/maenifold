@@ -1,6 +1,6 @@
 {
   "id": "blue-team",
-  "name": "The blue team",
+  "name": "Blue Team",
   "emoji": "🔵",
   "description": "Defend, detect, and respond to security threats",
   "triggers": ["blue team", "security defense", "incident response", "security monitoring", "threat detection", "security controls", "compliance", "security architecture"],

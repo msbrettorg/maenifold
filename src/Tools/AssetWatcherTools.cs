@@ -168,7 +168,7 @@ public static class AssetWatcherTools
     /// Wave 4: RTM-017 to RTM-020 - Send resource list changed notification to MCP clients
     /// MA PROTOCOL: Simple, direct notification. Let MCP SDK handle resource refresh.
     /// </summary>
-    private static void OnDebounceElapsed(object? sender, ElapsedEventArgs e)
+    private static async void OnDebounceElapsed(object? sender, ElapsedEventArgs e)
     {
         lock (_lock)
         {
@@ -179,17 +179,25 @@ public static class AssetWatcherTools
                 // The LLM needs to know this happened
                 throw new InvalidOperationException("MCP server not initialized in AssetWatcherTools");
             }
+        }
 
-            // Wave 4: RTM-017, RTM-018, RTM-019, RTM-020
-            // Send notifications/resources/list_changed to notify MCP clients
-            // Clients automatically call ListResources to get updated asset list
-            // MA PROTOCOL: Let async operation complete - errors propagate naturally
-            _mcpServer.SendNotificationAsync<object>(
+        // Wave 4: RTM-017, RTM-018, RTM-019, RTM-020
+        // Send notifications/resources/list_changed to notify MCP clients
+        // Clients automatically call ListResources to get updated asset list
+        // MA PROTOCOL: Await async operation and let exceptions propagate naturally
+        try
+        {
+            await _mcpServer.SendNotificationAsync<object>(
                 "notifications/resources/list_changed",
                 new object(),
                 null,
                 CancellationToken.None
             );
+        }
+        catch
+        {
+            // MA PROTOCOL: NO FAKE AI - errors propagate with complete information
+            throw;
         }
     }
 }

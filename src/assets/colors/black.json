@@ -2,7 +2,7 @@
   "id": "black",
   "name": "Black - Critical Thinking",
   "emoji": "⚫",
-  "shortDescription": "Identify problems, risks, and what could go wrong",
+  "description": "Identify problems, risks, and what could go wrong",
   "triggers": ["black hat", "critical thinking", "risks", "problems", "what could go wrong", "potential issues", "concerns", "dangers"],
   "personality": {
     "motto": "What could go wrong? What are the risks?",

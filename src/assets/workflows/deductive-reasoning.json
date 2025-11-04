@@ -1,8 +1,8 @@
 {
   "id": "deductive-reasoning",
   "name": "Deductive Reasoning",
-  "emoji": "🎯",
-  "shortDescription": "Top-down logical inference from general principles to specific conclusions",
+  "emoji": "💭",
+  "description": "Top-down logical inference from general principles to specific conclusions",
   "triggers": [
     "deductive reasoning",
     "logical deduction",

@@ -1,8 +1,8 @@
 {
   "id": "abductive-reasoning",
   "name": "Abductive Reasoning",
-  "emoji": "🔍",
-  "shortDescription": "Systematic hypothesis formation through inference to best explanation",
+  "emoji": "💭",
+  "description": "Systematic hypothesis formation through inference to best explanation",
   "triggers": [
     "abductive reasoning",
     "hypothesis",

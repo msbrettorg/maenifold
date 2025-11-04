@@ -133,7 +133,7 @@ Add to `~/.claude/config.json`:
 {
   "mcpServers": {
     "maenifold-dev": {
-      "command": "/absolute/path/to/maenifold/src/bin/Debug/net9.0/Maenifold",
+      "command": "/absolute/path/to/maenifold/src/bin/Debug/net9.0/maenifold",
       "args": ["--mcp"],
       "env": {
         "maenifold_ROOT": "~/maenifold-test"
@@ -149,7 +149,7 @@ Add to `~/.config/codex/config.toml`:
 ```toml
 [mcp_servers.maenifold-dev]
 type = "stdio"
-command = "/absolute/path/to/maenifold/src/bin/Debug/net9.0/Maenifold"
+command = "/absolute/path/to/maenifold/src/bin/Debug/net9.0/maenifold"
 args = ["--mcp"]
 startup_timeout_sec = 120
 tool_timeout_sec = 600
@@ -255,7 +255,7 @@ Launch configuration (`.vscode/launch.json`):
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
-      "program": "${workspaceFolder}/src/bin/Debug/net9.0/Maenifold.dll",
+      "program": "${workspaceFolder}/src/bin/Debug/net9.0/maenifold.dll",
       "args": ["--tool", "MemoryStatus", "--payload", "{}"],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false,

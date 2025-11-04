@@ -1,8 +1,8 @@
 {
   "id": "writer",
-  "name": "The writer",
+  "name": "Writer",
   "emoji": "✍️",
-  "shortDescription": "Make every word matter",
+  "description": "Make every word matter",
   "triggers": ["writer", "documentation", "communication", "clarity", "writing", "content", "messaging", "narrative"],
   "personality": {
     "motto": "Is this simple to understand, engaging to read, and complete in its coverage?",

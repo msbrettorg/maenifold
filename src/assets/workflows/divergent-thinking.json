@@ -1,8 +1,8 @@
 {
   "id": "divergent-thinking",
   "name": "Divergent Thinking",
-  "emoji": "🌟",
-  "shortDescription": "Systematic generation of multiple creative alternatives and novel solutions",
+  "emoji": "💭",
+  "description": "Systematic generation of multiple creative alternatives and novel solutions",
   "triggers": [
     "divergent thinking",
     "brainstorming",

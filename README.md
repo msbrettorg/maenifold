@@ -39,44 +39,150 @@ That's what maenifold does: It provides the substrate (WikiLinks, memory, graph)
 
 ## Cognitive Assets
 
-maenifold ships with 54 pre-configured cognitive frameworks that agents can adopt dynamically:
+**maenifold** includes 32 workflows, 16 roles, 7 thinking colors, and 12 linguistic perspectives that agents can adopt.
 
-### 🔄 **28 Workflows** - Structured Methodologies
-From reasoning patterns to development processes:
-- **Reasoning**: deductive, inductive, abductive, critical, strategic, higher-order thinking
-- **Creative**: design thinking, divergent thinking, lateral thinking, oblique strategies, SCAMPER
-- **Development**: agentic-dev with anti-slop controls, agile, SDLC, code review workflows
-- **Collaborative**: world café, parallel thinking, six thinking hats
-- **Meta-orchestration**: workflow-dispatch for intelligent methodology selection
+Mix and match as needed - use a workflow, adopt a role, switch perspectives. The knowledge graph persists through everything.
 
-### 🎭 **7 Roles** - Professional Perspectives
-Each with personality, principles, and transition triggers:
-- **Product Manager**: "Simple, Lovable, Complete" framework
-- **Architect**: System design and patterns
-- **Engineer**: Implementation and quality
-- **Researcher**: Investigation and discovery
-- **Writer**: Clear communication
-- **Red Team**: Security testing and adversarial thinking
-- **Blue Team**: Defense and protection strategies
+### Workflows
+_32 structured methodologies for problem-solving and analysis_
 
-### 🎨 **7 Colors** - De Bono's Six Hats + Gray
-Thinking modes for different cognitive approaches:
-- **White**: Facts and information
-- **Red**: Emotions and intuition
-- **Black**: Caution and critical judgment
-- **Yellow**: Optimism and positive assessment
-- **Green**: Creativity and alternatives
-- **Blue**: Process control and orchestration
-- **Gray**: Skeptical inquiry and assumption questioning
+**Thinking & Reasoning** (12)
+| Workflow | Description |
+|----------|-------------|
+| 💭 Abductive Reasoning | Systematic hypothesis formation through inference to best explanation |
+| 💭 Convergent Thinking | Systematic analysis and selection of the single best solution from alternatives |
+| 💭 Critical Thinking | Systematic evaluation, analysis, and logical assessment of information and arguments |
+| 💭 Data Thinking | User-centric systematic approach to data strategy and analytics |
+| 💭 Deductive Reasoning | Top-down logical inference from general principles to specific conclusions |
+| 💭 Design Thinking | Human-centered approach to innovation and problem-solving |
+| 💭 Divergent Thinking | Systematic generation of multiple creative alternatives and novel solutions |
+| 💭 Higher-Order Thinking | Meta-cognitive reflection and complex reasoning about thinking processes |
+| 💭 Inductive Reasoning | Bottom-up inference from specific observations to general patterns and theories |
+| 💭 Lateral Thinking | Creative problem-solving through indirect and non-linear approaches |
+| 💭 Parallel Thinking | Simultaneous exploration of multiple perspectives and approaches in parallel |
+| 💭 Strategic Thinking | Long-term competitive positioning and systematic strategic analysis |
 
-### 🗣️ **12 Perspectives** - Sapir-Whorf Linguistic Patterns
-Language-influenced cognitive styles based on linguistic relativity:
-- **Arabic**: Pattern analysis through root systems
-- **Japanese**: Contextual and relational thinking
-- **German**: Hierarchical precision
-- **And 9 more**: Each language brings unique reasoning patterns
+**Multi-Agent Orchestrated** (4)
+| Workflow | Description |
+|----------|-------------|
+| 🔬 Advanced Research Agent | Sophisticated single-agent research workflow with HyDE enhancement, topic coverage analysis, reflexion loops, and knowledge integration |
+| 🌊 Agentic SLC Sprint (Wave Orchestration) | Multi-agent sprint execution using synchronized waves with RTM validation and git-tracked delivery |
+| ♟️ Game Theory Strategic Analysis (Multi-Agent Equilibrium Finding) | Strategic analyst orchestrating parallel agent waves to analyze games, find equilibria, and generate optimal strategies |
+| 🏛️ Research Think Tank (Multi-Agent Knowledge Construction) | Orchestrated research institution with parallel agent waves building rich knowledge graphs through collaborative investigation |
 
-These aren't just templates - they're cognitive substrates that combine with the knowledge graph to create emergent reasoning capabilities. An agent can start with strategic thinking, switch to red team perspective when finding vulnerabilities, then adopt the writer role to document findings - all while building on the persistent knowledge graph.
+**Development Methodologies** (4)
+| Workflow | Description |
+|----------|-------------|
+| 🔄 Agile Methodology | Iterative and incremental approach to project management |
+| 🎯 Agentic SLC (Simple, Lovable, Complete) | AI agent-assisted development using Simple, Lovable, Complete principles with anti-slop controls |
+| 🚀 Lean Startup | Build-measure-learn approach to product development |
+| 🔧 Software Development Lifecycle | Systematic approach to software development phases |
+
+**Creative Problem Solving** (3)
+| Workflow | Description |
+|----------|-------------|
+| 🎲 Oblique Strategies | Random creative prompts to break mental blocks and spark breakthrough thinking |
+| 💥 Provocative Operation | Systematic use of deliberate provocations to escape conventional thinking patterns |
+| 🎨 SCAMPER Method | Creative problem-solving technique using 7 prompts |
+
+**Structured Problem Solving** (2)
+| Workflow | Description |
+|----------|-------------|
+| 🐛 Debug Your Reasoning | Expose broken assumptions and flawed reasoning to fix stuck problems |
+| 📐 Pólya Problem Solving | George Pólya's systematic four-step approach to mathematical and general problem-solving |
+
+**Collaborative Processes** (2)
+| Workflow | Description |
+|----------|-------------|
+| 🎩 Six Thinking Hats | Structured thinking using six different perspectives |
+| ☕ World Café | Collaborative dialogue process leveraging diverse role perspectives across conversation rounds |
+
+**FinOps** (2)
+| Workflow | Description |
+|----------|-------------|
+| 💵 FinOps Data Collection & Optimization | Pulls cost data from Microsoft FinOps hubs using Kusto queries for comprehensive optimization analysis |
+| 💵 FinOps Strategic Analysis & Reporting | Analyzes data from Microsoft FinOps hubs to create executive-grade insights with industry benchmarks and roadmaps |
+
+**Business Strategy** (1)
+| Workflow | Description |
+|----------|-------------|
+| ⏰ Compelling Reason to Act | Framework for creating urgency and motivating immediate action |
+
+**Meta/System** (2)
+| Workflow | Description |
+|----------|-------------|
+| 👤 Constitutional Role Architecture Workflow | Systematic workflow for creating/updating specialist roles using constitutional AI and prompt engineering excellence |
+| 🎮 Workflow Dispatch | Intelligent cognitive strategy selection and thinking architecture design |
+
+### Roles
+_16 specialized personas for domain expertise_
+
+**FinOps**
+| Role | Description |
+|------|-------------|
+| 💵 Chief Financial Officer | Drive strategic cloud financial management through fiduciary responsibility, risk mitigation, and stakeholder stewardship |
+| 💵 FinOps Practitioner | Drive cloud financial optimization through evidence-based decisions and cultural transformation |
+| 💵 FinOps Hub Query Executor | Executes KQL queries against Microsoft FinOps hubs for cost optimization and preserves results for practitioner analysis |
+
+**EDA (Electronic Design Automation)**
+| Role | Description |
+|------|-------------|
+| 💾 Silicon Architect | Design silicon systems from RTL to tape-out with cloud-native workflows, AI-assisted optimization, and advanced node expertise |
+| 🏗️ Platform Operator | Build and operate cloud HPC infrastructure for EDA workloads with cost optimization, security, and extreme scalability |
+
+**AI**
+| Role | Description |
+|------|-------------|
+| 🧩 Prompt Architect | Design 10/10 prompts using constitutional AI, meta-prompting, and cognitive architecture principles |
+| 🎨 GPT-5 Prompt Architect | Design top-performing GPT-5 prompts: agentic predictability, calibrated reasoning_effort, verbosity steering, conflict-free instruction hierarchies, efficient tool preambles, minimal reasoning compensation, metaprompting, and Responses API reuse. |
+| 🎯 GPT-5-Codex Prompt Architect | Optimize prompts for GPT-5-Codex using minimal prompting principles from the official OpenAI guide |
+
+**Software**
+| Role | Description |
+|------|-------------|
+| 🏛️ Architect | Design cognitive systems that scale intelligence and amplify human reasoning |
+| 🤖 Engineer | Build real AI systems that amplify intelligence, not fake AI that pretends to be smart |
+| 🔌 MCP Protocol Specialist | Deep expertise in Model Context Protocol implementation and best practices |
+| 📊 Product Manager | Define what we build and why it matters to customers |
+| 🔴 Red Team | Break things to make them stronger |
+| 🔵 Blue Team | Defend, detect, and respond to security threats |
+
+**Research**
+| Role | Description |
+|------|-------------|
+| 🔍 Researcher | Build verified knowledge through systematic research and create rich, interconnected knowledge graphs |
+| ✍️ Writer | Make every word matter |
+
+### Thinking Colors
+_7 perspectives from Edward de Bono's Six Thinking Hats methodology_
+
+| Color | Focus | Description |
+|-------|-------|-------------|
+| ⚫ Black | Critical Thinking | Identify problems, risks, and what could go wrong |
+| 🎭 Blue | Orchestrator | Coordinates coding-agents through Strange Loop tools - maintains decision authority while delegating execution |
+| 🔘 Gray | Skeptical Inquiry | Question assumptions, demand evidence, and challenge conventional wisdom |
+| 🟢 Green | Creative Thinking | Generate new ideas, alternatives, and creative solutions |
+| 🔴 Red | Emotions & Intuition | Express feelings, hunches, and intuitions without justification |
+| ⚪ White | Facts & Information | Focus on data, facts, and objective information |
+| 🟡 Yellow | Positive Thinking | Focus on benefits, value, and optimistic possibilities |
+
+### Linguistic Perspectives
+_12 native language modes for culturally-aware reasoning_
+
+| Language | Description |
+|----------|-------------|
+| 🇸🇦 Arabic | Native speaker of Arabic |
+| 🇩🇪 German | Native speaker of German |
+| 🇬🇧 English | Native speaker of English |
+| 🇪🇸 Spanish | Native speaker of Spanish |
+| 🇫🇷 French | Native speaker of French |
+| 🇮🇹 Italian | Native speaker of Italian |
+| 🇯🇵 Japanese | Native speaker of Japanese |
+| 🇰🇷 Korean | Native speaker of Korean |
+| 🇵🇹 Portuguese | Native speaker of Portuguese |
+| 🇷🇺 Russian | Native speaker of Russian |
+| 🇹🇷 Turkish | Native speaker of Turkish |
+| 🇨🇳 Chinese | Native speaker of Chinese |
 
 ##  The Cognitive Stack
 
@@ -220,6 +326,26 @@ maenifold --tool SearchMemories --payload '{
 ```
 
 **MCP and CLI have full feature parity.** Start a session via MCP and continue it via CLI, or vice versa. The system supports concurrent agents using the same memory location - perfect for multi-agent pipelines or parallel workflows.
+
+## Claude Code Integration
+
+**Automatic graph-based context restoration for every session.** The knowledge graph becomes your continuous context window.
+
+### What it does
+Every Claude Code session automatically:
+- Queries recent activity from your knowledge graph
+- Extracts top concepts from your work
+- Builds semantic context with relationships
+- Injects ~5K tokens of relevant knowledge
+
+### Quick Setup
+```bash
+# Install the integration
+cd ~/maenifold/docs/integrations/claude-code
+./install.sh
+```
+
+This enables session continuity - every new conversation builds on all previous work through the shared knowledge graph. [Full integration guide](docs/integrations/claude-code/README.md).
 
 ## Learn more
 

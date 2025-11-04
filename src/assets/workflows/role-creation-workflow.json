@@ -1,8 +1,8 @@
 {
   "id": "role-creation-workflow",
   "name": "Constitutional Role Architecture Workflow",
-  "emoji": "🧩",
-  "shortDescription": "Systematic workflow for creating/updating specialist roles using constitutional AI and prompt engineering excellence",
+  "emoji": "👤",
+  "description": "Systematic workflow for creating/updating specialist roles using constitutional AI and prompt engineering excellence",
   "triggers": [
     "create role",
     "update role", 

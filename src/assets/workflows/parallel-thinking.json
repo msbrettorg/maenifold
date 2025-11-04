@@ -1,8 +1,8 @@
 {
   "id": "parallel-thinking",
   "name": "Parallel Thinking",
-  "emoji": "⚡",
-  "shortDescription": "Simultaneous exploration of multiple perspectives and approaches in parallel",
+  "emoji": "💭",
+  "description": "Simultaneous exploration of multiple perspectives and approaches in parallel",
   "triggers": [
     "parallel thinking",
     "multiple perspectives",

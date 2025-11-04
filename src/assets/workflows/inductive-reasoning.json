@@ -1,8 +1,8 @@
 {
   "id": "inductive-reasoning",
   "name": "Inductive Reasoning",
-  "emoji": "📈",
-  "shortDescription": "Bottom-up inference from specific observations to general patterns and theories",
+  "emoji": "💭",
+  "description": "Bottom-up inference from specific observations to general patterns and theories",
   "triggers": [
     "inductive reasoning",
     "pattern recognition",

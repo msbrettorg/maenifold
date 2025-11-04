@@ -105,6 +105,58 @@ export default function Header() {
                 Start
               </Link>
 
+              {/* Bundled Assets Dropdown - Accessible with Headless UI */}
+              <Menu as="div" className="relative">
+                <Menu.Button className="text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center">
+                  Bundled Assets
+                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </Menu.Button>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-100"
+                  enterFrom="transform opacity-0 scale-95"
+                  enterTo="transform opacity-100 scale-100"
+                  leave="transition ease-in duration-75"
+                  leaveFrom="transform opacity-100 scale-100"
+                  leaveTo="transform opacity-0 scale-95"
+                >
+                  <Menu.Items className="absolute left-0 mt-2 w-64 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg focus:outline-none">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          href={'/assets/workflows' as Route}
+                          className={`block px-4 py-2 text-sm ${active ? 'bg-gray-100 dark:bg-slate-700' : ''} text-slate-700 dark:text-gray-300`}
+                        >
+                          🔄 Workflows (32)
+                        </Link>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          href={'/assets/roles' as Route}
+                          className={`block px-4 py-2 text-sm ${active ? 'bg-gray-100 dark:bg-slate-700' : ''} text-slate-700 dark:text-gray-300`}
+                        >
+                          🎭 Roles (16)
+                        </Link>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          href={'/assets/colors-perspectives' as Route}
+                          className={`block px-4 py-2 text-sm ${active ? 'bg-gray-100 dark:bg-slate-700' : ''} text-slate-700 dark:text-gray-300`}
+                        >
+                          🎨 Colors & Perspectives (19)
+                        </Link>
+                      )}
+                    </Menu.Item>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
+
               {/* Use Cases Dropdown - Accessible with Headless UI */}
               <Menu as="div" className="relative">
                 <Menu.Button className="text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center">
@@ -184,7 +236,7 @@ export default function Header() {
                   leaveFrom="transform opacity-100 scale-100"
                   leaveTo="transform opacity-0 scale-95"
                 >
-                  <Menu.Items className="absolute left-0 mt-2 w-48 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg focus:outline-none">
+                  <Menu.Items className="absolute left-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg focus:outline-none">
                     <Menu.Item>
                       {({ active }) => (
                         <Link
@@ -205,13 +257,29 @@ export default function Header() {
                         </Link>
                       )}
                     </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          href={'/docs/claude-code' as Route}
+                          className={`block px-4 py-2 text-sm ${active ? 'bg-gray-100 dark:bg-slate-700' : ''} text-slate-700 dark:text-gray-300`}
+                        >
+                          Claude Code Integration
+                        </Link>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          href={'/tools' as Route}
+                          className={`block px-4 py-2 text-sm ${active ? 'bg-gray-100 dark:bg-slate-700' : ''} text-slate-700 dark:text-gray-300`}
+                        >
+                          Tools
+                        </Link>
+                      )}
+                    </Menu.Item>
                   </Menu.Items>
                 </Transition>
               </Menu>
-
-              <Link href={'/tools' as Route} className="text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors">
-                Tools
-              </Link>
             </div>
 
             {/* Right side: Dark mode toggle and GitHub */}
@@ -265,6 +333,18 @@ export default function Header() {
                 Start
               </Link>
               <div className="px-4 py-2">
+                <div className="text-slate-700 dark:text-gray-300 font-medium mb-2">Bundled Assets</div>
+                <Link href={'/assets/workflows' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
+                  🔄 Workflows (32)
+                </Link>
+                <Link href={'/assets/roles' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
+                  🎭 Roles (16)
+                </Link>
+                <Link href={'/assets/colors-perspectives' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
+                  🎨 Colors & Perspectives (19)
+                </Link>
+              </div>
+              <div className="px-4 py-2">
                 <div className="text-slate-700 dark:text-gray-300 font-medium mb-2">Use Cases</div>
                 <Link href={'/use-cases/knowledge-foundation' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
                   📚 Research & Discovery
@@ -287,10 +367,13 @@ export default function Header() {
                 <Link href={'/docs/technical-specs' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
                   Technical Specs
                 </Link>
+                <Link href={'/docs/claude-code' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
+                  Claude Code Integration
+                </Link>
+                <Link href={'/tools' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
+                  Tools
+                </Link>
               </div>
-              <Link href={'/tools' as Route} className="block px-4 py-2 text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white">
-                Tools
-              </Link>
             </div>
           )}
         </nav>

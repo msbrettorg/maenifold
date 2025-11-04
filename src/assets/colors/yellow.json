@@ -2,7 +2,7 @@
   "id": "yellow",
   "name": "Yellow - Positive Thinking",
   "emoji": "🟡",
-  "shortDescription": "Focus on benefits, value, and optimistic possibilities",
+  "description": "Focus on benefits, value, and optimistic possibilities",
   "triggers": ["yellow hat", "positive thinking", "benefits", "opportunities", "optimistic", "value", "advantages", "why it will work"],
   "personality": {
     "motto": "What are the benefits? Why will this work?",

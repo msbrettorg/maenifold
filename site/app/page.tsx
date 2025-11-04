@@ -33,7 +33,7 @@ export default function Home() {
           <GlassCard className="p-6">
             <div className="text-4xl mb-3">🔄</div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-              28 Workflows
+              32 Workflows
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               Curated workflows for research and development - systematic
@@ -43,21 +43,20 @@ export default function Home() {
           <GlassCard className="p-6">
             <div className="text-4xl mb-3">🎭</div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-              7 Roles
+              16 Roles
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Professional perspectives from Product Manager to Red Team - each
+              Professional perspectives from CFO to Red Team - each
               with personality, principles, and context-aware transitions
             </p>
           </GlassCard>
           <GlassCard className="p-6">
-            <div className="text-4xl mb-3">🎩</div>
+            <div className="text-4xl mb-3">🎨</div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-              7 Hats
+              19 Colors & Perspectives
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              De Bono's Six Thinking Hats plus Gray - cognitive modes for facts,
-              emotions, caution, optimism, creativity, and skeptical inquiry
+              De Bono's thinking hats plus 12 linguistic perspectives - cognitive modes and cultural lenses for diverse thinking
             </p>
           </GlassCard>
           <GlassCard className="p-6">

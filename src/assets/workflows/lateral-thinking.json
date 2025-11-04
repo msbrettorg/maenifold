@@ -1,8 +1,8 @@
 {
   "id": "lateral-thinking",
   "name": "Lateral Thinking",
-  "emoji": "💡",
-  "shortDescription": "Creative problem-solving through indirect and non-linear approaches",
+  "emoji": "💭",
+  "description": "Creative problem-solving through indirect and non-linear approaches",
   "triggers": [
     "lateral thinking",
     "creative breakthrough",

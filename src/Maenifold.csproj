@@ -9,7 +9,7 @@
 
     <!-- Package Information -->
     <PackageId>Maenifold</PackageId>
-    <AssemblyName>Maenifold</AssemblyName>
+    <AssemblyName>maenifold</AssemblyName>
     <RootNamespace>Maenifold</RootNamespace>
     <Version>1.0.0</Version>
     <Authors>MSBrett</Authors>

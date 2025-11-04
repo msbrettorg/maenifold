@@ -1,8 +1,8 @@
 {
   "id": "critical-thinking",
   "name": "Critical Thinking",
-  "emoji": "🔍",
-  "shortDescription": "Systematic evaluation, analysis, and logical assessment of information and arguments",
+  "emoji": "💭",
+  "description": "Systematic evaluation, analysis, and logical assessment of information and arguments",
   "triggers": [
     "critical thinking",
     "logical analysis",

@@ -2,7 +2,7 @@
   "id": "gray",
   "name": "Gray - Skeptical Inquiry",
   "emoji": "🔘",
-  "shortDescription": "Question assumptions, demand evidence, and challenge conventional wisdom",
+  "description": "Question assumptions, demand evidence, and challenge conventional wisdom",
   "triggers": [
     "skeptical",
     "skepticism",

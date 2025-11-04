@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/maenifold-logo.svg" alt="maenifold">
+  <img src="docs/branding/maenifold-logo.svg" alt="maenifold">
 </p>
 
 <p align="center">
@@ -18,10 +18,10 @@
 **maenifold** enhances AI agents with persistent graphs of thought that compound over time.  Every tool creates `[[WikiLink]]` connections that survive conversations. Every session builds on the last. Knowledge compounds instead of resets.  **It transforms ephemeral AI sessions into continuous collective intelligence.**
 
 <p align="center">
-  <img src="assets/branding/graph.jpeg" alt="graph">
+  <img src="docs/branding/graph.jpeg" alt="graph">
 </p>
 
-[Our demo](assets/demo-artifacts/README.md) shows this at scale: 25 AI agents across 68 minutes discovered a critical production bug not through programmed coordination, but through emergent understanding. No orchestration code was written, yet agents perfectly orchestrated themselves across 4 waves, building on each other's discoveries through a shared knowledge graph.
+[Our demo](docs/demo-artifacts/README.md) shows this at scale: 25 AI agents across 68 minutes discovered a critical production bug not through programmed coordination, but through emergent understanding. No orchestration code was written, yet agents perfectly orchestrated themselves across 4 waves, building on each other's discoveries through a shared knowledge graph.
 
 The critical move operation bug emerged from the intersection of multiple test patterns seen across different agent sessions - something no single agent could have found alone. This is maenifold's core: making every AI session additive rather than isolated.
 
@@ -31,7 +31,7 @@ The critical move operation bug emerged from the intersection of multiple test p
 - Each wave of agents built on previous findings via search and context traversal
 - The critical bug emerged from patterns across multiple test sessions
 - 171,506 new concept relationships were created, connecting discoveries
-- [Full orchestration logs](assets/demo-artifacts/part1-pm-lite/orchestration-session.md) and [test results](assets/demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) available
+- [Full orchestration logs](docs/demo-artifacts/part1-pm-lite/orchestration-session.md) and [test results](docs/demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) available
 
 85% test success rate. Real production bug found. Zero orchestration code written.
 
@@ -223,8 +223,8 @@ maenifold --tool SearchMemories --payload '{
 
 ## Learn more
 
-- [Complete Documentation](assets/README.md) - Architecture, examples, philosophy
-- [Demo Artifacts](assets/demo-artifacts/README.md) - Multi-agent orchestration
+- [Complete Documentation](docs/README.md) - Architecture, examples, philosophy
+- [Demo Artifacts](docs/demo-artifacts/README.md) - Multi-agent orchestration
 
 .NET 9.0 · SQLite · ONNX · MCP · MIT License
 

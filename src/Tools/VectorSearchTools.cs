@@ -76,7 +76,7 @@ Returns ranked concepts by semantic similarity score for knowledge graph explora
                 var distance = reader.GetDouble(1);
 
 
-                var similarity = 1.0 / (1.0 + distance);
+                var similarity = 1.0 / (1.0 + Math.Max(0, distance));
                 results.Add((concept, similarity));
             }
 

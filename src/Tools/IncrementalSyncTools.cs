@@ -13,7 +13,7 @@ public partial class IncrementalSyncTools
     private static readonly object _lock = new();
     private static readonly Dictionary<string, (Timer timer, WatcherChangeTypes changeType, object? eventArgs)> _debounceTimers = new();
     private static int _debounceMs = Config.DefaultDebounceMs;
-    private static int _changesSinceOptimize;
+    private static long _changesSinceOptimize;
     private static DateTime _lastVacuumUtc = DateTime.UtcNow;
     private static readonly int _optimizeThreshold = Config.IncrementalOptimizeEvery;
     private static readonly TimeSpan _vacuumInterval = TimeSpan.FromMinutes(Config.IncrementalVacuumMinutes);

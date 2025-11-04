@@ -3,9 +3,19 @@
 ## 1-Minute Setup
 
 ```bash
-# Run the installer
-cd ~/maenifold/docs/integrations/claude-code
-./install.sh
+# Copy the hook
+cp ~/maenifold/assets/integrations/claude-code/hooks/session_start.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/session_start.sh
+
+# Add to ~/.claude/settings.json:
+# {
+#   "hooks": {
+#     "SessionStart": [{
+#       "matcher": "*",
+#       "hooks": [{ "type": "command", "command": "~/.claude/hooks/session_start.sh" }]
+#     }]
+#   }
+# }
 
 # That's it! Start a new Claude Code session
 ```
@@ -46,27 +56,31 @@ Content: "Using Flyway for version control..."
 
 ## Customization
 
-Edit `~/.claude/hooks/session_start.sh`:
+Edit `~/.claude/hooks/session_start.sh` (top of file):
 
 ```bash
-# Adjust token budget (default: 5000)
-MAX_TOKENS=3000
+# Graph traversal (default: depth 2, 10 entities, no content)
+GRAPH_DEPTH=2              # How many hops (1-3)
+MAX_ENTITIES=10            # Related concepts per hop (3-20)
+INCLUDE_CONTENT=false      # Show content previews? (true/false)
 
-# Change time window (default: 24 hours)
-timespan":"48.00:00:00"
+# Token budget (default: 5000)
+MAX_TOKENS=5000            # Approximate limit
 
-# Filter concepts (add patterns to exclude)
-grep -v '^concept' | grep -v '^test'
-
-# Adjust graph depth (default: 1)
-depth: 2, maxEntities: 5
+# Concept selection (default: 10)
+MAX_CONCEPTS=10            # Top concepts to process
 ```
+
+**Why defaults work:**
+- `INCLUDE_CONTENT=false` → See MORE of the graph (20+ concepts vs 3)
+- `GRAPH_DEPTH=2` → See both direct + expanded relations
+- `MAX_ENTITIES=10` → Broad context without overwhelming
 
 ## Testing
 
 1. Create some memory files with [[concepts]]:
 ```bash
-~/maenifold/bin/osx-x64/Maenifold --tool WriteMemory \
+maenifold --tool WriteMemory \
   --payload '{"title":"Test","content":"Testing [[authentication]] with [[jwt]]"}'
 ```
 
@@ -78,7 +92,7 @@ depth: 2, maxEntities: 5
 ### No context appears?
 ```bash
 # Check Maenifold is running
-~/maenifold/bin/osx-x64/Maenifold --tool MemoryStatus
+maenifold --tool MemoryStatus
 
 # Check hook is registered
 cat ~/.claude/settings.json | jq '.hooks.SessionStart'
@@ -98,8 +112,11 @@ Update MAENIFOLD_CLI in the hook (line 18)
 ### Multi-Project Support
 ```bash
 # In session_start.sh, add project detection:
+# Note: If you have different Maenifold installations per project,
+# ensure each is in PATH or use full paths here
 if [[ "$CWD" == *"project-a"* ]]; then
-  MAENIFOLD_CLI="~/project-a/maenifold/bin/osx-x64/Maenifold"
+  # Use project-specific Maenifold if needed
+  export PATH="/path/to/project-a-maenifold:$PATH"
 fi
 ```
 
@@ -128,8 +145,9 @@ Maenifold: Knowledge Graph → Semantic Relations → Understanding
 
 ## Support
 
-- Documentation: `~/maenifold/docs/integrations/claude-code/`
+- Documentation: `~/maenifold/assets/integrations/claude-code/`
 - Hooks: `~/.claude/hooks/`
 - Settings: `~/.claude/settings.json`
+- Claude Code Hooks: https://docs.claude.com/en/docs/claude-code/hooks
 
 The knowledge graph remembers so Claude doesn't have to forget!

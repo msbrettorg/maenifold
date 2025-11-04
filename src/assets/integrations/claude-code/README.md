@@ -2,13 +2,6 @@
 
 Restore semantic context from your knowledge graph on every Claude Code session.
 
-## Quick Install
-
-```bash
-cd ~/maenifold/docs/integrations/claude-code
-./install.sh
-```
-
 ## What It Does
 
 Every session start:
@@ -17,11 +10,11 @@ Every session start:
 3. Builds graph context with relationships
 4. Injects ~5K tokens of semantic knowledge
 
-## Manual Setup
+## Setup
 
 ```bash
 # Copy hook
-cp hooks/session_start.sh ~/.claude/hooks/
+cp ~/maenifold/assets/integrations/claude-code/hooks/session_start.sh ~/.claude/hooks/
 chmod +x ~/.claude/hooks/session_start.sh
 
 # Update ~/.claude/settings.json
@@ -56,15 +49,21 @@ Related: postgresql (15 files), migrations (10 files)
 
 ## Configuration
 
-Edit `~/.claude/hooks/session_start.sh`:
+Edit `~/.claude/hooks/session_start.sh` (top of file):
 
 ```bash
-MAX_TOKENS=5000         # Token budget
-depth: 1                # Graph traversal depth
-maxEntities: 3          # Concepts per level
-timespan: "24.00:00:00" # Activity window
-grep -v '^concept'      # Filter patterns
+GRAPH_DEPTH=2              # How many hops in the graph (1-3)
+MAX_ENTITIES=10            # Max related concepts per hop (3-20)
+INCLUDE_CONTENT=false      # Include content previews (true/false)
+MAX_TOKENS=5000            # Approximate token budget
+MAX_CONCEPTS=10            # Max top concepts to process
 ```
+
+**Recommendations:**
+- `INCLUDE_CONTENT=false` shows more graph structure (recommended)
+- `INCLUDE_CONTENT=true` shows content snippets but covers less graph
+- Higher `GRAPH_DEPTH` and `MAX_ENTITIES` = broader context, more tokens
+- Adjust `MAX_TOKENS` to control total context size
 
 ## Troubleshooting
 
@@ -73,11 +72,11 @@ grep -v '^concept'      # Filter patterns
 echo '{"session_id":"test"}' | ~/.claude/hooks/session_start.sh
 
 # Check Maenifold
-~/maenifold/bin/osx-x64/Maenifold --tool MemoryStatus
+maenifold --tool MemoryStatus
 ```
 
 ## See Also
 
 - [QUICK_START.md](QUICK_START.md) - 1-minute setup
 - [hooks/](hooks/) - Additional hook examples
-- `install.sh` - Automated installation
+- [Claude Code Hooks Documentation](https://docs.claude.com/en/docs/claude-code/hooks) - Official hooks reference

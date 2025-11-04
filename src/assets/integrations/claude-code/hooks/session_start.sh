@@ -14,32 +14,35 @@
 
 set -euo pipefail
 
-# Maenifold CLI path - adjust to your installation
-MAENIFOLD_CLI="$HOME/maenifold/bin/osx-x64/Maenifold"
+# Configuration - adjust these to tune context restoration
+GRAPH_DEPTH=2              # How many hops in the graph (1-3)
+MAX_ENTITIES=10            # Max related concepts per hop (3-20)
+INCLUDE_CONTENT=false      # Include content previews (true/false)
+MAX_TOKENS=5000            # Approximate token budget
+MAX_CONCEPTS=10            # Max top concepts to process
 
-# Verify Maenifold CLI exists
-if [[ ! -x "$MAENIFOLD_CLI" ]]; then
+# Verify Maenifold CLI is available
+if ! command -v maenifold &> /dev/null; then
   # Silently exit if Maenifold not available
   exit 0
 fi
 
-# Read hook input
-HOOK_INPUT=$(cat)
-SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // "unknown"')
+# Read hook input (optional - works without it)
+HOOK_INPUT=$(cat 2>/dev/null || echo '{}')
+SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // "standalone"')
 CWD=$(echo "$HOOK_INPUT" | jq -r '.cwd // ""')
 
-# Token budget (approximately)
-MAX_TOKENS=5000
+# Token tracking
 TOKENS_USED=0
 
 # Get recent activity (last 24 hours, 10 items)
-RECENT_JSON=$("$MAENIFOLD_CLI" --tool RecentActivity --payload '{"limit":10,"timespan":"24.00:00:00","includeContent":false}' 2>/dev/null || echo "{}")
+RECENT_JSON=$(maenifold --tool RecentActivity --payload '{"limit":10,"timespan":"24.00:00:00","includeContent":false}' 2>/dev/null || echo "{}")
 
 # Extract all [[concepts]] from recent activity
 CONCEPTS=$(echo "$RECENT_JSON" | grep -o '\[\[[^]]*\]\]' | sed 's/\[\[\(.*\)\]\]/\1/' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | grep -v '^concept' | sort | uniq -c | sort -rn)
 
-# Get top N concepts (start with top 10)
-TOP_CONCEPTS=$(echo "$CONCEPTS" | head -10 | awk '{print $2}')
+# Get top N concepts
+TOP_CONCEPTS=$(echo "$CONCEPTS" | head -$MAX_CONCEPTS | awk '{print $2}')
 
 # Count concepts
 CONCEPT_COUNT=$(echo "$TOP_CONCEPTS" | wc -l | tr -d ' ')
@@ -80,9 +83,14 @@ while IFS= read -r CONCEPT; do
 
   echo "### [[$CONCEPT]]"
 
-  # Get context with limited depth and entities
-  PAYLOAD=$(jq -n --arg c "$CONCEPT" '{conceptName: $c, depth: 1, maxEntities: 3, includeContent: true}')
-  RESULT=$("$MAENIFOLD_CLI" --tool BuildContext --payload "$PAYLOAD" 2>/dev/null || echo "")
+  # Get context with configured depth and entities
+  PAYLOAD=$(jq -n \
+    --arg c "$CONCEPT" \
+    --argjson d "$GRAPH_DEPTH" \
+    --argjson m "$MAX_ENTITIES" \
+    --argjson i "$INCLUDE_CONTENT" \
+    '{conceptName: $c, depth: $d, maxEntities: $m, includeContent: $i}')
+  RESULT=$(maenifold --tool BuildContext --payload "$PAYLOAD" 2>/dev/null || echo "")
 
   if [[ -n "$RESULT" ]]; then
     # Limit output per concept to ~500 tokens (roughly 2000 chars)
@@ -100,7 +108,7 @@ echo "## Recent Work"
 echo ""
 
 # Include recent activity summary (without full content since we got context above)
-ACTIVITY=$("$MAENIFOLD_CLI" --tool RecentActivity --payload '{"limit":5,"timespan":"24.00:00:00","includeContent":false}' 2>/dev/null || echo "")
+ACTIVITY=$(maenifold --tool RecentActivity --payload '{"limit":5,"timespan":"24.00:00:00","includeContent":false}' 2>/dev/null || echo "")
 echo "$ACTIVITY" | head -50
 
 echo ""

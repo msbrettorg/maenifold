@@ -123,37 +123,37 @@ _32 structured methodologies for problem-solving and analysis_
 ### Roles
 _16 specialized personas for domain expertise_
 
-**Engineering & Architecture**
-| Role | Description |
-|------|-------------|
-| 🧠 The Architect | Design cognitive systems that scale intelligence and amplify human reasoning |
-| 🤖 The Engineer | Build real AI systems that amplify intelligence, not fake AI that pretends to be smart |
-| ⚡ The Silicon Architect | Design silicon systems from RTL to tape-out with cloud-native workflows, AI-assisted optimization, and advanced node expertise |
-| 🏗️ The Platform Operator | Build and operate cloud HPC infrastructure for EDA workloads with cost optimization, security, and extreme scalability |
-| 🔌 MCP Protocol Specialist | Deep expertise in Model Context Protocol implementation and best practices |
-
-**Financial & Business**
+**FinOps**
 | Role | Description |
 |------|-------------|
 | 💰 The Chief Financial Officer | Drive strategic cloud financial management through fiduciary responsibility, risk mitigation, and stakeholder stewardship |
 | 💰 The FinOps Practitioner | Drive cloud financial optimization through evidence-based decisions and cultural transformation |
 | 💰 FinOps Hub Query Executor | Executes KQL queries against Microsoft FinOps hubs for cost optimization and preserves results for practitioner analysis |
-| 📊 The product manager | Define what we build and why it matters to customers |
 
-**Security**
+**EDA (Electronic Design Automation)**
 | Role | Description |
 |------|-------------|
-| 🔴 The red team | Break things to make them stronger |
-| 🔵 The blue team | Defend, detect, and respond to security threats |
+| ⚡ The Silicon Architect | Design silicon systems from RTL to tape-out with cloud-native workflows, AI-assisted optimization, and advanced node expertise |
+| 🏗️ The Platform Operator | Build and operate cloud HPC infrastructure for EDA workloads with cost optimization, security, and extreme scalability |
 
-**AI & Prompting**
+**AI**
 | Role | Description |
 |------|-------------|
 | 🧩 The Prompt Architect | Design 10/10 prompts using constitutional AI, meta-prompting, and cognitive architecture principles |
 | 🧩 GPT-5 Prompt Architect | Design top-performing GPT-5 prompts: agentic predictability, calibrated reasoning_effort, verbosity steering, conflict-free instruction hierarchies, efficient tool preambles, minimal reasoning compensation, metaprompting, and Responses API reuse. |
 | ⚡ GPT-5-Codex Prompt Architect | Optimize prompts for GPT-5-Codex using minimal prompting principles from the official OpenAI guide |
 
-**Research & Communication**
+**Software**
+| Role | Description |
+|------|-------------|
+| 🧠 The Architect | Design cognitive systems that scale intelligence and amplify human reasoning |
+| 🤖 The Engineer | Build real AI systems that amplify intelligence, not fake AI that pretends to be smart |
+| 🔌 MCP Protocol Specialist | Deep expertise in Model Context Protocol implementation and best practices |
+| 📊 The product manager | Define what we build and why it matters to customers |
+| 🔴 The red team | Break things to make them stronger |
+| 🔵 The blue team | Defend, detect, and respond to security threats |
+
+**Research**
 | Role | Description |
 |------|-------------|
 | 🔍 The researcher | Build verified knowledge through systematic research and create rich, interconnected knowledge graphs |

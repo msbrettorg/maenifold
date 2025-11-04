@@ -6,34 +6,34 @@ export default function WorkflowsPage() {
 
   // Categorize workflows based on the README groupings
   const categories = {
-    'Thinking & Reasoning': workflows.filter(w =>
-      ['abductive-reasoning', 'convergent-thinking', 'critical-thinking', 'data-thinking',
-       'deductive-reasoning', 'design-thinking', 'divergent-thinking', 'higher-order-thinking',
-       'inductive-reasoning', 'lateral-thinking', 'parallel-thinking', 'strategic-thinking'].includes(w.id)
-    ),
-    'Multi-Agent Orchestrated': workflows.filter(w =>
-      ['agentic-research', 'agentic-slc', 'game-theory', 'think-tank'].includes(w.id)
-    ),
-    'Development Methodologies': workflows.filter(w =>
-      ['agile', 'agentic-dev', 'lean-startup', 'sdlc'].includes(w.id)
-    ),
-    'Creative Problem Solving': workflows.filter(w =>
-      ['oblique-strategies', 'provocative-operation', 'scamper'].includes(w.id)
-    ),
-    'Structured Problem Solving': workflows.filter(w =>
-      ['socratic-dialogue', 'polya-problem-solving'].includes(w.id)
+    'Business Strategy': workflows.filter(w =>
+      ['crta'].includes(w.id)
     ),
     'Collaborative Processes': workflows.filter(w =>
       ['sixhat', 'world-cafe'].includes(w.id)
     ),
+    'Creative Problem Solving': workflows.filter(w =>
+      ['oblique-strategies', 'provocative-operation', 'scamper'].includes(w.id)
+    ),
+    'Development Methodologies': workflows.filter(w =>
+      ['agile', 'agentic-dev', 'lean-startup', 'sdlc'].includes(w.id)
+    ),
     'FinOps': workflows.filter(w =>
       ['ftk-query', 'ftk-analysis'].includes(w.id)
     ),
-    'Business Strategy': workflows.filter(w =>
-      ['crta'].includes(w.id)
+    'Metacognitive': workflows.filter(w =>
+      ['higher-order-thinking', 'role-creation-workflow', 'workflow-dispatch'].includes(w.id)
     ),
-    'Meta/System': workflows.filter(w =>
-      ['role-creation-workflow', 'workflow-dispatch'].includes(w.id)
+    'Multi-Agent Orchestrated': workflows.filter(w =>
+      ['agentic-research', 'agentic-slc', 'game-theory', 'think-tank'].includes(w.id)
+    ),
+    'Structured Problem Solving': workflows.filter(w =>
+      ['socratic-dialogue', 'polya-problem-solving'].includes(w.id)
+    ),
+    'Thinking & Reasoning': workflows.filter(w =>
+      ['abductive-reasoning', 'convergent-thinking', 'critical-thinking', 'data-thinking',
+       'deductive-reasoning', 'design-thinking', 'divergent-thinking',
+       'inductive-reasoning', 'lateral-thinking', 'parallel-thinking', 'strategic-thinking'].includes(w.id)
     ),
   };
 

@@ -11,7 +11,7 @@ export default function ColorsPerspectivesPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900 dark:text-white">
-            🎨 Colors & Perspectives
+            🎨 Perspectives
           </h1>
           <p className="text-lg text-slate-700 dark:text-slate-300 max-w-3xl mx-auto">
             19 thinking modes and linguistic lenses. De Bono's Six Thinking Hats provide structured
@@ -22,7 +22,7 @@ export default function ColorsPerspectivesPage() {
         {/* Colors (Thinking Hats) */}
         <div className="mb-16">
           <h2 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">
-            Thinking Colors ({colors.length})
+            Thinking Hats ({colors.length})
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
             De Bono's Six Thinking Hats plus Gray - cognitive modes for facts, emotions, caution,
@@ -59,16 +59,11 @@ export default function ColorsPerspectivesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {perspectives.map((perspective) => (
               <GlassCard key={perspective.id} className="p-6 hover:scale-105 transition-transform">
-                <div className="flex items-start gap-3 mb-3">
+                <div className="flex items-center gap-3">
                   <div className="text-3xl">{perspective.emoji}</div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
-                      {perspective.name}
-                    </h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {perspective.description}
-                    </p>
-                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    {perspective.name}
+                  </h3>
                 </div>
               </GlassCard>
             ))}

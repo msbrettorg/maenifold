@@ -149,7 +149,7 @@ export default function Header() {
                           href={'/assets/colors-perspectives' as Route}
                           className={`block px-4 py-2 text-sm ${active ? 'bg-gray-100 dark:bg-slate-700' : ''} text-slate-700 dark:text-gray-300`}
                         >
-                          🎨 Colors & Perspectives (19)
+                          🎨 Perspectives (19)
                         </Link>
                       )}
                     </Menu.Item>

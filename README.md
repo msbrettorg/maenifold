@@ -39,48 +39,9 @@ That's what maenifold does: It provides the substrate (WikiLinks, memory, graph)
 
 ## Cognitive Assets
 
-maenifold ships with 54 pre-configured cognitive frameworks that agents can adopt dynamically:
-
-### 🔄 **28 Workflows** - Structured Methodologies
-From reasoning patterns to development processes:
-- **Reasoning**: deductive, inductive, abductive, critical, strategic, higher-order thinking
-- **Creative**: design thinking, divergent thinking, lateral thinking, oblique strategies, SCAMPER
-- **Development**: agentic-dev with anti-slop controls, agile, SDLC, code review workflows
-- **Collaborative**: world café, parallel thinking, six thinking hats
-- **Meta-orchestration**: workflow-dispatch for intelligent methodology selection
-
-### 🎭 **7 Roles** - Professional Perspectives
-Each with personality, principles, and transition triggers:
-- **Product Manager**: "Simple, Lovable, Complete" framework
-- **Architect**: System design and patterns
-- **Engineer**: Implementation and quality
-- **Researcher**: Investigation and discovery
-- **Writer**: Clear communication
-- **Red Team**: Security testing and adversarial thinking
-- **Blue Team**: Defense and protection strategies
-
-### 🎨 **7 Colors** - De Bono's Six Hats + Gray
-Thinking modes for different cognitive approaches:
-- **White**: Facts and information
-- **Red**: Emotions and intuition
-- **Black**: Caution and critical judgment
-- **Yellow**: Optimism and positive assessment
-- **Green**: Creativity and alternatives
-- **Blue**: Process control and orchestration
-- **Gray**: Skeptical inquiry and assumption questioning
-
-### 🗣️ **12 Perspectives** - Sapir-Whorf Linguistic Patterns
-Language-influenced cognitive styles based on linguistic relativity:
-- **Arabic**: Pattern analysis through root systems
-- **Japanese**: Contextual and relational thinking
-- **German**: Hierarchical precision
-- **And 9 more**: Each language brings unique reasoning patterns
+**maenifold** ships with 67 pre-configured cognitive frameworks that agents can adopt dynamically: 32 workflows, 16 roles, 7 thinking colors, and 12 linguistic perspectives.
 
 These aren't just templates - they're cognitive substrates that combine with the knowledge graph to create emergent reasoning capabilities. An agent can start with strategic thinking, switch to red team perspective when finding vulnerabilities, then adopt the writer role to document findings - all while building on the persistent knowledge graph.
-
-## Asset Catalog
-
-**maenifold** comes with 32 workflows, 16 roles, 7 thinking colors, and 12 linguistic perspectives.
 
 ### Workflows
 _32 structured methodologies for problem-solving and analysis_

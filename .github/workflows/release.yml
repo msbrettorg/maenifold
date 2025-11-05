@@ -21,22 +21,22 @@ jobs:
         include:
           - os: ubuntu-latest
             runtime: linux-x64
-            binary: Maenifold
+            binary: maenifold
           - os: ubuntu-latest
             runtime: linux-arm64
-            binary: Maenifold
+            binary: maenifold
           - os: macos-latest
             runtime: osx-arm64
-            binary: Maenifold
+            binary: maenifold
           - os: macos-13
             runtime: osx-x64
-            binary: Maenifold
+            binary: maenifold
           - os: windows-latest
             runtime: win-x64
-            binary: Maenifold.exe
+            binary: maenifold.exe
           - os: windows-latest
             runtime: win-arm64
-            binary: Maenifold.exe
+            binary: maenifold.exe
 
     steps:
       - name: Checkout code
@@ -169,10 +169,10 @@ jobs:
           mkdir -p bin
           for runtime in linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64 win-arm64; do
             mkdir -p bin/$runtime
-            if [ -f "bin-downloads/binary-$runtime/Maenifold" ]; then
-              cp bin-downloads/binary-$runtime/Maenifold bin/$runtime/
-            elif [ -f "bin-downloads/binary-$runtime/Maenifold.exe" ]; then
-              cp bin-downloads/binary-$runtime/Maenifold.exe bin/$runtime/
+            if [ -f "bin-downloads/binary-$runtime/maenifold" ]; then
+              cp bin-downloads/binary-$runtime/maenifold bin/$runtime/
+            elif [ -f "bin-downloads/binary-$runtime/maenifold.exe" ]; then
+              cp bin-downloads/binary-$runtime/maenifold.exe bin/$runtime/
             fi
           done
 

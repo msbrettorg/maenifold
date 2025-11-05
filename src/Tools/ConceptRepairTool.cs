@@ -536,19 +536,19 @@ Test with dryRun=true first to see what would be changed.")]
     {
         if (concept.StartsWith('/') || concept.Contains('.'))
             return "File Paths";
-        
+
         if (concept.EndsWith("s", StringComparison.OrdinalIgnoreCase) && !concept.EndsWith("ss", StringComparison.OrdinalIgnoreCase))
             return "Singular/Plural";
-        
+
         if (concept.Contains('-'))
             return "Compound (with -)";
-        
-        if (concept.Contains("system", StringComparison.OrdinalIgnoreCase) || 
-            concept.Contains("framework", StringComparison.OrdinalIgnoreCase) || 
-            concept.Contains("architecture", StringComparison.OrdinalIgnoreCase) || 
+
+        if (concept.Contains("system", StringComparison.OrdinalIgnoreCase) ||
+            concept.Contains("framework", StringComparison.OrdinalIgnoreCase) ||
+            concept.Contains("architecture", StringComparison.OrdinalIgnoreCase) ||
             concept.Contains("tool", StringComparison.OrdinalIgnoreCase))
             return "With Suffix";
-        
+
         return "Other";
     }
 

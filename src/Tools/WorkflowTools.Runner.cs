@@ -86,6 +86,12 @@ Returns structured guidance with step progression, tool hints, quality gates, an
             return WorkflowOperations.Continue(sessionId, response, thoughts, status, conclusion);
         }
 
-        throw new InvalidOperationException("Must provide either workflowId (new) or sessionId+response (continue)");
+        throw new InvalidOperationException("Invalid parameter combination.\n\n" +
+            "VALID OPERATIONS:\n" +
+            "  Start new workflow: workflowId only\n" +
+            "  Continue session: sessionId + response\n" +
+            "  View queue: sessionId + view=true\n" +
+            "  Append to queue: sessionId + append\n\n" +
+            "TIP: view=true and append both require a sessionId to identify which session to operate on.");
     }
 }

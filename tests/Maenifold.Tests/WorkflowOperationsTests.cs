@@ -660,4 +660,105 @@ public class WorkflowOperationsTests
         var (_, content, _) = MarkdownIO.ReadSession("workflow", sessionId);
         Assert.That(content, Does.Contain(thoughts), "Should preserve thoughts");
     }
+
+    // ============ View() Tests ============
+
+    /// <summary>
+    /// Test 18: View displays queue status with current position.
+    /// Verifies view shows queue, current workflow/step, and next item.
+    /// </summary>
+    [Test]
+    public void ViewDisplaysQueueStatusWithCurrentPosition()
+    {
+        // Arrange - Session with multiple workflows
+        var sessionId = CreateTestSession("test-workflow-1", "test-workflow-2", "test-workflow-3");
+
+        // Act
+        var result = WorkflowOperations.View(sessionId);
+
+        // Assert
+        Assert.That(result, Does.Not.Contain("ERROR"), "Should succeed");
+        Assert.That(result, Does.Contain("Queue:"), "Should show queue");
+        Assert.That(result, Does.Contain("test-workflow-1"), "Should list workflow 1");
+        Assert.That(result, Does.Contain("test-workflow-2"), "Should list workflow 2");
+        Assert.That(result, Does.Contain("test-workflow-3"), "Should list workflow 3");
+        Assert.That(result, Does.Contain("Position:"), "Should show current position");
+        Assert.That(result, Does.Contain("workflow 1/3"), "Should show workflow index");
+        Assert.That(result, Does.Contain("step 1/3"), "Should show step index");
+    }
+
+    /// <summary>
+    /// Test 19: View with invalid sessionId returns error.
+    /// Verifies error handling for nonexistent session.
+    /// </summary>
+    [Test]
+    public void ViewWithInvalidSessionIdReturnsError()
+    {
+        // Arrange
+        var invalidSessionId = "workflow-nonexistent-12345";
+
+        // Act
+        var result = WorkflowOperations.View(invalidSessionId);
+
+        // Assert
+        Assert.That(result, Does.Contain("ERROR"), "Should return error");
+        Assert.That(result, Does.Contain(invalidSessionId), "Error should reference session ID");
+        Assert.That(result, Does.Contain("doesn't exist"), "Should indicate session doesn't exist");
+    }
+
+    /// <summary>
+    /// Test 20: View after progressing shows updated position.
+    /// Verifies view reflects current session state correctly.
+    /// </summary>
+    [Test]
+    public void ViewAfterProgressingShowsUpdatedPosition()
+    {
+        // Arrange - Create session and progress through steps
+        var sessionId = CreateTestSession("test-workflow-1", "test-workflow-2");
+        var response = "Step work with [[progress]].";
+
+        // Progress to step 2
+        WorkflowOperations.Continue(sessionId, response, null, null);
+
+        // Act
+        var result = WorkflowOperations.View(sessionId);
+
+        // Assert
+        Assert.That(result, Does.Not.Contain("ERROR"), "Should succeed");
+        Assert.That(result, Does.Contain("step 2/3"), "Should show updated step position");
+        Assert.That(result, Does.Contain("Next:"), "Should show next step info");
+    }
+
+    /// <summary>
+    /// Test 21: View via WorkflowTools.Workflow() entry point.
+    /// Verifies view parameter works through public API.
+    /// </summary>
+    [Test]
+    public void ViewViaWorkflowToolsEntryPoint()
+    {
+        // Arrange
+        var sessionId = CreateTestSession("test-workflow-1");
+
+        // Act
+        var result = WorkflowTools.Workflow(sessionId: sessionId, view: true);
+
+        // Assert
+        Assert.That(result, Does.Not.Contain("ERROR"), "Should succeed via public API");
+        Assert.That(result, Does.Contain("Queue:"), "Should display queue information");
+        Assert.That(result, Does.Contain("Position:"), "Should display position information");
+    }
+
+    /// <summary>
+    /// Test 22: View without sessionId throws helpful error.
+    /// Verifies error message explains sessionId requirement for view.
+    /// </summary>
+    [Test]
+    public void ViewWithoutSessionIdThrowsHelpfulError()
+    {
+        // Act & Assert
+        var ex = Assert.Throws<InvalidOperationException>(() => WorkflowTools.Workflow(view: true));
+        Assert.That(ex.Message, Does.Contain("view"), "Error should mention view parameter");
+        Assert.That(ex.Message, Does.Contain("sessionId"), "Error should mention sessionId requirement");
+        Assert.That(ex.Message, Does.Contain("VALID OPERATIONS"), "Error should show valid operations");
+    }
 }

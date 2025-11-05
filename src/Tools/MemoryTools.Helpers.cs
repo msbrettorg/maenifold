@@ -53,19 +53,42 @@ public partial class MemoryTools
             Path.GetFileNameWithoutExtension(f).Equals(slug, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Performs simple string replacement using String.Replace().
+    ///
+    /// WARNING: This creates nested WikiLinks if replacing text INSIDE existing [[brackets]].
+    /// Example: [[machine learning]] with findText="machine learning" and replaceText="[[ML]]"
+    /// becomes [[[[ML]]]] (nested brackets).
+    ///
+    /// To replace entire WikiLinks, include brackets in findText: "[[machine learning]]" → "[[ML]]".
+    /// This is Ma Protocol-compliant: simple behavior, no "smart" escaping logic.
+    /// </summary>
     private static string PerformFindReplace(string content, string findText, string replaceText, int? expectedCount)
     {
         var matches = content.Split(findText).Length - 1;
-        if (expectedCount.HasValue && matches != expectedCount)
-            throw new InvalidOperationException($"Expected {expectedCount} matches but found {matches}");
+        if (expectedCount.HasValue && matches != expectedCount.Value)
+            throw new ArgumentException($"Expected {expectedCount.Value} matches but found {matches}. Find text: '{findText}'", nameof(expectedCount));
 
         return content.Replace(findText, replaceText);
     }
 
     private static string ReplaceSection(string content, string sectionName, string newContent)
     {
-        var pattern = $@"(^|\n)(#+\s*{Regex.Escape(sectionName)}.*?)(?=\n#|\z)";
-        var replacement = $"$1$2\n{newContent}";
+        // Match: section heading + all content until next heading or end of file
+        // Pattern breakdown:
+        // (^|\n) - Start of line (captured as $1 for preserving newline)
+        // (#+\s*{sectionName}[^\n]*\n) - Heading with section name (captured as $2)
+        // (.*?) - Section content (captured as $3, to be replaced)
+        // (?=\n#|\z) - Lookahead: next heading or end of file
+        var pattern = $@"(^|\n)(#+\s*{Regex.Escape(sectionName)}[^\n]*\n)(.*?)(?=\n#|\z)";
+
+        var match = Regex.Match(content, pattern, RegexOptions.Multiline | RegexOptions.Singleline);
+
+        if (!match.Success)
+            throw new InvalidOperationException($"Section not found: '{sectionName}'. Cannot replace a section that doesn't exist.");
+
+        // Replace: preserve leading newline + heading + new content (old section content is discarded)
+        var replacement = $"$1$2{newContent}";
         return Regex.Replace(
             content,
             pattern,

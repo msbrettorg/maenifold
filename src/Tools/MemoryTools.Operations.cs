@@ -69,7 +69,11 @@ Returns formatted content with timestamps, location, checksum, and full markdown
 Select when AI needs to update, append, or restructure existing knowledge while maintaining connections.
 Requires identifier, operation type, new content with [[concepts]], optional checksum and search patterns.
 Connects to ReadMemory for current state, Sync for graph updates, SearchMemories for impact analysis.
-Returns updated URI with new checksum, confirms successful modification and continued graph connectivity.")]
+Returns updated URI with new checksum, confirms successful modification and continued graph connectivity.
+
+WARNING: find_replace uses simple string replacement. Replacing text INSIDE existing [[WikiLinks]] creates nested brackets.
+Example: [[machine learning]] with findText='machine learning' and content='[[ML]]' becomes [[[[ML]]]].
+To avoid this, use findText='[[machine learning]]' to replace the entire WikiLink instead.")]
     public static string EditMemory(
         [Description("Memory FILE identifier")] string identifier,
         [Description("Operation: append, prepend, find_replace, replace_section")] string operation,

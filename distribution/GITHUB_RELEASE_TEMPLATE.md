@@ -127,24 +127,24 @@ See [CHANGELOG.md](https://github.com/ma-collective/maenifold/blob/main/CHANGELO
 ```bash
 wget https://github.com/ma-collective/maenifold/releases/download/v1.0.0/maenifold-linux-x64.tar.gz
 tar -xzf maenifold-linux-x64.tar.gz
-chmod +x Maenifold
-./Maenifold --tool MemoryStatus --payload '{}'
+chmod +x maenifold
+./maenifold --tool MemoryStatus --payload '{}'
 ```
 
 ### macOS (ARM64 - M1/M2/M3)
 ```bash
 curl -LO https://github.com/ma-collective/maenifold/releases/download/v1.0.0/maenifold-osx-arm64.tar.gz
 tar -xzf maenifold-osx-arm64.tar.gz
-chmod +x Maenifold
-./Maenifold --tool MemoryStatus --payload '{}'
+chmod +x maenifold
+./maenifold --tool MemoryStatus --payload '{}'
 ```
 
 ### macOS (x64 - Intel)
 ```bash
 curl -LO https://github.com/ma-collective/maenifold/releases/download/v1.0.0/maenifold-osx-x64.tar.gz
 tar -xzf maenifold-osx-x64.tar.gz
-chmod +x Maenifold
-./Maenifold --tool MemoryStatus --payload '{}'
+chmod +x maenifold
+./maenifold --tool MemoryStatus --payload '{}'
 ```
 
 ### Windows (x64)
@@ -152,7 +152,7 @@ chmod +x Maenifold
 # Download maenifold-win-x64.zip from Assets below
 # Extract the ZIP
 # Run in PowerShell:
-.\Maenifold.exe --tool MemoryStatus --payload '{}'
+.\maenifold.exe --tool MemoryStatus --payload '{}'
 ```
 
 ## Verification

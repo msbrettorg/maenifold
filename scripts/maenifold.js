@@ -14,7 +14,7 @@ function getBinaryPath() {
   const platform = os.platform();
   const arch = os.arch();
 
-  let binaryName = 'Maenifold';
+  let binaryName = 'maenifold';
   let platformPackageName = '';
   let runtimeId = '';
 
@@ -35,7 +35,7 @@ function getBinaryPath() {
       runtimeId = 'linux-x64';
     }
   } else if (platform === 'win32') {
-    binaryName = 'Maenifold.exe';
+    binaryName = 'maenifold.exe';
     if (arch === 'arm64') {
       platformPackageName = 'maenifold-win32-arm64';
       runtimeId = 'win-arm64';

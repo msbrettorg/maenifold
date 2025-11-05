@@ -8,7 +8,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-MAENIFOLD_BIN="$PROJECT_ROOT/src/bin/Release/net9.0/Maenifold"
+MAENIFOLD_BIN="$PROJECT_ROOT/src/bin/Release/net9.0/maenifold"
 OUTPUT_DIR="$PROJECT_ROOT/test-outputs/smoke-tests"
 RESULTS_FILE="${OUTPUT_DIR}/RepairConcepts-results.md"
 TEST_DATA_DIR="$PROJECT_ROOT/src/test-data"

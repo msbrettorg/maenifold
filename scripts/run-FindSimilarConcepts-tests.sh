@@ -9,7 +9,7 @@ set -e
 # Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-MAENIFOLD_BIN="$PROJECT_ROOT/bin/Maenifold"
+MAENIFOLD_BIN="$PROJECT_ROOT/bin/maenifold"
 OUTPUT_DIR="$PROJECT_ROOT/test-outputs/smoke-tests"
 RESULTS_FILE="${OUTPUT_DIR}/FindSimilarConcepts-results.md"
 TEST_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')

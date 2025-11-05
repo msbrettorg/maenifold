@@ -170,4 +170,159 @@ This is a [[test file]] without any frontmatter.";
         Assert.That(raw, Does.Not.Contain("embedding_date"));
     }
 
+    [Test]
+    public void EditMemory_ReplaceSection_ReplacesExistingSection()
+    {
+        // Arrange: Create a memory file with multiple sections
+        var testTitle = "Replace Section Test";
+        var testContent = @"This is the intro with a [[concept]].
+
+## First Section
+
+Old content in first section.
+
+## Second Section
+
+Old content in second section with [[another-concept]].
+
+## Third Section
+
+Old content in third section.";
+
+        var writeResult = MemoryTools.WriteMemory(testTitle, testContent, folder: TestFolder);
+        Assert.That(writeResult, Does.StartWith("Created memory FILE:"));
+
+        var uri = $"memory://{TestFolder}/replace-section-test";
+
+        // Act: Replace the second section
+        var newSectionContent = "New content in second section with [[replaced-concept]].\n\nMultiple lines work too.";
+        var editResult = MemoryTools.EditMemory(uri, "replace_section", newSectionContent, sectionName: "Second Section");
+
+        // Assert: Edit should succeed
+        Assert.That(editResult, Does.StartWith("Updated memory FILE:"));
+
+        // Verify: Read back and check the section was replaced
+        var readResult = MemoryTools.ReadMemory(uri);
+        Assert.That(readResult, Does.Contain("## Second Section"));
+        Assert.That(readResult, Does.Contain("New content in second section with [[replaced-concept]]"));
+        Assert.That(readResult, Does.Contain("Multiple lines work too"));
+
+        // Verify: Old section content is gone
+        Assert.That(readResult, Does.Not.Contain("Old content in second section"));
+        Assert.That(readResult, Does.Not.Contain("[[another-concept]]"));
+
+        // Verify: Other sections are untouched
+        Assert.That(readResult, Does.Contain("## First Section"));
+        Assert.That(readResult, Does.Contain("Old content in first section"));
+        Assert.That(readResult, Does.Contain("## Third Section"));
+        Assert.That(readResult, Does.Contain("Old content in third section"));
+    }
+
+    [Test]
+    public void EditMemory_ReplaceSection_ThrowsWhenSectionNotFound()
+    {
+        // Arrange: Create a memory file without the target section
+        var testTitle = "Section Not Found Test";
+        var testContent = @"This is the intro with a [[concept]].
+
+## Existing Section
+
+Some content here.";
+
+        var writeResult = MemoryTools.WriteMemory(testTitle, testContent, folder: TestFolder);
+        Assert.That(writeResult, Does.StartWith("Created memory FILE:"));
+
+        var uri = $"memory://{TestFolder}/section-not-found-test";
+
+        // Act & Assert: Attempting to replace a non-existent section should throw
+        var newSectionContent = "New content with [[concept]].";
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            MemoryTools.EditMemory(uri, "replace_section", newSectionContent, sectionName: "Nonexistent Section"));
+
+        Assert.That(ex.Message, Does.Contain("Section not found"));
+        Assert.That(ex.Message, Does.Contain("Nonexistent Section"));
+    }
+
+    [Test]
+    public void EditMemory_ReplaceSection_WorksWithDifferentHeadingLevels()
+    {
+        // Arrange: Create a memory file with different heading levels
+        var testTitle = "Heading Levels Test";
+        var testContent = @"Intro with [[concept]].
+
+# Level 1 Heading
+
+Content under level 1.
+
+## Level 2 Heading
+
+Content under level 2.
+
+### Level 3 Heading
+
+Content under level 3.";
+
+        var writeResult = MemoryTools.WriteMemory(testTitle, testContent, folder: TestFolder);
+        Assert.That(writeResult, Does.StartWith("Created memory FILE:"));
+
+        var uri = $"memory://{TestFolder}/heading-levels-test";
+
+        // Act: Replace the level 2 section
+        var newContent = "New content for level 2 with [[new-concept]].";
+        var editResult = MemoryTools.EditMemory(uri, "replace_section", newContent, sectionName: "Level 2 Heading");
+
+        // Assert: Edit should succeed
+        Assert.That(editResult, Does.StartWith("Updated memory FILE:"));
+
+        // Verify: The level 2 section was replaced
+        var readResult = MemoryTools.ReadMemory(uri);
+        Assert.That(readResult, Does.Contain("## Level 2 Heading"));
+        Assert.That(readResult, Does.Contain("New content for level 2 with [[new-concept]]"));
+        Assert.That(readResult, Does.Not.Contain("Content under level 2"));
+
+        // Verify: Other sections are untouched
+        Assert.That(readResult, Does.Contain("# Level 1 Heading"));
+        Assert.That(readResult, Does.Contain("Content under level 1"));
+        Assert.That(readResult, Does.Contain("### Level 3 Heading"));
+        Assert.That(readResult, Does.Contain("Content under level 3"));
+    }
+
+    [Test]
+    public void EditMemory_ReplaceSection_ReplacesLastSection()
+    {
+        // Arrange: Create a memory file and replace the last section
+        var testTitle = "Replace Last Section Test";
+        var testContent = @"Intro with [[concept]].
+
+## First Section
+
+First content.
+
+## Last Section
+
+This is the last section content.";
+
+        var writeResult = MemoryTools.WriteMemory(testTitle, testContent, folder: TestFolder);
+        Assert.That(writeResult, Does.StartWith("Created memory FILE:"));
+
+        var uri = $"memory://{TestFolder}/replace-last-section-test";
+
+        // Act: Replace the last section
+        var newContent = "New last section content with [[final-concept]].";
+        var editResult = MemoryTools.EditMemory(uri, "replace_section", newContent, sectionName: "Last Section");
+
+        // Assert: Edit should succeed
+        Assert.That(editResult, Does.StartWith("Updated memory FILE:"));
+
+        // Verify: The last section was replaced
+        var readResult = MemoryTools.ReadMemory(uri);
+        Assert.That(readResult, Does.Contain("## Last Section"));
+        Assert.That(readResult, Does.Contain("New last section content with [[final-concept]]"));
+        Assert.That(readResult, Does.Not.Contain("This is the last section content"));
+
+        // Verify: First section is untouched
+        Assert.That(readResult, Does.Contain("## First Section"));
+        Assert.That(readResult, Does.Contain("First content"));
+    }
+
 }

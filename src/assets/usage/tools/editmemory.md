@@ -46,7 +46,22 @@ Adds content to file start.
 ```
 
 ### find_replace
-Replaces all occurrences.
+Replaces all occurrences using simple string replacement.
+
+**⚠️ WARNING: Nested WikiLinks**
+Replacing text INSIDE existing `[[WikiLinks]]` creates nested brackets.
+
+Example of the problem:
+- File contains: `[[machine learning]]`
+- findText: `"machine learning"`
+- content: `"[[ML]]"`
+- Result: `[[[[ML]]]]` (nested brackets - broken WikiLink)
+
+To avoid this, replace the ENTIRE WikiLink including brackets:
+- findText: `"[[machine learning]]"`
+- content: `"[[ML]]"`
+- Result: `[[ML]]` (correct)
+
 ```json
 {
   "identifier": "research-notes",
@@ -81,6 +96,7 @@ Replaces markdown section by header.
 - **Checksum validation**: Detects conflicts between read and edit
 - **Section names**: Must match exact markdown header text (case-sensitive)
 - **expectedCount**: Validates find_replace safety
+- **find_replace behavior**: Uses simple `String.Replace()` - no escaping or bracket detection. Replacing text inside `[[WikiLinks]]` creates nested brackets. This is intentional Ma Protocol behavior.
 
 ## Integration
 

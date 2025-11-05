@@ -369,7 +369,7 @@ public class ConceptRepairToolTests
             folder: TestFolder,
             dryRun: true,
             createWikiLinks: false
-            // minSemanticSimilarity defaults to 0.7
+        // minSemanticSimilarity defaults to 0.7
         );
 
         // Assert - Similar concepts should pass validation

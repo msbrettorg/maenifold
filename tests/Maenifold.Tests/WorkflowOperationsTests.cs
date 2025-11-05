@@ -97,7 +97,7 @@ public class WorkflowOperationsTests
         var steps = new List<JsonElement>();
         for (int i = 0; i < stepCount; i++)
         {
-            steps.Add(JsonDocument.Parse($@"{{""id"": ""step-{i+1}"", ""name"": ""Step {i+1}"", ""description"": ""Test step {i+1}""}}").RootElement);
+            steps.Add(JsonDocument.Parse($@"{{""id"": ""step-{i + 1}"", ""name"": ""Step {i + 1}"", ""description"": ""Test step {i + 1}""}}").RootElement);
         }
 
         var workflow = new

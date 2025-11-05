@@ -73,7 +73,7 @@ grep -v '^concept'      # Filter patterns
 echo '{"session_id":"test"}' | ~/.claude/hooks/session_start.sh
 
 # Check Maenifold
-~/maenifold/bin/osx-x64/Maenifold --tool MemoryStatus
+~/maenifold/bin/osx-x64/maenifold --tool MemoryStatus
 ```
 
 ## See Also

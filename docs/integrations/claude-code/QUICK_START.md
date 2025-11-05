@@ -66,7 +66,7 @@ depth: 2, maxEntities: 5
 
 1. Create some memory files with [[concepts]]:
 ```bash
-~/maenifold/bin/osx-x64/Maenifold --tool WriteMemory \
+~/maenifold/bin/osx-x64/maenifold --tool WriteMemory \
   --payload '{"title":"Test","content":"Testing [[authentication]] with [[jwt]]"}'
 ```
 
@@ -78,7 +78,7 @@ depth: 2, maxEntities: 5
 ### No context appears?
 ```bash
 # Check Maenifold is running
-~/maenifold/bin/osx-x64/Maenifold --tool MemoryStatus
+~/maenifold/bin/osx-x64/maenifold --tool MemoryStatus
 
 # Check hook is registered
 cat ~/.claude/settings.json | jq '.hooks.SessionStart'

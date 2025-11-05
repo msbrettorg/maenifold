@@ -1,6 +1,6 @@
 {
   "name": "maenifold",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Persistent knowledge graphs with WikiLinks and vector search. MCP server that transforms ephemeral AI sessions into continuous collective intelligence.",
   "main": "bin/maenifold.js",
   "directories": {
@@ -71,11 +71,11 @@
     "better-sqlite3": "^12.4.1"
   },
   "optionalDependencies": {
-    "maenifold-linux-x64": "1.0.0",
-    "maenifold-linux-arm64": "1.0.0",
-    "maenifold-darwin-x64": "1.0.0",
-    "maenifold-darwin-arm64": "1.0.0",
-    "maenifold-win32-x64": "1.0.0",
-    "maenifold-win32-arm64": "1.0.0"
+    "maenifold-linux-x64": "1.0.1",
+    "maenifold-linux-arm64": "1.0.1",
+    "maenifold-darwin-x64": "1.0.1",
+    "maenifold-darwin-arm64": "1.0.1",
+    "maenifold-win32-x64": "1.0.1",
+    "maenifold-win32-arm64": "1.0.1"
   }
 }

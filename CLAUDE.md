@@ -49,7 +49,7 @@ After code changes, always run `dotnet build` so CLI and MCP use the same latest
 mcp__maenifold__write_memory(...)
 
 # ✅ CORRECT: Use release binary CLI (FALLBACK ONLY - when MCP unavailable or wrong build)
-/Users/brett/src/ma-collective/maenifold/src/bin/Release/net9.0/Maenifold --tool WriteMemory --payload '{...}'
+/Users/brett/src/ma-collective/maenifold/src/bin/Release/net9.0/maenifold --tool WriteMemory --payload '{...}'
 
 # ❌ WRONG: Using dotnet run (TERMINATES SESSION)
 dotnet run --project src/Maenifold.csproj -- --tool WriteMemory

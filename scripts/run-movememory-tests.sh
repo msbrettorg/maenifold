@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 RESULTS_FILE="$PROJECT_ROOT/test-outputs/smoke-tests/MoveMemory-results.md"
 DOTNET_PATH=$(which dotnet)
-MEMORY_TOOLS="$PROJECT_ROOT/src/bin/Release/net9.0/Maenifold.dll"
+MEMORY_TOOLS="$PROJECT_ROOT/src/bin/Release/net9.0/maenifold.dll"
 
 # Ensure build is up-to-date
 echo "Building project..."

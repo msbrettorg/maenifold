@@ -37,10 +37,10 @@ if (os.platform() !== 'win32') {
   try {
     const platformPackagePath = require.resolve(`${platformPackageName}/package.json`);
     const platformRoot = path.dirname(platformPackagePath);
-    binaryPath = path.join(platformRoot, 'Maenifold');
+    binaryPath = path.join(platformRoot, 'maenifold');
   } catch (err) {
     // Platform package not found, try local bin directory (development)
-    binaryPath = path.join(__dirname, '..', 'bin', runtimeId, 'Maenifold');
+    binaryPath = path.join(__dirname, '..', 'bin', runtimeId, 'maenifold');
   }
 
   if (binaryPath && fs.existsSync(binaryPath)) {

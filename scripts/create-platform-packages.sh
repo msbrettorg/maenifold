@@ -17,12 +17,12 @@ mkdir -p "$PACKAGES_DIR"
 
 # Platform configurations: "package-name|runtime-id|binary-name"
 PLATFORMS=(
-  "maenifold-linux-x64|linux-x64|Maenifold"
-  "maenifold-linux-arm64|linux-arm64|Maenifold"
-  "maenifold-darwin-x64|osx-x64|Maenifold"
-  "maenifold-darwin-arm64|osx-arm64|Maenifold"
-  "maenifold-win32-x64|win-x64|Maenifold.exe"
-  "maenifold-win32-arm64|win-arm64|Maenifold.exe"
+  "maenifold-linux-x64|linux-x64|maenifold"
+  "maenifold-linux-arm64|linux-arm64|maenifold"
+  "maenifold-darwin-x64|osx-x64|maenifold"
+  "maenifold-darwin-arm64|osx-arm64|maenifold"
+  "maenifold-win32-x64|win-x64|maenifold.exe"
+  "maenifold-win32-arm64|win-arm64|maenifold.exe"
 )
 
 for platform in "${PLATFORMS[@]}"; do

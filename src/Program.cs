@@ -106,5 +106,3 @@ void PrintUsage()
     System.Console.WriteLine("  MCP:    ListMcpResources, ReadMcpResource");
     System.Console.WriteLine("  Bench:  RunFullBenchmark");
 }
-
-PrintUsage();

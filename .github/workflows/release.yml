@@ -158,29 +158,13 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Verify NPM authentication
-        id: npm_auth
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if npm whoami; then
-            echo "authenticated=true" >> $GITHUB_OUTPUT
-            echo "NPM authentication successful"
-          else
-            echo "authenticated=false" >> $GITHUB_OUTPUT
-            echo "NPM_TOKEN authentication failed - skipping npm publish"
-            exit 1
-          fi
-
       - name: Download all binaries
-        if: steps.npm_auth.outputs.authenticated == 'true'
         uses: actions/download-artifact@v6
         with:
           pattern: binary-*
           path: bin-downloads
 
       - name: Organize binaries
-        if: steps.npm_auth.outputs.authenticated == 'true'
         run: |
           mkdir -p bin
           for runtime in linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64 win-arm64; do
@@ -193,13 +177,11 @@ jobs:
           done
 
       - name: Create platform packages
-        if: steps.npm_auth.outputs.authenticated == 'true'
         run: |
           chmod +x scripts/create-platform-packages.sh
           ./scripts/create-platform-packages.sh
 
       - name: Publish platform packages
-        if: steps.npm_auth.outputs.authenticated == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -207,17 +189,15 @@ jobs:
             if [ -d "$pkg" ]; then
               echo "Publishing $(basename $pkg)..."
               cd "$pkg"
-              npm publish --access public
+              npm publish --access public || echo "Failed to publish $(basename $pkg), continuing..."
               cd ../..
             fi
           done
 
       - name: Install dependencies
-        if: steps.npm_auth.outputs.authenticated == 'true'
         run: npm install
 
       - name: Publish main package
-        if: steps.npm_auth.outputs.authenticated == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public

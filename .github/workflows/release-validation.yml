@@ -55,6 +55,9 @@ jobs:
         run: |
           echo "Checking if CHANGELOG.md was updated..."
 
+          # Fetch main branch for comparison
+          git fetch origin main:refs/remotes/origin/main
+
           if ! git diff --name-only origin/main...HEAD | grep -q "CHANGELOG.md"; then
             echo "❌ FAIL: CHANGELOG.md not updated in this PR"
             echo "Every release MUST update CHANGELOG.md"

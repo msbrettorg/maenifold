@@ -74,9 +74,21 @@ jobs:
 
       - name: Stage runtime payload
         working-directory: bin/${{ matrix.runtime }}
+        shell: bash
         run: |
+          set -euo pipefail
           cp ../../README.md .
           if [ -f ../../LICENSE ]; then cp ../../LICENSE .; fi
+          if [ ! -d assets ]; then
+            echo "assets/ directory missing from publish output" >&2
+            ls -R
+            exit 1
+          fi
+          if [ ! -f maenifold ] && [ ! -f maenifold.exe ]; then
+            echo "maenifold binary missing from publish output" >&2
+            ls -R
+            exit 1
+          fi
 
       - name: Create archive (Unix)
         if: runner.os != 'Windows'

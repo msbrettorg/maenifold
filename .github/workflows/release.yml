@@ -92,8 +92,11 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: bin/${{ matrix.runtime }}
         run: |
-          Compress-Archive -Path * -DestinationPath ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip -Force
-          certutil -hashfile ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip SHA256 > ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip.sha256
+          $ErrorActionPreference = 'Stop'
+          $archive = "../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip"
+          Compress-Archive -Path * -DestinationPath $archive -Force
+          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
+          "$hash  $(Split-Path -Leaf $archive)" | Out-File "$archive.sha256" -Encoding ascii
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v5
@@ -106,11 +109,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: archive-${{ matrix.runtime }}
-          path: |
-            maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz
-            maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz.sha256
-            maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip
-            maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip.sha256
+          path: maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.*
           if-no-files-found: error
 
   create-github-release:

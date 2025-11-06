@@ -7,10 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/maenifold"><img src="https://img.shields.io/npm/v/maenifold.svg?style=flat-square" alt="npm version"></a>
+  <a href="https://github.com/msbrettorg/maenifold/releases/latest"><img src="https://img.shields.io/github/v/release/msbrettorg/maenifold?style=flat-square" alt="Latest Release"></a>
   <a href="https://github.com/msbrettorg/maenifold/blob/main/LICENSE"><img src="https://img.shields.io/github/license/msbrettorg/maenifold?style=flat-square" alt="MIT License"></a>
-  <a href="https://insiders.vscode.dev/redirect/mcp/install?name=maenifold&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22maenifold%22%2C%22--mcp%22%5D%2C%22env%22%3A%7B%22MAENIFOLD_ROOT%22%3A%22~%2Fmaenifold%22%7D%7D"><img src="https://img.shields.io/badge/VS_Code-Install_maenifold-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white" alt="Install in VS Code"></a>
-  <a href="https://insiders.vscode.dev/redirect/mcp/install?name=maenifold&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22maenifold%22%2C%22--mcp%22%5D%2C%22env%22%3A%7B%22MAENIFOLD_ROOT%22%3A%22~%2Fmaenifold%22%7D%7D"><img src="https://img.shields.io/badge/VS_Code_Insiders-Install_maenifold-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white" alt="Install in VS Code Insiders"></a>
 </p>
 
 ## What maenifold does
@@ -265,19 +263,17 @@ Automatic graph construction from `[[WikiLinks]]` with:
 ## Quick start
 
 ### Install
-```bash
-npm install -g maenifold
-```
+Download the binary for your platform from [GitHub Releases](https://github.com/msbrettorg/maenifold/releases/latest).
 
 ### MCP Interface
 
-**Claude Code, Continue, Cline** - Add to MCP config:
+**Claude Code, Continue, Cline** - Add to MCP config (replace path with your binary location):
 
 ```json
 {
   "mcpServers": {
     "maenifold": {
-      "command": "maenifold",
+      "command": "/path/to/maenifold",
       "args": ["--mcp"],
       "env": {"MAENIFOLD_ROOT": "~/maenifold"}
     }
@@ -285,12 +281,12 @@ npm install -g maenifold
 }
 ```
 
-**Codex** - Add to `~/.codex/config.toml`:
+**Codex** - Add to `~/.codex/config.toml` (replace path with your binary location):
 
 ```toml
 [mcp_servers.maenifold]
 type = "stdio"
-command = "maenifold"
+command = "/path/to/maenifold"
 args = ["--mcp"]
 startup_timeout_sec = 120
 tool_timeout_sec = 600
@@ -301,24 +297,24 @@ Try it: `"Write a memory about our architecture decisions"`
 
 ### CLI Interface
 
-Use maenifold directly in scripts, pipelines, or with non-MCP clients:
+Use maenifold directly in scripts, pipelines, or with non-MCP clients (replace `/path/to/maenifold` with your binary location):
 
 ```bash
 # Write a memory with WikiLinks
-maenifold --tool WriteMemory --payload '{
+/path/to/maenifold --tool WriteMemory --payload '{
   "title": "Architecture Decisions",
   "content": "Our [[microservices]] use [[event-sourcing]] for [[audit-trails]]"
 }'
 
 # Continue a sequential thinking session
-maenifold --tool SequentialThinking --payload '{
+/path/to/maenifold --tool SequentialThinking --payload '{
   "sessionId": "session-1234567890",
   "response": "After analyzing the architecture...",
   "nextThoughtNeeded": true
 }'
 
 # Search memories with hybrid mode
-maenifold --tool SearchMemories --payload '{
+/path/to/maenifold --tool SearchMemories --payload '{
   "query": "authentication patterns",
   "mode": "Hybrid",
   "pageSize": 10

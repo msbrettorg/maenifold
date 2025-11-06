@@ -175,24 +175,7 @@ jobs:
               cp bin-downloads/binary-$runtime/maenifold.exe bin/$runtime/
             fi
           done
-
-      - name: Create platform packages
-        run: |
-          chmod +x scripts/create-platform-packages.sh
-          ./scripts/create-platform-packages.sh
-
-      - name: Publish platform packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          for pkg in packages/*; do
-            if [ -d "$pkg" ]; then
-              echo "Publishing $(basename $pkg)..."
-              cd "$pkg"
-              npm publish --access public || echo "Failed to publish $(basename $pkg), continuing..."
-              cd ../..
-            fi
-          done
+          ls -la bin/
 
       - name: Install dependencies
         run: npm install

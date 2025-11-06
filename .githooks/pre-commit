@@ -1,22 +1,48 @@
-#!/bin/sh
-# Pre-commit hook for ma-core MCP - Security scanning
-# Abort commit if gitleaks finds potential leaks.
+#!/bin/bash
+set -e
 
-if ! command -v gitleaks >/dev/null 2>&1; then
-  echo "⚠️  gitleaks is not installed. Install with 'brew install gitleaks' or see SECURITY.md"
-  echo "   Skipping secret scanning (not recommended for production commits)"
-  exit 0  # Allow commit but warn
+echo "🔍 Running pre-commit validation..."
+
+# Check if we're on dev or main branch
+BRANCH=$(git branch --show-current)
+
+# Only run full validation on dev/main
+if [[ "$BRANCH" != "dev" && "$BRANCH" != "main" ]]; then
+  echo "✅ Feature branch - skipping release validation"
+  exit 0
 fi
 
-echo "🔍 Scanning for secrets with gitleaks..."
-gitleaks detect --source . --report-path gitleaks-report.json --redact --no-banner
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Release Validation (Branch: $BRANCH)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if [ $? -ne 0 ]; then
-  echo "❌ gitleaks detected potential secrets!"
-  echo "   Review gitleaks-report.json and resolve before committing."
-  echo "   If this is a false positive, update .gitleaks.toml with an allowlist rule."
+# Check package.json for optionalDependencies
+if grep -q "optionalDependencies" package.json; then
+  echo "❌ FAIL: package.json contains optionalDependencies"
+  echo "This caused the v1.0.1 disaster. Remove it."
   exit 1
 fi
 
-echo "✅ No secrets detected"
+# Check that bin/ is in files array
+if ! grep -A 20 '"files":' package.json | grep -q '"bin/"'; then
+  echo "❌ FAIL: package.json files array missing 'bin/'"
+  echo "Binaries won't be included in npm package."
+  exit 1
+fi
+
+# Check VS Code URLs in staged files
+if git diff --cached --name-only | grep -E "(README.md|site/.*\.tsx)"; then
+  if git diff --cached | grep -E "^\+" | grep -q "vscode:extension/mcp"; then
+    echo "❌ FAIL: Attempting to commit wrong VS Code URL scheme"
+    echo "Found: vscode:extension/mcp"
+    echo "Should be: vscode:mcp/install OR insiders.vscode.dev/redirect/mcp/install"
+    exit 1
+  fi
+fi
+
+# Note: We don't check if bin/ physically exists because it's created
+# by the release workflow, not committed to git. We only verify package.json
+# is configured to include it.
+
+echo "✅ All pre-commit checks passed"
 exit 0

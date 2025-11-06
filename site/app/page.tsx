@@ -33,62 +33,26 @@ export default function Home() {
             </h2>
           </div>
 
-          {/* Install Options */}
+          {/* CTAs */}
           <div className="max-w-3xl mx-auto space-y-6 mb-12 animate-fade-in-up animate-delay-300">
-            {/* NPM Install */}
-            <div className="bg-slate-900 dark:bg-slate-950 rounded-xl p-6 border border-slate-700">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-mono text-slate-400">TERMINAL</span>
-                <CopyButton
-                  text="npm install -g maenifold"
-                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                />
-              </div>
-              <code className="text-lg font-mono text-green-400 block">
-                <span className="text-slate-500">$</span> npm install -g maenifold
-              </code>
-            </div>
-
-            {/* VS Code Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a
-                href="vscode:mcp/install?%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22maenifold%22%2C%22--mcp%22%5D%2C%22env%22%3A%7B%22MAENIFOLD_ROOT%22%3A%22~%2Fmaenifold%22%7D%7D"
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
+                href="https://github.com/msbrettorg/maenifold/releases/latest"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/>
-                </svg>
-                Install in VS Code
+                Download Latest Release
               </a>
-              <a
-                href="vscode-insiders:mcp/install?%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22maenifold%22%2C%22--mcp%22%5D%2C%22env%22%3A%7B%22MAENIFOLD_ROOT%22%3A%22~%2Fmaenifold%22%7D%7D"
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/>
-                </svg>
-                VS Code Insiders
-              </a>
-            </div>
-
-            {/* Or divider */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-slate-300 dark:bg-slate-700"></div>
-              <span className="text-sm text-slate-500 dark:text-slate-400">or explore first</span>
-              <div className="flex-1 h-px bg-slate-300 dark:bg-slate-700"></div>
-            </div>
-
-            {/* Secondary CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 href="/start"
-                className="px-6 py-3 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg font-semibold transition-all"
+                className="px-8 py-4 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl font-semibold transition-all"
               >
                 Quick Start Guide
               </Link>
               <Link
                 href="/docs/architecture"
-                className="px-6 py-3 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg font-semibold transition-all"
+                className="px-8 py-4 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-semibold transition-all"
               >
                 Documentation
               </Link>

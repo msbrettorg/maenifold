@@ -28,7 +28,7 @@ jobs:
           - os: macos-latest
             runtime: osx-arm64
             binary: maenifold
-          - os: macos-13
+          - os: macos-15-intel
             runtime: osx-x64
             binary: maenifold
           - os: windows-latest

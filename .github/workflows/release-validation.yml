@@ -1,0 +1,148 @@
+name: Release Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - dev
+
+jobs:
+  validate-release:
+    name: Validate Release Readiness
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Check package.json structure
+        run: |
+          echo "Validating package.json..."
+
+          # Check for optionalDependencies (should NOT exist)
+          if jq -e '.optionalDependencies' package.json > /dev/null 2>&1; then
+            echo "❌ FAIL: package.json contains optionalDependencies"
+            echo "This caused the v1.0.1 disaster. Remove optionalDependencies."
+            exit 1
+          fi
+
+          # Check that bin/ is in files array
+          if ! jq -e '.files[] | select(. == "bin/")' package.json > /dev/null 2>&1; then
+            echo "❌ FAIL: package.json files array missing 'bin/'"
+            echo "Binaries won't be included in npm package."
+            exit 1
+          fi
+
+          # Check that README.md is in files array
+          if ! jq -e '.files[] | select(. == "README.md")' package.json > /dev/null 2>&1; then
+            echo "❌ FAIL: package.json files array missing 'README.md'"
+            exit 1
+          fi
+
+          echo "✅ package.json structure valid"
+
+      - name: Verify CHANGELOG updated
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Checking if CHANGELOG.md was updated..."
+
+          if ! git diff --name-only origin/main...HEAD | grep -q "CHANGELOG.md"; then
+            echo "❌ FAIL: CHANGELOG.md not updated in this PR"
+            echo "Every release MUST update CHANGELOG.md"
+            exit 1
+          fi
+
+          echo "✅ CHANGELOG.md updated"
+
+      - name: Validate VS Code install URLs
+        run: |
+          echo "Checking for broken VS Code install URLs..."
+
+          # Check README.md
+          if grep -q "vscode:extension/mcp" README.md; then
+            echo "❌ FAIL: README.md contains wrong VS Code URL scheme"
+            echo "Found: vscode:extension/mcp"
+            echo "Should be: vscode:mcp/install OR insiders.vscode.dev/redirect/mcp/install"
+            exit 1
+          fi
+
+          # Check site homepage if it exists
+          if [ -f "site/app/page.tsx" ]; then
+            if grep -q "vscode:extension/mcp" site/app/page.tsx; then
+              echo "❌ FAIL: site/app/page.tsx contains wrong VS Code URL scheme"
+              exit 1
+            fi
+          fi
+
+          echo "✅ VS Code URLs valid"
+
+      - name: Verify package contents
+        run: |
+          echo "Simulating npm pack..."
+          npm pack --dry-run > pack-output.txt 2>&1
+
+          # Check that bin/ directories are included
+          if ! grep -q "bin/" pack-output.txt; then
+            echo "❌ FAIL: bin/ directory not included in package"
+            echo "Binaries won't be published."
+            cat pack-output.txt
+            exit 1
+          fi
+
+          # Check README included
+          if ! grep -q "README.md" pack-output.txt; then
+            echo "❌ FAIL: README.md not included in package"
+            cat pack-output.txt
+            exit 1
+          fi
+
+          echo "✅ Package contents verified"
+          echo ""
+          echo "Package will include:"
+          cat pack-output.txt
+
+      - name: Build verification
+        run: |
+          echo "Verifying build configuration..."
+
+          # Check that release.yml exists and looks correct
+          if ! [ -f ".github/workflows/release.yml" ]; then
+            echo "❌ FAIL: .github/workflows/release.yml missing"
+            exit 1
+          fi
+
+          # Check that it builds all 6 platforms
+          PLATFORMS="linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64 win-arm64"
+          for platform in $PLATFORMS; do
+            if ! grep -q "$platform" .github/workflows/release.yml; then
+              echo "❌ FAIL: release.yml missing $platform build"
+              exit 1
+            fi
+          done
+
+          echo "✅ Build configuration valid"
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ ALL VALIDATION CHECKS PASSED"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "This PR is ready for release:"
+          echo "  • package.json structure correct"
+          echo "  • CHANGELOG.md updated"
+          echo "  • VS Code URLs valid"
+          echo "  • Package contents verified"
+          echo "  • Build configuration valid"
+          echo ""
+          echo "After merge, tag with version to trigger release."

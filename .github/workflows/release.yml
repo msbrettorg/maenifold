@@ -42,6 +42,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: If manual run, checkout the tagged code for that version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git fetch --tags --force --depth=1
+          git checkout "v${{ inputs.version }}"
+
       - name: Derive version/tag
         id: version
         shell: bash

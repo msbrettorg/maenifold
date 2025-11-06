@@ -52,7 +52,7 @@ export default function Home() {
             {/* VS Code Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a
-                href="vscode:extension/mcp?install=maenifold"
+                href="vscode:mcp/install?%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22maenifold%22%2C%22--mcp%22%5D%2C%22env%22%3A%7B%22MAENIFOLD_ROOT%22%3A%22~%2Fmaenifold%22%7D%7D"
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -61,7 +61,7 @@ export default function Home() {
                 Install in VS Code
               </a>
               <a
-                href="vscode-insiders:extension/mcp?install=maenifold"
+                href="vscode-insiders:mcp/install?%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22maenifold%22%2C%22--mcp%22%5D%2C%22env%22%3A%7B%22MAENIFOLD_ROOT%22%3A%22~%2Fmaenifold%22%7D%7D"
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">

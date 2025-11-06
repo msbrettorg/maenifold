@@ -42,6 +42,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Derive version/tag
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.version }}" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "TAG=v${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            ver=${GITHUB_REF#refs/tags/v}
+            echo "VERSION=${ver}" >> $GITHUB_OUTPUT
+            echo "TAG=v${ver}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
@@ -53,17 +66,28 @@ jobs:
       - name: Build ${{ matrix.runtime }}
         run: dotnet publish src/Maenifold.csproj -c Release -r ${{ matrix.runtime }} --self-contained -p:PublishSingleFile=true -o bin/${{ matrix.runtime }}
 
+      - name: Stage runtime payload
+        working-directory: bin/${{ matrix.runtime }}
+        run: |
+          cp ../../README.md .
+          if [ -f ../../LICENSE ]; then cp ../../LICENSE .; fi
+
       - name: Create archive (Unix)
         if: runner.os != 'Windows'
         working-directory: bin/${{ matrix.runtime }}
         run: |
-          tar -czf ../../maenifold-${{ matrix.runtime }}.tar.gz ${{ matrix.binary }}
+          # ensure README and assets are present next to the binary
+          test -f maenifold || test -f maenifold.exe
+          test -d assets
+          tar -czf ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz -C . .
+          shasum -a 256 ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz > ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz.sha256
 
       - name: Create archive (Windows)
         if: runner.os == 'Windows'
         working-directory: bin/${{ matrix.runtime }}
         run: |
-          Compress-Archive -Path ${{ matrix.binary }} -DestinationPath ../../maenifold-${{ matrix.runtime }}.zip
+          Compress-Archive -Path * -DestinationPath ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip -Force
+          certutil -hashfile ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip SHA256 > ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip.sha256
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v5
@@ -76,7 +100,11 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: archive-${{ matrix.runtime }}
-          path: maenifold-${{ matrix.runtime }}.*
+          path: |
+            maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz
+            maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz.sha256
+            maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip
+            maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip.sha256
           if-no-files-found: error
 
   create-github-release:
@@ -118,6 +146,7 @@ jobs:
           files: |
             archives/maenifold-*.tar.gz
             archives/maenifold-*.zip
+            archives/*.sha256
           body: |
             ## maenifold ${{ steps.version.outputs.VERSION }}
 

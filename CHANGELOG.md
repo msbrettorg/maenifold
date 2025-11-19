@@ -14,6 +14,9 @@ All notable changes to maenifold MCP Server will be documented in this file.
   - Blocks commits with optionalDependencies
   - Validates VS Code URL schemes
   - Verifies package.json structure
+- Removed automatic npm publishing from release workflow
+  - npm publishing moved to separate manual workflow (publish-npm.yml)
+  - Prevents accidental npm publishes on GitHub releases
 
 ### Changed
 - Distribution model: single package with bundled binaries for all platforms

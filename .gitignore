@@ -159,5 +159,6 @@ visx/dist/
 visx/.test-workspace/
 temp-gh-pages-test/
 tmp/
+site-quartz/
 dist/releases/
 artifacts/manual-release/

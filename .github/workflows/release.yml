@@ -25,7 +25,7 @@ jobs:
           - os: macos-latest
             runtime: osx-arm64
             binary: maenifold
-          - os: macos-13
+          - os: macos-15-intel
             runtime: osx-x64
             binary: maenifold
           - os: windows-latest
@@ -35,6 +35,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+
+      - name: If manual run, checkout the tagged code for that version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git fetch --tags --force --depth=1
+          git checkout "v${{ inputs.version }}"
+
+      - name: Derive version/tag
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.version }}" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "TAG=v${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            ver=${GITHUB_REF#refs/tags/v}
+            echo "VERSION=${ver}" >> $GITHUB_OUTPUT
+            echo "TAG=v${ver}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -47,34 +66,56 @@ jobs:
       - name: Build ${{ matrix.runtime }}
         run: dotnet publish src/Maenifold.csproj -c Release -r ${{ matrix.runtime }} --self-contained -p:PublishSingleFile=true -o bin/${{ matrix.runtime }}
 
-      - name: Get version from tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Stage runtime payload
+        working-directory: bin/${{ matrix.runtime }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ../../README.md .
+          if [ -f ../../LICENSE ]; then cp ../../LICENSE .; fi
+          if [ ! -d assets ]; then
+            echo "assets/ directory missing from publish output" >&2
+            ls -R
+            exit 1
+          fi
+          if [ ! -f maenifold ] && [ ! -f maenifold.exe ]; then
+            echo "maenifold binary missing from publish output" >&2
+            ls -R
+            exit 1
+          fi
 
       - name: Create archive (Unix)
         if: runner.os != 'Windows'
         working-directory: bin/${{ matrix.runtime }}
         run: |
-          tar -czf ../../maenifold-${{ steps.get_version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz .
+          # ensure README and assets are present next to the binary
+          test -f maenifold || test -f maenifold.exe
+          test -d assets
+          tar -czf ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz -C . .
+          shasum -a 256 ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz > ../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.tar.gz.sha256
 
       - name: Create archive (Windows)
         if: runner.os == 'Windows'
         working-directory: bin/${{ matrix.runtime }}
         run: |
-          Compress-Archive -Path * -DestinationPath ../../maenifold-${{ steps.get_version.outputs.VERSION }}-${{ matrix.runtime }}.zip
+          $ErrorActionPreference = 'Stop'
+          $archive = "../../maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.zip"
+          Compress-Archive -Path * -DestinationPath $archive -Force
+          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
+          "$hash  $(Split-Path -Leaf $archive)" | Out-File "$archive.sha256" -Encoding ascii
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v5
         with:
           name: binary-${{ matrix.runtime }}
-          path: bin/${{ matrix.runtime }}/
+          path: bin/${{ matrix.runtime }}/${{ matrix.binary }}
           if-no-files-found: error
 
       - name: Upload archive artifact
         uses: actions/upload-artifact@v5
         with:
           name: archive-${{ matrix.runtime }}
-          path: maenifold-${{ steps.get_version.outputs.VERSION }}-${{ matrix.runtime }}.*
+          path: maenifold-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.*
           if-no-files-found: error
 
   create-github-release:
@@ -116,6 +157,7 @@ jobs:
           files: |
             archives/maenifold-*.tar.gz
             archives/maenifold-*.zip
+            archives/*.sha256
           body: |
             ## maenifold ${{ steps.version.outputs.VERSION }}
 
@@ -131,19 +173,20 @@ jobs:
 
             ### Supported Platforms
             - Linux x64 (`linux-x64`)
+            - Linux ARM64 (`linux-arm64`)
             - macOS ARM64 / Apple Silicon (`osx-arm64`)
             - macOS x64 / Intel (`osx-x64`)
             - Windows x64 (`win-x64`)
-
-            **Note:** ARM64 builds for Linux and Windows are not yet available due to missing sqlite-vec native binaries (see [sqlite-vec#231](https://github.com/asg017/sqlite-vec/issues/231)).
+            - Windows ARM64 (`win-arm64`)
 
             ### Usage
             See [documentation](https://www.maenifold.com/start/) for details.
 
-  verify-npm-package:
-    name: Verify NPM Package (dry-run)
+  publish-npm-packages:
+    name: Publish to npm
     needs: build-all-platforms
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout code
@@ -153,6 +196,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Download all binaries
         uses: actions/download-artifact@v6
@@ -179,55 +223,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Verify package contents
-        run: |
-          echo "Verifying package contents..."
-
-          # Check that all runtime directories exist
-          for runtime in linux-x64 osx-x64 osx-arm64 win-x64; do
-            if [ ! -d "bin/$runtime" ]; then
-              echo "ERROR: Missing bin/$runtime directory"
-              exit 1
-            fi
-
-            # Check for binary
-            if [ "$runtime" = "win-x64" ]; then
-              if [ ! -f "bin/$runtime/maenifold.exe" ]; then
-                echo "ERROR: Missing bin/$runtime/maenifold.exe"
-                exit 1
-              fi
-            else
-              if [ ! -f "bin/$runtime/maenifold" ]; then
-                echo "ERROR: Missing bin/$runtime/maenifold"
-                exit 1
-              fi
-            fi
-
-            # Check for assets directory
-            if [ ! -d "bin/$runtime/assets" ]; then
-              echo "ERROR: Missing bin/$runtime/assets directory"
-              exit 1
-            fi
-
-            echo "✓ $runtime verified"
-          done
-
-          # Check that package.json files array includes bin/
-          if ! grep -q '"bin/"' package.json; then
-            echo "ERROR: package.json missing 'bin/' in files array"
-            exit 1
-          fi
-
-          echo "✓ All package contents verified"
-
-      - name: Dry-run npm pack
-        run: |
-          echo "Running npm pack --dry-run to verify package structure..."
-          npm pack --dry-run
-
-      - name: Upload package verification artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: npm-package-verification
-          path: bin/
-          if-no-files-found: error
+      - name: Publish main package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public

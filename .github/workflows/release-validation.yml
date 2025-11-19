@@ -117,8 +117,9 @@ jobs:
             exit 1
           fi
 
-          # Check that it builds all 6 platforms
-          PLATFORMS="linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64 win-arm64"
+          # Check that it builds all 4 supported platforms
+          # Note: linux-arm64 and win-arm64 removed due to missing sqlite-vec vec0 binaries
+          PLATFORMS="linux-x64 osx-x64 osx-arm64 win-x64"
           for platform in $PLATFORMS; do
             if ! grep -q "$platform" .github/workflows/release.yml; then
               echo "❌ FAIL: release.yml missing $platform build"
@@ -139,10 +140,13 @@ jobs:
           echo "  • package.json structure correct (no optionalDependencies)"
           echo "  • package.json files array includes bin/"
           echo "  • VS Code URLs use correct scheme"
-          echo "  • Build configuration includes all 6 platforms"
+          echo "  • Build configuration includes all 4 supported platforms"
+          echo ""
+          echo "Supported platforms: linux-x64, osx-x64, osx-arm64, win-x64"
+          echo "Note: ARM64 for Linux/Windows pending sqlite-vec vec0 binaries"
           echo ""
           echo "On release, GitHub Actions will:"
-          echo "  1. Build binaries for all platforms"
+          echo "  1. Build binaries for all supported platforms"
           echo "  2. Bundle them in bin/ directory"
           echo "  3. Create npm package with all binaries"
           echo "  4. Publish to npm as single 'maenifold' package"

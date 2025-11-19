@@ -17,6 +17,10 @@ All notable changes to maenifold MCP Server will be documented in this file.
 - Removed automatic npm publishing from release workflow
   - npm publishing moved to separate manual workflow (publish-npm.yml)
   - Prevents accidental npm publishes on GitHub releases
+- Fixed Git LFS checkout in release workflow
+  - ONNX model file (90MB) was being checked out as LFS pointer (133 bytes)
+  - Added `lfs: true` to checkout action to fetch actual model files
+  - Previous releases (v1.0.2 initial) were non-functional due to missing model
 
 ### Changed
 - Distribution model: single package with bundled binaries for all platforms

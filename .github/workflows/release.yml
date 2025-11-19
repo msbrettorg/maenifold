@@ -22,9 +22,6 @@ jobs:
           - os: ubuntu-latest
             runtime: linux-x64
             binary: maenifold
-          - os: ubuntu-latest
-            runtime: linux-arm64
-            binary: maenifold
           - os: macos-latest
             runtime: osx-arm64
             binary: maenifold
@@ -33,9 +30,6 @@ jobs:
             binary: maenifold
           - os: windows-latest
             runtime: win-x64
-            binary: maenifold.exe
-          - os: windows-latest
-            runtime: win-arm64
             binary: maenifold.exe
 
     steps:
@@ -57,19 +51,19 @@ jobs:
         if: runner.os != 'Windows'
         working-directory: bin/${{ matrix.runtime }}
         run: |
-          tar -czf ../../maenifold-${{ matrix.runtime }}.tar.gz ${{ matrix.binary }}
+          tar -czf ../../maenifold-${{ matrix.runtime }}.tar.gz .
 
       - name: Create archive (Windows)
         if: runner.os == 'Windows'
         working-directory: bin/${{ matrix.runtime }}
         run: |
-          Compress-Archive -Path ${{ matrix.binary }} -DestinationPath ../../maenifold-${{ matrix.runtime }}.zip
+          Compress-Archive -Path * -DestinationPath ../../maenifold-${{ matrix.runtime }}.zip
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v5
         with:
           name: binary-${{ matrix.runtime }}
-          path: bin/${{ matrix.runtime }}/${{ matrix.binary }}
+          path: bin/${{ matrix.runtime }}/
           if-no-files-found: error
 
       - name: Upload archive artifact
@@ -133,20 +127,19 @@ jobs:
 
             ### Supported Platforms
             - Linux x64 (`linux-x64`)
-            - Linux ARM64 (`linux-arm64`)
             - macOS ARM64 / Apple Silicon (`osx-arm64`)
             - macOS x64 / Intel (`osx-x64`)
             - Windows x64 (`win-x64`)
-            - Windows ARM64 (`win-arm64`)
+
+            **Note:** ARM64 builds for Linux and Windows are not yet available due to missing sqlite-vec native binaries (see [sqlite-vec#231](https://github.com/asg017/sqlite-vec/issues/231)).
 
             ### Usage
             See [documentation](https://www.maenifold.com/start/) for details.
 
-  publish-npm-packages:
-    name: Publish to npm
+  verify-npm-package:
+    name: Verify NPM Package (dry-run)
     needs: build-all-platforms
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout code
@@ -156,7 +149,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Download all binaries
         uses: actions/download-artifact@v6
@@ -167,20 +159,71 @@ jobs:
       - name: Organize binaries
         run: |
           mkdir -p bin
-          for runtime in linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64 win-arm64; do
-            mkdir -p bin/$runtime
-            if [ -f "bin-downloads/binary-$runtime/maenifold" ]; then
-              cp bin-downloads/binary-$runtime/maenifold bin/$runtime/
-            elif [ -f "bin-downloads/binary-$runtime/maenifold.exe" ]; then
-              cp bin-downloads/binary-$runtime/maenifold.exe bin/$runtime/
+          for runtime in linux-x64 osx-x64 osx-arm64 win-x64; do
+            if [ -d "bin-downloads/binary-$runtime" ]; then
+              echo "Copying all files for $runtime..."
+              cp -r bin-downloads/binary-$runtime bin/$runtime
+              ls -la bin/$runtime/
+            else
+              echo "ERROR: Missing binary-$runtime directory"
+              exit 1
             fi
           done
+          echo "Final bin/ structure:"
           ls -la bin/
 
       - name: Install dependencies
         run: npm install
 
-      - name: Publish main package
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+      - name: Verify package contents
+        run: |
+          echo "Verifying package contents..."
+
+          # Check that all runtime directories exist
+          for runtime in linux-x64 osx-x64 osx-arm64 win-x64; do
+            if [ ! -d "bin/$runtime" ]; then
+              echo "ERROR: Missing bin/$runtime directory"
+              exit 1
+            fi
+
+            # Check for binary
+            if [ "$runtime" = "win-x64" ]; then
+              if [ ! -f "bin/$runtime/maenifold.exe" ]; then
+                echo "ERROR: Missing bin/$runtime/maenifold.exe"
+                exit 1
+              fi
+            else
+              if [ ! -f "bin/$runtime/maenifold" ]; then
+                echo "ERROR: Missing bin/$runtime/maenifold"
+                exit 1
+              fi
+            fi
+
+            # Check for assets directory
+            if [ ! -d "bin/$runtime/assets" ]; then
+              echo "ERROR: Missing bin/$runtime/assets directory"
+              exit 1
+            fi
+
+            echo "✓ $runtime verified"
+          done
+
+          # Check that package.json files array includes bin/
+          if ! grep -q '"bin/"' package.json; then
+            echo "ERROR: package.json missing 'bin/' in files array"
+            exit 1
+          fi
+
+          echo "✓ All package contents verified"
+
+      - name: Dry-run npm pack
+        run: |
+          echo "Running npm pack --dry-run to verify package structure..."
+          npm pack --dry-run
+
+      - name: Upload package verification artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: npm-package-verification
+          path: bin/
+          if-no-files-found: error

@@ -181,8 +181,8 @@ src/
 │   ├── VectorTools.*.cs         # ONNX embedding generation
 │   └── ...
 └── assets/                       # Cognitive assets
-    ├── workflows/               # 28 JSON workflow definitions
-    ├── roles/                   # 7 role definitions (PM, Architect, etc.)
+    ├── workflows/               # 32 JSON workflow definitions
+    ├── roles/                   # 16 role definitions (PM, Architect, etc.)
     ├── colors/                  # 7 thinking hat colors
     └── perspectives/            # 12 linguistic perspectives
 ```

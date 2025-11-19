@@ -173,11 +173,9 @@ jobs:
 
             ### Supported Platforms
             - Linux x64 (`linux-x64`)
-            - Linux ARM64 (`linux-arm64`)
             - macOS ARM64 / Apple Silicon (`osx-arm64`)
             - macOS x64 / Intel (`osx-x64`)
             - Windows x64 (`win-x64`)
-            - Windows ARM64 (`win-arm64`)
 
             ### Usage
             See [documentation](https://www.maenifold.com/start/) for details.

@@ -35,6 +35,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          lfs: true
 
       - name: If manual run, checkout the tagged code for that version
         if: github.event_name == 'workflow_dispatch'

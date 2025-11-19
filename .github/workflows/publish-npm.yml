@@ -32,16 +32,18 @@ jobs:
 
       - name: Download release artifacts
         run: |
-          # Get the release ID for this tag
-          RELEASE_ID=$(gh release view ${{ inputs.tag }} --json id --jq '.id')
+          # Extract version from tag (remove 'v' prefix)
+          VERSION=${TAG#v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
           # Download all binary artifacts from the release
-          gh release download ${{ inputs.tag }} --pattern 'maenifold-*.tar.gz' --pattern 'maenifold-*.zip'
+          gh release download ${{ inputs.tag }} --pattern "maenifold-${VERSION}-*.tar.gz" --pattern "maenifold-${VERSION}-*.zip"
 
           echo "Downloaded artifacts:"
           ls -la maenifold-*
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
 
       - name: Extract and organize binaries
         run: |
@@ -49,19 +51,19 @@ jobs:
 
           # Extract Linux x64
           mkdir -p bin/linux-x64
-          tar -xzf maenifold-linux-x64.tar.gz -C bin/linux-x64/
+          tar -xzf maenifold-${VERSION}-linux-x64.tar.gz -C bin/linux-x64/
 
           # Extract macOS x64
           mkdir -p bin/osx-x64
-          tar -xzf maenifold-osx-x64.tar.gz -C bin/osx-x64/
+          tar -xzf maenifold-${VERSION}-osx-x64.tar.gz -C bin/osx-x64/
 
           # Extract macOS ARM64
           mkdir -p bin/osx-arm64
-          tar -xzf maenifold-osx-arm64.tar.gz -C bin/osx-arm64/
+          tar -xzf maenifold-${VERSION}-osx-arm64.tar.gz -C bin/osx-arm64/
 
           # Extract Windows x64
           mkdir -p bin/win-x64
-          unzip -q maenifold-win-x64.zip -d bin/win-x64/
+          unzip -q maenifold-${VERSION}-win-x64.zip -d bin/win-x64/
 
           echo "Final bin/ structure:"
           ls -la bin/

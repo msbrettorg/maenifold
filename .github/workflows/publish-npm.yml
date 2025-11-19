@@ -1,0 +1,132 @@
+name: Publish to NPM
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g., v1.0.2)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Dry run (do not actually publish)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  publish-npm:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download release artifacts
+        run: |
+          # Get the release ID for this tag
+          RELEASE_ID=$(gh release view ${{ inputs.tag }} --json id --jq '.id')
+
+          # Download all binary artifacts from the release
+          gh release download ${{ inputs.tag }} --pattern 'maenifold-*.tar.gz' --pattern 'maenifold-*.zip'
+
+          echo "Downloaded artifacts:"
+          ls -la maenifold-*
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Extract and organize binaries
+        run: |
+          mkdir -p bin
+
+          # Extract Linux x64
+          mkdir -p bin/linux-x64
+          tar -xzf maenifold-linux-x64.tar.gz -C bin/linux-x64/
+
+          # Extract macOS x64
+          mkdir -p bin/osx-x64
+          tar -xzf maenifold-osx-x64.tar.gz -C bin/osx-x64/
+
+          # Extract macOS ARM64
+          mkdir -p bin/osx-arm64
+          tar -xzf maenifold-osx-arm64.tar.gz -C bin/osx-arm64/
+
+          # Extract Windows x64
+          mkdir -p bin/win-x64
+          unzip -q maenifold-win-x64.zip -d bin/win-x64/
+
+          echo "Final bin/ structure:"
+          ls -la bin/
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Verify package contents
+        run: |
+          echo "Verifying package contents before publish..."
+
+          # Check that all runtime directories exist
+          for runtime in linux-x64 osx-x64 osx-arm64 win-x64; do
+            if [ ! -d "bin/$runtime" ]; then
+              echo "ERROR: Missing bin/$runtime directory"
+              exit 1
+            fi
+
+            # Check for binary
+            if [ "$runtime" = "win-x64" ]; then
+              if [ ! -f "bin/$runtime/maenifold.exe" ]; then
+                echo "ERROR: Missing bin/$runtime/maenifold.exe"
+                exit 1
+              fi
+            else
+              if [ ! -f "bin/$runtime/maenifold" ]; then
+                echo "ERROR: Missing bin/$runtime/maenifold"
+                exit 1
+              fi
+            fi
+
+            # Check for assets directory
+            if [ ! -d "bin/$runtime/assets" ]; then
+              echo "ERROR: Missing bin/$runtime/assets directory"
+              exit 1
+            fi
+
+            echo "✓ $runtime verified"
+          done
+
+          # Check that package.json files array includes bin/
+          if ! grep -q '"bin/"' package.json; then
+            echo "ERROR: package.json missing 'bin/' in files array"
+            exit 1
+          fi
+
+          echo "✓ All package contents verified"
+
+      - name: Dry-run npm pack
+        run: |
+          echo "Running npm pack --dry-run to show what will be published..."
+          npm pack --dry-run
+
+      - name: Publish to npm (dry-run)
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "DRY RUN MODE - Would publish to npm here"
+          echo "Package contents:"
+          npm pack --dry-run
+
+      - name: Publish to npm
+        if: ${{ !inputs.dry_run }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "Publishing to npm..."
+          npm publish --access public
+          echo "✅ Published to npm successfully!"

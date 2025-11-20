@@ -1,4 +1,7 @@
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using ModelContextProtocol.Server;
 
@@ -7,11 +10,48 @@ namespace Maenifold.Tools;
 [McpServerToolType]
 public static class McpResourceTools
 {
-    [McpServerTool]
-    [Description("Lists all available MCP resources with metadata (CLI-accessible)")]
-    public static string ListMcpResources()
+    private static readonly string[] s_primaryAssetTypes =
+        { "workflow", "role", "color", "perspective" };
+
+    private static readonly IReadOnlyDictionary<string, string> s_assetTypeMap =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["workflow"] = "workflows",
+            ["workflows"] = "workflows",
+            ["role"] = "roles",
+            ["roles"] = "roles",
+            ["color"] = "colors",
+            ["colors"] = "colors",
+            ["perspective"] = "perspectives",
+            ["perspectives"] = "perspectives"
+        };
+
+    private static readonly JsonSerializerOptions s_serializerOptions = new()
     {
-        return AssetResources.GetCatalog();
+        WriteIndented = true
+    };
+
+    [McpServerTool]
+    [Description("Lists available asset types or the metadata for a specific asset type")]
+    public static string ListAssets(
+        [Description("Asset type to list: workflow, role, color, perspective (optional)")]
+        string? type = null)
+    {
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            return JsonSerializer.Serialize(s_primaryAssetTypes, s_serializerOptions);
+        }
+
+        var normalizedType = type.Trim();
+        if (!s_assetTypeMap.TryGetValue(normalizedType, out var assetFolder))
+        {
+            throw new ArgumentException(
+                $"Unknown asset type '{type}'. Valid types: workflow, role, color, perspective",
+                nameof(type));
+        }
+
+        var metadata = AssetResources.GetAssetMetadata(assetFolder);
+        return JsonSerializer.Serialize(metadata, s_serializerOptions);
     }
 
     [McpServerTool]

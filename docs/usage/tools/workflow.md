@@ -76,7 +76,7 @@ Execute structured workflow(s) for systematic problem-solving and complex orches
   - Escape hatches for ambiguous requirements
 
   You should:
-  1. Use ListMcpResources to discover available workflows from asset://workflows/* resources
+  1. Use ListAssets (type=workflow) to discover available workflows from asset://workflows/* resources
   2. Choose appropriate workflow(s) for your problem complexity
   3. Follow embedded SequentialThinking requirements when specified
   4. Provide thoughtful responses with [[concepts]] at each orchestration step

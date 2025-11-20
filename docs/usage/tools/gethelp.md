@@ -72,7 +72,7 @@ GetHelp provides documentation for all maenifold tools:
 
 **Thinking Tools**: SequentialThinking, Workflow
 
-**Resource Tools**: ListMcpResources, ReadMcpResource
+**Resource Tools**: ListAssets, ReadMcpResource
 
 **Visualization Tools**: Visualize
 

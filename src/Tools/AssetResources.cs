@@ -113,7 +113,7 @@ public class AssetResources
         return null;
     }
 
-    private static object[] GetAssetMetadata(string assetType)
+    internal static object[] GetAssetMetadata(string assetType)
     {
         var assetPath = Path.Combine(Config.AssetsPath, assetType);
         if (!Directory.Exists(assetPath))

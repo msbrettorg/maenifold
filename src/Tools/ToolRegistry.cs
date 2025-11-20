@@ -54,7 +54,7 @@ namespace Maenifold.Tools
             add(CreateAdoptDescriptor());
             add(CreateAssumptionLedgerDescriptor());
             add(CreateAddMissingH1Descriptor());
-            add(CreateListMcpResourcesDescriptor());
+            add(CreateListAssetsDescriptor());
             add(CreateReadMcpResourceDescriptor());
         }
 
@@ -438,9 +438,17 @@ namespace Maenifold.Tools
                 return MaintenanceTools.AddMissingH1(dryRun, limit, folder, createBackups, learn);
             }, new[] { "addmissingh1" }, "Add missing H1 headers to markdown files");
 
-        private static ToolDescriptor CreateListMcpResourcesDescriptor() =>
-            new("ListMcpResources", _ => McpResourceTools.ListMcpResources(),
-                new[] { "listmcpresources" }, "List all MCP resources with metadata");
+        private static ToolDescriptor CreateListAssetsDescriptor() =>
+            new("ListAssets", payload =>
+            {
+                string? type = null;
+                if (payload.ValueKind != JsonValueKind.Undefined && payload.TryGetProperty("type", out var t))
+                {
+                    type = t.GetString();
+                }
+                return McpResourceTools.ListAssets(type);
+            },
+                new[] { "listassets" }, "List available asset types or metadata for a type");
 
         private static ToolDescriptor CreateReadMcpResourceDescriptor() =>
             new("ReadMcpResource", payload =>

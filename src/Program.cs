@@ -103,6 +103,6 @@ void PrintUsage()
     System.Console.WriteLine("  System: MemoryStatus, ListMemories, GetConfig, GetHelp");
     System.Console.WriteLine("  Sync:   StartWatcher, StopWatcher");
     System.Console.WriteLine("  Repair: RepairConcepts, AnalyzeConceptCorruption");
-    System.Console.WriteLine("  MCP:    ListMcpResources, ReadMcpResource");
+    System.Console.WriteLine("  MCP:    ListAssets, ReadMcpResource");
     System.Console.WriteLine("  Bench:  RunFullBenchmark");
 }

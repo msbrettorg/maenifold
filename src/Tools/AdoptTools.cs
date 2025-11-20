@@ -11,7 +11,7 @@ public class AdoptTools
     private static string AssetsPath => Config.AssetsPath;
 
     [McpServerTool]
-    [Description("Adopt a role, color, or perspective by reading its JSON configuration from assets. Use ListMcpResources or ReadMcpResource with asset://catalog to discover available roles, colors, and perspectives before calling this tool.")]
+    [Description("Adopt a role, color, or perspective by reading its JSON configuration from assets. Use ListAssets or ReadMcpResource with asset://catalog to discover available roles, colors, and perspectives before calling this tool.")]
     public static async Task<string> Adopt(
         [Description("Type of asset to adopt: 'role', 'color', or 'perspective'")] string type,
         [Description("Identifier of the asset (use id from catalog, not filename)")] string identifier,

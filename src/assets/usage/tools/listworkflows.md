@@ -4,9 +4,14 @@
 
 ## Replacement
 
-**List all assets (workflows, roles, colors, perspectives):**
+**List available asset types (workflows, roles, colors, perspectives):**
 ```json
-ListMcpResources → returns catalog with metadata
+ListAssets → returns ["workflow", "role", "color", "perspective"]
+```
+
+**List workflows only:**
+```json
+ListAssets → { "type": "workflow" }
 ```
 
 **Get specific workflow:**
@@ -18,6 +23,6 @@ ReadMcpResource → { "uri": "asset://workflows/design-thinking" }
 
 ```diff
 - ListWorkflows → workflow list
-+ ListMcpResources → full asset catalog
++ ListAssets → list asset types or type-specific metadata
 + ReadMcpResource → fetch by URI
 ```

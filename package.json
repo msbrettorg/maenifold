@@ -69,6 +69,6 @@
     "description": "maenifold MCP Server - The topology of Ma-space. Knowledge management with WikiLinks and vector search"
   },
   "dependencies": {
-    "better-sqlite3": "^12.4.1"
+    "better-sqlite3": "^12.5.0"
   }
 }

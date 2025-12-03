@@ -11,11 +11,17 @@ cd ~/maenifold/docs/integrations/claude-code
 
 ## What It Does
 
-Every session start:
+Every session start, the hook implements a FLARE-style proactive retrieval pass:
+
 1. Queries recent activity from Maenifold
 2. Extracts top [[concepts]] from your work
-3. Builds graph context with relationships
-4. Injects ~5K tokens of semantic knowledge
+3. Builds graph context with relationships via `BuildContext`
+4. Injects ~5K tokens of graph-derived semantic knowledge into the new Claude session
+
+This is an instance of **Graph-RAG** and **FLARE** from `docs/search-and-scripting.md`:
+
+- Graph-RAG: concept-centric retrieval over the Maenifold graph, not just flat file text
+- FLARE: proactive, forward-looking retrieval at session start, before any user prompt
 
 ## Manual Setup
 
@@ -81,3 +87,4 @@ echo '{"session_id":"test"}' | ~/.claude/hooks/session_start.sh
 - [QUICK_START.md](QUICK_START.md) - 1-minute setup
 - [hooks/](hooks/) - Additional hook examples
 - `install.sh` - Automated installation
+- `../../search-and-scripting.md` - RAG/search patterns this integration implements

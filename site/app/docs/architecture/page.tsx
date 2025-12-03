@@ -121,6 +121,37 @@ export default function ArchitecturePage() {
           </div>
         </section>
 
+        {/* Search & RAG */}
+        <section className="mb-12">
+          <h2 className="text-3xl font-bold mb-6">Search & RAG Patterns</h2>
+          <div className="p-6 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900">
+            <p className="text-slate-700 dark:text-slate-300 mb-4">
+              Maenifold combines vector search, a concept graph, and tools to implement a range of Retrieval-Augmented
+              Generation (RAG) techniques:
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-slate-700 dark:text-slate-300 ml-4">
+              <li><strong>Classic RAG:</strong> semantic search over files using 384-dimension embeddings.</li>
+              <li><strong>Graph-RAG:</strong> concept-centric retrieval using BuildContext + SearchMemories on the concept graph.</li>
+              <li><strong>Multi-hop traversal:</strong> depth-limited graph exploration (typically depth=2) to gather related concepts.</li>
+              <li><strong>RRF reranking:</strong> Hybrid search that fuses text and semantic scores using Reciprocal Rank Fusion.</li>
+              <li><strong>HYDE & FLARE patterns:</strong> hypothetical answers with [[concepts]] then search (HYDE), and proactive session-start retrieval (FLARE).</li>
+              <li><strong>Self-RAG / CRAG:</strong> iterative refinement and corrective retrieval via SequentialThinking + AssumptionLedger.</li>
+            </ul>
+            <p className="text-slate-700 dark:text-slate-300 mt-4">
+              These patterns are applied consistently across integrations:
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-slate-700 dark:text-slate-300 ml-4">
+              <li><strong>Claude Code:</strong> session-start hook implements FLARE-style proactive Graph-RAG context restoration.</li>
+              <li><strong>VS Code agents:</strong> maenifold SWE agent and agent-boss orchestrator implement HYDE + Self-RAG over the graph.</li>
+              <li><strong>Codex CLI:</strong> SWE profile drives HYDE, FLARE-like startup, and iterative Self-RAG inside the Codex harness.</li>
+            </ul>
+            <p className="text-slate-700 dark:text-slate-300 mt-4">
+              For a deep dive into these patterns and CLI scripting examples, see the repository document
+              <code className="ml-1 text-blue-600 dark:text-blue-400">docs/search-and-scripting.md</code>.
+            </p>
+          </div>
+        </section>
+
         {/* Key Capabilities */}
         <section className="mb-12">
           <h2 className="text-3xl font-bold mb-6">Key Capabilities</h2>

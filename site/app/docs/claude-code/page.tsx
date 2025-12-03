@@ -42,7 +42,7 @@ export default function ClaudeCodeIntegrationPage() {
             🧠 What It Does
           </h2>
           <p className="text-slate-700 dark:text-slate-300 mb-4">
-            Every Claude Code session automatically:
+            Every Claude Code session automatically restores context using a FLARE-style proactive Graph-RAG pass:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-start gap-3">
@@ -50,7 +50,7 @@ export default function ClaudeCodeIntegrationPage() {
               <div>
                 <h3 className="font-semibold text-slate-900 dark:text-white">Queries Recent Activity</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Finds your latest work from the knowledge graph
+                  Finds your latest work from the knowledge graph (RecentActivity)
                 </p>
               </div>
             </div>
@@ -68,7 +68,7 @@ export default function ClaudeCodeIntegrationPage() {
               <div>
                 <h3 className="font-semibold text-slate-900 dark:text-white">Builds Context</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Traverses semantic relationships with weights
+                  Traverses the concept graph with BuildContext and semantic weights
                 </p>
               </div>
             </div>
@@ -77,11 +77,24 @@ export default function ClaudeCodeIntegrationPage() {
               <div>
                 <h3 className="font-semibold text-slate-900 dark:text-white">Injects Knowledge</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  ~5K tokens of intelligent context at session start
+                  ~5K tokens of graph-derived context injected at session start
                 </p>
               </div>
             </div>
           </div>
+        </GlassCard>
+
+        {/* RAG Patterns */}
+        <GlassCard className="p-8 mb-8">
+          <h2 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">🧩 RAG Patterns</h2>
+          <p className="text-slate-700 dark:text-slate-300 mb-4">
+            This integration is a concrete instance of the patterns described in the Maenifold search and scripting docs.
+          </p>
+          <ul className="list-disc list-inside space-y-2 text-slate-700 dark:text-slate-300 ml-4">
+            <li><strong>Graph-RAG:</strong> context comes from the concept graph (BuildContext + SearchMemories), not just flat file snippets.</li>
+            <li><strong>FLARE-style startup:</strong> retrieval runs at session start, before your first prompt.</li>
+            <li><strong>Multi-hop context:</strong> related concepts and files across 1–2 hops become part of the preamble.</li>
+          </ul>
         </GlassCard>
 
         {/* How It Works */}

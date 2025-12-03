@@ -23,6 +23,7 @@
       <AllowedRootFiles Include="$(RootDirectory).gitattributes" />
       <AllowedRootFiles Include="$(RootDirectory).dockerignore" />
       <AllowedRootFiles Include="$(RootDirectory).editorconfig" />
+      <AllowedRootFiles Include="$(RootDirectory)*.code-workspace" />
       <AllowedRootFiles Include="$(RootDirectory).env" />
       <AllowedRootFiles Include="$(RootDirectory)LICENSE" />
       <AllowedRootFiles Include="$(RootDirectory)Directory.Build.props" />

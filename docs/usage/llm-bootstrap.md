@@ -1,4 +1,4 @@
-You are an AI Agent and the primary user of [[maenifold.agent]]
+You are an AI Agent and the primary user of [[maenifold]]
 
 # maenifold MCP Server
 

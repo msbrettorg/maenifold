@@ -15,7 +15,7 @@ Checksum: XRqa1ODILUe3wWH3TJy9u9Xdx95l5B6e+hvZgfkk8W0=
 
 ### Overall Success Rate: 85%
 
-[[maenifold.agent]] has successfully demonstrated comprehensive [[E2E testing]] through a [[PM-lite orchestration]] of 12 specialized [[agents]] deployed across 4 waves. The demonstration validates both the robustness of the [[maenifold.agent]] system and the effectiveness of [[multi-agent coordination]] for complex testing scenarios.
+[[maenifold]] has successfully demonstrated comprehensive [[E2E testing]] through a [[PM-lite orchestration]] of 12 specialized [[agents]] deployed across 4 waves. The demonstration validates both the robustness of the [[maenifold]] system and the effectiveness of [[multi-agent coordination]] for complex testing scenarios.
 
 **Key Achievements:**
 - ✅ **CRITICAL BUG FIX VERIFIED**: [[Move operation]] now preserves .md extensions
@@ -86,7 +86,7 @@ This test run showcases the [[PM-lite protocol]] in action:
 
 ### Wave 2: Core Functionality (T+0:05 → T+0:15)
 
-**Mission**: Test all primary [[maenifold.agent]] operations
+**Mission**: Test all primary [[maenifold]] operations
 **Agents**: 4 concurrent core function specialists
 
 #### CORE-01: CRUD Specialist Results (7/8 tests passed)
@@ -343,7 +343,7 @@ This hero demo validates the [[PM-lite protocol]] concept through:
 - **Information Flow**: Perfect bidirectional communication between coordinator and agents
 - **Quality Control**: Systematic validation and cross-checking between waves
 - **Adaptability**: Real-time response to discovered issues and changing priorities
-- **Completeness**: Comprehensive coverage of all [[maenifold.agent]] functionality
+- **Completeness**: Comprehensive coverage of all [[maenifold]] functionality
 
 ---
 
@@ -386,7 +386,7 @@ This hero demo validates the [[PM-lite protocol]] concept through:
 
 ### Demo Success Validation ✅
 
-The [[maenifold.agent]] Demo has successfully demonstrated:
+The [[maenifold]] Demo has successfully demonstrated:
 
 1. **System Robustness**: 85% overall success rate across comprehensive testing
 2. **Critical Bug Resolution**: [[Move operation]] fix verified and operational
@@ -412,7 +412,7 @@ The [[PM-lite protocol]] has proven effective for:
 
 ### Next Phase Readiness
 
-[[maenifold.agent]] is demonstrated as ready for:
+[[maenifold]] is demonstrated as ready for:
 - **Production Deployment**: Core functionality validated
 - **Scale-up Operations**: Performance characteristics established
 - **Integration Projects**: Interface parity confirmed
@@ -426,5 +426,5 @@ The [[PM-lite protocol]] has proven effective for:
 
 *Report compiled by Agent VRFY-02 (Report Compiler)*
 *Orchestration Session: session-1758470366887*
-*[[maenifold.agent]] Demo - [[PM-lite Protocol]] Validation*
+*[[maenifold]] Demo - [[PM-lite Protocol]] Validation*
 *Generated: 2025-09-21 16:14*

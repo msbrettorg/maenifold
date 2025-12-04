@@ -35,6 +35,6 @@ Structured guidance: current step, tool hints, quality gates, progress, session 
 
 ## Integration
 
-- **ListWorkflows**: Discover via `asset://workflows/*`
+- **ListAssets**: Discover workflows via `ListAssets { "type": "workflow" }` and URIs under `asset://workflows/*`
 - **SequentialThinking**: Embedded at `🧠` steps
 - **Sync**: Run after completion

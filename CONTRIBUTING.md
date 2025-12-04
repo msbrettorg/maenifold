@@ -183,7 +183,7 @@ When reviewing code, you might notice:
 
 ### Further Reading
 
-- **`CLAUDE.md`** - Full project overview and Ma Protocol details
+- **`docs/MA_MANIFESTO.md`** - Ma Protocol philosophy and core design principles
 - **`/docs/MA_MANIFESTO.md`** - Deep dive into philosophy
 - **`/docs/WHAT_WE_DONT_DO.md`** - Rejected features
 - **`/docs/TESTING_PHILOSOPHY.md`** - Why we don't mock

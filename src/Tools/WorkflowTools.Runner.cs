@@ -7,7 +7,7 @@ namespace Maenifold.Tools;
 public partial class WorkflowTools
 {
     [McpServerTool(Title = "Execute Workflow"), Description(@"Orchestrates systematic problem-solving through predefined methodologies with embedded sequential thinking and tool coordination.
-Use ListMcpResources or ReadMcpResource with asset://catalog to discover available workflows before starting.
+Use ListAssets or ReadMcpResource with asset://catalog to discover available workflows before starting.
 Select when AI needs structured approaches, methodology frameworks, multi-step processes, or coordinated tool usage.
 Requires workflow selection, session management, response integration, and systematic progression through defined steps.
 Connects to SequentialThinking for embedded analysis, all maenifold tools for orchestrated execution.

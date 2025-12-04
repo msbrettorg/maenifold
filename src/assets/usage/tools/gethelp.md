@@ -32,7 +32,7 @@ Loads complete tool documentation from `~/maenifold/assets/usage/tools/{toolname
 
 **Thinking**: SequentialThinking, Workflow
 
-**Resource**: ListMcpResources, ReadMcpResource
+**Resource**: ListAssets, ReadMcpResource
 
 **Visualization**: Visualize
 

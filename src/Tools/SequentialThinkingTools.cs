@@ -50,10 +50,14 @@ Returns session management with continuation guidance and checkpoint suggestions
                 return validationError!;
         }
 
-        var (sessionExists, sessionIdProvided) = DetermineSessionState(sessionId, thoughtNumber, isRevision);
-
         if (sessionId == null)
             sessionId = $"session-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+
+        var sessionIdProvided = sessionId != null;
+        if (sessionIdProvided && !IsValidSessionIdFormat(sessionId!))
+            return "ERROR: Invalid sessionId format. Use maenifold-generated values (session-{unix-milliseconds}) or omit sessionId to start a new session.";
+
+        var (sessionExists, _) = DetermineSessionState(sessionId!, thoughtNumber, isRevision);
 
         if (sessionIdProvided && thoughtNumber == 1 && !sessionExists && !isRevision)
             return $"ERROR: Session {sessionId} not found. To start new session, don't provide sessionId.";
@@ -69,16 +73,16 @@ Returns session management with continuation guidance and checkpoint suggestions
         if (thoughtNumber == 1 && string.IsNullOrEmpty(branchId) && sessionExists && !isRevision)
             return $"ERROR: Session {sessionId} exists. Use different sessionId or continue existing.";
         if (thoughtNumber > 1 && !sessionExists && !isRevision)
-            return $"ERROR: Session {sessionId} missing. Start with thoughtNumber=1.";
+            return $"ERROR: Session {sessionId} missing. Start with thoughtNumber=0.";
         if (isRevision && !sessionExists)
             return $"ERROR: Cannot revise - session {sessionId} doesn't exist.";
 
         if (!sessionExists)
         {
-            CreateNewSession(sessionId, analysisType, parentWorkflowId);
+            CreateNewSession(sessionId!, analysisType, parentWorkflowId);
             if (!string.IsNullOrEmpty(parentWorkflowId))
             {
-                LinkParentWorkflow(sessionId, parentWorkflowId);
+                LinkParentWorkflow(sessionId!, parentWorkflowId);
             }
         }
 
@@ -86,7 +90,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         if (!cancel && response != null)
         {
             var (heading, contentBuilder) = BuildThoughtSection(thoughtNumber, totalThoughts, needsMoreThoughts, branchId, isRevision, revisesThought, response, thoughts);
-            MarkdownIO.AppendToSession("sequential", sessionId, heading, contentBuilder);
+            MarkdownIO.AppendToSession("sequential", sessionId!, heading, contentBuilder);
         }
 
         var complete = !nextThoughtNeeded;
@@ -100,9 +104,9 @@ Returns session management with continuation guidance and checkpoint suggestions
                 return "ERROR: Conclusion must include [[concepts]] for knowledge graph integration.";
         }
 
-        FinalizeSession(sessionId, thoughtNumber, cancel, complete, conclusion);
+        FinalizeSession(sessionId!, thoughtNumber, cancel, complete, conclusion);
 
-        var responseMessage = BuildCompletionMessage(thoughtNumber, sessionId, cancel, nextThoughtNeeded, needsMoreThoughts, totalThoughts);
+        var responseMessage = BuildCompletionMessage(thoughtNumber, sessionId!, cancel, nextThoughtNeeded, needsMoreThoughts, totalThoughts);
         return responseMessage;
     }
 
@@ -116,6 +120,16 @@ Returns session management with continuation guidance and checkpoint suggestions
             return (false, "ERROR: Must include [[concepts]]. Example: 'Analyzing [[Machine Learning]] algorithms'");
 
         return (true, null);
+    }
+
+    private static bool IsValidSessionIdFormat(string sessionId)
+    {
+        var lastDash = sessionId.LastIndexOf('-');
+        if (lastDash < 0 || lastDash == sessionId.Length - 1)
+            return false;
+
+        var suffix = sessionId[(lastDash + 1)..];
+        return long.TryParse(suffix, out _);
     }
 
     private static (bool sessionExists, bool sessionIdProvided) DetermineSessionState(string? sessionId, int thoughtNumber, bool isRevision)

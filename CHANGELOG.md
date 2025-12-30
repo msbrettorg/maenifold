@@ -2,6 +2,11 @@
 
 All notable changes to maenifold MCP Server will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- SequentialThinking docs and error text now explicitly enforce starting sessions at `thoughtNumber=0`, clarifying flows that previously failed when called at 1 without a session.
+
 ## [1.0.2] - 2025-11-19
 
 ### Fixed

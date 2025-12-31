@@ -92,3 +92,81 @@ Execute structured workflow(s) for systematic problem-solving and complex orches
   - Multi-agent dispatch with Task tool coordination
   - Git workflow management and tracking
   - RTM-driven development with traceability validation
+
+## Tested CLI flow (mcp_maenifold)
+Tested end-to-end with `higher-order-thinking` workflow and embedded SequentialThinking sessions.
+```bash
+# Start workflow
+MAENIFOLD_ROOT=$PWD/.tmp/workflow-skill-test AGENT_ID=codex \
+  src/bin/Debug/net9.0/maenifold --tool Workflow --payload '{
+    "workflowId":"higher-order-thinking",
+    "response":"Kickoff [[higher-order-thinking]] workflow with sequential thinking",
+    "thoughts":"Aligning with instructions [[workflow-testing]]"
+  }'
+
+# Sequential thinking for a step (multi-thought; branchId needed at thoughtNumber=1)
+MAENIFOLD_ROOT=$PWD/.tmp/workflow-skill-test AGENT_ID=codex \
+  src/bin/Debug/net9.0/maenifold --tool SequentialThinking --payload '{
+    "response":"Thought 0: map heuristics and biases [[higher-order-thinking]] [[workflow-testing]]",
+    "nextThoughtNeeded":true,
+    "thoughtNumber":0,
+    "totalThoughts":3
+  }'
+MAENIFOLD_ROOT=$PWD/.tmp/workflow-skill-test AGENT_ID=codex \
+  src/bin/Debug/net9.0/maenifold --tool SequentialThinking --payload '{
+    "sessionId":"<seq-session-id>",
+    "branchId":"main",
+    "response":"Thought 1: adjust anchors [[higher-order-thinking]] [[workflow-testing]]",
+    "nextThoughtNeeded":true,
+    "thoughtNumber":1,
+    "totalThoughts":3,
+    "thoughts":"Bias check [[cognitive-bias]]"
+  }'
+MAENIFOLD_ROOT=$PWD/.tmp/workflow-skill-test AGENT_ID=codex \
+  src/bin/Debug/net9.0/maenifold --tool SequentialThinking --payload '{
+    "sessionId":"<seq-session-id>",
+    "branchId":"main",
+    "response":"Thought 2: finalize meta-approach [[higher-order-thinking]] [[workflow-testing]]",
+    "conclusion":"Conclusion: sharper meta-awareness and bias checks [[higher-order-thinking]] [[metacognition]]",
+    "nextThoughtNeeded":false,
+    "thoughtNumber":2,
+    "totalThoughts":3
+  }'
+
+# Advance workflow step (repeat sequential thinking for steps requiring it)
+MAENIFOLD_ROOT=$PWD/.tmp/workflow-skill-test AGENT_ID=codex \
+  src/bin/Debug/net9.0/maenifold --tool Workflow --payload '{
+    "sessionId":"<workflow-id>",
+    "response":"Used sequential session <seq-session-id> to surface heuristics [[higher-order-thinking]] [[workflow-testing]]",
+    "thoughts":"Branch guard hit at thought 1 requires branchId main [[process]]"
+  }'
+
+# Complete workflow (after all steps)
+MAENIFOLD_ROOT=$PWD/.tmp/workflow-skill-test AGENT_ID=codex \
+  src/bin/Debug/net9.0/maenifold --tool Workflow --payload '{
+    "sessionId":"<workflow-id>",
+    "response":"Set monitoring loop with checkpoints [[higher-order-thinking]] [[workflow-testing]]",
+    "thoughts":"Adjust prompts on drift [[metacognition]]",
+    "status":"completed",
+    "conclusion":"Workflow complete: sequential insights integrated into strategy [[higher-order-thinking]] [[workflow-testing]]"
+  }'
+```
+
+## Common errors & resolutions (tested)
+- `ERROR: Must include [[concepts]]. Example: 'Analyzing [[Machine Learning]] algorithms'` → add at least one [[concept]] in `response` or `thoughts`.
+- `ERROR: Conclusion required when completing session...` → provide `conclusion` when `status='completed'`.
+- `ERROR: Conclusion must include [[concepts]] for knowledge graph integration.` → add [[concepts]] inside `conclusion`.
+- `ERROR: branchId required when branchFromThought is specified for multi-agent coordination` → supply branchId whenever branchFromThought is set.
+- `ERROR: Session session-{id} not found. To start new session, don't provide sessionId.` when calling SequentialThinking with `thoughtNumber=1` and no existing session → start SequentialThinking with `thoughtNumber=0`.
+- `ERROR: Session {id} exists. Use different sessionId or continue existing.` when continuing SequentialThinking with `thoughtNumber=1` and no `branchId` → include a `branchId` (e.g., `"main"`) or move to `thoughtNumber=2+`.
+- `ERROR: Parent workflow can only be set on first thought.` → parentWorkflowId only allowed with `thoughtNumber=1`; starting a new SequentialThinking session at `thoughtNumber=1` triggers “Session ... not found,” so linking a brand-new sequential session to the workflow currently fails. No workaround without code change; avoid parentWorkflowId for new ST sessions.
+
+## Step-by-step usage (explicit, tested)
+1) Start Workflow: call `Workflow` with `workflowId` + `response` containing [[concepts]] (optional `thoughts]); record returned `workflow-<ts>`.
+2) For steps requiring SequentialThinking: run a multi-thought ST session.
+   - Start: `thoughtNumber=0`, `nextThoughtNeeded=true`, include [[concepts]] (starting at 1 errors: “Session ... not found”).
+   - Continue: `thoughtNumber=1` **must** include `branchId` (e.g., `"main"`), otherwise: “Session ... exists. Use different sessionId or continue existing.”
+   - Complete ST: set `nextThoughtNeeded=false` and provide `conclusion` with [[concepts]]. Missing conclusion → completion error; conclusion without [[concepts]] → concept error.
+3) Advance Workflow step: call `Workflow` with same `sessionId`, include [[concepts]] in `response`, note the ST session you just ran.
+4) Finish Workflow: final `Workflow` call sets `status="completed"` and includes a `conclusion` with [[concepts]] (missing → completion error).
+5) Parent linkage limitation: `parentWorkflowId` is only allowed when `thoughtNumber=1`, but new ST sessions cannot start at `thoughtNumber=1` (they error). Do not try to parent-link a brand-new ST session; proceed without parentWorkflowId unless the session already exists.

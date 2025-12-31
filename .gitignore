@@ -162,3 +162,4 @@ tmp/
 site-quartz/
 dist/releases/
 artifacts/manual-release/
+.codex/

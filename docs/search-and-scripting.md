@@ -189,6 +189,17 @@ When you add new integrations, align them with these patterns instead of inventi
 
 The CLI treats Maenifold as a black-box API and exposes all the primitives above. Unix tools (grep/awk/sed/sort/uniq/comm) provide post-processing.
 
+**Quick setup for scripts**
+
+```bash
+# Set an isolated root for experiments
+export MAENIFOLD_ROOT=/tmp/maenifold-cli-demo
+mkdir -p "$MAENIFOLD_ROOT"
+
+# Helper for readable JSON payloads
+run() { maenifold --tool "$1" --payload "$2"; }
+```
+
 ### 5.1. Pattern: Graph-Augmented Search
 
 Combine search with concept-level context expansion:
@@ -334,7 +345,235 @@ Result:
 - Subagents start with ~3–5K curated tokens of domain context instead of raw, unfiltered text.
 - This pattern mirrors Anthropic's RAG + code-execution pattern, but used for **cognitive bootstrapping**.
 
+### 5.8. Pattern: End-to-End Retrieval + Synthesis (happy path)
+
+```bash
+# 1) Search
+SEARCH=$(run SearchMemories '{"query":"authentication","mode":"Hybrid","pageSize":10}')
+
+# 2) Pull a top URI and build context
+TOP_URI=$(echo "$SEARCH" | grep -oE "memory://[^)]*" | head -1)
+CONCEPTS=$(run ExtractConceptsFromFile "{\"identifier\":\"$TOP_URI\"}" | grep -oE "\[\[[^]]+\]\]" | sed 's/\[\[\(.*\)\]\]/\1/' | head -5)
+for C in $CONCEPTS; do
+  run BuildContext "{\"conceptName\":\"$C\",\"depth\":1}"
+done
+
+# 3) Write a synthesized note (include [[concepts]]), then sync
+run WriteMemory "{\"title\":\"Auth synthesis\",\"content\":\"Linking [[authentication]] and [[session-management]]\"}"
+run Sync "{}"
+```
+
+### 5.9. Pattern: Failure modes worth testing
+
+These are common tripping points (exact errors come from the tools):
+
+- Missing `[[concepts]]` in write/edit/sequentialthinking content → `ERROR: Must include [[concepts]]...`
+- `SequentialThinking` with `nextThoughtNeeded=false` but no `conclusion` → conclusion required
+- `SequentialThinking` branching without `branchId` → branchId required
+- `MoveMemory` that drops extension (regression guard) → verify extension preserved after move
+- `BuildContext` on unknown concept → returns empty neighborhood (not an error); follow with `FindSimilarConcepts`
+
+Script these checks up front in CI-like smoke tests when integrating Maenifold into automation.
+
+## 11. Tested CLI flows (Dec 22, 2025, using src/bin/Debug/net9.0/maenifold)
+
+Environment:
+
+```bash
+export MAENIFOLD_ROOT=/tmp/maenifold-cli-demo-test
+rm -rf \"$MAENIFOLD_ROOT\" && mkdir -p \"$MAENIFOLD_ROOT\"
+BIN=src/bin/Debug/net9.0/maenifold
+```
+
+Happy path:
+
+- WriteMemory (with [[concepts]]):
+  - `Auth Note` content: `Testing [[authentication]] flow with [[session-management]]`
+  - `RAG Patterns` content: `Hybrid search for [[authentication]] plus [[graph-rag]] expansion.`
+- Sync:
+  - 2 files, 3 concepts, 2 relations; embeddings generated.
+- SearchMemories (Hybrid, query=authentication):
+  - Returned both memories; semantic score 1.0 on `Auth Note`.
+- ExtractConceptsFromFile (memory://auth-note):
+  - [[authentication]], [[session-management]]
+- BuildContext (authentication, depth=1, maxEntities=10):
+  - Related concepts: graph-rag (memory://rag-patterns), session-management (memory://auth-note)
+- Visualize (authentication):
+  - Mermaid graph with edges to graph_rag and session_management.
+- RecentActivity (limit=5):
+  - Shows both memories with timestamps.
+
+Notes:
+- All commands executed without build since an existing binary was used; root cleanliness check was avoided by not invoking `dotnet run`.
+- Errors to expect in this flow if misused:
+  - Missing [[concepts]] in WriteMemory/SequentialThinking → concept validation error.
+  - Missing conclusion when nextThoughtNeeded=false in SequentialThinking → conclusion required.
+  - Branching in SequentialThinking without branchId → branchId required.
+
+## 12. Prod CLI validation (Dec 22, 2025, default MAENIFOLD_ROOT)
+
+Binary: `src/bin/Debug/net9.0/maenifold` (no env override; memory path `/Users/brett/maenifold/memory`).
+
+- GetConfig: confirmed prod paths (memory/db under `/Users/brett/maenifold/`).
+- SearchMemories Hybrid (`"maenifold"`, pageSize 3): returned 49 matches; sample entries under `memory://research/context/*`.
+- BuildContext (`maenifold`, depth 1, maxEntities 5): neighbors `rag-fusion`, `information-gain`, `context`, `persona-conditioning`, `recency` with file lists.
+- Visualize (`maenifold`): mermaid edges among those concepts (high co-occurrence counts).
+- SequentialThinking validation errors (no files written):
+  - Missing [[concepts]] → `ERROR: Must include [[concepts]]...`
+  - Branching without branchId → `ERROR: branchId required when branchFromThought is specified...`
+  - Providing `sessionId` on thoughtNumber=1 for a non-existent session triggered a runtime crash (Signal 6) instead of a friendly error.
+- SequentialThinking happy path (writes to prod, then cleaned):
+  - Thought 1 with `[[cli-test]]` auto-created session `session-1766422076688` at `memory://thinking/sequential/2025/12/22/session-1766422076688`
+  - Thought 2 with conclusion + `[[cli-test]]` completed session.
+  - Deleted test session via DeleteMemory `{"identifier":"memory://thinking/sequential/2025/12/22/session-1766422076688","confirm":true}`
+
+Notes:
+- SequentialThinking storage includes year/month/day in the path.
+- The Signal 6 crash on invalid sessionId (thoughtNumber=1) is a bug; expected a user-facing error string.
+
+## 13. Scripts for the 3.1 Technique Matrix
+
+Use `maenifold` CLI; assumes `BIN=maenifold` is on PATH (prod root).
+
+**Classic RAG (Semantic)**
+```bash
+$BIN --tool SearchMemories --payload '{"query":"authentication","mode":"Semantic","pageSize":20}'
+```
+
+**Knowledge Graph RAG (Search + BuildContext)**
+```bash
+TOP=$( $BIN --tool SearchMemories --payload '{"query":"authentication","mode":"Hybrid","pageSize":5}' \
+  | grep -oE "memory://[^)]*" | head -1 )
+CONCEPTS=$( $BIN --tool ExtractConceptsFromFile --payload "{\"identifier\":\"$TOP\"}" \
+  | grep -oE "\[\[[^]]+\]\]" | sed 's/\[\[\(.*\)\]\]/\1/' | head -3 )
+for C in $CONCEPTS; do
+  $BIN --tool BuildContext --payload "{\"conceptName\":\"$C\",\"depth\":1}"
+done
+```
+
+**Multi-Hop Traversal**
+```bash
+$BIN --tool BuildContext --payload '{"conceptName":"maenifold","depth":2}'
+```
+
+**Reranking (Hybrid/RRF)**
+```bash
+$BIN --tool SearchMemories --payload '{"query":"recency decay","mode":"Hybrid","pageSize":10}'
+# Use fused/text/semantic scores from output to filter locally if needed
+```
+
+**Query Expansion (FindSimilarConcepts)**
+```bash
+$BIN --tool FindSimilarConcepts --payload '{"conceptName":"recency","limit":10}'
+```
+
+**RAG with Memory (RecentActivity)**
+```bash
+$BIN --tool RecentActivity --payload '{"limit":20}' | head -50
+```
+
+**Adaptive/Self-RAG (workflow/agent-driven)**
+- Pattern: embed `SequentialThinking` in your loop; call `SearchMemories` when `needsMoreThoughts` is set. (See SequentialThinking doc.)
+
+**Agentic Retrieval (multi-tool)**
+```bash
+RES=$( $BIN --tool SearchMemories --payload '{"query":"workflow","mode":"Hybrid","pageSize":5}' )
+URIS=$(echo "$RES" | grep -oE "memory://[^)]*")
+for U in $URIS; do $BIN --tool ReadMemory --payload "{\"identifier\":\"$U\"}" | head -40; done
+```
+
+**Self-RAG/Reflective (SequentialThinking + AssumptionLedger)**
+```bash
+$BIN --tool SequentialThinking --payload '{"response":"Investigating [[rag-fusion]] gaps","thoughtNumber":1,"totalThoughts":2,"nextThoughtNeeded":true}'
+$BIN --tool AssumptionLedger --payload '{"assumption":"RRF k=60 is adequate for [[rag-fusion]]","action":"record"}'
+```
+
+**Routing (Workflow)**
+```bash
+$BIN --tool Workflow --payload '{"workflowId":"agentic-research","response":"[[rag-fusion]] parameter tuning"}'
+```
+
+**DSP / Few-shot via memories**
+```bash
+$BIN --tool SearchMemories --payload '{"query":"example","mode":"Hybrid","pageSize":5}'
+```
+
+**FLARE-style proactive context**
+```bash
+$BIN --tool RecentActivity --payload '{"limit":20}' \
+  | grep -oE "\[\[[^]]+\]\]" | sed 's/\[\[\(.*\)\]\]/\1/' | sort -u | head -5 \
+  | while read C; do $BIN --tool BuildContext --payload "{\"conceptName\":\"$C\",\"depth\":1}"; done
+```
+
+**Multi-step RAG loop (simple)**
+```bash
+QUERY="authentication retry"
+RES=$($BIN --tool SearchMemories --payload "{\"query\":\"$QUERY\",\"mode\":\"Hybrid\",\"pageSize\":5}")
+URIS=$(echo "$RES" | grep -oE "memory://[^)]*")
+for U in $URIS; do
+  $BIN --tool ExtractConceptsFromFile --payload "{\"identifier\":\"$U\"}" | grep -oE "\[\[[^]]+\]\]"
+done | sort -u | head -5 | while read C; do
+  $BIN --tool BuildContext --payload "{\"conceptName\":\"${C//[\[\]]/}\",\"depth\":1}"
+done
+```
+
+**HYDE (hypothetical doc then search)**
+```bash
+HYPOTHESIS="Hypothetical [[zero-downtime]] deployment doc for [[authentication]] service."
+$BIN --tool WriteMemory --payload "{\"title\":\"Hyde Note\",\"content\":\"$HYPOTHESIS\"}"
+$BIN --tool Sync --payload '{}'
+$BIN --tool SearchMemories --payload '{"query":"zero-downtime authentication","mode":"Hybrid","pageSize":10}'
+```
+
+**RAG-Fusion (parallel queries + dedupe)**
+```bash
+for Q in "authentication timeout" "authentication retry" "authentication backoff"; do
+  $BIN --tool SearchMemories --payload "{\"query\":\"$Q\",\"mode\":\"Hybrid\",\"pageSize\":10}"
+done | grep -oE "memory://[^)]*" | sort -u
+```
+
+**Iterative (ITER-RETGEN)**
+```bash
+for i in 1 2 3; do
+  $BIN --tool SearchMemories --payload "{\"query\":\"authentication iteration $i\",\"mode\":\"Hybrid\",\"pageSize\":5}"
+done
+```
+
+**CRAG-style corrective loop (manual)**
+```bash
+RAW=$($BIN --tool SearchMemories --payload '{"query":"authentication errors","mode":"Hybrid","pageSize":20}')
+echo "$RAW" | awk '/Semantic:/ { sem=$NF+0; if (sem>0.5) keep=1; else keep=0 } /^📄/ {if(keep) print prev; prev=$0}'
+```
+
+**Cross-encoder rerank (LLM-as-judge placeholder)**
+- Export top N URIs from Hybrid search, send to your LLM reranker outside the CLI; feed reranked order back to downstream steps.
+
+**FiD (retrieve only)**
+```bash
+$BIN --tool SearchMemories --payload '{"query":"fuse context","mode":"Hybrid","pageSize":10}'
+# Fusion is performed by your model; CLI retrieves.
+```
+
+For unsupported/partial techniques (multi-modal, sub-file chunking, contextual embeddings, recency weighting in ranking), the CLI does not provide direct support—compose using existing tools or external processing.
+
 ---
+
+## 14. Tested outputs for section 3.1 scripts (Dec 22, 2025, prod MAENIFOLD_ROOT)
+
+Binary: `src/bin/Debug/net9.0/maenifold` (no env override; memory path `/Users/brett/maenifold/memory`).
+
+- Semantic search (`authentication`, mode=Semantic): 30 matches; top `memory://finops/research/finops-framework-overview` (semantic 1.0).
+- Graph RAG script (Hybrid → ExtractConcepts → BuildContext): top URI `memory://finops/research/finops-framework-overview`; concept `finops`; neighbors include `finops-toolkit`, `azure`, `cost-optimization`.
+- Multi-hop (BuildContext depth=2 on `maenifold`): core neighbors plus extended concepts (`routing`, `rrf`, `subquery-decomposition`).
+- Hybrid search (`recency decay`): returns context-skill memories with fused/text/semantic scores.
+- FindSimilarConcepts (`recency`): returns similar concepts (similarity 1.0) such as `workflows`, `sqlite`, `wikilinks`, `toolregistry`.
+- RecentActivity (limit 3): shows latest workflow/sequential/memory items.
+- Workflow routing (`agentic-research`): session created and first step returned; deleted afterward.
+- SequentialThinking (happy path): session created/completed with conclusion under `memory://thinking/sequential/2025/12/22/...`; deleted. Errors confirmed for missing [[concepts]] and missing `branchId`. Invalid `sessionId` on thought 1 still crashes (Signal 6 bug).
+- AssumptionLedger: requires `action` in {append, update, read} and `concepts` array; append succeeded, then deleted.
+- HYDE example: WriteMemory `HYDE CLI Test` with `[[zero-downtime]]` + Sync + Hybrid search surfaced it at semantic 1.0; deleted.
+- RAG-Fusion sample (parallel queries on authentication timeout/retry/backoff): Hybrid searches completed; URIs deduped (e.g., `memory://finops/research/finops-framework-overview`).
+- All temporary artifacts (SequentialThinking session, Workflow session, HYDE note, AssumptionLedger entry) were removed via DeleteMemory after testing.
 
 ## 6. Test-Time Adaptive Reasoning
 
@@ -499,4 +738,3 @@ For those, use direct access to the underlying storage or specialized analysis t
 	- Capturing recurring patterns as workflows so agents can reuse them as skills.
 
 This document is the canonical reference for Maenifold search and scripting: how to query, how to compose tools, and how to wire them into agents and workflows for RAG on a graph of thought.
-

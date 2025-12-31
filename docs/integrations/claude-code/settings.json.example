@@ -6,7 +6,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/session_start.sh"
+            "command": "~/.claude/hooks/graph_rag.sh session_start"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/graph_rag.sh task_augment",
+            "_comment": "Auto-enriches Task prompts containing [[concepts]] with graph context"
           }
         ]
       }

@@ -4,6 +4,24 @@ All notable changes to maenifold MCP Server will be documented in this file.
 
 ## [Unreleased]
 
+### Removed
+- **DEPR-002**: Removed 7 unused Config.cs properties that were defined but never referenced:
+  - `MaxDebounceBatchSize` (`MAENIFOLD_MAX_BATCH_SIZE`)
+  - `DefaultSearchLimit` (`MAENIFOLD_SEARCH_LIMIT`)
+  - `DefaultContextDepth` (`MAENIFOLD_CONTEXT_DEPTH`)
+  - `MaxContextEntities` (`MAENIFOLD_MAX_ENTITIES`)
+  - `SqliteConnectionPoolSize` (`MAENIFOLD_DB_POOL_SIZE`)
+  - `MaxConcurrentOperations` (`MAENIFOLD_MAX_CONCURRENT`)
+  - `EnableDebugLogging` (`MAENIFOLD_DEBUG`)
+
+### Fixed
+- **DOCS-001**: Synced tool documentation between `src/assets/usage/tools/` and `docs/usage/tools/`:
+  - Added missing `codex-specialist` role to adopt.md
+  - Fixed MoveMemory overwrite behavior text (correctly states NO overwrite)
+  - Added nested WikiLink warning to editmemory.md
+  - Added depth limits (1-5 hops) to visualize.md
+  - Removed dead environment variable references from getconfig.md
+
 ### Security
 - **SEC-001**: Added JSON deserialization depth limits (MaxDepth=32) to prevent DoS attacks via deeply nested JSON payloads. New `SafeJson` utility provides consistent protection across all deserialization paths:
   - CLI payload parsing (Program.cs)

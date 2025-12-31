@@ -95,6 +95,7 @@ Green Hat thinking - creativity, possibilities, alternatives, and new ideas.
 - **writer**: Clear communication, documentation, user-facing content
 - **red-team**: Adversarial testing, vulnerability discovery, security assessment
 - **blue-team**: Defense, security hardening, incident response
+- **codex-specialist**: GPT-5-Codex prompt optimization
 
 ### Colors (Six Thinking Hats)
 - **white**: Facts, data, information (neutral, objective)

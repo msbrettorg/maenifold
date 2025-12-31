@@ -4,6 +4,9 @@ All notable changes to maenifold MCP Server will be documented in this file.
 
 ## [Unreleased]
 
+### Removed
+- **AddMissingH1**: Deprecated and removed the one-time migration tool. All memory files now include H1 headers via WriteMemory, making this tool obsolete.
+
 ### Changed
 - SequentialThinking docs and error text now explicitly enforce starting sessions at `thoughtNumber=0`, clarifying flows that previously failed when called at 1 without a session.
 

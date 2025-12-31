@@ -12,6 +12,7 @@ cd ~/maenifold/docs/integrations/claude-code
 
 ## What You Get
 
+### SessionStart Hook
 Every Claude Code session now starts with:
 - 🧠 Knowledge graph context restoration
 - 📊 Top concepts from recent work
@@ -19,10 +20,23 @@ Every Claude Code session now starts with:
 - 📝 Actual content from relevant files
 - ⚡ ~5K tokens of intelligent context
 
+### Task Augmentation Hook
+When using Task tool with [[concepts]]:
+- 🎯 Auto-detects [[concepts]] in prompts
+- 📊 Enriches with graph context automatically
+- 🔗 Adds semantic relationships
+- ⚡ "Concept-as-protocol" pattern enabled
+
 ## How It Works
 
+### SessionStart Mode
 ```
-Session Start → Query Graph → Extract Concepts → Build Context → Inject Knowledge
+Session Start → Query Graph → Extract Top Concepts → Build Context → Inject Knowledge
+```
+
+### Task Augmentation Mode
+```
+Task Prompt → Extract [[concepts]] → Build Context → Augment Prompt → Execute Task
 ```
 
 ## The Magic
@@ -46,20 +60,24 @@ Content: "Using Flyway for version control..."
 
 ## Customization
 
-Edit `~/.claude/hooks/session_start.sh`:
+Edit `~/.claude/hooks/graph_rag.sh`:
 
 ```bash
-# Adjust token budget (default: 5000)
-MAX_TOKENS=3000
+# SessionStart mode
 
 # Change time window (default: 24 hours)
-timespan":"48.00:00:00"
+timespan: "48.00:00:00"  # Line 142
 
-# Filter concepts (add patterns to exclude)
-grep -v '^concept' | grep -v '^test'
+# Adjust graph depth and entities
+depth: 2, maxEntities: 5  # Line 93
 
-# Adjust graph depth (default: 1)
-depth: 2, maxEntities: 5
+# Adjust concept limits
+enrich_concepts "$TOP_CONCEPTS" 10 1500  # Line 175 (max=10, chars=1500)
+
+# Task augmentation mode
+
+# Adjust concept limits for task prompts
+enrich_concepts "$CONCEPTS" 8 1000  # Line 268 (max=8, chars=1000)
 ```
 
 ## Testing
@@ -77,42 +95,63 @@ depth: 2, maxEntities: 5
 
 ### No context appears?
 ```bash
-# Check Maenifold is running
-~/maenifold/bin/osx-x64/maenifold --tool MemoryStatus
+# Check Maenifold is accessible
+maenifold --tool MemoryStatus --payload '{}'
+# or
+$MAENIFOLD_ROOT/src/bin/Release/net9.0/maenifold --tool MemoryStatus --payload '{}'
 
-# Check hook is registered
-cat ~/.claude/settings.json | jq '.hooks.SessionStart'
+# Check hooks are registered
+cat ~/.claude/settings.json | jq '.hooks.SessionStart, .hooks.PreToolUse'
 
-# Test hook manually
-echo '{"session_id":"test","cwd":"."}' | ~/.claude/hooks/session_start.sh
+# Test SessionStart hook manually
+echo '{"session_id":"test","cwd":"."}' | ~/.claude/hooks/graph_rag.sh session_start
+
+# Test Task augmentation hook manually
+echo '{"tool_name":"Task","tool_input":{"prompt":"Fix [[auth]] bug"}}' | ~/.claude/hooks/graph_rag.sh task_augment
 ```
 
 ### Too much/little context?
-Adjust MAX_TOKENS in the hook (line 32)
+Adjust `max_concepts` and `char_limit_per_concept` parameters in the hook:
+- SessionStart: line 175
+- Task augmentation: line 268
 
-### Wrong Maenifold path?
-Update MAENIFOLD_CLI in the hook (line 18)
+### Maenifold not detected?
+Set the `MAENIFOLD_ROOT` environment variable:
+```bash
+export MAENIFOLD_ROOT="$HOME/maenifold"
+# Add to ~/.bashrc or ~/.zshrc to persist
+```
 
 ## Advanced Features
 
 ### Multi-Project Support
 ```bash
-# In session_start.sh, add project detection:
+# Set MAENIFOLD_ROOT per project in .envrc (with direnv):
+export MAENIFOLD_ROOT="$PWD"
+
+# Or in graph_rag.sh, add project detection:
 if [[ "$CWD" == *"project-a"* ]]; then
-  MAENIFOLD_CLI="~/project-a/maenifold/bin/osx-x64/Maenifold"
+  MAENIFOLD_CLI="~/project-a/maenifold/src/bin/Release/net9.0/maenifold"
 fi
 ```
 
-### Priority Concepts
+### Concept-as-Protocol Pattern
 ```bash
-# Prioritize certain patterns
-grep -E '\[\[(auth|security|database)[^]]*\]\]' | head -5
+# Embed [[concepts]] in Task prompts to trigger auto-enrichment:
+
+# Instead of:
+"Fix the authentication bug in the login module"
+
+# Use:
+"Fix [[authentication]] bug in [[login]] module with [[jwt]]"
+
+# The hook auto-injects graph context for all three concepts!
 ```
 
 ### Conditional Loading
 ```bash
 # Only load for specific projects
-if [[ "$PROJECT_NAME" == "critical" ]]; then
+if [[ "$REPO_NAME" == "critical-project" ]]; then
   # Run full restoration
 else
   exit 0  # Skip

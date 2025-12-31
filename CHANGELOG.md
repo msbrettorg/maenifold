@@ -5,6 +5,20 @@ All notable changes to maenifold MCP Server will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **GRAPH-001**: BuildContext now extracts the H2 section containing the concept mention instead of showing the file start:
+  - Added `ExtractSectionWithConcept()` method that parses markdown sections and finds where `[[concept]]` is mentioned
+  - Falls back to `CreateSmartPreview()` if concept not found in any section
+  - Handles edge cases: H1-only files, multiple mentions (uses first), plain text matches, truncation, empty content
+  - Files updated: `src/Tools/GraphTools.cs` (added 88 lines)
+  - Tests added: `BuildContextExtractsSectionWithConceptTest` (integration test), `ExtractSectionWithConceptEdgeCasesTest` (unit test with 8 edge cases)
+  - Total test count: 244 tests (was 243)
+
+### Changed
+- **HOOKS-002**: Enhanced `graph_rag.sh` hook to align with canonical patterns from `search-and-scripting.md`:
+  - Multi-hop depth increased from 1→2 (§5.6: captures "extended network", ~40+ concepts vs ~20)
+  - Repository context now filters by semantic score > 0.5 (§5.4: reduces low-relevance noise)
+  - Task augmentation now frequency-ranks concepts (repeated concepts processed first, matching session_start behavior)
+  - Files updated: `~/.claude/hooks/graph_rag.sh`, `docs/integrations/claude-code/hooks/graph_rag.sh`
 - **EVAL-001e**: Refactored SessionStart hook (`~/.claude/hooks/session_start.sh`) from v1 to v2:
   - JSON output format with `hookSpecificOutput.additionalContext` (was plain text)
   - Portable CLI detection via PATH with fallback
@@ -26,6 +40,13 @@ All notable changes to maenifold MCP Server will be documented in this file.
   - `EnableDebugLogging` (`MAENIFOLD_DEBUG`)
 
 ### Fixed
+- **GRAPH-002**: Prevent WikiLink extraction from code blocks:
+  - Modified `MarkdownReader.ExtractWikiLinks()` to use Markdig AST parsing
+  - Skips fenced code blocks (```), indented code blocks, and inline code (`)
+  - Prevents shell variables and code examples from polluting concept graph
+  - Root cause: Simple regex matched `[[concepts]]` inside code blocks, creating malformed entries like `n-"$active-session"`
+  - Added 10 test cases in `MarkdownReaderTests.cs`
+  - Files updated: `src/Utils/MarkdownReader.cs` (~100 lines added)
 - **DOCS-001**: Synced tool documentation between `src/assets/usage/tools/` and `docs/usage/tools/`:
   - Fixed adopt.md to list all 16 built-in roles, 7 colors, 12 language perspectives
   - Added custom assets documentation ($MAENIFOLD_ROOT/assets/ for runtime assets)

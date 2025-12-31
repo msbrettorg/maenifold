@@ -53,7 +53,6 @@ namespace Maenifold.Tools
             add(CreateRunFullBenchmarkDescriptor());
             add(CreateAdoptDescriptor());
             add(CreateAssumptionLedgerDescriptor());
-            add(CreateAddMissingH1Descriptor());
             add(CreateListAssetsDescriptor());
             add(CreateReadMcpResourceDescriptor());
         }
@@ -423,20 +422,6 @@ namespace Maenifold.Tools
 
                 return AssumptionLedgerTools.AssumptionLedger(action, assumption, context, validationPlan, confidence, concepts, uri, status, notes, learn);
             }, new[] { "assumptionledger" }, "Assumption ledger");
-
-        private static ToolDescriptor CreateAddMissingH1Descriptor() =>
-            new("AddMissingH1", payload =>
-            {
-                bool dryRun = PayloadReader.GetBool(payload, "dryRun", true);
-                int limit = PayloadReader.GetInt32(payload, "limit", 100);
-                string? folder = null;
-                if (payload.TryGetProperty("folder", out var f)) folder = f.GetString();
-                bool createBackups = PayloadReader.GetBool(payload, "createBackups", false);
-                bool learn = false;
-                if (payload.TryGetProperty("learn", out var learnProp))
-                    learn = learnProp.GetBoolean();
-                return MaintenanceTools.AddMissingH1(dryRun, limit, folder, createBackups, learn);
-            }, new[] { "addmissingh1" }, "Add missing H1 headers to markdown files");
 
         private static ToolDescriptor CreateListAssetsDescriptor() =>
             new("ListAssets", payload =>

@@ -45,7 +45,7 @@ maenifold/
 │   │   ├── GraphTools.cs        # Graph operations (BuildContext, Visualize, etc.)
 │   │   ├── SystemTools.cs       # System operations (GetConfig, GetHelp, etc.)
 │   │   ├── ThinkingTools.cs     # Thinking operations (SequentialThinking, Workflow)
-│   │   ├── MaintenanceTools.cs  # Maintenance operations (RepairConcepts, etc.)
+│   │   ├── ConceptRepairTool.cs # Concept repair operations (RepairConcepts, etc.)
 │   │   └── ToolRegistry.cs      # Centralized tool dispatch
 │   ├── Utils/                    # Utility classes
 │   │   ├── MarkdownReader.cs    # Markdown file parsing

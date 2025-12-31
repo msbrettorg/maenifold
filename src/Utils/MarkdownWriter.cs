@@ -57,8 +57,15 @@ public static class MarkdownWriter
 
     public static bool SessionExists(string thinkingType, string sessionId)
     {
-        var path = GetSessionPath(thinkingType, sessionId);
-        return File.Exists(path);
+        try
+        {
+            var path = GetSessionPath(thinkingType, sessionId);
+            return File.Exists(path);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 
     public static void CreateSession(string thinkingType, string sessionId,

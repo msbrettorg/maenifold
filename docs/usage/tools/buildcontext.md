@@ -20,7 +20,7 @@ Explore and traverse concept relationships in your maenifold knowledge graph thr
 - **Source File Tracking**: Shows which memory files contain concept relationships for verification
 - **Scalable Entity Control**: Configure maximum entities to focus exploration or cast wider nets
 - **Concept Normalization**: Automatically handles concept name variations and formatting
-- **Graph Existence Validation**: Confirms concepts exist in your knowledge graph before traversal
+- **Empty-Result Semantics**: If the concept isn't in the graph yet, BuildContext returns an empty result object (no error)
 - **Contextual File References**: Links back to original memory files containing concept relationships
 
 ## Parameters
@@ -28,7 +28,7 @@ Explore and traverse concept relationships in your maenifold knowledge graph thr
 | Parameter | Type | Required | Description | Example |
 |-----------|------|----------|-------------|---------|
 | conceptName | string | Yes | CONCEPT name to build context around (NOT a file!) | "Machine Learning" |
-| depth | int | No | How many hops in the CONCEPT GRAPH (default: 2) | 3 |
+| depth | int | No | How many hops in the CONCEPT GRAPH (default: 2). Use 0 for “direct only”. | 3 |
 | maxEntities | int | No | Max entities to return (default: 20) | 50 |
 | includeContent | bool | No | Include full content (default: false) | true |
 
@@ -129,13 +129,9 @@ Use for discovering distant relationships and finding unexpected conceptual brid
 
 ## Troubleshooting
 
-### Error: "CONCEPT 'X' not found in graph"
-**Cause**: The concept doesn't exist in your knowledge graph or needs different spelling  
-**Solution**: Run Sync to update graph from recent memory files, or check concept spelling and capitalization
-
-### Error: "Run sync first"
-**Cause**: Knowledge graph is empty or outdated compared to memory files  
-**Solution**: Execute Sync tool to extract concepts from memory files and build/update the graph database
+### No results returned
+**Cause**: Either the concept doesn't exist in the graph yet, or it exists but has no co-occurrence edges.  
+**Solution**: Run `Sync`, then verify the concept spelling (concepts are normalized to lowercase-with-hyphens). If needed, add the concept alongside related concepts in a memory file and re-run `Sync`.
 
 ### No relationships found for existing concept
 **Cause**: Concept exists but appears in isolation without co-occurring with other [[concepts]]  
@@ -144,6 +140,13 @@ Use for discovering distant relationships and finding unexpected conceptual brid
 ### Traversal depth returns limited results
 **Cause**: Your knowledge graph has sparse connections or concept clusters are isolated  
 **Solution**: Increase maxEntities parameter or create memory files that bridge concept areas with shared [[concepts]]
+
+### Depth behavior gotcha
+- `depth = 0` and `depth = 1` only populate `directRelations`.
+- `depth > 1` also populates `expandedRelations`.
+
+### Expanded relations scope
+`expandedRelations` are expanded starting from up to the top 5 direct relations (by co-occurrence). This keeps results relevant but can omit distant branches.
 
 ### Performance issues with high depth/entity limits
 **Cause**: Very dense concept graphs with high connectivity can create large result sets  

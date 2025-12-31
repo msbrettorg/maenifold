@@ -36,6 +36,11 @@ Suggested next steps: BuildContext, SearchMemories
 - **0.60-0.75**: Related concepts - explore connections
 - **< 0.60**: Weak relationship
 
+Notes:
+- `conceptName` must be non-empty; otherwise the tool returns an error.
+- Scores can appear **saturated** (e.g., many results at `1.000`) depending on the current embedding distribution and vector distance values. Treat this tool primarily as a **ranking signal**, and validate via `BuildContext` / `SearchMemories`.
+- Very large `maxResults` values can produce extremely long output.
+
 ## Semantic vs Graph
 
 **FindSimilarConcepts (meaning-based)**:
@@ -50,7 +55,7 @@ Suggested next steps: BuildContext, SearchMemories
 
 ## Integration
 
-- **Sync**: MUST run first to generate embeddings
+- **Sync**: Run first to populate `vec_concepts` embeddings (otherwise you may get few/no results)
 - **AnalyzeConceptCorruption**: Identify duplicates from high-similarity results
 - **RepairConcepts**: Consolidate similar concepts that are true duplicates
 - **BuildContext**: Explore graph relationships of similar concepts

@@ -1,6 +1,10 @@
 # Adopt
 
-Loads [[role]], [[color]], or [[perspective]] JSON configuration from `~/maenifold/assets/` to enable specialized thinking modes.
+Loads [[role]], [[color]], or [[perspective]] JSON configuration to enable specialized thinking modes.
+
+Assets are loaded from two locations (runtime takes precedence):
+1. `$MAENIFOLD_ROOT/assets/` - User-created assets at runtime
+2. Built-in assets bundled with maenifold
 
 ## Parameters
 
@@ -22,40 +26,65 @@ Raw JSON configuration with personality, principles, approach, checklists, and a
 
 Returns SLC framework configuration: Simple, Lovable, Complete principles with customer-focused evaluation criteria.
 
-## Available Assets
+## Built-in Assets
 
-### Roles (Professional Domains)
+### Roles (16 Professional Domains)
 - `architect` - System design, scalability, patterns
-- `product-manager` - Customer delight, SLC framework
+- `blue-team` - Defense, security hardening
+- `cfo` - Financial strategy, fiscal discipline
+- `eda-architect` - Event-driven architecture design
+- `eda-platform-engineer` - EDA platform implementation
 - `engineer` - Implementation, code quality
+- `finops-practitioner` - Cloud financial operations
+- `ftk-agent` - First-time knowledge acquisition
+- `mcp-specialist` - Model Context Protocol expertise
+- `product-manager` - Customer delight, SLC framework
+- `prompt-engineer` - Prompt design and optimization
+- `prompt-engineer-codex` - Codex-specific prompting
+- `prompt-engineer-gpt5` - GPT-5 prompt optimization
+- `red-team` - Adversarial testing, vulnerability discovery
 - `researcher` - Evidence, investigation, hypothesis testing
 - `writer` - Documentation, communication
-- `red-team` - Adversarial testing, vulnerability discovery
-- `blue-team` - Defense, security hardening
-- `codex-specialist` - GPT-5-Codex prompt optimization
 
-### Colors (Six Thinking Hats)
+### Colors (7 Six Thinking Hats)
 - `white` - Facts, data (neutral)
 - `red` - Emotions, intuition (no justification)
 - `black` - Risks, problems (critical)
 - `yellow` - Benefits, opportunities (optimistic)
 - `green` - Creativity, alternatives (generative)
 - `blue` - Process control, orchestration (meta)
-- `gray` - Analysis, assessment (neutral) - maenifold extension
+- `gray` - Analysis, assessment (maenifold extension)
 
-### Perspectives (Analytical Lenses)
-- `critical-analysis` - Skeptical, rigorous examination
-- `creative-ambiguity` - Exploratory, possibility-focused
-- `evidential-thinking` - Data-driven, proof-based
-- `factual-clarity` - Precise, objective
-- `emotional-expression` - Feelings, subjective
-- `relational-expression` - Connections, relationships
-- `conceptual-synthesis` - Integration, holistic
-- `hierarchical-precision` - Structure, taxonomy
-- `aspectual-analysis` - Multi-faceted examination
-- `positive-framing` - Constructive, opportunity-focused
-- `skeptical-inquiry` - Questioning assumptions
-- `process-control` - Workflow orchestration
+### Perspectives (12 Language Modes)
+- `en` - English
+- `de` - German
+- `es` - Spanish
+- `fr` - French
+- `it` - Italian
+- `ja` - Japanese
+- `ko` - Korean
+- `pt` - Portuguese
+- `ru` - Russian
+- `tr` - Turkish
+- `zh` - Chinese
+- `ar` - Arabic
+
+## Custom Assets
+
+Create custom assets in `$MAENIFOLD_ROOT/assets/{roles,colors,perspectives}/`:
+
+```json
+// $MAENIFOLD_ROOT/assets/roles/my-custom-role.json
+{
+  "id": "my-custom-role",
+  "name": "My Custom Role",
+  "description": "Custom role for specific use case",
+  "principles": ["principle1", "principle2"],
+  "approach": "How to apply this role"
+}
+```
+
+Runtime assets override built-in assets with the same identifier.
 
 ## Common Patterns
 

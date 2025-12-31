@@ -58,10 +58,25 @@ Adds new content to the beginning of the existing file.
 
 ### find_replace
 Replaces all occurrences of specific text with new content.
+
+**⚠️ WARNING: Nested WikiLinks**
+Replacing text INSIDE existing `[[WikiLinks]]` creates nested brackets.
+
+Example of the problem:
+- File contains: `[[machine learning]]`
+- findText: `"machine learning"`
+- content: `"[[ML]]"`
+- Result: `[[[[ML]]]]` (nested brackets - broken WikiLink)
+
+To avoid this, replace the ENTIRE WikiLink including brackets:
+- findText: `"[[machine learning]]"`
+- content: `"[[ML]]"`
+- Result: `[[ML]]` (correct)
+
 ```json
 {
   "identifier": "memory://documents/machine-learning.md",
-  "operation": "find_replace", 
+  "operation": "find_replace",
   "content": "[[Machine Learning]] algorithms",
   "findText": "ML algorithms",
   "expectedCount": 5

@@ -98,7 +98,7 @@ public class AssetResources
             try
             {
                 var json = File.ReadAllText(file);
-                using var doc = JsonDocument.Parse(json);
+                using var doc = JsonDocument.Parse(json, SafeJson.DocumentOptions);
                 if (doc.RootElement.TryGetProperty("id", out var idProp) && idProp.GetString() == id)
                 {
                     return file;
@@ -128,7 +128,7 @@ public class AssetResources
             try
             {
                 var json = File.ReadAllText(file);
-                using var doc = JsonDocument.Parse(json);
+                using var doc = JsonDocument.Parse(json, SafeJson.DocumentOptions);
                 var root = doc.RootElement;
 
                 // Extract standard fields (id is required, others optional with defaults)

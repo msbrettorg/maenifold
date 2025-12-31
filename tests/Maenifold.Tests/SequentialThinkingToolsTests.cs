@@ -60,13 +60,13 @@ public class SequentialThinkingToolsTests
         var result = SequentialThinkingTools.SequentialThinking(
             response: response,
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 3
         );
 
         // Assert - verify success response
         Assert.That(result, Does.Contain("Created session:"));
-        Assert.That(result, Does.Contain("Continue with thought 2/3"));
+        Assert.That(result, Does.Contain("Continue with thought 1/3"));
 
         // Verify session file was created with real file I/O
         var sessionId = ExtractSessionId(result);
@@ -83,7 +83,7 @@ public class SequentialThinkingToolsTests
         Assert.That(frontmatter?["permalink"], Is.EqualTo(sessionId));
 
         // Verify content contains thought heading
-        Assert.That(content, Does.Contain("Thought 1/3"));
+        Assert.That(content, Does.Contain("Thought 0/3"));
         Assert.That(content, Does.Contain("test thought with [[test-concept]]"));
     }
 
@@ -101,7 +101,7 @@ public class SequentialThinkingToolsTests
         var result = SequentialThinkingTools.SequentialThinking(
             response: response,
             nextThoughtNeeded: false,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 1,
             conclusion: "Concluded that [[deep-learning]] is important."
         );
@@ -126,7 +126,7 @@ public class SequentialThinkingToolsTests
         var result = SequentialThinkingTools.SequentialThinking(
             response: response,
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2
         );
 
@@ -147,7 +147,7 @@ public class SequentialThinkingToolsTests
         var createResult = SequentialThinkingTools.SequentialThinking(
             response: firstResponse,
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2
         );
 
@@ -158,20 +158,20 @@ public class SequentialThinkingToolsTests
         var continueResult = SequentialThinkingTools.SequentialThinking(
             response: secondResponse,
             nextThoughtNeeded: false,
-            thoughtNumber: 2,
+            thoughtNumber: 1,
             totalThoughts: 2,
             sessionId: sessionId,
             conclusion: "Final synthesis with [[concept-synthesis]]."
         );
 
         // Assert
-        Assert.That(continueResult, Does.Contain("Added thought 2 to session:"));
+        Assert.That(continueResult, Does.Contain("Added thought 1 to session:"));
         Assert.That(continueResult, Does.Contain("Thinking complete"));
 
         // Verify both thoughts are in session file
         var (frontmatter, content, _) = MarkdownIO.ReadSession("sequential", sessionId);
+        Assert.That(content, Does.Contain("Thought 0/2"));
         Assert.That(content, Does.Contain("Thought 1/2"));
-        Assert.That(content, Does.Contain("Thought 2/2"));
         Assert.That(content, Does.Contain("First thought with [[concept-1]]"));
         Assert.That(content, Does.Contain("Second thought with [[concept-2]]"));
         Assert.That(frontmatter?["status"], Is.EqualTo("completed"));
@@ -201,7 +201,7 @@ public class SequentialThinkingToolsTests
         var result = SequentialThinkingTools.SequentialThinking(
             response: response,
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2,
             parentWorkflowId: parentSessionId
         );
@@ -236,7 +236,7 @@ public class SequentialThinkingToolsTests
         var createResult = SequentialThinkingTools.SequentialThinking(
             response: response,
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 5
         );
 
@@ -246,7 +246,7 @@ public class SequentialThinkingToolsTests
         var cancelResult = SequentialThinkingTools.SequentialThinking(
             response: "Cancelling thoughts with [[cancellation-concept]].",
             nextThoughtNeeded: false,
-            thoughtNumber: 2,
+            thoughtNumber: 1,
             totalThoughts: 5,
             sessionId: sessionId,
             cancel: true
@@ -254,7 +254,7 @@ public class SequentialThinkingToolsTests
 
         // Assert
         Assert.That(cancelResult, Does.Contain("Thinking cancelled"));
-        Assert.That(cancelResult, Does.Contain("Added thought 2 to session:"));
+        Assert.That(cancelResult, Does.Contain("Added thought 1 to session:"));
 
         // Verify session status is cancelled
         var (frontmatter, _, _) = MarkdownIO.ReadSession("sequential", sessionId);
@@ -276,7 +276,7 @@ public class SequentialThinkingToolsTests
         var createResult = SequentialThinkingTools.SequentialThinking(
             response: response,
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 5
         );
 
@@ -311,7 +311,7 @@ public class SequentialThinkingToolsTests
         var createResult = SequentialThinkingTools.SequentialThinking(
             response: "Thought 1 with [[concept-1]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2
         );
 
@@ -321,7 +321,7 @@ public class SequentialThinkingToolsTests
         var completeResult = SequentialThinkingTools.SequentialThinking(
             response: "Thought 2 with [[concept-2]].",
             nextThoughtNeeded: false,
-            thoughtNumber: 2,
+            thoughtNumber: 1,
             totalThoughts: 2,
             sessionId: sessionId,
             conclusion: "This analysis demonstrates [[synthesis]] of concepts."
@@ -350,7 +350,7 @@ public class SequentialThinkingToolsTests
         var createResult = SequentialThinkingTools.SequentialThinking(
             response: "Original thought with [[concept]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2
         );
 
@@ -360,19 +360,19 @@ public class SequentialThinkingToolsTests
         var revisionResult = SequentialThinkingTools.SequentialThinking(
             response: "Revised thought with [[refined-concept]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 2,
+            thoughtNumber: 1,
             totalThoughts: 2,
             sessionId: sessionId,
             isRevision: true,
-            revisesThought: 1
+            revisesThought: 0
         );
 
         // Assert
-        Assert.That(revisionResult, Does.Contain("Added thought 2 to session:"));
+        Assert.That(revisionResult, Does.Contain("Added thought 1 to session:"));
 
         // Verify revision heading in content
         var (_, content, _) = MarkdownIO.ReadSession("sequential", sessionId);
-        Assert.That(content, Does.Contain("(Revises: 1)"));
+        Assert.That(content, Does.Contain("(Revises: 0)"));
     }
 
     /// <summary>
@@ -386,7 +386,7 @@ public class SequentialThinkingToolsTests
         var createResult = SequentialThinkingTools.SequentialThinking(
             response: "Main branch thought with [[concept]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2
         );
 
@@ -396,20 +396,20 @@ public class SequentialThinkingToolsTests
         SequentialThinkingTools.SequentialThinking(
             response: "Main branch thought 2 with [[concept-2]].",
             nextThoughtNeeded: false,
-            thoughtNumber: 2,
+            thoughtNumber: 1,
             totalThoughts: 2,
             sessionId: sessionId,
             conclusion: "Main branch conclusion with [[concept-main]]."
         );
 
-        // Act - create branch from thought 1
+        // Act - create branch from thought 0
         var branchResult = SequentialThinkingTools.SequentialThinking(
             response: "Branched thought with [[alternative-concept]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2,
             sessionId: sessionId,
-            branchFromThought: 1,
+            branchFromThought: 0,
             branchId: "alternative-analysis"
         );
 
@@ -432,7 +432,7 @@ public class SequentialThinkingToolsTests
         var createResult = SequentialThinkingTools.SequentialThinking(
             response: "First thought with [[concept-1]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2
         );
 
@@ -442,14 +442,14 @@ public class SequentialThinkingToolsTests
         var expandResult = SequentialThinkingTools.SequentialThinking(
             response: "Second thought with [[concept-2]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 2,
+            thoughtNumber: 1,
             totalThoughts: 2,
             sessionId: sessionId,
             needsMoreThoughts: true
         );
 
         // Assert
-        Assert.That(expandResult, Does.Contain("Continue with thought 3/?"));
+        Assert.That(expandResult, Does.Contain("Continue with thought 2/?"));
         Assert.That(expandResult, Does.Contain("extending beyond initial estimate"));
     }
 
@@ -467,7 +467,7 @@ public class SequentialThinkingToolsTests
         var result = SequentialThinkingTools.SequentialThinking(
             response: "Thinking with [[concept]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2,
             parentWorkflowId: invalidParentId
         );
@@ -488,7 +488,7 @@ public class SequentialThinkingToolsTests
         var createResult = SequentialThinkingTools.SequentialThinking(
             response: "First thought with [[concept]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2
         );
 
@@ -505,11 +505,11 @@ public class SequentialThinkingToolsTests
         };
         MarkdownIO.CreateSession("workflow", parentSessionId, parentFrontmatter, "# Workflow\n\nTest.");
 
-        // Act - try to set parent on thought 2
+        // Act - try to set parent on thought 1
         var result = SequentialThinkingTools.SequentialThinking(
             response: "Second thought with [[concept-2]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 2,
+            thoughtNumber: 1,
             totalThoughts: 2,
             sessionId: sessionId,
             parentWorkflowId: parentSessionId
@@ -531,7 +531,7 @@ public class SequentialThinkingToolsTests
         var createResult = SequentialThinkingTools.SequentialThinking(
             response: "Analyzing problem space with [[architecture]] and [[design-patterns]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 3,
             analysisType: "architecture"
         );
@@ -539,23 +539,23 @@ public class SequentialThinkingToolsTests
         Assert.That(createResult, Does.Contain("Created session:"));
         var sessionId = ExtractSessionId(createResult);
 
-        // Act Step 2: Continue with thought 2
+        // Act Step 2: Continue with thought 1
         var continueResult2 = SequentialThinkingTools.SequentialThinking(
             response: "Implementing solution with [[implementation]] details and [[testing]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 2,
+            thoughtNumber: 1,
             totalThoughts: 3,
             sessionId: sessionId,
             thoughts: "Considering [[performance]] implications."
         );
 
-        Assert.That(continueResult2, Does.Contain("Added thought 2 to session:"));
+        Assert.That(continueResult2, Does.Contain("Added thought 1 to session:"));
 
-        // Act Step 3: Continue with thought 3 and complete
+        // Act Step 3: Continue with thought 2 and complete
         var completeResult = SequentialThinkingTools.SequentialThinking(
             response: "Reviewing and refining with [[quality-assurance]].",
             nextThoughtNeeded: false,
-            thoughtNumber: 3,
+            thoughtNumber: 2,
             totalThoughts: 3,
             sessionId: sessionId,
             conclusion: "Concluded that [[modular-design]] with [[robust-testing]] is the best approach."
@@ -574,9 +574,9 @@ public class SequentialThinkingToolsTests
         Assert.That(frontmatter?["thoughtCount"].ToString(), Is.EqualTo("3"));
 
         // Verify content contains all thoughts
+        Assert.That(content, Does.Contain("Thought 0/3"));
         Assert.That(content, Does.Contain("Thought 1/3"));
         Assert.That(content, Does.Contain("Thought 2/3"));
-        Assert.That(content, Does.Contain("Thought 3/3"));
         Assert.That(content, Does.Contain("Analyzing problem space"));
         Assert.That(content, Does.Contain("Implementing solution"));
         Assert.That(content, Does.Contain("Reviewing and refining"));
@@ -599,7 +599,7 @@ public class SequentialThinkingToolsTests
         var result = SequentialThinkingTools.SequentialThinking(
             response: response,
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 1,
             thoughts: thoughts
         );
@@ -632,7 +632,7 @@ public class SequentialThinkingToolsTests
         var result = SequentialThinkingTools.SequentialThinking(
             response: "Thought with [[concept]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 2,
+            thoughtNumber: 1,
             totalThoughts: 3,
             sessionId: nonexistentSessionId
         );
@@ -656,7 +656,7 @@ public class SequentialThinkingToolsTests
         var createResult = SequentialThinkingTools.SequentialThinking(
             response: "Main thought with [[concept]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2
         );
 
@@ -666,10 +666,10 @@ public class SequentialThinkingToolsTests
         var result = SequentialThinkingTools.SequentialThinking(
             response: "Branched thought with [[alternative-concept]].",
             nextThoughtNeeded: true,
-            thoughtNumber: 1,
+            thoughtNumber: 0,
             totalThoughts: 2,
             sessionId: sessionId,
-            branchFromThought: 1,
+            branchFromThought: 0,
             branchId: null  // Missing branchId for multi-agent coordination
         );
 
@@ -681,16 +681,16 @@ public class SequentialThinkingToolsTests
 
     private static string ExtractSessionId(string responseMessage)
     {
-        // Format: "Created session: session-1234567890"
+        // Format: "Created session: session-1234567890" or "Added thought X to session: session-1234567890"
         var lines = responseMessage.Split('\n');
         foreach (var line in lines)
         {
-            if (line.Contains("Created session:"))
+            if (line.Contains("Created session:") || line.Contains("to session:"))
             {
                 var parts = line.Split(':');
                 if (parts.Length > 1)
                 {
-                    return parts[1].Trim();
+                    return parts[^1].Trim();
                 }
             }
         }

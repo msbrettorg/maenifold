@@ -89,7 +89,8 @@ Returns related concepts with relationship types, file references, and connectio
 
         foreach (var (related, count, files) in directRelations)
         {
-            var fileList = JsonSerializer.Deserialize<List<string>>(files) ?? new();
+            // SEC-001: Use safe JSON options with depth limit
+            var fileList = JsonSerializer.Deserialize<List<string>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
             var relatedConcept = new RelatedConcept
             {
                 Name = related,

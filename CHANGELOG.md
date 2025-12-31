@@ -4,11 +4,30 @@ All notable changes to maenifold MCP Server will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+- **SEC-001**: Added JSON deserialization depth limits (MaxDepth=32) to prevent DoS attacks via deeply nested JSON payloads. New `SafeJson` utility provides consistent protection across all deserialization paths:
+  - CLI payload parsing (Program.cs)
+  - Asset loading (AssetManager.cs)
+  - Workflow JSON parsing (WorkflowOperations.Core.cs, WorkflowOperations.Management.cs)
+  - Graph file list parsing (GraphTools.cs, IncrementalSync.Database.cs, ConceptSync.cs)
+  - Payload parameter extraction (PayloadReader.cs)
+  - Asset file parsing (AssetResources.cs, AdoptTools.cs)
+
 ### Removed
 - **AddMissingH1**: Deprecated and removed the one-time migration tool. All memory files now include H1 headers via WriteMemory, making this tool obsolete.
 
 ### Changed
 - SequentialThinking docs and error text now explicitly enforce starting sessions at `thoughtNumber=0`, clarifying flows that previously failed when called at 1 without a session.
+
+### Added
+- **TEST-001**: Expanded test coverage with 49 new tests:
+  - `SystemToolsTests.cs` (15 tests) - GetConfig, GetHelp, ListMemories, MemoryStatus, UpdateAssets
+  - `AdoptToolsTests.cs` (15 tests) - role/color/perspective loading, error handling
+  - `GraphAnalyzerTests.cs` (19 tests) - Visualize, RandomWalk, edge cases
+- Test suite now has 252 tests total (242 active, 10 skipped benchmarks)
+
+### Fixed
+- **SequentialThinkingToolsTests**: Fixed 14 failing tests that incorrectly used `thoughtNumber=1` for new sessions instead of `thoughtNumber=0`.
 
 ## [1.0.2] - 2025-11-19
 

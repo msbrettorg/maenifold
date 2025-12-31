@@ -50,16 +50,17 @@ Returns session management with continuation guidance and checkpoint suggestions
                 return validationError!;
         }
 
+        var sessionIdProvided = sessionId != null;
+
         if (sessionId == null)
             sessionId = $"session-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
 
-        var sessionIdProvided = sessionId != null;
         if (sessionIdProvided && !IsValidSessionIdFormat(sessionId!))
             return "ERROR: Invalid sessionId format. Use maenifold-generated values (session-{unix-milliseconds}) or omit sessionId to start a new session.";
 
         var (sessionExists, _) = DetermineSessionState(sessionId!, thoughtNumber, isRevision);
 
-        if (sessionIdProvided && thoughtNumber == 1 && !sessionExists && !isRevision)
+        if (sessionIdProvided && thoughtNumber == 0 && !sessionExists && !isRevision)
             return $"ERROR: Session {sessionId} not found. To start new session, don't provide sessionId.";
 
         var parentWorkflowError = ValidateParentWorkflow(parentWorkflowId, thoughtNumber);
@@ -70,9 +71,9 @@ Returns session management with continuation guidance and checkpoint suggestions
         if (branchFromThought.HasValue && string.IsNullOrEmpty(branchId))
             return "ERROR: branchId required when branchFromThought is specified for multi-agent coordination";
 
-        if (thoughtNumber == 1 && string.IsNullOrEmpty(branchId) && sessionExists && !isRevision)
+        if (thoughtNumber == 0 && string.IsNullOrEmpty(branchId) && sessionExists && !isRevision && !cancel)
             return $"ERROR: Session {sessionId} exists. Use different sessionId or continue existing.";
-        if (thoughtNumber > 1 && !sessionExists && !isRevision)
+        if (thoughtNumber > 0 && !sessionExists && !isRevision && !cancel)
             return $"ERROR: Session {sessionId} missing. Start with thoughtNumber=0.";
         if (isRevision && !sessionExists)
             return $"ERROR: Cannot revise - session {sessionId} doesn't exist.";
@@ -145,7 +146,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         if (string.IsNullOrEmpty(parentWorkflowId))
             return null;
 
-        if (thoughtNumber != 1)
+        if (thoughtNumber != 0)
             return "ERROR: Parent workflow can only be set on first thought.";
 
         if (!MarkdownIO.SessionExists("workflow", parentWorkflowId))
@@ -238,10 +239,10 @@ Returns session management with continuation guidance and checkpoint suggestions
             frontmatter ??= new Dictionary<string, object>();
             frontmatter["status"] = "cancelled";
             frontmatter["cancelled"] = DateTime.UtcNow.ToString("o");
-            // Use thoughtNumber if provided (non-zero), otherwise preserve existing thoughtCount
-            if (thoughtNumber > 0)
+            // Use thoughtNumber if provided (non-negative), otherwise preserve existing thoughtCount
+            if (thoughtNumber >= 0)
             {
-                frontmatter["thoughtCount"] = thoughtNumber;
+                frontmatter["thoughtCount"] = thoughtNumber + 1;
             }
             else if (!frontmatter.ContainsKey("thoughtCount"))
             {
@@ -258,14 +259,14 @@ Returns session management with continuation guidance and checkpoint suggestions
             frontmatter ??= new Dictionary<string, object>();
             frontmatter["status"] = "completed";
             frontmatter["completed"] = DateTime.UtcNow.ToString("o");
-            frontmatter["thoughtCount"] = thoughtNumber;
+            frontmatter["thoughtCount"] = thoughtNumber + 1;
             MarkdownIO.UpdateSession("sequential", sessionId, frontmatter, existingContent);
         }
     }
 
     private static string BuildCompletionMessage(int thoughtNumber, string sessionId, bool cancel, bool nextThoughtNeeded, bool needsMoreThoughts, int totalThoughts)
     {
-        var responseMessage = thoughtNumber == 1
+        var responseMessage = thoughtNumber == 0
             ? $"Created session: {sessionId}"
             : $"Added thought {thoughtNumber} to session: {sessionId}";
 
@@ -280,14 +281,14 @@ Returns session management with continuation guidance and checkpoint suggestions
         else
         {
             var nextThought = thoughtNumber + 1;
-            var nextTotal = needsMoreThoughts && thoughtNumber >= totalThoughts ? "?" : CultureInvariantHelpers.ToString(totalThoughts);
+            var nextTotal = needsMoreThoughts && thoughtNumber >= totalThoughts - 1 ? "?" : CultureInvariantHelpers.ToString(totalThoughts);
             responseMessage += $"\n\n💭 Continue with thought {nextThought}/{nextTotal}";
-            if (needsMoreThoughts && thoughtNumber >= totalThoughts)
+            if (needsMoreThoughts && thoughtNumber >= totalThoughts - 1)
             {
                 responseMessage += " (extending beyond initial estimate)";
             }
 
-            if (thoughtNumber == 1 || thoughtNumber % CheckpointFrequency == 0)
+            if (thoughtNumber == 0 || thoughtNumber % CheckpointFrequency == 0)
             {
                 responseMessage += "\n\n💡 **CHECK YOUR MEMORY:** `search_memories` for what exists and `build_context` on [[concepts]] | `sync` new findings to add them to the graph";
             }

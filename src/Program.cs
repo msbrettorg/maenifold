@@ -7,7 +7,6 @@ using ModelContextProtocol.Server;
 using Maenifold.Tools;
 using Maenifold.Utils;
 
-
 AssetManager.InitializeAssets();
 if (args.Contains("--mcp"))
 {
@@ -65,7 +64,7 @@ Config.EnsureDirectories();
 var toolName = args[toolIndex + 1];
 var payloadJson = args[payloadIndex + 1];
 
-var payload = JsonSerializer.Deserialize<JsonElement>(payloadJson);
+var payload = JsonSerializer.Deserialize<JsonElement>(payloadJson, SafeJson.Options);
 
 if (ToolRegistry.TryInvoke(toolName, payload, out var result))
 {

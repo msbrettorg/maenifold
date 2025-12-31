@@ -107,7 +107,7 @@ namespace Maenifold.Utils
             {
                 try
                 {
-                    return JsonSerializer.Deserialize<string[]>(element.GetRawText()) ?? null;
+                    return JsonSerializer.Deserialize<string[]>(element.GetRawText(), SafeJson.Options) ?? null;
                 }
                 catch
                 {
@@ -129,7 +129,7 @@ namespace Maenifold.Utils
             {
                 try
                 {
-                    return JsonSerializer.Deserialize<T>(element.GetRawText());
+                    return JsonSerializer.Deserialize<T>(element.GetRawText(), SafeJson.Options);
                 }
                 catch (JsonException)
                 {

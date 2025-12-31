@@ -13,7 +13,8 @@ internal static partial class WorkflowOperations
         var ids = new List<string>();
         if (workflowId.StartsWith('['))
         {
-            ids = JsonSerializer.Deserialize<List<string>>(workflowId)!;
+            // SEC-001: Use safe JSON options with depth limit
+            ids = JsonSerializer.Deserialize<List<string>>(workflowId, Maenifold.Utils.SafeJson.Options)!;
         }
         else
         {
@@ -30,7 +31,8 @@ internal static partial class WorkflowOperations
             return $"ERROR: Workflow '{ids[0]}' not found";
         }
 
-        var firstWorkflow = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(firstWorkflowPath));
+        // SEC-001: Use safe JSON options with depth limit
+        var firstWorkflow = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(firstWorkflowPath), Maenifold.Utils.SafeJson.Options);
         if (!firstWorkflow.TryGetProperty("steps", out var stepsProperty))
         {
             return $"ERROR: Workflow '{ids[0]}' is missing 'steps' property";
@@ -99,7 +101,8 @@ internal static partial class WorkflowOperations
 
 
         var currentWorkflowPath = Path.Combine(WorkflowCommon.WorkflowsPath, $"{queue[currentWorkflowIndex]}.json");
-        var currentWorkflow = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(currentWorkflowPath));
+        // SEC-001: Use safe JSON options with depth limit
+        var currentWorkflow = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(currentWorkflowPath), Maenifold.Utils.SafeJson.Options);
         var steps = currentWorkflow.GetProperty("steps").EnumerateArray().ToList();
 
         var result = new StringBuilder();

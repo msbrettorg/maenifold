@@ -139,7 +139,7 @@ public static class ConceptSync
 
                     foreach (var edge in edges)
                     {
-                        var fileList = JsonSerializer.Deserialize<List<string>>(edge.files) ?? new();
+                        var fileList = JsonSerializer.Deserialize<List<string>>(edge.files, SafeJson.Options) ?? new();
                         fileList.Remove(filePath);
 
                         if (fileList.Count == 0)
@@ -243,7 +243,7 @@ public static class ConceptSync
 
                 if (existingData != null)
                 {
-                    var files = JsonSerializer.Deserialize<List<string>>(existingData.source_files) ?? new();
+                    var files = JsonSerializer.Deserialize<List<string>>(existingData.source_files, SafeJson.Options) ?? new();
 
                     if (!files.Contains(memoryUri))
                     {

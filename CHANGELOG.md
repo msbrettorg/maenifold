@@ -16,7 +16,8 @@ All notable changes to maenifold MCP Server will be documented in this file.
 
 ### Fixed
 - **DOCS-001**: Synced tool documentation between `src/assets/usage/tools/` and `docs/usage/tools/`:
-  - Added missing `codex-specialist` role to adopt.md
+  - Fixed adopt.md to list all 16 built-in roles, 7 colors, 12 language perspectives
+  - Added custom assets documentation ($MAENIFOLD_ROOT/assets/ for runtime assets)
   - Fixed MoveMemory overwrite behavior text (correctly states NO overwrite)
   - Added nested WikiLink warning to editmemory.md
   - Added depth limits (1-5 hops) to visualize.md

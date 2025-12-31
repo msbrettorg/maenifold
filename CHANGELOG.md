@@ -4,6 +4,17 @@ All notable changes to maenifold MCP Server will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **EVAL-001e**: Refactored SessionStart hook (`~/.claude/hooks/session_start.sh`) from v1 to v2:
+  - JSON output format with `hookSpecificOutput.additionalContext` (was plain text)
+  - Portable CLI detection via PATH with fallback
+  - Hub concepts ranked by frequency (not just recent)
+  - FindSimilarConcepts expansion for semantic discovery
+  - Active SequentialThinking session detection with warning
+  - CWD-based repository context hints via SearchMemories
+  - Single RecentActivity call (was called twice)
+  - Graceful degradation when maenifold unavailable
+
 ### Removed
 - **DEPR-002**: Removed 7 unused Config.cs properties that were defined but never referenced:
   - `MaxDebounceBatchSize` (`MAENIFOLD_MAX_BATCH_SIZE`)

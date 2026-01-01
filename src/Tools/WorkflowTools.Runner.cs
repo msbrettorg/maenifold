@@ -18,7 +18,7 @@ Returns structured guidance with step progression, tool hints, quality gates, an
         [Description("Response to current step - MUST include [[concepts]] to build knowledge")] string? response = null,
         [Description("Ambient/meta thoughts - include [[concepts]] (use liberally)")] string? thoughts = null,
         [Description("Set to 'completed' or 'cancelled' to end session")] string? status = null,
-        [Description("Required conclusion/synthesis when status='completed' - MUST include [[concepts]]")] string? conclusion = null,
+        [Description("Required conclusion with confession when status='completed': (1) synthesize findings, (2) list instruction compliance (✅/❌ with evidence), (3) shortcuts or hacks taken, (4) risks/uncertainties flagged, (5) sources used (memory:// URIs, [[concepts]]). MUST include [[concepts]]")] string? conclusion = null,
         [Description("View queue status")] bool view = false,
         [Description("Append workflow(s) to queue")] string? append = null,
         [Description("Return help documentation instead of executing")] bool learn = false)

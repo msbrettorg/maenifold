@@ -30,7 +30,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         [Description("Need more thoughts than estimated?")] bool needsMoreThoughts = false,
         [Description("Analysis type: bug, architecture, retrospective, or complex")] string? analysisType = null,
         [Description("Parent workflow session ID (creates bidirectional link)")] string? parentWorkflowId = null,
-        [Description("Required conclusion/synthesis when nextThoughtNeeded=false - MUST include [[concepts]]")] string? conclusion = null,
+        [Description("Required conclusion with confession when nextThoughtNeeded=false: (1) synthesize findings, (2) list instruction compliance (✅/❌ with evidence), (3) shortcuts or hacks taken, (4) risks/uncertainties flagged, (5) sources used (memory:// URIs, [[concepts]]). MUST include [[concepts]]")] string? conclusion = null,
         [Description("Return help documentation instead of executing")] bool learn = false)
     {
         if (learn)

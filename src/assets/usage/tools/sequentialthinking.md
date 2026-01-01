@@ -48,12 +48,17 @@ Parameters explained:
 - sessionId: Continue an existing session; omit to start a new one
 - analysisType: Optional annotation (bug, architecture, retrospective, complex)
 - parentWorkflowId: Optional; only on thought 1; links to an active workflow and creates a [[workflow/{id}]] back-link
-- conclusion: Required (with [[concepts]]) when nextThoughtNeeded is false
+- conclusion: Required when nextThoughtNeeded is false. Must include [[concepts]] AND confession elements:
+  1. Synthesize findings
+  2. List instruction compliance (✅/❌ with evidence)
+  3. Shortcuts or hacks taken
+  4. Risks/uncertainties flagged
+  5. Sources used (memory:// URIs, [[concepts]])
 - cancel: Set to true to cancel a session; skips concept validation and conclusion
 - learn: Set to true to return this help text instead of executing
 
 maenifold specifics:
-- response/thoughts MUST include [[concepts]]; conclusion with [[concepts]] is required when nextThoughtNeeded is false
+- response/thoughts MUST include [[concepts]]; conclusion with [[concepts]] and confession structure is required when nextThoughtNeeded is false
 - Sessions persist to memory://thinking/sequential/{sessionId}.md with agent tag, timestamps, and frontmatter
 - New sessions start at thoughtNumber=0 (sessionId auto-created). thoughtNumber>0 requires the session to exist unless isRevision is true; an existing sessionId with thoughtNumber=1 is rejected unless revising
 - branchId is required when branchFromThought is set (multi-agent safety)

@@ -1,0 +1,9 @@
+{
+  "name": "maenifold",
+  "version": "0.1.0",
+  "description": "CLI integration for maenifold knowledge graph and reasoning infrastructure",
+  "author": {
+    "name": "MSBrett",
+    "url": "https://github.com/msbrettorg/maenifold"
+  }
+}

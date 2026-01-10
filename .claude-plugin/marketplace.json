@@ -1,0 +1,13 @@
+{
+  "name": "maenifold-marketplace",
+  "owner": {
+    "name": "maenifold"
+  },
+  "plugins": [
+    {
+      "name": "maenifold",
+      "source": "./integrations/claude-code/plugin",
+      "description": "maenifold knowledge graph and reasoning infrastructure."
+    }
+  ]
+}

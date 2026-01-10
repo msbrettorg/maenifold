@@ -1,2 +1,0 @@
-#!/bin/zsh
-exec $HOME/.npm-global/bin/claude --allow-dangerously-skip-permissions --append-system-prompt "$(<"$HOME/src/ma-collective/maenifold/integrations/claude-code/plugin/PROMPT.md")" --plugin-dir $HOME/src/ma-collective/maenifold/integrations/claude-code/plugin "$@"

@@ -6,16 +6,6 @@
 				"--mcp"
 			],
 			"type": "stdio"
-		},
-		"microsoft-docs": {
-			"type": "http",
-			"url": "https://learn.microsoft.com/api/mcp"
-		},
-		"fetch": {
-			"command": "uvx",
-			"args": [
-				"mcp-server-fetch"
-			]
 		}
 	}
 }

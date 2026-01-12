@@ -1,6 +1,6 @@
 ---
 name: ma:adopt
-description:Loads role, color, or perspective JSON configuration to enable specialized thinking modes
+description: Loads role, color, or perspective JSON configuration to enable specialized thinking modes
 ---
 
 Loads role, color, or perspective JSON configuration to enable specialized thinking modes.

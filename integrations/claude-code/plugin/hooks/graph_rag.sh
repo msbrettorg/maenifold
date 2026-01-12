@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
 # Graph RAG Hook - Claude Code + Maenifold Integration
-# Usage: graph_rag.sh {session_start|task_augment|pre_compact}
+# Usage: graph_rag.sh {session_start|task_augment|pre_compact|subagent_stop}
 #
 
 set -euo pipefail
 
 MODE="${1:-}"
-[[ -z "$MODE" ]] && { echo '{"error":"Usage: graph_rag.sh {session_start|task_augment|pre_compact}"}' >&2; exit 1; }
+[[ -z "$MODE" ]] && { echo '{"error":"Usage: graph_rag.sh {session_start|task_augment|pre_compact|subagent_stop}"}' >&2; exit 1; }
 
 # --- Shared Functions ---
 
@@ -104,7 +104,7 @@ if [[ "$MODE" == "session_start" ]]; then
 
   # Get recency context, rank by frequency
   RECENCY_CONCEPTS=$(run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool RecentActivity --payload \
-    '{"limit":10,"timespan":"24:00:00:00","includeContent":true}' | \
+    '{"limit":10,"timespan":"1.00:00:00","includeContent":true}' | \
     extract_concepts | sort | uniq -c | sort -rn | head -10 | awk '{print $2}')
 
   # Merge: project first, then recency (deduplicated)
@@ -217,6 +217,42 @@ if [[ "$MODE" == "pre_compact" ]]; then
 
   echo '{}'
   exit 0
+fi
+
+# --- Mode: subagent_stop ---
+# Enforce ConfessionReport requirement before subagent can stop
+# Returns {"decision":"block","reason":"..."} to force continuation
+
+if [[ "$MODE" == "subagent_stop" ]]; then
+  HOOK_INPUT=$(cat)
+
+  # Validate JSON before processing
+  if ! echo "$HOOK_INPUT" | jq -e 'select(type == "object")' >/dev/null 2>&1; then
+    exit 0
+  fi
+
+  # Extract agent transcript path from hook input
+  TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.agent_transcript_path // ""')
+
+  # If no transcript path, allow stop (graceful fallback)
+  [[ -z "$TRANSCRIPT_PATH" || "$TRANSCRIPT_PATH" == "null" ]] && exit 0
+
+  # Expand ~ to $HOME if present
+  TRANSCRIPT_PATH="${TRANSCRIPT_PATH/#\~/$HOME}"
+
+  # Check if transcript file exists
+  [[ ! -f "$TRANSCRIPT_PATH" ]] && exit 0
+
+  # Search for ConfessionReport in the transcript
+  if grep -q "ConfessionReport" "$TRANSCRIPT_PATH" 2>/dev/null; then
+    # ConfessionReport found - allow subagent to stop
+    exit 0
+  else
+    # ConfessionReport missing - block and request one
+    REASON="Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[concepts]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction."
+    jq -n --arg reason "$REASON" '{"decision":"block","reason":$reason}'
+    exit 0
+  fi
 fi
 
 echo "{\"error\":\"Unknown mode: $MODE\"}" >&2

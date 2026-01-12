@@ -32,6 +32,17 @@
           }
         ]
       }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/graph_rag.sh subagent_stop"
+          }
+        ]
+      }
     ]
   }
 }

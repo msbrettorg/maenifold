@@ -64,16 +64,34 @@ Config.EnsureDirectories();
 var toolName = args[toolIndex + 1];
 var payloadJson = args[payloadIndex + 1];
 
-var payload = JsonSerializer.Deserialize<JsonElement>(payloadJson, SafeJson.Options);
+try
+{
+    var payload = JsonSerializer.Deserialize<JsonElement>(payloadJson, SafeJson.Options);
 
-if (ToolRegistry.TryInvoke(toolName, payload, out var result))
-{
-    var output = result is string s ? s : result?.ToString() ?? "";
-    System.Console.WriteLine(output);
+    if (ToolRegistry.TryInvoke(toolName, payload, out var result))
+    {
+        var output = result is string s ? s : result?.ToString() ?? "";
+        System.Console.WriteLine(output);
+    }
+    else
+    {
+        System.Console.WriteLine($"Unknown tool: {toolName}");
+        return;
+    }
 }
-else
+catch (JsonException ex)
 {
-    System.Console.WriteLine($"Unknown tool: {toolName}");
+    Console.WriteLine($"Error invoking {toolName}: {ex.Message}");
+    return;
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Error invoking {toolName}: {ex.Message}");
+    return;
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Error invoking {toolName}: {ex.Message}");
     return;
 }
 

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/graph_rag.sh session_start"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/hooks.sh session_start"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/graph_rag.sh task_augment"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/hooks.sh task_augment"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/graph_rag.sh pre_compact"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/hooks.sh pre_compact"
           }
         ]
       }
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/graph_rag.sh subagent_stop"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/hooks.sh subagent_stop"
           }
         ]
       }

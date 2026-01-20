@@ -17,7 +17,7 @@ public static class MarkdownReader
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
             .Build();
 
-    private static readonly Regex WikiLinkPattern = new(@"\[\[([^\]]+)\]\]", RegexOptions.Compiled);
+    private static readonly Regex WikiLinkPattern = new(@"\[\[([^\[\]]+)\]\]", RegexOptions.Compiled);
 
     public static (Dictionary<string, object>? frontmatter, string content, string checksum) ReadMarkdown(string path)
     {
@@ -216,23 +216,48 @@ public static class MarkdownReader
     private static List<string> ExtractWikiLinksMarkdownAware(string content)
     {
         var concepts = new HashSet<string>();
-        var document = Markdown.Parse(content, Pipeline);
 
-        foreach (var node in document.Descendants())
+        try
         {
+            var document = Markdown.Parse(content, Pipeline);
 
-            if (node is CodeBlock || node is FencedCodeBlock)
-                continue;
-
-
-            if (node is ParagraphBlock paragraph)
+            foreach (var node in document.Descendants())
             {
-                ExtractConceptsFromBlock(content, paragraph, concepts);
+
+                if (node is CodeBlock || node is FencedCodeBlock)
+                    continue;
+
+
+                if (node is ParagraphBlock paragraph)
+                {
+                    ExtractConceptsFromBlock(content, paragraph, concepts);
+                }
+                else if (node is HeadingBlock heading)
+                {
+                    ExtractConceptsFromBlock(content, heading, concepts);
+                }
             }
-            else if (node is HeadingBlock heading)
-            {
-                ExtractConceptsFromBlock(content, heading, concepts);
-            }
+        }
+        catch (ArgumentException ex) when (ex.Message.Contains("depth limit"))
+        {
+            // Fallback: Use regex-only extraction when Markdig depth limit exceeded
+            // This handles adversarial inputs like deeply nested lists (100+ levels)
+            return ExtractWikiLinksRegexOnly(content);
+        }
+
+        return concepts.ToList();
+    }
+
+    private static List<string> ExtractWikiLinksRegexOnly(string content)
+    {
+        var concepts = new HashSet<string>();
+        var matches = WikiLinkPattern.Matches(content);
+
+        foreach (Match match in matches)
+        {
+            var concept = match.Groups[1].Value;
+            var normalized = MarkdownWriter.NormalizeConcept(concept);
+            concepts.Add(normalized);
         }
 
         return concepts.ToList();

@@ -19,14 +19,7 @@ Returns chronological activity list with timestamps, types, and identifiers for 
         [Description("Include full section content (true) or headers only (false, default)")] bool includeContent = false,
         [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(RecentActivity).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(RecentActivity)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(RecentActivity));
 
         try
         {

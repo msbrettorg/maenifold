@@ -48,12 +48,7 @@ Parameters explained:
 - sessionId: Continue an existing session; omit to start a new one
 - analysisType: Optional annotation (bug, architecture, retrospective, complex)
 - parentWorkflowId: Optional; only on thought 1; links to an active workflow and creates a [[workflow/{id}]] back-link
-- conclusion: Required when nextThoughtNeeded is false. Must include [[concepts]] AND confession elements:
-  1. Synthesize findings
-  2. List instruction compliance (✅/❌ with evidence)
-  3. Shortcuts or hacks taken
-  4. Risks/uncertainties flagged
-  5. Sources used (memory:// URIs, [[concepts]])
+- conclusion: Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[concepts]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction.
 - cancel: Set to true to cancel a session; skips concept validation and conclusion
 - learn: Set to true to return this help text instead of executing
 

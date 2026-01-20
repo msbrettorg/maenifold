@@ -20,6 +20,15 @@ public static class ConceptSync
 {
     private static string MemoryPath => Config.MemoryPath;
 
+    /// <summary>
+    /// Helper to execute INSERT OR IGNORE/REPLACE SQL with consistent error handling.
+    /// Consolidates duplicate SQL execution patterns (SIMP-004).
+    /// </summary>
+    private static void ExecuteInsert(SqliteConnection conn, string sql, object parameters)
+    {
+        conn.Execute(sql, parameters);
+    }
+
     public static string Sync()
     {
         var totalSyncTimer = Stopwatch.StartNew();
@@ -83,17 +92,17 @@ public static class ConceptSync
                             conn.Execute("UPDATE file_content SET last_indexed = @t WHERE file_path = @p", new { t = timestamp, p = memoryUri });
                         continue;
                     }
-                    conn.Execute(
+                    ExecuteInsert(conn,
                         "INSERT OR REPLACE INTO file_content (file_path, title, content, last_indexed, status, file_md5) VALUES (@path, @title, @content, @indexed, @status, @md5)",
                         new { path = memoryUri, title, content, indexed = timestamp, status = fileStatus, md5 = fileHash });
                     var fileCreated = CultureInvariantHelpers.FormatDateTime(File.GetCreationTimeUtc(filePath), "O");
                     foreach (var concept in concepts)
                     {
-                        conn.Execute("INSERT OR IGNORE INTO concepts (concept_name, first_seen) VALUES (@name, @seen)",
+                        ExecuteInsert(conn, "INSERT OR IGNORE INTO concepts (concept_name, first_seen) VALUES (@name, @seen)",
                             new { name = concept, seen = fileCreated });
 
                         var count = MarkdownIO.CountConceptOccurrences(content, concept);
-                        conn.Execute("INSERT OR REPLACE INTO concept_mentions (concept_name, source_file, mention_count) VALUES (@concept, @file, @count)",
+                        ExecuteInsert(conn, "INSERT OR REPLACE INTO concept_mentions (concept_name, source_file, mention_count) VALUES (@concept, @file, @count)",
                             new { concept, file = memoryUri, count });
 
                         stats.conceptsFound++;
@@ -254,7 +263,7 @@ public static class ConceptSync
                 }
                 else
                 {
-                    conn.Execute("INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files) VALUES (@a, @b, @count, @files)",
+                    ExecuteInsert(conn, "INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files) VALUES (@a, @b, @count, @files)",
                         new { a, b, count = 1, files = JsonSerializer.Serialize(new[] { memoryUri }) });
                     stats.relationsCreated++;
                 }

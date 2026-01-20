@@ -40,14 +40,7 @@ Integrates with ReadMemory for content access, BuildContext for relationship exp
             [Description("Minimum similarity score threshold (0.0-1.0)")] double minScore = 0.0,
             [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(SearchMemories).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(SearchMemories)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(SearchMemories));
 
         var searchPath = folder != null ? Path.Combine(BasePath, folder) : BasePath;
         if (!Directory.Exists(searchPath))

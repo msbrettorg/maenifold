@@ -47,6 +47,10 @@ All notable changes to maenifold MCP Server will be documented in this file.
   - Root cause: Simple regex matched `[[concepts]]` inside code blocks, creating malformed entries like `n-"$active-session"`
   - Added 10 test cases in `MarkdownReaderTests.cs`
   - Files updated: `src/Utils/MarkdownReader.cs` (~100 lines added)
+- **CCSKILL-001**: Clarified Claude Code `Workflow` skill usage to prevent premature abandonment:
+  - Explicitly requires step-by-step execution of structured workflows (no skipping)
+  - Documents the required start/continue/complete loop using `sessionId + response`
+  - Files updated: `integrations/claude-code/plugin/skills/workflow/SKILL.md`, `integrations/claude-code/vscode/skills/workflow/SKILL.md`
 - **DOCS-001**: Synced tool documentation between `src/assets/usage/tools/` and `docs/usage/tools/`:
   - Fixed adopt.md to list all 16 built-in roles, 7 colors, 12 language perspectives
   - Added custom assets documentation ($MAENIFOLD_ROOT/assets/ for runtime assets)

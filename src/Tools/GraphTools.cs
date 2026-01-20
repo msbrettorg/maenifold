@@ -27,14 +27,7 @@ Integrates with all memory tools for concept extraction, BuildContext for relati
 Returns synchronization status with concept counts, relationship updates, and database health confirmation.")]
     public static string Sync([Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(Sync).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(Sync)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(Sync));
 
         return ConceptSync.Sync();
     }
@@ -173,14 +166,7 @@ Returns Mermaid diagram code ready for rendering, enables visual knowledge archi
             [Description("Max nodes")] int maxNodes = 30,
             [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(Visualize).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(Visualize)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(Visualize));
 
         return GraphAnalyzer.Visualize(conceptName, depth, maxNodes);
     }

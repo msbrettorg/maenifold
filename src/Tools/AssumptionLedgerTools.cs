@@ -25,14 +25,7 @@ Returns declarative next-step suggestions aligned with Ma Protocol restraint.")]
         [Description("Additional notes for updates")] string? notes = null,
         [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(AssumptionLedger).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(AssumptionLedger)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(AssumptionLedger));
 
         try
         {

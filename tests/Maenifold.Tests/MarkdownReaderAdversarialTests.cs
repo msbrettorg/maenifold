@@ -14,7 +14,15 @@ public class MarkdownReaderAdversarialTests
     [Test]
     public void ExtractWikiLinks_NestedCodeBlocks_OuterOnly()
     {
-        // Attack: Nested backticks attempting to escape outer code block
+        // CommonMark alignment test: Malformed nested backticks
+        // Per CommonMark spec 4.5, fence closes at FIRST matching ``` line
+        //
+        // Line 4: ``` (opens fence)
+        // Line 6: ``` (CLOSES fence - first matching fence)
+        // Line 7: "Inner attempt..." is PARAGRAPH text (not in code)
+        // Line 8-9: New fence pair
+        //
+        // Markdig correctly parses line 7 as paragraph → [[should-skip-inner]] WILL be extracted
         var content = @"
 Valid [[concept-before]].
 
@@ -29,17 +37,28 @@ Valid [[concept-after]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
+        // Correct expectations per CommonMark spec:
         Assert.That(concepts, Does.Contain("concept-before"));
         Assert.That(concepts, Does.Contain("concept-after"));
         Assert.That(concepts, Does.Not.Contain("should-skip-outer"));
-        Assert.That(concepts, Does.Not.Contain("should-skip-inner"));
-        Assert.That(concepts.Count, Is.EqualTo(2));
+        // FIXED: should-skip-inner is in paragraph text, so it WILL be extracted
+        Assert.That(concepts, Does.Contain("should-skip-inner"));
+        Assert.That(concepts.Count, Is.EqualTo(3));
     }
 
     [Test]
     public void ExtractWikiLinks_TripleBacktickInsideTripleBacktick()
     {
-        // Attack: Trying to inject triple backticks inside a code block
+        // CommonMark alignment test: Triple backticks inside code fence
+        // Per CommonMark spec 4.5, fence closes at FIRST matching ``` line
+        //
+        // Line 4: ``` (opens fence)
+        // Line 8: ``` (CLOSES fence - consumes "```bash\n[[nested-attack]]" as literal code)
+        // Line 9: "More code" is PARAGRAPH
+        // Line 10: ``` (opens NEW fence that NEVER closes)
+        // Line 12: "Another [[valid-concept]]." is INSIDE unclosed fence
+        //
+        // Markdig correctly parses line 12 as inside unclosed fence → NOT extracted
         var content = @"
 Valid [[concept]].
 
@@ -56,8 +75,10 @@ Another [[valid-concept]].";
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
         Assert.That(concepts, Does.Contain("concept"));
-        Assert.That(concepts, Does.Contain("valid-concept"));
+        // FIXED: valid-concept is inside unclosed code fence, so it will NOT be extracted
+        Assert.That(concepts, Does.Not.Contain("valid-concept"));
         Assert.That(concepts, Does.Not.Contain("nested-attack"));
+        Assert.That(concepts.Count, Is.EqualTo(1));
     }
 
     #endregion

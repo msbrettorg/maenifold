@@ -4,6 +4,12 @@ All notable changes to maenifold MCP Server will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **CCPLUGIN-002**: Added DevAssist AI PRD and Ralph loop plugin docs, commands, hooks, and scripts:
+  - Files added: `docs/agent/PRD.md`, `integrations/claude-code/plugin/README_RALPH.md`, `integrations/claude-code/plugin/commands/cancel-ralph.md`, `integrations/claude-code/plugin/commands/help-ralph.md`, `integrations/claude-code/plugin/commands/ralph-loop.md`, `integrations/claude-code/plugin/hooks/stop-hook.sh`, `integrations/claude-code/plugin/scripts/setup-ralph-loop.sh`
+  - Agent docs updated: `integrations/claude-code/plugin/agents/blue-team.md`, `integrations/claude-code/plugin/agents/ma.md`, `integrations/claude-code/plugin/agents/red-team.md`, `integrations/claude-code/plugin/agents/researcher.md`, `integrations/claude-code/plugin/agents/swe.md`
+  - PROMPT guidance synced: `src/assets/usage/PROMPT.md`, `docs/usage/PROMPT.md`
+
 ### Changed
 - **GRAPH-001**: BuildContext now extracts the H2 section containing the concept mention instead of showing the file start:
   - Added `ExtractSectionWithConcept()` method that parses markdown sections and finds where `[[concept]]` is mentioned

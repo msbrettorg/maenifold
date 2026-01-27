@@ -109,7 +109,6 @@ external-libs/
 TODO.md
 AGENTS.md
 CLAUDE.md
-RTM.md
 implementation_plan.md
 
 # Documentation development artifacts (keep built site for GitHub Pages)

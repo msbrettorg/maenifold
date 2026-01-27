@@ -1,0 +1,134 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DOTNET_VERSION: '9.0.x'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            rid: osx-arm64
+            artifact: maenifold-osx-arm64
+          - os: macos-13
+            rid: osx-x64
+            artifact: maenifold-osx-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact: maenifold-linux-x64
+          - os: ubuntu-24.04-arm
+            rid: linux-arm64
+            artifact: maenifold-linux-arm64
+          - os: windows-latest
+            rid: win-x64
+            artifact: maenifold-win-x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish
+        run: |
+          dotnet publish src/maenifold.csproj \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            --self-contained \
+            -o publish/${{ matrix.artifact }}
+
+      - name: Create tarball (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd publish
+          tar -czvf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}
+
+      - name: Create zip (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd publish
+          Compress-Archive -Path ${{ matrix.artifact }} -DestinationPath ${{ matrix.artifact }}.zip
+
+      - name: Upload artifact (Unix)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: publish/${{ matrix.artifact }}.tar.gz
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: publish/${{ matrix.artifact }}.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.tar.gz
+            artifacts/**/*.zip
+
+  update-homebrew:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download artifacts for checksums
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Calculate SHA256 checksums
+        id: checksums
+        run: |
+          echo "osx_arm64=$(sha256sum artifacts/maenifold-osx-arm64/*.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "osx_x64=$(sha256sum artifacts/maenifold-osx-x64/*.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "linux_arm64=$(sha256sum artifacts/maenifold-linux-arm64/*.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "linux_x64=$(sha256sum artifacts/maenifold-linux-x64/*.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+
+      - name: Update Homebrew formula
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          repository: msbrettorg/homebrew-tap
+          event-type: update-formula
+          client-payload: |
+            {
+              "version": "${{ github.ref_name }}",
+              "osx_arm64_sha256": "${{ steps.checksums.outputs.osx_arm64 }}",
+              "osx_x64_sha256": "${{ steps.checksums.outputs.osx_x64 }}",
+              "linux_arm64_sha256": "${{ steps.checksums.outputs.linux_arm64 }}",
+              "linux_x64_sha256": "${{ steps.checksums.outputs.linux_x64 }}"
+            }

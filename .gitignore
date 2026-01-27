@@ -106,7 +106,6 @@ external-libs/
 
 # Documentation drafts (private)
 *.draft.md
-AGENTS.md
 CLAUDE.md
 implementation_plan.md
 

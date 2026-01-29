@@ -37,12 +37,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Publish
-        run: |
-          dotnet publish src/Maenifold.csproj \
-            -c Release \
-            -r ${{ matrix.rid }} \
-            --self-contained \
-            -o publish/${{ matrix.artifact }}
+        run: dotnet publish src/Maenifold.csproj -c Release -r ${{ matrix.rid }} --self-contained -o publish/${{ matrix.artifact }}
 
       - name: Create tarball (Unix)
         if: runner.os != 'Windows'

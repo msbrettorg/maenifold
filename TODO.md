@@ -23,6 +23,7 @@
 
 **Added:**
 - TEST-001: 49 new tests (252 total, 242 active)
+- DIST-001: Windows MSI installer with PATH integration
 
 **Removed:**
 - DEPR-002: 7 unused Config.cs properties
@@ -33,16 +34,20 @@
 1. [ ] Bump version in `src/Maenifold.csproj` from 1.0.2 to 1.0.3
 2. [ ] Update CHANGELOG.md: Move [Unreleased] to [1.0.3] with date
 3. [ ] Run full test suite: `dotnet test`
-4. [ ] Create PR dev → main
-5. [ ] After merge, tag v1.0.3 on main and push (triggers release workflow)
-6. [ ] Verify GitHub Release created with 5 platform archives
-7. [ ] Verify Homebrew formula auto-updated
+4. [ ] Create WiX MSI configuration (installer/, wix.json, PATH integration)
+5. [ ] Update release.yml to build MSI on Windows
+6. [ ] Create PR dev → main
+7. [ ] After merge, tag v1.0.3 on main and push (triggers release workflow)
+8. [ ] Verify GitHub Release created with 6 artifacts (5 archives + MSI)
+9. [ ] Verify Homebrew formula auto-updated
 
 ### Acceptance Criteria
 
-- [ ] All 252 tests pass
+- [ ] All tests pass
 - [ ] v1.0.3 tag created on main branch
-- [ ] GitHub Release created with 5 platform archives (osx-arm64, osx-x64, linux-x64, linux-arm64, win-x64)
+- [ ] GitHub Release created with 6 artifacts (osx-arm64, osx-x64, linux-x64, linux-arm64, win-x64, win-x64.msi)
+- [ ] MSI installer adds maenifold to system PATH
+- [ ] MSI uninstall cleanly removes PATH entry
 - [ ] Homebrew formula updated automatically via repository dispatch
 - [ ] `brew upgrade maenifold` works after release
 
@@ -146,26 +151,17 @@ The maenifold-py repository has type checking issues that need resolution before
 
 ## DIST-001: Windows MSI installer
 
-**Status**: Inactive
-**Priority**: Medium
+**Status**: Merged into REL-001
+**Priority**: High
 **Created**: 2026-01-27
 
 ### Problem
 
 Windows users must manually download and extract release archives. An MSI installer would provide a better experience.
 
-### Tasks
+### Resolution
 
-1. [ ] Research WiX or similar MSI tooling
-2. [ ] Create MSI build configuration
-3. [ ] Add MSI to release workflow
-4. [ ] Update documentation with Windows install instructions
-
-### Acceptance Criteria
-
-- [ ] MSI installer published with each release
-- [ ] Installer adds maenifold to PATH
-- [ ] Uninstall works cleanly
+Merged into REL-001 (v1.0.3 release). See REL-001 tasks 4-5 for implementation.
 
 ---
 

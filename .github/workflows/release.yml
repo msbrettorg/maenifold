@@ -59,6 +59,12 @@ jobs:
           cd publish
           Compress-Archive -Path ${{ matrix.artifact }} -DestinationPath ${{ matrix.artifact }}.zip
 
+      - name: Build MSI
+        if: matrix.rid == 'win-x64'
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          wix build installer/maenifold.wxs -o publish/maenifold-${{ github.ref_name }}-win-x64.msi -arch x64
+
       - name: Upload artifact (Unix)
         if: runner.os != 'Windows'
         uses: actions/upload-artifact@v4
@@ -72,6 +78,13 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: publish/${{ matrix.artifact }}.zip
+
+      - name: Upload MSI artifact
+        if: matrix.rid == 'win-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: maenifold-win-x64-msi
+          path: publish/maenifold-*.msi
 
   release:
     needs: build
@@ -97,6 +110,7 @@ jobs:
           files: |
             artifacts/**/*.tar.gz
             artifacts/**/*.zip
+            artifacts/**/*.msi
 
   update-homebrew:
     needs: release

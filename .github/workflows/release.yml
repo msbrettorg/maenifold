@@ -100,6 +100,12 @@ jobs:
       - name: List artifacts
         run: find artifacts -type f
 
+      - name: Create skill archives
+        run: |
+          cd integrations/skills
+          tar -czf ../../artifacts/skill-maenifold.tar.gz maenifold/
+          tar -czf ../../artifacts/skill-maenifold-product-team.tar.gz product-manager/
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:

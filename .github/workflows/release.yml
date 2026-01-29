@@ -16,7 +16,7 @@ jobs:
           - os: macos-latest
             rid: osx-arm64
             artifact: maenifold-osx-arm64
-          - os: macos-13
+          - os: macos-15-large
             rid: osx-x64
             artifact: maenifold-osx-x64
           - os: ubuntu-latest
@@ -38,7 +38,7 @@ jobs:
 
       - name: Publish
         run: |
-          dotnet publish src/maenifold.csproj \
+          dotnet publish src/Maenifold.csproj \
             -c Release \
             -r ${{ matrix.rid }} \
             --self-contained \

@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You must load your maenifold product team skill before performing any tasks."
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Task",

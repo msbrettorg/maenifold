@@ -30,7 +30,10 @@
   <Fragment>
     <!-- Include all files from the publish output -->
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-      <Files Include="publish\win-x64\**" />
+      <Component>
+        <File Id="maenifold.exe" Source="publish\win-x64\maenifold.exe" KeyPath="yes" />
+      </Component>
+      <Files Include="publish\win-x64\**" Exclude="publish\win-x64\maenifold.exe" />
     </ComponentGroup>
 
     <!-- PATH environment variable entry -->

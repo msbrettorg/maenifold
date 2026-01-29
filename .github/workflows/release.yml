@@ -55,6 +55,8 @@ jobs:
         if: matrix.rid == 'win-x64'
         run: |
           dotnet tool install --global wix --version 5.0.2
+          New-Item -ItemType Directory -Force -Path installer\publish
+          Copy-Item -Recurse publish\${{ matrix.artifact }} installer\publish\win-x64
           wix build installer/maenifold.wxs -o publish/maenifold-${{ github.ref_name }}-win-x64.msi -arch x64
 
       - name: Upload artifact (Unix)

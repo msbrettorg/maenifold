@@ -16,9 +16,6 @@ jobs:
           - os: macos-latest
             rid: osx-arm64
             artifact: maenifold-osx-arm64
-          - os: macos-13
-            rid: osx-x64
-            artifact: maenifold-osx-x64
           - os: ubuntu-latest
             rid: linux-x64
             artifact: maenifold-linux-x64
@@ -51,13 +48,13 @@ jobs:
           cd publish
           Compress-Archive -Path ${{ matrix.artifact }} -DestinationPath ${{ matrix.artifact }}.zip
 
-      - name: Build MSI
-        if: matrix.rid == 'win-x64'
-        run: |
-          dotnet tool install --global wix --version 5.0.2
-          New-Item -ItemType Directory -Force -Path installer\publish
-          Copy-Item -Recurse publish\${{ matrix.artifact }} installer\publish\win-x64
-          wix build installer/maenifold.wxs -o publish/maenifold-${{ github.ref_name }}-win-x64.msi -arch x64
+      # - name: Build MSI
+      #   if: matrix.rid == 'win-x64'
+      #   run: |
+      #     dotnet tool install --global wix --version 5.0.2
+      #     New-Item -ItemType Directory -Force -Path installer\publish
+      #     Copy-Item -Recurse publish\${{ matrix.artifact }} installer\publish\win-x64
+      #     wix build installer/maenifold.wxs -o publish/maenifold-${{ github.ref_name }}-win-x64.msi -arch x64
 
       - name: Upload artifact (Unix)
         if: runner.os != 'Windows'
@@ -73,12 +70,12 @@ jobs:
           name: ${{ matrix.artifact }}
           path: publish/${{ matrix.artifact }}.zip
 
-      - name: Upload MSI artifact
-        if: matrix.rid == 'win-x64'
-        uses: actions/upload-artifact@v6
-        with:
-          name: maenifold-win-x64-msi
-          path: publish/maenifold-*.msi
+      # - name: Upload MSI artifact
+      #   if: matrix.rid == 'win-x64'
+      #   uses: actions/upload-artifact@v6
+      #   with:
+      #     name: maenifold-win-x64-msi
+      #     path: publish/maenifold-*.msi
 
   release:
     needs: build
@@ -110,7 +107,6 @@ jobs:
           files: |
             artifacts/**/*.tar.gz
             artifacts/**/*.zip
-            artifacts/**/*.msi
 
   update-homebrew:
     needs: release
@@ -128,8 +124,6 @@ jobs:
         id: checksums
         run: |
           echo "osx_arm64=$(sha256sum artifacts/maenifold-osx-arm64/*.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-          echo "osx_x64=$(sha256sum artifacts/maenifold-osx-x64/*.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-          echo "linux_arm64=$(sha256sum artifacts/maenifold-linux-arm64/*.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
           echo "linux_x64=$(sha256sum artifacts/maenifold-linux-x64/*.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
 
       - name: Update Homebrew formula
@@ -142,7 +136,5 @@ jobs:
             {
               "version": "${{ github.ref_name }}",
               "osx_arm64_sha256": "${{ steps.checksums.outputs.osx_arm64 }}",
-              "osx_x64_sha256": "${{ steps.checksums.outputs.osx_x64 }}",
-              "linux_arm64_sha256": "${{ steps.checksums.outputs.linux_arm64 }}",
               "linux_x64_sha256": "${{ steps.checksums.outputs.linux_x64 }}"
             }

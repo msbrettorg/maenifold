@@ -150,7 +150,7 @@ graph TD
     ThoughtA1 --> Merge[Thought 3:<br/>Choose A, continue main]
     ThoughtB1 --> Merge
 
-    Merge --> Memory[Persist to memory://<br/>with [[concepts]]]
+    Merge --> Memory[Persist to memory://<br/>with concepts]
     Memory --> Graph[Graph nodes created]
 
     style Main fill:#9B59B6
@@ -180,7 +180,7 @@ graph TD
     Search -->|Found| Use[Use existing<br/>memory:// files]
     Search -->|Not found| Research[Research external sources]
 
-    Research --> Write[writememory<br/>with [[concepts]]]
+    Research --> Write[writememory<br/>with concepts]
     Write --> Sync[sync<br/>Extract WikiLinks]
 
     Sync --> Nodes[Create graph nodes<br/>for each concept]

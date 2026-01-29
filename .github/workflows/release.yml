@@ -16,7 +16,7 @@ jobs:
           - os: macos-latest
             rid: osx-arm64
             artifact: maenifold-osx-arm64
-          - os: macos-15-large
+          - os: macos-13
             rid: osx-x64
             artifact: maenifold-osx-x64
           - os: ubuntu-latest

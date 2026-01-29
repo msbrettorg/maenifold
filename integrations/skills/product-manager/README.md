@@ -221,9 +221,9 @@ All agents in a wave can share the same sequential thinking session:
 
 ```mermaid
 graph TD
-    PM[PM creates session:<br/>sprint-20260129-discovery] --> Agent1[SWE-1 contributes<br/>thoughts + [[concepts]]]
-    PM --> Agent2[SWE-2 contributes<br/>thoughts + [[concepts]]]
-    PM --> Agent3[SWE-3 contributes<br/>thoughts + [[concepts]]]
+    PM[PM creates session:<br/>sprint-20260129-discovery] --> Agent1[SWE-1 contributes<br/>thoughts + concepts]
+    PM --> Agent2[SWE-2 contributes<br/>thoughts + concepts]
+    PM --> Agent3[SWE-3 contributes<br/>thoughts + concepts]
 
     Agent1 --> Session[Consolidated Session<br/>All thoughts + concepts]
     Agent2 --> Session

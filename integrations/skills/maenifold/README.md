@@ -42,7 +42,7 @@ graph TB
     end
 
     subgraph "Layer 1: Concepts"
-        Concepts["[[WikiLinks]]<br/>Atomic units<br/>Graph nodes"]
+        Concepts["WikiLinks<br/>Atomic units<br/>Graph nodes"]
     end
 
     Orchestration -->|invokes| Reasoning
@@ -101,7 +101,7 @@ graph LR
 
 ```mermaid
 graph TD
-    A[Synthesize hypothetical answer<br/>with [[concepts]] inline] --> B[Extract [[concepts]]<br/>from synthesis]
+    A[Synthesize hypothetical answer<br/>with concepts inline] --> B[Extract concepts<br/>from synthesis]
     B --> C[buildcontext for<br/>each concept]
     C --> D[searchmemories using<br/>enriched context]
     D --> E[readmemory for<br/>relevant files]
@@ -216,7 +216,7 @@ graph TD
 ```mermaid
 graph LR
     subgraph "Memory File"
-        Content["Fixed [[authentication]] bug<br/>using [[JWT]] tokens<br/>and [[session-management]]"]
+        Content["Fixed authentication bug<br/>using JWT tokens<br/>and session-management"]
     end
 
     Content --> Sync[sync tool]

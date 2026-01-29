@@ -309,7 +309,7 @@ The following context was automatically retrieved from maenifold based on this p
 - [[concept-2]] → [[related-concept-c]]
 
 ---
-*Use `ma:readmemory` to explore specific files or `ma:buildcontext` for deeper graph traversal.*
+*Use `readmemory` to explore specific files or `buildcontext` for deeper graph traversal.*
 ```
 
 ### 5.3 Token Limit Enforcement (FR-2.6)
@@ -329,7 +329,7 @@ function enforceTokenLimit(context: string): string {
   // Truncate with indicator
   const targetLength = TOKEN_LIMIT * 4 - 100; // Leave room for truncation message
   return context.substring(0, targetLength) + 
-    "\n\n*[Context truncated to fit token limit. Use ma:searchmemories for more.]*";
+    "\n\n*[Context truncated to fit token limit. Use searchmemories for more.]*";
 }
 ```
 

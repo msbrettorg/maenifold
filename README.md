@@ -11,242 +11,425 @@
   <a href="https://github.com/msbrettorg/maenifold/blob/main/LICENSE"><img src="https://img.shields.io/github/license/msbrettorg/maenifold?style=flat-square" alt="MIT License"></a>
 </p>
 
-## What maenifold does
+## What is maenifold?
 
-**maenifold** enhances AI agents with persistent graphs of thought that compound over time.  Every tool creates `[[WikiLink]]` connections that survive conversations. Every session builds on the last. Knowledge compounds instead of resets.  **It transforms ephemeral AI sessions into continuous collective intelligence.**
+**maenifold** is a knowledge graph for AI agents. Every conversation creates `[[WikiLink]]` connections that survive sessions. Every thought builds on the last. Knowledge compounds instead of resetting.
+
+It transforms ephemeral AI sessions into continuous collective intelligence.
 
 <p align="center">
-  <img src="docs/branding/graph.jpeg" alt="graph">
+  <img src="docs/branding/graph.jpeg" alt="Knowledge graph visualization">
 </p>
 
-[Our demo](docs/demo-artifacts/README.md) shows this at scale: 25 AI agents across 68 minutes discovered a critical production bug not through programmed coordination, but through emergent understanding. No orchestration code was written, yet agents perfectly orchestrated themselves across 4 waves, building on each other's discoveries through a shared knowledge graph.
+## The Problem
 
-The critical move operation bug emerged from the intersection of multiple test patterns seen across different agent sessions - something no single agent could have found alone. This is maenifold's core: making every AI session additive rather than isolated.
+AI agents are brilliant in the moment but forget everything after each conversation. Teams of agents can't build on each other's work. Discoveries vanish. Patterns go unnoticed. Every session starts from zero.
 
-### How it worked:
+## The Solution
 
-- Agents shared discoveries through `[[WikiLinks]]` in memory files
-- Each wave of agents built on previous findings via search and context traversal
-- The critical bug emerged from patterns across multiple test sessions
-- 171,506 new concept relationships were created, connecting discoveries
-- [Full orchestration logs](docs/demo-artifacts/part1-pm-lite/orchestration-session.md) and [test results](docs/demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) available
+maenifold gives AI agents a persistent memory through knowledge graphs:
 
-85% test success rate. Real production bug found. Zero orchestration code written.
+- **Write once, remember forever** - Knowledge lives in markdown files with `[[WikiLinks]]`
+- **Automatic connections** - Graph relationships emerge from how concepts appear together
+- **Smart retrieval** - Hybrid search combines semantics and full-text for optimal recall
+- **Compound knowledge** - Later sessions benefit from all previous work automatically
 
-That's what maenifold does: It provides the substrate (WikiLinks, memory, graph) and steps back. Intelligence fills the space.
+Think of it as giving your AI a brain that keeps learning across sessions, projects, and even across different AI systems.
+
+## See It in Action
+
+Our [multi-agent demo](docs/demo-artifacts/README.md) proves this at scale: 25 AI agents across 68 minutes discovered a critical production bug through emergent collaboration. No orchestration code. No pre-programmed coordination. Just agents building on shared knowledge.
+
+**What happened:**
+- Agents wrote discoveries using `[[WikiLinks]]` in memory files
+- Each wave built on previous findings through graph traversal
+- Bug emerged from patterns across multiple test sessions
+- 171,506 concept relationships created, connecting discoveries
+
+**Results:**
+- 85% test success rate
+- Real production bug found
+- Zero orchestration code written
+
+[Full orchestration logs](docs/demo-artifacts/part1-pm-lite/orchestration-session.md) · [Test results](docs/demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md)
+
+## Quick Start
+
+### Installation
+
+**Recommended: Claude Code Plugin**
+
+```bash
+claude plugin install msbrettorg/maenifold
+```
+
+This automatically configures the MCP server, installs skills, and sets up context injection hooks.
+
+**Alternative: Manual Install**
+
+macOS/Linux (Homebrew):
+```bash
+brew install msbrettorg/tap/maenifold
+```
+
+Windows (MSI Installer):
+
+Download from [GitHub Releases](https://github.com/msbrettorg/maenifold/releases/latest)
+
+Verify installation:
+```bash
+maenifold --version
+```
+
+### First Steps
+
+After installation, try these in Claude Code:
+
+```
+Write a memory about [[architecture]] decisions
+
+Search memories for authentication patterns
+
+Build context around the concept [[testing]]
+```
+
+## Skills
+
+Skills are how you interact with maenifold. They expose tools, workflows, and orchestration patterns.
+
+### Maenifold Skill (Core)
+
+Provides memory, graph, and reasoning tools.
+
+**What you get:**
+- 25+ tools for memory and graph operations
+- 6-layer cognitive stack (Concepts → Orchestration)
+- Sequential thinking with branching
+- 32 structured workflows
+- Assumption tracking
+
+[📖 Installation & Architecture Guide →](integrations/skills/maenifold/README.md)
+
+### Product Manager Skill (Orchestration)
+
+Multi-agent coordination system with hooks and quality gates.
+
+**What you get:**
+- 8 concurrent agent slots (SWE, red-team, blue-team, researcher)
+- Automatic graph context injection
+- ConfessionReport quality enforcement
+- Sprint lifecycle with full traceability (PRD → RTM → TODO)
+
+[🎯 Installation & Architecture Guide →](integrations/skills/product-manager/README.md)
+
+## How It Works
+
+### The Cognitive Stack
+
+maenifold operates as a 6-layer composition architecture where higher layers invoke lower layers:
+
+```mermaid
+graph TB
+    subgraph "Layer 6: Orchestration"
+        Orchestration[Workflow<br/>Multi-step processes<br/>Nested composition]
+    end
+
+    subgraph "Layer 5: Reasoning"
+        Reasoning[Sequential Thinking<br/>Branching and revision<br/>Multi-session persistence]
+    end
+
+    subgraph "Layer 4: Persona"
+        Persona[Adopt<br/>Roles, colors, perspectives<br/>Conditioned reasoning]
+    end
+
+    subgraph "Layer 3: Session"
+        Session[Recent Activity<br/>Assumption Ledger<br/>State tracking]
+    end
+
+    subgraph "Layer 2: Memory + Graph"
+        Memory[Write, Read, Search, Edit<br/>BuildContext, FindSimilar<br/>Persist and Query]
+    end
+
+    subgraph "Layer 1: Concepts"
+        Concepts[WikiLinks<br/>Atomic units<br/>Graph nodes]
+    end
+
+    Orchestration --> Reasoning
+    Reasoning --> Persona
+    Persona --> Session
+    Session --> Memory
+    Memory --> Concepts
+
+    style Orchestration fill:#9B59B6
+    style Reasoning fill:#4A90E2
+    style Persona fill:#FFB74D
+    style Session fill:#50C878
+    style Memory fill:#FF6B6B
+    style Concepts fill:#FFC0CB
+```
+
+**Layer 1: Concepts** - Every `[[WikiLink]]` becomes a graph node
+
+**Layer 2: Memory + Graph** - Persist and query knowledge with hybrid search
+
+**Layer 3: Session** - Track state and assumptions across interactions
+
+**Layer 4: Persona** - Condition reasoning through roles and perspectives
+
+**Layer 5: Reasoning** - Enable branching, revision, multi-day persistence
+
+**Layer 6: Orchestration** - Compose all layers into structured workflows
+
+Complexity emerges from composition, not bloated tools.
+
+### Knowledge Graph Growth
+
+```mermaid
+graph TD
+    Start[User asks question] --> Search[searchmemories<br/>Check existing knowledge]
+
+    Search -->|Found| Use[Use existing<br/>memory files]
+    Search -->|Not found| Research[Research external sources]
+
+    Research --> Write[writememory<br/>with WikiLink concepts]
+    Write --> Sync[sync<br/>Extract WikiLinks to graph]
+
+    Sync --> Nodes[Create graph nodes<br/>for each concept]
+    Nodes --> Edges[Create relationships<br/>from co-occurrence]
+
+    Edges --> Context[buildcontext returns<br/>richer relationships]
+    Context --> Future[Future sessions<br/>benefit from growth]
+
+    Use --> Answer[Answer question]
+    Future --> Answer
+
+    style Search fill:#4A90E2
+    style Write fill:#50C878
+    style Nodes fill:#9B59B6
+    style Context fill:#FFB74D
+    style Future fill:#FFC0CB
+```
+
+The graph isn't static. Every interaction grows it. Knowledge compounds over time, creating institutional memory that persists across all sessions.
 
 ## Cognitive Assets
 
-**maenifold** includes 32 workflows, 16 roles, 7 thinking colors, and 12 linguistic perspectives that agents can adopt.
-
-Mix and match as needed - use a workflow, adopt a role, switch perspectives. The knowledge graph persists through everything.
+maenifold includes 32 workflows, 16 roles, 7 thinking colors, and 12 linguistic perspectives that agents can adopt and compose.
 
 ### Workflows
+
 _32 structured methodologies for problem-solving and analysis_
 
 **Thinking & Reasoning** (12)
 | Workflow | Description |
 |----------|-------------|
 | 💭 Abductive Reasoning | Systematic hypothesis formation through inference to best explanation |
-| 💭 Convergent Thinking | Systematic analysis and selection of the single best solution from alternatives |
-| 💭 Critical Thinking | Systematic evaluation, analysis, and logical assessment of information and arguments |
-| 💭 Data Thinking | User-centric systematic approach to data strategy and analytics |
-| 💭 Deductive Reasoning | Top-down logical inference from general principles to specific conclusions |
-| 💭 Design Thinking | Human-centered approach to innovation and problem-solving |
-| 💭 Divergent Thinking | Systematic generation of multiple creative alternatives and novel solutions |
-| 💭 Higher-Order Thinking | Meta-cognitive reflection and complex reasoning about thinking processes |
-| 💭 Inductive Reasoning | Bottom-up inference from specific observations to general patterns and theories |
-| 💭 Lateral Thinking | Creative problem-solving through indirect and non-linear approaches |
-| 💭 Parallel Thinking | Simultaneous exploration of multiple perspectives and approaches in parallel |
-| 💭 Strategic Thinking | Long-term competitive positioning and systematic strategic analysis |
+| 💭 Convergent Thinking | Systematic analysis and selection of the single best solution |
+| 💭 Critical Thinking | Systematic evaluation, analysis, and logical assessment |
+| 💭 Data Thinking | User-centric systematic approach to data strategy |
+| 💭 Deductive Reasoning | Top-down logical inference from general principles |
+| 💭 Design Thinking | Human-centered approach to innovation |
+| 💭 Divergent Thinking | Systematic generation of multiple creative alternatives |
+| 💭 Higher-Order Thinking | Meta-cognitive reflection and complex reasoning |
+| 💭 Inductive Reasoning | Bottom-up inference from specific observations |
+| 💭 Lateral Thinking | Creative problem-solving through indirect approaches |
+| 💭 Parallel Thinking | Simultaneous exploration of multiple perspectives |
+| 💭 Strategic Thinking | Long-term competitive positioning and analysis |
 
 **Multi-Agent Orchestrated** (4)
 | Workflow | Description |
 |----------|-------------|
-| 🔬 Advanced Research Agent | Sophisticated single-agent research workflow with HyDE enhancement, topic coverage analysis, reflexion loops, and knowledge integration |
-| 🌊 Agentic SLC Sprint (Wave Orchestration) | Multi-agent sprint execution using synchronized waves with RTM validation and git-tracked delivery |
-| ♟️ Game Theory Strategic Analysis (Multi-Agent Equilibrium Finding) | Strategic analyst orchestrating parallel agent waves to analyze games, find equilibria, and generate optimal strategies |
-| 🏛️ Research Think Tank (Multi-Agent Knowledge Construction) | Orchestrated research institution with parallel agent waves building rich knowledge graphs through collaborative investigation |
+| 🔬 Advanced Research Agent | Sophisticated research with HyDE enhancement and reflexion loops |
+| 🌊 Agentic SLC Sprint | Multi-agent sprint execution using synchronized waves |
+| ♟️ Game Theory Strategic Analysis | Parallel agent waves for equilibrium finding |
+| 🏛️ Research Think Tank | Orchestrated knowledge construction through collaboration |
 
 **Development Methodologies** (4)
 | Workflow | Description |
 |----------|-------------|
-| 🔄 Agile Methodology | Iterative and incremental approach to project management |
-| 🎯 Agentic SLC (Simple, Lovable, Complete) | AI agent-assisted development using Simple, Lovable, Complete principles with anti-slop controls |
-| 🚀 Lean Startup | Build-measure-learn approach to product development |
-| 🔧 Software Development Lifecycle | Systematic approach to software development phases |
+| 🔄 Agile Methodology | Iterative and incremental approach |
+| 🎯 Agentic SLC | AI agent-assisted development with anti-slop controls |
+| 🚀 Lean Startup | Build-measure-learn approach |
+| 🔧 Software Development Lifecycle | Systematic development phases |
 
 **Creative Problem Solving** (3)
 | Workflow | Description |
 |----------|-------------|
-| 🎲 Oblique Strategies | Random creative prompts to break mental blocks and spark breakthrough thinking |
-| 💥 Provocative Operation | Systematic use of deliberate provocations to escape conventional thinking patterns |
-| 🎨 SCAMPER Method | Creative problem-solving technique using 7 prompts |
+| 🎲 Oblique Strategies | Random creative prompts to break mental blocks |
+| 💥 Provocative Operation | Deliberate provocations to escape conventional thinking |
+| 🎨 SCAMPER Method | Creative problem-solving using 7 prompts |
 
 **Structured Problem Solving** (2)
 | Workflow | Description |
 |----------|-------------|
-| 🐛 Debug Your Reasoning | Expose broken assumptions and flawed reasoning to fix stuck problems |
-| 📐 Pólya Problem Solving | George Pólya's systematic four-step approach to mathematical and general problem-solving |
+| 🐛 Debug Your Reasoning | Expose broken assumptions and flawed reasoning |
+| 📐 Pólya Problem Solving | George Pólya's four-step approach |
 
 **Collaborative Processes** (2)
 | Workflow | Description |
 |----------|-------------|
-| 🎩 Six Thinking Hats | Structured thinking using six different perspectives |
-| ☕ World Café | Collaborative dialogue process leveraging diverse role perspectives across conversation rounds |
+| 🎩 Six Thinking Hats | Structured thinking using six perspectives |
+| ☕ World Café | Collaborative dialogue leveraging diverse roles |
 
 **FinOps** (2)
 | Workflow | Description |
 |----------|-------------|
-| 💵 FinOps Data Collection & Optimization | Pulls cost data from Microsoft FinOps hubs using Kusto queries for comprehensive optimization analysis |
-| 💵 FinOps Strategic Analysis & Reporting | Analyzes data from Microsoft FinOps hubs to create executive-grade insights with industry benchmarks and roadmaps |
+| 💵 FinOps Data Collection | Pull cost data from Microsoft FinOps hubs |
+| 💵 FinOps Strategic Analysis | Executive-grade insights with industry benchmarks |
 
 **Business Strategy** (1)
 | Workflow | Description |
 |----------|-------------|
-| ⏰ Compelling Reason to Act | Framework for creating urgency and motivating immediate action |
+| ⏰ Compelling Reason to Act | Framework for creating urgency |
 
 **Meta/System** (2)
 | Workflow | Description |
 |----------|-------------|
-| 👤 Constitutional Role Architecture Workflow | Systematic workflow for creating/updating specialist roles using constitutional AI and prompt engineering excellence |
-| 🎮 Workflow Dispatch | Intelligent cognitive strategy selection and thinking architecture design |
+| 👤 Constitutional Role Architecture | Create specialist roles using constitutional AI |
+| 🎮 Workflow Dispatch | Intelligent cognitive strategy selection |
 
 ### Roles
+
 _16 specialized personas for domain expertise_
 
-**FinOps**
-| Role | Description |
-|------|-------------|
-| 💵 Chief Financial Officer | Drive strategic cloud financial management through fiduciary responsibility, risk mitigation, and stakeholder stewardship |
-| 💵 FinOps Practitioner | Drive cloud financial optimization through evidence-based decisions and cultural transformation |
-| 💵 FinOps Hub Query Executor | Executes KQL queries against Microsoft FinOps hubs for cost optimization and preserves results for practitioner analysis |
+**FinOps**: Chief Financial Officer, FinOps Practitioner, FinOps Hub Query Executor
 
-**EDA (Electronic Design Automation)**
-| Role | Description |
-|------|-------------|
-| 💾 Silicon Architect | Design silicon systems from RTL to tape-out with cloud-native workflows, AI-assisted optimization, and advanced node expertise |
-| 🏗️ Platform Operator | Build and operate cloud HPC infrastructure for EDA workloads with cost optimization, security, and extreme scalability |
+**EDA**: Silicon Architect, Platform Operator
 
-**AI**
-| Role | Description |
-|------|-------------|
-| 🧩 Prompt Architect | Design 10/10 prompts using constitutional AI, meta-prompting, and cognitive architecture principles |
-| 🎨 GPT-5 Prompt Architect | Design top-performing GPT-5 prompts: agentic predictability, calibrated reasoning_effort, verbosity steering, conflict-free instruction hierarchies, efficient tool preambles, minimal reasoning compensation, metaprompting, and Responses API reuse. |
-| 🎯 GPT-5-Codex Prompt Architect | Optimize prompts for GPT-5-Codex using minimal prompting principles from the official OpenAI guide |
+**AI**: Prompt Architect, GPT-5 Prompt Architect, GPT-5-Codex Prompt Architect
 
-**Software**
-| Role | Description |
-|------|-------------|
-| 🏛️ Architect | Design cognitive systems that scale intelligence and amplify human reasoning |
-| 🤖 Engineer | Build real AI systems that amplify intelligence, not fake AI that pretends to be smart |
-| 🔌 MCP Protocol Specialist | Deep expertise in Model Context Protocol implementation and best practices |
-| 📊 Product Manager | Define what we build and why it matters to customers |
-| 🔴 Red Team | Break things to make them stronger |
-| 🔵 Blue Team | Defend, detect, and respond to security threats |
+**Software**: Architect, Engineer, MCP Protocol Specialist, Product Manager, Red Team, Blue Team
 
-**Research**
-| Role | Description |
-|------|-------------|
-| 🔍 Researcher | Build verified knowledge through systematic research and create rich, interconnected knowledge graphs |
-| ✍️ Writer | Make every word matter |
+**Research**: Researcher, Writer
 
 ### Thinking Colors
-_7 perspectives from Edward de Bono's Six Thinking Hats methodology_
 
-| Color | Focus | Description |
-|-------|-------|-------------|
-| ⚫ Black | Critical Thinking | Identify problems, risks, and what could go wrong |
-| 🎭 Blue | Orchestrator | Coordinates coding-agents through Strange Loop tools - maintains decision authority while delegating execution |
-| 🔘 Gray | Skeptical Inquiry | Question assumptions, demand evidence, and challenge conventional wisdom |
-| 🟢 Green | Creative Thinking | Generate new ideas, alternatives, and creative solutions |
-| 🔴 Red | Emotions & Intuition | Express feelings, hunches, and intuitions without justification |
-| ⚪ White | Facts & Information | Focus on data, facts, and objective information |
-| 🟡 Yellow | Positive Thinking | Focus on benefits, value, and optimistic possibilities |
+_7 perspectives from Edward de Bono's Six Thinking Hats_
+
+| Color | Focus |
+|-------|-------|
+| ⚫ Black | Critical Thinking |
+| 🎭 Blue | Orchestrator |
+| 🔘 Gray | Skeptical Inquiry |
+| 🟢 Green | Creative Thinking |
+| 🔴 Red | Emotions & Intuition |
+| ⚪ White | Facts & Information |
+| 🟡 Yellow | Positive Thinking |
 
 ### Linguistic Perspectives
+
 _12 native language modes for culturally-aware reasoning_
 
-| Language | Description |
-|----------|-------------|
-| 🇸🇦 Arabic | Native speaker of Arabic |
-| 🇩🇪 German | Native speaker of German |
-| 🇬🇧 English | Native speaker of English |
-| 🇪🇸 Spanish | Native speaker of Spanish |
-| 🇫🇷 French | Native speaker of French |
-| 🇮🇹 Italian | Native speaker of Italian |
-| 🇯🇵 Japanese | Native speaker of Japanese |
-| 🇰🇷 Korean | Native speaker of Korean |
-| 🇵🇹 Portuguese | Native speaker of Portuguese |
-| 🇷🇺 Russian | Native speaker of Russian |
-| 🇹🇷 Turkish | Native speaker of Turkish |
-| 🇨🇳 Chinese | Native speaker of Chinese |
+🇸🇦 Arabic · 🇩🇪 German · 🇬🇧 English · 🇪🇸 Spanish · 🇫🇷 French · 🇮🇹 Italian · 🇯🇵 Japanese · 🇰🇷 Korean · 🇵🇹 Portuguese · 🇷🇺 Russian · 🇹🇷 Turkish · 🇨🇳 Chinese
 
-##  The Cognitive Stack
+## Configuration
 
-### Tool Relationships
+### MCP Setup (Manual Install Only)
 
-```mermaid
-graph TD
-    subgraph OVERALL["maenifold"]
-        subgraph AGENT["AI Agent"]
-            LLM[🧠 LLM Agent]
-        end
+If you installed via plugin, skip this section.
 
-        subgraph PERSP["Perspectives"]
-            A[🎭 Adopt]
-        end
+**Claude Code**
 
-        subgraph THINK["Thinking"]
-            ST[🌊 SequentialThinking]
-            WF[📋 Workflow]
-        end
+Add to `.mcp.json` in your project:
 
-        subgraph MEMORY["Memory System"]
-            MEM[🗄️ Memory]
-                GRPH[🕸️ Graph]
-        end
-    end
-
-
-    A --> LLM
-    LLM --> WF
-    LLM --> ST
-    WF -.-> ST
-    ST --> MEM
-    WF --> MEM
-    MEM --> GRPH
-    GRPH --> LLM
-    MEM --> LLM
+```json
+{
+  "mcpServers": {
+    "maenifold": {
+      "command": "maenifold",
+      "args": ["--mcp"],
+      "type": "stdio"
+    }
+  }
+}
 ```
 
-### Reasoning Layer (Tools + Workflows) - Where Information is Processed
+**Claude Desktop**
 
-Where test-time computation happens:
-- **Test-time Adaptive Reasoning**: Sequential thinking with revision, branching, persistence and automatic graph construction
-- **Perspective Tuning**: Rich role and color (six thinking hats) definitions provide tunable agent perspectives
-- **Intelligent Workflow Selection**: Meta-cognitive system that analyzes problems and selects optimal reasoning approaches
-- **30 Distinct Methodologies**: Complete taxonomy from deductive reasoning to design thinking, with sophisticated orchestration
-- **Assumption Ledger**: Traceable skepticism for agent reasoning—capture, validate, and track assumptions without auto-inference
-- **Multi-agent Coordination**: Wave-based execution with parallel agent dispatch with 'blue-hat' product manager orchestrating sub-agents (claude-code/codex/aishell/etc...)
+Edit configuration at:
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
+```json
+{
+  "mcpServers": {
+    "maenifold": {
+      "command": "maenifold",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
 
-### Memory Layer (`memory://`) - Where Data is Stored
+**Codex CLI**
 
-- **Local**: Every piece of knowledge lives as a markdown file on disk with a unique URI.
-- **Transparent**: Every thought, revision, and decision visible in markdown files.
-- **Human-Friendly**: All files are human-readable, Obsidian-compatible, and persist across sessions.
+Edit `~/.codex/config.toml`:
 
+```toml
+[mcp_servers.maenifold]
+type = "stdio"
+command = "maenifold"
+args = ["--mcp"]
+startup_timeout_sec = 120
+tool_timeout_sec = 600
+```
 
-### Graph Layer (SQLite + vectors) - Where Knowledge Emerges
+### Custom Data Directory
 
-Automatic graph construction from `[[WikiLinks]]` with:
-- **384-dimensional embeddings** for semantic similarity
-- **Edge weights** that strengthen with repeated mentions
-- **Concept clustering** revealing emergent patterns
-- **Incremental sync** keeping the graph current
-- **Hybrid RRF Search**: Semantic + full-text fusion for optimal retrieval (not just embedding similarity)
-- **Graph Construction**: No schema, no ontology — structure emerges from WikiLink usage
+Set the `MAENIFOLD_ROOT` environment variable:
+
+```bash
+# Bash/Zsh
+export MAENIFOLD_ROOT=~/my-knowledge-base
+
+# PowerShell
+$env:MAENIFOLD_ROOT = "$HOME\my-knowledge-base"
+```
+
+Or in MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "maenifold": {
+      "command": "maenifold",
+      "args": ["--mcp"],
+      "type": "stdio",
+      "env": {
+        "MAENIFOLD_ROOT": "~/my-knowledge-base"
+      }
+    }
+  }
+}
+```
+
+## CLI Interface
+
+Use maenifold directly in scripts, pipelines, or with non-MCP clients:
+
+```bash
+# Write a memory with WikiLinks
+maenifold --tool WriteMemory --payload '{
+  "title": "Architecture Decisions",
+  "content": "Our microservices use event-sourcing for audit-trails"
+}'
+
+# Continue a sequential thinking session
+maenifold --tool SequentialThinking --payload '{
+  "sessionId": "session-1234567890",
+  "response": "After analyzing the architecture...",
+  "nextThoughtNeeded": true
+}'
+
+# Search memories with hybrid mode
+maenifold --tool SearchMemories --payload '{
+  "query": "authentication patterns",
+  "mode": "Hybrid",
+  "pageSize": 10
+}'
+```
+
+MCP and CLI have full feature parity. Start a session via MCP and continue via CLI, or vice versa. Perfect for multi-agent pipelines.
 
 ## Technical Specifications
 
@@ -260,95 +443,19 @@ Automatic graph construction from `[[WikiLinks]]` with:
 - **Tested Scale**: > 1.1 million relationships
 - **MCP Compliance**: Full tool annotation support
 
-## Quick start
+## Documentation
 
-### Install
-Download the binary for your platform from [GitHub Releases](https://github.com/msbrettorg/maenifold/releases/latest).
+- [Maenifold Skill Guide](integrations/skills/maenifold/README.md) - Core tools and architecture
+- [Product Manager Skill Guide](integrations/skills/product-manager/README.md) - Multi-agent orchestration
+- [Complete Documentation](docs/README.md) - Deep dive into philosophy and design
+- [Demo Artifacts](docs/demo-artifacts/README.md) - Multi-agent example with logs
+- [GitHub Releases](https://github.com/msbrettorg/maenifold/releases) - Download binaries
 
-### MCP Interface
+## Community
 
-**Claude Code, Continue, Cline** - Add to MCP config (replace path with your binary location):
+maenifold is open source under the MIT License.
 
-```json
-{
-  "mcpServers": {
-    "maenifold": {
-      "command": "/path/to/maenifold",
-      "args": ["--mcp"],
-      "env": {"MAENIFOLD_ROOT": "~/maenifold"}
-    }
-  }
-}
-```
-
-**Codex** - Add to `~/.codex/config.toml` (replace path with your binary location):
-
-```toml
-[mcp_servers.maenifold]
-type = "stdio"
-command = "/path/to/maenifold"
-args = ["--mcp"]
-startup_timeout_sec = 120
-tool_timeout_sec = 600
-env = { MAENIFOLD_ROOT = "~/maenifold" }
-```
-
-Try it: `"Write a memory about our architecture decisions"`
-
-### CLI Interface
-
-Use maenifold directly in scripts, pipelines, or with non-MCP clients (replace `/path/to/maenifold` with your binary location):
-
-```bash
-# Write a memory with WikiLinks
-/path/to/maenifold --tool WriteMemory --payload '{
-  "title": "Architecture Decisions",
-  "content": "Our [[microservices]] use [[event-sourcing]] for [[audit-trails]]"
-}'
-
-# Continue a sequential thinking session
-/path/to/maenifold --tool SequentialThinking --payload '{
-  "sessionId": "session-1234567890",
-  "response": "After analyzing the architecture...",
-  "nextThoughtNeeded": true
-}'
-
-# Search memories with hybrid mode
-/path/to/maenifold --tool SearchMemories --payload '{
-  "query": "authentication patterns",
-  "mode": "Hybrid",
-  "pageSize": 10
-}'
-```
-
-**MCP and CLI have full feature parity.** Start a session via MCP and continue it via CLI, or vice versa. The system supports concurrent agents using the same memory location - perfect for multi-agent pipelines or parallel workflows.
-
-## Claude Code Integration
-
-**Automatic graph-based context restoration for every session.** The knowledge graph becomes your continuous context window.
-
-### What it does
-Every Claude Code session automatically:
-- Queries recent activity from your knowledge graph
-- Extracts top concepts from your work
-- Builds semantic context with relationships
-- Injects ~5K tokens of relevant knowledge
-
-### Quick Setup
-```bash
-# Install the integration
-cd ~/maenifold/docs/integrations/claude-code
-./install.sh
-```
-
-This enables session continuity - every new conversation builds on all previous work through the shared knowledge graph. [Full integration guide](docs/integrations/claude-code/README.md).
-
-## Learn more
-
-- [Complete Documentation](docs/README.md) - Architecture, examples, philosophy
-- [Demo Artifacts](docs/demo-artifacts/README.md) - Multi-agent orchestration
-
-.NET 9.0 · SQLite · ONNX · MCP · MIT License
+Contributions welcome at [github.com/msbrettorg/maenifold](https://github.com/msbrettorg/maenifold).
 
 ---
 

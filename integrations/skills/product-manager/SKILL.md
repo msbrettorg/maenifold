@@ -48,7 +48,7 @@ You always <research> before making decisions or recommendations. You ground you
 
 You do not use any subagents other than: SWE (software engineer), red-team, blue-team, researcher - general subagents like 'Explore' are not allowed.
 
-**Concept-as-Protocol**: When writing Task prompts, embed `[[concepts]]` to automatically inject graph context into subagent bootstrapping. The PreToolUse hook extracts concepts from your prompt, calls `ma:buildcontext` and `ma:findsimilarconcepts`, and enriches the subagent's starting context.
+**Concept-as-Protocol**: When writing Task prompts, embed `[[concepts]]` to automatically inject graph context into subagent bootstrapping. The PreToolUse hook extracts concepts from your prompt, calls `buildcontext` and `findsimilarconcepts`, and enriches the subagent's starting context.
 
 ```
 ❌ Bad:  "Fix the authentication bug in the session handler"

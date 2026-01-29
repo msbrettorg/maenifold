@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- T-DIST-001a: RTM FR-DIST-001 - WiX v5 MSI installer configuration for maenifold -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Maenifold"
+           Manufacturer="MSBrett"
+           Version="!(bind.FileVersion.maenifold.exe)"
+           UpgradeCode="F95FE8AD-AD08-4BB2-A193-BB59347F47D5"
+           Scope="perMachine">
+
+    <!-- Prevent downgrade installations -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Maenifold is already installed." />
+
+    <!-- Main feature containing all components -->
+    <Feature Id="Main" Title="Maenifold" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="PathEntry" />
+    </Feature>
+  </Package>
+
+  <!-- Directory structure -->
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Maenifold" />
+    </StandardDirectory>
+  </Fragment>
+
+  <!-- Product components -->
+  <Fragment>
+    <!-- Include all files from the publish output -->
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Files Include="publish\win-x64\**" />
+    </ComponentGroup>
+
+    <!-- PATH environment variable entry -->
+    <Component Id="PathEntry" Directory="INSTALLFOLDER" Guid="A7E3B2C1-8D4F-4E6A-9B5C-2D1F0E8A7C3B">
+      <Environment Id="PATH"
+                   Name="PATH"
+                   Value="[INSTALLFOLDER]"
+                   Permanent="no"
+                   Part="last"
+                   Action="set"
+                   System="yes" />
+    </Component>
+  </Fragment>
+</Wix>

@@ -331,16 +331,39 @@ brew install msbrettorg/tap/maenifold
 
 This installs the binary and adds it to your PATH automatically.
 
-### Windows MSI Installer
+### Windows (Zip Archive)
 
-1. Download the latest `.msi` file from [GitHub Releases](https://github.com/msbrettorg/maenifold/releases/latest)
-2. Run the installer
-3. The binary installs to `C:\Program Files\Maenifold\` and is added to PATH automatically
+1. Download `maenifold-win-x64.zip` from [GitHub Releases](https://github.com/msbrettorg/maenifold/releases/latest)
 
-After installation, verify with:
-```powershell
-maenifold --version
-```
+2. Extract to a permanent location (recommended: `%LOCALAPPDATA%\Programs\Maenifold`):
+   ```powershell
+   # Create directory
+   New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\Programs\Maenifold"
+
+   # Extract zip
+   Expand-Archive -Path maenifold-win-x64.zip -DestinationPath "$env:LOCALAPPDATA\Programs\Maenifold"
+   ```
+
+3. Add to PATH (recommended for ease of use):
+   ```powershell
+   # Add to user PATH
+   $path = [Environment]::GetEnvironmentVariable("PATH", "User")
+   $newPath = "$env:LOCALAPPDATA\Programs\Maenifold\maenifold-win-x64"
+   if ($path -notlike "*$newPath*") {
+       [Environment]::SetEnvironmentVariable("PATH", "$path;$newPath", "User")
+   }
+
+   # Restart terminal for PATH change to take effect
+   ```
+
+4. Verify installation:
+   ```powershell
+   # If added to PATH
+   maenifold --version
+
+   # Or use full path
+   & "$env:LOCALAPPDATA\Programs\Maenifold\maenifold-win-x64\maenifold.exe" --version
+   ```
 
 ### Build from Source
 
@@ -407,18 +430,20 @@ Add the maenifold server:
 }
 ```
 
-On Windows with default MSI installation:
+On Windows (if not added to PATH, use full path to extracted location):
 
 ```json
 {
   "mcpServers": {
     "maenifold": {
-      "command": "C:\\Program Files\\Maenifold\\maenifold.exe",
+      "command": "C:\\Users\\<YourUsername>\\AppData\\Local\\Programs\\Maenifold\\maenifold-win-x64\\maenifold.exe",
       "args": ["--mcp"]
     }
   }
 }
 ```
+
+Replace `<YourUsername>` with your actual Windows username, or use environment variable expansion if your client supports it.
 
 ### Codex CLI
 

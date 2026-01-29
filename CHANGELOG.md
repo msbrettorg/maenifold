@@ -4,7 +4,10 @@ All notable changes to maenifold MCP Server will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-01-29
+
 ### Added
+- **DIST-001**: Windows MSI installer with PATH integration (WiX v5)
 - **CCPLUGIN-002**: Added DevAssist AI PRD and Ralph loop plugin docs, commands, hooks, and scripts:
   - Files added: `docs/agent/PRD.md`, `integrations/claude-code/plugin/README_RALPH.md`, `integrations/claude-code/plugin/commands/cancel-ralph.md`, `integrations/claude-code/plugin/commands/help-ralph.md`, `integrations/claude-code/plugin/commands/ralph-loop.md`, `integrations/claude-code/plugin/hooks/stop-hook.sh`, `integrations/claude-code/plugin/scripts/setup-ralph-loop.sh`
   - Agent docs updated: `integrations/claude-code/plugin/agents/blue-team.md`, `integrations/claude-code/plugin/agents/ma.md`, `integrations/claude-code/plugin/agents/red-team.md`, `integrations/claude-code/plugin/agents/researcher.md`, `integrations/claude-code/plugin/agents/swe.md`
@@ -46,6 +49,7 @@ All notable changes to maenifold MCP Server will be documented in this file.
   - `EnableDebugLogging` (`MAENIFOLD_DEBUG`)
 
 ### Fixed
+- **GRAPH-003**: WikiLink regex rejects triple/quadruple bracket patterns (negative lookbehind/lookahead)
 - **GRAPH-002**: Prevent WikiLink extraction from code blocks:
   - Modified `MarkdownReader.ExtractWikiLinks()` to use Markdig AST parsing
   - Skips fenced code blocks (```), indented code blocks, and inline code (`)

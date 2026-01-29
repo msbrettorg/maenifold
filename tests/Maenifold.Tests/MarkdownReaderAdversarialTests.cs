@@ -322,14 +322,14 @@ Another [[valid]].";
     [Test]
     public void ExtractWikiLinks_TripleBrackets()
     {
-        // Attack: Triple opening brackets
+        // Attack: Triple opening brackets - T-REL-001: Malformed patterns should be rejected
         var content = @"Normal [[concept]] and [[[triple-attack]]] text.";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
         Assert.That(concepts, Does.Contain("concept"));
-        // Regex should match innermost valid [[triple-attack]]
-        Assert.That(concepts, Does.Contain("triple-attack"));
+        // T-REL-001: Triple brackets are malformed and should NOT match (lookbehind/lookahead rejects them)
+        Assert.That(concepts, Does.Not.Contain("triple-attack"));
     }
 
     [Test]

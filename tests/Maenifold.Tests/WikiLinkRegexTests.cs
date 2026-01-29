@@ -118,10 +118,10 @@ Numbers: [[gpt-4]]
         // Act: Extract WikiLinks
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        // Assert: All valid patterns should be extracted
+        // Assert: All valid patterns should be extracted (normalized: underscores become hyphens)
         Assert.That(concepts, Does.Contain("machine-learning"));
-        Assert.That(concepts, Does.Contain("neural_network"));
-        Assert.That(concepts, Does.Contain("deep-learning_model"));
+        Assert.That(concepts, Does.Contain("neural-network")); // normalized from neural_network
+        Assert.That(concepts, Does.Contain("deep-learning-model")); // normalized from deep-learning_model
         Assert.That(concepts, Does.Contain("gpt-4"));
     }
 }

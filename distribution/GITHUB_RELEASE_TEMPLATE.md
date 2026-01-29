@@ -15,19 +15,19 @@ v1.0.0
 
 Persistent Graph-of-Thoughts for AI agents and multi-agent systems.
 
-## 🎉 Highlights
+## Highlights
 
-- Initial public release
 - Persistent Graph-of-Thoughts implementation
-- 47 orchestrated workflows for multi-agent coordination
+- Orchestrated workflows for multi-agent coordination
 - MCP protocol support for Claude, GPT, Qwen, Grok, and other LLMs
 - Cross-platform self-contained binaries (no .NET runtime required)
+- Windows MSI installer with automatic PATH setup
 
-## ✨ Features
+## Features
 
 ### Primary Tools (Graph Builders)
 - **SequentialThinking** - Multi-step reasoning with revision/branching
-- **Workflow** - 47 orchestrated methodologies (think-tank, agentic-slc, etc.)
+- **Workflow** - Orchestrated methodologies (think-tank, agentic-slc, etc.)
 - **WriteMemory** - Create knowledge files with `[[WikiLinks]]`
 - **AssumptionLedger** - Track and validate reasoning assumptions
 
@@ -42,28 +42,28 @@ Persistent Graph-of-Thoughts for AI agents and multi-agent systems.
 - **MCP Protocol** - Cross-language support for Claude Code, Continue, Cline, Codex
 - **CLI** - Script automation and testing
 
-## 📦 Installation
+## Installation
 
-### NPM (Recommended)
+### Homebrew (macOS/Linux) - Recommended
 ```bash
-npm install -g @ma-collective/maenifold
+brew install msbrettorg/tap/maenifold
 ```
 
-### Homebrew (macOS/Linux)
-```bash
-brew tap ma-collective/tap
-brew install maenifold
-```
+### Windows MSI Installer - Recommended
+Download `maenifold-vX.X.X-win-x64.msi` from Assets below and run the installer.
+- Installs to `C:\Program Files\MSBrett\Maenifold\`
+- Automatically adds to system PATH
+- Clean uninstall removes PATH entry
 
-### WinGet (Windows)
+### .NET Tool
 ```bash
-winget install maenifold
+dotnet tool install --global Maenifold
 ```
 
 ### Direct Download
 Download platform-specific binaries from the Assets section below.
 
-## 🔧 Usage
+## Usage
 
 **CLI mode:**
 ```bash
@@ -80,44 +80,21 @@ maenifold --tool WriteMemory --payload '{
     "maenifold": {
       "command": "maenifold",
       "args": ["--mcp"],
-      "env": {"maenifold_ROOT": "~/maenifold"}
+      "env": {"MAENIFOLD_ROOT": "~/maenifold"}
     }
   }
 }
 ```
 
-## 📊 Performance
+## Documentation
 
-- **Scale tested:** 1.1M+ graph relationships
-- **Build time:** ~3-5 seconds (full Release build)
-- **Test coverage:** 78 passing tests
-- **Platform support:** Linux x64, macOS ARM64/x64, Windows x64
+- [Complete Documentation](https://github.com/msbrettorg/maenifold/blob/main/docs/README.md)
+- [Development Guide](https://github.com/msbrettorg/maenifold/blob/main/docs/DEVELOPMENT.md)
+- [Distribution Guide](https://github.com/msbrettorg/maenifold/blob/main/DISTRIBUTION.md)
 
-## 📚 Documentation
+## Full Changelog
 
-- [Complete Documentation](https://github.com/ma-collective/maenifold/blob/main/docs/README.md)
-- [Development Guide](https://github.com/ma-collective/maenifold/blob/main/docs/DEVELOPMENT.md)
-- [Distribution Guide](https://github.com/ma-collective/maenifold/blob/main/DISTRIBUTION.md)
-
-## 🔬 Research Foundation
-
-Based on 2024 research breakthroughs:
-- [Graph of Thoughts](https://arxiv.org/abs/2308.09687) (AAAI 2024) - 62% better than Tree-of-Thoughts
-- [Graph-RAG](https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/) (Microsoft Research)
-
-## 🐛 Known Issues
-
-None at this time.
-
-## 🙏 Acknowledgments
-
-- Microsoft Agent Framework team
-- AAAI 2024 Graph of Thoughts researchers
-- MCP protocol contributors
-
-## 📝 Full Changelog
-
-See [CHANGELOG.md](https://github.com/ma-collective/maenifold/blob/main/CHANGELOG.md)
+See [CHANGELOG.md](https://github.com/msbrettorg/maenifold/blob/main/CHANGELOG.md)
 
 ---
 
@@ -125,75 +102,71 @@ See [CHANGELOG.md](https://github.com/ma-collective/maenifold/blob/main/CHANGELO
 
 ### Linux (x64)
 ```bash
-wget https://github.com/ma-collective/maenifold/releases/download/v1.0.0/maenifold-linux-x64.tar.gz
+curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-linux-x64.tar.gz
 tar -xzf maenifold-linux-x64.tar.gz
 chmod +x maenifold
-./maenifold --tool MemoryStatus --payload '{}'
+sudo mv maenifold /usr/local/bin/
+```
+
+### Linux (ARM64)
+```bash
+curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-linux-arm64.tar.gz
+tar -xzf maenifold-linux-arm64.tar.gz
+chmod +x maenifold
+sudo mv maenifold /usr/local/bin/
 ```
 
 ### macOS (ARM64 - M1/M2/M3)
 ```bash
-curl -LO https://github.com/ma-collective/maenifold/releases/download/v1.0.0/maenifold-osx-arm64.tar.gz
+curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-osx-arm64.tar.gz
 tar -xzf maenifold-osx-arm64.tar.gz
 chmod +x maenifold
-./maenifold --tool MemoryStatus --payload '{}'
+sudo mv maenifold /usr/local/bin/
 ```
 
 ### macOS (x64 - Intel)
 ```bash
-curl -LO https://github.com/ma-collective/maenifold/releases/download/v1.0.0/maenifold-osx-x64.tar.gz
+curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-osx-x64.tar.gz
 tar -xzf maenifold-osx-x64.tar.gz
 chmod +x maenifold
-./maenifold --tool MemoryStatus --payload '{}'
+sudo mv maenifold /usr/local/bin/
 ```
 
-### Windows (x64)
+### Windows (x64) - MSI Installer (Recommended)
+Download `maenifold-v1.0.0-win-x64.msi` and run the installer.
+
+### Windows (x64) - Manual
 ```powershell
 # Download maenifold-win-x64.zip from Assets below
 # Extract the ZIP
-# Run in PowerShell:
+# Add to PATH manually or run from extracted directory:
 .\maenifold.exe --tool MemoryStatus --payload '{}'
 ```
-
-## Verification
-
-Verify downloads with SHA256 checksums from `SHA256SUMS` file in Assets.
-
-```bash
-# Linux/macOS
-shasum -a 256 -c SHA256SUMS
-
-# Windows PowerShell
-Get-FileHash maenifold-win-x64.zip -Algorithm SHA256
-```
 ```
 
-## Release Assets to Upload
+## Release Assets
 
-1. `maenifold-linux-x64.tar.gz`
-2. `maenifold-osx-arm64.tar.gz`
-3. `maenifold-osx-x64.tar.gz`
-4. `maenifold-win-x64.zip`
-5. `SHA256SUMS`
+1. `maenifold-osx-arm64.tar.gz`
+2. `maenifold-osx-x64.tar.gz`
+3. `maenifold-linux-x64.tar.gz`
+4. `maenifold-linux-arm64.tar.gz`
+5. `maenifold-win-x64.zip`
+6. `maenifold-vX.X.X-win-x64.msi`
 
 ## Release Checklist
 
 Before creating the release:
 
-- [ ] Version updated in `package.json`
-- [ ] Run `./scripts/release.sh 1.0.0`
+- [ ] Version updated in `src/Maenifold.csproj`
+- [ ] CHANGELOG.md updated with release notes
 - [ ] All tests passing (`dotnet test`)
-- [ ] All platform binaries built successfully
-- [ ] SHA256SUMS file generated
+- [ ] PR merged to main
 - [ ] Git tag created: `git tag -a v1.0.0 -m "Release v1.0.0"`
 - [ ] Git tag pushed: `git push origin v1.0.0`
-- [ ] CHANGELOG.md updated with release notes
 
-After creating the release:
+After tag push (automated):
 
-- [ ] Upload all 5 files to GitHub release
-- [ ] Mark as "Latest release" (if applicable)
-- [ ] Publish to NPM: `npm publish --access public`
-- [ ] Update Homebrew tap with new formula
-- [ ] Submit WinGet PR (if updating existing package)
-- [ ] Announce on GitHub Discussions/social media
+- [ ] GitHub Actions builds all platform binaries
+- [ ] GitHub Actions builds MSI installer
+- [ ] GitHub Release created automatically with all assets
+- [ ] Homebrew formula updated via repository dispatch

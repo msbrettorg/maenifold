@@ -141,7 +141,11 @@ Every `[[WikiLink]]` becomes a node. Every mention strengthens edges. Patterns e
 
 1. **Install maenifold**:
 ```bash
-npm install -g @ma-collective/maenifold
+# macOS/Linux
+brew install msbrettorg/tap/maenifold
+
+# Windows - download MSI from GitHub Releases
+# Or use .NET tool: dotnet tool install --global Maenifold
 ```
 
 2. **Configure your AI assistant** to use maenifold:

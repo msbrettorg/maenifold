@@ -32,13 +32,9 @@ Do NOT merge directly to main. Always use a PR.
 
 ### Site (Next.js)
 - Dev server: `npm run dev` (from `site/`)
-- Build: `npm run build` (from `site/`)
 - Lint: `npm run lint` (from `site/`)
 
 ### Cross-platform build scripts (root `package.json`)
-- `npm run build` (publish .NET release build to `bin/`)
-- `npm run build:all` (all platform binaries)
-- `npm run build:osx-arm64`, `npm run build:osx-x64`, `npm run build:linux-x64`, `npm run build:linux-arm64`, `npm run build:win-x64`, `npm run build:win-arm64`
 
 ## Code Style and Conventions
 
@@ -94,7 +90,7 @@ Do NOT merge directly to main. Always use a PR.
 - `tests/` NUnit tests
 - `docs/` documentation
 - `site/` Next.js site
-- `scripts/` NPM distribution helpers
+- `scripts/` Build helpers
 - `integrations/` Claude Code plugins and shared resources
   - `agents/` shared agent definitions
   - `scripts/` shared hook scripts

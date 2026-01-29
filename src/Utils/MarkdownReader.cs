@@ -17,7 +17,8 @@ public static class MarkdownReader
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
             .Build();
 
-    private static readonly Regex WikiLinkPattern = new(@"\[\[([^\[\]]+)\]\]", RegexOptions.Compiled);
+    // T-REL-001: RTM FR-1.1 - WikiLink regex with negative lookbehind/lookahead to reject malformed triple/quadruple brackets
+    private static readonly Regex WikiLinkPattern = new(@"(?<!\[)\[\[([^\[\]]+)\]\](?!\])", RegexOptions.Compiled);
 
     public static (Dictionary<string, object>? frontmatter, string content, string checksum) ReadMarkdown(string path)
     {

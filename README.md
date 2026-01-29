@@ -72,9 +72,9 @@ macOS/Linux (Homebrew):
 brew install msbrettorg/tap/maenifold
 ```
 
-Windows (MSI Installer):
+Windows (Zip Archive):
 
-Download from [GitHub Releases](https://github.com/msbrettorg/maenifold/releases/latest)
+Download `maenifold-win-x64.zip` from [GitHub Releases](https://github.com/msbrettorg/maenifold/releases/latest), extract to `%LOCALAPPDATA%\Programs\Maenifold`, and add to PATH. See [installation guide](integrations/skills/maenifold/README.md#windows-zip-archive) for details.
 
 Verify installation:
 ```bash
@@ -355,6 +355,18 @@ Edit configuration at:
   "mcpServers": {
     "maenifold": {
       "command": "maenifold",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+On Windows, if you didn't add maenifold to PATH, use the full path to the extracted executable:
+```json
+{
+  "mcpServers": {
+    "maenifold": {
+      "command": "C:\\Users\\<YourUsername>\\AppData\\Local\\Programs\\Maenifold\\maenifold-win-x64\\maenifold.exe",
       "args": ["--mcp"]
     }
   }

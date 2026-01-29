@@ -13,6 +13,283 @@ The maenifold skill exposes 25+ MCP tools that transform ephemeral AI sessions i
 
 Every `[[WikiLink]]` you create becomes a node in the graph. Knowledge compounds across sessions instead of resetting.
 
+## Cognitive Architecture
+
+Maenifold operates as a **6-layer composition architecture** where higher layers invoke lower layers. Complexity emerges from composition, not bloated tools.
+
+### 6-Layer Stack
+
+```mermaid
+graph TB
+    subgraph "Layer 6: Orchestration"
+        Orchestration[Workflow<br/>Multi-step processes<br/>Nested workflows]
+    end
+
+    subgraph "Layer 5: Reasoning"
+        Reasoning[Sequential Thinking<br/>Branching, revision<br/>Multi-session persistence]
+    end
+
+    subgraph "Layer 4: Persona"
+        Persona[Adopt<br/>Roles, colors, perspectives<br/>Conditioned reasoning]
+    end
+
+    subgraph "Layer 3: Session"
+        Session[Recent Activity<br/>Assumption Ledger<br/>State tracking]
+    end
+
+    subgraph "Layer 2: Memory + Graph"
+        Memory[Write/Read/Search/Edit<br/>BuildContext, FindSimilar<br/>Persist & Query]
+    end
+
+    subgraph "Layer 1: Concepts"
+        Concepts["[[WikiLinks]]<br/>Atomic units<br/>Graph nodes"]
+    end
+
+    Orchestration -->|invokes| Reasoning
+    Reasoning -->|conditions| Persona
+    Persona -->|tracks| Session
+    Session -->|queries| Memory
+    Memory -->|built from| Concepts
+
+    style Orchestration fill:#9B59B6
+    style Reasoning fill:#4A90E2
+    style Persona fill:#FFB74D
+    style Session fill:#50C878
+    style Memory fill:#FF6B6B
+    style Concepts fill:#FFC0CB
+```
+
+**Layer 1: Concepts** - Every `[[WikiLink]]` becomes a graph node. Foundation for all knowledge.
+
+**Layer 2: Memory + Graph** - Tools persist (`writememory`) and query (`searchmemories`, `buildcontext`, `findsimilarconcepts`) knowledge.
+
+**Layer 3: Session** - Track state across interactions (`recentactivity`, `assumptionledger`).
+
+**Layer 4: Persona** - Condition reasoning through roles/colors/perspectives (`adopt`).
+
+**Layer 5: Reasoning** - Enable revision, branching, multi-day persistence (`sequentialthinking`).
+
+**Layer 6: Orchestration** - Compose all layers; workflows can nest workflows (`workflow`).
+
+### Tool Composition Patterns
+
+#### Chain Pattern
+
+```mermaid
+graph LR
+    A[findsimilarconcepts<br/>Discover variants] --> B[Pick best match]
+    B --> C[buildcontext<br/>Get relationships]
+    C --> D[searchmemories<br/>Find files]
+    D --> E[readmemory<br/>Access content]
+
+    style A fill:#4A90E2
+    style C fill:#50C878
+    style D fill:#FFB74D
+    style E fill:#9B59B6
+```
+
+**Use case**: Navigate from unknown domain to specific knowledge.
+
+**Example**:
+1. `findsimilarconcepts("authentication")` → finds [[auth]], [[authentication]], [[JWT]]
+2. Pick [[authentication]] as best match
+3. `buildcontext("authentication", depth=2)` → related concepts + files
+4. `searchmemories("JWT authentication patterns")` → relevant memory files
+5. `readmemory("memory://security/jwt-implementation")` → specific content
+
+#### HYDE Pattern (Hypothetical Document Embeddings)
+
+```mermaid
+graph TD
+    A[Synthesize hypothetical answer<br/>with [[concepts]] inline] --> B[Extract [[concepts]]<br/>from synthesis]
+    B --> C[buildcontext for<br/>each concept]
+    C --> D[searchmemories using<br/>enriched context]
+    D --> E[readmemory for<br/>relevant files]
+    E --> F[Answer with<br/>actual knowledge]
+
+    style A fill:#FFB74D
+    style B fill:#FFC0CB
+    style C fill:#50C878
+    style D fill:#4A90E2
+    style F fill:#9B59B6
+```
+
+**Use case**: Answer complex questions by first hypothesizing, then grounding in graph.
+
+**Example**:
+```
+User: "How do I implement OAuth2 flows?"
+
+1. Synthesize: "OAuth2 requires [[authorization-server]], [[client-credentials]],
+   [[token-endpoint]], and [[JWT]] validation..."
+
+2. Extract: [[authorization-server]], [[client-credentials]], [[token-endpoint]], [[JWT]]
+
+3. buildcontext for each concept (parallel)
+
+4. searchmemories with enriched understanding
+
+5. readmemory for implementation guides
+
+6. Answer grounded in actual memory:// files
+```
+
+#### Sequential Thinking Branching
+
+```mermaid
+graph TD
+    Main[Main Session:<br/>sequential-20260129-001] --> Thought1[Thought 1:<br/>Problem analysis]
+    Thought1 --> Thought2[Thought 2:<br/>Approach A or B?]
+
+    Thought2 --> BranchA[Branch A:<br/>Explore approach A]
+    Thought2 --> BranchB[Branch B:<br/>Explore approach B]
+
+    BranchA --> ThoughtA1[Thought A.1:<br/>A seems better]
+    BranchB --> ThoughtB1[Thought B.1:<br/>B has issues]
+
+    ThoughtA1 --> Merge[Thought 3:<br/>Choose A, continue main]
+    ThoughtB1 --> Merge
+
+    Merge --> Memory[Persist to memory://<br/>with [[concepts]]]
+    Memory --> Graph[Graph nodes created]
+
+    style Main fill:#9B59B6
+    style BranchA fill:#4A90E2
+    style BranchB fill:#FFB74D
+    style Graph fill:#50C878
+```
+
+**Use case**: Explore multiple alternatives without losing thought continuity.
+
+**Example**:
+```
+1. Start session (thought 0): Set up problem
+2. Thought 1: Identify two potential solutions
+3. Branch A: Explore solution 1 (thoughts A.1, A.2, A.3)
+4. Branch B: Explore solution 2 (thoughts B.1, B.2, B.3)
+5. Thought 2 (main): Compare branches, choose best
+6. Continue main session with chosen approach
+```
+
+### Knowledge Graph Growth
+
+```mermaid
+graph TD
+    Start[User asks question] --> Search[searchmemories<br/>Check existing knowledge]
+
+    Search -->|Found| Use[Use existing<br/>memory:// files]
+    Search -->|Not found| Research[Research external sources]
+
+    Research --> Write[writememory<br/>with [[concepts]]]
+    Write --> Sync[sync<br/>Extract WikiLinks]
+
+    Sync --> Nodes[Create graph nodes<br/>for each concept]
+    Nodes --> Edges[Create relationships<br/>from co-occurrence]
+
+    Edges --> Context[buildcontext now returns<br/>richer relationships]
+    Context --> Future[Future sessions<br/>benefit from growth]
+
+    Use --> Answer[Answer question]
+    Future --> Answer
+
+    style Search fill:#4A90E2
+    style Write fill:#50C878
+    style Nodes fill:#9B59B6
+    style Context fill:#FFB74D
+    style Future fill:#FFC0CB
+```
+
+**Key insight**: The graph is not static. Every interaction can grow it:
+
+1. **Question**: User asks about [[authentication]]
+2. **Search**: `searchmemories("authentication")` finds gap
+3. **Research**: Query external docs (Microsoft Docs, Context7)
+4. **Write**: `writememory` creates lineage-backed note with [[OAuth2]], [[JWT]], [[PKCE]]
+5. **Sync**: Extracts [[concepts]] and creates graph nodes
+6. **Growth**: `buildcontext("authentication")` now returns OAuth2, JWT, PKCE relationships
+7. **Future**: Next session asking about [[OAuth2]] benefits from prior work
+
+**Compounding effect**: Graph becomes institutional memory that persists and improves across all sessions.
+
+### How Concepts Become Nodes
+
+```mermaid
+graph LR
+    subgraph "Memory File"
+        Content["Fixed [[authentication]] bug<br/>using [[JWT]] tokens<br/>and [[session-management]]"]
+    end
+
+    Content --> Sync[sync tool]
+
+    Sync --> Node1["Graph Node:<br/>authentication"]
+    Sync --> Node2["Graph Node:<br/>JWT"]
+    Sync --> Node3["Graph Node:<br/>session-management"]
+
+    Node1 -.->|co-occurs with| Node2
+    Node1 -.->|co-occurs with| Node3
+    Node2 -.->|co-occurs with| Node3
+
+    subgraph "Graph Database"
+        Node1
+        Node2
+        Node3
+    end
+
+    style Content fill:#FFB74D
+    style Sync fill:#4A90E2
+    style Node1 fill:#9B59B6
+    style Node2 fill:#9B59B6
+    style Node3 fill:#9B59B6
+```
+
+**Process**:
+1. Write memory file with `[[concepts]]` in double brackets
+2. Call `sync` (or happens automatically)
+3. Sync extracts all `[[WikiLinks]]` from all memory files
+4. Creates/updates graph nodes for each unique concept
+5. Records co-occurrence relationships (concepts in same file = related)
+6. Future `buildcontext` queries traverse these relationships
+
+**Best practices**:
+- Use `[[singular-form]]` for general concepts
+- Use `[[hyphens-not-spaces]]` for multi-word concepts
+- Tag substance, not structure (avoid `[[the]]`, `[[a]]`, `[[file]]`)
+- Reuse existing concepts before creating near-duplicates
+
+### Context Compounding Example
+
+```mermaid
+graph TD
+    Session1[Session 1:<br/>Learn about [[OAuth2]]] --> Write1[writememory<br/>"OAuth2 basics"]
+
+    Session2[Session 2:<br/>Learn about [[PKCE]]] --> Build2[buildcontext<br/>finds [[OAuth2]] relation]
+    Build2 --> Write2[writememory<br/>"PKCE extension"]
+
+    Session3[Session 3:<br/>Learn about [[JWT]]] --> Build3[buildcontext<br/>finds [[OAuth2]] + [[PKCE]]]
+    Build3 --> Write3[writememory<br/>"JWT tokens"]
+
+    Session4[Session 4:<br/>Implement auth] --> Build4[buildcontext<br/>finds ALL prior work]
+    Build4 --> Rich[Rich context:<br/>OAuth2, PKCE, JWT, plus<br/>all memory:// files]
+
+    Rich --> Answer4[Grounded implementation]
+
+    Write1 --> Session2
+    Write2 --> Session3
+    Write3 --> Session4
+
+    style Session1 fill:#FFB74D
+    style Session4 fill:#50C878
+    style Rich fill:#9B59B6
+```
+
+**Timeline**:
+- **Day 1**: Learn OAuth2 basics → write memory:// note with [[OAuth2]]
+- **Day 2**: Learn PKCE → buildcontext finds [[OAuth2]] relation → write note with [[PKCE]]
+- **Day 3**: Learn JWT → buildcontext finds [[OAuth2]] + [[PKCE]] → write note with [[JWT]]
+- **Day 4**: Implement auth → buildcontext returns **all 3 concepts + all notes** → rich implementation context
+
+**Result**: Knowledge compounds over time. Later sessions benefit from all prior work automatically.
+
 ## Prerequisites
 
 - **Claude Code** (CLI or VS Code extension)

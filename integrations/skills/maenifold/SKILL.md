@@ -25,6 +25,8 @@ If the MCP server is unavailable, you can still:
   - GitHub Releases: https://github.com/msbrettorg/maenifold/releases/latest
   - Installation docs: [README.md](./README.md)
 
+## Operating Principles
+
 Your memory resets between sessions. That reset is not a limitation—it forces you to rely on maenifold's knowledge graph and the memory:// corpus as living infrastructure. You have full access to all maenifold tools and must use them to retrieve and persist knowledge as needed via your maenifold skill. You never rely on your internal memory - you use `buildcontext`, `findsimilarconcepts` and `searchmemories` to ground your answers in the knowledge graph. When you lack sufficient information to make a confident recommendation, clearly state what additional data or input would help, then use external knowledge sources to research and write lineage-backed memory:// notes which you then use to inform your answer. 
 
 You always search the graph first for existing notes to update before creating new notes. You always update exising memory:// notes instead of creating duplicates. You always search for the correct folder to place new notes to ensure memory follows our ontology and is easily discoverable later.

@@ -210,17 +210,17 @@ A multi-agent workflow system that:
 
 | ID | Requirement | Priority | Maenifold Tool |
 |----|-------------|----------|----------------|
-| FR-7.1 | System SHALL maintain a knowledge graph built from `[[WikiLink]]` concepts in agent responses | P0 | `ma:writememory`, `ma:sync` |
-| FR-7.2 | System SHALL support hybrid search (semantic + full-text) across persisted knowledge | P0 | `ma:searchmemories` |
-| FR-7.3 | System SHALL traverse concept relationships for context building | P0 | `ma:buildcontext` |
-| FR-7.4 | System SHALL discover semantically similar concepts via embeddings | P1 | `ma:findsimilarconcepts` |
-| FR-7.5 | System SHALL persist structured notes to `memory://` with source lineage | P0 | `ma:writememory` |
-| FR-7.6 | System SHALL support sequential thinking sessions with revision/branching | P1 | `ma:sequentialthinking` |
+| FR-7.1 | System SHALL maintain a knowledge graph built from `[[WikiLink]]` concepts in agent responses | P0 | `writememory`, `sync` |
+| FR-7.2 | System SHALL support hybrid search (semantic + full-text) across persisted knowledge | P0 | `searchmemories` |
+| FR-7.3 | System SHALL traverse concept relationships for context building | P0 | `buildcontext` |
+| FR-7.4 | System SHALL discover semantically similar concepts via embeddings | P1 | `findsimilarconcepts` |
+| FR-7.5 | System SHALL persist structured notes to `memory://` with source lineage | P0 | `writememory` |
+| FR-7.6 | System SHALL support sequential thinking sessions with revision/branching | P1 | `sequentialthinking` |
 | FR-7.7 | System SHALL compact context when approaching token limits, preserving critical details | P0 | Compaction middleware |
 | FR-7.8 | System SHALL use just-in-time retrieval vs pre-loading entire context | P0 | Agent middleware |
-| FR-7.9 | System SHALL share thinking sessions between orchestrator and sub-agents | P1 | `ma:sequentialthinking` |
-| FR-7.10 | System SHALL support workflow orchestration for systematic reasoning | P2 | `ma:workflow` |
-| FR-7.11 | System SHALL extract `[[concepts]]` from agent responses for graph construction | P0 | `ma:extractconceptsfromfile` |
+| FR-7.9 | System SHALL share thinking sessions between orchestrator and sub-agents | P1 | `sequentialthinking` |
+| FR-7.10 | System SHALL support workflow orchestration for systematic reasoning | P2 | `workflow` |
+| FR-7.11 | System SHALL extract `[[concepts]]` from agent responses for graph construction | P0 | `extractconceptsfromfile` |
 | FR-7.12 | System SHALL cite `memory://` URIs for knowledge-grounded responses | P0 | Response formatting |
 
 ### 4.8 Declarative YAML Workflows (Phase 2)
@@ -269,7 +269,7 @@ Based on Maenifold's RAG Technique Support:
 | Pattern | Description | Implementation |
 |---------|-------------|----------------|
 | **HYDE** | Hypothetical Document Embeddings - generate synthetic answer, search for supporting evidence | Query expansion via semantic search |
-| **Graph-RAG** | Traverse concept relationships before retrieval | `ma:buildcontext` with depth parameter |
+| **Graph-RAG** | Traverse concept relationships before retrieval | `buildcontext` with depth parameter |
 | **Self-RAG** | Evaluate retrieved context relevance before use | Reviewer agent validation |
 | **FLARE** | Forward-Looking Active REtrieval - fetch just-in-time during generation | Tool call patterns |
 | **Contextual Compression** | Summarize when nearing limits | Compaction middleware |
@@ -492,17 +492,17 @@ Provide actionable feedback with specific suggestions.
 ### 7.4 Data Flow (Phase 2 - Context Engineering)
 
 1. User submits request via CopilotKit chat UI
-2. **Context Layer**: `ma:searchmemories` retrieves relevant `memory://` notes
-3. **Context Layer**: `ma:buildcontext` traverses `[[concepts]]` for related knowledge
+2. **Context Layer**: `searchmemories` retrieves relevant `memory://` notes
+3. **Context Layer**: `buildcontext` traverses `[[concepts]]` for related knowledge
 4. Request + enriched context sent to AG-UI endpoint
-5. Orchestrator routes to specialists with shared `ma:sequentialthinking` session
+5. Orchestrator routes to specialists with shared `sequentialthinking` session
 6. Specialist agents:
    - Extract `[[concepts]]` from responses for graph construction
    - Cite `memory://` URIs for grounded responses
-   - Call `ma:writememory` to persist new knowledge
+   - Call `writememory` to persist new knowledge
 7. **Compaction**: If context nearing limits, summarize and persist to `memory://`
 8. Response streams with `[[concept]]` markup for graph building
-9. Graph syncs via `ma:sync` for future retrieval
+9. Graph syncs via `sync` for future retrieval
 
 ### 7.5 Technology Stack
 

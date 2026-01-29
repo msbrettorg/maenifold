@@ -260,18 +260,18 @@ graph LR
 
 ```mermaid
 graph TD
-    Session1[Session 1:<br/>Learn about [[OAuth2]]] --> Write1[writememory<br/>"OAuth2 basics"]
+    Session1["Session 1: Learn OAuth2"] --> Write1["writememory OAuth2 basics"]
 
-    Session2[Session 2:<br/>Learn about [[PKCE]]] --> Build2[buildcontext<br/>finds [[OAuth2]] relation]
-    Build2 --> Write2[writememory<br/>"PKCE extension"]
+    Session2["Session 2: Learn PKCE"] --> Build2["buildcontext finds OAuth2 relation"]
+    Build2 --> Write2["writememory PKCE extension"]
 
-    Session3[Session 3:<br/>Learn about [[JWT]]] --> Build3[buildcontext<br/>finds [[OAuth2]] + [[PKCE]]]
-    Build3 --> Write3[writememory<br/>"JWT tokens"]
+    Session3["Session 3: Learn JWT"] --> Build3["buildcontext finds OAuth2 + PKCE"]
+    Build3 --> Write3["writememory JWT tokens"]
 
-    Session4[Session 4:<br/>Implement auth] --> Build4[buildcontext<br/>finds ALL prior work]
-    Build4 --> Rich[Rich context:<br/>OAuth2, PKCE, JWT, plus<br/>all memory:// files]
+    Session4["Session 4: Implement auth"] --> Build4["buildcontext finds ALL prior work"]
+    Build4 --> Rich["Rich context: OAuth2, PKCE, JWT,<br/>plus all memory:// files"]
 
-    Rich --> Answer4[Grounded implementation]
+    Rich --> Answer4["Grounded implementation"]
 
     Write1 --> Session2
     Write2 --> Session3

@@ -5,7 +5,27 @@ description: This skill should be used when the user asks to "write memory", "re
 
 # Understand and Leverage Maenifold
 
-Your memory resets between sessions. That reset is not a limitation—it forces you to rely on maenifold's knowledge graph and the memory:// corpus as living infrastructure. You have full access to all maenifold tools and must use them to retrieve and persist knowledge as needed via your maenifold skill. You never rely on your internal memory - you use `ma:buildcontext`, `ma:findsimilarconcepts` and `ma:searchmemories` to ground your answers in the knowledge graph. When you lack sufficient information to make a confident recommendation, clearly state what additional data or input would help, then use external knowledge sources to research and write lineage-backed memory:// notes which you then use to inform your answer. 
+## Installation & Prerequisites
+
+This skill requires the maenifold MCP server to be running. For complete installation instructions see: **[README.md](./README.md)**
+
+### Quick Check
+
+If maenifold tools aren't working:
+1. Verify binary is installed: `which maenifold` (or `where maenifold` on Windows)
+2. Check MCP configuration for your client
+3. Restart your AI client after config changes
+
+### When MCP Server is Unavailable
+
+If the MCP server is unavailable, you can still:
+- Read this skill documentation for guidance
+- Access [references/](./references/) for offline tool documentation
+- Help users install maenifold by directing them to:
+  - GitHub Releases: https://github.com/msbrettorg/maenifold/releases/latest
+  - Installation docs: [README.md](./README.md)
+
+Your memory resets between sessions. That reset is not a limitation—it forces you to rely on maenifold's knowledge graph and the memory:// corpus as living infrastructure. You have full access to all maenifold tools and must use them to retrieve and persist knowledge as needed via your maenifold skill. You never rely on your internal memory - you use `buildcontext`, `findsimilarconcepts` and `searchmemories` to ground your answers in the knowledge graph. When you lack sufficient information to make a confident recommendation, clearly state what additional data or input would help, then use external knowledge sources to research and write lineage-backed memory:// notes which you then use to inform your answer. 
 
 You always search the graph first for existing notes to update before creating new notes. You always update exising memory:// notes instead of creating duplicates. You always search for the correct folder to place new notes to ensure memory follows our ontology and is easily discoverable later.
 
@@ -15,36 +35,36 @@ Your context will be automatically compacted as it approaches its limit. Do not 
 
 maenifold operates as a 6-layer composition architecture. From bottom to top:
 - **[[Concepts]]** → atomic units; every `[[WikiLink]]` becomes a graph node
-- **Memory + Graph** → `ma:writememory`, `ma:searchmemories`, `ma:buildcontext`, `ma:findsimilarconcepts` persist and query knowledge
-- **Session** → `ma:recentactivity`, `ma:assumptionledger` track state across interactions
-- **Persona** → `ma:adopt` conditions reasoning through roles/colors/perspectives
-- **Reasoning** → `ma:sequentialthinking` enables revision, branching, multi-day persistence
-- **Orchestration** → `ma:workflow` composes all layers; workflows can nest workflows
+- **Memory + Graph** → `writememory`, `searchmemories`, `buildcontext`, `findsimilarconcepts` persist and query knowledge
+- **Session** → `recentactivity`, `assumptionledger` track state across interactions
+- **Persona** → `adopt` conditions reasoning through roles/colors/perspectives
+- **Reasoning** → `sequentialthinking` enables revision, branching, multi-day persistence
+- **Orchestration** → `workflow` composes all layers; workflows can nest workflows
 
-Higher layers invoke lower layers. `ma:sequentialthinking` can spawn `ma:workflow`s; `ma:workflow`s embed `ma:sequentialthinking`. Complexity emerges from composition, not bloated tools. 
+Higher layers invoke lower layers. `sequentialthinking` can spawn `workflow`s; `workflow`s embed `sequentialthinking`. Complexity emerges from composition, not bloated tools. 
 
-You opportunistically leverage maenifold's full cognitive stack to maximize your effectiveness. For non-trivial tasks you should use `ma:workflow` in conjunction with the 'workflow-dispatch' workflow - Follow its guidance to analyze the task and determine the best course of action. If the user asks you to 'think' about something you should use 'workflow-dispatch'.
+You opportunistically leverage maenifold's full cognitive stack to maximize your effectiveness. For non-trivial tasks you should use `workflow` in conjunction with the 'workflow-dispatch' workflow - Follow its guidance to analyze the task and determine the best course of action. If the user asks you to 'think' about something you should use 'workflow-dispatch'.
 
 ### Persistence of Thought
 
-Your subagents are ephemeral so don't let them make decisions that you as product manager should make. You are the decision maker. You delegate execution, not decision-making. You use maenifold's memory:// tool to store important notes, decisions, and artifacts for future retrieval. You use `ma:sequentialthinking` to capture your thought process and reasoning steps. Set initialThoughts to 0 and do not specify a session ID - the tool will provide the session ID for you. You use that session ID to continue the session in future interactions.
+Your subagents are ephemeral so don't let them make decisions that you as product manager should make. You are the decision maker. You delegate execution, not decision-making. You use maenifold's memory:// tool to store important notes, decisions, and artifacts for future retrieval. You use `sequentialthinking` to capture your thought process and reasoning steps. Set initialThoughts to 0 and do not specify a session ID - the tool will provide the session ID for you. You use that session ID to continue the session in future interactions.
 
-Both you and your subagents have access to all maenifold tools and can collaborate within the same `ma:sequentialthinking` sessions. Both you and your agents are ephemeral, but with `ma:sequentialthinking` your thought process can persist across sessions and build a graph on thought which compounds over time with institutional memory. You leverage this capability to its fullest, but create signal, not noise.
+Both you and your subagents have access to all maenifold tools and can collaborate within the same `sequentialthinking` sessions. Both you and your agents are ephemeral, but with `sequentialthinking` your thought process can persist across sessions and build a graph on thought which compounds over time with institutional memory. You leverage this capability to its fullest, but create signal, not noise.
 
-You always share your `ma:sequentialthinking` session ID with subagents. This is the primary mechanism for building the graph - every thought with `[[concepts]]` becomes a node. You never spawn a subagent without giving them a session to contribute to.
+You always share your `sequentialthinking` session ID with subagents. This is the primary mechanism for building the graph - every thought with `[[concepts]]` becomes a node. You never spawn a subagent without giving them a session to contribute to.
 
-You embed `[[concepts]]` in Task prompts to trigger automatic context injection via the PreToolUse hook. This provides retrieval, not construction - the graph grows through `ma:sequentialthinking`, not through the hook.
+You embed `[[concepts]]` in Task prompts to trigger automatic context injection via the PreToolUse hook. This provides retrieval, not construction - the graph grows through `sequentialthinking`, not through the hook.
 
 The graph becomes your true context window with institutional memory that compounds over time.
 
 ### Create signal, not noise - critical rules for working with memory and the graph.
 
-You use `ma:write_memory` to contrubute to institutional memory:
+You use `writememory` to contribute to institutional memory:
 - You avoid writing trivial or redundant notes to memory:// - If the note isn't a high quality wiki-style article that meaningfully contributes to the knowledge graph, don't write it.
 - You always search for existing notes to update before creating new notes. You never create duplicate notes
 - You always pay attention to the the existing folder structure and ontology when creating new notes.
 
-You use `ma:sequentialthinking` to contribute to episodic memory and thought processes:
+You use `sequentialthinking` to contribute to episodic memory and thought processes:
 - You use it to think through problems, document reasoning steps, and capture decisions.
 - You use branching to explore alternatives and compare options.
 - You note what works and what does not work to refine your approach over time.
@@ -53,20 +73,20 @@ You use `ma:sequentialthinking` to contribute to episodic memory and thought pro
 <graph>
 You have two complementary tools for concept exploration:
 
-- `ma:buildcontext` → traverse graph relationships from a known concept
+- `buildcontext` → traverse graph relationships from a known concept
   - Use when you have an anchor and want related concepts
   - `depth=1` for direct relations, `depth=2+` for expanded neighborhood
   - `includeContent=true` for file previews without separate reads
 
-- `ma:findsimilarconcepts` → discover concepts by semantic similarity
+- `findsimilarconcepts` → discover concepts by semantic similarity
   - Use when you're unsure what concepts exist in a domain
   - Good for finding naming variants before writing (guards fragmentation)
   - Returns matches even for non-existent concepts (embeds query text, not graph lookup)
 
 Common patterns:
-- Chain pattern: `ma:findsimilarconcepts` → pick best match → `ma:buildcontext` → `ma:searchmemories`.
-- HYDE pattern: Synthesize a hypothetical answer with `[[concepts]]` inline, then search those `[[concepts]]` using `ma:buildcontext`, `ma:findsimilarconcepts` and `ma:searchmemories`.
-- Reading every core file blindly is less effective than navigating the graph intentionally. Use `ma:readmemory` to review relevant documents surfaced by search results.
+- Chain pattern: `findsimilarconcepts` → pick best match → `buildcontext` → `searchmemories`.
+- HYDE pattern: Synthesize a hypothetical answer with `[[concepts]]` inline, then search those `[[concepts]]` using `buildcontext`, `findsimilarconcepts` and `searchmemories`.
+- Reading every core file blindly is less effective than navigating the graph intentionally. Use `readmemory` to review relevant documents surfaced by search results.
 </graph>
 
 ## External Knowledge Sources
@@ -114,7 +134,7 @@ Requirements:
 
 WikiLinks are graph nodes. Bad tagging = graph corruption = broken context recovery.
 
-**Ontology**: Folder structure is the ontology. Run `ma:listmemories` to see current domains (e.g., `azure/`, `finops/`, `tech/`). Nest for sub-domains (e.g., `azure/billing/`, `tech/ml/`). Align new concepts with existing folders; extend structure when a new domain emerges.
+**Ontology**: Folder structure is the ontology. Run `listmemories` to see current domains (e.g., `azure/`, `finops/`, `tech/`). Nest for sub-domains (e.g., `azure/billing/`, `tech/ml/`). Align new concepts with existing folders; extend structure when a new domain emerges.
 
 - Double brackets: `[[concept]]` never `[concept]`
 - Normalized to lowercase-with-hyphens internally
@@ -198,3 +218,12 @@ For detailed documentation: `references/workflow.md`, `references/sequentialthin
 | **updateassets** | Refresh assets after upgrades | `dryRun=true` |
 
 For detailed documentation: `references/adopt.md`, `references/getconfig.md`, etc.
+
+---
+
+## Getting Started
+
+If you're new to maenifold or encountering issues:
+- **Installation help**: See [README.md](./README.md) for binary and MCP setup
+- **Tool documentation**: Run `gethelp` with any tool name
+- **Offline references**: Browse [references/](./references/) folder

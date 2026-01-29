@@ -27,14 +27,7 @@ Integrates with all memory tools for concept extraction, BuildContext for relati
 Returns synchronization status with concept counts, relationship updates, and database health confirmation.")]
     public static string Sync([Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(Sync).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(Sync)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(Sync));
 
         return ConceptSync.Sync();
     }
@@ -89,7 +82,8 @@ Returns related concepts with relationship types, file references, and connectio
 
         foreach (var (related, count, files) in directRelations)
         {
-            var fileList = JsonSerializer.Deserialize<List<string>>(files) ?? new();
+            // SEC-001: Use safe JSON options with depth limit
+            var fileList = JsonSerializer.Deserialize<List<string>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
             var relatedConcept = new RelatedConcept
             {
                 Name = related,
@@ -108,8 +102,8 @@ Returns related concepts with relationship types, file references, and connectio
                         if (File.Exists(fullPath))
                         {
                             var (_, fileContent, _) = MarkdownIO.ReadMarkdown(fullPath);
-                            // RTM: BUILDCONTEXT-PREVIEW-UX-001 - Sentence-aware content preview
-                            var preview = CreateSmartPreview(fileContent, targetLength: 200, tolerance: 50);
+                            // GRAPH-001: Extract section containing concept mention, not just file start
+                            var preview = ExtractSectionWithConcept(fileContent, conceptName, maxLength: 500);
 
                             relatedConcept.ContentPreview[filePath] = preview;
                         }
@@ -172,19 +166,103 @@ Returns Mermaid diagram code ready for rendering, enables visual knowledge archi
             [Description("Max nodes")] int maxNodes = 30,
             [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(Visualize).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(Visualize)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(Visualize));
 
         return GraphAnalyzer.Visualize(conceptName, depth, maxNodes);
     }
 
     // RTM: BUILDCONTEXT-PREVIEW-UX-001 - Helper methods for sentence-aware content preview
+
+    /// <summary>
+    /// Extracts the H2 section (or parent section) containing a concept mention.
+    /// Falls back to CreateSmartPreview if concept not found in any section.
+    /// </summary>
+    /// <param name="content">Full markdown content to search</param>
+    /// <param name="conceptName">Concept to find (normalized form expected)</param>
+    /// <param name="maxLength">Maximum length of returned section</param>
+    /// <returns>Section containing concept or smart preview fallback</returns>
+    public static string ExtractSectionWithConcept(string content, string conceptName, int maxLength = 500)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return string.Empty;
+
+        // Normalize concept for matching (remove brackets if present)
+        var normalizedConcept = conceptName.Trim('[', ']');
+
+        // Search patterns: [[concept]] WikiLink or plain text mention
+        var wikiLinkPattern = $"[[{normalizedConcept}]]";
+
+        // Find all section boundaries (## headers)
+        var sections = new List<(int start, int end, string header)>();
+        var lines = content.Split('\n');
+        int currentPos = 0;
+        int? h1Start = null;
+        string? h1Header = null;
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var line = lines[i];
+
+            // Track H1 position for fallback
+            if (line.StartsWith("# ", StringComparison.Ordinal) && h1Start == null)
+            {
+                h1Start = currentPos;
+                h1Header = line;
+            }
+
+            // Track H2 sections
+            if (line.StartsWith("## ", StringComparison.Ordinal))
+            {
+                sections.Add((currentPos, -1, line));
+            }
+
+            currentPos += line.Length + 1; // +1 for newline
+        }
+
+        // Set end positions for each section
+        for (int i = 0; i < sections.Count; i++)
+        {
+            var (start, _, header) = sections[i];
+            int end = (i < sections.Count - 1) ? sections[i + 1].start : content.Length;
+            sections[i] = (start, end, header);
+        }
+
+        // If no H2 sections found, use H1 section if available
+        if (sections.Count == 0 && h1Start.HasValue)
+        {
+            sections.Add((h1Start.Value, content.Length, h1Header!));
+        }
+
+        // Search for concept in each section (case-insensitive)
+        foreach (var (start, end, header) in sections)
+        {
+            var sectionContent = content.Substring(start, end - start);
+
+            // Check for WikiLink first (more specific)
+            if (sectionContent.Contains(wikiLinkPattern, StringComparison.OrdinalIgnoreCase))
+            {
+                return TruncateSection(sectionContent, maxLength);
+            }
+
+            // Check for plain text mention
+            if (sectionContent.Contains(normalizedConcept, StringComparison.OrdinalIgnoreCase))
+            {
+                return TruncateSection(sectionContent, maxLength);
+            }
+        }
+
+        // Fallback: concept not found in any section, use smart preview from start
+        return CreateSmartPreview(content, targetLength: 200, tolerance: 50);
+    }
+
+    private static string TruncateSection(string section, int maxLength)
+    {
+        if (section.Length <= maxLength)
+            return section.TrimEnd();
+
+        // Use smart truncation to preserve sentence boundaries
+        return CreateSmartPreview(section, targetLength: maxLength - 50, tolerance: 50);
+    }
 
     public static string CreateSmartPreview(string content, int targetLength = 200, int tolerance = 50)
     {

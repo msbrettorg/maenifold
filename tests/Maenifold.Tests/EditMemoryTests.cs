@@ -521,12 +521,12 @@ Brand new single paragraph with [[brand-new]].";
             expectedCount: 1
         );
 
-        // Assert: This should succeed (edge case is now documented)
-        Assert.That(editResult, Does.StartWith("Updated memory FILE:"));
-
-        var readResult = MemoryTools.ReadMemory(uri);
-        // Verify the nested bracket structure exists
-        Assert.That(readResult, Does.Contain("[[Machine [[Deep Learning]]]]"));
+        // T-REL-001: Nested brackets are now rejected as malformed patterns.
+        // The result [[Machine [[Deep Learning]]]] has no valid concepts because:
+        // - The lookbehind/lookahead regex rejects patterns with adjacent brackets
+        // - System requires at least one valid [[concept]] in edited content
+        Assert.That(editResult, Does.StartWith("ERROR:"));
+        Assert.That(editResult, Does.Contain("must contain at least one [[concept]]"));
     }
 
     [Test]

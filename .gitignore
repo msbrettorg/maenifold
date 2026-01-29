@@ -44,6 +44,10 @@ tests/artifacts/reports/*
 tests/artifacts/data/*
 !tests/artifacts/README.md
 
+# Manual test/debug scripts (ad-hoc debugging, not part of test suite)
+tests/manual_*.cs
+tests/MarkdigDiagnostic/
+
 # Memory database logs
 memory/*.db-shm
 memory/*.db-wal
@@ -102,10 +106,7 @@ external-libs/
 
 # Documentation drafts (private)
 *.draft.md
-TODO.md
-AGENTS.md
 CLAUDE.md
-RTM.md
 implementation_plan.md
 
 # Documentation development artifacts (keep built site for GitHub Pages)
@@ -162,3 +163,4 @@ tmp/
 site-quartz/
 dist/releases/
 artifacts/manual-release/
+.codex/

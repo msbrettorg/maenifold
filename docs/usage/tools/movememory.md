@@ -91,7 +91,7 @@ Move files through research stages as understanding deepens:
 **Solution**: Verify the source identifier is correct. If using a title, ensure exact match including capitalization. Use SearchMemories to find the correct title or URI.
 
 ### **Error**: File already exists at destination
-**Solution**: MoveMemory will overwrite destination files. Use ReadMemory to check destination first, or choose a different destination path.
+**Solution**: MoveMemory will NOT overwrite existing files. Choose a different destination path, or use DeleteMemory on the existing file first if you want to replace it.
 
 ### **Issue**: Complex path separators causing confusion
 **Solution**: Use forward slashes consistently in destination paths. MoveMemory automatically converts to system-appropriate separators.

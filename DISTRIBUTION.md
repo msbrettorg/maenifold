@@ -1,146 +1,81 @@
 # Distribution Strategy
 
-maenifold is distributed through four primary channels for maximum reach:
+maenifold is distributed through four primary channels:
 
-## 1. NPM Registry (@ma-collective/maenifold)
+## 1. GitHub Releases (Primary)
 
-**Primary distribution method** for users installing via package managers.
+**Universal distribution** with platform-specific binaries and installers.
+
+### Release Assets
+Each GitHub release includes:
+- Source code (automatic from tag)
+- Platform-specific binaries:
+  - `maenifold-osx-arm64.tar.gz`
+  - `maenifold-osx-x64.tar.gz`
+  - `maenifold-linux-x64.tar.gz`
+  - `maenifold-linux-arm64.tar.gz`
+  - `maenifold-win-x64.zip`
+  - `maenifold-vX.X.X-win-x64.msi` (Windows installer with PATH setup)
+- Release notes with changelog
+
+### Manual Installation
+```bash
+# macOS/Linux
+curl -L https://github.com/msbrettorg/maenifold/releases/latest/download/maenifold-osx-arm64.tar.gz | tar xz
+sudo mv maenifold /usr/local/bin/
+
+# Windows (use MSI installer for automatic PATH setup)
+```
+
+## 2. Homebrew (macOS/Linux)
+
+**Recommended for macOS and Linux developers.**
 
 ### Installation
 ```bash
-npm install -g @ma-collective/maenifold
-```
-
-### What's Included
-- Self-contained binaries for all platforms (Linux x64, macOS ARM64/x64, Windows x64)
-- No .NET runtime required - binaries are self-contained
-- Platform detection wrapper script
-- Core documentation (README.md, DEVELOPMENT.md, DISTRIBUTION.md)
-
-### Update Process
-```bash
-npm update -g @ma-collective/maenifold
-```
-
-### Publishing
-See [NPM_SETUP.md](NPM_SETUP.md) for complete publishing instructions.
-
-## 2. Homebrew Tap (macOS/Linux)
-
-**Primary distribution for macOS and Linux developers.**
-
-### Installation
-```bash
-brew tap ma-collective/tap
+brew tap msbrettorg/tap
 brew install maenifold
 ```
 
 Or in one command:
 ```bash
-brew install ma-collective/tap/maenifold
+brew install msbrettorg/tap/maenifold
 ```
 
 ### What's Included
-- Platform-specific binaries (macOS ARM64, macOS x64, Linux x64)
+- Platform-specific binaries (macOS ARM64, macOS x64, Linux x64, Linux ARM64)
 - Automatic PATH setup
-- Easy updates via `brew upgrade`
+- Easy updates via `brew upgrade maenifold`
 
-### Publishing
-See [distribution/homebrew/README.md](distribution/homebrew/README.md) for tap setup and publishing instructions.
+## 3. Windows MSI Installer
 
-## 3. WinGet (Windows Official)
-
-**Official Microsoft package manager for Windows 10/11.**
+**Recommended for Windows users.**
 
 ### Installation
-```bash
-winget install maenifold
-```
+Download the `.msi` file from GitHub Releases and run the installer.
 
 ### What's Included
 - Self-contained Windows x64 binary
-- Automatic PATH setup
-- Integration with Windows Package Manager
+- Automatic PATH setup (system-wide)
+- Clean uninstall (removes PATH entry)
+- Installs to `C:\Program Files\MSBrett\Maenifold\`
 
-### Publishing
-See [distribution/winget/README.md](distribution/winget/README.md) for manifest submission to Microsoft's repository.
+## 4. .NET Tool (NuGet)
 
-## 4. GitHub Releases
+**For .NET developers who prefer dotnet tool management.**
 
-**Universal fallback** for direct downloads, source code, and release notes.
-
-### Release Assets
-Each GitHub release should include:
-- Source code (automatic from tag)
-- Platform-specific binaries:
-  - `maenifold-linux-x64.tar.gz`
-  - `maenifold-osx-arm64.tar.gz`
-  - `maenifold-osx-x64.tar.gz`
-  - `maenifold-win-x64.zip`
-- Release notes with changelog
-- SHA256 checksums for all binaries
-
-### GitHub Release Process
-
-**Use the automated release script:**
-
+### Installation
 ```bash
-./scripts/release.sh 1.0.0
+dotnet tool install --global Maenifold
 ```
 
-This script will:
-- Clean previous builds
-- Run tests
-- Build all platform binaries
-- Package archives (tar.gz for Linux/macOS, zip for Windows)
-- Generate SHA256SUMS
-- Update Homebrew formula with checksums
-- Update WinGet manifests with checksums
-
-**Then create the GitHub release:**
-
-1. **Tag the release:**
-   ```bash
-   git tag -a v1.0.0 -m "Release v1.0.0"
-   git push origin v1.0.0
-   ```
-
-2. **Create GitHub Release:**
-   - Go to: https://github.com/msbrettorg/maenifold/releases/new
-   - Select the tag `v1.0.0`
-   - Use template from [distribution/GITHUB_RELEASE_TEMPLATE.md](distribution/GITHUB_RELEASE_TEMPLATE.md)
-   - Attach the 5 files:
-     - `maenifold-linux-x64.tar.gz`
-     - `maenifold-osx-arm64.tar.gz`
-     - `maenifold-osx-x64.tar.gz`
-     - `maenifold-win-x64.zip`
-     - `SHA256SUMS`
-   - Publish release
-
-## 5. Direct .NET Integration (Optional)
-
-For projects using the Microsoft Agent Framework:
-
-### Git Submodule
+### Update
 ```bash
-git submodule add https://github.com/ma-collective/maenifold.git external/maenifold
+dotnet tool update --global Maenifold
 ```
 
-### Project Reference
-```xml
-<ProjectReference Include="../external/maenifold/src/Maenifold.csproj" />
-```
-
-Then use static methods directly:
-```csharp
-using Maenifold.Tools;
-
-var result = MemoryTools.WriteMemory(
-    "API Decision",
-    "We chose [[REST]] over [[GraphQL]]...",
-    folder: "decisions"
-);
-```
+### Requirements
+- .NET 9.0 SDK or later
 
 ## Distribution Checklist
 
@@ -148,36 +83,21 @@ When releasing a new version:
 
 ### Pre-Release
 - [ ] Update CHANGELOG.md with version and changes
-- [ ] Update version in package.json
-- [ ] Update version in all distribution files (if not using release script)
+- [ ] Update version in `src/Maenifold.csproj`
 - [ ] Run full test suite: `dotnet test`
-- [ ] All tests passing (0 errors, 0 warnings)
-
-### Build
-- [ ] Run release script: `./scripts/release.sh 1.0.0`
-- [ ] Verify all 4 platform binaries created
-- [ ] Verify SHA256SUMS generated
-- [ ] Verify Homebrew formula updated with checksums
-- [ ] Verify WinGet manifests updated with checksums
+- [ ] All tests passing
 
 ### Release
+- [ ] Merge PR to main
 - [ ] Create git tag: `git tag -a v1.0.0 -m "Release v1.0.0"`
 - [ ] Push tag: `git push origin v1.0.0`
-- [ ] Create GitHub Release using template
-- [ ] Upload 5 files to GitHub release (4 archives + SHA256SUMS)
-- [ ] Mark as "Latest release" (if applicable)
-
-### Distribution
-- [ ] Publish to NPM: `npm publish --access public`
-- [ ] Update Homebrew tap repository with new formula
-- [ ] Submit WinGet PR to microsoft/winget-pkgs (for new versions)
+- [ ] GitHub Actions builds and publishes release automatically
 
 ### Verification
-- [ ] Test NPM: `npm install -g @ma-collective/maenifold && maenifold --tool MemoryStatus --payload '{}'`
-- [ ] Test Homebrew: `brew install ma-collective/tap/maenifold && maenifold --tool MemoryStatus --payload '{}'`
-- [ ] Test WinGet (after PR merged): `winget install maenifold`
+- [ ] Verify GitHub Release created with 6 artifacts (5 archives + MSI)
+- [ ] Test Homebrew: `brew upgrade maenifold && maenifold --help`
+- [ ] Test MSI installer on Windows
 - [ ] Test direct download from GitHub release
-- [ ] Verify all checksums match
 
 ## Version Numbering
 
@@ -188,11 +108,12 @@ Follow semantic versioning (semver):
 
 ## Support Matrix
 
-| Platform | Architecture | .NET | Node.js | Status |
-|----------|-------------|------|---------|--------|
-| Linux | x64 | Self-contained | 18+ | ✅ Supported |
-| macOS | ARM64 (M1/M2/M3) | Self-contained | 18+ | ✅ Supported |
-| macOS | x64 (Intel) | Self-contained | 18+ | ✅ Supported |
-| Windows | x64 | Self-contained | 18+ | ✅ Supported |
+| Platform | Architecture | Status |
+|----------|-------------|--------|
+| Linux | x64 | Supported |
+| Linux | ARM64 | Supported |
+| macOS | ARM64 (M1/M2/M3) | Supported |
+| macOS | x64 (Intel) | Supported |
+| Windows | x64 | Supported |
 
-All binaries are self-contained - no .NET runtime installation required.
+All binaries are self-contained - no .NET runtime installation required (except for dotnet tool install method).

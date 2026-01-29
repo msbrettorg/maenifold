@@ -19,14 +19,7 @@ Integrates with all tools for configuration-dependent behavior, MemoryStatus for
 Returns configuration settings with values, paths, and system state information for operational insight.")]
     public static string GetConfig([Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(GetConfig).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(GetConfig)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(GetConfig));
 
         return Config.GetConfigSummary();
     }
@@ -38,14 +31,7 @@ Integrates with ListMemories for structure analysis, RecentActivity for usage pa
 Returns detailed statistics with file counts, concept metrics, and system health indicators.")]
     public static string MemoryStatus([Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(MemoryStatus).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(MemoryStatus)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(MemoryStatus));
 
         var stats = new System.Text.StringBuilder("# Memory System Status\n\n");
 
@@ -93,14 +79,7 @@ Returns hierarchical directory listing with file counts, sizes, and folder organ
         [Description("Directory path (relative to memory)")] string? path = null,
         [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(ListMemories).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(ListMemories)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(ListMemories));
 
         var targetPath = string.IsNullOrEmpty(path)
             ? MemoryPath
@@ -174,14 +153,7 @@ Returns summary of added/updated files with error reporting if refresh encounter
         [Description("Preview changes without modifying files (default=true)")] bool dryRun = true,
         [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(UpdateAssets).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(UpdateAssets)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(UpdateAssets));
 
         var result = AssetManager.UpdateAssets(dryRun);
         return result.ToString();

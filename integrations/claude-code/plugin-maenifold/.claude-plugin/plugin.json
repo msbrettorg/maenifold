@@ -1,0 +1,9 @@
+{
+  "name": "maenifold",
+  "version": "1.0.0",
+  "description": "maenifold knowledge graph and reasoning infrastructure",
+  "author": {
+    "name": "msbrettorg",
+    "url": "https://github.com/msbrettorg/maenifold"
+  }
+}

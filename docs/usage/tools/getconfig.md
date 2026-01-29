@@ -60,15 +60,11 @@ Run in new deployment environments to confirm all configuration values are corre
 ### Synchronization Settings
 - **Debounce Timing**: File change detection delay for incremental sync
 - **Auto Sync**: Whether automatic synchronization is enabled
-- **Max Batch Size**: Limit for concurrent file operations
 
 ### Performance Parameters
-- **Search Limits**: Default result counts for memory searches
-- **Context Depth**: Default graph traversal depth for BuildContext
-- **Connection Pooling**: Database connection management settings
+- **Snippet Length**: Maximum length for recent activity snippets
 
 ### Debug Settings
-- **Debug Logging**: Whether detailed debug information is enabled
 - **Sync Logging**: File synchronization logging verbosity
 
 ## Configuration Sources
@@ -82,10 +78,6 @@ All configuration values can be customized via environment variables:
 - **MAENIFOLD_DATABASE_PATH**: Custom database file location
 - **MAENIFOLD_DEBOUNCE_MS**: File change detection delay (default: 150)
 - **MAENIFOLD_AUTO_SYNC**: Enable/disable automatic synchronization (default: true)
-- **MAENIFOLD_MAX_BATCH_SIZE**: Maximum debounce batch size (default: 50)
-- **MAENIFOLD_SEARCH_LIMIT**: Default search result limit (default: 10)
-- **MAENIFOLD_CONTEXT_DEPTH**: Default context traversal depth (default: 2)
-- **MAENIFOLD_MAX_ENTITIES**: Maximum context entities (default: 20)
 - **MAENIFOLD_SNIPPET_LENGTH**: Recent activity snippet length (default: 1000)
 
 ### Platform-Specific Defaults

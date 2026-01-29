@@ -37,7 +37,7 @@ internal static partial class WorkflowOperations
         var toAppend = new List<string>();
         if (append.StartsWith('['))
         {
-            toAppend = JsonSerializer.Deserialize<List<string>>(append)!;
+            toAppend = JsonSerializer.Deserialize<List<string>>(append, SafeJson.Options)!;
         }
         else
         {
@@ -95,7 +95,7 @@ internal static partial class WorkflowOperations
             queue = Array.Empty<string>();
 
         var currentWorkflowPath = Path.Combine(WorkflowCommon.WorkflowsPath, $"{queue[currentWorkflowIndex]}.json");
-        var currentWorkflow = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(currentWorkflowPath));
+        var currentWorkflow = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(currentWorkflowPath), SafeJson.Options);
         var steps = currentWorkflow.GetProperty("steps").EnumerateArray().ToList();
 
         // Build and record response content
@@ -222,7 +222,7 @@ internal static partial class WorkflowOperations
         MarkdownIO.UpdateSession("workflow", sessionId, frontmatter, existingContent);
 
         var nextWorkflowPath = Path.Combine(WorkflowCommon.WorkflowsPath, $"{queue[currentWorkflowIndex]}.json");
-        var nextWorkflow = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(nextWorkflowPath));
+        var nextWorkflow = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(nextWorkflowPath), SafeJson.Options);
         var nextSteps = nextWorkflow.GetProperty("steps").EnumerateArray().ToList();
 
         MarkdownIO.AppendToSession("workflow", sessionId, $"Step 1/{nextSteps.Count}", nextSteps[0].GetRawText());

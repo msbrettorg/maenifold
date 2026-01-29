@@ -11,7 +11,7 @@
     <PackageId>Maenifold</PackageId>
     <AssemblyName>maenifold</AssemblyName>
     <RootNamespace>Maenifold</RootNamespace>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>MSBrett</Authors>
     <Company>MSBrett</Company>
     <Product>Maenifold</Product>
@@ -20,6 +20,14 @@
     <RepositoryUrl>https://github.com/MSBrett/Maenifold</RepositoryUrl>
     <PackageTags>ai;agents;reasoning;knowledge-graph;mcp;llm;test-time-compute</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Dotnet Tool -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>maenifold</ToolCommandName>
+
+    <!-- Suppress pack warnings: NU5100 (native assets not in lib), NU5104 (prerelease dep) -->
+    <NoWarn>$(NoWarn);NU5100;NU5104</NoWarn>
 
     <!-- MCP Server Code Analysis -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -50,5 +58,15 @@
     <Content Include="assets\\**\\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <!-- Exclude native runtimes from tool package - restored at install time -->
+  <ItemGroup Condition="'$(PackAsTool)' == 'true'">
+    <Content Remove="runtimes/**/*" />
+    <None Remove="runtimes/**/*" />
   </ItemGroup>
 </Project>

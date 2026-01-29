@@ -237,6 +237,10 @@ FindSimilarConcepts conceptName="testing"
 **Cause**: Vector embeddings capture semantic meaning, not domain-specific relationships
 **Solution**: Remember this is general language semantics, not your specific knowledge structure - use BuildContext for your intentional connections
 
+### Scores appear saturated (e.g., many 1.000)
+**Cause**: When many concept embeddings end up at extremely small cosine distances, the `similarity = 1 / (1 + distance)` mapping yields values very close to 1.0.  
+**Solution**: Treat similarity as a ranking heuristic, not a strict threshold. Validate candidates via `BuildContext` and `SearchMemories`.
+
 ### Same Concepts with Different Casing
 **Cause**: Concepts not normalized consistently in source files
 **Solution**: Use RepairConcepts to standardize casing after identifying duplicates
@@ -280,9 +284,7 @@ SearchMemories query="testing quality-assurance validation"
 ## Performance Considerations
 
 ### First Run Performance
-- **ONNX Model Loading**: ~400ms initial overhead for embedding generation
-- **Vector Extension**: Loads automatically on first query
-- **Subsequent Queries**: Much faster (~50-100ms) after initialization
+- The first call may be slower due to ONNX model initialization and vector extension setup.
 
 ### Database Requirements
 - **Sync Must Run First**: Concepts need embeddings in vec_concepts table

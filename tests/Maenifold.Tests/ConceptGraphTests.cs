@@ -160,4 +160,132 @@ public class ConceptGraphTests
 
         Console.WriteLine("\nTest passed - default behavior maintains backwards compatibility!");
     }
+
+    [Test]
+    public void BuildContextExtractsSectionWithConceptTest()
+    {
+        Console.WriteLine("\nTesting GRAPH-001: BuildContext extracts section containing concept mention\n");
+
+        // Create file with concept in later section
+        Console.WriteLine("1. Writing test memory with concept in Security section...");
+        var authFile = MemoryTools.WriteMemory(
+            "Authentication System Overview",
+            "# Authentication System Overview\n\n" +
+            "## Introduction\n\n" +
+            "This document describes our authentication system architecture.\n\n" +
+            "## Security\n\n" +
+            "The system uses [[authentication]] via JWT tokens. " +
+            "All requests must include valid [[authentication]] headers.\n\n" +
+            "## Configuration\n\n" +
+            "See config.yml for settings.",
+            folder: "test",
+            tags: TestTags
+        );
+
+        // Create second file that also mentions authentication
+        var jwtFile = MemoryTools.WriteMemory(
+            "JWT Implementation",
+            "# JWT Implementation\n\n" +
+            "## Overview\n\n" +
+            "JWT tokens are used for [[authentication]]. " +
+            "This document covers [[JWT]] implementation details.",
+            folder: "test",
+            tags: TestTags
+        );
+
+        Console.WriteLine(authFile);
+
+        // Sync to create relationships
+        Console.WriteLine("\n2. Syncing concepts to graph database...");
+        var syncResult = GraphTools.Sync();
+        Console.WriteLine(syncResult);
+
+        // Build context for authentication with content
+        Console.WriteLine("\n3. Building context for 'authentication' WITH content...");
+        var contextResult = GraphTools.BuildContext("authentication", depth: 1, maxEntities: 20, includeContent: true);
+        Console.WriteLine(contextResult);
+
+        // Verify we have content previews
+        Assert.That(contextResult.DirectRelations.Count, Is.GreaterThan(0),
+            "Should have direct relations");
+
+        // Check that the preview contains the Security section, not Introduction
+        bool foundSecuritySection = false;
+        foreach (var relation in contextResult.DirectRelations)
+        {
+            foreach (var preview in relation.ContentPreview.Values)
+            {
+                Console.WriteLine($"\nPreview content:\n{preview}\n");
+
+                // Should contain the Security section content
+                if (preview.Contains("## Security", StringComparison.Ordinal) ||
+                    preview.Contains("JWT tokens", StringComparison.Ordinal))
+                {
+                    foundSecuritySection = true;
+                }
+
+                // Should NOT start with Introduction if concept is in Security section
+                Assert.That(preview, Does.Not.StartWith("## Introduction"),
+                    "Preview should not show Introduction section when concept is in Security section");
+            }
+        }
+
+        Assert.That(foundSecuritySection, Is.True,
+            "Preview should contain content from Security section where authentication is mentioned");
+
+        Console.WriteLine("\nTest passed - section extraction working correctly!");
+    }
+
+    [Test]
+    public void ExtractSectionWithConceptEdgeCasesTest()
+    {
+        Console.WriteLine("\nTesting ExtractSectionWithConcept edge cases\n");
+
+        // Test 1: Concept in H2 section (should return that section)
+        var content1 = "# Title\n## Intro\nSome intro.\n## Security\nUsing [[authentication]] here.\n## End\nThe end.";
+        var result1 = GraphTools.ExtractSectionWithConcept(content1, "authentication", maxLength: 500);
+        Console.WriteLine($"Test 1 (concept in H2):\n{result1}\n");
+        Assert.That(result1, Does.Contain("## Security"), "Should extract Security section");
+        Assert.That(result1, Does.Contain("[[authentication]]"), "Should include the concept mention");
+
+        // Test 2: Concept appears multiple times (should use first occurrence)
+        var content2 = "# Title\n## Intro\nMentions [[auth]].\n## Details\nMore [[auth]] info.";
+        var result2 = GraphTools.ExtractSectionWithConcept(content2, "auth", maxLength: 500);
+        Console.WriteLine($"Test 2 (multiple mentions):\n{result2}\n");
+        Assert.That(result2, Does.Contain("## Intro"), "Should extract first section with mention");
+
+        // Test 3: Concept only in H1 section (no H2 headers)
+        var content3 = "# Title\nThis uses [[jwt]] tokens.\nMore content here.";
+        var result3 = GraphTools.ExtractSectionWithConcept(content3, "jwt", maxLength: 500);
+        Console.WriteLine($"Test 3 (H1 only):\n{result3}\n");
+        Assert.That(result3, Does.Contain("[[jwt]]"), "Should extract H1 section");
+
+        // Test 4: Concept not found (should fallback to CreateSmartPreview)
+        var content4 = "# Title\n## Section\nNo concept here.";
+        var result4 = GraphTools.ExtractSectionWithConcept(content4, "nonexistent", maxLength: 500);
+        Console.WriteLine($"Test 4 (concept not found):\n{result4}\n");
+        Assert.That(result4, Does.Contain("Title"), "Should fallback to smart preview from start");
+
+        // Test 5: Plain text match (not WikiLink)
+        var content5 = "# Title\n## Usage\nPlain authentication without brackets.";
+        var result5 = GraphTools.ExtractSectionWithConcept(content5, "authentication", maxLength: 500);
+        Console.WriteLine($"Test 5 (plain text):\n{result5}\n");
+        Assert.That(result5, Does.Contain("## Usage"), "Should match plain text");
+        Assert.That(result5, Does.Contain("authentication"), "Should include plain text mention");
+
+        // Test 6: Very long section (should truncate)
+        var longContent = "# Title\n## Long\nUsing [[test]]. " + new string('x', 1000);
+        var result6 = GraphTools.ExtractSectionWithConcept(longContent, "test", maxLength: 100);
+        Console.WriteLine($"Test 6 (truncation):\nLength: {result6.Length}\n{result6.Substring(0, Math.Min(100, result6.Length))}\n");
+        Assert.That(result6.Length, Is.LessThanOrEqualTo(200), "Should truncate long sections");
+
+        // Test 7: Empty or whitespace content
+        var result7 = GraphTools.ExtractSectionWithConcept("", "test", maxLength: 500);
+        Assert.That(result7, Is.Empty, "Empty content should return empty string");
+
+        var result8 = GraphTools.ExtractSectionWithConcept("   \n  \n", "test", maxLength: 500);
+        Console.WriteLine($"Test 8 (whitespace only):\nLength: {result8.Length}");
+
+        Console.WriteLine("\nAll edge case tests passed!");
+    }
 }

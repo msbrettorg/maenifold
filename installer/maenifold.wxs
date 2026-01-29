@@ -33,7 +33,9 @@
       <Component>
         <File Id="maenifold.exe" Source="publish\win-x64\maenifold.exe" KeyPath="yes" />
       </Component>
-      <Files Include="publish\win-x64\**" Exclude="publish\win-x64\maenifold.exe" />
+      <Files Include="publish\win-x64\**\*.dll" />
+      <Files Include="publish\win-x64\**\*.json" />
+      <Files Include="publish\win-x64\**\*.pdb" />
     </ComponentGroup>
 
     <!-- PATH environment variable entry -->

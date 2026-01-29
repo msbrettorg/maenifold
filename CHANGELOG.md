@@ -8,6 +8,7 @@ All notable changes to maenifold MCP Server will be documented in this file.
 
 ### Added
 - **DIST-001**: Windows MSI installer with PATH integration (WiX v5)
+- **PLATFORM-001**: Restored linux-arm64 support with sqlite-vec 0.1.6 native library
 - **CCPLUGIN-002**: Added DevAssist AI PRD and Ralph loop plugin docs, commands, hooks, and scripts:
   - Files added: `docs/agent/PRD.md`, `integrations/claude-code/plugin/README_RALPH.md`, `integrations/claude-code/plugin/commands/cancel-ralph.md`, `integrations/claude-code/plugin/commands/help-ralph.md`, `integrations/claude-code/plugin/commands/ralph-loop.md`, `integrations/claude-code/plugin/hooks/stop-hook.sh`, `integrations/claude-code/plugin/scripts/setup-ralph-loop.sh`
   - Agent docs updated: `integrations/claude-code/plugin/agents/blue-team.md`, `integrations/claude-code/plugin/agents/ma.md`, `integrations/claude-code/plugin/agents/red-team.md`, `integrations/claude-code/plugin/agents/researcher.md`, `integrations/claude-code/plugin/agents/swe.md`

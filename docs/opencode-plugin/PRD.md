@@ -89,9 +89,9 @@ By creating an OpenCode plugin, we:
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
 | FR-2.1 | Plugin SHALL subscribe to `session.created` event | P0 | OpenCode equivalent of SessionStart |
-| FR-2.2 | Plugin SHALL search memories for current repo/project name | P0 | `ma:searchmemories` |
-| FR-2.3 | Plugin SHALL retrieve recent activity concepts (last 24h) | P0 | `ma:recentactivity` |
-| FR-2.4 | Plugin SHALL build context for merged concept list | P0 | `ma:buildcontext` |
+| FR-2.2 | Plugin SHALL search memories for current repo/project name | P0 | `searchmemories` |
+| FR-2.3 | Plugin SHALL retrieve recent activity concepts (last 24h) | P0 | `recentactivity` |
+| FR-2.4 | Plugin SHALL build context for merged concept list | P0 | `buildcontext` |
 | FR-2.5 | Plugin SHALL inject context into session via `event` hook response | P0 | OpenCode event pattern |
 | FR-2.6 | Plugin SHALL respect TOKEN_LIMIT config (default 4000) | P1 | Prevent context bloat |
 
@@ -102,7 +102,7 @@ By creating an OpenCode plugin, we:
 | FR-3.1 | Plugin SHALL subscribe to `experimental.session.compacting` event | P0 | Pre-compaction hook |
 | FR-3.2 | Plugin SHALL extract `[[concepts]]` from conversation | P0 | WikiLink regex |
 | FR-3.3 | Plugin SHALL extract decision patterns from conversation | P1 | Heuristic grep |
-| FR-3.4 | Plugin SHALL write compaction summary to `memory://sessions/compaction/` | P0 | `ma:writememory` |
+| FR-3.4 | Plugin SHALL write compaction summary to `memory://sessions/compaction/` | P0 | `writememory` |
 | FR-3.5 | Plugin SHALL inject custom context into compaction prompt via `output.context` | P1 | Preserve domain knowledge |
 
 ### 4.4 Tool Execution Hook (Concept Augmentation)
@@ -111,7 +111,7 @@ By creating an OpenCode plugin, we:
 |----|-------------|----------|-------|
 | FR-4.1 | Plugin SHALL subscribe to `tool.execute.before` event | P0 | Pre-tool hook |
 | FR-4.2 | Plugin SHALL detect `[[concepts]]` in tool arguments | P0 | Any tool, not just Task |
-| FR-4.3 | Plugin SHALL build context for detected concepts | P0 | `ma:buildcontext` |
+| FR-4.3 | Plugin SHALL build context for detected concepts | P0 | `buildcontext` |
 | FR-4.4 | Plugin SHALL augment tool input with graph context | P0 | Modify output.args |
 | FR-4.5 | Plugin SHALL skip augmentation for tools with no text arguments | P1 | Performance |
 

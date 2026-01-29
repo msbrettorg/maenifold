@@ -6,7 +6,7 @@ Adopt a [[role]], [[color]], or [[perspective]] by loading its JSON configuratio
 
 - **Role-Based Thinking**: Adopt specialized professional roles (product-manager, architect, engineer, researcher)
 - **Six Thinking Hats**: Use [[De Bono thinking hats]] for structured problem analysis (blue, white, red, green, yellow, black)
-- **Perspective Shifts**: Apply analytical lenses (critical-analysis, creative-ambiguity, evidential-thinking)
+- **Language Modes**: Set language preference for responses (en, de, es, fr, ja, zh, etc.)
 - **Structured Workflows**: Load role configurations for [[workflow]] or [[sequential-thinking]] sessions
 - **Context Switching**: Change thinking mode mid-session for different analysis phases
 - **Multi-Agent Coordination**: Different agents adopt different roles for collaborative problem-solving
@@ -27,7 +27,7 @@ Adopt a [[role]], [[color]], or [[perspective]] by loading its JSON configuratio
 | Parameter | Type | Required | Description | Example |
 |-----------|------|----------|-------------|---------|
 | type | string | Yes | Type of asset to adopt: 'role', 'color', or 'perspective' | "role", "color", "perspective" |
-| identifier | string | Yes | Identifier of the asset (filename without .json extension) | "product-manager", "blue", "critical-analysis" |
+| identifier | string | Yes | Identifier of the asset (filename without .json extension) | "product-manager", "blue", "en" |
 
 ## Usage Examples
 
@@ -49,14 +49,14 @@ Loads product manager configuration with SLC (Simple, Lovable, Complete) framewo
 ```
 Adopts Blue Hat thinking - process control, orchestration, and meta-thinking about thinking.
 
-### Adopt Critical Analysis Perspective
+### Adopt English Language Mode
 ```json
 {
   "type": "perspective",
-  "identifier": "critical-analysis"
+  "identifier": "en"
 }
 ```
-Applies critical analysis lens for rigorous evaluation and skeptical inquiry.
+Sets English as the preferred language for reasoning and responses.
 
 ### Adopt Engineer Role
 ```json
@@ -85,39 +85,71 @@ Red Hat thinking - emotions, intuition, and gut reactions without justification.
 ```
 Green Hat thinking - creativity, possibilities, alternatives, and new ideas.
 
-## Available Assets
+## Asset Locations
 
-### Roles (Professional Thinking Modes)
+Assets are loaded from two locations (runtime takes precedence):
+1. `$MAENIFOLD_ROOT/assets/` - User-created assets at runtime
+2. Built-in assets bundled with maenifold
+
+## Built-in Assets
+
+### Roles (16 Professional Domains)
 - **architect**: System design, architectural patterns, scalability considerations
-- **product-manager**: Customer delight, SLC framework (Simple, Lovable, Complete)
+- **blue-team**: Defense, security hardening, incident response
+- **cfo**: Financial strategy, fiscal discipline
+- **eda-architect**: Event-driven architecture design
+- **eda-platform-engineer**: EDA platform implementation
 - **engineer**: Implementation, code quality, technical execution
+- **finops-practitioner**: Cloud financial operations
+- **ftk-agent**: First-time knowledge acquisition
+- **mcp-specialist**: Model Context Protocol expertise
+- **product-manager**: Customer delight, SLC framework (Simple, Lovable, Complete)
+- **prompt-engineer**: Prompt design and optimization
+- **prompt-engineer-codex**: Codex-specific prompting
+- **prompt-engineer-gpt5**: GPT-5 prompt optimization
+- **red-team**: Adversarial testing, vulnerability discovery, security assessment
 - **researcher**: Evidence gathering, systematic investigation, hypothesis testing
 - **writer**: Clear communication, documentation, user-facing content
-- **red-team**: Adversarial testing, vulnerability discovery, security assessment
-- **blue-team**: Defense, security hardening, incident response
 
-### Colors (Six Thinking Hats)
+### Colors (7 Six Thinking Hats)
 - **white**: Facts, data, information (neutral, objective)
 - **red**: Emotions, feelings, intuition (no justification needed)
 - **black**: Caution, risks, problems (critical judgment)
 - **yellow**: Benefits, optimism, opportunities (positive exploration)
 - **green**: Creativity, alternatives, new ideas (generative thinking)
 - **blue**: Process control, orchestration (meta-thinking)
-- **gray**: Analysis, assessment (neutral evaluation) - Added by maenifold
+- **gray**: Analysis, assessment (neutral evaluation) - maenifold extension
 
-### Perspectives (Analytical Lenses)
-- **critical-analysis**: Skeptical, evaluative, rigorous examination
-- **creative-ambiguity**: Exploratory, open-ended, possibility-focused
-- **evidential-thinking**: Data-driven, proof-based, verifiable claims
-- **factual-clarity**: Precise, unambiguous, objective statements
-- **emotional-expression**: Feelings, reactions, subjective experience
-- **relational-expression**: Connections, relationships, interactions
-- **conceptual-synthesis**: Integration, unification, holistic understanding
-- **hierarchical-precision**: Structure, organization, taxonomy
-- **aspectual-analysis**: Multi-faceted examination, different angles
-- **positive-framing**: Constructive, opportunity-focused perspective
-- **skeptical-inquiry**: Questioning assumptions, challenging claims
-- **process-control**: Workflow management, orchestration
+### Perspectives (12 Language Modes)
+- **en**: English
+- **de**: German
+- **es**: Spanish
+- **fr**: French
+- **it**: Italian
+- **ja**: Japanese
+- **ko**: Korean
+- **pt**: Portuguese
+- **ru**: Russian
+- **tr**: Turkish
+- **zh**: Chinese
+- **ar**: Arabic
+
+## Custom Assets
+
+Create custom assets in `$MAENIFOLD_ROOT/assets/{roles,colors,perspectives}/`:
+
+```json
+// $MAENIFOLD_ROOT/assets/roles/my-custom-role.json
+{
+  "id": "my-custom-role",
+  "name": "My Custom Role",
+  "description": "Custom role for specific use case",
+  "principles": ["principle1", "principle2"],
+  "approach": "How to apply this role"
+}
+```
+
+Runtime assets override built-in assets with the same identifier.
 
 ## Asset JSON Structure
 

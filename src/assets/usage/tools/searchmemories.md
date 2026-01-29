@@ -1,14 +1,16 @@
 # SearchMemories
 
-Full-text content search across `~/maenifold/memory/` with scoring, snippets, and flexible filtering.
+Search memory files by content with three modes: **Hybrid** (default), **Semantic**, and **FullText**.
 
 ## Parameters
 
 - `query` (string, required): Search terms - looks in FILE contents
+- `mode` (string, optional): `"Hybrid"` (default), `"Semantic"`, or `"FullText"`
 - `pageSize` (int, optional): Max FILES to return (default: 10)
 - `page` (int, optional): Page number for results (default: 1)
 - `folder` (string, optional): Filter by folder path
 - `tags` (string[], optional): Filter by tags (must match all)
+- `minScore` (number, optional): Minimum score threshold (default: 0.0)
 
 ## Returns
 
@@ -58,10 +60,13 @@ Full-text content search across `~/maenifold/memory/` with scoring, snippets, an
 
 ## Scoring
 
-- **Content matches**: +1 per occurrence of each search term
-- **Title matches**: +5 bonus for terms in titles
-- **Case insensitive**: Flexible matching
-- **Multi-term**: Each term contributes independently
+- **Hybrid**: Reciprocal Rank Fusion (RRF) over text + semantic ranks; `minScore` applies to the *fused* score.
+- **Semantic**: Vector similarity normalized to 0–1; `minScore` applies to the semantic score.
+- **FullText**: Term-frequency score normalized to 0–1 (relative to best hit); `minScore` applies to the normalized score.
+
+Notes:
+- Queries must contain at least one non-stopword keyword (empty/stopword-only queries return an error).
+- The tool does not currently enforce `page >= 1` / `pageSize >= 1`; use those values anyway (e.g., `pageSize: 0` returns no results).
 
 ## Patterns
 

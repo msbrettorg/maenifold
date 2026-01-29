@@ -147,7 +147,7 @@ These are **intentional design principles**, not bugs to fix. See `CONTRIBUTING.
 dotnet build src/Maenifold.csproj -c Debug
 
 # Release build (all platforms)
-npm run build:all  # Creates bin/linux-x64, bin/osx-arm64, etc.
+dotnet publish -c Release -r <rid> --self-contained
 ```
 
 ### Testing
@@ -314,4 +314,4 @@ Commit format: [Conventional Commits](https://www.conventionalcommits.org/)
 **Build**: `dotnet build src/Maenifold.csproj`  
 **Test**: `dotnet test`  
 **Run CLI**: `maenifold --tool WriteMemory --payload '{"title":"Test","content":"[[concept]]"}'`  
-**All platforms**: `npm run build:all`
+**All platforms**: See docs/DEVELOPMENT.md for dotnet publish commands

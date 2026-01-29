@@ -25,89 +25,83 @@ namespace Maenifold.Utils
                 return new float[EmbeddingDimensions];
             }
 
-            try
+            EnsureModelLoaded();
+            if (_session != null && _tokenizer != null)
             {
-                EnsureModelLoaded();
-                if (_session != null && _tokenizer != null)
+                var encoding = _tokenizer.Encode(text);
+                var tokenIds = encoding.Ids.Take(MaxTokens).Select(id => (long)id).ToArray();
+                var inputIds = new long[MaxTokens];
+                var attentionMask = new long[MaxTokens];
+                for (int i = 0; i < MaxTokens; i++)
                 {
-                    var encoding = _tokenizer.Encode(text);
-                    var tokenIds = encoding.Ids.Take(MaxTokens).Select(id => (long)id).ToArray();
-                    var inputIds = new long[MaxTokens];
-                    var attentionMask = new long[MaxTokens];
-                    for (int i = 0; i < MaxTokens; i++)
+                    if (i < tokenIds.Length)
                     {
-                        if (i < tokenIds.Length)
-                        {
-                            inputIds[i] = tokenIds[i];
-                            attentionMask[i] = 1L;
-                        }
-                        else
-                        {
-                            inputIds[i] = 0L;
-                            attentionMask[i] = 0L;
-                        }
+                        inputIds[i] = tokenIds[i];
+                        attentionMask[i] = 1L;
                     }
-                    var inputIdsTensor = new DenseTensor<long>(inputIds, new int[] { 1, MaxTokens });
-                    var attentionMaskTensor = new DenseTensor<long>(attentionMask, new int[] { 1, MaxTokens });
-                    var tokenTypeIds = new long[MaxTokens];
-                    var tokenTypeIdsTensor = new DenseTensor<long>(tokenTypeIds, new int[] { 1, MaxTokens });
-                    var inputs = new List<NamedOnnxValue>
+                    else
                     {
-                        NamedOnnxValue.CreateFromTensor("input_ids", inputIdsTensor),
-                        NamedOnnxValue.CreateFromTensor("attention_mask", attentionMaskTensor),
-                        NamedOnnxValue.CreateFromTensor("token_type_ids", tokenTypeIdsTensor)
-                    };
-                    using var results = _session.Run(inputs);
-                    var chosen = SelectBestOutput(results);
-                    if (chosen == null)
-                    {
-                        var fallback = GenerateFallbackEmbedding(text);
-                        embeddingTimer.Stop();
-                        if (Config.EnableEmbeddingLogs)
-                            Console.Error.WriteLine($"[EMBEDDING] Generated 1 embedding in {embeddingTimer.ElapsedMilliseconds}ms (no output)");
-                        return fallback;
+                        inputIds[i] = 0L;
+                        attentionMask[i] = 0L;
                     }
-                    var dims = chosen.Dimensions;
-                    if (dims.Length == 2 && dims[0] == 1)
-                    {
-                        var vec = GetTensorAsFloatArray(chosen, out var _);
-                        var result2D = PadOrTruncate(vec, EmbeddingDimensions);
-                        embeddingTimer.Stop();
-                        if (Config.EnableEmbeddingLogs)
-                            Console.Error.WriteLine($"[EMBEDDING] Generated 1 embedding in {embeddingTimer.ElapsedMilliseconds}ms (ONNX 2D)");
-                        return result2D;
-                    }
-                    if (dims.Length == 1)
-                    {
-                        var vec = GetTensorAsFloatArray(chosen, out var _);
-                        var result1D = PadOrTruncate(vec, EmbeddingDimensions);
-                        embeddingTimer.Stop();
-                        if (Config.EnableEmbeddingLogs)
-                            Console.Error.WriteLine($"[EMBEDDING] Generated 1 embedding in {embeddingTimer.ElapsedMilliseconds}ms (ONNX 1D)");
-                        return result1D;
-                    }
-                    if (dims.Length == 3 && dims[0] == 1)
-                    {
-                        var seqLen = dims[1];
-                        var hidden = dims[2];
-                        var seqTensor = GetTensorAsFloatArray(chosen, out var seqDims);
-                        var pooled = PoolSequenceByAttention(seqTensor, seqLen, hidden, attentionMask);
-                        var result3D = PadOrTruncate(pooled, EmbeddingDimensions);
-                        embeddingTimer.Stop();
-                        if (Config.EnableEmbeddingLogs)
-                            Console.Error.WriteLine($"[EMBEDDING] Generated 1 embedding in {embeddingTimer.ElapsedMilliseconds}ms (ONNX 3D)");
-                        return result3D;
-                    }
-                    var fallbackVec = GetTensorAsFloatArray(chosen, out var fallbackDims);
-                    var resultFlat = PadOrTruncate(fallbackVec, EmbeddingDimensions);
+                }
+                var inputIdsTensor = new DenseTensor<long>(inputIds, new int[] { 1, MaxTokens });
+                var attentionMaskTensor = new DenseTensor<long>(attentionMask, new int[] { 1, MaxTokens });
+                var tokenTypeIds = new long[MaxTokens];
+                var tokenTypeIdsTensor = new DenseTensor<long>(tokenTypeIds, new int[] { 1, MaxTokens });
+                var inputs = new List<NamedOnnxValue>
+                {
+                    NamedOnnxValue.CreateFromTensor("input_ids", inputIdsTensor),
+                    NamedOnnxValue.CreateFromTensor("attention_mask", attentionMaskTensor),
+                    NamedOnnxValue.CreateFromTensor("token_type_ids", tokenTypeIdsTensor)
+                };
+                using var results = _session.Run(inputs);
+                var chosen = SelectBestOutput(results);
+                if (chosen == null)
+                {
+                    var fallback = GenerateFallbackEmbedding(text);
                     embeddingTimer.Stop();
                     if (Config.EnableEmbeddingLogs)
-                        Console.Error.WriteLine($"[EMBEDDING] Generated 1 embedding in {embeddingTimer.ElapsedMilliseconds}ms (ONNX)");
-                    return resultFlat;
+                        Console.Error.WriteLine($"[EMBEDDING] Generated 1 embedding in {embeddingTimer.ElapsedMilliseconds}ms (no output)");
+                    return fallback;
                 }
-            }
-            catch (Exception)
-            {
+                var dims = chosen.Dimensions;
+                if (dims.Length == 2 && dims[0] == 1)
+                {
+                    var vec = GetTensorAsFloatArray(chosen, out var _);
+                    var result2D = PadOrTruncate(vec, EmbeddingDimensions);
+                    embeddingTimer.Stop();
+                    if (Config.EnableEmbeddingLogs)
+                        Console.Error.WriteLine($"[EMBEDDING] Generated 1 embedding in {embeddingTimer.ElapsedMilliseconds}ms (ONNX 2D)");
+                    return result2D;
+                }
+                if (dims.Length == 1)
+                {
+                    var vec = GetTensorAsFloatArray(chosen, out var _);
+                    var result1D = PadOrTruncate(vec, EmbeddingDimensions);
+                    embeddingTimer.Stop();
+                    if (Config.EnableEmbeddingLogs)
+                        Console.Error.WriteLine($"[EMBEDDING] Generated 1 embedding in {embeddingTimer.ElapsedMilliseconds}ms (ONNX 1D)");
+                    return result1D;
+                }
+                if (dims.Length == 3 && dims[0] == 1)
+                {
+                    var seqLen = dims[1];
+                    var hidden = dims[2];
+                    var seqTensor = GetTensorAsFloatArray(chosen, out var seqDims);
+                    var pooled = PoolSequenceByAttention(seqTensor, seqLen, hidden, attentionMask);
+                    var result3D = PadOrTruncate(pooled, EmbeddingDimensions);
+                    embeddingTimer.Stop();
+                    if (Config.EnableEmbeddingLogs)
+                        Console.Error.WriteLine($"[EMBEDDING] Generated 1 embedding in {embeddingTimer.ElapsedMilliseconds}ms (ONNX 3D)");
+                    return result3D;
+                }
+                var fallbackVec = GetTensorAsFloatArray(chosen, out var fallbackDims);
+                var resultFlat = PadOrTruncate(fallbackVec, EmbeddingDimensions);
+                embeddingTimer.Stop();
+                if (Config.EnableEmbeddingLogs)
+                    Console.Error.WriteLine($"[EMBEDDING] Generated 1 embedding in {embeddingTimer.ElapsedMilliseconds}ms (ONNX)");
+                return resultFlat;
             }
             var fallbackResult = GenerateFallbackEmbedding(text);
             embeddingTimer.Stop();

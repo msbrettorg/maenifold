@@ -14,7 +14,6 @@ maenifold Configuration:
   Database: ~/maenifold/memory.db
   Debounce: 150ms
   Auto Sync: True
-  Debug: False
 ```
 
 ## Use Cases
@@ -37,4 +36,3 @@ Pairs with:
 - `MAENIFOLD_DATABASE_PATH`: Custom database location
 - `MAENIFOLD_DEBOUNCE_MS`: File watcher debounce (default: 150)
 - `MAENIFOLD_AUTO_SYNC`: Enable/disable incremental sync (default: true)
-- `MAENIFOLD_DEBUG`: Enable debug logging (default: false)

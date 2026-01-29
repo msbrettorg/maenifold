@@ -179,7 +179,8 @@ public static class AssetManager
     public static T? LoadAssetJson<T>(string relativePath) where T : class
     {
         var text = LoadAssetText(relativePath);
-        return text != null ? System.Text.Json.JsonSerializer.Deserialize<T>(text) : null;
+        // SEC-001: Use safe JSON options with depth limit
+        return text != null ? System.Text.Json.JsonSerializer.Deserialize<T>(text, SafeJson.Options) : null;
     }
 
 }

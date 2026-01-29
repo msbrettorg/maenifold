@@ -19,14 +19,7 @@ Returns ranked concepts by semantic similarity score for knowledge graph explora
         [Description("Maximum number of similar concepts to return")] int maxResults = 10,
         [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(FindSimilarConcepts).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(FindSimilarConcepts)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(FindSimilarConcepts));
 
         try
         {

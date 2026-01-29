@@ -18,14 +18,7 @@ public class AdoptTools
         [Description("Return help documentation instead of executing")] bool learn = false
     )
     {
-        if (learn)
-        {
-            var toolName = nameof(Adopt).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(Adopt)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(Adopt));
 
         var validTypes = new[] { "role", "color", "perspective" };
         if (!validTypes.Contains(type.ToLowerInvariant(), StringComparer.OrdinalIgnoreCase))
@@ -87,7 +80,7 @@ Acknowledge adoption before proceeding.";
             try
             {
                 var json = File.ReadAllText(file);
-                using var doc = JsonDocument.Parse(json);
+                using var doc = JsonDocument.Parse(json, SafeJson.DocumentOptions);
                 if (doc.RootElement.TryGetProperty("id", out var idProp) && idProp.GetString() == id)
                 {
                     return file;

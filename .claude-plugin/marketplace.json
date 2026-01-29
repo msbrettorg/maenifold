@@ -1,0 +1,18 @@
+{
+  "name": "maenifold-marketplace",
+  "owner": {
+    "name": "maenifold"
+  },
+  "plugins": [
+    {
+      "name": "maenifold",
+      "source": "./integrations/claude-code/plugin-maenifold",
+      "description": "maenifold knowledge graph and reasoning infrastructure for Claude Code."
+    },
+    {
+      "name": "maenifold-product-team",
+      "source": "./integrations/claude-code/plugin-product-team",
+      "description": "An opinionated product team workflow built on maenifold primitives."
+    }
+  ]
+}

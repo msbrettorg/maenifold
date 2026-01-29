@@ -82,26 +82,19 @@ public static class Config
     public static string TestDatabasePath => Path.Combine(Path.GetDirectoryName(TestMemoryPath)!, "test-memory.db");
 
     public static readonly int DefaultDebounceMs = GetEnvInt("MAENIFOLD_DEBOUNCE_MS", 150);
-    public static readonly int MaxDebounceBatchSize = GetEnvInt("MAENIFOLD_MAX_BATCH_SIZE", 50);
     public static readonly int IncrementalOptimizeEvery = Math.Max(1, GetEnvInt("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY", 40));
     public static readonly int IncrementalVacuumMinutes = GetEnvInt("MAENIFOLD_INCREMENTAL_VACUUM_MINUTES", 720);
 
     public static readonly bool EnableIncrementalSync = GetEnvBool("MAENIFOLD_AUTO_SYNC", true);
     public static readonly int WatcherBufferSize = GetEnvInt("MAENIFOLD_WATCHER_BUFFER", 65536);
 
-    public static readonly int DefaultSearchLimit = GetEnvInt("MAENIFOLD_SEARCH_LIMIT", 10);
-    public static readonly int DefaultContextDepth = GetEnvInt("MAENIFOLD_CONTEXT_DEPTH", 2);
-    public static readonly int MaxContextEntities = GetEnvInt("MAENIFOLD_MAX_ENTITIES", 20);
     public static readonly int RecentActivitySnippetLength = GetEnvInt("MAENIFOLD_SNIPPET_LENGTH", 1000);
 
-    public static readonly int SqliteConnectionPoolSize = GetEnvInt("MAENIFOLD_DB_POOL_SIZE", 5);
-    public static readonly int MaxConcurrentOperations = GetEnvInt("MAENIFOLD_MAX_CONCURRENT", 10);
     public static readonly int SqliteBusyTimeoutMs = GetEnvInt("MAENIFOLD_SQLITE_BUSY_TIMEOUT", 5000);
 
     public static readonly int SessionAbandonmentMinutes = GetEnvInt("MAENIFOLD_SESSION_ABANDON_MINUTES", 30);
     public static readonly bool EnableSessionCleanup = GetEnvBool("MAENIFOLD_SESSION_CLEANUP", true);
 
-    public static readonly bool EnableDebugLogging = GetEnvBool("MAENIFOLD_DEBUG", false);
     public static readonly bool EnableSyncLogging = GetEnvBool("MAENIFOLD_SYNC_LOGGING", true);
 
     public static bool EnableEmbeddingLogs => GetEnvBool("MAENIFOLD_EMBEDDING_LOGS", false);
@@ -148,8 +141,7 @@ public static class Config
   Memory Path: {MemoryPath}
   Database: {DatabasePath}
   Debounce: {DefaultDebounceMs}ms
-  Auto Sync: {EnableIncrementalSync}
-  Debug: {EnableDebugLogging}";
+  Auto Sync: {EnableIncrementalSync}";
     }
 
     private static string GetEnvString(string name, string defaultValue)

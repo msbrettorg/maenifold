@@ -30,17 +30,10 @@ Returns session management with continuation guidance and checkpoint suggestions
         [Description("Need more thoughts than estimated?")] bool needsMoreThoughts = false,
         [Description("Analysis type: bug, architecture, retrospective, or complex")] string? analysisType = null,
         [Description("Parent workflow session ID (creates bidirectional link)")] string? parentWorkflowId = null,
-        [Description("Required conclusion/synthesis when nextThoughtNeeded=false - MUST include [[concepts]]")] string? conclusion = null,
+        [Description("Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[concepts]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction.")] string? conclusion = null,
         [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(SequentialThinking).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(SequentialThinking)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(SequentialThinking));
 
         // Skip validation if cancel operation
         if (!cancel)
@@ -50,12 +43,17 @@ Returns session management with continuation guidance and checkpoint suggestions
                 return validationError!;
         }
 
-        var (sessionExists, sessionIdProvided) = DetermineSessionState(sessionId, thoughtNumber, isRevision);
+        var sessionIdProvided = sessionId != null;
 
         if (sessionId == null)
             sessionId = $"session-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
 
-        if (sessionIdProvided && thoughtNumber == 1 && !sessionExists && !isRevision)
+        if (sessionIdProvided && !IsValidSessionIdFormat(sessionId!))
+            return "ERROR: Invalid sessionId format. Use maenifold-generated values (session-{unix-milliseconds}) or omit sessionId to start a new session.";
+
+        var (sessionExists, _) = DetermineSessionState(sessionId!, thoughtNumber, isRevision);
+
+        if (sessionIdProvided && thoughtNumber == 0 && !sessionExists && !isRevision)
             return $"ERROR: Session {sessionId} not found. To start new session, don't provide sessionId.";
 
         var parentWorkflowError = ValidateParentWorkflow(parentWorkflowId, thoughtNumber);
@@ -66,19 +64,19 @@ Returns session management with continuation guidance and checkpoint suggestions
         if (branchFromThought.HasValue && string.IsNullOrEmpty(branchId))
             return "ERROR: branchId required when branchFromThought is specified for multi-agent coordination";
 
-        if (thoughtNumber == 1 && string.IsNullOrEmpty(branchId) && sessionExists && !isRevision)
+        if (thoughtNumber == 0 && string.IsNullOrEmpty(branchId) && sessionExists && !isRevision && !cancel)
             return $"ERROR: Session {sessionId} exists. Use different sessionId or continue existing.";
-        if (thoughtNumber > 1 && !sessionExists && !isRevision)
-            return $"ERROR: Session {sessionId} missing. Start with thoughtNumber=1.";
+        if (thoughtNumber > 0 && !sessionExists && !isRevision && !cancel)
+            return $"ERROR: Session {sessionId} missing. Start with thoughtNumber=0.";
         if (isRevision && !sessionExists)
             return $"ERROR: Cannot revise - session {sessionId} doesn't exist.";
 
         if (!sessionExists)
         {
-            CreateNewSession(sessionId, analysisType, parentWorkflowId);
+            CreateNewSession(sessionId!, analysisType, parentWorkflowId);
             if (!string.IsNullOrEmpty(parentWorkflowId))
             {
-                LinkParentWorkflow(sessionId, parentWorkflowId);
+                LinkParentWorkflow(sessionId!, parentWorkflowId);
             }
         }
 
@@ -86,7 +84,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         if (!cancel && response != null)
         {
             var (heading, contentBuilder) = BuildThoughtSection(thoughtNumber, totalThoughts, needsMoreThoughts, branchId, isRevision, revisesThought, response, thoughts);
-            MarkdownIO.AppendToSession("sequential", sessionId, heading, contentBuilder);
+            MarkdownIO.AppendToSession("sequential", sessionId!, heading, contentBuilder);
         }
 
         var complete = !nextThoughtNeeded;
@@ -100,9 +98,9 @@ Returns session management with continuation guidance and checkpoint suggestions
                 return "ERROR: Conclusion must include [[concepts]] for knowledge graph integration.";
         }
 
-        FinalizeSession(sessionId, thoughtNumber, cancel, complete, conclusion);
+        FinalizeSession(sessionId!, thoughtNumber, cancel, complete, conclusion);
 
-        var responseMessage = BuildCompletionMessage(thoughtNumber, sessionId, cancel, nextThoughtNeeded, needsMoreThoughts, totalThoughts);
+        var responseMessage = BuildCompletionMessage(thoughtNumber, sessionId!, cancel, nextThoughtNeeded, needsMoreThoughts, totalThoughts);
         return responseMessage;
     }
 
@@ -118,6 +116,16 @@ Returns session management with continuation guidance and checkpoint suggestions
         return (true, null);
     }
 
+    private static bool IsValidSessionIdFormat(string sessionId)
+    {
+        var lastDash = sessionId.LastIndexOf('-');
+        if (lastDash < 0 || lastDash == sessionId.Length - 1)
+            return false;
+
+        var suffix = sessionId[(lastDash + 1)..];
+        return long.TryParse(suffix, out _);
+    }
+
     private static (bool sessionExists, bool sessionIdProvided) DetermineSessionState(string? sessionId, int thoughtNumber, bool isRevision)
     {
         bool sessionIdWasProvided = sessionId != null;
@@ -131,7 +139,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         if (string.IsNullOrEmpty(parentWorkflowId))
             return null;
 
-        if (thoughtNumber != 1)
+        if (thoughtNumber != 0)
             return "ERROR: Parent workflow can only be set on first thought.";
 
         if (!MarkdownIO.SessionExists("workflow", parentWorkflowId))
@@ -148,32 +156,18 @@ Returns session management with continuation guidance and checkpoint suggestions
 
     private static (string heading, string content) BuildThoughtSection(int thoughtNumber, int totalThoughts, bool needsMoreThoughts, string? branchId, bool isRevision, int? revisesThought, string response, string? thoughts)
     {
-        var displayTotal = totalThoughts;
-        if (needsMoreThoughts && thoughtNumber >= totalThoughts)
-        {
-            displayTotal = thoughtNumber + 1;
-        }
-
+        var displayTotal = needsMoreThoughts && thoughtNumber >= totalThoughts ? thoughtNumber + 1 : totalThoughts;
         var agentId = Environment.GetEnvironmentVariable("AGENT_ID") ?? "agent";
-        var heading = new StringBuilder();
-        heading.AppendInvariant($"Thought {thoughtNumber}/{displayTotal} [{agentId}]");
 
-        if (!string.IsNullOrEmpty(branchId))
-            heading.AppendInvariant($" (Branch: {branchId})");
-        else if (isRevision && revisesThought.HasValue)
-            heading.AppendInvariant($" (Revises: {revisesThought})");
+        var suffix = !string.IsNullOrEmpty(branchId) ? $" (Branch: {branchId})" :
+                     isRevision && revisesThought.HasValue ? $" (Revises: {revisesThought})" : "";
+        var heading = $"Thought {thoughtNumber}/{displayTotal} [{agentId}]{suffix}";
 
-        var content = new StringBuilder();
-        content.AppendLine(response);
-        if (!string.IsNullOrEmpty(thoughts))
-        {
-            content.AppendLine();
-            content.AppendLine(CultureInfo.InvariantCulture, $"*Thoughts: {thoughts}*");
-        }
-        content.AppendLine();
-        content.AppendLine(CultureInfo.InvariantCulture, $"*{CultureInvariantHelpers.FormatDateTime(DateTime.UtcNow, "yyyy-MM-dd HH:mm:ss")}*");
+        var thoughtsSection = !string.IsNullOrEmpty(thoughts) ? $"\n\n*Thoughts: {thoughts}*" : "";
+        var timestamp = CultureInvariantHelpers.FormatDateTime(DateTime.UtcNow, "yyyy-MM-dd HH:mm:ss");
+        var content = $"{response}{thoughtsSection}\n\n*{timestamp}*\n";
 
-        return (heading.ToString(), content.ToString());
+        return (heading, content);
     }
 
     private static void CreateNewSession(string sessionId, string? analysisType, string? parentWorkflowId)
@@ -224,10 +218,10 @@ Returns session management with continuation guidance and checkpoint suggestions
             frontmatter ??= new Dictionary<string, object>();
             frontmatter["status"] = "cancelled";
             frontmatter["cancelled"] = DateTime.UtcNow.ToString("o");
-            // Use thoughtNumber if provided (non-zero), otherwise preserve existing thoughtCount
-            if (thoughtNumber > 0)
+            // Use thoughtNumber if provided (non-negative), otherwise preserve existing thoughtCount
+            if (thoughtNumber >= 0)
             {
-                frontmatter["thoughtCount"] = thoughtNumber;
+                frontmatter["thoughtCount"] = thoughtNumber + 1;
             }
             else if (!frontmatter.ContainsKey("thoughtCount"))
             {
@@ -244,42 +238,26 @@ Returns session management with continuation guidance and checkpoint suggestions
             frontmatter ??= new Dictionary<string, object>();
             frontmatter["status"] = "completed";
             frontmatter["completed"] = DateTime.UtcNow.ToString("o");
-            frontmatter["thoughtCount"] = thoughtNumber;
+            frontmatter["thoughtCount"] = thoughtNumber + 1;
             MarkdownIO.UpdateSession("sequential", sessionId, frontmatter, existingContent);
         }
     }
 
     private static string BuildCompletionMessage(int thoughtNumber, string sessionId, bool cancel, bool nextThoughtNeeded, bool needsMoreThoughts, int totalThoughts)
     {
-        var responseMessage = thoughtNumber == 1
-            ? $"Created session: {sessionId}"
-            : $"Added thought {thoughtNumber} to session: {sessionId}";
+        var baseMessage = thoughtNumber == 0 ? $"Created session: {sessionId}" : $"Added thought {thoughtNumber} to session: {sessionId}";
 
-        if (cancel)
-        {
-            responseMessage += "\n\n❌ Thinking cancelled";
-        }
-        else if (!nextThoughtNeeded)
-        {
-            responseMessage += "\n\n✅ Thinking complete";
-        }
-        else
-        {
-            var nextThought = thoughtNumber + 1;
-            var nextTotal = needsMoreThoughts && thoughtNumber >= totalThoughts ? "?" : CultureInvariantHelpers.ToString(totalThoughts);
-            responseMessage += $"\n\n💭 Continue with thought {nextThought}/{nextTotal}";
-            if (needsMoreThoughts && thoughtNumber >= totalThoughts)
-            {
-                responseMessage += " (extending beyond initial estimate)";
-            }
+        if (cancel) return $"{baseMessage}\n\n❌ Thinking cancelled";
+        if (!nextThoughtNeeded) return $"{baseMessage}\n\n✅ Thinking complete";
 
-            if (thoughtNumber == 1 || thoughtNumber % CheckpointFrequency == 0)
-            {
-                responseMessage += "\n\n💡 **CHECK YOUR MEMORY:** `search_memories` for what exists and `build_context` on [[concepts]] | `sync` new findings to add them to the graph";
-            }
-        }
+        var nextThought = thoughtNumber + 1;
+        var nextTotal = needsMoreThoughts && thoughtNumber >= totalThoughts - 1 ? "?" : CultureInvariantHelpers.ToString(totalThoughts);
+        var extendNote = needsMoreThoughts && thoughtNumber >= totalThoughts - 1 ? " (extending beyond initial estimate)" : "";
+        var checkpointNote = thoughtNumber == 0 || thoughtNumber % CheckpointFrequency == 0
+            ? "\n\n💡 **CHECK YOUR MEMORY:** `search_memories` for what exists and `build_context` on [[concepts]] | `sync` new findings to add them to the graph"
+            : "";
 
-        return responseMessage;
+        return $"{baseMessage}\n\n💭 Continue with thought {nextThought}/{nextTotal}{extendNote}{checkpointNote}";
     }
 
 }

@@ -441,14 +441,7 @@ Test with dryRun=true first to see what would be changed.")]
                 [Description("Minimum semantic similarity threshold (0.0-1.0) required for safe consolidation. Default 0.7. Set to 0.0 to skip semantic validation.")] double minSemanticSimilarity = 0.7,
                 [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(RepairConcepts).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(RepairConcepts)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(RepairConcepts));
 
         var memoryPath = Config.MemoryPath;
         var searchPath = string.IsNullOrEmpty(folder)
@@ -621,14 +614,7 @@ Test with dryRun=true first to see what would be changed.")]
                 [Description("Maximum variants to show")] int maxResults = 50,
                 [Description("Return help documentation instead of executing")] bool learn = false)
     {
-        if (learn)
-        {
-            var toolName = nameof(AnalyzeConceptCorruption).ToLowerInvariant();
-            var helpPath = Path.Combine(Config.AssetsPath, "usage", "tools", $"{toolName}.md");
-            if (!File.Exists(helpPath))
-                return $"ERROR: Help file not found for {nameof(AnalyzeConceptCorruption)}";
-            return File.ReadAllText(helpPath);
-        }
+        if (learn) return ToolHelpers.GetLearnContent(nameof(AnalyzeConceptCorruption));
 
         var memoryPath = Config.MemoryPath;
         var conceptCounts = AnalyzeConcepts(memoryPath, conceptFamily);

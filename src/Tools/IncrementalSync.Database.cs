@@ -88,7 +88,7 @@ public partial class IncrementalSyncTools
             List<string>? fileList;
             try
             {
-                fileList = JsonSerializer.Deserialize<List<string>>(files);
+                fileList = JsonSerializer.Deserialize<List<string>>(files, SafeJson.Options);
             }
             catch
             {
@@ -157,7 +157,7 @@ public partial class IncrementalSyncTools
                     new { a, b });
 
                 List<string> fileList = existing?.files != null
-                    ? JsonSerializer.Deserialize<List<string>>(existing.Value.files) ?? new List<string>()
+                    ? JsonSerializer.Deserialize<List<string>>(existing.Value.files, SafeJson.Options) ?? new List<string>()
                     : new List<string>();
 
                 if (!fileList.Contains(memoryUri))

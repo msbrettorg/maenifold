@@ -29,8 +29,8 @@ Generate Mermaid diagrams of concept relationships to visually explore your maen
 | Parameter | Type | Required | Description | Example |
 |-----------|------|----------|-------------|---------|
 | conceptName | string | Yes | Central concept for diagram generation (NOT a file!) | "Machine Learning" |
-| depth | int | No | Graph depth for relationship inclusion (default: 2) | 1 |
-| maxNodes | int | No | Maximum nodes to include in diagram (default: 30) | 50 |
+| depth | int | No | Graph depth for relationship inclusion, 1-5 hops (default: 2) | 1 |
+| maxNodes | int | No | Maximum nodes to include in diagram, 5-100 (default: 30) | 50 |
 
 ## Usage Examples
 

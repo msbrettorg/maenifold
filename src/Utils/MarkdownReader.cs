@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Markdig;
 using Markdig.Extensions.Yaml;
 using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 using YamlDotNet.Serialization;
 
 namespace Maenifold.Utils;
@@ -16,7 +17,8 @@ public static class MarkdownReader
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder()
             .Build();
 
-    private static readonly Regex WikiLinkPattern = new(@"\[\[([^\]]+)\]\]", RegexOptions.Compiled);
+    // T-REL-001: RTM FR-1.1 - WikiLink regex with negative lookbehind/lookahead to reject malformed triple/quadruple brackets
+    private static readonly Regex WikiLinkPattern = new(@"(?<!\[)\[\[([^\[\]]+)\]\](?!\])", RegexOptions.Compiled);
 
     public static (Dictionary<string, object>? frontmatter, string content, string checksum) ReadMarkdown(string path)
     {
@@ -124,11 +126,7 @@ public static class MarkdownReader
 
     public static List<string> ExtractWikiLinks(string content)
     {
-        return WikiLinkPattern.Matches(content)
-            .Cast<Match>()
-            .Select(m => MarkdownWriter.NormalizeConcept(m.Groups[1].Value))
-            .Distinct()
-            .ToList();
+        return ExtractWikiLinksMarkdownAware(content);
     }
 
     public static int CountConceptOccurrences(string content, string concept)
@@ -136,9 +134,185 @@ public static class MarkdownReader
 
 
         var normalizedConcept = MarkdownWriter.NormalizeConcept(concept);
-        return WikiLinkPattern.Matches(content)
-            .Cast<Match>()
-            .Count(m => MarkdownWriter.NormalizeConcept(m.Groups[1].Value) == normalizedConcept);
+        var document = Markdown.Parse(content, Pipeline);
+        int count = 0;
+
+        foreach (var node in document.Descendants())
+        {
+
+            if (node is CodeBlock || node is FencedCodeBlock)
+                continue;
+
+
+            if (node is ParagraphBlock paragraph)
+            {
+                count += CountConceptsInBlock(content, paragraph, normalizedConcept);
+            }
+            else if (node is HeadingBlock heading)
+            {
+                count += CountConceptsInBlock(content, heading, normalizedConcept);
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountConceptsInBlock(string fullContent, LeafBlock block, string normalizedConcept)
+    {
+
+        if (block.Span.Start < 0 || block.Span.End > fullContent.Length)
+            return 0;
+
+        var blockText = fullContent.Substring(block.Span.Start, block.Span.Length);
+
+
+        if (block.Inline != null)
+        {
+            var codeInlineRanges = new List<(int start, int length)>();
+
+            foreach (var inline in block.Inline.Descendants())
+            {
+                if (inline is CodeInline codeInline)
+                {
+
+                    var delimiter = codeInline.Delimiter != '\0' ? codeInline.Delimiter.ToString() : "`";
+                    var codeContent = codeInline.Content.ToString();
+
+                    var searchPattern = delimiter + codeContent + delimiter;
+                    var index = blockText.IndexOf(searchPattern, StringComparison.Ordinal);
+                    if (index >= 0)
+                    {
+                        codeInlineRanges.Add((index, searchPattern.Length));
+                    }
+                }
+            }
+
+
+            codeInlineRanges.Sort((a, b) => b.start.CompareTo(a.start));
+            foreach (var (start, length) in codeInlineRanges)
+            {
+                if (start >= 0 && start + length <= blockText.Length)
+                {
+                    blockText = blockText.Remove(start, length).Insert(start, new string(' ', length));
+                }
+            }
+        }
+
+
+        var matches = WikiLinkPattern.Matches(blockText);
+        int count = 0;
+        foreach (Match match in matches)
+        {
+            var conceptText = match.Groups[1].Value;
+            var normalized = MarkdownWriter.NormalizeConcept(conceptText);
+            if (normalized == normalizedConcept)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static List<string> ExtractWikiLinksMarkdownAware(string content)
+    {
+        var concepts = new HashSet<string>();
+
+        try
+        {
+            var document = Markdown.Parse(content, Pipeline);
+
+            foreach (var node in document.Descendants())
+            {
+
+                if (node is CodeBlock || node is FencedCodeBlock)
+                    continue;
+
+
+                if (node is ParagraphBlock paragraph)
+                {
+                    ExtractConceptsFromBlock(content, paragraph, concepts);
+                }
+                else if (node is HeadingBlock heading)
+                {
+                    ExtractConceptsFromBlock(content, heading, concepts);
+                }
+            }
+        }
+        catch (ArgumentException ex) when (ex.Message.Contains("depth limit"))
+        {
+            // Fallback: Use regex-only extraction when Markdig depth limit exceeded
+            // This handles adversarial inputs like deeply nested lists (100+ levels)
+            return ExtractWikiLinksRegexOnly(content);
+        }
+
+        return concepts.ToList();
+    }
+
+    private static List<string> ExtractWikiLinksRegexOnly(string content)
+    {
+        var concepts = new HashSet<string>();
+        var matches = WikiLinkPattern.Matches(content);
+
+        foreach (Match match in matches)
+        {
+            var concept = match.Groups[1].Value;
+            var normalized = MarkdownWriter.NormalizeConcept(concept);
+            concepts.Add(normalized);
+        }
+
+        return concepts.ToList();
+    }
+
+    private static void ExtractConceptsFromBlock(string fullContent, LeafBlock block, HashSet<string> concepts)
+    {
+
+        if (block.Span.Start < 0 || block.Span.End > fullContent.Length)
+            return;
+
+        var blockText = fullContent.Substring(block.Span.Start, block.Span.Length);
+
+
+        if (block.Inline != null)
+        {
+            var codeInlineRanges = new List<(int start, int length)>();
+
+            foreach (var inline in block.Inline.Descendants())
+            {
+                if (inline is CodeInline codeInline)
+                {
+
+                    var delimiter = codeInline.Delimiter != '\0' ? codeInline.Delimiter.ToString() : "`";
+                    var codeContent = codeInline.Content.ToString();
+
+                    var searchPattern = delimiter + codeContent + delimiter;
+                    var index = blockText.IndexOf(searchPattern, StringComparison.Ordinal);
+                    if (index >= 0)
+                    {
+                        codeInlineRanges.Add((index, searchPattern.Length));
+                    }
+                }
+            }
+
+
+            codeInlineRanges.Sort((a, b) => b.start.CompareTo(a.start));
+            foreach (var (start, length) in codeInlineRanges)
+            {
+                if (start >= 0 && start + length <= blockText.Length)
+                {
+                    blockText = blockText.Remove(start, length).Insert(start, new string(' ', length));
+                }
+            }
+        }
+
+
+        var matches = WikiLinkPattern.Matches(blockText);
+        foreach (Match match in matches)
+        {
+            var concept = match.Groups[1].Value;
+            var normalized = MarkdownWriter.NormalizeConcept(concept);
+            concepts.Add(normalized);
+        }
     }
 
     private static string GetBlockText(string markdown, Block block)

@@ -45,7 +45,7 @@ maenifold/
 │   │   ├── GraphTools.cs        # Graph operations (BuildContext, Visualize, etc.)
 │   │   ├── SystemTools.cs       # System operations (GetConfig, GetHelp, etc.)
 │   │   ├── ThinkingTools.cs     # Thinking operations (SequentialThinking, Workflow)
-│   │   ├── MaintenanceTools.cs  # Maintenance operations (RepairConcepts, etc.)
+│   │   ├── ConceptRepairTool.cs # Concept repair operations (RepairConcepts, etc.)
 │   │   └── ToolRegistry.cs      # Centralized tool dispatch
 │   ├── Utils/                    # Utility classes
 │   │   ├── MarkdownReader.cs    # Markdown file parsing
@@ -64,9 +64,8 @@ maenifold/
 │   ├── DEVELOPMENT.md           # This file
 │   ├── branding/                # Brand assets (SVG logos)
 │   └── demo-artifacts/          # Hero demo artifacts
-├── scripts/                      # NPM distribution scripts
-│   ├── maenifold.js             # Platform detection wrapper
-│   └── postinstall.js           # NPM post-install script
+├── scripts/                      # Build helper scripts
+├── installer/                    # WiX MSI installer configuration
 └── bin/                          # Build outputs (platform-specific)
 ```
 
@@ -86,11 +85,11 @@ dotnet build src/Maenifold.csproj -c Release
 
 **Platform-specific builds:**
 ```bash
-npm run build:linux    # Linux x64
-npm run build:osx      # macOS ARM64
-npm run build:osx-x64  # macOS Intel
-npm run build:win      # Windows x64
-npm run build:all      # All platforms
+dotnet publish src/Maenifold.csproj -c Release -r linux-x64 --self-contained -o bin/linux-x64
+dotnet publish src/Maenifold.csproj -c Release -r linux-arm64 --self-contained -o bin/linux-arm64
+dotnet publish src/Maenifold.csproj -c Release -r osx-arm64 --self-contained -o bin/osx-arm64
+dotnet publish src/Maenifold.csproj -c Release -r osx-x64 --self-contained -o bin/osx-x64
+dotnet publish src/Maenifold.csproj -c Release -r win-x64 --self-contained -o bin/win-x64
 ```
 
 ### Testing

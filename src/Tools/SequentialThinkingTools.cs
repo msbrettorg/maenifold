@@ -46,7 +46,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         var sessionIdProvided = sessionId != null;
 
         if (sessionId == null)
-            sessionId = $"session-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+            sessionId = $"session-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{Random.Shared.Next(10000, 99999)}";
 
         if (sessionIdProvided && !IsValidSessionIdFormat(sessionId!))
             return "ERROR: Invalid sessionId format. Use maenifold-generated values (session-{unix-milliseconds}) or omit sessionId to start a new session.";

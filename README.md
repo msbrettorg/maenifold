@@ -160,12 +160,12 @@ graph TB
     Session --> Memory
     Memory --> Concepts
 
-    style Orchestration fill:#9B59B6
-    style Reasoning fill:#4A90E2
-    style Persona fill:#FFB74D
-    style Session fill:#50C878
-    style Memory fill:#FF6B6B
-    style Concepts fill:#FFC0CB
+    style Orchestration fill:#0969DA
+    style Reasoning fill:#0969DA
+    style Persona fill:#0969DA
+    style Session fill:#0969DA
+    style Memory fill:#0969DA
+    style Concepts fill:#0969DA
 ```
 
 **Layer 1: Concepts** - Every `[[WikiLink]]` becomes a graph node
@@ -203,11 +203,17 @@ graph TD
     Use --> Answer[Answer question]
     Future --> Answer
 
-    style Search fill:#4A90E2
-    style Write fill:#50C878
-    style Nodes fill:#9B59B6
-    style Context fill:#FFB74D
-    style Future fill:#FFC0CB
+    style Start fill:#0969DA
+    style Search fill:#0969DA
+    style Use fill:#0969DA
+    style Research fill:#0969DA
+    style Write fill:#0969DA
+    style Sync fill:#0969DA
+    style Nodes fill:#0969DA
+    style Edges fill:#0969DA
+    style Context fill:#0969DA
+    style Future fill:#0969DA
+    style Answer fill:#0969DA
 ```
 
 The graph isn't static. Every interaction grows it. Knowledge compounds over time, creating institutional memory that persists across all sessions.
@@ -366,7 +372,7 @@ On Windows, if you didn't add maenifold to PATH, use the full path to the extrac
 {
   "mcpServers": {
     "maenifold": {
-      "command": "C:\\Users\\<YourUsername>\\AppData\\Local\\Programs\\Maenifold\\maenifold-win-x64\\maenifold.exe",
+      "command": "%USERPROFILE%\\maenifold\\bin\\maenifold.exe",
       "args": ["--mcp"]
     }
   }

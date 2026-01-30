@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using Maenifold.Utils;
 using Microsoft.Data.Sqlite;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 
 namespace Maenifold.Tools;
@@ -23,7 +24,7 @@ public static partial class PerformanceBenchmark
         // ISSUE-006: Validate iterations parameter
         if (iterations <= 0)
         {
-            throw new ArgumentException("iterations must be > 0", nameof(iterations));
+            throw new McpException("iterations must be > 0");
         }
 
         var results = new StringBuilder();

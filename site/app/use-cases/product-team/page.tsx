@@ -222,7 +222,7 @@ Each agent should write findings to memory with [[test-result]] tags."`}</code>
         </p>
 
         <div className="bg-slate-100 dark:bg-slate-900 rounded-lg p-6 border border-slate-200 dark:border-slate-700 mb-6">
-          <p className="text-sm text-slate-700 dark:text-slate-300 mb-3"><strong>Location:</strong> <code className="bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded">/Users/brett/src/ma-collective/maenifold/assets/demo-artifacts</code></p>
+          <p className="text-sm text-slate-700 dark:text-slate-300 mb-3"><strong>Location:</strong> <code className="bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded">assets/demo-artifacts</code></p>
 
           <div className="mb-4">
             <p className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Part 1: PM-lite Protocol (part1-pm-lite/)</p>
@@ -250,7 +250,7 @@ Each agent should write findings to memory with [[test-result]] tags."`}</code>
 
         <div className="bg-slate-200 dark:bg-slate-800 rounded p-4 text-sm font-mono text-slate-900 dark:text-slate-100">
           <div className="mb-2"># Browse the artifacts:</div>
-          <div>cd /Users/brett/src/ma-collective/maenifold/assets/demo-artifacts</div>
+          <div>cd assets/demo-artifacts</div>
           <div>cat README.md  # Start here for overview</div>
           <div>cd part1-pm-lite</div>
           <div>cat orchestration-session.md  # See real orchestration thoughts</div>

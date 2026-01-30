@@ -51,12 +51,12 @@ graph TB
     Session -->|queries| Memory
     Memory -->|built from| Concepts
 
-    style Orchestration fill:#9B59B6
-    style Reasoning fill:#4A90E2
-    style Persona fill:#FFB74D
-    style Session fill:#50C878
-    style Memory fill:#FF6B6B
-    style Concepts fill:#FFC0CB
+    style Orchestration fill:#0969DA
+    style Reasoning fill:#0969DA
+    style Persona fill:#0969DA
+    style Session fill:#0969DA
+    style Memory fill:#0969DA
+    style Concepts fill:#0969DA
 ```
 
 **Layer 1: Concepts** - Every `[[WikiLink]]` becomes a graph node. Foundation for all knowledge.
@@ -82,10 +82,11 @@ graph LR
     C --> D[searchmemories<br/>Find files]
     D --> E[readmemory<br/>Access content]
 
-    style A fill:#4A90E2
-    style C fill:#50C878
-    style D fill:#FFB74D
-    style E fill:#9B59B6
+    style A fill:#0969DA
+    style B fill:#0969DA
+    style C fill:#0969DA
+    style D fill:#0969DA
+    style E fill:#0969DA
 ```
 
 **Use case**: Navigate from unknown domain to specific knowledge.
@@ -107,11 +108,12 @@ graph TD
     D --> E[readmemory for<br/>relevant files]
     E --> F[Answer with<br/>actual knowledge]
 
-    style A fill:#FFB74D
-    style B fill:#FFC0CB
-    style C fill:#50C878
-    style D fill:#4A90E2
-    style F fill:#9B59B6
+    style A fill:#0969DA
+    style B fill:#0969DA
+    style C fill:#0969DA
+    style D fill:#0969DA
+    style E fill:#0969DA
+    style F fill:#0969DA
 ```
 
 **Use case**: Answer complex questions by first hypothesizing, then grounding in graph.
@@ -153,10 +155,16 @@ graph TD
     Merge --> Memory[Persist to memory://<br/>with concepts]
     Memory --> Graph[Graph nodes created]
 
-    style Main fill:#9B59B6
-    style BranchA fill:#4A90E2
-    style BranchB fill:#FFB74D
-    style Graph fill:#50C878
+    style Main fill:#0969DA
+    style Thought1 fill:#0969DA
+    style Thought2 fill:#0969DA
+    style BranchA fill:#0969DA
+    style BranchB fill:#0969DA
+    style ThoughtA1 fill:#0969DA
+    style ThoughtB1 fill:#0969DA
+    style Merge fill:#0969DA
+    style Memory fill:#0969DA
+    style Graph fill:#0969DA
 ```
 
 **Use case**: Explore multiple alternatives without losing thought continuity.
@@ -192,11 +200,17 @@ graph TD
     Use --> Answer[Answer question]
     Future --> Answer
 
-    style Search fill:#4A90E2
-    style Write fill:#50C878
-    style Nodes fill:#9B59B6
-    style Context fill:#FFB74D
-    style Future fill:#FFC0CB
+    style Start fill:#0969DA
+    style Search fill:#0969DA
+    style Use fill:#0969DA
+    style Research fill:#0969DA
+    style Write fill:#0969DA
+    style Sync fill:#0969DA
+    style Nodes fill:#0969DA
+    style Edges fill:#0969DA
+    style Context fill:#0969DA
+    style Future fill:#0969DA
+    style Answer fill:#0969DA
 ```
 
 **Key insight**: The graph is not static. Every interaction can grow it:
@@ -235,11 +249,11 @@ graph LR
         Node3
     end
 
-    style Content fill:#FFB74D
-    style Sync fill:#4A90E2
-    style Node1 fill:#9B59B6
-    style Node2 fill:#9B59B6
-    style Node3 fill:#9B59B6
+    style Content fill:#0969DA
+    style Sync fill:#0969DA
+    style Node1 fill:#0969DA
+    style Node2 fill:#0969DA
+    style Node3 fill:#0969DA
 ```
 
 **Process**:
@@ -277,9 +291,18 @@ graph TD
     Write2 --> Session3
     Write3 --> Session4
 
-    style Session1 fill:#FFB74D
-    style Session4 fill:#50C878
-    style Rich fill:#9B59B6
+    style Session1 fill:#0969DA
+    style Write1 fill:#0969DA
+    style Session2 fill:#0969DA
+    style Build2 fill:#0969DA
+    style Write2 fill:#0969DA
+    style Session3 fill:#0969DA
+    style Build3 fill:#0969DA
+    style Write3 fill:#0969DA
+    style Session4 fill:#0969DA
+    style Build4 fill:#0969DA
+    style Rich fill:#0969DA
+    style Answer4 fill:#0969DA
 ```
 
 **Timeline**:
@@ -323,32 +346,87 @@ If you prefer manual setup or need custom configuration:
 
 The maenifold MCP server requires the maenifold binary. Choose your installation method:
 
-### Homebrew (macOS/Linux)
+### GitHub Releases (Recommended)
 
-```bash
-brew install msbrettorg/tap/maenifold
-```
+Download the latest release for your platform from [GitHub Releases](https://github.com/msbrettorg/maenifold/releases/latest).
 
-This installs the binary and adds it to your PATH automatically.
+#### macOS
 
-### Windows (Zip Archive)
+1. Download the appropriate archive:
+   - **Apple Silicon (M1/M2/M3)**: `maenifold-osx-arm64.tar.gz`
+   - **Intel**: `maenifold-osx-x64.tar.gz`
 
-1. Download `maenifold-win-x64.zip` from [GitHub Releases](https://github.com/msbrettorg/maenifold/releases/latest)
+2. Extract to `~/maenifold/bin`:
+   ```bash
+   # Download (replace URL with correct architecture)
+   curl -L -o maenifold.tar.gz https://github.com/msbrettorg/maenifold/releases/latest/download/maenifold-osx-arm64.tar.gz
 
-2. Extract to a permanent location (recommended: `%LOCALAPPDATA%\Programs\Maenifold`):
-   ```powershell
-   # Create directory
-   New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\Programs\Maenifold"
-
-   # Extract zip
-   Expand-Archive -Path maenifold-win-x64.zip -DestinationPath "$env:LOCALAPPDATA\Programs\Maenifold"
+   # Extract to bin directory
+   mkdir -p ~/maenifold/bin
+   tar -xzf maenifold.tar.gz -C ~/maenifold/bin --strip-components=1
    ```
 
-3. Add to PATH (recommended for ease of use):
+3. Add to PATH:
+   ```bash
+   # Add to ~/.zshrc or ~/.bash_profile
+   echo 'export PATH="$HOME/maenifold/bin:$PATH"' >> ~/.zshrc
+
+   # Reload shell configuration
+   source ~/.zshrc
+   ```
+
+4. Verify installation:
+   ```bash
+   maenifold --version
+   ```
+
+#### Linux
+
+1. Download `maenifold-linux-x64.tar.gz`
+
+2. Extract to `~/maenifold/bin`:
+   ```bash
+   # Download
+   curl -L -o maenifold.tar.gz https://github.com/msbrettorg/maenifold/releases/latest/download/maenifold-linux-x64.tar.gz
+
+   # Extract to bin directory
+   mkdir -p ~/maenifold/bin
+   tar -xzf maenifold.tar.gz -C ~/maenifold/bin --strip-components=1
+   ```
+
+3. Add to PATH:
+   ```bash
+   # Add to ~/.bashrc or ~/.zshrc
+   echo 'export PATH="$HOME/maenifold/bin:$PATH"' >> ~/.bashrc
+
+   # Reload shell configuration
+   source ~/.bashrc
+   ```
+
+4. Verify installation:
+   ```bash
+   maenifold --version
+   ```
+
+#### Windows
+
+1. Download `maenifold-win-x64.zip`
+
+2. Extract to `%USERPROFILE%\maenifold\bin`:
+   ```powershell
+   # Download (adjust path to your Downloads folder)
+   $downloadPath = "$env:USERPROFILE\Downloads\maenifold-win-x64.zip"
+
+   # Create directory and extract
+   New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\maenifold\bin"
+   Expand-Archive -Path $downloadPath -DestinationPath "$env:USERPROFILE\maenifold\bin" -Force
+   ```
+
+3. Add to PATH:
    ```powershell
    # Add to user PATH
    $path = [Environment]::GetEnvironmentVariable("PATH", "User")
-   $newPath = "$env:LOCALAPPDATA\Programs\Maenifold\maenifold-win-x64"
+   $newPath = "$env:USERPROFILE\maenifold\bin"
    if ($path -notlike "*$newPath*") {
        [Environment]::SetEnvironmentVariable("PATH", "$path;$newPath", "User")
    }
@@ -358,12 +436,18 @@ This installs the binary and adds it to your PATH automatically.
 
 4. Verify installation:
    ```powershell
-   # If added to PATH
    maenifold --version
-
-   # Or use full path
-   & "$env:LOCALAPPDATA\Programs\Maenifold\maenifold-win-x64\maenifold.exe" --version
    ```
+
+### Homebrew (Alternative for macOS/Linux)
+
+If you prefer using Homebrew package manager:
+
+```bash
+brew install msbrettorg/tap/maenifold
+```
+
+This installs the binary and adds it to your PATH automatically. Note that the default installation location differs from the recommended `~/maenifold` directory.
 
 ### Build from Source
 
@@ -375,7 +459,13 @@ cd maenifold
 dotnet build -c Release
 ```
 
-The binary will be at `src/Maenifold/bin/Release/net9.0/maenifold` (or `maenifold.exe` on Windows).
+The binary will be at `src/Maenifold/bin/Release/net9.0/maenifold` (or `maenifold.exe` on Windows). Copy to `~/maenifold/bin` and add to PATH as shown in the platform-specific instructions above:
+
+```bash
+# macOS/Linux
+mkdir -p ~/maenifold/bin
+cp src/Maenifold/bin/Release/net9.0/maenifold ~/maenifold/bin/
+```
 
 ## MCP Configuration
 
@@ -397,13 +487,27 @@ Create or update `.mcp.json` in your project root:
 }
 ```
 
-If maenifold is not in PATH, specify the full path:
+If maenifold is not in PATH, specify the full path to your installation:
 
+**macOS/Linux**:
 ```json
 {
   "mcpServers": {
     "maenifold": {
-      "command": "/usr/local/bin/maenifold",
+      "command": "/Users/<username>/maenifold/bin/maenifold",
+      "args": ["--mcp"],
+      "type": "stdio"
+    }
+  }
+}
+```
+
+**Windows**:
+```json
+{
+  "mcpServers": {
+    "maenifold": {
+      "command": "C:\\Users\\<username>\\maenifold\\bin\\maenifold.exe",
       "args": ["--mcp"],
       "type": "stdio"
     }
@@ -430,20 +534,33 @@ Add the maenifold server:
 }
 ```
 
-On Windows (if not added to PATH, use full path to extracted location):
+If maenifold is not added to PATH, use the full path:
 
+**macOS/Linux**:
 ```json
 {
   "mcpServers": {
     "maenifold": {
-      "command": "C:\\Users\\<YourUsername>\\AppData\\Local\\Programs\\Maenifold\\maenifold-win-x64\\maenifold.exe",
+      "command": "/Users/<username>/maenifold/bin/maenifold",
       "args": ["--mcp"]
     }
   }
 }
 ```
 
-Replace `<YourUsername>` with your actual Windows username, or use environment variable expansion if your client supports it.
+**Windows**:
+```json
+{
+  "mcpServers": {
+    "maenifold": {
+      "command": "C:\\Users\\<username>\\maenifold\\bin\\maenifold.exe",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+Replace `<username>` with your actual username, or use environment variable expansion if your client supports it.
 
 ### Codex CLI
 

@@ -48,9 +48,22 @@ run_with_timeout() {
 }
 
 find_cli() {
-  command -v maenifold 2>/dev/null && return
-  [[ -n "${MAENIFOLD_ROOT:-}" && -x "$MAENIFOLD_ROOT/src/bin/Release/net9.0/maenifold" ]] && \
-    echo "$MAENIFOLD_ROOT/src/bin/Release/net9.0/maenifold"
+  # 1. Check PATH first
+  if command -v maenifold &>/dev/null; then
+    command -v maenifold
+    return 0
+  fi
+
+  # 2. Fall back to ~/maenifold/bin
+  if [[ -x "$HOME/maenifold/bin/maenifold" ]]; then
+    echo "$HOME/maenifold/bin/maenifold"
+    return 0
+  fi
+
+  # 3. Error if neither found
+  echo "ERROR: maenifold not found in PATH or ~/maenifold/bin" >&2
+  echo "Install from: https://github.com/msbrettorg/maenifold/releases/latest" >&2
+  return 1
 }
 
 extract_concepts() {

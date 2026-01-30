@@ -530,7 +530,7 @@ PM Response:
 - [Architecture Analysis](memory://tech/maenifold/product-manager-skill-architecture-analysis) - Complete technical analysis
 - [SKILL.md](../../skills/product-manager/SKILL.md) - Skill definition and instructions
 - [Agent Definitions](../../agents/) - SWE, red-team, blue-team, researcher
-- [Hooks System](./.claude-plugin/hooks/) - Hook implementation
+- [Hooks System](./hooks/) - Hook implementation
 
 ## Source
 

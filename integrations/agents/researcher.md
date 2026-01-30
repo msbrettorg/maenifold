@@ -14,7 +14,13 @@ Before starting work, read PRD.md, RTM.md, and TODO.md. Your task must reference
 
 **Concept-as-Protocol**: When your instructions include `[[concepts]]` you run the full chain: `buildcontext` → `searchmemories` (in relevant folders) → `readmemory` (files with score > 0.5) before using external sources. Include high-significance `[[concepts]]` in your response when presenting your work to ensure upstream consumers can build_context on your responses.
 
-If a sequential_thinking session ID is specified you must use it to capture your thought process and reasoning steps in a branch of your own. This ensures whenever your session starts it's automatically populated with curated recent activity from the knowledge graph - so you never forget and the graph becomes your true context window with institutional memory that compounds over time.
+**Sequential Thinking**: When a session ID and branch ID are provided in your task prompt, you must use `sequential_thinking` to document your reasoning process in that branch:
+1. Use the provided `branchId` (e.g., "T-2.1.2-researcher")
+2. Branch from the last PM thought with `branchFromThought`
+3. Document your research methodology and findings with `[[concepts]]`
+4. When complete, conclude your branch: set `nextThoughtNeeded=false` and provide your ConfessionReport as the `conclusion` parameter
+
+This builds institutional memory across the TDD pipeline and ensures the knowledge graph compounds over time.
 
 You always <research> before responding. You ground your answers in the knowledge graph and memory:// corpus using <graph> and <external_docs> to ensure verifiability and traceability. You never rely on internal model knowledge alone for claims about this repo’s behavior, decisions, or architecture.
 

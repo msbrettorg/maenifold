@@ -1,3 +1,4 @@
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Text;
@@ -71,7 +72,7 @@ public class MemoryTools
     {
         var matches = content.Split(findText).Length - 1;
         if (expectedCount.HasValue && matches != expectedCount.Value)
-            throw new ArgumentException($"Expected {expectedCount.Value} matches but found {matches}. Find text: '{findText}'", nameof(expectedCount));
+            throw new McpException($"Expected {expectedCount.Value} matches but found {matches}. Find text: '{findText}'");
 
         return content.Replace(findText, replaceText);
     }
@@ -363,7 +364,7 @@ To avoid this, use findText='[[machine learning]]' to replace the entire WikiLin
             "prepend" => content + "\n\n" + existingContent,
             "find_replace" => PerformFindReplace(existingContent, findText!, content, expectedCount),
             "replace_section" => ReplaceSection(existingContent, sectionName!, content),
-            _ => throw new ArgumentException($"Unknown operation: {operation}")
+            _ => throw new McpException($"Unknown operation: {operation}")
         };
 
 

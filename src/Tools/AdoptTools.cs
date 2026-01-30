@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using Maenifold.Utils;
 
@@ -23,7 +24,7 @@ public class AdoptTools
         var validTypes = new[] { "role", "color", "perspective" };
         if (!validTypes.Contains(type.ToLowerInvariant(), StringComparer.OrdinalIgnoreCase))
         {
-            throw new ArgumentException($"Invalid type '{type}'. Must be one of: {string.Join(", ", validTypes)}");
+            throw new McpException($"Invalid type '{type}'. Must be one of: {string.Join(", ", validTypes)}");
         }
 
         var folderName = type.ToLowerInvariant() + "s";

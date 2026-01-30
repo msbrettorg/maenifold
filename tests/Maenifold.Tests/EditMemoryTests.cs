@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Maenifold.Tools;
 using Maenifold.Utils;
+using ModelContextProtocol;
 using NUnit.Framework;
 
 namespace Maenifold.Tests;
@@ -77,7 +78,7 @@ public class EditMemoryTests
         var uri = ExtractUri(writeResult);
 
         // Act & Assert: Expecting 1 match but actually has 3 should throw
-        var ex = Assert.Throws<ArgumentException>(() =>
+        var ex = Assert.Throws<McpException>(() =>
             MemoryTools.EditMemory(
                 uri,
                 "find_replace",
@@ -90,7 +91,6 @@ public class EditMemoryTests
         // Verify error message is clear
         Assert.That(ex.Message, Does.Contain("Expected 1 matches but found 3"));
         Assert.That(ex.Message, Does.Contain("Find text: 'foo'"));
-        Assert.That(ex.ParamName, Is.EqualTo("expectedCount"));
     }
 
     [Test]
@@ -104,7 +104,7 @@ public class EditMemoryTests
         var uri = ExtractUri(writeResult);
 
         // Act & Assert: Expecting 0 matches but has 1
-        var ex = Assert.Throws<ArgumentException>(() =>
+        var ex = Assert.Throws<McpException>(() =>
             MemoryTools.EditMemory(
                 uri,
                 "find_replace",
@@ -154,7 +154,7 @@ public class EditMemoryTests
         var uri = ExtractUri(writeResult);
 
         // Act & Assert: Expecting 2 matches but has 0
-        var ex = Assert.Throws<ArgumentException>(() =>
+        var ex = Assert.Throws<McpException>(() =>
             MemoryTools.EditMemory(
                 uri,
                 "find_replace",

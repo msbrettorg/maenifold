@@ -21,7 +21,7 @@ public class ConceptRepairToolTests
         CreateTestFile("variant-test.md", "# Variant Test\n\n[[tool]] and [[tools]] and [[Tool]]");
         CreateTestFile("semantic-test.md", "# Semantic Test\n\n[[authentication]] and [[login]]");
         CreateTestFile("empty-test.md", "# Empty Test\n\n");
-        CreateTestFile("multiline-test.md", "# Multiline Test\n\n[[concept1]] on line 3\n[[concept2]] on line 4\n[[concept3]] on line 5");
+        CreateTestFile("multiline-test.md", "# Multiline Test\n\n[[api-design]] on line 3\n[[error-handling]] on line 4\n[[logging]] on line 5");
     }
 
     [TearDown]
@@ -54,7 +54,7 @@ public class ConceptRepairToolTests
         // Act
         var result = ConceptRepairTool.RepairConcepts(
             "tool,tools",
-            "concept",
+            "software-tool",
             folder: TestFolder,
             dryRun: true,
             createWikiLinks: false,
@@ -73,7 +73,7 @@ public class ConceptRepairToolTests
         // Act
         var result = ConceptRepairTool.RepairConcepts(
             "tool,tools",
-            "concept",
+            "development-tool",
             folder: TestFolder,
             dryRun: true,
             createWikiLinks: false,
@@ -92,7 +92,7 @@ public class ConceptRepairToolTests
         // Act
         var result = ConceptRepairTool.RepairConcepts(
             "tool",
-            "concept",
+            "build-tool",
             folder: "nonexistent-folder-xyz",
             dryRun: true,
             createWikiLinks: false,
@@ -110,7 +110,7 @@ public class ConceptRepairToolTests
         // Act
         var result = ConceptRepairTool.RepairConcepts(
             "",
-            "concept",
+            "generic-tool",
             folder: TestFolder,
             dryRun: true,
             createWikiLinks: false,
@@ -132,7 +132,7 @@ public class ConceptRepairToolTests
         // Act - Run with explicit folder parameter
         var result = ConceptRepairTool.RepairConcepts(
             "tool",
-            "concept",
+            "utility",
             folder: TestFolder,
             dryRun: true,
             createWikiLinks: false,
@@ -293,10 +293,10 @@ public class ConceptRepairToolTests
     {
         // Arrange
         var testFile = Path.Combine(_testFolderPath, "max-results-test.md");
-        File.WriteAllText(testFile, "[[concept1]] [[concept2]] [[concept3]] [[concept4]] [[concept5]] [[concept6]]");
+        File.WriteAllText(testFile, "[[api-endpoint]] [[middleware]] [[routing]] [[validation]] [[serialization]] [[caching]]");
 
         // Act
-        var result = ConceptRepairTool.AnalyzeConceptCorruption("concept", maxResults: 3);
+        var result = ConceptRepairTool.AnalyzeConceptCorruption("api", maxResults: 3);
 
         // Assert
         Assert.That(result, Is.Not.Null, "Should return result");
@@ -342,7 +342,7 @@ public class ConceptRepairToolTests
         // Act - Use minSemanticSimilarity=0.0 to bypass validation
         var result = ConceptRepairTool.RepairConcepts(
             "tool",
-            "completely-unrelated-xyz",
+            "kitchen-appliance",
             folder: TestFolder,
             dryRun: true,
             createWikiLinks: false,
@@ -365,7 +365,7 @@ public class ConceptRepairToolTests
         // Act - Use default 0.7 threshold
         var result = ConceptRepairTool.RepairConcepts(
             "tool",
-            "identical-match",
+            "utility-tool",
             folder: TestFolder,
             dryRun: true,
             createWikiLinks: false
@@ -387,7 +387,7 @@ public class ConceptRepairToolTests
         // Act - When createWikiLinks=true, semantic validation is bypassed
         var result = ConceptRepairTool.RepairConcepts(
             "tool",
-            "my-concept",
+            "custom-tool",
             folder: TestFolder,
             dryRun: true,
             createWikiLinks: true,
@@ -414,7 +414,7 @@ No: the tool (parentheses)");
         // Act
         var result = ConceptRepairTool.RepairConcepts(
             "tool",
-            "my-tool",
+            "software-tool",
             folder: TestFolder,
             dryRun: false,
             createWikiLinks: true,
@@ -424,7 +424,7 @@ No: the tool (parentheses)");
         // Assert
         var modifiedContent = File.ReadAllText(testFile);
         // Should match "tool" as standalone word, not as part of "toolbox" or "toolkit"
-        Assert.That(modifiedContent, Does.Contain("[[my-tool]]"), "Should create WikiLink for standalone word");
+        Assert.That(modifiedContent, Does.Contain("[[software-tool]]"), "Should create WikiLink for standalone word");
         Assert.That(modifiedContent, Does.Contain("toolbox"), "Should not affect 'toolbox' (not a word boundary match)");
         Assert.That(modifiedContent, Does.Contain("toolkit"), "Should not affect 'toolkit' (not a word boundary match)");
     }
@@ -447,7 +447,7 @@ More tool text outside code block.");
         // Act
         var result = ConceptRepairTool.RepairConcepts(
             "tool",
-            "my-tool",
+            "dev-tool",
             folder: TestFolder,
             dryRun: false,
             createWikiLinks: true,
@@ -457,12 +457,12 @@ More tool text outside code block.");
         // Assert
         var modifiedContent = File.ReadAllText(testFile);
         // Count WikiLinks created
-        var wikiLinkCount = System.Text.RegularExpressions.Regex.Matches(modifiedContent, @"\[\[my-tool\]\]").Count;
+        var wikiLinkCount = System.Text.RegularExpressions.Regex.Matches(modifiedContent, @"\[\[dev-tool\]\]").Count;
         // Should only create 2 links: one before code block, one after
         // Code block content should remain unchanged
         Assert.That(modifiedContent, Does.Contain("This tool inside code block should not be converted"),
             "Code block content should not be modified");
-        Assert.That(modifiedContent, Does.Contain("[[my-tool]]"), "Should create WikiLinks outside code blocks");
+        Assert.That(modifiedContent, Does.Contain("[[dev-tool]]"), "Should create WikiLinks outside code blocks");
     }
 
     [Test]
@@ -480,7 +480,7 @@ tool should be converted but [[existing-concept]] should stay.";
         // Act
         var result = ConceptRepairTool.RepairConcepts(
             "tool",
-            "my-tool",
+            "build-tool",
             folder: TestFolder,
             dryRun: false,
             createWikiLinks: true,
@@ -492,8 +492,8 @@ tool should be converted but [[existing-concept]] should stay.";
         // Existing WikiLinks should not be touched
         Assert.That(modifiedContent, Does.Contain("[[existing-concept]]"),
             "Should preserve existing [[existing-concept]] WikiLinks");
-        Assert.That(modifiedContent, Does.Contain("[[my-tool]]"),
-            "Should create new [[my-tool]] from plain text 'tool'");
+        Assert.That(modifiedContent, Does.Contain("[[build-tool]]"),
+            "Should create new [[build-tool]] from plain text 'tool'");
         var existingLinkCount = System.Text.RegularExpressions.Regex.Matches(modifiedContent, @"\[\[existing-concept\]\]").Count;
         Assert.That(existingLinkCount, Is.EqualTo(originalExistingCount), "Should preserve all existing WikiLinks without modification");
     }
@@ -576,7 +576,7 @@ The [[tool]] is essential.");
         // Act - Operation on empty file should not crash
         var result = ConceptRepairTool.RepairConcepts(
             "tool",
-            "concept",
+            "testing-tool",
             folder: TestFolder,
             dryRun: false,
             createWikiLinks: false,
@@ -599,7 +599,7 @@ The [[tool]] is essential.");
         // Act
         var result = ConceptRepairTool.RepairConcepts(
             "tool",
-            "concept",
+            "automation-tool",
             folder: TestFolder,
             dryRun: false,
             createWikiLinks: false,
@@ -672,14 +672,14 @@ The [[tool]] is essential.");
         var level3 = Path.Combine(level2, "level3");
 
         Directory.CreateDirectory(level3);
-        File.WriteAllText(Path.Combine(level1, "file1.md"), "[[concept]]");
-        File.WriteAllText(Path.Combine(level2, "file2.md"), "[[concept]]");
-        File.WriteAllText(Path.Combine(level3, "file3.md"), "[[concept]]");
+        File.WriteAllText(Path.Combine(level1, "file1.md"), "[[database-schema]]");
+        File.WriteAllText(Path.Combine(level2, "file2.md"), "[[database-schema]]");
+        File.WriteAllText(Path.Combine(level3, "file3.md"), "[[database-schema]]");
 
         // Act - Should scan all nested levels
         var result = ConceptRepairTool.RepairConcepts(
-            "concept",
-            "new-concept",
+            "database-schema",
+            "data-model",
             folder: TestFolder,
             dryRun: false,
             createWikiLinks: false,
@@ -691,9 +691,9 @@ The [[tool]] is essential.");
         var content2 = File.ReadAllText(Path.Combine(level2, "file2.md"));
         var content3 = File.ReadAllText(Path.Combine(level3, "file3.md"));
 
-        Assert.That(content1, Does.Contain("[[new-concept]]"), "Should modify level 1 files");
-        Assert.That(content2, Does.Contain("[[new-concept]]"), "Should modify level 2 files");
-        Assert.That(content3, Does.Contain("[[new-concept]]"), "Should modify level 3 files");
+        Assert.That(content1, Does.Contain("[[data-model]]"), "Should modify level 1 files");
+        Assert.That(content2, Does.Contain("[[data-model]]"), "Should modify level 2 files");
+        Assert.That(content3, Does.Contain("[[data-model]]"), "Should modify level 3 files");
         Assert.That(result, Does.Contain("Files modified: 3"), "Should modify all nested files");
     }
 }

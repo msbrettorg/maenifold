@@ -43,8 +43,8 @@ TOKENS_USED=0
 # Get recent activity (last 24 hours, 10 items)
 RECENT_JSON=$("$MAENIFOLD_CLI" --tool RecentActivity --payload '{"limit":10,"timespan":"24.00:00:00","includeContent":false}' 2>/dev/null || echo "{}")
 
-# Extract all [[concepts]] from recent activity
-CONCEPTS=$(echo "$RECENT_JSON" | grep -o '\[\[[^]]*\]\]' | sed 's/\[\[\(.*\)\]\]/\1/' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | grep -v '^concept' | sort | uniq -c | sort -rn)
+# Extract all [[WikiLinks]] from recent activity like [[authentication]], [[session-management]]
+CONCEPTS=$(echo "$RECENT_JSON" | grep -o '\[\[[^]]*\]\]' | sed 's/\[\[\(.*\)\]\]/\1/' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | grep -v -E '^(concept|wikilink|tag)' | sort | uniq -c | sort -rn)
 
 # Get top N concepts
 TOP_CONCEPTS=$(echo "$CONCEPTS" | head -$MAX_CONCEPTS | awk '{print $2}')

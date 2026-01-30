@@ -21,7 +21,7 @@ If the user asks for a workflow, you stay in the workflow until it is **complete
 1. **Start** a workflow:
   - Call `Workflow` with `workflowId` (and optionally an initial `response`/`thoughts`).
 2. **Read the current step** from the tool output.
-3. **Do exactly what the step asks**, then provide a `response` that includes at least one `[[concept]]`.
+3. **Do exactly what the step asks**, then provide a `response` that includes at least one `[[WikiLink]]`.
 4. **Continue**:
   - Call `Workflow` with `sessionId` + your `response`.
 5. Repeat until the workflow indicates completion.
@@ -34,15 +34,15 @@ Use `view: true` to show the workflow queue when you need visibility into what�
 
 - `sessionId` (string, optional): Continue existing. Mutually exclusive with `workflowId`.
 - `workflowId` (string | string[], optional): Start new workflow (single ID or array).
-- `response` (string, optional): Response to step. MUST include `[[concepts]]`.
-- `thoughts` (string, optional): Meta-observations with `[[concepts]]`.
+- `response` (string, optional): Response to step. MUST include `[[WikiLinks]]`.
+- `thoughts` (string, optional): Meta-observations with `[[WikiLinks]]`.
 - `status` (string, optional): `'completed'` or `'cancelled'` to end.
-- `conclusion` (string, optional): Required when `status='completed'`. MUST include `[[concepts]]` AND confession elements:
+- `conclusion` (string, optional): Required when `status='completed'`. MUST include `[[WikiLinks]]` AND confession elements:
   1. Synthesize findings
   2. List instruction compliance (✅/❌ with evidence)
   3. Shortcuts or hacks taken
   4. Risks/uncertainties flagged
-  5. Sources used (memory:// URIs, [[concepts]])
+  5. Sources used (memory:// URIs, [[WikiLinks]])
 - `view` (bool, default: false): Display queue.
 - `append` (string, optional): Add workflow(s) to queue.
 
@@ -63,7 +63,7 @@ Structured guidance: current step, tool hints, quality gates, progress, session 
 ## Constraints
 
 - Cannot use `workflowId` + `sessionId` together
-- `response`/`conclusion` MUST contain at least one `[[concept]]`
+- `response`/`conclusion` MUST contain at least one `[[WikiLink]]`
 - Continue with `sessionId + response` (repeat until completion)
 - Do not skip steps or “jump ahead” to a conclusion; follow the workflow’s step order
 

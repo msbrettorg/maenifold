@@ -190,7 +190,7 @@ Returns Mermaid diagram code ready for rendering, enables visual knowledge archi
         // Normalize concept for matching (remove brackets if present)
         var normalizedConcept = conceptName.Trim('[', ']');
 
-        // Search patterns: [[concept]] WikiLink or plain text mention
+        // Search patterns: [[WikiLink]] or plain text mention
         var wikiLinkPattern = $"[[{normalizedConcept}]]";
 
         // Find all section boundaries (## headers)

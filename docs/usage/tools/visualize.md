@@ -162,11 +162,11 @@ Generate diagrams as research artifacts demonstrating knowledge graph exploratio
 
 ### Error: "Run sync first"
 **Cause**: Knowledge graph database is empty or outdated relative to memory files  
-**Solution**: Execute Sync tool to extract [[concepts]] from memory files and build/update relationship graph
+**Solution**: Execute Sync tool to extract [[WikiLinks]] from memory files and build/update relationship graph
 
 ### Empty diagram with "No connections found"
-**Cause**: Concept exists in isolation without co-occurring with other [[concepts]] in memory files  
-**Solution**: Create memory files that mention this concept alongside related [[concepts]] to establish graph connections
+**Cause**: Concept exists in isolation without co-occurring with other [[WikiLinks]] in memory files  
+**Solution**: Create memory files that mention this concept alongside related [[WikiLinks]] to establish graph connections
 
 ### Diagram too complex with maxNodes limit
 **Cause**: Central concept has many relationships creating visually overwhelming diagrams  
@@ -178,7 +178,7 @@ Generate diagrams as research artifacts demonstrating knowledge graph exploratio
 
 ### Missing expected concept relationships
 **Cause**: Related concepts exist in separate memory files without co-occurrence patterns  
-**Solution**: Create bridging memory files mentioning related [[concepts]] together to establish visual connections
+**Solution**: Create bridging memory files mentioning related [[WikiLinks]] together to establish visual connections
 
 ### Performance issues with large diagrams
 **Cause**: High maxNodes values with dense concept graphs create complex diagrams  

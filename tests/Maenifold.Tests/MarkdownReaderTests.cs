@@ -9,62 +9,62 @@ public class MarkdownReaderTests
     [Test]
     public void ExtractWikiLinks_SkipsCodeBlocks()
     {
-        var content = @"Real [[concept]] here.
+        var content = @"Real [[authentication]] here.
 
 ```bash
-# This [[fake-concept]] and $variable should NOT be extracted
+# This [[fake-credential]] and $variable should NOT be extracted
 echo ""test""
 ```
 
-Another [[real-concept]] outside.";
+Another [[database-connection]] outside.";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
-        Assert.That(concepts, Does.Contain("real-concept"));
-        Assert.That(concepts, Does.Not.Contain("fake-concept"));
+        Assert.That(concepts, Does.Contain("authentication"));
+        Assert.That(concepts, Does.Contain("database-connection"));
+        Assert.That(concepts, Does.Not.Contain("fake-credential"));
         Assert.That(concepts.Count, Is.EqualTo(2));
     }
 
     [Test]
     public void ExtractWikiLinks_SkipsInlineCode()
     {
-        var content = @"This is a [[real-concept]] and `[[not-a-concept]]` in inline code.";
+        var content = @"This is a [[machine-learning]] and `[[inline-code]]` in inline code.";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("real-concept"));
-        Assert.That(concepts, Does.Not.Contain("not-a-concept"));
+        Assert.That(concepts, Does.Contain("machine-learning"));
+        Assert.That(concepts, Does.Not.Contain("inline-code"));
         Assert.That(concepts.Count, Is.EqualTo(1));
     }
 
     [Test]
     public void ExtractWikiLinks_ExtractsFromHeadings()
     {
-        var content = @"# Heading with [[concept-in-heading]]
+        var content = @"# Heading with [[neural-network]]
 
-Body with [[concept-in-body]].";
+Body with [[deep-learning]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept-in-heading"));
-        Assert.That(concepts, Does.Contain("concept-in-body"));
+        Assert.That(concepts, Does.Contain("neural-network"));
+        Assert.That(concepts, Does.Contain("deep-learning"));
         Assert.That(concepts.Count, Is.EqualTo(2));
     }
 
     [Test]
     public void ExtractWikiLinks_ExtractsFromLists()
     {
-        var content = @"- Item with [[concept-one]]
-- Another item with [[concept-two]]
+        var content = @"- Item with [[api-endpoint]]
+- Another item with [[database-schema]]
 
-Text with [[concept-three]].";
+Text with [[cache-strategy]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept-one"));
-        Assert.That(concepts, Does.Contain("concept-two"));
-        Assert.That(concepts, Does.Contain("concept-three"));
+        Assert.That(concepts, Does.Contain("api-endpoint"));
+        Assert.That(concepts, Does.Contain("database-schema"));
+        Assert.That(concepts, Does.Contain("cache-strategy"));
         Assert.That(concepts.Count, Is.EqualTo(3));
     }
 
@@ -82,52 +82,52 @@ Text with [[concept-three]].";
     [Test]
     public void ExtractWikiLinks_SkipsFencedCodeBlockWithLanguage()
     {
-        var content = @"Valid [[concept]] here.
+        var content = @"Valid [[dependency-injection]] here.
 
 ```csharp
-var x = ""[[fake-concept]]"";
+var x = ""[[code-snippet]]"";
 ```
 
-Another [[valid-concept]].";
+Another [[unit-testing]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
-        Assert.That(concepts, Does.Contain("valid-concept"));
-        Assert.That(concepts, Does.Not.Contain("fake-concept"));
+        Assert.That(concepts, Does.Contain("dependency-injection"));
+        Assert.That(concepts, Does.Contain("unit-testing"));
+        Assert.That(concepts, Does.Not.Contain("code-snippet"));
         Assert.That(concepts.Count, Is.EqualTo(2));
     }
 
     [Test]
     public void ExtractWikiLinks_SkipsIndentedCodeBlocks()
     {
-        var content = @"Normal [[concept]].
+        var content = @"Normal [[refactoring]].
 
     This is indented code block
-    [[should-not-extract]]
+    [[indented-code]]
 
-Back to normal [[another-concept]].";
+Back to normal [[code-review]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
-        Assert.That(concepts, Does.Contain("another-concept"));
-        Assert.That(concepts, Does.Not.Contain("should-not-extract"));
+        Assert.That(concepts, Does.Contain("refactoring"));
+        Assert.That(concepts, Does.Contain("code-review"));
+        Assert.That(concepts, Does.Not.Contain("indented-code"));
         Assert.That(concepts.Count, Is.EqualTo(2));
     }
 
     [Test]
     public void CountConceptOccurrences_SkipsCodeBlocks()
     {
-        var content = @"First [[test-concept]].
+        var content = @"First [[logging]].
 
 ```bash
-[[test-concept]] in code
+[[logging]] in code
 ```
 
-Second [[test-concept]].";
+Second [[logging]].";
 
-        var count = MarkdownReader.CountConceptOccurrences(content, "test-concept");
+        var count = MarkdownReader.CountConceptOccurrences(content, "logging");
 
         Assert.That(count, Is.EqualTo(2));
     }
@@ -135,9 +135,9 @@ Second [[test-concept]].";
     [Test]
     public void CountConceptOccurrences_SkipsInlineCode()
     {
-        var content = @"First [[test-concept]] and `[[test-concept]]` in code and third [[test-concept]].";
+        var content = @"First [[microservices]] and `[[microservices]]` in code and third [[microservices]].";
 
-        var count = MarkdownReader.CountConceptOccurrences(content, "test-concept");
+        var count = MarkdownReader.CountConceptOccurrences(content, "microservices");
 
         Assert.That(count, Is.EqualTo(2));
     }
@@ -145,9 +145,9 @@ Second [[test-concept]].";
     [Test]
     public void CountConceptOccurrences_HandlesNormalization()
     {
-        var content = @"[[Test Concept]] and [[test-concept]] are the same.";
+        var content = @"[[API Design]] and [[api-design]] are the same.";
 
-        var count = MarkdownReader.CountConceptOccurrences(content, "test-concept");
+        var count = MarkdownReader.CountConceptOccurrences(content, "api-design");
 
         Assert.That(count, Is.EqualTo(2));
     }

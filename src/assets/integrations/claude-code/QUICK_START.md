@@ -78,7 +78,7 @@ MAX_CONCEPTS=10            # Top concepts to process
 
 ## Testing
 
-1. Create some memory files with [[concepts]]:
+1. Create some memory files with `[[WikiLinks]]` (e.g., [[authentication]], [[database]]):
 ```bash
 maenifold --tool WriteMemory \
   --payload '{"title":"Test","content":"Testing [[authentication]] with [[jwt]]"}'

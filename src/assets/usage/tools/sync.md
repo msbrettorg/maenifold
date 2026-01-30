@@ -28,7 +28,7 @@ None. Operates on entire memory system.
 ## Process
 
 1. **Session Cleanup**: Mark sessions active >30min as abandoned
-2. **Concept Extraction**: Extract all `[[concepts]]` from .md files, normalize (lowercase-with-hyphens)
+2. **Concept Extraction**: Extract all `[[WikiLinks]]` like [[machine-learning]], [[knowledge-graph]] from .md files, normalize (lowercase-with-hyphens)
 3. **Graph Construction**: Create concept nodes, build co-occurrence edges weighted by frequency
 4. **Content Indexing**: Update FTS5 index for SearchMemories
 
@@ -56,6 +56,6 @@ None. Operates on entire memory system.
 ## Troubleshooting
 
 - **Database locked**: Wait for concurrent ops, retry
-- **No concepts found**: Ensure files contain `[[concept]]` references
+- **No concepts found**: Ensure files contain `[[WikiLink]]` references like [[research]], [[analysis]]
 - **Slow performance**: Normal for large knowledge bases
 - **Abandoned sessions warning**: Expected cleanup behavior

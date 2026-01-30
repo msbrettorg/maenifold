@@ -53,6 +53,123 @@
 
 ---
 
+## EVAL-BC-001: BuildContext + FindSimilarConcepts data quality
+
+**Status**: Active
+**Priority**: High
+**Created**: 2026-01-30
+
+### Problem
+
+We need to assess the **quality** of data returned by graph operations, especially `buildcontext` (context neighborhood + previews) and `findsimilarconcepts` (embedding neighbors). This is primarily about *user usefulness*: relevance, signal-to-noise, and consistency (naming/normalization), not just functional correctness.
+
+### Scope / Traceability
+
+- Core: `docs/agent/PRD.md` (FR-7.3 `buildcontext`, FR-7.4 `findsimilarconcepts`)
+- Related: `memory://audits/graph-operations-test-execution-results-20260129` (functional test run)
+
+### Tasks (grouped by tool)
+
+#### BuildContext (`buildcontext`)
+
+1. [ ] T-QUAL-BC1: Empirically evaluate BuildContext output quality across ~8 concepts and parameter sweeps
+   - Concepts: pick a balanced set across domains (e.g., security, graph, finops) and include at least 2 “hub” concepts to quantify hubness.
+   - Sweep: depth={1,2,3}, maxEntities={10,20,50}, includeContent={false,true}.
+   - Capture: direct relation relevance, expanded relation usefulness, file evidence diversity, and preview usefulness.
+   - Evidence: write representative sample outputs + observations into the sequential thinking session.
+2. [ ] T-QUAL-BC2: Blue-team quality review: identify systemic BuildContext quality failure modes + metric proposal
+   - Focus: user usefulness (relevance, signal-to-noise), not functional correctness.
+   - Deliverable: propose measurable quality metrics + thresholds suitable for release gating.
+3. [ ] T-QUAL-BC3: Red-team adversarial review of BuildContext: concept pollution/hub dominance/self-reference/preview misuse scenarios
+   - Focus: how low-quality or poisoned corpus content can mislead downstream agents via retrieval context.
+   - Deliverable: 3–5 reproducible scenarios with tool outputs + mitigations.
+
+#### FindSimilarConcepts (`findsimilarconcepts`)
+
+4. [ ] T-QUAL-FSC1: Evaluate FindSimilarConcepts quality across query variants (casing, hyphens, compounds) and domains
+   - Include: casing (MCP/mcp), hyphenation (graph rag/graph-rag/graphrag), alphanumerics (oauth2), pluralization (tool/tools), and at least 3 FinOps terms.
+   - Capture: score distributions, top-K overlap across variants, and malformed concepts surfaced.
+
+### Quality Gates (proposed)
+
+These are **release-blocking** quality checks for `buildcontext` and `findsimilarconcepts` (traceable to `docs/agent/PRD.md` FR-7.3 / FR-7.4):
+
+1. [ ] T-QUAL-GATE-001: Define a fixed evaluation query suite (10–15 concepts + 3–5 controls) and document how to run it
+   - Why: create a stable, repeatable “health check” that detects regressions in retrieval quality.
+   - Include controls: random/garbage tokens + short tokens to ensure we don’t return confident nonsense.
+   - Output: documented query list + expected “shape” of results (not exact matches).
+2. [ ] T-QUAL-GATE-002: Define acceptance thresholds and document pass/fail rubric (grouped by tool):
+   - BuildContext:
+     - Precision@10 (manual spot-check) >= 0.70 for non-hub anchors
+     - Hub Pollution Rate@10 <= 0.20 for non-hub anchors
+     - Evidence Concentration: no single memory:// file accounts for > 0.50 of evidence across top relations
+     - Preview Grounding Rate (includeContent): >= 0.90 of previews contain the anchor concept early
+   - FindSimilarConcepts:
+     - Similarity Sanity: fail if top-K similarity mass at 1.000 or near-zero score variance on controls
+   - Notes:
+     - “Hub concepts” (e.g., tool-like generics) are evaluated separately; they are expected to have lower precision.
+     - Precision scoring is human-judged initially; later we can automate proxies (e.g., overlap with curated allowlists).
+
+### Improvements (prioritized backlog)
+
+#### FindSimilarConcepts improvements
+
+1. [ ] T-QUAL-FSC2: Root-cause and fix FindSimilarConcepts “similarity=1.000 plateau” behavior for common short/compound queries
+   - Context: empirical eval showed many unrelated queries collapse into an identical top-K list with similarity=1.000, destroying trust.
+   - Hypotheses to validate:
+     - query embedding is invalid (zero/NaN/constant) for certain tokens
+     - distance function returns 0/NULL for many rows
+     - normalization tokenization mismatch between query and stored concepts
+   - Acceptance:
+     - Control suite contains 0 cases where all top-10 results are similarity=1.000.
+     - Score distribution shows non-trivial variance for non-identical queries.
+
+#### BuildContext improvements
+
+2. [ ] T-QUAL-BC4: Add hub-dampening and evidence-diversity re-ranking to BuildContext results (reduce generic hub dominance and single-file domination)
+   - Context: co-occurrence ranking over-emphasizes high-degree concepts and can be dominated by a single high-link note/session.
+   - Candidate approach:
+     - Penalize relations whose evidence comes disproportionately from a single file (MMR-style diversity)
+     - Optional: downweight evidence from `thinking/` folder unless explicitly requested
+   - Acceptance:
+     - Evidence concentration metric passes in the quality gate suite.
+     - Non-hub anchors show increased unique-file diversity in top-10 without large relevance loss.
+
+#### Cross-cutting (corpus hygiene / ingestion)
+
+3. [ ] T-QUAL-HYGIENE-001: Locate and remediate malformed concept tokens in the corpus (prevent bracket-fragment concepts from entering embeddings)
+   - Context: FindSimilarConcepts surfaced malformed concepts like `[[focus` / `[azure-data-explorer` implying ingestion issues.
+   - Plan:
+     - Use FullText search to locate source files containing malformed bracket fragments.
+     - Decide remediation: edit offending notes OR add sync-time validation filter to drop malformed tokens.
+   - Acceptance:
+     - Quality suite returns 0 malformed concept tokens in top-10 for any query.
+
+#### BuildContext (preview UX/safety)
+
+4. [ ] T-QUAL-BC5: Make BuildContext previews explicitly untrusted (safe formatting + lightweight prompt-shaped-text detection)
+   - Context: `includeContent=true` previews can carry prompt-shaped text; downstream LLMs may treat it as instruction.
+   - Approach:
+     - Wrap previews as quoted or fenced “UNTRUSTED RETRIEVAL” blocks.
+     - Detect and annotate common directive patterns (SYSTEM:, ignore previous, tool-call JSON shapes) as flags.
+   - Acceptance:
+     - Previews remain readable and grounded (Preview Grounding Rate still passes).
+     - Any flagged directive patterns are clearly marked as untrusted.
+
+### Acceptance Criteria
+
+- [ ] Clear set of quality dimensions + metrics (relevance, diversity, duplication, hub pollution, preview usefulness)
+- [ ] At least 5 concrete, prioritized improvement recommendations tied to observed failure modes
+- [ ] Evidence includes tool outputs (representative samples) and links to memory:// notes used
+- [ ] Quality gates defined (T-QUAL-GATE-001/002) and approved as release criteria for FR-7.3/FR-7.4
+
+### Evidence / Notes
+
+- Primary working evidence: `memory://thinking/sequential/1970/01/01/session-1769801329103-37116`
+- Baseline functional audit: `memory://audits/graph-operations-test-execution-results-20260129`
+
+---
+
 ## OPENCODE-001: OpenCode Plugin for Maenifold
 
 **Status**: Active

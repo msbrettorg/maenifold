@@ -10,11 +10,11 @@
 
 ## 1. Overview
 
-This specification defines the implementation of the tool execution hook that detects `[[concepts]]` in tool arguments and augments tool input with knowledge graph context. This enables automatic context injection for any tool invocation containing WikiLink-style concept references.
+This specification defines the implementation of the tool execution hook that detects WikiLinks like `[[REST-API]]`, `[[database-migrations]]`, `[[logging]]` in tool arguments and augments tool input with knowledge graph context. This enables automatic context injection for any tool invocation containing WikiLink-style concept references.
 
 **Traced Requirements**:
 - FR-4.1: Plugin SHALL subscribe to `tool.execute.before` event
-- FR-4.2: Plugin SHALL detect `[[concepts]]` in tool arguments
+- FR-4.2: Plugin SHALL detect WikiLinks like `[[authentication]]`, `[[caching]]` in tool arguments
 - FR-4.3: Plugin SHALL build context for detected concepts
 - FR-4.4: Plugin SHALL augment tool input with graph context
 - FR-4.5: Plugin SHALL skip augmentation for tools with no text arguments

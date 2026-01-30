@@ -25,7 +25,7 @@ Behavior:
   - `build_context` / `find_similar_concepts` / `search_memories` – surface related knowledge
   - `read_memory` – pull in relevant `memory://` files
 - For exploratory questions:
-  - Synthesizes a hypothetical answer with `[[concepts]]` inline
+  - Synthesizes a hypothetical answer with WikiLinks inline (e.g., `[[GraphRAG]]`, `[[semantic-search]]`, `[[hybrid-retrieval]]`)
   - Uses those concepts to drive retrieval via `build_context` + `search_memories`
 - For complex work:
   - Uses `sequential_thinking` as the default loop primitive
@@ -55,7 +55,7 @@ This is a multi-agent Graph-RAG orchestrator: it uses the graph to both bootstra
 Both agents implement the patterns described in `docs/search-and-scripting.md`:
 
 - **Graph-RAG** – All retrieval goes through `SearchMemories`, `BuildContext`, and `FindSimilarConcepts`, not ad-hoc string search.
-- **HYDE** – For exploratory work, the agents synthesize a hypothetical answer with `[[concepts]]`, then search those concepts.
+- **HYDE** – For exploratory work, the agents synthesize a hypothetical answer with WikiLinks (e.g., `[[distributed-systems]]`, `[[eventual-consistency]]`), then search those concepts.
 - **FLARE-like startup** – Each session begins by proactively querying the graph (`sync`, `recent_activity`, `build_context`) before answering.
 - **Self-RAG / CRAG / iterative** – `SequentialThinking` is the loop primitive for revision, corrective retrieval, and multi-step reasoning.
 

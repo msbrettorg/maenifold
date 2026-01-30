@@ -107,7 +107,7 @@ public class AssumptionLedgerTests
             concepts: Array.Empty<string>());
 
         // Assert
-        Assert.That(result, Does.StartWith("ERROR: At least one [[concept]] tag must be provided"));
+        Assert.That(result, Does.StartWith("ERROR: At least one [[WikiLink]] tag must be provided"));
     }
 
     [Test]

@@ -22,7 +22,7 @@ All tests validated both CLI and MCP interfaces with full tool parity confirmed.
 
 ### SES-T01: Start new session ✅ PASS
 - **Interface**: CLI
-- **Command**: `maenifold --tool SequentialThinking --payload '{"thoughtNumber":0,"totalThoughts":2,"response":"Testing [[sequential-thinking]] functionality with [[concepts]]","nextThoughtNeeded":true}'`
+- **Command**: `maenifold --tool SequentialThinking --payload '{"thoughtNumber":0,"totalThoughts":2,"response":"Testing [[sequential-thinking]] functionality with [[WikiLinks]]","nextThoughtNeeded":true}'`
 - **Result**: Created session-1769748067276-90642
 - **Output**: "💭 Continue with thought 1/2"
 - **Validation**: Session ID generated, proper continuation prompt
@@ -60,7 +60,7 @@ All tests validated both CLI and MCP interfaces with full tool parity confirmed.
 - **Result**: "Added thought 2 to session" with branch ID
 - **Validation**: Branching functionality operational
 
-### SES-T06: Conclusion with [[concepts]] ✅ PASS
+### SES-T06: Conclusion with [[WikiLinks]] ✅ PASS
 - **Interface**: MCP
 - **Command**: `sequential_thinking(thoughtNumber=0, totalThoughts=1, response="Quick [[conclusion-test]] session", nextThoughtNeeded=false, conclusion="Testing [[workflow-completion]]...")`
 - **Result**: "✅ Thinking complete"
@@ -69,7 +69,7 @@ All tests validated both CLI and MCP interfaces with full tool parity confirmed.
 ### SES-T07: Missing response for non-cancel ✅ PASS
 - **Interface**: CLI
 - **Command**: `maenifold --tool SequentialThinking --payload '{"thoughtNumber":0,"response":"Missing concepts in response"}'`
-- **Result**: "ERROR: Must include [[concepts]]. Example: 'Analyzing [[Machine Learning]] algorithms'"
+- **Result**: "ERROR: Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms'"
 - **Validation**: Proper validation error, clear guidance message
 
 ---
@@ -255,11 +255,11 @@ All tests validated both CLI and MCP interfaces with full tool parity confirmed.
 ### Error Handling
 - Clear, actionable error messages
 - Proper validation of required parameters
-- Helpful examples in error responses (e.g., "Must include [[concepts]]. Example: 'Analyzing [[Machine Learning]] algorithms'")
+- Helpful examples in error responses (e.g., "Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms'")
 - Graceful handling of missing/invalid inputs
 
 ### Concept Integration
-- All session tools require [[concepts]] in content
+- All session tools require [[WikiLinks]] in content
 - Concepts array format for AssumptionLedger
 - Double-bracket WikiLink format preserved
 - Automatic graph integration via Sync
@@ -310,7 +310,7 @@ All test sessions and assumptions should be archived or cleaned up after test co
 
 1. **Documentation**: All session tools have clear, consistent behavior - documentation accurate
 2. **Error Messages**: High quality error messages with examples - maintain this standard
-3. **Concept Requirement**: Enforced [[concepts]] requirement ensures graph integrity - keep this constraint
+3. **Concept Requirement**: Enforced [[WikiLinks]] requirement ensures graph integrity - keep this constraint
 4. **Session Lifecycle**: Full lifecycle support validated - no gaps in functionality
 5. **Queue Management**: Workflow queue allows duplicate workflows - document this as feature or constraint
 6. **Timespan Format**: "DD.HH:MM:SS" format working correctly - document in API reference

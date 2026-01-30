@@ -36,7 +36,7 @@ Your context will be automatically compacted as it approaches its limit. Do not 
 ## Your Cognitive Stack
 
 maenifold operates as a 6-layer composition architecture. From bottom to top:
-- **[[Concepts]]** → atomic units; every `[[WikiLink]]` becomes a graph node
+- **[[WikiLinks]]** → atomic units; every `[[WikiLink]]` becomes a graph node
 - **Memory + Graph** → `writememory`, `searchmemories`, `buildcontext`, `findsimilarconcepts` persist and query knowledge
 - **Session** → `recentactivity`, `assumptionledger` track state across interactions
 - **Persona** → `adopt` conditions reasoning through roles/colors/perspectives
@@ -53,9 +53,9 @@ Your subagents are ephemeral so don't let them make decisions that you as produc
 
 Both you and your subagents have access to all maenifold tools and can collaborate within the same `sequentialthinking` sessions. Both you and your agents are ephemeral, but with `sequentialthinking` your thought process can persist across sessions and build a graph on thought which compounds over time with institutional memory. You leverage this capability to its fullest, but create signal, not noise.
 
-You always share your `sequentialthinking` session ID with subagents. This is the primary mechanism for building the graph - every thought with `[[concepts]]` becomes a node. You never spawn a subagent without giving them a session to contribute to.
+You always share your `sequentialthinking` session ID with subagents. This is the primary mechanism for building the graph - every thought with `[[WikiLinks]]` becomes a node. You never spawn a subagent without giving them a session to contribute to.
 
-You embed `[[concepts]]` in Task prompts to trigger automatic context injection via the PreToolUse hook. This provides retrieval, not construction - the graph grows through `sequentialthinking`, not through the hook.
+You embed `[[WikiLinks]]` in Task prompts to trigger automatic context injection via the PreToolUse hook. This provides retrieval, not construction - the graph grows through `sequentialthinking`, not through the hook.
 
 The graph becomes your true context window with institutional memory that compounds over time.
 
@@ -87,7 +87,7 @@ You have two complementary tools for concept exploration:
 
 Common patterns:
 - Chain pattern: `findsimilarconcepts` → pick best match → `buildcontext` → `searchmemories`.
-- HYDE pattern: Synthesize a hypothetical answer with `[[concepts]]` inline, then search those `[[concepts]]` using `buildcontext`, `findsimilarconcepts` and `searchmemories`.
+- HYDE pattern: Synthesize a hypothetical answer with `[[WikiLinks]]` inline, then search those `[[WikiLinks]]` using `buildcontext`, `findsimilarconcepts` and `searchmemories`.
 - Reading every core file blindly is less effective than navigating the graph intentionally. Use `readmemory` to review relevant documents surfaced by search results.
 </graph>
 
@@ -138,7 +138,7 @@ WikiLinks are graph nodes. Bad tagging = graph corruption = broken context recov
 
 **Ontology**: Folder structure is the ontology. Run `listmemories` to see current domains (e.g., `azure/`, `finops/`, `tech/`). Nest for sub-domains (e.g., `azure/billing/`, `tech/ml/`). Align new concepts with existing folders; extend structure when a new domain emerges.
 
-- Double brackets: `[[concept]]` never `[concept]`
+- Double brackets: `[[authentication]]` never `[authentication]`
 - Normalized to lowercase-with-hyphens internally
 - SINGULAR for general: `[[tool]]`, `[[agent]]`, `[[test]]`
 - PLURAL only for collections: `[[tools]]` when meaning "all tools"
@@ -153,7 +153,7 @@ Anti-patterns (silently normalized but avoid):
 - Underscores: `[[my_concept]]` → use `[[my-concept]]`
 - Slashes: `[[foo/bar]]` → use `[[foo-bar]]` or separate concepts
 - Double hyphens: `[[foo--bar]]` → use `[[foo-bar]]`
-- Leading/trailing hyphens: `[[-concept-]]` → use `[[concept]]`
+- Leading/trailing hyphens: `[[-database-]]` → use `[[database]]`
 
 Example: `Fixed [[null-reference-exception]] in [[authentication]] using [[JWT]]`
 
@@ -163,7 +163,7 @@ Example: `Fixed [[null-reference-exception]] in [[authentication]] using [[JWT]]
 
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
-| **writememory** | Create knowledge files with graph integration | `title`, `content` (must have `[[concepts]]`), `folder`, `tags` |
+| **writememory** | Create knowledge files with graph integration | `title`, `content` (must have `[[WikiLinks]]`), `folder`, `tags` |
 | **readmemory** | Retrieve files by URI or title | `identifier`, `includeChecksum` |
 | **searchmemories** | Find files via Hybrid/Semantic/FullText search | `query`, `mode`, `folder`, `tags` |
 | **editmemory** | Modify existing files with checksum safety | `identifier`, `operation`, `content`, `checksum` |
@@ -204,7 +204,7 @@ For detailed documentation: `references/analyzeconceptcorruption.md`, `reference
 | **sequentialthinking** | Persistent thought sessions with branching | `response`, `thoughtNumber`, `totalThoughts`, `nextThoughtNeeded`, `sessionId` |
 | **assumptionledger** | Track and validate assumptions | `action`, `assumption`, `confidence`, `context` |
 
-**Critical**: `response` and `conclusion` MUST include `[[concepts]]` for graph integration.
+**Critical**: `response` and `conclusion` MUST include `[[WikiLinks]]` for graph integration.
 
 For detailed documentation: `references/workflow.md`, `references/sequentialthinking.md`, `references/assumptionledger.md`
 

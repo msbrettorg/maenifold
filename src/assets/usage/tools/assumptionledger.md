@@ -1,6 +1,6 @@
 # AssumptionLedger
 
-Declare, update, and track assumptions without auto-inference. Stores as markdown in `memory://assumptions/` with `[[concept]]` integration.
+Declare, update, and track assumptions without auto-inference. Stores as markdown in `memory://assumptions/` with `[[WikiLink]]` integration (e.g., [[hypothesis]], [[validation-plan]]).
 
 ## Parameters
 
@@ -80,7 +80,7 @@ Before session:
 AssumptionLedger(append) → log dominant assumptions
 
 During session:
-Reference assumption URIs in thoughts with [[concepts]]
+Reference assumption URIs in thoughts with [[WikiLinks]] (e.g., [[assumption-validation]], [[risk-assessment]])
 
 After session:
 AssumptionLedger(update) → mark validated/invalidated
@@ -124,6 +124,6 @@ Validate once dialogue MCP hooks are reintroduced
 
 ## Constraints
 
-- **[[concept]] required**: Must include concept tags for graph integration
+- **[[WikiLink]] required**: Must include concept tags for graph integration (e.g., [[assumption]], [[hypothesis]], [[risk]])
 - **No auto-inference**: Tool stores declarations only - validation is agent's responsibility
 - **Sync required**: Run `Sync()` after append/update for search integration

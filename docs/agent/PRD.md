@@ -210,7 +210,7 @@ A multi-agent workflow system that:
 
 | ID | Requirement | Priority | Maenifold Tool |
 |----|-------------|----------|----------------|
-| FR-7.1 | System SHALL maintain a knowledge graph built from `[[WikiLink]]` concepts in agent responses | P0 | `writememory`, `sync` |
+| FR-7.1 | System SHALL maintain a knowledge graph built from `[[WikiLink]]` concepts (e.g., `[[authentication]]`, `[[vector-search]]`) in agent responses | P0 | `writememory`, `sync` |
 | FR-7.2 | System SHALL support hybrid search (semantic + full-text) across persisted knowledge | P0 | `searchmemories` |
 | FR-7.3 | System SHALL traverse concept relationships for context building | P0 | `buildcontext` |
 | FR-7.4 | System SHALL discover semantically similar concepts via embeddings | P1 | `findsimilarconcepts` |
@@ -220,7 +220,7 @@ A multi-agent workflow system that:
 | FR-7.8 | System SHALL use just-in-time retrieval vs pre-loading entire context | P0 | Agent middleware |
 | FR-7.9 | System SHALL share thinking sessions between orchestrator and sub-agents | P1 | `sequentialthinking` |
 | FR-7.10 | System SHALL support workflow orchestration for systematic reasoning | P2 | `workflow` |
-| FR-7.11 | System SHALL extract `[[concepts]]` from agent responses for graph construction | P0 | `extractconceptsfromfile` |
+| FR-7.11 | System SHALL extract `[[WikiLinks]]` (e.g., `[[error-handling]]`, `[[API-design]]`) from agent responses for graph construction | P0 | `extractconceptsfromfile` |
 | FR-7.12 | System SHALL cite `memory://` URIs for knowledge-grounded responses | P0 | Response formatting |
 
 ### 4.8 Declarative YAML Workflows (Phase 2)
@@ -456,7 +456,8 @@ Provide actionable feedback with specific suggestions.
 │  │                    Maenifold Context Layer                            │  │
 │  │  ┌─────────────┐  ┌──────────────┐  ┌────────────────┐               │  │
 │  │  │ Graph DB    │  │ Sequential   │  │ Hybrid Search  │               │  │
-│  │  │[[WikiLinks]]│  │ Thinking     │  │ (Semantic+FTS) │               │  │
+│  │  │ ([[API]],   │  │ Thinking     │  │ (Semantic+FTS) │               │  │
+│  │  │  [[auth]])  │  │              │  │                │               │  │
 │  │  └─────────────┘  └──────────────┘  └────────────────┘               │  │
 │  │  ┌─────────────┐  ┌──────────────┐  ┌────────────────┐               │  │
 │  │  │ memory://   │  │ Workflows    │  │ Compaction     │               │  │
@@ -470,7 +471,8 @@ Provide actionable feedback with specific suggestions.
 │          │   (Orchestrator + Specialists)       │                          │
 │          │                                      │                          │
 │          │   Agents share:                      │                          │
-│          │   • [[concept]] extraction           │                          │
+│          │   • [[WikiLink]] extraction           │                          │
+│          │     ([[database]], [[caching]])       │                          │
 │          │   • Sequential thinking sessions     │                          │
 │          │   • memory:// citations              │                          │
 │          └──────────────────────────────────────┘                          │
@@ -493,15 +495,15 @@ Provide actionable feedback with specific suggestions.
 
 1. User submits request via CopilotKit chat UI
 2. **Context Layer**: `searchmemories` retrieves relevant `memory://` notes
-3. **Context Layer**: `buildcontext` traverses `[[concepts]]` for related knowledge
+3. **Context Layer**: `buildcontext` traverses `[[WikiLinks]]` (e.g., `[[REST-API]]` → `[[HTTP]]`, `[[JSON]]`) for related knowledge
 4. Request + enriched context sent to AG-UI endpoint
 5. Orchestrator routes to specialists with shared `sequentialthinking` session
 6. Specialist agents:
-   - Extract `[[concepts]]` from responses for graph construction
+   - Extract `[[WikiLinks]]` (e.g., `[[error-handling]]`, `[[rate-limiting]]`) from responses for graph construction
    - Cite `memory://` URIs for grounded responses
    - Call `writememory` to persist new knowledge
 7. **Compaction**: If context nearing limits, summarize and persist to `memory://`
-8. Response streams with `[[concept]]` markup for graph building
+8. Response streams with `[[WikiLink]]` markup (e.g., `[[async-patterns]]`, `[[retry-logic]]`) for graph building
 9. Graph syncs via `sync` for future retrieval
 
 ### 7.5 Technology Stack
@@ -599,7 +601,7 @@ Provide actionable feedback with specific suggestions.
 | SSE | Server-Sent Events - HTTP-based streaming protocol |
 | Orchestrator | Agent that routes requests to specialist agents |
 | Workflow | Directed graph of agents with edges defining data flow |
-| **WikiLink** | `[[concept]]` markup that becomes a node in the knowledge graph |
+| **WikiLink** | `[[authentication]]`, `[[GraphRAG]]`, `[[vector-embeddings]]` - markup that becomes a node in the knowledge graph |
 | **memory://** | URI scheme for Maenifold-persisted knowledge files |
 | **Maenifold** | Context engineering infrastructure with graph DB, embeddings, and workflows |
 | **Sequential Thinking** | Multi-step reasoning sessions with revision and branching |

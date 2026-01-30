@@ -97,7 +97,8 @@ async function handleSessionStart(session: Session): Promise<void> {
 │  │  │   --payload '{"query": "<projectName>"}'                        │ │   │
 │  │  │                                                                  │ │   │
 │  │  │   Output: List of memory files with concepts                    │ │   │
-│  │  │   Extract: [[concepts]] from search results                     │ │   │
+│  │  │   Extract: WikiLinks like [[REST-API]], [[database]],          │ │   │
+│  │  │            [[authentication]] from search results               │ │   │
 │  │  └─────────────────────────────────────────────────────────────────┘ │   │
 │  │                              │                                        │   │
 │  │                              ▼                                        │   │
@@ -107,7 +108,7 @@ async function handleSessionStart(session: Session): Promise<void> {
 │  │  │   --payload '{"timespan": "1.00:00:00", "limit": 10}'           │ │   │
 │  │  │                                                                  │ │   │
 │  │  │   Output: Recent files modified in last 24h                     │ │   │
-│  │  │   Extract: [[concepts]] from recent activity                    │ │   │
+│  │  │   Extract: WikiLinks from recent activity                       │ │   │
 │  │  └─────────────────────────────────────────────────────────────────┘ │   │
 │  │                              │                                        │   │
 │  │                              ▼                                        │   │

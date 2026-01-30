@@ -217,7 +217,7 @@ Use ListMemories to identify:
 ## maenifold Integration
 
 ### Knowledge Graph Support
-- Directory structure influences [[concept]] organization
+- Directory structure influences [[WikiLink]] organization
 - Related concepts often cluster in same folders
 - Use ListMemories to understand concept locality patterns
 - Folder organization can guide BuildContext exploration depth

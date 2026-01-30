@@ -169,12 +169,12 @@ public class MemoryTools
 
     [McpServerTool, Description(@"Creates new knowledge files with [[WikiLinks]] that automatically integrate into maenifold's graph database.
 Select when AI needs to persist new learning, research findings, or structured knowledge for future retrieval.
-Requires title, content with [[concepts]], optional folder organization and tag categorization.
+Requires title, content with [[WikiLinks]], optional folder organization and tag categorization.
 Connects to SearchMemories for discovery, Sync for graph updates, BuildContext for relationship mapping.
 Returns memory:// URI for future reference, checksum for safe editing, confirms graph integration.")]
     public static string WriteMemory(
         [Description("Title for this MEMORY FILE")] string title,
-        [Description("Content with [[Concept Names]] in brackets - REQUIRED: at least one [[concept]]!")] string content,
+        [Description("Content with [[Concept Names]] in brackets - REQUIRED: at least one [[WikiLink]]!")] string content,
         [Description("Optional folder path for organizing FILES")] string? folder = null,
         [Description("Optional tags for categorizing this FILE")] string[]? tags = null,
         [Description("Return help documentation instead of executing")] bool learn = false)
@@ -187,7 +187,7 @@ Returns memory:// URI for future reference, checksum for safe editing, confirms 
         var concepts = MarkdownIO.ExtractWikiLinks(content);
         if (concepts.Count == 0)
         {
-            return "ERROR: Content must contain at least one [[concept]] in double brackets to connect to the knowledge graph.\n" +
+            return "ERROR: Content must contain at least one [[WikiLink]] in double brackets to connect to the knowledge graph.\n" +
                    "Example: 'Learning about [[Machine Learning]] and [[Data Science]]'\n" +
                    "This ensures your note is connected to the knowledge graph and not orphaned.";
         }
@@ -299,7 +299,7 @@ Returns formatted content with timestamps, location, checksum, and full markdown
 
     [McpServerTool, Description(@"Modifies existing knowledge files with [[WikiLink]] preservation and checksum safety for graph integrity.
 Select when AI needs to update, append, or restructure existing knowledge while maintaining connections.
-Requires identifier, operation type, new content with [[concepts]], optional checksum and search patterns.
+Requires identifier, operation type, new content with [[WikiLinks]], optional checksum and search patterns.
 Connects to ReadMemory for current state, Sync for graph updates, SearchMemories for impact analysis.
 Returns updated URI with new checksum, confirms successful modification and continued graph connectivity.
 
@@ -309,7 +309,7 @@ To avoid this, use findText='[[machine learning]]' to replace the entire WikiLin
     public static string EditMemory(
         [Description("Memory FILE identifier")] string identifier,
         [Description("Operation: append, prepend, find_replace, replace_section")] string operation,
-        [Description("Content to add/replace - REQUIRED: must contain at least one [[concept]]!")] string content,
+        [Description("Content to add/replace - REQUIRED: must contain at least one [[WikiLink]]!")] string content,
         [Description("File checksum from last read (prevents stale edits)")] string? checksum = null,
         [Description("Text to find (for find_replace)")] string? findText = null,
         [Description("Section name (for replace_section)")] string? sectionName = null,
@@ -333,7 +333,7 @@ To avoid this, use findText='[[machine learning]]' to replace the entire WikiLin
         if (contentConcepts.Count == 0)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("ERROR: Edited content must contain at least one [[concept]] in double brackets.");
+            sb.AppendLine("ERROR: Edited content must contain at least one [[WikiLink]] in double brackets.");
             sb.AppendLine("Concepts are the building blocks of the knowledge graph—they create connections between files.");
             sb.AppendLine();
 
@@ -372,10 +372,10 @@ To avoid this, use findText='[[machine learning]]' to replace the entire WikiLin
         if (resultConcepts.Count == 0)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("ERROR: This edit would remove all [[concepts]] from the file.");
-            sb.AppendLine("Every memory file must maintain at least one [[concept]] to stay connected to the knowledge graph.");
+            sb.AppendLine("ERROR: This edit would remove all [[WikiLinks]] from the file.");
+            sb.AppendLine("Every memory file must maintain at least one [[WikiLink]] to stay connected to the knowledge graph.");
             sb.AppendLine();
-            sb.AppendLine("To fix this, ensure your edited content includes at least one [[concept]].");
+            sb.AppendLine("To fix this, ensure your edited content includes at least one [[WikiLink]].");
             sb.AppendLine("Examples:");
             sb.AppendLine("  • Add a reference: \"Related to [[my-topic]]\"");
             sb.AppendLine("  • Tag the section: \"[[process]]: Step-by-step instructions...\"");

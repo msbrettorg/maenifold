@@ -1,7 +1,7 @@
 
 # AnalyzeConceptCorruption
 
-⚠️ **MUST USE BEFORE RepairConcepts.** Read-only diagnostic revealing `[[concept]]` families and variants for safe consolidation planning.
+⚠️ **MUST USE BEFORE RepairConcepts.** Read-only diagnostic revealing `[[WikiLink]]` families and variants for safe consolidation planning.
 
 ## Parameters
 

@@ -1,6 +1,6 @@
 # Sync
 
-Synchronize [[WikiLink]] concepts from memory files into the knowledge graph database, building searchable concept relationships and enabling graph-based operations. This tool extracts all [[concepts]] from your memory files, analyzes their co-occurrence patterns, and constructs the SQLite-based knowledge graph that powers BuildContext, Visualize, and enhanced SearchMemories functionality.
+Synchronize [[WikiLink]] concepts from memory files into the knowledge graph database, building searchable concept relationships and enabling graph-based operations. This tool extracts all [[WikiLinks]] from your memory files, analyzes their co-occurrence patterns, and constructs the SQLite-based knowledge graph that powers BuildContext, Visualize, and enhanced SearchMemories functionality.
 
 ## When to Use This Tool
 
@@ -16,7 +16,7 @@ Synchronize [[WikiLink]] concepts from memory files into the knowledge graph dat
 ## Key Features
 
 - **Full Graph Rebuild**: Completely reconstructs concept graph from all memory files
-- **WikiLink Extraction**: Automatically finds all [[concept]] references in double brackets
+- **WikiLink Extraction**: Automatically finds all [[WikiLink]] references in double brackets
 - **Co-occurrence Analysis**: Builds weighted relationships between concepts appearing together
 - **Session Cleanup**: Identifies and marks abandoned workflow/sequential thinking sessions
 - **File Content Indexing**: Updates full-text search database for SearchMemories integration
@@ -42,7 +42,7 @@ Rebuilds the complete knowledge graph from all memory files, extracting concepts
 ```json
 {}
 ```
-Run after creating multiple memory files to ensure all new [[concepts]] are indexed and connected in the graph.
+Run after creating multiple memory files to ensure all new [[WikiLinks]] are indexed and connected in the graph.
 
 ### System Maintenance
 ```json
@@ -142,7 +142,7 @@ All database operations occur within single transaction to maintain ACID propert
 
 ### Warning: "No concepts found in files"
 **Cause**: Memory files lack [[WikiLink]] concepts in double brackets  
-**Solution**: Ensure files contain [[concept]] references for graph connectivity
+**Solution**: Ensure files contain [[WikiLink]] references for graph connectivity
 
 ### Error: "Permission denied accessing memory directory"
 **Cause**: File system permissions prevent reading memory files  
@@ -163,7 +163,7 @@ All database operations occur within single transaction to maintain ACID propert
 ## Knowledge Graph Architecture
 
 ### Concept Normalization
-All [[concepts]] are normalized to lowercase with spaces converted to hyphens for consistent storage and lookup.
+All [[WikiLinks]] are normalized to lowercase with spaces converted to hyphens for consistent storage and lookup.
 
 ### Relationship Weight Calculation
 Co-occurrence strength determined by number of files containing both concepts, enabling relevance-based graph traversal.

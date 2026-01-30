@@ -3,7 +3,7 @@
 Maenifold combines a concept graph, embeddings, and agent workflows to support:
 
 - **Search & Retrieval**: hybrid semantic/text search over concept-linked memories
-- **Graph-Based Reasoning**: multi-hop context building on a graph of `[[concepts]]`
+- **Graph-Based Reasoning**: multi-hop context building on a graph of `[[WikiLinks]]`
 - **Test-Time Adaptation**: roles, colors, and workflows that change how the model reasons
 - **Programmable Orchestration**: CLI- and MCP-exposed tools that can be scripted and composed
 
@@ -39,7 +39,7 @@ Maenifold exposes a layered set of primitives you can call from agents, workflow
 
 | Layer | Primitives | Purpose |
 |-------|------------|---------|
-| **Memory** | `WriteMemory`, `ReadMemory`, `EditMemory`, `DeleteMemory`, `MoveMemory`, `Sync` | Persist knowledge with `[[concepts]]` |
+| **Memory** | `WriteMemory`, `ReadMemory`, `EditMemory`, `DeleteMemory`, `MoveMemory`, `Sync` | Persist knowledge with `[[WikiLinks]]` |
 | **Graph/Search** | `SearchMemories`, `BuildContext`, `FindSimilarConcepts`, `Visualize` | Query and traverse knowledge |
 | **Session** | `RecentActivity`, `AssumptionLedger`, `ListMemories` | Track work, state, and uncertainty |
 | **Persona** | `Adopt` (roles, colors, perspectives) | Condition LLM behavior |
@@ -124,7 +124,7 @@ Assets are writable from agents, so **new workflows are agent-generated skills**
 | **FLARE (Proactive)** | ✓ Native | `session_start.sh` pattern | Forward-looking retrieval |
 | **Hierarchical Chunks** | ✓ Native | Concepts → Files | Two-level implicit |
 | **Multi-step RAG** | ✓ Composable | Search → extract → refine | Script loop |
-| **HYDE** | ✓ Scriptable | LLM → extract `[[concepts]]` → search | Generate hypothetical doc |
+| **HYDE** | ✓ Scriptable | LLM → extract `[[WikiLinks]]` → search | Generate hypothetical doc |
 | **RAG-Fusion** | ⚠️ Scriptable | Parallel queries + dedupe | Multi-query strategy |
 | **Iterative (ITER-RETGEN)** | ⚠️ Scriptable | Loop until convergence | Needs termination logic |
 | **CRAG (Corrective)** | ⚠️ Scriptable | Score filter + retry | Correction loop |
@@ -157,13 +157,13 @@ Maenifold's search and scripting patterns are embedded into each integration und
 - **Claude Code** (`docs/integrations/claude-code/`)
 	- Shell hook (`session_start.sh`) runs at **session start**.
 	- Pattern: FLARE-style proactive retrieval.
-		- Query `RecentActivity` → extract top `[[concepts]]` → `BuildContext` → inject ~5K tokens of graph-derived context into the new Claude session.
+		- Query `RecentActivity` → extract top `[[WikiLinks]]` → `BuildContext` → inject ~5K tokens of graph-derived context into the new Claude session.
 	- Result: Claude never starts "cold"; it always sees a curated slice of the graph and recent work as preamble.
 
 - **Codex CLI / SWE** (`docs/integrations/codex/swe.md`)
 	- Instruction profile for the Codex SWE agent.
 	- Patterns:
-		- HYDE: "synthesize a hypothetical answer with `[[concepts]]` inline, then search those concepts".
+		- HYDE: "synthesize a hypothetical answer with `[[WikiLinks]]` inline, then search those concepts".
 		- FLARE: at session start, always `#sync` → `#Recent_activity` → `#build_context` / `#find_similar_concepts` / `#search_memories` → `#read_memory`.
 		- Self-RAG / CRAG / iterative: use `SequentialThinking` as the loop primitive for revision and corrective retrieval.
 	- Result: the agent itself behaves as the retrieval engine, using the graph for both hypothesis generation and correction.
@@ -171,7 +171,7 @@ Maenifold's search and scripting patterns are embedded into each integration und
 - **VS Code Agents** (`docs/integrations/vscode/agent-boss.agent.md`, `maenifold.agent.md`)
 	- Chat agent definitions for VS Code's GitHub Copilot / chat ecosystem.
 	- Patterns:
-		- `maenifold` agent: SWE that always rebuilds context via `sync` + `recent_activity` + graph search, then uses HYDE-style hypothetical answers with `[[concepts]]` to drive retrieval.
+		- `maenifold` agent: SWE that always rebuilds context via `sync` + `recent_activity` + graph search, then uses HYDE-style hypothetical answers with `[[WikiLinks]]` to drive retrieval.
 		- `agent-boss` agent: orchestration agent that **delegates** to subagents via `runSubagent`, using graph tools (`build_context`, `search_memories`) to aggregate and verify results.
 	- Result: VS Code workflows where both individual agents and orchestrators are graph-aware by default.
 
@@ -358,7 +358,7 @@ for C in $CONCEPTS; do
   run BuildContext "{\"conceptName\":\"$C\",\"depth\":1}"
 done
 
-# 3) Write a synthesized note (include [[concepts]]), then sync
+# 3) Write a synthesized note (include [[WikiLinks]]), then sync
 run WriteMemory "{\"title\":\"Auth synthesis\",\"content\":\"Linking [[authentication]] and [[session-management]]\"}"
 run Sync "{}"
 ```
@@ -367,7 +367,7 @@ run Sync "{}"
 
 These are common tripping points (exact errors come from the tools):
 
-- Missing `[[concepts]]` in write/edit/sequentialthinking content → `ERROR: Must include [[concepts]]...`
+- Missing `[[WikiLinks]]` in write/edit/sequentialthinking content → `ERROR: Must include [[WikiLinks]]...`
 - `SequentialThinking` with `nextThoughtNeeded=false` but no `conclusion` → conclusion required
 - `SequentialThinking` branching without `branchId` → branchId required
 - `MoveMemory` that drops extension (regression guard) → verify extension preserved after move
@@ -387,7 +387,7 @@ BIN=src/bin/Debug/net9.0/maenifold
 
 Happy path:
 
-- WriteMemory (with [[concepts]]):
+- WriteMemory (with [[WikiLinks]]):
   - `Auth Note` content: `Testing [[authentication]] flow with [[session-management]]`
   - `RAG Patterns` content: `Hybrid search for [[authentication]] plus [[graph-rag]] expansion.`
 - Sync:
@@ -406,7 +406,7 @@ Happy path:
 Notes:
 - All commands executed without build since an existing binary was used; root cleanliness check was avoided by not invoking `dotnet run`.
 - Errors to expect in this flow if misused:
-  - Missing [[concepts]] in WriteMemory/SequentialThinking → concept validation error.
+  - Missing [[WikiLinks]] in WriteMemory/SequentialThinking → concept validation error.
   - Missing conclusion when nextThoughtNeeded=false in SequentialThinking → conclusion required.
   - Branching in SequentialThinking without branchId → branchId required.
 
@@ -419,7 +419,7 @@ Binary: `src/bin/Debug/net9.0/maenifold` (no env override; memory path `~/maenif
 - BuildContext (`maenifold`, depth 1, maxEntities 5): neighbors `rag-fusion`, `information-gain`, `context`, `persona-conditioning`, `recency` with file lists.
 - Visualize (`maenifold`): mermaid edges among those concepts (high co-occurrence counts).
 - SequentialThinking validation errors (no files written):
-  - Missing [[concepts]] → `ERROR: Must include [[concepts]]...`
+  - Missing [[WikiLinks]] → `ERROR: Must include [[WikiLinks]]...`
   - Branching without branchId → `ERROR: branchId required when branchFromThought is specified...`
   - Providing `sessionId` on thoughtNumber=1 for a non-existent session triggered a runtime crash (Signal 6) instead of a friendly error.
 - SequentialThinking happy path (writes to prod, then cleaned):
@@ -569,7 +569,7 @@ Binary: `src/bin/Debug/net9.0/maenifold` (no env override; memory path `~/maenif
 - FindSimilarConcepts (`recency`): returns similar concepts (similarity 1.0) such as `workflows`, `sqlite`, `wikilinks`, `toolregistry`.
 - RecentActivity (limit 3): shows latest workflow/sequential/memory items.
 - Workflow routing (`agentic-research`): session created and first step returned; deleted afterward.
-- SequentialThinking (happy path): session created/completed with conclusion under `memory://thinking/sequential/2025/12/22/...`; deleted. Errors confirmed for missing [[concepts]] and missing `branchId`. Invalid `sessionId` on thought 1 still crashes (Signal 6 bug).
+- SequentialThinking (happy path): session created/completed with conclusion under `memory://thinking/sequential/2025/12/22/...`; deleted. Errors confirmed for missing [[WikiLinks]] and missing `branchId`. Invalid `sessionId` on thought 1 still crashes (Signal 6 bug).
 - AssumptionLedger: requires `action` in {append, update, read} and `concepts` array; append succeeded, then deleted.
 - HYDE example: WriteMemory `HYDE CLI Test` with `[[zero-downtime]]` + Sync + Hybrid search surfaced it at semantic 1.0; deleted.
 - RAG-Fusion sample (parallel queries on authentication timeout/retry/backoff): Hybrid searches completed; URIs deduped (e.g., `memory://finops/research/finops-framework-overview`).
@@ -691,7 +691,7 @@ For those, use direct access to the underlying storage or specialized analysis t
 
 ### 8.1. Modeling Knowledge
 
-- Use `[[concepts]]` consistently in all knowledge files.
+- Use `[[WikiLinks]]` consistently in all knowledge files.
 - Avoid orphaned concepts with 0 relations; they don't benefit from the graph.
 - Expect **depth=2** traversals to hit the core of most domains.
 
@@ -732,7 +732,7 @@ For those, use direct access to the underlying storage or specialized analysis t
 	- **Native** to the architecture, or
 	- **Composable** via workflows and CLI scripting.
 - Real power comes from:
-	- Good `[[concept]]` modeling.
+	- Good `[[WikiLink]]` modeling.
 	- Intentional use of Hybrid search and depth-limited graph traversals.
 	- Deliberate use of roles/colors/workflows for different reasoning modes.
 	- Capturing recurring patterns as workflows so agents can reuse them as skills.

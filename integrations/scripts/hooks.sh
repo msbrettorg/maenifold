@@ -139,7 +139,7 @@ $CONTEXT---
 fi
 
 # --- Mode: task_augment ---
-# Concept-as-Protocol: extract [[concepts]] from Task prompt → inject graph context
+# Concept-as-Protocol: extract [[WikiLinks]] from Task prompt → inject graph context
 
 if [[ "$MODE" == "task_augment" ]]; then
   HOOK_INPUT=$(cat)
@@ -262,7 +262,7 @@ if [[ "$MODE" == "subagent_stop" ]]; then
     exit 0
   else
     # ConfessionReport missing - block and request one
-    REASON="Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[concepts]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction."
+    REASON="Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[WikiLinks]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction."
     jq -n --arg reason "$REASON" '{"decision":"block","reason":$reason}'
     exit 0
   fi

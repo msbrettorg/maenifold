@@ -73,7 +73,7 @@ Notes:
 - **Pre-creation check**: Search before WriteMemory to avoid duplication
 - **Context building**: Find background for Sequential Thinking sessions
 - **Solution discovery**: Search error messages or "fix", "solution"
-- **Concept exploration**: Search `[[concept]]` names for graph nodes
+- **Concept exploration**: Search `[[WikiLink]]` names like [[machine-learning]], [[research]] for graph nodes
 - **Project-specific**: Use folder filtering for targeted discovery
 
 ## Integration

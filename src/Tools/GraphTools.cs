@@ -1,3 +1,4 @@
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using Microsoft.Data.Sqlite;
@@ -46,7 +47,7 @@ Returns related concepts with relationship types, file references, and connectio
         // ISSUE-005: Validate depth parameter
         if (depth < 0)
         {
-            throw new ArgumentException("depth must be >= 0", nameof(depth));
+            throw new McpException("depth must be >= 0");
         }
 
         conceptName = MarkdownIO.NormalizeConcept(conceptName);

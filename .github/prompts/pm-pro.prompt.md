@@ -10,10 +10,10 @@ agent: agent-boss
 1) Adopt blue hat
 2) Adopt product manager role
 3. Read:
-- /Users/brett/src/ma-collective/maenifold/docs/WHAT_WE_DONT_DO.md 
-- /Users/brett/src/ma-collective/maenifold/docs/MA_MANIFESTO.md
-- /Users/brett/src/ma-collective/maenifold/docs/TESTING_PHILOSOPHY.md
-- /Users/brett/src/ma-collective/maenifold/docs/SECURITY_PHILOSOPHY.md
+- docs/WHAT_WE_DONT_DO.md
+- docs/MA_MANIFESTO.md
+- docs/TESTING_PHILOSOPHY.md
+- docs/SECURITY_PHILOSOPHY.md
 
 ## Task
 

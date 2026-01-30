@@ -56,10 +56,20 @@ graph TB
 
     Graph -->|provides context via| Hooks
 
-    style PM fill:#4A90E2
-    style Pool fill:#50C878
-    style Hooks fill:#FFB74D
-    style Graph fill:#9B59B6
+    style PM fill:#0969DA
+    style Pool fill:#0969DA
+    style SWE fill:#0969DA
+    style Red fill:#0969DA
+    style Blue fill:#0969DA
+    style Research fill:#0969DA
+    style More fill:#0969DA
+    style Hooks fill:#0969DA
+    style Context fill:#0969DA
+    style Gate fill:#0969DA
+    style Workflows fill:#0969DA
+    style SeqThink fill:#0969DA
+    style Memory fill:#0969DA
+    style Graph fill:#0969DA
 ```
 
 ### Hook Integration
@@ -173,10 +183,21 @@ graph LR
     RTMVerify --> Cleanup[Cleanup Wave]
     Cleanup --> Review[Sprint Review]
 
-    style Discovery fill:#50C878
-    style ImplDispatch fill:#50C878
-    style RedTeam fill:#FF6B6B
-    style TestWave fill:#4A90E2
+    style Start fill:#0969DA
+    style Discovery fill:#0969DA
+    style Spec fill:#0969DA
+    style RTM fill:#0969DA
+    style UserConfirm fill:#0969DA
+    style Validation fill:#0969DA
+    style ImplPlan fill:#0969DA
+    style ImplDispatch fill:#0969DA
+    style RedTeam fill:#0969DA
+    style Remediation fill:#0969DA
+    style ImplVerify fill:#0969DA
+    style TestWave fill:#0969DA
+    style RTMVerify fill:#0969DA
+    style Cleanup fill:#0969DA
+    style Review fill:#0969DA
 ```
 
 **Key Principle**: Dispatch all agents in **one message** per wave for concurrent execution.
@@ -207,10 +228,12 @@ graph TD
     Code --> Commit[Git Commit<br/>T-X.X.X in message]
     Commit --> Confession[ConfessionReport<br/>References T-X.X.X]
 
-    style PRD fill:#9B59B6
-    style RTM fill:#4A90E2
-    style TODO fill:#50C878
-    style Code fill:#FFB74D
+    style PRD fill:#0969DA
+    style RTM fill:#0969DA
+    style TODO fill:#0969DA
+    style Code fill:#0969DA
+    style Commit fill:#0969DA
+    style Confession fill:#0969DA
 ```
 
 **Rule**: Work without traceability is rejected.
@@ -234,9 +257,14 @@ graph TD
 
     Graph --> Future[Future Sessions<br/>Benefit from richer graph]
 
-    style PM fill:#4A90E2
-    style Session fill:#9B59B6
-    style Graph fill:#50C878
+    style PM fill:#0969DA
+    style Agent1 fill:#0969DA
+    style Agent2 fill:#0969DA
+    style Agent3 fill:#0969DA
+    style Session fill:#0969DA
+    style Memory fill:#0969DA
+    style Graph fill:#0969DA
+    style Future fill:#0969DA
 ```
 
 **Benefits**:
@@ -506,7 +534,7 @@ PM Response:
 
 ## Source
 
-This documentation is based on analysis of the maenifold codebase at `/Users/brett/src/ma-collective/maenifold`:
+This documentation is based on analysis of the maenifold codebase:
 
 - `/integrations/skills/product-manager/SKILL.md`
 - `/integrations/agents/*.md`

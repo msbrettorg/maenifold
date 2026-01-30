@@ -30,11 +30,6 @@ public static class Config
 
     public static string SequentialPath => Path.Combine(ThinkingPath, "sequential");
 
-    public static string ProjectRoot =>
-        GetEnvString("MAENIFOLD_PROJECT_ROOT", Path.Combine(UserHome, "src", "maenifold"));
-
-    public static string ProjectSourcePath => Path.Combine(ProjectRoot, "src");
-
     public static string DatabasePath
     {
         get

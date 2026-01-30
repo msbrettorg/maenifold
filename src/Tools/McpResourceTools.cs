@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 
 namespace Maenifold.Tools;
@@ -45,9 +46,7 @@ public static class McpResourceTools
         var normalizedType = type.Trim();
         if (!s_assetTypeMap.TryGetValue(normalizedType, out var assetFolder))
         {
-            throw new ArgumentException(
-                $"Unknown asset type '{type}'. Valid types: workflow, role, color, perspective",
-                nameof(type));
+            throw new McpException($"Unknown asset type '{type}'. Valid types: workflow, role, color, perspective");
         }
 
         var metadata = AssetResources.GetAssetMetadata(assetFolder);
@@ -61,14 +60,14 @@ public static class McpResourceTools
         string uri)
     {
         if (string.IsNullOrWhiteSpace(uri))
-            throw new ArgumentException("URI is required", nameof(uri));
+            throw new McpException("URI is required");
 
         if (uri == "asset://catalog")
             return AssetResources.GetCatalog();
 
         var match = Regex.Match(uri, @"^asset://([^/]+)/(.+)$");
         if (!match.Success)
-            throw new ArgumentException($"Invalid resource URI format: {uri}. Expected 'asset://type/id'", nameof(uri));
+            throw new McpException($"Invalid resource URI format: {uri}. Expected 'asset://type/id'");
 
         var type = match.Groups[1].Value;
         var id = match.Groups[2].Value;
@@ -79,7 +78,7 @@ public static class McpResourceTools
             "roles" => AssetResources.GetRole(id),
             "colors" => AssetResources.GetColor(id),
             "perspectives" => AssetResources.GetPerspective(id),
-            _ => throw new ArgumentException($"Unknown resource type: {type}. Valid types: workflows, roles, colors, perspectives", nameof(uri))
+            _ => throw new McpException($"Unknown resource type: {type}. Valid types: workflows, roles, colors, perspectives")
         };
     }
 }

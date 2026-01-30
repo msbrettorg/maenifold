@@ -13,8 +13,13 @@
 
 set -euo pipefail
 
-# Verify Maenifold CLI is available
-if ! command -v maenifold &> /dev/null; then
+# Find Maenifold CLI
+MAENIFOLD_CLI=""
+if command -v maenifold &>/dev/null; then
+  MAENIFOLD_CLI="maenifold"
+elif [[ -x "$HOME/maenifold/bin/maenifold" ]]; then
+  MAENIFOLD_CLI="$HOME/maenifold/bin/maenifold"
+else
   # Allow prompt if Maenifold not available
   exit 0
 fi
@@ -26,7 +31,7 @@ PROMPT=$(echo "$HOOK_INPUT" | jq -r '.prompt // ""')
 # Check if prompt mentions searching for knowledge
 if echo "$PROMPT" | grep -qi "search\|find\|where\|what.*know\|remember"; then
   # Sync the knowledge graph to ensure it's current
-  maenifold --tool Sync 2>/dev/null || true
+  "$MAENIFOLD_CLI" --tool Sync 2>/dev/null || true
 
   # Optional: Output a message to the user
   echo "📊 Knowledge graph synchronized for search"

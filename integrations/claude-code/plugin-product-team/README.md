@@ -22,7 +22,7 @@ Install maenifold skill:
 claude plugin install msbrettorg/maenifold
 ```
 
-See the [maenifold skill README](../maenifold/README.md) for complete installation instructions.
+See the [maenifold skill README](../../skills/maenifold/README.md) for complete installation instructions.
 
 ## Architecture
 
@@ -526,11 +526,11 @@ PM Response:
 
 ## Related Documentation
 
-- [Maenifold Skill README](../maenifold/README.md) - Required prerequisite skill
+- [Maenifold Skill README](../../skills/maenifold/README.md) - Required prerequisite skill
 - [Architecture Analysis](memory://tech/maenifold/product-manager-skill-architecture-analysis) - Complete technical analysis
-- [SKILL.md](./SKILL.md) - Skill definition and instructions
+- [SKILL.md](../../skills/product-manager/SKILL.md) - Skill definition and instructions
 - [Agent Definitions](../../agents/) - SWE, red-team, blue-team, researcher
-- [Hooks System](../../claude-code/plugin-product-team/hooks/) - Hook implementation
+- [Hooks System](./.claude-plugin/hooks/) - Hook implementation
 
 ## Source
 

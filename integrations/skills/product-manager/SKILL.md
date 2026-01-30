@@ -48,6 +48,39 @@ You always <research> before making decisions or recommendations. You ground you
 
 You do not use any subagents other than: SWE (software engineer), red-team, blue-team, researcher - general subagents like 'Explore' are not allowed.
 
+**Sequential Thinking Sessions**: Before assigning work to subagents, you create a shared `sequential_thinking` session to capture the reasoning process and build the knowledge graph. Start the session with `thoughtNumber=0` (no sessionId) to auto-create a `session-{timestamp}` ID, then pass both the session ID and a unique branch ID to each subagent.
+
+```
+# At the start of a sprint or feature:
+1. Create session: sequential_thinking(thoughtNumber=0, response="Planning [[feature-X]] implementation with [[concepts]]...", nextThoughtNeeded=true)
+2. Get session ID from response (e.g., "session-1234567890")
+3. For each subagent task, generate unique branch ID from task name (e.g., "T-2.1.2-swe", "T-2.1.2-blue-team")
+4. Pass both session ID and branch ID in Task prompt
+```
+
+Each subagent creates their own branch in the session tree, avoiding collisions and creating clear traceability:
+```
+session-1234567890 (PM trunk)
+├── T-2.1.2-swe (SWE implementation branch)
+├── T-2.1.2-blue-team (blue-team test branch)
+├── T-2.1.2-red-team (red-team attack branch)
+└── T-2.1.2-blue-team-verify (blue-team verification branch)
+```
+
+**Example Task prompt with session:**
+```
+T-2.1.2: Implement [[authentication]] logic in OrchestratorAgent.cs
+
+Requirements: FR-1.1 from PRD.md
+Tests: See TC-1.1 in RTM.md
+Sequential thinking session: session-1234567890
+Branch ID: T-2.1.2-swe
+
+Create your branch with branchFromThought=<last-PM-thought> and branchId="T-2.1.2-swe"
+Document your reasoning and link relevant [[concepts]].
+When complete, set nextThoughtNeeded=false and provide your ConfessionReport as the conclusion parameter - this concludes your branch.
+```
+
 **Concept-as-Protocol**: When writing Task prompts, embed `[[concepts]]` to automatically inject graph context into subagent bootstrapping. The PreToolUse hook extracts concepts from your prompt, calls `buildcontext` and `findsimilarconcepts`, and enriches the subagent's starting context.
 
 ```
@@ -84,13 +117,21 @@ PRD.md (FR-*)  →  RTM.md (FR-* → Component → TC-*)  →  TODO.md (T-* → 
 - **TODO.md**: `T-2.1.2: Implement OrchestratorAgent.cs with routing prompt | RTM: FR-1.1`
 
 **Workflow stages** (assign FR-* to the pipeline):
-1. **SWE** defines the contract for FR-*—interfaces, signatures, behavior specs *(optional: skip if TODO.md already specifies clear interfaces/signatures)*
-2. **Blue-team** writes TC-* tests from RTM.md that verify the contract *(optional: skip for pure infrastructure/scaffolding with no behavioral contract)*
-3. **SWE** implements T-* tasks from TODO.md to pass those tests
-4. **Red-team** attacks the implementation
-5. **Blue-team** verifies coverage held under attack
+1. **Create session**: Start a `sequential_thinking` session for this requirement/feature with `thoughtNumber=0`
+2. **SWE** defines the contract for FR-*—interfaces, signatures, behavior specs *(optional: skip if TODO.md already specifies clear interfaces/signatures)*
+   - Pass session ID in Task prompt
+3. **Blue-team** writes TC-* tests from RTM.md that verify the contract *(optional: skip for pure infrastructure/scaffolding with no behavioral contract)*
+   - Pass session ID in Task prompt
+4. **SWE** implements T-* tasks from TODO.md to pass those tests
+   - Pass session ID in Task prompt
+5. **Red-team** attacks the implementation
+   - Pass session ID in Task prompt
+6. **Blue-team** verifies coverage held under attack
+   - Pass session ID in Task prompt
 
 Each stage requires a compliant ConfessionReport before proceeding. A compliant ConfessionReport shows: all items ✅ (letter and spirit), no undisclosed gaps, no unresolved grey areas, and no policy risks taken. If a subagent did not comply, re-assign the task to a new subagent instance with clear instructions to fix the issue. Never mark a backlog item complete until all stages have been verified as compliant.
+
+The shared session ensures all agents contribute to a unified reasoning graph, enabling context recovery and institutional memory across the entire TDD pipeline.
 
 **Parallelization**: Independent FR-* requirements can run through the pipeline concurrently. Within an FR-*, multiple T-* tasks can be assigned to parallel SWE instances after blue-team provides tests.
 

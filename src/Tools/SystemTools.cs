@@ -12,6 +12,32 @@ public class SystemTools
     private static string MemoryPath => Config.MemoryPath;
     private static string DbPath => Config.DatabasePath;
 
+    // RT-SEC-001: Path security validation to prevent traversal attacks
+    private static string? ValidatePathSecurity(string folderPath)
+    {
+        // Block absolute paths
+        if (Path.IsPathRooted(folderPath))
+        {
+            return "Absolute paths are not allowed. Use relative paths only.";
+        }
+
+        // Normalize path separators
+        var normalizedPath = folderPath.Replace('\\', '/');
+
+        // Check each segment for dot-only sequences (., .., ..., ....)
+        var segments = normalizedPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var segment in segments)
+        {
+            // RT-SEC-009 FIX: Block all dot-only sequences (., .., ..., ....)
+            if (!string.IsNullOrEmpty(segment) && segment.All(c => c == '.'))
+            {
+                return "Path traversal components (dot sequences) are not allowed.";
+            }
+        }
+
+        return null;
+    }
+
     [McpServerTool, Description(@"Displays maenifold system configuration settings and operational parameters for troubleshooting.
 Select when AI needs system configuration verification, debugging support, or operational parameter analysis.
 No parameters required - returns complete configuration state and system settings.
@@ -81,9 +107,34 @@ Returns hierarchical directory listing with file counts, sizes, and folder organ
     {
         if (learn) return ToolHelpers.GetLearnContent(nameof(ListMemories));
 
+        // RT-SEC-001: Validate path for security before filesystem operations
+        if (!string.IsNullOrEmpty(path))
+        {
+            var validationError = ValidatePathSecurity(path);
+            if (validationError != null)
+            {
+                return $"ERROR: Invalid path - {validationError}";
+            }
+        }
+
         var targetPath = string.IsNullOrEmpty(path)
             ? MemoryPath
             : Path.Combine(MemoryPath, path);
+
+        // RT-SEC-001: Additional boundary check - ensure resolved path stays within MemoryPath
+        var basePathFull = Path.GetFullPath(MemoryPath);
+        var resolvedPath = Path.GetFullPath(targetPath);
+
+        // Normalize paths for comparison by ensuring consistent trailing separators
+        var normalizedBase = basePathFull.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var normalizedResolved = resolvedPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        // Check if resolved path is base path itself OR is a subdirectory of base path
+        if (!normalizedResolved.Equals(normalizedBase, StringComparison.Ordinal) &&
+            !normalizedResolved.StartsWith(normalizedBase + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+        {
+            return "ERROR: Invalid path - Directory traversal detected";
+        }
 
         if (!Directory.Exists(targetPath))
             return $"Directory not found: {path}";

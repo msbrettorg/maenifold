@@ -21,9 +21,14 @@ INCLUDE_CONTENT=false      # Include content previews (true/false)
 MAX_TOKENS=5000            # Approximate token budget
 MAX_CONCEPTS=10            # Max top concepts to process
 
-# Verify Maenifold CLI is available
-if ! command -v maenifold &> /dev/null; then
-  # Silently exit if Maenifold not available
+# Find Maenifold CLI
+MAENIFOLD_CLI=""
+if command -v maenifold &>/dev/null; then
+  MAENIFOLD_CLI="maenifold"
+elif [[ -x "$HOME/maenifold/bin/maenifold" ]]; then
+  MAENIFOLD_CLI="$HOME/maenifold/bin/maenifold"
+else
+  # Silently exit if not found (don't block session start)
   exit 0
 fi
 
@@ -36,7 +41,7 @@ CWD=$(echo "$HOOK_INPUT" | jq -r '.cwd // ""')
 TOKENS_USED=0
 
 # Get recent activity (last 24 hours, 10 items)
-RECENT_JSON=$(maenifold --tool RecentActivity --payload '{"limit":10,"timespan":"24.00:00:00","includeContent":false}' 2>/dev/null || echo "{}")
+RECENT_JSON=$("$MAENIFOLD_CLI" --tool RecentActivity --payload '{"limit":10,"timespan":"24.00:00:00","includeContent":false}' 2>/dev/null || echo "{}")
 
 # Extract all [[concepts]] from recent activity
 CONCEPTS=$(echo "$RECENT_JSON" | grep -o '\[\[[^]]*\]\]' | sed 's/\[\[\(.*\)\]\]/\1/' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | grep -v '^concept' | sort | uniq -c | sort -rn)
@@ -90,7 +95,7 @@ while IFS= read -r CONCEPT; do
     --argjson m "$MAX_ENTITIES" \
     --argjson i "$INCLUDE_CONTENT" \
     '{conceptName: $c, depth: $d, maxEntities: $m, includeContent: $i}')
-  RESULT=$(maenifold --tool BuildContext --payload "$PAYLOAD" 2>/dev/null || echo "")
+  RESULT=$("$MAENIFOLD_CLI" --tool BuildContext --payload "$PAYLOAD" 2>/dev/null || echo "")
 
   if [[ -n "$RESULT" ]]; then
     # Limit output per concept to ~500 tokens (roughly 2000 chars)
@@ -108,7 +113,7 @@ echo "## Recent Work"
 echo ""
 
 # Include recent activity summary (without full content since we got context above)
-ACTIVITY=$(maenifold --tool RecentActivity --payload '{"limit":5,"timespan":"24.00:00:00","includeContent":false}' 2>/dev/null || echo "")
+ACTIVITY=$("$MAENIFOLD_CLI" --tool RecentActivity --payload '{"limit":5,"timespan":"24.00:00:00","includeContent":false}' 2>/dev/null || echo "")
 echo "$ACTIVITY" | head -50
 
 echo ""

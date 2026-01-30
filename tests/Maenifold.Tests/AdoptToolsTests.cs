@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Maenifold.Tools;
 using Maenifold.Utils;
+using ModelContextProtocol;
 using NUnit.Framework;
 
 namespace Maenifold.Tests;
@@ -159,17 +160,17 @@ public class AdoptToolsTests
     #region Adopt - Invalid Type Tests
 
     /// <summary>
-    /// Verify that Adopt with invalid type throws ArgumentException.
+    /// Verify that Adopt with invalid type throws McpException.
     /// Tests error handling for unsupported asset types.
     /// </summary>
     [Test]
     public void Adopt_WithInvalidType_ThrowsArgumentException()
     {
-        // Act & Assert: Should throw ArgumentException
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () =>
+        // Act & Assert: Should throw McpException
+        var ex = Assert.ThrowsAsync<McpException>(async () =>
             await AdoptTools.Adopt("invalid-type", "some-identifier"));
 
-        Assert.That(ex, Is.Not.Null, "Should throw ArgumentException");
+        Assert.That(ex, Is.Not.Null, "Should throw McpException");
         Assert.That(ex!.Message, Does.Contain("Invalid type"),
             "Error message should indicate invalid type");
         Assert.That(ex.Message, Does.Contain("role").And.Contains("color").And.Contains("perspective"),

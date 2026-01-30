@@ -412,9 +412,9 @@ Notes:
 
 ## 12. Prod CLI validation (Dec 22, 2025, default MAENIFOLD_ROOT)
 
-Binary: `src/bin/Debug/net9.0/maenifold` (no env override; memory path `/Users/brett/maenifold/memory`).
+Binary: `src/bin/Debug/net9.0/maenifold` (no env override; memory path `~/maenifold/memory`).
 
-- GetConfig: confirmed prod paths (memory/db under `/Users/brett/maenifold/`).
+- GetConfig: confirmed prod paths (memory/db under `~/maenifold/`).
 - SearchMemories Hybrid (`"maenifold"`, pageSize 3): returned 49 matches; sample entries under `memory://research/context/*`.
 - BuildContext (`maenifold`, depth 1, maxEntities 5): neighbors `rag-fusion`, `information-gain`, `context`, `persona-conditioning`, `recency` with file lists.
 - Visualize (`maenifold`): mermaid edges among those concepts (high co-occurrence counts).
@@ -560,7 +560,7 @@ For unsupported/partial techniques (multi-modal, sub-file chunking, contextual e
 
 ## 14. Tested outputs for section 3.1 scripts (Dec 22, 2025, prod MAENIFOLD_ROOT)
 
-Binary: `src/bin/Debug/net9.0/maenifold` (no env override; memory path `/Users/brett/maenifold/memory`).
+Binary: `src/bin/Debug/net9.0/maenifold` (no env override; memory path `~/maenifold/memory`).
 
 - Semantic search (`authentication`, mode=Semantic): 30 matches; top `memory://finops/research/finops-framework-overview` (semantic 1.0).
 - Graph RAG script (Hybrid → ExtractConcepts → BuildContext): top URI `memory://finops/research/finops-framework-overview`; concept `finops`; neighbors include `finops-toolkit`, `azure`, `cost-optimization`.

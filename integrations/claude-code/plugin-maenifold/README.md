@@ -377,7 +377,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 4. Verify installation:
    ```bash
-   maenifold --version
+   maenifold --tool GetConfig --payload '{}'
    ```
 
 #### Linux
@@ -405,7 +405,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 4. Verify installation:
    ```bash
-   maenifold --version
+   maenifold --tool GetConfig --payload '{}'
    ```
 
 #### Windows
@@ -436,7 +436,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 4. Verify installation:
    ```powershell
-   maenifold --version
+   maenifold --tool GetConfig --payload '{}'
    ```
 
 ### Homebrew (Alternative for macOS/Linux)
@@ -727,11 +727,11 @@ In Claude Code, the skill should load automatically when you mention:
 - [Main README](https://github.com/msbrettorg/maenifold/blob/main/README.md) - Project overview and quick start
 - [Full Documentation](https://github.com/msbrettorg/maenifold/blob/main/docs/README.md) - Architecture and examples
 - [GitHub Releases](https://github.com/msbrettorg/maenifold/releases) - Download binaries
-- [SKILL.md](./SKILL.md) - Skill usage and tool reference
+- [SKILL.md](../../skills/maenifold/SKILL.md) - Skill usage and tool reference
 
 ## Tool Reference
 
-For detailed tool documentation, see the `references/` directory:
+For detailed tool documentation, see the `../../skills/maenifold/references/` directory:
 
 | Category | Tools |
 |----------|-------|

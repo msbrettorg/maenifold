@@ -377,7 +377,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 4. Verify installation:
    ```bash
-   maenifold --version
+   maenifold --tool GetConfig --payload '{}'
    ```
 
 #### Linux
@@ -405,7 +405,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 4. Verify installation:
    ```bash
-   maenifold --version
+   maenifold --tool GetConfig --payload '{}'
    ```
 
 #### Windows
@@ -436,7 +436,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 4. Verify installation:
    ```powershell
-   maenifold --version
+   maenifold --tool GetConfig --payload '{}'
    ```
 
 ### Homebrew (Alternative for macOS/Linux)

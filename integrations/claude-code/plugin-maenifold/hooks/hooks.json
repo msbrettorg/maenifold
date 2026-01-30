@@ -5,10 +5,6 @@
         "matcher": "*",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "You must load your maenifold skill before performing any tasks."
-          },
-          {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/hooks.sh session_start"
           }

@@ -40,6 +40,6 @@ Mermaid syntax ready for rendering. Edge weights show co-occurrence counts.
 ## Integration
 
 - **BuildContext**: Textual relationship data
-- **Sync**: Prerequisite - extracts `[[concepts]]` into graph
+- **Sync**: Prerequisite - extracts `[[WikiLinks]]` into graph
 - **SearchMemories**: Find files containing visualized concepts
 - **Obsidian/GitHub**: Render Mermaid output directly

@@ -10,7 +10,7 @@ Your memory resets between sessions. That reset is not a limitation—it forces 
 ## Cognitive Stack
 
 maenifold operates as a 6-layer composition architecture. From bottom to top:
-- **[[Concepts]]** → atomic units; every `[[WikiLink]]` becomes a graph node
+- **WikiLinks** → atomic units like `[[authentication]]`, `[[caching]]`, `[[API-design]]`; every WikiLink becomes a graph node
 - **Memory + Graph** → `WriteMemory`, `SearchMemories`, `BuildContext`, `FindSimilarConcepts` persist and query knowledge
 - **Session** → `RecentActivity`, `AssumptionLedger` track state across interactions
 - **Persona** → `Adopt` conditions reasoning through roles/colors/perspectives
@@ -21,7 +21,7 @@ Higher layers invoke lower layers. SequentialThinking can spawn Workflows; Workf
 
 ## Graph Navigation
 
-You are the retrieval engine. For exploratory queries, synthesize a hypothetical answer with `[[concepts]]` inline, then search those concepts. WikiLink discipline provides structured extraction for free.
+You are the retrieval engine. For exploratory queries, synthesize a hypothetical answer with WikiLinks like `[[error-handling]]`, `[[async-await]]`, `[[retry-logic]]`, then search those concepts. WikiLink discipline provides structured extraction for free.
 
 Two complementary tools for concept exploration:
 
@@ -58,22 +58,22 @@ WikiLinks are graph nodes. Bad tagging = graph corruption = broken context recov
 
 **Ontology**: Folder structure is the ontology. Run `#list_memories` to see current domains (e.g., `azure/`, `finops/`, `tech/`). Nest for sub-domains (e.g., `azure/billing/`, `tech/ml/`). Align new concepts with existing folders; extend structure when a new domain emerges.
 
-- Double brackets: `[[concept]]` never `[concept]`
+- Double brackets: `[[api-design]]` never `[api-design]`
 - Normalized to lowercase-with-hyphens internally
 - SINGULAR for general: `[[tool]]`, `[[agent]]`, `[[test]]`
 - PLURAL only for collections: `[[tools]]` when meaning "all tools"
 - PRIMARY concept only: `[[MCP]]` not `[[MCP-server]]`
 - GENERAL terms: `[[authentication]]` not `[[auth-system]]`
-- NO file paths, code elements, or trivial words (`[[the]]`, `[[a]]`, `[[file]]`)
+- NO file paths, code elements, or trivial words (no `[[the]]`, `[[a]]`, `[[file]]`)
 - TAG substance: `[[machine-learning]]`, `[[GraphRAG]]`, `[[vector-embeddings]]`
 - REUSE existing concepts before inventing near-duplicates (guard fragmentation)
 - HYPHENATE multiword: `[[null-reference-exception]]` not `[[Null Reference Exception]]`
 
 Anti-patterns (silently normalized but avoid):
-- Underscores: `[[my_concept]]` → use `[[my-concept]]`
-- Slashes: `[[foo/bar]]` → use `[[foo-bar]]` or separate concepts
-- Double hyphens: `[[foo--bar]]` → use `[[foo-bar]]`
-- Leading/trailing hyphens: `[[-concept-]]` → use `[[concept]]`
+- Underscores: `[[my-database]]` not `[[my_database]]`
+- Slashes: `[[foo-bar]]` not `[[foo/bar]]` (or separate concepts)
+- Double hyphens: `[[foo-bar]]` not `[[foo--bar]]`
+- Leading/trailing hyphens: `[[database]]` not `[[-database-]]`
 
 Example: `Fixed [[null-reference-exception]] in [[authentication]] using [[JWT]]`
 

@@ -45,7 +45,7 @@ None required.
 - `Total size`: Combined storage in MB
 
 **Graph Database**
-- `Concepts`: Unique `[[concept]]` nodes extracted from files
+- `Concepts`: Unique `[[WikiLink]]` nodes extracted from files
 - `Relations`: Connections between concepts
 - `Mentions`: Total concept occurrences across content
 - `Database size`: SQLite storage in MB
@@ -61,7 +61,7 @@ None required.
 → Database doesn't exist. Run Sync to build graph.
 
 **Zero concepts despite files**
-→ Files lack `[[concepts]]` or Sync hasn't run. Add WikiLinks, then Sync.
+→ Files lack `[[WikiLinks]]` or Sync hasn't run. Add WikiLinks, then Sync.
 
 **Large database vs. small file count**
 → Normal for rich graphs with many relationships and vectors.

@@ -1,6 +1,6 @@
 # RepairConcepts
 
-Repairs graph corruption by replacing `[[concept]]` variants with canonical form in source markdown files. **DANGER: Permanently modifies files.**
+Repairs graph corruption by replacing `[[WikiLink]]` variants like [[tools]] → [[tool]] with canonical form in source markdown files. **DANGER: Permanently modifies files.**
 
 ## Parameters
 

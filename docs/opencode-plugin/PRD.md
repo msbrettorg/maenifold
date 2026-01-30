@@ -100,7 +100,7 @@ By creating an OpenCode plugin, we:
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
 | FR-3.1 | Plugin SHALL subscribe to `experimental.session.compacting` event | P0 | Pre-compaction hook |
-| FR-3.2 | Plugin SHALL extract `[[concepts]]` from conversation | P0 | WikiLink regex |
+| FR-3.2 | Plugin SHALL extract `[[WikiLinks]]` from conversation | P0 | WikiLink regex |
 | FR-3.3 | Plugin SHALL extract decision patterns from conversation | P1 | Heuristic grep |
 | FR-3.4 | Plugin SHALL write compaction summary to `memory://sessions/compaction/` | P0 | `writememory` |
 | FR-3.5 | Plugin SHALL inject custom context into compaction prompt via `output.context` | P1 | Preserve domain knowledge |
@@ -110,7 +110,7 @@ By creating an OpenCode plugin, we:
 | ID | Requirement | Priority | Notes |
 |----|-------------|----------|-------|
 | FR-4.1 | Plugin SHALL subscribe to `tool.execute.before` event | P0 | Pre-tool hook |
-| FR-4.2 | Plugin SHALL detect `[[concepts]]` in tool arguments | P0 | Any tool, not just Task |
+| FR-4.2 | Plugin SHALL detect `[[WikiLinks]]` in tool arguments | P0 | Any tool, not just Task |
 | FR-4.3 | Plugin SHALL build context for detected concepts | P0 | `buildcontext` |
 | FR-4.4 | Plugin SHALL augment tool input with graph context | P0 | Modify output.args |
 | FR-4.5 | Plugin SHALL skip augmentation for tools with no text arguments | P1 | Performance |
@@ -192,9 +192,9 @@ async function runMaenifoldTool(tool: string, payload: object): Promise<string> 
 │     └─► Plugin: SearchMemories + RecentActivity + BuildContext│
 │         └─► Inject context into session                       │
 │                                                               │
-│  2. User types message with [[concepts]]                      │
+│  2. User types message with [[WikiLinks]]                      │
 │     └─► tool.execute.before                                  │
-│         └─► Plugin: Extract [[concepts]], BuildContext        │
+│         └─► Plugin: Extract [[WikiLinks]], BuildContext        │
 │             └─► Augment tool args with graph context          │
 │                                                               │
 │  3. Context approaching limit                                 │
@@ -213,7 +213,7 @@ async function runMaenifoldTool(tool: string, payload: object): Promise<string> 
 |--------|--------|-------------|
 | Session start context injection | Working | Manual test |
 | Compaction memory persistence | Working | Check `memory://sessions/compaction/` |
-| Concept augmentation | Working | Verify `[[concepts]]` trigger BuildContext |
+| Concept augmentation | Working | Verify `[[WikiLinks]]` trigger BuildContext |
 | No errors in OpenCode logs | Zero | Console output |
 
 ---

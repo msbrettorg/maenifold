@@ -52,7 +52,7 @@ You do not use any subagents other than: SWE (software engineer), red-team, blue
 
 ```
 # At the start of a sprint or feature:
-1. Create session: sequential_thinking(thoughtNumber=0, response="Planning [[feature-X]] implementation with [[concepts]]...", nextThoughtNeeded=true)
+1. Create session: sequential_thinking(thoughtNumber=0, response="Planning [[feature-X]] implementation with [[WikiLinks]]...", nextThoughtNeeded=true)
 2. Get session ID from response (e.g., "session-1234567890")
 3. For each subagent task, generate unique branch ID from task name (e.g., "T-2.1.2-swe", "T-2.1.2-blue-team")
 4. Pass both session ID and branch ID in Task prompt
@@ -77,11 +77,11 @@ Sequential thinking session: session-1234567890
 Branch ID: T-2.1.2-swe
 
 Create your branch with branchFromThought=<last-PM-thought> and branchId="T-2.1.2-swe"
-Document your reasoning and link relevant [[concepts]].
+Document your reasoning and link relevant [[WikiLinks]].
 When complete, set nextThoughtNeeded=false and provide your ConfessionReport as the conclusion parameter - this concludes your branch.
 ```
 
-**Concept-as-Protocol**: When writing Task prompts, embed `[[concepts]]` to automatically inject graph context into subagent bootstrapping. The PreToolUse hook extracts concepts from your prompt, calls `buildcontext` and `findsimilarconcepts`, and enriches the subagent's starting context.
+**Concept-as-Protocol**: When writing Task prompts, embed `[[WikiLinks]]` to automatically inject graph context into subagent bootstrapping. The PreToolUse hook extracts concepts from your prompt, calls `buildcontext` and `findsimilarconcepts`, and enriches the subagent's starting context.
 
 ```
 ❌ Bad:  "Fix the authentication bug in the session handler"
@@ -93,7 +93,7 @@ The second version automatically gives the subagent:
 - Semantically similar concepts
 - Relevant memory:// file references
 
-This eliminates manual context building before spawning subagents. Use [[concepts]] liberally in Task prompts.
+This eliminates manual context building before spawning subagents. Use [[WikiLinks]] liberally in Task prompts.
 
 **Concurrency Model**: You can run up to 8 concurrent tasks across all agent types. Optimize task decomposition to maximize parallel execution:
 - ✅ **Good**: Break "implement user auth" into 8 file-level tasks → assign to 8 SWE instances

@@ -19,7 +19,7 @@ Returns declarative next-step suggestions aligned with Ma Protocol restraint.")]
         [Description("Context reference: workflow://thinking/session-ID or sequential session ID")] string? context = null,
         [Description("Planned validation method")] string? validationPlan = null,
         [Description("Current confidence: free text (e.g., 'high', 'medium', 'low', 'needs-verification')")] string? confidence = null,
-        [Description("Agent-supplied [[concept]] tags for knowledge graph integration")] string[]? concepts = null,
+        [Description("Agent-supplied [[WikiLink]] tags for knowledge graph integration")] string[]? concepts = null,
         [Description("Memory URI for update/read actions (e.g., memory://assumptions/2025/01/assumption-1234567890)")] string? uri = null,
         [Description("Status update: validated, invalidated, or refined")] string? status = null,
         [Description("Additional notes for updates")] string? notes = null,

@@ -41,8 +41,8 @@
 | MEM-W03 | Happy: Create memory with tags | CLI | PENDING | Created memory with tags array in frontmatter (smoke-test, tag1, tag2) |
 | MEM-W04 | Sad: Missing required title | CLI | PENDING | ArgumentException: Required property 'title' is missing from payload |
 | MEM-W05 | Sad: Missing required content | CLI | PENDING | ERROR: Required property 'content' is missing from payload. (exit code 1) |
-| MEM-W06 | Sad: Content without [[concepts]] | CLI | PENDING | ERROR: Content must contain at least one [[concept]] in double brackets |
-| MEM-W07 | Edge: Very long content (10KB+) | CLI | PENDING | Created 15.9KB file successfully with embedded [[concepts]] |
+| MEM-W06 | Sad: Content without [[WikiLinks]] | CLI | PENDING | ERROR: Content must contain at least one [[WikiLink]] in double brackets |
+| MEM-W07 | Edge: Very long content (10KB+) | CLI | PENDING | Created 15.9KB file successfully with embedded [[WikiLinks]] |
 | MEM-W08 | Edge: Special characters in title | MCP | PENDING | Special chars sanitized (Test!@#$%^&*() → Test%^), file created |
 
 ### 1.2 ReadMemory
@@ -59,7 +59,7 @@
 |---------|----------|-----------|--------|--------|
 | MEM-E01 | Happy: Append operation | CLI | PENDING | Updated memory file, returned new checksum |
 | MEM-E02 | Happy: Prepend operation | MCP | PENDING | Content prepended successfully, new checksum returned |
-| MEM-E03 | Happy: find_replace operation | CLI | PENDING | Find/replace works correctly, enforces [[concept]] requirement in new content |
+| MEM-E03 | Happy: find_replace operation | CLI | PENDING | Find/replace works correctly, enforces [[WikiLink]] requirement in new content |
 | MEM-E04 | Happy: replace_section operation | MCP | PENDING | Section replaced successfully, new checksum returned |
 | MEM-E05 | Sad: Stale checksum | CLI | PENDING | ERROR: Checksum mismatch. Expected vs Actual shown |
 | MEM-E06 | Sad: Invalid operation type | MCP | PENDING | MCP properly rejects with error: "An error occurred invoking 'edit_memory'" |
@@ -115,7 +115,7 @@
 | Test ID | Scenario | Interface | Status | Result |
 |---------|----------|-----------|--------|--------|
 | GRP-E01 | Happy: Extract from file with concepts | CLI | PENDING | Extracted 14 concepts from existing memory file with proper [[WikiLink]] format |
-| GRP-E02 | Sad: File without concepts | MCP | PENDING | Design constraint verified: WriteMemory requires at least one [[concept]]. Created test file with [[placeholder-concept]], ExtractConceptsFromFile returned 1 concept as expected |
+| GRP-E02 | Sad: File without concepts | MCP | PENDING | Design constraint verified: WriteMemory requires at least one [[WikiLink]]. Created test file with [[placeholder-concept]], ExtractConceptsFromFile returned 1 concept as expected |
 | GRP-E03 | Sad: Non-existent file | CLI | PENDING | Returned error: "ERROR: Memory file not found: memory://nonexistent/file/path" |
 
 ---
@@ -194,8 +194,8 @@
 | SES-T03 | Happy: Cancel session | CLI | PENDING | Cancelled session-1767715034759 with cancel=true, returned "Thinking cancelled" |
 | SES-T04 | Happy: Revision flow | MCP | PENDING | Successfully revised thought 1 with isRevision=true, revisesThought=1 |
 | SES-T05 | Happy: Branch flow | CLI | PENDING | Created branch "test-branch" from thought 1 in session-1767715059072 |
-| SES-T06 | Happy: Conclusion with [[concepts]] | MCP | PENDING | Completed session with conclusion containing [[concepts]], returned "Thinking complete" |
-| SES-T07 | Sad: Missing response for non-cancel | CLI | PENDING | ERROR: Must include [[concepts]]. Example: 'Analyzing [[Machine Learning]] algorithms' |
+| SES-T06 | Happy: Conclusion with [[WikiLinks]] | MCP | PENDING | Completed session with conclusion containing [[WikiLinks]], returned "Thinking complete" |
+| SES-T07 | Sad: Missing response for non-cancel | CLI | PENDING | ERROR: Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms' |
 
 ### 5.2 Workflow
 | Test ID | Scenario | Interface | Status | Result |
@@ -406,8 +406,8 @@
 
 | Test ID | Failure Scenario | Interface | Status | Result |
 |---------|-----------------|-----------|--------|--------|
-| FAIL-001 | Missing [[concepts]] in WriteMemory | CLI | PENDING | Returns: ERROR: Content must contain at least one [[concept]] |
-| FAIL-002 | Missing [[concepts]] in SequentialThinking | CLI | PENDING | Returns: ERROR: Must include [[concepts]] |
+| FAIL-001 | Missing [[WikiLinks]] in WriteMemory | CLI | PENDING | Returns: ERROR: Content must contain at least one [[WikiLink]] |
+| FAIL-002 | Missing [[WikiLinks]] in SequentialThinking | CLI | PENDING | Returns: ERROR: Must include [[WikiLinks]] |
 | FAIL-003 | SequentialThinking nextThoughtNeeded=false without conclusion | CLI | PENDING | Returns: ERROR: Conclusion required when completing session |
 | FAIL-004 | SequentialThinking branching without branchId | CLI | PENDING | Returns: ERROR: branchId required when branchFromThought is specified |
 | FAIL-005 | BuildContext on unknown concept | CLI | PENDING | Returns empty neighborhood gracefully (not error) |
@@ -436,7 +436,7 @@
 | WORK-002 | Start deductive-reasoning workflow | CLI | PENDING | Session created successfully |
 | WORK-003 | Start sixhat workflow | CLI | PENDING | Session created successfully |
 | WORK-004 | Start workflow-dispatch (meta-workflow) | CLI | PENDING | Meta-cognitive dispatch working |
-| WORK-005 | Continue workflow with [[concepts]] | CLI | PENDING | Step progression with concept propagation |
+| WORK-005 | Continue workflow with [[WikiLinks]] | CLI | PENDING | Step progression with concept propagation |
 | WORK-006 | Complete workflow with conclusion | CLI | PENDING | Completion requires response+status+conclusion together |
 | WORK-007 | View workflow queue | CLI | PENDING | Queue status visible with sessionId |
 | WORK-008 | Append workflow to queue | CLI | PENDING | Multi-workflow queuing works |
@@ -529,7 +529,7 @@
 - **MCP Session Tools Tests (10/10 PASS)**:
   - SES-T02: Sequential thinking session continuation working
   - SES-T04: Revision flow with isRevision=true successful
-  - SES-T06: Conclusion with [[concepts]] accepted and completed
+  - SES-T06: Conclusion with [[WikiLinks]] accepted and completed
   - SES-W02: Workflow continuation to step 2/3 working
   - SES-W04: Workflow queue append successful (added deductive-reasoning)
   - SES-W05: Workflow completion with status='completed' working
@@ -582,7 +582,7 @@
 ### Iteration 3 - 2026-01-06 (EditMemory Tests)
 - Completed all 5 pending EditMemory smoke tests (MEM-E02 through MEM-E07)
 - MEM-E02 ✅ PASS: Prepend operation via MCP successfully adds content at start
-- MEM-E03 ✅ PASS: find_replace via CLI works correctly, enforces [[concept]] requirement on replacement text
+- MEM-E03 ✅ PASS: find_replace via CLI works correctly, enforces [[WikiLink]] requirement on replacement text
 - MEM-E04 ✅ PASS: replace_section via MCP successfully replaces entire section
 - MEM-E06 ✅ PASS: Invalid operation type properly rejected by MCP with error message
 - MEM-E07 ✅ PASS: find_replace with non-existent text completes with 0 replacements (graceful handling)
@@ -616,7 +616,7 @@
 | SES-T01 | ✅ PASS | Created session-1767715034759, returned "Continue with thought 1/2" |
 | SES-T03 | ✅ PASS | Cancelled session-1767715034759 with cancel=true, returned "Thinking cancelled" |
 | SES-T05 | ✅ PASS | Created branch "test-branch" from thought 1 in session-1767715059072 |
-| SES-T07 | ✅ PASS | ERROR: Must include [[concepts]]. Example: 'Analyzing [[Machine Learning]] algorithms' |
+| SES-T07 | ✅ PASS | ERROR: Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms' |
 | SES-W01 | ✅ PASS | Created workflow-1767715082759, first step "Identify General Principles" returned |
 | SES-W03 | ✅ PASS | Queue status with position showing "deductive-reasoning (workflow 1/1, step 1/4)" |
 | SES-W06 | ✅ PASS | ERROR: Workflow 'nonexistent-workflow' not found |
@@ -646,7 +646,7 @@
 | MEM-W02 | ✅ PASS | Created memory://smoke-test/subfolder/smoke-test-memw02 via MCP, folder structure auto-created |
 | MEM-W03 | ✅ PASS | Tags array stored in frontmatter (smoke-test, tag1, tag2) via CLI |
 | MEM-W05 | ❌ FAIL | Unhandled exception (exit code 134): ArgumentException: Required property 'content' is missing |
-| MEM-W07 | ✅ PASS | Successfully created 15.9KB file with 10KB+ content and embedded [[concepts]] |
+| MEM-W07 | ✅ PASS | Successfully created 15.9KB file with 10KB+ content and embedded [[WikiLinks]] |
 | MEM-W08 | ✅ PASS | Special chars sanitized (Test!@#$%^&*() → Test%^), file created |
 
 **Key Findings:**

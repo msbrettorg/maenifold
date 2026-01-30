@@ -15,7 +15,7 @@ Integrates with SequentialThinking and Workflow sessions via context references.
 Key features:
 - Captures assumption statements without inference or analysis
 - Stores as durable Markdown artifacts in memory://assumptions/
-- Integrates with knowledge graph through [[concept]] tags
+- Integrates with knowledge graph through [[WikiLink]] tags
 - Searchable via SearchMemories after Sync()
 - Supports status tracking (active, validated, invalidated, refined)
 - Maintains complete audit trail with timestamps
@@ -176,7 +176,7 @@ Update status to show what held true, capturing lessons in memory:// rather than
 
 ## Notes
 
-- Requires [[concept]] tags for knowledge graph integration
+- Requires [[WikiLink]] tags for knowledge graph integration
 - Files persist across sessions in date-organized folders
 - Searchable after running Sync()
 - Updates create timestamped sections maintaining complete history

@@ -49,7 +49,7 @@ public class VectorToolsTests
         // Ensure model is loaded
         VectorTools.LoadModel();
 
-        const string testText = "Test embedding for [[machine learning]] and [[NLP]]";
+        const string testText = "Test embedding for [[neural-networks]] and [[natural-language-processing]]";
 
         var embedding1 = VectorTools.GenerateEmbedding(testText);
         var embedding2 = VectorTools.GenerateEmbedding(testText);
@@ -63,9 +63,9 @@ public class VectorToolsTests
     public void FallbackEmbeddingGeneratesValidVectorsWhenONNXUnavailable()
     {
         // Test fallback behavior when ONNX model is not available
-        // Since we can't easily disable ONNX in test environment, 
+        // Since we can't easily disable ONNX in test environment,
         // this test just verifies that ANY embedding generated is properly normalized
-        const string testText = "Fallback test for [[vector generation]]";
+        const string testText = "Fallback test for [[embedding-fallback]]";
 
         var embedding = VectorTools.GenerateEmbedding(testText);
 
@@ -234,7 +234,7 @@ public class VectorToolsTests
         var texts = new[]
         {
             "First inference test",
-            "Second inference with [[concepts]]",
+            "Second inference with [[semantic-similarity]]",
             "Third test with different content",
             "Fourth test to verify session stability",
             "Fifth and final test"

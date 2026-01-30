@@ -208,7 +208,7 @@ FindSimilarConcepts conceptName="testing"
 
 ## Related Tools
 
-- **BuildContext**: Explore [[concept]] relationships via [[graph]] traversal (complements semantic search)
+- **BuildContext**: Explore [[WikiLink]] relationships via [[graph]] traversal (complements semantic search)
 - **SearchMemories**: Find files containing similar concepts discovered here
 - **Sync**: MUST run first to generate concept embeddings in database
 - **AnalyzeConceptCorruption**: Identify concept duplicates revealed by high similarity scores

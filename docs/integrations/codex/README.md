@@ -24,12 +24,12 @@ The SWE profile in `swe.md` instructs the agent to:
   - `#read_memory` – load relevant `memory://` files
 
 - **Navigate the graph for retrieval**:
-  - For exploratory queries, synthesize a hypothetical answer with `[[concepts]]` inline
+  - For exploratory queries, synthesize a hypothetical answer with WikiLinks like `[[GraphRAG]]`, `[[vector-search]]`, `[[embeddings]]`
   - Use those concepts with `build_context` + `search_memories` to retrieve supporting material
   - Use `find_similar_concepts` when you don't know which concepts exist yet
 
 - **Tag concepts correctly**:
-  - Follow the concept tagging rules (double-bracket `[[concept]]`, hyphenated, reuse existing concepts, avoid trivial tags)
+  - Follow the concept tagging rules (double-bracket `[[api-design]]` never `[api-design]`, hyphenated, reuse existing concepts, avoid trivial tags)
   - Treat folder structure as the ontology (`azure/`, `finops/`, `tech/`, etc.)
 
 - **Use SequentialThinking as the loop primitive**:
@@ -46,7 +46,7 @@ The Codex SWE agent is a concrete instance of the patterns described in `docs/se
   - Uses both text and semantic scores, plus graph relationships.
 
 - **HYDE (Hypothetical Retrieval)**
-  - For open-ended questions, the agent drafts a plausible answer with `[[concepts]]`.
+  - For open-ended questions, the agent drafts a plausible answer with WikiLinks.
   - It then searches those concepts to retrieve real supporting files.
 
 - **FLARE-style Startup**

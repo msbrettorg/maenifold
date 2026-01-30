@@ -11,18 +11,18 @@ public class SequentialThinkingTools
 {
     private static readonly int CheckpointFrequency = 3;
 
-    [McpServerTool, Description(@"Creates structured thinking sessions with [[concept]] integration and persistent markdown file storage.
-Requires response with [[concepts]], thought tracking, session management, and optional revision capabilities.
+    [McpServerTool, Description(@"Creates structured thinking sessions with [[WikiLink]] integration and persistent markdown file storage.
+Requires response with [[WikiLinks]], thought tracking, session management, and optional revision capabilities.
 Integrates with WriteMemory for session persistence and maenifold tools.
 Returns session management with continuation guidance and checkpoint suggestions.")]
     public static string SequentialThinking(
-        [Description("Main response/thought - MUST include [[concepts]] to build knowledge")] string? response = null,
+        [Description("Main response/thought - MUST include [[WikiLinks]] to build knowledge")] string? response = null,
         [Description("Need another thought?")] bool nextThoughtNeeded = false,
         [Description("Current thought number")] int thoughtNumber = 0,
         [Description("Total thoughts estimate")] int totalThoughts = 0,
         [Description("Session ID")] string? sessionId = null,
         [Description("Cancel session (set to true to cancel)")] bool cancel = false,
-        [Description("Ambient/meta thoughts with [[concepts]] (use liberally)")] string? thoughts = null,
+        [Description("Ambient/meta thoughts with [[WikiLinks]] (use liberally)")] string? thoughts = null,
         [Description("Is this a revision?")] bool isRevision = false,
         [Description("Which thought to revise")] int? revisesThought = null,
         [Description("Branch from thought")] int? branchFromThought = null,
@@ -30,7 +30,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         [Description("Need more thoughts than estimated?")] bool needsMoreThoughts = false,
         [Description("Analysis type: bug, architecture, retrospective, or complex")] string? analysisType = null,
         [Description("Parent workflow session ID (creates bidirectional link)")] string? parentWorkflowId = null,
-        [Description("Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[concepts]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction.")] string? conclusion = null,
+        [Description("Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[WikiLinks]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction.")] string? conclusion = null,
         [Description("Return help documentation instead of executing")] bool learn = false)
     {
         if (learn) return ToolHelpers.GetLearnContent(nameof(SequentialThinking));
@@ -91,11 +91,11 @@ Returns session management with continuation guidance and checkpoint suggestions
         if (complete && cancel == false)
         {
             if (string.IsNullOrEmpty(conclusion))
-                return "ERROR: Conclusion required when completing session. Must synthesize findings with [[concepts]].";
+                return "ERROR: Conclusion required when completing session. Must synthesize findings with [[WikiLinks]].";
 
             var conclusionConcepts = MarkdownIO.ExtractWikiLinks(conclusion);
             if (conclusionConcepts.Count == 0)
-                return "ERROR: Conclusion must include [[concepts]] for knowledge graph integration.";
+                return "ERROR: Conclusion must include [[WikiLinks]] for knowledge graph integration.";
         }
 
         FinalizeSession(sessionId!, thoughtNumber, cancel, complete, conclusion);
@@ -111,7 +111,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         var totalConcepts = responseConcepts.Count + thoughtsConcepts.Count;
 
         if (totalConcepts == 0)
-            return (false, "ERROR: Must include [[concepts]]. Example: 'Analyzing [[Machine Learning]] algorithms'");
+            return (false, "ERROR: Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms'");
 
         return (true, null);
     }
@@ -254,7 +254,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         var nextTotal = needsMoreThoughts && thoughtNumber >= totalThoughts - 1 ? "?" : CultureInvariantHelpers.ToString(totalThoughts);
         var extendNote = needsMoreThoughts && thoughtNumber >= totalThoughts - 1 ? " (extending beyond initial estimate)" : "";
         var checkpointNote = thoughtNumber == 0 || thoughtNumber % CheckpointFrequency == 0
-            ? "\n\n💡 **CHECK YOUR MEMORY:** `search_memories` for what exists and `build_context` on [[concepts]] | `sync` new findings to add them to the graph"
+            ? "\n\n💡 **CHECK YOUR MEMORY:** `search_memories` for what exists and `build_context` on [[WikiLinks]] | `sync` new findings to add them to the graph"
             : "";
 
         return $"{baseMessage}\n\n💭 Continue with thought {nextThought}/{nextTotal}{extendNote}{checkpointNote}";

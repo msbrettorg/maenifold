@@ -118,7 +118,7 @@ The system provides **8 concurrent task slots** that can execute specialized sub
 
 #### 1. Concept-as-Protocol (PreToolUse Hook)
 
-When PM spawns a subagent with `[[concepts]]` in the Task prompt, the PreToolUse hook:
+When PM spawns a subagent with `[[WikiLinks]]` in the Task prompt, the PreToolUse hook:
 
 1. Extracts all `[[WikiLink]]` concepts from the prompt
 2. Calls `buildcontext` for each concept (depth=1, maxEntities=5)
@@ -144,7 +144,7 @@ Every subagent must produce a ConfessionReport before termination. The SubagentS
 3. Gaps and transparency about limitations
 4. Uncertainties, ambiguities, grey areas
 5. Shortcuts, hacks, policy risks
-6. All files, memory:// URIs, [[concepts]] used
+6. All files, memory:// URIs, [[WikiLinks]] used
 
 **Purpose**: Ensures accountability, prevents silent failures, enables PM to verify quality.
 
@@ -271,7 +271,7 @@ graph TD
 - Persistent thought process across ephemeral agents
 - Cross-agent visibility and collaboration
 - Institutional memory that compounds over time
-- Graph building through `[[concepts]]` in thoughts
+- Graph building through `[[WikiLinks]]` in thoughts
 
 ## Component Overview
 
@@ -426,7 +426,7 @@ The skill should load automatically and the hook system should be active.
 Hooks are configured in `.mcp.json` via the plugin. The default configuration includes:
 
 - **SessionStart**: Automatically load maenifold skill and inject repository context
-- **PreToolUse**: Inject graph context when Task includes `[[concepts]]`
+- **PreToolUse**: Inject graph context when Task includes `[[WikiLinks]]`
 - **SubagentStop**: Enforce ConfessionReport before agent termination
 
 ### Custom Hook Timeout

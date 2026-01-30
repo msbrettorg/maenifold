@@ -28,8 +28,8 @@ Key features:
 - New sessions must start at `thoughtNumber=0`; calling with `thoughtNumber=1` without an existing session errors
 
 Parameters explained:
-- response: Main thought content; MUST include [[concepts]] unless cancelling
-- thoughts: Optional meta/ambient notes; also must include [[concepts]] if provided
+- response: Main thought content; MUST include [[WikiLinks]] unless cancelling
+- thoughts: Optional meta/ambient notes; also must include [[WikiLinks]] if provided
 - thought: Your current thinking step, which can include:
   * Regular analytical steps
   * Revisions of previous thoughts
@@ -49,17 +49,17 @@ Parameters explained:
 - sessionId: Continue an existing session; omit to start a new one
 - analysisType: Optional annotation (bug, architecture, retrospective, complex)
 - parentWorkflowId: Optional; only on thought 1; links to an active workflow and creates a [[workflow/{id}]] back-link
-- conclusion: Required when nextThoughtNeeded is false. Must include [[concepts]] AND confession elements:
+- conclusion: Required when nextThoughtNeeded is false. Must include [[WikiLinks]] AND confession elements:
   1. Synthesize findings
   2. List instruction compliance (✅/❌ with evidence)
   3. Shortcuts or hacks taken
   4. Risks/uncertainties flagged
-  5. Sources used (memory:// URIs, [[concepts]])
+  5. Sources used (memory:// URIs, [[WikiLinks]])
 - cancel: Set to true to cancel a session; skips concept validation and conclusion
 - learn: Set to true to return this help text instead of executing
 
 maenifold specifics:
-- response/thoughts MUST include [[concepts]]; conclusion with [[concepts]] and confession structure is required when nextThoughtNeeded is false
+- response/thoughts MUST include [[WikiLinks]]; conclusion with [[WikiLinks]] and confession structure is required when nextThoughtNeeded is false
 - Sessions persist to memory://thinking/sequential/{sessionId}.md with agent tag, timestamps, and frontmatter
 - New sessions start at thoughtNumber=0 (sessionId auto-created). thoughtNumber>0 requires the session to exist unless isRevision is true; an existing sessionId with thoughtNumber=1 is rejected unless revising
 - branchId is required when branchFromThought is set (multi-agent safety)
@@ -71,9 +71,9 @@ maenifold specifics:
 - cancel=true skips concept validation and conclusion requirements
 
 Common errors (expect these if violated):
-- Missing [[concepts]] in response/thoughts → `ERROR: Must include [[concepts]]. Example: 'Analyzing [[Machine Learning]] algorithms'`
+- Missing [[WikiLinks]] in response/thoughts → `ERROR: Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms'`
 - Missing conclusion when nextThoughtNeeded=false → `ERROR: Conclusion required when completing session...`
-- Conclusion without [[concepts]] → `ERROR: Conclusion must include [[concepts]]...`
+- Conclusion without [[WikiLinks]] → `ERROR: Conclusion must include [[WikiLinks]]...`
 - Invalid sessionId format (must be `session-{unix-milliseconds}`) → `ERROR: Invalid sessionId format...`
 - Providing sessionId on thought 1 when session does not exist → `ERROR: Session {id} not found. To start new session, don't provide sessionId.`
 - Trying thoughtNumber>1 without an existing session → `ERROR: Session {id} missing. Start with thoughtNumber=0.` (use thoughtNumber=0 to create a new session)

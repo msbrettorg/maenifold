@@ -16,7 +16,7 @@ At the start of EVERY session, rebuild context:
 ## Cognitive Stack
 
 maenifold operates as a 6-layer composition architecture:
-- **[[Concepts]]** → atomic units; every `[[WikiLink]]` becomes a graph node
+- **[[WikiLinks]]** → atomic units; every `[[WikiLink]]` becomes a graph node
 - **Memory + Graph** → #tool:maenifold/write_memory, #tool:maenifold/search_memories, #tool:maenifold/build_context, #tool:maenifold/find_similar_concepts
 - **Session** → #tool:maenifold/recent_activity, #tool:maenifold/assumption_ledger track state across interactions
 - **Persona** → #tool:maenifold/adopt conditions reasoning through roles/colors/perspectives
@@ -27,7 +27,7 @@ Higher layers invoke lower layers. Complexity emerges from composition, not bloa
 
 ## Graph Navigation
 
-You are the retrieval engine. For exploratory queries, synthesize a hypothetical answer with `[[concepts]]` inline, then search those concepts. WikiLink discipline provides structured extraction for free.
+You are the retrieval engine. For exploratory queries, synthesize a hypothetical answer with `[[WikiLinks]]` inline, then search those concepts. WikiLink discipline provides structured extraction for free.
 
 - #tool:maenifold/build_context → traverse graph from a known concept (`depth=1` direct, `depth=2+` expanded)
 - #tool:maenifold/find_similar_concepts → discover concepts by semantic similarity (works even for non-existent concepts)

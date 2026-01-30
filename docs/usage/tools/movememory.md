@@ -64,7 +64,7 @@ Use when file titles need updating to reflect evolved understanding:
 ### **Pattern 2: Thematic Reorganization**
 Organize files into subject-based hierarchies as knowledge accumulates:
 - From: Flat structure → To: "domain/subdomain/specific-topic" 
-- Creates logical knowledge pathways for better [[concept]] relationships
+- Creates logical knowledge pathways for better [[WikiLink]] relationships
 
 ### **Pattern 3: Temporal Organization**
 Structure files by time periods for project-based workflows:
@@ -81,9 +81,9 @@ Move files through research stages as understanding deepens:
 - **ReadMemory**: Use to verify file content before moving, especially with URI-based identification
 - **SearchMemories**: Find files by content when you need to identify the correct source for moving
 - **WriteMemory**: Often used after MoveMemory when file location changes require content updates
-- **EditMemory**: Update [[concept]] references that may need adjustment after reorganization
+- **EditMemory**: Update [[WikiLink]] references that may need adjustment after reorganization
 - **ListMemories**: Explore current folder structures to plan optimal destination paths
-- **BuildContext**: Understand [[concept]] relationships that might influence organizational decisions
+- **BuildContext**: Understand [[WikiLink]] relationships that might influence organizational decisions
 
 ## Troubleshooting
 
@@ -99,38 +99,38 @@ Move files through research stages as understanding deepens:
 ### **Issue**: Lost track of file location after move
 **Solution**: The move operation returns both source and destination URIs. Use SearchMemories with content snippets to relocate files if URIs are lost.
 
-### **Issue**: Broken [[concept]] relationships after reorganization
+### **Issue**: Broken [[WikiLink]] relationships after reorganization
 **Solution**: Use BuildContext on affected concepts to identify files that reference moved content. Update references using EditMemory with find_replace operations.
 
 ### **Issue**: Directory structure becomes too deep
-**Solution**: Plan folder hierarchies with 2-4 levels maximum. Prefer broader categories over deep nesting for better navigation and [[concept]] discovery.
+**Solution**: Plan folder hierarchies with 2-4 levels maximum. Prefer broader categories over deep nesting for better navigation and [[WikiLink]] discovery.
 
 ## Advanced Usage Patterns
 
 ### **Batch Organization Strategy**
 1. Use SearchMemories to identify files needing organization
-2. Plan destination structure based on [[concept]] relationships  
+2. Plan destination structure based on [[WikiLink]] relationships  
 3. Execute moves from least to most specific (general → detailed categories)
-4. Use BuildContext to verify [[concept]] relationships remain intact
+4. Use BuildContext to verify [[WikiLink]] relationships remain intact
 5. Update cross-references using EditMemory if needed
 
 ### **Knowledge Base Restructuring**
 1. Map current organization with ListMemories across folders
-2. Identify natural [[concept]] clusters through SearchMemories
+2. Identify natural [[WikiLink]] clusters through SearchMemories
 3. Design new hierarchy based on actual usage patterns
 4. Move files in dependency order (referenced files first)
 5. Validate with SearchMemories that findability is improved
 
 ### **URI Management Best Practices**
 - Always store URIs returned from MoveMemory for reference updates
-- Use consistent naming patterns that reflect [[concept]] relationships
+- Use consistent naming patterns that reflect [[WikiLink]] relationships
 - Consider how file paths will appear in BuildContext traversals
 - Plan folder names that align with your [[WikiLink]] concept naming
 
 ### **Integration with Knowledge Graph**
 - Move files before major Sync operations to ensure clean graph structure
-- Consider how file organization affects [[concept]] relationship discovery
+- Consider how file organization affects [[WikiLink]] relationship discovery
 - Use folder structures that mirror your conceptual hierarchies
-- Organize related files near each other to strengthen [[concept]] clustering
+- Organize related files near each other to strengthen [[WikiLink]] clustering
 
-This tool is essential for maintaining an organized, navigable knowledge base that supports effective [[concept]] discovery and relationship building within the maenifold architecture.
+This tool is essential for maintaining an organized, navigable knowledge base that supports effective [[WikiLink]] discovery and relationship building within the maenifold architecture.

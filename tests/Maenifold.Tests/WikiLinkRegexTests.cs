@@ -43,7 +43,7 @@ public class WikiLinkRegexTests
         var content = @"
 Valid: [[neural-network]] and [[machine-learning]]
 Malformed: [[[invalid]]] and [[[[also-invalid]]]]
-More valid: [[valid-concept]]
+More valid: [[data-science]]
 ";
 
         // Act: Extract WikiLinks
@@ -52,7 +52,7 @@ More valid: [[valid-concept]]
         // Assert: Should extract only the valid concepts
         Assert.That(concepts, Does.Contain("neural-network"));
         Assert.That(concepts, Does.Contain("machine-learning"));
-        Assert.That(concepts, Does.Contain("valid-concept"));
+        Assert.That(concepts, Does.Contain("data-science"));
 
         // Should NOT contain any brackets in the extracted concepts
         foreach (var concept in concepts)
@@ -67,7 +67,7 @@ More valid: [[valid-concept]]
     {
         // Arrange: Content with nested brackets in various forms
         var content = @"
-Normal: [[concept]]
+Normal: [[algorithm]]
 Triple: [[[nested]]]
 Prefix: text [[[before]]] after
 Suffix: before [[[[after]]]] text
@@ -76,8 +76,8 @@ Suffix: before [[[[after]]]] text
         // Act: Extract WikiLinks
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        // Assert: Should only extract "concept" (the valid one)
-        Assert.That(concepts, Does.Contain("concept"));
+        // Assert: Should only extract "algorithm" (the valid one)
+        Assert.That(concepts, Does.Contain("algorithm"));
 
         // Verify no concept contains brackets
         foreach (var concept in concepts)
@@ -92,16 +92,16 @@ Suffix: before [[[[after]]]] text
     {
         // Arrange: Content with both valid and malformed references
         var content = @"
-Valid: [[test-concept]]
-Invalid: [[[test-concept]]]
-Valid again: [[test-concept]]
+Valid: [[regex-pattern]]
+Invalid: [[[regex-pattern]]]
+Valid again: [[regex-pattern]]
 ";
 
-        // Act: Count occurrences of "test-concept"
-        var count = MarkdownReader.CountConceptOccurrences(content, "test-concept");
+        // Act: Count occurrences of "regex-pattern"
+        var count = MarkdownReader.CountConceptOccurrences(content, "regex-pattern");
 
         // Assert: Should count only the two valid occurrences
-        Assert.That(count, Is.EqualTo(2), "Should count only valid [[concept]] patterns");
+        Assert.That(count, Is.EqualTo(2), "Should count only valid [[WikiLink]] patterns");
     }
 
     [Test]

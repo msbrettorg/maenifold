@@ -27,7 +27,7 @@ Shows concepts like `[[Neural Networks]]`, `[[Deep Learning]]`, `[[Supervised Le
 
 ## Use Cases
 
-- **Pre-Sync Validation**: Verify files have `[[concepts]]` before graph rebuild
+- **Pre-Sync Validation**: Verify files have `[[WikiLinks]]` before graph rebuild
 - **Debug Missing Concepts**: Check if concepts exist in source when BuildContext fails
 - **Content Audit**: Analyze conceptual coverage across files
 
@@ -35,7 +35,7 @@ Shows concepts like `[[Neural Networks]]`, `[[Deep Learning]]`, `[[Supervised Le
 
 - **Sync**: Preview what concepts Sync will process
 - **BuildContext**: Verify concepts exist before traversal
-- **WriteMemory/EditMemory**: Validate `[[concept]]` formatting
+- **WriteMemory/EditMemory**: Validate `[[WikiLink]]` formatting
 
 ## Common Issues
 
@@ -43,4 +43,4 @@ Shows concepts like `[[Neural Networks]]`, `[[Deep Learning]]`, `[[Supervised Le
 
 **File not found**: Verify URI format (`memory://filename` not `memory:filename`), use ReadMemory to confirm existence.
 
-**Fewer concepts than expected**: Check double bracket formatting `[[concept]]` (not `[concept]` or split across lines).
+**Fewer concepts than expected**: Check double bracket formatting `[[WikiLink]]` (not `[concept]` or split across lines).

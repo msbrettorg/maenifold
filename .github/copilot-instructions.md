@@ -94,7 +94,7 @@ Tools are organized by domain with partial classes for logical separation:
 - **MemoryTools** (partial): `Write.cs`, `Operations.cs`, `Helpers.cs` - memory file CRUD
 - **GraphTools**: Sync, BuildContext, Visualize - SQLite-backed knowledge graph
 - **MemorySearchTools** (partial): `Text.cs`, `Vector.cs`, `Fusion.cs` - hybrid search
-- **SequentialThinkingTools**: Structured reasoning sessions with [[concepts]]
+- **SequentialThinkingTools**: Structured reasoning sessions with [[WikiLinks]]
 - **WorkflowTools** (partial): `Core.cs`, `Management.cs`, `Runner.cs` - YAML workflows
 - **MaintenanceTools**: RepairConcepts, AnalyzeConceptCorruption
 - **SystemTools**: GetConfig, GetHelp, MemoryStatus
@@ -260,7 +260,7 @@ Agents typically follow this pattern:
 1. **Sync**: Rebuild graph from markdown files (`IncrementalSyncTools.Sync()`)
 2. **Search**: Find relevant knowledge (`MemorySearchTools.SearchMemories(query, mode: "Hybrid")`)
 3. **Build Context**: Traverse graph relationships (`GraphTools.BuildContext(conceptName, depth: 2)`)
-4. **Read/Write**: Operate on memory files with `[[concepts]]`
+4. **Read/Write**: Operate on memory files with `[[WikiLinks]]`
 5. **Sync**: Update graph indexes
 
 ### Concept Repair Pattern

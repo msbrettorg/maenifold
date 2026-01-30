@@ -36,7 +36,7 @@
         "stop_conditions": ["Research plan documented", "Coverage vector created", "Stopping criteria defined", "Research questions formulated"],
         "next_actions": ["Assess knowledge baseline"],
         "guardrails": {
-          "wikilink_density": "Minimum 10 [[concepts]] in research plan",
+          "wikilink_density": "Minimum 10 [[WikiLinks]] in research plan (e.g., [[research-methodology]], [[information-gain]], [[hypothesis]])",
           "scope_definition": "Clear boundaries must be established",
           "time_budget": "Define maximum research duration"
         }
@@ -226,7 +226,7 @@
         "stop_conditions": ["Knowledge integrated", "Graph synchronized", "Relationships established"],
         "next_actions": ["Information gain assessment"],
         "guardrails": {
-          "wikilink_minimum": "15+ [[concepts]] per memory file",
+          "wikilink_minimum": "15+ [[WikiLinks]] per memory file (e.g., [[semantic-search]], [[knowledge-graph]], [[synthesis]])",
           "relationship_density": "Cross-link to existing knowledge"
         }
       }
@@ -278,7 +278,7 @@
         "guardrails": {
           "completeness": "All sections must be populated",
           "actionability": "Minimum 5 actionable insights",
-          "wikilink_density": "20+ [[concepts]] in report"
+          "wikilink_density": "20+ [[WikiLinks]] in report (e.g., [[research-findings]], [[evidence-analysis]], [[actionable-insights]])"
         }
       }
     },

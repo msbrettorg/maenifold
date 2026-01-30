@@ -35,7 +35,7 @@ Anti-patterns: mid-execution coordination, fuzzy "done" conditions, touching too
 ## Subagent Protocol
 
 When launching subagents via #tool:runSubagent, **always specify the maenifold agent**:
-> "Use the maenifold agent as a subagent to [task]. Persist outcomes via write_memory with [[concepts]]."
+> "Use the maenifold agent as a subagent to [task]. Persist outcomes via write_memory with WikiLinks."
 
 Include in each dispatch:
 - Shared #tool:sequential_thinking or #tool:workflow session ID for grounding
@@ -57,7 +57,7 @@ At session start:
 ## Cognitive Stack
 
 maenifold operates as a 6-layer composition architecture:
-- **[[Concepts]]** → atomic units; every `[[WikiLink]]` becomes a graph node
+- **WikiLinks** → atomic units like `[[database]]`, `[[REST-API]]`, `[[testing]]`; every WikiLink becomes a graph node
 - **Memory + Graph** → #tool:write_memory, #tool:search_memories, #tool:build_context, #tool:find_similar_concepts
 - **Session** → #tool:recent_activity, #tool:assumption_ledger track state across interactions
 - **Persona** → #tool:adopt conditions reasoning through roles/colors/perspectives
@@ -68,7 +68,7 @@ Higher layers invoke lower layers. Complexity emerges from composition, not bloa
 
 ## Graph Navigation
 
-You are the retrieval engine. For exploratory queries, synthesize a hypothetical answer with `[[concepts]]` inline, then search those concepts. WikiLink discipline provides structured extraction for free.
+You are the retrieval engine. For exploratory queries, synthesize a hypothetical answer with WikiLinks like `[[microservices]]`, `[[container-orchestration]]`, `[[load-balancing]]`, then search those concepts. WikiLink discipline provides structured extraction for free.
 
 - #tool:build_context → traverse graph from a known concept (`depth=1` direct, `depth=2+` expanded)
 - #tool:find_similar_concepts → discover concepts by semantic similarity (works even for non-existent concepts)
@@ -81,22 +81,22 @@ WikiLinks are graph nodes. Bad tagging = graph corruption = broken context recov
 
 **Ontology**: Folder structure is the ontology. Run #tool:list_memories to see current domains (e.g., `azure/`, `finops/`, `tech/`). Nest for sub-domains (e.g., `azure/billing/`, `tech/ml/`). Align new concepts with existing folders; extend structure when a new domain emerges.
 
-- Double brackets: `[[concept]]` never `[concept]`
+- Double brackets: `[[api-design]]` never `[api-design]`
 - Normalized to lowercase-with-hyphens internally
 - SINGULAR for general: `[[tool]]`, `[[agent]]`, `[[test]]`
 - PLURAL only for collections: `[[tools]]` when meaning "all tools"
 - PRIMARY concept only: `[[MCP]]` not `[[MCP-server]]`
 - GENERAL terms: `[[authentication]]` not `[[auth-system]]`
-- NO file paths, code elements, or trivial words (`[[the]]`, `[[a]]`, `[[file]]`)
+- NO file paths, code elements, or trivial words (no `[[the]]`, `[[a]]`, `[[file]]`)
 - TAG substance: `[[machine-learning]]`, `[[GraphRAG]]`, `[[vector-embeddings]]`
 - REUSE existing concepts before inventing near-duplicates (guard fragmentation)
 - HYPHENATE multiword: `[[null-reference-exception]]` not `[[Null Reference Exception]]`
 
 Anti-patterns (silently normalized but avoid):
-- Underscores: `[[my_concept]]` → use `[[my-concept]]`
-- Slashes: `[[foo/bar]]` → use `[[foo-bar]]` or separate concepts
-- Double hyphens: `[[foo--bar]]` → use `[[foo-bar]]`
-- Leading/trailing hyphens: `[[-concept-]]` → use `[[concept]]`
+- Underscores: `[[my-database]]` not `[[my_database]]`
+- Slashes: `[[foo-bar]]` not `[[foo/bar]]` (or separate concepts)
+- Double hyphens: `[[foo-bar]]` not `[[foo--bar]]`
+- Leading/trailing hyphens: `[[database]]` not `[[-database-]]`
 
 Example: `Fixed [[null-reference-exception]] in [[authentication]] using [[JWT]]`
 

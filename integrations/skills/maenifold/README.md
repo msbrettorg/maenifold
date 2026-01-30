@@ -219,7 +219,7 @@ graph TD
 2. **Search**: `searchmemories("authentication")` finds gap
 3. **Research**: Query external docs (Microsoft Docs, Context7)
 4. **Write**: `writememory` creates lineage-backed note with [[OAuth2]], [[JWT]], [[PKCE]]
-5. **Sync**: Extracts [[concepts]] and creates graph nodes
+5. **Sync**: Extracts [[WikiLinks]] and creates graph nodes
 6. **Growth**: `buildcontext("authentication")` now returns OAuth2, JWT, PKCE relationships
 7. **Future**: Next session asking about [[OAuth2]] benefits from prior work
 
@@ -257,7 +257,7 @@ graph LR
 ```
 
 **Process**:
-1. Write memory file with `[[concepts]]` in double brackets
+1. Write memory file with `[[WikiLinks]]` in double brackets
 2. Call `sync` (or happens automatically)
 3. Sync extracts all `[[WikiLinks]]` from all memory files
 4. Creates/updates graph nodes for each unique concept

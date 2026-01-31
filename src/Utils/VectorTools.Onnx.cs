@@ -1,78 +1,50 @@
-using System.Text.RegularExpressions;
+using System.Text.Json;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
+using Microsoft.ML.Tokenizers;
 
 namespace Maenifold.Utils
 {
-    internal sealed class SimpleTokenizer
-    {
-        private readonly Dictionary<string, int> _vocab = new();
-        private readonly Dictionary<int, string> _idToToken = new();
-
-        public SimpleTokenizer()
-        {
-            _vocab["[PAD]"] = 0;
-            _vocab["[UNK]"] = 1;
-            _vocab["[CLS]"] = 2;
-            _vocab["[SEP]"] = 3;
-            _idToToken[0] = "[PAD]";
-            _idToToken[1] = "[UNK]";
-            _idToToken[2] = "[CLS]";
-            _idToToken[3] = "[SEP]";
-        }
-
-        public void LoadVocab(string vocabPath)
-        {
-            if (!File.Exists(vocabPath))
-                return;
-            var lines = File.ReadAllLines(vocabPath);
-            for (int i = 0; i < lines.Length; i++)
-            {
-                var token = lines[i].Trim();
-                if (!_vocab.ContainsKey(token))
-                {
-                    int id = _vocab.Count;
-                    _vocab[token] = id;
-                    _idToToken[id] = token;
-                }
-            }
-        }
-
-        public EncodingResult Encode(string text, bool addSpecialTokens = true)
-        {
-            var words = Regex.Split(text.ToLowerInvariant(), @"\W+")
-                           .Where(w => !string.IsNullOrEmpty(w))
-                           .ToArray();
-            var ids = new List<int>();
-            var tokens = new List<string>();
-            if (addSpecialTokens)
-            {
-                ids.Add(_vocab["[CLS]"]);
-                tokens.Add("[CLS]");
-            }
-            foreach (var word in words)
-            {
-                int id = _vocab.TryGetValue(word, out var wordId) ? wordId : _vocab["[UNK]"];
-                ids.Add(id);
-                tokens.Add(_idToToken.TryGetValue(id, out var token) ? token : "[UNK]");
-            }
-            if (addSpecialTokens)
-            {
-                ids.Add(_vocab["[SEP]"]);
-                tokens.Add("[SEP]");
-            }
-            return new EncodingResult { Ids = ids, Tokens = tokens };
-        }
-    }
-
-    internal sealed class EncodingResult
-    {
-        public List<int> Ids { get; set; } = new();
-        public List<string> Tokens { get; set; } = new();
-    }
-
     public static partial class VectorTools
     {
+        private static readonly JsonSerializerOptions TokenizerConfigJsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        private sealed class TokenizerAssets
+        {
+            public BertTokenizer Tokenizer { get; }
+            public int PadId { get; }
+            public int UnknownId { get; }
+            public int ClassifyId { get; }
+            public int SeparatorId { get; }
+
+            public TokenizerAssets(BertTokenizer tokenizer, int padId, int unknownId, int classifyId, int separatorId)
+            {
+                Tokenizer = tokenizer;
+                PadId = padId;
+                UnknownId = unknownId;
+                ClassifyId = classifyId;
+                SeparatorId = separatorId;
+            }
+        }
+
+        private sealed class BertTokenizerConfig
+        {
+            public string? TokenizerClass { get; set; }
+            public string? Tokenizer_Class { get; set; }
+            public bool? DoLowerCase { get; set; }
+            public string? UnkToken { get; set; }
+            public string? SepToken { get; set; }
+            public string? PadToken { get; set; }
+            public string? ClsToken { get; set; }
+            public string? MaskToken { get; set; }
+            public bool TokenizeChineseChars { get; set; }
+            public string? StripAccents { get; set; }
+            public bool DoBasicTokenize { get; set; }
+            public int ModelMaxLength { get; set; }
+        }
+
         private static void EnsureModelLoaded()
         {
             if (!_initialized)
@@ -106,6 +78,69 @@ namespace Maenifold.Utils
 
         private static string FindModelPath() => FindAssetPath("all-MiniLM-L6-v2.onnx");
         private static string FindVocabPath() => FindAssetPath("vocab.txt");
+        private static string FindTokenizerConfigPath() => FindAssetPath("tokenizer_config.json");
+
+        private static TokenizerAssets LoadTokenizerAssets(string vocabPath, string configPath)
+        {
+            if (!File.Exists(vocabPath))
+                throw new FileNotFoundException("Tokenizer vocab file not found.", vocabPath);
+            if (!File.Exists(configPath))
+                throw new FileNotFoundException("Tokenizer config file not found.", configPath);
+
+            var configText = File.ReadAllText(configPath);
+            var config = JsonSerializer.Deserialize<BertTokenizerConfig>(configText, TokenizerConfigJsonOptions);
+
+            if (config == null)
+                throw new InvalidOperationException("Tokenizer config could not be parsed.");
+
+            var tokenizerClass = config.TokenizerClass ?? config.Tokenizer_Class;
+            if (!string.Equals(tokenizerClass, "BertTokenizer", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Tokenizer config does not specify a BertTokenizer.");
+
+            if (config.DoLowerCase == false)
+                throw new InvalidOperationException("Tokenizer config indicates case-sensitive vocab; expected lower-cased BERT vocab.");
+
+            var options = new BertOptions
+            {
+                ApplyBasicTokenization = config.DoBasicTokenize,
+                LowerCaseBeforeTokenization = config.DoLowerCase ?? true,
+                IndividuallyTokenizeCjk = config.TokenizeChineseChars
+            };
+
+            if (!string.IsNullOrWhiteSpace(config.UnkToken))
+                options.UnknownToken = config.UnkToken;
+            if (!string.IsNullOrWhiteSpace(config.PadToken))
+                options.PaddingToken = config.PadToken;
+            if (!string.IsNullOrWhiteSpace(config.ClsToken))
+                options.ClassificationToken = config.ClsToken;
+            if (!string.IsNullOrWhiteSpace(config.SepToken))
+                options.SeparatorToken = config.SepToken;
+            if (!string.IsNullOrWhiteSpace(config.MaskToken))
+                options.MaskingToken = config.MaskToken;
+
+            var tokenizer = BertTokenizer.Create(vocabPath, options);
+
+            var ids = tokenizer.EncodeToIds(string.Join(" ", new[]
+            {
+                options.PaddingToken,
+                options.UnknownToken,
+                options.ClassificationToken,
+                options.SeparatorToken
+            }.Where(token => !string.IsNullOrWhiteSpace(token))));
+
+            if (ids.Count < 4)
+                throw new InvalidOperationException("Tokenizer output did not include expected special tokens.");
+
+            var padId = ids[0];
+            var unkId = ids[1];
+            var clsId = ids[2];
+            var sepId = ids[3];
+
+            if (padId < 0 || unkId < 0 || clsId < 0 || sepId < 0)
+                throw new InvalidOperationException("Tokenizer vocab did not resolve expected special tokens to valid ids.");
+
+            return new TokenizerAssets(tokenizer, padId, unkId, clsId, sepId);
+        }
 
         private static TensorInfo? SelectBestOutput(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> outputs)
         {

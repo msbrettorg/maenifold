@@ -110,13 +110,13 @@
 | GRP-F01 | Happy: Find similar to existing concept | CLI | PASS | Found 5 semantically similar concepts to 'graph' with similarity scores (0.951-0.931) |
 | GRP-F02 | Happy: Find similar to arbitrary text | MCP | PASS | Query "knowledge graph testing" returned 10 semantically similar concepts (0.861-0.721), works with non-existent concepts |
 | GRP-F03 | Edge: Very short query | CLI | PASS | Handled 2-char query 'ab', returned 5 results with similarity scores (0.808-0.770) |
-| GRP-F04 | Sad: Reject bracket confusables (NFKC) | CLI | PASS | Query "［［tool］］" returns DIAGNOSTIC about bracket characters |
-| GRP-F05 | Sad: Reject bracket-like delimiters | CLI | PASS | Query "⟦tool⟧" returns DIAGNOSTIC about bracket-like delimiter characters |
-| GRP-F06 | Sad: Low-information query | CLI | PASS | Query "----" returns DIAGNOSTIC about low-information input |
-| GRP-F07 | Sad: maxResults bounds | CLI | PASS | maxResults=0 or 51 returns ERROR: maxResults must be between 1 and 50 |
-| GRP-F08 | Sad: conceptName length cap | CLI | PASS | 257-char query returns ERROR: conceptName must be 256 characters or fewer |
-| GRP-F09 | Edge: Short alphanumeric terms do not collapse | CLI | PASS | Queries (mcp/oauth2/finops/graphrag) return non-plateau results |
-| GRP-F10 | Edge: Similarity output bounded | CLI | PASS | Output similarities do not exceed 1.000 |
+| GRP-F04 | Sad: Reject bracket confusables (NFKC) | CLI | PENDING | Query "［［tool］］" returns DIAGNOSTIC about bracket characters |
+| GRP-F05 | Sad: Reject bracket-like delimiters | CLI | PENDING | Query "⟦tool⟧" returns DIAGNOSTIC about bracket-like delimiter characters |
+| GRP-F06 | Sad: Low-information query | CLI | PENDING | Query "----" returns DIAGNOSTIC about low-information input |
+| GRP-F07 | Sad: maxResults bounds | CLI | PENDING | maxResults=0 or 51 returns ERROR: maxResults must be between 1 and 50 |
+| GRP-F08 | Sad: conceptName length cap | CLI | PENDING | 257-char query returns ERROR: conceptName must be 256 characters or fewer |
+| GRP-F09 | Edge: Short alphanumeric terms do not collapse | CLI | PENDING | Queries (mcp/oauth2/finops/graphrag) return non-plateau results |
+| GRP-F10 | Edge: Similarity output bounded | CLI | PENDING | Output similarities do not exceed 1.000 |
 
 ### 2.5 ExtractConceptsFromFile
 | Test ID | Scenario | Interface | Status | Result |
@@ -516,16 +516,6 @@
 - Workflow Orchestration (10/10 PASS): Full workflow lifecycle validated
 - Test-Time Adaptation (12/14 PASS, 2 FAIL): Roles/colors/perspectives work; error handling crashes on invalid input
 - MCP Completeness (13/13 PASS): Full MCP tool parity confirmed
-
-### Iteration 4 - 2026-01-31 (T-QUAL-FSC2 FindSimilarConcepts)
-- **Agent-executed CLI smoke tests (GRP-F04–F10) PASS**:
-  - **GRP-F04**: Bracket confusables → DIAGNOSTIC (Blue-team Set A)
-  - **GRP-F05**: Bracket-like delimiters → DIAGNOSTIC (Blue-team Set A)
-  - **GRP-F06**: Low-information input → DIAGNOSTIC (Blue-team Set A)
-  - **GRP-F07**: maxResults bounds → ERROR (Blue-team Set B)
-  - **GRP-F08**: conceptName length cap → ERROR (Blue-team Set B)
-  - **GRP-F09**: short alphanumeric terms do not collapse (Red-team Set C)
-  - **GRP-F10**: similarity output bounded ≤ 1.000 (Red-team Set C)
 
 ### New Issues Discovered in Iteration 2
 - **ADAPT-013/014**: Adopt tool throws unhandled exceptions for invalid type/identifier instead of returning error message

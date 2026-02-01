@@ -94,11 +94,12 @@ We need to assess the **quality** of data returned by graph operations, especial
 
 These are **release-blocking** quality checks for `buildcontext` and `findsimilarconcepts` (traceable to `docs/agent/PRD.md` FR-7.3 / FR-7.4):
 
-1. [ ] T-QUAL-GATE-001: Define a fixed evaluation query suite (10–15 concepts + 3–5 controls) and document how to run it
-   - Why: create a stable, repeatable “health check” that detects regressions in retrieval quality.
-   - Include controls: random/garbage tokens + short tokens to ensure we don’t return confident nonsense.
-   - Output: documented query list + expected “shape” of results (not exact matches).
-2. [ ] T-QUAL-GATE-002: Define acceptance thresholds and document pass/fail rubric (grouped by tool):
+1. [x] T-QUAL-GATE-001: Define a fixed evaluation query suite (10–15 concepts + 3–5 controls) and document how to run it
+   - Why: create a stable, repeatable "health check" that detects regressions in retrieval quality.
+   - Include controls: random/garbage tokens + short tokens to ensure we don't return confident nonsense.
+   - Output: documented query list + expected "shape" of results (not exact matches).
+   - **Done**: See `docs/QUALITY-GATES.md` (12 test concepts + 5 controls)
+2. [x] T-QUAL-GATE-002: Define acceptance thresholds and document pass/fail rubric (grouped by tool):
    - BuildContext:
      - Precision@10 (manual spot-check) >= 0.70 for non-hub anchors
      - Hub Pollution Rate@10 <= 0.20 for non-hub anchors
@@ -107,8 +108,9 @@ These are **release-blocking** quality checks for `buildcontext` and `findsimila
    - FindSimilarConcepts:
      - Similarity Sanity: fail if top-K similarity mass at 1.000 or near-zero score variance on controls
    - Notes:
-     - “Hub concepts” (e.g., tool-like generics) are evaluated separately; they are expected to have lower precision.
+     - "Hub concepts" (e.g., tool-like generics) are evaluated separately; they are expected to have lower precision.
      - Precision scoring is human-judged initially; later we can automate proxies (e.g., overlap with curated allowlists).
+   - **Done**: See `docs/QUALITY-GATES.md` (4 BuildContext + 4 FindSimilarConcepts metrics with thresholds)
 
 ### Improvements (prioritized backlog)
 

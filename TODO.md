@@ -226,6 +226,78 @@ OpenCode lacks native maenifold integration. Need a TypeScript plugin that provi
 
 ---
 
+## GRAPH-DECAY-001: Recency decay weighting for search
+
+**Status**: Active
+**Priority**: High
+**Created**: 2026-01-31
+**Updated**: 2026-02-01 (PRD v1.4 — sequential=7d, workflows=14d per Moltbook gap analysis)
+
+### Problem
+
+Search result rankings should reflect recency: knowledge we revisit frequently should stay fresh, and stale content should naturally decay. Apply configurable exponential decay with tiered grace periods across all search ranking paths.
+
+### Scope / Traceability
+
+- PRD: FR-7.5 (tiered decay), FR-7.6 (access boosting), NFR-7.5.1–7.5.4, NFR-7.6.1
+- RTM: T-GRAPH-DECAY-001.*, T-GRAPH-DECAY-002.*
+- Research: Moltbook discussion "TIL: Memory decay makes retrieval BETTER" (2026-01-30, 491 comments)
+
+### Design
+
+**Tiered Grace Periods:**
+- `memory/thinking/sequential/` → 7d grace (episodic reasoning tied to specific tasks)
+- `memory/thinking/workflows/` → 14d grace (structured multi-step processes)
+- All other `memory/` → 14d grace (evolving knowledge notes)
+
+**Half-Life:** 30 days (exponential decay after grace period)
+
+**Access Boosting:** Retrieval resets `last_accessed` timestamp → frequently-accessed content stays fresh
+
+**Formula:**
+```
+decay_weight = 
+  if (age < grace_period): 1.0
+  else: 0.5 ^ ((age - grace_period) / half_life)
+
+final_score = semantic_score × decay_weight
+```
+
+**Permanent Knowledge:** Stored outside `memory://` (AGENTS.md, skills, system prompts, code) — not subject to decay.
+
+### Tasks
+
+1. [ ] T-GRAPH-DECAY-001.1: Apply decay weighting to search rankings (BuildContext, FindSimilarConcepts, SearchMemories)
+2. [ ] T-GRAPH-DECAY-001.2: Add sequential grace config — `MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL` (default 7)
+3. [ ] T-GRAPH-DECAY-001.2a: Add workflows grace config — `MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS` (default 14)
+4. [ ] T-GRAPH-DECAY-001.3: Add default grace config — `MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT` (default 14)
+5. [ ] T-GRAPH-DECAY-001.4: Add half-life config — `MAENIFOLD_DECAY_HALF_LIFE_DAYS` (default 30)
+6. [ ] T-GRAPH-DECAY-001.5: Ensure decay affects ranking only (direct ReadMemory bypasses decay)
+7. [ ] T-GRAPH-DECAY-002.1: Update `last_accessed` on ReadMemory (explicit read = intentional access)
+8. [ ] T-GRAPH-DECAY-002.2: Verify SearchMemories does NOT update `last_accessed` (appearing in results ≠ being read)
+9. [ ] T-GRAPH-DECAY-002.3: Verify BuildContext does NOT update `last_accessed` (automated context ≠ intentional access)
+10. [ ] T-GRAPH-DECAY-003.1: Add `created`, `last_accessed`, `decay_weight` to ListMemories output
+11. [ ] T-GRAPH-DECAY-003.2: Compute decay_weight using file's tier (sequential=7d, workflows=14d, other=14d grace)
+12. [ ] T-GRAPH-DECAY-004: Add tests for tiered decay config defaults
+13. [ ] T-GRAPH-DECAY-005: Add tests for access-boosting behavior (ReadMemory updates, Search/BuildContext don't)
+14. [ ] T-GRAPH-DECAY-006: Update GetConfig summary output to include decay settings
+15. [ ] T-GRAPH-DECAY-007: Document decay behavior in docs/usage and tool docs
+16. [ ] T-GRAPH-DECAY-004.1: Exempt `validated` assumptions from decay
+17. [ ] T-GRAPH-DECAY-004.2: Apply 14d grace / 30d half-life to `active` and `refined` assumptions
+18. [ ] T-GRAPH-DECAY-004.3: Apply 7d grace / 14d half-life to `invalidated` assumptions (aggressive decay)
+
+### Acceptance Criteria
+
+- [ ] `memory/thinking/sequential/` grace = 7d, `memory/thinking/workflows/` grace = 14d, other = 14d, half-life = 30d
+- [ ] Env overrides work for all four parameters (SEQUENTIAL, WORKFLOWS, DEFAULT, HALF_LIFE)
+- [ ] All search ranking paths apply decay weighting
+- [ ] Only ReadMemory updates `last_accessed` (SearchMemories/BuildContext do not)
+- [ ] Direct ReadMemory returns full content regardless of decay (ranking not deletion)
+- [ ] Tests cover tiered defaults and access-boosting behavior
+- [ ] Assumption decay by status: validated=exempt, active/refined=14d/30d, invalidated=7d/14d
+
+---
+
 ## MAENIFOLDPY-001: Python Port Quality Baseline
 
 **Status**: Active

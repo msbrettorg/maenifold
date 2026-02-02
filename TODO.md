@@ -332,46 +332,6 @@ final_score = semantic_score × decay_weight
 
 ---
 
-## MAENIFOLDPY-001: Python Port Quality Baseline
-
-**Status**: Active
-**Priority**: Medium
-**Created**: 2026-01-28
-
-### Problem
-
-The maenifold-py repository has type checking issues that need resolution before further development.
-
-### Findings (2026-01-28)
-
-- All pytest tests pass
-- mypy reports 51 errors across 16 files
-- Key issues:
-  - MCP `repair_concepts` kwarg mismatch (`create_wiki_links` vs `create_wikilinks`)
-  - ConfigMeta metaclass typing pattern needs adjustment
-  - SafeJson generic signature issues
-  - Watcher tools bytes/str mismatches
-  - Missing PyYAML type stubs
-
-### Tasks
-
-1. [ ] T-PY-006: Fix MCP `repair_concepts` kwarg mismatch
-2. [ ] T-PY-007: Establish clean mypy baseline (fix errors or configure ignores)
-3. [ ] T-PY-008: Add types-PyYAML to dev dependencies
-4. [ ] T-PY-009: Update TODO.md to remove stale C# references
-
-### Acceptance Criteria
-
-- [ ] `mypy src` reports 0 errors (or documented ignores)
-- [ ] All pytest tests continue to pass
-- [ ] MCP server repair_concepts works correctly
-
-### Related Memory
-
-- memory://tech/maenifoldpy-repo-evaluation-notes-20260128
-
----
-
 ## DIST-001: Windows MSI installer
 
 **Status**: Merged into REL-001
@@ -438,21 +398,3 @@ We need a canonical place to capture sprint retrospectives.
 - [x] Documents Embeddings Quality sprint (T-QUAL-FSC2)
 - [x] Includes backlog notes for decay weighting sprints
 
----
-
-## GOV-BUILD-001: Debug-only build/test requirement
-
-**Status**: Active
-**Priority**: Medium
-
-### Problem
-
-Release build is in active use; we must avoid invoking it during sprint work.
-
-### Tasks
-
-1. [ ] T-GOV-BUILD-001.1: Document debug-only build/test requirement in AGENTS.md and relevant development docs
-
-### Acceptance Criteria
-
-- [ ] Documentation explicitly forbids Release build/test during sprints

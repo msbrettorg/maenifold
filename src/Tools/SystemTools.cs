@@ -141,6 +141,8 @@ Returns hierarchical directory listing with file counts, sizes, and folder organ
 
         var output = new System.Text.StringBuilder($"# Directory: {path ?? "/"}\n\n");
 
+        // T-GRAPH-DECAY-003.1: RTM FR-7.7 - Load last_accessed timestamps from database
+        var lastAccessedCache = LoadLastAccessedTimestamps();
 
         var dirs = Directory.GetDirectories(targetPath).OrderBy(d => d);
         if (dirs.Any())
@@ -165,10 +167,108 @@ Returns hierarchical directory listing with file counts, sizes, and folder organ
                 var name = Path.GetFileName(file);
                 var info = new FileInfo(file);
                 output.AppendLineInvariant($"\uD83D\uDCC4 {name} ({info.Length / 1024.0:F1} KB)");
+
+                // T-GRAPH-DECAY-003.1: RTM FR-7.7 - Display decay metadata for each file
+                var decayMetadata = GetDecayMetadataForFile(file, lastAccessedCache);
+                output.AppendLineInvariant($"   created: {decayMetadata.created}");
+                output.AppendLineInvariant($"   last_accessed: {decayMetadata.lastAccessed}");
+                output.AppendLineInvariant($"   decay_weight: {decayMetadata.decayWeight:F2}");
             }
         }
 
         return output.ToString();
+    }
+
+    // T-GRAPH-DECAY-003.1: RTM FR-7.7 - Load last_accessed timestamps from file_content table
+    private static Dictionary<string, DateTime?> LoadLastAccessedTimestamps()
+    {
+        var cache = new Dictionary<string, DateTime?>(StringComparer.OrdinalIgnoreCase);
+
+        if (!File.Exists(DbPath))
+            return cache;
+
+        try
+        {
+            using var conn = new SqliteConnection(Config.DatabaseConnectionString);
+            conn.OpenReadOnly();
+
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT file_path, last_accessed FROM file_content WHERE last_accessed IS NOT NULL";
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var filePath = reader.GetString(0);
+                var lastAccessedStr = reader.IsDBNull(1) ? null : reader.GetString(1);
+
+                if (!string.IsNullOrEmpty(lastAccessedStr) && DateTime.TryParse(lastAccessedStr, out var lastAccessed))
+                {
+                    cache[filePath] = lastAccessed;
+                }
+            }
+        }
+        catch
+        {
+            // Non-critical: if database access fails, continue without last_accessed data
+        }
+
+        return cache;
+    }
+
+    // T-GRAPH-DECAY-003.1, T-GRAPH-DECAY-003.2: RTM FR-7.7, NFR-7.7.1 - Get decay metadata for a file
+    private static (string created, string lastAccessed, double decayWeight) GetDecayMetadataForFile(
+        string filePath, Dictionary<string, DateTime?> lastAccessedCache)
+    {
+        DateTime createdDate = DateTime.UtcNow;
+        DateTime? lastAccessedDate = null;
+
+        // Read frontmatter to get created timestamp
+        try
+        {
+            var (frontmatter, _, _) = MarkdownIO.ReadMarkdown(filePath);
+            if (frontmatter != null)
+            {
+                // Try to get created date from frontmatter
+                if (frontmatter.TryGetValue("created", out var createdValue) &&
+                    createdValue != null &&
+                    DateTime.TryParse(createdValue.ToString(), out var parsedCreated))
+                {
+                    createdDate = parsedCreated;
+                }
+
+                // Try to get last_accessed from frontmatter as fallback
+                if (frontmatter.TryGetValue("last_accessed", out var lastAccessedValue) &&
+                    lastAccessedValue != null &&
+                    DateTime.TryParse(lastAccessedValue.ToString(), out var parsedLastAccessed))
+                {
+                    lastAccessedDate = parsedLastAccessed;
+                }
+            }
+        }
+        catch
+        {
+            // If frontmatter read fails, use file creation time as fallback
+            createdDate = File.GetCreationTimeUtc(filePath);
+        }
+
+        // T-GRAPH-DECAY-003.1: RTM FR-7.7 - Get last_accessed from database cache (memory:// URI format)
+        var memoryUri = MarkdownIO.PathToUri(filePath, MemoryPath);
+        if (lastAccessedCache.TryGetValue(memoryUri, out var dbLastAccessed) && dbLastAccessed.HasValue)
+        {
+            lastAccessedDate = dbLastAccessed.Value;
+        }
+
+        // Fallback: if no last_accessed, use created or modified date
+        var effectiveLastAccessed = lastAccessedDate ?? createdDate;
+
+        // T-GRAPH-DECAY-003.2: RTM NFR-7.7.1 - Calculate decay weight using tier-based grace periods
+        var decayWeight = DecayCalculator.GetMemoryDecayWeight(filePath, createdDate, lastAccessedDate);
+
+        // Format dates for display (date only, no time)
+        var createdStr = createdDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var lastAccessedStr = effectiveLastAccessed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        return (createdStr, lastAccessedStr, decayWeight);
     }
 
     [McpServerTool, Description(@"Retrieves comprehensive tool documentation from maenifold's help file system for detailed usage guidance.

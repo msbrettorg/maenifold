@@ -85,11 +85,26 @@ Returns related concepts with relationship types, file references, and connectio
         {
             // SEC-001: Use safe JSON options with depth limit
             var fileList = JsonSerializer.Deserialize<List<string>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
+
+            // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Calculate average decay weight across source files
+            double totalWeight = 0;
+            int weightedFileCount = 0;
+            foreach (var filePath in fileList)
+            {
+                var weight = MemorySearchTools.GetDecayWeightForFile(filePath);
+                totalWeight += weight;
+                weightedFileCount++;
+            }
+            var avgDecayWeight = weightedFileCount > 0 ? totalWeight / weightedFileCount : 1.0;
+            var weightedScore = count * avgDecayWeight;
+
             var relatedConcept = new RelatedConcept
             {
                 Name = related,
                 CoOccurrenceCount = count,
-                Files = fileList.Take(3).ToList()
+                Files = fileList.Take(3).ToList(),
+                DecayWeight = avgDecayWeight,
+                WeightedScore = weightedScore
             };
 
 
@@ -118,6 +133,11 @@ Returns related concepts with relationship types, file references, and connectio
 
             result.DirectRelations.Add(relatedConcept);
         }
+
+        // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Re-sort by decay-weighted score
+        result.DirectRelations = result.DirectRelations
+            .OrderByDescending(r => r.WeightedScore)
+            .ToList();
 
         if (depth > 1)
         {
@@ -190,7 +210,7 @@ Returns Mermaid diagram code ready for rendering, enables visual knowledge archi
         // Normalize concept for matching (remove brackets if present)
         var normalizedConcept = conceptName.Trim('[', ']');
 
-        // Search patterns: [[WikiLink]] or plain text mention
+        // Search patterns: [[concept]] WikiLink or plain text mention
         var wikiLinkPattern = $"[[{normalizedConcept}]]";
 
         // Find all section boundaries (## headers)

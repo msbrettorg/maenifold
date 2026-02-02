@@ -2,6 +2,7 @@ using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using Maenifold.Utils;
 
 namespace Maenifold.Tools;
@@ -100,6 +101,21 @@ Returns session management with continuation guidance and checkpoint suggestions
 
         FinalizeSession(sessionId!, thoughtNumber, cancel, complete, conclusion);
 
+        // T-CLI-JSON-001: RTM FR-8.2, FR-8.3 - Return JSON when flag is set
+        if (OutputContext.IsJsonMode)
+        {
+            var status = cancel ? "cancelled" : (!nextThoughtNeeded ? "completed" : "in_progress");
+            return JsonToolResponse.Ok(new
+            {
+                sessionId = sessionId,
+                thoughtNumber = thoughtNumber,
+                totalThoughts = totalThoughts,
+                status = status,
+                nextThoughtNeeded = nextThoughtNeeded,
+                message = BuildCompletionMessage(thoughtNumber, sessionId!, cancel, nextThoughtNeeded, needsMoreThoughts, totalThoughts)
+            }).ToJson();
+        }
+
         var responseMessage = BuildCompletionMessage(thoughtNumber, sessionId!, cancel, nextThoughtNeeded, needsMoreThoughts, totalThoughts);
         return responseMessage;
     }
@@ -111,7 +127,15 @@ Returns session management with continuation guidance and checkpoint suggestions
         var totalConcepts = responseConcepts.Count + thoughtsConcepts.Count;
 
         if (totalConcepts == 0)
+        {
+            // T-CLI-JSON-001: RTM FR-8.4 - Structured error for WikiLink validation
+            if (OutputContext.IsJsonMode)
+            {
+                return (false, JsonToolResponse.Fail("WIKILINK_REQUIRED",
+                    "Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms'").ToJson());
+            }
             return (false, "ERROR: Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms'");
+        }
 
         return (true, null);
     }

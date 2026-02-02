@@ -36,6 +36,7 @@
 | T-GRAPH-DECAY-001.3 | NFR-7.5.2 | All other memory grace period: 14 days (`MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT`). | src/Utils/Config.cs | tests/Maenifold.Tests/ConfigDecayDefaultsTests.cs | Planned |
 | T-GRAPH-DECAY-001.4 | NFR-7.5.3 | Default half-life 30 days (`MAENIFOLD_DECAY_HALF_LIFE_DAYS`). | src/Utils/Config.cs | tests/Maenifold.Tests/ConfigDecayDefaultsTests.cs | Planned |
 | T-GRAPH-DECAY-001.5 | NFR-7.5.4 | Decay affects ranking only; content remains fully retrievable via direct query. | src/Tools/* | tests/Maenifold.Tests/GraphDecayWeightingTests.cs | Planned |
+| T-GRAPH-DECAY-001.6 | NFR-7.5.5 | Optional power-law decay (`R = a × t^(-b)`) via `MAENIFOLD_DECAY_FUNCTION` env var. | src/Utils/DecayCalculator.cs | tests/Maenifold.Tests/DecayFunctionTests.cs | Planned |
 
 ## T-GRAPH-DECAY-002: Access-frequency boosting
 
@@ -59,6 +60,13 @@
 | T-GRAPH-DECAY-004.1 | FR-7.8, NFR-7.8.1 | `validated` assumptions SHALL NOT decay. | src/Tools/AssumptionLedgerTools.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | Planned |
 | T-GRAPH-DECAY-004.2 | NFR-7.8.2 | `active` and `refined` assumptions: 14d grace, 30d half-life. | src/Tools/AssumptionLedgerTools.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | Planned |
 | T-GRAPH-DECAY-004.3 | NFR-7.8.3 | `invalidated` assumptions: 7d grace, 14d half-life. | src/Tools/AssumptionLedgerTools.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | Planned |
+
+## T-GRAPH-DECAY-005: Memory consolidation (Cognitive Sleep Cycle)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-GRAPH-DECAY-005.1 | FR-7.9 | System SHALL support periodic consolidation of high-value episodic content via Cognitive Sleep Cycle workflow. | assets/workflows/sleep-cycle.json | Manual workflow execution | Planned |
+| T-GRAPH-DECAY-005.2 | FR-7.9 | Consolidation SHALL distill episodic (thinking/) content into semantic (memory://) notes with WikiLinks. | assets/workflows/sleep-cycle.json | Manual workflow execution | Planned |
 
 ## T-GOV-RETRO-001: Retrospectives log
 

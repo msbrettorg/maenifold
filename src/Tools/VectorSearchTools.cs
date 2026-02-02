@@ -205,12 +205,16 @@ Returns ranked concepts by semantic similarity score for knowledge graph explora
                 );
             }
 
+            // T-GRAPH-DECAY-001.1: RTM FR-7.5, NFR-7.5.4 - Apply decay weighting to concept similarity scores
+            // Get decay weight for each concept based on its most recent source file
+            var decayedResults = ApplyDecayToConceptResults_T_GRAPH_DECAY_001_1(results);
+
             var sb = new StringBuilder();
             sb.AppendLineInvariant($"Similar concepts to '{conceptName}' (by semantic similarity):\n");
 
-            foreach (var (concept, _, similarity) in results)
+            foreach (var (concept, decayedSimilarity) in decayedResults)
             {
-                sb.AppendLineInvariant($"  • {concept} (similarity: {similarity:F3})");
+                sb.AppendLineInvariant($"  • {concept} (similarity: {decayedSimilarity:F3})");
             }
 
             return ToolResponse.WithNextSteps(
@@ -356,5 +360,89 @@ Returns ranked concepts by semantic similarity score for knowledge graph explora
             return true;
 
         return (max - min) <= 1e-9;
+    }
+
+    // T-GRAPH-DECAY-001.1: RTM FR-7.5, NFR-7.5.4 - Apply decay weighting to concept similarity results
+    /// <summary>
+    /// Applies decay weighting to concept similarity results based on the freshness of source files.
+    /// Each concept's decay weight is determined by the most recent file containing that concept.
+    /// </summary>
+    /// <param name="results">Raw similarity results from vector search</param>
+    /// <returns>Re-sorted results with decay-weighted similarity scores</returns>
+    private static List<(string concept, double decayedSimilarity)> ApplyDecayToConceptResults_T_GRAPH_DECAY_001_1(
+        List<(string concept, double distance, double similarity)> results)
+    {
+        var decayedResults = new List<(string concept, double decayedSimilarity)>();
+
+        foreach (var (concept, _, similarity) in results)
+        {
+            // Get decay weight for this concept based on its source files
+            var decayWeight = GetConceptDecayWeight_T_GRAPH_DECAY_001_1(concept);
+            var decayedSimilarity = similarity * decayWeight;
+            decayedResults.Add((concept, decayedSimilarity));
+        }
+
+        // Re-sort by decay-weighted similarity (descending)
+        return decayedResults
+            .OrderByDescending(r => r.decayedSimilarity)
+            .ToList();
+    }
+
+    // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Get decay weight for a concept
+    /// <summary>
+    /// Calculates decay weight for a concept based on its source files.
+    /// Uses the maximum decay weight (newest file) among all files containing the concept.
+    /// Queries concept_mentions table which directly maps concepts to their source files.
+    /// </summary>
+    /// <param name="conceptName">Normalized concept name</param>
+    /// <returns>Decay weight between 0.0 and 1.0 (1.0 = no decay, recent content)</returns>
+    private static double GetConceptDecayWeight_T_GRAPH_DECAY_001_1(string conceptName)
+    {
+        try
+        {
+            using var conn = new SqliteConnection(Config.DatabaseConnectionString);
+            conn.OpenReadOnly();
+
+            // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Query concept_mentions for direct concept-to-file mapping
+            // This is more reliable than concept_graph which only stores concept pairs
+            var sourceFiles = new List<string>();
+            using var cmd = new SqliteCommand(
+                "SELECT source_file FROM concept_mentions WHERE concept_name = @concept",
+                conn);
+            cmd.Parameters.AddWithValue("@concept", conceptName);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                if (!reader.IsDBNull(0))
+                {
+                    sourceFiles.Add(reader.GetString(0));
+                }
+            }
+
+            if (sourceFiles.Count == 0)
+            {
+                // Concept not in graph, return default weight (no decay)
+                return 1.0;
+            }
+
+            // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Calculate decay weight for each source file and take the maximum
+            // (concept's freshness is determined by its most recent occurrence)
+            var maxDecayWeight = 0.0;
+            foreach (var fileUri in sourceFiles)
+            {
+                var decayWeight = MemorySearchTools.GetDecayWeightForFile(fileUri);
+                if (decayWeight > maxDecayWeight)
+                {
+                    maxDecayWeight = decayWeight;
+                }
+            }
+
+            return maxDecayWeight > 0 ? maxDecayWeight : 1.0;
+        }
+        catch
+        {
+            // On error, return default weight (no decay)
+            return 1.0;
+        }
     }
 }

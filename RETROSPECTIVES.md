@@ -99,29 +99,66 @@ Resolved FindSimilarConcepts embedding plateau issue. System now rejects degener
 
 ---
 
-## Backlog: Decay Weighting (T-GRAPH-DECAY-001 through 004)
+## Sprint 2026-02-02: Decay Weighting (T-GRAPH-DECAY-001 through 004)
 
-**Status**: Planned (not started)
-**Priority**: P1/P2
+**Sprint Duration**: 2026-02-02
+**Outcome**: T-GRAPH-DECAY-001.1-6, 002.1-3, 003.1-2, 004.1-3 Complete
+**Priority**: P1
 
-### Scope
+### Executive Summary
 
-- T-GRAPH-DECAY-001: Recency decay weighting for search rankings
-- T-GRAPH-DECAY-002: Access-frequency boosting via ReadMemory
-- T-GRAPH-DECAY-003: ListMemories decay metadata display
-- T-GRAPH-DECAY-004: Assumption decay by epistemic status
+Delivered recency-based decay weighting for all search rankings. Content naturally decays based on age, with tiered grace periods (sequential=7d, workflows=14d, default=14d) and configurable half-life (default 30d). ReadMemory updates `last_accessed` to boost frequently-accessed content. ListMemories displays decay metadata. Assumption decay varies by epistemic status.
 
-### Pre-Sprint Notes
+### What Worked Well
 
-1. **Config Layer First**: Start with T-GRAPH-DECAY-001.2-4 (env vars, defaults) before search integration
-2. **Tiered Grace Periods**: Sequential=7d, Workflows=14d, Other=14d per PRD NFR-7.5.1-7.5.2
-3. **Access Boosting Scope**: Only ReadMemory updates `last_accessed`, not SearchMemories or BuildContext
+1. **Parallel Agent Execution**: Ran 4+ agents simultaneously throughout sprint
+   - 4 researchers in parallel for initial codebase mapping
+   - 6 blue-team agents writing tests concurrently
+   - 5 SWE agents implementing tool integration in parallel
 
-### Dependencies
+2. **TDD with Blue-Team First**: Tests defined requirements precisely
+   - DecayFunctionTests (31 tests) covered all edge cases
+   - AccessBoostingTests (10 tests) verified access patterns
+   - Red-team found only 1 real gap (env vars) because tests were thorough
 
-- Requires decay weight calculation utility
-- Requires `last_accessed` timestamp in file metadata
-- May require database schema update for timestamp storage
+3. **Database Schema Migration**: `last_accessed` column added cleanly
+   - Used SQLite `ALTER TABLE` with error handling for idempotency
+   - `ON CONFLICT DO UPDATE` preserves timestamps during re-sync
+
+### Issues Encountered
+
+1. **Missing ConfigDecayDefaultsTests**: Blue-team claimed to write but file wasn't created
+   - **Resolution**: Discovered during red-team review, SWE wrote tests with implementation
+   - **Lesson**: Verify test files exist before marking complete
+
+2. **CLI JSON Output Regression**: JSON support was accidentally removed from tools
+   - **Resolution**: SWE restored `OutputContext.IsJsonMode` checks
+   - **Lesson**: Regression tests should run after every change
+
+3. **Test Database Schema**: Tests failing with "no such column: last_accessed"
+   - **Resolution**: Ensured `AddMissingColumns()` runs for test databases
+   - **Lesson**: Database migrations must work for both production and test DBs
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| Tests Added | 91 (ConfigDecayDefaults=16, DecayFunction=31, AccessBoosting=10, GraphDecay=8, AssumptionDecay=17, ListMemories=9) |
+| Total Tests | 429 passing, 11 skipped |
+| Components Modified | 9 (Config, DecayCalculator, GraphDatabase, MemoryTools, MemorySearchTools, MemorySearchTools.Fusion, GraphTools, VectorSearchTools, SystemTools) |
+| Agents Used | 15+ (4 researchers, 6 blue-team, 5+ SWE, 1 red-team) |
+
+### Learnings for Future Sprints
+
+1. **Verify file creation**: Check test files exist before marking blue-team tasks complete
+2. **Run full test suite after each agent**: Catch regressions early
+3. **Database migrations need test coverage**: Test databases use fresh schemas
+4. **Red-team finds real gaps**: H-1 (env vars) was a legitimate PRD compliance issue
+
+### Related PRD/RTM
+
+- PRD: FR-7.5, FR-7.6, FR-7.7, FR-7.8, NFR-7.5.1-7.5.5, NFR-7.6.1-7.6.3, NFR-7.7.1, NFR-7.8.1-7.8.3
+- RTM: T-GRAPH-DECAY-001.1-6, T-GRAPH-DECAY-002.1-3, T-GRAPH-DECAY-003.1-2, T-GRAPH-DECAY-004.1-3
 
 ---
 

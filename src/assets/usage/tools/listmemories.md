@@ -15,8 +15,19 @@ Explores memory system folder structure with file counts and sizes for navigatio
 
 ### Files
 📄 ai-philosophy.md (12.3 KB)
+   created: 2024-01-15
+   last_accessed: 2024-01-20
+   decay_weight: 0.85
 📄 quick-notes.md (2.1 KB)
+   created: 2024-01-18
+   last_accessed: 2024-01-18
+   decay_weight: 1.00
 ```
+
+**Decay metadata:**
+- `created`: File creation date (from frontmatter)
+- `last_accessed`: Last read via ReadMemory (updates decay reference)
+- `decay_weight`: Current decay weight (0.0-1.0). Higher = more recent/relevant
 
 ## Examples
 
@@ -65,10 +76,19 @@ Deep navigation - nested directory exploration.
 - Paths relative to memory root: `"projects"` not `"/Users/you/maenifold/memory/projects"`
 - Non-existent paths return error with directory list suggestion
 
+## Decay Weight Interpretation
+
+- **1.00**: Within grace period (7-14 days depending on folder)
+- **0.50-0.99**: Active decay, content still relevant
+- **0.25-0.49**: Aging content, may need refresh
+- **< 0.25**: Stale content, consider updating or archiving
+
+Files in `thinking/sequential/` have a 7-day grace period; all other memory has 14 days.
+
 ## Integration
 
 - **WriteMemory**: Use findings to choose optimal folder paths
 - **SearchMemories**: When folders contain many files, search within specific areas
-- **ReadMemory**: Access specific files discovered through listing
+- **ReadMemory**: Access specific files discovered through listing (also boosts last_accessed)
 - **MoveMemory**: Understand destination structure before reorganization
 - **RecentActivity**: Combine structure view with activity patterns

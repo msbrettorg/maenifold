@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using Maenifold.Utils;
 
 namespace Maenifold.Tools;
@@ -61,14 +62,17 @@ public partial class MemorySearchTools
         }
 
 
+        // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Apply decay weighting to fused scores
         var fusedResults = rrfScores
-                    .OrderByDescending(kv => kv.Value)
                     .Select(kv =>
                     {
                         var (title, snippet) = fileInfo.GetValueOrDefault(kv.Key, (Path.GetFileNameWithoutExtension(kv.Key), ""));
                         var (textScore, semanticScore) = originalScores.GetValueOrDefault(kv.Key, (0.0, 0.0));
-                        return (kv.Key, kv.Value, textScore, semanticScore, title, snippet);
+                        var decayWeight = GetDecayWeightForFile(kv.Key);
+                        var finalScore = kv.Value * decayWeight;
+                        return (path: kv.Key, fusedScore: finalScore, textScore, semanticScore, title, snippet);
                     })
+                    .OrderByDescending(r => r.fusedScore)
                     .ToList();
 
         fusionTimer.Stop();
@@ -107,6 +111,53 @@ public partial class MemorySearchTools
                             ? filePathOrUri.Replace("memory://", "").Replace('/', Path.DirectorySeparatorChar)
                             : filePathOrUri;
             return (Path.GetFileNameWithoutExtension(name), "");
+        }
+    }
+
+    // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Calculate decay weight for a file
+    /// <summary>
+    /// Calculates decay weight for a file based on its age and access patterns.
+    /// Reads 'created' timestamp from frontmatter and uses DecayCalculator.
+    /// </summary>
+    /// <param name="filePathOrUri">File path or memory:// URI</param>
+    /// <returns>Decay weight between 0.0 and 1.0</returns>
+    internal static double GetDecayWeightForFile(string filePathOrUri)
+    {
+        try
+        {
+            // Convert URI to disk path if needed
+            string filePath;
+            if (filePathOrUri.StartsWith("memory://", StringComparison.Ordinal))
+            {
+                filePath = MarkdownIO.UriToPath(filePathOrUri, Config.MemoryPath);
+            }
+            else
+            {
+                filePath = filePathOrUri;
+            }
+
+            // Get 'created' from frontmatter
+            var (frontmatter, _, _) = MarkdownIO.ReadMarkdown(filePath);
+            DateTime created = DateTime.UtcNow; // Default to now if not found
+
+            if (frontmatter?.ContainsKey("created") == true)
+            {
+                var createdStr = frontmatter["created"]?.ToString();
+                if (!string.IsNullOrEmpty(createdStr) &&
+                    DateTime.TryParse(createdStr, CultureInfo.InvariantCulture,
+                        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsedCreated))
+                {
+                    created = parsedCreated;
+                }
+            }
+
+            // Calculate decay weight using the file path for tier detection and created timestamp
+            return DecayCalculator.GetDecayWeight(created, null, filePath);
+        }
+        catch
+        {
+            // If we can't read the file, return neutral decay (weight = 1.0)
+            return 1.0;
         }
     }
 }

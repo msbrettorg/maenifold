@@ -53,10 +53,16 @@ Notes:
 - Respects intentional connections
 - Use for: following established structure
 
+## Decay Weighting
+
+FindSimilarConcepts uses vector similarity, not file timestamps. Decay weighting does not apply to this tool directly.
+
+However, once you identify similar concepts, use **BuildContext** or **SearchMemories** to explore them—those tools apply decay weighting to rank recent content higher.
+
 ## Integration
 
 - **Sync**: Run first to populate `vec_concepts` embeddings (otherwise you may get few/no results)
 - **AnalyzeConceptCorruption**: Identify duplicates from high-similarity results
 - **RepairConcepts**: Consolidate similar concepts that are true duplicates
-- **BuildContext**: Explore graph relationships of similar concepts
-- **SearchMemories**: Find files containing discovered concepts
+- **BuildContext**: Explore graph relationships of similar concepts (decay-weighted)
+- **SearchMemories**: Find files containing discovered concepts (decay-weighted)

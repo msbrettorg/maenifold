@@ -59,3 +59,9 @@
 | T-GRAPH-DECAY-004.1 | FR-7.8, NFR-7.8.1 | `validated` assumptions SHALL NOT decay. | src/Tools/AssumptionLedgerTools.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | Planned |
 | T-GRAPH-DECAY-004.2 | NFR-7.8.2 | `active` and `refined` assumptions: 14d grace, 30d half-life. | src/Tools/AssumptionLedgerTools.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | Planned |
 | T-GRAPH-DECAY-004.3 | NFR-7.8.3 | `invalidated` assumptions: 7d grace, 14d half-life. | src/Tools/AssumptionLedgerTools.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | Planned |
+
+## T-GOV-RETRO-001: Retrospectives log
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-GOV-RETRO-001.1 | FR-9.1 | Repository SHALL include `RETROSPECTIVES.md`. | RETROSPECTIVES.md | N/A | Complete |

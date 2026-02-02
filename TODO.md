@@ -463,3 +463,22 @@ Several SequentialThinking sessions from recent activity are still marked as "ac
 ### Acceptance Criteria
 
 - [ ] No orphaned active sessions older than 24 hours
+
+---
+
+## GOV-RETRO-001: Add RETROSPECTIVES.md
+
+**Status**: ✅ Complete (2026-02-01)
+**Priority**: Low
+
+### Problem
+
+We need a canonical place to capture sprint retrospectives.
+
+### Tasks
+
+1. [x] T-GOV-RETRO-001.1: Create empty RETROSPECTIVES.md in repo root
+
+### Acceptance Criteria
+
+- [x] RETROSPECTIVES.md exists at repo root

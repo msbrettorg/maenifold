@@ -10,6 +10,7 @@
 | 1.3 | 2026-02-01 | PM Agent | Added FR-7.8 (assumption decay by status) |
 | 1.4 | 2026-02-01 | PM Agent | Refined thinking tier: sequential=7d, workflows=14d per Moltbook gap analysis |
 | 1.5 | 2026-02-01 | PM Agent | **P0**: Added FR-8.x (CLI JSON output) - blocks OpenClaw integrations |
+| 1.6 | 2026-02-01 | PM Agent | Added FR-9.1 (retrospectives log) |
 
 ---
 
@@ -53,6 +54,12 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | FR-7.6 | System SHALL reset decay clock (update `last_accessed` timestamp) when a memory is explicitly read via ReadMemory, boosting frequently-accessed content. | P1 |
 | FR-7.7 | ListMemories SHALL display decay-relevant metadata (`created`, `last_accessed`, `decay_weight`) for each file. | P2 |
 | FR-7.8 | AssumptionLedger assumptions SHALL decay based on status: `validated` assumptions are exempt; `active`, `refined`, and `invalidated` assumptions decay. | P1 |
+
+### 3.3 Product Governance
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-9.1 | Repository SHALL include `RETROSPECTIVES.md` to capture sprint retrospectives. | P2 |
 
 ---
 

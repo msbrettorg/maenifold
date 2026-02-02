@@ -76,6 +76,34 @@ Notes:
 - **Concept exploration**: Search `[[WikiLink]]` names like [[machine-learning]], [[research]] for graph nodes
 - **Project-specific**: Use folder filtering for targeted discovery
 
+## Decay Weighting
+
+Search results are weighted by recency using time-based decay:
+
+**How it works:**
+- Scores are multiplied by a decay weight (0.0-1.0) based on file age
+- Recent content ranks higher; stale content naturally sinks
+- Decay is based on `last_accessed` if available, otherwise `created` date
+
+**Grace periods (full weight = 1.0):**
+- `thinking/sequential/`: 7 days
+- `thinking/workflows/`: 14 days
+- All other memory: 14 days
+
+**After grace period:**
+- Exponential decay with 30-day half-life (default)
+- At 30 days past grace: weight = 0.5
+- At 60 days past grace: weight = 0.25
+
+**Environment variables:**
+- `MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL` (default: 7)
+- `MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS` (default: 14)
+- `MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT` (default: 14)
+- `MAENIFOLD_DECAY_HALF_LIFE_DAYS` (default: 30)
+- `MAENIFOLD_DECAY_FUNCTION` ("exponential" | "power-law")
+
+**Note:** SearchMemories does NOT update `last_accessed`. Use ReadMemory to boost a file's recency.
+
 ## Integration
 
 - **ReadMemory**: Access full content using memory:// URIs from results

@@ -30,38 +30,53 @@
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-GRAPH-DECAY-001.1 | FR-7.5 | Apply recency-based decay weighting to all search result rankings. | src/Graph/*, src/Tools/* | tests/Maenifold.Tests/GraphDecayWeightingTests.cs | Planned |
-| T-GRAPH-DECAY-001.2 | NFR-7.5.1 | `memory/thinking/sequential/` grace period: 7 days (`MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL`). | src/Utils/Config.cs | tests/Maenifold.Tests/ConfigDecayDefaultsTests.cs | Planned |
-| T-GRAPH-DECAY-001.2a | NFR-7.5.1a | `memory/thinking/workflows/` grace period: 14 days (`MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS`). | src/Utils/Config.cs | tests/Maenifold.Tests/ConfigDecayDefaultsTests.cs | Planned |
-| T-GRAPH-DECAY-001.3 | NFR-7.5.2 | All other memory grace period: 14 days (`MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT`). | src/Utils/Config.cs | tests/Maenifold.Tests/ConfigDecayDefaultsTests.cs | Planned |
-| T-GRAPH-DECAY-001.4 | NFR-7.5.3 | Default half-life 30 days (`MAENIFOLD_DECAY_HALF_LIFE_DAYS`). | src/Utils/Config.cs | tests/Maenifold.Tests/ConfigDecayDefaultsTests.cs | Planned |
-| T-GRAPH-DECAY-001.5 | NFR-7.5.4 | Decay affects ranking only; content remains fully retrievable via direct query. | src/Tools/* | tests/Maenifold.Tests/GraphDecayWeightingTests.cs | Planned |
+| T-GRAPH-DECAY-001.1 | FR-7.5 | Apply recency-based decay weighting to all search result rankings. | src/Tools/MemorySearchTools.Fusion.cs, src/Tools/GraphTools.cs, src/Tools/VectorSearchTools.cs | tests/Maenifold.Tests/GraphDecayWeightingTests.cs | **Complete** |
+| T-GRAPH-DECAY-001.2 | NFR-7.5.1 | `memory/thinking/sequential/` grace period: 7 days (`MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL`). | src/Utils/Config.cs, src/Utils/DecayCalculator.cs | tests/Maenifold.Tests/ConfigDecayDefaultsTests.cs | **Complete** |
+| T-GRAPH-DECAY-001.2a | NFR-7.5.1a | `memory/thinking/workflows/` grace period: 14 days (`MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS`). | src/Utils/Config.cs, src/Utils/DecayCalculator.cs | tests/Maenifold.Tests/ConfigDecayDefaultsTests.cs | **Complete** |
+| T-GRAPH-DECAY-001.3 | NFR-7.5.2 | All other memory grace period: 14 days (`MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT`). | src/Utils/Config.cs, src/Utils/DecayCalculator.cs | tests/Maenifold.Tests/ConfigDecayDefaultsTests.cs | **Complete** |
+| T-GRAPH-DECAY-001.4 | NFR-7.5.3 | Default half-life 30 days (`MAENIFOLD_DECAY_HALF_LIFE_DAYS`). | src/Utils/Config.cs, src/Utils/DecayCalculator.cs | tests/Maenifold.Tests/ConfigDecayDefaultsTests.cs | **Complete** |
+| T-GRAPH-DECAY-001.5 | NFR-7.5.4 | Decay affects ranking only; content remains fully retrievable via direct query. | src/Tools/MemoryTools.cs | tests/Maenifold.Tests/GraphDecayWeightingTests.cs | **Complete** |
+| T-GRAPH-DECAY-001.6 | NFR-7.5.5 | Optional power-law decay (`R = a × t^(-b)`) via `MAENIFOLD_DECAY_FUNCTION` env var. | src/Utils/Config.cs, src/Utils/DecayCalculator.cs | tests/Maenifold.Tests/DecayFunctionTests.cs | **Complete** |
 
 ## T-GRAPH-DECAY-002: Access-frequency boosting
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-GRAPH-DECAY-002.1 | FR-7.6, NFR-7.6.1 | ReadMemory SHALL update `last_accessed` timestamp on every read. | src/Tools/MemoryTools.cs | tests/Maenifold.Tests/AccessBoostingTests.cs | Planned |
-| T-GRAPH-DECAY-002.2 | NFR-7.6.2 | SearchMemories SHALL NOT update `last_accessed` for results. | src/Tools/SearchTools.cs | tests/Maenifold.Tests/AccessBoostingTests.cs | Planned |
-| T-GRAPH-DECAY-002.3 | NFR-7.6.3 | BuildContext SHALL NOT update `last_accessed` for referenced files. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/AccessBoostingTests.cs | Planned |
+| T-GRAPH-DECAY-002.1 | FR-7.6, NFR-7.6.1 | ReadMemory SHALL update `last_accessed` timestamp on every read. | src/Tools/MemoryTools.cs, src/Tools/GraphDatabase.cs | tests/Maenifold.Tests/AccessBoostingTests.cs | **Complete** |
+| T-GRAPH-DECAY-002.2 | NFR-7.6.2 | SearchMemories SHALL NOT update `last_accessed` for results. | src/Tools/MemorySearchTools.cs | tests/Maenifold.Tests/AccessBoostingTests.cs | **Complete** |
+| T-GRAPH-DECAY-002.3 | NFR-7.6.3 | BuildContext SHALL NOT update `last_accessed` for referenced files. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/AccessBoostingTests.cs | **Complete** |
 
 ## T-GRAPH-DECAY-003: ListMemories decay metadata
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-GRAPH-DECAY-003.1 | FR-7.7 | ListMemories SHALL display `created`, `last_accessed`, `decay_weight` for each file. | src/Tools/MemoryTools.cs | tests/Maenifold.Tests/ListMemoriesMetadataTests.cs | Planned |
-| T-GRAPH-DECAY-003.2 | NFR-7.7.1 | decay_weight SHALL use file's tier (sequential=7d, workflows=14d, other=14d grace). | src/Tools/MemoryTools.cs | tests/Maenifold.Tests/ListMemoriesMetadataTests.cs | Planned |
+| T-GRAPH-DECAY-003.1 | FR-7.7 | ListMemories SHALL display `created`, `last_accessed`, `decay_weight` for each file. | src/Tools/SystemTools.cs | tests/Maenifold.Tests/ListMemoriesMetadataTests.cs | **Complete** |
+| T-GRAPH-DECAY-003.2 | NFR-7.7.1 | decay_weight SHALL use file's tier (sequential=7d, workflows=14d, other=14d grace). | src/Tools/SystemTools.cs, src/Utils/DecayCalculator.cs | tests/Maenifold.Tests/ListMemoriesMetadataTests.cs | **Complete** |
 
 ## T-GRAPH-DECAY-004: Assumption decay by status
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-GRAPH-DECAY-004.1 | FR-7.8, NFR-7.8.1 | `validated` assumptions SHALL NOT decay. | src/Tools/AssumptionLedgerTools.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | Planned |
-| T-GRAPH-DECAY-004.2 | NFR-7.8.2 | `active` and `refined` assumptions: 14d grace, 30d half-life. | src/Tools/AssumptionLedgerTools.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | Planned |
-| T-GRAPH-DECAY-004.3 | NFR-7.8.3 | `invalidated` assumptions: 7d grace, 14d half-life. | src/Tools/AssumptionLedgerTools.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | Planned |
+| T-GRAPH-DECAY-004.1 | FR-7.8, NFR-7.8.1 | `validated` assumptions SHALL NOT decay. | src/Utils/DecayCalculator.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | **Complete** |
+| T-GRAPH-DECAY-004.2 | NFR-7.8.2 | `active` and `refined` assumptions: 14d grace, 30d half-life. | src/Utils/DecayCalculator.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | **Complete** |
+| T-GRAPH-DECAY-004.3 | NFR-7.8.3 | `invalidated` assumptions: 7d grace, 14d half-life. | src/Utils/DecayCalculator.cs | tests/Maenifold.Tests/AssumptionDecayTests.cs | **Complete** |
+
+## T-GRAPH-DECAY-005: Memory consolidation (Cognitive Sleep Cycle)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-GRAPH-DECAY-005.1 | FR-7.9 | System SHALL support periodic consolidation of high-value episodic content via Cognitive Sleep Cycle workflow. | assets/workflows/sleep-cycle.json | Manual workflow execution | **Complete** |
+| T-GRAPH-DECAY-005.2 | FR-7.9 | Consolidation SHALL distill episodic (thinking/) content into semantic (memory://) notes with WikiLinks. | assets/workflows/sleep-cycle.json | Manual workflow execution | **Complete** |
 
 ## T-GOV-RETRO-001: Retrospectives log
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-GOV-RETRO-001.1 | FR-9.1 | Repository SHALL include `RETROSPECTIVES.md`. | RETROSPECTIVES.md | N/A | Complete |
+| T-GOV-RETRO-001.1 | FR-9.1 | Repository SHALL include `RETROSPECTIVES.md`. | RETROSPECTIVES.md | N/A | **Complete** |
+| T-GOV-RETRO-001.2 | FR-9.1 | RETROSPECTIVES.md SHALL contain retrospective template and sprint entries. | RETROSPECTIVES.md | N/A | **Complete** |
+
+## T-GOV-BUILD-001: Debug-only build/test requirement
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-GOV-BUILD-001.1 | FR-9.2 | During active sprints, builds/tests SHALL use Debug only; Release SHALL NOT be invoked. | AGENTS.md, CONTRIBUTING/DEVELOPMENT docs | N/A | Planned |

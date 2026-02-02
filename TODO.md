@@ -254,68 +254,12 @@ These are **release-blocking** quality checks for `buildcontext` and `findsimila
 
 ---
 
-## OPENCODE-001: OpenCode Plugin for Maenifold
-
-**Status**: Active
-**Priority**: High
-**Created**: 2026-01-27
-
-### Problem
-
-OpenCode lacks native maenifold integration. Need a TypeScript plugin that provides:
-- Session start context injection (graph context from SearchMemories/RecentActivity)
-- Compaction preservation (save session knowledge via WriteMemory)
-- Concept augmentation (enrich tool inputs containing `[[WikiLinks]]` with BuildContext)
-
-### Completed Tasks
-
-- [x] T-OC-1: Research OpenCode plugin API and hook surface
-- [x] T-OC-2: Research session.compacted event capture pattern
-- [x] T-OC-3: Design plugin architecture (SPEC.md)
-- [x] T-OC-4: Implement plugin (`~/.config/opencode/plugins/maenifold.ts`)
-- [x] T-OC-5: Blue-team defensive review (1 HIGH, 7 MEDIUM, 11 LOW findings)
-- [x] T-OC-6: Red-team security assessment (1 CRITICAL, 3 HIGH, 3 MEDIUM)
-- [x] T-OC-6.1: Fix Unicode homoglyph bypass (NFKC normalization)
-- [x] T-OC-6.2: Fix symlink path traversal (realpathSync validation)
-- [x] T-OC-6.3: Fix type guard (extractMessageText implementation)
-- [x] T-OC-7: Verify security remediations (CONDITIONAL PASS)
-
-### Outstanding Tasks
-
-1. [ ] T-OC-8: Implement compaction summary persistence with security mitigations
-   - Treat summary as untrusted data (schema separation, fenced reinjection)
-   - Aggressive sanitization (NFKC, control char stripping)
-   - Strict `[[wikilinks]]` allowlisting to prevent graph corruption
-   - See: memory://thinking/sequential/2026/01/28/session-1769625876165
-2. [ ] T-OC-9: Add secret/PII scrubbing before persistence
-3. [ ] T-OC-10: Add project isolation (namespace by project.id)
-4. [ ] T-OC-11: Add retention controls (TTL, opt-out toggle)
-5. [ ] T-OC-12: Integration testing with live OpenCode session
-6. [ ] T-OC-13: Documentation and README
-
-### Acceptance Criteria
-
-- [ ] Plugin loads successfully in OpenCode
-- [ ] Session start injects graph context
-- [ ] Compaction summaries persist to SequentialThinking (with sanitization)
-- [ ] `[[WikiLinks]]` in prompts trigger BuildContext enrichment
-- [ ] All security mitigations verified by red-team
-
-### Related Memory
-
-- memory://tech/integrations/opencode-plugin-for-maenifold
-- memory://tech/integrations/opencode-plugin-api-reference
-- memory://tech/integrations/opencode-sessioncompacted-event-summary-capture-pattern
-- memory://thinking/sequential/2026/01/28/session-1769625876165 (security analysis)
-
----
-
 ## GRAPH-DECAY-001: Recency decay weighting for search
 
-**Status**: Active
+**Status**: ✅ Complete
 **Priority**: High
 **Created**: 2026-01-31
-**Updated**: 2026-02-01 (PRD v1.4 — sequential=7d, workflows=14d per Moltbook gap analysis)
+**Completed**: 2026-02-02
 
 ### Problem
 
@@ -323,9 +267,10 @@ Search result rankings should reflect recency: knowledge we revisit frequently s
 
 ### Scope / Traceability
 
-- PRD: FR-7.5 (tiered decay), FR-7.6 (access boosting), NFR-7.5.1–7.5.4, NFR-7.6.1
-- RTM: T-GRAPH-DECAY-001.*, T-GRAPH-DECAY-002.*
+- PRD: FR-7.5 (tiered decay), FR-7.6 (access boosting), FR-7.9 (consolidation), NFR-7.5.1–7.5.5, NFR-7.6.1
+- RTM: T-GRAPH-DECAY-001.*, T-GRAPH-DECAY-002.*, T-GRAPH-DECAY-005.*
 - Research: Moltbook discussion "TIL: Memory decay makes retrieval BETTER" (2026-01-30, 491 comments)
+- Research: docs/research/decay-in-ai-memory-systems.md (Ebbinghaus, ACT-R, Richards & Frankland)
 
 ### Design
 
@@ -351,34 +296,39 @@ final_score = semantic_score × decay_weight
 
 ### Tasks
 
-1. [ ] T-GRAPH-DECAY-001.1: Apply decay weighting to search rankings (BuildContext, FindSimilarConcepts, SearchMemories)
-2. [ ] T-GRAPH-DECAY-001.2: Add sequential grace config — `MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL` (default 7)
-3. [ ] T-GRAPH-DECAY-001.2a: Add workflows grace config — `MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS` (default 14)
-4. [ ] T-GRAPH-DECAY-001.3: Add default grace config — `MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT` (default 14)
-5. [ ] T-GRAPH-DECAY-001.4: Add half-life config — `MAENIFOLD_DECAY_HALF_LIFE_DAYS` (default 30)
-6. [ ] T-GRAPH-DECAY-001.5: Ensure decay affects ranking only (direct ReadMemory bypasses decay)
-7. [ ] T-GRAPH-DECAY-002.1: Update `last_accessed` on ReadMemory (explicit read = intentional access)
-8. [ ] T-GRAPH-DECAY-002.2: Verify SearchMemories does NOT update `last_accessed` (appearing in results ≠ being read)
-9. [ ] T-GRAPH-DECAY-002.3: Verify BuildContext does NOT update `last_accessed` (automated context ≠ intentional access)
-10. [ ] T-GRAPH-DECAY-003.1: Add `created`, `last_accessed`, `decay_weight` to ListMemories output
-11. [ ] T-GRAPH-DECAY-003.2: Compute decay_weight using file's tier (sequential=7d, workflows=14d, other=14d grace)
-12. [ ] T-GRAPH-DECAY-004: Add tests for tiered decay config defaults
-13. [ ] T-GRAPH-DECAY-005: Add tests for access-boosting behavior (ReadMemory updates, Search/BuildContext don't)
-14. [ ] T-GRAPH-DECAY-006: Update GetConfig summary output to include decay settings
-15. [ ] T-GRAPH-DECAY-007: Document decay behavior in docs/usage and tool docs
-16. [ ] T-GRAPH-DECAY-004.1: Exempt `validated` assumptions from decay
-17. [ ] T-GRAPH-DECAY-004.2: Apply 14d grace / 30d half-life to `active` and `refined` assumptions
-18. [ ] T-GRAPH-DECAY-004.3: Apply 7d grace / 14d half-life to `invalidated` assumptions (aggressive decay)
+1. [x] T-GRAPH-DECAY-001.1: Apply decay weighting to search rankings (BuildContext, FindSimilarConcepts, SearchMemories)
+2. [x] T-GRAPH-DECAY-001.2: Add sequential grace config — `MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL` (default 7)
+3. [x] T-GRAPH-DECAY-001.2a: Add workflows grace config — `MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS` (default 14)
+4. [x] T-GRAPH-DECAY-001.3: Add default grace config — `MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT` (default 14)
+5. [x] T-GRAPH-DECAY-001.4: Add half-life config — `MAENIFOLD_DECAY_HALF_LIFE_DAYS` (default 30)
+6. [x] T-GRAPH-DECAY-001.5: Ensure decay affects ranking only (direct ReadMemory bypasses decay)
+7. [x] T-GRAPH-DECAY-002.1: Update `last_accessed` on ReadMemory (explicit read = intentional access)
+8. [x] T-GRAPH-DECAY-002.2: Verify SearchMemories does NOT update `last_accessed` (appearing in results ≠ being read)
+9. [x] T-GRAPH-DECAY-002.3: Verify BuildContext does NOT update `last_accessed` (automated context ≠ intentional access)
+10. [x] T-GRAPH-DECAY-003.1: Add `created`, `last_accessed`, `decay_weight` to ListMemories output
+11. [x] T-GRAPH-DECAY-003.2: Compute decay_weight using file's tier (sequential=7d, workflows=14d, other=14d grace)
+12. [x] T-GRAPH-DECAY-004: Add tests for tiered decay config defaults
+13. [x] T-GRAPH-DECAY-005: Add tests for access-boosting behavior (ReadMemory updates, Search/BuildContext don't)
+14. [x] T-GRAPH-DECAY-006: Update GetConfig summary output to include decay settings
+15. [x] T-GRAPH-DECAY-007: Document decay behavior in docs/usage and tool docs
+16. [x] T-GRAPH-DECAY-004.1: Exempt `validated` assumptions from decay
+17. [x] T-GRAPH-DECAY-004.2: Apply 14d grace / 30d half-life to `active` and `refined` assumptions
+18. [x] T-GRAPH-DECAY-004.3: Apply 7d grace / 14d half-life to `invalidated` assumptions (aggressive decay)
+19. [x] T-GRAPH-DECAY-001.6: Implement optional power-law decay (`R = a × t^(-b)`) via `MAENIFOLD_DECAY_FUNCTION` env var
+20. [x] T-GRAPH-DECAY-005.1: Implement Cognitive Sleep Cycle workflow for periodic consolidation
+21. [x] T-GRAPH-DECAY-005.2: Consolidation distills episodic (thinking/) → semantic (memory://) with WikiLinks
 
 ### Acceptance Criteria
 
-- [ ] `memory/thinking/sequential/` grace = 7d, `memory/thinking/workflows/` grace = 14d, other = 14d, half-life = 30d
-- [ ] Env overrides work for all four parameters (SEQUENTIAL, WORKFLOWS, DEFAULT, HALF_LIFE)
-- [ ] All search ranking paths apply decay weighting
-- [ ] Only ReadMemory updates `last_accessed` (SearchMemories/BuildContext do not)
-- [ ] Direct ReadMemory returns full content regardless of decay (ranking not deletion)
-- [ ] Tests cover tiered defaults and access-boosting behavior
-- [ ] Assumption decay by status: validated=exempt, active/refined=14d/30d, invalidated=7d/14d
+- [x] `memory/thinking/sequential/` grace = 7d, `memory/thinking/workflows/` grace = 14d, other = 14d, half-life = 30d
+- [x] Env overrides work for all four parameters (SEQUENTIAL, WORKFLOWS, DEFAULT, HALF_LIFE)
+- [x] All search ranking paths apply decay weighting
+- [x] Only ReadMemory updates `last_accessed` (SearchMemories/BuildContext do not)
+- [x] Direct ReadMemory returns full content regardless of decay (ranking not deletion)
+- [x] Tests cover tiered defaults and access-boosting behavior
+- [x] Assumption decay by status: validated=exempt, active/refined=14d/30d, invalidated=7d/14d
+- [x] Power-law decay (`R = a × t^(-b)`) available via `MAENIFOLD_DECAY_FUNCTION=power_law` (default: exponential)
+- [x] Cognitive Sleep Cycle workflow consolidates high-value episodic content into semantic memory
 
 ---
 
@@ -468,7 +418,7 @@ Several SequentialThinking sessions from recent activity are still marked as "ac
 
 ## GOV-RETRO-001: Add RETROSPECTIVES.md
 
-**Status**: ✅ Complete (2026-02-01)
+**Status**: ✅ Complete (2026-02-02)
 **Priority**: Low
 
 ### Problem
@@ -477,8 +427,32 @@ We need a canonical place to capture sprint retrospectives.
 
 ### Tasks
 
-1. [x] T-GOV-RETRO-001.1: Create empty RETROSPECTIVES.md in repo root
+1. [x] T-GOV-RETRO-001.1: Create RETROSPECTIVES.md in repo root
+2. [x] T-GOV-RETRO-001.2: Add retrospective template and initial sprint entries
 
 ### Acceptance Criteria
 
 - [x] RETROSPECTIVES.md exists at repo root
+- [x] Contains retrospective template for future sprints
+- [x] Documents CLI JSON Output sprint (T-CLI-JSON-001)
+- [x] Documents Embeddings Quality sprint (T-QUAL-FSC2)
+- [x] Includes backlog notes for decay weighting sprints
+
+---
+
+## GOV-BUILD-001: Debug-only build/test requirement
+
+**Status**: Active
+**Priority**: Medium
+
+### Problem
+
+Release build is in active use; we must avoid invoking it during sprint work.
+
+### Tasks
+
+1. [ ] T-GOV-BUILD-001.1: Document debug-only build/test requirement in AGENTS.md and relevant development docs
+
+### Acceptance Criteria
+
+- [ ] Documentation explicitly forbids Release build/test during sprints

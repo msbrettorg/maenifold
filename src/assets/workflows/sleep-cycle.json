@@ -1,8 +1,8 @@
 {
   "id": "sleep-cycle",
-  "name": "Cognitive Sleep Cycle",
+  "name": "Cognitive Sleep Cycle (Orchestrator)",
   "emoji": "🌙",
-  "description": "Memory consolidation, decay processing, and graph maintenance during agent sleep. Mirrors biological sleep phases: hippocampal replay, slow-wave consolidation, synaptic pruning, and REM dream synthesis.",
+  "description": "Multi-agent orchestration for memory consolidation, decay processing, and graph maintenance during agent sleep. Dispatches 4 parallel specialist workflows that mirror biological sleep phases.",
   "triggers": [
     "sleep cycle",
     "memory consolidation",
@@ -14,211 +14,73 @@
   "enhancedThinkingEnabled": true,
   "steps": [
     {
-      "id": "memory-replay",
-      "name": "🔄 Memory Replay (Hippocampal Phase)",
-      "description": "Replay recent activity and identify significant events for consolidation.\n\n1. Run recent_activity to retrieve events since last sleep cycle\n2. Identify high-significance events: decisions made, lessons learned, bugs fixed, insights gained\n3. Extract recurring [[concepts]] and patterns across recent activity\n4. Flag items requiring consolidation vs. items safe to let decay\n5. Create replay summary with significance scores\n\nOutput: memory://custodian/replay-{timestamp}.md\nInclude: Significant events, recurring concepts, consolidation candidates",
-      "requiresEnhancedThinking": true,
-      "metadata": {
-        "toolHints": {
-          "recent_activity": {
-            "reason": "Retrieve events since last sleep cycle",
-            "priority": "mandatory",
-            "timespan": "1.00:00:00",
-            "includeContent": true
-          },
-          "sequential_thinking": {
-            "reason": "Pattern recognition across recent activity",
-            "priority": "mandatory",
-            "estimated_thoughts": 3,
-            "focus_areas": ["Significance scoring", "Pattern identification", "Consolidation triage"]
-          }
-        },
-        "reasoning_effort": "medium",
-        "stop_conditions": ["Replay complete", "Significance scores assigned", "Consolidation candidates identified"],
-        "next_actions": ["Memory consolidation"],
-        "guardrails": {
-          "recency_window": "Process last 24-48 hours of activity",
-          "significance_threshold": "Flag items with 3+ concept connections"
-        }
-      }
-    },
-    {
-      "id": "consolidation",
-      "name": "🧠 Memory Consolidation (Slow-Wave Phase)",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nTransfer high-value episodic memory to semantic storage.\n\n1. For each consolidation candidate, distill key insights into wiki-style knowledge\n2. Search existing memory:// for related notes to update rather than duplicate\n3. Strengthen important concepts by creating/updating memory:// notes with rich [[WikiLinks]]\n4. Cross-link new knowledge to existing graph structure\n5. Update daily log with consolidation summary\n\nOutput: Updated memory:// notes, memory://logs/{date}.md\nInclude: Distilled insights, cross-links, consolidation decisions",
-      "requiresEnhancedThinking": true,
-      "metadata": {
-        "toolHints": {
-          "search_memories": {
-            "reason": "Find existing notes to update",
-            "priority": "mandatory",
-            "mode": "Hybrid"
-          },
-          "write_memory": {
-            "reason": "Persist consolidated knowledge",
-            "priority": "mandatory"
-          },
-          "edit_memory": {
-            "reason": "Update existing notes rather than duplicate",
-            "priority": "recommended"
-          },
-          "sequential_thinking": {
-            "reason": "Distillation requires synthesis",
-            "priority": "mandatory",
-            "estimated_thoughts": 4,
-            "focus_areas": ["Insight extraction", "Deduplication", "Cross-linking"]
-          }
-        },
-        "reasoning_effort": "high",
-        "stop_conditions": ["Candidates consolidated", "No duplicates created", "Cross-links established"],
-        "next_actions": ["Decay processing"],
-        "guardrails": {
-          "no_duplicates": "Always search before creating new notes",
-          "wikilink_density": "Minimum 5 [[concepts]] per consolidated note",
-          "update_preference": "Prefer editing existing notes over creating new ones"
-        }
-      }
-    },
-    {
-      "id": "decay-processing",
-      "name": "🍂 Decay Processing (Synaptic Pruning)",
-      "description": "Apply tiered decay to let irrelevant memories fade.\n\n1. Identify memories past their grace period by tier:\n   - thinking/sequential/: 7-day grace (MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL)\n   - thinking/workflows/: 14-day grace (MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS)\n   - other memory://: 14-day grace (MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT)\n2. Calculate decay weights based on last_accessed timestamps (30-day half-life default)\n3. Flag severely decayed content (weight < 0.25) for review (not deletion)\n4. Document decay state for monitoring\n5. Note: Decay affects search ranking only; content remains fully retrievable via direct query\n\nOutput: memory://custodian/decay-report-{timestamp}.md\nInclude: Decay statistics, flagged items, tier breakdown",
+      "id": "dispatch-specialists",
+      "name": "🚀 Dispatch Sleep Specialists",
+      "description": "🚫 BLOCKING: Dispatch ALL specialist workflows in ONE message for parallel execution.\n\n⚠️ CRITICAL: ALL FOUR AGENTS IN ONE MESSAGE FOR PARALLEL EXECUTION!\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Run sleep-consolidation workflow\nAgent: Run workflow sleep-consolidation\nInstruction: Execute the consolidation workflow: memory replay focused on high-significance events, slow-wave consolidation of episodic to semantic memory, and dream synthesis for novel connections.\nOutput: memory://custodian/consolidation-{timestamp}/\n\nTask 2: Run sleep-decay workflow\nAgent: Run workflow sleep-decay\nInstruction: Execute the decay workflow: analyze access patterns, calculate tiered decay weights, flag severely decayed content for review.\nOutput: memory://custodian/decay-{timestamp}/\n\nTask 3: Run sleep-repair workflow\nAgent: Run workflow sleep-repair\nInstruction: Execute the repair workflow: analyze concept corruption in high-frequency families, normalize WikiLink variants, sync graph.\nOutput: memory://custodian/repair-{timestamp}/\n\nTask 4: Run sleep-epistemic workflow\nAgent: Run workflow sleep-epistemic\nInstruction: Execute the epistemic workflow: review active assumptions, apply validation pressure, update statuses based on evidence.\nOutput: memory://custodian/epistemic-{timestamp}/\n```\n\n🎯 SPECIALIST REQUIREMENTS:\n- Each specialist workflow is self-contained with its own memory replay phase\n- Consolidation: MAY use read_memory (access boosting is semantically correct)\n- Decay: SHALL use list_memories, NOT read_memory (preserve decay state)\n- Repair: SHALL use graph tools, NOT read_memory\n- Epistemic: SHALL use assumption_ledger, NOT read_memory\n\n⏱️ Dispatch duration: 5 minutes\n⏱️ Specialist execution: 30-45 minutes each (parallel)",
       "requiresEnhancedThinking": false,
       "metadata": {
         "toolHints": {
-          "list_memories": {
-            "reason": "Enumerate memories with decay metadata (created, last_accessed, decay_weight)",
-            "priority": "mandatory"
-          },
-          "write_memory": {
-            "reason": "Document decay report",
-            "priority": "mandatory"
+          "Task": {
+            "reason": "Critical parallel dispatch - ALL agents must launch in ONE message",
+            "priority": "mandatory",
+            "required_operations": ["sleep-consolidation workflow", "sleep-decay workflow", "sleep-repair workflow", "sleep-epistemic workflow"],
+            "parallel_execution": true,
+            "agent_instructions": {
+              "workflow_choice": "Each specialist runs its designated workflow",
+              "output_format": "Markdown report to designated memory://custodian/ folder"
+            }
           }
         },
         "reasoning_effort": "low",
-        "stop_conditions": ["Decay calculated", "Report generated"],
-        "next_actions": ["Concept repair"],
+        "stop_conditions": ["All four specialists dispatched"],
+        "next_actions": ["Wait for specialists", "Review outputs"],
         "guardrails": {
-          "no_deletion": "Decay affects ranking only, never delete content",
-          "validated_exempt": "Validated assumptions never decay (NFR-7.8.1)",
-          "access_boosting": "ReadMemory resets decay clock; frequently-accessed content stays fresh"
+          "tool_access_safety": "Consolidation MAY use read_memory; others MUST NOT (NFR-7.11.x)"
         }
       }
     },
     {
-      "id": "concept-repair",
-      "name": "🔧 Concept Repair (Graph Maintenance)",
-      "description": "Fix fragmented concepts and normalize WikiLinks.\n\n1. Run analyzeconceptcorruption on high-frequency concept families\n2. Identify variant forms, typos, and fragmentation (e.g., [[auth]] vs [[authentication]])\n3. Use repairconcepts with dryRun=true first to preview changes\n4. Apply repairs for clear cases; flag ambiguous cases for human review\n5. Sync graph to ensure consistency\n\nOutput: memory://custodian/repair-report-{timestamp}.md\nInclude: Repairs made, items flagged for review, graph health metrics",
-      "requiresEnhancedThinking": true,
+      "id": "review-outputs",
+      "name": "📊 Review Specialist Outputs",
+      "description": "Review all outputs from the 4 specialist workflows.\n\n1. **Read Consolidation Report**:\n   - memory://custodian/consolidation-{timestamp}/\n   - Check: Items consolidated, WikiLink density, dream insights\n\n2. **Read Decay Report**:\n   - memory://custodian/decay-{timestamp}/\n   - Check: Decay statistics, flagged items, tier breakdown\n\n3. **Read Repair Report**:\n   - memory://custodian/repair-{timestamp}/\n   - Check: Repairs made, items flagged for human review, graph health\n\n4. **Read Epistemic Report**:\n   - memory://custodian/epistemic-{timestamp}/\n   - Check: Assumptions reviewed, status changes, evidence cited\n\n5. **Compile Status**:\n   - Success/failure for each specialist\n   - Aggregate metrics (items processed, issues found)\n   - Flag any specialists that need re-run\n\n⏱️ Duration: 10-15 minutes",
+      "requiresEnhancedThinking": false,
       "metadata": {
         "toolHints": {
-          "analyze_concept_corruption": {
-            "reason": "Diagnose concept fragmentation",
-            "priority": "mandatory"
-          },
-          "repair_concepts": {
-            "reason": "Normalize variant forms",
-            "priority": "recommended",
-            "dryRun": true
-          },
-          "sync": {
-            "reason": "Rebuild graph after repairs",
+          "read_memory": {
+            "reason": "Read all specialist output reports",
             "priority": "mandatory"
           }
         },
         "reasoning_effort": "medium",
-        "stop_conditions": ["Analysis complete", "Clear cases repaired", "Ambiguous cases flagged"],
-        "next_actions": ["Assumption review"],
-        "guardrails": {
-          "dry_run_first": "Always preview repairs before applying",
-          "human_review": "Flag ambiguous merges for human decision",
-          "high_frequency_focus": "Prioritize concepts with 10+ references"
-        }
-      }
-    },
-    {
-      "id": "assumption-review",
-      "name": "⚖️ Assumption Review (Epistemic Hygiene)",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nReview active assumptions and apply validation pressure.\n\n1. Query assumption_ledger for active and refined assumptions\n2. Check if recent activity provides evidence to validate or invalidate assumptions\n3. Update assumption status based on evidence found\n4. Apply decay pressure: assumptions lingering without validation lose priority\n   - validated: exempt from decay (immortal)\n   - active/refined: 14-day grace, 30-day half-life\n   - invalidated: 7-day grace, 14-day half-life (aggressive decay)\n5. Document assumption state changes\n\nOutput: memory://custodian/assumption-review-{timestamp}.md\nInclude: Assumptions reviewed, status changes, evidence cited",
-      "requiresEnhancedThinking": true,
-      "metadata": {
-        "toolHints": {
-          "assumption_ledger": {
-            "reason": "Query and update assumption status",
-            "priority": "mandatory"
-          },
-          "search_memories": {
-            "reason": "Find evidence for/against assumptions",
-            "priority": "recommended"
-          },
-          "sequential_thinking": {
-            "reason": "Evaluate evidence quality",
-            "priority": "mandatory",
-            "estimated_thoughts": 3,
-            "focus_areas": ["Evidence evaluation", "Validation logic", "Status decisions"]
-          }
-        },
-        "reasoning_effort": "medium",
-        "stop_conditions": ["All active assumptions reviewed", "Status changes documented"],
-        "next_actions": ["Dream synthesis"],
-        "guardrails": {
-          "evidence_required": "Status changes require cited evidence",
-          "validation_immortality": "Validated assumptions become permanent (NFR-7.8.1)",
-          "invalidation_decay": "Invalidated assumptions decay aggressively (NFR-7.8.3)"
-        }
-      }
-    },
-    {
-      "id": "dream-synthesis",
-      "name": "💭 Dream Synthesis (REM Phase)",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nFind novel connections and surface unexpected insights.\n\n1. Select 3-5 high-value concepts from recent consolidation\n2. Run findsimilarconcepts to discover unexpected semantic neighbors\n3. Explore surprising connections that weren't explicitly linked\n4. Generate hypotheses about potential relationships worth investigating\n5. Document dream insights for future exploration\n\nOutput: memory://custodian/dream-synthesis-{timestamp}.md\nInclude: Novel connections discovered, hypotheses generated, exploration candidates",
-      "requiresEnhancedThinking": true,
-      "metadata": {
-        "toolHints": {
-          "find_similar_concepts": {
-            "reason": "Discover unexpected semantic neighbors",
-            "priority": "mandatory",
-            "maxResults": 10
-          },
-          "build_context": {
-            "reason": "Explore relationship neighborhoods",
-            "priority": "recommended",
-            "depth": 2
-          },
-          "sequential_thinking": {
-            "reason": "Creative connection synthesis",
-            "priority": "mandatory",
-            "estimated_thoughts": 4,
-            "focus_areas": ["Unexpected connections", "Hypothesis generation", "Creative leaps"]
-          }
-        },
-        "reasoning_effort": "high",
-        "stop_conditions": ["Novel connections identified", "Hypotheses documented"],
+        "stop_conditions": ["All reports reviewed", "Status compiled"],
         "next_actions": ["Wake preparation"],
         "guardrails": {
-          "novelty_focus": "Prioritize connections not already explicit in graph",
-          "hypothesis_quality": "Hypotheses must be testable/actionable",
-          "limit_scope": "Maximum 5 concepts explored per cycle"
+          "completeness_check": "All 4 specialists must have produced output"
         }
       }
     },
     {
       "id": "wake-preparation",
       "name": "🌅 Wake Preparation",
-      "description": "Prepare enriched context for next session.\n\n1. Summarize sleep cycle outcomes: consolidations, repairs, insights\n2. Identify priority items for next waking session\n3. Update heartbeat state with cycle completion timestamp\n4. Prepare context injection summary for session_start hook\n5. Log cycle metrics for longitudinal tracking\n\nOutput: memory://custodian/wake-context-{timestamp}.md, updated heartbeat-state.json\nInclude: Cycle summary, priority items, context injection payload",
+      "description": "Prepare enriched context for next session.\n\n1. **Summarize Sleep Cycle Outcomes**:\n   - Consolidations performed\n   - Decay state changes\n   - Graph repairs completed\n   - Assumption status updates\n\n2. **Identify Priority Items**:\n   - Items flagged for human review\n   - Unresolved repair candidates\n   - Assumptions needing validation\n   - Dream insights worth exploring\n\n3. **Prepare Context Injection**:\n   - Compile concise wake-up context (<2000 tokens)\n   - Include key insights and priorities\n   - Note any sleep cycle issues\n\n4. **Log Cycle Metrics**:\n   - Total items processed per phase\n   - Time spent per specialist\n   - Errors or retries needed\n\nOutput: memory://custodian/wake-context-{timestamp}.md\nInclude: Cycle summary, priority items, context injection payload",
       "requiresEnhancedThinking": false,
       "metadata": {
         "toolHints": {
           "write_memory": {
             "reason": "Document wake context",
             "priority": "mandatory"
+          },
+          "sequential_thinking": {
+            "reason": "Synthesize specialist outputs into coherent summary",
+            "priority": "recommended",
+            "estimated_thoughts": 2,
+            "focus_areas": ["Outcome synthesis", "Priority identification"]
           }
         },
         "reasoning_effort": "low",
-        "stop_conditions": ["Summary complete", "State updated", "Context prepared"],
+        "stop_conditions": ["Summary complete", "Context prepared"],
         "next_actions": ["Sleep cycle complete"],
         "guardrails": {
-          "state_persistence": "Always update heartbeat-state.json",
           "context_size": "Wake context should be concise (<2000 tokens)"
         }
       }

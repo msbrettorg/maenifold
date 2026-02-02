@@ -20,13 +20,13 @@
       "requiresEnhancedThinking": true,
       "metadata": {
         "toolHints": {
-          "RecentActivity": {
+          "recent_activity": {
             "reason": "Retrieve events since last sleep cycle",
             "priority": "mandatory",
             "timespan": "1.00:00:00",
             "includeContent": true
           },
-          "SequentialThinking": {
+          "sequential_thinking": {
             "reason": "Pattern recognition across recent activity",
             "priority": "mandatory",
             "estimated_thoughts": 3,
@@ -49,20 +49,20 @@
       "requiresEnhancedThinking": true,
       "metadata": {
         "toolHints": {
-          "SearchMemories": {
+          "search_memories": {
             "reason": "Find existing notes to update",
             "priority": "mandatory",
             "mode": "Hybrid"
           },
-          "WriteMemory": {
+          "write_memory": {
             "reason": "Persist consolidated knowledge",
             "priority": "mandatory"
           },
-          "EditMemory": {
+          "edit_memory": {
             "reason": "Update existing notes rather than duplicate",
             "priority": "recommended"
           },
-          "SequentialThinking": {
+          "sequential_thinking": {
             "reason": "Distillation requires synthesis",
             "priority": "mandatory",
             "estimated_thoughts": 4,
@@ -86,11 +86,11 @@
       "requiresEnhancedThinking": false,
       "metadata": {
         "toolHints": {
-          "ListMemories": {
+          "list_memories": {
             "reason": "Enumerate memories with decay metadata (created, last_accessed, decay_weight)",
             "priority": "mandatory"
           },
-          "WriteMemory": {
+          "write_memory": {
             "reason": "Document decay report",
             "priority": "mandatory"
           }
@@ -112,16 +112,16 @@
       "requiresEnhancedThinking": true,
       "metadata": {
         "toolHints": {
-          "AnalyzeConceptCorruption": {
+          "analyze_concept_corruption": {
             "reason": "Diagnose concept fragmentation",
             "priority": "mandatory"
           },
-          "RepairConcepts": {
+          "repair_concepts": {
             "reason": "Normalize variant forms",
             "priority": "recommended",
             "dryRun": true
           },
-          "Sync": {
+          "sync": {
             "reason": "Rebuild graph after repairs",
             "priority": "mandatory"
           }
@@ -143,15 +143,15 @@
       "requiresEnhancedThinking": true,
       "metadata": {
         "toolHints": {
-          "AssumptionLedger": {
+          "assumption_ledger": {
             "reason": "Query and update assumption status",
             "priority": "mandatory"
           },
-          "SearchMemories": {
+          "search_memories": {
             "reason": "Find evidence for/against assumptions",
             "priority": "recommended"
           },
-          "SequentialThinking": {
+          "sequential_thinking": {
             "reason": "Evaluate evidence quality",
             "priority": "mandatory",
             "estimated_thoughts": 3,
@@ -175,17 +175,17 @@
       "requiresEnhancedThinking": true,
       "metadata": {
         "toolHints": {
-          "FindSimilarConcepts": {
+          "find_similar_concepts": {
             "reason": "Discover unexpected semantic neighbors",
             "priority": "mandatory",
             "maxResults": 10
           },
-          "BuildContext": {
+          "build_context": {
             "reason": "Explore relationship neighborhoods",
             "priority": "recommended",
             "depth": 2
           },
-          "SequentialThinking": {
+          "sequential_thinking": {
             "reason": "Creative connection synthesis",
             "priority": "mandatory",
             "estimated_thoughts": 4,
@@ -209,7 +209,7 @@
       "requiresEnhancedThinking": false,
       "metadata": {
         "toolHints": {
-          "WriteMemory": {
+          "write_memory": {
             "reason": "Document wake context",
             "priority": "mandatory"
           }

@@ -11,6 +11,7 @@
 | 1.4 | 2026-02-01 | PM Agent | Refined thinking tier: sequential=7d, workflows=14d per Moltbook gap analysis |
 | 1.5 | 2026-02-01 | PM Agent | **P0**: Added FR-8.x (CLI JSON output) - blocks OpenClaw integrations |
 | 1.6 | 2026-02-01 | PM Agent | Added FR-9.1 (retrospectives log) |
+| 1.7 | 2026-02-01 | PM Agent | Added FR-9.2 (debug-only build/test requirement) |
 
 ---
 
@@ -60,6 +61,7 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FR-9.1 | Repository SHALL include `RETROSPECTIVES.md` to capture sprint retrospectives. | P2 |
+| FR-9.2 | During active sprints, builds and tests SHALL use Debug configuration only; Release build SHALL NOT be invoked. | P2 |
 
 ---
 

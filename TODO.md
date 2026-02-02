@@ -468,7 +468,7 @@ Several SequentialThinking sessions from recent activity are still marked as "ac
 
 ## GOV-RETRO-001: Add RETROSPECTIVES.md
 
-**Status**: ✅ Complete (2026-02-01)
+**Status**: ✅ Complete (2026-02-02)
 **Priority**: Low
 
 ### Problem
@@ -477,8 +477,32 @@ We need a canonical place to capture sprint retrospectives.
 
 ### Tasks
 
-1. [x] T-GOV-RETRO-001.1: Create empty RETROSPECTIVES.md in repo root
+1. [x] T-GOV-RETRO-001.1: Create RETROSPECTIVES.md in repo root
+2. [x] T-GOV-RETRO-001.2: Add retrospective template and initial sprint entries
 
 ### Acceptance Criteria
 
 - [x] RETROSPECTIVES.md exists at repo root
+- [x] Contains retrospective template for future sprints
+- [x] Documents CLI JSON Output sprint (T-CLI-JSON-001)
+- [x] Documents Embeddings Quality sprint (T-QUAL-FSC2)
+- [x] Includes backlog notes for decay weighting sprints
+
+---
+
+## GOV-BUILD-001: Debug-only build/test requirement
+
+**Status**: Active
+**Priority**: Medium
+
+### Problem
+
+Release build is in active use; we must avoid invoking it during sprint work.
+
+### Tasks
+
+1. [ ] T-GOV-BUILD-001.1: Document debug-only build/test requirement in AGENTS.md and relevant development docs
+
+### Acceptance Criteria
+
+- [ ] Documentation explicitly forbids Release build/test during sprints

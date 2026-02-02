@@ -267,7 +267,7 @@ Second paragraph with [[more-content]].";
         );
 
         // Assert
-        Assert.That(editResult, Does.StartWith("ERROR: Edited content must contain at least one [[WikiLink]]"));
+        Assert.That(editResult, Does.StartWith("ERROR: Edited content must contain at least one [[concept]]"));
     }
 
     private static string ExtractUri(string writeResult)
@@ -526,7 +526,7 @@ Brand new single paragraph with [[brand-new]].";
         // - The lookbehind/lookahead regex rejects patterns with adjacent brackets
         // - System requires at least one valid [[WikiLink]] in edited content
         Assert.That(editResult, Does.StartWith("ERROR:"));
-        Assert.That(editResult, Does.Contain("must contain at least one [[WikiLink]]"));
+        Assert.That(editResult, Does.Contain("must contain at least one [[concept]]"));
     }
 
     [Test]

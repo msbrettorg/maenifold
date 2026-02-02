@@ -361,7 +361,7 @@ For API-based models (Claude, GPT-4, Gemini), these approaches are impossible. S
 
 ---
 
-## 5. Novel Contribution: Concept-as-Protocol
+## 5. Novel Contribution: Context-as-Protocol
 
 ### 5.1 Design Philosophy
 
@@ -370,42 +370,42 @@ Rooted in the **Ma Protocol** philosophy: creating space for intelligence to eme
 > "Every feature we don't add creates room for intelligence to emerge."
 > — Ma Protocol Manifesto
 
-Rather than encoding knowledge into fixed-dimension vectors, Concept-as-Protocol uses explicit symbolic references that resolve to knowledge graph structures.
+Rather than encoding knowledge into fixed-dimension vectors, we use explicit symbolic references that resolve to knowledge graph structures.
 
 ### 5.2 Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Concept-as-Protocol Flow                     │
+│                    Context-as-Protocol Flow                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  Agent A writes: "Implement [[authentication]] for [[OAuth2]]" │
+│  Agent A writes: "Implement [[authentication]] for [[OAuth2]]"  │
 │                              │                                  │
 │                              ▼                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │           WikiLink Extraction (regex)                    │   │
-│  │           → ["authentication", "OAuth2"]                 │   │
-│  └─────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │           WikiLink Extraction (regex)                   │    │
+│  │           → ["authentication", "OAuth2"]                │    │
+│  └─────────────────────────────────────────────────────────┘    │
 │                              │                                  │
-│          ┌───────────────────┼───────────────────┐             │
-│          ▼                   ▼                   ▼             │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐        │
-│  │ BuildContext │   │FindSimilar   │   │ SearchMemory │        │
-│  │ (graph)      │   │Concepts      │   │ (content)    │        │
-│  │              │   │(embeddings)  │   │              │        │
-│  └──────────────┘   └──────────────┘   └──────────────┘        │
+│          ┌───────────────────┼───────────────────┐              │
+│          ▼                   ▼                   ▼              │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐         │
+│  │ BuildContext │   │FindSimilar   │   │ SearchMemory │         │
+│  │ (graph)      │   │Concepts      │   │ (content)    │         │
+│  │              │   │(embeddings)  │   │              │         │
+│  └──────────────┘   └──────────────┘   └──────────────┘         │
 │          │                   │                   │              │
-│          └───────────────────┼───────────────────┘             │
+│          └───────────────────┼───────────────────┘              │
 │                              ▼                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              Enriched Context Injection                  │   │
-│  │  - Graph neighbors: [[session-management]], [[JWT]]     │   │
-│  │  - Similar concepts: "authorization" (0.89)             │   │
-│  │  - Source files: memory://tech/auth/*                   │   │
-│  └─────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              Enriched Context Injection                 │    │
+│  │  - Graph neighbors: [[session-management]], [[JWT]]     │    │
+│  │  - Similar concepts: "authorization" (0.89)             │    │
+│  │  - Source files: memory://tech/auth/*                   │    │
+│  └─────────────────────────────────────────────────────────┘    │
 │                              │                                  │
 │                              ▼                                  │
-│  Agent B receives: Original prompt + resolved context          │
+│  Agent B receives: Original prompt + resolved context           │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```

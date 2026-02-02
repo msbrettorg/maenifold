@@ -13,6 +13,7 @@
 | 1.6 | 2026-02-01 | PM Agent | Added FR-9.1 (retrospectives log) |
 | 1.7 | 2026-02-01 | PM Agent | Added FR-9.2 (debug-only build/test requirement) |
 | 1.8 | 2026-02-02 | PM Agent | Added FR-7.9 (consolidation), NFR-7.5.5 (power-law decay option) per research validation |
+| 1.9 | 2026-02-02 | PM Agent | Added FR-7.10 (multi-agent sleep cycle), FR-7.11 (tool access safety), sub-workflow architecture |
 
 ---
 
@@ -57,6 +58,8 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | FR-7.7 | ListMemories SHALL display decay-relevant metadata (`created`, `last_accessed`, `decay_weight`) for each file. | P2 |
 | FR-7.8 | AssumptionLedger assumptions SHALL decay based on status: `validated` assumptions are exempt; `active`, `refined`, and `invalidated` assumptions decay. | P1 |
 | FR-7.9 | System SHALL support periodic consolidation of high-value episodic content (thinking sessions) into durable semantic memory via the Cognitive Sleep Cycle workflow. | P2 |
+| FR-7.10 | Cognitive Sleep Cycle SHALL be implemented as a multi-agent orchestration with 4 parallel specialist workflows: consolidation, decay, repair, and epistemic. | P2 |
+| FR-7.11 | Sleep cycle workflows SHALL preserve decay integrity by using observation-only tools (`recent_activity`, `list_memories`, `search_memories`) except where explicit access is semantically correct. | P2 |
 
 ### 3.3 Product Governance
 
@@ -97,6 +100,13 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | NFR-7.8.1 | `validated` assumptions SHALL NOT decay (exempt from decay weighting). | Required |
 | NFR-7.8.2 | `active` and `refined` assumptions SHALL use 14-day grace period and 30-day half-life. | Required |
 | NFR-7.8.3 | `invalidated` assumptions SHALL use 7-day grace period and 14-day half-life (aggressive decay). | Required |
+| NFR-7.10.1 | Each sleep specialist workflow SHALL include its own memory replay phase tailored to its task. | Required |
+| NFR-7.10.2 | Sleep orchestrator SHALL dispatch all 4 specialist agents in a single parallel dispatch. | Required |
+| NFR-7.10.3 | Specialist workflows SHALL be self-contained and executable independently of the orchestrator. | Required |
+| NFR-7.11.1 | Consolidation workflow MAY use `read_memory` (access boosting is semantically correct for content being consolidated). | Required |
+| NFR-7.11.2 | Decay workflow SHALL use `list_memories` for metadata inspection, NOT `read_memory`. | Required |
+| NFR-7.11.3 | Repair workflow SHALL use graph tools (`analyze_concept_corruption`, `repair_concepts`, `sync`), NOT `read_memory`. | Required |
+| NFR-7.11.4 | Epistemic workflow SHALL use `assumption_ledger`, NOT `read_memory`. | Required |
 
 ---
 
@@ -172,6 +182,49 @@ The Cognitive Sleep Cycle workflow (`/assets/workflows/sleep-cycle.json`) implem
 3. **Synaptic Pruning**: Apply decay weights, flag severely decayed content
 
 Without consolidation, agents either lose valuable experience (aggressive decay) or drown in accumulated episodes (no decay). Periodic consolidation maintains the balance.
+
+### Multi-Agent Sleep Cycle Architecture (FR-7.10)
+
+The Cognitive Sleep Cycle uses a hub-and-spoke orchestration pattern:
+
+```
+sleep-cycle.json (Orchestrator)
+├── Dispatch parallel agents ──┬── sleep-consolidation.json
+│                              ├── sleep-decay.json
+│                              ├── sleep-repair.json
+│                              └── sleep-epistemic.json
+├── Review all outputs
+└── Wake Preparation
+```
+
+**Why multi-agent?** The sleep cycle phases have different dependencies:
+- **Consolidation → Dream Synthesis**: Sequential (dream needs consolidated concepts)
+- **Decay Processing**: Independent (just reads timestamps)
+- **Concept Repair**: Independent (operates on graph structure)
+- **Assumption Review**: Independent (operates on ledger)
+
+Phases 2, 3, and 4 can run in parallel while consolidation handles the critical path.
+
+**Self-contained workflows**: Each specialist workflow includes its own memory replay phase tailored to its task:
+- Consolidation replay focuses on high-significance events
+- Decay replay focuses on access patterns
+- Repair replay focuses on concept usage frequency
+- Epistemic replay focuses on assumptions touched
+
+This eliminates shared dependencies and allows workflows to be run independently for testing or targeted maintenance.
+
+### Tool Access Safety During Sleep (FR-7.11)
+
+Sleep maintenance must not inadvertently extend content lifetime by triggering access boosting:
+
+| Workflow | Allowed Tools | Forbidden | Rationale |
+|----------|---------------|-----------|-----------|
+| Consolidation | `read_memory` ✅ | — | Reading to consolidate IS intentional access |
+| Decay | `list_memories`, `recent_activity` | `read_memory` | Observation only; preserve decay state |
+| Repair | `analyze_concept_corruption`, `repair_concepts`, `sync` | `read_memory` | Graph operations don't need file content |
+| Epistemic | `assumption_ledger`, `search_memories` | `read_memory` | Ledger is separate from memory files |
+
+**Principle**: If you're maintaining something, don't reset its decay clock just by looking at it. Only consolidation (which explicitly promotes content to durable storage) should trigger access boosting.
 
 ---
 

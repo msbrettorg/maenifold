@@ -1,4 +1,4 @@
-# Product Requirements Document: Maenifold Embeddings Quality
+# Product Requirements Document: Maenifold
 
 ## Document Control
 
@@ -9,6 +9,7 @@
 | 1.2 | 2026-02-01 | PM Agent | Added FR-7.7 (ListMemories decay metadata) |
 | 1.3 | 2026-02-01 | PM Agent | Added FR-7.8 (assumption decay by status) |
 | 1.4 | 2026-02-01 | PM Agent | Refined thinking tier: sequential=7d, workflows=14d per Moltbook gap analysis |
+| 1.5 | 2026-02-01 | PM Agent | **P0**: Added FR-8.x (CLI JSON output) - blocks OpenClaw integrations |
 
 ---
 
@@ -27,6 +28,24 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 
 ## 3. Functional Requirements
 
+### 3.1 CLI JSON Output (P0 - Highest Priority)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-8.1 | CLI SHALL support a `--json` flag that outputs structured JSON instead of human-readable markdown. | **P0** |
+| FR-8.2 | All MCP tools SHALL return structured JSON when `--json` flag is present. | **P0** |
+| FR-8.3 | JSON output SHALL include `success`, `data`, and `error` fields for consistent parsing. | **P0** |
+| FR-8.4 | Error responses SHALL include structured error codes and human-readable messages. | **P0** |
+| FR-8.5 | Omitting `--json` flag SHALL return current markdown format (backward compatible). | **P0** |
+
+**Rationale**: OpenClaw integrations (SessionChannel, Memory Plugin) currently parse CLI output using fragile regex on markdown. Structured JSON enables reliable programmatic access and blocks critical integration work.
+
+**Blocking**:
+- OpenClaw SessionChannel JSON migration (eliminates regex parsing)
+- OpenClaw Memory Plugin (maenifold as memory provider)
+
+### 3.2 Embeddings Quality
+
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FR-7.4 | System SHALL discover semantically similar concepts via embeddings and return meaningful rankings for valid inputs. | P1 |
@@ -38,6 +57,17 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 ---
 
 ## 4. Non-Functional Requirements
+
+### 4.1 CLI JSON Output
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-8.1.1 | JSON output SHALL be valid UTF-8 encoded JSON parseable by standard libraries. | Required |
+| NFR-8.1.2 | JSON output SHALL complete within the same time bounds as markdown output (no performance regression). | Required |
+| NFR-8.1.3 | JSON error responses SHALL include error code, message, and optional details object. | Required |
+| NFR-8.1.4 | JSON output SHALL NOT include ANSI escape codes or terminal formatting. | Required |
+
+### 4.2 Embeddings Quality
 
 | ID | Requirement | Target |
 |----|-------------|--------|

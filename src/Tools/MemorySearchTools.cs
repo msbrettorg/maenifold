@@ -1,6 +1,7 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Text;
+using System.Text.Json;
 using Maenifold.Utils;
 
 namespace Maenifold.Tools;
@@ -80,8 +81,34 @@ Integrates with ReadMemory for content access, BuildContext for relationship exp
 
         var paginatedResults = filteredResults
                     .Skip((page - 1) * pageSize)
-                    .Take(pageSize);
+                    .Take(pageSize)
+                    .ToList();
 
+        // T-CLI-JSON-001: RTM FR-8.2, FR-8.3 - Return JSON when flag is set
+        if (OutputContext.IsJsonMode)
+        {
+            var results = paginatedResults.Select(r => new
+            {
+                title = r.title,
+                path = r.path,
+                fusedScore = r.fusedScore,
+                textScore = r.textScore,
+                semanticScore = r.semanticScore,
+                snippet = r.snippet
+            }).ToList();
+
+            return JsonToolResponse.Ok(new
+            {
+                mode = "Hybrid",
+                query = query,
+                totalCount = filteredResults.Count,
+                page = page,
+                pageSize = pageSize,
+                textResultCount = textResults.Count,
+                semanticResultCount = vectorResults.Count,
+                results = results
+            }).ToJson();
+        }
 
         var sb = new StringBuilder();
         sb.AppendLineInvariant($"\uD83D\uDD0D **Hybrid Search** (combining text + semantic similarity)");

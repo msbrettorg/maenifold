@@ -1,8 +1,90 @@
 # TODO
 
+## CLI-JSON-001: Add `--json` Output Flag (P0 - HIGHEST PRIORITY)
+
+**Status**: ✅ Complete
+**Priority**: **P0 (Critical - Blocks OpenClaw)**
+**Created**: 2026-02-01
+**Completed**: 2026-02-01
+
+### Problem
+
+OpenClaw integrations (SessionChannel, Memory Plugin) currently parse CLI output using fragile regex on markdown:
+
+```typescript
+// Current fragile parsing in OpenClaw SessionChannel
+const SESSION_ID_REGEX = /session-\d+(?:-\d+)?/;
+const ADDED_THOUGHT_REGEX = /Added thought (\d+)/i;
+```
+
+This blocks reliable programmatic integration. Need structured JSON output.
+
+### Requirements (PRD FR-8.x)
+
+- FR-8.1: CLI SHALL support `--json` flag
+- FR-8.2: All MCP tools SHALL return JSON when flag present
+- FR-8.3: JSON SHALL include `success`, `data`, `error` fields
+- FR-8.4: Error responses SHALL include codes and messages
+- FR-8.5: Backward compatible (omit flag = markdown)
+
+### Target Output Format
+
+```json
+{
+  "success": true,
+  "data": {
+    "sessionId": "session-1234567890",
+    "thoughtNumber": 5,
+    // ... tool-specific fields
+  },
+  "error": null
+}
+```
+
+Error case:
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "INVALID_SESSION",
+    "message": "Session not found: session-999",
+    "details": { "sessionId": "session-999" }
+  }
+}
+```
+
+### Tasks
+
+1. [x] T-CLI-JSON-001.1: Add `--json` flag parsing to CLI entry point
+2. [x] T-CLI-JSON-001.2: Create `JsonResponse<T>` wrapper class
+3. [x] T-CLI-JSON-001.3: Update SequentialThinking tool to return JSON
+4. [x] T-CLI-JSON-001.4: Update SearchMemories tool to return JSON
+5. [x] T-CLI-JSON-001.5: Update ReadMemory tool to return JSON
+6. [x] T-CLI-JSON-001.6: Update BuildContext tool to return JSON
+7. [x] T-CLI-JSON-001.7: Update WriteMemory, EditMemory, MoveMemory, DeleteMemory
+8. [x] T-CLI-JSON-001.8: Write tests for JSON output format (20 tests)
+9. [x] T-CLI-JSON-001.9: Security tests (29 tests, SEC-EDGE-002 remediated)
+
+### Acceptance Criteria
+
+- [x] `maenifold --tool SequentialThinking --payload '...' --json` returns valid JSON
+- [x] All tools support `--json` flag
+- [x] Error responses include error codes and messages
+- [x] Omitting `--json` returns current markdown (backward compat)
+- [x] No ANSI escape codes in JSON output
+- [x] Tests verify JSON schema (364 total tests, 353 passing)
+
+### Blocks
+
+- **OpenClaw T-0.1**: SessionChannel JSON migration
+- **OpenClaw T-0.2**: Memory Plugin implementation
+
+---
+
 ## REL-001: Release v1.0.3
 
-**Status**: Active
+**Status**: ✅ Complete (2026-02-01)
 **Priority**: High
 
 ### Changes for v1.0.3
@@ -31,25 +113,25 @@
 
 ### Tasks
 
-1. [ ] Bump version in `src/Maenifold.csproj` from 1.0.2 to 1.0.3
-2. [ ] Update CHANGELOG.md: Move [Unreleased] to [1.0.3] with date
-3. [ ] Run full test suite: `dotnet test`
-4. [ ] Create WiX MSI configuration (installer/, wix.json, PATH integration)
-5. [ ] Update release.yml to build MSI on Windows
-6. [ ] Create PR dev → main
-7. [ ] After merge, tag v1.0.3 on main and push (triggers release workflow)
-8. [ ] Verify GitHub Release created with 6 artifacts (5 archives + MSI)
-9. [ ] Verify Homebrew formula auto-updated
+1. [x] Bump version in `src/Maenifold.csproj` from 1.0.2 to 1.0.3
+2. [x] Update CHANGELOG.md: Move [Unreleased] to [1.0.3] with date
+3. [x] Run full test suite: `dotnet test`
+4. [x] Create WiX MSI configuration (installer/, wix.json, PATH integration)
+5. [x] Update release.yml to build MSI on Windows
+6. [x] Create PR dev → main
+7. [x] After merge, tag v1.0.3 on main and push (triggers release workflow)
+8. [x] Verify GitHub Release created with 6 artifacts (5 archives + MSI)
+9. [x] Verify Homebrew formula auto-updated
 
 ### Acceptance Criteria
 
-- [ ] All tests pass
-- [ ] v1.0.3 tag created on main branch
-- [ ] GitHub Release created with 6 artifacts (osx-arm64, osx-x64, linux-x64, linux-arm64, win-x64, win-x64.msi)
-- [ ] MSI installer adds maenifold to system PATH
-- [ ] MSI uninstall cleanly removes PATH entry
-- [ ] Homebrew formula updated automatically via repository dispatch
-- [ ] `brew upgrade maenifold` works after release
+- [x] All tests pass
+- [x] v1.0.3 tag created on main branch
+- [x] GitHub Release created with 6 artifacts (osx-arm64, osx-x64, linux-x64, linux-arm64, win-x64, win-x64.msi)
+- [x] MSI installer adds maenifold to system PATH
+- [x] MSI uninstall cleanly removes PATH entry
+- [x] Homebrew formula updated automatically via repository dispatch
+- [x] `brew upgrade maenifold` works after release
 
 ---
 

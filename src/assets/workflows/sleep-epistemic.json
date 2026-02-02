@@ -1,0 +1,81 @@
+{
+  "id": "sleep-epistemic",
+  "name": "Sleep Epistemic (Assumption Review)",
+  "emoji": "\u2696\ufe0f",
+  "description": "Epistemic hygiene during cognitive sleep. Reviews assumptions touched by recent activity, validates or invalidates based on evidence, and applies status-based decay pressure. Part of the multi-agent Cognitive Sleep Cycle.",
+  "triggers": [
+    "sleep epistemic",
+    "assumption review",
+    "epistemic hygiene"
+  ],
+  "enhancedThinkingEnabled": true,
+  "guardrails": {
+    "no_read_memory": "NEVER use read_memory - assumption_ledger has its own storage",
+    "evidence_required": "Status changes require cited evidence",
+    "validation_immortality": "Validated assumptions become permanent"
+  },
+  "steps": [
+    {
+      "id": "memory-replay",
+      "name": "\ud83d\udd04 Memory Replay (Assumption Focus)",
+      "description": "Replay recent activity to identify assumptions that were touched.\n\n1. Run recent_activity to retrieve events since last sleep cycle\n2. Scan for assumption-related activity:\n   - Assumptions referenced in thinking sessions\n   - Assumptions validated or challenged by work outcomes\n   - New assumptions introduced during problem-solving\n3. Extract assumption identifiers and context for review\n4. Note which assumptions align with or contradict recent evidence\n\nOutput: List of assumptions to review with their recent context",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "recent_activity": {
+            "reason": "Retrieve events since last sleep cycle to find assumption activity",
+            "priority": "mandatory",
+            "timespan": "1.00:00:00",
+            "includeContent": true
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": ["Recent activity reviewed", "Assumption references identified"],
+        "next_actions": ["Assumption review"],
+        "guardrails": {
+          "no_read_memory": "DO NOT use read_memory - it triggers access boosting",
+          "observation_only": "This phase is observation-only, no state changes"
+        }
+      }
+    },
+    {
+      "id": "assumption-review",
+      "name": "\u2696\ufe0f Assumption Review (Epistemic Hygiene)",
+      "description": "\ud83e\udde0 ENHANCED THINKING REQUIRED\n\nReview active assumptions and apply validation pressure.\n\n1. Query assumption_ledger for active and refined assumptions\n2. Cross-reference with assumptions identified in memory replay\n3. For each assumption touched by recent activity:\n   - Search memories for supporting or contradicting evidence\n   - Evaluate evidence quality and relevance\n   - Determine if status should change\n4. Update assumption status based on evidence:\n   - Move to 'validated' if confirmed (grants immortality)\n   - Move to 'invalidated' if disproven (triggers aggressive decay)\n   - Keep as 'active' or 'refined' if inconclusive\n5. Document status changes with evidence citations\n\nDecay rules by status:\n- validated: No decay (immortal, NFR-7.8.1)\n- active/refined: 14-day grace, 30-day half-life (NFR-7.8.2)\n- invalidated: 7-day grace, 14-day half-life (aggressive, NFR-7.8.3)\n\nOutput: memory://custodian/assumption-review-{timestamp}.md\nInclude: Assumptions reviewed, status changes, evidence cited, decay implications",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "assumption_ledger": {
+            "reason": "Query and update assumption status",
+            "priority": "mandatory"
+          },
+          "search_memories": {
+            "reason": "Find evidence for/against assumptions",
+            "priority": "recommended",
+            "mode": "Hybrid"
+          },
+          "write_memory": {
+            "reason": "Document assumption review report",
+            "priority": "mandatory",
+            "folder": "custodian"
+          },
+          "sequential_thinking": {
+            "reason": "Evaluate evidence quality and make status decisions",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": ["Evidence evaluation", "Validation logic", "Status decisions"]
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": ["All identified assumptions reviewed", "Status changes documented", "Evidence cited"],
+        "next_actions": ["Sleep cycle complete or return to orchestrator"],
+        "guardrails": {
+          "no_read_memory": "NEVER use read_memory - assumption_ledger has its own storage separate from memory files",
+          "evidence_required": "Status changes require cited evidence from search_memories",
+          "validation_immortality": "Validated assumptions become permanent (NFR-7.8.1)",
+          "invalidation_decay": "Invalidated assumptions decay aggressively (NFR-7.8.3)"
+        }
+      }
+    }
+  ]
+}

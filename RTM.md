@@ -72,21 +72,21 @@
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-SLEEP-MULTI-001.1 | FR-7.10, NFR-7.10.2 | Sleep orchestrator SHALL dispatch 4 specialist agents in parallel. | assets/workflows/sleep-cycle.json | Manual workflow execution | Planned |
-| T-SLEEP-MULTI-001.2 | FR-7.10, NFR-7.10.1 | Consolidation workflow SHALL include tailored memory replay + consolidation + dream synthesis. | assets/workflows/sleep-consolidation.json | Manual workflow execution | Planned |
-| T-SLEEP-MULTI-001.3 | FR-7.10, NFR-7.10.1 | Decay workflow SHALL include tailored memory replay + decay processing. | assets/workflows/sleep-decay.json | Manual workflow execution | Planned |
-| T-SLEEP-MULTI-001.4 | FR-7.10, NFR-7.10.1 | Repair workflow SHALL include tailored memory replay + concept repair. | assets/workflows/sleep-repair.json | Manual workflow execution | Planned |
-| T-SLEEP-MULTI-001.5 | FR-7.10, NFR-7.10.1 | Epistemic workflow SHALL include tailored memory replay + assumption review. | assets/workflows/sleep-epistemic.json | Manual workflow execution | Planned |
-| T-SLEEP-MULTI-001.6 | NFR-7.10.3 | Each specialist workflow SHALL be executable independently of orchestrator. | assets/workflows/sleep-*.json | Manual workflow execution | Planned |
+| T-SLEEP-MULTI-001.1 | FR-7.10, NFR-7.10.2 | Sleep orchestrator SHALL dispatch 4 specialist agents in parallel. | assets/workflows/sleep-cycle.json | Manual workflow execution | **Complete** |
+| T-SLEEP-MULTI-001.2 | FR-7.10, NFR-7.10.1 | Consolidation workflow SHALL include tailored memory replay + consolidation + dream synthesis. | assets/workflows/sleep-consolidation.json | Manual workflow execution | **Complete** |
+| T-SLEEP-MULTI-001.3 | FR-7.10, NFR-7.10.1 | Decay workflow SHALL include tailored memory replay + decay processing. | assets/workflows/sleep-decay.json | Manual workflow execution | **Complete** |
+| T-SLEEP-MULTI-001.4 | FR-7.10, NFR-7.10.1 | Repair workflow SHALL include tailored memory replay + concept repair. | assets/workflows/sleep-repair.json | Manual workflow execution | **Complete** |
+| T-SLEEP-MULTI-001.5 | FR-7.10, NFR-7.10.1 | Epistemic workflow SHALL include tailored memory replay + assumption review. | assets/workflows/sleep-epistemic.json | Manual workflow execution | **Complete** |
+| T-SLEEP-MULTI-001.6 | NFR-7.10.3 | Each specialist workflow SHALL be executable independently of orchestrator. | assets/workflows/sleep-*.json | Manual workflow execution | **Complete** |
 
 ## T-SLEEP-SAFETY-001: Tool access safety during sleep
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-SLEEP-SAFETY-001.1 | FR-7.11, NFR-7.11.1 | Consolidation workflow MAY use `read_memory` (intentional access boosting). | assets/workflows/sleep-consolidation.json | Manual workflow execution | Planned |
-| T-SLEEP-SAFETY-001.2 | FR-7.11, NFR-7.11.2 | Decay workflow SHALL use `list_memories` NOT `read_memory`. | assets/workflows/sleep-decay.json | Manual workflow execution | Planned |
-| T-SLEEP-SAFETY-001.3 | FR-7.11, NFR-7.11.3 | Repair workflow SHALL use graph tools NOT `read_memory`. | assets/workflows/sleep-repair.json | Manual workflow execution | Planned |
-| T-SLEEP-SAFETY-001.4 | FR-7.11, NFR-7.11.4 | Epistemic workflow SHALL use `assumption_ledger` NOT `read_memory`. | assets/workflows/sleep-epistemic.json | Manual workflow execution | Planned |
+| T-SLEEP-SAFETY-001.1 | FR-7.11, NFR-7.11.1 | Consolidation workflow MAY use `read_memory` (intentional access boosting). | assets/workflows/sleep-consolidation.json | Manual workflow execution | **Complete** |
+| T-SLEEP-SAFETY-001.2 | FR-7.11, NFR-7.11.2 | Decay workflow SHALL use `list_memories` NOT `read_memory`. | assets/workflows/sleep-decay.json | Manual workflow execution | **Complete** |
+| T-SLEEP-SAFETY-001.3 | FR-7.11, NFR-7.11.3 | Repair workflow SHALL use graph tools NOT `read_memory`. | assets/workflows/sleep-repair.json | Manual workflow execution | **Complete** |
+| T-SLEEP-SAFETY-001.4 | FR-7.11, NFR-7.11.4 | Epistemic workflow SHALL use `assumption_ledger` NOT `read_memory`. | assets/workflows/sleep-epistemic.json | Manual workflow execution | **Complete** |
 
 ## T-GOV-RETRO-001: Retrospectives log
 

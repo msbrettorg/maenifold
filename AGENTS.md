@@ -42,6 +42,32 @@ dotnet publish src/Maenifold.csproj -c Release --self-contained -o bin
 - `dotnet run` is forbidden for Maenifold CLI usage
 - Compile the CLI first, then run the built `maenifold` binary
 
+### Asset propagation for testing
+
+Workflow JSON files and other assets live in `src/assets/` and must be copied to `~/maenifold/assets/` for testing:
+
+```bash
+# 1. Build the CLI (Debug)
+dotnet build src/Maenifold.csproj -c Debug
+
+# 2. Preview asset changes (dry-run)
+./src/bin/Debug/net9.0/maenifold update_assets dryRun=true
+
+# 3. Apply asset changes
+./src/bin/Debug/net9.0/maenifold update_assets dryRun=false
+```
+
+**Source → Target mapping:**
+- `src/assets/workflows/*.json` → `~/maenifold/assets/workflows/`
+- `src/assets/usage/tools/*.md` → `~/maenifold/assets/usage/tools/`
+- `src/assets/roles/*.json` → `~/maenifold/assets/roles/`
+- `src/assets/colors/*.json` → `~/maenifold/assets/colors/`
+
+**When to propagate:**
+- After creating/modifying workflow JSON files
+- After updating tool usage documentation
+- Before manual testing of workflows
+
 ### Tests (.NET, NUnit)
 - Run all tests: `dotnet test`
 - Run a single test (FullyQualifiedName filter):

@@ -12,6 +12,7 @@
 | 1.5 | 2026-02-01 | PM Agent | **P0**: Added FR-8.x (CLI JSON output) - blocks OpenClaw integrations |
 | 1.6 | 2026-02-01 | PM Agent | Added FR-9.1 (retrospectives log) |
 | 1.7 | 2026-02-01 | PM Agent | Added FR-9.2 (debug-only build/test requirement) |
+| 1.8 | 2026-02-02 | PM Agent | Added FR-7.9 (consolidation), NFR-7.5.5 (power-law decay option) per research validation |
 
 ---
 
@@ -55,6 +56,7 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | FR-7.6 | System SHALL reset decay clock (update `last_accessed` timestamp) when a memory is explicitly read via ReadMemory, boosting frequently-accessed content. | P1 |
 | FR-7.7 | ListMemories SHALL display decay-relevant metadata (`created`, `last_accessed`, `decay_weight`) for each file. | P2 |
 | FR-7.8 | AssumptionLedger assumptions SHALL decay based on status: `validated` assumptions are exempt; `active`, `refined`, and `invalidated` assumptions decay. | P1 |
+| FR-7.9 | System SHALL support periodic consolidation of high-value episodic content (thinking sessions) into durable semantic memory via the Cognitive Sleep Cycle workflow. | P2 |
 
 ### 3.3 Product Governance
 
@@ -87,6 +89,7 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | NFR-7.5.2 | Default decay grace period for all other memory SHALL be 14 days with env override (`MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT`). | Required |
 | NFR-7.5.3 | Default decay half-life SHALL be 30 days with env override (`MAENIFOLD_DECAY_HALF_LIFE_DAYS`). | Required |
 | NFR-7.5.4 | Decay SHALL affect search ranking only; decayed content SHALL remain fully retrievable via direct query (no deletion). | Required |
+| NFR-7.5.5 | System SHALL support optional power-law decay (`R = a × t^(-b)`) as alternative to exponential decay, configurable via `MAENIFOLD_DECAY_FUNCTION` env var (`exponential` default, `power_law` option). | Optional |
 | NFR-7.6.1 | ReadMemory SHALL update the file's `last_accessed` timestamp on every read. | Required |
 | NFR-7.6.2 | SearchMemories SHALL NOT update `last_accessed` for files appearing in results. | Required |
 | NFR-7.6.3 | BuildContext SHALL NOT update `last_accessed` for files referenced in context. | Required |
@@ -147,6 +150,28 @@ Assumptions decay based on their epistemic status, creating pressure to validate
 | `invalidated` | 7d grace, 14d half-life | Historical record only; aggressive decay to deprioritize |
 
 **Principle**: Epistemic hygiene through decay. Active assumptions that linger without validation naturally lose retrieval priority, creating implicit pressure to either validate them (granting immortality) or let them fade (implicit invalidation).
+
+### Decay Function Shape (NFR-7.5.5)
+
+Research shows power-law decay (`R = a × t^(-b)`) better fits human memory than exponential decay (`R = e^(-t/τ)`):
+
+| Function | Behavior | Research Basis |
+|----------|----------|----------------|
+| Exponential | Constant half-life; aggressive on old content | Simple; widely implemented |
+| Power Law | Memory halves when time *quadruples*; slower long-term decay | Wixted & Ebbesen (1991); ACT-R d=0.5 |
+
+Default remains exponential for simplicity. Power-law option available for deployments requiring closer alignment with cognitive science findings.
+
+### Memory Consolidation (FR-7.9)
+
+Richards & Frankland (2017) established that memory's goal is "to optimize decision-making, not information transmission through time." This requires active consolidation—transferring valuable episodic experience into durable semantic knowledge.
+
+The Cognitive Sleep Cycle workflow (`/assets/workflows/sleep-cycle.json`) implements consolidation through:
+1. **Hippocampal Replay**: Review recent activity, score significance
+2. **Slow-Wave Consolidation**: Distill high-value episodic → semantic via WikiLinks
+3. **Synaptic Pruning**: Apply decay weights, flag severely decayed content
+
+Without consolidation, agents either lose valuable experience (aggressive decay) or drown in accumulated episodes (no decay). Periodic consolidation maintains the balance.
 
 ---
 

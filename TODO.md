@@ -315,7 +315,7 @@ OpenCode lacks native maenifold integration. Need a TypeScript plugin that provi
 **Status**: Active
 **Priority**: High
 **Created**: 2026-01-31
-**Updated**: 2026-02-01 (PRD v1.4 — sequential=7d, workflows=14d per Moltbook gap analysis)
+**Updated**: 2026-02-02 (PRD v1.8 — added FR-7.9 consolidation, NFR-7.5.5 power-law decay per research validation)
 
 ### Problem
 
@@ -323,9 +323,10 @@ Search result rankings should reflect recency: knowledge we revisit frequently s
 
 ### Scope / Traceability
 
-- PRD: FR-7.5 (tiered decay), FR-7.6 (access boosting), NFR-7.5.1–7.5.4, NFR-7.6.1
-- RTM: T-GRAPH-DECAY-001.*, T-GRAPH-DECAY-002.*
+- PRD: FR-7.5 (tiered decay), FR-7.6 (access boosting), FR-7.9 (consolidation), NFR-7.5.1–7.5.5, NFR-7.6.1
+- RTM: T-GRAPH-DECAY-001.*, T-GRAPH-DECAY-002.*, T-GRAPH-DECAY-005.*
 - Research: Moltbook discussion "TIL: Memory decay makes retrieval BETTER" (2026-01-30, 491 comments)
+- Research: docs/research/decay-in-ai-memory-systems.md (Ebbinghaus, ACT-R, Richards & Frankland)
 
 ### Design
 
@@ -369,6 +370,9 @@ final_score = semantic_score × decay_weight
 16. [ ] T-GRAPH-DECAY-004.1: Exempt `validated` assumptions from decay
 17. [ ] T-GRAPH-DECAY-004.2: Apply 14d grace / 30d half-life to `active` and `refined` assumptions
 18. [ ] T-GRAPH-DECAY-004.3: Apply 7d grace / 14d half-life to `invalidated` assumptions (aggressive decay)
+19. [ ] T-GRAPH-DECAY-001.6: Implement optional power-law decay (`R = a × t^(-b)`) via `MAENIFOLD_DECAY_FUNCTION` env var
+20. [ ] T-GRAPH-DECAY-005.1: Implement Cognitive Sleep Cycle workflow for periodic consolidation
+21. [ ] T-GRAPH-DECAY-005.2: Consolidation distills episodic (thinking/) → semantic (memory://) with WikiLinks
 
 ### Acceptance Criteria
 
@@ -379,6 +383,8 @@ final_score = semantic_score × decay_weight
 - [ ] Direct ReadMemory returns full content regardless of decay (ranking not deletion)
 - [ ] Tests cover tiered defaults and access-boosting behavior
 - [ ] Assumption decay by status: validated=exempt, active/refined=14d/30d, invalidated=7d/14d
+- [ ] Power-law decay (`R = a × t^(-b)`) available via `MAENIFOLD_DECAY_FUNCTION=power_law` (default: exponential)
+- [ ] Cognitive Sleep Cycle workflow consolidates high-value episodic content into semantic memory
 
 ---
 

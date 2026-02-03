@@ -176,7 +176,7 @@ Default remains exponential for simplicity. Power-law option available for deplo
 
 Richards & Frankland (2017) established that memory's goal is "to optimize decision-making, not information transmission through time." This requires active consolidation—transferring valuable episodic experience into durable semantic knowledge.
 
-The Cognitive Sleep Cycle workflow (`/assets/workflows/sleep-cycle.json`) implements consolidation through:
+The Cognitive Sleep Cycle workflow (`/assets/workflows/memory-cycle.json`) implements consolidation through:
 1. **Hippocampal Replay**: Review recent activity, score significance
 2. **Slow-Wave Consolidation**: Distill high-value episodic → semantic via WikiLinks
 3. **Synaptic Pruning**: Apply decay weights, flag severely decayed content
@@ -188,11 +188,11 @@ Without consolidation, agents either lose valuable experience (aggressive decay)
 The Cognitive Sleep Cycle uses a hub-and-spoke orchestration pattern:
 
 ```
-sleep-cycle.json (Orchestrator)
-├── Dispatch parallel agents ──┬── sleep-consolidation.json
-│                              ├── sleep-decay.json
-│                              ├── sleep-repair.json
-│                              └── sleep-epistemic.json
+memory-cycle.json (Orchestrator)
+├── Dispatch parallel agents ──┬── memory-consolidation.json
+│                              ├── memory-decay.json
+│                              ├── memory-repair.json
+│                              └── memory-epistemic.json
 ├── Review all outputs
 └── Wake Preparation
 ```

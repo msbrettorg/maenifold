@@ -1,0 +1,83 @@
+{
+  "id": "memory-cycle",
+  "name": "Cognitive Sleep Cycle (Orchestrator)",
+  "emoji": "🌙",
+  "description": "Multi-agent orchestration for memory consolidation, decay processing, and graph maintenance during agent sleep. Dispatches 4 parallel specialist workflows that mirror biological sleep phases.",
+  "triggers": [
+    "sleep cycle",
+    "memory consolidation",
+    "cognitive maintenance",
+    "graph maintenance",
+    "custodian",
+    "sleep"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "dispatch-specialists",
+      "name": "🚀 Dispatch Sleep Specialists",
+      "description": "🚫 BLOCKING: Dispatch ALL specialist workflows in ONE message for parallel execution.\n\n⚠️ CRITICAL: ALL FOUR AGENTS IN ONE MESSAGE FOR PARALLEL EXECUTION!\n\n**Agent type**: `maenifold-product-team:researcher` for all 4 tasks\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Run memory-consolidation workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-consolidation. Memory replay focused on high-significance events, slow-wave consolidation of episodic to semantic memory, and dream synthesis for novel connections.\nOutput: Return consolidation summary as workflow output (DO NOT write to memory://custodian/)\n\nTask 2: Run memory-decay workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-decay. Analyze access patterns, calculate tiered decay weights, flag severely decayed content for review. Do NOT use read_memory.\nOutput: Return decay statistics as workflow output (DO NOT write to memory://)\n\nTask 3: Run memory-repair workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-repair. Analyze concept corruption in high-frequency families, normalize WikiLink variants, sync graph. Do NOT use read_memory.\nOutput: Return repair report as workflow output (DO NOT write to memory://)\n\nTask 4: Run memory-epistemic workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-epistemic. Review active assumptions, apply validation pressure, update statuses based on evidence. Do NOT use read_memory.\nOutput: Return assumption review as workflow output (DO NOT write to memory://)\n```\n\n🎯 SPECIALIST REQUIREMENTS:\n- Each specialist workflow is self-contained with its own memory replay phase\n- Consolidation: MAY use read_memory (access boosting is semantically correct)\n- Decay: SHALL use list_memories, NOT read_memory (preserve decay state)\n- Repair: SHALL use graph tools, NOT read_memory\n- Epistemic: SHALL use assumption_ledger, NOT read_memory\n\n⏱️ Dispatch duration: 5 minutes\n⏱️ Specialist execution: 30-45 minutes each (parallel)",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Critical parallel dispatch - ALL agents must launch in ONE message",
+            "priority": "mandatory",
+            "subagent_type": "maenifold-product-team:researcher",
+            "required_operations": ["memory-consolidation workflow", "memory-decay workflow", "memory-repair workflow", "memory-epistemic workflow"],
+            "parallel_execution": true,
+            "agent_instructions": {
+              "workflow_choice": "Each specialist runs its designated workflow",
+              "output_format": "Return markdown report as workflow output - DO NOT persist to memory://"
+            }
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": ["All four specialists dispatched"],
+        "next_actions": ["Wait for specialists", "Review outputs"],
+        "guardrails": {
+          "tool_access_safety": "Consolidation MAY use read_memory; others MUST NOT (NFR-7.11.x)"
+        }
+      }
+    },
+    {
+      "id": "review-outputs",
+      "name": "📊 Review Specialist Outputs",
+      "description": "Review outputs returned by the 4 specialist workflows.\n\nThe specialists returned their reports as workflow output (not persisted to memory://).\n\n1. **Review Consolidation Output**:\n   - Check: Items consolidated, WikiLink density, dream insights\n   - Note: Consolidated notes WERE written to appropriate knowledge folders\n\n2. **Review Decay Output**:\n   - Check: Decay statistics, flagged items, tier breakdown\n   - Note: No files modified - this is observation-only\n\n3. **Review Repair Output**:\n   - Check: Repairs made, items flagged for human review, graph health\n   - Note: Source files WERE modified by repair_concepts\n\n4. **Review Epistemic Output**:\n   - Check: Assumptions reviewed, status changes, evidence cited\n   - Note: Assumption ledger WERE updated\n\n5. **Compile Status**:\n   - Success/failure for each specialist\n   - Aggregate metrics (items processed, issues found)\n   - Flag any specialists that need re-run\n\n⏱️ Duration: 10-15 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {},
+        "reasoning_effort": "medium",
+        "stop_conditions": ["All reports reviewed", "Status compiled"],
+        "next_actions": ["Wake preparation"],
+        "guardrails": {
+          "completeness_check": "All 4 specialists must have returned output",
+          "no_custodian_files": "Specialists return output, do NOT write to memory://custodian/"
+        }
+      }
+    },
+    {
+      "id": "wake-preparation",
+      "name": "🌅 Wake Preparation",
+      "description": "Prepare enriched context for next session.\n\n1. **Summarize Sleep Cycle Outcomes**:\n   - Consolidations performed\n   - Decay state changes\n   - Graph repairs completed\n   - Assumption status updates\n\n2. **Identify Priority Items**:\n   - Items flagged for human review\n   - Unresolved repair candidates\n   - Assumptions needing validation\n   - Dream insights worth exploring\n\n3. **Prepare Context Injection**:\n   - Compile concise wake-up context (<2000 tokens)\n   - Include key insights and priorities\n   - Note any sleep cycle issues\n\n4. **Cycle Metrics** (ephemeral, do not persist):\n   - Total items processed per phase\n   - Time spent per specialist\n   - Errors or retries needed\n\nOutput: Return wake context as workflow output - DO NOT write to memory://\nThe wake context is injected into the next session, not persisted.",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "sequential_thinking": {
+            "reason": "Synthesize specialist outputs into coherent summary",
+            "priority": "recommended",
+            "estimated_thoughts": 2,
+            "focus_areas": ["Outcome synthesis", "Priority identification"]
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": ["Summary complete", "Context prepared"],
+        "next_actions": ["Sleep cycle complete"],
+        "guardrails": {
+          "context_size": "Wake context should be concise (<2000 tokens)",
+          "no_persistence": "Wake context is returned as output, NOT written to memory://"
+        }
+      }
+    }
+  ]
+}

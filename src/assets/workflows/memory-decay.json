@@ -1,5 +1,5 @@
 {
-  "id": "sleep-decay",
+  "id": "memory-decay",
   "name": "Sleep Decay (Synaptic Pruning)",
   "emoji": "\uD83C\uDF42",
   "description": "Focused decay processing workflow for memory maintenance. Analyzes access patterns and calculates decay weights without resetting decay clocks. Part of the cognitive sleep cycle.",
@@ -36,25 +36,21 @@
     {
       "id": "decay-processing",
       "name": "\uD83C\uDF42 Decay Processing (Synaptic Pruning)",
-      "description": "Calculate decay weights and flag severely decayed content.\n\n1. Run list_memories to enumerate all memory files with decay metadata\n2. Apply tier-specific decay rules:\n   - thinking/sequential/: 7-day grace period, 30-day half-life\n   - thinking/workflows/: 14-day grace period, 30-day half-life\n   - Other memory://: 14-day grace period, 30-day half-life\n3. Calculate decay_weight for each file based on last_accessed timestamp\n4. Flag severely decayed content (decay_weight < 0.25) for review\n5. Document decay statistics in memory://custodian/decay-report-{timestamp}.md\n\nCRITICAL: Do NOT use read_memory - this would reset decay clocks and defeat the purpose!\n\nDecay formula: weight = 2^(-days_since_access / half_life) after grace period\n\nOutput: memory://custodian/decay-report-{timestamp}.md\nInclude: Tier breakdown, decay statistics, flagged items for review",
+      "description": "Calculate decay weights and flag severely decayed content.\n\n1. Run list_memories to enumerate all memory files with decay metadata\n2. Apply tier-specific decay rules:\n   - thinking/sequential/: 7-day grace period, 30-day half-life\n   - thinking/workflows/: 14-day grace period, 30-day half-life\n   - Other memory://: 14-day grace period, 30-day half-life\n3. Calculate decay_weight for each file based on last_accessed timestamp\n4. Flag severely decayed content (decay_weight < 0.25) for review\n\nCRITICAL: Do NOT use read_memory - this would reset decay clocks and defeat the purpose!\n\nDecay formula: weight = 2^(-days_since_access / half_life) after grace period\n\nOutput: Return decay report as workflow output - DO NOT write to memory://\nInclude: Tier breakdown, decay statistics, flagged items for review",
       "requiresEnhancedThinking": false,
       "metadata": {
         "toolHints": {
           "list_memories": {
             "reason": "Enumerate memories with decay metadata (created, last_accessed, decay_weight)",
             "priority": "mandatory"
-          },
-          "write_memory": {
-            "reason": "Document decay report in custodian folder",
-            "priority": "mandatory",
-            "folder": "custodian"
           }
         },
         "reasoning_effort": "low",
-        "stop_conditions": ["Decay weights calculated", "Flagged items identified", "Report generated"],
-        "next_actions": ["Review flagged items", "Consider consolidation or archival"],
+        "stop_conditions": ["Decay weights calculated", "Flagged items identified", "Report returned as output"],
+        "next_actions": ["Return report to orchestrator"],
         "guardrails": {
           "no_read_memory": "NEVER use read_memory in this workflow - it resets decay clocks",
+          "no_write_memory": "NEVER use write_memory - decay reports are ephemeral, return as output",
           "observation_only": "Use list_memories for metadata, not read_memory for content",
           "no_deletion": "Decay affects ranking only, never delete content automatically",
           "flag_threshold": "Flag items with decay_weight < 0.25 for human review"

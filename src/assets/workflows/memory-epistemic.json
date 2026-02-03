@@ -1,5 +1,5 @@
 {
-  "id": "sleep-epistemic",
+  "id": "memory-epistemic",
   "name": "Sleep Epistemic (Assumption Review)",
   "emoji": "\u2696\ufe0f",
   "description": "Epistemic hygiene during cognitive sleep. Reviews assumptions touched by recent activity, validates or invalidates based on evidence, and applies status-based decay pressure. Part of the multi-agent Cognitive Sleep Cycle.",
@@ -41,7 +41,7 @@
     {
       "id": "assumption-review",
       "name": "\u2696\ufe0f Assumption Review (Epistemic Hygiene)",
-      "description": "\ud83e\udde0 ENHANCED THINKING REQUIRED\n\nReview active assumptions and apply validation pressure.\n\n1. Query assumption_ledger for active and refined assumptions\n2. Cross-reference with assumptions identified in memory replay\n3. For each assumption touched by recent activity:\n   - Search memories for supporting or contradicting evidence\n   - Evaluate evidence quality and relevance\n   - Determine if status should change\n4. Update assumption status based on evidence:\n   - Move to 'validated' if confirmed (grants immortality)\n   - Move to 'invalidated' if disproven (triggers aggressive decay)\n   - Keep as 'active' or 'refined' if inconclusive\n5. Document status changes with evidence citations\n\nDecay rules by status:\n- validated: No decay (immortal, NFR-7.8.1)\n- active/refined: 14-day grace, 30-day half-life (NFR-7.8.2)\n- invalidated: 7-day grace, 14-day half-life (aggressive, NFR-7.8.3)\n\nOutput: memory://custodian/assumption-review-{timestamp}.md\nInclude: Assumptions reviewed, status changes, evidence cited, decay implications",
+      "description": "\ud83e\udde0 ENHANCED THINKING REQUIRED\n\nReview active assumptions and apply validation pressure.\n\n1. Query assumption_ledger for active and refined assumptions\n2. Cross-reference with assumptions identified in memory replay\n3. For each assumption touched by recent activity:\n   - Search memories for supporting or contradicting evidence\n   - Evaluate evidence quality and relevance\n   - Determine if status should change\n4. Update assumption status based on evidence:\n   - Move to 'validated' if confirmed (grants immortality)\n   - Move to 'invalidated' if disproven (triggers aggressive decay)\n   - Keep as 'active' or 'refined' if inconclusive\n5. Document status changes with evidence citations\n\nDecay rules by status:\n- validated: No decay (immortal, NFR-7.8.1)\n- active/refined: 14-day grace, 30-day half-life (NFR-7.8.2)\n- invalidated: 7-day grace, 14-day half-life (aggressive, NFR-7.8.3)\n\nOutput: Return assumption review as workflow output - DO NOT write to memory://\nInclude: Assumptions reviewed, status changes, evidence cited, decay implications",
       "requiresEnhancedThinking": true,
       "metadata": {
         "toolHints": {
@@ -54,11 +54,6 @@
             "priority": "recommended",
             "mode": "Hybrid"
           },
-          "write_memory": {
-            "reason": "Document assumption review report",
-            "priority": "mandatory",
-            "folder": "custodian"
-          },
           "sequential_thinking": {
             "reason": "Evaluate evidence quality and make status decisions",
             "priority": "mandatory",
@@ -67,10 +62,11 @@
           }
         },
         "reasoning_effort": "medium",
-        "stop_conditions": ["All identified assumptions reviewed", "Status changes documented", "Evidence cited"],
-        "next_actions": ["Sleep cycle complete or return to orchestrator"],
+        "stop_conditions": ["All identified assumptions reviewed", "Status changes documented", "Report returned as output"],
+        "next_actions": ["Return report to orchestrator"],
         "guardrails": {
           "no_read_memory": "NEVER use read_memory - assumption_ledger has its own storage separate from memory files",
+          "no_write_memory": "NEVER use write_memory - epistemic reports are ephemeral, return as output",
           "evidence_required": "Status changes require cited evidence from search_memories",
           "validation_immortality": "Validated assumptions become permanent (NFR-7.8.1)",
           "invalidation_decay": "Invalidated assumptions decay aggressively (NFR-7.8.3)"

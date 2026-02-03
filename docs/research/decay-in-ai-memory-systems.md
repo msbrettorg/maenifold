@@ -669,6 +669,6 @@ The evidence converges: from Ebbinghaus (1885) through ACT-R (1998) to Richards 
 ## Appendix A: maenifold Sleep Cycle Workflow
 
 The complete workflow specification is available at:
-`/assets/workflows/sleep-cycle.json`
+`/assets/workflows/memory-cycle.json`
 
 This workflow triggers periodically to perform cognitive maintenance, implementing the phases described in Section 5.

@@ -161,7 +161,8 @@ public static class ConceptSync
                                 new { count = fileList.Count, files = JsonSerializer.Serialize(fileList), a = edge.a, b = edge.b });
                         }
                     }
-                    conn.Execute("DELETE FROM vec_memory_files WHERE file_path = @file", new { file = filePath });
+                    if (vectorReady)
+                        conn.Execute("DELETE FROM vec_memory_files WHERE file_path = @file", new { file = filePath });
                     conn.Execute("DELETE FROM file_content WHERE file_path = @file", new { file = filePath });
                 }
             }

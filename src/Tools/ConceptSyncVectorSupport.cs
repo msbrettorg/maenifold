@@ -79,6 +79,14 @@ internal static class ConceptSyncVectorSupport
         try
         {
             conn.LoadVectorExtension();
+
+            // Verify that vec tables actually work - not just that extension loaded.
+            // On some CI environments (GitHub Actions Linux), the extension loads but
+            // virtual table operations fail with SQLite Error 16.
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM vec_concepts";
+            cmd.ExecuteScalar();
+
             return true;
         }
         catch (Exception ex)

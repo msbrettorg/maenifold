@@ -34,15 +34,8 @@ public class GraphDecayWeightingTests
         GraphDatabase.InitializeDatabase();
         _testFolderPath = Path.Combine(Config.MemoryPath, TestFolder);
 
-        // Clean up any orphaned database entries from previous test runs
-        try
-        {
-            ConceptSync.Sync();
-        }
-        catch
-        {
-            // Ignore sync errors during setup
-        }
+        // Directly clean up database entries for this test folder to ensure isolation
+        CleanupDatabaseForTestFolder();
 
         // Ensure test folder is clean
         if (Directory.Exists(_testFolderPath))
@@ -52,9 +45,76 @@ public class GraphDecayWeightingTests
         Directory.CreateDirectory(_testFolderPath);
     }
 
+    private static void CleanupDatabaseForTestFolder()
+    {
+        try
+        {
+            using var conn = new Microsoft.Data.Sqlite.SqliteConnection(Config.DatabaseConnectionString);
+            conn.Open();
+
+            // Delete all database entries for files in our test folder
+            var pattern = $"memory://{TestFolder}/%";
+
+            // Clean up FTS5 entries by deleting from file_content (triggers handle file_search)
+            using var getRowIds = conn.CreateCommand();
+            getRowIds.CommandText = "SELECT rowid FROM file_content WHERE file_path LIKE @pattern";
+            getRowIds.Parameters.AddWithValue("@pattern", pattern);
+            using var reader = getRowIds.ExecuteReader();
+            var rowIds = new System.Collections.Generic.List<long>();
+            while (reader.Read())
+            {
+                rowIds.Add(reader.GetInt64(0));
+            }
+
+            foreach (var rowId in rowIds)
+            {
+                using var deleteFts = conn.CreateCommand();
+                deleteFts.CommandText = "INSERT INTO file_search(file_search, rowid, title, content, summary) VALUES('delete', @rowid, '', '', '')";
+                deleteFts.Parameters.AddWithValue("@rowid", rowId);
+                deleteFts.ExecuteNonQuery();
+            }
+
+            using var deleteContent = conn.CreateCommand();
+            deleteContent.CommandText = "DELETE FROM file_content WHERE file_path LIKE @pattern";
+            deleteContent.Parameters.AddWithValue("@pattern", pattern);
+            deleteContent.ExecuteNonQuery();
+
+            using var deleteMentions = conn.CreateCommand();
+            deleteMentions.CommandText = "DELETE FROM concept_mentions WHERE source_file LIKE @pattern";
+            deleteMentions.Parameters.AddWithValue("@pattern", pattern);
+            deleteMentions.ExecuteNonQuery();
+
+            // Try to clean vec tables but ignore errors
+            try
+            {
+                conn.LoadExtension(Path.Combine(AppContext.BaseDirectory, "assets", "native",
+                    System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX)
+                        ? (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.Arm64 ? "osx-arm64" : "osx-x64")
+                        : "linux-x64",
+                    System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX) ? "vec0.dylib" : "vec0.so"));
+
+                using var deleteVec = conn.CreateCommand();
+                deleteVec.CommandText = "DELETE FROM vec_memory_files WHERE file_path LIKE @pattern";
+                deleteVec.Parameters.AddWithValue("@pattern", pattern);
+                deleteVec.ExecuteNonQuery();
+            }
+            catch
+            {
+                // vec tables may not work on CI - ignore
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors during setup
+        }
+    }
+
     [TearDown]
     public void TearDown()
     {
+        // Clean up database entries first (before deleting files)
+        CleanupDatabaseForTestFolder();
+
         if (string.IsNullOrEmpty(_testFolderPath))
             return;
 
@@ -71,17 +131,6 @@ public class GraphDecayWeightingTests
                 sub.Delete(true);
             }
             directory.Delete(true);
-        }
-
-        // Clean up database entries for test files to ensure test isolation
-        // Sync will detect deleted files and remove orphaned entries
-        try
-        {
-            ConceptSync.Sync();
-        }
-        catch
-        {
-            // Ignore sync errors during cleanup
         }
     }
 

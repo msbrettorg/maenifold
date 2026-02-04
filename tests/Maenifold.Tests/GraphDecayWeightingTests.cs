@@ -55,29 +55,12 @@ public class GraphDecayWeightingTests
             // Delete all database entries for files in our test folder
             var pattern = $"memory://{TestFolder}/%";
 
-            // Clean up FTS5 entries by deleting from file_content (triggers handle file_search)
-            using var getRowIds = conn.CreateCommand();
-            getRowIds.CommandText = "SELECT rowid FROM file_content WHERE file_path LIKE @pattern";
-            getRowIds.Parameters.AddWithValue("@pattern", pattern);
-            using var reader = getRowIds.ExecuteReader();
-            var rowIds = new System.Collections.Generic.List<long>();
-            while (reader.Read())
-            {
-                rowIds.Add(reader.GetInt64(0));
-            }
-
-            foreach (var rowId in rowIds)
-            {
-                using var deleteFts = conn.CreateCommand();
-                deleteFts.CommandText = "INSERT INTO file_search(file_search, rowid, title, content, summary) VALUES('delete', @rowid, '', '', '')";
-                deleteFts.Parameters.AddWithValue("@rowid", rowId);
-                deleteFts.ExecuteNonQuery();
-            }
-
+            // Delete from file_content - the AFTER DELETE trigger handles file_search cleanup
             using var deleteContent = conn.CreateCommand();
             deleteContent.CommandText = "DELETE FROM file_content WHERE file_path LIKE @pattern";
             deleteContent.Parameters.AddWithValue("@pattern", pattern);
-            deleteContent.ExecuteNonQuery();
+            var deletedCount = deleteContent.ExecuteNonQuery();
+            TestContext.Out.WriteLine($"[TEST CLEANUP] Deleted {deletedCount} entries from file_content for {pattern}");
 
             using var deleteMentions = conn.CreateCommand();
             deleteMentions.CommandText = "DELETE FROM concept_mentions WHERE source_file LIKE @pattern";
@@ -103,9 +86,33 @@ public class GraphDecayWeightingTests
                 // vec tables may not work on CI - ignore
             }
         }
+        catch (System.Exception ex)
+        {
+            TestContext.Out.WriteLine($"[TEST CLEANUP WARNING] Cleanup error: {ex.Message}");
+        }
+    }
+
+    private static bool CanCleanVecTables()
+    {
+        try
+        {
+            using var conn = new Microsoft.Data.Sqlite.SqliteConnection(Config.DatabaseConnectionString);
+            conn.Open();
+            conn.LoadExtension(Path.Combine(AppContext.BaseDirectory, "assets", "native",
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX)
+                    ? (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.Arm64 ? "osx-arm64" : "osx-x64")
+                    : "linux-x64",
+                System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX) ? "vec0.dylib" : "vec0.so"));
+
+            // Test if we can actually query vec tables
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM vec_memory_files WHERE 1=0";
+            cmd.ExecuteScalar();
+            return true;
+        }
         catch
         {
-            // Ignore cleanup errors during setup
+            return false;
         }
     }
 
@@ -181,6 +188,12 @@ public class GraphDecayWeightingTests
     [Description("T-GRAPH-DECAY-001.1: RTM FR-7.5 - Newer content ranks higher in SearchMemories")]
     public void SearchMemories_NewerContentRanksHigher_WhenSemanticScoresEqual()
     {
+        // Skip if vec tables can't be cleaned (causes test isolation issues with semantic search)
+        if (!CanCleanVecTables())
+        {
+            Assert.Ignore("Test skipped: sqlite-vec tables unavailable - semantic search results from previous tests cannot be cleaned");
+        }
+
         // Arrange: Create two files with identical content but different ages
         const string identicalContent = "This document discusses [[machine-learning]] algorithms and [[deep-learning]] neural networks. " +
             "The primary focus is on supervised [[machine-learning]] techniques for classification tasks.";

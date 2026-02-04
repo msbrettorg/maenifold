@@ -104,10 +104,13 @@ public class GraphDecayWeightingTests
                     : "linux-x64",
                 System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX) ? "vec0.dylib" : "vec0.so"));
 
-            // Test if we can actually DELETE from vec tables (SELECT works but DELETE fails with Error 16 on some CI)
+            // Test if we can DELETE from vec tables within a transaction (Error 16 may only occur in transaction context)
+            using var tx = conn.BeginTransaction();
             using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
             cmd.CommandText = "DELETE FROM vec_memory_files WHERE file_path = 'nonexistent-test-path-for-capability-check'";
             cmd.ExecuteNonQuery();
+            tx.Commit();
             return true;
         }
         catch

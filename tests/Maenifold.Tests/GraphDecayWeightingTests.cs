@@ -33,6 +33,22 @@ public class GraphDecayWeightingTests
         Config.EnsureDirectories();
         GraphDatabase.InitializeDatabase();
         _testFolderPath = Path.Combine(Config.MemoryPath, TestFolder);
+
+        // Clean up any orphaned database entries from previous test runs
+        try
+        {
+            ConceptSync.Sync();
+        }
+        catch
+        {
+            // Ignore sync errors during setup
+        }
+
+        // Ensure test folder is clean
+        if (Directory.Exists(_testFolderPath))
+        {
+            Directory.Delete(_testFolderPath, recursive: true);
+        }
         Directory.CreateDirectory(_testFolderPath);
     }
 
@@ -55,6 +71,17 @@ public class GraphDecayWeightingTests
                 sub.Delete(true);
             }
             directory.Delete(true);
+        }
+
+        // Clean up database entries for test files to ensure test isolation
+        // Sync will detect deleted files and remove orphaned entries
+        try
+        {
+            ConceptSync.Sync();
+        }
+        catch
+        {
+            // Ignore sync errors during cleanup
         }
     }
 

@@ -2,6 +2,7 @@
 name: swe
 description: Use this agent when you need to delegate software engineering implementation tasks. This includes writing new code, implementing features, fixing bugs, refactoring existing code, or making any code changes that have been planned and specified. The SWE agent excels at focused implementation work when given clear direction about what needs to be built or changed. Ensure you give the SWE agent well scoped atomic tasks to maximize effectiveness.
 color: green
+model: opus
 skills:
   - maenifold
 ---

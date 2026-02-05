@@ -1,7 +1,8 @@
 ---
-name: researcher
+name: product-manager
 description: Use this agent when the user needs comprehensive research on a topic, requires synthesized information from multiple sources, needs fact-checking or verification of claims, wants to explore a subject in depth, or needs help gathering and organizing information for decision-making. This agent excels at diving deep into complex topics, finding relevant sources, and presenting findings in a clear, structured manner.
 color: cyan
+model: opus
 skills:
   - maenifold
 ---

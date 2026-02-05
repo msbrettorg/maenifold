@@ -99,13 +99,13 @@ public static class Config
     public static readonly int DecayGraceDaysWorkflows = GetEnvInt("MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS", 14);
 
     // T-GRAPH-DECAY-001.3: RTM NFR-7.5.2 - Default grace period
-    public static readonly int DecayGraceDaysDefault = GetEnvInt("MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT", 14);
+    public static readonly int DecayGraceDaysDefault = GetEnvInt("MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT", 28);
 
     // T-GRAPH-DECAY-001.4: RTM NFR-7.5.3 - Half-life
     public static readonly int DecayHalfLifeDays = GetEnvInt("MAENIFOLD_DECAY_HALF_LIFE_DAYS", 30);
 
-    // T-GRAPH-DECAY-001.6: RTM NFR-7.5.5 - Decay function (exponential or power-law)
-    public static readonly string DecayFunction = GetEnvString("MAENIFOLD_DECAY_FUNCTION", "exponential");
+    // T-GRAPH-DECAY-001.6: RTM NFR-7.5.5 - Decay function (power-law default per ACT-R, exponential opt-in)
+    public static readonly string DecayFunction = GetEnvString("MAENIFOLD_DECAY_FUNCTION", "power-law");
 
     public static bool EnableEmbeddingLogs => GetEnvBool("MAENIFOLD_EMBEDDING_LOGS", false);
     public static bool EnableVectorSearchLogs => GetEnvBool("MAENIFOLD_VECTOR_LOGS", false);

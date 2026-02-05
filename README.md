@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Your AI is ephemeral. Your knowledge shouldn't be.
+  Your AI is ephemeral. Your context shouldn't rot.
 </p>
 
 <p align="center">
@@ -13,7 +13,17 @@
 
 ## What is maenifold?
 
-A cognitive middle layer between raw input and AI reasoning. Six composable layers: `[[WikiLinks]]` → Graph → Hybrid Search → Session State → Reasoning → Orchestration. Decay models prioritize recent and frequently-accessed content. Maintenance workflows consolidate episodic data into semantic memory.
+Context engineering infrastructure implementing [Anthropic's published principles](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) for building capable agents.
+
+AI agents generate massive thinking data. Without management, old thoughts compete with new conclusions for the *attention budget*—a phenomenon called *context rot*. Maenifold prevents this through:
+
+- **Just-in-time retrieval**: `[[WikiLinks]]` as lightweight identifiers, not payloads
+- **Compaction**: Memory cycles consolidate episodic → semantic
+- **Decay**: Time-based signal-to-noise management (calibrated to iteration speed)
+- **Structured note-taking**: Sequential thinking with graph integration
+- **Sub-agent architectures**: Clean contexts, condensed handoffs
+
+Six composable layers: `[[WikiLinks]]` → Graph → Hybrid Search → Session State → Reasoning → Orchestration. No magic. No fake AI. Space for intelligence to emerge.
 
 ## Quick Start
 
@@ -99,12 +109,12 @@ Both interfaces have full feature parity. Choose based on your use case:
 
 | Concept | Origin | Application |
 |---------|--------|-------------|
+| **[Context Engineering](docs/context-engineering.md)** | Anthropic (2025) | Attention budget management: just-in-time retrieval, compaction, decay, structured notes, sub-agents |
 | **[ACT-R](docs/research/decay-in-ai-memory-systems.md)** | Anderson (CMU); Wixted & Ebbesen (1991) | Power-law inspired decay ([exponential approximation](docs/research/decay-in-ai-memory-systems.md#54-the-act-r-connection)) |
 | **[New Theory of Disuse](docs/research/decay-in-ai-memory-systems.md#23-the-spacing-effect-and-retrieval-strengthening)** | Bjork & Bjork | Storage vs retrieval strength |
 | **[Two-Stage Memory](docs/research/decay-in-ai-memory-systems.md#32-sleep-and-memory-consolidation)** | Cognitive neuroscience | Episodic → semantic consolidation |
 | **[Linguistic Relativity](https://lera.ucsd.edu/papers/linguistic-relativity.pdf)** | Weak form (Boroditsky, 2003) | Perspectives change the linguistic frame of LLM reasoning |
 | **[ConfessionReport](docs/research/confession-reports.md)** | OpenAI (Barak et al., 2025) | Inference-time honesty enforcement via hooks + adversarial audit |
-| **[Context Engineering](docs/context-engineering.md)** | Anthropic (2025) | Just-in-time retrieval, compaction, structured notes, sub-agent architectures |
 
 ### [Memory System](docs/research/memory-system.md)
 
@@ -181,9 +191,10 @@ export MAENIFOLD_ROOT=~/my-knowledge-base
 | Vectors | 384-dim (all-MiniLM-L6-v2 via ONNX) |
 | Search | Reciprocal Rank Fusion (k=60) |
 | Database | SQLite + [sqlite-vec](https://github.com/asg017/sqlite-vec) (bundled) |
-| Decay Model | ACT-R power-law (d=0.5: memory halves when time quadruples); affects ranking, never deletes |
-| Memory Tiers | Grace periods: Episodic (7d) / Semantic (14d) / Immortal |
-| Maintenance | 4 workflows (consolidation/decay/repair/epistemic) |
+| Memory Cycle | 24h compaction interval; decay params expressed as cycle multiples (volume-dependent, scriptable) |
+| Decay Model | ACT-R power-law (d=0.5); calibrated to memory cycle: sequential (2-3×), workflows (7×), memory (14-28×) |
+| Memory Tiers | Grace periods anchored to iteration speed: Sequential (2-3d) / Workflows (7d) / Semantic (14-28d) |
+| Maintenance | 4 workflows (consolidation/decay/repair/epistemic) mirror biological sleep phases |
 | Scale | > 1M relationships tested |
 
 *Decay affects search ranking only. Files are never deleted.*

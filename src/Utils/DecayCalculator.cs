@@ -1,6 +1,6 @@
 // T-GRAPH-DECAY-001.1, T-GRAPH-DECAY-001.6, T-GRAPH-DECAY-004.1-3: RTM FR-7.5, FR-7.8, NFR-7.5.5
 // Decay weight calculation for memory files and assumptions
-// Implements exponential decay (default) and power-law decay (ACT-R model)
+// Implements power-law decay (ACT-R model, default) and exponential decay (opt-in)
 
 using System;
 

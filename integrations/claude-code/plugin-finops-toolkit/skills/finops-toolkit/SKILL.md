@@ -218,7 +218,7 @@ For detailed documentation: `references/finops-hubs-deployment.md`
 - **Analysis**: `references/finops-hubs.md`
 - **Deployment**: `references/finops-hubs-deployment.md`
 
-## Reference Worlflows
+## Reference Workflows
 
 - **Discover and Connect to a FinOps hub**: `references/workflows/ftk-hubs-connect.md`
 - **FinOps hub health check**: `references/workflows/ftk-hubs-healthCheck.md`

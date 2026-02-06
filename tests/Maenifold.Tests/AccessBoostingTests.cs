@@ -114,7 +114,7 @@ public class AccessBoostingTests
     public void ReadMemory_UpdatesLastAccessed_OnEveryRead()
     {
         // Arrange: Create a test file and sync
-        var (uri, filePath) = CreateAndSyncTestFile(
+        var (uri, _) = CreateAndSyncTestFile(
             "Access Boosting Read Test",
             "Testing [[access-boosting]] behavior for [[ReadMemory]].",
             TestFolder);
@@ -150,7 +150,7 @@ public class AccessBoostingTests
     public void ReadMemory_UpdatesLastAccessed_OnSubsequentReads()
     {
         // Arrange: Create a test file and sync
-        var (uri, filePath) = CreateAndSyncTestFile(
+        var (uri, _) = CreateAndSyncTestFile(
             "Multiple Reads Test",
             "Testing [[access-boosting]] with multiple reads for [[decay-weighting]].",
             TestFolder);
@@ -221,7 +221,7 @@ public class AccessBoostingTests
     public void SearchMemories_DoesNotUpdateLastAccessed()
     {
         // Arrange: Create a test file with searchable content
-        var (uri, filePath) = CreateAndSyncTestFile(
+        var (uri, _) = CreateAndSyncTestFile(
             "Search Results Test",
             "Testing [[search-behavior]] for [[access-boosting]]. This contains machine learning keywords.",
             TestFolder);
@@ -265,7 +265,7 @@ public class AccessBoostingTests
     public void SearchMemories_SemanticMode_DoesNotUpdateLastAccessed()
     {
         // Arrange
-        var (uri, filePath) = CreateAndSyncTestFile(
+        var (uri, _) = CreateAndSyncTestFile(
             "Semantic Search Test",
             "Testing [[semantic-search]] and [[vector-embeddings]] behavior.",
             TestFolder);
@@ -296,7 +296,7 @@ public class AccessBoostingTests
     public void SearchMemories_FullTextMode_DoesNotUpdateLastAccessed()
     {
         // Arrange
-        var (uri, filePath) = CreateAndSyncTestFile(
+        var (uri, _) = CreateAndSyncTestFile(
             "FullText Search Test",
             "Testing [[fulltext-search]] and [[keyword-matching]] behavior.",
             TestFolder);
@@ -386,7 +386,7 @@ public class AccessBoostingTests
     public void BuildContext_WithContentPreview_DoesNotUpdateLastAccessed()
     {
         // Arrange
-        var (uri, filePath) = CreateAndSyncTestFile(
+        var (uri, _) = CreateAndSyncTestFile(
             "Content Preview Test",
             "Testing [[content-preview]] in [[BuildContext]] with [[access-boosting]].",
             TestFolder);
@@ -414,7 +414,7 @@ public class AccessBoostingTests
     public void BuildContext_AtVariousDepths_DoesNotUpdateLastAccessed()
     {
         // Arrange: Create a chain of related files
-        var (uri, filePath) = CreateAndSyncTestFile(
+        var (uri, _) = CreateAndSyncTestFile(
             "Depth Test File",
             "Testing [[depth-traversal]] with [[graph-depth]] concepts.",
             TestFolder);
@@ -446,7 +446,7 @@ public class AccessBoostingTests
     public void OnlyReadMemory_UpdatesLastAccessed_NotSearchOrBuildContext()
     {
         // Arrange: Create a test file
-        var (uri, filePath) = CreateAndSyncTestFile(
+        var (uri, _) = CreateAndSyncTestFile(
             "Combined Behavior Test",
             "Testing [[combined-access]] patterns for [[decay-weighting]] and [[boosting]].",
             TestFolder);

@@ -87,15 +87,9 @@ public partial class MemorySearchTools
         try
         {
 
-            string filePath;
-            if (filePathOrUri.StartsWith("memory://", StringComparison.Ordinal))
-            {
-                filePath = MarkdownIO.UriToPath(filePathOrUri, Config.MemoryPath);
-            }
-            else
-            {
-                filePath = filePathOrUri;
-            }
+            string filePath = filePathOrUri.StartsWith("memory://", StringComparison.Ordinal)
+                ? MarkdownIO.UriToPath(filePathOrUri, Config.MemoryPath)
+                : filePathOrUri;
 
             var (frontmatter, content, _) = MarkdownIO.ReadMarkdown(filePath);
             var title = frontmatter?.ContainsKey("title") == true
@@ -126,15 +120,9 @@ public partial class MemorySearchTools
         try
         {
             // Convert URI to disk path if needed
-            string filePath;
-            if (filePathOrUri.StartsWith("memory://", StringComparison.Ordinal))
-            {
-                filePath = MarkdownIO.UriToPath(filePathOrUri, Config.MemoryPath);
-            }
-            else
-            {
-                filePath = filePathOrUri;
-            }
+            string filePath = filePathOrUri.StartsWith("memory://", StringComparison.Ordinal)
+                ? MarkdownIO.UriToPath(filePathOrUri, Config.MemoryPath)
+                : filePathOrUri;
 
             // Get 'created' from frontmatter
             var (frontmatter, _, _) = MarkdownIO.ReadMarkdown(filePath);

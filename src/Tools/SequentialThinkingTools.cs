@@ -50,12 +50,22 @@ Returns session management with continuation guidance and checkpoint suggestions
             sessionId = $"session-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{Random.Shared.Next(10000, 99999)}";
 
         if (sessionIdProvided && !IsValidSessionIdFormat(sessionId!))
-            return "ERROR: Invalid sessionId format. Use maenifold-generated values (session-{unix-milliseconds}) or omit sessionId to start a new session.";
+        {
+            var msg = "Invalid sessionId format. Use maenifold-generated values (session-{unix-milliseconds}) or omit sessionId to start a new session.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("INVALID_SESSION_ID", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         var (sessionExists, _) = DetermineSessionState(sessionId!, thoughtNumber, isRevision);
 
         if (sessionIdProvided && thoughtNumber == 0 && !sessionExists && !isRevision)
-            return $"ERROR: Session {sessionId} not found. To start new session, don't provide sessionId.";
+        {
+            var msg = $"Session {sessionId} not found. To start new session, don't provide sessionId.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("SESSION_NOT_FOUND", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         var parentWorkflowError = ValidateParentWorkflow(parentWorkflowId, thoughtNumber);
         if (parentWorkflowError != null)
@@ -63,14 +73,34 @@ Returns session management with continuation guidance and checkpoint suggestions
 
         // Validate branchId requirement for multi-agent safety
         if (branchFromThought.HasValue && string.IsNullOrEmpty(branchId))
-            return "ERROR: branchId required when branchFromThought is specified for multi-agent coordination";
+        {
+            var msg = "branchId required when branchFromThought is specified for multi-agent coordination";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("BRANCH_ID_REQUIRED", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         if (thoughtNumber == 0 && string.IsNullOrEmpty(branchId) && sessionExists && !isRevision && !cancel)
-            return $"ERROR: Session {sessionId} exists. Use different sessionId or continue existing.";
+        {
+            var msg = $"Session {sessionId} exists. Use different sessionId or continue existing.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("SESSION_EXISTS", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
         if (thoughtNumber > 0 && !sessionExists && !isRevision && !cancel)
-            return $"ERROR: Session {sessionId} missing. Start with thoughtNumber=0.";
+        {
+            var msg = $"Session {sessionId} missing. Start with thoughtNumber=0.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("SESSION_MISSING", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
         if (isRevision && !sessionExists)
-            return $"ERROR: Cannot revise - session {sessionId} doesn't exist.";
+        {
+            var msg = $"Cannot revise - session {sessionId} doesn't exist.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("SESSION_NOT_FOUND", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         if (!sessionExists)
         {
@@ -92,11 +122,21 @@ Returns session management with continuation guidance and checkpoint suggestions
         if (complete && cancel == false)
         {
             if (string.IsNullOrEmpty(conclusion))
-                return "ERROR: Conclusion required when completing session. Must synthesize findings with [[WikiLinks]].";
+            {
+                var msg = "Conclusion required when completing session. Must synthesize findings with [[WikiLinks]].";
+                return OutputContext.IsJsonMode
+                    ? JsonToolResponse.Fail("CONCLUSION_REQUIRED", msg).ToJson()
+                    : $"ERROR: {msg}";
+            }
 
             var conclusionConcepts = MarkdownIO.ExtractWikiLinks(conclusion);
             if (conclusionConcepts.Count == 0)
-                return "ERROR: Conclusion must include [[WikiLinks]] for knowledge graph integration.";
+            {
+                var msg = "Conclusion must include [[WikiLinks]] for knowledge graph integration.";
+                return OutputContext.IsJsonMode
+                    ? JsonToolResponse.Fail("CONCLUSION_WIKILINK_REQUIRED", msg).ToJson()
+                    : $"ERROR: {msg}";
+            }
         }
 
         FinalizeSession(sessionId!, thoughtNumber, cancel, complete, conclusion);
@@ -164,16 +204,31 @@ Returns session management with continuation guidance and checkpoint suggestions
             return null;
 
         if (thoughtNumber != 0)
-            return "ERROR: Parent workflow can only be set on first thought.";
+        {
+            var msg = "Parent workflow can only be set on first thought.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("INVALID_PARENT_WORKFLOW", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         if (!MarkdownIO.SessionExists("workflow", parentWorkflowId))
-            return $"ERROR: Parent workflow '{parentWorkflowId}' not found.";
+        {
+            var msg = $"Parent workflow '{parentWorkflowId}' not found.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("PARENT_WORKFLOW_NOT_FOUND", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         var (parentMeta, _, _) = MarkdownIO.ReadSession("workflow", parentWorkflowId);
         var parentStatus = parentMeta?.ContainsKey("status") == true ? parentMeta["status"]?.ToString() : "active";
 
         if (parentStatus == "completed" || parentStatus == "cancelled" || parentStatus == "abandoned")
-            return $"ERROR: Parent workflow is {parentStatus}.";
+        {
+            var msg = $"Parent workflow is {parentStatus}.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("PARENT_WORKFLOW_CLOSED", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         return null;
     }

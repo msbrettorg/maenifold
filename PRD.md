@@ -89,10 +89,10 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | NFR-7.4.2 | Similarity output SHALL NOT exceed 1.000. | Required |
 | NFR-7.5.1 | Default decay grace period for `memory/thinking/sequential/` SHALL be 7 days with env override (`MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL`). | Required |
 | NFR-7.5.1a | Default decay grace period for `memory/thinking/workflows/` SHALL be 14 days with env override (`MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS`). | Required |
-| NFR-7.5.2 | Default decay grace period for all other memory SHALL be 14 days with env override (`MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT`). | Required |
+| NFR-7.5.2 | Default decay grace period for all other memory SHALL be 28 days with env override (`MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT`). | Required |
 | NFR-7.5.3 | Default decay half-life SHALL be 30 days with env override (`MAENIFOLD_DECAY_HALF_LIFE_DAYS`). | Required |
 | NFR-7.5.4 | Decay SHALL affect search ranking only; decayed content SHALL remain fully retrievable via direct query (no deletion). | Required |
-| NFR-7.5.5 | System SHALL support optional power-law decay (`R = a × t^(-b)`) as alternative to exponential decay, configurable via `MAENIFOLD_DECAY_FUNCTION` env var (`exponential` default, `power_law` option). | Optional |
+| NFR-7.5.5 | System SHALL support both power-law decay (`R = a × t^(-b)`) and exponential decay, configurable via `MAENIFOLD_DECAY_FUNCTION` env var (`power-law` default per research validation, `exponential` option available). | Required |
 | NFR-7.6.1 | ReadMemory SHALL update the file's `last_accessed` timestamp on every read. | Required |
 | NFR-7.6.2 | SearchMemories SHALL NOT update `last_accessed` for files appearing in results. | Required |
 | NFR-7.6.3 | BuildContext SHALL NOT update `last_accessed` for files referenced in context. | Required |
@@ -170,7 +170,7 @@ Research shows power-law decay (`R = a × t^(-b)`) better fits human memory than
 | Exponential | Constant half-life; aggressive on old content | Simple; widely implemented |
 | Power Law | Memory halves when time *quadruples*; slower long-term decay | Wixted & Ebbesen (1991); ACT-R d=0.5 |
 
-Default remains exponential for simplicity. Power-law option available for deployments requiring closer alignment with cognitive science findings.
+Default changed to power-law based on research validation (Wixted & Ebbesen 1991, ACT-R d=0.5). Exponential option remains available via env var for deployments preferring simpler decay curves.
 
 ### Memory Consolidation (FR-7.9)
 

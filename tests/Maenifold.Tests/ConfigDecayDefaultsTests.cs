@@ -83,8 +83,8 @@ public class ConfigDecayDefaultsTests
         Environment.SetEnvironmentVariable("MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT", null);
 
         // Act & Assert
-        Assert.That(Config.DecayGraceDaysDefault, Is.EqualTo(14),
-            "Default grace period should default to 14 days per NFR-7.5.2");
+        Assert.That(Config.DecayGraceDaysDefault, Is.EqualTo(28),
+            "Default grace period should default to 28 days per NFR-7.5.2");
     }
 
     [Test]
@@ -107,8 +107,8 @@ public class ConfigDecayDefaultsTests
         Environment.SetEnvironmentVariable("MAENIFOLD_DECAY_FUNCTION", null);
 
         // Act & Assert
-        Assert.That(Config.DecayFunction, Is.EqualTo("exponential"),
-            "Decay function should default to 'exponential' per NFR-7.5.5");
+        Assert.That(Config.DecayFunction, Is.EqualTo("power-law"),
+            "Decay function should default to 'power-law' per NFR-7.5.5 (research-validated)");
     }
 
     #endregion
@@ -214,6 +214,7 @@ public class ConfigDecayDefaultsTests
     public void DecayCalculator_UsesConfigHalfLife()
     {
         // Arrange: Content one half-life past grace period
+        // With power-law decay (default), formula is: weight = 1.0 * (effectiveAge)^(-0.5)
         var defaultPath = "/home/user/maenifold/memory/notes/my-note.md";
         var ageDays = Config.DecayGraceDaysDefault + Config.DecayHalfLifeDays;
         var created = DateTime.UtcNow.AddDays(-ageDays);
@@ -221,9 +222,10 @@ public class ConfigDecayDefaultsTests
         // Act
         var weight = DecayCalculator.GetMemoryDecayWeight(defaultPath, created);
 
-        // Assert: One half-life past grace should yield weight 0.5
-        Assert.That(weight, Is.EqualTo(0.5).Within(0.0001),
-            "Content one half-life past grace should have weight 0.5");
+        // Assert: Power-law decay at 30 days past grace
+        // weight = 1.0 * 30^(-0.5) = 1/sqrt(30) ≈ 0.1826
+        Assert.That(weight, Is.EqualTo(0.1826).Within(0.01),
+            "Power-law decay: 1.0 * (30)^(-0.5) ≈ 0.1826");
     }
 
     #endregion
@@ -234,16 +236,16 @@ public class ConfigDecayDefaultsTests
     [Description("T-GRAPH-DECAY-001.6: RTM NFR-7.5.5 - DecayCalculator respects exponential function config")]
     public void DecayCalculator_ExponentialFunction_AppliesCorrectly()
     {
-        // Arrange: With exponential decay (default)
-        // Config.DecayFunction should be "exponential" by default
-        var defaultPath = "/home/user/maenifold/memory/notes/my-note.md";
+        // Arrange: Test exponential decay directly via GetDecayWeight
         var ageDays = Config.DecayGraceDaysDefault + Config.DecayHalfLifeDays;
-        var created = DateTime.UtcNow.AddDays(-ageDays);
+        var gracePeriod = Config.DecayGraceDaysDefault;
+        var halfLife = Config.DecayHalfLifeDays;
 
-        // Act
-        var weight = DecayCalculator.GetMemoryDecayWeight(defaultPath, created);
+        // Act: Call GetDecayWeight with explicit "exponential" parameter
+        var weight = DecayCalculator.GetDecayWeight(ageDays, gracePeriod, halfLife, "exponential");
 
         // Assert: Exponential decay at one half-life should yield 0.5
+        // Formula: 0.5^((58-28)/30) = 0.5^1 = 0.5
         Assert.That(weight, Is.EqualTo(0.5).Within(0.0001),
             "Exponential decay at one half-life should yield weight 0.5");
     }

@@ -1,6 +1,6 @@
 # RepairConcepts
 
-⚠️ **DANGER: This tool can PERMANENTLY DAMAGE your [[knowledge-graph]] if used incorrectly!** Repairs [[graph]] corruption by replacing [[concept]] variants with canonical form in source [[markdown]] files. Fixes the source of truth rather than just the database. Use this to consolidate [[concept]] families while preserving semantic meaning.
+⚠️ **DANGER: This tool can PERMANENTLY DAMAGE your [[knowledge-graph]] if used incorrectly!** Repairs [[graph]] corruption by replacing [[WikiLink]] variants with canonical form in source [[markdown]] files. Fixes the source of truth rather than just the database. Use this to consolidate [[WikiLink]] families while preserving semantic meaning.
 
 🛡️ **SEMANTIC VALIDATION**: Automatically blocks unsafe consolidations by checking semantic similarity between concepts using [[vector-embeddings]]. Only proceeds if ALL variants have similarity >= minSemanticSimilarity threshold (default 0.7).
 
@@ -11,7 +11,7 @@
 - **Case Normalization**: Standardize [[MCP]] vs [[mcp]] to consistent casing
 - **Graph Cleanup**: Remove duplicate concepts that fragment knowledge connections
 - **WikiLink Creation**: Convert plain text to [[WikiLinks]] for graph integration
-- **WikiLink Removal**: Convert [[concepts]] back to plain text (use with extreme caution)
+- **WikiLink Removal**: Convert [[WikiLinks]] back to plain text (use with extreme caution)
 - **Concept Renaming**: Change concept names while updating all references
 
 ## Key Features
@@ -20,7 +20,7 @@
 - **Dry Run Mode**: Preview all changes before applying (ALWAYS start with dryRun=true)
 - **Source File Modification**: Changes actual .md files, not just database - permanent and complete
 - **WikiLink Creation Mode**: Convert plain text phrases to [[WikiLinks]] for graph integration
-- **WikiLink Removal Mode**: Convert [[concepts]] to plain text (dangerous - breaks graph connections)
+- **WikiLink Removal Mode**: Convert [[WikiLinks]] to plain text (dangerous - breaks graph connections)
 - **Batch Processing**: Process multiple variants in single operation
 - **Folder Scoping**: Limit changes to specific memory subfolders
 - **Change Preview**: Shows exactly what will be replaced before applying

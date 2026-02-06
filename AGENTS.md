@@ -14,15 +14,59 @@ Do NOT merge directly to main. Always use a PR.
 
 ## Build, Lint, Test
 
+### Build Policy (CRITICAL)
+
+**During sprints**: Use Debug build only.
+```bash
+dotnet build src/Maenifold.csproj           # Debug is default
+dotnet test                                  # Tests use Debug
+```
+
+**After sprint signoff**: Release build (with permission).
+```bash
+dotnet build src/Maenifold.csproj -c Release
+dotnet publish src/Maenifold.csproj -c Release --self-contained -o bin
+```
+
+**Why?** All agents actively use the maenifold release build as their cognitive substrate. Breaking the release build breaks the agents' ability to think, remember, and reason. Don't break the substrate!
+
+**Rule**: ASK PERMISSION before running `dotnet build -c Release` or `dotnet publish -c Release`. The release build replaces the installed binary that agents depend on.
+
 ### Core (.NET)
 - Restore: `dotnet restore src/Maenifold.csproj`
 - Build (Debug): `dotnet build src/Maenifold.csproj -c Debug`
-- Build (Release): `dotnet build src/Maenifold.csproj -c Release`
+- Build (Release): `dotnet build src/Maenifold.csproj -c Release` **(ask permission first!)**
 - Publish (Release): `dotnet publish src/Maenifold.csproj -c Release --self-contained -o bin`
 
 ### CLI execution rules
 - `dotnet run` is forbidden for Maenifold CLI usage
 - Compile the CLI first, then run the built `maenifold` binary
+
+### Asset propagation for testing
+
+Workflow JSON files and other assets live in `src/assets/` and must be copied to `~/maenifold/assets/` for testing:
+
+```bash
+# 1. Build the CLI (Debug)
+dotnet build src/Maenifold.csproj -c Debug
+
+# 2. Preview asset changes (dry-run)
+./src/bin/Debug/net9.0/maenifold update_assets dryRun=true
+
+# 3. Apply asset changes
+./src/bin/Debug/net9.0/maenifold update_assets dryRun=false
+```
+
+**Source → Target mapping:**
+- `src/assets/workflows/*.json` → `~/maenifold/assets/workflows/`
+- `src/assets/usage/tools/*.md` → `~/maenifold/assets/usage/tools/`
+- `src/assets/roles/*.json` → `~/maenifold/assets/roles/`
+- `src/assets/colors/*.json` → `~/maenifold/assets/colors/`
+
+**When to propagate:**
+- After creating/modifying workflow JSON files
+- After updating tool usage documentation
+- Before manual testing of workflows
 
 ### Tests (.NET, NUnit)
 - Run all tests: `dotnet test`

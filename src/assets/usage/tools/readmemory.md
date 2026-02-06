@@ -35,6 +35,18 @@ Retrieves content from `~/maenifold/memory/` files by URI or title with checksum
 - **URI lookup**: Direct access via `memory://path/file` (faster)
 - **Title lookup**: Searches by slugified title (case-insensitive, folder-agnostic)
 
+## Access Boosting
+
+ReadMemory updates the `last_accessed` timestamp in the database. This affects decay weighting:
+
+- Files you read stay "fresh" longer in search results
+- Frequently-accessed content resists decay naturally
+- The decay system uses `last_accessed` (if set) instead of `created` date
+
+This is intentional: reading a file signals relevance, so it should rank higher in future searches.
+
+**Note:** SearchMemories and BuildContext do NOT update `last_accessed`—only explicit ReadMemory calls trigger access boosting.
+
 ## Integration
 
 - **EditMemory**: Always read first to get checksum for safe editing

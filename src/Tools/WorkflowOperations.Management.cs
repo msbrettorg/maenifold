@@ -137,7 +137,7 @@ internal static partial class WorkflowOperations
 
         if (totalConcepts == 0)
         {
-            return "ERROR: Response or thoughts must contain at least one [[concept]] in double brackets.\n" +
+            return "ERROR: Response or thoughts must contain at least one [[WikiLink]] in double brackets.\n" +
                    "Example: 'Implementing [[REST API]] using [[ASP.NET Core]]'\n" +
                    "This ensures your workflow contributions build the knowledge graph.";
         }
@@ -165,11 +165,11 @@ internal static partial class WorkflowOperations
     private static string HandleCompletedStatus(string sessionId, Dictionary<string, object> frontmatter, int currentStep, string? conclusion)
     {
         if (string.IsNullOrEmpty(conclusion))
-            return "ERROR: Conclusion required when completing session. Must synthesize findings with [[concepts]].";
+            return "ERROR: Conclusion required when completing session. Must synthesize findings with [[WikiLinks]].";
 
         var conclusionConcepts = MarkdownIO.ExtractWikiLinks(conclusion);
         if (conclusionConcepts.Count == 0)
-            return "ERROR: Conclusion must include [[concepts]] for knowledge graph integration.";
+            return "ERROR: Conclusion must include [[WikiLinks]] for knowledge graph integration.";
 
         MarkdownIO.AppendToSession("workflow", sessionId, "Conclusion", conclusion);
 
@@ -200,7 +200,7 @@ internal static partial class WorkflowOperations
 
         var conclusionConcepts = MarkdownIO.ExtractWikiLinks(conclusion);
         if (conclusionConcepts.Count == 0)
-            return "ERROR: Conclusion must include [[concepts]] for knowledge graph integration.";
+            return "ERROR: Conclusion must include [[WikiLinks]] for knowledge graph integration.";
 
         MarkdownIO.AppendToSession("workflow", sessionId, "Conclusion", conclusion);
 

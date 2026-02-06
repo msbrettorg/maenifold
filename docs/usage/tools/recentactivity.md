@@ -207,7 +207,7 @@ TimeSpan format follows .NET standard: `[days.]hours:minutes:seconds[.fractional
 
 RecentActivity serves as a **discovery and monitoring hub** for your maenifold system:
 
-1. **Knowledge Graph Integration**: Files tracked by RecentActivity contain [[concepts]] that build your knowledge graph
+1. **Knowledge Graph Integration**: Files tracked by RecentActivity contain [[WikiLinks]] that build your knowledge graph
 2. **Session Continuity**: Provides session IDs needed to continue Sequential Thinking and Workflow sessions  
 3. **Memory System Overview**: Shows how WriteMemory, EditMemory, and other memory operations are growing your knowledge base
 4. **Quality Assurance**: Helps identify abandoned sessions that need completion or cleanup

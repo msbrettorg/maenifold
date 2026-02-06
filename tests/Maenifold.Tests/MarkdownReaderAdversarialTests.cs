@@ -24,7 +24,7 @@ public class MarkdownReaderAdversarialTests
         //
         // Markdig correctly parses line 7 as paragraph → [[should-skip-inner]] WILL be extracted
         var content = @"
-Valid [[concept-before]].
+Valid [[markdown-parsing]].
 
 ```
 Outer block with [[should-skip-outer]]
@@ -33,13 +33,13 @@ Inner attempt with [[should-skip-inner]]
 ```
 ```
 
-Valid [[concept-after]].";
+Valid [[code-fence]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
         // Correct expectations per CommonMark spec:
-        Assert.That(concepts, Does.Contain("concept-before"));
-        Assert.That(concepts, Does.Contain("concept-after"));
+        Assert.That(concepts, Does.Contain("markdown-parsing"));
+        Assert.That(concepts, Does.Contain("code-fence"));
         Assert.That(concepts, Does.Not.Contain("should-skip-outer"));
         // FIXED: should-skip-inner is in paragraph text, so it WILL be extracted
         Assert.That(concepts, Does.Contain("should-skip-inner"));
@@ -60,7 +60,7 @@ Valid [[concept-after]].";
         //
         // Markdig correctly parses line 12 as inside unclosed fence → NOT extracted
         var content = @"
-Valid [[concept]].
+Valid [[security-testing]].
 
 ```
 Code block
@@ -74,7 +74,7 @@ Another [[valid-concept]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("security-testing"));
         // FIXED: valid-concept is inside unclosed code fence, so it will NOT be extracted
         Assert.That(concepts, Does.Not.Contain("valid-concept"));
         Assert.That(concepts, Does.Not.Contain("nested-attack"));
@@ -89,13 +89,13 @@ Another [[valid-concept]].";
     public void ExtractWikiLinks_EscapedBackticks()
     {
         // Attack: Using escaped backticks to break code inline detection
-        var content = @"Normal [[concept]] and \`[[escaped-attack]]\` text.";
+        var content = @"Normal [[regex-pattern]] and \`[[escaped-attack]]\` text.";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
         // Escaped backticks are treated as literals, not code delimiters
         // So [[escaped-attack]] should be extracted since it's not in actual code
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("regex-pattern"));
         Assert.That(concepts, Does.Contain("escaped-attack"));
     }
 
@@ -103,12 +103,12 @@ Another [[valid-concept]].";
     public void ExtractWikiLinks_BackslashBeforeBacktick()
     {
         // Attack: Backslash escaping attempts
-        var content = @"Normal [[concept]] and \`code\` with [[potential-escape]].";
+        var content = @"Normal [[string-escaping]] and \`code\` with [[potential-escape]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
         // Markdig should handle escaped backticks properly
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("string-escaping"));
         Assert.That(concepts, Does.Contain("potential-escape"));
     }
 
@@ -161,12 +161,12 @@ Final [[another-real]].";
     public void ExtractWikiLinks_HtmlCodeElements()
     {
         // Attack: HTML <code> tags (Markdig may parse these)
-        var content = @"Normal [[concept]] and <code>[[html-attack]]</code> text.";
+        var content = @"Normal [[html-parsing]] and <code>[[html-attack]]</code> text.";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
         // HTML code elements are not currently filtered - potential vulnerability
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("html-parsing"));
         // EXPECTATION: This might extract html-attack depending on Markdig's HTML handling
         // This test documents current behavior
     }
@@ -176,7 +176,7 @@ Final [[another-real]].";
     {
         // Attack: HTML <pre> tags
         var content = @"
-Normal [[concept]].
+Normal [[preformatted-text]].
 
 <pre>
 [[pre-attack]]
@@ -186,7 +186,7 @@ Another [[valid]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("preformatted-text"));
         Assert.That(concepts, Does.Contain("valid"));
         // EXPECTATION: HTML pre blocks may not be filtered - documents behavior
     }
@@ -264,7 +264,7 @@ Another [[valid]].";
     {
         // Attack: Extremely long concept to test regex backtracking
         var longConcept = new string('a', 10000);
-        var content = $"Normal [[concept]] and [[{longConcept}]].";
+        var content = $"Normal [[performance-testing]] and [[{longConcept}]].";
 
         // Should not hang or crash
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -273,7 +273,7 @@ Another [[valid]].";
 
         Assert.That(sw.ElapsedMilliseconds, Is.LessThan(1000),
             "Regex should not have catastrophic backtracking");
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("performance-testing"));
         Assert.That(concepts.Count, Is.GreaterThanOrEqualTo(1));
     }
 
@@ -323,11 +323,11 @@ Another [[valid]].";
     public void ExtractWikiLinks_TripleBrackets()
     {
         // Attack: Triple opening brackets - T-REL-001: Malformed patterns should be rejected
-        var content = @"Normal [[concept]] and [[[triple-attack]]] text.";
+        var content = @"Normal [[bracket-validation]] and [[[triple-attack]]] text.";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("bracket-validation"));
         // T-REL-001: Triple brackets are malformed and should NOT match (lookbehind/lookahead rejects them)
         Assert.That(concepts, Does.Not.Contain("triple-attack"));
     }
@@ -336,11 +336,11 @@ Another [[valid]].";
     public void ExtractWikiLinks_MissingClosingBracket()
     {
         // Attack: Incomplete WikiLink
-        var content = @"Normal [[concept]] and [[missing-bracket text continues.";
+        var content = @"Normal [[malformed-input]] and [[missing-bracket text continues.";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("malformed-input"));
         // Should not match incomplete bracket
         Assert.That(concepts, Does.Not.Contain("missing-bracket text continues"));
     }
@@ -349,11 +349,11 @@ Another [[valid]].";
     public void ExtractWikiLinks_MissingOpeningBracket()
     {
         // Attack: Malformed closing
-        var content = @"Normal [[concept]] and wrong]] text.";
+        var content = @"Normal [[edge-case-handling]] and wrong]] text.";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("edge-case-handling"));
         Assert.That(concepts.Count, Is.EqualTo(1));
     }
 
@@ -361,11 +361,11 @@ Another [[valid]].";
     public void ExtractWikiLinks_EmptyBrackets()
     {
         // Attack: Empty WikiLink
-        var content = @"Normal [[concept]] and [[]] and [[another]].";
+        var content = @"Normal [[whitespace-validation]] and [[]] and [[another]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("whitespace-validation"));
         Assert.That(concepts, Does.Contain("another"));
         // Empty brackets normalize to empty string, should not pollute graph
         concepts = concepts.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
@@ -376,11 +376,11 @@ Another [[valid]].";
     public void ExtractWikiLinks_WhitespaceOnlyBrackets()
     {
         // Attack: Whitespace-only concept
-        var content = @"Normal [[concept]] and [[   ]] and [[another]].";
+        var content = @"Normal [[input-sanitization]] and [[   ]] and [[another]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("input-sanitization"));
         Assert.That(concepts, Does.Contain("another"));
         // Trim should eliminate whitespace-only concepts
         concepts = concepts.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
@@ -391,13 +391,13 @@ Another [[valid]].";
     public void ExtractWikiLinks_NewlineInBrackets()
     {
         // Attack: Newline inside WikiLink
-        var content = @"Normal [[concept]] and [[multi
+        var content = @"Normal [[multiline-parsing]] and [[multi
 line
 attack]] text.";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("multiline-parsing"));
         // Current regex uses [^\]]+ which matches newlines
         // This documents the behavior - multiline concepts ARE extracted
         var multiline = concepts.FirstOrDefault(c => c.Contains("multi") || c.Contains("line"));
@@ -415,11 +415,11 @@ attack]] text.";
     public void ExtractWikiLinks_DoubleBacktickInlineCode()
     {
         // Attack: Double backtick inline code (valid markdown)
-        var content = @"Normal [[concept]] and ``[[double-backtick]]`` text.";
+        var content = @"Normal [[inline-code-handling]] and ``[[double-backtick]]`` text.";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("inline-code-handling"));
         // Double backticks should also be treated as code
         Assert.That(concepts, Does.Not.Contain("double-backtick"));
     }
@@ -429,7 +429,7 @@ attack]] text.";
     {
         // Attack: Tilde-fenced code blocks (valid in some parsers)
         var content = @"
-Valid [[concept]].
+Valid [[fence-syntax]].
 
 ~~~
 [[tilde-attack]]
@@ -439,7 +439,7 @@ Another [[valid]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("fence-syntax"));
         Assert.That(concepts, Does.Contain("valid"));
         // Markdig may support tilde blocks - verify behavior
     }
@@ -449,7 +449,7 @@ Another [[valid]].";
     {
         // Attack: Code block without closing fence
         var content = @"
-Valid [[concept]].
+Valid [[unclosed-fence]].
 
 ```
 [[unclosed-attack]]
@@ -458,7 +458,7 @@ Another [[potentially-valid]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("unclosed-fence"));
         // Unclosed code blocks may consume rest of document
         // This test documents the behavior
     }
@@ -468,7 +468,7 @@ Another [[potentially-valid]].";
     {
         // Attack: Code fence with more than 3 backticks
         var content = @"
-Valid [[concept]].
+Valid [[fence-delimiters]].
 
 `````
 [[extra-backtick-attack]]
@@ -478,7 +478,7 @@ Another [[valid]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("fence-delimiters"));
         Assert.That(concepts, Does.Contain("valid"));
         Assert.That(concepts, Does.Not.Contain("extra-backtick-attack"));
     }
@@ -504,13 +504,13 @@ Another [[valid]].";
     public void ExtractWikiLinks_LeadingTrailingHyphens()
     {
         // Attack: Hyphens that should be trimmed
-        var content = @"[[--concept--]] and [[concept]].";
+        var content = @"[[--data-model--]] and [[data-model]].";
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 
-        // Should normalize to single "concept"
+        // Should normalize to single "data-model"
         Assert.That(concepts.Count, Is.EqualTo(1));
-        Assert.That(concepts, Does.Contain("concept"));
+        Assert.That(concepts, Does.Contain("data-model"));
     }
 
     [Test]
@@ -572,10 +572,10 @@ Another [[valid]].";
     public void CountConceptOccurrences_NullByteInjection()
     {
         // Attack: Null byte injection
-        var content = "[[concept]]\0[[attack]]";
+        var content = "[[null-byte-handling]]\0[[attack]]";
 
         // Should not crash
-        var count = MarkdownReader.CountConceptOccurrences(content, "concept");
+        var count = MarkdownReader.CountConceptOccurrences(content, "null-byte-handling");
         Assert.That(count, Is.GreaterThanOrEqualTo(1));
     }
 
@@ -583,7 +583,7 @@ Another [[valid]].";
     public void ExtractWikiLinks_ControlCharacters()
     {
         // Attack: Various control characters
-        var content = "[[concept\u0001]] and [[normal]]."; // \u0001 = SOH
+        var content = "[[control-characters\u0001]] and [[normal]]."; // \u0001 = SOH
 
         var concepts = MarkdownReader.ExtractWikiLinks(content);
 

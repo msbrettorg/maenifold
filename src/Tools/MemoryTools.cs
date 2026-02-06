@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Text;
 using System.Text.RegularExpressions;
 using Maenifold.Utils;
+using Microsoft.Data.Sqlite;
 
 namespace Maenifold.Tools;
 
@@ -20,6 +21,26 @@ public class MemoryTools
     private static string PathToUri(string path) => MarkdownIO.PathToUri(path, BasePath);
 
     private static string UriToPath(string uri) => MarkdownIO.UriToPath(uri, BasePath);
+
+    // T-GRAPH-DECAY-002.1: RTM NFR-7.6.1 - Update last_accessed timestamp on explicit read
+    private static void UpdateLastAccessed(string memoryUri)
+    {
+        try
+        {
+            using var conn = new SqliteConnection(Config.DatabaseConnectionString);
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE file_content SET last_accessed = @timestamp WHERE file_path = @path";
+            cmd.Parameters.AddWithValue("@timestamp", TimeZoneConverter.GetUtcNowIso());
+            cmd.Parameters.AddWithValue("@path", memoryUri);
+            cmd.ExecuteNonQuery();
+        }
+        catch
+        {
+            // Non-critical: if database update fails, continue without updating timestamp
+            // The file read itself still succeeds
+        }
+    }
 
     private static string? FindFileByTitle(string title)
     {
@@ -187,6 +208,12 @@ Returns memory:// URI for future reference, checksum for safe editing, confirms 
         var concepts = MarkdownIO.ExtractWikiLinks(content);
         if (concepts.Count == 0)
         {
+            // T-CLI-JSON-001: RTM FR-8.4 - Structured error
+            if (OutputContext.IsJsonMode)
+            {
+                return JsonToolResponse.Fail("VALIDATION_ERROR",
+                    "Content must contain at least one [[concept]] in double brackets to connect to the knowledge graph.").ToJson();
+            }
             return "ERROR: Content must contain at least one [[concept]] in double brackets to connect to the knowledge graph.\n" +
                    "Example: 'Learning about [[Machine Learning]] and [[Data Science]]'\n" +
                    "This ensures your note is connected to the knowledge graph and not orphaned.";
@@ -198,6 +225,11 @@ Returns memory:// URI for future reference, checksum for safe editing, confirms 
             var validationError = ValidatePathSecurity(folder);
             if (validationError != null)
             {
+                // T-CLI-JSON-001: RTM FR-8.4 - Structured error
+                if (OutputContext.IsJsonMode)
+                {
+                    return JsonToolResponse.Fail("PATH_VALIDATION_ERROR", validationError).ToJson();
+                }
                 return $"ERROR: Invalid folder path - {validationError}";
             }
         }
@@ -232,12 +264,44 @@ Returns memory:// URI for future reference, checksum for safe editing, confirms 
         var fullContent = hasH1
             ? content  // Content already has H1, use as-is
             : $"# {title}\n\n{content}";  // No H1, prepend title
-        Directory.CreateDirectory(folderPath);
-        MarkdownIO.WriteMarkdown(filePath, frontmatter, fullContent);
 
+        // T-CLI-JSON-001: SEC-EDGE-002 - Catch PathTooLongException to prevent info leakage
+        try
+        {
+            Directory.CreateDirectory(folderPath);
+            MarkdownIO.WriteMarkdown(filePath, frontmatter, fullContent);
+        }
+        catch (PathTooLongException)
+        {
+            if (OutputContext.IsJsonMode)
+                return JsonToolResponse.Fail("PATH_TOO_LONG", "Title exceeds maximum length - reduce to under 200 characters").ToJson();
+            return "ERROR: Title too long - reduce to under 200 characters";
+        }
 
-        var checksum = MarkdownIO.GenerateChecksum(File.ReadAllText(filePath));
+        string checksum;
+        try
+        {
+            checksum = MarkdownIO.GenerateChecksum(File.ReadAllText(filePath));
+        }
+        catch (PathTooLongException)
+        {
+            if (OutputContext.IsJsonMode)
+                return JsonToolResponse.Fail("PATH_TOO_LONG", "Title exceeds maximum length - reduce to under 200 characters").ToJson();
+            return "ERROR: Title too long - reduce to under 200 characters";
+        }
         var uri = PathToUri(filePath);
+
+        // T-CLI-JSON-001: RTM FR-8.2, FR-8.3 - Return JSON when flag is set
+        if (OutputContext.IsJsonMode)
+        {
+            return JsonToolResponse.Ok(new
+            {
+                uri = uri,
+                checksum = checksum,
+                title = title,
+                folder = folder
+            }).ToJson();
+        }
 
         return ToolResponse.WithHint(
                     $"Created memory FILE: {uri}\nChecksum: {checksum}",
@@ -261,15 +325,39 @@ Returns formatted content with timestamps, location, checksum, and full markdown
         var path = identifier.StartsWithOrdinal("memory://") ? UriToPath(identifier) : FindFileByTitle(identifier);
 
         if (path == null || !File.Exists(path))
+        {
+            // T-CLI-JSON-001: RTM FR-8.4 - Structured error for not found
+            if (OutputContext.IsJsonMode)
+            {
+                return JsonToolResponse.Fail("NOT_FOUND", $"Memory file not found: {identifier}").ToJson();
+            }
             return $"ERROR: Memory file not found: {identifier}";
+        }
 
         var (frontmatter, content, checksum) = MarkdownIO.ReadMarkdown(path);
         var uri = PathToUri(path);
 
+        // T-GRAPH-DECAY-002.1: RTM NFR-7.6.1 - Update last_accessed on explicit read (intentional access)
+        UpdateLastAccessed(uri);
 
         var title = frontmatter?.TryGetValue("title", out var titleValue) == true && !string.IsNullOrWhiteSpace(titleValue?.ToString())
             ? titleValue.ToString()
             : Path.GetFileNameWithoutExtension(path);
+
+        // T-CLI-JSON-001: RTM FR-8.2, FR-8.3 - Return JSON when flag is set
+        if (OutputContext.IsJsonMode)
+        {
+            return JsonToolResponse.Ok(new
+            {
+                uri = uri,
+                title = title,
+                location = Path.GetRelativePath(BasePath, path),
+                created = frontmatter?.ContainsKey("created") == true ? frontmatter["created"]?.ToString() : null,
+                modified = frontmatter?.ContainsKey("modified") == true ? frontmatter["modified"]?.ToString() : null,
+                checksum = includeChecksum ? checksum : null,
+                content = content
+            }).ToJson();
+        }
 
         var sb = new StringBuilder();
         sb.AppendLineInvariant($"# {title}");
@@ -393,10 +481,29 @@ To avoid this, use findText='[[machine learning]]' to replace the entire WikiLin
 
         frontmatter["modified"] = TimeZoneConverter.GetUtcNowIso();
 
-        MarkdownIO.UpdateMarkdown(path, frontmatter, newContent, checksum);
+        // T-CLI-JSON-001: SEC-EDGE-002 - Catch PathTooLongException to prevent info leakage
+        try
+        {
+            MarkdownIO.UpdateMarkdown(path, frontmatter, newContent, checksum);
+        }
+        catch (PathTooLongException)
+        {
+            if (OutputContext.IsJsonMode)
+                return JsonToolResponse.Fail("PATH_TOO_LONG", "File path exceeds maximum length").ToJson();
+            return "ERROR: File path too long";
+        }
 
-
-        var newChecksum = MarkdownIO.GenerateChecksum(File.ReadAllText(path));
+        string newChecksum;
+        try
+        {
+            newChecksum = MarkdownIO.GenerateChecksum(File.ReadAllText(path));
+        }
+        catch (PathTooLongException)
+        {
+            if (OutputContext.IsJsonMode)
+                return JsonToolResponse.Fail("PATH_TOO_LONG", "File path exceeds maximum length").ToJson();
+            return "ERROR: File path too long";
+        }
         return $"Updated memory FILE: {PathToUri(path)}\nNew checksum: {newChecksum}";
     }
 
@@ -413,15 +520,35 @@ Returns deletion confirmation with removed URI, enables cleanup of orphaned refe
         if (learn) return ToolHelpers.GetLearnContent(nameof(DeleteMemory));
 
         if (!confirm)
+        {
+            // T-CLI-JSON-001: RTM FR-8.4 - Structured error for confirmation required
+            if (OutputContext.IsJsonMode)
+            {
+                return JsonToolResponse.Fail("CONFIRMATION_REQUIRED", "Must set confirm=true to delete a memory file").ToJson();
+            }
             return "ERROR: Must set confirm=true to delete a memory file";
+        }
 
         var path = identifier.StartsWithOrdinal("memory://") ? UriToPath(identifier) : FindFileByTitle(identifier);
 
         if (path == null || !File.Exists(path))
+        {
+            // T-CLI-JSON-001: RTM FR-8.4 - Structured error for not found
+            if (OutputContext.IsJsonMode)
+            {
+                return JsonToolResponse.Fail("NOT_FOUND", $"Memory file not found: {identifier}").ToJson();
+            }
             return $"ERROR: Memory file not found: {identifier}";
+        }
 
         var uri = PathToUri(path);
         File.Delete(path);
+
+        // T-CLI-JSON-001: RTM FR-8.2, FR-8.3 - Return JSON when flag is set
+        if (OutputContext.IsJsonMode)
+        {
+            return JsonToolResponse.Ok(new { uri = uri, deleted = true }).ToJson();
+        }
 
         return $"Deleted memory FILE: {uri}";
     }
@@ -475,11 +602,19 @@ Returns movement confirmation showing old → new URIs, maintains all content an
         frontmatter ??= new Dictionary<string, object>();
         frontmatter["modified"] = TimeZoneConverter.GetUtcNowIso();
 
-        Directory.CreateDirectory(Path.GetDirectoryName(destFullPath)!);
-
-
-        MarkdownIO.WriteMarkdown(destFullPath, frontmatter, content);
-        File.Delete(sourcePath);
+        // T-CLI-JSON-001: SEC-EDGE-002 - Catch PathTooLongException to prevent info leakage
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(destFullPath)!);
+            MarkdownIO.WriteMarkdown(destFullPath, frontmatter, content);
+            File.Delete(sourcePath);
+        }
+        catch (PathTooLongException)
+        {
+            if (OutputContext.IsJsonMode)
+                return JsonToolResponse.Fail("PATH_TOO_LONG", "Destination path exceeds maximum length - use a shorter filename").ToJson();
+            return "ERROR: Destination path too long - use a shorter filename";
+        }
 
         return $"Moved memory FILE: {PathToUri(sourcePath)} → {PathToUri(destFullPath)}";
     }

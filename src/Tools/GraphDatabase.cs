@@ -5,6 +5,17 @@ namespace Maenifold.Tools;
 
 public static class GraphDatabase
 {
+    // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Provide connection factory for decay weight queries
+    /// <summary>
+    /// Gets a read-only database connection. Caller must dispose.
+    /// </summary>
+    public static SqliteConnection GetConnection()
+    {
+        var conn = new SqliteConnection(Config.DatabaseConnectionString);
+        conn.OpenReadOnly();
+        return conn;
+    }
+
     public static void InitializeDatabase()
     {
         using var conn = new SqliteConnection(Config.DatabaseConnectionString);
@@ -137,7 +148,7 @@ public static class GraphDatabase
         }
         catch
         {
-
+            // Column already exists
         }
 
 
@@ -147,7 +158,17 @@ public static class GraphDatabase
         }
         catch
         {
+            // Column already exists
+        }
 
+        // T-GRAPH-DECAY-002: RTM NFR-7.6.1 - Add last_accessed column for access-boosting decay behavior
+        try
+        {
+            conn.Execute("ALTER TABLE file_content ADD COLUMN last_accessed TEXT");
+        }
+        catch
+        {
+            // Column already exists
         }
     }
 }

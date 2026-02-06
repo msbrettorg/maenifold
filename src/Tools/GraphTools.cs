@@ -85,11 +85,20 @@ Returns related concepts with relationship types, file references, and connectio
         {
             // SEC-001: Use safe JSON options with depth limit
             var fileList = JsonSerializer.Deserialize<List<string>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
+
+            // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Calculate average decay weight across source files
+            var avgDecayWeight = fileList.Select(filePath => MemorySearchTools.GetDecayWeightForFile(filePath))
+                .DefaultIfEmpty(1.0)
+                .Average();
+            var weightedScore = count * avgDecayWeight;
+
             var relatedConcept = new RelatedConcept
             {
                 Name = related,
                 CoOccurrenceCount = count,
-                Files = fileList.Take(3).ToList()
+                Files = fileList.Take(3).ToList(),
+                DecayWeight = avgDecayWeight,
+                WeightedScore = weightedScore
             };
 
 
@@ -118,6 +127,11 @@ Returns related concepts with relationship types, file references, and connectio
 
             result.DirectRelations.Add(relatedConcept);
         }
+
+        // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Re-sort by decay-weighted score
+        result.DirectRelations = result.DirectRelations
+            .OrderByDescending(r => r.WeightedScore)
+            .ToList();
 
         if (depth > 1)
         {

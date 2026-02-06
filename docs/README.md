@@ -26,6 +26,7 @@
   - [2.2 Orchestrated Workflows](#22-orchestrated-workflows)
   - [2.3 Hybrid RRF Search](#23-hybrid-rrf-search)
   - [2.4 Lazy Graph Construction](#24-lazy-graph-construction)
+  - [2.5 Memory Lifecycle](#25-memory-lifecycle)
 
 ### Getting Started
 - [3. Quick Start](#3-quick-start)
@@ -36,7 +37,8 @@
 - [4. The Cognitive Stack](#4-the-cognitive-stack)
   - [4.1 Memory Layer](#41-memory-layer)
   - [4.2 Graph Layer](#42-graph-layer)
-  - [4.3 Reasoning Layer](#43-reasoning-layer)
+  - [4.3 Symbolic Communication](#43-symbolic-communication)
+  - [4.4 Reasoning Layer](#44-reasoning-layer)
 - [5. Key Capabilities](#5-key-capabilities)
 - [6. Technical Specifications](#6-technical-specifications)
 
@@ -135,6 +137,32 @@ Every `[[WikiLink]]` becomes a node. Every mention strengthens edges. Patterns e
 
 ∴ Structure emerges from use, not from schema
 
+### 2.5 Memory Lifecycle
+
+Knowledge isn't static—it follows a lifecycle grounded in cognitive neuroscience:
+
+**Decay**: Memories fade without access, following ACT-R's power-law of forgetting:
+```
+retrieval_strength = base_strength × (time_since_access)^(-decay_rate)
+```
+
+**Tiered Memory Classes**:
+| Tier | Grace Period | Half-Life | Examples |
+|------|--------------|-----------|----------|
+| Episodic | 7 days | 14 days | `memory://thinking/` sessions |
+| Semantic | 14 days | 30 days | `memory://research/`, `memory://decisions/` |
+| Immortal | ∞ | ∞ | Validated assumptions, core architecture |
+
+**Sleep Cycles**: Periodic maintenance runs four specialist workflows in parallel:
+- **Consolidation**: Replays high-significance episodic memories, promotes to semantic
+- **Decay**: Analyzes access patterns, flags severely decayed content
+- **Repair**: Normalizes WikiLink variants, cleans orphaned concepts
+- **Epistemic**: Reviews assumptions, validates or invalidates based on evidence
+
+This mirrors the two-stage memory model from neuroscience: rapid hippocampal encoding (episodic) gradually consolidates to neocortical storage (semantic) during sleep.
+
+∴ Forgetting is not loss—it's prioritization
+
 ## 3. Quick Start
 
 ### 3.1 For VSCode Users
@@ -229,6 +257,13 @@ Every piece of knowledge lives as a markdown file with a unique URI:
 
 All files are human-readable, Obsidian-compatible, and persist across sessions.
 
+**Two-Stage Memory Model**: Following the hippocampal-neocortical distinction:
+- **Episodic** (`memory://thinking/`): Fast encoding, rapid decay—raw reasoning traces
+- **Semantic** (`memory://research/`, `memory://decisions/`): Slow consolidation, stable knowledge
+- **Immortal**: Validated assumptions and core architecture—exempt from decay
+
+The memory-consolidation workflow transfers high-value episodic memories to semantic storage, mirroring biological memory consolidation during sleep.
+
 ### 4.2 Graph Layer (SQLite + Vectors)
 
 Automatic graph construction from WikiLinks with:
@@ -237,7 +272,68 @@ Automatic graph construction from WikiLinks with:
 - **Concept clustering** revealing emergent patterns
 - **Incremental sync** keeping the graph current
 
-### 4.3 Reasoning Layer (Tools + Workflows)
+### 4.3 Symbolic Communication
+
+WikiLinks serve as an inter-agent communication protocol—**concept-as-protocol**:
+
+```markdown
+# Agent prompt with symbolic references
+"Fix the [[authentication]] bug in [[session-management]]"
+```
+
+When an agent writes `[[concept]]`, the system:
+1. Extracts WikiLinks via regex
+2. Calls `BuildContext` + `FindSimilarConcepts` for each
+3. Injects graph neighborhood as enriched context
+4. Receiving agent gets structured knowledge without manual curation
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Concept-as-Protocol Flow                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Agent A writes: "Implement [[authentication]] for [[OAuth2]]"  │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │           WikiLink Extraction (regex)                   │    │
+│  │           → ["authentication", "OAuth2"]                │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                              │                                  │
+│          ┌───────────────────┼───────────────────┐              │
+│          ▼                   ▼                   ▼              │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐         │
+│  │ BuildContext │   │FindSimilar   │   │ SearchMemory │         │
+│  │ (graph)      │   │Concepts      │   │ (content)    │         │
+│  │              │   │(embeddings)  │   │              │         │
+│  └──────────────┘   └──────────────┘   └──────────────┘         │
+│          │                   │                   │              │
+│          └───────────────────┼───────────────────┘              │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              Enriched Context Injection                 │    │
+│  │  - Graph neighbors: [[session-management]], [[JWT]]     │    │
+│  │  - Similar concepts: "authorization" (0.89)             │    │
+│  │  - Source files: memory://tech/auth/*                   │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                              │                                  │
+│                              ▼                                  │
+│  Agent B receives: Original prompt + resolved context           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Information Density**: A 14-byte `[[authentication]]` dereferences to megabytes of structured knowledge—far exceeding what fits in a prompt.
+
+**Storage vs Retrieval Strength** (New Theory of Disuse):
+- **WikiLinks** = storage strength (pointers persist, never decay)
+- **Decay weight** = retrieval strength (access recency determines surfacing priority)
+
+Forgetting is not loss of the pointer—it's reduced priority for retrieval. The knowledge remains; only its accessibility fades.
+
+∴ Symbols carry context; decay prioritizes attention
+
+### 4.4 Reasoning Layer (Tools + Workflows)
 
 Where test-time computation happens:
 - **Sequential Thinking**: Multi-step reasoning with revision and branching
@@ -259,6 +355,9 @@ Where test-time computation happens:
 - **30 Distinct Methodologies**: Complete taxonomy from deductive reasoning to design thinking, with sophisticated orchestration
 - **Hybrid RRF Search**: Semantic + full-text fusion for optimal retrieval (not just embedding similarity)
 - **Lazy Graph Construction**: No schema, no ontology—structure emerges from WikiLink usage
+- **Neuroscience-Grounded Decay**: ACT-R power-law forgetting with tiered memory classes (episodic/semantic/immortal)
+- **Autonomous Sleep Cycles**: Four-specialist maintenance (consolidation, decay, repair, epistemic) runs unattended
+- **Symbolic Inter-Agent Protocol**: WikiLinks dereference to graph context, enabling high-bandwidth agent communication
 - **Quality-Gated Orchestration**: Multi-agent coordination with validation waves, guardrails, and RTM compliance
 - **Complete Transparency**: Every thought, revision, and decision visible in markdown files
 - **Multi-day Persistence**: Sessions maintain state across restarts, enabling long-running projects
@@ -282,6 +381,11 @@ Where test-time computation happens:
     - Meta-orchestration: workflow-dispatch for intelligent methodology selection
   - **7 Roles** (architect, engineer, PM, etc.)
   - **7 Thinking Hats** (DeBono's Six + Gray)
+- **Memory Lifecycle**:
+  - **Decay Model**: ACT-R power-law (default 30-day half-life)
+  - **Memory Tiers**: Episodic (7d grace/14d half-life), Semantic (14d grace/30d half-life), Immortal
+  - **Sleep Cycle**: 4 specialist workflows (consolidation, decay, repair, epistemic)
+  - **Consolidation Model**: Two-stage (episodic → semantic), inspired by hippocampal-neocortical transfer
 - **MCP Compliance**: Full tool annotation support
 
 ## 7. Example Usage
@@ -393,14 +497,23 @@ A: [Retrieves original decision, subsequent validations, and current trade-offs]
 ### 8.2 The Compound Effect
 
 Unlike stateless AI that resets each conversation:
-- **Week 1**: Basic memory formation
-- **Month 1**: Patterns emerge in the graph
-- **Month 3**: AI surfaces non-obvious connections
-- **Year 1**: Institutional knowledge that would take a team years to document
+- **Week 1**: Rapid episodic accumulation—raw thinking sessions pile up
+- **Month 1**: Sleep-consolidation promotes high-value memories to semantic; patterns emerge in the graph
+- **Month 3**: Unused memories decay naturally; validated assumptions become immortal; AI surfaces non-obvious connections
+- **Year 1**: Self-organizing knowledge base—not just accumulation, but prioritized institutional memory
 
-Every interaction strengthens the graph. Every query can traverse relationships. Every decision builds on previous learning.
+The system maintains itself:
+```
+Sleep Cycle (daily):
+  → Consolidation replays significant episodes, writes semantic notes
+  → Decay flags stale content for natural forgetting
+  → Repair normalizes WikiLink drift, cleans orphans
+  → Epistemic validates or invalidates assumptions
+```
 
-間 In the space between sessions, understanding grows
+Every interaction strengthens the graph. Every sleep cycle prunes the noise. Every query can traverse relationships. Every decision builds on previous learning.
+
+間 In the space between sessions, understanding grows—and forgets what it should
 
 ## 9. Real Testing, Real Bugs, Real Confidence
 

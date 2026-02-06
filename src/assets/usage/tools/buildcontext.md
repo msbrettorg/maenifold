@@ -49,6 +49,18 @@ Traverses concept relationships via multi-hop graph queries.
 - **includeContent behavior**: Adds a ~200 character sentence-aware preview for up to 3 source files per direct relation; unreadable files are skipped silently.
 - **WikiLink normalization**: `[[Machine Learning]]` → `machine-learning`
 
+## Decay Weighting
+
+Concept relationships are weighted by recency:
+
+- Each `RelatedConcept` includes `DecayWeight` (average across source files)
+- `WeightedScore = CoOccurrenceCount * DecayWeight`
+- Results are sorted by `WeightedScore`, not raw co-occurrence
+
+This means recent concept connections rank higher than stale ones, even if the stale relationship has more historical co-occurrences.
+
+**Note:** BuildContext does NOT update `last_accessed`. Use ReadMemory on specific files to boost their recency.
+
 ## Integration
 
 - **Sync**: Rebuild graph before BuildContext if files changed

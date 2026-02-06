@@ -1,6 +1,6 @@
 # SearchMemories
 
-Search memory FILES by content to discover your [[concepts]] and knowledge. This tool provides full-text search across your maenifold knowledge base with intelligent scoring, snippet extraction, and flexible filtering options. Essential for knowledge discovery before creating new content or finding existing solutions.
+Search memory FILES by content to discover your [[WikiLinks]] and knowledge. This tool provides full-text search across your maenifold knowledge base with intelligent scoring, snippet extraction, and flexible filtering options. Essential for knowledge discovery before creating new content or finding existing solutions.
 
 ## When to Use This Tool
 
@@ -111,7 +111,7 @@ Search for background knowledge before starting new analysis or Sequential Think
 Search for "error", "fix", "solution", or specific error messages to find documented solutions.
 
 ### Concept Relationship Exploration
-Search for specific [[concept]] names to find all files that reference or discuss that concept.
+Search for specific [[WikiLink]] names to find all files that reference or discuss that concept.
 
 ### Project-Specific Knowledge Access
 Use folder filtering to search within specific project or research areas.
@@ -123,8 +123,8 @@ Combine tag filtering with content search for highly targeted knowledge discover
 
 - **ReadMemory**: Access full content of files found through SearchMemories using memory:// URIs
 - **WriteMemory**: Create new knowledge files after checking SearchMemories for existing content
-- **BuildContext**: Explore concept relationships from search results using [[concept]] names
-- **EditMemory**: Modify files discovered through search while maintaining [[concept]] requirements
+- **BuildContext**: Explore concept relationships from search results using [[WikiLink]] names
+- **EditMemory**: Modify files discovered through search while maintaining [[WikiLink]] requirements
 - **Sync**: Rebuild knowledge graph when search results seem incomplete or outdated
 - **SequentialThinking**: Use search results to inform thinking sessions with relevant background knowledge
 
@@ -169,7 +169,7 @@ The tool does not currently validate `page`/`pageSize` bounds. Use `page >= 1` a
 
 ### Results Don't Match Expectations  
 **Cause**: Search terms may be too generic or specific concepts use different terminology  
-**Solution**: Try related terms, search for [[concept]] names, or use tag filtering for categorical results
+**Solution**: Try related terms, search for [[WikiLink]] names, or use tag filtering for categorical results
 
 ### Pagination Errors
 **Cause**: Requesting page beyond available results  
@@ -185,7 +185,7 @@ The tool does not currently validate `page`/`pageSize` bounds. Use `page >= 1` a
 
 ### Score Seems Low for Relevant Content
 **Cause**: Search terms may not appear frequently or in titles  
-**Solution**: Try searching for [[concept]] names or key phrases that likely appear in titles
+**Solution**: Try searching for [[WikiLink]] names or key phrases that likely appear in titles
 
 ## Search Scoring Algorithm
 

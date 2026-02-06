@@ -1,17 +1,17 @@
 # ExtractConceptsFromFile
 
 ## Purpose
-Extract [[WikiLink]] concepts from memory files to analyze what knowledge graph nodes exist in specific files before graph synchronization.
+Extract WikiLink concepts from memory files to analyze what knowledge graph nodes exist in specific files before graph synchronization.
 
 ## When to Use This Tool
 - Before running Sync to see what concepts a file would contribute to the knowledge graph
 - To audit existing memory files for concept density and knowledge graph connectivity
 - When debugging why certain concepts aren't appearing in BuildContext results
-- To validate that memory files contain proper [[WikiLink]] formatting before graph operations
+- To validate that memory files contain proper WikiLink formatting before graph operations
 - During content analysis to understand the conceptual structure of stored knowledge
 
 ## Key Features
-- **WikiLink Extraction**: Identifies all [[Concept Name]] patterns in file content
+- **WikiLink Extraction**: Identifies all `[[concept-name]]` patterns (double brackets: `[[authentication]]` never `[authentication]`) in file content
 - **Graph Node Discovery**: Shows exactly what nodes would be added to the knowledge graph
 - **Content Validation**: Helps identify files that lack proper concept linking
 - **Pre-Sync Analysis**: Enables verification before expensive graph rebuild operations
@@ -28,38 +28,38 @@ Extract [[WikiLink]] concepts from memory files to analyze what knowledge graph 
 ```json
 {"identifier": "memory://machine-learning-fundamentals"}
 ```
-Extracts all [[WikiLink]] concepts from the machine learning fundamentals file, showing concepts like [[Neural Networks]], [[Deep Learning]], [[Supervised Learning]].
+Extracts all WikiLink concepts from the machine learning fundamentals file, showing concepts like `[[neural-networks]]`, `[[deep-learning]]`, `[[supervised-learning]]` (double brackets: `[[authentication]]` never `[authentication]`).
 
-### Title-Based Lookup  
+### Title-Based Lookup
 ```json
 {"identifier": "AI Research Notes"}
 ```
-Finds the file by title and extracts concepts, useful when you remember the title but not the URI.
+Finds the file by title and extracts concepts like `[[transformers]]`, `[[attention-mechanism]]`, `[[BERT]]`, useful when you remember the title but not the URI.
 
 ### Pre-Sync Validation
 ```json
 {"identifier": "memory://new-research-paper"}
 ```
-Validate that a newly created file contains proper [[concept]] links before running Sync to update the knowledge graph.
+Validate that a newly created file contains proper WikiLink syntax before running Sync to update the knowledge graph.
 
 ## Common Patterns
 - **Content Audit**: Extract concepts from multiple files to understand knowledge graph coverage
-- **Pre-Sync Check**: Verify files have concepts before expensive graph rebuild operations  
+- **Pre-Sync Check**: Verify files have concepts before expensive graph rebuild operations
 - **Debug Missing Concepts**: When BuildContext doesn't find expected connections, check if concepts exist in source files
-- **Quality Control**: Ensure new memory files follow [[WikiLink]] conventions for graph connectivity
+- **Quality Control**: Ensure new memory files follow WikiLink conventions for graph connectivity
 - **Knowledge Mapping**: Analyze what conceptual domains are covered in your memory collection
 
 ## Related Tools
 - **Sync**: Use ExtractConceptsFromFile to preview what concepts Sync will process from files
 - **BuildContext**: After extraction, use BuildContext to explore how concepts relate in the knowledge graph
 - **SearchMemories**: Find files containing specific concepts, then extract to see all concepts in those files
-- **WriteMemory/EditMemory**: Ensure content has proper [[concepts]] before extraction analysis
+- **WriteMemory/EditMemory**: Ensure content has proper WikiLink syntax before extraction analysis
 
 ## Troubleshooting
 
 ### No Concepts Found
-- **Issue**: "No [[WikiLink]] concepts found in file"
-- **Solution**: File content lacks double-bracketed concept names. Add [[Concept Name]] formatting to connect content to knowledge graph.
+- **Issue**: "No WikiLink concepts found in file"
+- **Solution**: File content lacks double-bracketed concept names. Add WikiLinks (double-bracket syntax: `[[authentication]]` never `[authentication]`) to connect content to knowledge graph.
 
 ### File Not Found  
 - **Issue**: "ERROR: Memory file not found: {identifier}"
@@ -71,9 +71,9 @@ Validate that a newly created file contains proper [[concept]] links before runn
 ### Empty Results vs Expected Concepts
 - **Issue**: Extraction shows fewer concepts than expected
 - **Solutions**:
-  - Check for proper [[double bracket]] formatting (not [single] or ((double parens)))
-  - Verify concepts aren't split across lines: [[Concept]] not [[\nConcept]]
-  - Look for typos in bracket formatting: [[Concept]]] (extra bracket) won't match
+  - Check for proper `[[double bracket]]` formatting (not `[single]` or `((double parens))`)
+  - Verify WikiLinks aren't split across lines: `[[Authentication]]` not `[[\nAuthentication]]`
+  - Look for typos in bracket formatting: `[[Authentication]]]` (extra bracket) won't match
 
 ### Performance with Large Files
 - **Issue**: Slow extraction from very large files
@@ -87,13 +87,13 @@ Validate that a newly created file contains proper [[concept]] links before runn
 ### Pre-Sync Workflow
 ```
 1. ExtractConceptsFromFile → See what concepts exist
-2. Sync → Update knowledge graph with those concepts  
+2. Sync → Update knowledge graph with those concepts
 3. BuildContext → Explore the newly connected concept relationships
 ```
 
 ### Content Quality Pipeline
-```  
-1. WriteMemory → Create file with [[concepts]]
+```
+1. WriteMemory → Create file with WikiLinks
 2. ExtractConceptsFromFile → Verify concepts were properly formatted
 3. SearchMemories → Confirm file is discoverable via concept search
 ```
@@ -102,14 +102,14 @@ Validate that a newly created file contains proper [[concept]] links before runn
 ```
 1. BuildContext fails to find expected connections
 2. ExtractConceptsFromFile → Check if concepts exist in source files
-3. If missing: EditMemory to add proper [[WikiLink]] formatting
+3. If missing: EditMemory to add proper WikiLink formatting
 4. Sync → Rebuild graph with corrected concept links
 ```
 
 ## Technical Notes
 - **File Format**: Works with maenifold markdown files containing YAML frontmatter
 - **URI Resolution**: Supports both memory:// URIs and title-based file lookup
-- **Concept Format**: Extracts only [[double bracketed]] text as valid concepts
+- **Concept Format**: Extracts only `[[double bracketed]]` text as valid concepts
 - **Case Sensitivity**: Concept extraction preserves exact case from file content
 - **Performance**: Optimized for Ma Protocol file sizes (under 250 lines)
 - **Graph Independence**: Shows concepts without requiring knowledge graph to be built

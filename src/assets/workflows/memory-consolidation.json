@@ -1,0 +1,120 @@
+{
+  "id": "memory-consolidation",
+  "name": "Sleep Consolidation (Memory Transfer)",
+  "emoji": "🧠",
+  "description": "Specialist workflow for the Cognitive Sleep Cycle. Transfers high-value episodic memory (thinking sessions) into durable semantic storage (memory:// notes). Mirrors biological consolidation: hippocampal replay identifies candidates, slow-wave phase distills insights, REM phase discovers novel connections.",
+  "triggers": [
+    "sleep consolidation",
+    "consolidate memories",
+    "memory transfer",
+    "episodic to semantic",
+    "thinking consolidation"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "memory-replay",
+      "name": "Memory Replay (Hippocampal Phase)",
+      "description": "Identify consolidation candidates from recent episodic memory.\n\n1. Run recent_activity to retrieve thinking sessions and significant events since last consolidation\n2. Score significance: decisions made, lessons learned, insights gained, bugs fixed, patterns recognized\n3. Identify high-significance events (3+ concept connections, decision points, novel insights)\n4. Filter out low-value noise: routine operations, trivial queries, incomplete sessions\n5. Create ranked candidate list with significance scores and rationale\n\nSignificance scoring criteria:\n- Decision points: +3 (choices that affected outcomes)\n- Lessons learned: +3 (explicit learning from experience)\n- Novel insights: +2 (new understanding or connections)\n- Bug fixes: +2 (problem-solution pairs worth preserving)\n- Pattern recognition: +2 (recurring themes across sessions)\n- Concept density: +1 per 3 [[WikiLinks]] in source\n\nOutput: List of consolidation candidates with significance scores (threshold: score >= 4)",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "recent_activity": {
+            "reason": "Retrieve episodic memory since last consolidation",
+            "priority": "mandatory",
+            "filter": "thinking",
+            "timespan": "1.00:00:00",
+            "includeContent": true
+          },
+          "sequential_thinking": {
+            "reason": "Score significance and identify consolidation candidates",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": ["Significance scoring", "Candidate identification", "Noise filtering"]
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": ["Candidates identified", "Significance scores assigned", "Threshold filtering complete"],
+        "next_actions": ["Consolidation phase"],
+        "guardrails": {
+          "recency_window": "Process thinking sessions from last 24-48 hours",
+          "significance_threshold": "Only promote candidates with score >= 4",
+          "concept_density_check": "Flag sessions with 3+ [[WikiLinks]] for review"
+        }
+      }
+    },
+    {
+      "id": "consolidation",
+      "name": "Consolidation (Slow-Wave Phase)",
+      "description": "Distill high-value episodic content into durable semantic memory.\n\n1. For each consolidation candidate, extract core insights and distill into wiki-style knowledge\n2. ALWAYS search existing memory:// first for related notes to update rather than duplicate\n3. If related note exists: edit_memory to append or integrate new insights\n4. If no related note: write_memory to create new semantic note\n5. Ensure every consolidated note has minimum 5 [[WikiLinks]] for graph integration\n6. Cross-link to existing knowledge structure\n\nConsolidation transforms:\n- Episodic: \"I debugged the auth issue by checking token expiry\" \n- Semantic: \"[[JWT]] [[token-validation]] requires checking [[expiry]] before [[signature-verification]] to avoid timing attacks\"\n\nNote: read_memory IS allowed in this workflow (NFR-7.11.1). Reading content for consolidation is intentional access that SHOULD boost the decay clock.",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "search_memories": {
+            "reason": "Find existing notes to update before creating new ones",
+            "priority": "mandatory",
+            "mode": "Hybrid"
+          },
+          "read_memory": {
+            "reason": "Access existing content for integration (NFR-7.11.1: intentional access boosting)",
+            "priority": "recommended"
+          },
+          "write_memory": {
+            "reason": "Create new semantic notes from distilled insights",
+            "priority": "mandatory",
+            "minimum_wikilinks": 5
+          },
+          "edit_memory": {
+            "reason": "Update existing notes rather than creating duplicates",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["All candidates processed", "No duplicates created", "WikiLink density met"],
+        "next_actions": ["Dream synthesis phase"],
+        "guardrails": {
+          "search_before_write": "ALWAYS search for existing notes before creating new ones",
+          "wikilink_density": "Minimum 5 [[concepts]] per consolidated note",
+          "update_preference": "Prefer editing existing notes over creating new ones",
+          "no_duplicates": "Never create a note if a related one already exists",
+          "no_custodian_folder": "NEVER write to custodian/ - write to appropriate knowledge folders (research/, tech/, etc.)"
+        }
+      }
+    },
+    {
+      "id": "dream-synthesis",
+      "name": "Dream Synthesis (REM Phase)",
+      "description": "Discover novel connections between recently consolidated concepts.\n\n1. Select 3-5 high-value [[concepts]] from the consolidation phase\n2. Run find_similar_concepts on each to discover unexpected semantic neighbors\n3. Use build_context to explore relationship neighborhoods (depth 2)\n4. Identify surprising connections not already explicit in the graph\n5. Generate testable hypotheses about relationships worth investigating\n\nDream outputs:\n- Novel connection: \"[[JWT]] is semantically close to [[session-management]] but they're not linked in the graph\"\n- Hypothesis: \"Consolidating JWT and session docs might reduce context-building overhead\"\n- Investigation candidate: \"The [[decay]] concept appears near [[garbage-collection]] - explore memory management parallels\"\n\nFocus on connections that could improve future retrieval or reveal hidden knowledge structure.",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "find_similar_concepts": {
+            "reason": "Discover unexpected semantic neighbors",
+            "priority": "mandatory",
+            "maxResults": 10
+          },
+          "build_context": {
+            "reason": "Explore relationship neighborhoods for hidden connections",
+            "priority": "recommended",
+            "depth": 2
+          },
+          "sequential_thinking": {
+            "reason": "Synthesize novel connections and generate hypotheses",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": ["Unexpected connections", "Hypothesis generation", "Investigation priorities"]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["Novel connections identified", "Hypotheses generated", "Report returned as output"],
+        "next_actions": ["Return report to orchestrator"],
+        "guardrails": {
+          "novelty_focus": "Prioritize connections NOT already explicit in the graph",
+          "hypothesis_quality": "Hypotheses must be testable or actionable",
+          "concept_limit": "Process maximum 5 concepts per dream cycle",
+          "output_format": "Return connections and hypotheses as workflow output - do NOT write to memory://"
+        }
+      }
+    }
+  ]
+}

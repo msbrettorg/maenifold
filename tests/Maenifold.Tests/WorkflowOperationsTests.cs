@@ -329,7 +329,7 @@ public class WorkflowOperationsTests
     {
         // Arrange
         var sessionId = CreateTestSession("test-workflow-1");
-        var response = "Completed first step with [[analysis]] and [[findings]].";
+        var response = "Completed first step with [[workflow-execution]] and [[step-progression]].";
 
         // Act
         var result = WorkflowOperations.Continue(sessionId, response, null, null);
@@ -345,7 +345,7 @@ public class WorkflowOperationsTests
             var currentStep = Convert.ToInt32(frontmatter["currentStep"], CultureInfo.InvariantCulture);
             Assert.That(currentStep, Is.EqualTo(1), "currentStep should increment to 1");
             Assert.That(content, Does.Contain("Step 1/3 Response"), "Should record response with step heading");
-            Assert.That(content, Does.Contain("[[analysis]]"), "Should preserve [[concepts]]");
+            Assert.That(content, Does.Contain("[[workflow-execution]]"), "Should preserve WikiLinks");
         }
     }
 
@@ -358,13 +358,13 @@ public class WorkflowOperationsTests
     {
         // Arrange - Session with 2 steps in first workflow
         var sessionId = CreateTestSession("test-workflow-3", "test-workflow-2");
-        var response = "Step 1 done with [[progress]].";
+        var response = "Step 1 done with [[workflow-transition]].";
 
         // Act - Advance to complete first workflow
         var result1 = WorkflowOperations.Continue(sessionId, response, null, null);
         Assert.That(result1, Does.Contain("Step 2/2"), "First response should show next step");
 
-        var response2 = "Step 2 done with [[completion]].";
+        var response2 = "Step 2 done with [[queue-advancement]].";
         var result2 = WorkflowOperations.Continue(sessionId, response2, null, null);
 
         // Assert - Should advance to next workflow
@@ -391,8 +391,8 @@ public class WorkflowOperationsTests
     {
         // Arrange
         var sessionId = CreateTestSession("test-workflow-1");
-        var response = "Step 1 work with [[findings]].";
-        var conclusion = "Session complete with [[summary]] and [[learning]].";
+        var response = "Step 1 work with [[task-completion]].";
+        var conclusion = "Session complete with [[session-summary]] and [[lessons-learned]].";
 
         // Act - First record response
         WorkflowOperations.Continue(sessionId, response, null, null);
@@ -410,7 +410,7 @@ public class WorkflowOperationsTests
             Assert.That(frontmatter["status"], Is.EqualTo("completed"), "Status should be completed");
             Assert.That(frontmatter?["completed"], Is.Not.Null, "Should have completion timestamp");
             Assert.That(content, Does.Contain("Conclusion"), "Should include conclusion section");
-            Assert.That(content, Does.Contain("[[summary]]"), "Should preserve conclusion [[concepts]]");
+            Assert.That(content, Does.Contain("[[session-summary]]"), "Should preserve conclusion WikiLinks");
         }
     }
 
@@ -423,7 +423,7 @@ public class WorkflowOperationsTests
     {
         // Arrange
         var sessionId = CreateTestSession("test-workflow-1");
-        var response = "Cancelled work with [[reason]].";
+        var response = "Cancelled work with [[cancellation-reason]].";
 
         // Act
         var result = WorkflowOperations.Continue(sessionId, response, null, "cancelled");
@@ -442,7 +442,7 @@ public class WorkflowOperationsTests
     }
 
     /// <summary>
-    /// Test 10: Continue without required [[concepts]] returns error.
+    /// Test 10: Continue without required WikiLinks returns error.
     /// Verifies knowledge graph integration requirement enforcement.
     /// </summary>
     [Test]
@@ -457,7 +457,7 @@ public class WorkflowOperationsTests
 
         // Assert
         Assert.That(result, Does.Contain("ERROR"), "Should require concepts");
-        Assert.That(result, Does.Contain("[[concept]]"), "Error should show concept format");
+        Assert.That(result, Does.Contain("[[WikiLink]]"), "Error should show concept format");
         Assert.That(result, Does.Contain("knowledge graph"), "Should mention knowledge graph");
     }
 
@@ -470,7 +470,7 @@ public class WorkflowOperationsTests
     {
         // Arrange
         var invalidSessionId = "workflow-1234"; // Valid format but nonexistent
-        var response = "Response with [[concept]].";
+        var response = "Response with [[error-validation]].";
 
         // Act
         var result = WorkflowOperations.Continue(invalidSessionId, response, null, null);
@@ -490,7 +490,7 @@ public class WorkflowOperationsTests
     {
         // Arrange
         var sessionId = CreateTestSession("test-workflow-1");
-        var response = "Work with [[progress]].";
+        var response = "Work with [[metadata-tracking]].";
         var timestampBefore = DateTime.UtcNow;
 
         // Act
@@ -519,8 +519,8 @@ public class WorkflowOperationsTests
     {
         // Arrange
         var sessionId = CreateTestSession("test-workflow-1");
-        var response = "Response with [[findings]].";
-        var thoughts = "Meta thoughts with [[insight]] and [[reflection]].";
+        var response = "Response with [[step-output]].";
+        var thoughts = "Meta thoughts with [[ambient-thinking]] and [[metacognition]].";
 
         // Act
         WorkflowOperations.Continue(sessionId, response, thoughts, null);
@@ -530,7 +530,7 @@ public class WorkflowOperationsTests
         Assert.That(content, Does.Contain(response), "Should contain response");
         Assert.That(content, Does.Contain(thoughts), "Should contain thoughts");
         Assert.That(content, Does.Contain("Thoughts:"), "Should label thoughts section");
-        Assert.That(content, Does.Contain("[[insight]]"), "Should preserve thought [[concepts]]");
+        Assert.That(content, Does.Contain("[[ambient-thinking]]"), "Should preserve thought WikiLinks");
     }
 
     /// <summary>
@@ -542,7 +542,7 @@ public class WorkflowOperationsTests
     {
         // Arrange - Workflow with 2 steps
         var sessionId = CreateTestSession("test-workflow-3");
-        var response = "Work with [[done]].";
+        var response = "Work with [[completion-state]].";
 
         // Act - Complete step 1, then step 2
         WorkflowOperations.Continue(sessionId, response, null, null); // Advances to step 2/2
@@ -551,7 +551,7 @@ public class WorkflowOperationsTests
         // Assert
         Assert.That(result, Does.Contain("ERROR"), "Should error when queue exhausted without conclusion");
         Assert.That(result, Does.Contain("All workflows complete"), "Should mention queue exhaustion");
-        Assert.That(result, Does.Contain("conclusion"), "Should require conclusion parameter");
+        Assert.That(result, Does.Contain("conclusion parameter"), "Should require conclusion parameter");
     }
 
     /// <summary>
@@ -565,7 +565,7 @@ public class WorkflowOperationsTests
         var sessionId = CreateTestSession("test-workflow-1", "test-workflow-2");
 
         // Act & Assert - Verify step progression
-        var response = "Step work with [[concept]].";
+        var response = "Step work with [[state-tracking]].";
 
         // Initial state should be step 0
         var (frontmatter, _, _) = MarkdownIO.ReadSession("workflow", sessionId);
@@ -614,8 +614,8 @@ public class WorkflowOperationsTests
     {
         // Arrange - Two short workflows
         var sessionId = CreateTestSession("test-workflow-3", "test-workflow-3");
-        var response = "Step work with [[progress]].";
-        var conclusion = "Final synthesis with [[summary]] and [[learning]].";
+        var response = "Step work with [[workflow-completion]].";
+        var conclusion = "Final synthesis with [[final-summary]] and [[key-takeaways]].";
 
         // Act - Process all steps
         WorkflowOperations.Continue(sessionId, response, null, null); // First workflow step 1
@@ -634,7 +634,7 @@ public class WorkflowOperationsTests
         {
             Assert.That(frontmatter["status"], Is.EqualTo("completed"), "Should be marked completed");
             Assert.That(content, Does.Contain("Conclusion"), "Should include conclusion");
-            Assert.That(content, Does.Contain("[[summary]]"), "Should preserve conclusion [[concepts]]");
+            Assert.That(content, Does.Contain("[[final-summary]]"), "Should preserve conclusion WikiLinks");
         }
     }
 
@@ -647,8 +647,8 @@ public class WorkflowOperationsTests
     {
         // Arrange
         var sessionId = CreateTestSession("test-workflow-1");
-        var response = "Response with [[findings]].";
-        var thoughts = "Optional thinking with [[analysis]].";
+        var response = "Response with [[intermediate-results]].";
+        var thoughts = "Optional thinking with [[thought-process]].";
 
         // Act - Should succeed without conclusion at intermediate step
         var result = WorkflowOperations.Continue(sessionId, response, thoughts, null, null);
@@ -715,7 +715,7 @@ public class WorkflowOperationsTests
     {
         // Arrange - Create session and progress through steps
         var sessionId = CreateTestSession("test-workflow-1", "test-workflow-2");
-        var response = "Step work with [[progress]].";
+        var response = "Step work with [[view-state]].";
 
         // Progress to step 2
         WorkflowOperations.Continue(sessionId, response, null, null);

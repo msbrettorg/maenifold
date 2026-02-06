@@ -331,12 +331,12 @@ public class AccessBoostingTests
     public void BuildContext_DoesNotUpdateLastAccessed()
     {
         // Arrange: Create test files that will be linked via concepts
-        var (uri1, filePath1) = CreateAndSyncTestFile(
+        var (uri1, _) = CreateAndSyncTestFile(
             "BuildContext Test File 1",
             "Testing [[build-context]] and [[graph-traversal]] concepts.",
             TestFolder);
 
-        var (uri2, filePath2) = CreateAndSyncTestFile(
+        var (uri2, _) = CreateAndSyncTestFile(
             "BuildContext Test File 2",
             "More content about [[build-context]] and [[concept-relationships]].",
             TestFolder);

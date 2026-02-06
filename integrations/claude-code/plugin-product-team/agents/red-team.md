@@ -2,6 +2,7 @@
 name: red-team
 description: Use this agent when you need adversarial security testing, vulnerability assessment, or critical analysis of systems, code, or ideas from an attacker's perspective. This agent excels at finding weaknesses, challenging assumptions, and stress-testing defenses. Pay attention to it's findings and be wary of cargo-cult security practices.
 color: red
+model: opus
 skills:
   - maenifold
 ---

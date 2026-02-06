@@ -231,36 +231,29 @@ Returns ranked concepts by semantic similarity score for knowledge graph explora
     // T-QUAL-FSC2: RTM FR-7.4
     private static bool ContainsBracketLikeDelimiter_T_QUAL_FSC2(string input)
     {
-        foreach (var rune in input.EnumerateRunes())
-        {
-            // Block common bracket-like delimiters seen in Unicode-bypass attempts.
-            // Note: ASCII '[' / ']' are handled separately (including NFKC confusables).
-            if (rune.Value is
-                // ASCII angle brackets
-                (int)'<' or (int)'>' or
-                // CJK corner/white/ornamental brackets
-                0x300A or 0x300B or // 《 》
-                0x3008 or 0x3009 or // 〈 〉
-                0x3010 or 0x3011 or // 【 】
-                0x300C or 0x300D or // 「 」
-                0x300E or 0x300F or // 『 』
-                0x3014 or 0x3015 or // 〔 〕
-                0x3016 or 0x3017 or // 〖 〗
-                // Mathematical white square brackets
-                0x27E6 or 0x27E7 or // ⟦ ⟧
-                0x27E8 or 0x27E9 or // ⟨ ⟩
-                0x27EA or 0x27EB or // ⟪ ⟫
-                0x27EC or 0x27ED or // ⟬ ⟭
-                0x27EE or 0x27EF or // ⟮ ⟯
-                // Dingbat brackets
-                0x2772 or 0x2773 or // ❲ ❳
-                0x276E or 0x276F)   // ❮ ❯
-            {
-                return true;
-            }
-        }
-
-        return false;
+        // Block common bracket-like delimiters seen in Unicode-bypass attempts.
+        // Note: ASCII '[' / ']' are handled separately (including NFKC confusables).
+        return input.EnumerateRunes().Where(rune => rune.Value is
+            // ASCII angle brackets
+            (int)'<' or (int)'>' or
+            // CJK corner/white/ornamental brackets
+            0x300A or 0x300B or // 《 》
+            0x3008 or 0x3009 or // 〈 〉
+            0x3010 or 0x3011 or // 【 】
+            0x300C or 0x300D or // 「 」
+            0x300E or 0x300F or // 『 』
+            0x3014 or 0x3015 or // 〔 〕
+            0x3016 or 0x3017 or // 〖 〗
+            // Mathematical white square brackets
+            0x27E6 or 0x27E7 or // ⟦ ⟧
+            0x27E8 or 0x27E9 or // ⟨ ⟩
+            0x27EA or 0x27EB or // ⟪ ⟫
+            0x27EC or 0x27ED or // ⟬ ⟭
+            0x27EE or 0x27EF or // ⟮ ⟯
+            // Dingbat brackets
+            0x2772 or 0x2773 or // ❲ ❳
+            0x276E or 0x276F)   // ❮ ❯
+            .Any();
     }
 
     // T-QUAL-FSC2: RTM FR-7.4

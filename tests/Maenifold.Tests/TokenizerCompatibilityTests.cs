@@ -172,7 +172,8 @@ public sealed class TokenizerCompatibilityTests
             Assert.That(magnitude, Is.LessThan(10.0),
                 $"Embedding magnitude ({magnitude:F4}) should not be excessive for text: {text}");
 
-            Console.WriteLine($"Magnitude for '{text.Substring(0, Math.Min(40, text.Length))}...': {magnitude:F4}");
+            var displayText = text.Length > 40 ? text[..40] : text;
+            Console.WriteLine($"Magnitude for '{displayText}...': {magnitude:F4}");
         }
     }
 
@@ -261,8 +262,9 @@ public sealed class TokenizerCompatibilityTests
         foreach (var text in testCases)
         {
             var embedding = VectorTools.GenerateEmbedding(text);
+            var displayText = text.Length > 40 ? text[..40] : text;
             Assert.That(embedding.Length, Is.EqualTo(384),
-                $"Embedding should be 384-dimensional for text: '{text.Substring(0, Math.Min(40, text.Length))}'");
+                $"Embedding should be 384-dimensional for text: '{displayText}'");
         }
     }
 
@@ -296,6 +298,8 @@ public sealed class TokenizerCompatibilityTests
         VectorTools.LoadModel();
 
         // Create a set of embeddings for search
+        // First 3 items are ML-related, next 3 are unrelated topics
+        const int MlRelatedItemsCount = 3;
         var corpus = new[]
         {
             "machine learning algorithms for classification",
@@ -320,10 +324,10 @@ public sealed class TokenizerCompatibilityTests
             Similarity = CosineSimilarity(queryEmbedding, emb)
         }).OrderByDescending(x => x.Similarity).ToArray();
 
-        // Top results should be ML-related (indices 0, 1, 2)
-        Assert.That(similarities[0].Index, Is.LessThan(4),
+        // Top results should be ML-related (indices 0-2)
+        Assert.That(similarities[0].Index, Is.LessThan(MlRelatedItemsCount),
             $"Top result should be ML-related, but got: {similarities[0].Text} (similarity: {similarities[0].Similarity:F4})");
-        Assert.That(similarities[1].Index, Is.LessThan(4),
+        Assert.That(similarities[1].Index, Is.LessThan(MlRelatedItemsCount),
             $"Second result should be ML-related, but got: {similarities[1].Text} (similarity: {similarities[1].Similarity:F4})");
 
         Console.WriteLine("Top 3 search results:");

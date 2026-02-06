@@ -87,15 +87,9 @@ Returns related concepts with relationship types, file references, and connectio
             var fileList = JsonSerializer.Deserialize<List<string>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
 
             // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Calculate average decay weight across source files
-            double totalWeight = 0;
-            int weightedFileCount = 0;
-            foreach (var filePath in fileList)
-            {
-                var weight = MemorySearchTools.GetDecayWeightForFile(filePath);
-                totalWeight += weight;
-                weightedFileCount++;
-            }
-            var avgDecayWeight = weightedFileCount > 0 ? totalWeight / weightedFileCount : 1.0;
+            var avgDecayWeight = fileList.Select(filePath => MemorySearchTools.GetDecayWeightForFile(filePath))
+                .DefaultIfEmpty(1.0)
+                .Average();
             var weightedScore = count * avgDecayWeight;
 
             var relatedConcept = new RelatedConcept

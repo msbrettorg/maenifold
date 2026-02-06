@@ -1,11 +1,11 @@
 # AnalyzeConceptCorruption
 
-⚠️ **MUST USE BEFORE RepairConcepts!** Analyzes [[knowledge-graph]] [[concept]] corruption patterns to identify what needs repair without making any changes to your memory files. This diagnostic tool reveals [[concept]] families and their variants to help plan SAFE [[graph]] repair operations that preserve semantic meaning.
+⚠️ **MUST USE BEFORE RepairConcepts!** Analyzes [[knowledge-graph]] [[WikiLink]] corruption patterns to identify what needs repair without making any changes to your memory files. This diagnostic tool reveals [[WikiLink]] families and their variants to help plan SAFE [[graph]] repair operations that preserve semantic meaning.
 
 ## When to Use This Tool
 
 - **Before RepairConcepts**: ALWAYS run this first to understand what you're about to change
-- **Graph Health Audits**: Identify [[concept]] [[fragmentation]] patterns (plurals, case variations, compounds)
+- **Graph Health Audits**: Identify [[WikiLink]] [[fragmentation]] patterns (plurals, case variations, compounds)
 - **Semantic Safety Checks**: Distinguish safe merges (plurals) from dangerous ones (class names, specific types)
 - **Knowledge Graph Quality**: Assess the cleanliness and consistency of your [[WikiLink]] usage
 - **Planning Consolidation**: Generate repair command suggestions based on detected patterns
@@ -157,7 +157,7 @@ The tool suggests repairs based on PATTERNS, not SEMANTIC MEANING. Always review
 Run analysis on relevant concept families before using RepairConcepts to ensure you understand the full impact of proposed changes.
 
 ### Knowledge Graph Audits
-Periodic analysis reveals how [[concept]] usage evolves and where consistency improvements are needed.
+Periodic analysis reveals how [[WikiLink]] usage evolves and where consistency improvements are needed.
 
 ### New Concept Introduction
 Before adding new concepts, check if similar ones exist to avoid creating duplicate concepts with different names.

@@ -251,15 +251,28 @@ public partial class IncrementalSyncTools
         try
         {
             conn.LoadVectorExtension();
+
+            // Verify vec tables actually work before attempting DELETE
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM vec_memory_files WHERE 1=0";
+            cmd.ExecuteScalar();
         }
         catch
         {
+            // Extension unavailable or vec tables not working
             return;
         }
 
-        conn.Execute(
-            "DELETE FROM vec_memory_files WHERE file_path = @path",
-            new { path = memoryUri });
+        try
+        {
+            conn.Execute(
+                "DELETE FROM vec_memory_files WHERE file_path = @path",
+                new { path = memoryUri });
+        }
+        catch (Exception ex)
+        {
+            LogSync($"Failed to remove vector state for '{memoryUri}'.", ex);
+        }
     }
 
     private static void UpdateFullTextIndex(SqliteConnection conn, string memoryUri)

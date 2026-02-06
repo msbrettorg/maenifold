@@ -78,4 +78,4 @@ graph TD
     RM --> LLM
 ```
 
-**Key principle**: Write with [[concepts]] → Sync → Search/BuildContext → Retrieve. Each memory enriches future searches.
+**Key principle**: Write with `[[WikiLinks]]` (e.g., [[machine-learning]], [[API-design]]) → Sync → Search/BuildContext → Retrieve. Each memory enriches future searches.

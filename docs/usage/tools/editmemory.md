@@ -1,6 +1,6 @@
 # EditMemory
 
-Edit an existing memory FILE to add, modify, or replace content while maintaining [[concept]] connections to the knowledge graph. This tool provides safe editing operations with checksum validation to prevent conflicting changes and ensures all edits contribute to the maenifold graph structure.
+Edit an existing memory FILE to add, modify, or replace content while maintaining [[WikiLink]] connections to the knowledge graph. This tool provides safe editing operations with checksum validation to prevent conflicting changes and ensures all edits contribute to the maenifold graph structure.
 
 ## When to Use This Tool
 
@@ -14,7 +14,7 @@ Edit an existing memory FILE to add, modify, or replace content while maintainin
 
 ## Key Features
 
-- **[[Concept]] requirement**: All new content must contain at least one [[concept]] to maintain graph connectivity
+- **[[WikiLink]] requirement**: All new content must contain at least one [[WikiLink]] to maintain graph connectivity
 - **Checksum validation**: Prevents conflicting edits through file integrity checking
 - **Multiple operation types**: append, prepend, find_replace, replace_section for different editing needs
 - **Safe transformations**: Validates that edits don't orphan files from the knowledge graph
@@ -28,7 +28,7 @@ Edit an existing memory FILE to add, modify, or replace content while maintainin
 |-----------|------|----------|-------------|---------|
 | identifier | string | Yes | Memory FILE identifier (URI or title) | "memory://documents/machine-learning.md" |
 | operation | string | Yes | Edit operation type | "append", "prepend", "find_replace", "replace_section" |
-| content | string | Yes | Content to add/replace - MUST contain [[concepts]] | "New insights about [[Neural Networks]]" |
+| content | string | Yes | Content to add/replace - MUST contain [[WikiLinks]] | "New insights about [[Neural Networks]]" |
 | checksum | string | No | File checksum from ReadMemory (prevents stale edits) | "a1b2c3d4e5f6" |
 | findText | string | No | Text to find (required for find_replace) | "old terminology" |
 | sectionName | string | No | Section header name (required for replace_section) | "Implementation Details" |
@@ -134,7 +134,7 @@ Replaces the entire "Current Status" section with updated information.
 
 ### Safe Editing Workflow
 1. **Read first**: Use ReadMemory with includeChecksum=true to get current state
-2. **Plan changes**: Identify what needs updating and ensure [[concepts]] are included
+2. **Plan changes**: Identify what needs updating and ensure [[WikiLinks]] are included
 3. **Edit with checksum**: Use the checksum from ReadMemory to prevent conflicts
 4. **Verify results**: Check that operation succeeded and file maintains graph connectivity
 
@@ -144,9 +144,9 @@ Replaces the entire "Current Status" section with updated information.
 - Coordinate section-based edits to avoid conflicts
 
 ### Graph Maintenance
-- Every edit must include at least one [[concept]] to maintain knowledge graph connections
+- Every edit must include at least one [[WikiLink]] to maintain knowledge graph connections
 - Use existing concepts where possible, create new ones [[Like This]] when needed
-- Avoid edits that would remove all [[concepts]] from a file
+- Avoid edits that would remove all [[WikiLinks]] from a file
 
 ## Related Tools
 
@@ -154,7 +154,7 @@ Replaces the entire "Current Status" section with updated information.
 - **WriteMemory**: Create new memory files when editing isn't appropriate
 - **SearchMemories**: Find files that need updating across the knowledge base
 - **Sync**: Update the knowledge graph after significant edits
-- **BuildContext**: Explore [[concept]] relationships after editing
+- **BuildContext**: Explore [[WikiLink]] relationships after editing
 
 ## Troubleshooting
 
@@ -162,13 +162,13 @@ Replaces the entire "Current Status" section with updated information.
 **Cause**: File was modified between ReadMemory and EditMemory calls
 **Solution**: Re-read the file with ReadMemory to get current checksum, then retry edit
 
-### "ERROR: New content must contain at least one [[concept]]"
+### "ERROR: New content must contain at least one [[WikiLink]]"
 **Cause**: Edit content doesn't include any [[WikiLink]] concepts
 **Solution**: Add relevant [[Concept Names]] to connect content to knowledge graph
 
-### "ERROR: This edit would remove all [[concepts]] from the file"
+### "ERROR: This edit would remove all [[WikiLinks]] from the file"
 **Cause**: find_replace or replace_section would eliminate all graph connections
-**Solution**: Ensure replacement content includes appropriate [[concepts]]
+**Solution**: Ensure replacement content includes appropriate [[WikiLinks]]
 
 ### "Expected X matches but found Y" 
 **Cause**: expectedCount validation failed in find_replace operation
@@ -185,7 +185,7 @@ Replaces the entire "Current Status" section with updated information.
 ## Implementation Notes
 
 - **Checksum validation**: Based on entire file content, detects any external changes
-- **[[Concept]] validation**: Ensures both new content and final result maintain graph connectivity  
+- **[[WikiLink]] validation**: Ensures both new content and final result maintain graph connectivity  
 - **Timestamp updates**: Automatically updates 'modified' frontmatter field
 - **Section matching**: Uses regex pattern matching for flexible section identification
 - **File integrity**: Validates file structure and frontmatter after edits
@@ -194,5 +194,5 @@ Replaces the entire "Current Status" section with updated information.
 
 - **Simple operations**: Four clear operation types without complex parameter combinations
 - **Safe by default**: Checksum validation prevents accidental overwrites
-- **Graph-first design**: [[Concept]] requirements ensure knowledge graph integrity
+- **Graph-first design**: [[WikiLink]] requirements ensure knowledge graph integrity
 - **Minimal complexity**: Each operation does exactly one thing well

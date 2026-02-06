@@ -50,4 +50,15 @@ public class RelatedConcept
     public int CoOccurrenceCount { get; set; }
     public List<string> Files { get; set; } = new();
     public Dictionary<string, string> ContentPreview { get; set; } = new();
+
+    // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Decay weighting for recency-based ranking
+    /// <summary>
+    /// Average decay weight across source files (0.0-1.0). Higher = more recent.
+    /// </summary>
+    public double DecayWeight { get; set; } = 1.0;
+
+    /// <summary>
+    /// Weighted score: CoOccurrenceCount * DecayWeight. Used for sorting.
+    /// </summary>
+    public double WeightedScore { get; set; }
 }

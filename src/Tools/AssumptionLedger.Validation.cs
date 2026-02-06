@@ -10,7 +10,7 @@ public static class AssumptionLedgerValidation
             return "ERROR: Assumption text is required for 'append' action.";
 
         if (concepts == null || concepts.Length == 0)
-            return "ERROR: At least one [[concept]] tag must be provided. Example: concepts: [\"dialogue\", \"workflow-dispatch\"]";
+            return "ERROR: At least one [[WikiLink]] tag must be provided. Example: concepts: [\"dialogue\", \"workflow-dispatch\"]";
 
         var conceptFormatError = ValidateConceptFormat(concepts);
         if (conceptFormatError != null)

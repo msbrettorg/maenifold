@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-This specification details the implementation of the [[compaction]] handler for the [[OpenCode]] [[maenifold]] plugin, addressing requirements FR-3.1 through FR-3.5. The handler preserves session knowledge before [[OpenCode]] compacts the context window.
+This specification details the implementation of the compaction handler for the OpenCode maenifold plugin, addressing requirements FR-3.1 through FR-3.5. The handler preserves session knowledge before OpenCode compacts the context window.
 
 **Traceability**: T-SPEC-3 (RTM FR-3.x)
 
@@ -49,7 +49,7 @@ The plugin SHALL subscribe to the `experimental.session.compacting` hook. This h
 
 ### 3.1 WikiLink Regex
 
-Extract `[[WikiLink]]` concepts from conversation content using the following regex pattern:
+Extract WikiLink concepts (e.g., `[[error-handling]]`, `[[async-patterns]]`, `[[caching]]`) from conversation content using the following regex pattern:
 
 ```typescript
 // T-SPEC-3: RTM FR-3.2
@@ -205,7 +205,7 @@ Example: `memory://sessions/compaction/2026/01/27/session-abc123.md`
 // T-SPEC-3: RTM FR-3.4
 interface CompactionSummaryPayload {
   title: string;      // "Compaction: {project} {timestamp}"
-  content: string;    // Markdown with [[concepts]]
+  content: string;    // Markdown with WikiLinks
   folder: string;     // "sessions/compaction/YYYY/MM/DD"
   tags: string[];     // ["compaction", "session", project-name]
 }
@@ -219,7 +219,7 @@ function buildCompactionPayload(
   const now = new Date();
   const dateFolder = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
   
-  // Build concept list with WikiLinks
+  // Build concept list with WikiLinks (e.g., [[error-handling]])
   const conceptList = concepts
     .slice(0, 20) // Limit to top 20 concepts
     .map(c => `- [[${c}]]`)
@@ -326,7 +326,7 @@ Inject context into the compaction prompt by pushing to the mutable `output.cont
 **Key Decisions** (${decisions.length}):
 ${decisions.slice(0, 5).map(d => `- ${d.text}`).join('\n')}
 
-When summarizing this session, preserve these [[WikiLink]] concept references to maintain knowledge graph connectivity.`);
+When summarizing this session, preserve these WikiLink concept references (e.g., [[error-handling]]) to maintain knowledge graph connectivity.`);
   }
 }
 ```

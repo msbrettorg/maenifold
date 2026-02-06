@@ -47,7 +47,7 @@ public class MemoryToolsTests
     {
         // Arrange: Create a test memory file
         var testTitle = "Move Extension Test";
-        var testContent = "# Move Extension Test\n\nTesting [[move operation]] preserves .md extension.";
+        var testContent = "# Move Extension Test\n\nTesting [[file-operations]] preserves .md extension.";
 
         var writeResult = MemoryTools.WriteMemory(testTitle, testContent);
         Assert.That(writeResult, Does.StartWith("Created memory FILE: memory://move-extension-test"));
@@ -62,7 +62,7 @@ public class MemoryToolsTests
         // Verify: File should be readable at new location (proving .md extension exists)
         var readResult = MemoryTools.ReadMemory("memory://regression-test/moved-extension-test");
         Assert.That(readResult, Does.Not.StartWith("ERROR:"), "File should be readable, proving .md extension was added");
-        Assert.That(readResult, Does.Contain("Testing [[move operation]] preserves .md extension."));
+        Assert.That(readResult, Does.Contain("Testing [[file-operations]] preserves .md extension."));
     }
 
     [Test]
@@ -70,7 +70,7 @@ public class MemoryToolsTests
     {
         // Arrange: Create a test memory file
         var testTitle = "Simple Move Test";
-        var testContent = "# Simple Move Test\n\nTesting [[simple move]] functionality.";
+        var testContent = "# Simple Move Test\n\nTesting [[refactoring]] functionality.";
 
         var writeResult = MemoryTools.WriteMemory(testTitle, testContent);
         Assert.That(writeResult, Does.StartWith("Created memory FILE: memory://simple-move-test"));
@@ -85,7 +85,7 @@ public class MemoryToolsTests
         // Verify: File should be readable at new location
         var readResult = MemoryTools.ReadMemory("memory://simple-move-renamed");
         Assert.That(readResult, Does.Not.StartWith("ERROR:"));
-        Assert.That(readResult, Does.Contain("Testing [[simple move]] functionality."));
+        Assert.That(readResult, Does.Contain("Testing [[refactoring]] functionality."));
     }
 
     [Test]
@@ -103,7 +103,7 @@ status: saved
 
 # Test Content
 
-This is a [[test file]] without a title in frontmatter.";
+This is a [[metadata-handling]] without a title in frontmatter.";
 
         Directory.CreateDirectory(_testFolderPath);
         File.WriteAllText(testFilePath, fileContent);
@@ -116,7 +116,7 @@ This is a [[test file]] without a title in frontmatter.";
         Assert.That(readResult, Does.Not.StartWith("ERROR:"));
         Assert.That(readResult, Does.Contain("# no-title-test")); // Filename used as title
         Assert.That(readResult, Does.Contain("URI: memory://memory-tools-tests/no-title-test"));
-        Assert.That(readResult, Does.Contain("This is a [[test file]] without a title in frontmatter."));
+        Assert.That(readResult, Does.Contain("This is a [[metadata-handling]] without a title in frontmatter."));
     }
 
     [Test]
@@ -128,7 +128,7 @@ This is a [[test file]] without a title in frontmatter.";
 
         var fileContent = @"# Test Without Frontmatter
 
-This is a [[test file]] without any frontmatter.";
+This is a [[yaml-frontmatter]] without any frontmatter.";
 
         Directory.CreateDirectory(_testFolderPath);
         File.WriteAllText(testFilePath, fileContent);
@@ -140,7 +140,7 @@ This is a [[test file]] without any frontmatter.";
         // Assert: Should not throw exception and should use filename as title
         Assert.That(readResult, Does.Not.StartWith("ERROR:"));
         Assert.That(readResult, Does.Contain("# no-frontmatter-test")); // Filename used as title
-        Assert.That(readResult, Does.Contain("This is a [[test file]] without any frontmatter."));
+        Assert.That(readResult, Does.Contain("This is a [[yaml-frontmatter]] without any frontmatter."));
     }
 
     [Test]
@@ -148,7 +148,7 @@ This is a [[test file]] without any frontmatter.";
     {
         // Arrange
         var testTitle = "Embedding Removal Test";
-        var testContent = "Content with [[embedding]] concept to ensure write path works.";
+        var testContent = "Content with [[vector-embeddings]] concept to ensure write path works.";
 
         // Act
         var writeResult = MemoryTools.WriteMemory(testTitle, testContent, folder: TestFolder);
@@ -175,7 +175,7 @@ This is a [[test file]] without any frontmatter.";
     {
         // Arrange: Create a memory file with multiple sections
         var testTitle = "Replace Section Test";
-        var testContent = @"This is the intro with a [[concept]].
+        var testContent = @"This is the intro with a [[markdown-sections]].
 
 ## First Section
 
@@ -183,7 +183,7 @@ Old content in first section.
 
 ## Second Section
 
-Old content in second section with [[another-concept]].
+Old content in second section with [[document-structure]].
 
 ## Third Section
 
@@ -195,7 +195,7 @@ Old content in third section.";
         var uri = $"memory://{TestFolder}/replace-section-test";
 
         // Act: Replace the second section
-        var newSectionContent = "New content in second section with [[replaced-concept]].\n\nMultiple lines work too.";
+        var newSectionContent = "New content in second section with [[content-editing]].\n\nMultiple lines work too.";
         var editResult = MemoryTools.EditMemory(uri, "replace_section", newSectionContent, sectionName: "Second Section");
 
         // Assert: Edit should succeed
@@ -204,12 +204,12 @@ Old content in third section.";
         // Verify: Read back and check the section was replaced
         var readResult = MemoryTools.ReadMemory(uri);
         Assert.That(readResult, Does.Contain("## Second Section"));
-        Assert.That(readResult, Does.Contain("New content in second section with [[replaced-concept]]"));
+        Assert.That(readResult, Does.Contain("New content in second section with [[content-editing]]"));
         Assert.That(readResult, Does.Contain("Multiple lines work too"));
 
         // Verify: Old section content is gone
         Assert.That(readResult, Does.Not.Contain("Old content in second section"));
-        Assert.That(readResult, Does.Not.Contain("[[another-concept]]"));
+        Assert.That(readResult, Does.Not.Contain("[[document-structure]]"));
 
         // Verify: Other sections are untouched
         Assert.That(readResult, Does.Contain("## First Section"));
@@ -223,7 +223,7 @@ Old content in third section.";
     {
         // Arrange: Create a memory file without the target section
         var testTitle = "Section Not Found Test";
-        var testContent = @"This is the intro with a [[concept]].
+        var testContent = @"This is the intro with a [[error-handling]].
 
 ## Existing Section
 
@@ -235,7 +235,7 @@ Some content here.";
         var uri = $"memory://{TestFolder}/section-not-found-test";
 
         // Act & Assert: Attempting to replace a non-existent section should throw
-        var newSectionContent = "New content with [[concept]].";
+        var newSectionContent = "New content with [[validation]].";
         var ex = Assert.Throws<InvalidOperationException>(() =>
             MemoryTools.EditMemory(uri, "replace_section", newSectionContent, sectionName: "Nonexistent Section"));
 
@@ -248,7 +248,7 @@ Some content here.";
     {
         // Arrange: Create a memory file with different heading levels
         var testTitle = "Heading Levels Test";
-        var testContent = @"Intro with [[concept]].
+        var testContent = @"Intro with [[markdown-hierarchy]].
 
 # Level 1 Heading
 
@@ -268,7 +268,7 @@ Content under level 3.";
         var uri = $"memory://{TestFolder}/heading-levels-test";
 
         // Act: Replace the level 2 section
-        var newContent = "New content for level 2 with [[new-concept]].";
+        var newContent = "New content for level 2 with [[section-replacement]].";
         var editResult = MemoryTools.EditMemory(uri, "replace_section", newContent, sectionName: "Level 2 Heading");
 
         // Assert: Edit should succeed
@@ -277,7 +277,7 @@ Content under level 3.";
         // Verify: The level 2 section was replaced
         var readResult = MemoryTools.ReadMemory(uri);
         Assert.That(readResult, Does.Contain("## Level 2 Heading"));
-        Assert.That(readResult, Does.Contain("New content for level 2 with [[new-concept]]"));
+        Assert.That(readResult, Does.Contain("New content for level 2 with [[section-replacement]]"));
         Assert.That(readResult, Does.Not.Contain("Content under level 2"));
 
         // Verify: Other sections are untouched
@@ -292,7 +292,7 @@ Content under level 3.";
     {
         // Arrange: Create a memory file and replace the last section
         var testTitle = "Replace Last Section Test";
-        var testContent = @"Intro with [[concept]].
+        var testContent = @"Intro with [[boundary-conditions]].
 
 ## First Section
 
@@ -308,7 +308,7 @@ This is the last section content.";
         var uri = $"memory://{TestFolder}/replace-last-section-test";
 
         // Act: Replace the last section
-        var newContent = "New last section content with [[final-concept]].";
+        var newContent = "New last section content with [[document-end]].";
         var editResult = MemoryTools.EditMemory(uri, "replace_section", newContent, sectionName: "Last Section");
 
         // Assert: Edit should succeed
@@ -317,7 +317,7 @@ This is the last section content.";
         // Verify: The last section was replaced
         var readResult = MemoryTools.ReadMemory(uri);
         Assert.That(readResult, Does.Contain("## Last Section"));
-        Assert.That(readResult, Does.Contain("New last section content with [[final-concept]]"));
+        Assert.That(readResult, Does.Contain("New last section content with [[document-end]]"));
         Assert.That(readResult, Does.Not.Contain("This is the last section content"));
 
         // Verify: First section is untouched
@@ -331,7 +331,7 @@ This is the last section content.";
     {
         // Arrange: Malicious title with URL-encoded ../
         var maliciousTitle = "test%2e%2e%2fmalicious";
-        var safeContent = "Safe content with [[test-concept]].";
+        var safeContent = "Safe content with [[security-validation]].";
 
         // Act: Attempt to write memory with encoded path traversal
         var writeResult = MemoryTools.WriteMemory(maliciousTitle, safeContent, folder: TestFolder);
@@ -345,7 +345,7 @@ This is the last section content.";
         // Verify: The sanitized filename should not contain path traversal
         var readResult = MemoryTools.ReadMemory("memory://memory-tools-tests/testmalicious");
         Assert.That(readResult, Does.Not.StartWith("ERROR:"));
-        Assert.That(readResult, Does.Contain("Safe content with [[test-concept]]"));
+        Assert.That(readResult, Does.Contain("Safe content with [[security-validation]]"));
     }
 
     [Test]
@@ -353,7 +353,7 @@ This is the last section content.";
     {
         // Arrange: Double URL-encoded ../ (%252e%252e%252f)
         var doubleEncodedTitle = "test%252e%252e%252fmalicious";
-        var safeContent = "Safe content with [[test-concept]].";
+        var safeContent = "Safe content with [[input-sanitization]].";
 
         // Act: Attempt to write memory with double-encoded path traversal
         var writeResult = MemoryTools.WriteMemory(doubleEncodedTitle, safeContent, folder: TestFolder);
@@ -372,7 +372,7 @@ This is the last section content.";
     {
         // Arrange: URL-encoded .. without slash
         var encodedTitle = "test%2e%2e";
-        var safeContent = "Safe content with [[test-concept]].";
+        var safeContent = "Safe content with [[path-traversal-prevention]].";
 
         // Act: Write memory with encoded ..
         var writeResult = MemoryTools.WriteMemory(encodedTitle, safeContent, folder: TestFolder);
@@ -387,7 +387,7 @@ This is the last section content.";
     {
         // Arrange: Mix of encoded and plain characters
         var mixedTitle = "%2e./test";
-        var safeContent = "Safe content with [[test-concept]].";
+        var safeContent = "Safe content with [[url-encoding]].";
 
         // Act: Write memory with partially encoded path traversal
         var writeResult = MemoryTools.WriteMemory(mixedTitle, safeContent, folder: TestFolder);
@@ -407,7 +407,7 @@ This is the last section content.";
         // Arrange: Legitimate use of percent (e.g., "50% Complete")
         // Note: Uri.UnescapeDataString may interpret this differently
         var titleWithPercent = "Task 50 Complete";
-        var safeContent = "Status update with [[project-status]].";
+        var safeContent = "Status update with [[task-tracking]].";
 
         // Act: Write memory with legitimate content
         var writeResult = MemoryTools.WriteMemory(titleWithPercent, safeContent, folder: TestFolder);
@@ -419,7 +419,7 @@ This is the last section content.";
         var uri = writeResult.Split('\n')[0].Replace("Created memory FILE: ", "").Trim();
         var readResult = MemoryTools.ReadMemory(uri);
         Assert.That(readResult, Does.Not.StartWith("ERROR:"));
-        Assert.That(readResult, Does.Contain("Status update with [[project-status]]"));
+        Assert.That(readResult, Does.Contain("Status update with [[task-tracking]]"));
     }
 
 }

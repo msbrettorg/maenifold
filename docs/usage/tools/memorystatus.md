@@ -92,7 +92,7 @@ Include MemoryStatus output in system documentation, troubleshooting guides, and
 - **Total size**: Combined storage usage of all memory files in MB
 
 ### Graph Database Metrics  
-- **Concepts**: Unique [[concept]] nodes extracted from memory files
+- **Concepts**: Unique [[WikiLink]] nodes extracted from memory files
 - **Relations**: Connections between concepts within and across files
 - **Mentions**: Total occurrences of concepts across all memory content
 - **Database size**: SQLite database storage footprint in MB
@@ -111,8 +111,8 @@ Include MemoryStatus output in system documentation, troubleshooting guides, and
 
 ### Zero Concepts Despite Having Files
 **Status**: Files exist but zero concepts in database  
-**Cause**: Files lack [[concept]] WikiLinks or Sync hasn't run
-**Solution**: Add [[concepts]] to files using EditMemory, then run Sync to rebuild graph
+**Cause**: Files lack [[WikiLink]] WikiLinks or Sync hasn't run
+**Solution**: Add [[WikiLinks]] to files using EditMemory, then run Sync to rebuild graph
 
 ### Large Database Size vs. Small File Count
 **Status**: Database much larger than expected for file volume  

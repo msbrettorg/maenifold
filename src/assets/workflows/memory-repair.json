@@ -1,0 +1,86 @@
+{
+  "id": "memory-repair",
+  "name": "Sleep Repair (Graph Maintenance)",
+  "emoji": "🔧",
+  "description": "Graph maintenance specialist for the Cognitive Sleep Cycle. Identifies concept fragmentation and repairs WikiLink inconsistencies while preserving decay integrity by using observation-only tools for replay.",
+  "triggers": [
+    "sleep repair",
+    "concept repair",
+    "graph maintenance"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "memory-replay",
+      "name": "Memory Replay (Concept Usage Focus)",
+      "description": "Identify high-frequency concept families that may have fragmentation.\n\n1. Load your maenifold skill and run recent_activity to retrieve events from the last 24-48 hours\n2. Focus on [[WikiLinks]] that appear frequently across recent activity\n3. Note potential concept variants: plurals vs singulars, case variations, abbreviations\n4. Identify concept families worth analyzing (e.g., [[tool]]/[[tools]], [[auth]]/[[authentication]])\n5. Create prioritized list of concept families for repair analysis\n\nOutput: Prioritized list of concept families to analyze\nInclude: High-frequency concepts, suspected variants, fragmentation indicators\n\nCRITICAL: Do NOT use read_memory - this phase is observation-only to preserve decay integrity.",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "recent_activity": {
+            "reason": "Observe concept usage patterns without triggering access",
+            "priority": "mandatory",
+            "timespan": "1.00:00:00",
+            "includeContent": true
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Concept families identified",
+          "Fragmentation indicators noted",
+          "Priority list created"
+        ],
+        "next_actions": [
+          "Concept repair"
+        ],
+        "guardrails": {
+          "no_read_memory": "NEVER use read_memory - graph tools do not need file content",
+          "observation_only": "This phase identifies patterns, does not modify anything",
+          "frequency_threshold": "Focus on concepts appearing 5+ times in recent activity"
+        }
+      }
+    },
+    {
+      "id": "concept-repair",
+      "name": "Concept Repair (Graph Maintenance)",
+      "description": "Analyze and repair concept corruption in high-frequency families.\n\n1. For each prioritized concept family, run analyze_concept_corruption to diagnose variants\n2. Identify TRUE duplicates safe to merge: plurals, case variations, typos\n3. Identify entities that MUST NOT merge: class names, specific types, compound terms\n4. Use repair_concepts with dryRun=true first to preview all changes\n5. Apply repairs only for clear cases where semantic similarity is high\n6. Flag ambiguous cases for human review in the report\n7. Run sync to rebuild graph after repairs\n\nOutput: Return repair report as workflow output - DO NOT write to memory://\nInclude: Repairs made, items flagged for review, graph health metrics\n\nCRITICAL: Do NOT use read_memory - repair_concepts modifies source files directly.",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "analyze_concept_corruption": {
+            "reason": "Diagnose concept fragmentation before repair",
+            "priority": "mandatory"
+          },
+          "repair_concepts": {
+            "reason": "Normalize variant forms to canonical concepts",
+            "priority": "mandatory",
+            "dryRun": true
+          },
+          "sync": {
+            "reason": "Rebuild graph after repairs are applied",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All prioritized families analyzed",
+          "Clear cases repaired",
+          "Ambiguous cases flagged",
+          "Report returned as output"
+        ],
+        "next_actions": [
+          "Return report to orchestrator"
+        ],
+        "guardrails": {
+          "no_read_memory": "NEVER use read_memory - graph tools do not need file content",
+          "no_write_memory": "NEVER use write_memory - repair reports are ephemeral, return as output",
+          "dry_run_first": "Always preview repairs with dryRun=true before applying",
+          "human_review": "Flag ambiguous merges for human decision",
+          "semantic_validation": "Only merge concepts with similarity >= 0.7",
+          "no_class_names": "NEVER merge class names (GraphTools.cs) with generic concepts ([[tool]])",
+          "no_specific_types": "NEVER merge specific types (test-agent) with generic concepts ([[agent]])"
+        }
+      }
+    }
+  ]
+}

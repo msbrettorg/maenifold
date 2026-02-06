@@ -51,7 +51,7 @@ public class EditMemoryTests
         var editResult = MemoryTools.EditMemory(
             uri,
             "find_replace",
-            "[[bar]]",  // Replacement text must contain [[concepts]]
+            "[[bar]]",  // Replacement text must contain WikiLinks
             findText: "foo",
             expectedCount: 3
         );
@@ -289,7 +289,7 @@ Second paragraph with [[more-content]].";
         var testTitle = "Replace Section Test";
         var testContent = @"# Introduction
 
-This is the introduction section with [[concept]].
+This is the introduction section with [[documentation-structure]].
 
 ## Methodology
 
@@ -325,7 +325,7 @@ This is the NEW methodology content with [[improved-approach]] and [[better-tech
         Assert.That(readResult, Does.Not.Contain("OLD methodology content"));
 
         // Verify: Other sections are untouched
-        Assert.That(readResult, Does.Contain("introduction section with [[concept]]"));
+        Assert.That(readResult, Does.Contain("introduction section with [[documentation-structure]]"));
         Assert.That(readResult, Does.Contain("results section with [[data]]"));
     }
 
@@ -336,7 +336,7 @@ This is the NEW methodology content with [[improved-approach]] and [[better-tech
         var testTitle = "Missing Section Test";
         var testContent = @"# Introduction
 
-This is the introduction with [[concept]].
+This is the introduction with [[section-replacement]].
 
 ## Results
 
@@ -452,17 +452,17 @@ New subsection A content with [[new-concept]] and [[innovative-idea]].";
         var testTitle = "Complete Removal Test";
         var testContent = @"# Test
 
-Initial content with [[initial]].
+Initial content with [[initial-setup]].
 
 ## Target Section
 
-Old paragraph one with [[old-one]].
-Old paragraph two with [[old-two]].
-Old paragraph three with [[old-three]].
+Old paragraph one with [[deprecated-approach]].
+Old paragraph two with [[legacy-implementation]].
+Old paragraph three with [[outdated-pattern]].
 
 ## Next Section
 
-Next section content with [[next]].";
+Next section content with [[future-work]].";
 
         var writeResult = MemoryTools.WriteMemory(testTitle, testContent, folder: TestFolder);
         var uri = ExtractUri(writeResult);
@@ -488,13 +488,13 @@ Brand new single paragraph with [[brand-new]].";
         Assert.That(readResult, Does.Not.Contain("Old paragraph one"));
         Assert.That(readResult, Does.Not.Contain("Old paragraph two"));
         Assert.That(readResult, Does.Not.Contain("Old paragraph three"));
-        Assert.That(readResult, Does.Not.Contain("[[old-one]]"));
-        Assert.That(readResult, Does.Not.Contain("[[old-two]]"));
-        Assert.That(readResult, Does.Not.Contain("[[old-three]]"));
+        Assert.That(readResult, Does.Not.Contain("[[deprecated-approach]]"));
+        Assert.That(readResult, Does.Not.Contain("[[legacy-implementation]]"));
+        Assert.That(readResult, Does.Not.Contain("[[outdated-pattern]]"));
 
         // Verify other sections are intact
-        Assert.That(readResult, Does.Contain("[[initial]]"));
-        Assert.That(readResult, Does.Contain("[[next]]"));
+        Assert.That(readResult, Does.Contain("[[initial-setup]]"));
+        Assert.That(readResult, Does.Contain("[[future-work]]"));
     }
 
     // =============================================================================
@@ -524,7 +524,7 @@ Brand new single paragraph with [[brand-new]].";
         // T-REL-001: Nested brackets are now rejected as malformed patterns.
         // The result [[Machine [[Deep Learning]]]] has no valid concepts because:
         // - The lookbehind/lookahead regex rejects patterns with adjacent brackets
-        // - System requires at least one valid [[concept]] in edited content
+        // - System requires at least one valid [[WikiLink]] in edited content
         Assert.That(editResult, Does.StartWith("ERROR:"));
         Assert.That(editResult, Does.Contain("must contain at least one [[concept]]"));
     }

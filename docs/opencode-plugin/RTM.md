@@ -27,7 +27,7 @@
 | ID | Requirement | Component | Test | Status |
 |----|-------------|-----------|------|--------|
 | FR-3.1 | Plugin SHALL subscribe to `experimental.session.compacting` event | SPEC-3-compaction.md | | Specified |
-| FR-3.2 | Plugin SHALL extract `[[concepts]]` from conversation | SPEC-3-compaction.md | | Specified |
+| FR-3.2 | Plugin SHALL extract WikiLinks like `[[authentication]]`, `[[database]]` from conversation | SPEC-3-compaction.md | | Specified |
 | FR-3.3 | Plugin SHALL extract decision patterns from conversation | SPEC-3-compaction.md | | Specified |
 | FR-3.4 | Plugin SHALL write compaction summary to `memory://sessions/compaction/` | SPEC-3-compaction.md | | Specified |
 | FR-3.5 | Plugin SHALL inject custom context into compaction prompt via `output.context` | SPEC-3-compaction.md | | Specified |
@@ -37,7 +37,7 @@
 | ID | Requirement | Component | Test | Status |
 |----|-------------|-----------|------|--------|
 | FR-4.1 | Plugin SHALL subscribe to `tool.execute.before` event | SPEC-4-tools.md | | Specified |
-| FR-4.2 | Plugin SHALL detect `[[concepts]]` in tool arguments | SPEC-4-tools.md | | Specified |
+| FR-4.2 | Plugin SHALL detect WikiLinks like `[[API-design]]`, `[[error-handling]]` in tool arguments | SPEC-4-tools.md | | Specified |
 | FR-4.3 | Plugin SHALL build context for detected concepts | SPEC-4-tools.md | | Specified |
 | FR-4.4 | Plugin SHALL augment tool input with graph context | SPEC-4-tools.md | | Specified |
 | FR-4.5 | Plugin SHALL skip augmentation for tools with no text arguments | SPEC-4-tools.md | | Specified |

@@ -55,7 +55,7 @@
             "parallel_execution": true,
             "agent_instructions": {
               "workflow_choice": "Agents choose agentic-research OR SequentialThinking based on task complexity",
-              "wikilink_requirement": "10+ [[concepts]] per output file",
+              "wikilink_requirement": "10+ [[WikiLinks]] per output file (e.g., [[domain-knowledge]], [[literature-review]], [[research-trends]])",
               "output_format": "Markdown with rich WikiLinks"
             }
           }
@@ -166,7 +166,7 @@
     {
       "id": "knowledge-integration",
       "name": "🧠 Knowledge Integration & Graph Construction",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nIntegrate all research into maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\n# Sync all research memory to graph\nTool: Sync\nScope: memory://research/[topic]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[concepts]]\n   - Identify central nodes and connections\n   - Map knowledge architecture\n\n3. **Visualization Creation**:\n   - Generate Mermaid diagram of concept network\n   - Show domain relationships\n   - Highlight novel connections\n\n4. **Knowledge Metrics**:\n   - Total concepts created\n   - Connection density\n   - Information gain achieved\n   - Coverage percentage\n\n5. **Create Integration Report**:\n   - Document in memory://research/[topic]/integration-report.md\n   - Include metrics and visualizations\n   - Map to original research questions\n\n⏱️ Duration: 20-30 minutes",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nIntegrate all research into maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\n# Sync all research memory to graph\nTool: Sync\nScope: memory://research/[topic]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[WikiLinks]] like [[research-topic]], [[methodology]], [[findings]]\n   - Identify central nodes and connections\n   - Map knowledge architecture\n\n3. **Visualization Creation**:\n   - Generate Mermaid diagram of concept network\n   - Show domain relationships\n   - Highlight novel connections\n\n4. **Knowledge Metrics**:\n   - Total concepts created\n   - Connection density\n   - Information gain achieved\n   - Coverage percentage\n\n5. **Create Integration Report**:\n   - Document in memory://research/[topic]/integration-report.md\n   - Include metrics and visualizations\n   - Map to original research questions\n\n⏱️ Duration: 20-30 minutes",
       "requiresEnhancedThinking": true,
       "metadata": {
         "toolHints": {
@@ -237,7 +237,7 @@
         "stop_conditions": ["Report complete", "All sections populated", "Quality checklist passed"],
         "next_actions": ["Research complete", "Knowledge graph enriched"],
         "success_criteria": {
-          "wikilink_density": "50+ total",
+          "wikilink_density": "50+ total [[WikiLinks]] (e.g., [[collaborative-research]], [[knowledge-synthesis]], [[peer-review]])",
           "coverage_achievement": "80%+",
           "validation_score": "7/10+",
           "actionable_insights": "5+ minimum"

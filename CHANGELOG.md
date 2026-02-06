@@ -16,7 +16,7 @@ All notable changes to maenifold MCP Server will be documented in this file.
 
 ### Changed
 - **GRAPH-001**: BuildContext now extracts the H2 section containing the concept mention instead of showing the file start:
-  - Added `ExtractSectionWithConcept()` method that parses markdown sections and finds where `[[concept]]` is mentioned
+  - Added `ExtractSectionWithConcept()` method that parses markdown sections and finds where WikiLink is mentioned
   - Falls back to `CreateSmartPreview()` if concept not found in any section
   - Handles edge cases: H1-only files, multiple mentions (uses first), plain text matches, truncation, empty content
   - Files updated: `src/Tools/GraphTools.cs` (added 88 lines)
@@ -55,7 +55,7 @@ All notable changes to maenifold MCP Server will be documented in this file.
   - Modified `MarkdownReader.ExtractWikiLinks()` to use Markdig AST parsing
   - Skips fenced code blocks (```), indented code blocks, and inline code (`)
   - Prevents shell variables and code examples from polluting concept graph
-  - Root cause: Simple regex matched `[[concepts]]` inside code blocks, creating malformed entries like `n-"$active-session"`
+  - Root cause: Simple regex matched WikiLinks (e.g., `[[error-handling]]`) inside code blocks, creating malformed entries like `n-"$active-session"`
   - Added 10 test cases in `MarkdownReaderTests.cs`
   - Files updated: `src/Utils/MarkdownReader.cs` (~100 lines added)
 - **CCSKILL-001**: Clarified Claude Code `Workflow` skill usage to prevent premature abandonment:

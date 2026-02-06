@@ -161,7 +161,18 @@ public static class ConceptSync
                                 new { count = fileList.Count, files = JsonSerializer.Serialize(fileList), a = edge.a, b = edge.b });
                         }
                     }
-                    conn.Execute("DELETE FROM vec_memory_files WHERE file_path = @file", new { file = filePath });
+                    if (vectorReady)
+                    {
+                        try
+                        {
+                            conn.Execute("DELETE FROM vec_memory_files WHERE file_path = @file", new { file = filePath });
+                        }
+                        catch (Exception ex)
+                        {
+                            // vec table operations may fail even when extension loaded - log and continue
+                            Console.Error.WriteLine($"[SYNC WARNING] Failed to clean vec_memory_files for '{filePath}': {ex.Message}");
+                        }
+                    }
                     conn.Execute("DELETE FROM file_content WHERE file_path = @file", new { file = filePath });
                 }
             }

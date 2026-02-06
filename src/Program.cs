@@ -61,12 +61,21 @@ if (payloadIndex < 0 || toolIndex + 1 >= args.Length || payloadIndex + 1 >= args
 // Ensure required directories exist
 Config.EnsureDirectories();
 
+// T-CLI-JSON-001: RTM FR-8.1 - Detect --json flag for structured output
+var useJsonOutput = args.Contains("--json");
+
 var toolName = args[toolIndex + 1];
 var payloadJson = args[payloadIndex + 1];
 
 try
 {
     var payload = JsonSerializer.Deserialize<JsonElement>(payloadJson, SafeJson.Options);
+
+    // T-CLI-JSON-001: RTM FR-8.1, FR-8.5 - Set output context based on --json flag
+    if (useJsonOutput)
+    {
+        OutputContext.Format = OutputFormat.Json;
+    }
 
     if (ToolRegistry.TryInvoke(toolName, payload, out var result))
     {
@@ -75,23 +84,59 @@ try
     }
     else
     {
-        System.Console.WriteLine($"Unknown tool: {toolName}");
+        // T-CLI-JSON-001: RTM FR-8.4 - Structured error for unknown tool
+        if (useJsonOutput)
+        {
+            var errorResponse = JsonToolResponse.Fail("UNKNOWN_TOOL", $"Unknown tool: {toolName}");
+            System.Console.WriteLine(errorResponse.ToJson());
+        }
+        else
+        {
+            System.Console.WriteLine($"Unknown tool: {toolName}");
+        }
         return;
     }
 }
 catch (JsonException ex)
 {
-    Console.WriteLine($"Error invoking {toolName}: {ex.Message}");
+    // T-CLI-JSON-001: RTM FR-8.4 - Structured error for JSON parsing errors
+    if (useJsonOutput)
+    {
+        var errorResponse = JsonToolResponse.Fail("INVALID_PAYLOAD", $"Error invoking {toolName}: {ex.Message}");
+        System.Console.WriteLine(errorResponse.ToJson());
+    }
+    else
+    {
+        Console.WriteLine($"Error invoking {toolName}: {ex.Message}");
+    }
     return;
 }
 catch (ArgumentException ex)
 {
-    Console.WriteLine($"Error invoking {toolName}: {ex.Message}");
+    // T-CLI-JSON-001: RTM FR-8.4 - Structured error for argument errors
+    if (useJsonOutput)
+    {
+        var errorResponse = JsonToolResponse.Fail("INVALID_ARGUMENT", $"Error invoking {toolName}: {ex.Message}");
+        System.Console.WriteLine(errorResponse.ToJson());
+    }
+    else
+    {
+        Console.WriteLine($"Error invoking {toolName}: {ex.Message}");
+    }
     return;
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"Error invoking {toolName}: {ex.Message}");
+    // T-CLI-JSON-001: RTM FR-8.4 - Structured error for general errors
+    if (useJsonOutput)
+    {
+        var errorResponse = JsonToolResponse.Fail("INTERNAL_ERROR", $"Error invoking {toolName}: {ex.Message}");
+        System.Console.WriteLine(errorResponse.ToJson());
+    }
+    else
+    {
+        Console.WriteLine($"Error invoking {toolName}: {ex.Message}");
+    }
     return;
 }
 
@@ -101,9 +146,12 @@ void PrintUsage()
     System.Console.WriteLine();
     System.Console.WriteLine("Usage:");
     System.Console.WriteLine("  MCP Server mode:   maenifold --mcp");
-    System.Console.WriteLine("  Direct tool mode:  maenifold --tool <name> --payload '<json>'");
+    System.Console.WriteLine("  Direct tool mode:  maenifold --tool <name> --payload '<json>' [--json]");
     System.Console.WriteLine();
     System.Console.WriteLine("  (For development from source: dotnet run -- --tool <name> --payload '<json>')");
+    System.Console.WriteLine();
+    System.Console.WriteLine("Options:");
+    System.Console.WriteLine("  --json             Output structured JSON instead of markdown (FR-8.1)");
     System.Console.WriteLine();
     System.Console.WriteLine("Examples:");
     System.Console.WriteLine("  maenifold --tool WriteMemory --payload '{\"title\":\"Test\",\"content\":\"Content with [[WikiLink]]\"}'");

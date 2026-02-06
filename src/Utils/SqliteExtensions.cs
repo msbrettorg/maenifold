@@ -8,6 +8,11 @@ namespace Maenifold.Utils;
 
 public static class SqliteExtensions
 {
+    // CI environments (GitHub Actions, etc.) use tmpfs for /tmp which has issues with WAL mode.
+    // Use DELETE journal mode in CI for reliability; WAL mode in production for performance.
+    private static readonly bool IsCI = Environment.GetEnvironmentVariable("CI") == "true" ||
+                                         Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+    private static readonly string JournalMode = IsCI ? "DELETE" : "WAL";
 
     private static readonly ConcurrentDictionary<Type, Func<object>> _factoryCache = new();
     private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propertyCache = new();
@@ -26,7 +31,7 @@ public static class SqliteExtensions
     {
         conn.Open();
         conn.Execute("PRAGMA busy_timeout=" + Config.SqliteBusyTimeoutMs);
-        conn.Execute("PRAGMA journal_mode=WAL");
+        conn.Execute($"PRAGMA journal_mode={JournalMode}");
         conn.Execute("PRAGMA synchronous=NORMAL");
     }
 
@@ -34,7 +39,7 @@ public static class SqliteExtensions
     {
         conn.Open();
         conn.Execute("PRAGMA busy_timeout=" + Config.SqliteBusyTimeoutMs);
-        conn.Execute("PRAGMA journal_mode=WAL");
+        conn.Execute($"PRAGMA journal_mode={JournalMode}");
         conn.Execute("PRAGMA query_only=ON");
         conn.Execute("PRAGMA read_uncommitted=ON");
     }
@@ -43,7 +48,7 @@ public static class SqliteExtensions
     {
         conn.Open();
         conn.Execute("PRAGMA busy_timeout=" + Config.SqliteBusyTimeoutMs);
-        conn.Execute("PRAGMA journal_mode=WAL");
+        conn.Execute($"PRAGMA journal_mode={JournalMode}");
         conn.Execute("PRAGMA query_only=ON");
         conn.Execute("PRAGMA read_uncommitted=ON");
         conn.LoadVectorExtension();

@@ -6,7 +6,7 @@ Restore semantic context from your knowledge graph on every Claude Code session.
 
 Every session start:
 1. Queries recent activity from Maenifold
-2. Extracts top [[concepts]] from your work
+2. Extracts top `[[WikiLinks]]` like [[authentication]], [[database-schema]] from your work
 3. Builds graph context with relationships
 4. Injects ~5K tokens of semantic knowledge
 

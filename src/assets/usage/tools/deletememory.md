@@ -31,12 +31,12 @@ Permanently removes memory files from disk with confirmation safety.
 - **Irreversible**: No recovery mechanism - file deleted immediately from disk
 - **Confirmation required**: Operation fails if `confirm != true`
 - **Graph lag**: Concepts removed from graph on next `Sync`, not immediately
-- **Orphan concepts**: Deleting sole source of `[[concepts]]` creates orphans
+- **Orphan concepts**: Deleting sole source of `[[WikiLinks]]` like [[unique-concept]] creates orphaned graph nodes
 
 ## Integration
 
 - **ReadMemory**: Verify content before deletion
-- **ExtractConceptsFromFile**: Check which `[[concepts]]` will be affected
+- **ExtractConceptsFromFile**: Check which `[[WikiLinks]]` like [[research-data]], [[analysis]] will be affected
 - **BuildContext**: Assess relationship impact before deletion
 - **Sync**: Run after deletion to clean orphaned concepts from graph
 - **SearchMemories**: Find files to delete by pattern

@@ -1,6 +1,7 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Text;
+using System.Text.Json;
 using Maenifold.Utils;
 
 namespace Maenifold.Tools;
@@ -80,8 +81,34 @@ Integrates with ReadMemory for content access, BuildContext for relationship exp
 
         var paginatedResults = filteredResults
                     .Skip((page - 1) * pageSize)
-                    .Take(pageSize);
+                    .Take(pageSize)
+                    .ToList();
 
+        // T-CLI-JSON-001: RTM FR-8.2, FR-8.3 - Return JSON when flag is set
+        if (OutputContext.IsJsonMode)
+        {
+            var results = paginatedResults.Select(r => new
+            {
+                title = r.title,
+                path = r.path,
+                fusedScore = r.fusedScore,
+                textScore = r.textScore,
+                semanticScore = r.semanticScore,
+                snippet = r.snippet
+            }).ToList();
+
+            return JsonToolResponse.Ok(new
+            {
+                mode = "Hybrid",
+                query = query,
+                totalCount = filteredResults.Count,
+                page = page,
+                pageSize = pageSize,
+                textResultCount = textResults.Count,
+                semanticResultCount = vectorResults.Count,
+                results = results
+            }).ToJson();
+        }
 
         var sb = new StringBuilder();
         sb.AppendLineInvariant($"\uD83D\uDD0D **Hybrid Search** (combining text + semantic similarity)");
@@ -114,16 +141,44 @@ Integrates with ReadMemory for content access, BuildContext for relationship exp
         var filteredVectorResults = vectorResults.Where(r => r.score >= minScore).ToList();
 
 
+        // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Apply decay weighting to semantic scores
         var resultsWithInfo = filteredVectorResults.Select(r =>
                 {
                     var (title, snippet) = GetFileDisplayInfo(r.path, query);
-                    return new { path = r.path, score = r.score, title, snippet };
-                }).ToList();
+                    var decayWeight = GetDecayWeightForFile(r.path);
+                    var decayedScore = r.score * decayWeight;
+                    return new { path = r.path, score = decayedScore, title, snippet };
+                })
+                .OrderByDescending(r => r.score)
+                .ToList();
 
 
         var paginatedResults = resultsWithInfo
                     .Skip((page - 1) * pageSize)
-                    .Take(pageSize);
+                    .Take(pageSize)
+                    .ToList();
+
+        // T-CLI-JSON-001: RTM FR-8.2, FR-8.3 - Return JSON when flag is set
+        if (OutputContext.IsJsonMode)
+        {
+            var results = paginatedResults.Select(r => new
+            {
+                title = r.title,
+                path = r.path,
+                score = r.score,
+                snippet = r.snippet
+            }).ToList();
+
+            return JsonToolResponse.Ok(new
+            {
+                mode = "Semantic",
+                query = query,
+                totalCount = resultsWithInfo.Count,
+                page = page,
+                pageSize = pageSize,
+                results = results
+            }).ToJson();
+        }
 
         var sb = new StringBuilder();
         sb.AppendLineInvariant($"\uD83E\uDDE0 **Semantic Search** (concept similarity)");
@@ -166,16 +221,44 @@ Integrates with ReadMemory for content access, BuildContext for relationship exp
         }
 
 
+        // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Apply decay weighting to full-text scores
         var resultsWithInfo = normalizedAndFiltered.Select(r =>
                 {
                     var (title, snippet) = GetFileDisplayInfo(r.path, query);
-                    return new { path = r.path, score = r.score, title, snippet };
-                }).ToList();
+                    var decayWeight = GetDecayWeightForFile(r.path);
+                    var decayedScore = r.score * decayWeight;
+                    return new { path = r.path, score = decayedScore, title, snippet };
+                })
+                .OrderByDescending(r => r.score)
+                .ToList();
 
 
         var paginatedResults = resultsWithInfo
                     .Skip((page - 1) * pageSize)
-                    .Take(pageSize);
+                    .Take(pageSize)
+                    .ToList();
+
+        // T-CLI-JSON-001: RTM FR-8.2, FR-8.3 - Return JSON when flag is set
+        if (OutputContext.IsJsonMode)
+        {
+            var results = paginatedResults.Select(r => new
+            {
+                title = r.title,
+                path = r.path,
+                score = r.score,
+                snippet = r.snippet
+            }).ToList();
+
+            return JsonToolResponse.Ok(new
+            {
+                mode = "FullText",
+                query = query,
+                totalCount = resultsWithInfo.Count,
+                page = page,
+                pageSize = pageSize,
+                results = results
+            }).ToJson();
+        }
 
         var sb = new StringBuilder();
         sb.AppendLineInvariant($"\uD83D\uDCDD **Full-Text Search** (keyword matching)");

@@ -64,7 +64,7 @@ Returns error: "Must set confirm=true to delete a memory file" - prevents accide
 - **Cleanup workflows**: Delete temporary files created during thinking sessions or experiments
 - **Content consolidation**: Remove duplicate files after merging content into comprehensive documents
 - **Privacy protection**: Delete files containing sensitive information that should not persist
-- **Knowledge graph maintenance**: Remove files with incorrect [[concepts]] that create false relationships
+- **Knowledge graph maintenance**: Remove files with incorrect [[WikiLinks]] that create false relationships
 
 ## Related Tools
 
@@ -81,12 +81,12 @@ When you delete a memory file, the following happens to the knowledge graph:
 
 - **Immediate**: File is removed from disk and can no longer be read
 - **After Sync**: Concept mentions from this file are removed from the database
-- **Orphaned Concepts**: If this was the only file containing certain [[concepts]], those concepts may become orphaned
+- **Orphaned Concepts**: If this was the only file containing certain [[WikiLinks]], those concepts may become orphaned
 - **Broken Relationships**: Concept relationships that depended on this file will be weakened or removed
 
 ### Impact Assessment Workflow
 Before deleting important files:
-1. Use `ExtractConceptsFromFile` to see what [[concepts]] will be affected
+1. Use `ExtractConceptsFromFile` to see what [[WikiLinks]] will be affected
 2. Use `BuildContext` to understand which concept relationships depend on this file  
 3. Use `SearchMemories` to find other files that contain the same concepts
 4. Only delete if concepts exist in other files or are truly obsolete
@@ -105,7 +105,7 @@ Before deleting important files:
   → **Solution**: Use exact title match or switch to memory:// URI format for precise targeting
 
 - **Deletion impact concerns**
-  → **Solution**: Run ExtractConceptsFromFile first to see which [[concepts]] will be affected
+  → **Solution**: Run ExtractConceptsFromFile first to see which [[WikiLinks]] will be affected
 
 ### Best Practices for Safe Deletion
 

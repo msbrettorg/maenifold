@@ -1,6 +1,6 @@
 # BuildContext
 
-Explore and traverse concept relationships in your maenifold knowledge graph through intelligent graph navigation. This tool discovers connections between [[concepts]] by analyzing co-occurrence patterns in your memory files, building contextual understanding through relationship exploration and multi-hop graph traversal.
+Explore and traverse concept relationships in your maenifold knowledge graph through intelligent graph navigation. This tool discovers connections between [[WikiLinks]] by analyzing co-occurrence patterns in your memory files, building contextual understanding through relationship exploration and multi-hop graph traversal.
 
 ## When to Use This Tool
 
@@ -134,12 +134,12 @@ Use for discovering distant relationships and finding unexpected conceptual brid
 **Solution**: Run `Sync`, then verify the concept spelling (concepts are normalized to lowercase-with-hyphens). If needed, add the concept alongside related concepts in a memory file and re-run `Sync`.
 
 ### No relationships found for existing concept
-**Cause**: Concept exists but appears in isolation without co-occurring with other [[concepts]]  
+**Cause**: Concept exists but appears in isolation without co-occurring with other [[WikiLinks]]  
 **Solution**: Add the concept to existing memory files alongside related concepts to build relationships
 
 ### Traversal depth returns limited results
 **Cause**: Your knowledge graph has sparse connections or concept clusters are isolated  
-**Solution**: Increase maxEntities parameter or create memory files that bridge concept areas with shared [[concepts]]
+**Solution**: Increase maxEntities parameter or create memory files that bridge concept areas with shared [[WikiLinks]]
 
 ### Depth behavior gotcha
 - `depth = 0` and `depth = 1` only populate `directRelations`.
@@ -187,7 +187,7 @@ BuildContext → Design Thinking Workflow (with related concepts)
 ```
 
 ### Knowledge Graph Evolution
-As you create more memory files with [[concepts]], BuildContext discoveries become richer and more connected.
+As you create more memory files with [[WikiLinks]], BuildContext discoveries become richer and more connected.
 
 ### Memory System Synergy
 BuildContext reveals the structure of your knowledge while SearchMemories finds the content - complementary tools for knowledge exploration.

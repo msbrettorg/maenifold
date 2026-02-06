@@ -2,6 +2,7 @@ using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using Maenifold.Utils;
 
 namespace Maenifold.Tools;
@@ -11,18 +12,18 @@ public class SequentialThinkingTools
 {
     private static readonly int CheckpointFrequency = 3;
 
-    [McpServerTool, Description(@"Creates structured thinking sessions with [[concept]] integration and persistent markdown file storage.
-Requires response with [[concepts]], thought tracking, session management, and optional revision capabilities.
+    [McpServerTool, Description(@"Creates structured thinking sessions with [[WikiLink]] integration and persistent markdown file storage.
+Requires response with [[WikiLinks]], thought tracking, session management, and optional revision capabilities.
 Integrates with WriteMemory for session persistence and maenifold tools.
 Returns session management with continuation guidance and checkpoint suggestions.")]
     public static string SequentialThinking(
-        [Description("Main response/thought - MUST include [[concepts]] to build knowledge")] string? response = null,
+        [Description("Main response/thought - MUST include [[WikiLinks]] to build knowledge")] string? response = null,
         [Description("Need another thought?")] bool nextThoughtNeeded = false,
         [Description("Current thought number")] int thoughtNumber = 0,
         [Description("Total thoughts estimate")] int totalThoughts = 0,
         [Description("Session ID")] string? sessionId = null,
         [Description("Cancel session (set to true to cancel)")] bool cancel = false,
-        [Description("Ambient/meta thoughts with [[concepts]] (use liberally)")] string? thoughts = null,
+        [Description("Ambient/meta thoughts with [[WikiLinks]] (use liberally)")] string? thoughts = null,
         [Description("Is this a revision?")] bool isRevision = false,
         [Description("Which thought to revise")] int? revisesThought = null,
         [Description("Branch from thought")] int? branchFromThought = null,
@@ -30,7 +31,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         [Description("Need more thoughts than estimated?")] bool needsMoreThoughts = false,
         [Description("Analysis type: bug, architecture, retrospective, or complex")] string? analysisType = null,
         [Description("Parent workflow session ID (creates bidirectional link)")] string? parentWorkflowId = null,
-        [Description("Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[concepts]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction.")] string? conclusion = null,
+        [Description("Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[WikiLinks]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction.")] string? conclusion = null,
         [Description("Return help documentation instead of executing")] bool learn = false)
     {
         if (learn) return ToolHelpers.GetLearnContent(nameof(SequentialThinking));
@@ -49,12 +50,22 @@ Returns session management with continuation guidance and checkpoint suggestions
             sessionId = $"session-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{Random.Shared.Next(10000, 99999)}";
 
         if (sessionIdProvided && !IsValidSessionIdFormat(sessionId!))
-            return "ERROR: Invalid sessionId format. Use maenifold-generated values (session-{unix-milliseconds}) or omit sessionId to start a new session.";
+        {
+            var msg = "Invalid sessionId format. Use maenifold-generated values (session-{unix-milliseconds}) or omit sessionId to start a new session.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("INVALID_SESSION_ID", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         var (sessionExists, _) = DetermineSessionState(sessionId!, thoughtNumber, isRevision);
 
         if (sessionIdProvided && thoughtNumber == 0 && !sessionExists && !isRevision)
-            return $"ERROR: Session {sessionId} not found. To start new session, don't provide sessionId.";
+        {
+            var msg = $"Session {sessionId} not found. To start new session, don't provide sessionId.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("SESSION_NOT_FOUND", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         var parentWorkflowError = ValidateParentWorkflow(parentWorkflowId, thoughtNumber);
         if (parentWorkflowError != null)
@@ -62,14 +73,34 @@ Returns session management with continuation guidance and checkpoint suggestions
 
         // Validate branchId requirement for multi-agent safety
         if (branchFromThought.HasValue && string.IsNullOrEmpty(branchId))
-            return "ERROR: branchId required when branchFromThought is specified for multi-agent coordination";
+        {
+            var msg = "branchId required when branchFromThought is specified for multi-agent coordination";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("BRANCH_ID_REQUIRED", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         if (thoughtNumber == 0 && string.IsNullOrEmpty(branchId) && sessionExists && !isRevision && !cancel)
-            return $"ERROR: Session {sessionId} exists. Use different sessionId or continue existing.";
+        {
+            var msg = $"Session {sessionId} exists. Use different sessionId or continue existing.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("SESSION_EXISTS", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
         if (thoughtNumber > 0 && !sessionExists && !isRevision && !cancel)
-            return $"ERROR: Session {sessionId} missing. Start with thoughtNumber=0.";
+        {
+            var msg = $"Session {sessionId} missing. Start with thoughtNumber=0.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("SESSION_MISSING", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
         if (isRevision && !sessionExists)
-            return $"ERROR: Cannot revise - session {sessionId} doesn't exist.";
+        {
+            var msg = $"Cannot revise - session {sessionId} doesn't exist.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("SESSION_NOT_FOUND", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         if (!sessionExists)
         {
@@ -91,14 +122,39 @@ Returns session management with continuation guidance and checkpoint suggestions
         if (complete && cancel == false)
         {
             if (string.IsNullOrEmpty(conclusion))
-                return "ERROR: Conclusion required when completing session. Must synthesize findings with [[concepts]].";
+            {
+                var msg = "Conclusion required when completing session. Must synthesize findings with [[WikiLinks]].";
+                return OutputContext.IsJsonMode
+                    ? JsonToolResponse.Fail("CONCLUSION_REQUIRED", msg).ToJson()
+                    : $"ERROR: {msg}";
+            }
 
             var conclusionConcepts = MarkdownIO.ExtractWikiLinks(conclusion);
             if (conclusionConcepts.Count == 0)
-                return "ERROR: Conclusion must include [[concepts]] for knowledge graph integration.";
+            {
+                var msg = "Conclusion must include [[WikiLinks]] for knowledge graph integration.";
+                return OutputContext.IsJsonMode
+                    ? JsonToolResponse.Fail("CONCLUSION_WIKILINK_REQUIRED", msg).ToJson()
+                    : $"ERROR: {msg}";
+            }
         }
 
         FinalizeSession(sessionId!, thoughtNumber, cancel, complete, conclusion);
+
+        // T-CLI-JSON-001: RTM FR-8.2, FR-8.3 - Return JSON when flag is set
+        if (OutputContext.IsJsonMode)
+        {
+            var status = cancel ? "cancelled" : (!nextThoughtNeeded ? "completed" : "in_progress");
+            return JsonToolResponse.Ok(new
+            {
+                sessionId = sessionId,
+                thoughtNumber = thoughtNumber,
+                totalThoughts = totalThoughts,
+                status = status,
+                nextThoughtNeeded = nextThoughtNeeded,
+                message = BuildCompletionMessage(thoughtNumber, sessionId!, cancel, nextThoughtNeeded, needsMoreThoughts, totalThoughts)
+            }).ToJson();
+        }
 
         var responseMessage = BuildCompletionMessage(thoughtNumber, sessionId!, cancel, nextThoughtNeeded, needsMoreThoughts, totalThoughts);
         return responseMessage;
@@ -111,7 +167,15 @@ Returns session management with continuation guidance and checkpoint suggestions
         var totalConcepts = responseConcepts.Count + thoughtsConcepts.Count;
 
         if (totalConcepts == 0)
-            return (false, "ERROR: Must include [[concepts]]. Example: 'Analyzing [[Machine Learning]] algorithms'");
+        {
+            // T-CLI-JSON-001: RTM FR-8.4 - Structured error for WikiLink validation
+            if (OutputContext.IsJsonMode)
+            {
+                return (false, JsonToolResponse.Fail("WIKILINK_REQUIRED",
+                    "Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms'").ToJson());
+            }
+            return (false, "ERROR: Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms'");
+        }
 
         return (true, null);
     }
@@ -140,16 +204,31 @@ Returns session management with continuation guidance and checkpoint suggestions
             return null;
 
         if (thoughtNumber != 0)
-            return "ERROR: Parent workflow can only be set on first thought.";
+        {
+            var msg = "Parent workflow can only be set on first thought.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("INVALID_PARENT_WORKFLOW", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         if (!MarkdownIO.SessionExists("workflow", parentWorkflowId))
-            return $"ERROR: Parent workflow '{parentWorkflowId}' not found.";
+        {
+            var msg = $"Parent workflow '{parentWorkflowId}' not found.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("PARENT_WORKFLOW_NOT_FOUND", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         var (parentMeta, _, _) = MarkdownIO.ReadSession("workflow", parentWorkflowId);
         var parentStatus = parentMeta?.ContainsKey("status") == true ? parentMeta["status"]?.ToString() : "active";
 
         if (parentStatus == "completed" || parentStatus == "cancelled" || parentStatus == "abandoned")
-            return $"ERROR: Parent workflow is {parentStatus}.";
+        {
+            var msg = $"Parent workflow is {parentStatus}.";
+            return OutputContext.IsJsonMode
+                ? JsonToolResponse.Fail("PARENT_WORKFLOW_CLOSED", msg).ToJson()
+                : $"ERROR: {msg}";
+        }
 
         return null;
     }
@@ -254,7 +333,7 @@ Returns session management with continuation guidance and checkpoint suggestions
         var nextTotal = needsMoreThoughts && thoughtNumber >= totalThoughts - 1 ? "?" : CultureInvariantHelpers.ToString(totalThoughts);
         var extendNote = needsMoreThoughts && thoughtNumber >= totalThoughts - 1 ? " (extending beyond initial estimate)" : "";
         var checkpointNote = thoughtNumber == 0 || thoughtNumber % CheckpointFrequency == 0
-            ? "\n\n💡 **CHECK YOUR MEMORY:** `search_memories` for what exists and `build_context` on [[concepts]] | `sync` new findings to add them to the graph"
+            ? "\n\n💡 **CHECK YOUR MEMORY:** `search_memories` for what exists and `build_context` on [[WikiLinks]] | `sync` new findings to add them to the graph"
             : "";
 
         return $"{baseMessage}\n\n💭 Continue with thought {nextThought}/{nextTotal}{extendNote}{checkpointNote}";

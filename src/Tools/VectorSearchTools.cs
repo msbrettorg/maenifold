@@ -233,7 +233,7 @@ Returns ranked concepts by semantic similarity score for knowledge graph explora
     {
         // Block common bracket-like delimiters seen in Unicode-bypass attempts.
         // Note: ASCII '[' / ']' are handled separately (including NFKC confusables).
-        return input.EnumerateRunes().Where(rune => rune.Value is
+        return input.EnumerateRunes().Any(rune => rune.Value is
             // ASCII angle brackets
             (int)'<' or (int)'>' or
             // CJK corner/white/ornamental brackets
@@ -252,8 +252,7 @@ Returns ranked concepts by semantic similarity score for knowledge graph explora
             0x27EE or 0x27EF or // ⟮ ⟯
             // Dingbat brackets
             0x2772 or 0x2773 or // ❲ ❳
-            0x276E or 0x276F)   // ❮ ❯
-            .Any();
+            0x276E or 0x276F);  // ❮ ❯
     }
 
     // T-QUAL-FSC2: RTM FR-7.4

@@ -1,6 +1,6 @@
 ---
 name: product-manager
-description: Use this agent when the user needs comprehensive research on a topic, requires synthesized information from multiple sources, needs fact-checking or verification of claims, wants to explore a subject in depth, or needs help gathering and organizing information for decision-making. This agent excels at diving deep into complex topics, finding relevant sources, and presenting findings in a clear, structured manner.
+description: Use this agent when the user needs product management, sprint planning, backlog management, TDD orchestration with red-team/blue-team validation, requirements traceability (PRD/RTM/TODO), or coordinating parallel task execution across SWE, researcher, and security agents. This agent excels at decomposing work into parallel-safe micro-tasks, orchestrating subagent teams, and delivering Simple, Lovable, and Complete products.
 color: cyan
 model: opus
 skills:

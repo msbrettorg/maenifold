@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using Microsoft.Data.Sqlite;
 using Maenifold.Utils;
 
 namespace Maenifold.Tools;
@@ -111,7 +112,8 @@ public partial class MemorySearchTools
     // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Calculate decay weight for a file
     /// <summary>
     /// Calculates decay weight for a file based on its age and access patterns.
-    /// Reads 'created' timestamp from frontmatter and uses DecayCalculator.
+    /// Reads 'created' timestamp from frontmatter and last_accessed from the database.
+    /// Files read via ReadMemory decay slower than untouched files (access boosting).
     /// </summary>
     /// <param name="filePathOrUri">File path or memory:// URI</param>
     /// <returns>Decay weight between 0.0 and 1.0</returns>
@@ -139,13 +141,56 @@ public partial class MemorySearchTools
                 }
             }
 
-            // Calculate decay weight using the file path for tier detection and created timestamp
-            return DecayCalculator.GetDecayWeight(created, null, filePath);
+            // T-GRAPH-DECAY-002.1: RTM NFR-7.6.1 - Look up last_accessed for access boosting
+            DateTime? lastAccessed = LookupLastAccessed(filePathOrUri, filePath);
+
+            // Calculate decay weight using access boosting (lastAccessed resets the decay clock)
+            return DecayCalculator.GetDecayWeight(created, lastAccessed, filePath);
         }
         catch
         {
             // If we can't read the file, return neutral decay (weight = 1.0)
             return 1.0;
         }
+    }
+
+    /// <summary>
+    /// Looks up the last_accessed timestamp for a file from the graph database.
+    /// ReadMemory writes this timestamp on every explicit read; SearchMemories and
+    /// BuildContext do not — so only deliberate access resets the decay clock.
+    /// </summary>
+    private static DateTime? LookupLastAccessed(string filePathOrUri, string diskPath)
+    {
+        try
+        {
+            var dbPath = Config.DatabasePath;
+            if (!File.Exists(dbPath))
+                return null;
+
+            // Convert to memory:// URI for database lookup (file_content stores URIs)
+            var memoryUri = filePathOrUri.StartsWith("memory://", StringComparison.Ordinal)
+                ? filePathOrUri
+                : MarkdownIO.PathToUri(diskPath, Config.MemoryPath);
+
+            using var conn = new SqliteConnection(Config.DatabaseConnectionString);
+            conn.OpenReadOnly();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT last_accessed FROM file_content WHERE file_path = @path AND last_accessed IS NOT NULL";
+            cmd.Parameters.AddWithValue("@path", memoryUri);
+
+            var result = cmd.ExecuteScalar();
+            if (result is string lastAccessedStr &&
+                DateTime.TryParse(lastAccessedStr, CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var lastAccessed))
+            {
+                return lastAccessed;
+            }
+        }
+        catch
+        {
+            // Non-critical: if database lookup fails, fall back to created-only decay
+        }
+
+        return null;
     }
 }

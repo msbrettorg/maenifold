@@ -111,30 +111,12 @@ jobs:
   update-homebrew:
     needs: release
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
-      - name: Download artifacts for checksums
-        uses: actions/download-artifact@v7
-        with:
-          path: artifacts
-
-      - name: Calculate SHA256 checksums
-        id: checksums
-        run: |
-          echo "osx_arm64=$(sha256sum artifacts/maenifold-osx-arm64/*.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-          echo "linux_x64=$(sha256sum artifacts/maenifold-linux-x64/*.tar.gz | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-
       - name: Update Homebrew formula
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           repository: msbrettorg/homebrew-tap
           event-type: update-formula
-          client-payload: |
-            {
-              "version": "${{ github.ref_name }}",
-              "osx_arm64_sha256": "${{ steps.checksums.outputs.osx_arm64 }}",
-              "linux_x64_sha256": "${{ steps.checksums.outputs.linux_x64 }}"
-            }
+          client-payload: '{"version": "${{ github.ref_name }}"}'

@@ -5,17 +5,6 @@ namespace Maenifold.Tools;
 
 public static class GraphDatabase
 {
-    // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Provide connection factory for decay weight queries
-    /// <summary>
-    /// Gets a read-only database connection. Caller must dispose.
-    /// </summary>
-    public static SqliteConnection GetConnection()
-    {
-        var conn = new SqliteConnection(Config.DatabaseConnectionString);
-        conn.OpenReadOnly();
-        return conn;
-    }
-
     public static void InitializeDatabase()
     {
         using var conn = new SqliteConnection(Config.DatabaseConnectionString);

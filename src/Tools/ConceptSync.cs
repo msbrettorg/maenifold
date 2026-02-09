@@ -8,7 +8,8 @@ using Microsoft.Data.Sqlite;
 
 namespace Maenifold.Tools;
 
-#pragma warning disable CA1812  
+// CA1812: EdgeData is instantiated via JSON/Dapper deserialization, not direct construction
+#pragma warning disable CA1812
 internal sealed class EdgeData
 #pragma warning restore CA1812
 {

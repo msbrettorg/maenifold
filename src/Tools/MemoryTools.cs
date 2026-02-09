@@ -35,7 +35,7 @@ public class MemoryTools
             cmd.Parameters.AddWithValue("@path", memoryUri);
             cmd.ExecuteNonQuery();
         }
-        catch
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             // Non-critical: if database update fails, continue without updating timestamp
             // The file read itself still succeeds

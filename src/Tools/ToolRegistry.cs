@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Maenifold.Utils;
 
+// CA1861: Array params in ToolDescriptor constructors are intentionally inline for readability
+// CA1805: _initialized = false is explicit for clarity
 #pragma warning disable CA1861, CA1805
 
 namespace Maenifold.Tools

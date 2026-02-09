@@ -91,6 +91,29 @@ With productive forgetting:
 - The knowledge graph stays *opinionated* — shaped by actual use patterns
 - The agent develops something like accumulated preferences about what matters
 
+## The Evidence
+
+The central claim — decay improves retrieval — is measured by five benchmarks in `tests/Maenifold.Tests/DecayBenchmarkTests.cs`:
+
+| Benchmark | Question | Result |
+|---|---|---|
+| Context Rot | Does recent signal outrank accumulated noise? | Decision doc ranks #1 out of 6 (fused score 0.033 vs 0.007) |
+| Weight Distribution | Does the decay curve produce meaningful separation? | 18.4x suppression ratio between fresh and year-old content |
+| Access Boosting | Does reading rescue actively-used old content? | Weight jumps from 0.18 to 1.0 after ReadMemory |
+| Tiered Decay | Does episodic memory fade faster than semantic? | Episodic = 0.58 vs semantic = 1.0 at day 10 |
+| Precision@3 | Does the right answer land in the top 3? | #1 out of 8 results, above 3 tangentially-related old files |
+
+The weight distribution across the decay curve (power-law, d=0.5, 14-day grace):
+
+```
+Day  1:  1.000  (grace period — full weight)
+Day 14:  1.000  (grace boundary — still full)
+Day 30:  0.707  (moderate — clearly present)
+Day 60:  0.177  (significant — deprioritized)
+Day 90:  0.127  (heavy — nearly invisible in ranking)
+Day 365: 0.054  (extreme — effectively buried unless directly accessed)
+```
+
 ## The Competitive Position
 
 No other AI memory system has built forgetting into its *identity*:

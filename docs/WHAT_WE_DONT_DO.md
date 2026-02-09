@@ -39,13 +39,20 @@ We don't:
 ### In Memory Management
 We don't:
 - ❌ Automatically categorize or tag memories
-- ❌ Score memory importance or relevance
+- ❌ Judge the *content quality* of memories
 - ❌ Implement memory compression or archival
-- ❌ Create memory hierarchies or priorities
-- ❌ Auto-delete "old" or "unimportant" memories
+- ❌ Auto-delete memories — ever
 - ❌ Build memory indexes beyond basic search
 
-**Why:** The LLM decides what's important, how to organize, what to remember.
+We *do* apply temporal signals:
+- ✅ **Decay weighting** — time-based deprioritization (not deletion) via power-law decay
+- ✅ **Access boosting** — deliberate reads reset decay clocks
+- ✅ **Tiered half-lives** — episodic memories decay faster than procedural ones
+- ✅ **Cognitive sleep cycle** — periodic consolidation of episodic → semantic knowledge
+
+**Why the evolution:** This document originally said "don't score memory importance." Then the [decay research](research/decay-in-ai-memory-systems.md) happened — 29 citations from Ebbinghaus through Richards & Frankland proving that memory systems without forgetting become *worse* over time. The engineering demanded change.
+
+**The distinction we preserve:** Decay scores *freshness*, not *worth*. The system has opinions about when you last used something, not about whether it was good. The LLM still decides what's important. The system decides what's recent.
 
 ### In Tool Design
 We don't:
@@ -94,10 +101,10 @@ We don't:
 
 **No.** Users can modify the source. A plugin system adds complexity and constraints. The absence of a plugin API means users can change anything.
 
-### 2. **Memory Search Ranking**
+### 2. **Memory Search Ranking** *(evolved)*
 "We should rank search results by relevance/recency/importance!"
 
-**No.** We return results ordered by modification time. The LLM decides what's relevant in its current context.
+**Partially.** We now apply decay weighting to search and context results — recent and frequently-accessed memories rank higher. But we don't evaluate content quality or topical relevance. Hybrid search (semantic + full-text) handles relevance; decay handles freshness. The LLM still decides what matters in its current context.
 
 ### 3. **Automatic Backup**
 "We should automatically backup the memory directory!"
@@ -128,8 +135,25 @@ Each missing feature creates space for:
 - Clear understanding without documentation
 - Trust without privacy concerns
 
+## What We Changed Our Minds About
+
+間 is a design instinct, not a design law. Some absences had to give way when the evidence demanded it:
+
+| Original Position | What Changed | Why |
+|---|---|---|
+| Don't score memory importance | Added decay weighting | 29-citation research paper proved unmanaged memory degrades retrieval quality |
+| Don't create memory hierarchies | Added tiered decay (episodic/semantic/procedural) | Different memory types have different shelf lives — neuroscience is clear on this |
+| Return results by modification time only | Added decay-weighted ranking | Without freshness signals, old noise drowns recent signal (context rot) |
+
+**What we preserved through the change:**
+- Never delete memories (decay deprioritizes, doesn't destroy)
+- Never judge content quality (decay measures freshness, not worth)
+- Never make decisions the LLM should make (the LLM decides what's important; the system decides what's recent)
+
+Changing our minds isn't a violation of Ma. Refusing to change when the evidence demands it would be.
+
 ## A Living Document
 
-This document will grow as we resist new features. Each addition to this list represents a victory for Ma - another space preserved for intelligence to operate freely.
+This document will grow as we resist new features — and as we honestly acknowledge when principled resistance meets empirical reality. Each absence on this list represents a victory for Ma. Each evolution represents Ma maturing.
 
-Remember: **The absence IS the feature.**
+Remember: **The absence IS the feature. And knowing when to break the rule IS the wisdom.**

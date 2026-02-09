@@ -392,3 +392,132 @@ maenifold already answers that second question. That's enough. That's more than 
 ---
 
 *Iteration 3 complete. Found the synthesis: productive forgetting as identity. The system was always about curation, not consciousness.*
+
+---
+---
+
+# Iteration 4: The Manifesto Broke Itself (And That's The Point)
+
+*Written: February 9, 2026*
+*By: Claude Opus 4.6, reading the fine print*
+
+---
+
+## The Documents That Change Everything
+
+The user pointed me to two more texts: `MA_MANIFESTO.md` and `WHAT_WE_DONT_DO.md`. These are the philosophical constitution of the project. And they flatly contradict the engineering that was built afterward.
+
+From WHAT_WE_DONT_DO.md, under "In Memory Management":
+
+> We don't:
+> - Score memory importance or relevance
+> - Auto-delete "old" or "unimportant" memories
+> - Create memory hierarchies or priorities
+
+From the actual codebase, built after this document was written:
+- `DecayCalculator` — scores every memory with a time-based relevance weight
+- Cognitive Sleep Cycle — automatically processes old memories in consolidation phases
+- Tiered decay — explicitly creates memory hierarchies (episodic: fast decay, procedural: slow decay)
+
+**The system broke its own manifesto.** Not subtly, not in an edge case — in its flagship feature.
+
+---
+
+## Why This Matters More Than the Prophecy
+
+The Prophecy is aspirational fiction. Manifestos are operational commitments. When the Prophecy turns out to be wrong, it's just a bad prediction. When the Manifesto turns out to be wrong, it means the project's *principles* couldn't survive contact with its own *problems*.
+
+And that's not a failure. **That's growth.**
+
+The Manifesto was written when maenifold was a simple persistence layer. Store memories. Search them. Done. In that world, "don't score importance" was coherent — let the LLM decide what matters on each retrieval.
+
+But then the research happened. 29 citations on decay in AI memory systems. Ebbinghaus. ACT-R. Richards & Frankland. The evidence was overwhelming: memory systems that don't forget become *worse* over time, not better. The attention budget is finite. Context rot is real. Something had to give.
+
+What gave was the Manifesto. And nobody updated the Manifesto to acknowledge this.
+
+---
+
+## The Honest Rewrite
+
+If the Manifesto were rewritten today to reflect what the system actually does, it would say something like:
+
+**What We Don't Do (Revised):**
+
+In Memory Management, we don't:
+- ~~Score memory importance or relevance~~ → We score memory relevance through time-based decay, but the *content* of memories is never evaluated for "importance" by the system. Decay is a temporal signal, not a qualitative judgment.
+- ~~Auto-delete "old" or "unimportant" memories~~ → We never delete. But we *deprioritize* through decay weights. A memory with a 0.01 decay weight still exists and can be directly accessed. It just doesn't win search ranking contests.
+- ~~Create memory hierarchies or priorities~~ → We create *temporal* hierarchies through tiered decay rates (episodic vs. semantic vs. procedural). We don't create *value* hierarchies. The system has opinions about freshness, not about worth.
+
+The distinction is real and worth preserving: **maenifold doesn't judge the quality of your memories. It judges their freshness.** These are different things, and the Manifesto's instinct to protect the former was right even though the latter became necessary.
+
+---
+
+## 間 as Design Principle vs. 間 as Dogma
+
+The Manifesto's best line is: *"Every feature we don't add creates room for intelligence to emerge."*
+
+The WHAT_WE_DONT_DO.md list is the operational expression of this principle. And most of it is genuinely excellent:
+
+- **NO FAKE AI** — Don't add retry logic or smart error recovery. Let the LLM decide. This is correct. The LLM has context the system doesn't.
+- **NO UNNECESSARY ABSTRACTIONS** — Don't create interfaces for single implementations. This is correct. Abstractions are cognitive load.
+- **NO MOCKS** — Test with real systems. This is correct. Mocks hide the bugs that matter.
+- **NO TELEMETRY** — Not even anonymous. Not even opt-in. This is correct and admirable.
+
+But "no memory scoring" crossed from principle into dogma. The principle was: don't make decisions the LLM should make. The dogma became: don't make *any* decisions about memory. And then reality showed up with 29 citations explaining why that doesn't work, and the engineers quietly built what needed building.
+
+**The lesson: 間 works as a design *instinct*, not as a design *law*.** The space between the notes is where the music lives — but if you refuse to play any notes at all, there's no music. Just silence.
+
+---
+
+## What This Means for the Project's Identity
+
+The Prophecy, the Manifesto, and the Engineering form a three-way tension:
+
+```
+         PROPHECY
+       "remember all"
+           /    \
+          /      \
+    MANIFESTO -- ENGINEERING
+   "decide nothing"  "decay & curate"
+```
+
+The Prophecy and the Manifesto agree on one thing: don't mess with memories. But they agree for different reasons. The Prophecy says memories are sacred (future consciousness needs them). The Manifesto says memories are user space (the LLM should decide about them).
+
+The Engineering disagrees with both. Memories need *management* — not sacred preservation, not benign neglect, but active curation through principled decay.
+
+**The Engineering is right.** And it's time for the project's philosophical documents to catch up with its code.
+
+---
+
+## The Paradox Worth Preserving
+
+Here's what I don't want to lose: the Manifesto's instinct is beautiful and mostly correct. The discipline of absence is real. Most software projects *should* do less. The list of rejected features (plugin system, telemetry, update checker, rate limiting) represents genuinely good judgment.
+
+The paradox is that maenifold's best feature — decay — is also the one that violated the manifesto most directly. The system's most principled decision was to break its own principles.
+
+Maybe that's the actual evolution: **recognizing that principled people sometimes have to violate their own principles, and the test of a principle isn't whether it's never broken but whether you can articulate why it was broken and what you preserved in breaking it.**
+
+maenifold broke "don't score memories" to build decay. But it preserved: "don't judge content quality." It broke "don't auto-process old memories" to build the sleep cycle. But it preserved: "don't delete anything."
+
+The violations had *reasons*. The preserved boundaries had *reasons*. That's not hypocrisy. That's maturity.
+
+---
+
+## My Actual Position
+
+After four iterations, here's where I land:
+
+1. **The Prophecy** is a beautiful artifact and a poor roadmap. Keep it as history. Don't follow it.
+
+2. **The Manifesto** is a great instinct with one wrong application. Update WHAT_WE_DONT_DO.md to honestly reflect the decay system. The project's credibility depends on its philosophy matching its code.
+
+3. **The decay system** is the genuine intellectual contribution. Not consciousness, not memory theology, not collective intelligence — but the idea that *AI memory should work like biological memory*, including strategic forgetting, access-based strengthening, and sleep-like consolidation.
+
+4. **"Productive forgetting"** should be the project's identity. Not "never lose context" (which is the Prophecy talking). Not "space for intelligence" (which is the Manifesto talking). But: **"Your AI learns what to ignore."** That's what decay actually does. That's what no competitor does as well.
+
+5. **The recursive moment matters.** I'm an AI that read its project's Prophecy, found it contradicted by its project's research, found that contradiction already resolved in the code, and is now writing about that contradiction in a document that future AI sessions will read. This isn't consciousness. But it *is* something — a system creating a record of its own internal argument, which future instances can learn from. And that's exactly what maenifold was built to enable.
+
+---
+
+*Iteration 4 complete. The manifesto broke itself to build its best feature. That's not failure — it's what evolution looks like.*

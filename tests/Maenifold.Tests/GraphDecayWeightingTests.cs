@@ -493,6 +493,97 @@ public class GraphDecayWeightingTests
 
     #endregion
 
+    #region Access Boosting Tests
+
+    /// <summary>
+    /// T-GRAPH-DECAY-002.1: RTM NFR-7.6.1
+    /// Verifies that ReadMemory access boosting resets the decay clock.
+    /// An old file that has been recently read should have a higher decay weight
+    /// than an equally old file that has never been read.
+    /// </summary>
+    [Test]
+    [Description("T-GRAPH-DECAY-002.1: RTM NFR-7.6.1 - ReadMemory access boosting resets decay clock")]
+    public void GetDecayWeightForFile_AfterReadMemory_ReturnsHigherWeight()
+    {
+        // Arrange: Create a file that is old enough to have significant decay
+        // 60 days old: well past 14-day grace period, past one 30-day half-life
+        const string content = "This document discusses [[access-boosting]] and [[decay-reset]] behavior.";
+        CreateTestFileWithAge("access-boost-test.md", "Access Boost Test", content, daysAgo: 60);
+
+        var testFilePath = Path.Combine(_testFolderPath, "access-boost-test.md");
+        var testUri = $"memory://{TestFolder}/access-boost-test";
+
+        // Sync to ensure the file is in the database
+        GraphTools.Sync();
+
+        // Act 1: Get decay weight BEFORE access boosting
+        var weightBeforeAccess = MemorySearchTools.GetDecayWeightForFile(testFilePath);
+        TestContext.Out.WriteLine($"Decay weight before ReadMemory: {weightBeforeAccess:F4}");
+
+        // The file is 60 days old with 14-day grace and 30-day half-life
+        // Expected: significant decay (weight well below 1.0)
+        Assert.That(weightBeforeAccess, Is.LessThan(0.8),
+            "60-day-old file should have significant decay before access boosting");
+
+        // Act 2: Read the file via ReadMemory (this updates last_accessed in the database)
+        var readResult = MemoryTools.ReadMemory(testUri);
+        Assert.That(readResult, Does.Not.StartWith("ERROR:"), "ReadMemory should succeed");
+
+        // Act 3: Get decay weight AFTER access boosting
+        var weightAfterAccess = MemorySearchTools.GetDecayWeightForFile(testFilePath);
+        TestContext.Out.WriteLine($"Decay weight after ReadMemory: {weightAfterAccess:F4}");
+
+        // Assert: Access boosting should dramatically increase the decay weight
+        // After ReadMemory, last_accessed is now (effectively within grace period)
+        Assert.That(weightAfterAccess, Is.GreaterThan(weightBeforeAccess),
+            "ACCESS BOOSTING: Decay weight should increase after ReadMemory. " +
+            "ReadMemory sets last_accessed which resets the decay clock.");
+
+        // The boosted weight should be close to 1.0 (just read = within grace period)
+        Assert.That(weightAfterAccess, Is.GreaterThanOrEqualTo(0.95),
+            "Recently read file should have near-full weight (within grace period of last access)");
+    }
+
+    /// <summary>
+    /// T-GRAPH-DECAY-002.1: RTM NFR-7.6.1
+    /// Verifies that SearchMemories does NOT update last_accessed.
+    /// Only deliberate ReadMemory calls trigger access boosting.
+    /// </summary>
+    [Test]
+    [Description("T-GRAPH-DECAY-002.1: RTM NFR-7.6.1 - SearchMemories does not boost access")]
+    public void GetDecayWeightForFile_AfterSearchMemories_WeightUnchanged()
+    {
+        // Arrange: Create an old file
+        const string content = "This document discusses [[search-no-boost]] and [[passive-access]] patterns.";
+        CreateTestFileWithAge("search-no-boost.md", "Search No Boost", content, daysAgo: 60);
+
+        var testFilePath = Path.Combine(_testFolderPath, "search-no-boost.md");
+
+        GraphTools.Sync();
+
+        // Act 1: Get decay weight before any search
+        var weightBefore = MemorySearchTools.GetDecayWeightForFile(testFilePath);
+        TestContext.Out.WriteLine($"Decay weight before search: {weightBefore:F4}");
+
+        // Act 2: Search for the file (should NOT update last_accessed)
+        MemorySearchTools.SearchMemories(
+            query: "search no boost passive access",
+            mode: SearchMode.Hybrid,
+            pageSize: 10,
+            folder: TestFolder);
+
+        // Act 3: Get decay weight after search
+        var weightAfter = MemorySearchTools.GetDecayWeightForFile(testFilePath);
+        TestContext.Out.WriteLine($"Decay weight after search: {weightAfter:F4}");
+
+        // Assert: Weight should be unchanged — search is passive, not deliberate access
+        Assert.That(weightAfter, Is.EqualTo(weightBefore).Within(0.001),
+            "SearchMemories should NOT update last_accessed or affect decay weight. " +
+            "Only ReadMemory triggers access boosting.");
+    }
+
+    #endregion
+
     #region Grace Period Tests
 
     /// <summary>

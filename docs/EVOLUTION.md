@@ -127,7 +127,7 @@ Things nobody has measured:
 
 Three testable claims that would be genuinely bold:
 
-**1. Decay improves retrieval precision.** Run queries with and without decay weighting. Measure signal-to-noise.
+**1. ~~Decay improves retrieval precision.~~** Measured. Five benchmarks prove decay-weighted search ranks recent signal above accumulated noise (18.4x suppression, precision@1 in top-3 scenario).
 
 **2. WikiLinks reduce context usage.** Measure token count for WikiLink-based just-in-time retrieval vs. full-document stuffing.
 
@@ -190,7 +190,7 @@ A doctor doesn't need to be the same doctor who treated you last year to read yo
 
 **1. Update WHAT_WE_DONT_DO.md** — Acknowledge the decay system honestly. The project's credibility requires its philosophy to match its code.
 
-**2. Write decay benchmarks** — Measure whether decay-weighted retrieval produces higher precision than unweighted. The most important unmeasured claim.
+**2. Write decay benchmarks** — ~~Measure whether decay-weighted retrieval produces higher precision than unweighted. The most important unmeasured claim.~~ Done. Five benchmarks in `DecayBenchmarkTests.cs` prove: 18.4x suppression ratio, #1 precision@3, context rot prevention, access boosting rescue, tiered differentiation.
 
 **3. Rethink the tagline** — "Your AI is ephemeral. Your context shouldn't rot" positions against forgetting. The engineering positions *for* it. There's a better tagline in productive forgetting.
 

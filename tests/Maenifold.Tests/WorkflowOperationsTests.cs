@@ -117,7 +117,7 @@ public class WorkflowOperationsTests
     /// </summary>
     private string CreateTestSession(params string[] workflowIds)
     {
-        var sessionId = $"test-session-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+        var sessionId = $"workflow-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}"; // T-DATE-001: use production format compatible with RTM-001 prefix-aware parsing
         _createdSessions.Add(sessionId);
 
         var frontmatter = new Dictionary<string, object>

@@ -104,12 +104,12 @@
 MUST HAVE (Atomic Functionality):
 | T-ID | Spec | Requirement (Atomic) | Component(s) | Test(s) | Commit | Status |
 |------|------|----------------------|--------------|---------|--------|--------|
-| RTM-001 | FR-1 | GetSessionPath SHALL strip session ID prefix and parse timestamp from first numeric segment after prefix. | src/Utils/MarkdownWriter.cs:52-59 | tests/Maenifold.Tests/DateDetectionTests.cs | 255a0e4 | Implemented |
-| RTM-002 | FR-1 | GetSessionPath SHALL produce date directory path matching the UTC date of the Unix timestamp (not 1970/01/01). | src/Utils/MarkdownWriter.cs:52-59 | tests/Maenifold.Tests/DateDetectionTests.cs | 255a0e4 | Implemented |
-| RTM-003 | FR-2 | IsValidSessionIdFormat SHALL validate the timestamp segment (not random suffix) is a valid long. | src/Tools/SequentialThinkingTools.cs:184-194 | tests/Maenifold.Tests/DateDetectionTests.cs | d864c2b | Implemented |
-| RTM-004 | FR-3 | ExtractSessionId SHALL return session ID from last path segment, not segments[1]. | src/Tools/RecentActivity.Reader.cs:117-123 | tests/Maenifold.Tests/DateDetectionTests.cs | b64482c | Implemented |
-| RTM-005 | NFR-1 | All human-readable timestamps (4 sites) SHALL include " UTC" suffix. | src/Tools/SequentialThinkingTools.cs:250, src/Tools/WorkflowOperations.Core.cs:51, src/Tools/WorkflowOperations.Management.cs:65,160 | tests/Maenifold.Tests/DateDetectionTests.cs | d864c2b, b91008e | Implemented |
-| RTM-006 | NFR-2 | ISO 8601 timestamps in FinalizeSession SHALL use CultureInfo.InvariantCulture. | src/Tools/SequentialThinkingTools.cs:303,323 | tests/Maenifold.Tests/DateDetectionTests.cs | d864c2b | Implemented |
+| RTM-001 | FR-1 | GetSessionPath SHALL strip session ID prefix and parse timestamp from first numeric segment after prefix. | src/Utils/MarkdownWriter.cs:52-59 | DateDetectionPathTests.cs (6 tests) | 255a0e4, c09d1df | **Complete** |
+| RTM-002 | FR-1 | GetSessionPath SHALL produce date directory path matching the UTC date of the Unix timestamp (not 1970/01/01). | src/Utils/MarkdownWriter.cs:52-59 | DateDetectionPathTests.cs (6 tests) | 255a0e4, c09d1df | **Complete** |
+| RTM-003 | FR-2 | IsValidSessionIdFormat SHALL validate the timestamp segment (not random suffix) is a valid long. | src/Tools/SequentialThinkingTools.cs:184-194 | DateDetectionValidationTests.cs (7 tests) | d864c2b, a5e1829 | **Complete** |
+| RTM-004 | FR-3 | ExtractSessionId SHALL return session ID from last path segment, not segments[1]. | src/Tools/RecentActivity.Reader.cs:117-123 | DateDetectionValidationTests.cs (4 tests) | b64482c, a5e1829 | **Complete** |
+| RTM-005 | NFR-1 | All human-readable timestamps (4 sites) SHALL include " UTC" suffix. | src/Tools/SequentialThinkingTools.cs:250, src/Tools/WorkflowOperations.Core.cs:51, src/Tools/WorkflowOperations.Management.cs:65,160 | DateDetectionTimestampTests.cs (2 tests) | d864c2b, b91008e, c312959 | **Complete** |
+| RTM-006 | NFR-2 | ISO 8601 timestamps in FinalizeSession SHALL use CultureInfo.InvariantCulture. | src/Tools/SequentialThinkingTools.cs:303,323 | DateDetectionTimestampTests.cs (2 tests) | d864c2b, c312959 | **Complete** |
 
 Note: RTM-001 and RTM-002 are atomically coupled — both implemented in commit 255a0e4 (same function, same lines).
 

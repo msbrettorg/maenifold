@@ -96,9 +96,10 @@ jobs:
 
       - name: Create skill archives
         run: |
-          cd integrations/skills
-          tar -czf ../../artifacts/skill-maenifold.tar.gz maenifold/
-          tar -czf ../../artifacts/skill-maenifold-product-team.tar.gz product-manager/
+          cd integrations/claude-code/plugin-maenifold/skills
+          tar -czf ../../../../artifacts/skill-maenifold.tar.gz maenifold/
+          cd ../../plugin-product-team/skills
+          tar -czf ../../../../artifacts/skill-maenifold-product-team.tar.gz product-manager/
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

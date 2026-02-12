@@ -95,3 +95,47 @@
 | T-GOV-RETRO-001.1 | FR-9.1 | Repository SHALL include `RETROSPECTIVES.md`. | RETROSPECTIVES.md | N/A | **Complete** |
 | T-GOV-RETRO-001.2 | FR-9.1 | RETROSPECTIVES.md SHALL contain retrospective template and sprint entries. | RETROSPECTIVES.md | N/A | **Complete** |
 
+---
+
+## T-DATE-001: Session path date detection fix (sprint-20260212)
+
+### Requirements Traceability Matrix
+
+MUST HAVE (Atomic Functionality):
+| T-ID | Spec | Requirement (Atomic) | Component(s) | Test(s) | Commit | Status |
+|------|------|----------------------|--------------|---------|--------|--------|
+| RTM-001 | FR-1 | GetSessionPath SHALL strip session ID prefix and parse timestamp from first numeric segment after prefix. | src/Utils/MarkdownWriter.cs:52-59 | DateDetectionPathTests.cs (6 tests) | 255a0e4, c09d1df | **Complete** |
+| RTM-002 | FR-1 | GetSessionPath SHALL produce date directory path matching the UTC date of the Unix timestamp (not 1970/01/01). | src/Utils/MarkdownWriter.cs:52-59 | DateDetectionPathTests.cs (6 tests) | 255a0e4, c09d1df | **Complete** |
+| RTM-003 | FR-2 | IsValidSessionIdFormat SHALL validate the timestamp segment (not random suffix) is a valid long. | src/Tools/SequentialThinkingTools.cs:184-194 | DateDetectionValidationTests.cs (7 tests) | d864c2b, a5e1829 | **Complete** |
+| RTM-004 | FR-3 | ExtractSessionId SHALL return session ID from last path segment, not segments[1]. | src/Tools/RecentActivity.Reader.cs:117-123 | DateDetectionValidationTests.cs (4 tests) | b64482c, a5e1829 | **Complete** |
+| RTM-005 | NFR-1 | All human-readable timestamps (4 sites) SHALL include " UTC" suffix. | src/Tools/SequentialThinkingTools.cs:250, src/Tools/WorkflowOperations.Core.cs:51, src/Tools/WorkflowOperations.Management.cs:65,160 | DateDetectionTimestampTests.cs (2 tests) | d864c2b, b91008e, c312959 | **Complete** |
+| RTM-006 | NFR-2 | ISO 8601 timestamps in FinalizeSession SHALL use CultureInfo.InvariantCulture. | src/Tools/SequentialThinkingTools.cs:303,323 | DateDetectionTimestampTests.cs (2 tests) | d864c2b, c312959 | **Complete** |
+
+Note: RTM-001 and RTM-002 are atomically coupled — both implemented in commit 255a0e4 (same function, same lines).
+
+MUST NOT HAVE:
+| T-ID | Constraint |
+|------|-----------|
+| RTM-X01 | No backward compatibility shims for old 1970/01/01/ paths |
+| RTM-X02 | No scope creep beyond the 6 changes in SPECS-sprint-20260212.md |
+| RTM-X03 | No changes to SessionCleanup.cs or SystemTools.cs (adjacent scope) |
+| RTM-X04 | No refactoring of unrelated code |
+
+ESCAPE HATCHES:
+- Non-atomic requirement discovered → STOP and re-decompose
+- Git diff exceeds RTM scope → STOP immediately
+- Existing 1970/01/01/ sessions: document migration approach but do not implement in this sprint
+
+### Red Team Triage (Step 9 → Step 10)
+
+| Finding | Disposition | Rationale |
+|---------|-------------|-----------|
+| C-001 (git): RTM-002 missing from commit 255a0e4 message | REMEDIATED | Added commit column to RTM; documented atomic coupling |
+| C-002 (git/code): No test files | PLANNED | Wave 2 (Step 12) — tests are next workflow phase |
+| C-003 (git): Out-of-scope commit e8d1c0e | REJECTED | Pre-existing commit (Feb 6) in branch lineage, not sprint scope |
+| CRITICAL-001 (code): FormatException in GetSessionPath | REJECTED | Already handled by SessionExists catch block (MarkdownWriter.cs:64-72) |
+| CRITICAL-003 (code): Path traversal via negative timestamps | REJECTED | Session IDs are system-generated (not user input); RTM-X02 scope constraint |
+| HIGH-001 (code): Timestamp range validation | DEFERRED | Out of sprint scope (RTM-X02); system-generated IDs |
+| HIGH-002 (code): ExtractSessionId empty array | REJECTED | False positive — String.Split('/') returns [""] not [] |
+| MEDIUM-002 (code): Hardcoded format strings | DEFERRED | Out of sprint scope (RTM-X04 no refactoring) |
+

@@ -202,5 +202,68 @@ Use this template for future retrospectives:
 
 ---
 
-*Last updated: 2026-02-02*
+## Sprint 2026-02-12: Date Detection Fix (T-DATE-001)
+
+**Sprint Duration**: 2026-02-12
+**Outcome**: RTM-001 through RTM-006 Complete
+**Priority**: P1 (User-reported bug)
+
+### Executive Summary
+
+Fixed date detection bug in `MarkdownWriter.GetSessionPath` where `LastIndexOf('-')` parsed the random suffix instead of the Unix timestamp from session IDs (`session-{ts}-{random}`), storing all sessions under `1970/01/01/`. Also fixed downstream issues: `ExtractSessionId` returning year instead of filename, `IsValidSessionIdFormat` validating wrong segment, UTC suffix missing from 4 timestamp sites, and `InvariantCulture` missing from 2 ISO 8601 sites.
+
+### What Worked Well
+
+1. **Parallel SWE Dispatch**: 4 SWE agents implemented 6 RTM items simultaneously across 5 source files with zero merge conflicts
+   - Each agent got a non-overlapping file scope (MarkdownWriter, SequentialThinkingTools, WorkflowOperations, RecentActivity.Reader)
+   - All 4 completed within ~60s, reducing wall clock from ~4min serial to ~1min parallel
+
+2. **3-File Test Split**: Splitting 21 tests across 3 files (PathTests, ValidationTests, TimestampTests) enabled parallel SWE dispatch for test writing
+   - No file conflicts between test agents
+   - Each file covers exactly 2 RTM items
+
+3. **Red Team Found Real Regression**: WorkflowOperationsTests used `test-session-{ts}` format incompatible with prefix-aware parsing. Without red team audit, 18 pre-existing tests would have remained broken.
+
+4. **RTM Traceability Discipline**: Every commit references RTM items. Red team triage table in RTM.md documents disposition of every finding.
+
+### Issues Encountered
+
+1. **WorkflowOperationsTests Regression (18 failures)**: Test helper `CreateTestSession` used invalid `test-session-{ts}` format
+   - **Resolution**: Changed to production format `workflow-{ts}` (commit a435e20)
+   - **Lesson**: Test helpers must use production-valid formats, not test-only conventions that accidentally work
+
+2. **Build Policy Blocked Sprint**: `sprint-baseline.txt` in project root triggered `Directory.Build.targets` disallowed-files error
+   - **Resolution**: Moved to `docs/sprint-baseline.txt` (commit 7ccf24f)
+   - **Lesson**: Keep sprint artifacts in `docs/` from the start
+
+3. **SWE Agents Skipped Traceability Reads**: All 4 SWE agents confessed to not reading PRD/RTM/TODO before implementation
+   - **Resolution**: Tasks were self-contained enough that this didn't cause defects, but protocol was violated
+   - **Lesson**: Include explicit "read these files first" in SWE task prompts, or accept that well-scoped tasks don't need it
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| Tests Written | 21 (6 path + 11 validation + 4 timestamp) |
+| Tests Passing | 450 (full suite, 0 failures) |
+| Source Files Modified | 5 |
+| Sprint Commits | 11 |
+| Net Lines Changed | +535 / -22 |
+| Agents Dispatched | 11 (4 SWE impl + 3 SWE test + 2 red-team + 1 blue-team + 1 SWE fix) |
+
+### Learnings for Future Sprints
+
+1. **Test helpers are attack surface**: Red team should audit test setup code, not just production code
+2. **Prefix-aware parsing is fragile**: Any session ID format that deviates from `{prefix}-{timestamp}[-{suffix}]` will break. Document the contract.
+3. **3-file test split enables parallelism**: When RTM items map to independent functions, split test files by RTM pair for parallel agent dispatch
+4. **Red team triage table is valuable**: Documenting ACCEPT/REJECT/DEFER for every finding creates auditable decision trail
+
+### Related PRD/RTM
+
+- SPECS: SPECS-sprint-20260212.md (FR-1, FR-2, FR-3, NFR-1, NFR-2)
+- RTM: RTM-001 through RTM-006 (all Complete)
+
+---
+
+*Last updated: 2026-02-12*
 *Related: [[PRD]] [[RTM]] [[TODO]] [[agentic-slc]]*

@@ -62,7 +62,7 @@ internal static partial class WorkflowOperations
         MarkdownIO.UpdateSession("workflow", sessionId, frontmatter, content);
 
 
-        var appendContent = $"Added workflows to queue: {string.Join(", ", toAppend)}\n*{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)}*";
+        var appendContent = $"Added workflows to queue: {string.Join(", ", toAppend)}\n*{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss' UTC'", CultureInfo.InvariantCulture)}*";
         MarkdownIO.AppendToSession("workflow", sessionId, "Queue Updated", appendContent);
 
         return $"Added {toAppend.Count} workflow(s) to queue. New queue: [{string.Join(", ", queue)}]";
@@ -157,7 +157,7 @@ internal static partial class WorkflowOperations
         }
 
         content.AppendLine();
-        content.AppendLine(CultureInfo.InvariantCulture, $"*{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)}*");
+        content.AppendLine(CultureInfo.InvariantCulture, $"*{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss' UTC'", CultureInfo.InvariantCulture)}*");
 
         return content.ToString();
     }

@@ -48,7 +48,7 @@ internal static partial class WorkflowOperations
         var content = new StringBuilder();
         content.AppendLine("# Workflow Session");
         content.AppendLine();
-        content.AppendLine(CultureInfo.InvariantCulture, $"Started: {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)}");
+        content.AppendLine(CultureInfo.InvariantCulture, $"Started: {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss' UTC'", CultureInfo.InvariantCulture)}");
         content.AppendLine();
         content.AppendLine(CultureInfo.InvariantCulture, $"## Step 1/{steps.Count}");
         content.AppendLine();

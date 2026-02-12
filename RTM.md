@@ -95,3 +95,32 @@
 | T-GOV-RETRO-001.1 | FR-9.1 | Repository SHALL include `RETROSPECTIVES.md`. | RETROSPECTIVES.md | N/A | **Complete** |
 | T-GOV-RETRO-001.2 | FR-9.1 | RETROSPECTIVES.md SHALL contain retrospective template and sprint entries. | RETROSPECTIVES.md | N/A | **Complete** |
 
+---
+
+## T-DATE-001: Session path date detection fix (sprint-20260212)
+
+### Requirements Traceability Matrix
+
+MUST HAVE (Atomic Functionality):
+| T-ID | Spec | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------|----------------------|--------------|---------|--------|
+| RTM-001 | FR-1 | GetSessionPath SHALL strip session ID prefix and parse timestamp from first numeric segment after prefix. | src/Utils/MarkdownWriter.cs:49-55 | tests/Maenifold.Tests/DateDetectionTests.cs | Pending |
+| RTM-002 | FR-1 | GetSessionPath SHALL produce date directory path matching the UTC date of the Unix timestamp (not 1970/01/01). | src/Utils/MarkdownWriter.cs:49-55 | tests/Maenifold.Tests/DateDetectionTests.cs | Pending |
+| RTM-003 | FR-2 | IsValidSessionIdFormat SHALL validate the timestamp segment (not random suffix) is a valid long. | src/Tools/SequentialThinkingTools.cs:182-190 | tests/Maenifold.Tests/DateDetectionTests.cs | Pending |
+| RTM-004 | FR-3 | ExtractSessionId SHALL return session ID from last path segment, not segments[1]. | src/Tools/RecentActivity.Reader.cs:116-122 | tests/Maenifold.Tests/DateDetectionTests.cs | Pending |
+| RTM-005 | NFR-1 | All human-readable timestamps (4 sites) SHALL include " UTC" suffix. | src/Tools/SequentialThinkingTools.cs:245, src/Tools/WorkflowOperations.Core.cs:51, src/Tools/WorkflowOperations.Management.cs:65,160 | tests/Maenifold.Tests/DateDetectionTests.cs | Pending |
+| RTM-006 | NFR-2 | ISO 8601 timestamps in FinalizeSession SHALL use CultureInfo.InvariantCulture. | src/Tools/SequentialThinkingTools.cs:299,319 | tests/Maenifold.Tests/DateDetectionTests.cs | Pending |
+
+MUST NOT HAVE:
+| T-ID | Constraint |
+|------|-----------|
+| RTM-X01 | No backward compatibility shims for old 1970/01/01/ paths |
+| RTM-X02 | No scope creep beyond the 6 changes in SPECS-sprint-20260212.md |
+| RTM-X03 | No changes to SessionCleanup.cs or SystemTools.cs (adjacent scope) |
+| RTM-X04 | No refactoring of unrelated code |
+
+ESCAPE HATCHES:
+- Non-atomic requirement discovered → STOP and re-decompose
+- Git diff exceeds RTM scope → STOP immediately
+- Existing 1970/01/01/ sessions: document migration approach but do not implement in this sprint
+

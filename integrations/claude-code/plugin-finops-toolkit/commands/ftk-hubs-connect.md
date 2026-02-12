@@ -12,7 +12,7 @@ If the cluster was not found in `.ftk/environments.local.md`, go to step 2 to fi
 
 If a cluster was identified and found in the previous step, skip this step.
 
-If a cluster was not identified or was not found in the previous step, use this Azure Resource Graph query to find FinOps hub instances that you can connect to:
+If a cluster was not identified or was not found in the previous step, use this `Azure Resource Graph` query to find FinOps hub instances that you can connect to:
 
 ```kusto
 resources

@@ -1,9 +1,40 @@
 {
-  "name": "finops-toolkit",
-  "version": "1.0.1",
-  "description": "FinOps Toolkit is a collection of tools and resources designed to help organizations optimize their cloud costs and improve financial management. It includes features such as cost analysis, budgeting, forecasting, and cost-saving recommendations.",
-  "author": {
-    "name": "Microsoft",
-    "url": "https://github.com/microsoft/finops-toolkit"
-  }
+    "name": "finops-toolkit",
+    "version": "1.0.0",
+    "description": "Claude plugin for FinOps Toolkit, providing tools and integrations for financial operations management.",
+    "author": {
+        "name": "FinOps Toolkit Team",
+        "url": "https://github.com/microsoft"
+    },
+    "homepage": "https://learn.microsoft.com/en-us/cloud-computing/finops/toolkit/finops-toolkit-overview",
+    "repository": "https://github.com/microsoft/finops-toolkit",
+    "license": "MIT",
+    "keywords": [
+        "finops",
+        "cost-management",
+        "reservations",
+        "savings plans",
+        "cloud-optimization",
+        "commitments",
+        "credits",
+        "MACC"
+    ],
+    "commands": "./commands/",
+    "agents": "./agents/",
+    "skills": "./skills/",
+    "mcpServers": {
+        "azure-mcp-server": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@azure/mcp@latest",
+                "server",
+                "start",
+                "--namespace",
+                "kusto",
+                "--read-only"
+            ]
+        }
+    },
+    "outputStyles": "./output-styles/"
 }

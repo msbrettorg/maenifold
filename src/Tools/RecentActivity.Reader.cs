@@ -119,7 +119,7 @@ public static class RecentActivityReader
 
         var path = filePath.Replace("memory://", "").Replace($"{Path.GetFileName(Config.ThinkingPath)}/", "");
         var segments = path.Split('/');
-        return segments.Length > 1 ? segments[1] : Path.GetFileNameWithoutExtension(segments[0]);
+        return Path.GetFileNameWithoutExtension(segments[^1]);
     }
 
     public static string DetermineFileType(string filePath)

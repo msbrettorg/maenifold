@@ -71,6 +71,7 @@ public static class SqliteExtensions
         connection.LoadExtension(path);
     }
 
+// CA2100: SQL strings are constructed internally, not from user input. Prepared statements used for all user-facing data.
 #pragma warning disable CA2100
     public static void Execute(this SqliteConnection conn, string sql, object? param = null)
     {

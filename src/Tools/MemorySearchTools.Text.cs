@@ -108,7 +108,7 @@ public partial class MemorySearchTools
                     results.Add((uri, score));
                 }
             }
-            catch { /* Skip malformed files */ }
+            catch (Exception ex) when (ex is IOException or FormatException or InvalidOperationException) { /* Skip malformed files */ }
         }
 
         return results.OrderByDescending(r => r.score).Take(maxResults).ToList();

@@ -325,6 +325,40 @@ This is the last section content.";
         Assert.That(readResult, Does.Contain("First content"));
     }
 
+    // BUG-DUP-H1-001: Regression test for duplicate H1 heading bug
+    [Test]
+    public void WriteMemory_WithExistingH1_DoesNotCreateDuplicateHeading()
+    {
+        // Arrange: Content that already has an H1 heading
+        var testTitle = "Duplicate H1 Test";
+        var testContent = "# Existing Heading\n\nContent with [[concept]]";
+
+        // Act: Write memory where content already starts with H1
+        var writeResult = MemoryTools.WriteMemory(testTitle, testContent, folder: TestFolder);
+        Assert.That(writeResult, Does.StartWith("Created memory FILE:"));
+
+        // Extract URI from write result
+        var uri = $"memory://{TestFolder}/duplicate-h1-test";
+
+        // Read back the raw file to verify no duplicate H1
+        var filePath = Path.Combine(_testFolderPath, "duplicate-h1-test.md");
+        var rawContent = File.ReadAllText(filePath);
+
+        // Assert: The file should contain exactly one H1 heading, not two
+        var h1Count = rawContent.Split('\n')
+            .Count(line => line.TrimStart().StartsWith("# ", StringComparison.Ordinal) && !line.TrimStart().StartsWith("## ", StringComparison.Ordinal));
+        Assert.That(h1Count, Is.EqualTo(1),
+            "File should contain exactly one H1 heading - the existing one from content, not a duplicate from the title");
+
+        // Assert: The H1 should be the one from the content, not the title parameter
+        Assert.That(rawContent, Does.Contain("# Existing Heading"));
+
+        // Verify: Readable via ReadMemory
+        var readResult = MemoryTools.ReadMemory(uri);
+        Assert.That(readResult, Does.Not.StartWith("ERROR:"));
+        Assert.That(readResult, Does.Contain("Content with [[concept]]"));
+    }
+
     // SEC-002: URL-encoded path traversal tests
     [Test]
     public void SanitizeUserInput_BlocksUrlEncodedPathTraversal()

@@ -167,7 +167,7 @@ Example: `Fixed [[null-reference-exception]] in [[authentication]] using [[JWT]]
 
 ## Quick Reference
 
-> **Note:** All tools accept an optional `learn` parameter (boolean, default: `false`). Set `learn: true` to return inline help documentation for that tool instead of executing it.
+> **Note:** Most tools accept an optional `learn` parameter (boolean, default: `false`). Set `learn: true` to return inline help documentation instead of executing. Exceptions: `buildcontext`, `gethelp`, `startwatcher`, `stopwatcher`, `listassets`, `readmcpresource`.
 
 ### Memory Tools
 

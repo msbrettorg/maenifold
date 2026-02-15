@@ -33,6 +33,7 @@ Persistent, branching thought sessions with `[[WikiLink]]` graph integration and
   3. Shortcuts or hacks taken
   4. Risks/uncertainties flagged
   5. Sources used (memory:// URIs, `[[WikiLinks]]`)
+
 ## Returns
 
 ### New session (thoughtNumber=0)

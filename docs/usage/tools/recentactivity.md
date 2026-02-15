@@ -29,8 +29,8 @@ Track recent activity across your maenifold knowledge system with time-based fil
 | Parameter | Type | Required | Description | Example |
 |-----------|------|----------|-------------|---------|
 | limit | int | No | Maximum results to return (default 10, negative values become 0) | 20 |
-| filter | string | No | Activity type filter: "thinking", "memory", or "all" (default "all") | "thinking" |
-| timespan | TimeSpan | No | Time period to filter by - MUST be positive duration | "24.00:00:00" |
+| filter | string | No | Activity type filter: "thinking", "memory", "assumptions", or "all" (default "all") | "thinking" |
+| timespan | TimeSpan | No | Time period to filter by - MUST be positive duration | "1.00:00:00" |
 
 ## Usage Examples
 
@@ -55,10 +55,10 @@ Shows recent Sequential Thinking sessions and Workflows, excluding memory file o
 ```json
 {
   "limit": 25,
-  "timespan": "48.00:00:00"
+  "timespan": "2.00:00:00"
 }
 ```
-Shows activities from the last 48 hours, useful for weekly progress reviews.
+Shows activities from the last 2 days, useful for progress reviews.
 
 ### Memory-Only Activity Filter
 ```json
@@ -123,7 +123,7 @@ After a break, run RecentActivity with "thinking" filter to find your most recen
 Run periodic RecentActivity queries with memory filter to see how your knowledge base is expanding over time.
 
 ### Time-Based Work Reviews
-Use timespan filtering for daily/weekly reviews: `{"timespan": "24.00:00:00"}` for daily progress, `{"timespan": "168.00:00:00"}` for weekly summaries.
+Use timespan filtering for daily/weekly reviews: `{"timespan": "1.00:00:00"}` for daily progress, `{"timespan": "7.00:00:00"}` for weekly summaries.
 
 ### Active Session Discovery
 Filter by "thinking" to find sessions with "active" status that need completion or have pending thoughts.
@@ -152,7 +152,7 @@ Filter by "thinking" to find sessions with "active" status that need completion 
 
 ### Error: "timespan parameter must be positive"
 **Cause**: Provided timespan is negative (e.g., "-24.00:00:00")  
-**Solution**: Use positive timespan values like "24.00:00:00" for 24 hours or "7.00:00:00" for 7 days
+**Solution**: Use positive timespan values like "1.00:00:00" for 1 day or "7.00:00:00" for 7 days
 
 ### Result: "No recent activity found"
 **Cause**: No files match your filter criteria or timespan constraints  
@@ -192,8 +192,8 @@ TimeSpan format follows .NET standard: `[days.]hours:minutes:seconds[.fractional
 
 **Common Examples**:
 - `"01:30:00"` - 1 hour 30 minutes
-- `"24.00:00:00"` - 24 hours (1 day)
-- `"7.00:00:00"` - 7 days (1 week)  
+- `"1.00:00:00"` - 1 day
+- `"7.00:00:00"` - 7 days (1 week)
 - `"30.00:00:00"` - 30 days (approximately 1 month)
 
 ## Performance Considerations

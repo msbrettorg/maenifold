@@ -15,6 +15,7 @@
 | 1.8 | 2026-02-02 | PM Agent | Added FR-7.9 (consolidation), NFR-7.5.5 (power-law decay option) per research validation |
 | 1.9 | 2026-02-02 | PM Agent | Added FR-7.10 (multi-agent sleep cycle), FR-7.11 (tool access safety), sub-workflow architecture |
 | 2.0 | 2026-02-14 | Brett | Define hierarchical state machine architecture for Workflow + submachines (SequentialThinking, AssumptionLedger) |
+| 2.1 | 2026-02-15 | PM Agent | Added FR-12.x (OpenCode plugin integration) — parity with Claude Code plugin hooks |
 
 ---
 
@@ -269,6 +270,79 @@ Sleep maintenance must not inadvertently extend content lifetime by triggering a
 
 **Principle**: If you're maintaining something, don't reset its decay clock just by looking at it. Only consolidation (which explicitly promotes content to durable storage) should trigger access boosting.
 
+### 3.6 OpenCode Plugin Integration (P1)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-12.1 | Plugin SHALL inject FLARE-pattern graph context into the system prompt at session start: search by repo name + recent activity → extract concepts → BuildContext → inject into `output.system`. | **P1** |
+| FR-12.2 | Plugin SHALL augment Task tool prompts with graph context extracted from `[[WikiLinks]]` in the prompt text (Concept-as-Protocol): extract WikiLinks → normalize → BuildContext for each → append context to `output.args.prompt`. | **P1** |
+| FR-12.3 | Plugin SHALL inject WikiLink tagging guidelines into the compaction prompt so the LLM produces graph-friendly summaries. | **P1** |
+| FR-12.4 | Plugin SHALL extract concepts and key decisions from the conversation during compaction and persist them to maenifold via WriteMemory. | **P1** |
+| FR-12.5 | Plugin SHALL persist compaction summaries to maenifold via SequentialThinking, maintaining a per-project session chain across compactions. | **P1** |
+| FR-12.6 | Plugin SHALL enforce ConfessionReport compliance on subagent task completion: after the task tool returns, inspect the output for "ConfessionReport"; if missing, send a follow-up prompt to the subagent session demanding one, read the response, and append the confession to the task output visible to the parent. | **P1** |
+
+**Rationale**: The Claude Code plugin (`integrations/claude-code/plugin-maenifold/`) provides 4 hook behaviors (session_start, task_augment, pre_compact, subagent_stop) plus an MCP server. The OpenCode plugin must reach behavioral parity using OpenCode's native plugin API (`@opencode-ai/plugin`). OpenCode already provides maenifold as an MCP server via `opencode.json` config, so the plugin only needs the hook behaviors.
+
+**Reference implementation**: `integrations/claude-code/plugin-maenifold/scripts/hooks.sh`
+
+---
+
+## 4. Non-Functional Requirements
+
+*(existing sections 4.1–4.3 unchanged)*
+
+### 4.4 OpenCode Plugin
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-12.1.1 | Session start context injection SHALL complete within 10 seconds (CLI timeout per concept: 5s). | Required |
+| NFR-12.1.2 | Session start SHALL use a token budget (default 4000 tokens, ~500 per concept) to cap injected context size. | Required |
+| NFR-12.1.3 | Session start SHALL skip concepts with 0 relations or weak co-occurrence (1-2 files). | Required |
+| NFR-12.2.1 | Task augmentation SHALL use a token budget (default 8000 tokens, ~1000 per concept). | Required |
+| NFR-12.2.2 | Task augmentation SHALL normalize WikiLinks to lowercase-with-hyphens before lookup. | Required |
+| NFR-12.2.3 | Task augmentation SHALL only fire for the `task` tool (not other tools). | Required |
+| NFR-12.3.1 | WikiLink tagging guidelines SHALL include banned terms list, normalization rules, and anti-patterns. | Required |
+| NFR-12.4.1 | Concept extraction SHALL use first H2 section (problem) + last H2 section (conclusion) to skip intermediary noise. | Required |
+| NFR-12.4.2 | WriteMemory SHALL store to `sessions/compaction` folder with timestamped title. | Required |
+| NFR-12.5.1 | SequentialThinking persistence SHALL cap summary text at 32K chars and total payload at 50K chars. | Required |
+| NFR-12.5.2 | SequentialThinking persistence SHALL track per-project session/thought state in memory (resets on OpenCode restart). | Required |
+| NFR-12.5.3 | SequentialThinking persistence SHALL sanitize text (NFKC normalize, strip control chars). | Required |
+| NFR-12.5.4 | SequentialThinking persistence SHALL use `--json` flag for structured CLI output parsing. | Required |
+| NFR-12.6.1 | ConfessionReport enforcement SHALL use `tool.execute.after` hook on the `task` tool (awaited, blocking). | Required |
+| NFR-12.6.2 | ConfessionReport enforcement SHALL send follow-up prompts to the subagent session via `client.session.prompt()` (max 3 attempts). | Required |
+| NFR-12.6.3 | ConfessionReport enforcement SHALL append the confession text to `output.output` so the parent LLM sees it. | Required |
+| NFR-12.6.4 | ConfessionReport enforcement SHALL log warnings (not throw) if max attempts exceeded. | Required |
+| NFR-12.6.5 | The ConfessionReport prompt text SHALL match the Claude Code version verbatim. | Required |
+| NFR-12.7.1 | All CLI calls SHALL use `Bun.spawn` with configurable timeout (default 30s for persistence, 5s for context building). | Required |
+| NFR-12.7.2 | Plugin SHALL degrade gracefully if `maenifold` CLI is not found (log warning, skip hook behavior). | Required |
+| NFR-12.7.3 | Plugin SHALL be a single unified file (`integrations/opencode/plugins/maenifold.ts`) replacing the existing `compaction.ts` and `persistence.ts`. | Required |
+
+---
+
+## 5. Design Notes
+
+*(existing design notes unchanged)*
+
+### OpenCode Plugin Hook Mapping (FR-12.x)
+
+The Claude Code plugin implements 4 hook behaviors via a bash script. The OpenCode plugin maps these to native TypeScript hooks:
+
+| Claude Code Hook | Behavior | OpenCode Hook | Mechanism (confirmed from source) |
+|-----------------|----------|---------------|-----------------------------------|
+| `SessionStart` | FLARE: repo search + recency → BuildContext → inject ~4K tokens | `experimental.chat.system.transform` | Mutate `output.system` array. Hook is awaited via `Plugin.trigger()`. Fires before every LLM call — guard to run once per session. |
+| `PreToolUse` (Task) | Concept-as-Protocol: extract `[[WikiLinks]]` → BuildContext → augment prompt | `tool.execute.before` (tool=`task`) | Mutate `output.args.prompt`. Hook is awaited. Only fires for `task` tool. |
+| `PreCompact` | Extract concepts + decisions from conversation → WriteMemory | `experimental.session.compacting` | Mutate `output.context` array (tagging guidelines). Additionally read session messages via `client.session.messages()`, extract concepts, call `maenifold --tool WriteMemory` via CLI. |
+| `SubagentStop` | Enforce ConfessionReport — block until subagent confesses | `tool.execute.after` (tool=`task`) | Hook is awaited via `Plugin.trigger()`. Inspect `output.output` for "ConfessionReport". If missing: get subagent session ID from `output.metadata.sessionId`, call `client.session.prompt()` to demand confession (blocks until subagent responds), read response, append to `output.output`. Parent sees complete result including confession. Max 3 attempts. |
+| *(new)* Compaction persistence | Persist compaction summary to SequentialThinking chain | `event` (type=`session.compacted`) | Fire-and-forget (event hooks are NOT awaited). Extract summary from session messages, sanitize/cap, call `maenifold --tool SequentialThinking` via CLI. Track per-project session state in memory. |
+
+**Key architectural facts** (verified from OpenCode source at `github.com/anomalyco/opencode`):
+
+1. **`Plugin.trigger()` awaits hooks sequentially** — `await fn(input, output)` in a `for` loop. Hooks can block and mutate the shared `output` object by reference.
+2. **`event` hooks are NOT awaited** — `hook["event"]?.({ event: input })` without `await`. Fire-and-forget. Cannot block.
+3. **`tool.execute.after` result mutation propagates to parent** — the `result` object passed to the hook is the same reference returned to the AI SDK. Mutations to `output.output` are visible to the parent LLM.
+4. **`output.metadata.sessionId`** in `tool.execute.after` for the `task` tool contains the subagent session ID (set in `task.ts`).
+5. **`client.session.prompt()`** can send a follow-up message to an idle session and blocks until the LLM responds. The subagent session is idle by the time `tool.execute.after` fires.
+
 ---
 
 ## 6. Out of Scope
@@ -277,3 +351,4 @@ Sleep maintenance must not inadvertently extend content lifetime by triggering a
 - Introducing new ranking algorithms beyond cosine similarity.
 - Per-file decay rate configuration (all files in a tier use the same rate).
 - Explicit "pinned" or "no-decay" flags within `memory://` (use external sources instead).
+- OpenCode MCP server configuration (already handled via `opencode.json`, not part of this plugin).

@@ -154,3 +154,18 @@ ESCAPE HATCHES:
 | T-WLFILTER-001.7 | TC-11.2-4 | Integration tests: WriteMemory/EditMemory blocked by filter, JSON mode error code. | tests/Maenifold.Tests/WikiLinkFilterIntegrationTests.cs | 5 tests passing | **Complete** |
 | T-WLFILTER-001.8 | Security | Red-team audit: path traversal, TOCTOU, thread-safety, error injection, traceability. | All changed files | ConfessionReport | **Complete** |
 
+---
+
+## T-OC-PLUGIN-001: OpenCode Plugin Integration (sprint-20260215)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-OC-PLUGIN-001.1 | FR-12.1, NFR-12.1.1-3 | Plugin SHALL inject FLARE-pattern graph context into system prompt at session start via `experimental.chat.system.transform`. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
+| T-OC-PLUGIN-001.2 | FR-12.2, NFR-12.2.1-3 | Plugin SHALL augment Task tool prompts with graph context from `[[WikiLinks]]` via `tool.execute.before`. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
+| T-OC-PLUGIN-001.3 | FR-12.3, NFR-12.3.1 | Plugin SHALL inject WikiLink tagging guidelines into compaction prompt via `experimental.session.compacting`. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
+| T-OC-PLUGIN-001.4 | FR-12.4, NFR-12.4.1-2 | Plugin SHALL extract concepts/decisions from conversation during compaction and persist via WriteMemory CLI call. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
+| T-OC-PLUGIN-001.5 | FR-12.5, NFR-12.5.1-4 | Plugin SHALL persist compaction summaries to SequentialThinking via CLI, maintaining per-project session chain. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
+| T-OC-PLUGIN-001.6 | FR-12.6, NFR-12.6.1-5 | Plugin SHALL enforce ConfessionReport on task completion via `tool.execute.after`: inspect output, send follow-up prompt to subagent if missing, append confession to parent-visible output. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
+| T-OC-PLUGIN-001.7 | NFR-12.7.1-3 | Plugin SHALL be a single unified file with graceful degradation, configurable timeouts, and CLI discovery. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
+| T-OC-PLUGIN-001.8 | Security | Red-team audit: input validation, CLI injection, timeout handling, error propagation, traceability. | integrations/opencode/plugins/maenifold.ts | ConfessionReport | Pending |
+

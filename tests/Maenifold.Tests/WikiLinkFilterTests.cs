@@ -27,7 +27,7 @@ public class WikiLinkFilterTests
     [Test]
     public void CheckFilter_WithFilterFile_BlocksMatchingConcepts()
     {
-        File.WriteAllText(_filterPath, "tool | Generic hub\n");
+        File.WriteAllText(_filterPath, """{"tool": "Generic hub"}""");
 
         var (blocked, reasons) = WikiLinkFilter.CheckFilter(["tool", "react"]);
 
@@ -47,29 +47,20 @@ public class WikiLinkFilterTests
     }
 
     [Test]
-    public void CheckFilter_CommentsAndBlankLines_Ignored()
+    public void CheckFilter_CaseInsensitiveMatching()
     {
-        var filterContent = """
-            # This is a comment
-            tool | Generic hub
+        File.WriteAllText(_filterPath, """{"Tool": "Hub"}""");
 
-            agent | Generic hub
-            # Another comment
-            """;
-        File.WriteAllText(_filterPath, filterContent);
-
-        var (blocked, reasons) = WikiLinkFilter.CheckFilter(["tool", "agent", "react"]);
+        var (blocked, reasons) = WikiLinkFilter.CheckFilter(["tool"]);
 
         Assert.That(blocked, Does.Contain("tool"));
-        Assert.That(blocked, Does.Contain("agent"));
-        Assert.That(blocked, Does.Not.Contain("react"));
-        Assert.That(blocked, Has.Count.EqualTo(2));
+        Assert.That(reasons["tool"], Is.EqualTo("Hub"));
     }
 
     [Test]
     public void CheckFilter_MixedFilteredAndUnfiltered()
     {
-        File.WriteAllText(_filterPath, "tool | Generic hub\nagent | Generic hub\n");
+        File.WriteAllText(_filterPath, """{"tool": "Generic hub", "agent": "Generic hub"}""");
 
         var (blocked, reasons) = WikiLinkFilter.CheckFilter(["tool", "react", "agent", "typescript"]);
 
@@ -81,22 +72,22 @@ public class WikiLinkFilterTests
     }
 
     [Test]
-    public void CheckFilter_CaseInsensitiveMatching()
+    public void CheckFilter_EmptyConceptsList_ReturnsEmpty()
     {
-        File.WriteAllText(_filterPath, "Tool | Hub\n");
+        File.WriteAllText(_filterPath, """{"tool": "Generic hub", "agent": "Generic hub"}""");
 
-        var (blocked, reasons) = WikiLinkFilter.CheckFilter(["tool"]);
+        var (blocked, reasons) = WikiLinkFilter.CheckFilter(new List<string>());
 
-        Assert.That(blocked, Does.Contain("tool"));
-        Assert.That(reasons["tool"], Is.EqualTo("Hub"));
+        Assert.That(blocked, Is.Empty);
+        Assert.That(reasons, Is.Empty);
     }
 
     [Test]
-    public void CheckFilter_EmptyConceptsList_ReturnsEmpty()
+    public void CheckFilter_MalformedJson_ReturnsEmpty()
     {
-        File.WriteAllText(_filterPath, "tool | Generic hub\nagent | Generic hub\n");
+        File.WriteAllText(_filterPath, "not valid json {{{");
 
-        var (blocked, reasons) = WikiLinkFilter.CheckFilter(new List<string>());
+        var (blocked, reasons) = WikiLinkFilter.CheckFilter(["tool"]);
 
         Assert.That(blocked, Is.Empty);
         Assert.That(reasons, Is.Empty);

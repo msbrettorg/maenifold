@@ -153,6 +153,20 @@ public static class SqliteExtensions
                 results.Add((T)(object)reader.GetString(0));
             }
 
+            else if (typeof(T) == typeof((string, int)))
+            {
+                var col0 = reader.GetString(0);
+                var col1 = reader.GetInt32(1);
+                results.Add((T)(object)(col0, col1));
+            }
+
+            else if (typeof(T) == typeof((string, string)))
+            {
+                var col0 = reader.GetString(0);
+                var col1 = reader.GetString(1);
+                results.Add((T)(object)(col0, col1));
+            }
+
             else if (typeof(T) == typeof((string, int, string)))
             {
                 var related = reader.GetString(0);

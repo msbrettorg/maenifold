@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
-using System.Text.Json;
 using Maenifold.Tools;
 using Maenifold.Utils;
 using Microsoft.Data.Sqlite;
@@ -50,7 +50,8 @@ public class IncrementalSyncToolsTests
             using var conn = new SqliteConnection($"Data Source={Config.DatabasePath}");
             conn.OpenWithWAL();
             conn.Execute("DELETE FROM concept_mentions WHERE source_file LIKE 'memory://tests/%'");
-            conn.Execute("DELETE FROM concept_graph WHERE source_files LIKE '%memory://tests/%'");
+            conn.Execute("DELETE FROM concept_graph_files WHERE source_file LIKE 'memory://tests/%'");
+            conn.Execute("DELETE FROM concept_graph WHERE concept_a IN (SELECT concept_name FROM concepts WHERE concept_name LIKE '%test%' OR concept_name LIKE '%incremental%' OR concept_name LIKE '%watcher%')");
             conn.Execute("DELETE FROM file_content WHERE file_path LIKE 'memory://tests/%'");
             conn.Execute("DELETE FROM concepts WHERE concept_name LIKE '%test%' OR concept_name LIKE '%incremental%' OR concept_name LIKE '%watcher%'");
         }
@@ -130,14 +131,16 @@ public class IncrementalSyncToolsTests
             Assert.That(mentionCount, Is.EqualTo(1), "Initial mention count for concept A should be recorded.");
 
             var pair = GetConceptPair(normalizedA, normalizedB);
-            var edge = conn.QuerySingle<(int count, string files)?>(
-                "SELECT co_occurrence_count, source_files FROM concept_graph WHERE concept_a = @a AND concept_b = @b",
+            var edgeCount = conn.QuerySingle<int?>(
+                "SELECT co_occurrence_count FROM concept_graph WHERE concept_a = @a AND concept_b = @b",
                 new { a = pair.a, b = pair.b });
-            Assert.That(edge, Is.Not.Null, "Concept graph edge should exist after create.");
+            Assert.That(edgeCount, Is.Not.Null, "Concept graph edge should exist after create.");
 
-            var sources = JsonSerializer.Deserialize<List<string>>(edge!.Value.files) ?? new List<string>();
+            var sources = conn.Query<string>(
+                "SELECT source_file FROM concept_graph_files WHERE concept_a = @a AND concept_b = @b",
+                new { a = pair.a, b = pair.b }).ToList();
             Assert.That(sources, Does.Contain(memoryUri), "Concept graph edge should include the new file.");
-            Assert.That(edge.Value.count, Is.EqualTo(sources.Count), "Co-occurrence count should match file list length.");
+            Assert.That(edgeCount, Is.EqualTo(sources.Count), "Co-occurrence count should match file list length.");
         }
 
         var updatedContent = $"# Incremental Sync Test\n\nRemoving one concept but keeping [[{conceptA}]].";
@@ -154,10 +157,10 @@ public class IncrementalSyncToolsTests
             Assert.That(removedMention, Is.Null, "Removed concept should no longer have a mention record.");
 
             var pair = GetConceptPair(normalizedA, normalizedB);
-            var edge = conn.QuerySingle<(int count, string files)?>(
-                "SELECT co_occurrence_count, source_files FROM concept_graph WHERE concept_a = @a AND concept_b = @b",
+            var edgeCount = conn.QuerySingle<int?>(
+                "SELECT co_occurrence_count FROM concept_graph WHERE concept_a = @a AND concept_b = @b",
                 new { a = pair.a, b = pair.b });
-            Assert.That(edge, Is.Null, "Concept graph edge should be removed when only one concept remains.");
+            Assert.That(edgeCount, Is.Null, "Concept graph edge should be removed when only one concept remains.");
         }
 
         InvokeHandler(_deletedHandler, filePath);

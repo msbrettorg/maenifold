@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Maenifold.Utils;
 
 // T-WLFILTER-001.1: WikiLink filter for blocking hub/ephemeral concepts from the knowledge graph
@@ -7,7 +9,7 @@ public static class WikiLinkFilter
     private static DateTime _lastMtime;
     private static Dictionary<string, string> _filterEntries = new(StringComparer.OrdinalIgnoreCase);
 
-    public static string FilterPath => Path.Combine(Config.MemoryPath, ".wikilink-filter");
+    public static string FilterPath => Path.Combine(Config.MemoryPath, ".wikilink-filter.json");
 
     public static (List<string> blocked, Dictionary<string, string> reasons) CheckFilter(List<string> concepts)
     {
@@ -45,21 +47,19 @@ public static class WikiLinkFilter
             _lastMtime = mtime;
             var entries = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var line in File.ReadLines(path))
+            try
             {
-                var trimmed = line.Trim();
-                if (trimmed.Length == 0 || trimmed.StartsWith('#'))
-                    continue;
-
-                var pipeIndex = trimmed.IndexOf('|');
-                if (pipeIndex < 0)
-                    continue;
-
-                var concept = trimmed[..pipeIndex].Trim();
-                var reason = trimmed[(pipeIndex + 1)..].Trim();
-
-                if (concept.Length > 0)
-                    entries[concept] = reason;
+                var json = File.ReadAllText(path);
+                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                if (dict != null)
+                {
+                    foreach (var kvp in dict)
+                        entries[kvp.Key] = kvp.Value;
+                }
+            }
+            catch (JsonException)
+            {
+                // Malformed JSON — treat as empty filter
             }
 
             _filterEntries = entries;

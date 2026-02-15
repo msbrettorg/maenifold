@@ -733,7 +733,7 @@ In Claude Code, the skill should load automatically when you mention:
 
 ## Tool Reference
 
-For detailed tool documentation, see the [skills/maenifold/references/](./skills/maenifold/references/) directory:
+For detailed tool documentation, see the [skills/maenifold/usage/](./skills/maenifold/usage/) directory:
 
 | Category | Tools |
 |----------|-------|
@@ -741,4 +741,4 @@ For detailed tool documentation, see the [skills/maenifold/references/](./skills
 | Graph | `buildcontext`, `findsimilarconcepts`, `visualize`, `sync`, `extractconceptsfromfile` |
 | Repair | `analyzeconceptcorruption`, `repairconcepts` |
 | Reasoning | `workflow`, `sequentialthinking`, `assumptionledger` |
-| System | `adopt`, `getconfig`, `gethelp`, `memorystatus`, `recentactivity`, `updateassets` |
+| System | `adopt`, `getconfig`, `gethelp`, `listassets`, `memorystatus`, `readmcpresource`, `recentactivity`, `updateassets` |

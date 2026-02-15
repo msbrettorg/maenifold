@@ -219,7 +219,7 @@ graph TD
 2. **Search**: `searchmemories("authentication")` finds gap
 3. **Research**: Query external docs (Microsoft Docs, Context7)
 4. **Write**: `writememory` creates lineage-backed note with [[OAuth2]], [[JWT]], [[PKCE]]
-5. **Sync**: Extracts [[WikiLinks]] and creates graph nodes
+5. **Sync**: Extracts all `[[WikiLinks]]` like [[OAuth2]], [[JWT]], [[PKCE]] and creates graph nodes
 6. **Growth**: `buildcontext("authentication")` now returns OAuth2, JWT, PKCE relationships
 7. **Future**: Next session asking about [[OAuth2]] benefits from prior work
 
@@ -630,7 +630,7 @@ After installation, verify the setup:
 maenifold --tool GetConfig --payload '{}'
 ```
 
-Expected output: Configuration JSON showing memory and database paths.
+Expected output: JSON configuration including `maenifoldRoot` path and version info
 
 ### 2. Test MCP Server
 

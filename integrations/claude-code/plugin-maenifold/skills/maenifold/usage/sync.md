@@ -45,6 +45,9 @@ None. Operates on entire memory system.
 - `concept_graph`: Weighted edges between co-occurring concepts
 - `file_content`: Full text + metadata
 - `file_search`: FTS5 virtual table
+- **concept_graph_files** — Junction table linking concept-pair edges to their source files (provenance tracking)
+- **vec_concepts** — Virtual table for vector similarity search on concept embeddings
+- **vec_memory_files** — Virtual table for vector similarity search on file embeddings
 
 ## Integration
 

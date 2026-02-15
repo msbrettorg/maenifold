@@ -2,7 +2,7 @@
 
 ## Active backlog
 
-- REL-001: Release v1.0.3 tasks
+- REL-001: Release v1.0.3 tasks (**Complete**)
 - OPENCODE-001: OpenCode Plugin active work
 - MAENIFOLDPY-001: Python port tasks
 - DIST-001: Windows MSI installer

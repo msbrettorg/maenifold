@@ -169,3 +169,16 @@ ESCAPE HATCHES:
 | T-OC-PLUGIN-001.7 | NFR-12.7.1-3 | Plugin SHALL be a single unified file with graceful degradation, configurable timeouts, and CLI discovery. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
 | T-OC-PLUGIN-001.8 | Security | Red-team audit: input validation, CLI injection, timeout handling, error propagation, traceability. | integrations/opencode/plugins/maenifold.ts | ConfessionReport | Pending |
 
+
+---
+
+## T-SYNC-MTIME-001: Sync mtime optimization (sprint-20260215)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-SYNC-MTIME-001.1 | FR-14.1, NFR-14.1.1 | Sync SHALL compare filesystem mtime against `last_indexed` before reading file contents; if unchanged, skip without reading. | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/SyncMtimeOptimizationTests.cs | Pending |
+| T-SYNC-MTIME-001.2 | FR-14.2, NFR-14.2.1 | If mtime differs, Sync SHALL read file and compare content hash against `file_md5`; if hash unchanged, update `last_indexed` only and skip processing. | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/SyncMtimeOptimizationTests.cs | Pending |
+| T-SYNC-MTIME-001.3 | FR-14.3 | If hash differs, Sync SHALL process the file (extract concepts, update graph, etc.). | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/SyncMtimeOptimizationTests.cs | Pending |
+| T-SYNC-MTIME-001.4 | FR-14.4, NFR-14.4.1 | Guard clause ordering SHALL be: mtime check → hash check → process; each is an independent `if` + early exit (no compound mtime/hash conditionals). | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/SyncMtimeOptimizationTests.cs | Pending |
+| T-SYNC-MTIME-001.5 | FR-14.5 | Incremental sync SHALL use the same mtime → hash → process guard clause chain for file change events. | src/Tools/IncrementalSyncTools.Processing.cs, src/Tools/IncrementalSync.Database.cs | tests/Maenifold.Tests/IncrementalSyncMtimeOptimizationTests.cs | Pending |
+| T-SYNC-MTIME-001.6 | Security | Red-team audit: verify no silent data loss, no watcher loops, and no bypass of required processing when content changes. | All changed files | ConfessionReport | Pending |

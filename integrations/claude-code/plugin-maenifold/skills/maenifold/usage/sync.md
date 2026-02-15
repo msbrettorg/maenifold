@@ -1,4 +1,3 @@
-
 # Sync
 
 Rebuilds knowledge graph from all `[[WikiLink]]` concepts in memory files. Extracts concepts, builds co-occurrence relationships, updates search indices.

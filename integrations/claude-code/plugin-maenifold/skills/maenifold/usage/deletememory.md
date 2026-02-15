@@ -1,4 +1,3 @@
-
 # DeleteMemory
 
 Permanently removes memory files from disk with confirmation safety.

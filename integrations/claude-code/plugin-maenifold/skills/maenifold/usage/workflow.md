@@ -1,4 +1,3 @@
-
 # Workflow
 
 Orchestrates systematic problem-solving through predefined methodologies with embedded sequential thinking.

@@ -1,4 +1,3 @@
-
 # ExtractConceptsFromFile
 
 Extracts `[[WikiLink]]` concepts from memory files to analyze graph nodes before synchronization.

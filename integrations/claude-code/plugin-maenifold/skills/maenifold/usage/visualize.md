@@ -1,4 +1,3 @@
-
 # Visualize
 
 Generates Mermaid diagrams of concept relationships from `~/maenifold/memory.db` graph database.

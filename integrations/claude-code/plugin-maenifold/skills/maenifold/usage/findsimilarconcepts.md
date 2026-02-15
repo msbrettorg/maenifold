@@ -1,4 +1,3 @@
-
 # FindSimilarConcepts
 
 Discovers semantically similar concepts using 384-dimensional vector embeddings and cosine similarity.
@@ -56,7 +55,7 @@ Notes:
 
 ## Integration
 
-- **Sync**: Run first to populate `vec_concepts` embeddings (otherwise you may get few/no results)
+- **Sync**: Run first to populate `vec_concepts` embeddings (otherwise few/no results may be returned)
 - **AnalyzeConceptCorruption**: Identify duplicates from high-similarity results
 - **RepairConcepts**: Consolidate similar concepts that are true duplicates
 - **BuildContext**: Explore graph relationships of similar concepts

@@ -13,8 +13,8 @@ This skill requires the maenifold binary to be installed. For complete installat
 
 If maenifold tools are not working:
 1. Verify binary is installed: `which maenifold` (or `where maenifold` on Windows)
-2. Check MCP configuration for your client
-3. Restart your AI client after config changes
+2. Check MCP configuration for the active client
+3. Restart the AI client after config changes
 
 ### CLI-First, MCP as Fallback
 
@@ -221,13 +221,15 @@ For detailed documentation: [workflow](./usage/workflow.md), [sequentialthinking
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
 | **adopt** | Load roles/colors/perspectives | `type`, `identifier` |
+| **listassets** | Discover available assets by type | `type` (optional) |
+| **readmcpresource** | Read asset content by URI | `uri` |
 | **getconfig** | View system configuration | (no params) |
 | **gethelp** | Load tool documentation | `toolName` |
 | **memorystatus** | System statistics and health | (no params) |
 | **recentactivity** | Monitor activity with time filtering | `filter`, `timespan`, `limit` |
 | **updateassets** | Refresh assets after upgrades | `dryRun=true` |
 
-For detailed documentation: [adopt](./usage/adopt.md), [getconfig](./usage/getconfig.md), [gethelp](./usage/gethelp.md), [memorystatus](./usage/memorystatus.md), [recentactivity](./usage/recentactivity.md), [updateassets](./usage/updateassets.md)
+For detailed documentation: [adopt](./usage/adopt.md), [listassets](./usage/listassets.md), [readmcpresource](./usage/readmcpresource.md), [getconfig](./usage/getconfig.md), [gethelp](./usage/gethelp.md), [memorystatus](./usage/memorystatus.md), [recentactivity](./usage/recentactivity.md), [updateassets](./usage/updateassets.md)
 
 ---
 
@@ -248,7 +250,7 @@ For detailed documentation: [adopt](./usage/adopt.md), [getconfig](./usage/getco
 | Graph | [buildcontext](./usage/buildcontext.md), [findsimilarconcepts](./usage/findsimilarconcepts.md), [visualize](./usage/visualize.md), [sync](./usage/sync.md), [extractconceptsfromfile](./usage/extractconceptsfromfile.md) |
 | Repair | [analyzeconceptcorruption](./usage/analyzeconceptcorruption.md), [repairconcepts](./usage/repairconcepts.md) |
 | Reasoning | [workflow](./usage/workflow.md), [sequentialthinking](./usage/sequentialthinking.md), [assumptionledger](./usage/assumptionledger.md) |
-| System | [adopt](./usage/adopt.md), [getconfig](./usage/getconfig.md), [gethelp](./usage/gethelp.md), [memorystatus](./usage/memorystatus.md), [recentactivity](./usage/recentactivity.md), [updateassets](./usage/updateassets.md) |
+| System | [adopt](./usage/adopt.md), [listassets](./usage/listassets.md), [readmcpresource](./usage/readmcpresource.md), [getconfig](./usage/getconfig.md), [gethelp](./usage/gethelp.md), [memorystatus](./usage/memorystatus.md), [recentactivity](./usage/recentactivity.md), [updateassets](./usage/updateassets.md) |
 
 ---
 

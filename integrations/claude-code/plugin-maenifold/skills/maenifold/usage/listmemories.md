@@ -1,4 +1,3 @@
-
 # ListMemories
 
 Explores memory system folder structure with file counts and sizes for navigation and organization planning.
@@ -63,7 +62,7 @@ Deep navigation - nested directory exploration.
 ## Constraints
 
 - Shows only `.md` files (maenifold knowledge files)
-- Paths relative to memory root: `"projects"` not `"/Users/you/maenifold/memory/projects"`
+- Paths relative to memory root: `"projects"` not `"~/maenifold/memory/projects"`
 - Non-existent paths return error with directory list suggestion
 
 ## Integration

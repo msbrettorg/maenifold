@@ -1,4 +1,3 @@
-
 # RecentActivity
 
 Monitors system activity with time-based filtering for memory files and thinking sessions.

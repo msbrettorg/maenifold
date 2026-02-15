@@ -1,4 +1,6 @@
 
+# Adopt
+
 Loads role, color, or perspective JSON configuration to enable specialized thinking modes.
 
 Assets are loaded from two locations (runtime takes precedence):

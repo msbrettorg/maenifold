@@ -5,16 +5,16 @@ Orchestrates systematic problem-solving through predefined methodologies with em
 
 ## Non-negotiable: follow the workflow (no skipping)
 
-This tool runs **structured, multi-step workflows**. If you use it, you MUST actually **execute the workflow step-by-step**.
+This tool runs **structured, multi-step workflows**. When using it, **execute the workflow step-by-step**.
 
 **Do not** read the first step, jump to a conclusion, and abandon the workflow. That is a failure mode.
 
-When a workflow is active, you MUST:
+When a workflow is active:
 - Execute steps **in order**.
 - After each step, **call `Workflow` again** using the returned `sessionId`.
-- Only produce a “final answer” when the workflow explicitly tells you to, or when you complete it with `status='completed'` + `conclusion`.
+- Only produce a "final answer" when the workflow explicitly indicates, or upon completion with `status='completed'` + `conclusion`.
 
-If the user asks for a workflow, you stay in the workflow until it is **completed** or **cancelled**.
+If the user asks for a workflow, stay in the workflow until it is **completed** or **cancelled**.
 
 ## How to use (the loop)
 
@@ -23,12 +23,12 @@ If the user asks for a workflow, you stay in the workflow until it is **complete
 2. **Read the current step** from the tool output.
 3. **Do exactly what the step asks**, then provide a `response` that includes at least one `[[WikiLink]]`.
 4. **Continue**:
-  - Call `Workflow` with `sessionId` + your `response`.
+  - Call `Workflow` with `sessionId` + the `response`.
 5. Repeat until the workflow indicates completion.
 6. **Complete**:
   - Call `Workflow` with `status='completed'` and provide a `conclusion` (with the required confession elements).
 
-Use `view: true` to show the workflow queue when you need visibility into what’s pending.
+Use `view: true` to show the workflow queue for visibility into what is pending.
 
 ## Parameters
 

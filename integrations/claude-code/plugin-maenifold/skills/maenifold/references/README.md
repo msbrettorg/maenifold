@@ -627,10 +627,10 @@ After installation, verify the setup:
 ### 1. Check Binary Installation
 
 ```bash
-maenifold --version
+maenifold --tool GetConfig --payload '{}'
 ```
 
-Expected output: Version number (e.g., `1.0.3`)
+Expected output: Configuration JSON showing memory and database paths.
 
 ### 2. Test MCP Server
 

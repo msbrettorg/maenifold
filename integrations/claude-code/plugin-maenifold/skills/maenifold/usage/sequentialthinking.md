@@ -13,11 +13,11 @@ When to use this tool:
 - Situations where irrelevant information needs to be filtered out
 
 Key features:
-- You can adjust total_thoughts up or down as you progress
-- You can question or revise previous thoughts
-- You can add more thoughts even after reaching what seemed like the end
-- You can express uncertainty and explore alternative approaches
-- Not every thought needs to build linearly - you can branch or backtrack
+- Adjust total_thoughts up or down as needed
+- Question or revise previous thoughts
+- Add more thoughts even after reaching what seemed like the end
+- Express uncertainty and explore alternative approaches
+- Not every thought needs to build linearly - branch or backtrack freely
 - Generates a solution hypothesis
 - Verifies the hypothesis based on the Chain of Thought steps
 - Repeats the process until satisfied
@@ -30,7 +30,7 @@ Key features:
 Parameters explained:
 - response: Main thought content; MUST include [[WikiLinks]] unless cancelling
 - thoughts: Optional meta/ambient notes; also must include [[WikiLinks]] if provided
-- thought: Your current thinking step, which can include:
+- thought: The current thinking step, which can include:
   * Regular analytical steps
   * Revisions of previous thoughts
   * Questions about previous decisions
@@ -38,7 +38,7 @@ Parameters explained:
   * Changes in approach
   * Hypothesis generation
   * Hypothesis verification
-- nextThoughtNeeded: True if you need more thinking, even if at what seemed like the end
+- nextThoughtNeeded: True if more thinking is needed, even if at what seemed like the end
 - thoughtNumber: Current number in sequence (start new sessions at 0; can go beyond initial total if needed)
 - totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)
 - isRevision: A boolean indicating if this thought revises previous thinking
@@ -64,7 +64,7 @@ maenifold specifics:
 - New sessions start at thoughtNumber=0 (sessionId auto-created). thoughtNumber>0 requires the session to exist unless isRevision is true; an existing sessionId with thoughtNumber=1 is rejected unless revising
 - branchId is required when branchFromThought is set (multi-agent safety)
 - parentWorkflowId can be set only on the first thought and must reference an active workflow; creates a [[workflow/{id}]] back-link
-- needsMoreThoughts extends the displayed total when you exceed the estimate
+- needsMoreThoughts extends the displayed total when the estimate is exceeded
 - Completion appends the conclusion and sets status=completed; cancel sets status=cancelled
 - Output is a status string (created/added thought plus continuation or completion cues, with checkpoint hints every 3 thoughts and on the first thought)
 - If sessionId is omitted, a new `session-{timestamp}` is created automatically
@@ -80,10 +80,10 @@ Common errors (expect these if violated):
 - Branching without branchId → `ERROR: branchId required when branchFromThought is specified...`
 - Parent workflow on thought>1 or missing/closed workflow → corresponding parent workflow errors
 
-You should:
+Guidelines:
 1. Start with an initial estimate of needed thoughts, but be ready to adjust
-2. Feel free to question or revise previous thoughts
-3. Don't hesitate to add more thoughts if needed, even at the "end"
+2. Question or revise previous thoughts freely
+3. Add more thoughts if needed, even at the "end"
 4. Express uncertainty when present
 5. Mark thoughts that revise previous thinking or branch into new paths
 6. Ignore information that is irrelevant to the current step

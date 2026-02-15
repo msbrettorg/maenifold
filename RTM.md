@@ -72,9 +72,9 @@
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-SLEEP-MULTI-001.1 | FR-7.10, NFR-7.10.2 | Sleep orchestrator SHALL dispatch 4 specialist agents in parallel. | assets/workflows/memory-cycle.json | Manual workflow execution | **Complete** |
+| T-SLEEP-MULTI-001.1 | FR-7.10, NFR-7.10.2 | Sleep orchestrator SHALL run 5 specialist phases in serialized dependency order. | assets/workflows/memory-cycle.json | Manual workflow execution | **Complete** |
 | T-SLEEP-MULTI-001.2 | FR-7.10, NFR-7.10.1 | Consolidation workflow SHALL include tailored memory replay + consolidation + dream synthesis. | assets/workflows/memory-consolidation.json | Manual workflow execution | **Complete** |
-| T-SLEEP-MULTI-001.3 | FR-7.10, NFR-7.10.1 | Decay workflow SHALL include tailored memory replay + decay processing. | assets/workflows/memory-decay.json | Manual workflow execution | **Complete** |
+| T-SLEEP-MULTI-001.3 | FR-7.10, NFR-7.10.1 | Status workflow SHALL include tailored memory replay + health reporting. | assets/workflows/memory-status.json | Manual workflow execution | **Complete** |
 | T-SLEEP-MULTI-001.4 | FR-7.10, NFR-7.10.1 | Repair workflow SHALL include tailored memory replay + concept repair. | assets/workflows/memory-repair.json | Manual workflow execution | **Complete** |
 | T-SLEEP-MULTI-001.5 | FR-7.10, NFR-7.10.1 | Epistemic workflow SHALL include tailored memory replay + assumption review. | assets/workflows/memory-epistemic.json | Manual workflow execution | **Complete** |
 | T-SLEEP-MULTI-001.6 | NFR-7.10.3 | Each specialist workflow SHALL be executable independently of orchestrator. | assets/workflows/memory-*.json | Manual workflow execution | **Complete** |
@@ -84,7 +84,7 @@
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
 | T-SLEEP-SAFETY-001.1 | FR-7.11, NFR-7.11.1 | Consolidation workflow MAY use `read_memory` (intentional access boosting). | assets/workflows/memory-consolidation.json | Manual workflow execution | **Complete** |
-| T-SLEEP-SAFETY-001.2 | FR-7.11, NFR-7.11.2 | Decay workflow SHALL use `list_memories` NOT `read_memory`. | assets/workflows/memory-decay.json | Manual workflow execution | **Complete** |
+| T-SLEEP-SAFETY-001.2 | FR-7.11, NFR-7.11.2 | Status workflow SHALL use `list_memories` NOT `read_memory`. | assets/workflows/memory-status.json | Manual workflow execution | **Complete** |
 | T-SLEEP-SAFETY-001.3 | FR-7.11, NFR-7.11.3 | Repair workflow SHALL use graph tools NOT `read_memory`. | assets/workflows/memory-repair.json | Manual workflow execution | **Complete** |
 | T-SLEEP-SAFETY-001.4 | FR-7.11, NFR-7.11.4 | Epistemic workflow SHALL use `assumption_ledger` NOT `read_memory`. | assets/workflows/memory-epistemic.json | Manual workflow execution | **Complete** |
 
@@ -138,4 +138,19 @@ ESCAPE HATCHES:
 | HIGH-001 (code): Timestamp range validation | DEFERRED | Out of sprint scope (RTM-X02); system-generated IDs |
 | HIGH-002 (code): ExtractSessionId empty array | REJECTED | False positive — String.Split('/') returns [""] not [] |
 | MEDIUM-002 (code): Hardcoded format strings | DEFERRED | Out of sprint scope (RTM-X04 no refactoring) |
+
+---
+
+## T-WLFILTER-001: WikiLink Write Filter & Hub Detection
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-WLFILTER-001.1 | FR-11.1, NFR-11.1.1-3 | WikiLinkFilter SHALL read `.wikilink-filter` dotfile with mtime caching and thread-safe lock. | src/Utils/WikiLinkFilter.cs | tests/Maenifold.Tests/WikiLinkFilterTests.cs | **Complete** |
+| T-WLFILTER-001.2 | FR-11.3, NFR-11.3.1-2 | Hub-detection workflow SHALL detect high-degree concepts and clean via RepairConcepts. | src/assets/workflows/memory-hub-detection.json | Manual workflow execution | **Complete** |
+| T-WLFILTER-001.3 | FR-11.2, NFR-11.2.1-3 | WriteMemory SHALL reject content with filtered WikiLinks (hard error, not mutation). | src/Tools/MemoryTools.cs (WriteMemory) | tests/Maenifold.Tests/WikiLinkFilterIntegrationTests.cs | **Complete** |
+| T-WLFILTER-001.4 | FR-11.2, NFR-11.2.1-3 | EditMemory SHALL reject content with filtered WikiLinks (same pattern as WriteMemory). | src/Tools/MemoryTools.cs (EditMemory) | tests/Maenifold.Tests/WikiLinkFilterIntegrationTests.cs | **Complete** |
+| T-WLFILTER-001.5 | FR-11.4, NFR-11.4.1 | Sleep cycle SHALL run 5 serialized phases: repair → hub-detection → consolidation → epistemic → status. | src/assets/workflows/memory-cycle.json | Manual workflow execution | **Complete** |
+| T-WLFILTER-001.6 | TC-11.1 | WikiLinkFilter unit tests: parse, cache, missing file, comments, case-insensitive. | tests/Maenifold.Tests/WikiLinkFilterTests.cs | 6 tests passing | **Complete** |
+| T-WLFILTER-001.7 | TC-11.2-4 | Integration tests: WriteMemory/EditMemory blocked by filter, JSON mode error code. | tests/Maenifold.Tests/WikiLinkFilterIntegrationTests.cs | 5 tests passing | **Complete** |
+| T-WLFILTER-001.8 | Security | Red-team audit: path traversal, TOCTOU, thread-safety, error injection, traceability. | All changed files | ConfessionReport | **Complete** |
 

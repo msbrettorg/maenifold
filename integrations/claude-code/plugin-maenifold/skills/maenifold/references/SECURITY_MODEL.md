@@ -33,7 +33,7 @@ flowchart TB
 
         MCPS["MCP Server\n(stdio JSON-RPC)"]:::process
         CLIP["CLI Parser\n(--tool --payload)"]:::process
-        TREG["ToolRegistry\n(29 tools, dispatch)"]:::process
+        TREG["ToolRegistry\n(28 tools, dispatch)"]:::process
         MDIO["MarkdownIO\n(read/write + path validation)"]:::process
         ISYNC["IncrementalSync\n(FileSystem watcher)"]:::process
         AW["AssetWatcher\n(hot-loading)"]:::process

@@ -18,6 +18,7 @@
 | 2.1 | 2026-02-15 | PM Agent | Added FR-12.x (OpenCode plugin integration) — parity with Claude Code plugin hooks |
 | 2.2 | 2026-02-15 | Brett | Added FR-13.x (community detection), FR-14.x (sync mtime optimization). Reordered sections. |
 | 3.0 | 2026-02-15 | PM Agent | Added FR-15.x (site rebuild) — full replacement of marketing site with technical documentation site |
+| 3.1 | 2026-02-15 | PM Agent | Replaced placeholder design notes with finalized design system (color palette, typography, layout) derived from Norbauer analysis |
 
 ---
 
@@ -111,9 +112,12 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | FR-13.3 | Community assignments SHALL be persisted to a `concept_communities` table with community_id, modularity score, resolution parameter, and detection timestamp. | **P1** |
 | FR-13.4 | Community detection SHALL run automatically during full Sync. | **P1** |
 | FR-13.5 | A database file watcher with debounce SHALL trigger community recomputation after incremental sync activity settles. | **P1** |
-| FR-13.6 | `BuildContext` SHALL use community membership to scope and rank related concepts when community data is available. | **P1** |
-| FR-13.7 | System SHALL gracefully degrade when community data is absent or stale — `BuildContext` falls back to current behavior. | **P1** |
-| FR-13.8 | Community detection SHALL support a configurable resolution parameter (gamma) controlling community granularity. | P2 |
+| FR-13.6 | `BuildContext` SHALL include `community_id` on each `RelatedConcept` in the output when community data is available. | **P1** |
+| FR-13.7 | `BuildContext` SHALL return a separate `CommunitySiblings` section containing concepts in the same community as the query concept that have no direct edge to it. | **P1** |
+| FR-13.8 | Community siblings SHALL be scored by normalized weighted neighborhood overlap: sum of min(query_weight, sibling_weight) for shared neighbors, divided by sibling total degree. | **P1** |
+| FR-13.9 | Community siblings SHALL be filtered by minimum thresholds (shared neighbors >= 3, normalized overlap >= 0.4) and capped at 10 results. | **P1** |
+| FR-13.10 | System SHALL gracefully degrade when community data is absent — `BuildContext` omits `community_id` and `CommunitySiblings`, falls back to current behavior. | **P1** |
+| FR-13.11 | Community detection SHALL support a configurable resolution parameter (gamma) controlling community granularity. Default 1.0. | P2 |
 
 ### 3.9 OpenCode Plugin Integration (P1)
 
@@ -325,8 +329,12 @@ Sleep maintenance must not inadvertently extend content lifetime by triggering a
 | NFR-13.5.1 | DB file watcher debounce interval SHALL be configurable (default: 2000ms). | Required |
 | NFR-13.5.2 | DB file watcher SHALL reuse the existing `FileSystemWatcher` + debounce timer pattern from incremental sync. | Required |
 | NFR-13.5.3 | DB file watcher SHALL NOT trigger during its own write (avoid recomputation loop). | Required |
-| NFR-13.6.1 | `BuildContext` community scoping SHALL NOT add latency when community data is absent (check is a single table lookup). | Required |
-| NFR-13.8.1 | Default resolution parameter (gamma) SHALL be 1.0 with env override (`MAENIFOLD_LOUVAIN_GAMMA`). | Required |
+| NFR-13.6.1 | `community_id` lookup SHALL be a single indexed query against `concept_communities`. | Required |
+| NFR-13.7.1 | Community siblings SHALL be returned as a separate section in `BuildContextResult`, not mixed into `DirectRelations` or `ExpandedRelations`. | Required |
+| NFR-13.8.1 | Sibling scoring SHALL use the normalized weighted overlap formula validated against the production graph (1541 nodes, 60738 edges). | Required |
+| NFR-13.9.1 | Sibling thresholds (min shared neighbors, min normalized overlap, max results) SHALL be configurable via env vars with defaults of 3, 0.4, and 10. | Required |
+| NFR-13.10.1 | Absent community data SHALL NOT cause errors — `BuildContext` omits community fields silently. | Required |
+| NFR-13.11.1 | Default resolution parameter (gamma) SHALL be 1.0 with env override (`MAENIFOLD_LOUVAIN_GAMMA`). | Required |
 
 ### 4.7 OpenCode Plugin
 
@@ -361,6 +369,10 @@ Sleep maintenance must not inadvertently extend content lifetime by triggering a
 **DB watcher pattern:** The database file watcher uses the same `FileSystemWatcher` + debounce timer infrastructure as the existing incremental sync file watcher. When the DB file settles after a burst of writes, the debounce timer fires and triggers Louvain recomputation. The watcher skips its own writes to avoid feedback loops.
 
 **Louvain algorithm:** Two-phase iterative modularity optimization (Blondel et al. 2008). Phase 1: local node moving to maximize modularity gain. Phase 2: aggregate communities into super-nodes. Repeat until convergence. O(n log n) in practice.
+
+**Community siblings scoring (validated on production graph):** Siblings are same-community concepts with no direct edge to the query concept. Scored by normalized weighted neighborhood overlap — for each shared neighbor, take the minimum of the query's edge weight and the sibling's edge weight to that neighbor, sum those, then divide by the sibling's total weighted degree. This penalizes hub-like nodes and rewards concepts whose connections are concentrated in the query's neighborhood. Thresholds (min 3 shared neighbors, min 0.4 normalized overlap) eliminate noise. Validated on 1541-node graph: `kql` siblings are all FinOps-relevant (`cost-optimization`, `report-architecture`, `savings-rate`); noisier for catch-all communities (maenifold internals) but thresholds contain it. Gamma=1.0 produces 10 communities with modularity 0.67.
+
+**Community siblings are additive, not filtering:** Direct relations and expanded relations are returned as-is regardless of community membership. 42% of `build-context`'s direct neighbors are cross-community. Siblings are a separate output section — they surface concepts edge traversal misses, they don't gate what edges return.
 
 ### OpenCode Plugin Hook Mapping (FR-12.x)
 
@@ -499,17 +511,96 @@ The following files/components from the current site SHALL be removed entirely (
 | `/tools` | `src/assets/usage/tools/*.md` | Tool registry in `src/Tools/ToolRegistry.cs` |
 | `/workflows` | `src/assets/workflows/*.json` | Workflow descriptions from JSON metadata |
 
-### 7.9 Design Notes
+### 7.9 Design System
 
-**Typography**: Use a system font stack for body text and a monospace font (e.g., `JetBrains Mono`, `Fira Code`, or system monospace) for code. The site should feel like well-formatted technical documentation — think Stripe's API docs or SQLite's documentation, not a startup landing page.
+Full design system specification: `memory://decisions/site-rebuild/site-design-system`
 
-**Color palette**: Dark background (slate-900/950), blue accent (#3B82F6 or similar) for links and interactive elements, white/slate text. Minimal palette — 3 colors maximum.
+Design research (Norbauer & Co. analysis): `memory://research/site-rebuild/norbauer-*`
 
-**Layout**: Single-column, max-width 768px for prose content. Full-width for tables and diagrams. No sidebar navigation — pages are short enough to scroll.
+Thinking session: `session-1771175726538-13390`
 
-**The graph screenshot**: `docs/branding/graph.jpeg` is a real Obsidian graph view of the maenifold knowledge graph. It should appear on the home page as a captioned figure — "A real knowledge graph built by maenifold" — not as a hero background or decorative element.
+#### Color Palette
 
-**Mermaid diagrams**: The plugin READMEs contain 8+ Mermaid diagrams showing real architecture (6-layer stack, chain pattern, HYDE pattern, sequential thinking branching, knowledge graph growth, concept-to-node mapping, context compounding, wave-based orchestration, traceability chain, hook sequence). These are the site's primary visual content. They communicate architecture better than any custom illustration could.
+**Philosophy**: Warm restraint. One accent color. No pure white in dark mode, no pure black in light mode. Warm undertones throughout — inspired by Norbauer & Co.'s desaturated editorial palette, adapted for a dark-first developer tool.
+
+**Dark Mode (Primary)**:
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `--bg` | `#141218` | Page background — warm near-black, faint purple undertone |
+| `--bg-surface` | `#1E1B22` | Elevated surfaces: code blocks, nav, cards |
+| `--bg-hover` | `#2A2630` | Hover/active states |
+| `--border` | `#2A2630` | Subtle borders and dividers |
+| `--text` | `#E8E0DB` | Primary text — warm stone-white |
+| `--text-secondary` | `#9A938E` | Secondary text, captions, metadata |
+| `--accent` | `#6AABB3` | Links, interactive elements, focus rings — desaturated warm teal |
+| `--accent-hover` | `#8AC0C6` | Hover state for accent |
+| `--accent-muted` | `#2A3A3D` | Very low opacity accent for subtle backgrounds |
+
+**Light Mode (Alternative)**:
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `--bg` | `#F5F0EC` | Warm off-white |
+| `--bg-surface` | `#FFFFFF` | Elevated surfaces |
+| `--bg-hover` | `#EDE7E2` | Hover states |
+| `--border` | `#DDD6D0` | Borders |
+| `--text` | `#1E1B22` | Primary text |
+| `--text-secondary` | `#7A746F` | Secondary text |
+| `--accent` | `#3A8A94` | Darker teal for light backgrounds |
+| `--accent-hover` | `#2A7A84` | Hover |
+
+**Custom Syntax Highlighting Theme** (Shiki):
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `--code-bg` | `#18151C` | Code block background |
+| `--code-text` | `#D4CEC8` | Default code text |
+| `--code-keyword` | `#6AABB3` | Keywords — accent teal |
+| `--code-string` | `#D4A76A` | Strings — warm amber |
+| `--code-comment` | `#6A645F` | Comments — muted warm gray |
+| `--code-property` | `#C4878A` | Properties — muted rose |
+| `--code-number` | `#8AAA7A` | Numbers — soft sage |
+| `--code-function` | `#B8A0C8` | Functions — muted lavender |
+| `--code-punctuation` | `#7A746F` | Brackets, commas |
+
+**Accessibility**: `--text` on `--bg` = ~13.5:1 (AAA). `--accent` on `--bg` = ~6.2:1 (AA). All combinations pass WCAG AA minimum.
+
+#### Typography
+
+- **Body**: System font stack (`-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif`). No custom sans-serif. Zero load time.
+- **Code**: JetBrains Mono (self-hosted `.woff2`). No Google Fonts — no external requests.
+- **No serif. No display font.**
+- **Body**: 16px, weight 400, line-height 1.75 (generous, Norbauer-inspired)
+- **H1**: 32px, weight 600. **H2**: 24px, weight 600. **H3**: 20px, weight 600.
+- **Code**: 14px, line-height 1.6.
+
+#### Layout
+
+- **Prose max-width**: 72ch (~720-760px). The typographic ideal for reading.
+- **Code/table max-width**: 900px. Wider to avoid wrapping CLI commands.
+- **Section gap**: 80px (5rem). **Subsection gap**: 48px (3rem). **Paragraph gap**: 24px (1.5rem).
+- **Single column, centered. No sidebar. No three-column.**
+
+#### Texture
+
+Subtle CSS noise overlay on `--bg` at ~3-5% opacity. Breaks digital sterility. Learned from Norbauer — grain texture is the single biggest differentiator from AI-generated flat design.
+
+#### The Graph Screenshot
+
+`docs/branding/graph.jpeg` — a real Obsidian graph view. Appears once on the home page as a captioned figure, not as a decorative background.
+
+#### Mermaid Diagrams
+
+The plugin READMEs contain 8+ Mermaid diagrams showing real architecture. These are the site's primary visual content. Override Mermaid theme to use our palette (teal nodes, warm dark backgrounds, stone-white text).
+
+#### Footer
+
+Logo (small), version (from git tag), brand statement ("Domain expertise that compounds."), MIT License link, GitHub link. No sitemap, no social links, no newsletter.
+
+#### What We Do NOT Use
+
+Canvas animations, gradient backgrounds, particle effects, glassmorphism, custom illustrations, serif fonts, more than one accent color, pure white (#FFFFFF) in dark mode, pure black (#000000) in light mode, component libraries.
 
 ### 7.10 Out of Scope
 

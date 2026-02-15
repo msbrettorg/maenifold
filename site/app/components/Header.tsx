@@ -126,7 +126,7 @@ export default function Header() {
                     <Menu.Item>
                       {({ active }) => (
                         <Link
-                          href={'/assets/workflows' as Route}
+                          href={'/workflows' as Route}
                           className={`block px-4 py-2 text-sm ${active ? 'bg-gray-100 dark:bg-slate-700' : ''} text-slate-700 dark:text-gray-300`}
                         >
                           🔄 Workflows (32)
@@ -334,7 +334,7 @@ export default function Header() {
               </Link>
               <div className="px-4 py-2">
                 <div className="text-slate-700 dark:text-gray-300 font-medium mb-2">Bundled Assets</div>
-                <Link href={'/assets/workflows' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
+                <Link href={'/workflows' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">
                   🔄 Workflows (32)
                 </Link>
                 <Link href={'/assets/roles' as Route} className="block px-4 py-1 text-sm text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white">

@@ -1,5 +1,7 @@
 # Maenifold Skill for Claude Code
 
+<!-- NOTE: Installation content is duplicated in skills/maenifold/references/README.md (canonical for AI agents). Keep both in sync. -->
+
 This skill provides Claude Code with access to maenifold's knowledge graph and reasoning infrastructure. It enables persistent memory, graph-based context building, structured workflows, and multi-session thinking continuity.
 
 ## Overview
@@ -727,11 +729,11 @@ In Claude Code, the skill should load automatically when you mention:
 - [Main README](https://github.com/msbrettorg/maenifold/blob/main/README.md) - Project overview and quick start
 - [Full Documentation](https://github.com/msbrettorg/maenifold/blob/main/docs/README.md) - Architecture and examples
 - [GitHub Releases](https://github.com/msbrettorg/maenifold/releases) - Download binaries
-- [SKILL.md](../../skills/maenifold/SKILL.md) - Skill usage and tool reference
+- [SKILL.md](./skills/maenifold/SKILL.md) - Skill usage and tool reference
 
 ## Tool Reference
 
-For detailed tool documentation, see the `../../skills/maenifold/references/` directory:
+For detailed tool documentation, see the [skills/maenifold/references/](./skills/maenifold/references/) directory:
 
 | Category | Tools |
 |----------|-------|

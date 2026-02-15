@@ -4,15 +4,19 @@ import { useState } from 'react'
 
 interface CopyButtonProps {
   text: string
+  label?: string
+  copiedLabel?: string
+  onCopied?: () => void | Promise<void>
   className?: string
 }
 
-export function CopyButton({ text, className = '' }: CopyButtonProps) {
+export function CopyButton({ text, label = 'Copy', copiedLabel = 'Copied!', onCopied, className = '' }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text)
     setCopied(true)
+    await onCopied?.()
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -21,7 +25,7 @@ export function CopyButton({ text, className = '' }: CopyButtonProps) {
       onClick={handleCopy}
       className={className}
     >
-      {copied ? 'Copied!' : 'Copy'}
+      {copied ? copiedLabel : label}
     </button>
   )
 }

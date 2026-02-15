@@ -2,7 +2,7 @@
   "id": "memory-cycle",
   "name": "Cognitive Sleep Cycle (Orchestrator)",
   "emoji": "🌙",
-  "description": "Multi-agent orchestration for memory consolidation, decay processing, and graph maintenance during agent sleep. Dispatches 4 parallel specialist workflows that mirror biological sleep phases.",
+  "description": "Serialized orchestration for memory maintenance during agent sleep. Runs 5 specialist workflows in dependency order: repair → hub-detection → consolidation → epistemic → status. Each phase produces cleaner data for the next — quality cascades downhill.",
   "triggers": [
     "sleep cycle",
     "memory consolidation",
@@ -14,68 +14,129 @@
   "enhancedThinkingEnabled": true,
   "steps": [
     {
-      "id": "dispatch-specialists",
-      "name": "🚀 Dispatch Sleep Specialists",
-      "description": "🚫 BLOCKING: Dispatch ALL specialist workflows in ONE message for parallel execution.\n\n⚠️ CRITICAL: ALL FOUR AGENTS IN ONE MESSAGE FOR PARALLEL EXECUTION!\n\n**Agent type**: `maenifold-product-team:researcher` for all 4 tasks\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Run memory-consolidation workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-consolidation. Memory replay focused on high-significance events, slow-wave consolidation of episodic to semantic memory, and dream synthesis for novel connections.\nOutput: Return consolidation summary as workflow output (DO NOT write to memory://custodian/)\n\nTask 2: Run memory-decay workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-decay. Analyze access patterns, calculate tiered decay weights, flag severely decayed content for review. Do NOT use read_memory.\nOutput: Return decay statistics as workflow output (DO NOT write to memory://)\n\nTask 3: Run memory-repair workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-repair. Analyze concept corruption in high-frequency families, normalize WikiLink variants, sync graph. Do NOT use read_memory.\nOutput: Return repair report as workflow output (DO NOT write to memory://)\n\nTask 4: Run memory-epistemic workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-epistemic. Review active assumptions, apply validation pressure, update statuses based on evidence. Do NOT use read_memory.\nOutput: Return assumption review as workflow output (DO NOT write to memory://)\n```\n\n🎯 SPECIALIST REQUIREMENTS:\n- Each specialist workflow is self-contained with its own memory replay phase\n- Consolidation: MAY use read_memory (access boosting is semantically correct)\n- Decay: SHALL use list_memories, NOT read_memory (preserve decay state)\n- Repair: SHALL use graph tools, NOT read_memory\n- Epistemic: SHALL use assumption_ledger, NOT read_memory\n\n⏱️ Dispatch duration: 5 minutes\n⏱️ Specialist execution: 30-45 minutes each (parallel)",
+      "id": "phase-1-repair",
+      "name": "🔧 Phase 1: Concept Repair",
+      "description": "Dispatch memory-repair specialist. This runs FIRST because all downstream phases need normalized concepts.\n\nRepair normalizes WikiLink variants (plurals, case, typos) so hub-detection gets accurate degree counts, consolidation promotes clean concepts, and epistemic searches return precise results.\n\n```\nTask: Run memory-repair workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-repair. Analyze concept corruption in high-frequency families, normalize WikiLink variants, sync graph. Do NOT use read_memory.\nOutput: Return repair report as workflow output (DO NOT write to memory://)\n```\n\n🎯 REQUIREMENTS:\n- Repair: SHALL use graph tools (analyze_concept_corruption, repair_concepts, sync), NOT read_memory\n- Always dryRun=true before applying repairs\n- Sync graph after repairs to rebuild with normalized concepts\n\n⏱️ Duration: 15-30 minutes",
       "requiresEnhancedThinking": false,
       "metadata": {
         "toolHints": {
           "Task": {
-            "reason": "Critical parallel dispatch - ALL agents must launch in ONE message",
+            "reason": "Dispatch repair specialist - must complete before hub detection",
             "priority": "mandatory",
             "subagent_type": "maenifold-product-team:researcher",
-            "required_operations": ["memory-consolidation workflow", "memory-decay workflow", "memory-repair workflow", "memory-epistemic workflow"],
-            "parallel_execution": true,
-            "agent_instructions": {
-              "workflow_choice": "Each specialist runs its designated workflow",
-              "output_format": "Return markdown report as workflow output - DO NOT persist to memory://"
-            }
+            "required_operations": ["memory-repair workflow"],
+            "parallel_execution": false
           }
         },
         "reasoning_effort": "low",
-        "stop_conditions": ["All four specialists dispatched"],
-        "next_actions": ["Wait for specialists", "Review outputs"],
+        "stop_conditions": ["Repair specialist completed", "Report received"],
+        "next_actions": ["Phase 2: Hub Detection"],
         "guardrails": {
-          "tool_access_safety": "Consolidation MAY use read_memory; others MUST NOT (NFR-7.11.x)"
+          "tool_access_safety": "Repair MUST NOT use read_memory (NFR-7.11.3)",
+          "dry_run_first": "Always preview repairs with dryRun=true before applying"
         }
       }
     },
     {
-      "id": "review-outputs",
-      "name": "📊 Review Specialist Outputs",
-      "description": "Review outputs returned by the 4 specialist workflows.\n\nThe specialists returned their reports as workflow output (not persisted to memory://).\n\n1. **Review Consolidation Output**:\n   - Check: Items consolidated, WikiLink density, dream insights\n   - Note: Consolidated notes WERE written to appropriate knowledge folders\n\n2. **Review Decay Output**:\n   - Check: Decay statistics, flagged items, tier breakdown\n   - Note: No files modified - this is observation-only\n\n3. **Review Repair Output**:\n   - Check: Repairs made, items flagged for human review, graph health\n   - Note: Source files WERE modified by repair_concepts\n\n4. **Review Epistemic Output**:\n   - Check: Assumptions reviewed, status changes, evidence cited\n   - Note: Assumption ledger WERE updated\n\n5. **Compile Status**:\n   - Success/failure for each specialist\n   - Aggregate metrics (items processed, issues found)\n   - Flag any specialists that need re-run\n\n⏱️ Duration: 10-15 minutes",
-      "requiresEnhancedThinking": false,
-      "metadata": {
-        "toolHints": {},
-        "reasoning_effort": "medium",
-        "stop_conditions": ["All reports reviewed", "Status compiled"],
-        "next_actions": ["Wake preparation"],
-        "guardrails": {
-          "completeness_check": "All 4 specialists must have returned output",
-          "no_custodian_files": "Specialists return output, do NOT write to memory://custodian/"
-        }
-      }
-    },
-    {
-      "id": "wake-preparation",
-      "name": "🌅 Wake Preparation",
-      "description": "Prepare enriched context for next session.\n\n1. **Summarize Sleep Cycle Outcomes**:\n   - Consolidations performed\n   - Decay state changes\n   - Graph repairs completed\n   - Assumption status updates\n\n2. **Identify Priority Items**:\n   - Items flagged for human review\n   - Unresolved repair candidates\n   - Assumptions needing validation\n   - Dream insights worth exploring\n\n3. **Prepare Context Injection**:\n   - Compile concise wake-up context (<2000 tokens)\n   - Include key insights and priorities\n   - Note any sleep cycle issues\n\n4. **Cycle Metrics** (ephemeral, do not persist):\n   - Total items processed per phase\n   - Time spent per specialist\n   - Errors or retries needed\n\nOutput: Return wake context as workflow output - DO NOT write to memory://\nThe wake context is injected into the next session, not persisted.",
+      "id": "phase-2-hub-detection",
+      "name": "🎯 Phase 2: Hub Detection",
+      "description": "Dispatch memory-hub-detection specialist. Runs AFTER repair so degree counts reflect normalized concepts.\n\nHub detection identifies generic hubs (tool, agent, etc.) that connect to everything, updates .wikilink-filter, strips hub WikiLinks from files, and rebuilds the graph. Consolidation and epistemic then operate on a graph free of noise.\n\n```\nTask: Run memory-hub-detection workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-hub-detection. Detect high-degree hub concepts, classify generic vs legitimate, update .wikilink-filter, repair existing files, rebuild graph. Do NOT use read_memory.\nOutput: Return hub detection report as workflow output (DO NOT write to memory://)\n```\n\n🎯 REQUIREMENTS:\n- Hub detection: SHALL use graph tools (build_context, find_similar_concepts, repair_concepts, sync), NOT read_memory\n- Always dryRun=true before applying repair_concepts\n- Rebuild graph via sync after stripping hubs\n\n⏱️ Duration: 15-30 minutes",
       "requiresEnhancedThinking": false,
       "metadata": {
         "toolHints": {
+          "Task": {
+            "reason": "Dispatch hub-detection specialist - must complete before consolidation",
+            "priority": "mandatory",
+            "subagent_type": "maenifold-product-team:researcher",
+            "required_operations": ["memory-hub-detection workflow"],
+            "parallel_execution": false
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": ["Hub detection specialist completed", "Report received"],
+        "next_actions": ["Phase 3: Consolidation"],
+        "guardrails": {
+          "tool_access_safety": "Hub detection MUST NOT use read_memory; MUST dryRun repair_concepts first (NFR-11.3.x)"
+        }
+      }
+    },
+    {
+      "id": "phase-3-consolidation",
+      "name": "💾 Phase 3: Consolidation",
+      "description": "Dispatch memory-consolidation specialist. Runs AFTER repair + hub-detection so it promotes clean, hub-free concepts into durable semantic memory.\n\nConsolidation replays high-significance episodic content (thinking sessions), distills it into semantic memory notes with clean WikiLinks, and synthesizes novel connections. This is the only phase that MAY use read_memory (access boosting is semantically correct for content being consolidated).\n\n```\nTask: Run memory-consolidation workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-consolidation. Memory replay focused on high-significance events, slow-wave consolidation of episodic to semantic memory, and dream synthesis for novel connections.\nOutput: Return consolidation summary as workflow output (DO NOT write to memory://custodian/)\n```\n\n🎯 REQUIREMENTS:\n- Consolidation: MAY use read_memory (access boosting is semantically correct)\n- New semantic notes SHOULD use WikiLinks validated by the clean graph\n- Consolidated notes are written to appropriate knowledge folders (not custodian/)\n\n⏱️ Duration: 30-45 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch consolidation specialist - operates on clean graph",
+            "priority": "mandatory",
+            "subagent_type": "maenifold-product-team:researcher",
+            "required_operations": ["memory-consolidation workflow"],
+            "parallel_execution": false
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": ["Consolidation specialist completed", "Report received"],
+        "next_actions": ["Phase 4: Epistemic Review"],
+        "guardrails": {
+          "tool_access_safety": "Consolidation MAY use read_memory (NFR-7.11.1)",
+          "no_custodian_files": "Consolidated notes go to knowledge folders, NOT memory://custodian/"
+        }
+      }
+    },
+    {
+      "id": "phase-4-epistemic",
+      "name": "⚖️ Phase 4: Epistemic Review",
+      "description": "Dispatch memory-epistemic specialist. Runs AFTER consolidation so search_memories includes freshly consolidated semantic notes when validating assumptions.\n\nEpistemic review queries the assumption ledger, searches for evidence using the clean graph, and updates assumption statuses. Validated assumptions become immortal; invalidated assumptions decay aggressively.\n\n```\nTask: Run memory-epistemic workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-epistemic. Review active assumptions, apply validation pressure, update statuses based on evidence. Do NOT use read_memory.\nOutput: Return assumption review as workflow output (DO NOT write to memory://)\n```\n\n🎯 REQUIREMENTS:\n- Epistemic: SHALL use assumption_ledger and search_memories, NOT read_memory\n- Status changes require cited evidence\n- Validated = immortal (NFR-7.8.1), invalidated = aggressive decay (NFR-7.8.3)\n\n⏱️ Duration: 15-30 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch epistemic specialist - benefits from clean graph + consolidated notes",
+            "priority": "mandatory",
+            "subagent_type": "maenifold-product-team:researcher",
+            "required_operations": ["memory-epistemic workflow"],
+            "parallel_execution": false
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": ["Epistemic specialist completed", "Report received"],
+        "next_actions": ["Phase 5: Decay & Reporting"],
+        "guardrails": {
+          "tool_access_safety": "Epistemic MUST NOT use read_memory (NFR-7.11.4)",
+          "evidence_required": "Status changes require cited evidence from search_memories"
+        }
+      }
+    },
+    {
+      "id": "phase-5-status-report",
+      "name": "🍂 Phase 5: Status & Reporting",
+      "description": "Dispatch memory-status specialist, then compile the full sleep cycle report.\n\nStatus runs last — it's pure observation (list_memories for timestamps) and doesn't modify anything. Running it last means the report reflects the final state after all modifications.\n\n```\nTask: Run memory-status workflow\nAgent: researcher (subagent_type: maenifold-product-team:researcher)\nInstruction: Execute workflow memory-status. Analyze access patterns, calculate tiered decay weights, flag severely decayed content for review. Do NOT use read_memory.\nOutput: Return status report as workflow output (DO NOT write to memory://)\n```\n\nAfter decay completes, compile the full sleep cycle report:\n\n1. **Repair**: Concepts normalized, variants merged, graph rebuilt\n2. **Hub Detection**: Hubs identified, filter updated, hub WikiLinks stripped\n3. **Consolidation**: Episodic content promoted, new semantic notes created\n4. **Epistemic**: Assumptions reviewed, statuses updated, evidence cited\n5. **Status**: Tier breakdown, flagged items, overall memory health\n\n**Compile wake context** (<2000 tokens):\n- Key insights and priorities for next session\n- Items flagged for human review\n- Cycle metrics (items processed per phase)\n\n⏱️ Duration: 15-30 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch status specialist - observation only, reflects final state",
+            "priority": "mandatory",
+            "subagent_type": "maenifold-product-team:researcher",
+            "required_operations": ["memory-status workflow"],
+            "parallel_execution": false
+          },
           "sequential_thinking": {
-            "reason": "Synthesize specialist outputs into coherent summary",
+            "reason": "Synthesize all specialist outputs into coherent wake context",
             "priority": "recommended",
             "estimated_thoughts": 2,
             "focus_areas": ["Outcome synthesis", "Priority identification"]
           }
         },
-        "reasoning_effort": "low",
-        "stop_conditions": ["Summary complete", "Context prepared"],
+        "reasoning_effort": "medium",
+        "stop_conditions": ["Status specialist completed", "All 5 phase reports compiled", "Wake context prepared"],
         "next_actions": ["Sleep cycle complete"],
         "guardrails": {
+          "tool_access_safety": "Decay MUST NOT use read_memory (NFR-7.11.2)",
           "context_size": "Wake context should be concise (<2000 tokens)",
-          "no_persistence": "Wake context is returned as output, NOT written to memory://"
+          "no_persistence": "Wake context is returned as output, NOT written to memory://",
+          "completeness_check": "All 5 phases must have returned output before compiling"
         }
       }
     }

@@ -14,6 +14,7 @@
 | 1.7 | 2026-02-01 | PM Agent | Added FR-9.2 (debug-only build/test requirement) |
 | 1.8 | 2026-02-02 | PM Agent | Added FR-7.9 (consolidation), NFR-7.5.5 (power-law decay option) per research validation |
 | 1.9 | 2026-02-02 | PM Agent | Added FR-7.10 (multi-agent sleep cycle), FR-7.11 (tool access safety), sub-workflow architecture |
+| 2.0 | 2026-02-14 | Brett | Define hierarchical state machine architecture for Workflow + submachines (SequentialThinking, AssumptionLedger) |
 
 ---
 
@@ -68,6 +69,26 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | FR-9.1 | Repository SHALL include `RETROSPECTIVES.md` to capture sprint retrospectives. | P2 |
 | FR-9.2 | During active sprints, builds and tests SHALL use Debug configuration only; Release build SHALL NOT be invoked. | P2 |
 
+### 3.4 Hierarchical State Machines (Workflow Supervisor) (Sprint)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-10.1 | Workflow sessions SHALL function as a supervisor state machine that manages the lifecycle of submachines (e.g., SequentialThinking, AssumptionLedger). | **P0** |
+| FR-10.2 | Each submachine SHALL remain directly invokable as a standalone tool (without a Workflow supervisor). | **P0** |
+| FR-10.3 | Workflow supervisor state SHALL be explicitly persisted in the workflow session frontmatter (e.g., `phase`, `activeSubmachineType`, `activeSubmachineSessionId`). | **P0** |
+| FR-10.4 | While a workflow session is waiting on an active submachine, it SHALL NOT advance `currentStep` or `currentWorkflow` until the submachine reaches a terminal state (`completed` or `cancelled`). | **P0** |
+| FR-10.5 | The workflow tool SHALL continue to support serial queuing of multiple workflows within a single workflow session. | P1 |
+| FR-10.6 | Parallel workflow execution SHALL be achieved by running multiple workflow sessions concurrently (one supervisor per session). | P1 |
+
+### 3.5 WikiLink Write Filter & Hub Detection
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-11.1 | System SHALL provide a WikiLink filter engine that reads blocked concepts from a dotfile (`.wikilink-filter`) in the memory path. | P1 |
+| FR-11.2 | WriteMemory and EditMemory SHALL reject content containing filtered WikiLinks with a descriptive error listing each blocked concept and its reason. | P1 |
+| FR-11.3 | System SHALL provide a hub-detection workflow that discovers high-degree hub concepts, classifies them, and cleans them from existing files via RepairConcepts. | P2 |
+| FR-11.4 | Cognitive Sleep Cycle SHALL run 5 serialized phases: repair → hub-detection → consolidation → epistemic → status. Each phase produces cleaner data for the next. | P2 |
+
 ---
 
 ## 4. Non-Functional Requirements
@@ -108,6 +129,20 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | NFR-7.11.3 | Repair workflow SHALL use graph tools (`analyze_concept_corruption`, `repair_concepts`, `sync`), NOT `read_memory`. | Required |
 | NFR-7.11.4 | Epistemic workflow SHALL use `assumption_ledger`, NOT `read_memory`. | Required |
 
+### 4.3 WikiLink Write Filter
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-11.1.1 | Filter file SHALL be a dotfile (`.wikilink-filter`) invisible to graph indexing (sync watches `*.md` only). | Required |
+| NFR-11.1.2 | Filter SHALL use mtime-based caching with thread-safe lock; stat call on each invocation. | Required |
+| NFR-11.1.3 | Missing filter file SHALL return empty results (no error, all concepts pass). | Required |
+| NFR-11.2.1 | Filtered concepts SHALL cause a hard error (block, don't mutate content). | Required |
+| NFR-11.2.2 | Error message SHALL list each blocked concept with its reason from the filter file. | Required |
+| NFR-11.2.3 | JSON mode SHALL return structured error with `FILTERED_WIKILINKS` error code. | Required |
+| NFR-11.3.1 | Hub-detection workflow SHALL use `repair_concepts` with `dryRun=true` before applying changes. | Required |
+| NFR-11.3.2 | Hub-detection workflow SHALL NOT use `read_memory` (preserve decay integrity). | Required |
+| NFR-11.4.1 | Sleep orchestrator SHALL run 5 specialist phases in dependency order: repair → hub-detection → consolidation → epistemic → status. | Required |
+
 ---
 
 ## 5. Design Notes
@@ -128,6 +163,14 @@ This separation means `memory://` only contains knowledge that *should* decay �
 ### Thinking Tiers (NFR-7.5.1, NFR-7.5.1a)
 
 Thinking content is tiered by type, not treated uniformly:
+
+### Workflow + Submachines as State Machines (FR-10.x)
+
+Workflow, SequentialThinking, and AssumptionLedger are treated as explicit state machines with persisted state in frontmatter + append-only markdown.
+
+- **Supervisor model**: Workflow session is the top-level supervisor state machine; it may enter a waiting phase while a submachine runs.
+- **Submachine model**: SequentialThinking and AssumptionLedger remain independent tools with their own persisted session/file state, and can be run standalone.
+- **Serial vs parallel**: Within a workflow session, the workflow queue is serial; parallelism comes from running multiple workflow sessions concurrently.
 
 | Path | Grace Period | Rationale |
 |------|--------------|-----------|

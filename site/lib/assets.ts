@@ -64,6 +64,20 @@ export function getAllWorkflows(): Workflow[] {
   }).sort((a, b) => a.name.localeCompare(b.name))
 }
 
+export function getWorkflowById(id: string): Workflow | null {
+  if (!/^[a-z0-9-]+$/.test(id)) {
+    return null
+  }
+
+  const workflowPath = path.join(process.cwd(), '../src/assets/workflows', `${id}.json`)
+  if (!fs.existsSync(workflowPath)) {
+    return null
+  }
+
+  const content = fs.readFileSync(workflowPath, 'utf-8')
+  return JSON.parse(content) as Workflow
+}
+
 /**
  * Load all role JSON files
  */

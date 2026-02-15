@@ -73,8 +73,8 @@ Returns SLC framework configuration: Simple, Lovable, Complete principles with c
 
 Create custom assets in `$MAENIFOLD_ROOT/assets/{roles,colors,perspectives}/`:
 
+Example file at `$MAENIFOLD_ROOT/assets/roles/my-custom-role.json`:
 ```json
-// $MAENIFOLD_ROOT/assets/roles/my-custom-role.json
 {
   "id": "my-custom-role",
   "name": "My Custom Role",

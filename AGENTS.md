@@ -107,8 +107,13 @@ dotnet build src/Maenifold.csproj -c Debug
 - MCP mode forbids casual console usage; prefer structured logging
 - Avoid hardcoded strings (CA1303 is suggestion)
 
-### Error handling (Ma Protocol)
-- Let errors surface; no retry logic or “smart” recovery
+### Control flow (Ma Protocol)
+- **Guard clause pattern**: Check each exit condition independently and return early. Never chain escape hatches into compound conditionals (`&&`, `||`). Each guard gets its own `if` + `return`/`continue`/`break`.
+- **No `else` after a guard**: If the guard returns, the remaining code IS the else. Don't wrap the happy path in an `else` block.
+- **Happy path stays left-aligned**: Guards push edge cases out early. Main logic should not be nested inside conditionals.
+- **Fail fast**: Validate inputs at the top of the method. Don't discover problems deep in nested logic.
+- **Single condition per `if`**: Each guard tests one thing. Compound conditions obscure which case triggered the exit.
+- Let errors surface; no retry logic or "smart" recovery
 - Do not add fallback behavior that hides failures
 - Prefer direct, explicit flow over abstractions
 

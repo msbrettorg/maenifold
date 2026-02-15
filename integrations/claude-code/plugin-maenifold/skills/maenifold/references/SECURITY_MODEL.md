@@ -137,17 +137,17 @@ The `MAENIFOLD_ROOT` environment variable redirects all data operations. Any pro
 
 | Control | Location |
 |---|---|
-| `SafeJson` MaxDepth=32 | `src/Utils/SafeJson.cs:13` |
-| `SanitizeUserInput` (URL-decode, strip dangerous chars, collapse traversal) | `src/Tools/MemoryTools.cs:150-189` |
-| `ValidatePathSecurity` (block absolute paths, dot sequences) | `src/Tools/MemoryTools.cs:125-148` |
-| `UriToPath` traversal check (canonicalize + prefix match) | `src/Utils/MarkdownWriter.cs:118-132` |
-| `SanitizeFrontmatter` (strip embedding fields) | `src/Utils/MarkdownWriter.cs:170-177` |
-| Parameterized queries (reflection-based parameter binding) | `src/Utils/SqliteExtensions.cs:76-88` |
-| WikiLink regex hardening (negative lookaround) | `src/Utils/MarkdownReader.cs:21` |
-| Checksum concurrency guard | `src/Utils/MarkdownWriter.cs:36-48` |
-| `MoveMemory` boundary check (canonicalize + prefix match) | `src/Tools/MemoryTools.cs:590-594` |
-| `Slugify` (strip non-alphanumeric, collapse hyphens) | `src/Utils/MarkdownWriter.cs:153-161` |
-| Read-only SQLite connections (`query_only=ON`) | `src/Utils/SqliteExtensions.cs:38-45` |
+| `SafeJson` MaxDepth=32 | `src/Utils/SafeJson.cs` |
+| `SanitizeUserInput` (URL-decode, strip dangerous chars, collapse traversal) | `src/Tools/MemoryTools.cs` |
+| `ValidatePathSecurity` (block absolute paths, dot sequences) | `src/Tools/MemoryTools.cs` |
+| `UriToPath` traversal check (canonicalize + prefix match) | `src/Utils/MarkdownWriter.cs` |
+| `SanitizeFrontmatter` (strip embedding fields) | `src/Utils/MarkdownWriter.cs` |
+| Parameterized queries (reflection-based parameter binding) | `src/Utils/SqliteExtensions.cs` |
+| WikiLink regex hardening (negative lookaround) | `src/Utils/MarkdownReader.cs` |
+| Checksum concurrency guard | `src/Utils/MarkdownWriter.cs` |
+| `MoveMemory` boundary check (canonicalize + prefix match) | `src/Tools/MemoryTools.cs` |
+| `Slugify` (strip non-alphanumeric, collapse hyphens) | `src/Utils/MarkdownWriter.cs` |
+| Read-only SQLite connections (`query_only=ON`) | `src/Utils/SqliteExtensions.cs` |
 
 ## Design Philosophy
 

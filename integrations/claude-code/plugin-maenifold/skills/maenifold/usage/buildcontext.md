@@ -46,7 +46,7 @@ Traverses concept relationships via multi-hop graph queries.
   - `depth = 0` and `depth = 1` return only `directRelations`.
   - `depth > 1` also returns `expandedRelations`.
 - **ExpandedRelations traversal**: Expansion starts from up to the top 5 direct relations (by co-occurrence), then traverses outward.
-- **includeContent behavior**: Adds a ~200 character sentence-aware preview for up to 3 source files per direct relation; unreadable files are skipped silently.
+- **includeContent behavior**: Adds a ~500 character sentence-aware preview for up to 3 source files per direct relation; unreadable files are skipped silently.
 - **WikiLink normalization**: `[[Machine Learning]]` → `machine-learning`
 
 ## Integration

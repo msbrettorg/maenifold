@@ -39,7 +39,7 @@ Suggested next steps: BuildContext, SearchMemories
 Notes:
 - `conceptName` must be non-empty; otherwise the tool returns an error.
 - Scores can appear **saturated** (e.g., many results at `1.000`) depending on the current embedding distribution and vector distance values. Treat this tool primarily as a **ranking signal**, and validate via `BuildContext` / `SearchMemories`.
-- Very large `maxResults` values can produce extremely long output.
+- Range: 1-50. Values outside this range return an error.
 
 ## Semantic vs Graph
 

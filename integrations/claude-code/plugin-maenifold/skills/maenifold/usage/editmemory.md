@@ -48,7 +48,7 @@ Adds content to file start.
 ### find_replace
 Replaces all occurrences using simple string replacement.
 
-**⚠️ WARNING: Nested WikiLinks**
+**WARNING: Nested WikiLinks**
 Replacing text INSIDE existing `[[WikiLinks]]` creates nested brackets.
 
 Example of the problem:

@@ -40,16 +40,16 @@ public static class RecentActivityReader
                 sql += " AND file_path LIKE @filterPattern";
                 parameters["filterPattern"] = $"memory://{Path.GetFileName(Config.ThinkingPath)}/%";
             }
-            else if (filter == "chat")
+            else if (filter == "assumptions")
             {
                 sql += " AND file_path LIKE @filterPattern";
                 parameters["filterPattern"] = "memory://chat/%";
             }
             else if (filter == "memory")
             {
-                sql += " AND file_path NOT LIKE @filterPattern AND file_path NOT LIKE @chatPattern";
+                sql += " AND file_path NOT LIKE @filterPattern AND file_path NOT LIKE @assumptionsPattern";
                 parameters["filterPattern"] = $"memory://{Path.GetFileName(Config.ThinkingPath)}/%";
-                parameters["chatPattern"] = "memory://chat/%";
+                parameters["assumptionsPattern"] = "memory://chat/%";
             }
         }
 

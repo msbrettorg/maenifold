@@ -42,9 +42,9 @@ Deep navigation - nested directory exploration.
 ## Usage Patterns
 
 **Pre-write exploration:**
+Check structure before WriteMemory with folder path:
 ```json
 {"path": "projects"}
-// Check structure before WriteMemory with folder path
 ```
 
 **Progressive navigation:**

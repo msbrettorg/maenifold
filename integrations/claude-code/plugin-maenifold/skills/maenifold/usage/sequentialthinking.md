@@ -33,8 +33,6 @@ Persistent, branching thought sessions with `[[WikiLink]]` graph integration and
   3. Shortcuts or hacks taken
   4. Risks/uncertainties flagged
   5. Sources used (memory:// URIs, `[[WikiLinks]]`)
-- `learn` (bool, optional): Return help documentation instead of executing (default: `false`).
-
 ## Returns
 
 ### New session (thoughtNumber=0)
@@ -74,16 +72,18 @@ Checkpoint hints appear on the first thought and every 3 thoughts thereafter.
 
 ## Examples
 
+**Start a new session (omit sessionId):**
 ```json
-// Start a new session (omit sessionId)
 {
   "response": "Analyzing [[authentication]] flow for [[JWT]] token refresh",
   "nextThoughtNeeded": true,
   "thoughtNumber": 0,
   "totalThoughts": 5
 }
+```
 
-// Continue an existing session
+**Continue an existing session:**
+```json
 {
   "sessionId": "session-1756610546730-48291",
   "response": "The [[token-refresh]] mechanism needs [[rate-limiting]] to prevent abuse",
@@ -91,8 +91,10 @@ Checkpoint hints appear on the first thought and every 3 thoughts thereafter.
   "thoughtNumber": 2,
   "totalThoughts": 5
 }
+```
 
-// Revise a previous thought
+**Revise a previous thought:**
+```json
 {
   "sessionId": "session-1756610546730-48291",
   "response": "Reconsidering [[rate-limiting]] - should use [[sliding-window]] instead of fixed",
@@ -102,8 +104,10 @@ Checkpoint hints appear on the first thought and every 3 thoughts thereafter.
   "isRevision": true,
   "revisesThought": 2
 }
+```
 
-// Branch from a thought (multi-agent)
+**Branch from a thought (multi-agent):**
+```json
 {
   "sessionId": "session-1756610546730-48291",
   "response": "Exploring [[caching]] strategy as alternative to [[rate-limiting]]",
@@ -113,8 +117,10 @@ Checkpoint hints appear on the first thought and every 3 thoughts thereafter.
   "branchFromThought": 2,
   "branchId": "T-2.1.2-swe"
 }
+```
 
-// Complete with conclusion
+**Complete with conclusion:**
+```json
 {
   "sessionId": "session-1756610546730-48291",
   "response": "Final verification of [[authentication]] design confirms [[JWT]] approach",
@@ -123,8 +129,10 @@ Checkpoint hints appear on the first thought and every 3 thoughts thereafter.
   "totalThoughts": 5,
   "conclusion": "Determined [[sliding-window]] [[rate-limiting]] for [[JWT]] refresh. ✅ Followed [[authentication]] best practices. No shortcuts. Risk: [[token-revocation]] latency under load. Sources: memory://tech/auth-patterns.md"
 }
+```
 
-// Link to parent workflow
+**Link to parent workflow:**
+```json
 {
   "response": "Starting [[architecture]] review linked to active workflow",
   "nextThoughtNeeded": true,
@@ -133,8 +141,10 @@ Checkpoint hints appear on the first thought and every 3 thoughts thereafter.
   "parentWorkflowId": "session-1756610500000-12345",
   "analysisType": "architecture"
 }
+```
 
-// Cancel a session
+**Cancel a session:**
+```json
 {
   "sessionId": "session-1756610546730-48291",
   "cancel": true

@@ -119,9 +119,9 @@ public class RecentActivityTests
         Assert.That(memOut, Does.Not.Contain("(sequential)"));
         Assert.That(memOut, Does.Not.Contain("(workflow)"));
 
-        // 4) filter=chat (supported) → chat entries only (printed as memory type)
-        var chatOut = RunCli("RecentActivity", "{\"limit\":10,\"filter\":\"chat\"}");
-        Assert.That(chatOut, Does.Contain("(memory)"), "Chat entries render as memory type");
+        // 4) filter=assumptions (supported) → assumption/chat entries only (printed as memory type)
+        var chatOut = RunCli("RecentActivity", "{\"limit\":10,\"filter\":\"assumptions\"}");
+        Assert.That(chatOut, Does.Contain("(memory)"), "Assumption entries render as memory type");
         Assert.That(chatOut, Does.Contain("Title: chat-1"));
         Assert.That(chatOut, Does.Not.Contain("Sequential Session"));
         Assert.That(chatOut, Does.Not.Contain("Workflow Run"));

@@ -32,27 +32,33 @@ Search memory files by content with three modes: **Hybrid** (default), **Semanti
 
 ## Examples
 
+**Basic search:**
 ```json
-// Basic search
 {
   "query": "GraphRAG implementation",
   "pageSize": 10
 }
+```
 
-// Focused research
+**Focused research:**
+```json
 {
   "query": "transformer attention",
   "folder": "research/deep-learning",
   "pageSize": 15
 }
+```
 
-// Tag-based discovery
+**Tag-based discovery:**
+```json
 {
   "query": "optimization",
   "tags": ["csharp", "performance"]
 }
+```
 
-// Concept exploration
+**Concept exploration:**
+```json
 {
   "query": "[[Neural Networks]]"
 }

@@ -36,20 +36,28 @@ This was a DRY RUN. To apply changes, run with dryRun=false
 
 ### Examples
 
+**Safe -- Plural consolidation:**
 ```json
-// Safe: Plural consolidation
 {"conceptsToReplace": "tools,Tools,TOOLS", "canonicalConcept": "tool", "dryRun": true}
+```
 
-// Safe: Case normalization
+**Safe -- Case normalization:**
+```json
 {"conceptsToReplace": "mcp,Mcp,MCP", "canonicalConcept": "MCP", "dryRun": true}
+```
 
-// Create WikiLinks from plain text
+**Create WikiLinks from plain text:**
+```json
 {"conceptsToReplace": "machine learning", "canonicalConcept": "Machine Learning", "createWikiLinks": true, "dryRun": true}
+```
 
-// Scoped to folder
+**Scoped to folder:**
+```json
 {"conceptsToReplace": "agents,Agents", "canonicalConcept": "agent", "folder": "research/ai", "dryRun": true}
+```
 
-// Override validation (not recommended)
+**Override validation (not recommended):**
+```json
 {"conceptsToReplace": "test-coverage,coverage", "canonicalConcept": "coverage", "minSemanticSimilarity": 0.0, "dryRun": true}
 ```
 

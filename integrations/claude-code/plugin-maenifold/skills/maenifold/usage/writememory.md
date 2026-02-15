@@ -15,8 +15,8 @@ Creates knowledge files in `~/maenifold/memory/` with automatic graph integratio
 {
   "uri": "memory://research/ai/machine-learning-fundamentals",
   "checksum": "abc123...",
-  "conceptsExtracted": ["machine-learning", "neural-networks"],
-  "location": "~/maenifold/memory/research/ai/machine-learning-fundamentals.md"
+  "title": "Machine Learning Fundamentals",
+  "folder": "research/ai"
 }
 ```
 

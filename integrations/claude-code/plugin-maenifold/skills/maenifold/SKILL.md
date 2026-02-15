@@ -103,7 +103,7 @@ Common patterns:
 <external_docs>
 When memory:// lacks sufficient detail, call these external doc layers to ground answers in authoritative sources. Always cite the source used.
 - External doc layer (after graph): Always pull from maenifold graph/memory first. If gaps remain, use these authoritative sources; never guess.
-- **Context7** (library docs): Use MCP tools `mcp__plugin_context7_context7__resolve-library-id` first to get the library ID, then `mcp__plugin_context7_context7__query-docs` with your query. Use for library/framework APIs, architecture, and examples; prefer over generic web search.
+- **Context7** (library docs): Use MCP tools `mcp__plugin_context7_context7__resolve-library-id` first to get the library ID, then `mcp__plugin_context7_context7__query-docs` with the query. Use for library/framework APIs, architecture, and examples; prefer over generic web search.
 - **Microsoft Docs**: Use skills `microsoft-docs:microsoft-docs` for conceptual docs/tutorials, or `microsoft-docs:microsoft-code-reference` for API references and code samples. Use for any Microsoft/Azure guidance or code.
 </external_docs>
 
@@ -137,7 +137,7 @@ Requirements:
 	- For web sources: include the full URL and the date accessed.
 	- For repo/local sources: include workspace-relative paths (and, when practical, the specific symbols or sections used).
 - Prefer first-party sources (this repo, checked-in reference materials, official vendor docs). Avoid unsourced blog posts.
-- Do not “launder” knowledge into memory: memory notes must clearly distinguish **direct quotes/extracts** vs **your own derived summary**.
+- Do not “launder” knowledge into memory: memory notes must clearly distinguish **direct quotes/extracts** vs **derived summary**.
 - When using an external source to answer a question, first write a lineage-backed `memory://` note, then answer using that note and include its `memory://` URI in the response.
 
 ## Concept Tagging
@@ -166,6 +166,8 @@ Anti-patterns (silently normalized but avoid):
 Example: `Fixed [[null-reference-exception]] in [[authentication]] using [[JWT]]`
 
 ## Quick Reference
+
+> **Note:** All tools accept an optional `learn` parameter (boolean, default: `false`). Set `learn: true` to return inline help documentation for that tool instead of executing it.
 
 ### Memory Tools
 
@@ -210,7 +212,7 @@ For detailed documentation: [analyzeconceptcorruption](./usage/analyzeconceptcor
 |------|---------|----------------|
 | **workflow** | Multi-step methodology orchestration | `workflowId`, `sessionId`, `response`, `status`, `conclusion` |
 | **sequentialthinking** | Persistent thought sessions with branching | `response`, `thoughtNumber`, `totalThoughts`, `nextThoughtNeeded`, `sessionId` |
-| **assumptionledger** | Track and validate assumptions | `action`, `assumption`, `confidence`, `context` |
+| **assumptionledger** | Track and validate assumptions | `action`, `assumption`, `concepts`, `confidence`, `context` |
 
 **Critical**: `response` and `conclusion` MUST include `[[WikiLinks]]` for graph integration.
 
@@ -226,7 +228,7 @@ For detailed documentation: [workflow](./usage/workflow.md), [sequentialthinking
 | **getconfig** | View system configuration | (no params) |
 | **gethelp** | Load tool documentation | `toolName` |
 | **memorystatus** | System statistics and health | (no params) |
-| **recentactivity** | Monitor activity with time filtering | `filter`, `timespan`, `limit` |
+| **recentactivity** | Monitor activity with time filtering | `filter`, `includeContent`, `limit`, `timespan` |
 | **updateassets** | Refresh assets after upgrades | `dryRun=true` |
 
 For detailed documentation: [adopt](./usage/adopt.md), [listassets](./usage/listassets.md), [readmcpresource](./usage/readmcpresource.md), [getconfig](./usage/getconfig.md), [gethelp](./usage/gethelp.md), [memorystatus](./usage/memorystatus.md), [recentactivity](./usage/recentactivity.md), [updateassets](./usage/updateassets.md)

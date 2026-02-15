@@ -70,6 +70,7 @@ knowledge-document (memory)
 - `active`: In progress, can continue
 - `completed`: Finished successfully
 - `cancelled`: Explicitly cancelled
+- `abandoned`: Session timed out after prolonged inactivity
 
 ## Integration
 

@@ -24,28 +24,10 @@ Loads complete tool documentation from `~/maenifold/assets/usage/tools/{toolname
 }
 ```
 
-## Available Tools
-
-**Memory**: BuildContext, DeleteMemory, EditMemory, ExtractConceptsFromFile, MoveMemory, ReadMemory, SearchMemories, WriteMemory
-
-**System**: GetConfig, GetHelp, ListMemories, MemoryStatus, RecentActivity, Sync
-
-**Thinking**: SequentialThinking, Workflow
-
-**Resource**: ListAssets, ReadMcpResource
-
-**Visualization**: Visualize
-
-## Integration
-
-- **SequentialThinking**: Access tool docs during multi-step analysis
-- **Workflow**: Understand tool capabilities in workflow steps
-- **WriteMemory**: Reference GetHelp in response hints
-
 ## Troubleshooting
 
 **Error: "No help file found for tool: [ToolName]"**
-→ Check available tools list above. Tool names are case-sensitive.
+→ Tool names are case-insensitive.
 
 **Missing documentation for new tools**
 → Help files are managed in the maenifold source repository under `src/assets/usage/tools/` (250-line limit)

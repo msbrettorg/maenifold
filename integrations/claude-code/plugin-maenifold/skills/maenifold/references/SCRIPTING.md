@@ -485,7 +485,7 @@ for U in $URIS; do $BIN --tool ReadMemory --payload "{\"identifier\":\"$U\"}" | 
 **Self-RAG/Reflective (SequentialThinking + AssumptionLedger)**
 ```bash
 $BIN --tool SequentialThinking --payload '{"response":"Investigating [[rag-fusion]] gaps","thoughtNumber":1,"totalThoughts":2,"nextThoughtNeeded":true}'
-$BIN --tool AssumptionLedger --payload '{"assumption":"RRF k=60 is adequate for [[rag-fusion]]","action":"append"}'
+$BIN --tool AssumptionLedger --payload '{"assumption":"RRF k=60 is adequate for [[rag-fusion]]","action":"append","concepts":["rag-fusion"]}'
 ```
 
 **Routing (Workflow)**

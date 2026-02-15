@@ -464,7 +464,7 @@ $BIN --tool SearchMemories --payload '{"query":"recency decay","mode":"Hybrid","
 
 **Query Expansion (FindSimilarConcepts)**
 ```bash
-$BIN --tool FindSimilarConcepts --payload '{"conceptName":"recency","limit":10}'
+$BIN --tool FindSimilarConcepts --payload '{"conceptName":"recency","maxResults":10}'
 ```
 
 **RAG with Memory (RecentActivity)**
@@ -485,7 +485,7 @@ for U in $URIS; do $BIN --tool ReadMemory --payload "{\"identifier\":\"$U\"}" | 
 **Self-RAG/Reflective (SequentialThinking + AssumptionLedger)**
 ```bash
 $BIN --tool SequentialThinking --payload '{"response":"Investigating [[rag-fusion]] gaps","thoughtNumber":1,"totalThoughts":2,"nextThoughtNeeded":true}'
-$BIN --tool AssumptionLedger --payload '{"assumption":"RRF k=60 is adequate for [[rag-fusion]]","action":"record"}'
+$BIN --tool AssumptionLedger --payload '{"assumption":"RRF k=60 is adequate for [[rag-fusion]]","action":"append"}'
 ```
 
 **Routing (Workflow)**

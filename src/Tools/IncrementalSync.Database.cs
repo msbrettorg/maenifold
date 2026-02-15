@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Maenifold.Utils;
 
@@ -75,50 +74,20 @@ public partial class IncrementalSyncTools
 
     private static void RemoveFileFromGraph(SqliteConnection conn, string memoryUri)
     {
-        var edges = conn.Query<(string conceptA, string conceptB, string files)>(
-            "SELECT concept_a, concept_b, source_files FROM concept_graph");
+        var affectedEdges = conn.Query<(string a, string b)>(
+            "SELECT concept_a, concept_b FROM concept_graph_files WHERE source_file = @file",
+            new { file = memoryUri });
 
-        foreach (var (conceptA, conceptB, files) in edges)
+        conn.Execute("DELETE FROM concept_graph_files WHERE source_file = @file", new { file = memoryUri });
+
+        foreach (var (a, b) in affectedEdges)
         {
-            if (string.IsNullOrWhiteSpace(files))
-            {
-                continue;
-            }
-
-            List<string>? fileList;
-            try
-            {
-                fileList = JsonSerializer.Deserialize<List<string>>(files, SafeJson.Options);
-            }
-            catch
-            {
-                fileList = null;
-            }
-
-            if (fileList == null || !fileList.Remove(memoryUri))
-            {
-                continue;
-            }
-
-            if (fileList.Count == 0)
-            {
-                conn.Execute(
-                    "DELETE FROM concept_graph WHERE concept_a = @a AND concept_b = @b",
-                    new { a = conceptA, b = conceptB });
-            }
-            else
-            {
-                conn.Execute(
-                    "UPDATE concept_graph SET co_occurrence_count = @count, source_files = @files WHERE concept_a = @a AND concept_b = @b",
-                    new
-                    {
-                        a = conceptA,
-                        b = conceptB,
-                        count = fileList.Count,
-                        files = JsonSerializer.Serialize(fileList)
-                    });
-            }
+            conn.Execute(
+                "UPDATE concept_graph SET co_occurrence_count = (SELECT COUNT(*) FROM concept_graph_files WHERE concept_a = @a AND concept_b = @b) WHERE concept_a = @a AND concept_b = @b",
+                new { a, b });
         }
+
+        conn.Execute("DELETE FROM concept_graph WHERE co_occurrence_count = 0");
     }
 
     private static long? GetFileRowId(SqliteConnection conn, string memoryUri)
@@ -152,28 +121,17 @@ public partial class IncrementalSyncTools
                     ? (concepts[i], concepts[j])
                     : (concepts[j], concepts[i]);
 
-                var existing = conn.QuerySingle<(int count, string files)?>(
-                    "SELECT co_occurrence_count, source_files FROM concept_graph WHERE concept_a = @a AND concept_b = @b",
+                conn.Execute(
+                    "INSERT OR IGNORE INTO concept_graph (concept_a, concept_b, co_occurrence_count) VALUES (@a, @b, 0)",
                     new { a, b });
 
-                List<string> fileList = existing?.files != null
-                    ? JsonSerializer.Deserialize<List<string>>(existing.Value.files, SafeJson.Options) ?? new List<string>()
-                    : new List<string>();
-
-                if (!fileList.Contains(memoryUri))
-                {
-                    fileList.Add(memoryUri);
-                }
+                conn.Execute(
+                    "INSERT OR IGNORE INTO concept_graph_files (concept_a, concept_b, source_file) VALUES (@a, @b, @file)",
+                    new { a, b, file = memoryUri });
 
                 conn.Execute(
-                    "INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files) VALUES (@a, @b, @count, @files)",
-                    new
-                    {
-                        a,
-                        b,
-                        count = fileList.Count,
-                        files = JsonSerializer.Serialize(fileList)
-                    });
+                    "UPDATE concept_graph SET co_occurrence_count = (SELECT COUNT(*) FROM concept_graph_files WHERE concept_a = @a AND concept_b = @b) WHERE concept_a = @a AND concept_b = @b",
+                    new { a, b });
             }
         }
     }

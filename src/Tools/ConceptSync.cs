@@ -2,20 +2,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using Maenifold.Utils;
 using Microsoft.Data.Sqlite;
 
 namespace Maenifold.Tools;
-
-// CA1812: EdgeData is instantiated via JSON/Dapper deserialization, not direct construction
-#pragma warning disable CA1812
-internal sealed class EdgeData
-#pragma warning restore CA1812
-{
-    public long co_occurrence_count { get; set; }
-    public string source_files { get; set; } = "";
-}
 
 public static class ConceptSync
 {
@@ -143,25 +133,21 @@ public static class ConceptSync
                     var rowId = conn.QuerySingle<long?>("SELECT rowid FROM file_content WHERE file_path = @path", new { path = filePath });
 
                     conn.Execute("DELETE FROM concept_mentions WHERE source_file = @file", new { file = filePath });
-                    var edges = conn.Query<(string a, string b, string files)>(
-                        "SELECT concept_a, concept_b, source_files FROM concept_graph WHERE source_files LIKE @pattern",
-                        new { pattern = $"%{filePath}%" });
 
-                    foreach (var edge in edges)
+                    // Gather affected edges, remove from junction table, update only those edges
+                    var affectedEdges = conn.Query<(string a, string b)>(
+                        "SELECT concept_a, concept_b FROM concept_graph_files WHERE source_file = @file",
+                        new { file = filePath });
+
+                    conn.Execute("DELETE FROM concept_graph_files WHERE source_file = @file", new { file = filePath });
+
+                    foreach (var (a, b) in affectedEdges)
                     {
-                        var fileList = JsonSerializer.Deserialize<List<string>>(edge.files, SafeJson.Options) ?? new();
-                        fileList.Remove(filePath);
-
-                        if (fileList.Count == 0)
-                        {
-                            conn.Execute("DELETE FROM concept_graph WHERE concept_a = @a AND concept_b = @b", new { a = edge.a, b = edge.b });
-                        }
-                        else
-                        {
-                            conn.Execute("UPDATE concept_graph SET co_occurrence_count = @count, source_files = @files WHERE concept_a = @a AND concept_b = @b",
-                                new { count = fileList.Count, files = JsonSerializer.Serialize(fileList), a = edge.a, b = edge.b });
-                        }
+                        conn.Execute(
+                            "UPDATE concept_graph SET co_occurrence_count = (SELECT COUNT(*) FROM concept_graph_files WHERE concept_a = @a AND concept_b = @b) WHERE concept_a = @a AND concept_b = @b",
+                            new { a, b });
                     }
+                    conn.Execute("DELETE FROM concept_graph WHERE co_occurrence_count = 0");
                     if (vectorReady)
                     {
                         try
@@ -259,26 +245,18 @@ public static class ConceptSync
             for (int j = i + 1; j < concepts.Length; j++)
             {
                 var (a, b) = string.CompareOrdinal(concepts[i], concepts[j]) < 0 ? (concepts[i], concepts[j]) : (concepts[j], concepts[i]);
-                var existingData = conn.Query<EdgeData>("SELECT co_occurrence_count, source_files FROM concept_graph WHERE concept_a = @a AND concept_b = @b",
-                                new { a, b }).FirstOrDefault();
 
-                if (existingData != null)
-                {
-                    var files = JsonSerializer.Deserialize<List<string>>(existingData.source_files, SafeJson.Options) ?? new();
+                ExecuteInsert(conn, "INSERT OR IGNORE INTO concept_graph (concept_a, concept_b, co_occurrence_count) VALUES (@a, @b, 0)",
+                    new { a, b });
 
-                    if (!files.Contains(memoryUri))
-                    {
-                        files.Add(memoryUri);
-                        conn.Execute("UPDATE concept_graph SET co_occurrence_count = @count, source_files = @files WHERE concept_a = @a AND concept_b = @b",
-                            new { count = files.Count, files = JsonSerializer.Serialize(files), a, b });
-                    }
-                }
-                else
-                {
-                    ExecuteInsert(conn, "INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files) VALUES (@a, @b, @count, @files)",
-                        new { a, b, count = 1, files = JsonSerializer.Serialize(new[] { memoryUri }) });
-                    stats.relationsCreated++;
-                }
+                ExecuteInsert(conn, "INSERT OR IGNORE INTO concept_graph_files (concept_a, concept_b, source_file) VALUES (@a, @b, @file)",
+                    new { a, b, file = memoryUri });
+
+                conn.Execute(
+                    "UPDATE concept_graph SET co_occurrence_count = (SELECT COUNT(*) FROM concept_graph_files WHERE concept_a = @a AND concept_b = @b) WHERE concept_a = @a AND concept_b = @b",
+                    new { a, b });
+
+                stats.relationsCreated++;
             }
         return stats;
     }

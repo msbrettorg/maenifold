@@ -18,7 +18,7 @@ public class WikiLinkFilterIntegrationTests
         Directory.CreateDirectory(_testFolderPath);
 
         // Write a test filter file blocking "tool" and "agent"
-        File.WriteAllText(_filterPath, "tool | Generic hub - too connected\nagent | Generic hub - too connected\n");
+        File.WriteAllText(_filterPath, """{"tool": "Generic hub - too connected", "agent": "Generic hub - too connected"}""");
     }
 
     [TearDown]
@@ -79,7 +79,7 @@ public class WikiLinkFilterIntegrationTests
         Assert.That(writeResult, Does.StartWith("Created memory FILE:"));
 
         // Re-create the filter file
-        File.WriteAllText(_filterPath, "tool | Generic hub - too connected\nagent | Generic hub - too connected\n");
+        File.WriteAllText(_filterPath, """{"tool": "Generic hub - too connected", "agent": "Generic hub - too connected"}""");
 
         // Now attempt to edit with a filtered concept
         var uri = "memory://wikilink-filter-integration-tests/edit-filter-test";

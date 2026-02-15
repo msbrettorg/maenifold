@@ -14,7 +14,7 @@
     {
       "id": "hub-detection",
       "name": "Hub Detection (Graph Analysis)",
-      "description": "Identify high-degree hub concepts that pollute BuildContext results.\n\n1. Query graph for high-degree concepts using build_context with depth=1 on suspected generic terms\n2. Use find_similar_concepts to discover concept families and measure connection breadth\n3. Cross-reference results with existing .wikilink-filter file (read it if it exists)\n4. Classify each high-degree concept:\n   - Generic hubs (e.g., \"tool\", \"agent\", \"workflow\") that connect to many unrelated memories -> recommend for filter\n   - Specific concepts with legitimately many connections -> keep\n5. Create classified list of hub candidates with connection counts and recommendation\n\nOutput: Classified list of hub candidates with connection counts and recommendation\nInclude: Concept name, degree count, classification (generic-hub / legitimate), reason\n\nCRITICAL: Do NOT use read_memory - this phase is observation-only to preserve decay integrity.",
+      "description": "Identify high-degree hub concepts that pollute BuildContext results.\n\n1. Query graph for high-degree concepts using build_context with depth=1 on suspected generic terms\n2. Use find_similar_concepts to discover concept families and measure connection breadth\n3. Cross-reference results with existing .wikilink-filter.json file (read it if it exists)\n4. Classify each high-degree concept:\n   - Generic hubs (e.g., \"tool\", \"agent\", \"workflow\") that connect to many unrelated memories -> recommend for filter\n   - Specific concepts with legitimately many connections -> keep\n5. Create classified list of hub candidates with connection counts and recommendation\n\nOutput: Classified list of hub candidates with connection counts and recommendation\nInclude: Concept name, degree count, classification (generic-hub / legitimate), reason\n\nCRITICAL: Do NOT use read_memory - this phase is observation-only to preserve decay integrity.",
       "requiresEnhancedThinking": false,
       "metadata": {
         "toolHints": {
@@ -33,7 +33,7 @@
           "High-degree concepts identified",
           "Each candidate classified as generic-hub or legitimate",
           "Connection counts recorded",
-          "Cross-referenced with existing .wikilink-filter"
+          "Cross-referenced with existing .wikilink-filter.json"
         ],
         "next_actions": [
           "Hub cleanup"
@@ -46,26 +46,25 @@
     },
     {
       "id": "hub-cleanup",
-      "name": "Hub Cleanup (Filter & Repair)",
-      "description": "Apply filter updates and clean existing files for confirmed hub concepts.\n\n1. For confirmed generic hubs from the detection step:\n   a. Append each confirmed hub to the .wikilink-filter file (one per line, pipe-delimited with reason)\n   b. Run repair_concepts with dryRun=true first to preview what would change (canonicalConcept=\"\" to strip brackets)\n   c. Show dry run results to validate the scope of changes\n   d. Apply repair_concepts for real to strip hub WikiLinks from memory files\n2. Run sync to rebuild the graph without the filtered hub concepts\n3. Compile cleanup report with: hubs filtered, files modified, WikiLinks removed\n\nOutput: Return cleanup report as workflow output - DO NOT write to memory://\nInclude: Hubs added to filter, dry run preview, files modified, sync result\n\nCRITICAL: Do NOT use read_memory - repair tools modify source files directly. Always dryRun first.",
-      "requiresEnhancedThinking": true,
+      "name": "Hub Cleanup (Filter & Strip)",
+      "description": "Apply filter updates and strip hub WikiLinks from existing memory files.\n\n1. For confirmed generic hubs from the detection step:\n   a. Read the existing .wikilink-filter.json (or start with {})\n   b. Add each confirmed hub as a key with the reason as value\n   c. Write the updated .wikilink-filter.json\n2. Strip hub WikiLinks from ALL memory files using the CLI one-liner:\n   ```\n   jq -r 'keys[]' ~/.wikilink-filter.json | while read c; do find ~/maenifold/memory -name '*.md' -exec sed -i '' \"s/\\[\\[$c\\]\\]/$c/g\" {} +; done\n   ```\n   This replaces [[concept]] with plain text concept across all memory files.\n3. Run sync to rebuild the graph without the stripped hub concepts\n4. Compile cleanup report with: hubs filtered, files modified, WikiLinks stripped\n\nOutput: Return cleanup report as workflow output - DO NOT write to memory://\n\nCRITICAL: Do NOT use read_memory. The sed one-liner does the work - no LLM needed for stripping.",
+      "requiresEnhancedThinking": false,
       "metadata": {
         "toolHints": {
-          "repair_concepts": {
-            "reason": "Strip hub WikiLinks from memory files using canonicalConcept=\"\"",
+          "Bash": {
+            "reason": "Run the sed one-liner to strip hub WikiLinks from memory files",
             "priority": "mandatory",
-            "dryRun": true
+            "command": "jq -r 'keys[]' ~/maenifold/memory/.wikilink-filter.json | while read c; do find ~/maenifold/memory -name '*.md' -exec sed -i '' \"s/\\[\\[$c\\]\\]/$c/g\" {} +; done"
           },
           "sync": {
-            "reason": "Rebuild graph after hub WikiLinks are stripped and filter updated",
+            "reason": "Rebuild graph after hub WikiLinks are stripped",
             "priority": "mandatory"
           }
         },
-        "reasoning_effort": "medium",
+        "reasoning_effort": "low",
         "stop_conditions": [
-          "Confirmed hubs appended to .wikilink-filter",
-          "Dry run previewed and validated",
-          "Repairs applied for confirmed hubs",
+          "Confirmed hubs written to .wikilink-filter.json",
+          "sed one-liner executed to strip WikiLinks from files",
           "Graph rebuilt via sync",
           "Report returned as output"
         ],
@@ -73,11 +72,9 @@
           "Return report to orchestrator"
         ],
         "guardrails": {
-          "no_read_memory": "NEVER use read_memory - graph tools do not need file content",
+          "no_read_memory": "NEVER use read_memory - sed handles file modifications directly",
           "no_write_memory": "NEVER use write_memory - cleanup reports are ephemeral, return as output",
-          "dry_run_first": "Always preview repairs with dryRun=true before applying",
-          "filter_format": "Each .wikilink-filter entry: concept|reason (pipe-delimited, one per line)",
-          "hub_threshold": "Only filter concepts classified as generic-hub in detection step"
+          "filter_format": ".wikilink-filter.json is a JSON object: {\"concept\": \"reason\", ...}"
         }
       }
     }

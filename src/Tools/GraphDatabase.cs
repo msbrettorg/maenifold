@@ -95,13 +95,23 @@ public static class GraphDatabase
                 concept_a TEXT NOT NULL,
                 concept_b TEXT NOT NULL,
                 co_occurrence_count INTEGER,
-                source_files TEXT,
                 PRIMARY KEY (concept_a, concept_b),
                 FOREIGN KEY (concept_a) REFERENCES concepts(concept_name) ON DELETE CASCADE,
                 FOREIGN KEY (concept_b) REFERENCES concepts(concept_name) ON DELETE CASCADE
             )");
 
         conn.Execute("CREATE INDEX IF NOT EXISTS idx_graph_concept_b ON concept_graph(concept_b)");
+
+        conn.Execute(@"
+            CREATE TABLE IF NOT EXISTS concept_graph_files (
+                concept_a TEXT NOT NULL,
+                concept_b TEXT NOT NULL,
+                source_file TEXT NOT NULL,
+                PRIMARY KEY (concept_a, concept_b, source_file),
+                FOREIGN KEY (concept_a, concept_b) REFERENCES concept_graph(concept_a, concept_b) ON DELETE CASCADE
+            )");
+
+        conn.Execute("CREATE INDEX IF NOT EXISTS idx_graph_files_by_source ON concept_graph_files(source_file)");
     }
 
     private static void CreateVectorTables(SqliteConnection conn)

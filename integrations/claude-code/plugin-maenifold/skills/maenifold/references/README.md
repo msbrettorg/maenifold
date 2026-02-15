@@ -727,11 +727,11 @@ In Claude Code, the skill should load automatically when you mention:
 - [Main README](https://github.com/msbrettorg/maenifold/blob/main/README.md) - Project overview and quick start
 - [Full Documentation](https://github.com/msbrettorg/maenifold/blob/main/docs/README.md) - Architecture and examples
 - [GitHub Releases](https://github.com/msbrettorg/maenifold/releases) - Download binaries
-- [SKILL.md](./SKILL.md) - Skill usage and tool reference
+- [SKILL.md](../SKILL.md) - Skill usage and tool reference
 
 ## Tool Reference
 
-For detailed tool documentation, see the `references/` directory:
+For detailed tool documentation, see the `usage/` directory:
 
 | Category | Tools |
 |----------|-------|
@@ -739,4 +739,4 @@ For detailed tool documentation, see the `references/` directory:
 | Graph | `buildcontext`, `findsimilarconcepts`, `visualize`, `sync`, `extractconceptsfromfile` |
 | Repair | `analyzeconceptcorruption`, `repairconcepts` |
 | Reasoning | `workflow`, `sequentialthinking`, `assumptionledger` |
-| System | `adopt`, `getconfig`, `gethelp`, `memorystatus`, `recentactivity`, `updateassets` |
+| System | `adopt`, `getconfig`, `gethelp`, `listassets`, `memorystatus`, `readmcpresource`, `recentactivity`, `updateassets` |

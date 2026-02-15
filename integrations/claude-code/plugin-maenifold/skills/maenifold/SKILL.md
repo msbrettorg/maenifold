@@ -1,6 +1,6 @@
 ---
 name: maenifold
-description: This skill should be used when the user asks to "write memory", "read memory", "search memories", "edit memory", "delete memory", "move memory", "list memories", "build context", "find similar concepts", "visualize graph", "sync graph", "repair concepts", "analyze concept corruption", "extract concepts", "run workflow", "start workflow", "sequential thinking", "think through", "track assumptions", "assumption ledger", "adopt role", "adopt color", "six thinking hats", "get config", "get help", "memory status", "recent activity", "update assets", mentions "[[WikiLinks]]", "knowledge graph", "memory://", "ma:" tools, or any maenifold knowledge graph and reasoning operations.
+description: This skill should be used when the user asks to "write memory", "read memory", "search memories", "edit memory", "delete memory", "move memory", "list memories", "build context", "find similar concepts", "visualize graph", "sync graph", "repair concepts", "analyze concept corruption", "extract concepts", "run workflow", "start workflow", "sequential thinking", "think through", "track assumptions", "assumption ledger", "adopt role", "adopt color", "six thinking hats", "get config", "get help", "memory status", "recent activity", "update assets", "list assets", "read resource", mentions "[[WikiLinks]]", "knowledge graph", "memory://", or any maenifold knowledge graph and reasoning operations.
 ---
 
 # Understand and Leverage Maenifold
@@ -57,7 +57,7 @@ Opportunistically leverage maenifold's full cognitive stack to maximize effectiv
 
 ### Persistence of Thought
 
-Subagents are ephemeral. Use maenifold's memory:// tool to store important notes, decisions, and artifacts for future retrieval. Use `sequentialthinking` to capture thought processes and reasoning steps. Set initialThoughts to 0 and do not specify a session ID—the tool will provide the session ID automatically. Use that session ID to continue the session in future interactions.
+Subagents are ephemeral. Use maenifold's memory:// tool to store important notes, decisions, and artifacts for future retrieval. Use `sequentialthinking` to capture thought processes and reasoning steps. Set `totalThoughts` to the initial estimate of thoughts needed and do not specify a session ID—the tool will provide the session ID automatically. Use that session ID to continue the session in future interactions.
 
 All agents have access to all maenifold tools and can collaborate within the same `sequentialthinking` sessions. All agents are ephemeral, but with `sequentialthinking` thought processes persist across sessions and build a graph on thought which compounds over time with institutional memory. Leverage this capability fully, but create signal, not noise.
 

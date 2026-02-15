@@ -1,6 +1,6 @@
 # AnalyzeConceptCorruption
 
-⚠️ **MUST USE BEFORE RepairConcepts.** Read-only diagnostic revealing `[[WikiLink]]` families and variants for safe consolidation planning.
+**MUST USE BEFORE RepairConcepts.** Read-only diagnostic revealing `[[WikiLink]]` families and variants for safe consolidation planning.
 
 ## Parameters
 
@@ -49,12 +49,12 @@ Fix plural forms:
 
 ## Output Interpretation
 
-### ✅ Safe to Merge
+### Safe to Merge
 - **Singular/Plural**: `[[tool]]` vs `[[tools]]` - Standardize on singular
 - **Case Variations**: `[[MCP]]` vs `[[mcp]]` - Standardize casing
 - **Whitespace**: `[[AI agent]]` vs `[[AI-agent]]` - Consolidate if semantically identical
 
-### 🚨 DANGEROUS to Merge
+### DANGEROUS to Merge
 - **File Paths**: `[[GraphTools.cs]]` - FILE REFERENCES, not concepts
 - **Class Names**: `[[VectorTools]]` - CODE ENTITIES, merging with `[[tool]]` destroys meaning
 - **Compound Forms**: `[[coding-agent]]` - SPECIFIC TYPES, not generic `[[agent]]`
@@ -101,7 +101,7 @@ Fix plural forms:
 
 ## Integration
 
-- **RepairConcepts**: ⚠️ ONLY after analysis - makes actual file changes
+- **RepairConcepts**: ONLY after analysis - makes actual file changes
 - **Sync**: Run after repairs to rebuild graph
 - **BuildContext**: Explore concept relationships before consolidation
 - **SearchMemories**: Find concept usage context

@@ -33,4 +33,4 @@ Refreshes `~/maenifold/assets/` from packaged assets after maenifold upgrades.
 ## Integration
 
 - **GetConfig**: Check asset paths before update
-- **AssetManager**: Source of packaged assets
+- **Packaged assets**: UpdateAssets copies the latest bundled assets from the maenifold binary into your local assets directory

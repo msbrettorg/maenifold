@@ -1,93 +1,177 @@
-# Sequential Thinking
+# SequentialThinking
 
-A detailed tool for dynamic and reflective problem-solving through thoughts. This tool helps analyze problems through a flexible thinking process that can adapt and evolve. Each thought can build on, question, or revise previous insights as understanding deepens.
+Persistent, branching thought sessions with `[[WikiLink]]` graph integration and markdown file storage.
 
-When to use this tool:
-- Breaking down complex problems into steps
-- Planning and design with room for revision
-- Analysis that might need course correction
-- Problems where the full scope might not be clear initially
-- Problems that require a multi-step solution
-- Tasks that need to maintain context over multiple steps
-- Situations where irrelevant information needs to be filtered out
+## When to Use
 
-Key features:
-- Adjust total_thoughts up or down as needed
-- Question or revise previous thoughts
-- Add more thoughts even after reaching what seemed like the end
-- Express uncertainty and explore alternative approaches
-- Not every thought needs to build linearly - branch or backtrack freely
-- Generates a solution hypothesis
-- Verifies the hypothesis based on the Chain of Thought steps
-- Repeats the process until satisfied
-- Provides a correct answer
-- Supports workflow linking and graph persistence in maenifold
-- Auto-creates `session-{timestamp}` when no sessionId is provided
-- Returns continuation/status text with periodic checkpoint reminders (every 3 thoughts, and on the first thought)
-- New sessions must start at `thoughtNumber=0`; calling with `thoughtNumber=1` without an existing session errors
+- Breaking down complex problems into revisable steps
+- Planning and design with room for course correction
+- Analysis where full scope is unclear initially
+- Multi-step reasoning that must persist across sessions
+- Multi-agent collaboration on shared thought chains
+- Hypothesis generation and verification loops
 
-Parameters explained:
-- response: Main thought content; MUST include [[WikiLinks]] unless cancelling
-- thoughts: Optional meta/ambient notes; also must include [[WikiLinks]] if provided
-- thought: The current thinking step, which can include:
-  * Regular analytical steps
-  * Revisions of previous thoughts
-  * Questions about previous decisions
-  * Realizations about needing more analysis
-  * Changes in approach
-  * Hypothesis generation
-  * Hypothesis verification
-- nextThoughtNeeded: True if more thinking is needed, even if at what seemed like the end
-- thoughtNumber: Current number in sequence (start new sessions at 0; can go beyond initial total if needed)
-- totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)
-- isRevision: A boolean indicating if this thought revises previous thinking
-- revisesThought: If is_revision is true, which thought number is being reconsidered
-- branchFromThought: If branching, which thought number is the branching point
-- branchId: Identifier for the current branch (if any)
-- needsMoreThoughts: If reaching end but realizing more thoughts needed
-- sessionId: Continue an existing session; omit to start a new one
-- analysisType: Optional annotation (bug, architecture, retrospective, complex)
-- parentWorkflowId: Optional; only on thought 1; links to an active workflow and creates a [[workflow/{id}]] back-link
-- conclusion: Required when nextThoughtNeeded is false. Must include [[WikiLinks]] AND confession elements:
+## Parameters
+
+- `response` (string, optional): Main thought content. MUST include `[[WikiLinks]]` unless cancelling. Represents the current thinking step: analysis, revision, question, realization, hypothesis, or verification.
+- `nextThoughtNeeded` (bool, optional): `true` if more thinking is needed (default: `false`). Set `false` only when truly done.
+- `thoughtNumber` (int, optional): Current position in sequence (default: `0`). New sessions MUST start at `0`. Can exceed `totalThoughts` if needed.
+- `totalThoughts` (int, optional): Estimated total thoughts needed (default: `0`). Adjust up or down freely as understanding evolves.
+- `sessionId` (string, optional): Continue an existing session. Omit to auto-create `session-{timestamp}-{random}`. Format must be `session-{unix-milliseconds}[-suffix]`.
+- `cancel` (bool, optional): Cancel the session (default: `false`). Skips `[[WikiLink]]` validation and conclusion requirement.
+- `thoughts` (string, optional): Ambient/meta observations. MUST include `[[WikiLinks]]` if provided.
+- `isRevision` (bool, optional): Marks this thought as revising previous thinking (default: `false`).
+- `revisesThought` (int, optional): Which thought number is being reconsidered. Use with `isRevision=true`.
+- `branchFromThought` (int, optional): Thought number to branch from. Requires `branchId`.
+- `branchId` (string, optional): Identifier for the branch. Required when `branchFromThought` is set (multi-agent safety).
+- `needsMoreThoughts` (bool, optional): Signal that more thoughts are needed beyond `totalThoughts` (default: `false`). Extends displayed total.
+- `analysisType` (string, optional): Annotation label. One of: `"bug"`, `"architecture"`, `"retrospective"`, `"complex"`.
+- `parentWorkflowId` (string, optional): Links session to an active workflow. Only valid on the first thought (`thoughtNumber=0`). Creates a `[[workflow/{id}]]` back-link.
+- `conclusion` (string, optional): Required when `nextThoughtNeeded=false` (unless cancelling). MUST include `[[WikiLinks]]` AND confession elements:
   1. Synthesize findings
-  2. List instruction compliance (✅/❌ with evidence)
+  2. List instruction compliance (check/cross with evidence)
   3. Shortcuts or hacks taken
   4. Risks/uncertainties flagged
-  5. Sources used (memory:// URIs, [[WikiLinks]])
-- cancel: Set to true to cancel a session; skips concept validation and conclusion
-- learn: Set to true to return this help text instead of executing
+  5. Sources used (memory:// URIs, `[[WikiLinks]]`)
+- `learn` (bool, optional): Return help documentation instead of executing (default: `false`).
 
-maenifold specifics:
-- response/thoughts MUST include [[WikiLinks]]; conclusion with [[WikiLinks]] and confession structure is required when nextThoughtNeeded is false
-- Sessions persist to memory://thinking/sequential/{sessionId}.md with agent tag, timestamps, and frontmatter
-- New sessions start at thoughtNumber=0 (sessionId auto-created). thoughtNumber>0 requires the session to exist unless isRevision is true; an existing sessionId with thoughtNumber=1 is rejected unless revising
-- branchId is required when branchFromThought is set (multi-agent safety)
-- parentWorkflowId can be set only on the first thought and must reference an active workflow; creates a [[workflow/{id}]] back-link
-- needsMoreThoughts extends the displayed total when the estimate is exceeded
-- Completion appends the conclusion and sets status=completed; cancel sets status=cancelled
-- Output is a status string (created/added thought plus continuation or completion cues, with checkpoint hints every 3 thoughts and on the first thought)
-- If sessionId is omitted, a new `session-{timestamp}` is created automatically
-- cancel=true skips concept validation and conclusion requirements
+## Returns
 
-Common errors (expect these if violated):
-- Missing [[WikiLinks]] in response/thoughts → `ERROR: Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms'`
-- Missing conclusion when nextThoughtNeeded=false → `ERROR: Conclusion required when completing session...`
-- Conclusion without [[WikiLinks]] → `ERROR: Conclusion must include [[WikiLinks]]...`
-- Invalid sessionId format (must be `session-{unix-milliseconds}`) → `ERROR: Invalid sessionId format...`
-- Providing sessionId on thought 1 when session does not exist → `ERROR: Session {id} not found. To start new session, don't provide sessionId.`
-- Trying thoughtNumber>1 without an existing session → `ERROR: Session {id} missing. Start with thoughtNumber=0.` (use thoughtNumber=0 to create a new session)
-- Branching without branchId → `ERROR: branchId required when branchFromThought is specified...`
-- Parent workflow on thought>1 or missing/closed workflow → corresponding parent workflow errors
+### New session (thoughtNumber=0)
 
-Guidelines:
-1. Start with an initial estimate of needed thoughts, but be ready to adjust
-2. Question or revise previous thoughts freely
-3. Add more thoughts if needed, even at the "end"
-4. Express uncertainty when present
-5. Mark thoughts that revise previous thinking or branch into new paths
-6. Ignore information that is irrelevant to the current step
-7. Generate a solution hypothesis when appropriate
-8. Verify the hypothesis based on the Chain of Thought steps
-9. Repeat the process until satisfied with the solution
-10. Provide a single, ideally correct answer as the final output
-11. Only set nextThoughtNeeded to false when truly done and a satisfactory answer is reached
+```
+Created session: session-1756610546730-48291
+
+💭 Continue with thought 1/5
+💡 **CHECK YOUR MEMORY:** search_memories for what exists and build_context on [[WikiLinks]] | sync new findings to add them to the graph
+```
+
+### Continuation (thoughtNumber > 0)
+
+```
+Added thought 3 to session: session-1756610546730-48291
+
+💭 Continue with thought 4/5
+```
+
+### Completion (nextThoughtNeeded=false)
+
+```
+Added thought 5 to session: session-1756610546730-48291
+
+✅ Thinking complete
+```
+
+### Cancellation (cancel=true)
+
+```
+Added thought 2 to session: session-1756610546730-48291
+
+❌ Thinking cancelled
+```
+
+Checkpoint hints appear on the first thought and every 3 thoughts thereafter.
+
+## Examples
+
+```json
+// Start a new session (omit sessionId)
+{
+  "response": "Analyzing [[authentication]] flow for [[JWT]] token refresh",
+  "nextThoughtNeeded": true,
+  "thoughtNumber": 0,
+  "totalThoughts": 5
+}
+
+// Continue an existing session
+{
+  "sessionId": "session-1756610546730-48291",
+  "response": "The [[token-refresh]] mechanism needs [[rate-limiting]] to prevent abuse",
+  "nextThoughtNeeded": true,
+  "thoughtNumber": 2,
+  "totalThoughts": 5
+}
+
+// Revise a previous thought
+{
+  "sessionId": "session-1756610546730-48291",
+  "response": "Reconsidering [[rate-limiting]] - should use [[sliding-window]] instead of fixed",
+  "nextThoughtNeeded": true,
+  "thoughtNumber": 3,
+  "totalThoughts": 5,
+  "isRevision": true,
+  "revisesThought": 2
+}
+
+// Branch from a thought (multi-agent)
+{
+  "sessionId": "session-1756610546730-48291",
+  "response": "Exploring [[caching]] strategy as alternative to [[rate-limiting]]",
+  "nextThoughtNeeded": true,
+  "thoughtNumber": 3,
+  "totalThoughts": 5,
+  "branchFromThought": 2,
+  "branchId": "T-2.1.2-swe"
+}
+
+// Complete with conclusion
+{
+  "sessionId": "session-1756610546730-48291",
+  "response": "Final verification of [[authentication]] design confirms [[JWT]] approach",
+  "nextThoughtNeeded": false,
+  "thoughtNumber": 5,
+  "totalThoughts": 5,
+  "conclusion": "Determined [[sliding-window]] [[rate-limiting]] for [[JWT]] refresh. ✅ Followed [[authentication]] best practices. No shortcuts. Risk: [[token-revocation]] latency under load. Sources: memory://tech/auth-patterns.md"
+}
+
+// Link to parent workflow
+{
+  "response": "Starting [[architecture]] review linked to active workflow",
+  "nextThoughtNeeded": true,
+  "thoughtNumber": 0,
+  "totalThoughts": 4,
+  "parentWorkflowId": "session-1756610500000-12345",
+  "analysisType": "architecture"
+}
+
+// Cancel a session
+{
+  "sessionId": "session-1756610546730-48291",
+  "cancel": true
+}
+```
+
+## Constraints
+
+- **`[[WikiLinks]]` required**: `response` and `thoughts` MUST contain at least one `[[WikiLink]]` (unless cancelling). `conclusion` MUST also include `[[WikiLinks]]`.
+- **New sessions start at `thoughtNumber=0`**: Calling `thoughtNumber > 0` without an existing session errors.
+- **`sessionId` on `thoughtNumber=0`**: Providing a `sessionId` that does not exist returns a "session not found" error. Omit `sessionId` to auto-create.
+- **`branchId` required with `branchFromThought`**: Branching without a branch identifier errors (multi-agent safety).
+- **`parentWorkflowId` only on first thought**: Setting it on `thoughtNumber > 0` errors. The referenced workflow must exist and be active (not completed/cancelled/abandoned).
+- **`conclusion` required on completion**: When `nextThoughtNeeded=false` and `cancel=false`, `conclusion` must be provided with `[[WikiLinks]]` and the confession structure.
+- **Session ID format**: Must match `session-{unix-milliseconds}[-optional-suffix]`. Invalid formats are rejected.
+- **Session persistence**: Sessions persist to `memory://thinking/sequential/{sessionId}.md` with agent tags, timestamps, and frontmatter.
+
+## Common Errors
+
+| Condition | Error |
+|-----------|-------|
+| No `[[WikiLinks]]` in response/thoughts | `WIKILINK_REQUIRED` |
+| Missing conclusion on completion | `CONCLUSION_REQUIRED` |
+| Conclusion without `[[WikiLinks]]` | `CONCLUSION_WIKILINK_REQUIRED` |
+| Invalid sessionId format | `INVALID_SESSION_ID` |
+| sessionId provided but session not found | `SESSION_NOT_FOUND` |
+| `thoughtNumber > 0` without existing session | `SESSION_MISSING` |
+| `thoughtNumber=0` with existing sessionId (no branch/revision) | `SESSION_EXISTS` |
+| `branchFromThought` without `branchId` | `BRANCH_ID_REQUIRED` |
+| `parentWorkflowId` on `thoughtNumber > 0` | `INVALID_PARENT_WORKFLOW` |
+| `parentWorkflowId` referencing missing workflow | `PARENT_WORKFLOW_NOT_FOUND` |
+| `parentWorkflowId` referencing closed workflow | `PARENT_WORKFLOW_CLOSED` |
+
+## Integration
+
+- **Workflow**: Embedded at workflow steps; link via `parentWorkflowId` for bidirectional references
+- **SearchMemories**: Find existing knowledge before starting a thinking session
+- **BuildContext**: Traverse `[[WikiLinks]]` discovered during thought steps
+- **AssumptionLedger**: Log assumptions before sessions, validate after completion
+- **Sync**: Rebuild graph after completing sessions to index new `[[WikiLinks]]`

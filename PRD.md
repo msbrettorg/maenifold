@@ -16,6 +16,8 @@
 | 1.9 | 2026-02-02 | PM Agent | Added FR-7.10 (multi-agent sleep cycle), FR-7.11 (tool access safety), sub-workflow architecture |
 | 2.0 | 2026-02-14 | Brett | Define hierarchical state machine architecture for Workflow + submachines (SequentialThinking, AssumptionLedger) |
 | 2.1 | 2026-02-15 | PM Agent | Added FR-12.x (OpenCode plugin integration) — parity with Claude Code plugin hooks |
+| 2.2 | 2026-02-15 | Brett | Added FR-13.x (community detection), FR-14.x (sync mtime optimization). Reordered sections. |
+| 3.0 | 2026-02-15 | PM Agent | Added FR-15.x (site rebuild) — full replacement of marketing site with technical documentation site |
 
 ---
 
@@ -89,6 +91,40 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | FR-11.2 | WriteMemory and EditMemory SHALL reject content containing filtered WikiLinks with a descriptive error listing each blocked concept and its reason. | P1 |
 | FR-11.3 | System SHALL provide a hub-detection workflow that discovers high-degree hub concepts, classifies them, and cleans them from existing files via RepairConcepts. | P2 |
 | FR-11.4 | Cognitive Sleep Cycle SHALL run 5 serialized phases: repair → hub-detection → consolidation → epistemic → status. Each phase produces cleaner data for the next. | P2 |
+
+### 3.6 Sync Mtime Optimization (P1)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-14.1 | Sync SHALL compare filesystem mtime against `last_indexed` before reading file contents. If mtime is unchanged, skip the file without reading. | **P1** |
+| FR-14.2 | If mtime differs, Sync SHALL read the file and compare content hash against `file_md5`. If hash is unchanged, update `last_indexed` and skip. | **P1** |
+| FR-14.3 | If hash differs, Sync SHALL process the file (extract concepts, update graph, etc.). | **P1** |
+| FR-14.4 | Each exit condition SHALL be an independent guard clause — no compound conditionals combining mtime and hash checks. | **P1** |
+| FR-14.5 | Incremental sync SHALL use the same mtime → hash → process guard clause chain when processing file change events. | **P1** |
+
+### 3.7 Community Detection (P1)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-13.1 | System SHALL implement Louvain modularity optimization to detect concept communities from `concept_graph` edge weights. | **P1** |
+| FR-13.2 | Community detection SHALL use `co_occurrence_count` as edge weight (file breadth: number of files containing both concepts). No semantic edge augmentation. | **P1** |
+| FR-13.3 | Community assignments SHALL be persisted to a `concept_communities` table with community_id, modularity score, resolution parameter, and detection timestamp. | **P1** |
+| FR-13.4 | Community detection SHALL run automatically during full Sync. | **P1** |
+| FR-13.5 | A database file watcher with debounce SHALL trigger community recomputation after incremental sync activity settles. | **P1** |
+| FR-13.6 | `BuildContext` SHALL use community membership to scope and rank related concepts when community data is available. | **P1** |
+| FR-13.7 | System SHALL gracefully degrade when community data is absent or stale — `BuildContext` falls back to current behavior. | **P1** |
+| FR-13.8 | Community detection SHALL support a configurable resolution parameter (gamma) controlling community granularity. | P2 |
+
+### 3.9 OpenCode Plugin Integration (P1)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-12.1 | Plugin SHALL inject FLARE-pattern graph context into the system prompt at session start: search by repo name + recent activity → extract concepts → BuildContext → inject into `output.system`. | **P1** |
+| FR-12.2 | Plugin SHALL augment Task tool prompts with graph context extracted from `[[WikiLinks]]` in the prompt text (Concept-as-Protocol): extract WikiLinks → normalize → BuildContext for each → append context to `output.args.prompt`. | **P1** |
+| FR-12.3 | Plugin SHALL inject WikiLink tagging guidelines into the compaction prompt so the LLM produces graph-friendly summaries. | **P1** |
+| FR-12.4 | Plugin SHALL extract concepts and key decisions from the conversation during compaction and persist them to maenifold via WriteMemory. | **P1** |
+| FR-12.5 | Plugin SHALL persist compaction summaries to maenifold via SequentialThinking, maintaining a per-project session chain across compactions. | **P1** |
+| FR-12.6 | Plugin SHALL enforce ConfessionReport compliance on subagent task completion: after the task tool returns, inspect the output for "ConfessionReport"; if missing, send a follow-up prompt to the subagent session demanding one, read the response, and append the confession to the task output visible to the parent. | **P1** |
 
 ---
 
@@ -270,28 +306,29 @@ Sleep maintenance must not inadvertently extend content lifetime by triggering a
 
 **Principle**: If you're maintaining something, don't reset its decay clock just by looking at it. Only consolidation (which explicitly promotes content to durable storage) should trigger access boosting.
 
-### 3.6 OpenCode Plugin Integration (P1)
+### 4.4 Sync Mtime Optimization
 
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-12.1 | Plugin SHALL inject FLARE-pattern graph context into the system prompt at session start: search by repo name + recent activity → extract concepts → BuildContext → inject into `output.system`. | **P1** |
-| FR-12.2 | Plugin SHALL augment Task tool prompts with graph context extracted from `[[WikiLinks]]` in the prompt text (Concept-as-Protocol): extract WikiLinks → normalize → BuildContext for each → append context to `output.args.prompt`. | **P1** |
-| FR-12.3 | Plugin SHALL inject WikiLink tagging guidelines into the compaction prompt so the LLM produces graph-friendly summaries. | **P1** |
-| FR-12.4 | Plugin SHALL extract concepts and key decisions from the conversation during compaction and persist them to maenifold via WriteMemory. | **P1** |
-| FR-12.5 | Plugin SHALL persist compaction summaries to maenifold via SequentialThinking, maintaining a per-project session chain across compactions. | **P1** |
-| FR-12.6 | Plugin SHALL enforce ConfessionReport compliance on subagent task completion: after the task tool returns, inspect the output for "ConfessionReport"; if missing, send a follow-up prompt to the subagent session demanding one, read the response, and append the confession to the task output visible to the parent. | **P1** |
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-14.1.1 | Mtime check SHALL use a single `stat()` call per file (no file read). | Required |
+| NFR-14.2.1 | `last_indexed` update on hash-match SHALL NOT trigger full reprocessing (timestamp-only UPDATE). | Required |
+| NFR-14.4.1 | Guard clause ordering SHALL follow: mtime check → hash check → process. Each is an independent `if` + early exit. | Required |
 
-**Rationale**: The Claude Code plugin (`integrations/claude-code/plugin-maenifold/`) provides 4 hook behaviors (session_start, task_augment, pre_compact, subagent_stop) plus an MCP server. The OpenCode plugin must reach behavioral parity using OpenCode's native plugin API (`@opencode-ai/plugin`). OpenCode already provides maenifold as an MCP server via `opencode.json` config, so the plugin only needs the hook behaviors.
+### 4.5 Community Detection
 
-**Reference implementation**: `integrations/claude-code/plugin-maenifold/scripts/hooks.sh`
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-13.1.1 | Louvain SHALL operate in-memory on the full graph loaded from `concept_graph`. No external dependencies. | Required |
+| NFR-13.1.2 | Louvain SHALL support deterministic execution via optional seed parameter (for testing). | Required |
+| NFR-13.2.1 | Edge weights are file breadth (`co_occurrence_count` = number of files containing both concepts). Algorithm SHALL use these weights directly. | Required |
+| NFR-13.3.1 | `concept_communities` table SHALL use `concept_name` as primary key with FK to `concepts` table. | Required |
+| NFR-13.5.1 | DB file watcher debounce interval SHALL be configurable (default: 2000ms). | Required |
+| NFR-13.5.2 | DB file watcher SHALL reuse the existing `FileSystemWatcher` + debounce timer pattern from incremental sync. | Required |
+| NFR-13.5.3 | DB file watcher SHALL NOT trigger during its own write (avoid recomputation loop). | Required |
+| NFR-13.6.1 | `BuildContext` community scoping SHALL NOT add latency when community data is absent (check is a single table lookup). | Required |
+| NFR-13.8.1 | Default resolution parameter (gamma) SHALL be 1.0 with env override (`MAENIFOLD_LOUVAIN_GAMMA`). | Required |
 
----
-
-## 4. Non-Functional Requirements
-
-*(existing sections 4.1–4.3 unchanged)*
-
-### 4.4 OpenCode Plugin
+### 4.7 OpenCode Plugin
 
 | ID | Requirement | Target |
 |----|-------------|--------|
@@ -317,11 +354,13 @@ Sleep maintenance must not inadvertently extend content lifetime by triggering a
 | NFR-12.7.2 | Plugin SHALL degrade gracefully if `maenifold` CLI is not found (log warning, skip hook behavior). | Required |
 | NFR-12.7.3 | Plugin SHALL be a single unified file (`integrations/opencode/plugins/maenifold.ts`) replacing the existing `compaction.ts` and `persistence.ts`. | Required |
 
----
+### Community Detection Design (FR-13.x)
 
-## 5. Design Notes
+**Why structural-only (no semantic edge augmentation):** `co_occurrence_count` is file breadth — the number of distinct files containing both concepts. This is already a strong semantic signal. 50 co-occurrences in 1 file = weight 1. 1 co-occurrence in 50 files = weight 50. Concepts that co-occur across many files are genuinely related across the knowledge base, not just mentioned together in one document.
 
-*(existing design notes unchanged)*
+**DB watcher pattern:** The database file watcher uses the same `FileSystemWatcher` + debounce timer infrastructure as the existing incremental sync file watcher. When the DB file settles after a burst of writes, the debounce timer fires and triggers Louvain recomputation. The watcher skips its own writes to avoid feedback loops.
+
+**Louvain algorithm:** Two-phase iterative modularity optimization (Blondel et al. 2008). Phase 1: local node moving to maximize modularity gain. Phase 2: aggregate communities into super-nodes. Repeat until convergence. O(n log n) in practice.
 
 ### OpenCode Plugin Hook Mapping (FR-12.x)
 
@@ -352,3 +391,132 @@ The Claude Code plugin implements 4 hook behaviors via a bash script. The OpenCo
 - Per-file decay rate configuration (all files in a tier use the same rate).
 - Explicit "pinned" or "no-decay" flags within `memory://` (use external sources instead).
 - OpenCode MCP server configuration (already handled via `opencode.json`, not part of this plugin).
+- Semantic edge augmentation for community detection (ArchRAG-style KNN, cosine reweighting). Structural weights are sufficient; revisit if community quality warrants it.
+- Community-colored Mermaid visualization (follow-up to Visualize tool).
+- Hierarchical community output (dendrogram). Single-level partition only.
+
+---
+
+## 7. Site Rebuild (FR-15.x)
+
+### 7.1 Problem Statement
+
+The current site (`site/`) is a marketing blog that fails to communicate what maenifold is. It leads with animated particle effects, gradient meshes, and aspirational taglines ("Never lose context", "break the conversation boundary") instead of product substance. It contains incorrect installation instructions (`npm install -g` instead of `brew install`), stale numbers (30 workflows vs actual 35+), and buries useful content behind decorative UI. The site's visual identity contradicts the product's Ma philosophy — productive emptiness, restraint, absence as feature.
+
+The site must be rebuilt from scratch as a technical documentation site that matches the README's tone: direct, information-dense, developer-first.
+
+### 7.2 Design Principles
+
+| Principle | Rationale |
+|-----------|-----------|
+| **README is the gold standard** | The root README.md and docs/README.md already nail the tone. The site should read like them, not like a SaaS landing page. |
+| **Ma philosophy applies to the site** | No decorative animations, no gradient meshes, no particle effects. Absence is the feature. |
+| **Dark by default** | Primary audience is developers in terminals. Dark mode is the primary experience; light mode is the alternative. |
+| **Monospace-forward** | CLI tool → code blocks are primary content. Typography should reflect this. |
+| **Mermaid over fake graphs** | The plugin READMEs contain real architecture diagrams in Mermaid. Render those instead of decorative canvas animations. |
+| **Information density over visual spectacle** | Every pixel should communicate product substance. If it doesn't explain what maenifold does, it doesn't belong. |
+| **Correct over pretty** | Install commands, version numbers, workflow counts, platform support — all must match the actual product. |
+
+### 7.3 Functional Requirements — Site Structure
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-15.1 | Site SHALL consist of exactly 5 routes: `/` (home), `/docs` (architecture + how it works), `/plugins` (Claude Code plugin setup), `/tools` (tool reference), `/workflows` (workflow catalog). | **P0** |
+| FR-15.2 | Home page SHALL lead with the product description from README.md line 16: "Context engineering infrastructure for AI agents." — not a tagline or marketing copy. | **P0** |
+| FR-15.3 | Home page SHALL display correct installation commands: `brew install msbrettorg/tap/maenifold` for macOS/Linux, GitHub Releases link for Windows. | **P0** |
+| FR-15.4 | Home page SHALL display the MCP configuration JSON block from README.md with a copy-to-clipboard button. | **P0** |
+| FR-15.5 | Home page SHALL display 3 CLI examples (WriteMemory, SearchMemories, BuildContext) from README.md with copy-to-clipboard buttons. | **P0** |
+| FR-15.6 | Home page SHALL display the 6-layer cognitive stack diagram from plugin-maenifold README.md, rendered as a Mermaid diagram (not a static image). | **P1** |
+| FR-15.7 | Home page SHALL display the platform support table from README.md (macOS, Linux, Windows with binary variants). | **P0** |
+| FR-15.8 | Home page SHALL link to: Docs, Plugins, Tools, Workflows, GitHub repository. No other navigation. | **P0** |
+| FR-15.9 | `/docs` page SHALL present content from docs/README.md: theoretical foundations, how it works (sequential thinking, workflows, hybrid search, lazy graph, memory lifecycle), the cognitive stack, cognitive assets, key capabilities, technical specifications. | **P1** |
+| FR-15.10 | `/plugins` page SHALL present content from both plugin READMEs: plugin-maenifold (base MCP server, skill, installation, MCP config for Claude Code/Desktop/Codex/Continue/Cline) and plugin-product-team (multi-agent orchestration, hook system, wave-based execution). | **P1** |
+| FR-15.11 | `/tools` page SHALL be a data-driven catalog generated from `src/assets/usage/tools/*.md` files, listing all tools with descriptions and usage documentation. | **P1** |
+| FR-15.12 | `/workflows` page SHALL be a data-driven catalog generated from `src/assets/workflows/*.json` files, listing all workflows with descriptions, step counts, and metadata. | **P1** |
+| FR-15.13 | All Mermaid diagram blocks in source content SHALL be rendered as interactive SVG diagrams on the site. | **P1** |
+| FR-15.14 | The real knowledge graph screenshot (`docs/branding/graph.jpeg`) SHALL appear once on the home page, captioned, not as a decorative background. | **P2** |
+
+### 7.4 Functional Requirements — Content Accuracy
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-15.20 | All installation commands SHALL match the current README.md exactly. No `npm install` instructions. | **P0** |
+| FR-15.21 | Workflow count SHALL be dynamically derived from the workflow JSON files at build time, not hardcoded. | **P1** |
+| FR-15.22 | Tool count SHALL be dynamically derived from the tool usage markdown files at build time, not hardcoded. | **P1** |
+| FR-15.23 | Version number displayed in the footer SHALL be dynamically derived from the latest git tag or package.json at build time, not hardcoded. | **P1** |
+| FR-15.24 | Platform support table SHALL match README.md exactly (osx-arm64, osx-x64, linux-x64, linux-arm64, win-x64). | **P0** |
+
+### 7.5 Functional Requirements — Interaction
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-15.30 | All code blocks SHALL have a copy-to-clipboard button. | **P0** |
+| FR-15.31 | Site SHALL support dark mode (default) and light mode via toggle. User preference SHALL persist in localStorage. | **P0** |
+| FR-15.32 | Navigation SHALL be a flat horizontal bar: logo, page links (Docs, Plugins, Tools, Workflows), dark/light toggle, GitHub link. No dropdowns. | **P0** |
+| FR-15.33 | Site SHALL be fully navigable via keyboard (WCAG 2.4.1 skip link, focus indicators). | **P1** |
+| FR-15.34 | Site SHALL respect `prefers-reduced-motion` (though there should be nothing to reduce). | **P2** |
+
+### 7.6 Non-Functional Requirements — Site
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-15.1 | Site SHALL deploy as static HTML to GitHub Pages via `next build` + `next export` (output: `out/`). | Required |
+| NFR-15.2 | Site SHALL use Next.js (current: 16), Tailwind CSS (current: 4), React (current: 19). No framework change. | Required |
+| NFR-15.3 | Site SHALL NOT include any canvas-based animations, gradient mesh backgrounds, particle effects, or decorative motion. | Required |
+| NFR-15.4 | Site SHALL NOT include `@headlessui/react` or any dropdown/modal component library. | Required |
+| NFR-15.5 | Site SHALL include `shiki` for syntax-highlighted code blocks. | Required |
+| NFR-15.6 | Site SHALL include a Mermaid rendering solution (client-side or build-time pre-render). | Required |
+| NFR-15.7 | Total CSS for the site SHALL be under 200 lines (excluding Tailwind utilities). Custom animation CSS is prohibited. | Required |
+| NFR-15.8 | Lighthouse performance score SHALL be 95+ on mobile. | Target |
+| NFR-15.9 | Site SHALL load no JavaScript for users with JS disabled (static HTML with CSS-only dark mode fallback). | Target |
+| NFR-15.10 | All page content SHALL be server-rendered at build time (no client-side data fetching). | Required |
+
+### 7.7 What Gets Deleted
+
+The following files/components from the current site SHALL be removed entirely (not refactored):
+
+| File | Reason |
+|------|--------|
+| `app/components/AnimatedGraph.tsx` | 270-line decorative canvas animation |
+| `app/components/AnimatedText.tsx` | Decorative text animation |
+| `app/components/GlassCard.tsx` + `GlassCard.css` | Glassmorphism marketing component |
+| `app/components/RippleButton.tsx` | Decorative button effect |
+| `app/components/NetworkBackground.tsx` | Decorative background |
+| `app/use-cases/` (all 5 files) | Marketing use-case pages — content lives in docs/BOOTSTRAP.md |
+| `app/docs/philosophy/` | Philosophy lives in docs/MA_MANIFESTO.md, linked from /docs |
+| `app/docs/vscode/` | Covered by /plugins page |
+| `app/assets/roles/` | Roles are a tool catalog item, not a standalone page |
+| `app/assets/colors-perspectives/` | Perspectives are a tool catalog item, not a standalone page |
+| All custom animation CSS in `globals.css` | ~400 lines of keyframes, dissolve effects, node pulses |
+
+### 7.8 Content Source Mapping
+
+| Site Page | Primary Content Source | Secondary Sources |
+|-----------|----------------------|-------------------|
+| `/` (Home) | `README.md` (root) | `integrations/claude-code/plugin-maenifold/README.md` (6-layer diagram) |
+| `/docs` | `docs/README.md` | `docs/BOOTSTRAP.md`, `docs/context-engineering.md`, `docs/SECURITY_MODEL.md` (linked, not inlined) |
+| `/plugins` | `integrations/claude-code/plugin-maenifold/README.md` | `integrations/claude-code/plugin-product-team/README.md` |
+| `/tools` | `src/assets/usage/tools/*.md` | Tool registry in `src/Tools/ToolRegistry.cs` |
+| `/workflows` | `src/assets/workflows/*.json` | Workflow descriptions from JSON metadata |
+
+### 7.9 Design Notes
+
+**Typography**: Use a system font stack for body text and a monospace font (e.g., `JetBrains Mono`, `Fira Code`, or system monospace) for code. The site should feel like well-formatted technical documentation — think Stripe's API docs or SQLite's documentation, not a startup landing page.
+
+**Color palette**: Dark background (slate-900/950), blue accent (#3B82F6 or similar) for links and interactive elements, white/slate text. Minimal palette — 3 colors maximum.
+
+**Layout**: Single-column, max-width 768px for prose content. Full-width for tables and diagrams. No sidebar navigation — pages are short enough to scroll.
+
+**The graph screenshot**: `docs/branding/graph.jpeg` is a real Obsidian graph view of the maenifold knowledge graph. It should appear on the home page as a captioned figure — "A real knowledge graph built by maenifold" — not as a hero background or decorative element.
+
+**Mermaid diagrams**: The plugin READMEs contain 8+ Mermaid diagrams showing real architecture (6-layer stack, chain pattern, HYDE pattern, sequential thinking branching, knowledge graph growth, concept-to-node mapping, context compounding, wave-based orchestration, traceability chain, hook sequence). These are the site's primary visual content. They communicate architecture better than any custom illustration could.
+
+### 7.10 Out of Scope
+
+- Blog or changelog page (use GitHub Releases)
+- Search functionality (5 pages don't need search)
+- Analytics or telemetry (Ma philosophy: no telemetry)
+- Comments or community features (use GitHub Discussions)
+- i18n / localization
+- CMS or content management (content is markdown in the repo)
+- Custom illustrations or icons beyond the existing logo SVG

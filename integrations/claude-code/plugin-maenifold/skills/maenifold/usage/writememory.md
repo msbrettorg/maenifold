@@ -1,4 +1,3 @@
-
 # WriteMemory
 
 Creates knowledge files in `~/maenifold/memory/` with automatic graph integration via `[[WikiLink]]` concepts.
@@ -36,7 +35,7 @@ Creates knowledge files in `~/maenifold/memory/` with automatic graph integratio
 
 - **[[WikiLink]] required**: Content MUST contain at least one `[[WikiLink]]` or operation fails
 - **WikiLink format**: Use `[[Concept Name]]` → normalizes to `concept-name` in graph
-- **250-line limit**: Ma Protocol compliance - split large content into multiple focused files
+- **250-line limit**: Split large content into multiple focused files
 - **Folder depth**: Recommend ≤3 levels to avoid deep nesting
 
 ## Integration

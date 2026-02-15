@@ -1,4 +1,3 @@
-
 # BuildContext
 
 Traverses concept relationships via multi-hop graph queries.

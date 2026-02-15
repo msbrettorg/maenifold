@@ -1,4 +1,3 @@
-
 # GetHelp
 
 Loads complete tool documentation from `~/maenifold/assets/usage/tools/{toolname}.md` for detailed usage guidance.
@@ -49,4 +48,4 @@ Loads complete tool documentation from `~/maenifold/assets/usage/tools/{toolname
 → Check available tools list above. Tool names are case-sensitive.
 
 **Missing documentation for new tools**
-→ Create help file in `/src/assets/usage/tools/` (250-line limit, Ma Protocol compliance)
+→ Help files are managed in the maenifold source repository under `src/assets/usage/tools/` (250-line limit)

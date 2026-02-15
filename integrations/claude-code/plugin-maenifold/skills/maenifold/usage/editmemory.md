@@ -1,4 +1,3 @@
-
 # EditMemory
 
 Modifies existing memory files with [[WikiLink]] preservation and checksum safety for graph integrity.
@@ -97,7 +96,7 @@ Replaces markdown section by header.
 - **Checksum validation**: Detects conflicts between read and edit
 - **Section names**: Must match exact markdown header text (case-sensitive)
 - **expectedCount**: Validates find_replace safety
-- **find_replace behavior**: Uses simple `String.Replace()` - no escaping or bracket detection. Replacing text inside `[[WikiLinks]]` creates nested brackets. This is intentional Ma Protocol behavior.
+- **find_replace behavior**: Uses simple `String.Replace()` - no escaping or bracket detection. Replacing text inside `[[WikiLinks]]` creates nested brackets. This is intentional behavior.
 
 ## Integration
 

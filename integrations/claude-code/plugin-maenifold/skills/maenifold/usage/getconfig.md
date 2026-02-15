@@ -1,7 +1,6 @@
-
 # GetConfig
 
-Returns Ma Core system configuration for debugging and troubleshooting.
+Returns maenifold system configuration for debugging and troubleshooting.
 
 ## Parameters
 

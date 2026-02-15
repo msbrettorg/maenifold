@@ -121,7 +121,7 @@ Assets are writable from agents, so **new workflows are agent-generated skills**
 | **Self-RAG/Reflective** | ✓ Native | `SequentialThinking` + `AssumptionLedger` | Revision + verification |
 | **Routing** | ✓ Native | Agent + `Workflow` | Query classification |
 | **DSP (Few-shot)** | ✓ Native | Examples as memories | Retrieve similar patterns |
-| **FLARE (Proactive)** | ✓ Native | `session_start.sh` pattern | Forward-looking retrieval |
+| **FLARE (Proactive)** | ✓ Native | `hooks.sh` (session_start) pattern | Forward-looking retrieval |
 | **Hierarchical Chunks** | ✓ Native | Concepts → Files | Two-level implicit |
 | **Multi-step RAG** | ✓ Composable | Search → extract → refine | Script loop |
 | **HYDE** | ✓ Scriptable | LLM → extract `[[WikiLinks]]` → search | Generate hypothetical doc |
@@ -155,7 +155,7 @@ The graph isn't just storage – it's the **reasoning substrate** that shapes wh
 Maenifold's search and scripting patterns are embedded into each integration under `docs/integrations/`. They all implement the same core ideas (Graph-RAG, HYDE-style hypothetical retrieval, FLARE-style proactive context loading), but at different layers:
 
 - **Claude Code** (`docs/integrations/claude-code/`)
-	- Shell hook (`session_start.sh`) runs at **session start**.
+	- Shell hook (`hooks.sh` session_start) runs at **session start**.
 	- Pattern: FLARE-style proactive retrieval.
 		- Query `RecentActivity` → extract top `[[WikiLinks]]` → `BuildContext` → inject ~5K tokens of graph-derived context into the new Claude session.
 	- Result: Claude never starts "cold"; it always sees a curated slice of the graph and recent work as preamble.
@@ -316,7 +316,7 @@ Empirical behavior:
 
 ### 5.7. Pattern: Subagent Bootstrapping
 
-Preload graph context before spawning a subagent (as in `bootstrap-subagent.sh`):
+Preload graph context before spawning a subagent (as in `hooks.sh` task_augment):
 
 ```bash
 CONCEPT="mcp-protocol"
@@ -381,7 +381,7 @@ Environment:
 
 ```bash
 export MAENIFOLD_ROOT=/tmp/maenifold-cli-demo-test
-rm -rf \"$MAENIFOLD_ROOT\" && mkdir -p \"$MAENIFOLD_ROOT\"
+rm -rf "$MAENIFOLD_ROOT" && mkdir -p "$MAENIFOLD_ROOT"
 BIN=~/maenifold/bin/maenifold
 ```
 

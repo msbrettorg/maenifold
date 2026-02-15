@@ -1,4 +1,3 @@
-
 # SearchMemories
 
 Search memory files by content with three modes: **Hybrid** (default), **Semantic**, and **FullText**.

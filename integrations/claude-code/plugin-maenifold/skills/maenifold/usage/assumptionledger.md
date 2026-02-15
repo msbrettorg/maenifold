@@ -1,4 +1,3 @@
-
 # AssumptionLedger
 
 Declare, update, and track assumptions without auto-inference. Stores as markdown in `memory://assumptions/` with `[[WikiLink]]` integration.

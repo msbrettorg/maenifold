@@ -1,4 +1,3 @@
-
 # RepairConcepts
 
 Repairs graph corruption by replacing `[[WikiLink]]` variants with canonical form in source markdown files. **DANGER: Permanently modifies files.**

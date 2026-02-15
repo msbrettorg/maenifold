@@ -1,4 +1,3 @@
-
 # MoveMemory
 
 Relocates/renames knowledge files in `~/maenifold/memory/` while preserving `[[WikiLinks]]` and updating metadata timestamps.

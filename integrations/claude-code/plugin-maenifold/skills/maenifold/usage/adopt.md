@@ -1,4 +1,3 @@
-
 # Adopt
 
 Loads role, color, or perspective JSON configuration to enable specialized thinking modes.

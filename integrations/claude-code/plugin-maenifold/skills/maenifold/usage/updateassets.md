@@ -1,4 +1,3 @@
-
 # UpdateAssets
 
 Refreshes `~/maenifold/assets/` from packaged assets after maenifold upgrades.

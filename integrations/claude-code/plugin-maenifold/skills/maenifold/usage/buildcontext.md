@@ -19,15 +19,19 @@ Traverses concept relationships via multi-hop graph queries.
     {
       "name": "neural-networks",
       "coOccurrenceCount": 15,
+      "decayWeight": 0.95,
+      "weightedScore": 14.25,
       "files": ["memory://research/deep-learning.md"],
       "contentPreview": {
-        "memory://research/deep-learning.md": "Short preview text…"
+        "memory://research/deep-learning.md": "~500 char preview..."
       }
     }
   ],
   "expandedRelations": ["deep-learning", "backpropagation"]
 }
 ```
+
+Results are sorted by `weightedScore` (`coOccurrenceCount * decayWeight`), prioritizing frequently co-occurring AND recently accessed concepts.
 
 ## Example
 

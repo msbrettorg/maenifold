@@ -161,7 +161,7 @@ Checkpoint hints appear on the first thought and every 3 thoughts thereafter.
 - **`parentWorkflowId` only on first thought**: Setting it on `thoughtNumber > 0` errors. The referenced workflow must exist and be active (not completed/cancelled/abandoned).
 - **`conclusion` required on completion**: When `nextThoughtNeeded=false` and `cancel=false`, `conclusion` must be provided with `[[WikiLinks]]` and the confession structure.
 - **Session ID format**: Must match `session-{unix-milliseconds}[-optional-suffix]`. Invalid formats are rejected.
-- **Session persistence**: Sessions persist to `memory://thinking/sequential/{sessionId}.md` with agent tags, timestamps, and frontmatter.
+- **Session persistence**: Sessions persist to `memory://thinking/sequential/YYYY/MM/DD/{sessionId}.md` with agent tags, timestamps, and frontmatter. The date components (YYYY/MM/DD) are derived from the Unix timestamp embedded in the session ID.
 
 ## Common Errors
 

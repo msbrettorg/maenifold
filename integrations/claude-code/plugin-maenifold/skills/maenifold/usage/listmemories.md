@@ -48,10 +48,20 @@ Check structure before WriteMemory with folder path:
 ```
 
 **Progressive navigation:**
+
+**Root overview:**
 ```json
-{}                                    // Root overview
-{"path": "projects"}                  // Narrow focus
-{"path": "projects/current"}          // Deep dive
+{}
+```
+
+**Narrow focus:**
+```json
+{"path": "projects"}
+```
+
+**Deep dive:**
+```json
+{"path": "projects/current"}
 ```
 
 **Organization assessment:**

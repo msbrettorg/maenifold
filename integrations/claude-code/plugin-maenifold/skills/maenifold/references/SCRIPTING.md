@@ -152,23 +152,23 @@ The graph isn't just storage – it's the **reasoning substrate** that shapes wh
 
 ## 4. Integration Patterns
 
-Maenifold's search and scripting patterns are embedded into each integration under `docs/integrations/`. They all implement the same core ideas (Graph-RAG, HYDE-style hypothetical retrieval, FLARE-style proactive context loading), but at different layers:
+Maenifold's search and scripting patterns are embedded into each integration under `integrations/`. They all implement the same core ideas (Graph-RAG, HYDE-style hypothetical retrieval, FLARE-style proactive context loading), but at different layers:
 
-- **Claude Code** (`docs/integrations/claude-code/`)
+- **Claude Code** (`integrations/claude-code/`)
 	- Shell hook (`hooks.sh` session_start) runs at **session start**.
 	- Pattern: FLARE-style proactive retrieval.
 		- Query `RecentActivity` → extract top `[[WikiLinks]]` → `BuildContext` → inject ~5K tokens of graph-derived context into the new Claude session.
 	- Result: Claude never starts "cold"; it always sees a curated slice of the graph and recent work as preamble.
 
-- **Codex CLI / SWE** (`docs/integrations/codex/swe.md`)
-	- Instruction profile for the Codex SWE agent.
+- **OpenCode** (`integrations/opencode/`)
+	- TypeScript plugin for the OpenCode CLI agent.
 	- Patterns:
 		- HYDE: "synthesize a hypothetical answer with `[[WikiLinks]]` inline, then search those concepts".
 		- FLARE: at session start, always `#sync` → `#Recent_activity` → `#build_context` / `#find_similar_concepts` / `#search_memories` → `#read_memory`.
 		- Self-RAG / CRAG / iterative: use `SequentialThinking` as the loop primitive for revision and corrective retrieval.
 	- Result: the agent itself behaves as the retrieval engine, using the graph for both hypothesis generation and correction.
 
-- **VS Code Agents** (`docs/integrations/vscode/agent-boss.agent.md`, `maenifold.agent.md`)
+- **VS Code Agents** (planned)
 	- Chat agent definitions for VS Code's GitHub Copilot / chat ecosystem.
 	- Patterns:
 		- `maenifold` agent: SWE that always rebuilds context via `sync` + `recent_activity` + graph search, then uses HYDE-style hypothetical answers with `[[WikiLinks]]` to drive retrieval.
@@ -178,7 +178,7 @@ Maenifold's search and scripting patterns are embedded into each integration und
 These integrations are examples of **where to plug the patterns in**:
 
 - Session hooks (Claude) → FLARE-style proactive context.
-- Agent system prompts (Codex, VS Code maenifold) → HYDE + Self-RAG behavior.
+- Agent system prompts (OpenCode, VS Code) → HYDE + Self-RAG behavior.
 - Orchestration agent (agent-boss) → multi-agent Graph-RAG and verification.
 
 When you add new integrations, align them with these patterns instead of inventing bespoke behavior.

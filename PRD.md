@@ -19,6 +19,8 @@
 | 2.2 | 2026-02-15 | Brett | Added FR-13.x (community detection), FR-14.x (sync mtime optimization). Reordered sections. |
 | 3.0 | 2026-02-15 | PM Agent | Added FR-15.x (site rebuild) — full replacement of marketing site with technical documentation site |
 | 3.1 | 2026-02-15 | PM Agent | Replaced placeholder design notes with finalized design system (color palette, typography, layout) derived from Norbauer analysis |
+| 3.3 | 2026-02-16 | PM Agent | Added §7.1.5 Aesthetic Rationale ("Warm Restraint") — user story and design reasoning backing FR-15.x |
+| 3.4 | 2026-02-16 | PM Agent | Finalized FR-15.x gap resolutions: FR-15.31 (theme cascade), FR-15.35 (mobile scroll nav), §7.9 (system monospace, feTurbulence texture), NFR-15.1 (output: export), NFR-15.6 (build-time mmdc) |
 
 ---
 
@@ -417,6 +419,30 @@ The current site (`site/`) is a marketing blog that fails to communicate what ma
 
 The site must be rebuilt from scratch as a technical documentation site that matches the README's tone: direct, information-dense, developer-first.
 
+### 7.1.5 Aesthetic Rationale: Warm Restraint
+
+The design system has one governing idea: **warm restraint**. Everything flows from that.
+
+**The problem it solves.** The current site looks like every AI-generated marketing page on the internet. Purple-to-cyan gradients, glassmorphism cards, particle animations, "Never lose context" taglines. It's aesthetic stock photography — visually busy, informationally empty. A developer lands on it and immediately pattern-matches to "AI slop" and leaves. The product is a CLI tool for developers. The site should feel like the product: precise, opinionated, utilitarian.
+
+**The reference: Norbauer & Co.** [Norbauer](https://norbauer.com) makes luxury keyboard cases. Their site was studied because they solve the same problem in a different domain: how do you market a technical product to an audience that hates marketing? Three principles were extracted:
+
+1. **Desaturation = sophistication.** Norbauer never uses saturated color. Everything is pulled back — warm grays, muted metallics, faint undertones. Saturated color reads as cheap. The site's accent (`#6AABB3`) is a desaturated teal — not cyan, not blue, not bright. It sits quietly until you need it.
+2. **Warm undertones prevent clinical coldness.** Pure `#000000` and `#FFFFFF` read as clinical or AI-generated. The site's dark bg (`#141218`) has a faint purple undertone. The text (`#E8E0DB`) has a stone warmth. Light mode bg (`#F5F0EC`) is warm cream, not paper white. This is the difference between a room lit by fluorescents and a room lit by late afternoon sun.
+3. **Grain texture is the single biggest differentiator.** Flat solid colors are the signature of AI-generated design. A 3-5% noise overlay (SVG `feTurbulence`) breaks the digital sterility. It's nearly invisible consciously but registers subconsciously as "this was designed by a human."
+
+**The palette logic.** One accent color. Not two, not three. One desaturated teal (`#6AABB3`) used for every interactive element — links, focus rings, keyword syntax highlighting. This constraint forces discipline. When everything is the accent, nothing is.
+
+**Syntax highlighting as identity.** For a CLI tool site, code blocks are the most important visual element. The custom Shiki theme uses 8 token colors, all desaturated, all sharing the warm undertone family. The code block should feel like a coherent composition, not a Christmas tree.
+
+**The typography logic.** System fonts for body, system monospace for code. Zero font files shipped. Zero load time. Developers see the typeface they already use in their terminal. No display font. No serif. No custom sans-serif. The absence of a distinctive font IS the typographic identity — the same way the absence of decoration is the site's visual identity. Line-height 1.75 — generous, Norbauer-inspired. The extra breathing room makes dense technical content scannable instead of claustrophobic.
+
+**The layout logic.** 72ch prose width — the typographic ideal for sustained reading. 900px code width — wider, because CLI commands shouldn't wrap. Single column, centered, no sidebar. Five pages don't need navigation chrome. 80px section gaps — generous negative space between sections. The space isn't empty; it's load-bearing. It separates concerns visually the way blank lines separate functions in code.
+
+**What's absent (Ma philosophy).** The site's identity is defined as much by what's missing as what's present: no animations (`prefers-reduced-motion` has nothing to reduce), no gradient backgrounds, no canvas elements, no component libraries, no hamburger menus, no custom fonts, no client-side JavaScript for content, no search, no analytics, no telemetry, no newsletter, no social links. Every absence is a decision. The site is 200 lines of custom CSS max (NFR-15.7), compared to the current 435 lines of animation keyframes alone.
+
+**The emotional target.** A developer should land on this site and feel: "These people respect my time." Not impressed, not wowed, not entertained. *Respected.* The site tells you what maenifold is, how to install it, and how to use it. Then it gets out of the way. That restraint — the confidence to leave things unsaid — is what warm restraint means.
+
 ### 7.2 Design Principles
 
 | Principle | Rationale |
@@ -463,8 +489,9 @@ The site must be rebuilt from scratch as a technical documentation site that mat
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FR-15.30 | All code blocks SHALL have a copy-to-clipboard button. | **P0** |
-| FR-15.31 | Site SHALL support dark mode (default) and light mode via toggle. User preference SHALL persist in localStorage. | **P0** |
+| FR-15.31 | Site SHALL detect system theme preference via `prefers-color-scheme`. User toggle SHALL override and persist to localStorage. When no system preference and no stored preference exist, dark mode SHALL be the fallback. No flash of unstyled content. Three-tier cascade: localStorage (explicit choice) → system preference → dark fallback. | **P0** |
 | FR-15.32 | Navigation SHALL be a flat horizontal bar: logo, page links (Docs, Plugins, Tools, Workflows), dark/light toggle, GitHub link. No dropdowns. | **P0** |
+| FR-15.35 | Navigation SHALL use horizontal scroll (`overflow-x: auto`) on mobile viewports. No hamburger menu, no off-canvas drawer. All navigation links SHALL remain visible without user interaction. | **P0** |
 | FR-15.33 | Site SHALL be fully navigable via keyboard (WCAG 2.4.1 skip link, focus indicators). | **P1** |
 | FR-15.34 | Site SHALL respect `prefers-reduced-motion` (though there should be nothing to reduce). | **P2** |
 
@@ -472,12 +499,12 @@ The site must be rebuilt from scratch as a technical documentation site that mat
 
 | ID | Requirement | Target |
 |----|-------------|--------|
-| NFR-15.1 | Site SHALL deploy as static HTML to GitHub Pages via `next build` + `next export` (output: `out/`). | Required |
+| NFR-15.1 | Site SHALL deploy as static HTML to GitHub Pages via `next build` with `output: 'export'` in `next.config.ts` (output directory: `out/`). | Required |
 | NFR-15.2 | Site SHALL use Next.js (current: 16), Tailwind CSS (current: 4), React (current: 19). No framework change. | Required |
 | NFR-15.3 | Site SHALL NOT include any canvas-based animations, gradient mesh backgrounds, particle effects, or decorative motion. | Required |
 | NFR-15.4 | Site SHALL NOT include `@headlessui/react` or any dropdown/modal component library. | Required |
 | NFR-15.5 | Site SHALL include `shiki` for syntax-highlighted code blocks. | Required |
-| NFR-15.6 | Site SHALL include a Mermaid rendering solution (client-side or build-time pre-render). | Required |
+| NFR-15.6 | Mermaid diagrams SHALL be pre-rendered to inline SVG at build time via `@mermaid-js/mermaid-cli` (`mmdc`). No Mermaid JavaScript SHALL be shipped to the client. Mermaid theme SHALL use the design system palette (teal nodes `#6AABB3`, warm dark background `#1E1B22`, stone-white text `#E8E0DB`). | Required |
 | NFR-15.7 | Total CSS for the site SHALL be under 200 lines (excluding Tailwind utilities). Custom animation CSS is prohibited. | Required |
 | NFR-15.8 | Lighthouse performance score SHALL be 95+ on mobile. | Target |
 | NFR-15.9 | Site SHALL load no JavaScript for users with JS disabled (static HTML with CSS-only dark mode fallback). | Target |
@@ -569,8 +596,8 @@ Thinking session: `session-1771175726538-13390`
 #### Typography
 
 - **Body**: System font stack (`-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif`). No custom sans-serif. Zero load time.
-- **Code**: JetBrains Mono (self-hosted `.woff2`). No Google Fonts — no external requests.
-- **No serif. No display font.**
+- **Code**: System monospace stack (`ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace`). Zero font files shipped. Developers see their terminal's monospace font.
+- **No serif. No display font. No custom fonts.**
 - **Body**: 16px, weight 400, line-height 1.75 (generous, Norbauer-inspired)
 - **H1**: 32px, weight 600. **H2**: 24px, weight 600. **H3**: 20px, weight 600.
 - **Code**: 14px, line-height 1.6.
@@ -584,7 +611,7 @@ Thinking session: `session-1771175726538-13390`
 
 #### Texture
 
-Subtle CSS noise overlay on `--bg` at ~3-5% opacity. Breaks digital sterility. Learned from Norbauer — grain texture is the single biggest differentiator from AI-generated flat design.
+Subtle CSS noise overlay on `--bg` at ~3-5% opacity via inline SVG `feTurbulence` data URI (~200 bytes). `position: fixed`, `pointer-events: none`, composites once on paint. Zero external requests. Breaks digital sterility. Learned from Norbauer — grain texture is the single biggest differentiator from AI-generated flat design.
 
 #### The Graph Screenshot
 

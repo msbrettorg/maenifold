@@ -7,6 +7,45 @@
 - MAENIFOLDPY-001: Python port tasks
 - DIST-001: Windows MSI installer
 - CLEANUP-001: Active thinking sessions
+- SITE-001: Site rebuild ("Warm Restraint")
+
+## Sprint: Site Rebuild (T-SITE-001)
+
+Wave 1 — Foundation (serial dependency):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-SITE-001.1 | SWE: Delete all decorative components, animation CSS, `@headlessui/react`, use-case pages, stale routes | T-SITE-001.1 | Pending |
+| T-SITE-001.2 | SWE: Implement design system foundation (CSS vars, palette, system fonts, feTurbulence noise, Tailwind v4 @theme) | T-SITE-001.2 | Pending |
+| T-SITE-001.3 | SWE: Implement layout shell (dark default, theme cascade script, skip link) | T-SITE-001.3 | Pending |
+
+Wave 2 — Components + Pages (7 parallel tasks after Wave 1):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-SITE-001.4 | SWE: Implement Header (flat nav, horizontal scroll mobile, no hamburger) | T-SITE-001.4 | Pending |
+| T-SITE-001.5 | SWE: Implement Footer (logo, dynamic version, brand statement, MIT, GitHub) | T-SITE-001.5 | Pending |
+| T-SITE-001.6 | SWE: Implement Home page (product desc, install, MCP config, CLI examples, platform table, graph screenshot) | T-SITE-001.6 | Pending |
+| T-SITE-001.7 | SWE: Implement `/docs` page (render docs/README.md) | T-SITE-001.7 | Pending |
+| T-SITE-001.8 | SWE: Implement `/plugins` page (render both plugin READMEs with Mermaid) | T-SITE-001.8 | Pending |
+| T-SITE-001.9 | SWE: Implement `/tools` page (data-driven catalog from tools/*.md) | T-SITE-001.9 | Pending |
+| T-SITE-001.10 | SWE: Implement `/workflows` page (data-driven catalog from workflows/*.json) | T-SITE-001.10 | Pending |
+
+Wave 2 — Shared infrastructure (parallel with pages):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-SITE-001.11 | SWE: Implement Shiki syntax highlighting with custom warm-restraint theme | T-SITE-001.11 | Pending |
+| T-SITE-001.12 | SWE: Implement build-time Mermaid rendering via mmdc with design system theme | T-SITE-001.12 | Pending |
+| T-SITE-001.13 | SWE: Implement CopyButton component | T-SITE-001.13 | Pending |
+
+Wave 3 — Verification:
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-SITE-001.14 | Blue-team: Lighthouse audit + keyboard nav verification | T-SITE-001.14 | Pending |
+| T-SITE-001.15 | Red-team: Security audit (XSS, injection, build pipeline, deps) | T-SITE-001.15 | Pending |
+| T-SITE-001.16 | Blue-team: Full FR-15.x compliance verification + content accuracy | T-SITE-001.16 | Pending |
 
 ## Sprint: Sync Mtime Optimization (T-SYNC-MTIME-001)
 

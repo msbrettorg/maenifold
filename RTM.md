@@ -193,6 +193,25 @@ ESCAPE HATCHES:
 
 ---
 
+## T-COMMUNITY-001: Community Detection (Louvain)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-COMMUNITY-001.1 | FR-13.3, NFR-13.3.1 | `concept_communities` table with concept_name PK, community_id, modularity, resolution, timestamp, FK to concepts. | src/Tools/GraphDatabase.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
+| T-COMMUNITY-001.2 | FR-13.1, FR-13.2, FR-13.11, NFR-13.1.1, NFR-13.1.2, NFR-13.2.1, NFR-13.11.1 | Louvain modularity optimization: in-memory on full graph, co_occurrence_count as edge weight, deterministic seed, configurable gamma. | src/Tools/CommunityDetection.cs (new) | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
+| T-COMMUNITY-001.3 | FR-13.11, NFR-13.5.1, NFR-13.9.1, NFR-13.11.1 | Config: MAENIFOLD_LOUVAIN_GAMMA (default 1.0), sibling thresholds (min shared neighbors, min overlap, max results), DB watcher debounce interval. | src/Utils/Config.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
+| T-COMMUNITY-001.4 | FR-13.1, FR-13.2, NFR-13.1.1, NFR-13.1.2, NFR-13.2.1 | Blue-team: Unit tests for Louvain — deterministic seed, known topology, modularity validation, empty graph, single node, disconnected components. | tests/Maenifold.Tests/CommunityDetectionTests.cs | N/A | Pending |
+| T-COMMUNITY-001.5 | FR-13.4, NFR-13.3.1 | Hook community detection into full Sync — run Louvain after concept extraction, persist to concept_communities. | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
+| T-COMMUNITY-001.6 | FR-13.5, NFR-13.5.1, NFR-13.5.2, NFR-13.5.3 | DB file watcher with debounce triggers community recomputation after incremental sync settles. Reuse FileSystemWatcher pattern. Skip own writes. | src/Tools/IncrementalSyncTools.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
+| T-COMMUNITY-001.7 | FR-13.6, NFR-13.6.1 | BuildContext includes community_id on each RelatedConcept via single indexed query. | src/Tools/GraphTools.cs, src/Models/BuildContextResult.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
+| T-COMMUNITY-001.8 | FR-13.7, FR-13.8, FR-13.9, NFR-13.7.1, NFR-13.8.1, NFR-13.9.1 | BuildContext returns CommunitySiblings section — same community, no direct edge, scored by normalized weighted neighborhood overlap, filtered by thresholds, capped at 10. | src/Tools/GraphTools.cs, src/Models/BuildContextResult.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
+| T-COMMUNITY-001.9 | FR-13.10, NFR-13.10.1 | Graceful degradation: BuildContext omits community_id and CommunitySiblings when no community data. No errors. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
+| T-COMMUNITY-001.10 | FR-13.4–13.10, NFR-13.5.x–13.10.1 | Blue-team: Integration tests — sync hook, watcher debounce, BuildContext community_id enrichment, CommunitySiblings scoring/thresholds, graceful degradation. | tests/Maenifold.Tests/CommunityDetectionTests.cs | N/A | Pending |
+| T-COMMUNITY-001.11 | Security | Red-team: Feedback loops in DB watcher, modularity edge cases (all singletons, fully connected), sibling scoring overflow on hub nodes, race conditions between sync and watcher. | All changed files | ConfessionReport | Pending |
+| T-COMMUNITY-001.12 | NFR-13.x | Blue-team: NFR compliance verification — indexed query for community_id, no external deps, configurable env vars with correct defaults, deterministic seed stability. | All changed files | ConfessionReport | Pending |
+
+---
+
 ## T-SITE-001: Site Rebuild (sprint-20260216)
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |

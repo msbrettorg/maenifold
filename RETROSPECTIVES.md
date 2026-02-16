@@ -265,5 +265,69 @@ Fixed date detection bug in `MarkdownWriter.GetSessionPath` where `LastIndexOf('
 
 ---
 
-*Last updated: 2026-02-12*
+## Sprint 2026-02-16: Community Detection (T-COMMUNITY-001)
+
+**Sprint Duration**: 2026-02-16
+**Outcome**: T-COMMUNITY-001.1-12 Complete
+**Priority**: P1
+
+### Executive Summary
+
+Delivered Louvain modularity-based community detection for the concept graph (FR-13.1–13.11). Concepts are now clustered by co-occurrence patterns, community assignments persist to `concept_communities`, and BuildContext surfaces "community siblings" — same-cluster concepts with no direct edge that share mutual neighbors. Full sync runs Louvain automatically; a DB file watcher triggers recomputation after incremental sync settles.
+
+### What Worked Well
+
+1. **3-Wave Execution**: Foundation → Integration → Verification structure enabled clean parallel dispatch
+   - Wave 1: 3 parallel SWE agents (schema, config, algorithm) + 1 blue-team
+   - Wave 2: 3 parallel SWE agents (sync hook, DB watcher, BuildContext enrichment)
+   - Wave 3: 3 parallel agents (blue-team integration tests, red-team audit, blue-team NFR compliance)
+
+2. **Red-Team Found Real Concurrency Bug**: FAIL-001 identified non-atomic DELETE+INSERT in RunAndPersist AND ConceptSync.Sync bypassing the DB watcher's write guard. Under concurrent full sync + watcher, this would silently corrupt community assignments. Fixed with transaction + SetCommunityWriteInProgress.
+
+3. **Session Continuity After Compaction**: Sprint survived context compaction mid-Wave-2. Sequential thinking session preserved enough state to restart Wave 2 cleanly from committed Wave 1.
+
+4. **COALESCE Sentinel Pattern**: SWE-3 worked around a SqliteExtensions nullable int bug using COALESCE with -1 sentinel. Red-team verified -1 can never be a valid community_id (Louvain normalizes to 0..N-1). Pragmatic fix, well-documented.
+
+### Issues Encountered
+
+1. **Wave 2 Lost to Compaction**: First Wave 2 attempt partially wrote code but context compacted before commit. Working tree was left dirty with non-compiling code.
+   - **Resolution**: Verified clean working tree on restart, dispatched fresh agents with full file context
+   - **Lesson**: Commit early — even partial work should be committed if it compiles, so compaction doesn't lose progress
+
+2. **Missing Phase 2 in Louvain**: Implementation is Phase 1 only (local node moves) but comments claimed Phase 1+2. Red-team flagged as WARN-003.
+   - **Resolution**: Corrected comments. Phase 1 alone produces quality communities at current graph scale (modularity 0.67)
+   - **Lesson**: Don't describe aspirational architecture in comments — describe what's actually implemented
+
+3. **DB Watcher Not Testable**: FR-13.5 (watcher debounce) couldn't be covered by automated tests without mocks/sleep. Blue-team noted the gap.
+   - **Resolution**: Accepted as untestable infrastructure. Manual verification planned.
+   - **Lesson**: Async timing-dependent infrastructure has inherent testing limits under No Fake Tests policy
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| Tests Written | 17 (11 unit + 6 integration) |
+| Tests Passing | 506/507 (1 pre-existing vec failure) |
+| New Files | 2 (`CommunityDetection.cs`, `IncrementalSync.CommunityWatcher.cs`) |
+| Modified Files | 5 (`GraphDatabase.cs`, `Config.cs`, `ConceptSync.cs`, `IncrementalSyncTools.cs`, `GraphTools.cs`, `BuildContextResult.cs`) |
+| Commits | 5 (RTM setup + 4 feature commits) |
+| Red-Team Findings | 1 FAIL (fixed), 3 WARN (accepted), 5 PASS |
+| NFR Compliance | 12/12 PASS |
+
+### Learnings for Future Sprints
+
+1. **Commit before compaction**: Wave 2 partial work was lost. If it compiles, commit it.
+2. **Red-team earns its keep on concurrency**: Static analysis + code reading found a real data corruption path
+3. **Transaction discipline in batch writes**: Any DELETE+INSERT pattern must be wrapped in a transaction
+4. **Write guards must be symmetric**: If two code paths write the same table, both must set the guard flag
+5. **Comments must match reality**: Don't describe Phase 2 if only Phase 1 exists
+
+### Related PRD/RTM
+
+- PRD: FR-13.1–13.11, NFR-13.1.1–13.11.1
+- RTM: T-COMMUNITY-001.1 through T-COMMUNITY-001.12
+
+---
+
+*Last updated: 2026-02-16*
 *Related: [[PRD]] [[RTM]] [[TODO]] [[agentic-slc]]*

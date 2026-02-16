@@ -26,4 +26,29 @@ public static class SessionCleanup
             }
         }
     }
+
+    // T-CLEANUP-001.1: RTM FR-14.6 - DB-driven abandonment detection for the mtime-guard pre-pass.
+    // Uses last_indexed (from DB) as staleness signal instead of frontmatter["modified"].
+    // Does NOT write to disk — caller handles persistence and DB status update.
+    public static bool TryMarkAbandonedFromLastIndexed(
+        Dictionary<string, object> frontmatter,
+        string content,
+        DateTime lastIndexedUtc,
+        DateTime nowUtc,
+        out string updatedContent)
+    {
+        var timeSinceIndexed = nowUtc - lastIndexedUtc;
+
+        if (timeSinceIndexed.TotalMinutes <= Config.SessionAbandonmentMinutes)
+        {
+            updatedContent = content;
+            return false;
+        }
+
+        frontmatter["status"] = "abandoned";
+
+        var section = $"\n\n## Session Abandoned\n\n⚠️ Session marked as abandoned due to {timeSinceIndexed.TotalMinutes:F0} minutes of inactivity\n*{CultureInvariantHelpers.FormatDateTime(nowUtc, "yyyy-MM-dd HH:mm:ss")}*\n";
+        updatedContent = content + section;
+        return true;
+    }
 }

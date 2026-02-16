@@ -5,18 +5,15 @@ Focus on .NET (core product) and the Next.js site under `site/`.
 
 ## Git Workflow (MANDATORY)
 
-**Branch model**: feature branches → `dev` → PR to `main`.
+**Branch model**: `commons` → `dev` → PR to `main`.
 
-1. **Create a feature branch** off `dev` for every unit of work: `git checkout -b feature/T-THING-001 dev`
-2. **Do all work on the feature branch.** Commit early and often with T-* identifiers.
-3. **Merge feature branch into `dev`** when work is complete and tests pass: `git checkout dev && git merge feature/T-THING-001`
-4. **Create a PR from `dev` to `main`** for releases.
-5. **Delete the feature branch** after merge. No long-lived branches besides `dev` and `main`.
+1. **Do all work on `commons`.** Commit early and often with T-* identifiers.
+2. **Merge `commons` into `dev`** when work is complete and tests pass: `git checkout dev && git merge commons`
+3. **Create a PR from `dev` to `main`** for releases.
 
 **Hard rules:**
-- Do NOT commit directly to `dev`. Always use a feature branch.
-- Do NOT push feature branches to remote. Feature branches are local only. Only `dev` and `main` are published.
-- Do NOT create parallel long-lived branches (no `commons`, `evolution`, etc.). That causes divergence and lost work.
+- Do NOT commit directly to `dev` or `main`. All work happens on `commons`.
+- Do NOT create feature branches. `commons` is the working branch.
 - Do NOT merge directly to `main`. Always use a PR.
 - **Tags**: Release tags (e.g., `v1.0.3`) trigger automated builds via GitHub Actions.
 
@@ -169,6 +166,15 @@ dotnet publish src/maenifold.csproj -c Release -r osx-arm64 --self-contained
 ```
 
 ## Agent-specific constraints
+
+### Multi-agent environment
+This repo has multiple agents working concurrently. Other agents (and the human) may have uncommitted or recently committed changes in any file. Before editing a file:
+- **Read the file first.** Do not assume you know its current contents.
+- **Make surgical edits.** Do not rewrite entire files. Use targeted replacements that preserve surrounding content you did not write.
+- **PRD.md, RTM.md, TODO.md are especially dangerous.** These are actively maintained by the Product Manager and are the source of truth for requirements, traceability, and backlog. Do not add, remove, or modify entries in these files unless your task explicitly requires it and references a T-* identifier. If you find gaps or ambiguities, ask — do not assume.
+- **Never discard unrecognized content.** If a file contains sections or entries you didn't expect, leave them intact. Another agent or the human put them there for a reason.
+
+### Clean root directory
 - This repo enforces a clean root directory (`Directory.Build.targets`)
   - Avoid dropping ad-hoc files in repo root
   - Keep new files in appropriate subdirectories

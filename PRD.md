@@ -470,7 +470,7 @@ The design system has one governing idea: **warm restraint**. Everything flows f
 | FR-15.7 | Home page SHALL display the platform support table from README.md (macOS, Linux, Windows with binary variants). | **P0** |
 | FR-15.8 | Home page SHALL link to: Docs, Plugins, Tools, Workflows, GitHub repository. No other navigation. | **P0** |
 | FR-15.9 | `/docs` page SHALL present content from docs/README.md: theoretical foundations, how it works (sequential thinking, workflows, hybrid search, lazy graph, memory lifecycle), the cognitive stack, cognitive assets, key capabilities, technical specifications. | **P1** |
-| FR-15.10 | `/plugins` page SHALL present content from both plugin READMEs: plugin-maenifold (base MCP server, skill, installation, MCP config for Claude Code/Desktop/Codex/Continue/Cline) and plugin-product-team (multi-agent orchestration, hook system, wave-based execution). | **P1** |
+| FR-15.10 | `/plugins` page SHALL present content from both plugin READMEs: plugin-maenifold (base MCP server, hook system, skill, installation, MCP config for Claude Code/Desktop/Codex/Continue/Cline) and plugin-product-team (multi-agent orchestration, wave-based execution). | **P1** |
 | FR-15.11 | `/tools` page SHALL be a data-driven catalog generated from `src/assets/usage/tools/*.md` files, listing all tools with descriptions and usage documentation. | **P1** |
 | FR-15.12 | `/workflows` page SHALL be a data-driven catalog generated from `src/assets/workflows/*.json` files, listing all workflows with descriptions, step counts, and metadata. | **P1** |
 | FR-15.13 | All Mermaid diagram blocks in source content SHALL be rendered as interactive SVG diagrams on the site. | **P1** |

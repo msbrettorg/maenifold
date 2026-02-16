@@ -290,10 +290,12 @@ Each agent has:
 - **Markdown body**: Role-specific instructions and behavioral guidelines
 - **Specialization**: SWE (implementation), red-team (security), blue-team (testing), researcher (analysis)
 
-### Hook System (`/integrations/claude-code/plugin-product-team/hooks/`)
+### Hook System
 
-- **`hooks.json`**: Hook configuration (SessionStart, PreToolUse, SubagentStop)
-- **`hooks.sh`**: Bash implementation with timeout handling, CLI discovery, concept extraction
+All hooks live in the **plugin-maenifold** plugin (`/integrations/claude-code/plugin-maenifold/`):
+
+- **`hooks/hooks.json`**: Hook configuration (SessionStart, PreCompact, PreToolUse, SubagentStop)
+- **`scripts/hooks.sh`**: Bash implementation with timeout handling, CLI discovery, concept extraction
 
 ### Workflow Assets (`/bin/assets/workflows/*.json`)
 
@@ -530,7 +532,7 @@ PM Response:
 - [Architecture Analysis](memory://tech/maenifold/product-manager-skill-architecture-analysis) - Complete technical analysis
 - [SKILL.md](../../skills/product-manager/SKILL.md) - Skill definition and instructions
 - [Agent Definitions](../../agents/) - SWE, red-team, blue-team, researcher
-- [Hooks System](./hooks/) - Hook implementation
+- [Hooks System](../plugin-maenifold/hooks/) - Hook implementation (in plugin-maenifold)
 
 ## Source
 
@@ -538,7 +540,7 @@ This documentation is based on analysis of the maenifold codebase:
 
 - `/integrations/skills/product-manager/SKILL.md`
 - `/integrations/agents/*.md`
-- `/integrations/claude-code/plugin-product-team/hooks/`
+- `/integrations/claude-code/plugin-maenifold/hooks/` (all hooks)
 - `/bin/assets/workflows/*.json`
 
 **Date**: 2026-01-29

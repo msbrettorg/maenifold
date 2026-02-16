@@ -185,17 +185,16 @@ Two-layer plugin architecture:
 
 **plugin-maenifold** (base):
 - MCP server for maenifold tools
-- Hooks: `SessionStart`, `PreCompact`
+- Hooks: `SessionStart`, `PreCompact`, `PreToolUse` (Task), `SubagentStop`
+- Hook script: `integrations/claude-code/plugin-maenifold/scripts/hooks.sh`
+- Modes: `session_start`, `task_augment`, `pre_compact`, `subagent_stop`
 - Install: `claude plugin add /path/to/integrations/claude-code/plugin-maenifold`
 
 **plugin-product-team** (opinionated):
 - Requires plugin-maenifold installed first
 - Agents: swe, researcher, red-team, blue-team
-- Hooks: `PreToolUse` (Task), `SubagentStop`
+- Skills: product-manager
 - Install: `claude plugin add /path/to/integrations/claude-code/plugin-product-team`
-
-Shared hook script: `integrations/scripts/hooks.sh`
-- Modes: `session_start`, `task_augment`, `pre_compact`, `subagent_stop`
 
 Scripting reference: `docs/SCRIPTING.md`
 

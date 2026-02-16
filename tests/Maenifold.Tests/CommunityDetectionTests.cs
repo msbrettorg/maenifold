@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using Maenifold.Models;
 using Maenifold.Tools;
 using Maenifold.Utils;
 using Microsoft.Data.Sqlite;
@@ -12,6 +13,8 @@ namespace Maenifold.Tests;
 
 // T-COMMUNITY-001.4: RTM FR-13.1, FR-13.2, NFR-13.1.1, NFR-13.1.2, NFR-13.2.1, NFR-13.3.1
 // Blue-team unit tests for Louvain community detection algorithm.
+// T-COMMUNITY-001.10: RTM FR-13.4, FR-13.6, FR-13.7, FR-13.8, FR-13.9, FR-13.10
+// Blue-team integration tests for community detection in BuildContext, ConceptSync, and graceful degradation.
 [TestFixture]
 [NonParallelizable]
 public class CommunityDetectionTests
@@ -419,5 +422,385 @@ public class CommunityDetectionTests
 
         // Isolated pair: delta—epsilon (weight 5)
         InsertEdge(conn, "delta", "epsilon", 5);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // INTEGRATION TESTS — T-COMMUNITY-001.10
+    // ══════════════════════════════════════════════════════════
+
+    // ──────────────────────────────────────────────────────────
+    // FR-13.4: Community detection runs during full Sync
+    // ──────────────────────────────────────────────────────────
+    [Test]
+    public void Sync_ProducesCommunityAssignments()
+    {
+        // T-COMMUNITY-001.10: RTM FR-13.4
+        // Create markdown files with overlapping WikiLinks so Sync builds a graph,
+        // then verify that community detection populated concept_communities.
+        var memoryDir = Path.Combine(_testRoot, "memory", "tests", "community-sync");
+        Directory.CreateDirectory(memoryDir);
+
+        // File 1: concepts A, B, C co-occur
+        File.WriteAllText(
+            Path.Combine(memoryDir, "note-abc.md"),
+            "# Note ABC\n\nDiscusses [[sync-comm-a]] and [[sync-comm-b]] and [[sync-comm-c]].\n");
+
+        // File 2: concepts A, B co-occur again (strengthens their edge)
+        File.WriteAllText(
+            Path.Combine(memoryDir, "note-ab.md"),
+            "# Note AB\n\nMore about [[sync-comm-a]] and [[sync-comm-b]].\n");
+
+        // File 3: concepts D, E form a separate cluster
+        File.WriteAllText(
+            Path.Combine(memoryDir, "note-de.md"),
+            "# Note DE\n\nAbout [[sync-comm-d]] and [[sync-comm-e]].\n");
+
+        // Run full Sync which includes community detection at the end
+        GraphTools.Sync();
+
+        // Verify concept_communities has rows
+        using var conn = OpenTestDb();
+        var rowCount = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM concept_communities");
+        Assert.That(rowCount, Is.GreaterThan(0),
+            "FR-13.4: Full Sync must populate concept_communities table.");
+
+        // Verify the concepts we created are present
+        var communityNames = conn.Query<string>("SELECT concept_name FROM concept_communities").ToList();
+        Assert.That(communityNames, Does.Contain("sync-comm-a"),
+            "FR-13.4: sync-comm-a should have a community assignment after Sync.");
+        Assert.That(communityNames, Does.Contain("sync-comm-d"),
+            "FR-13.4: sync-comm-d should have a community assignment after Sync.");
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // FR-13.6: BuildContext includes community_id on RelatedConcepts
+    // ──────────────────────────────────────────────────────────
+    [Test]
+    public void BuildContext_IncludesCommunityIdOnRelatedConcepts()
+    {
+        // T-COMMUNITY-001.10: RTM FR-13.6
+        // Set up a graph with known communities via direct SQL + RunAndPersist,
+        // then call BuildContext and verify community_id is populated.
+        using var conn = OpenTestDb();
+
+        // Create a triangle — Louvain will put them in the same community
+        InsertConcept(conn, "ctx-alpha");
+        InsertConcept(conn, "ctx-beta");
+        InsertConcept(conn, "ctx-gamma");
+        InsertEdge(conn, "ctx-alpha", "ctx-beta", 10);
+        InsertEdge(conn, "ctx-beta", "ctx-gamma", 10);
+        InsertEdge(conn, "ctx-alpha", "ctx-gamma", 10);
+
+        // Persist communities so BuildContext can read them
+        CommunityDetection.RunAndPersist(conn, gamma: 1.0, seed: 42);
+
+        // Verify persisted
+        var persisted = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM concept_communities");
+        Assert.That(persisted, Is.GreaterThan(0), "Precondition: RunAndPersist must populate concept_communities.");
+
+        conn.Dispose();
+
+        // Call BuildContext — it opens its own read-only connection
+        var result = GraphTools.BuildContext("ctx-alpha", depth: 1, maxEntities: 20);
+
+        Assert.That(result.DirectRelations.Count, Is.GreaterThan(0),
+            "Precondition: BuildContext should find direct relations for ctx-alpha.");
+
+        // FR-13.6: Each RelatedConcept should have a non-null CommunityId
+        foreach (var rel in result.DirectRelations)
+        {
+            Assert.That(rel.CommunityId, Is.Not.Null,
+                $"FR-13.6: RelatedConcept '{rel.Name}' should have a non-null CommunityId when community data exists.");
+        }
+
+        // Also verify the query concept itself has a CommunityId
+        Assert.That(result.CommunityId, Is.Not.Null,
+            "FR-13.6: Query concept should have CommunityId populated.");
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // FR-13.7, FR-13.8: BuildContext returns CommunitySiblings
+    // ──────────────────────────────────────────────────────────
+    [Test]
+    public void BuildContext_ReturnsCommunitySiblings()
+    {
+        // T-COMMUNITY-001.10: RTM FR-13.7, FR-13.8
+        // Topology: query and sibling are in the same community but have NO direct edge.
+        // They share >= 3 mutual neighbors with high edge weights to guarantee >= 0.4 overlap.
+        //
+        // Graph design:
+        //   query --10-- n1 --10-- sibling
+        //   query --10-- n2 --10-- sibling
+        //   query --10-- n3 --10-- sibling
+        //   query --10-- n4 --10-- sibling
+        //   (no direct edge between query and sibling)
+        //
+        // All nodes form one tight community because they all share strong connections.
+        // Sibling has 4 shared neighbors with query, total degree = 4*10 = 40,
+        // overlap = sum(min(10,10)) / 40 = 40/40 = 1.0 (well above 0.4 threshold).
+        using var conn = OpenTestDb();
+
+        InsertConcept(conn, "sib-query");
+        InsertConcept(conn, "sib-target");
+        InsertConcept(conn, "sib-n1");
+        InsertConcept(conn, "sib-n2");
+        InsertConcept(conn, "sib-n3");
+        InsertConcept(conn, "sib-n4");
+
+        // Query connects to all neighbors
+        InsertEdge(conn, "sib-query", "sib-n1", 10);
+        InsertEdge(conn, "sib-query", "sib-n2", 10);
+        InsertEdge(conn, "sib-query", "sib-n3", 10);
+        InsertEdge(conn, "sib-query", "sib-n4", 10);
+
+        // Sibling connects to same neighbors (no direct edge to query)
+        InsertEdge(conn, "sib-target", "sib-n1", 10);
+        InsertEdge(conn, "sib-target", "sib-n2", 10);
+        InsertEdge(conn, "sib-target", "sib-n3", 10);
+        InsertEdge(conn, "sib-target", "sib-n4", 10);
+
+        // Also add edges between neighbors to make the cluster tight
+        // (ensures Louvain puts them all in the same community)
+        InsertEdge(conn, "sib-n1", "sib-n2", 10);
+        InsertEdge(conn, "sib-n1", "sib-n3", 10);
+        InsertEdge(conn, "sib-n1", "sib-n4", 10);
+        InsertEdge(conn, "sib-n2", "sib-n3", 10);
+        InsertEdge(conn, "sib-n2", "sib-n4", 10);
+        InsertEdge(conn, "sib-n3", "sib-n4", 10);
+
+        // Run community detection
+        var (communityCount, _) = CommunityDetection.RunAndPersist(conn, gamma: 1.0, seed: 42);
+        Assert.That(communityCount, Is.GreaterThan(0), "Precondition: communities must be detected.");
+
+        // Verify query and target are in the same community
+        var queryComm = conn.QuerySingle<int>(
+            "SELECT community_id FROM concept_communities WHERE concept_name = 'sib-query'");
+        var targetComm = conn.QuerySingle<int>(
+            "SELECT community_id FROM concept_communities WHERE concept_name = 'sib-target'");
+        Assert.That(queryComm, Is.EqualTo(targetComm),
+            "Precondition: query and sibling must be in the same community.");
+
+        conn.Dispose();
+
+        // Call BuildContext
+        var result = GraphTools.BuildContext("sib-query", depth: 1, maxEntities: 20);
+
+        // Verify sib-target is NOT in DirectRelations (no direct edge)
+        var directNames = result.DirectRelations.Select(r => r.Name).ToList();
+        Assert.That(directNames, Does.Not.Contain("sib-target"),
+            "Precondition: sib-target should not be a direct relation (no edge to query).");
+
+        // FR-13.7: sib-target should appear in CommunitySiblings
+        var siblingNames = result.CommunitySiblings.Select(s => s.Name).ToList();
+        Assert.That(siblingNames, Does.Contain("sib-target"),
+            "FR-13.7: sib-target should appear in CommunitySiblings (same community, no direct edge, shared neighbors).");
+
+        // FR-13.8: Verify scoring fields are populated
+        var targetSibling = result.CommunitySiblings.First(s => s.Name == "sib-target");
+        Assert.That(targetSibling.SharedNeighborCount, Is.GreaterThanOrEqualTo(3),
+            "FR-13.8: SharedNeighborCount should reflect the shared neighbors.");
+        Assert.That(targetSibling.NormalizedOverlap, Is.GreaterThanOrEqualTo(0.4),
+            "FR-13.8: NormalizedOverlap should meet minimum threshold.");
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // FR-13.9: Sibling thresholds filter correctly
+    // ──────────────────────────────────────────────────────────
+    [Test]
+    public void BuildContext_SiblingThresholdsFilter()
+    {
+        // T-COMMUNITY-001.10: RTM FR-13.9
+        // Build topology where a candidate shares < 3 neighbors with the query concept.
+        // This candidate should be FILTERED OUT of CommunitySiblings.
+        //
+        // Graph design:
+        //   query --10-- n1 --10-- weak-candidate    (only 1 shared neighbor)
+        //   query --10-- n2
+        //   query --10-- n3
+        //   query --10-- n4
+        //   weak-candidate --10-- n1                  (only neighbor shared with query)
+        //   weak-candidate --10-- unrelated-1         (not connected to query)
+        //
+        //   Also: strong-candidate shares >= 3 neighbors (control)
+        //   strong-candidate --10-- n1, n2, n3, n4   (4 shared neighbors)
+        using var conn = OpenTestDb();
+
+        // Strategy: Instead of relying on Louvain to place all nodes in one community,
+        // we directly set up the graph AND manually insert concept_communities entries.
+        // This isolates the threshold filtering test from Louvain's partitioning behavior.
+        //
+        // Query connects to n1..n4.
+        // weak-candidate shares only 2 neighbors with query (n1, n2) — below min 3 threshold.
+        // strong-candidate shares 4 neighbors with query (n1..n4) — passes threshold.
+        // Neither candidate has a direct edge to query.
+        InsertConcept(conn, "thresh-query");
+        InsertConcept(conn, "thresh-weak");
+        InsertConcept(conn, "thresh-strong");
+        InsertConcept(conn, "thresh-n1");
+        InsertConcept(conn, "thresh-n2");
+        InsertConcept(conn, "thresh-n3");
+        InsertConcept(conn, "thresh-n4");
+
+        // Query connects to n1..n4
+        InsertEdge(conn, "thresh-query", "thresh-n1", 10);
+        InsertEdge(conn, "thresh-query", "thresh-n2", 10);
+        InsertEdge(conn, "thresh-query", "thresh-n3", 10);
+        InsertEdge(conn, "thresh-query", "thresh-n4", 10);
+
+        // Weak candidate: shares only 2 neighbors with query (n1, n2) — below min 3 threshold
+        InsertEdge(conn, "thresh-weak", "thresh-n1", 10);
+        InsertEdge(conn, "thresh-weak", "thresh-n2", 10);
+
+        // Strong candidate: shares 4 neighbors with query (n1..n4) — passes threshold
+        InsertEdge(conn, "thresh-strong", "thresh-n1", 10);
+        InsertEdge(conn, "thresh-strong", "thresh-n2", 10);
+        InsertEdge(conn, "thresh-strong", "thresh-n3", 10);
+        InsertEdge(conn, "thresh-strong", "thresh-n4", 10);
+
+        // Manually insert community assignments — all in community 0
+        // This decouples the threshold test from Louvain's partitioning algorithm.
+        var ts = CultureInvariantHelpers.FormatDateTime(DateTime.UtcNow, "O");
+        foreach (var name in new[] { "thresh-query", "thresh-weak", "thresh-strong",
+                                      "thresh-n1", "thresh-n2", "thresh-n3", "thresh-n4" })
+        {
+            conn.Execute(
+                @"INSERT OR REPLACE INTO concept_communities (concept_name, community_id, modularity, resolution, detected_at)
+                  VALUES (@name, 0, 0.5, 1.0, @ts)",
+                new { name, ts });
+        }
+
+        // Verify community data was inserted
+        var ccCount = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM concept_communities");
+        Assert.That(ccCount, Is.EqualTo(7), "Precondition: all 7 concepts must have community assignments.");
+
+        conn.Dispose();
+
+        // Call BuildContext
+        var result = GraphTools.BuildContext("thresh-query", depth: 1, maxEntities: 20);
+
+        var siblingNames = result.CommunitySiblings.Select(s => s.Name).ToList();
+
+        // FR-13.9: Weak candidate (1 shared neighbor) should NOT appear
+        Assert.That(siblingNames, Does.Not.Contain("thresh-weak"),
+            "FR-13.9: Candidate with < 3 shared neighbors must be filtered out of CommunitySiblings.");
+
+        // Control: strong candidate (4 shared neighbors) should appear
+        Assert.That(siblingNames, Does.Contain("thresh-strong"),
+            "FR-13.9: Candidate with >= 3 shared neighbors and sufficient overlap should appear in CommunitySiblings.");
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // FR-13.10: Graceful degradation — empty concept_communities
+    // ──────────────────────────────────────────────────────────
+    [Test]
+    public void BuildContext_GracefulDegradation_NoCommunityData()
+    {
+        // T-COMMUNITY-001.10: RTM FR-13.10
+        // Graph with concepts and edges but NO community detection has run.
+        // BuildContext should work without error, with null CommunityId and empty CommunitySiblings.
+        using var conn = OpenTestDb();
+
+        InsertConcept(conn, "degrade-a");
+        InsertConcept(conn, "degrade-b");
+        InsertEdge(conn, "degrade-a", "degrade-b", 5);
+
+        // Verify concept_communities is empty (no RunAndPersist called)
+        var rowCount = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM concept_communities");
+        Assert.That(rowCount, Is.EqualTo(0), "Precondition: concept_communities must be empty.");
+
+        conn.Dispose();
+
+        // Call BuildContext — should NOT throw
+        BuildContextResult? result = null;
+        Assert.DoesNotThrow(() =>
+        {
+            result = GraphTools.BuildContext("degrade-a", depth: 1, maxEntities: 20);
+        }, "FR-13.10: BuildContext must not throw when concept_communities is empty.");
+
+        Assert.That(result, Is.Not.Null);
+
+        // CommunityId should be null
+        Assert.That(result!.CommunityId, Is.Null,
+            "FR-13.10: CommunityId should be null when no community data exists.");
+
+        // CommunitySiblings should be empty
+        Assert.That(result.CommunitySiblings, Is.Empty,
+            "FR-13.10: CommunitySiblings should be empty when no community data exists.");
+
+        // Direct relations should still work normally
+        Assert.That(result.DirectRelations.Count, Is.GreaterThan(0),
+            "FR-13.10: Direct relations should still be returned even without community data.");
+
+        // RelatedConcept.CommunityId should be null
+        foreach (var rel in result.DirectRelations)
+        {
+            Assert.That(rel.CommunityId, Is.Null,
+                $"FR-13.10: RelatedConcept '{rel.Name}' CommunityId should be null when no community data exists.");
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // FR-13.10: Graceful degradation — concept not in communities
+    // ──────────────────────────────────────────────────────────
+    [Test]
+    public void BuildContext_GracefulDegradation_ConceptNotInCommunities()
+    {
+        // T-COMMUNITY-001.10: RTM FR-13.10
+        // Run community detection on existing concepts, then add a NEW concept that exists
+        // in the concepts table but NOT in concept_communities.
+        // BuildContext for that new concept should not error.
+        using var conn = OpenTestDb();
+
+        // Create a triangle and run community detection
+        InsertConcept(conn, "existing-a");
+        InsertConcept(conn, "existing-b");
+        InsertConcept(conn, "existing-c");
+        InsertEdge(conn, "existing-a", "existing-b", 10);
+        InsertEdge(conn, "existing-b", "existing-c", 10);
+        InsertEdge(conn, "existing-a", "existing-c", 10);
+
+        CommunityDetection.RunAndPersist(conn, gamma: 1.0, seed: 42);
+
+        // Verify community data exists for existing concepts
+        var existingCount = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM concept_communities");
+        Assert.That(existingCount, Is.GreaterThan(0), "Precondition: community data must exist.");
+
+        // Add a new concept with an edge to existing-a, but do NOT re-run community detection
+        InsertConcept(conn, "orphan-concept");
+        InsertEdge(conn, "orphan-concept", "existing-a", 5);
+
+        // Verify orphan-concept is NOT in concept_communities
+        var orphanInComm = conn.QuerySingle<bool>(
+            "SELECT COUNT(*) > 0 FROM concept_communities WHERE concept_name = 'orphan-concept'");
+        Assert.That(orphanInComm, Is.False, "Precondition: orphan-concept must not be in concept_communities.");
+
+        conn.Dispose();
+
+        // Call BuildContext for the orphan concept — should NOT throw
+        BuildContextResult? result = null;
+        Assert.DoesNotThrow(() =>
+        {
+            result = GraphTools.BuildContext("orphan-concept", depth: 1, maxEntities: 20);
+        }, "FR-13.10: BuildContext must not throw for a concept not in concept_communities.");
+
+        Assert.That(result, Is.Not.Null);
+
+        // The orphan concept's own CommunityId should be null
+        Assert.That(result!.CommunityId, Is.Null,
+            "FR-13.10: CommunityId should be null for a concept not in concept_communities.");
+
+        // CommunitySiblings should be empty (no community assignment to compute siblings from)
+        Assert.That(result.CommunitySiblings, Is.Empty,
+            "FR-13.10: CommunitySiblings should be empty for a concept not in concept_communities.");
+
+        // Direct relations should still work — existing-a should appear
+        var directNames = result.DirectRelations.Select(r => r.Name).ToList();
+        Assert.That(directNames, Does.Contain("existing-a"),
+            "FR-13.10: Direct relations should still work for concept not in concept_communities.");
+
+        // existing-a's CommunityId should be non-null (it has community data)
+        var existingARelation = result.DirectRelations.First(r => r.Name == "existing-a");
+        Assert.That(existingARelation.CommunityId, Is.Not.Null,
+            "FR-13.10: RelatedConcept with community data should still have CommunityId populated.");
     }
 }

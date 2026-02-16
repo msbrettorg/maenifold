@@ -403,8 +403,19 @@ public static class ConceptSync
         Console.Error.WriteLine($"[SYNC TELEMETRY] Total sync completed in {totalSyncTimer.ElapsedMilliseconds}ms");
 
         // T-COMMUNITY-001.5: RTM FR-13.4 - Run community detection after concept extraction
-        var (communityCount, modularity) = CommunityDetection.RunAndPersist(conn, Config.LouvainGamma);
-        Console.Error.WriteLine($"[SYNC TELEMETRY] Community detection: {communityCount} communities, modularity {modularity:F3}");
+        // T-COMMUNITY-001.11: RTM FAIL-001 remediation — set write guard so DB watcher skips during Sync
+        int communityCount = 0;
+        double modularity = 0.0;
+        IncrementalSyncTools.SetCommunityWriteInProgress(true);
+        try
+        {
+            (communityCount, modularity) = CommunityDetection.RunAndPersist(conn, Config.LouvainGamma);
+            Console.Error.WriteLine($"[SYNC TELEMETRY] Community detection: {communityCount} communities, modularity {modularity:F3}");
+        }
+        finally
+        {
+            IncrementalSyncTools.SetCommunityWriteInProgress(false);
+        }
 
         var conceptMentionCount = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM concept_mentions");
         var edgeCount = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM concept_graph");

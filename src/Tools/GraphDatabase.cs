@@ -18,6 +18,7 @@ public static class GraphDatabase
         CreateConceptTables(conn);
         CreateFileTables(conn);
         CreateGraphTables(conn);
+        CreateCommunityTables(conn);
         CreateVectorTables(conn);
         AddMissingColumns(conn);
     }
@@ -103,6 +104,22 @@ public static class GraphDatabase
             )");
 
         conn.Execute("CREATE INDEX IF NOT EXISTS idx_graph_concept_b ON concept_graph(concept_b)");
+    }
+
+    // T-COMMUNITY-001.1: RTM FR-13.3, NFR-13.3.1 - Community detection results table
+    private static void CreateCommunityTables(SqliteConnection conn)
+    {
+        conn.Execute(@"
+            CREATE TABLE IF NOT EXISTS concept_communities (
+                concept_name TEXT PRIMARY KEY,
+                community_id INTEGER NOT NULL,
+                modularity REAL NOT NULL,
+                resolution REAL NOT NULL,
+                detected_at TEXT NOT NULL,
+                FOREIGN KEY (concept_name) REFERENCES concepts(concept_name) ON DELETE CASCADE
+            )");
+
+        conn.Execute("CREATE INDEX IF NOT EXISTS idx_communities_community_id ON concept_communities(community_id)");
     }
 
     private static void CreateVectorTables(SqliteConnection conn)

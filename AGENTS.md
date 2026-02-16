@@ -3,14 +3,22 @@
 This file is for agentic coding assistants working in this repo.
 Focus on .NET (core product) and the Next.js site under `site/`.
 
-## Git Workflow
+## Git Workflow (MANDATORY)
 
-- **Development branch**: `dev` - all work happens here
-- **Main branch**: `main` - production releases only
-- **Workflow**: Work on `dev`, create PR to `main` for releases
-- **Tags**: Release tags (e.g., `v1.0.3`) trigger automated builds via GitHub Actions
+**Branch model**: feature branches → `dev` → PR to `main`.
 
-Do NOT merge directly to main. Always use a PR.
+1. **Create a feature branch** off `dev` for every unit of work: `git checkout -b feature/T-THING-001 dev`
+2. **Do all work on the feature branch.** Commit early and often with T-* identifiers.
+3. **Merge feature branch into `dev`** when work is complete and tests pass: `git checkout dev && git merge feature/T-THING-001`
+4. **Create a PR from `dev` to `main`** for releases.
+5. **Delete the feature branch** after merge. No long-lived branches besides `dev` and `main`.
+
+**Hard rules:**
+- Do NOT commit directly to `dev`. Always use a feature branch.
+- Do NOT push feature branches to remote. Feature branches are local only. Only `dev` and `main` are published.
+- Do NOT create parallel long-lived branches (no `commons`, `evolution`, etc.). That causes divergence and lost work.
+- Do NOT merge directly to `main`. Always use a PR.
+- **Tags**: Release tags (e.g., `v1.0.3`) trigger automated builds via GitHub Actions.
 
 ## Build, Lint, Test
 
@@ -107,13 +115,8 @@ dotnet build src/Maenifold.csproj -c Debug
 - MCP mode forbids casual console usage; prefer structured logging
 - Avoid hardcoded strings (CA1303 is suggestion)
 
-### Control flow (Ma Protocol)
-- **Guard clause pattern**: Check each exit condition independently and return early. Never chain escape hatches into compound conditionals (`&&`, `||`). Each guard gets its own `if` + `return`/`continue`/`break`.
-- **No `else` after a guard**: If the guard returns, the remaining code IS the else. Don't wrap the happy path in an `else` block.
-- **Happy path stays left-aligned**: Guards push edge cases out early. Main logic should not be nested inside conditionals.
-- **Fail fast**: Validate inputs at the top of the method. Don't discover problems deep in nested logic.
-- **Single condition per `if`**: Each guard tests one thing. Compound conditions obscure which case triggered the exit.
-- Let errors surface; no retry logic or "smart" recovery
+### Error handling (Ma Protocol)
+- Let errors surface; no retry logic or “smart” recovery
 - Do not add fallback behavior that hides failures
 - Prefer direct, explicit flow over abstractions
 

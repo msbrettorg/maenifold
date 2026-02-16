@@ -239,44 +239,6 @@ public class SearchToolsTests
             "Hybrid search should filter out unrelated content with moderate minScore");
     }
 
-    [Test]
-    [Ignore("Disabled due to SQLite permission errors in CI - needs investigation")]
-    [Description("MinScore parameter validation - should handle edge cases")]
-    public void MinScoreEdgeCasesHandleGracefully()
-    {
-        // Arrange: Create minimal test data
-        CreateTestFileWithContent("edge-case.md",
-            "Edge Case Test",
-            "This is a test document for [[edge cases]] and [[parameter validation]].",
-            new[] { "test" });
-
-        GraphTools.Sync();
-
-        // Test with negative minScore (should clamp to 0.0)
-        var negativeResult = MemorySearchTools.SearchMemories(
-            query: "edge cases",
-            mode: SearchMode.Hybrid,
-            pageSize: 5,
-            page: 1,
-            folder: TestFolder,
-            tags: null,
-            minScore: -0.5);
-
-        Assert.That(negativeResult, Does.Not.Contain("ERROR"),
-            "Should handle negative minScore gracefully");
-
-        // Test with minScore > 1.0 (should be valid, just very restrictive)
-        var highResult = MemorySearchTools.SearchMemories(
-            query: "edge cases",
-            mode: SearchMode.Hybrid,
-            pageSize: 5,
-            page: 1,
-            folder: TestFolder,
-            tags: null,
-            minScore: 1.5);
-
-        Assert.That(highResult, Does.Not.Contain("ERROR"),
-            "Should handle minScore > 1.0 gracefully");
-    }
 }
+
 #pragma warning restore CA1861

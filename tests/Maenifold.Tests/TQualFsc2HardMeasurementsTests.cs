@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,15 +13,73 @@ using NUnit.Framework;
 
 namespace Maenifold.Tests;
 
+[TestFixture]
 [NonParallelizable]
 public class TQualFsc2HardMeasurementsTests
 {
+    private string _testRoot = string.Empty;
+    private string _previousMaenifoldRootEnv = string.Empty;
+    private string _previousDatabasePathEnv = string.Empty;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _previousMaenifoldRootEnv = Environment.GetEnvironmentVariable("MAENIFOLD_ROOT") ?? string.Empty;
+        _previousDatabasePathEnv = Environment.GetEnvironmentVariable("MAENIFOLD_DATABASE_PATH") ?? string.Empty;
+
+        var repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        _testRoot = Path.Combine(repoRoot, "test-outputs", "tqual-fsc2-hard", $"run-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_testRoot);
+
+        var testDbPath = Path.Combine(_testRoot, "memory.db");
+        Environment.SetEnvironmentVariable("MAENIFOLD_ROOT", _testRoot);
+        Environment.SetEnvironmentVariable("MAENIFOLD_DATABASE_PATH", testDbPath);
+        Config.OverrideRoot(_testRoot);
+        Config.SetDatabasePath(testDbPath);
+        Config.EnsureDirectories();
+        GraphDatabase.InitializeDatabase();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_testRoot) && Directory.Exists(_testRoot))
+            {
+                var dir = new DirectoryInfo(_testRoot);
+                foreach (var f in dir.GetFiles("*", SearchOption.AllDirectories))
+                    f.Attributes = FileAttributes.Normal;
+                Directory.Delete(_testRoot, recursive: true);
+            }
+        }
+        catch { }
+
+        Environment.SetEnvironmentVariable("MAENIFOLD_ROOT",
+            string.IsNullOrEmpty(_previousMaenifoldRootEnv) ? null : _previousMaenifoldRootEnv);
+        Environment.SetEnvironmentVariable("MAENIFOLD_DATABASE_PATH",
+            string.IsNullOrEmpty(_previousDatabasePathEnv) ? null : _previousDatabasePathEnv);
+
+        if (string.IsNullOrWhiteSpace(_previousMaenifoldRootEnv)
+            && string.IsNullOrWhiteSpace(_previousDatabasePathEnv))
+        {
+            Config.ResetOverrides();
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(_previousMaenifoldRootEnv))
+                Config.OverrideRoot(_previousMaenifoldRootEnv);
+            if (!string.IsNullOrWhiteSpace(_previousDatabasePathEnv))
+                Config.SetDatabasePath(_previousDatabasePathEnv);
+        }
+        Config.EnsureDirectories();
+        GraphDatabase.InitializeDatabase();
+    }
+
     [Test]
     public void CaptureEmbeddingPlateauDiagnostics()
     {
-        // T-QUAL-FSC2: RTM FR-7.4
-        GraphDatabase.InitializeDatabase();
-
+        // T-QUAL-FSC2.4: RTM FR-7.4
         var queries = new[]
         {
             "mcp",
@@ -53,72 +112,71 @@ public class TQualFsc2HardMeasurementsTests
         var hashGroups = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         var inserted = 0;
 
-        try
+        foreach (var query in queries)
         {
-            foreach (var query in queries)
+            // T-QUAL-FSC2.4: RTM FR-7.4
+            var embedding = VectorTools.GenerateEmbedding(query);
+            var blob = VectorTools.ToSqliteVectorBlob(embedding);
+            var hash = ComputeSha256Hex(blob);
+
+            if (!hashGroups.TryGetValue(hash, out var list))
             {
-                // T-QUAL-FSC2: RTM FR-7.4
-                var embedding = VectorTools.GenerateEmbedding(query);
-                var blob = VectorTools.ToSqliteVectorBlob(embedding);
-                var hash = ComputeSha256Hex(blob);
-
-                if (!hashGroups.TryGetValue(hash, out var list))
-                {
-                    list = new List<string>();
-                    hashGroups[hash] = list;
-                }
-
-                list.Add(query);
-                conceptNames.Add(query);
-
-                using var insert = connection.CreateCommand();
-                insert.CommandText = "INSERT OR REPLACE INTO vec_concepts (concept_name, embedding) VALUES (@concept, @embedding)";
-                insert.Parameters.AddWithValue("@concept", query);
-                insert.Parameters.Add("@embedding", SqliteType.Blob).Value = blob;
-                inserted += insert.ExecuteNonQuery();
+                list = new List<string>();
+                hashGroups[hash] = list;
             }
 
-            TestContext.Out.WriteLine("Embedding SHA256 groups with identical hashes:");
-            var duplicateGroups = hashGroups.Where(g => g.Value.Count > 1).ToList();
-            if (duplicateGroups.Count == 0)
-            {
-                TestContext.Out.WriteLine("  (none)");
-            }
-            else
-            {
-                foreach (var group in duplicateGroups)
-                {
-                    TestContext.Out.WriteLine($"  {group.Key}: {string.Join(", ", group.Value)}");
-                }
-            }
+            list.Add(query);
+            conceptNames.Add(query);
 
-            var probeEmbedding = VectorTools.GenerateEmbedding("mcp");
-            var probeBlob = VectorTools.ToSqliteVectorBlob(probeEmbedding);
+            // vec0 virtual tables don't support INSERT OR REPLACE — delete first
+            using var delete = connection.CreateCommand();
+            delete.CommandText = "DELETE FROM vec_concepts WHERE concept_name = @concept";
+            delete.Parameters.AddWithValue("@concept", query);
+            delete.ExecuteNonQuery();
 
-            var count1e6 = CountDistancesAtOrBelow(connection, conceptNames, probeBlob, 1e-6);
-            var count1e12 = CountDistancesAtOrBelow(connection, conceptNames, probeBlob, 1e-12);
-
-            TestContext.Out.WriteLine($"Distances <= 1e-6 (probe=mcp): {count1e6}");
-            TestContext.Out.WriteLine($"Distances <= 1e-12 (probe=mcp): {count1e12}");
-
-            TestContext.Out.WriteLine("Top distances (probe=mcp):");
-            foreach (var row in TopDistances(connection, conceptNames, probeBlob, 20))
-            {
-                TestContext.Out.WriteLine($"  {row.ConceptName} => {row.Distance.ToString("F12", CultureInfo.InvariantCulture)}");
-            }
-
-            Assert.That(inserted, Is.EqualTo(queries.Length), "Expected all embeddings to be inserted.");
-            Assert.That(count1e6, Is.GreaterThanOrEqualTo(1), "Expected probe embedding to match at least itself.");
+            using var insert = connection.CreateCommand();
+            insert.CommandText = "INSERT INTO vec_concepts (concept_name, embedding) VALUES (@concept, @embedding)";
+            insert.Parameters.AddWithValue("@concept", query);
+            insert.Parameters.Add("@embedding", SqliteType.Blob).Value = blob;
+            inserted += insert.ExecuteNonQuery();
         }
-        finally
+
+        TestContext.Out.WriteLine("Embedding SHA256 groups with identical hashes:");
+        var duplicateGroups = hashGroups.Where(g => g.Value.Count > 1).ToList();
+        if (duplicateGroups.Count == 0)
         {
-            CleanupSeededConcepts(connection, conceptNames);
+            TestContext.Out.WriteLine("  (none)");
         }
+        else
+        {
+            foreach (var group in duplicateGroups)
+            {
+                TestContext.Out.WriteLine($"  {group.Key}: {string.Join(", ", group.Value)}");
+            }
+        }
+
+        var probeEmbedding = VectorTools.GenerateEmbedding("mcp");
+        var probeBlob = VectorTools.ToSqliteVectorBlob(probeEmbedding);
+
+        var count1e6 = CountDistancesAtOrBelow(connection, conceptNames, probeBlob, 1e-6);
+        var count1e12 = CountDistancesAtOrBelow(connection, conceptNames, probeBlob, 1e-12);
+
+        TestContext.Out.WriteLine($"Distances <= 1e-6 (probe=mcp): {count1e6}");
+        TestContext.Out.WriteLine($"Distances <= 1e-12 (probe=mcp): {count1e12}");
+
+        TestContext.Out.WriteLine("Top distances (probe=mcp):");
+        foreach (var row in TopDistances(connection, conceptNames, probeBlob, 20))
+        {
+            TestContext.Out.WriteLine($"  {row.ConceptName} => {row.Distance.ToString("F12", CultureInfo.InvariantCulture)}");
+        }
+
+        Assert.That(inserted, Is.EqualTo(queries.Length), "Expected all embeddings to be inserted.");
+        Assert.That(count1e6, Is.GreaterThanOrEqualTo(1), "Expected probe embedding to match at least itself.");
     }
 
     private static int CountDistancesAtOrBelow(SqliteConnection connection, List<string> conceptNames, byte[] probeBlob, double threshold)
     {
-        // T-QUAL-FSC2: RTM FR-7.4
+        // T-QUAL-FSC2.4: RTM FR-7.4
         using var cmd = connection.CreateCommand();
         cmd.CommandText = $@"
             SELECT COUNT(*)
@@ -139,7 +197,7 @@ public class TQualFsc2HardMeasurementsTests
         byte[] probeBlob,
         int limit)
     {
-        // T-QUAL-FSC2: RTM FR-7.4
+        // T-QUAL-FSC2.4: RTM FR-7.4
         using var cmd = connection.CreateCommand();
         cmd.CommandText = $@"
             SELECT concept_name, vec_distance_cosine(embedding, @probe) AS distance
@@ -158,26 +216,6 @@ public class TQualFsc2HardMeasurementsTests
             var name = reader.GetString(0);
             var distance = reader.IsDBNull(1) ? double.NaN : reader.GetDouble(1);
             yield return (name, distance);
-        }
-    }
-
-    private static void CleanupSeededConcepts(SqliteConnection connection, List<string> conceptNames)
-    {
-        if (conceptNames.Count == 0)
-        {
-            return;
-        }
-
-        try
-        {
-            using var cmd = connection.CreateCommand();
-            cmd.CommandText = $"DELETE FROM vec_concepts WHERE {BuildConceptFilterSql(conceptNames)}";
-            AddConceptParameters(cmd, conceptNames);
-            cmd.ExecuteNonQuery();
-        }
-        catch (Microsoft.Data.Sqlite.SqliteException)
-        {
-            // vec_concepts may not work on CI (Error 16) - cleanup is best-effort
         }
     }
 

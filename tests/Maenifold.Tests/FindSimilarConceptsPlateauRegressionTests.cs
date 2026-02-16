@@ -9,8 +9,69 @@ using Maenifold.Utils;
 
 namespace Maenifold.Tests;
 
+[TestFixture]
+[NonParallelizable]
 public class FindSimilarConceptsPlateauRegressionTests
 {
+    private string _testRoot = string.Empty;
+    private string _previousMaenifoldRootEnv = string.Empty;
+    private string _previousDatabasePathEnv = string.Empty;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _previousMaenifoldRootEnv = Environment.GetEnvironmentVariable("MAENIFOLD_ROOT") ?? string.Empty;
+        _previousDatabasePathEnv = Environment.GetEnvironmentVariable("MAENIFOLD_DATABASE_PATH") ?? string.Empty;
+
+        var repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        _testRoot = Path.Combine(repoRoot, "test-outputs", "fsc2-plateau-regression", $"run-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_testRoot);
+
+        var testDbPath = Path.Combine(_testRoot, "memory.db");
+        Environment.SetEnvironmentVariable("MAENIFOLD_ROOT", _testRoot);
+        Environment.SetEnvironmentVariable("MAENIFOLD_DATABASE_PATH", testDbPath);
+        Config.OverrideRoot(_testRoot);
+        Config.SetDatabasePath(testDbPath);
+        Config.EnsureDirectories();
+        GraphDatabase.InitializeDatabase();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_testRoot) && Directory.Exists(_testRoot))
+            {
+                var dir = new DirectoryInfo(_testRoot);
+                foreach (var f in dir.GetFiles("*", SearchOption.AllDirectories))
+                    f.Attributes = FileAttributes.Normal;
+                Directory.Delete(_testRoot, recursive: true);
+            }
+        }
+        catch { }
+
+        Environment.SetEnvironmentVariable("MAENIFOLD_ROOT",
+            string.IsNullOrEmpty(_previousMaenifoldRootEnv) ? null : _previousMaenifoldRootEnv);
+        Environment.SetEnvironmentVariable("MAENIFOLD_DATABASE_PATH",
+            string.IsNullOrEmpty(_previousDatabasePathEnv) ? null : _previousDatabasePathEnv);
+
+        if (string.IsNullOrWhiteSpace(_previousMaenifoldRootEnv)
+            && string.IsNullOrWhiteSpace(_previousDatabasePathEnv))
+        {
+            Config.ResetOverrides();
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(_previousMaenifoldRootEnv))
+                Config.OverrideRoot(_previousMaenifoldRootEnv);
+            if (!string.IsNullOrWhiteSpace(_previousDatabasePathEnv))
+                Config.SetDatabasePath(_previousDatabasePathEnv);
+        }
+        Config.EnsureDirectories();
+        GraphDatabase.InitializeDatabase();
+    }
+
     [Test]
     public void FindSimilarConcepts_WhenQueryIsPunctuationOnly_DoesNotEmitConfidentResults()
     {
@@ -80,8 +141,6 @@ public class FindSimilarConceptsPlateauRegressionTests
         // function behavior may not allow constructing such a case. Instead, we seed the vector table and
         // enforce the output invariant.
 
-        GraphDatabase.InitializeDatabase();
-
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(Maenifold.Utils.Config.DatabaseConnectionString))
         {
             connection.Open();
@@ -108,14 +167,20 @@ public class FindSimilarConceptsPlateauRegressionTests
     private static void SeedVecConcept(Microsoft.Data.Sqlite.SqliteConnection connection, string concept)
     {
         // T-QUAL-FSC2: RTM FR-7.4
+        // vec0 virtual tables do not support INSERT OR REPLACE; use DELETE-then-INSERT.
         var embedding = Maenifold.Utils.VectorTools.GenerateEmbedding(concept);
         var blob = Maenifold.Utils.VectorTools.ToSqliteVectorBlob(embedding);
 
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = "INSERT OR REPLACE INTO vec_concepts (concept_name, embedding) VALUES (@concept, @embedding)";
-        cmd.Parameters.AddWithValue("@concept", concept);
-        cmd.Parameters.Add("@embedding", Microsoft.Data.Sqlite.SqliteType.Blob).Value = blob;
-        cmd.ExecuteNonQuery();
+        using var delCmd = connection.CreateCommand();
+        delCmd.CommandText = "DELETE FROM vec_concepts WHERE concept_name = @concept";
+        delCmd.Parameters.AddWithValue("@concept", concept);
+        delCmd.ExecuteNonQuery();
+
+        using var insCmd = connection.CreateCommand();
+        insCmd.CommandText = "INSERT INTO vec_concepts (concept_name, embedding) VALUES (@concept, @embedding)";
+        insCmd.Parameters.AddWithValue("@concept", concept);
+        insCmd.Parameters.Add("@embedding", Microsoft.Data.Sqlite.SqliteType.Blob).Value = blob;
+        insCmd.ExecuteNonQuery();
     }
 
     private static List<double> ParseSimilarityValues(string output)

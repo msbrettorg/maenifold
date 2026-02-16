@@ -77,7 +77,7 @@ public static class CommunityDetection
             return (result, 0.0);
         }
 
-        // Phase 1+2 iterative Louvain
+        // Phase 1 only: local node moves (no Phase 2 aggregation — sufficient for current graph scale)
         var community = new int[n];
         for (int i = 0; i < n; i++)
             community[i] = i;
@@ -98,7 +98,7 @@ public static class CommunityDetection
     }
 
     /// <summary>
-    /// Core Louvain loop: Phase 1 (local moves) + Phase 2 (aggregation), repeat until stable.
+    /// Core Louvain loop: Phase 1 local node moves, repeat until no modularity improvement.
     /// </summary>
     private static int[] LouvainIterative(
         Dictionary<int, List<(int neighbor, int weight)>> adj,
@@ -222,7 +222,10 @@ public static class CommunityDetection
 
         var timestamp = CultureInvariantHelpers.FormatDateTime(DateTime.UtcNow, "O");
 
-        // Full replacement: delete all, then insert batch
+        // T-COMMUNITY-001.11: RTM FAIL-001 remediation — atomic DELETE+INSERT in transaction
+        // Prevents concurrent RunAndPersist calls from interleaving and corrupting the partition.
+        using var transaction = conn.BeginTransaction();
+
         conn.Execute("DELETE FROM concept_communities");
 
         foreach (var (conceptName, communityId) in communities)
@@ -232,6 +235,8 @@ public static class CommunityDetection
                   VALUES (@name, @cid, @mod, @res, @ts)",
                 new { name = conceptName, cid = communityId, mod = modularity, res = gamma, ts = timestamp });
         }
+
+        transaction.Commit();
 
         var distinctCommunities = communities.Values.Distinct().Count();
         return (distinctCommunities, modularity);

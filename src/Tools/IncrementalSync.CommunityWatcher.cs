@@ -11,6 +11,10 @@ public partial class IncrementalSyncTools
     private static Timer? _dbDebounceTimer;
     private static volatile bool _communityWriteInProgress;
 
+    // T-COMMUNITY-001.11: RTM FAIL-001 remediation — allow ConceptSync.Sync to set the write guard
+    // so the DB watcher skips during full sync community detection.
+    public static void SetCommunityWriteInProgress(bool value) => _communityWriteInProgress = value;
+
     // Call from StartWatcher after the existing _watcher setup
     private static void StartDbWatcher()
     {

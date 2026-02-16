@@ -2,6 +2,18 @@
 
 ## 1-Minute Setup
 
+### 1. Add the `pm` alias
+
+Add to `~/.zshrc` (or `~/.bashrc`):
+
+```bash
+alias pm='claude --allow-dangerously-skip-permissions --plugin-dir /path/to/ralph-loop --agent maenifold-product-team:product-manager'
+```
+
+Now `pm` launches Claude Code as a Product Manager with full subagent orchestration.
+
+### 2. Install the session hook
+
 ```bash
 # Copy the hook
 cp ~/maenifold/assets/integrations/claude-code/hooks/session_start.sh ~/.claude/hooks/
@@ -17,7 +29,7 @@ chmod +x ~/.claude/hooks/session_start.sh
 #   }
 # }
 
-# That's it! Start a new Claude Code session
+# That's it! Start a new session with: pm
 ```
 
 ## What You Get

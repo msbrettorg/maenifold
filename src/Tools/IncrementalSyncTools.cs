@@ -54,6 +54,8 @@ public partial class IncrementalSyncTools
 
             _watcher.EnableRaisingEvents = true;
 
+            StartDbWatcher();
+
             return $"Started watching {MemoryPath} for incremental sync (debounce: {_debounceMs}ms)";
         }
     }
@@ -76,6 +78,8 @@ public partial class IncrementalSyncTools
                 entry.timer?.Dispose();
             }
             _debounceTimers.Clear();
+
+            StopDbWatcher();
 
             return "Stopped incremental sync watcher";
         }

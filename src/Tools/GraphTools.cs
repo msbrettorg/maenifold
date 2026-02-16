@@ -2,6 +2,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using Microsoft.Data.Sqlite;
+using System.Text.Json;
 using Maenifold.Models;
 using Maenifold.Utils;
 
@@ -69,24 +70,21 @@ Returns related concepts with relationship types, file references, and connectio
             return result;
 
 
-        var directRelations = conn.Query<(string related, int count)>(
+        var directRelations = conn.Query<(string related, int count, string files)>(
                     @"SELECT
                 CASE WHEN concept_a = @name THEN concept_b ELSE concept_a END as related,
-                co_occurrence_count as count
+                co_occurrence_count as count,
+                source_files as files
             FROM concept_graph
             WHERE concept_a = @name OR concept_b = @name
             ORDER BY co_occurrence_count DESC
             LIMIT @maxEntities",
                     new { name = conceptName, maxEntities });
 
-        foreach (var (related, count) in directRelations)
+        foreach (var (related, count, files) in directRelations)
         {
-            var (a, b) = string.CompareOrdinal(conceptName, related) < 0
-                ? (conceptName, related)
-                : (related, conceptName);
-            var fileList = conn.Query<string>(
-                "SELECT source_file FROM concept_graph_files WHERE concept_a = @a AND concept_b = @b",
-                new { a, b }).ToList();
+            // SEC-001: Use safe JSON options with depth limit
+            var fileList = JsonSerializer.Deserialize<List<string>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
 
             // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Calculate average decay weight across source files
             var avgDecayWeight = fileList.Select(filePath => MemorySearchTools.GetDecayWeightForFile(filePath))
@@ -161,7 +159,7 @@ Returns related concepts with relationship types, file references, and connectio
                 }
             }
 
-            foreach (var (related, _) in directRelations.Take(5))
+            foreach (var (related, _, _) in directRelations.Take(5))
             {
                 TraverseRecursive(related, 1);
             }

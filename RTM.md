@@ -182,3 +182,26 @@ ESCAPE HATCHES:
 | T-SYNC-MTIME-001.4 | FR-14.4, NFR-14.4.1 | Guard clause ordering SHALL be: mtime check → hash check → process; each is an independent `if` + early exit (no compound mtime/hash conditionals). | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/SyncMtimeOptimizationTests.cs | Pending |
 | T-SYNC-MTIME-001.5 | FR-14.5 | Incremental sync SHALL use the same mtime → hash → process guard clause chain for file change events. | src/Tools/IncrementalSyncTools.Processing.cs, src/Tools/IncrementalSync.Database.cs | tests/Maenifold.Tests/IncrementalSyncMtimeOptimizationTests.cs | Pending |
 | T-SYNC-MTIME-001.6 | Security | Red-team audit: verify no silent data loss, no watcher loops, and no bypass of required processing when content changes. | All changed files | ConfessionReport | Pending |
+
+---
+
+## T-SITE-001: Site Rebuild (sprint-20260216)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-SITE-001.1 | NFR-15.3, NFR-15.4, NFR-15.7 | Delete all decorative components (AnimatedGraph, AnimatedText, GlassCard, RippleButton, NetworkBackground), animation CSS, `@headlessui/react`, use-case pages, and stale route pages. | site/app/components/*, site/app/globals.css, site/app/use-cases/*, site/package.json | Build succeeds with zero deleted imports | Pending |
+| T-SITE-001.2 | §7.9 (palette, typography, texture) | Implement design system foundation: CSS custom properties (dark/light palette), system font stacks, feTurbulence noise overlay, Tailwind v4 `@theme` config. | site/app/globals.css, site/tailwind.config.ts | Visual inspection; CSS < 200 lines (NFR-15.7) | Pending |
+| T-SITE-001.3 | FR-15.31, FR-15.35 | Implement layout shell: `layout.tsx` with `class="dark"` default, inline `<head>` theme script (localStorage → prefers-color-scheme → dark fallback), skip link (WCAG 2.4.1). | site/app/layout.tsx | No FOUC on first load; theme persists across navigation | Pending |
+| T-SITE-001.4 | FR-15.32, FR-15.35 | Implement Header: flat horizontal nav (logo, Docs, Plugins, Tools, Workflows, toggle, GitHub), horizontal scroll on mobile, no dropdowns, no hamburger. | site/app/components/Header.tsx | All links visible on 375px viewport without interaction | Pending |
+| T-SITE-001.5 | §7.9 (footer) | Implement Footer: logo (small), version from git tag (FR-15.23), "Domain expertise that compounds.", MIT link, GitHub link. | site/app/components/Footer.tsx | Version renders dynamically | Pending |
+| T-SITE-001.6 | FR-15.2-15.8, FR-15.14, FR-15.20, FR-15.24, FR-15.30 | Implement Home page: product description, install commands, MCP config JSON, 3 CLI examples, 6-layer Mermaid diagram, platform table, graph screenshot, copy-to-clipboard on all code blocks. | site/app/page.tsx | All content matches README.md; copy buttons functional | Pending |
+| T-SITE-001.7 | FR-15.9 | Implement `/docs` page: render docs/README.md content (theoretical foundations, how it works, cognitive stack, capabilities, tech specs). | site/app/docs/page.tsx | Content renders from source markdown | Pending |
+| T-SITE-001.8 | FR-15.10 | Implement `/plugins` page: render plugin-maenifold README + plugin-product-team README content (installation, MCP config, hook system, multi-agent orchestration). | site/app/plugins/page.tsx | Content renders from source markdown; Mermaid diagrams render as SVG | Pending |
+| T-SITE-001.9 | FR-15.11, FR-15.21, FR-15.22 | Implement `/tools` page: data-driven catalog from `src/assets/usage/tools/*.md`, dynamic tool count at build time. | site/app/tools/page.tsx | Tool count matches filesystem; all tools listed | Pending |
+| T-SITE-001.10 | FR-15.12, FR-15.21 | Implement `/workflows` page: data-driven catalog from `src/assets/workflows/*.json`, dynamic workflow count at build time. | site/app/workflows/page.tsx | Workflow count matches filesystem; all workflows listed | Pending |
+| T-SITE-001.11 | NFR-15.5 | Implement Shiki syntax highlighting with custom warm-restraint theme (8 token colors from §7.9). | site/lib/shiki.ts, site/app/components/CodeBlock.tsx | Code blocks render with correct token colors | Pending |
+| T-SITE-001.12 | NFR-15.6, FR-15.13 | Implement build-time Mermaid rendering via `@mermaid-js/mermaid-cli` with design system theme. | site/lib/mermaid.ts, site/next.config.ts | Mermaid blocks render as inline SVG with palette colors; zero client JS | Pending |
+| T-SITE-001.13 | FR-15.30 | Implement CopyButton component for all code blocks. | site/app/components/CopyButton.tsx | Click copies content to clipboard; visual feedback | Pending |
+| T-SITE-001.14 | NFR-15.8, FR-15.33 | Lighthouse audit + keyboard navigation verification (skip link, focus indicators, tab order). | All pages | Lighthouse 95+ mobile; all interactive elements reachable via keyboard | Pending |
+| T-SITE-001.15 | Security | Red-team audit: XSS in markdown rendering, content injection, build pipeline integrity, dependency audit. | All site files | ConfessionReport | Pending |
+| T-SITE-001.16 | Coverage | Blue-team: verify all FR-15.x requirements met, content accuracy against README, design system compliance. | All site files | ConfessionReport | Pending |

@@ -21,6 +21,90 @@ public static class ConceptSync
 {
     private static string MemoryPath => Config.MemoryPath;
 
+    // CLEANUP-001.1: RTM FR-14.6 - Identify thinking session files in DB without reading all files.
+    private static bool IsThinkingSessionUri(string memoryUri)
+    {
+        if (string.IsNullOrWhiteSpace(memoryUri))
+        {
+            return false;
+        }
+
+        var normalized = memoryUri.Replace('\\', '/');
+        // NOTE: workflow sessions are stored under thinking/workflow/ (singular) in current path scheme.
+        return normalized.ContainsOrdinal("memory://thinking/sequential/") ||
+               normalized.ContainsOrdinal("memory://thinking/workflow/");
+    }
+
+    // CLEANUP-001.1: RTM FR-14.6 - Sweep abandoned sessions based on DB metadata.
+    // Reads ONLY candidate files (status=active, thinking session paths, last_indexed older than threshold).
+    private static int SweepAbandonedThinkingSessions(SqliteConnection conn, DateTime nowUtc)
+    {
+        if (!Config.EnableSessionCleanup)
+        {
+            return 0;
+        }
+
+        var cutoffUtc = nowUtc.Subtract(TimeSpan.FromMinutes(Config.SessionAbandonmentMinutes));
+        var cutoff = CultureInvariantHelpers.FormatDateTime(cutoffUtc, "O");
+
+        // Candidate selection is DB-only: no filesystem reads.
+        var candidates = conn.Query<(string file_path, string? last_indexed)>(@"
+            SELECT file_path, last_indexed
+            FROM file_content
+            WHERE status = 'active'
+              AND last_indexed IS NOT NULL
+              AND last_indexed < @cutoff",
+            new { cutoff }).ToList();
+
+        var updated = 0;
+        foreach (var candidate in candidates)
+        {
+            if (!IsThinkingSessionUri(candidate.file_path))
+            {
+                continue;
+            }
+
+            if (!CultureInvariantHelpers.TryParseDateTime(candidate.last_indexed!, out var lastIndexedUtc))
+            {
+                continue;
+            }
+
+            var diskPath = UriToPath(candidate.file_path);
+            if (!File.Exists(diskPath))
+            {
+                continue;
+            }
+
+            // Read only candidates, then verify frontmatter is still active.
+            var (frontmatter, content, _) = MarkdownIO.ReadMarkdown(diskPath);
+            if (frontmatter == null)
+            {
+                continue;
+            }
+
+            var status = frontmatter.TryGetValue("status", out var statusValue) ? statusValue?.ToString() : null;
+            if (!string.Equals(status, "active", StringComparison.Ordinal))
+            {
+                // DB may be stale; reconcile DB to file frontmatter status without rewriting the file.
+                if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "active", StringComparison.Ordinal))
+                {
+                    conn.Execute("UPDATE file_content SET status = @s WHERE file_path = @p", new { s = status, p = candidate.file_path });
+                }
+                continue;
+            }
+
+            if (SessionCleanup.TryMarkAbandonedFromLastIndexed(frontmatter, content, lastIndexedUtc, nowUtc, out var updatedContent))
+            {
+                // Persist updated frontmatter/content and keep DB status in sync.
+                MarkdownIO.WriteMarkdown(diskPath, frontmatter, updatedContent);
+                conn.Execute("UPDATE file_content SET status = 'abandoned' WHERE file_path = @p", new { p = candidate.file_path });
+                updated++;
+            }
+        }
+
+        return updated;
+    }
+
     /// <summary>
     /// Helper to execute INSERT OR IGNORE/REPLACE SQL with consistent error handling.
     /// Consolidates duplicate SQL execution patterns (SIMP-004).
@@ -233,6 +317,10 @@ public static class ConceptSync
         {
             transaction = conn.BeginTransaction();
 
+            // CLEANUP-001.1: RTM FR-14.6 - Targeted sweep before full enumeration.
+            // This updates only candidate thinking sessions; other files remain guarded by mtime/hash.
+            var abandonedSwept = SweepAbandonedThinkingSessions(conn, DateTime.UtcNow);
+
             foreach (var filePath in files)
             {
                 try
@@ -268,6 +356,9 @@ public static class ConceptSync
 
             if (deletedFilesCount > 0)
                 Console.Error.WriteLine($"[SYNC TELEMETRY] Removed {deletedFilesCount} orphaned file entries from database");
+
+            if (abandonedSwept > 0)
+                Console.Error.WriteLine($"[SYNC TELEMETRY] Marked {abandonedSwept} thinking sessions as abandoned");
 
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"

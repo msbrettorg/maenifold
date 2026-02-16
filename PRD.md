@@ -21,6 +21,7 @@
 | 3.1 | 2026-02-15 | PM Agent | Replaced placeholder design notes with finalized design system (color palette, typography, layout) derived from Norbauer analysis |
 | 3.3 | 2026-02-16 | PM Agent | Added §7.1.5 Aesthetic Rationale ("Warm Restraint") — user story and design reasoning backing FR-15.x |
 | 3.4 | 2026-02-16 | PM Agent | Finalized FR-15.x gap resolutions: FR-15.31 (theme cascade), FR-15.35 (mobile scroll nav), §7.9 (system monospace, feTurbulence texture), NFR-15.1 (output: export), NFR-15.6 (build-time mmdc) |
+| 3.5 | 2026-02-16 | PM Agent | Added FR-14.6 (session abandonment detection via DB metadata pre-pass) — backfill for shipped CLEANUP-001.1 implementation |
 
 ---
 
@@ -104,6 +105,7 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | FR-14.3 | If hash differs, Sync SHALL process the file (extract concepts, update graph, etc.). | **P1** |
 | FR-14.4 | Each exit condition SHALL be an independent guard clause — no compound conditionals combining mtime and hash checks. | **P1** |
 | FR-14.5 | Incremental sync SHALL use the same mtime → hash → process guard clause chain when processing file change events. | **P1** |
+| FR-14.6 | Sync SHALL detect abandoned thinking sessions (sequential and workflow) whose `last_indexed` exceeds the abandonment threshold, even when the mtime guard would skip reading the file. Candidate selection SHALL use DB metadata only; only candidates are read from disk. | **P1** |
 
 ### 3.7 Community Detection (P1)
 

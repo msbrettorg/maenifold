@@ -185,6 +185,14 @@ ESCAPE HATCHES:
 
 ---
 
+## T-CLEANUP-001.1: Session Abandonment Sweep (sprint-20260216)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-CLEANUP-001.1 | FR-14.6 | Sync SHALL detect abandoned thinking sessions via DB metadata pre-pass, even when the mtime guard would skip reading the file. | src/Tools/ConceptSync.cs, src/Tools/SessionCleanup.cs | tests/Maenifold.Tests/SessionAbandonmentSweepTests.cs | **Complete** |
+
+---
+
 ## T-SITE-001: Site Rebuild (sprint-20260216)
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |

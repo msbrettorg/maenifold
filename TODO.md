@@ -6,8 +6,14 @@
 - OPENCODE-001: OpenCode Plugin active work
 - MAENIFOLDPY-001: Python port tasks
 - DIST-001: Windows MSI installer
-- CLEANUP-001: Active thinking sessions
+- CLEANUP-001: Active thinking sessions (**Complete**)
 - SITE-001: Site rebuild ("Warm Restraint")
+
+## Sprint: Session Abandonment Sweep (T-CLEANUP-001.1)
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-CLEANUP-001.1 | SWE: Implement DB-driven abandoned session sweep in ConceptSync pre-pass + SessionCleanup.TryMarkAbandonedFromLastIndexed | FR-14.6 | **Complete** |
 
 ## Sprint: Site Rebuild (T-SITE-001)
 

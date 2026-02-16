@@ -71,7 +71,7 @@ extract_concepts() {
 }
 
 build_context_loop() {
-  local concepts="$1" token_limit="$2" token_cost="$3" depth="${4:-1}" max_entities="${5:-5}"
+  local concepts="$1" token_limit="$2" token_cost="$3" depth="${4:-1}" max_entities="${5:-5}" include_content="${6:-true}"
   local context="" tokens=0
   local cli_timeout="${CLI_TIMEOUT:-5}"
 
@@ -80,7 +80,7 @@ build_context_loop() {
     (( tokens + token_cost > token_limit )) && break
 
     result=$(run_with_timeout "$cli_timeout" "$MAENIFOLD_CLI" --tool BuildContext --payload \
-      "{\"conceptName\":\"$concept\",\"depth\":$depth,\"maxEntities\":$max_entities,\"includeContent\":true}")
+      "{\"conceptName\":\"$concept\",\"depth\":$depth,\"maxEntities\":$max_entities,\"includeContent\":$include_content}")
 
     # Skip empty, no relations, or weak relations (1-2 file co-occurrence)
     [[ -z "$result" ]] && continue
@@ -125,7 +125,7 @@ if [[ "$MODE" == "session_start" ]]; then
 
   [[ -z "$CONCEPTS" ]] && { echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""}}'; exit 0; }
 
-  CONTEXT=$(build_context_loop "$CONCEPTS" "$TOKEN_LIMIT" "$TOKEN_COST" 1 3)
+  CONTEXT=$(build_context_loop "$CONCEPTS" "$TOKEN_LIMIT" "$TOKEN_COST" 1 3 false)
 
   [[ -z "$CONTEXT" ]] && { echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""}}'; exit 0; }
 
@@ -158,7 +158,7 @@ if [[ "$MODE" == "task_augment" ]]; then
   CONCEPTS=$(echo "$ORIGINAL_PROMPT" | extract_concepts | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | awk '!seen[$0]++')
   [[ -z "$CONCEPTS" ]] && exit 0
 
-  CONTEXT=$(build_context_loop "$CONCEPTS" "${TASK_TOKEN_THRESHOLD:-8000}" "${TASK_TOKEN_COST:-1000}")
+  CONTEXT=$(build_context_loop "$CONCEPTS" "${TASK_TOKEN_THRESHOLD:-8000}" "${TASK_TOKEN_COST:-1000}" 1 5 false)
   [[ -z "$CONTEXT" ]] && exit 0
 
   AUGMENTED="$ORIGINAL_PROMPT

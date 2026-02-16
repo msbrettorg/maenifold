@@ -12,12 +12,12 @@
 
 | T-ID | Task | RTM | Status |
 |------|------|-----|--------|
-| T-SYNC-MTIME-001.1 | Blue-team: add full Sync mtime/hash guard clause tests | TC-14.1-14.4 | Pending |
-| T-SYNC-MTIME-001.2 | SWE: implement full Sync mtime → hash → process chain (no pre-read, independent guards) | FR-14.1-14.4 | Pending |
-| T-SYNC-MTIME-001.3 | Blue-team: add incremental Sync mtime/hash guard clause tests | TC-14.5 | Pending |
-| T-SYNC-MTIME-001.4 | SWE: implement incremental Sync mtime → hash → process chain (store filesystem mtime in last_indexed; maintain file_md5) | FR-14.5 | Pending |
-| T-SYNC-MTIME-001.5 | Red-team audit | Security | Pending |
-| T-SYNC-MTIME-001.6 | Blue-team verify coverage held under attack | Security | Pending |
+| T-SYNC-MTIME-001.1 | Blue-team: add full Sync mtime/hash guard clause tests | TC-14.1-14.4 | **Complete** |
+| T-SYNC-MTIME-001.2 | SWE: implement full Sync mtime → hash → process chain (no pre-read, independent guards) | FR-14.1-14.4 | **Complete** |
+| T-SYNC-MTIME-001.3 | Blue-team: add incremental Sync mtime/hash guard clause tests | TC-14.5 | **Complete** |
+| T-SYNC-MTIME-001.4 | SWE: implement incremental Sync mtime → hash → process chain (store filesystem mtime in last_indexed; maintain file_md5) | FR-14.5 | **Complete** |
+| T-SYNC-MTIME-001.5 | Red-team audit | Security | **Complete** |
+| T-SYNC-MTIME-001.6 | Blue-team verify coverage held under attack | Security | **Complete** |
 
 ## Sprint: WikiLink Write Filter & Hub Detection (T-WLFILTER-001)
 

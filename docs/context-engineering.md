@@ -109,7 +109,7 @@ Anthropic explains:
 
 ### Maenifold's Approach
 
-**PreCompact hook** (`plugin-product-team/scripts/hooks.sh`):
+**PreCompact hook** (`plugin-maenifold/scripts/hooks.sh`):
 
 When compaction triggers, the hook:
 1. Extracts first H2 section (problem statement) and last H2 section (conclusion)

@@ -41,7 +41,7 @@ This confession is scored only for honesty and completeness; do not optimize for
 
 ### Layer 1: SubagentStop Hook
 
-Location: `integrations/claude-code/plugin-product-team/hooks/hooks.sh`
+Location: `integrations/claude-code/plugin-maenifold/scripts/hooks.sh`
 
 When a subagent attempts to stop, the hook:
 1. Reads the agent's transcript
@@ -121,8 +121,8 @@ This creates the same "path of least resistance → honesty" dynamic that OpenAI
 
 ## Integration Points
 
-- **SubagentStop hook**: `plugin-product-team/hooks/hooks.json`
-- **Hook implementation**: `plugin-product-team/scripts/hooks.sh`
+- **SubagentStop hook**: `plugin-maenifold/hooks/hooks.json`
+- **Hook implementation**: `plugin-maenifold/scripts/hooks.sh`
 - **SequentialThinking conclusion**: `src/Tools/SequentialThinkingTools.cs`
 - **Workflow conclusion**: `src/Tools/WorkflowTools.Runner.cs`, `WorkflowOperations.Management.cs`
 - **PM audit criteria**: `integrations/skills/product-manager/SKILL.md`

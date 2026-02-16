@@ -402,6 +402,10 @@ public static class ConceptSync
         totalSyncTimer.Stop();
         Console.Error.WriteLine($"[SYNC TELEMETRY] Total sync completed in {totalSyncTimer.ElapsedMilliseconds}ms");
 
+        // T-COMMUNITY-001.5: RTM FR-13.4 - Run community detection after concept extraction
+        var (communityCount, modularity) = CommunityDetection.RunAndPersist(conn, Config.LouvainGamma);
+        Console.Error.WriteLine($"[SYNC TELEMETRY] Community detection: {communityCount} communities, modularity {modularity:F3}");
+
         var conceptMentionCount = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM concept_mentions");
         var edgeCount = conn.ExecuteScalar<long>("SELECT COUNT(*) FROM concept_graph");
 
@@ -412,6 +416,7 @@ public static class ConceptSync
         result.AppendLineInvariant($"- {edgeCount} CONCEPT relations created");
         if (orphanedCount > 0)
             result.AppendLineInvariant($"- {orphanedCount} ORPHANED concepts cleaned up");
+        result.AppendLineInvariant($"- {communityCount} COMMUNITIES detected (modularity {modularity:F3})");
 
         if (vectorReady)
         {

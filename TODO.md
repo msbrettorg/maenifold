@@ -22,28 +22,28 @@ Wave 1 — Foundation (serial):
 
 | T-ID | Task | RTM | Status |
 |------|------|-----|--------|
-| T-COMMUNITY-001.1 | SWE: Add concept_communities table schema with FK to concepts (`GraphDatabase.cs`) | FR-13.3 | Pending |
-| T-COMMUNITY-001.2 | SWE: Implement Louvain algorithm — in-memory, deterministic seed, configurable gamma (`CommunityDetection.cs` new) | FR-13.1, FR-13.2, FR-13.11 | Pending |
-| T-COMMUNITY-001.3 | SWE: Add config — MAENIFOLD_LOUVAIN_GAMMA, sibling thresholds, watcher debounce (`Config.cs`) | FR-13.11, NFR-13.5.1, NFR-13.9.1 | Pending |
-| T-COMMUNITY-001.4 | Blue-team: Unit tests for Louvain — deterministic seed, known topology, empty graph, disconnected components | FR-13.1, FR-13.2 | Pending |
+| T-COMMUNITY-001.1 | SWE: Add concept_communities table schema with FK to concepts (`GraphDatabase.cs`) | FR-13.3 | **Complete** |
+| T-COMMUNITY-001.2 | SWE: Implement Louvain algorithm — in-memory, deterministic seed, configurable gamma (`CommunityDetection.cs` new) | FR-13.1, FR-13.2, FR-13.11 | **Complete** |
+| T-COMMUNITY-001.3 | SWE: Add config — MAENIFOLD_LOUVAIN_GAMMA, sibling thresholds, watcher debounce (`Config.cs`) | FR-13.11, NFR-13.5.1, NFR-13.9.1 | **Complete** |
+| T-COMMUNITY-001.4 | Blue-team: Unit tests for Louvain — deterministic seed, known topology, empty graph, disconnected components (11 tests) | FR-13.1, FR-13.2 | **Complete** |
 
 Wave 2 — Integration (parallel after Wave 1):
 
 | T-ID | Task | RTM | Status |
 |------|------|-----|--------|
-| T-COMMUNITY-001.5 | SWE: Hook community detection into full Sync — run after concept extraction, persist results (`ConceptSync.cs`) | FR-13.4 | Pending |
-| T-COMMUNITY-001.6 | SWE: DB file watcher with debounce for community recomputation — reuse FileSystemWatcher pattern, skip own writes (`IncrementalSyncTools.cs`) | FR-13.5 | Pending |
-| T-COMMUNITY-001.7 | SWE: Add community_id to RelatedConcept in BuildContext via indexed query (`GraphTools.cs`, `BuildContextResult.cs`) | FR-13.6 | Pending |
-| T-COMMUNITY-001.8 | SWE: Add CommunitySiblings section to BuildContext — normalized weighted overlap, thresholds, cap 10 (`GraphTools.cs`, `BuildContextResult.cs`) | FR-13.7, FR-13.8, FR-13.9 | Pending |
-| T-COMMUNITY-001.9 | SWE: Graceful degradation — omit community fields silently when no data (`GraphTools.cs`) | FR-13.10 | Pending |
+| T-COMMUNITY-001.5 | SWE: Hook community detection into full Sync — run after concept extraction, persist results (`ConceptSync.cs`) | FR-13.4 | **Complete** |
+| T-COMMUNITY-001.6 | SWE: DB file watcher with debounce for community recomputation — reuse FileSystemWatcher pattern, skip own writes (`IncrementalSync.CommunityWatcher.cs` new) | FR-13.5 | **Complete** |
+| T-COMMUNITY-001.7 | SWE: Add community_id to RelatedConcept in BuildContext via indexed query (`GraphTools.cs`, `BuildContextResult.cs`) | FR-13.6 | **Complete** |
+| T-COMMUNITY-001.8 | SWE: Add CommunitySiblings section to BuildContext — normalized weighted overlap, thresholds, cap 10 (`GraphTools.cs`, `BuildContextResult.cs`) | FR-13.7, FR-13.8, FR-13.9 | **Complete** |
+| T-COMMUNITY-001.9 | SWE: Graceful degradation — omit community fields silently when no data (`GraphTools.cs`) | FR-13.10 | **Complete** |
 
 Wave 3 — Verification:
 
 | T-ID | Task | RTM | Status |
 |------|------|-----|--------|
-| T-COMMUNITY-001.10 | Blue-team: Integration tests — sync hook, watcher, BuildContext enrichment, siblings, degradation | FR-13.4–13.10 | Pending |
-| T-COMMUNITY-001.11 | Red-team: Adversarial review — watcher loops, edge cases, overflow, race conditions | Security | Pending |
-| T-COMMUNITY-001.12 | Blue-team: NFR compliance — indexed queries, no external deps, env var defaults, deterministic seed | NFR-13.x | Pending |
+| T-COMMUNITY-001.10 | Blue-team: Integration tests — sync hook, BuildContext enrichment, siblings, degradation (6 tests) | FR-13.4–13.10 | **Complete** |
+| T-COMMUNITY-001.11 | Red-team: Adversarial review — found FAIL-001 (non-atomic write + missing guard), remediated | Security | **Complete** |
+| T-COMMUNITY-001.12 | Blue-team: NFR compliance — 12/12 PASS | NFR-13.x | **Complete** |
 
 ## Sprint: Site Rebuild (T-SITE-001)
 

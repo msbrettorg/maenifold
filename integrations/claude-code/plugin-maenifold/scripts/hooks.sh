@@ -233,8 +233,8 @@ if [[ "$MODE" == "session_start" ]]; then
   # --- Step 3: Fallback if no thinking sessions (NFR-16.1.6) ---
   if [[ $SEED_COUNT -eq 0 ]]; then
     REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
-    FALLBACK_OUTPUT=$(run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool SearchMemories --payload \
-      "{\"query\":\"$REPO_NAME\",\"mode\":\"Hybrid\",\"pageSize\":5}")
+    FALLBACK_PAYLOAD=$(jq -n --arg q "$REPO_NAME" '{"query":$q,"mode":"Hybrid","pageSize":5}')
+    FALLBACK_OUTPUT=$(run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool SearchMemories --payload "$FALLBACK_PAYLOAD")
 
     if [[ -n "$FALLBACK_OUTPUT" ]]; then
       while IFS= read -r seed; do

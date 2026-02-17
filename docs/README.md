@@ -63,7 +63,7 @@ Context engineering infrastructure for AI agents. Point it at any domain's liter
 | **[Two-Stage Model](https://doi.org/10.1152/physrev.00032.2012)** | Fast episodic encoding → slow semantic consolidation | `memory://thinking/` (episodic) vs `memory://research/` (semantic) |
 | **[ACT-R Decay](https://doi.org/10.4324/9781315805696)** | Memories fade without access following power-law | `DecayCalculator`: `base × time^(-0.5)` |
 | **[Storage vs Retrieval](https://www.researchgate.net/publication/281322665)** | Pointers persist; only accessibility fades | WikiLinks never deleted; decay affects ranking |
-| **[Maintenance Cycles](https://doi.org/10.1016/j.neuron.2013.12.025)** | Periodic graph hygiene | 4 workflows: consolidation, decay, repair, epistemic |
+| **[Maintenance Cycles](https://doi.org/10.1016/j.neuron.2013.12.025)** | Periodic graph hygiene | 5 workflows in serialized dependency order: repair, hub-detection, consolidation, epistemic, status |
 | **[Consolidation](https://doi.org/10.1038/nrn2762)** | Thinking sessions → semantic memory | Replay via `RecentActivity`, distill to `WriteMemory`, link via `FindSimilarConcepts` |
 
 ### Symbolic Systems
@@ -175,15 +175,17 @@ retrieval_strength = base_strength × (time_since_access)^(-decay_rate)
 
 | Tier | Grace Period | Half-Life | Examples |
 |------|-------------|-----------|----------|
-| Episodic | 2-3 cycles | 7 cycles | `memory://thinking/` sessions |
-| Semantic | 7 cycles | 14-28 cycles | `memory://research/`, `memory://decisions/` |
+| Sequential | 7 days | 30 days | `memory://thinking/sequential/` sessions |
+| Workflows | 14 days | 30 days | `memory://thinking/workflow/` sessions |
+| Semantic | 28 days | 30 days | `memory://research/`, `memory://decisions/` |
 | Immortal | ∞ | ∞ | Validated assumptions, core architecture |
 
-**Sleep Cycles**: Periodic maintenance runs four specialist workflows in parallel:
-- **Consolidation**: Replays high-significance episodic memories, promotes to semantic
-- **Decay**: Analyzes access patterns, flags severely decayed content
+**Sleep Cycles**: Periodic maintenance runs five specialist workflows in serialized dependency order:
 - **Repair**: Normalizes WikiLink variants, cleans orphaned concepts
+- **Hub Detection**: Identifies and filters generic hub concepts from the graph
+- **Consolidation**: Replays high-significance episodic memories, promotes to semantic
 - **Epistemic**: Reviews assumptions, validates or invalidates based on evidence
+- **Status**: Analyzes decay patterns, reports memory health
 
 *Decay affects search ranking only. Files are never deleted.*
 
@@ -374,7 +376,7 @@ Where test-time computation happens:
 - **Hybrid RRF Search**: Semantic + full-text fusion for optimal retrieval
 - **Lazy Graph Construction**: No schema, no ontology — structure emerges from WikiLink usage
 - **Neuroscience-Grounded Decay**: ACT-R power-law forgetting with tiered memory classes
-- **Autonomous Sleep Cycles**: Four-specialist maintenance runs unattended
+- **Autonomous Sleep Cycles**: Five-specialist maintenance runs unattended
 - **Symbolic Inter-Agent Protocol**: WikiLinks dereference to graph context
 - **Quality-Gated Orchestration**: Multi-agent coordination with validation waves and RTM compliance
 - **Complete Transparency**: Every thought, revision, and decision visible in markdown files
@@ -505,11 +507,12 @@ Unlike stateless AI that resets each conversation:
 
 The system maintains itself:
 ```
-Sleep Cycle (daily):
-  → Consolidation replays significant episodes, writes semantic notes
-  → Decay flags stale content for natural forgetting
+Sleep Cycle (daily, serialized dependency order):
   → Repair normalizes WikiLink drift, cleans orphans
+  → Hub Detection identifies and filters generic hub concepts
+  → Consolidation replays significant episodes, writes semantic notes
   → Epistemic validates or invalidates assumptions
+  → Status analyzes decay patterns, reports memory health
 ```
 
 Every interaction strengthens the graph. Every sleep cycle prunes the noise. Every query traverses relationships. Every decision builds on previous learning.
@@ -547,8 +550,8 @@ Following the **NO FAKE TESTS** principle:
 | Database | SQLite + [sqlite-vec](https://github.com/asg017/sqlite-vec) (bundled) |
 | Memory Cycle | 24h compaction interval; decay params expressed as cycle multiples |
 | Decay Model | ACT-R power-law (d=0.5); calibrated to memory cycle |
-| Memory Tiers | Sequential (2-3d) / Workflows (7d) / Semantic (14-28d) |
-| Maintenance | 4 workflows (consolidation/decay/repair/epistemic) mirror biological sleep phases |
+| Memory Tiers | Sequential (7d grace) / Workflows (14d) / Semantic (28d) / Half-life 30d |
+| Maintenance | 5 workflows (repair/hub-detection/consolidation/epistemic/status) in serialized dependency order |
 | Scale | > 1M relationships tested |
 
 *Decay affects search ranking only. Files are never deleted.*
@@ -592,6 +595,18 @@ export MAENIFOLD_ROOT=~/my-knowledge-base
 |-------|--------------|
 | **[Maenifold](../integrations/skills/maenifold/README.md)** | 25+ tools, 6 composable layers, sequential thinking, 35+ workflows |
 | **[Product Manager](../integrations/skills/product-manager/README.md)** | Multi-agent orchestration, graph context injection, quality gates, sprint traceability |
+
+---
+
+## Integrations
+
+| Integration | What It Does |
+|-------------|-------------|
+| **[Claude Code Plugin](../integrations/claude-code/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
+| **[FinOps Toolkit Plugin](../integrations/claude-code/plugin-finops-toolkit/)** | Azure cost management agents, KQL query catalog, FinOps Hubs connectivity |
+| **[OpenCode Plugins](../integrations/opencode/)** | WikiLink-aware compaction, session persistence for OpenCode CLI |
+| **[WorkIQ](../integrations/workiq/)** | M365 Copilot → maenifold SequentialThinking bridge |
+| **[Site](../site/)** | Next.js documentation site with workflow browser |
 
 ---
 

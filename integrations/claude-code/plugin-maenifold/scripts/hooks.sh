@@ -82,10 +82,9 @@ build_context_loop() {
     result=$(run_with_timeout "$cli_timeout" "$MAENIFOLD_CLI" --tool BuildContext --payload \
       "{\"conceptName\":\"$concept\",\"depth\":$depth,\"maxEntities\":$max_entities,\"includeContent\":$include_content}")
 
-    # Skip empty, no relations, or weak relations (1-2 file co-occurrence)
+    # Skip empty or zero-relation results
     [[ -z "$result" ]] && continue
     echo "$result" | grep -q "Direct relations (0 CONCEPTS)" && continue
-    echo "$result" | grep -qE "co-occurs in [1-2] files" && continue
 
     context+="$result"$'\n\n'
     (( tokens += token_cost ))
@@ -121,7 +120,7 @@ if [[ "$MODE" == "session_start" ]]; then
     extract_concepts | sort | uniq -c | sort -rn | head -10 | awk '{print $2}')
 
   # Merge: project first, then recency (deduplicated)
-  CONCEPTS=$(echo -e "$PROJECT_CONCEPTS\n$RECENCY_CONCEPTS" | awk 'NF && !seen[$0]++')
+  CONCEPTS=$(echo -e "$PROJECT_CONCEPTS\n$RECENCY_CONCEPTS" | awk 'NF { if ($0 in seen) next; seen[$0]=1; print }')
 
   [[ -z "$CONCEPTS" ]] && { echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""}}'; exit 0; }
 

@@ -8,6 +8,7 @@
 - DIST-001: Windows MSI installer
 - CLEANUP-001: Active thinking sessions (**Complete**)
 - COMMUNITY-001: Community detection (Louvain)
+- HOOKS-001: Claude Code session start hook redesign
 - SITE-001: Site rebuild ("Warm Restraint")
 
 ## Sprint: Session Abandonment Sweep (T-CLEANUP-001.1)
@@ -44,6 +45,28 @@ Wave 3 — Verification:
 | T-COMMUNITY-001.10 | Blue-team: Integration tests — sync hook, BuildContext enrichment, siblings, degradation (6 tests) | FR-13.4–13.10 | **Complete** |
 | T-COMMUNITY-001.11 | Red-team: Adversarial review — found FAIL-001 (non-atomic write + missing guard), remediated | Security | **Complete** |
 | T-COMMUNITY-001.12 | Blue-team: NFR compliance — 12/12 PASS | NFR-13.x | **Complete** |
+
+## Sprint: Claude Code Session Start Hook Redesign (T-HOOKS-001)
+
+Wave 1 — Bug Fixes (parallel):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-HOOKS-001.1 | SWE: Fix BSD awk dedup (line 124) + remove broken co-occurs filter (line 88) in hooks.sh | FR-16.8, FR-16.9 | Pending |
+| T-HOOKS-001.2 | SWE: Add IsDBNull guard in SqliteExtensions.cs for community_id NULL crash | FR-16.10 | Pending |
+
+Wave 2 — Implementation (after Wave 1):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-HOOKS-001.3 | SWE: Rewrite session_start mode — RecentActivity seeds (limit=10, 3d), WikiLink validation, BuildContext community expansion with skip list, pointer array output per canonical format (bold seed labels, thread index capped at 5, action footer), fallback to SearchMemories, skip failed calls without retry | FR-16.1–16.7, FR-16.11 | Pending |
+
+Wave 3 — Verification (parallel after Wave 2):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-HOOKS-001.4 | Blue-team: Verify canonical output format, token budget (150-350 with pruning), community diversity (3+ when available), BSD compat, fallback behavior, execution (<5s), thread cap (5), no includeContent, WikiLink validation | FR-16.1–16.7, FR-16.11 | Pending |
+| T-HOOKS-001.5 | Red-team: Adversarial review (CLI injection, timeout handling, jq injection, error propagation, traceability) | Security | Pending |
 
 ## Sprint: Site Rebuild (T-SITE-001)
 

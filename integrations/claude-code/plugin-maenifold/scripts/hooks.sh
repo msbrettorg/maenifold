@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
 # Graph RAG Hook - Claude Code + Maenifold Integration
-# Usage: hooks.sh {session_start|task_augment|pre_compact|subagent_stop}
+# Usage: hooks.sh {session_start|task_augment|subagent_stop}
 #
 
 set -euo pipefail
 
 MODE="${1:-}"
-[[ -z "$MODE" ]] && { echo '{"error":"Usage: hooks.sh {session_start|task_augment|pre_compact|subagent_stop}"}' >&2; exit 1; }
+[[ -z "$MODE" ]] && { echo '{"error":"Usage: hooks.sh {session_start|task_augment|subagent_stop}"}' >&2; exit 1; }
 
 # --- Shared Functions ---
 
@@ -64,33 +64,6 @@ find_cli() {
   echo "ERROR: maenifold not found in PATH or ~/maenifold/bin" >&2
   echo "Install from: https://github.com/msbrettorg/maenifold/releases/latest" >&2
   return 1
-}
-
-extract_concepts() {
-  grep -oE '\[\[[^]]+\]\]' | sed 's/\[\[\([^]]*\)\]\]/\1/' || true
-}
-
-build_context_loop() {
-  local concepts="$1" token_limit="$2" token_cost="$3" depth="${4:-1}" max_entities="${5:-5}" include_content="${6:-true}"
-  local context="" tokens=0
-  local cli_timeout="${CLI_TIMEOUT:-5}"
-
-  while IFS= read -r concept; do
-    [[ -z "$concept" ]] && continue
-    (( tokens + token_cost > token_limit )) && break
-
-    result=$(run_with_timeout "$cli_timeout" "$MAENIFOLD_CLI" --tool BuildContext --payload \
-      "{\"conceptName\":\"$concept\",\"depth\":$depth,\"maxEntities\":$max_entities,\"includeContent\":$include_content}")
-
-    # Skip empty or zero-relation results
-    [[ -z "$result" ]] && continue
-    echo "$result" | grep -q "Direct relations (0 CONCEPTS)" && continue
-
-    context+="$result"$'\n\n'
-    (( tokens += token_cost ))
-  done <<< "$concepts"
-
-  echo "$context"
 }
 
 MAENIFOLD_CLI=$(find_cli || true)
@@ -254,58 +227,6 @@ $CONTEXT"
   exit 0
 fi
 
-# --- Mode: pre_compact ---
-# Extract concepts from first/last H2 sections, persist to memory
-
-if [[ "$MODE" == "pre_compact" ]]; then
-  HOOK_INPUT=$(cat)
-
-  # Validate JSON before processing - prevent silent failure and stderr leakage
-  if ! echo "$HOOK_INPUT" | jq -e 'select(type == "object")' >/dev/null 2>&1; then
-    echo '{}'
-    exit 0
-  fi
-
-  CONVERSATION=$(echo "$HOOK_INPUT" | jq -r '.messages[]? | select(.content != null) | .content' 2>/dev/null || true)
-  [[ -z "$CONVERSATION" ]] && { echo '{}'; exit 0; }
-
-  # First H2 section (problem) + last H2 section (conclusion) - skip intermediary noise
-  FIRST=$(echo "$CONVERSATION" | awk '/^## [^[:space:]]/{if(found) exit; found=1} found{print}')
-  LAST=$(echo "$CONVERSATION" | awk '/^## [^[:space:]]/{buf=""; found=1} found{buf=buf"\n"$0} END{print buf}')
-  SECTIONS="$FIRST"$'\n'"$LAST"
-
-  CONCEPTS=$(echo "$SECTIONS" | extract_concepts | sort -u | head -20)
-  DECISIONS=$(echo "$SECTIONS" | grep -iE '(decided to|chose|because|will use|implemented|fixed|created)' | head -10 || true)
-
-  # Build content
-  CONTENT="# Conversation Summary (Pre-Compaction)
-
-**Date:** $(date -u +%Y-%m-%d\ %H:%M:%S) UTC
-
-## Key Concepts
-"
-  if [[ -n "$CONCEPTS" ]]; then
-    while IFS= read -r c; do [[ -n "$c" ]] && CONTENT+="- [[$c]]"$'\n'; done <<< "$CONCEPTS"
-  else
-    CONTENT+="(No concepts tagged)"$'\n'
-  fi
-
-  CONTENT+="
-## Key Decisions
-"
-  if [[ -n "$DECISIONS" ]]; then
-    while IFS= read -r d; do [[ -n "$d" ]] && CONTENT+="- ${d:0:200}"$'\n'; done <<< "$DECISIONS"
-  else
-    CONTENT+="(No decision patterns detected)"$'\n'
-  fi
-
-  CLI_TIMEOUT="${CLI_TIMEOUT:-5}"
-  run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool WriteMemory --payload \
-    "$(jq -n --arg t "compaction-$(date +%s)" --arg c "$CONTENT" '{title:$t,folder:"sessions/compaction",content:$c}')" >/dev/null 2>&1 || true
-
-  echo '{}'
-  exit 0
-fi
 
 # --- Mode: subagent_stop ---
 # Enforce ConfessionReport requirement before subagent can stop

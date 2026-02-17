@@ -22,6 +22,8 @@
 | 3.3 | 2026-02-16 | PM Agent | Added §7.1.5 Aesthetic Rationale ("Warm Restraint") — user story and design reasoning backing FR-15.x |
 | 3.4 | 2026-02-16 | PM Agent | Finalized FR-15.x gap resolutions: FR-15.31 (theme cascade), FR-15.35 (mobile scroll nav), §7.9 (system monospace, feTurbulence texture), NFR-15.1 (output: export), NFR-15.6 (build-time mmdc) |
 | 3.5 | 2026-02-16 | PM Agent | Added FR-14.6 (session abandonment detection via DB metadata pre-pass) — backfill for shipped CLEANUP-001.1 implementation |
+| 3.6 | 2026-02-16 | PM Agent | Added FR-16.x (Claude Code session start hook redesign) — pointer array loader with community-clustered output |
+| 3.7 | 2026-02-16 | PM Agent | FR-16.x panel review fixes: output format example, hub selection change, includeContent ban, thread cap, timeout behavior, WikiLink validation |
 
 ---
 
@@ -133,6 +135,22 @@ Current `FindSimilarConcepts` results can degenerate into a similarity plateau (
 | FR-12.4 | Plugin SHALL extract concepts and key decisions from the conversation during compaction and persist them to maenifold via WriteMemory. | **P1** |
 | FR-12.5 | Plugin SHALL persist compaction summaries to maenifold via SequentialThinking, maintaining a per-project session chain across compactions. | **P1** |
 | FR-12.6 | Plugin SHALL enforce ConfessionReport compliance on subagent task completion: after the task tool returns, inspect the output for "ConfessionReport"; if missing, send a follow-up prompt to the subagent session demanding one, read the response, and append the confession to the task output visible to the parent. | **P1** |
+
+### 3.10 Claude Code Session Start Hook Redesign (P1)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-16.1 | Session start hook SHALL use RecentActivity with `filter="thinking"`, `limit=10`, `timespan="3.00:00:00"`, and `includeContent=false` to discover recent sequential-thinking sessions as seed material for graph context. The First field (truncated first 500 chars) contains WikiLinks without full file reads, providing seed concepts at zero file I/O cost. | **P1** |
+| FR-16.2 | Session start hook SHALL extract one seed concept per thinking session (first WikiLink from each session's first thought), deduplicate, and use these as graph traversal entry points. | **P1** |
+| FR-16.3 | Session start hook SHALL call BuildContext on each seed concept (`depth=1`, `maxEntities=3`, `includeContent=false`) to retrieve community-tagged relations and community siblings. | **P1** |
+| FR-16.4 | Session start hook SHALL maintain a skip list of seen concepts (seed + direct relations + same-community siblings) after each BuildContext call, skipping any seed already in the skip list to maximize community diversity across calls. | **P1** |
+| FR-16.5 | Session start hook SHALL group all discovered concepts by community cluster and format output as a community-clustered pointer array: the first seed concept that discovers each community serves as the cluster label, WikiLink members listed per cluster. | **P1** |
+| FR-16.6 | Session start hook SHALL include a thread index section listing recent thinking sessions with session ID, status, and thought count from RecentActivity output. | P2 |
+| FR-16.7 | Session start hook SHALL include an action footer directing the LLM to SequentialThinking for thread continuation and BuildContext for concept exploration. | P2 |
+| FR-16.8 | Concept deduplication in hooks.sh SHALL use BSD-compatible awk syntax (fix current silent failure on macOS BSD awk at line 124). | **P1** |
+| FR-16.9 | Session start hook SHALL NOT filter BuildContext results by co-occurrence count (remove broken filter at line 88 that drops entire concept blocks when any relation has low co-occurrence). | **P1** |
+| FR-16.10 | BuildContext SHALL guard against NULL values when reading community_id from SQLite results — `IsDBNull` check before `GetString` in SqliteExtensions.cs (fix crash on ~10% of concepts with no community assignment). | **P1** |
+| FR-16.11 | Session start hook SHALL validate extracted WikiLinks against normalized concept format (lowercase-with-hyphens, no dots, no path separators, ≥3 characters) before passing to CLI tools. Malformed WikiLinks SHALL be skipped. | **P1** |
 
 ---
 
@@ -366,6 +384,21 @@ Sleep maintenance must not inadvertently extend content lifetime by triggering a
 | NFR-12.7.2 | Plugin SHALL degrade gracefully if `maenifold` CLI is not found (log warning, skip hook behavior). | Required |
 | NFR-12.7.3 | Plugin SHALL be a single unified file (`integrations/opencode/plugins/maenifold.ts`) replacing the existing `compaction.ts` and `persistence.ts`. | Required |
 
+### 4.8 Claude Code Session Start Hook
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-16.1.1 | Session start total execution SHALL complete within 5 seconds. | Required |
+| NFR-16.1.2 | Session start output SHALL target 150-350 tokens (pointer array, not prose). When output exceeds 350 tokens, prune thread index first (reduce to 3 sessions, then omit entirely) before reducing pointer array content. | Required |
+| NFR-16.1.3 | Session start SHALL make no more than 8 CLI calls total (1 RecentActivity + up to 6 BuildContext + 1 project search fallback). | Required |
+| NFR-16.1.4 | Session start SHALL use pure bash + CLI tools only (no Python, no direct SQL, no external dependencies beyond maenifold CLI). | Required |
+| NFR-16.1.5 | All bash constructs in hooks.sh SHALL work on macOS BSD userland (no GNU-only utilities). | Required |
+| NFR-16.1.6 | When no recent thinking sessions exist, session start SHALL fall back to project concept search (SearchMemories by repo name) and still format output as a pointer array. | Required |
+| NFR-16.1.7 | Session start hook SHALL NOT use `includeContent=true` for any CLI call. Measured cost: 2300 tokens per BuildContext call with content vs 145 without — 16x cost for 4 marginal concepts vs 15 from community siblings. | Required |
+| NFR-16.1.8 | Thread index SHALL display at most 5 recent sessions. Sessions beyond 5 SHALL be omitted. | Required |
+| NFR-16.1.9 | If a BuildContext call times out or returns an error, session start SHALL skip that seed and continue with remaining seeds. Partial output is acceptable. The hook SHALL NOT retry failed calls. | Required |
+| NFR-16.1.10 | Session start output SHALL achieve ≥ 3 distinct community clusters when the graph contains ≥ 3 communities with recently-active concepts. When fewer communities are available, output all available clusters without error. | Required |
+
 ### Community Detection Design (FR-13.x)
 
 **Why structural-only (no semantic edge augmentation):** `co_occurrence_count` is file breadth — the number of distinct files containing both concepts. This is already a strong semantic signal. 50 co-occurrences in 1 file = weight 1. 1 co-occurrence in 50 files = weight 50. Concepts that co-occur across many files are genuinely related across the knowledge base, not just mentioned together in one document.
@@ -397,6 +430,46 @@ The Claude Code plugin implements 4 hook behaviors via a bash script. The OpenCo
 3. **`tool.execute.after` result mutation propagates to parent** — the `result` object passed to the hook is the same reference returned to the AI SDK. Mutations to `output.output` are visible to the parent LLM.
 4. **`output.metadata.sessionId`** in `tool.execute.after` for the `task` tool contains the subagent session ID (set in `task.ts`).
 5. **`client.session.prompt()`** can send a follow-up message to an idle session and blocks until the LLM responds. The subagent session is idle by the time `tool.execute.after` fires.
+
+### Session Start Hook Design (FR-16.x)
+
+**Why "pointer array loader" not knowledge retrieval:** At session start, no user query exists — traditional RAG is inapplicable. The hook loads retrieval handles (WikiLinks) into the LLM's working memory. Each WikiLink is simultaneously vocabulary priming AND a concept-as-protocol retrieval handle. Per the symbolic communication research (`docs/research/symbolic-communication-in-ai-systems.md` §5.5), a single 14-byte WikiLink pointer resolves to unbounded information through concept-as-protocol resolution. Information comes later via on-demand BuildContext/SearchMemories calls triggered by WikiLinks in prompts. Density beats volume.
+
+**Why community clusters:** Flat WikiLink lists provide no structural orientation. Community clusters give the LLM a topological map — it sees neighborhoods of related work, not a bag of concepts. With 8 communities in the production graph, the hook surfaces 3-5 clusters in ~200 tokens, covering the active concept landscape. Concepts within a cluster are structurally related (high modularity), so the cluster label serves as a semantic anchor.
+
+**Why smart skip list:** Frequency-ranked seed concepts tend to cluster in the dominant community ("single-community trap"). After each BuildContext call, the skip list absorbs the seed + its direct relations + same-community siblings. The next seed that isn't in the skip list necessarily comes from a different community. This maximizes conceptual diversity per CLI call — 6 calls can cover 5+ distinct communities instead of returning redundant views of the same cluster.
+
+**Why 150-350 tokens (not 4000):** The previous 4000-token budget was designed for prose content injection. Pointer arrays are orders of magnitude more information-dense. Panel experiments measured ~15 concepts per BuildContext call (5 direct + 10 siblings) at ~145 tokens. Community-clustered formatting compresses further — 5 clusters at ~40 tokens each = ~200 tokens covering 30+ unique concepts. Token budget breakdown: ~120-200 for pointer array, ~20-50 for thread index, ~10-30 for action footer.
+
+**Why maxEntities=3 (temporary):** The `maxEntities=3` parameter in FR-16.3 is a temporary workaround for the NULL crash (FR-16.10). With default maxEntities=5+, ~10% of concepts crash BuildContext due to missing `IsDBNull` guard. Once FR-16.10 is fixed and verified stable, maxEntities should increase to 5 (the default) for richer context. The skip list (FR-16.4) controls token budget, not maxEntities.
+
+**Why RecentActivity(thinking) for seeds:** Thinking sessions are the highest-signal source of active work context. Each session's first thought contains WikiLinks that anchor the session's topic. Using these as seeds ensures the pointer array reflects what the user has actually been working on, not just what exists in the graph. The `filter="thinking"` parameter restricts to sequential-thinking sessions (not memory writes or searches), and `includeContent=false` avoids token bloat.
+
+**Canonical output format:** The session start hook output follows this structure:
+
+```
+# Active Work
+
+**[[cost-optimization]]**
+[[kql]] [[savings-rate]] [[commitment]]
+
+**[[community-detection]]**
+[[louvain-algorithm]] [[modularity]] [[concept-graph]]
+
+**[[session-management]]**
+[[sequential-thinking]] [[workflow]] [[session-cleanup]]
+
+Threads: session-1771260150747 (active, 12t) | session-1771175726538 (completed, 8t)
+
+Continue: sequential_thinking with session ID. Explore: build_context on any [[WikiLink]].
+```
+
+Format rules: bold seed concept as cluster label, WikiLink members on next line (space-separated), blank line between clusters, thread index as compact one-liner with `(status, Nt)` format, action footer as single sentence. Clusters ordered by recency (most recent seed first).
+
+**Three bugs being fixed:**
+1. **BSD awk (line 124):** `awk 'NF && !seen[$0]++'` uses associative array syntax that fails silently on macOS BSD awk — CONCEPTS is always empty. Fix: `awk 'NF { if ($0 in seen) next; seen[$0]=1; print }'`.
+2. **Co-occurs filter (line 88):** `grep -qE "co-occurs in [1-2] files" && continue` matches if ANY relation in the BuildContext output has low co-occurrence, dropping the entire concept block even when the concept has strong relations. Fix: remove entirely — weak relations are a valid signal in a young graph.
+3. **NULL crash (SqliteExtensions.cs:194):** `reader.GetString(2)` without `IsDBNull` check crashes on ~10% of concepts that have no community assignment (e.g., disconnected components or recently added concepts not yet assigned by Louvain). Fix: add `IsDBNull` guard, return null community_id for unassigned concepts.
 
 ---
 

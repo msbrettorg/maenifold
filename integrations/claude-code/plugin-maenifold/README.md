@@ -10,10 +10,23 @@ The maenifold skill exposes 25+ MCP tools that transform ephemeral AI sessions i
 
 - **Memory Tools**: Write, read, search, edit, and organize knowledge files with `[[WikiLink]]` graph integration
 - **Graph Tools**: Build context, find similar concepts, visualize relationships, and sync the knowledge graph
+- **Community Detection**: Louvain algorithm identifies reasoning domain clusters during sync
 - **Reasoning Tools**: Sequential thinking with branching, structured workflows, and assumption tracking
 - **System Tools**: Adopt roles/perspectives, monitor activity, and manage configuration
 
 Every `[[WikiLink]]` you create becomes a node in the graph. Knowledge compounds across sessions instead of resetting.
+
+## Hooks
+
+Three hooks integrate maenifold's knowledge graph into the Claude Code lifecycle:
+
+| Hook | Event | What It Does |
+|------|-------|-------------|
+| **SessionStart** | Session begins | Queries community index for graph-of-thought priming — concepts grouped by Louvain-detected reasoning domains with thread metadata |
+| **PreToolUse** (Task) | Task tool invoked | Same graph priming injected into subagent prompts as `## Graph of Thought (auto-injected)` section, enabling concept-as-protocol |
+| **SubagentStop** | Subagent finishing | ConfessionReport gating — blocks stop unless transcript contains a ConfessionReport |
+
+All hooks are implemented in a single script (`scripts/hooks.sh`) with 3 modes: `session_start`, `task_augment`, `subagent_stop`.
 
 ## Cognitive Architecture
 

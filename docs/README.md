@@ -74,6 +74,7 @@ Context engineering infrastructure for AI agents. Point it at any domain's liter
 | **[Lazy Graph](https://en.wikipedia.org/wiki/Zettelkasten)** | No predefined schema; structure emerges | `Sync` extracts WikiLinks; co-occurrence creates edges |
 | **[Hybrid Search](https://dl.acm.org/doi/10.1145/1571941.1572114)** | Semantic similarity + exact matching | `SearchMemories` fuses with Reciprocal Rank Fusion (k=60) |
 | **Concept Repair** | Normalize WikiLink variants safely | `RepairConcepts` validates similarity ≥0.7 before replacing |
+| **WikiLink Filtering** | Write-time concept blocklist | `.wikilink-filter.json` prevents hub concepts from graph pollution |
 
 ### Reasoning
 
@@ -158,6 +159,8 @@ We chose [[REST]] over [[GraphQL]] for our [[public API]] due to
 ```
 
 Every `[[WikiLink]]` becomes a node. Every mention strengthens edges. Patterns emerge without planning.
+
+Concepts can be excluded from the graph via `.wikilink-filter.json` — a simple blocklist checked at write time that prevents hub or ephemeral concepts from polluting the graph structure.
 
 ### Memory Lifecycle
 
@@ -310,6 +313,8 @@ Automatic graph construction from WikiLinks with:
 - **384-dimensional embeddings** for semantic similarity
 - **Edge weights** that strengthen with repeated mentions
 - **Concept clustering** revealing emergent patterns
+- **Community detection** via Louvain algorithm identifies reasoning domains
+- **Decay weighting** (ACT-R power-law) biases concept rankings by recency
 - **Incremental sync** keeping the graph current
 
 ### Symbolic Communication
@@ -374,6 +379,9 @@ Where test-time computation happens:
 - **Quality-Gated Orchestration**: Multi-agent coordination with validation waves and RTM compliance
 - **Complete Transparency**: Every thought, revision, and decision visible in markdown files
 - **Multi-day Persistence**: Sessions maintain state across restarts
+- **Community Detection**: Louvain algorithm identifies reasoning domains during sync, enabling graph-of-thought priming
+- **Session Abandonment Detection**: 30-minute inactivity threshold marks active sessions as abandoned during sync
+- **Graph-of-Thought Priming**: Hook system queries community index to inject clustered concept maps at session start and task dispatch
 
 ---
 

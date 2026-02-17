@@ -133,7 +133,7 @@ Assets are writable from agents, so **new workflows are agent-generated skills**
 | **Multi-modal** | ❌ No | Text-only | Design decision |
 | **Sub-file Chunking** | ❌ No | File-level retrieval | Trade-off: context preservation |
 | **Contextual Embeddings** | ❌ No | Fixed embedding pipeline | Would need model change |
-| **Recency Weighting** | ⚠️ Partial | `RecentActivity` exists | Not in search ranking |
+| **Recency Weighting** | ✓ Native | `DecayCalculator` in SearchMemories, BuildContext, FindSimilarConcepts | ACT-R power-law decay (d=0.5) |
 
 Patterns with loops and complex stopping conditions (RAG-Fusion, CRAG, iterative RAG) are **intentionally left to workflows and scripts**, not core engine logic.
 
@@ -155,10 +155,12 @@ The graph isn't just storage – it's the **reasoning substrate** that shapes wh
 Maenifold's search and scripting patterns are embedded into each integration under `integrations/`. They all implement the same core ideas (Graph-RAG, HYDE-style hypothetical retrieval, FLARE-style proactive context loading), but at different layers:
 
 - **Claude Code** (`integrations/claude-code/`)
-	- Shell hook (`hooks.sh` session_start) runs at **session start**.
-	- Pattern: FLARE-style proactive retrieval.
-		- Query `RecentActivity` → extract top `[[WikiLinks]]` → `BuildContext` → inject ~5K tokens of graph-derived context into the new Claude session.
-	- Result: Claude never starts "cold"; it always sees a curated slice of the graph and recent work as preamble.
+	- Shell hook (`scripts/hooks.sh`) implements a **graph-of-thought priming system** with three modes:
+	- **`session_start`** (SessionStart hook): Queries the SQLite community index directly (`concept_communities` + `concept_graph` tables) to build a clustered mind map. Groups concepts by community (Louvain-detected reasoning domains) and bold-formats the domain anchor (highest-weight concept per community). Appends recent thinking threads (workflow/sequential sessions from last 3 days) as a compact thread index. Output injected as `additionalContext` in the SessionStart hook response. Pattern: FLARE-style proactive retrieval from graph structure.
+	- **`task_augment`** (PreToolUse hook, matcher: `Task`): Uses the same `build_graph_context()` function as session_start — identical graph-of-thought priming. Appends the priming to the Task tool's `prompt` parameter as a `## Graph of Thought (auto-injected)` section. Enables concept-as-protocol: embed `[[WikiLinks]]` in Task prompts and the hook automatically provides graph context to subagents. Each subagent starts with structural graph context without manual curation.
+	- **`subagent_stop`** (SubagentStop hook): ConfessionReport gating — blocks subagent stop unless transcript contains "ConfessionReport". Returns `{"decision":"block","reason":"..."}` with detailed ConfessionReport instructions via the `reason` field (the only model-visible field). Graceful fallback: allows stop if no transcript path provided.
+	- Key details: `DB_PATH` is hardcoded to `$HOME/maenifold/memory.db`. The `build_graph_context()` function is shared between session_start and task_augment — one code path, two entry points. SQLite query filters communities with 3+ members, concept names 3+ chars, excludes dot-separated and numeric-prefix names, and returns top 20 concepts per community ranked by edge weight. The deprecated `pre_compact` mode has been removed.
+	- Result: Claude never starts "cold"; sessions and subagents receive a structured graph-of-thought priming derived from the Louvain community structure, not search results.
 
 - **OpenCode** (`integrations/opencode/`)
 	- TypeScript plugin for the OpenCode CLI agent.

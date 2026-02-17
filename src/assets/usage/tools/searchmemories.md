@@ -88,7 +88,7 @@ Search results are weighted by recency using time-based decay:
 **Grace periods (full weight = 1.0):**
 - `thinking/sequential/`: 7 days
 - `thinking/workflows/`: 14 days
-- All other memory: 14 days
+- All other memory: 28 days
 
 **After grace period:**
 - Exponential decay with 30-day half-life (default)
@@ -98,7 +98,7 @@ Search results are weighted by recency using time-based decay:
 **Environment variables:**
 - `MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL` (default: 7)
 - `MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS` (default: 14)
-- `MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT` (default: 14)
+- `MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT` (default: 28)
 - `MAENIFOLD_DECAY_HALF_LIFE_DAYS` (default: 30)
 - `MAENIFOLD_DECAY_FUNCTION` ("exponential" | "power-law")
 

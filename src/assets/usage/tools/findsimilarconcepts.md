@@ -55,9 +55,15 @@ Notes:
 
 ## Decay Weighting
 
-FindSimilarConcepts uses vector similarity, not file timestamps. Decay weighting does not apply to this tool directly.
+Similarity scores are weighted by recency using time-based decay:
 
-However, once you identify similar concepts, use **BuildContext** or **SearchMemories** to explore them—those tools apply decay weighting to rank recent content higher.
+- Each concept's decay weight is derived from its source files (the files containing that `[[WikiLink]]`)
+- The **maximum** decay weight across all source files is used (concept freshness = most recent occurrence)
+- Final score: `similarity * decayWeight`
+
+This means concepts appearing only in old, unaccessed files will rank lower than equally similar concepts in recent files.
+
+**Grace periods and half-life** follow the same configuration as SearchMemories (see `searchmemories.md` for details).
 
 ## Integration
 

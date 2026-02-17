@@ -803,4 +803,69 @@ public class CommunityDetectionTests
         Assert.That(existingARelation.CommunityId, Is.Not.Null,
             "FR-13.10: RelatedConcept with community data should still have CommunityId populated.");
     }
+
+    // ──────────────────────────────────────────────────────────
+    // T-HOOKS-001.2: RTM FR-16.10
+    // BuildContext does not crash when a related concept has
+    // NULL community_id (no community assignment).
+    // ──────────────────────────────────────────────────────────
+    [Test]
+    public void BuildContext_NullCommunityId_DoesNotCrash()
+    {
+        // T-HOOKS-001.2: RTM FR-16.10
+        // Scenario: Run community detection on a set of concepts, then add a NEW concept
+        // with edges to existing concepts but do NOT re-run community detection.
+        // BuildContext on an existing concept that has a direct relation to the orphan
+        // must not crash and must report the orphan's CommunityId as null.
+        using var conn = OpenTestDb();
+
+        // Step 1: Create concepts and edges forming a triangle
+        InsertConcept(conn, "null-comm-a");
+        InsertConcept(conn, "null-comm-b");
+        InsertConcept(conn, "null-comm-c");
+        InsertEdge(conn, "null-comm-a", "null-comm-b", 10);
+        InsertEdge(conn, "null-comm-b", "null-comm-c", 10);
+        InsertEdge(conn, "null-comm-a", "null-comm-c", 10);
+
+        // Step 2: Run community detection — assigns community_id to a, b, c
+        var (communityCount, _) = CommunityDetection.RunAndPersist(conn, gamma: 1.0, seed: 42);
+        Assert.That(communityCount, Is.GreaterThan(0), "Precondition: communities must be detected.");
+
+        // Step 3: Add a NEW concept with edges but do NOT re-run community detection
+        // This orphan has NULL community_id — the exact scenario that caused the crash.
+        InsertConcept(conn, "null-comm-orphan");
+        InsertEdge(conn, "null-comm-a", "null-comm-orphan", 5);
+        InsertEdge(conn, "null-comm-b", "null-comm-orphan", 3);
+
+        // Verify orphan has no community assignment
+        var orphanHasCommunity = conn.QuerySingle<bool>(
+            "SELECT COUNT(*) > 0 FROM concept_communities WHERE concept_name = 'null-comm-orphan'");
+        Assert.That(orphanHasCommunity, Is.False,
+            "Precondition: null-comm-orphan must NOT have a community assignment.");
+
+        conn.Dispose();
+
+        // Step 4: Call BuildContext on null-comm-a which has a direct relation to the orphan
+        BuildContextResult? result = null;
+        Assert.DoesNotThrow(() =>
+        {
+            result = GraphTools.BuildContext("null-comm-a", depth: 1, maxEntities: 20);
+        }, "FR-16.10: BuildContext must not crash when a related concept has NULL community_id.");
+
+        Assert.That(result, Is.Not.Null);
+
+        // Step 5: Verify the orphan appears in DirectRelations with null CommunityId
+        var orphanRelation = result!.DirectRelations.FirstOrDefault(r => r.Name == "null-comm-orphan");
+        Assert.That(orphanRelation, Is.Not.Null,
+            "null-comm-orphan should appear in DirectRelations (it has edges to null-comm-a).");
+        Assert.That(orphanRelation!.CommunityId, Is.Null,
+            "FR-16.10: Orphan concept's CommunityId must be null (no community assignment).");
+
+        // Verify existing concepts still have their community assignments
+        var conceptBRelation = result.DirectRelations.FirstOrDefault(r => r.Name == "null-comm-b");
+        Assert.That(conceptBRelation, Is.Not.Null,
+            "null-comm-b should appear in DirectRelations.");
+        Assert.That(conceptBRelation!.CommunityId, Is.Not.Null,
+            "null-comm-b should have a non-null CommunityId (it was assigned before the orphan was added).");
+    }
 }

@@ -184,22 +184,26 @@ public static class SqliteExtensions
 
             if (typeof(T) == typeof(string))
             {
-                results.Add((T)(object)reader.GetString(0));
+                // T-HOOKS-001.2: RTM FR-16.10 — guard against NULL values
+                var val = reader.IsDBNull(0) ? "" : reader.GetString(0);
+                results.Add((T)(object)val);
             }
 
             else if (typeof(T) == typeof((string, int, string)))
             {
-                var related = reader.GetString(0);
-                var count = reader.GetInt32(1);
-                var files = reader.GetString(2);
+                // T-HOOKS-001.2: RTM FR-16.10 — guard against NULL values
+                var related = reader.IsDBNull(0) ? "" : reader.GetString(0);
+                var count = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+                var files = reader.IsDBNull(2) ? "" : reader.GetString(2);
                 results.Add((T)(object)(related, count, files));
             }
 
             else if (typeof(T) == typeof((string, string, int)))
             {
-                var a = reader.GetString(0);
-                var b = reader.GetString(1);
-                var count = reader.GetInt32(2);
+                // T-HOOKS-001.2: RTM FR-16.10 — guard against NULL values
+                var a = reader.IsDBNull(0) ? "" : reader.GetString(0);
+                var b = reader.IsDBNull(1) ? "" : reader.GetString(1);
+                var count = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
                 results.Add((T)(object)(a, b, count));
             }
 

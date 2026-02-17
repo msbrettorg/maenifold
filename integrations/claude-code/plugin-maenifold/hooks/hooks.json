@@ -11,17 +11,6 @@
         ]
       }
     ],
-    "PreCompact": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/hooks.sh pre_compact"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Task",

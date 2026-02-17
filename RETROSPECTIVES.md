@@ -329,5 +329,80 @@ Delivered Louvain modularity-based community detection for the concept graph (FR
 
 ---
 
+## Sprint 2026-02-16: Session Start Hook Redesign (T-HOOKS-001)
+
+**Sprint Duration**: 2026-02-16
+**Outcome**: T-HOOKS-001.1-5 Complete
+**Priority**: P1 (Session context injection was producing zero output)
+
+### Executive Summary
+
+Redesigned the `session_start` mode in `hooks.sh` from a broken FLARE-pattern loader (zero output due to two bugs) to a community-clustered pointer array loader. The new design uses RecentActivity thinking sessions as seeds, expands via BuildContext with a skip list for community diversity, and outputs a compact mind map of recent work grouped by knowledge graph communities. Also fixed a NULL crash in SqliteExtensions.cs affecting ~10% of concepts.
+
+### What Worked Well
+
+1. **Root cause analysis before coding**: Identifying both bugs (BSD awk dedup + co-occurs filter) before designing the replacement prevented wasted effort on a design that would have hit the same issues.
+
+2. **Parallel Wave 1**: Running SWE-1 (hooks.sh bugs) and SWE-2 (SqliteExtensions NULL guard) simultaneously saved wall-clock time. Both completed and committed independently.
+
+3. **Red-team caught a real vulnerability**: REPO_NAME was interpolated directly into a JSON string literal in the fallback path. A crafted directory name (e.g., `my","evil":"true`) could inject arbitrary JSON. Fixed with `jq -n --arg` for safe JSON construction.
+
+4. **Skip list design for community diversity**: Using a newline-delimited string with `grep -qxF` membership check avoided bash 3.2's lack of associative arrays while providing O(n) dedup across seeds, relations, and community siblings.
+
+### What Didn't Work
+
+1. **bash 3.2 compatibility surprise**: Initial SWE-3 implementation used `declare -A` (associative arrays), which fails on macOS default bash. Required a full rewrite to parallel indexed arrays. **Action**: Document bash 3.2 constraint in hooks.sh header comments for future contributors.
+
+2. **BuildContext CLI output format assumption**: Code initially parsed for `[[WikiLinks]]` in CLI output, but CLI uses bullet-point format (`• concept-name`). Required adding `extract_bullet_concepts()` helper. **Action**: This is fragile — consider adding `--json` flag to BuildContext CLI for machine-parseable output.
+
+3. **Execution time marginally over target**: 5.2s vs 5s NFR target. Root cause is .NET runtime startup (~1.8s per CLI invocation x 3 calls). Not fixable without architectural change (persistent daemon, pre-warmed binary, or native AOT). Accepted as marginal.
+
+4. **Single-community output in current graph state**: Blue-team verified the algorithm works but current graph only has 1 community with recent activity. Community diversity verification requires a richer graph. **Action**: Re-verify after graph grows.
+
+### Key Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Parallel indexed arrays over associative arrays | bash 3.2 compat (macOS ships bash 3.2 due to GPLv3) |
+| Skip list as newline-delimited string | Simpler than temp files, no cleanup needed, `grep -qxF` is fast enough for <100 entries |
+| `jq -n --arg` for JSON construction | Prevents injection without manual escaping |
+| Thread index capped at 5, pruned first on token budget | Threads are metadata, pointer array is primary value |
+| No retry on failed BuildContext | Reduces worst-case latency; skip and continue provides graceful degradation |
+
+### Metrics
+
+| Metric | Target | Actual |
+|--------|--------|--------|
+| Token output | 150-350 | 178 |
+| CLI calls | <= 8 | 3 |
+| Execution time | < 5s | 5.2s |
+| Community clusters | >= 3 (when available) | 1 (graph limited) |
+| Test suite | All pass | 508/508 |
+| Blue-team checks | 12/12 | 12/12 PASS |
+| Red-team findings | 0 blockers | 21 findings, 0 blockers |
+
+### Open Items (Tracked Separately)
+
+- `task_augment` path lacks `validate_wikilink` — tracked for next hook sprint
+- `QuerySingle<string>` in SqliteExtensions.cs missing IsDBNull guard — latent, low priority
+- Execution time optimization requires architectural change — accept or address in AOT sprint
+
+### Commits
+
+```
+778612a fix(hooks): T-HOOKS-001.1 — BSD awk dedup + remove broken co-occurs filter
+92aec5b fix(sqlite): T-HOOKS-001.2 — add IsDBNull guards for NULL columns in Query<T>
+1595041 feat(hooks): T-HOOKS-001.3 — rewrite session_start as community-clustered pointer array loader
+66fdd6b fix(hooks): T-HOOKS-001.5 — sanitize REPO_NAME via jq in fallback path + mark sprint complete
+0fed954 docs(sprint): T-HOOKS-001 — mark all RTM entries Complete
+```
+
+### Related PRD/RTM
+
+- PRD: FR-16.1–16.11, NFR-16.1.1–16.1.10
+- RTM: T-HOOKS-001.1 through T-HOOKS-001.5
+
+---
+
 *Last updated: 2026-02-16*
 *Related: [[PRD]] [[RTM]] [[TODO]] [[agentic-slc]]*

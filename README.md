@@ -15,7 +15,7 @@
 
 Context engineering infrastructure for AI agents. Point it at any domain's literature, and it builds specialized experts that live on your machine, work offline, and get smarter with every use.
 
-Three proof domains — [FinOps](integrations/skills/finops-toolkit/README.md), EDA, software engineering — zero overlap, same infrastructure.
+Three proof domains — [FinOps](integrations/claude-code/plugin-finops-toolkit/README.md), EDA, software engineering — zero overlap, same infrastructure.
 
 ## Quick Start
 
@@ -58,6 +58,9 @@ Seed the graph. Keep the experts. Watch it compound.
 - **35+ workflows** — deductive reasoning to multi-agent sprints
 - **Memory lifecycle** — decay, consolidation, repair modeled on cognitive neuroscience
 - **16 roles, 7 thinking colors, 12 perspectives** — composable cognitive assets
+- **Community detection** — Louvain algorithm identifies reasoning domains during sync
+- **Decay weighting** — ACT-R power-law recency bias across search, context, and similarity
+- **Graph-of-thought priming** — hook system injects clustered concept maps at session start
 
 Six layers: WikiLinks → Graph → Search → Session State → Reasoning → Orchestration.
 
@@ -77,16 +80,25 @@ Self-contained (.NET 9.0 bundled). Vector embeddings via ONNX (bundled). No exte
 
 - **[Complete Guide](docs/README.md)** — Architecture, philosophy, detailed examples
 - **[Bootstrap Guide](docs/BOOTSTRAP.md)** — From empty graph to domain expertise
-- **[Scripting Guide](docs/SCRIPTING.md)** — CLI patterns, Graph-RAG, HYDE, FLARE
+- **[Scripting Guide](integrations/claude-code/plugin-maenifold/skills/maenifold/references/SCRIPTING.md)** — CLI patterns, Graph-RAG, HYDE, FLARE
 - **[Context Engineering](docs/context-engineering.md)** — Theoretical foundations
-- **[Security Model](docs/SECURITY.md)** — STRIDE analysis and data flow
+- **[Security Model](docs/SECURITY_MODEL.md)** — STRIDE analysis and data flow
 
 ## Skills
 
 | Skill | What You Get |
 |-------|--------------|
-| **[Maenifold](integrations/skills/maenifold/README.md)** | 25+ tools, 6 composable layers, sequential thinking, 35+ workflows |
-| **[Product Manager](integrations/skills/product-manager/README.md)** | Multi-agent orchestration, graph context injection, quality gates, sprint traceability |
+| **[Maenifold](integrations/claude-code/plugin-maenifold/skills/maenifold/)** | 25+ tools, 6 composable layers, sequential thinking, 35+ workflows |
+| **[Product Manager](integrations/claude-code/plugin-product-team/skills/product-manager/)** | Multi-agent orchestration, graph context injection, quality gates, sprint traceability |
+
+## Integrations
+
+| Integration | Purpose |
+|-------------|---------|
+| **[Claude Code](integrations/claude-code/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
+| **[FinOps Toolkit](integrations/claude-code/plugin-finops-toolkit/)** | Azure cost management agents, KQL query catalog |
+| **[OpenCode](integrations/opencode/)** | WikiLink-aware compaction, session persistence |
+| **[WorkIQ](integrations/workiq/)** | M365 Copilot → SequentialThinking bridge |
 
 ## License
 

@@ -128,6 +128,14 @@ dotnet build src/Maenifold.csproj -c Debug
 - Use prepared SQL statements; let OS/SQLite enforce boundaries
 - Do not add user-restricting guardrails unless explicitly requested
 
+### Documentation philosophy
+- NO UNSOURCED DOCS: every claim in every `.md` file in this repo must cite its source
+- For repo features: link to the source file, test, or demo artifact that proves the claim
+- For external references: inline Markdown link to the authoritative URL
+- Do not write illustrative examples that fabricate output, statistics, or scenarios — link to real artifacts instead
+- Do not duplicate content that exists elsewhere — link to it
+- Text without traceability to a source will be deleted without review
+
 ## Naming and API conventions
 - Tool names are `PascalCase` and mirrored in docs
 - Tool documentation lives in `src/assets/usage/tools/*.md`

@@ -387,135 +387,16 @@ Where test-time computation happens:
 
 ---
 
-## Example Usage
+## Demo Artifacts
 
-### The PM Protocol (Orchestration Pattern)
+Real orchestration sessions demonstrating the system in use:
 
-```markdown
-## Your PM Protocol
+- **[PM-lite Protocol](demo-artifacts/part1-pm-lite/)** — 12 agents across 4 waves, 85% test success, critical bug found and fixed (28 min)
+- **[Agentic-SLC Workflow](demo-artifacts/part2-agentic-slc/)** — 13 agents, 3 issues fixed via TDD pipeline (40 min)
+- **[Brand Analysis](demo-artifacts/brand-analysis-workflow.md)** — 6 parallel workflows analyzed maenifold's own brand positioning
+- **[Sprint Impact Analysis](demo-artifacts/sprint-knowledge-graph-impact-analysis.md)** — Knowledge graph growth from a real sprint
 
-### Initial Setup
-1) Adopt blue hat
-2) Adopt product manager role
-3) Read the product documentation/specifications carefully
-4) Restate the user's task to refine scope and remove ambiguity
-
-### Task Execution
-- Use waves of concurrent agents — you are the overseer
-- Your agents are ephemeral. Do not expect them to remember previous tasks.
-- Use shared workflows and sequential thinking sessions to ground agents
-- Require workflow/sequential thinking evidence from agents
-- Never accept an agent's report of success — ALWAYS verify
-- RTM is MANDATORY for ALL code changes
-```
-
-### Complex Problem Solving
-
-```
-You: "Design a distributed cache for our microservices"
-AI: [Initiates sequential thinking session]
-    → Thought 1: Analyzing consistency requirements
-    → Thought 2: Evaluating Redis vs Hazelcast
-    → Thought 3: Revising Thought 1 based on latency data
-    → Creates memory://decisions/cache-architecture
-    → Links to [[distributed-systems]], [[caching]], [[microservices]]
-```
-
-### Multi-Agent Development
-
-```
-You: "Implement the user authentication system"
-AI (PM): [Launches agentic-dev workflow]
-    → Discovery Wave: 3 agents explore approaches in parallel
-    → Validation Wave: Test security implications
-    → Implementation Wave: Coordinated development
-    → Each agent's reasoning persisted to memory://
-```
-
-### Knowledge Graph Queries
-
-```
-You: "What patterns reduce production incidents?"
-AI: [Traverses graph from [[incident]] concept]
-    → Finds [[error-handling]] mentioned in 80% of solutions
-    → [[monitoring]] appears in 65% of preventions
-    → [[code-review]] correlates with 40% fewer incidents
-    → Returns: Empirical patterns from your codebase history
-```
-
-### Multi-Workflow Brand Analysis (Self-Application)
-
-maenifold analyzed its own brand statement using 6 parallel agents, each running a different workflow:
-
-```
-Brand statement under test: "Expert-grade knowledge in any domain. Free, local, yours."
-
-→ Six Thinking Hats agent: 7 colors, found "Free→Open" fix
-→ Strategic Thinking agent: Porter's Five Forces, confirmed category creation
-→ Lateral Thinking agent: Found category error (noun vs verb), jukebox metaphor
-→ CRTA agent: "Brand shouldn't create urgency — compounding is the authentic lever"
-→ Design Thinking agent: 6-persona empathy map, scored 12/30 → 26/30
-→ Socratic Dialogue agent: 2 fatal flaws, "brand is inverted"
-
-Result: "Domain expertise that compounds. Open. Local. Yours."
-```
-
-See the [full workflow diagram and analysis](demo-artifacts/brand-analysis-workflow.md) — the system produced its own brand positioning using its own infrastructure.
-
-### Observing AI Cognition
-
-```bash
-maenifold --tool RecentActivity --payload '{"filter":"thinking","limit":3}'
-
-→ session-87234: Debugging race condition (12 thoughts, 3 revisions)
-→ session-87199: API design review (8 thoughts, branched at thought 5)
-→ workflow-87156: Agile sprint planning (completed, 15 steps)
-```
-
----
-
-## Real-World Impact
-
-### What This Enables
-
-**Multi-day debugging sessions** where the AI remembers every hypothesis:
-```
-Day 1: "The race condition might be in the auth handler"
-Day 3: "Remember when we suspected the auth handler? Let's revisit with new logs"
-```
-
-**Systematic code reviews** that build institutional knowledge:
-```
-Review 1: Creates memory about error handling patterns
-Review 5: Surfaces the pattern, suggests team-wide adoption
-Review 20: Graph reveals which patterns reduce bugs
-```
-
-**Evolving architectures** with full decision history:
-```
-Q: "Why did we choose PostgreSQL over MongoDB?"
-A: [Retrieves original decision, subsequent validations, and current trade-offs]
-```
-
-### The Compound Effect
-
-Unlike stateless AI that resets each conversation:
-- **Week 1**: Rapid episodic accumulation — raw thinking sessions pile up
-- **Month 1**: Sleep-consolidation promotes high-value memories to semantic; patterns emerge
-- **Month 3**: Unused memories decay naturally; validated assumptions become immortal; non-obvious connections surface
-- **Year 1**: Self-organizing knowledge base — not just accumulation, but prioritized institutional memory
-
-The system maintains itself:
-```
-Sleep Cycle (daily, serialized dependency order):
-  → Repair normalizes WikiLink drift, cleans orphans
-  → Hub Detection identifies and filters generic hub concepts
-  → Consolidation replays significant episodes, writes semantic notes
-  → Epistemic validates or invalidates assumptions
-  → Status analyzes decay patterns, reports memory health
-```
-
-Every interaction strengthens the graph. Every sleep cycle prunes the noise. Every query traverses relationships. Every decision builds on previous learning.
+See the [demo artifacts README](demo-artifacts/README.md) for the full timeline and directory structure.
 
 ---
 

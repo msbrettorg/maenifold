@@ -1,97 +1,207 @@
-import fs from 'fs';
-import path from 'path';
+// T-SITE-001.9
 
-interface Tool {
-  name: string;
-  description: string;
-  slug: string;
+import fs from 'node:fs'
+import path from 'node:path'
+import Link from 'next/link'
+import type { Metadata } from 'next'
+import { filenameToSlug } from '@/lib/tools'
+
+export const metadata: Metadata = { title: 'Tools' }
+
+type ToolCatalogEntry = {
+  slug: string
+  title: string
+  description: string
 }
 
-function extractToolData(content: string, filename: string): Tool {
-  // Extract H1 title
-  const titleMatch = content.match(/^# (.+)$/m);
-  const name = titleMatch ? titleMatch[1] : filename.replace('.md', '');
+function getToolsUsageDirectory(): string {
+  // NOTE: site/lib/tools.ts currently points at ../docs/usage/tools, but the canonical
+  // source of truth is ../src/assets/usage/tools. Some environments may provide a
+  // symlink for backwards compatibility.
+  const assetsDir = path.join(process.cwd(), '../src/assets/usage/tools')
+  const docsDir = path.join(process.cwd(), '../docs/usage/tools')
 
-  // Extract first paragraph (everything after H1 until next section or empty line with no content)
-  const paragraphMatch = content.match(/^# .+\n\n([\s\S]*?)(?:\n##|\n\n\n|$)/);
-  const description = paragraphMatch
-    ? paragraphMatch[1]
-      .trim()
-      .split('\n')
-      .slice(0, 2)
-      .join(' ')
-      .replace(/\[\[.*?\]\]/g, '') // Remove [[WikiLink]] references
-      .trim()
-    : 'Tool documentation';
+  const hasMdFiles = (dir: string) => {
+    if (!fs.existsSync(dir)) {
+      return false
+    }
 
-  // Convert filename to kebab-case slug (e.g., writememory -> write-memory)
-  const slug = filename
-    .replace('.md', '')
-    .replace(/([a-z])([A-Z])/g, '$1-$2')
-    .toLowerCase();
+    return fs.readdirSync(dir).some((f) => f.endsWith('.md'))
+  }
 
-  return { name, description, slug };
+  if (hasMdFiles(assetsDir)) {
+    return assetsDir
+  }
+
+  if (hasMdFiles(docsDir)) {
+    return docsDir
+  }
+
+  // Prefer the canonical location for clearer error messages.
+  return assetsDir
 }
 
-export default function ToolsPage() {
-  // Load all tool markdown files
-  const toolsDir = path.join(process.cwd(), '../src/assets/usage/tools');
+function extractTitle(markdown: string, fallback: string): string {
+  const match = markdown.match(/^#\s+(.+)$/m)
+  return (match?.[1] ?? fallback).trim()
+}
+
+function stripMarkdownInline(text: string): string {
+  return (
+    text
+      // Remove WikiLinks while keeping visible label-ish content minimal.
+      .replace(/\[\[([^\]]+)\]\]/g, '$1')
+      // [label](url) -> label
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+      // Inline code
+      .replace(/`([^`]+)`/g, '$1')
+      // Bold/italic markers
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/_([^_]+)_/g, '$1')
+      // Collapse whitespace
+      .replace(/\s+/g, ' ')
+      .trim()
+  )
+}
+
+function extractFirstParagraph(markdown: string): string {
+  // Find the first H1, then take the first non-empty paragraph block that follows.
+  const lines = markdown.split(/\r?\n/)
+
+  const h1Index = lines.findIndex((l) => /^#\s+/.test(l))
+  const start = h1Index >= 0 ? h1Index + 1 : 0
+
+  // Skip initial blank lines.
+  let i = start
+  while (i < lines.length && lines[i].trim() === '') {
+    i++
+  }
+
+  const paragraphLines: string[] = []
+  for (; i < lines.length; i++) {
+    const line = lines[i]
+
+    // Stop at next heading.
+    if (/^#{2,}\s+/.test(line)) {
+      break
+    }
+
+    // Stop at blank line after collecting some content.
+    if (line.trim() === '') {
+      if (paragraphLines.length > 0) {
+        break
+      }
+      continue
+    }
+
+    // Skip code fences for description.
+    if (line.trim().startsWith('```')) {
+      if (paragraphLines.length > 0) {
+        break
+      }
+      continue
+    }
+
+    paragraphLines.push(line.trim())
+  }
+
+  return stripMarkdownInline(paragraphLines.join(' '))
+}
+
+function readToolCatalog(): ToolCatalogEntry[] {
+  const toolsDir = getToolsUsageDirectory()
+
+  if (!fs.existsSync(toolsDir)) {
+    throw new Error(`Tools directory not found: ${toolsDir}`)
+  }
+
   const toolFiles = fs
     .readdirSync(toolsDir)
-    .filter((file) => file.endsWith('.md'))
-    .sort();
+    .filter((f) => f.endsWith('.md'))
+    .sort((a, b) => a.localeCompare(b))
 
-  const tools: Tool[] = toolFiles.map((filename) => {
-    const filepath = path.join(toolsDir, filename);
-    const content = fs.readFileSync(filepath, 'utf-8');
-    return extractToolData(content, filename);
-  });
+  return toolFiles.map((filename) => {
+    const filePath = path.join(toolsDir, filename)
+    const markdown = fs.readFileSync(filePath, 'utf-8')
+
+    const fallbackTitle = filename.replace(/\.md$/i, '')
+    const title = extractTitle(markdown, fallbackTitle)
+    const description = extractFirstParagraph(markdown)
+
+    return {
+      slug: filenameToSlug(filename),
+      title,
+      description,
+    }
+  })
+}
+
+export default async function ToolsPage() {
+  const tools = readToolCatalog()
 
   return (
-    <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
-      {/* Page Header */}
-      <div className="max-w-7xl mx-auto px-4 py-12 border-b border-slate-200 dark:border-slate-700">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">Maenifold Tools</h1>
-        <p className="text-lg text-slate-600 dark:text-slate-300">
-          {tools.length} MCP tools for persistent knowledge management, graph operations, and AI orchestration.
-        </p>
-      </div>
+    <div className="mx-auto px-4 py-20" style={{ maxWidth: '900px' }}>
+      <style>{`
+        .toolGrid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 14px;
+          margin-top: 28px;
+        }
 
-      {/* Tools Grid */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tools.map((tool) => (
-            <a
-              key={tool.slug}
-              href={`/tools/${tool.slug}`}
-              className="group border border-slate-200 dark:border-slate-700 rounded-lg p-6 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg dark:hover:shadow-blue-500/10 transition-all"
-            >
-              <h2 className="text-xl font-bold mb-3 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                {tool.name}
-              </h2>
-              <p className="text-slate-600 dark:text-slate-300 line-clamp-2">
-                {tool.description}
-              </p>
-              <div className="mt-4 text-blue-600 dark:text-blue-400 font-semibold text-sm group-hover:translate-x-1 transition-transform">
-                View tool →
-              </div>
-            </a>
-          ))}
-        </div>
-      </div>
+        @media (min-width: 720px) {
+          .toolGrid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
 
-      {/* Info Section */}
-      <div className="max-w-7xl mx-auto px-4 py-12 border-t border-slate-200 dark:border-slate-700">
-        <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-4">About These Tools</h2>
-          <p className="text-slate-700 dark:text-slate-300 mb-4">
-            Maenifold provides a comprehensive toolkit for knowledge graph operations, semantic search, concept repair, and complex reasoning workflows.
-          </p>
-          <p className="text-slate-700 dark:text-slate-300">
-            Each tool is available as an MCP (Model Context Protocol) server and can be integrated into your Claude projects, Continue IDE extensions, and Cline workflows.
-          </p>
-        </div>
+        .toolCard {
+          border: 1px solid var(--color-border);
+          background: var(--color-bg-surface);
+          border-radius: 14px;
+          padding: 16px 18px;
+          transition: border-color 120ms ease, background-color 120ms ease;
+        }
+
+        .toolCard:hover {
+          border-color: var(--color-accent);
+          background: var(--color-bg-hover);
+        }
+
+        .toolTitle {
+          font-size: 16px;
+          font-weight: 600;
+          line-height: 1.3;
+          color: var(--color-text);
+          margin: 0;
+        }
+
+        .toolDesc {
+          margin-top: 8px;
+          color: var(--color-text-secondary);
+          line-height: 1.65;
+          font-size: 14px;
+        }
+      `}</style>
+
+      <h1 style={{ fontSize: '42px', lineHeight: 1.1, margin: 0 }}>
+        Tools ({tools.length})
+      </h1>
+      <p style={{ marginTop: 14, color: 'var(--color-text-secondary)', lineHeight: 1.75 }}>
+        A build-time catalog of Maenifold MCP tools.
+      </p>
+
+      <div className="toolGrid">
+        {tools.map((tool) => (
+          <div key={tool.slug} className="toolCard">
+            <h2 className="toolTitle">
+              <Link href={`/tools/${tool.slug}`}>{tool.title}</Link>
+            </h2>
+            {tool.description.length > 0 && <div className="toolDesc">{tool.description}</div>}
+          </div>
+        ))}
       </div>
     </div>
-  );
+  )
 }

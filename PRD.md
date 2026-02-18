@@ -16,7 +16,6 @@
 | 1.9 | 2026-02-02 | PM Agent | Added FR-7.10 (multi-agent sleep cycle), FR-7.11 (tool access safety), sub-workflow architecture |
 | 2.0 | 2026-02-14 | Brett | Define hierarchical state machine architecture for Workflow + submachines (SequentialThinking, AssumptionLedger) |
 | 2.1 | 2026-02-15 | PM Agent | Added FR-12.x (OpenCode plugin integration) — parity with Claude Code plugin hooks |
-| 2.2 | 2026-02-15 | Brett | Added FR-13.x (community detection), FR-14.x (sync mtime optimization). Reordered sections. |
 | 3.0 | 2026-02-15 | PM Agent | Added FR-15.x (site rebuild) — full replacement of marketing site with technical documentation site |
 | 3.1 | 2026-02-15 | PM Agent | Replaced placeholder design notes with finalized design system (color palette, typography, layout) derived from Norbauer analysis |
 | 3.3 | 2026-02-16 | PM Agent | Added §7.1.5 Aesthetic Rationale ("Warm Restraint") — user story and design reasoning backing FR-15.x |
@@ -601,6 +600,7 @@ The following files/components from the current site SHALL be removed entirely (
 | `app/docs/vscode/` | Covered by /plugins page |
 | `app/assets/roles/` | Roles are a tool catalog item, not a standalone page |
 | `app/assets/colors-perspectives/` | Perspectives are a tool catalog item, not a standalone page |
+| `app/start/` | Stale "Quick Start" page with incorrect `npm install -g` instructions — not in FR-15.1 route spec |
 | All custom animation CSS in `globals.css` | ~400 lines of keyframes, dissolve effects, node pulses |
 
 ### 7.8 Content Source Mapping
@@ -612,6 +612,10 @@ The following files/components from the current site SHALL be removed entirely (
 | `/plugins` | `integrations/claude-code/plugin-maenifold/README.md` | `integrations/claude-code/plugin-product-team/README.md` |
 | `/tools` | `src/assets/usage/tools/*.md` | Tool registry in `src/Tools/ToolRegistry.cs` |
 | `/workflows` | `src/assets/workflows/*.json` | Workflow descriptions from JSON metadata |
+
+### 7.8.1 Shared Markdown Rendering Pipeline
+
+All content pages (`/docs`, `/plugins`, `/tools`) consume raw markdown from source files. A single shared pipeline (`site/lib/markdown.ts`) SHALL handle: remark/rehype parsing, Mermaid block extraction (handing off to mmdc for build-time SVG rendering per NFR-15.6), Shiki code highlighting with the custom warm-restraint theme (NFR-15.5), and relative link resolution. This avoids reimplementing rendering logic per page and ensures consistent output. The pipeline is a Wave 1 dependency (T-SITE-001.2a) that unblocks all Wave 2 page tasks.
 
 ### 7.9 Design System
 

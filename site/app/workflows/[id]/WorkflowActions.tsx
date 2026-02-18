@@ -1,6 +1,7 @@
+// T-SITE-001.10 (FR-15.12)
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CopyButton } from '@/app/components/CopyButton'
 
 interface WorkflowActionsProps {
@@ -14,6 +15,12 @@ export function WorkflowActions({ workflowId, workflowName }: WorkflowActionsPro
   }, [workflowId])
 
   const [shareStatus, setShareStatus] = useState<'idle' | 'success' | 'error'>('idle')
+
+  useEffect(() => {
+    if (shareStatus === 'idle') return
+    const id = setTimeout(() => setShareStatus('idle'), 2000)
+    return () => clearTimeout(id)
+  }, [shareStatus])
 
   const handleShare = async () => {
     setShareStatus('idle')
@@ -68,12 +75,14 @@ export function WorkflowActions({ workflowId, workflowName }: WorkflowActionsPro
       </button>
 
       <div className="flex items-center gap-2">
-        <CopyButton
-          text={runCommand}
-          label="Copy run command"
-          copiedLabel="Command copied!"
-          className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold transition-colors"
-        />
+        <div style={{ position: 'relative', width: 20, height: 20 }}>
+          <CopyButton
+            text={runCommand}
+            label="Copy run command"
+            copiedLabel="Command copied!"
+            className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold transition-colors"
+          />
+        </div>
       </div>
     </div>
   )

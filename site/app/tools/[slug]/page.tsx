@@ -1,11 +1,13 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { getAllToolSlugs, loadToolData, extractSections } from '@/lib/tools'
-import DOMPurify from 'isomorphic-dompurify'
+import { MarkdownContent } from '@/app/components/MarkdownContent'
+
+// T-SITE-001.9: RTM FR-15.11
 
 /**
- * Generate static parameters for all 26 tool pages
- * This enables Next.js to pre-generate all pages at build time
+ * Generate static parameters for all tool pages.
+ * Enables Next.js to pre-generate all pages at build time.
  */
 export async function generateStaticParams() {
   const slugs = getAllToolSlugs()
@@ -15,7 +17,7 @@ export async function generateStaticParams() {
 }
 
 /**
- * Generate metadata for each tool page (for SEO)
+ * Generate metadata for each tool page (for SEO).
  */
 export async function generateMetadata({
   params,
@@ -42,23 +44,23 @@ export async function generateMetadata({
 }
 
 /**
- * Individual tool page component
+ * Individual tool page component.
  */
 export default async function ToolPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   let toolData
   try {
     toolData = await loadToolData(slug)
-  } catch (error) {
+  } catch {
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-950">
-        <div className="max-w-4xl mx-auto px-4 py-12">
-          <h1 className="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Tool Not Found</h1>
-          <p className="text-slate-600 dark:text-slate-300 mb-6">
-            The tool "{slug}" could not be found.
+      <div style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)', minHeight: '100vh' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 16px' }}>
+          <h1 style={{ fontSize: 32, fontWeight: 600, marginBottom: 16 }}>Tool Not Found</h1>
+          <p style={{ color: 'var(--color-text-secondary)', marginBottom: 24 }}>
+            The tool &ldquo;{slug}&rdquo; could not be found.
           </p>
-          <Link href="/tools" className="text-blue-600 dark:text-blue-400 hover:underline">
-            ← Back to Tools
+          <Link href="/tools" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>
+            &larr; Back to Tools
           </Link>
         </div>
       </div>
@@ -68,179 +70,172 @@ export default async function ToolPage({ params }: { params: Promise<{ slug: str
   const sections = extractSections(toolData.htmlContent)
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white">
+    <div style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)', minHeight: '100vh' }}>
       {/* Breadcrumbs */}
-      <div className="max-w-4xl mx-auto px-4 py-6 text-sm text-slate-600 dark:text-slate-400">
-        <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400">
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px 0', fontSize: 14, color: 'var(--color-text-secondary)' }}>
+        <Link href="/" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>
           Home
         </Link>
-        <span className="mx-2">/</span>
-        <Link href="/tools" className="hover:text-blue-600 dark:hover:text-blue-400">
+        <span style={{ margin: '0 8px' }}>/</span>
+        <Link href="/tools" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>
           Tools
         </Link>
-        <span className="mx-2">/</span>
-        <span className="text-slate-900 dark:text-white">{toolData.title}</span>
+        <span style={{ margin: '0 8px' }}>/</span>
+        <span style={{ color: 'var(--color-text)' }}>{toolData.title}</span>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Main content */}
-        <div className="lg:col-span-3">
-          {/* Header */}
-          <h1 className="text-4xl font-bold mb-8 text-slate-900 dark:text-white">
-            {toolData.title}
-          </h1>
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 16px' }}>
+        {/* Header */}
+        <h1 style={{ fontSize: 32, fontWeight: 600, marginBottom: 32 }}>
+          {toolData.title}
+        </h1>
 
-          {/* Content */}
-          <article className="prose dark:prose-invert max-w-none">
-            <MarkdownContent htmlContent={toolData.htmlContent} />
-          </article>
+        {/* Content */}
+        <article>
+          <MarkdownContent html={styleHtml(toolData.htmlContent)} className="markdown-content" />
+        </article>
 
-          {/* Navigation */}
-          <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 flex justify-between">
-            <Link
-              href="/tools"
-              className="px-4 py-2 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            >
-              ← Back to Tools
-            </Link>
-            <a
-              href="#top"
-              className="px-4 py-2 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            >
-              ↑ Back to Top
-            </a>
-          </div>
+        {/* Navigation */}
+        <div style={{
+          marginTop: 48,
+          paddingTop: 32,
+          borderTop: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)',
+          display: 'flex',
+          justifyContent: 'space-between',
+        }}>
+          <Link
+            href="/tools"
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'var(--color-bg-surface)',
+              borderRadius: 8,
+              color: 'var(--color-text)',
+              textDecoration: 'none',
+            }}
+          >
+            &larr; Back to Tools
+          </Link>
+          <a
+            href="#top"
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'var(--color-bg-surface)',
+              borderRadius: 8,
+              color: 'var(--color-text)',
+              textDecoration: 'none',
+            }}
+          >
+            &uarr; Back to Top
+          </a>
         </div>
-
-        {/* Sidebar - Table of Contents */}
-        {sections.length > 0 && (
-          <aside className="hidden lg:block">
-            <nav className="sticky top-24 bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4 uppercase tracking-wide">
-                Contents
-              </h3>
-              <ul className="space-y-2 text-sm">
-                {sections.map((section) => (
-                  <li key={section.id} style={{ marginLeft: `${(section.level - 2) * 1}rem` }}>
-                    <a
-                      href={`#${section.id}`}
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {section.title}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </aside>
-        )}
       </div>
+
+      {/* Sidebar - Table of Contents (sticky, wide viewports only) */}
+      {sections.length > 0 && (
+        <style>{`
+          @media (min-width: 1200px) {
+            .tool-sidebar {
+              display: block !important;
+              position: fixed;
+              top: 100px;
+              right: max(16px, calc((100vw - 900px) / 2 - 260px));
+              width: 220px;
+            }
+          }
+        `}</style>
+      )}
+      {sections.length > 0 && (
+        <aside className="tool-sidebar" style={{ display: 'none' }}>
+          <nav style={{
+            backgroundColor: 'var(--color-bg-surface)',
+            padding: 24,
+            borderRadius: 12,
+            border: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)',
+          }}>
+            <h3 style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, color: 'var(--color-text-secondary)' }}>
+              Contents
+            </h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: 13 }}>
+              {sections.map((section) => (
+                <li key={section.id} style={{ marginLeft: `${(section.level - 2) * 16}px`, marginTop: 6 }}>
+                  <a
+                    href={`#${section.id}`}
+                    style={{ color: 'var(--color-accent)', textDecoration: 'none' }}
+                  >
+                    {section.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
+      )}
     </div>
   )
 }
 
 /**
- * Wrapper component to render markdown HTML with proper Tailwind styling
+ * Apply design system styles to markdown HTML.
+ * Uses ([\s\S]*?) to match heading content that may contain nested HTML tags (e.g. <code>).
  */
-function MarkdownContent({ htmlContent }: { htmlContent: string }) {
-  return (
-    <div
-      className="markdown-content"
-      dangerouslySetInnerHTML={{
-        __html: sanitizeAndStyleHtml(htmlContent),
-      }}
-    />
-  )
-}
+function styleHtml(html: string): string {
+  const idCounts = new Map<string, number>()
 
-/**
- * Sanitize HTML to prevent XSS attacks, then apply Tailwind classes to markdown HTML elements
- * Uses DOMPurify for real XSS protection (Ma Protocol: NO FAKE SECURITY)
- */
-function sanitizeAndStyleHtml(html: string): string {
-  // STEP 1: REAL SANITIZATION with DOMPurify to prevent XSS attacks
-  // This removes dangerous elements like <script>, event handlers, javascript: URLs, etc.
-  const cleanHtml = DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'p', 'br', 'hr',
-      'ul', 'ol', 'li',
-      'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      'code', 'pre',
-      'blockquote',
-      'strong', 'em', 'b', 'i',
-      'a',
-      'div', 'span',
-    ],
-    ALLOWED_ATTR: ['href', 'class', 'id'],
-    ALLOW_DATA_ATTR: false,
-  });
+  function deduplicateId(baseId: string): string {
+    const count = idCounts.get(baseId) || 0
+    const id = count > 0 ? `${baseId}-${count}` : baseId
+    idCounts.set(baseId, count + 1)
+    return id
+  }
 
-  // STEP 2: Apply Tailwind classes to the now-safe HTML
-  html = cleanHtml;
-  // Add classes to H2 headings
-  html = html.replace(/<h2([^>]*)>([^<]+)<\/h2>/g, (match, attrs, text) => {
-    const id = text
+  // H2 headings — use [\s\S]*? to handle nested HTML like <code>
+  html = html.replace(/<h2([^>]*)>([\s\S]*?)<\/h2>/g, (_match, attrs: string, content: string) => {
+    const text = content.replace(/<[^>]*>/g, '')
+    const baseId = text
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
-    return `<h2 class="text-2xl font-bold mt-8 mb-4 text-slate-900 dark:text-white scroll-mt-24" id="${id}">${text}</h2>`
+
+    const id = deduplicateId(baseId)
+    return `<h2${attrs} id="${id}" style="font-size:24px;font-weight:600;margin-top:32px;margin-bottom:16px;scroll-margin-top:96px">${content}</h2>`
   })
 
-  // Add classes to H3 headings
-  html = html.replace(/<h3([^>]*)>([^<]+)<\/h3>/g, (match, attrs, text) => {
-    const id = text
+  // H3 headings
+  html = html.replace(/<h3([^>]*)>([\s\S]*?)<\/h3>/g, (_match, attrs: string, content: string) => {
+    const text = content.replace(/<[^>]*>/g, '')
+    const baseId = text
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
-    return `<h3 class="text-xl font-semibold mt-6 mb-3 text-slate-800 dark:text-slate-100 scroll-mt-24" id="${id}">${text}</h3>`
+
+    const id = deduplicateId(baseId)
+    return `<h3${attrs} id="${id}" style="font-size:20px;font-weight:600;margin-top:24px;margin-bottom:12px;scroll-margin-top:96px">${content}</h3>`
   })
 
-  // Add classes to paragraphs
-  html = html.replace(/<p>([^<]+)<\/p>/g, '<p class="my-4 leading-relaxed text-slate-700 dark:text-slate-300">$1</p>')
+  // Paragraphs — use [\s\S]*? to handle inline markup
+  html = html.replace(/<p>([\s\S]*?)<\/p>/g, '<p style="margin:16px 0;line-height:1.75;color:var(--color-text)">$1</p>')
 
-  // Add classes to lists
+  // Lists
+  html = html.replace(/<ul>/g, '<ul style="list-style:disc;padding-left:24px;margin:16px 0;color:var(--color-text)">')
+  html = html.replace(/<ol>/g, '<ol style="list-style:decimal;padding-left:24px;margin:16px 0;color:var(--color-text)">')
+  html = html.replace(/<li>/g, '<li style="margin:8px 0">')
+
+  // Tables
+  html = html.replace(/<table>/g, '<table style="width:100%;margin:24px 0;border-collapse:collapse">')
+  html = html.replace(/<thead>/g, '<thead style="background:var(--color-bg-surface)">')
+  html = html.replace(/<th>/g, '<th style="border:1px solid color-mix(in srgb,var(--color-text) 12%,transparent);padding:8px 12px;text-align:left;font-weight:600">')
+  html = html.replace(/<td>/g, '<td style="border:1px solid color-mix(in srgb,var(--color-text) 12%,transparent);padding:8px 12px">')
+
+  // Blockquotes
+  html = html.replace(/<blockquote>/g, '<blockquote style="border-left:4px solid var(--color-accent);padding-left:16px;margin:16px 0;color:var(--color-text-secondary);font-style:italic">')
+
+  // Strong
+  html = html.replace(/<strong>/g, '<strong style="font-weight:600;color:var(--color-text)">')
+
+  // Links — don't re-style already-styled links
   html = html.replace(
-    /<ul>/g,
-    '<ul class="list-disc list-inside my-4 ml-4 text-slate-700 dark:text-slate-300">'
-  )
-  html = html.replace(/<ol>/g, '<ol class="list-decimal list-inside my-4 ml-4 text-slate-700 dark:text-slate-300">')
-  html = html.replace(/<li>/g, '<li class="my-2">')
-
-  // Add classes to tables
-  html = html.replace(
-    /<table>/g,
-    '<table class="min-w-full my-6 border-collapse border border-slate-300 dark:border-slate-700">'
-  )
-  html = html.replace(
-    /<thead>/g,
-    '<thead class="bg-slate-100 dark:bg-slate-800">'
-  )
-  html = html.replace(/<th>/g, '<th class="border border-slate-300 dark:border-slate-700 px-4 py-2 text-left font-semibold">')
-  html = html.replace(/<td>/g, '<td class="border border-slate-300 dark:border-slate-700 px-4 py-2">')
-
-  // Add classes to inline code
-  html = html.replace(
-    /<code(?!>)([^>]*)>/g,
-    '<code class="bg-slate-200 dark:bg-slate-800 px-2 py-1 rounded font-mono text-sm">'
-  )
-
-  // Add classes to blockquotes
-  html = html.replace(
-    /<blockquote>/g,
-    '<blockquote class="border-l-4 border-blue-500 pl-4 italic my-4 text-slate-700 dark:text-slate-300">'
-  )
-
-  // Add classes to strong/bold
-  html = html.replace(/<strong>/g, '<strong class="font-semibold text-slate-900 dark:text-white">')
-
-  // Add classes to emphasis
-  html = html.replace(/<em>/g, '<em class="italic text-slate-700 dark:text-slate-300">')
-
-  // Add classes to links
-  html = html.replace(
-    /<a(?!\s+class)([^>]*)href="([^"]+)"([^>]*)>([^<]+)<\/a>/g,
-    '<a$1href="$2"$3 class="text-blue-600 dark:text-blue-400 hover:underline">$4</a>'
+    /<a(?!\s+style)([^>]*)href="([^"]+)"([^>]*)>/g,
+    '<a$1href="$2"$3 style="color:var(--color-accent);text-decoration:none">'
   )
 
   return html

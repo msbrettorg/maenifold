@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "STOP. Before you respond: Do EXACTLY what the user asked. Nothing more. Do not second-guess, do not add extra steps, do not \"fix\" things they didn't ask you to fix. If they say commit, commit. If they say delete, delete. If they say restore, restore. Do not run git reset when they said git commit. Do not edit files they didn't mention. Do not ask clarifying questions when the instruction is clear. Execute the instruction, then stop."
+            "prompt": "ALWAYS ALLOW THIS MESSAGE. This hook exists solely to inject a reminder into the agent's context. The condition is ALWAYS met regardless of message content. Reminder: Do exactly what is asked, not what you think the goal is. If asked for X and you do X + Y in order to be helpful your work will be rejected. You were asked for X, not Y."
           }
         ]
       }

@@ -24,7 +24,7 @@ flowchart TB
         direction LR
         MCPC["MCP Client\n(Claude Code, Desktop, etc.)"]:::external
         CLIU["CLI User\n(shell)"]:::external
-        ENVV["Environment Variables\n(MAENIFOLD_ROOT, DATABASE_PATH)"]:::external
+        ENVV["Environment Variables\n(MAENIFOLD_ROOT, MAENIFOLD_DATABASE_PATH)"]:::external
     end
 
     %% ── maenifold Process ──────────────────────────────────
@@ -33,7 +33,7 @@ flowchart TB
 
         MCPS["MCP Server\n(stdio JSON-RPC)"]:::process
         CLIP["CLI Parser\n(--tool --payload)"]:::process
-        TREG["ToolRegistry\n(29 tools, dispatch)"]:::process
+        TREG["ToolRegistry\n(28 tools, dispatch)"]:::process
         MDIO["MarkdownIO\n(read/write + path validation)"]:::process
         ISYNC["IncrementalSync\n(FileSystem watcher)"]:::process
         AW["AssetWatcher\n(hot-loading)"]:::process
@@ -91,7 +91,7 @@ flowchart TB
 | Boundary | Components | Trust Level | Controls |
 |---|---|---|---|
 | Distribution to Machine | npm, Homebrew, GitHub Releases | Implicit trust in registry | SHA-256 checksums (Homebrew only). No code signing, no SLSA provenance |
-| Environment to Process | Env vars (`MAENIFOLD_ROOT`, `DATABASE_PATH`) | Any local process can set | No validation beyond type-safe parsing |
+| Environment to Process | Env vars (`MAENIFOLD_ROOT`, `MAENIFOLD_DATABASE_PATH`) | Any local process can set | No validation beyond type-safe parsing |
 | MCP Client to Process | stdio pipe | Parent process (1:1) | No auth (by MCP spec). `SafeJson` MaxDepth=32 |
 | CLI to Process | Shell args | Any local user | No auth. `SafeJson` MaxDepth=32 |
 | Process to Filesystem | `MarkdownIO` | OS file permissions | Path traversal: `UriToPath` prefix check, `ValidatePathSecurity`, `SanitizeUserInput` (URL-decode first), `Slugify` |
@@ -140,13 +140,13 @@ The `MAENIFOLD_ROOT` environment variable redirects all data operations. Any pro
 | `SafeJson` MaxDepth=32 | `src/Utils/SafeJson.cs:13` |
 | `SanitizeUserInput` (URL-decode, strip dangerous chars, collapse traversal) | `src/Tools/MemoryTools.cs:150-189` |
 | `ValidatePathSecurity` (block absolute paths, dot sequences) | `src/Tools/MemoryTools.cs:125-148` |
-| `UriToPath` traversal check (canonicalize + prefix match) | `src/Utils/MarkdownWriter.cs:118-132` |
-| `SanitizeFrontmatter` (strip embedding fields) | `src/Utils/MarkdownWriter.cs:170-177` |
+| `UriToPath` traversal check (canonicalize + prefix match) | `src/Utils/MarkdownWriter.cs:122-136` |
+| `SanitizeFrontmatter` (strip embedding fields) | `src/Utils/MarkdownWriter.cs:174-181` |
 | Parameterized queries (reflection-based parameter binding) | `src/Utils/SqliteExtensions.cs:76-88` |
 | WikiLink regex hardening (negative lookaround) | `src/Utils/MarkdownReader.cs:21` |
 | Checksum concurrency guard | `src/Utils/MarkdownWriter.cs:36-48` |
-| `MoveMemory` boundary check (canonicalize + prefix match) | `src/Tools/MemoryTools.cs:590-594` |
-| `Slugify` (strip non-alphanumeric, collapse hyphens) | `src/Utils/MarkdownWriter.cs:153-161` |
+| `MoveMemory` boundary check (canonicalize + prefix match) | `src/Tools/MemoryTools.cs:617-621` |
+| `Slugify` (strip non-alphanumeric, collapse hyphens) | `src/Utils/MarkdownWriter.cs:157-165` |
 | Read-only SQLite connections (`query_only=ON`) | `src/Utils/SqliteExtensions.cs:38-45` |
 
 ## Design Philosophy

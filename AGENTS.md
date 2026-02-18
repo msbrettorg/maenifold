@@ -193,9 +193,9 @@ Two-layer plugin architecture:
 
 **plugin-maenifold** (base):
 - MCP server for maenifold tools
-- Hooks: `SessionStart`, `PreCompact`, `PreToolUse` (Task), `SubagentStop`
+- Hooks: `SessionStart`, `PreToolUse` (Task), `SubagentStop`
 - Hook script: `integrations/claude-code/plugin-maenifold/scripts/hooks.sh`
-- Modes: `session_start`, `task_augment`, `pre_compact`, `subagent_stop`
+- Modes: `session_start`, `task_augment`, `subagent_stop`
 - Install: `claude plugin add /path/to/integrations/claude-code/plugin-maenifold`
 
 **plugin-product-team** (opinionated):

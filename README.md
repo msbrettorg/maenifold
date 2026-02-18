@@ -15,7 +15,7 @@
 
 Context engineering infrastructure for AI agents. Point it at any domain's literature, and it builds specialized experts that live on your machine, work offline, and get smarter with every use.
 
-Three proof domains — [FinOps](integrations/claude-code/plugin-finops-toolkit/README.md), EDA, software engineering — zero overlap, same infrastructure.
+Three proof domains — [FinOps](integrations/opencode/skills/finops-toolkit/README.md), software engineering, and EDA roles — zero overlap, same infrastructure.
 
 ## Quick Start
 
@@ -81,7 +81,7 @@ Self-contained (.NET 9.0 bundled). Vector embeddings via ONNX (bundled). No exte
 - **[Complete Guide](docs/README.md)** — Architecture, philosophy, detailed examples
 - **[Bootstrap Guide](docs/BOOTSTRAP.md)** — From empty graph to domain expertise
 - **[Scripting Guide](integrations/claude-code/plugin-maenifold/skills/maenifold/references/SCRIPTING.md)** — CLI patterns, Graph-RAG, HYDE, FLARE
-- **[Context Engineering](docs/context-engineering.md)** — Theoretical foundations
+- **[Context Engineering](docs/research/context-engineering.md)** — Theoretical foundations
 - **[Security Model](docs/SECURITY_MODEL.md)** — STRIDE analysis and data flow
 
 ## Skills
@@ -96,7 +96,7 @@ Self-contained (.NET 9.0 bundled). Vector embeddings via ONNX (bundled). No exte
 | Integration | Purpose |
 |-------------|---------|
 | **[Claude Code](integrations/claude-code/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
-| **[FinOps Toolkit](integrations/claude-code/plugin-finops-toolkit/)** | Azure cost management agents, KQL query catalog |
+| **[FinOps Toolkit](integrations/opencode/skills/finops-toolkit/)** | Azure cost management agents, KQL query catalog |
 | **[OpenCode](integrations/opencode/)** | WikiLink-aware compaction, session persistence |
 
 ## License

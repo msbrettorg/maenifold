@@ -16,7 +16,7 @@ Optional:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/ma-collective/maenifold.git
+   git clone https://github.com/msbrettorg/maenifold.git
    cd maenifold
    ```
 
@@ -41,22 +41,25 @@ Optional:
 maenifold/
 ├── src/                          # Main source code
 │   ├── Tools/                    # MCP tool implementations
-│   │   ├── MemoryTools.*.cs     # Memory operations (Read, Write, Edit, etc.)
+│   │   ├── MemoryTools.cs       # Memory operations (Read, Write, Edit, etc.)
+│   │   ├── MemorySearchTools.cs # Search tools (also: .Fusion.cs, .Text.cs, .Vector.cs)
 │   │   ├── GraphTools.cs        # Graph operations (BuildContext, Visualize, etc.)
 │   │   ├── SystemTools.cs       # System operations (GetConfig, GetHelp, etc.)
-│   │   ├── ThinkingTools.cs     # Thinking operations (SequentialThinking, Workflow)
+│   │   ├── SequentialThinkingTools.cs # SequentialThinking operations
+│   │   ├── WorkflowTools.cs     # Workflow operations
 │   │   ├── ConceptRepairTool.cs # Concept repair operations (RepairConcepts, etc.)
 │   │   └── ToolRegistry.cs      # Centralized tool dispatch
 │   ├── Utils/                    # Utility classes
 │   │   ├── MarkdownReader.cs    # Markdown file parsing
 │   │   ├── MarkdownWriter.cs    # Markdown file writing
 │   │   ├── PayloadReader.cs     # JSON payload extraction
-│   │   └── VectorTools.cs       # Vector embeddings (ONNX)
+│   │   ├── VectorTools.Embeddings.cs # Vector embeddings
+│   │   └── VectorTools.Onnx.cs  # ONNX model integration
 │   ├── Program.cs                # Entry point (CLI/MCP modes)
 │   └── assets/                   # Static assets
 │       ├── models/              # ONNX models (all-MiniLM-L6-v2)
 │       ├── usage/tools/         # Tool documentation markdown
-│       └── workflows/           # Workflow YAML definitions (47 workflows)
+│       └── workflows/           # Workflow JSON definitions (39 workflows)
 ├── tests/                        # NUnit tests
 │   └── Maenifold.Tests/
 ├── docs/                         # Documentation
@@ -65,7 +68,6 @@ maenifold/
 │   ├── branding/                # Brand assets (SVG logos)
 │   └── demo-artifacts/          # Hero demo artifacts
 ├── scripts/                      # Build helper scripts
-├── installer/                    # WiX MSI installer configuration
 └── bin/                          # Build outputs (platform-specific)
 ```
 
@@ -135,7 +137,7 @@ Add to `~/.claude/config.json`:
       "command": "/absolute/path/to/maenifold/src/bin/Debug/net9.0/maenifold",
       "args": ["--mcp"],
       "env": {
-        "maenifold_ROOT": "~/maenifold-test"
+        "MAENIFOLD_ROOT": "~/maenifold-test"
       }
     }
   }
@@ -154,7 +156,7 @@ startup_timeout_sec = 120
 tool_timeout_sec = 600
 
 [mcp_servers.maenifold-dev.env]
-maenifold_ROOT = "~/maenifold-test"
+MAENIFOLD_ROOT = "~/maenifold-test"
 ```
 
 ## Code Style
@@ -242,28 +244,6 @@ public static string WriteMemory(
 
 ## Debugging
 
-### VS Code
-
-Launch configuration (`.vscode/launch.json`):
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "CLI Mode",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build",
-      "program": "${workspaceFolder}/src/bin/Debug/net9.0/maenifold.dll",
-      "args": ["--tool", "MemoryStatus", "--payload", "{}"],
-      "cwd": "${workspaceFolder}",
-      "stopAtEntry": false,
-      "console": "internalConsole"
-    }
-  ]
-}
-```
-
 ### Visual Studio / Rider
 
 Set command line arguments in project properties:
@@ -274,12 +254,12 @@ Set command line arguments in project properties:
 ## Contributing
 
 1. **Fork the repository**
-2. **Create a feature branch:** `git checkout -b feature/my-feature`
+2. **Work on the `commons` branch** (do not create feature branches)
 3. **Make changes and add tests**
 4. **Run tests:** `dotnet test`
 5. **Commit changes:** `git commit -m "feat: add my feature"`
-6. **Push to fork:** `git push origin feature/my-feature`
-7. **Create Pull Request**
+6. **Merge `commons` into `dev`:** `git checkout dev && git merge commons`
+7. **Create Pull Request from `dev` to `main`**
 
 ### Commit Message Format
 
@@ -304,7 +284,7 @@ Violations checked:
 
 ## Environment Variables
 
-- `maenifold_ROOT`: Base path for memory storage (default: `~/maenifold`)
+- `MAENIFOLD_ROOT`: Base path for memory storage (default: `~/maenifold`)
 - `CI`: Set to `true` in CI to enforce stricter build rules
 
 ## Resources
@@ -318,5 +298,5 @@ Violations checked:
   - [MCP Protocol](https://modelcontextprotocol.io)
 
 - **Community:**
-  - GitHub Issues: https://github.com/ma-collective/maenifold/issues
-  - Discussions: https://github.com/ma-collective/maenifold/discussions
+  - GitHub Issues: https://github.com/msbrettorg/maenifold/issues
+  - Discussions: https://github.com/msbrettorg/maenifold/discussions

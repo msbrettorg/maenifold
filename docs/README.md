@@ -404,7 +404,7 @@ See the [demo artifacts README](demo-artifacts/README.md) for the full timeline 
 
 ### The Hero Demo
 
-The [comprehensive E2E test](../demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) orchestrated **12 specialized agents** across 4 waves:
+The [comprehensive E2E test](demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) orchestrated **12 specialized agents** across 4 waves:
 
 - **Found and fixed a critical bug**: Move operations were losing file extensions — mocks would never catch this
 - **Discovered parameter inconsistencies**: minScore filtering wasn't working — only real queries revealed this
@@ -429,11 +429,10 @@ Following the **NO FAKE TESTS** principle:
 | Vectors | 384-dim (all-MiniLM-L6-v2 via ONNX) |
 | Search | Reciprocal Rank Fusion (k=60) |
 | Database | SQLite + [sqlite-vec](https://github.com/asg017/sqlite-vec) (bundled) |
-| Memory Cycle | 24h compaction interval; decay params expressed as cycle multiples |
+| Memory Cycle | Configurable interval; decay params expressed as cycle multiples |
 | Decay Model | ACT-R power-law (d=0.5); calibrated to memory cycle |
 | Memory Tiers | Sequential (7d grace) / Workflows (14d) / Semantic (28d) / Half-life 30d |
 | Maintenance | 5 workflows (repair/hub-detection/consolidation/epistemic/status) in serialized dependency order |
-| Scale | > 1M relationships tested |
 
 *Decay affects search ranking only. Files are never deleted.*
 
@@ -474,8 +473,8 @@ export MAENIFOLD_ROOT=~/my-knowledge-base
 
 | Skill | What You Get |
 |-------|--------------|
-| **[Maenifold](../integrations/skills/maenifold/README.md)** | 25+ tools, 6 composable layers, sequential thinking, 35+ workflows |
-| **[Product Manager](../integrations/skills/product-manager/README.md)** | Multi-agent orchestration, graph context injection, quality gates, sprint traceability |
+| **[Maenifold](../integrations/claude-code/plugin-maenifold/skills/maenifold/references/README.md)** | 25+ tools, 6 composable layers, sequential thinking, 35+ workflows |
+| **[Product Manager](../integrations/claude-code/plugin-product-team/skills/product-manager/README.md)** | Multi-agent orchestration, graph context injection, quality gates, sprint traceability |
 
 ---
 
@@ -484,9 +483,7 @@ export MAENIFOLD_ROOT=~/my-knowledge-base
 | Integration | What It Does |
 |-------------|-------------|
 | **[Claude Code Plugin](../integrations/claude-code/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
-| **[FinOps Toolkit Plugin](../integrations/claude-code/plugin-finops-toolkit/)** | Azure cost management agents, KQL query catalog, FinOps Hubs connectivity |
 | **[OpenCode Plugins](../integrations/opencode/)** | WikiLink-aware compaction, session persistence for OpenCode CLI |
-| **[Site](../site/)** | Next.js documentation site with workflow browser |
 
 ---
 

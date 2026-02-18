@@ -605,7 +605,6 @@ export MAENIFOLD_ROOT=~/my-knowledge-base
 | **[Claude Code Plugin](../integrations/claude-code/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
 | **[FinOps Toolkit Plugin](../integrations/claude-code/plugin-finops-toolkit/)** | Azure cost management agents, KQL query catalog, FinOps Hubs connectivity |
 | **[OpenCode Plugins](../integrations/opencode/)** | WikiLink-aware compaction, session persistence for OpenCode CLI |
-| **[WorkIQ](../integrations/workiq/)** | M365 Copilot → maenifold SequentialThinking bridge |
 | **[Site](../site/)** | Next.js documentation site with workflow browser |
 
 ---

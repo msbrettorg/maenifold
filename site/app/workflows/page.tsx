@@ -1,89 +1,150 @@
+// T-SITE-001.10
+
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import { GlassCard } from '@/app/components/GlassCard'
-import { getAllWorkflows } from '@/lib/assets'
+
+import { getAllWorkflows } from '../../lib/assets'
+
+export const metadata: Metadata = {
+  title: 'Workflows',
+}
 
 export default function WorkflowsPage() {
+  // Build-time data load (static export friendly).
   const workflows = getAllWorkflows()
 
-  // Categorize workflows based on the README groupings
-  const categories = {
-    'Business Strategy': workflows.filter(w => ['crta'].includes(w.id)),
-    'Collaborative Processes': workflows.filter(w => ['sixhat', 'world-cafe'].includes(w.id)),
-    'Creative Problem Solving': workflows.filter(w => ['oblique-strategies', 'provocative-operation', 'scamper'].includes(w.id)),
-    'Development Methodologies': workflows.filter(w => ['agile', 'agentic-dev', 'lean-startup', 'sdlc'].includes(w.id)),
-    'FinOps': workflows.filter(w => ['ftk-query', 'ftk-analysis'].includes(w.id)),
-    'Metacognitive': workflows.filter(w => ['higher-order-thinking', 'role-creation-workflow', 'workflow-dispatch'].includes(w.id)),
-    'Multi-Agent Orchestrated': workflows.filter(w => ['agentic-research', 'agentic-slc', 'game-theory', 'think-tank'].includes(w.id)),
-    'Structured Problem Solving': workflows.filter(w => ['socratic-dialogue', 'polya-problem-solving'].includes(w.id)),
-    'Thinking & Reasoning': workflows.filter(w =>
-      [
-        'abductive-reasoning',
-        'convergent-thinking',
-        'critical-thinking',
-        'data-thinking',
-        'deductive-reasoning',
-        'design-thinking',
-        'divergent-thinking',
-        'inductive-reasoning',
-        'lateral-thinking',
-        'parallel-thinking',
-        'strategic-thinking',
-      ].includes(w.id)
-    ),
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 px-6 py-16">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-slate-900 dark:text-white">
-            🔄 Workflows
-          </h1>
-          <p className="text-lg text-slate-700 dark:text-slate-300 max-w-3xl mx-auto">
-            32 curated workflows for systematic thinking and problem-solving. Share a workflow with a teammate and run it instantly.
-          </p>
-        </div>
+    <div className="mx-auto px-4 py-20" style={{ maxWidth: '900px' }}>
+      <header>
+        <h1
+          style={{
+            color: 'var(--color-text)',
+            fontSize: '2.25rem',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.1,
+          }}
+        >
+          Workflows ({workflows.length})
+        </h1>
 
-        {Object.entries(categories).map(([category, items]) => {
-          if (items.length === 0) return null
+        <p
+          style={{
+            color: 'var(--color-text-secondary)',
+            marginTop: '0.75rem',
+            lineHeight: 1.75,
+          }}
+        >
+          A catalog of all built-in workflows shipped with maenifold.
+        </p>
+      </header>
 
-          return (
-            <div key={category} className="mb-12">
-              <h2 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">
-                {category} ({items.length})
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map((workflow) => (
-                  <Link key={workflow.id} href={`/workflows/${workflow.id}`} className="block">
-                    <GlassCard className="p-6 hover:scale-105 transition-transform">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="text-3xl">{workflow.emoji}</div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
-                            {workflow.name}
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {workflow.description}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                        <span className="text-xs text-slate-500 dark:text-slate-500">
-                          {workflow.steps?.length ?? 0} steps
+      <section style={{ marginTop: '2.5rem' }}>
+        {workflows.length === 0 ? (
+          <div
+            style={{
+              color: 'var(--color-text-secondary)',
+              border: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)',
+              borderRadius: '12px',
+              padding: '1rem',
+            }}
+          >
+            No workflows found.
+          </div>
+        ) : (
+          <ul style={{ display: 'grid', gap: '0.75rem', listStyle: 'none', padding: 0, margin: 0 }}>
+            {workflows.map((workflow) => {
+              const stepCount = workflow.steps?.length ?? 0
+              const triggers = workflow.triggers ?? []
+
+              return (
+                <li
+                  key={workflow.id}
+                  style={{
+                    border: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    background: 'var(--color-bg-surface)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
+                    <span aria-hidden="true" style={{ fontSize: '1.25rem' }}>
+                      {workflow.emoji}
+                    </span>
+                    <Link
+                      href={`/workflows/${workflow.id}`}
+                      style={{
+                        color: 'var(--color-accent)',
+                        textDecoration: 'none',
+                        fontSize: '1.125rem',
+                        fontWeight: 600,
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      {workflow.name}
+                    </Link>
+                  </div>
+
+                  <p
+                    style={{
+                      color: 'var(--color-text-secondary)',
+                      marginTop: '0.5rem',
+                      lineHeight: 1.75,
+                    }}
+                  >
+                    {workflow.description}
+                  </p>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '0.5rem',
+                      marginTop: '0.75rem',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: 'var(--color-text-secondary)',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      {stepCount} step{stepCount === 1 ? '' : 's'}
+                    </span>
+
+                    {triggers.length > 0 ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                        <span
+                          style={{
+                            color: 'var(--color-text-secondary)',
+                            fontSize: '0.875rem',
+                          }}
+                        >
+                          Triggers:
                         </span>
-                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                          View →
-                        </span>
+                        {triggers.map((trigger) => (
+                          <span
+                            key={trigger}
+                            style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--color-text)',
+                              border: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)',
+                              borderRadius: '999px',
+                              padding: '0.125rem 0.5rem',
+                            }}
+                          >
+                            {trigger}
+                          </span>
+                        ))}
                       </div>
-                    </GlassCard>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+                    ) : null}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   )
 }
-

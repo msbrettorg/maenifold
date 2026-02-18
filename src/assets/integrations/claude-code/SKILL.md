@@ -20,7 +20,7 @@ Add to `~/.zshrc` or `~/.bashrc`, then `source` the file or open a new terminal.
 ### What it provides
 
 - **Agent role**: `maenifold-product-team:product-manager` — an elite PM that orchestrates SWE, red-team, blue-team, and researcher subagents
-- **Plugin**: ralph-loop for iterative development workflows
+- **Plugin**: plugin-product-team for iterative development workflows
 - **Permissions**: `--allow-dangerously-skip-permissions` for uninterrupted autonomous work
 - **Requirements traceability**: PRD.md → RTM.md → TODO.md pipeline
 - **Sprint lifecycle**: planning, execution, audit, retrospective

@@ -26,81 +26,6 @@ See the [maenifold skill README](../../skills/maenifold/README.md) for complete 
 
 ## Architecture
 
-### System Diagram
-
-```mermaid
-graph TB
-    User[User] -->|invokes| PM[Product Manager<br/>Skill]
-    PM -->|reads| Docs[PRD.md<br/>RTM.md<br/>TODO.md<br/>RETROSPECTIVES.md]
-    PM -->|spawns via Task| Pool[Agent Pool<br/>8 concurrent slots]
-
-    subgraph "Subagent Pool"
-        SWE[SWE Instance 1]
-        SWE2[SWE Instance 2]
-        Red[Red-team]
-        Blue[Blue-team]
-        Research[Researcher]
-        More[... 3 more slots]
-    end
-
-    Pool --> Hooks[Hook System]
-    Hooks -->|PreToolUse| Context[Concept-as-Protocol<br/>Graph Context Injection]
-    Hooks -->|SubagentStop| Gate[ConfessionReport<br/>Quality Gate]
-
-    PM -->|orchestrates| Workflows[Workflow Engine]
-    Workflows -->|embeds| SeqThink[Sequential Thinking<br/>Shared Sessions]
-
-    Pool -->|contributes to| SeqThink
-    SeqThink -->|persists| Memory[memory:// corpus]
-    Memory -->|feeds| Graph[Knowledge Graph]
-
-    Graph -->|provides context via| Hooks
-
-    style PM fill:#0969DA
-    style Pool fill:#0969DA
-    style SWE fill:#0969DA
-    style Red fill:#0969DA
-    style Blue fill:#0969DA
-    style Research fill:#0969DA
-    style More fill:#0969DA
-    style Hooks fill:#0969DA
-    style Context fill:#0969DA
-    style Gate fill:#0969DA
-    style Workflows fill:#0969DA
-    style SeqThink fill:#0969DA
-    style Memory fill:#0969DA
-    style Graph fill:#0969DA
-```
-
-### Hook Integration
-
-The hook system provides automatic enhancements to subagent interactions:
-
-```mermaid
-sequenceDiagram
-    participant PM as Product Manager
-    participant Hook as Hook System
-    participant Graph as Knowledge Graph
-    participant Agent as Subagent
-
-    PM->>Hook: Task("Fix [[authentication]] bug", agent="swe")
-    Hook->>Hook: Extract [[authentication]] from prompt
-    Hook->>Graph: BuildContext(authentication, depth=1)
-    Graph-->>Hook: Related concepts + memory:// files
-    Hook->>Agent: Augmented prompt with context
-    Agent->>Agent: Execute with enriched knowledge
-    Agent->>Hook: Attempt to stop
-    Hook->>Hook: Search for "ConfessionReport"
-    alt ConfessionReport found
-        Hook->>PM: Allow agent stop
-    else ConfessionReport missing
-        Hook->>Agent: Block with reason
-        Agent->>Agent: Write ConfessionReport
-        Agent->>Hook: Retry stop
-        Hook->>PM: Allow agent stop
-    end
-```
-
 ## How It Works
 
 ### Agent Pool Architecture
@@ -164,41 +89,7 @@ On session initialization, automatically inject repository context:
 
 #### Wave-Based Orchestration
 
-Complex work is decomposed into **waves** where multiple agents execute in parallel:
-
-```mermaid
-graph LR
-    Start[Sprint Start] --> Discovery[Discovery Wave<br/>3 agents parallel]
-    Discovery --> Spec[Specs Wave]
-    Spec --> RTM[RTM Creation]
-    RTM --> UserConfirm[User Confirmation]
-    UserConfirm --> Validation[Validation Wave]
-    Validation --> ImplPlan[Implementation Planning]
-    ImplPlan --> ImplDispatch[Implementation Dispatch<br/>8 agents parallel]
-    ImplDispatch --> RedTeam[Red Team Wave<br/>3 agents parallel]
-    RedTeam --> Remediation[Remediation Wave]
-    Remediation --> ImplVerify[Implementation Verification]
-    ImplVerify --> TestWave[Test Wave<br/>3 agents parallel]
-    TestWave --> RTMVerify[RTM Verification]
-    RTMVerify --> Cleanup[Cleanup Wave]
-    Cleanup --> Review[Sprint Review]
-
-    style Start fill:#0969DA
-    style Discovery fill:#0969DA
-    style Spec fill:#0969DA
-    style RTM fill:#0969DA
-    style UserConfirm fill:#0969DA
-    style Validation fill:#0969DA
-    style ImplPlan fill:#0969DA
-    style ImplDispatch fill:#0969DA
-    style RedTeam fill:#0969DA
-    style Remediation fill:#0969DA
-    style ImplVerify fill:#0969DA
-    style TestWave fill:#0969DA
-    style RTMVerify fill:#0969DA
-    style Cleanup fill:#0969DA
-    style Review fill:#0969DA
-```
+Complex work is decomposed into **waves** where multiple agents execute in parallel.
 
 **Key Principle**: Dispatch all agents in **one message** per wave for concurrent execution.
 
@@ -218,56 +109,13 @@ Task("Analyze RTM-002", agent="swe")
 
 #### Traceability Chain
 
-Every artifact maintains full traceability through the requirements hierarchy:
-
-```mermaid
-graph TD
-    PRD[PRD.md<br/>Functional Requirements<br/>FR-X.X] --> RTM[RTM.md<br/>Test Cases<br/>FR-X.X → TC-X.X.X]
-    RTM --> TODO[TODO.md<br/>Tasks<br/>T-X.X.X → FR-X.X]
-    TODO --> Code[Code<br/>// T-X.X.X: RTM FR-X.X]
-    Code --> Commit[Git Commit<br/>T-X.X.X in message]
-    Commit --> Confession[ConfessionReport<br/>References T-X.X.X]
-
-    style PRD fill:#0969DA
-    style RTM fill:#0969DA
-    style TODO fill:#0969DA
-    style Code fill:#0969DA
-    style Commit fill:#0969DA
-    style Confession fill:#0969DA
-```
+Every artifact maintains full traceability: `PRD.md (FR-X.X)` → `RTM.md (TC-X.X.X)` → `TODO.md (T-X.X.X)` → Code → Git Commit → ConfessionReport.
 
 **Rule**: Work without traceability is rejected.
 
 ### Sequential Thinking Collaboration
 
-All agents in a wave can share the same sequential thinking session:
-
-```mermaid
-graph TD
-    PM[PM creates session:<br/>sprint-20260129-discovery] --> Agent1[SWE-1 contributes<br/>thoughts + concepts]
-    PM --> Agent2[SWE-2 contributes<br/>thoughts + concepts]
-    PM --> Agent3[SWE-3 contributes<br/>thoughts + concepts]
-
-    Agent1 --> Session[Consolidated Session<br/>All thoughts + concepts]
-    Agent2 --> Session
-    Agent3 --> Session
-
-    Session --> Memory[memory://workflows/thinking/<br/>sprint-20260129-discovery.md]
-    Memory --> Graph[Knowledge Graph<br/>Concepts become nodes]
-
-    Graph --> Future[Future Sessions<br/>Benefit from richer graph]
-
-    style PM fill:#0969DA
-    style Agent1 fill:#0969DA
-    style Agent2 fill:#0969DA
-    style Agent3 fill:#0969DA
-    style Session fill:#0969DA
-    style Memory fill:#0969DA
-    style Graph fill:#0969DA
-    style Future fill:#0969DA
-```
-
-**Benefits**:
+All agents in a wave can share the same sequential thinking session. Benefits:
 - Persistent thought process across ephemeral agents
 - Cross-agent visibility and collaboration
 - Institutional memory that compounds over time
@@ -306,60 +154,6 @@ Structured JSON workflows that define:
 - Examples: `agentic-slc`, `workflow-dispatch`, `tdd-workflow`
 
 ## Execution Flow Example
-
-### Sprint Flow with Wave-Based Orchestration
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant PM as Product Manager
-    participant Graph as Knowledge Graph
-    participant Agents as Agent Pool
-    participant Session as Sequential Thinking
-
-    User->>PM: Start sprint for RTM-001, RTM-002, RTM-003
-    PM->>PM: Read PRD.md, RTM.md, TODO.md
-    PM->>PM: Create sprint-20260129-auth branch
-
-    Note over PM,Agents: Discovery Wave (Parallel)
-    PM->>Agents: Task("Analyze RTM-001", agent="swe-1", session="sprint-discovery")
-    PM->>Agents: Task("Analyze RTM-002", agent="swe-2", session="sprint-discovery")
-    PM->>Agents: Task("Analyze RTM-003", agent="swe-3", session="sprint-discovery")
-
-    Agents->>Graph: PreToolUse Hook enriches prompts
-    Agents->>Session: All contribute to same session
-    Agents-->>PM: ConfessionReports with findings
-
-    PM->>Session: Read consolidated discovery
-
-    Note over PM,Agents: Implementation Wave (Parallel)
-    PM->>Agents: Task("Implement RTM-001", agent="swe-1")
-    PM->>Agents: Task("Implement RTM-002", agent="swe-2")
-    PM->>Agents: Task("Implement RTM-003", agent="swe-3")
-
-    Agents-->>PM: ConfessionReports with commits
-
-    Note over PM,Agents: Red Team Wave (Parallel)
-    PM->>Agents: Task("Red team RTM-001", agent="red-team-1")
-    PM->>Agents: Task("Red team RTM-002", agent="red-team-2")
-    PM->>Agents: Task("Red team RTM-003", agent="red-team-3")
-
-    Agents-->>PM: ConfessionReports with issues
-
-    Note over PM,Agents: Remediation Wave (Parallel)
-    PM->>Agents: Fix all issues found
-
-    Note over PM,Agents: Test Wave (Parallel)
-    PM->>Agents: Task("Test RTM-001", agent="blue-team-1")
-    PM->>Agents: Task("Test RTM-002", agent="blue-team-2")
-    PM->>Agents: Task("Test RTM-003", agent="blue-team-3")
-
-    Agents-->>PM: ConfessionReports with coverage
-
-    PM->>PM: Verify all ConfessionReports
-    PM->>PM: Verify RTM traceability
-    PM->>User: Sprint complete
-```
 
 ## Key Principles
 

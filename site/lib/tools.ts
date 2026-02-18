@@ -1,10 +1,6 @@
 import path from 'path'
 import fs from 'fs'
 import { marked } from 'marked'
-import { createHighlighter } from 'shiki'
-
-// Cache for highlighter instance (expensive to create)
-let highlighter: Awaited<ReturnType<typeof createHighlighter>> | null = null
 
 /**
  * Convert tool filename to URL slug
@@ -37,7 +33,10 @@ export function slugToFilename(slug: string): string {
  * Get all available tool slugs
  */
 export function getAllToolSlugs(): string[] {
-  const toolsDir = path.join(process.cwd(), '../docs/usage/tools')
+  // Canonical source: src/assets/usage/tools (same as tools/page.tsx catalog)
+  const assetsDir = path.join(process.cwd(), '../src/assets/usage/tools')
+  const docsDir = path.join(process.cwd(), '../docs/usage/tools')
+  const toolsDir = fs.existsSync(assetsDir) ? assetsDir : docsDir
 
   if (!fs.existsSync(toolsDir)) {
     console.warn(`Tools directory not found: ${toolsDir}`)
@@ -54,7 +53,11 @@ export function getAllToolSlugs(): string[] {
  */
 function loadToolMarkdown(slug: string): string {
   const filename = slugToFilename(slug)
-  const toolPath = path.join(process.cwd(), '../docs/usage/tools', filename)
+  // Canonical source: src/assets/usage/tools (same as tools/page.tsx catalog)
+  const assetsDir = path.join(process.cwd(), '../src/assets/usage/tools')
+  const docsDir = path.join(process.cwd(), '../docs/usage/tools')
+  const baseDir = fs.existsSync(assetsDir) ? assetsDir : docsDir
+  const toolPath = path.join(baseDir, filename)
 
   if (!fs.existsSync(toolPath)) {
     throw new Error(`Tool not found: ${filename}`)
@@ -64,24 +67,10 @@ function loadToolMarkdown(slug: string): string {
 }
 
 /**
- * Initialize syntax highlighter
- */
-async function getHighlighterInstance() {
-  if (!highlighter) {
-    highlighter = await createHighlighter({
-      themes: ['github-light', 'github-dark'],
-      langs: ['json', 'typescript', 'javascript', 'bash', 'python', 'yaml', 'tsx', 'jsx'],
-    })
-  }
-  return highlighter
-}
-
-/**
  * Parse tool markdown and return structured data
  */
 export async function loadToolData(slug: string) {
   const markdown = loadToolMarkdown(slug)
-  // const highlighter = await getHighlighterInstance()
 
   // Parse markdown to HTML
   const htmlContent = await marked(markdown)
@@ -108,7 +97,7 @@ export async function loadToolData(slug: string) {
  */
 export function extractSections(htmlContent: string): Array<{ id: string; title: string; level: number }> {
   const sections: Array<{ id: string; title: string; level: number }> = []
-  const headingRegex = /<h([2-3])[^>]*[^>]*>(.+?)<\/h\1>/g
+  const headingRegex = /<h([2-3])[^>]*>([\s\S]*?)<\/h\1>/g
   const idCounts = new Map<string, number>() // Track duplicate IDs
 
   let match

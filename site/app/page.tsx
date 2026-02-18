@@ -1,179 +1,310 @@
+// T-SITE-001.6, T-SITE-001.17–21: RTM FR-15.2–FR-15.8, FR-15.14, FR-15.20, FR-15.24, FR-15.30
+
+import Image from 'next/image';
 import Link from 'next/link';
-import { GlassCard } from './components/GlassCard';
-import { AnimatedText } from './components/AnimatedText';
-import { RippleButton } from './components/RippleButton';
-import { AnimatedGraph } from './components/AnimatedGraph';
+import type { CSSProperties } from 'react';
 import { CopyButton } from './components/CopyButton';
+import { renderMermaidToSvg } from '@/lib/markdown';
 
-export default function Home() {
+// 6-layer cognitive stack diagram from integrations/claude-code/plugin-maenifold/README.md
+const LAYER_DIAGRAM = `graph TB
+    subgraph "Layer 6: Orchestration"
+        Orchestration[Workflow<br/>Multi-step processes<br/>Nested workflows]
+    end
+
+    subgraph "Layer 5: Reasoning"
+        Reasoning[Sequential Thinking<br/>Branching, revision<br/>Multi-session persistence]
+    end
+
+    subgraph "Layer 4: Persona"
+        Persona[Adopt<br/>Roles, colors, perspectives<br/>Conditioned reasoning]
+    end
+
+    subgraph "Layer 3: Session"
+        Session[Recent Activity<br/>Assumption Ledger<br/>State tracking]
+    end
+
+    subgraph "Layer 2: Memory + Graph"
+        Memory[Write/Read/Search/Edit<br/>BuildContext, FindSimilar<br/>Persist & Query]
+    end
+
+    subgraph "Layer 1: Concepts"
+        Concepts["WikiLinks<br/>Atomic units<br/>Graph nodes"]
+    end
+
+    Orchestration -->|invokes| Reasoning
+    Reasoning -->|conditions| Persona
+    Persona -->|tracks| Session
+    Session -->|queries| Memory
+    Memory -->|built from| Concepts
+
+    style Orchestration fill:#0969DA
+    style Reasoning fill:#0969DA
+    style Persona fill:#0969DA
+    style Session fill:#0969DA
+    style Memory fill:#0969DA
+    style Concepts fill:#0969DA`;
+
+// MCP config from README.md lines 40-46 — must match exactly
+const MCP_CONFIG = `{
+  "mcpServers": {
+    "maenifold": { "command": "maenifold", "args": ["--mcp"], "type": "stdio" }
+  }
+}`;
+
+// CLI examples from README.md lines 32-36 — must match exactly
+const CLI_EXAMPLES = [
+  `maenifold --tool WriteMemory --payload '{"title":"Auth Decision","content":"Using [[OAuth2]] for [[authentication]]"}'`,
+  `maenifold --tool SearchMemories --payload '{"query":"authentication","mode":"Hybrid"}'`,
+  `maenifold --tool BuildContext --payload '{"conceptName":"authentication","depth":2}'`,
+];
+
+export default async function Home() {
+  // FR-15.6: Render the 6-layer diagram at build time via mmdc
+  let layerSvg = '';
+  try {
+    layerSvg = await renderMermaidToSvg(LAYER_DIAGRAM);
+  } catch {
+    // Build-time rendering failed — degrade gracefully to no diagram
+  }
+
+  const sectionGapPx = 80;
+
+  const pageStyle: CSSProperties = {
+    backgroundColor: 'var(--color-bg)',
+    color: 'var(--color-text)',
+    padding: '64px 24px',
+  };
+
+  const centeredColumnStyle: CSSProperties = {
+    margin: '0 auto',
+    maxWidth: '72ch',
+    lineHeight: 1.75,
+  };
+
+  const sectionStyle: CSSProperties = {
+    marginTop: `${sectionGapPx}px`,
+  };
+
+  const cardStyle: CSSProperties = {
+    backgroundColor: 'var(--color-bg-surface)',
+    border: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)',
+    borderRadius: 12,
+    padding: 20,
+  };
+
+  const codeWrapStyle: CSSProperties = {
+    margin: '16px auto 0',
+    maxWidth: 900,
+    position: 'relative',
+  };
+
+  const preStyle: CSSProperties = {
+    backgroundColor: 'var(--color-code-bg)',
+    border: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)',
+    borderRadius: 12,
+    padding: '16px 36px 16px 16px',
+    overflowX: 'auto',
+    fontSize: 14,
+    lineHeight: 1.6,
+    margin: 0,
+  };
+
+  const linkStyle: CSSProperties = {
+    color: 'var(--color-accent)',
+    textDecoration: 'none',
+  };
+
   return (
-    <div className="relative bg-gradient-to-br from-white via-blue-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      {/* Gradient mesh background */}
-      <div className="gradient-mesh-bg fixed inset-0 -z-20 opacity-60 dark:opacity-40" />
-
-      {/* Animated network background */}
-      <div className="knowledge-graph-bg fixed inset-0 -z-10 opacity-20 dark:opacity-10" />
-
-      {/* Hero Section - Ephemeral Problem */}
-      <section className="relative flex items-center justify-center px-6 py-32 overflow-hidden">
-        {/* Animated graph canvas */}
-        <div className="absolute inset-0 opacity-30 dark:opacity-20">
-          <AnimatedGraph />
-        </div>
-
-        <div className="max-w-6xl mx-auto text-center relative z-10">
-          {/* Dissolving particles effect */}
-          <div className="relative mb-12">
-            <div className="dissolve-particles absolute inset-0 pointer-events-none"></div>
-            <h1 className="text-7xl md:text-9xl font-bold mb-6 animate-fade-in-up bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-500 bg-clip-text text-transparent">
-              maenifold
-            </h1>
-            <h2 className="text-3xl md:text-5xl font-semibold text-slate-700 dark:text-slate-300 animate-fade-in-up animate-delay-100">
-              Never lose context.
-            </h2>
-          </div>
-
-          {/* CTAs */}
-          <div className="max-w-3xl mx-auto space-y-6 mb-12 animate-fade-in-up animate-delay-300">
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <a
-                href="https://github.com/msbrettorg/maenifold/releases/latest"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl"
-              >
-                Download Latest Release
-              </a>
-              <Link
-                href="/start"
-                className="px-8 py-4 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl font-semibold transition-all"
-              >
-                Quick Start Guide
-              </Link>
-              <Link
-                href="/docs/architecture"
-                className="px-8 py-4 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-semibold transition-all"
-              >
-                Documentation
-              </Link>
-            </div>
-          </div>
-
-          {/* Real Knowledge Graph Visualization */}
-          <div className="max-w-4xl mx-auto mt-32 animate-fade-in-up animate-delay-400">
-            <div className="text-center mb-8">
-              <h3 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
-                maenifold's graph <span className="italic text-blue-600 dark:text-blue-400">is</span> the context window
-              </h3>
-              <p className="text-lg text-slate-600 dark:text-slate-400">
-                Every <code className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-blue-600 dark:text-blue-400">[[concept]]</code> becomes searchable. Every connection navigable.
-              </p>
-            </div>
-            <div className="rounded-2xl overflow-hidden border-2 border-blue-200 dark:border-blue-900 shadow-2xl">
-              <img
-                src="/graph.jpeg"
-                alt="Real knowledge graph showing interconnected concepts from maenifold development"
-                className="w-full h-auto"
-              />
-            </div>
-          </div>
-
-          {/* Test-Time Reasoning Infrastructure */}
-          <div className="max-w-6xl mx-auto mt-32 animate-fade-in-up animate-delay-500">
-            <div className="text-center mb-16">
-              <h3 className="text-4xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white">
-                Test-time reasoning infrastructure
-              </h3>
-              <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-                Sequential thinking, workflow orchestration, and multi-agent coordination
-              </p>
-            </div>
-
-            {/* Feature Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <GlassCard className="p-8 hover:scale-105 transition-all duration-300">
-                <div className="text-5xl mb-4">🔄</div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  Sequential Thinking
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Multi-step reasoning with revision and branching. Test-time compute for systematic problem-solving.
-                </p>
-              </GlassCard>
-              <GlassCard className="p-8 hover:scale-105 transition-all duration-300">
-                <div className="text-5xl mb-4">🎭</div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  30 Workflows
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  From deductive reasoning to design thinking—systematic methodologies with quality gates.
-                </p>
-              </GlassCard>
-              <GlassCard className="p-8 hover:scale-105 transition-all duration-300">
-                <div className="text-5xl mb-4">🎨</div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  Multi-Agent
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Coordinate agents in waves. PM preserves context while sub-agents execute.
-                </p>
-              </GlassCard>
-              <GlassCard className="p-8 hover:scale-105 transition-all duration-300">
-                <div className="text-5xl mb-4">🔌</div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  Hybrid Search
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Semantic vectors + full-text with RRF fusion. Never miss exact matches or concepts.
-                </p>
-              </GlassCard>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="relative flex items-center justify-center px-6 py-32 border-t border-slate-200 dark:border-slate-800 overflow-hidden">
-        {/* Animated graph background */}
-        <div className="absolute inset-0 opacity-25 dark:opacity-20">
-          <AnimatedGraph />
-        </div>
-
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-slate-900 dark:text-white">
-            break the conversation boundary
-          </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 mb-12 max-w-2xl mx-auto">
-            Every session builds on the last. Every agent learns from every other.
-            Knowledge persists, compounds, and evolves.
+    <div style={pageStyle}>
+      <div style={centeredColumnStyle}>
+        {/* 1) Hero — FR-15.2 */}
+        <section>
+          <h1 style={{ margin: 0, fontSize: 48, letterSpacing: '-0.02em' }}>maenifold</h1>
+          <p style={{ margin: '12px 0 0', fontSize: 18 }}>
+            Context engineering infrastructure for AI agents.
           </p>
+          <p style={{ margin: '16px 0 0' }}>
+            Point it at any domain&apos;s literature, and it builds specialized experts that live on your machine,
+            work offline, and get smarter with every use.
+          </p>
+        </section>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <RippleButton
-              href="/start"
-              variant="primary"
-              className="button-hover px-8 py-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all"
-            >
-              Get Started
-            </RippleButton>
-            <RippleButton
-              href="/tools"
-              variant="secondary"
-              className="button-hover px-8 py-4 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 text-lg font-bold rounded-xl transition-all"
-            >
-              Browse Tools
-            </RippleButton>
-            <RippleButton
-              href="/docs/architecture"
-              variant="tertiary"
-              className="button-hover px-8 py-4 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-lg font-bold rounded-xl transition-all"
-            >
-              Documentation
-            </RippleButton>
+        {/* 2) Install — FR-15.3, FR-15.20 */}
+        <section style={sectionStyle}>
+          <h2 style={{ margin: 0, fontSize: 24 }}>Install</h2>
+          <div style={{ marginTop: 16, ...cardStyle }}>
+            <div>
+              <strong>macOS / Linux</strong>
+              <div style={codeWrapStyle}>
+                <pre style={preStyle}>
+                  <code>brew install msbrettorg/tap/maenifold</code>
+                </pre>
+                <CopyButton text="brew install msbrettorg/tap/maenifold" />
+              </div>
+            </div>
+
+            <div style={{ marginTop: 24 }}>
+              <strong>Windows</strong>
+              <div style={{ marginTop: 8 }}>
+                <a
+                  href="https://github.com/msbrettorg/maenifold/releases/latest"
+                  rel="noreferrer"
+                  target="_blank"
+                  style={linkStyle}
+                >
+                  Download the latest release
+                </a>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* 3) MCP Configuration — FR-15.4, FR-15.30 */}
+        <section style={sectionStyle}>
+          <h2 style={{ margin: 0, fontSize: 24 }}>MCP Configuration</h2>
+          <div style={codeWrapStyle}>
+            <pre style={preStyle}>
+              <code>{MCP_CONFIG}</code>
+            </pre>
+            <CopyButton text={MCP_CONFIG} />
+          </div>
+        </section>
+
+        {/* 4) CLI Examples — FR-15.5, FR-15.30 */}
+        <section style={sectionStyle}>
+          <h2 style={{ margin: 0, fontSize: 24 }}>CLI Examples</h2>
+
+          {CLI_EXAMPLES.map((example, i) => (
+            <div key={i} style={codeWrapStyle}>
+              <pre style={preStyle}>
+                <code>{example}</code>
+              </pre>
+              <CopyButton text={example} />
+            </div>
+          ))}
+        </section>
+
+        {/* 5) 6-Layer Cognitive Stack — FR-15.6 */}
+        {layerSvg && (
+          <section style={sectionStyle}>
+            <h2 style={{ margin: 0, fontSize: 24 }}>Architecture</h2>
+            <p style={{ margin: '12px 0 0' }}>
+              Six layers: WikiLinks → Graph → Search → Session State → Reasoning → Orchestration.
+            </p>
+            <div
+              style={{ marginTop: 16, maxWidth: 900, margin: '16px auto 0' }}
+              dangerouslySetInnerHTML={{ __html: layerSvg }}
+            />
+          </section>
+        )}
+
+        {/* 6) Knowledge Graph Screenshot — FR-15.14 */}
+        <section style={sectionStyle}>
+          <figure style={{ margin: 0 }}>
+            <Image
+              src="/graph.jpeg"
+              alt="Maenifold knowledge graph visualization showing interconnected concepts"
+              width={900}
+              height={506}
+              style={{
+                width: '100%',
+                height: 'auto',
+                borderRadius: 12,
+                border: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)',
+              }}
+            />
+            <figcaption style={{ marginTop: 8, fontSize: 14, color: 'var(--color-text-secondary)' }}>
+              A real knowledge graph built by maenifold, visualized in Obsidian.
+            </figcaption>
+          </figure>
+        </section>
+
+        {/* 7) Platform Support — FR-15.7, FR-15.24 (matches README exactly) */}
+        <section style={sectionStyle}>
+          <h2 style={{ margin: 0, fontSize: 24 }}>Platforms</h2>
+          <div style={{ marginTop: 16, ...cardStyle, maxWidth: 900 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '10px 8px' }}>Platform</th>
+                  <th style={{ textAlign: 'left', padding: '10px 8px' }}>Binary</th>
+                  <th style={{ textAlign: 'left', padding: '10px 8px' }}>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ padding: '10px 8px', borderTop: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)' }}>
+                    macOS
+                  </td>
+                  <td style={{ padding: '10px 8px', borderTop: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)' }}>
+                    <code>osx-arm64</code>, <code>osx-x64</code>
+                  </td>
+                  <td style={{ padding: '10px 8px', borderTop: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)' }}>
+                    Apple Silicon or Intel; Homebrew recommended
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '10px 8px', borderTop: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)' }}>
+                    Linux
+                  </td>
+                  <td style={{ padding: '10px 8px', borderTop: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)' }}>
+                    <code>linux-x64</code>, <code>linux-arm64</code>
+                  </td>
+                  <td style={{ padding: '10px 8px', borderTop: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)' }}>
+                    x64 or ARM64
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '10px 8px', borderTop: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)' }}>
+                    Windows
+                  </td>
+                  <td style={{ padding: '10px 8px', borderTop: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)' }}>
+                    <code>win-x64</code>
+                  </td>
+                  <td style={{ padding: '10px 8px', borderTop: '1px solid color-mix(in srgb, var(--color-text) 12%, transparent)' }}>
+                    x64 only
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p style={{ margin: '12px 0 0', fontSize: 14, color: 'var(--color-text-secondary)' }}>
+              Self-contained (.NET 9.0 bundled). Vector embeddings via ONNX (bundled). No external dependencies.
+            </p>
+          </div>
+        </section>
+
+        {/* 8) Links — FR-15.8 */}
+        <section style={sectionStyle}>
+          <h2 style={{ margin: 0, fontSize: 24 }}>Links</h2>
+          <nav
+            aria-label="Primary"
+            style={{
+              marginTop: 16,
+              display: 'flex',
+              gap: 16,
+              flexWrap: 'wrap',
+              alignItems: 'center',
+            }}
+          >
+            <Link href="/docs" style={linkStyle}>
+              Docs
+            </Link>
+            <Link href="/plugins" style={linkStyle}>
+              Plugins
+            </Link>
+            <Link href="/tools" style={linkStyle}>
+              Tools
+            </Link>
+            <Link href="/workflows" style={linkStyle}>
+              Workflows
+            </Link>
+            <a href="https://github.com/msbrettorg/maenifold" rel="noreferrer" target="_blank" style={linkStyle}>
+              GitHub
+            </a>
+          </nav>
+        </section>
+      </div>
     </div>
   );
 }

@@ -12,7 +12,7 @@ The `pm` alias launches Claude Code as the Maenifold Product Manager agent. If t
 ### Definition
 
 ```bash
-alias pm='claude --allow-dangerously-skip-permissions --plugin-dir /path/to/ralph-loop --agent maenifold-product-team:product-manager'
+alias pm='claude --allow-dangerously-skip-permissions --plugin-dir /path/to/integrations/claude-code/plugin-maenifold --agent maenifold-product-team:product-manager'
 ```
 
 Add to `~/.zshrc` or `~/.bashrc`, then `source` the file or open a new terminal.

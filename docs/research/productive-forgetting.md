@@ -30,7 +30,7 @@ decay_weight = 2^(-(days - grace) / half_life)   (after grace period)
 | Memory Type | Grace Period | Half-Life | Rationale |
 |---|---|---|---|
 | Episodic (thinking sessions) | 7 days | 30 days | Task-bound, context-specific |
-| Semantic (knowledge files) | 14 days | 30 days | General knowledge |
+| Semantic (knowledge files) | 28 days | 30 days | General knowledge |
 | Procedural (workflows) | 14 days | 30 days | Multi-step processes |
 
 ### 2. Access Boosting: Use Keeps Things Alive
@@ -75,7 +75,7 @@ Productive forgetting is grounded in neuroscience, not heuristics:
 
 The Cognitive Sleep Cycle implements this in maenifold: periodic consolidation (episodic → semantic), decay processing, concept repair, and dream synthesis for novel connections.
 
-Full treatment: [`docs/research/decay-in-ai-memory-systems.md`](research/decay-in-ai-memory-systems.md) (29 citations)
+Full treatment: [`decay-in-ai-memory-systems.md`](decay-in-ai-memory-systems.md) (29 citations)
 
 ## Why This Matters for AI Agents
 
@@ -103,31 +103,17 @@ The central claim — decay improves retrieval — is measured by five benchmark
 | Tiered Decay | Does episodic memory fade faster than semantic? | Episodic = 0.58 vs semantic = 1.0 at day 10 |
 | Precision@3 | Does the right answer land in the top 3? | #1 out of 8 results, above 3 tangentially-related old files |
 
-The weight distribution across the decay curve (power-law, d=0.5, 14-day grace):
+The weight distribution across the decay curve (power-law, d=0.5, 28-day grace):
 
 ```
 Day  1:  1.000  (grace period — full weight)
-Day 14:  1.000  (grace boundary — still full)
+Day 28:  1.000  (grace boundary — still full)
 Day 30:  0.707  (moderate — clearly present)
 Day 60:  0.177  (significant — deprioritized)
 Day 90:  0.127  (heavy — nearly invisible in ranking)
 Day 365: 0.054  (extreme — effectively buried unless directly accessed)
 ```
 
-## The Competitive Position
-
-No other AI memory system has built forgetting into its *identity*:
-
-| System | Forgetting Approach |
-|---|---|
-| MemGPT | Virtual context management, no explicit decay |
-| Zep | Recency scoring, but no biological grounding or sleep cycle |
-| Generative Agents | Exponential recency decay on memory streams |
-| **maenifold** | Power-law decay, tiered half-lives, access boosting, cognitive sleep cycle, epistemic pressure |
-
-maenifold is the only system where forgetting is documented, researched, benchmarked, and biologically grounded.
-
 ---
 
-*See also: [EVOLUTION.md](EVOLUTION.md) for the intellectual history of this concept.*
-*See also: [decay-in-ai-memory-systems.md](research/decay-in-ai-memory-systems.md) for the full research paper.*
+*See also: [decay-in-ai-memory-systems.md](decay-in-ai-memory-systems.md) for the full research paper.*

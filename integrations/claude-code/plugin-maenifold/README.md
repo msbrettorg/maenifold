@@ -102,7 +102,7 @@ Install the maenifold plugin directly through Claude Code:
 claude plugin install msbrettorg/maenifold
 ```
 
-This automatically:
+This automatically (if the plugin is available on the marketplace):
 - Downloads the maenifold plugin
 - Configures MCP server settings
 - Registers the skill for automatic invocation
@@ -229,15 +229,15 @@ Requires .NET 9.0 SDK.
 ```bash
 git clone https://github.com/msbrettorg/maenifold.git
 cd maenifold
-dotnet build -c Release
+dotnet build src/Maenifold.csproj -c Release
 ```
 
-The binary will be at `src/Maenifold/bin/Release/net9.0/maenifold` (or `maenifold.exe` on Windows). Copy to `~/maenifold/bin` and add to PATH as shown in the platform-specific instructions above:
+The binary will be at `src/bin/Release/net9.0/maenifold` (or `maenifold.exe` on Windows). Copy to `~/maenifold/bin` and add to PATH as shown in the platform-specific instructions above:
 
 ```bash
 # macOS/Linux
 mkdir -p ~/maenifold/bin
-cp src/Maenifold/bin/Release/net9.0/maenifold ~/maenifold/bin/
+cp src/bin/Release/net9.0/maenifold ~/maenifold/bin/
 ```
 
 ## MCP Configuration
@@ -334,31 +334,6 @@ If maenifold is not added to PATH, use the full path:
 ```
 
 Replace `<username>` with your actual username, or use environment variable expansion if your client supports it.
-
-### Codex CLI
-
-Edit `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.maenifold]
-type = "stdio"
-command = "maenifold"
-args = ["--mcp"]
-startup_timeout_sec = 120
-tool_timeout_sec = 600
-```
-
-With custom data directory:
-
-```toml
-[mcp_servers.maenifold]
-type = "stdio"
-command = "maenifold"
-args = ["--mcp"]
-startup_timeout_sec = 120
-tool_timeout_sec = 600
-env = { MAENIFOLD_ROOT = "~/my-knowledge-base" }
-```
 
 ## Environment Variables
 
@@ -486,14 +461,14 @@ In Claude Code, the skill should load automatically when you mention:
 
 ## Client Comparison
 
-| Feature | Claude Code | Claude Desktop | Codex CLI |
-|---------|-------------|----------------|-----------|
-| Config Format | JSON (`.mcp.json`) | JSON | TOML |
-| Config Location | Project root | App Support folder | `~/.codex/` |
-| Skill Support | Yes | No | Partial |
+| Feature | Claude Code | Claude Desktop | Codex CLI (experimental, unverified) |
+|---------|-------------|----------------|---------------------------------------|
+| Config Format | JSON (`.mcp.json`) | JSON | TOML (unverified) |
+| Config Location | Project root | App Support folder | `~/.codex/` (unverified) |
+| Skill Support | Yes | No | Unknown |
 | Plugin Install | `claude plugin install` | Manual only | Manual only |
-| Env Variables | In config or shell | In config | In config |
-| Timeout Config | `timeout` field | Not configurable | `startup_timeout_sec`, `tool_timeout_sec` |
+| Env Variables | In config or shell | In config | In config (unverified) |
+| Timeout Config | `timeout` field | Not configurable | `startup_timeout_sec`, `tool_timeout_sec` (unverified) |
 
 ## Related Documentation
 

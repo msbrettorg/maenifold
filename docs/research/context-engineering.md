@@ -22,7 +22,7 @@ Source: [Effective context engineering for AI agents](https://www.anthropic.com/
 | Lightweight identifiers | `memory://` URIs and `[[WikiLinks]]` as pointers, not payloads |
 | Progressive disclosure | Graph traversal with `depth` parameter; `FindSimilarConcepts` for discovery |
 | Hybrid retrieval | CLAUDE.md up front + PreToolUse hook for on-demand injection |
-| Compaction | PreCompact hook extracts concepts/decisions → persists to `memory://` |
+| Compaction | Graph-based approach: once concepts are in the graph, raw tool output can be discarded; knowledge persists as WikiLinks and relations |
 | Structured note-taking | `SequentialThinking` sessions, `memory://` files, `AssumptionLedger` |
 | Sub-agent architectures | PM coordinates; subagents return condensed ConfessionReport |
 
@@ -108,16 +108,6 @@ Anthropic explains:
 > "Compaction is the practice of taking a conversation nearing the context window limit, summarizing its contents, and reinitiating a new context window with the summary."
 
 ### Maenifold's Approach
-
-**PreCompact hook** (`plugin-maenifold/scripts/hooks.sh`):
-
-When compaction triggers, the hook:
-1. Extracts first H2 section (problem statement) and last H2 section (conclusion)
-2. Extracts all `[[WikiLinks]]` from those sections
-3. Identifies decision patterns ("decided to", "chose", "because")
-4. Persists to `memory://sessions/compaction/compaction-{timestamp}.md`
-
-This ensures critical concepts and decisions survive compaction and can be retrieved later via graph search.
 
 **Tool result clearing:**
 

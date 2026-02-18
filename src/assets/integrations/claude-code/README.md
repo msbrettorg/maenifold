@@ -17,7 +17,7 @@ Every session start:
 Add a `pm` alias to your shell profile (`~/.zshrc` or `~/.bashrc`) to launch Claude Code as the Maenifold Product Manager:
 
 ```bash
-alias pm='claude --allow-dangerously-skip-permissions --plugin-dir /path/to/ralph-loop --agent maenifold-product-team:product-manager'
+alias pm='claude --allow-dangerously-skip-permissions --plugin-dir /path/to/integrations/claude-code/plugin-maenifold --agent maenifold-product-team:product-manager'
 ```
 
 This gives you a single command to start a fully-equipped PM session with:
@@ -58,18 +58,7 @@ chmod +x ~/.claude/hooks/session_start.sh
 
 ## Example Output
 
-```markdown
-🧠 **Knowledge Graph Context Restoration**
-
-### [[authentication]]
-Context: JWT implementation with refresh tokens
-Related: oauth (12 files), security (8 files)
-Content: "Implementing RS256 token signing..."
-
-### [[database-migration]]
-Context: Schema versioning strategy
-Related: postgresql (15 files), migrations (10 files)
-```
+The session start hook injects a Graph of Thought section with community-grouped concepts and recent activity threads. Concepts are grouped by Louvain-detected reasoning domains, with bold domain anchors and related `[[WikiLinks]]`.
 
 ## Configuration
 

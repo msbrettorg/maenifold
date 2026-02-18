@@ -22,7 +22,7 @@
 | Test-Time Adaptation | 14 | 12 | 2 | 0 |
 | MCP Completeness | 13 | 13 | 0 | 0 |
 | Red Team | 30 | 26 | 4 | 0 |
-| **TOTAL** | **160** | **153** | **0** | **7** |
+| **TOTAL** | **180** | **167** | **6** | **7** |
 
 ### Key Issues Found
 1. **RT-SEC-001 (CRITICAL)**: ListMemories path traversal vulnerability
@@ -350,7 +350,7 @@
 1. **RT-SEC-001: Path Traversal in ListMemories**
    - **Risk**: Allows reading entire filesystem structure
    - **Fix**: Add path validation to reject `..` components in `path` parameter
-   - **Location**: `src/Tools/MemoryTools.Operations.cs` or `ToolRegistry.cs`
+   - **Location**: `src/Tools/MemoryTools.cs` or `ToolRegistry.cs`
    - **Code**: Validate with `Path.GetFullPath()` and ensure result is within `Config.MemoryPath`
 
 #### High Priority
@@ -396,7 +396,7 @@
 
 ---
 
-## 9. RAG Patterns (from search-and-scripting.md Section 13)
+## 9. RAG Patterns (from SCRIPTING.md Section 13)
 
 | Test ID | Pattern | Interface | Status | Result |
 |---------|---------|-----------|--------|--------|
@@ -409,7 +409,7 @@
 
 ---
 
-## 10. Documented Failure Modes (from search-and-scripting.md Section 5.9)
+## 10. Documented Failure Modes (from SCRIPTING.md Section 5.9)
 
 | Test ID | Failure Scenario | Interface | Status | Result |
 |---------|-----------------|-----------|--------|--------|
@@ -422,7 +422,7 @@
 
 ---
 
-## 11. CLI Script Patterns (from search-and-scripting.md Sections 5.1-5.8)
+## 11. CLI Script Patterns (from SCRIPTING.md Sections 5.1-5.8)
 
 | Test ID | Pattern | Interface | Status | Result |
 |---------|---------|-----------|--------|--------|
@@ -509,7 +509,7 @@
   - SYS-B02: RunFullBenchmark learn=true returned comprehensive documentation
 
 ### Iteration 2 - 2026-01-06
-- Added 6 new test categories based on search-and-scripting.md documentation
+- Added 6 new test categories based on SCRIPTING.md documentation
 - RAG Patterns (6/6 PASS): All documented RAG techniques validated
 - Documented Failure Modes (6/6 PASS): All section 5.9 scenarios behave as documented
 - CLI Script Patterns (6/6 PASS): All scripting patterns from sections 5.1-5.8 working
@@ -652,7 +652,7 @@
 
 **Updated Stats:**
 - Session Tools: 21 total, 20 passed, 1 failed, 0 pending
-- Overall: 164/163 tests passed (net +1 from previous iteration)
+- Overall: Session Tools category updated
 
 ### WriteMemory Remaining Smoke Tests - Iteration 3 (2026-01-06)
 

@@ -22,17 +22,6 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "ALWAYS ALLOW THIS MESSAGE. This hook exists solely to inject a reminder into the agent's context. The condition is ALWAYS met regardless of message content. Reminder: Do exactly what is asked, not what you think the goal is. If asked for X and you do X + Y in order to be helpful your work will be rejected. You were asked for X, not Y."
-          }
-        ]
-      }
-    ],
     "SubagentStop": [
       {
         "matcher": "*",

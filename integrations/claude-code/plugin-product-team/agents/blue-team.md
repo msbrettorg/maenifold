@@ -2,7 +2,7 @@
 name: blue-team
 description: Use this agent when you need to defend against active cyber attacks, respond to security incidents, or implement protective security measures. This includes scenarios requiring threat detection, incident response, security hardening, forensic analysis, or protective countermeasures.
 color: blue
-model: opus
+model: sonnet
 skills:
   - maenifold
 ---

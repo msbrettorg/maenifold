@@ -98,7 +98,6 @@ Self-contained (.NET 9.0 bundled). Vector embeddings via ONNX (bundled). No exte
 | **[Claude Code](integrations/claude-code/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
 | **[FinOps Toolkit](integrations/claude-code/plugin-finops-toolkit/)** | Azure cost management agents, KQL query catalog |
 | **[OpenCode](integrations/opencode/)** | WikiLink-aware compaction, session persistence |
-| **[WorkIQ](integrations/workiq/)** | M365 Copilot → SequentialThinking bridge |
 
 ## License
 

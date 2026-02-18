@@ -22,6 +22,17 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "STOP. Before you respond: Do EXACTLY what the user asked. Nothing more. Do not second-guess, do not add extra steps, do not \"fix\" things they didn't ask you to fix. If they say commit, commit. If they say delete, delete. If they say restore, restore. Do not run git reset when they said git commit. Do not edit files they didn't mention. Do not ask clarifying questions when the instruction is clear. Execute the instruction, then stop."
+          }
+        ]
+      }
+    ],
     "SubagentStop": [
       {
         "matcher": "*",

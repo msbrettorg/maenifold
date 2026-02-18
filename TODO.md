@@ -70,12 +70,19 @@ Wave 3 — Verification (parallel after Wave 2):
 
 ## Sprint: Site Rebuild (T-SITE-001)
 
+Wave 0 — Spike (blocks Wave 2):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-SITE-001.0 | SWE: Validate mmdc + Next.js `output: export` pipeline — install `@mermaid-js/mermaid-cli`, render a test Mermaid diagram to inline SVG, verify it survives `next build` with static export. Report findings. | T-SITE-001.0 | Pending |
+
 Wave 1 — Foundation (serial dependency):
 
 | T-ID | Task | RTM | Status |
 |------|------|-----|--------|
-| T-SITE-001.1 | SWE: Delete all decorative components, animation CSS, `@headlessui/react`, use-case pages, stale routes | T-SITE-001.1 | Pending |
+| T-SITE-001.1 | SWE: Delete all decorative components, animation CSS, `@headlessui/react`, use-case pages, stale routes (`app/start/`) | T-SITE-001.1 | Pending |
 | T-SITE-001.2 | SWE: Implement design system foundation (CSS vars, palette, system fonts, feTurbulence noise, Tailwind v4 @theme) | T-SITE-001.2 | Pending |
+| T-SITE-001.2a | SWE: Build shared markdown rendering pipeline (`site/lib/markdown.ts`) — remark/rehype parsing, Mermaid block extraction for build-time mmdc, Shiki integration, relative link resolution. Single `renderMarkdown()` export consumed by all page tasks. | T-SITE-001.2a | Pending |
 | T-SITE-001.3 | SWE: Implement layout shell (dark default, theme cascade script, skip link) | T-SITE-001.3 | Pending |
 
 Wave 2 — Components + Pages (7 parallel tasks after Wave 1):

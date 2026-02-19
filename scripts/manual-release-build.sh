@@ -76,6 +76,8 @@ for runtime in "${RUNTIMES[@]}"; do
     -r "$runtime" \
     --self-contained true \
     -p:PublishSingleFile=true \
+    -p:IncludeNativeLibrariesForSelfExtract=true \
+    -p:DebugType=none \
     -o "$publish_dir"
 
   cp README.md "$publish_dir"/
@@ -99,7 +101,11 @@ for runtime in "${RUNTIMES[@]}"; do
 
   archive_name="maenifold-${VERSION}-${runtime}"
   archive_path="$OUTPUT_ROOT/${archive_name}.zip"
-  (cd "$publish_dir" && zip -qry "$archive_path" .)
+  if [[ "$runtime" == win-* ]]; then
+    (cd "$publish_dir" && zip -qry "$archive_path" maenifold.exe assets/)
+  else
+    (cd "$publish_dir" && zip -qry "$archive_path" maenifold assets/)
+  fi
 
   hash_path="${archive_path}.sha256"
   (cd "$OUTPUT_ROOT" && $HASH_CMD "$(basename "$archive_path")") > "$hash_path"

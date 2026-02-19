@@ -10,6 +10,7 @@
 - COMMUNITY-001: Community detection (Louvain)
 - HOOKS-001: Claude Code session start hook redesign (**Complete**)
 - SITE-001: Site rebuild ("Warm Restraint")
+- COV-001: Test coverage sprint (FR-17.x)
 
 ## Sprint: Session Abandonment Sweep (T-CLEANUP-001.1)
 
@@ -149,6 +150,43 @@ Wave 3 — Verification:
 | T-OC-PLUGIN-001.6 | Implement ConfessionReport enforcement (`tool.execute.after` on `task`) | FR-12.6 | Pending |
 | T-OC-PLUGIN-001.7 | Implement unified plugin scaffold: CLI discovery, timeouts, graceful degradation, logging | FR-12.7 | Pending |
 | T-OC-PLUGIN-001.8 | Red-team audit | Security | Pending |
+
+## Sprint: Test Coverage (T-COV-001)
+
+Wave 0 — Infrastructure (complete):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-COV-001.0a | SWE: Add coverlet.msbuild to test project, configure auto-collection (CollectCoverage, CoverletOutputFormat, CoverletOutput) | FR-17.1, NFR-17.6 | **Complete** |
+| T-COV-001.0b | SWE: Add coverage summary step to CI build workflow (GitHub Actions job summary) | FR-17.2 | **Complete** |
+
+Wave 1 — P1 Coverage (6 parallel SWE tasks):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-COV-001.1 | SWE: Write integration tests for RecentActivity pipeline — RecentActivityTools query dispatch, RecentActivityReader DB queries with time filtering, RecentActivityFormatter output formatting. Use real SQLite. | FR-17.3 | **Complete** |
+| T-COV-001.2 | SWE: Write tests for ToolRegistry — tool registration, lookup by name (case-insensitive), dispatch to correct handler, unknown tool error. | FR-17.4 | **Complete** |
+| T-COV-001.3 | SWE: Write tests for IncrementalSyncTools — file change event processing, debounce coalescing, mtime/hash guard chain, watcher start/stop lifecycle. Use real SQLite + real temp files. | FR-17.5 | **Complete** |
+| T-COV-001.4 | SWE: Write tests for WorkflowTools — workflow session creation, step advancement, status transitions (active→paused→completed), serial queuing, conclusion with WikiLinks. Use real SQLite. | FR-17.6 | **Complete** |
+| T-COV-001.5 | SWE: Write tests for SessionCleanup — abandonment detection, threshold logic (age-based), DB metadata pre-pass, cleanup of abandoned sessions. Use real SQLite. | FR-17.7 | **Complete** |
+| T-COV-001.6 | SWE: Write tests for AssetManager — asset discovery from source dirs, file copy, dry-run mode (no writes), source-target mapping for workflows/tools/roles/colors. Use real temp dirs. | FR-17.8 | **Complete** |
+
+Wave 2 — P2 Coverage (4 parallel SWE tasks):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-COV-001.7 | SWE: Write tests for AssumptionLedgerValidation — all validation rules (required fields, enum values, concept format), edge cases (empty strings, null values). | FR-17.9 | **Complete** |
+| T-COV-001.8 | SWE: Write tests for McpResourceTools — resource URI resolution, content retrieval for valid URIs, error handling for invalid URIs. Use real SQLite. | FR-17.10 | **Complete** |
+| T-COV-001.9 | SWE: Write targeted tests for utility classes — TimeZoneConverter (DST, UTC, invalid zones), CultureInvariantHelpers (numeric formatting), StringExtensions (uncovered branches), StringBuilderExtensions (append patterns). | FR-17.11 | **Complete** |
+| T-COV-001.10 | SWE: Write tests for ConceptAnalyzer — graph analysis operations, concept extraction, relationship analysis. Use real SQLite. | FR-17.12 | **Complete** |
+
+Wave 3 — Threshold Enforcement + Verification:
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-COV-001.11 | SWE: Add coverlet threshold properties to Maenifold.Tests.csproj — ThresholdType=line,branch,method; Threshold values per NFR-17.1-3 (75/65/85). Verify `dotnet test` fails below threshold. | NFR-17.4 | **Complete** |
+| T-COV-001.12 | Blue-team: Verify coverage targets met — run dotnet test, confirm line ≥ 75%, branch ≥ 65%, method ≥ 85%. Verify threshold enforcement rejects regressions. | NFR-17.1-3 | **Complete** |
+| T-COV-001.13 | Red-team: Audit test quality — verify no fake tests (mocks/stubs), real infrastructure usage, meaningful assertions, no coverage-padding tests. | NFR-17.5 | **Complete** |
 
 ---
 

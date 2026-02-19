@@ -1,8 +1,11 @@
+// T-COV-001.8: RTM FR-17.10
+
 using System;
 using System.IO;
 using System.Text.Json;
 using Maenifold.Tools;
 using Maenifold.Utils;
+using ModelContextProtocol;
 using NUnit.Framework;
 
 namespace Maenifold.Tests;
@@ -430,5 +433,419 @@ public class McpResourceToolsTests : IDisposable
         }
 
         GC.SuppressFinalize(this);
+    }
+}
+
+/// <summary>
+/// Tests for McpResourceTools MCP entry points — ListAssets and ReadMcpResource.
+///
+/// Ma Protocol Compliance: These tests use REAL systems only.
+/// - Real AssetManager and asset initialization (no mocks)
+/// - Real file operations for asset retrieval
+/// - Real JSON parsing and validation
+/// - No mocks, no stubs, real MCP layer behavior
+///
+/// These tests verify that the MCP-facing API layer (McpResourceTools) correctly
+/// resolves URIs, retrieves content, and surfaces errors for all asset types.
+///
+/// T-COV-001.8: RTM FR-17.10
+/// </summary>
+[TestFixture]
+public class McpResourceToolsEntryPointTests
+{
+    [OneTimeSetUp]
+    public void OneTimeSetUp()
+    {
+        // TestEnvironmentSetup already overrides Config root globally.
+        // Ensure directories and assets are ready for the entire fixture.
+        Config.EnsureDirectories();
+        AssetManager.InitializeAssets();
+    }
+
+    // ---------------------------------------------------------------------------
+    // ListAssets — null / empty / whitespace input
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// ListAssets with null type returns JSON array of primary asset type strings.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ListAssets_NullType_ReturnsPrimaryTypeArray()
+    {
+        var result = McpResourceTools.ListAssets(null);
+
+        Assert.That(result, Is.Not.Null.And.Not.Empty, "Result should not be null or empty");
+        using var doc = JsonDocument.Parse(result);
+        Assert.That(doc.RootElement.ValueKind, Is.EqualTo(JsonValueKind.Array),
+            "Result should be a JSON array");
+
+        var elements = doc.RootElement.EnumerateArray()
+            .Select(e => e.GetString())
+            .ToList();
+
+        Assert.That(elements, Does.Contain("workflow"), "Should contain 'workflow'");
+        Assert.That(elements, Does.Contain("role"), "Should contain 'role'");
+        Assert.That(elements, Does.Contain("color"), "Should contain 'color'");
+        Assert.That(elements, Does.Contain("perspective"), "Should contain 'perspective'");
+    }
+
+    /// <summary>
+    /// ListAssets with empty string behaves identically to null.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ListAssets_EmptyString_ReturnsPrimaryTypeArray()
+    {
+        var result = McpResourceTools.ListAssets(string.Empty);
+
+        Assert.That(result, Is.Not.Null.And.Not.Empty, "Result should not be null or empty");
+        using var doc = JsonDocument.Parse(result);
+        Assert.That(doc.RootElement.ValueKind, Is.EqualTo(JsonValueKind.Array),
+            "Result should be a JSON array");
+    }
+
+    /// <summary>
+    /// ListAssets with whitespace-only string behaves identically to null.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ListAssets_WhitespaceString_ReturnsPrimaryTypeArray()
+    {
+        var result = McpResourceTools.ListAssets("   ");
+
+        Assert.That(result, Is.Not.Null.And.Not.Empty, "Result should not be null or empty");
+        using var doc = JsonDocument.Parse(result);
+        Assert.That(doc.RootElement.ValueKind, Is.EqualTo(JsonValueKind.Array),
+            "Result should be a JSON array");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ListAssets — valid type variants
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// ListAssets("workflow") returns JSON array of workflow metadata objects.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ListAssets_WorkflowSingular_ReturnsWorkflowMetadataArray()
+    {
+        var result = McpResourceTools.ListAssets("workflow");
+
+        Assert.That(result, Is.Not.Null.And.Not.Empty, "Result should not be null or empty");
+        using var doc = JsonDocument.Parse(result);
+        Assert.That(doc.RootElement.ValueKind, Is.EqualTo(JsonValueKind.Array),
+            "Result should be a JSON array");
+        Assert.That(doc.RootElement.GetArrayLength(), Is.GreaterThan(0),
+            "Should list at least one workflow");
+
+        // Verify metadata shape: id and name are required
+        var first = doc.RootElement[0];
+        Assert.That(first.TryGetProperty("id", out _), Is.True, "Workflow metadata should have 'id'");
+        Assert.That(first.TryGetProperty("name", out _), Is.True, "Workflow metadata should have 'name'");
+    }
+
+    /// <summary>
+    /// ListAssets("workflows") (plural) returns the same result as singular "workflow".
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ListAssets_WorkflowPlural_ReturnsSameAssingular()
+    {
+        var singular = McpResourceTools.ListAssets("workflow");
+        var plural = McpResourceTools.ListAssets("workflows");
+
+        Assert.That(plural, Is.EqualTo(singular),
+            "Plural form 'workflows' should return same result as singular 'workflow'");
+    }
+
+    /// <summary>
+    /// ListAssets("role") returns JSON array of role metadata objects.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ListAssets_Role_ReturnsRoleMetadataArray()
+    {
+        var result = McpResourceTools.ListAssets("role");
+
+        Assert.That(result, Is.Not.Null.And.Not.Empty, "Result should not be null or empty");
+        using var doc = JsonDocument.Parse(result);
+        Assert.That(doc.RootElement.ValueKind, Is.EqualTo(JsonValueKind.Array),
+            "Result should be a JSON array");
+        Assert.That(doc.RootElement.GetArrayLength(), Is.GreaterThan(0),
+            "Should list at least one role");
+    }
+
+    /// <summary>
+    /// ListAssets("color") returns JSON array of color metadata objects.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ListAssets_Color_ReturnsColorMetadataArray()
+    {
+        var result = McpResourceTools.ListAssets("color");
+
+        Assert.That(result, Is.Not.Null.And.Not.Empty, "Result should not be null or empty");
+        using var doc = JsonDocument.Parse(result);
+        Assert.That(doc.RootElement.ValueKind, Is.EqualTo(JsonValueKind.Array),
+            "Result should be a JSON array");
+        Assert.That(doc.RootElement.GetArrayLength(), Is.GreaterThan(0),
+            "Should list at least one color");
+    }
+
+    /// <summary>
+    /// ListAssets("perspective") returns JSON array of perspective metadata objects.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ListAssets_Perspective_ReturnsPerspectiveMetadataArray()
+    {
+        var result = McpResourceTools.ListAssets("perspective");
+
+        Assert.That(result, Is.Not.Null.And.Not.Empty, "Result should not be null or empty");
+        using var doc = JsonDocument.Parse(result);
+        Assert.That(doc.RootElement.ValueKind, Is.EqualTo(JsonValueKind.Array),
+            "Result should be a JSON array");
+        Assert.That(doc.RootElement.GetArrayLength(), Is.GreaterThan(0),
+            "Should list at least one perspective");
+    }
+
+    /// <summary>
+    /// ListAssets is case-insensitive: "WORKFLOW" resolves the same as "workflow".
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ListAssets_UppercaseType_IsCaseInsensitive()
+    {
+        var lower = McpResourceTools.ListAssets("workflow");
+        var upper = McpResourceTools.ListAssets("WORKFLOW");
+
+        Assert.That(upper, Is.EqualTo(lower),
+            "'WORKFLOW' should resolve identically to 'workflow'");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ListAssets — invalid type
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// ListAssets with an unknown type throws McpException with "Unknown asset type".
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ListAssets_UnknownType_ThrowsMcpException()
+    {
+        var ex = Assert.Throws<McpException>(() => McpResourceTools.ListAssets("bogus"));
+
+        Assert.That(ex, Is.Not.Null, "Should throw McpException");
+        Assert.That(ex!.Message, Does.Contain("Unknown asset type"),
+            "Error message should contain 'Unknown asset type'");
+        Assert.That(ex.Message, Does.Contain("bogus"),
+            "Error message should reference the supplied type value");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ReadMcpResource — null / empty URI
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// ReadMcpResource with null URI throws McpException "URI is required".
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ReadMcpResource_NullUri_ThrowsMcpExceptionUriRequired()
+    {
+        var ex = Assert.Throws<McpException>(() => McpResourceTools.ReadMcpResource(null!));
+
+        Assert.That(ex, Is.Not.Null, "Should throw McpException");
+        Assert.That(ex!.Message, Does.Contain("URI is required"),
+            "Error message should say 'URI is required'");
+    }
+
+    /// <summary>
+    /// ReadMcpResource with empty string URI throws McpException "URI is required".
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ReadMcpResource_EmptyUri_ThrowsMcpExceptionUriRequired()
+    {
+        var ex = Assert.Throws<McpException>(() => McpResourceTools.ReadMcpResource(string.Empty));
+
+        Assert.That(ex, Is.Not.Null, "Should throw McpException");
+        Assert.That(ex!.Message, Does.Contain("URI is required"),
+            "Error message should say 'URI is required'");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ReadMcpResource — catalog URI
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// ReadMcpResource("asset://catalog") returns valid catalog JSON with all asset categories.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ReadMcpResource_CatalogUri_ReturnsCatalogJson()
+    {
+        var result = McpResourceTools.ReadMcpResource("asset://catalog");
+
+        Assert.That(result, Is.Not.Null.And.Not.Empty, "Catalog result should not be null or empty");
+        using var doc = JsonDocument.Parse(result);
+        var root = doc.RootElement;
+
+        Assert.That(root.TryGetProperty("workflows", out _), Is.True,
+            "Catalog should contain 'workflows'");
+        Assert.That(root.TryGetProperty("roles", out _), Is.True,
+            "Catalog should contain 'roles'");
+        Assert.That(root.TryGetProperty("colors", out _), Is.True,
+            "Catalog should contain 'colors'");
+        Assert.That(root.TryGetProperty("perspectives", out _), Is.True,
+            "Catalog should contain 'perspectives'");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ReadMcpResource — valid asset URIs
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// ReadMcpResource with a valid workflow URI returns the workflow JSON.
+    /// Discovers the first available workflow ID from the catalog dynamically.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ReadMcpResource_ValidWorkflowUri_ReturnsWorkflowJson()
+    {
+        // Discover a valid workflow ID from the catalog
+        var catalogJson = AssetResources.GetCatalog();
+        using var catalogDoc = JsonDocument.Parse(catalogJson);
+        var workflows = catalogDoc.RootElement.GetProperty("workflows");
+
+        if (workflows.GetArrayLength() == 0)
+        {
+            Assert.Ignore("No workflows available in asset catalog");
+            return;
+        }
+
+        var workflowId = workflows[0].GetProperty("id").GetString()!;
+        var uri = $"asset://workflows/{workflowId}";
+
+        var result = McpResourceTools.ReadMcpResource(uri);
+
+        Assert.That(result, Is.Not.Null.And.Not.Empty, "Workflow content should not be empty");
+        using var workflowDoc = JsonDocument.Parse(result);
+        workflowDoc.RootElement.TryGetProperty("id", out var idProp);
+        Assert.That(idProp.GetString(), Is.EqualTo(workflowId),
+            "Returned workflow id should match requested id");
+    }
+
+    /// <summary>
+    /// ReadMcpResource with a valid role URI returns the role JSON.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ReadMcpResource_ValidRoleUri_ReturnsRoleJson()
+    {
+        // Discover a valid role ID from the catalog
+        var catalogJson = AssetResources.GetCatalog();
+        using var catalogDoc = JsonDocument.Parse(catalogJson);
+        var roles = catalogDoc.RootElement.GetProperty("roles");
+
+        if (roles.GetArrayLength() == 0)
+        {
+            Assert.Ignore("No roles available in asset catalog");
+            return;
+        }
+
+        var roleId = roles[0].GetProperty("id").GetString()!;
+        var uri = $"asset://roles/{roleId}";
+
+        var result = McpResourceTools.ReadMcpResource(uri);
+
+        Assert.That(result, Is.Not.Null.And.Not.Empty, "Role content should not be empty");
+        using var doc = JsonDocument.Parse(result);
+        Assert.That(doc.RootElement.TryGetProperty("id", out _), Is.True,
+            "Role JSON should have 'id' field");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ReadMcpResource — invalid URI format
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// ReadMcpResource with an invalid URI format (no asset:// scheme) throws McpException.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ReadMcpResource_InvalidUriFormat_ThrowsMcpException()
+    {
+        var ex = Assert.Throws<McpException>(() =>
+            McpResourceTools.ReadMcpResource("invalid-uri"));
+
+        Assert.That(ex, Is.Not.Null, "Should throw McpException");
+        Assert.That(ex!.Message, Does.Contain("Invalid resource URI format"),
+            "Error message should contain 'Invalid resource URI format'");
+    }
+
+    /// <summary>
+    /// ReadMcpResource with asset:// prefix but missing path segment throws McpException.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ReadMcpResource_UriMissingPathSegment_ThrowsMcpException()
+    {
+        var ex = Assert.Throws<McpException>(() =>
+            McpResourceTools.ReadMcpResource("asset://workflows"));
+
+        Assert.That(ex, Is.Not.Null, "Should throw McpException");
+        Assert.That(ex!.Message, Does.Contain("Invalid resource URI format"),
+            "Error message should contain 'Invalid resource URI format'");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ReadMcpResource — unknown resource type
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// ReadMcpResource with an unknown resource type segment throws McpException "Unknown resource type".
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ReadMcpResource_UnknownResourceType_ThrowsMcpException()
+    {
+        var ex = Assert.Throws<McpException>(() =>
+            McpResourceTools.ReadMcpResource("asset://bogus/some-id"));
+
+        Assert.That(ex, Is.Not.Null, "Should throw McpException");
+        Assert.That(ex!.Message, Does.Contain("Unknown resource type"),
+            "Error message should contain 'Unknown resource type'");
+        Assert.That(ex.Message, Does.Contain("bogus"),
+            "Error message should reference the supplied type");
+    }
+
+    // ---------------------------------------------------------------------------
+    // ReadMcpResource — nonexistent asset IDs
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// ReadMcpResource with a valid type but nonexistent workflow ID throws FileNotFoundException.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ReadMcpResource_NonexistentWorkflowId_ThrowsFileNotFoundException()
+    {
+        Assert.Throws<FileNotFoundException>(() =>
+            McpResourceTools.ReadMcpResource("asset://workflows/nonexistent-workflow-xyz-99999"));
+    }
+
+    /// <summary>
+    /// ReadMcpResource with a valid type but nonexistent role ID throws FileNotFoundException.
+    /// T-COV-001.8: RTM FR-17.10
+    /// </summary>
+    [Test]
+    public void ReadMcpResource_NonexistentRoleId_ThrowsFileNotFoundException()
+    {
+        Assert.Throws<FileNotFoundException>(() =>
+            McpResourceTools.ReadMcpResource("asset://roles/nonexistent-role-xyz-99999"));
     }
 }

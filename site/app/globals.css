@@ -109,3 +109,21 @@
 .code-width     { max-width: 900px; margin-inline: auto; }
 .section-gap    { margin-block: 5rem; }
 .subsection-gap { margin-block: 3rem; }
+
+/* T-SITE-001.2a: RTM FR-15.10, NFR-15.5 — Markdown content styles */
+.markdown-content h1 { margin-block: 2rem 1rem; }
+.markdown-content h2 { margin-block: 3rem 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+.markdown-content h3 { margin-block: 2rem 0.75rem; }
+.markdown-content p { margin-block: 1.5rem; }
+.markdown-content ul, .markdown-content ol { margin-block: 1rem; padding-left: 2rem; }
+.markdown-content li { margin-block: 0.25rem; }
+.markdown-content table { width: 100%; border-collapse: collapse; margin-block: 1.5rem; }
+.markdown-content th, .markdown-content td { padding: 0.5rem 1rem; border: 1px solid var(--border); text-align: left; }
+.markdown-content th { background-color: var(--bg-surface); font-weight: 600; }
+.markdown-content blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--text-secondary); margin-block: 1.5rem; }
+
+.code-block { position: relative; margin-block: 1.5rem; border-radius: 8px; overflow: hidden; }
+.code-block pre { padding: 1.25rem; overflow-x: auto; background-color: var(--code-bg) !important; }
+
+.mermaid-diagram { margin-block: 2rem; text-align: center; }
+.mermaid-diagram svg { max-width: 100%; height: auto; }

@@ -9,23 +9,24 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mermaid-js/mermaid-cli": "latest",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "shiki": "latest",
-    "unified": "latest",
+    "rehype-raw": "latest",
+    "rehype-stringify": "latest",
+    "remark-gfm": "^4.0.1",
     "remark-parse": "latest",
     "remark-rehype": "latest",
-    "rehype-stringify": "latest",
-    "rehype-raw": "latest",
-    "@mermaid-js/mermaid-cli": "latest"
+    "shiki": "latest",
+    "unified": "latest"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",
-    "tailwindcss": "latest",
-    "typescript": "latest",
+    "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "@types/node": "latest"
+    "tailwindcss": "latest",
+    "typescript": "latest"
   }
 }

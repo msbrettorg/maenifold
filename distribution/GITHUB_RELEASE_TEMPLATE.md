@@ -13,7 +13,7 @@ v1.0.0
 ```markdown
 # maenifold v1.0.0
 
-Persistent Graph-of-Thoughts for AI agents and multi-agent systems.
+Context engineering infrastructure for AI agents.
 
 ## Highlights
 
@@ -21,7 +21,6 @@ Persistent Graph-of-Thoughts for AI agents and multi-agent systems.
 - Orchestrated workflows for multi-agent coordination
 - MCP protocol support for Claude, GPT, Qwen, Grok, and other LLMs
 - Cross-platform self-contained binaries (no .NET runtime required)
-- Windows MSI installer with automatic PATH setup
 
 ## Features
 
@@ -48,12 +47,6 @@ Persistent Graph-of-Thoughts for AI agents and multi-agent systems.
 ```bash
 brew install msbrettorg/tap/maenifold
 ```
-
-### Windows MSI Installer - Recommended
-Download `maenifold-vX.X.X-win-x64.msi` from Assets below and run the installer.
-- Installs to `C:\Program Files\MSBrett\Maenifold\`
-- Automatically adds to system PATH
-- Clean uninstall removes PATH entry
 
 ### .NET Tool
 ```bash
@@ -102,56 +95,51 @@ See [CHANGELOG.md](https://github.com/msbrettorg/maenifold/blob/main/CHANGELOG.m
 
 ### Linux (x64)
 ```bash
-curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-linux-x64.tar.gz
-tar -xzf maenifold-linux-x64.tar.gz
+curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-linux-x64.zip
+unzip maenifold-linux-x64.zip
 chmod +x maenifold
 sudo mv maenifold /usr/local/bin/
 ```
 
 ### Linux (ARM64)
 ```bash
-curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-linux-arm64.tar.gz
-tar -xzf maenifold-linux-arm64.tar.gz
+curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-linux-arm64.zip
+unzip maenifold-linux-arm64.zip
 chmod +x maenifold
 sudo mv maenifold /usr/local/bin/
 ```
 
 ### macOS (ARM64 - M1/M2/M3)
 ```bash
-curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-osx-arm64.tar.gz
-tar -xzf maenifold-osx-arm64.tar.gz
+curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-osx-arm64.zip
+unzip maenifold-osx-arm64.zip
 chmod +x maenifold
 sudo mv maenifold /usr/local/bin/
 ```
 
 ### macOS (x64 - Intel)
 ```bash
-curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-osx-x64.tar.gz
-tar -xzf maenifold-osx-x64.tar.gz
+curl -LO https://github.com/msbrettorg/maenifold/releases/download/v1.0.0/maenifold-osx-x64.zip
+unzip maenifold-osx-x64.zip
 chmod +x maenifold
 sudo mv maenifold /usr/local/bin/
 ```
 
-### Windows (x64) - MSI Installer (Recommended)
-Download `maenifold-v1.0.0-win-x64.msi` and run the installer.
-
-### Windows (x64) - Manual
+### Windows (x64)
 ```powershell
 # Download maenifold-win-x64.zip from Assets below
 # Extract the ZIP
 # Add to PATH manually or run from extracted directory:
 .\maenifold.exe --tool MemoryStatus --payload '{}'
 ```
-```
 
 ## Release Assets
 
-1. `maenifold-osx-arm64.tar.gz`
-2. `maenifold-osx-x64.tar.gz`
-3. `maenifold-linux-x64.tar.gz`
-4. `maenifold-linux-arm64.tar.gz`
+1. `maenifold-osx-arm64.zip`
+2. `maenifold-osx-x64.zip`
+3. `maenifold-linux-x64.zip`
+4. `maenifold-linux-arm64.zip`
 5. `maenifold-win-x64.zip`
-6. `maenifold-vX.X.X-win-x64.msi`
 
 ## Release Checklist
 
@@ -167,6 +155,5 @@ Before creating the release:
 After tag push (automated):
 
 - [ ] GitHub Actions builds all platform binaries
-- [ ] GitHub Actions builds MSI installer
 - [ ] GitHub Release created automatically with all assets
 - [ ] Homebrew formula updated via repository dispatch

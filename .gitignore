@@ -164,3 +164,8 @@ site-quartz/
 dist/releases/
 artifacts/manual-release/
 .codex/
+
+# Site (Next.js)
+site/out/
+site/.next/
+site/node_modules/

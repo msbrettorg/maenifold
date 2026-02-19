@@ -50,6 +50,10 @@ export async function renderMermaid(code: string): Promise<string> {
     await writeFile(inputFile, code, "utf8");
     await writeFile(configFile, JSON.stringify(MERMAID_CONFIG), "utf8");
 
+    // Puppeteer needs --no-sandbox in CI (GitHub Actions, Docker, etc.)
+    const puppeteerConfigFile = join(tmpDir, "puppeteer.json");
+    await writeFile(puppeteerConfigFile, JSON.stringify({ args: ["--no-sandbox"] }), "utf8");
+
     // Resolve mmdc from the site's local node_modules to avoid PATH dependency.
     // __dirname is not available in ESM; use process.cwd() which is the project root
     // during `next build`. We walk up from cwd to find node_modules/.bin/mmdc.
@@ -60,6 +64,7 @@ export async function renderMermaid(code: string): Promise<string> {
       "--input", inputFile,
       "--output", outputFile,
       "--configFile", configFile,
+      "--puppeteerConfigFile", puppeteerConfigFile,
       "--backgroundColor", "transparent",
     ], {
       // mmdc spawns a headless Chromium — allow enough time

@@ -1,9 +1,12 @@
 // T-SITE-001.9b: RTM FR-15.11, FR-15.21, FR-15.22 — /tools card grid catalog from src/assets/usage/tools/
-// CodeQL: tool.name/description are build-time values from local .md files, rendered via JSX
-// auto-escaping (not dangerouslySetInnerHTML). No user input reaches these paths.
 import Link from 'next/link';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
+
+/** Strip anything that isn't a valid URL-slug character. */
+function sanitizeSlug(raw: string): string {
+  return raw.replace(/[^a-zA-Z0-9_-]/g, '');
+}
 
 export const metadata = {
   title: 'Tools — maenifold',
@@ -52,7 +55,7 @@ export default function ToolsPage() {
     .map((filename) => {
       const source = readFileSync(join(toolsDir, filename), 'utf-8');
       const { name, description } = parseToolFile(source);
-      const slug = filename.replace('.md', '');
+      const slug = sanitizeSlug(filename.replace('.md', ''));
       return { slug, name, description };
     })
     .sort((a, b) => a.name.localeCompare(b.name));

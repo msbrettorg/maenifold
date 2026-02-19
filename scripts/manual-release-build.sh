@@ -12,12 +12,12 @@ Usage:
   [output-dir]  Destination directory for archives (default: dist/releases).
 
 The script produces platform archives + SHA256 sums for:
-  - linux-x64 (.tar.gz)
-  - osx-arm64 (.tar.gz)
-  - osx-x64 (.tar.gz)
+  - linux-x64 (.zip)
+  - osx-arm64 (.zip)
+  - osx-x64 (.zip)
   - win-x64 (.zip)
 
-Archives are named maenifold-<version>-<rid>.* with <version> stripped of any leading 'v'.
+Archives are named maenifold-<version>-<rid>.zip with <version> stripped of any leading 'v'.
 USAGE
 }
 
@@ -76,6 +76,8 @@ for runtime in "${RUNTIMES[@]}"; do
     -r "$runtime" \
     --self-contained true \
     -p:PublishSingleFile=true \
+    -p:IncludeNativeLibrariesForSelfExtract=true \
+    -p:DebugType=none \
     -o "$publish_dir"
 
   cp README.md "$publish_dir"/
@@ -98,12 +100,11 @@ for runtime in "${RUNTIMES[@]}"; do
   fi
 
   archive_name="maenifold-${VERSION}-${runtime}"
+  archive_path="$OUTPUT_ROOT/${archive_name}.zip"
   if [[ "$runtime" == win-* ]]; then
-    archive_path="$OUTPUT_ROOT/${archive_name}.zip"
-    (cd "$publish_dir" && zip -qry "$archive_path" .)
+    (cd "$publish_dir" && zip -qry "$archive_path" maenifold.exe assets/)
   else
-    archive_path="$OUTPUT_ROOT/${archive_name}.tar.gz"
-    (cd "$publish_dir" && tar -czf "$archive_path" .)
+    (cd "$publish_dir" && zip -qry "$archive_path" maenifold assets/)
   fi
 
   hash_path="${archive_path}.sha256"

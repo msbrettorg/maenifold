@@ -10,21 +10,19 @@ maenifold is distributed through four primary channels:
 Each GitHub release includes:
 - Source code (automatic from tag)
 - Platform-specific binaries:
-  - `maenifold-osx-arm64.tar.gz`
-  - `maenifold-osx-x64.tar.gz`
-  - `maenifold-linux-x64.tar.gz`
-  - `maenifold-linux-arm64.tar.gz`
+  - `maenifold-osx-arm64.zip`
+  - `maenifold-osx-x64.zip`
+  - `maenifold-linux-x64.zip`
+  - `maenifold-linux-arm64.zip`
   - `maenifold-win-x64.zip`
-  - `maenifold-vX.X.X-win-x64.msi` (Windows installer with PATH setup)
 - Release notes with changelog
 
 ### Manual Installation
 ```bash
 # macOS/Linux
-curl -L https://github.com/msbrettorg/maenifold/releases/latest/download/maenifold-osx-arm64.tar.gz | tar xz
+curl -LO https://github.com/msbrettorg/maenifold/releases/latest/download/maenifold-osx-arm64.zip
+unzip maenifold-osx-arm64.zip
 sudo mv maenifold /usr/local/bin/
-
-# Windows (use MSI installer for automatic PATH setup)
 ```
 
 ## 2. Homebrew (macOS/Linux)

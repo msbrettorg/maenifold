@@ -270,7 +270,7 @@ Run periodically (daily recommended):
 Run the memory-cycle workflow
 ```
 
-Three specialists run in parallel (decay is handled within the memory-cycle workflow, not as a standalone workflow):
+Three specialists run in parallel; decay is handled within the memory-cycle workflow itself:
 1. **Consolidation** — Replays high-significance episodic memories, promotes to semantic
 2. **Repair** — Normalizes WikiLink variants, cleans orphaned concepts
 3. **Epistemic** — Reviews assumptions, validates or invalidates based on evidence

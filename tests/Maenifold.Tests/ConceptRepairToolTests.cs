@@ -457,7 +457,7 @@ More tool text outside code block.");
         // Assert
         var modifiedContent = File.ReadAllText(testFile);
         // Count WikiLinks created
-        var wikiLinkCount = System.Text.RegularExpressions.Regex.Matches(modifiedContent, @"\[\[dev-tool\]\]").Count;
+        var wikiLinkCount = System.Text.RegularExpressions.Regex.Count(modifiedContent, @"\[\[dev-tool\]\]");
         // Should only create 2 links: one before code block, one after
         // Code block content should remain unchanged
         Assert.That(modifiedContent, Does.Contain("This tool inside code block should not be converted"),
@@ -475,7 +475,7 @@ Already [[existing-concept]] with tool text.
 [[existing-concept]] is already a link.
 tool should be converted but [[existing-concept]] should stay.";
         File.WriteAllText(testFile, originalContent);
-        var originalExistingCount = System.Text.RegularExpressions.Regex.Matches(originalContent, @"\[\[existing-concept\]\]").Count;
+        var originalExistingCount = System.Text.RegularExpressions.Regex.Count(originalContent, @"\[\[existing-concept\]\]");
 
         // Act
         var result = ConceptRepairTool.RepairConcepts(
@@ -494,7 +494,7 @@ tool should be converted but [[existing-concept]] should stay.";
             "Should preserve existing [[existing-concept]] WikiLinks");
         Assert.That(modifiedContent, Does.Contain("[[build-tool]]"),
             "Should create new [[build-tool]] from plain text 'tool'");
-        var existingLinkCount = System.Text.RegularExpressions.Regex.Matches(modifiedContent, @"\[\[existing-concept\]\]").Count;
+        var existingLinkCount = System.Text.RegularExpressions.Regex.Count(modifiedContent, @"\[\[existing-concept\]\]");
         Assert.That(existingLinkCount, Is.EqualTo(originalExistingCount), "Should preserve all existing WikiLinks without modification");
     }
 
@@ -527,7 +527,7 @@ The [[tool]] is essential.");
         Assert.That(modifiedContent, Does.Contain("[[generic-tool]]"), "Should contain replacement concept");
 
         // Verify all replacements were made
-        var replacementCount = System.Text.RegularExpressions.Regex.Matches(modifiedContent, @"\[\[generic-tool\]\]").Count;
+        var replacementCount = System.Text.RegularExpressions.Regex.Count(modifiedContent, @"\[\[generic-tool\]\]");
         Assert.That(replacementCount, Is.GreaterThan(0), "Should have made replacements");
     }
 

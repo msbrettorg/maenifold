@@ -262,26 +262,26 @@ ESCAPE HATCHES:
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-COV-001.1 | FR-17.3 | RecentActivity pipeline SHALL have integration tests: query dispatch, DB time filtering, output formatting. | src/Tools/RecentActivityTools.cs, src/Tools/RecentActivityReader.cs, src/Tools/RecentActivityFormatter.cs | tests/Maenifold.Tests/RecentActivityTests.cs | Pending |
-| T-COV-001.2 | FR-17.4 | ToolRegistry SHALL have tests: registration, case-insensitive lookup, dispatch, unknown tool error. | src/Tools/ToolRegistry.cs, src/Tools/ToolDescriptor.cs | tests/Maenifold.Tests/ToolRegistryTests.cs | Pending |
-| T-COV-001.3 | FR-17.5 | IncrementalSyncTools SHALL have tests: file change events, debounce, mtime/hash guards, watcher lifecycle. | src/Tools/IncrementalSyncTools.cs, src/Tools/IncrementalSync.*.cs | tests/Maenifold.Tests/IncrementalSyncToolsTests.cs | Pending |
-| T-COV-001.4 | FR-17.6 | WorkflowTools SHALL have tests: session creation, step advancement, status transitions, serial queuing, conclusion. | src/Tools/WorkflowTools.cs, src/Tools/WorkflowOperations.*.cs | tests/Maenifold.Tests/WorkflowToolsTests.cs | Pending |
-| T-COV-001.5 | FR-17.7 | SessionCleanup SHALL have tests: abandonment detection, age threshold, DB metadata pre-pass. | src/Tools/SessionCleanup.cs | tests/Maenifold.Tests/SessionCleanupTests.cs | Pending |
-| T-COV-001.6 | FR-17.8 | AssetManager SHALL have tests: discovery, copy, dry-run, source-target mapping. | src/Utils/AssetManager.cs, src/Utils/AssetUpdateResult.cs | tests/Maenifold.Tests/AssetManagerTests.cs | Pending |
+| T-COV-001.1 | FR-17.3 | RecentActivity pipeline SHALL have integration tests: query dispatch, DB time filtering, output formatting. | src/Tools/RecentActivityTools.cs, src/Tools/RecentActivityReader.cs, src/Tools/RecentActivityFormatter.cs | tests/Maenifold.Tests/RecentActivityTests.cs | **Complete** |
+| T-COV-001.2 | FR-17.4 | ToolRegistry SHALL have tests: registration, case-insensitive lookup, dispatch, unknown tool error. | src/Tools/ToolRegistry.cs, src/Tools/ToolDescriptor.cs | tests/Maenifold.Tests/ToolRegistryTests.cs | **Complete** |
+| T-COV-001.3 | FR-17.5 | IncrementalSyncTools SHALL have tests: file change events, debounce, mtime/hash guards, watcher lifecycle. | src/Tools/IncrementalSyncTools.cs, src/Tools/IncrementalSync.*.cs | tests/Maenifold.Tests/IncrementalSyncToolsTests.cs | **Complete** |
+| T-COV-001.4 | FR-17.6 | WorkflowTools SHALL have tests: session creation, step advancement, status transitions, serial queuing, conclusion. | src/Tools/WorkflowTools.cs, src/Tools/WorkflowOperations.*.cs | tests/Maenifold.Tests/WorkflowToolsTests.cs | **Complete** |
+| T-COV-001.5 | FR-17.7 | SessionCleanup SHALL have tests: abandonment detection, age threshold, DB metadata pre-pass. | src/Tools/SessionCleanup.cs | tests/Maenifold.Tests/SessionCleanupTests.cs | **Complete** |
+| T-COV-001.6 | FR-17.8 | AssetManager SHALL have tests: discovery, copy, dry-run, source-target mapping. | src/Utils/AssetManager.cs, src/Utils/AssetUpdateResult.cs | tests/Maenifold.Tests/AssetManagerTests.cs | **Complete** |
 
 ### P2 Coverage — Utilities & Secondary Tools
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-COV-001.7 | FR-17.9 | AssumptionLedgerValidation SHALL have tests: all validation rules, edge cases. | src/Tools/AssumptionLedgerValidation.cs | tests/Maenifold.Tests/AssumptionLedgerValidationTests.cs | Pending |
-| T-COV-001.8 | FR-17.10 | McpResourceTools SHALL have tests: URI resolution, content retrieval, invalid URI error. | src/Tools/McpResourceTools.cs | tests/Maenifold.Tests/McpResourceToolsTests.cs | Pending |
-| T-COV-001.9 | FR-17.11 | Utility classes SHALL have targeted branch tests: TimeZoneConverter (DST, UTC, invalid), CultureInvariantHelpers (formatting), StringExtensions, StringBuilderExtensions. | src/Utils/TimeZoneConverter.cs, src/Utils/CultureInvariantHelpers.cs, src/Utils/StringExtensions.cs, src/Utils/StringBuilderExtensions.cs | tests/Maenifold.Tests/UtilityClassTests.cs | Pending |
-| T-COV-001.10 | FR-17.12 | ConceptAnalyzer SHALL have tests: graph analysis, concept extraction, relationship analysis. | src/Tools/ConceptAnalyzer.cs | tests/Maenifold.Tests/ConceptAnalyzerTests.cs | Pending |
+| T-COV-001.7 | FR-17.9 | AssumptionLedgerValidation SHALL have tests: all validation rules, edge cases. | src/Tools/AssumptionLedgerValidation.cs | tests/Maenifold.Tests/AssumptionLedgerValidationTests.cs | **Complete** |
+| T-COV-001.8 | FR-17.10 | McpResourceTools SHALL have tests: URI resolution, content retrieval, invalid URI error. | src/Tools/McpResourceTools.cs | tests/Maenifold.Tests/McpResourceToolsTests.cs | **Complete** |
+| T-COV-001.9 | FR-17.11 | Utility classes SHALL have targeted branch tests: TimeZoneConverter (DST, UTC, invalid), CultureInvariantHelpers (formatting), StringExtensions, StringBuilderExtensions. | src/Utils/TimeZoneConverter.cs, src/Utils/CultureInvariantHelpers.cs, src/Utils/StringExtensions.cs, src/Utils/StringBuilderExtensions.cs | tests/Maenifold.Tests/UtilityClassTests.cs | **Complete** |
+| T-COV-001.10 | FR-17.12 | ConceptAnalyzer SHALL have tests: graph analysis, concept extraction, relationship analysis. | src/Tools/ConceptAnalyzer.cs | tests/Maenifold.Tests/ConceptAnalyzerTests.cs | **Complete** |
 
 ### Threshold Enforcement & Verification
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-COV-001.11 | NFR-17.4 | Coverlet thresholds SHALL fail `dotnet test` when coverage drops below line=75%, branch=65%, method=85%. | tests/Maenifold.Tests/Maenifold.Tests.csproj | `dotnet test` exits non-zero below thresholds | Pending |
-| T-COV-001.12 | NFR-17.1-3 | Blue-team: Verify all coverage targets met (line ≥ 75%, branch ≥ 65%, method ≥ 85%). | All test files | Coverage report analysis | Pending |
-| T-COV-001.13 | NFR-17.5 | Red-team: Audit test quality — no mocks/stubs, real infrastructure, meaningful assertions. | All new test files | ConfessionReport | Pending |
+| T-COV-001.11 | NFR-17.4 | Coverlet thresholds SHALL fail `dotnet test` when coverage drops below line=75%, branch=65%, method=85%. | tests/Maenifold.Tests/Maenifold.Tests.csproj | `dotnet test` exits non-zero below thresholds | **Complete** |
+| T-COV-001.12 | NFR-17.1-3 | Blue-team: Verify all coverage targets met (line ≥ 75%, branch ≥ 65%, method ≥ 85%). | All test files | 801/801 pass. Line 77.65%, Branch 67.38%, Method 93.29% — all exceed targets. | **Complete** |
+| T-COV-001.13 | NFR-17.5 | Red-team: Audit test quality — no mocks/stubs, real infrastructure, meaningful assertions. | All new test files | 58 files audited. Zero mock libraries. Real SQLite + FS throughout. 1 Medium (reflection fragility), 4 Low findings. No blockers. | **Complete** |

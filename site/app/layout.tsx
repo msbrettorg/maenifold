@@ -1,8 +1,17 @@
 // T-SITE-001.3: RTM FR-15.31, FR-15.33
+// T-SITE-001.20: Newsreader serif for heading typeface
 import type { Metadata } from 'next';
+import { Newsreader } from 'next/font/google';
 import './globals.css';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+
+const newsreader = Newsreader({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-heading',
+  style: ['normal', 'italic'],
+});
 
 export const metadata: Metadata = {
   title: 'maenifold',
@@ -31,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={newsreader.variable}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

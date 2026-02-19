@@ -1,0 +1,27 @@
+{
+  "name": "maenifold-concept-map",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "copy": "cp dist/index.html ../../assets/apps/concept-map.html"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.0.1",
+    "d3-force": "^3.0.0",
+    "d3-selection": "^3.0.0",
+    "d3-drag": "^3.0.0",
+    "d3-zoom": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/d3-force": "^3.0.0",
+    "@types/d3-selection": "^3.0.0",
+    "@types/d3-drag": "^3.0.0",
+    "@types/d3-zoom": "^3.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.0.0"
+  }
+}

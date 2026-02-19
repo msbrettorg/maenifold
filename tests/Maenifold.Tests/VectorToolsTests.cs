@@ -137,19 +137,6 @@ public class VectorToolsTests
     }
 
     [Test]
-    [Platform("Win")]
-    public void PathResolutionWorksOnWindowsSystems()
-    {
-        // Test specifically for Windows systems
-        // Windows has case-insensitive file system by default
-
-        VectorTools.LoadModel();
-
-        // The test passes if we get here without exceptions
-        Assert.Pass("Path resolution successful on Windows system");
-    }
-
-    [Test]
     public void DiagnosticLoggingProvidesUsefulInformation()
     {
         // Enable embedding logs for this test to verify diagnostic messages

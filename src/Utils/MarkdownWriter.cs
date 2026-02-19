@@ -49,7 +49,11 @@ public static class MarkdownWriter
 
     public static string GetSessionPath(string thinkingType, string sessionId)
     {
-        var timestamp = long.Parse(sessionId.AsSpan(sessionId.LastIndexOf('-') + 1), CultureInfo.InvariantCulture);
+        // T-RTM-001: Strip prefix (e.g. "session-" or "workflow-"), then parse timestamp before next dash
+        var afterPrefix = sessionId.AsSpan(sessionId.IndexOf('-') + 1);
+        var nextDash = afterPrefix.IndexOf('-');
+        var timestampSpan = nextDash >= 0 ? afterPrefix[..nextDash] : afterPrefix;
+        var timestamp = long.Parse(timestampSpan, CultureInfo.InvariantCulture);
         var date = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime;
         return Path.Combine(Config.MemoryPath, "thinking", thinkingType,
             date.ToString("yyyy", CultureInfo.InvariantCulture), date.ToString("MM", CultureInfo.InvariantCulture), date.ToString("dd", CultureInfo.InvariantCulture), $"{sessionId}.md");

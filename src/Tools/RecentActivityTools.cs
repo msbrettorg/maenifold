@@ -14,7 +14,7 @@ Integrates with ReadMemory for session access, SearchMemories for activity analy
 Returns chronological activity list with timestamps, types, and identifiers for session continuation or analysis.")]
     public static string RecentActivity(
         [Description("Max results (default 10)")] int limit = 10,
-        [Description("Filter: thinking, memory, chat, or all (default all)")] string? filter = null,
+        [Description("Filter: thinking, memory, assumptions, or all (default all)")] string? filter = null,
         [Description("Time span for filtering (e.g. 24.00:00:00 for 24 hours). Must be positive.")] TimeSpan? timespan = null,
         [Description("Include full section content (true) or headers only (false, default)")] bool includeContent = false,
         [Description("Return help documentation instead of executing")] bool learn = false)

@@ -133,6 +133,10 @@ Returns related concepts with relationship types, file references, and connectio
             .OrderByDescending(r => r.WeightedScore)
             .ToList();
 
+        // T-COMMUNITY-001.7/.8/.9: RTM FR-13.6, FR-13.7, FR-13.8, FR-13.9, FR-13.10
+        // Community enrichment: add community_id to relations, compute siblings
+        EnrichWithCommunityData(conn, conceptName, result);
+
         if (depth > 1)
         {
             var expandedConcepts = new HashSet<string>();
@@ -328,5 +332,126 @@ Returns Mermaid diagram code ready for rendering, enables visual knowledge archi
         }
 
         return lastIndex;
+    }
+
+    // T-COMMUNITY-001.7/.8/.9: RTM FR-13.6, FR-13.7, FR-13.8, FR-13.9, FR-13.10
+    private static void EnrichWithCommunityData(SqliteConnection conn, string conceptName, BuildContextResult result)
+    {
+        // FR-13.10, NFR-13.10.1: Check if community data exists at all
+        // Graceful degradation — if table is empty or doesn't exist, return silently
+        bool hasCommunityData;
+        try
+        {
+            hasCommunityData = conn.QuerySingle<bool>(
+                "SELECT COUNT(*) > 0 FROM concept_communities");
+        }
+        catch (SqliteException)
+        {
+            // Table may not exist yet — graceful degradation
+            return;
+        }
+
+        if (!hasCommunityData)
+            return;
+
+        // FR-13.6, NFR-13.6.1: Get query concept's community via indexed query
+        // Note: COALESCE with -1 sentinel because QuerySingle<int?> doesn't handle nullable int
+        var queryCommunityRaw = conn.QuerySingle<int>(
+            "SELECT COALESCE((SELECT community_id FROM concept_communities WHERE concept_name = @name), -1)",
+            new { name = conceptName });
+        int? queryCommunity = queryCommunityRaw >= 0 ? queryCommunityRaw : null;
+
+        result.CommunityId = queryCommunity;
+
+        // Enrich each direct relation with its community_id
+        foreach (var rel in result.DirectRelations)
+        {
+            var relCommunityRaw = conn.QuerySingle<int>(
+                "SELECT COALESCE((SELECT community_id FROM concept_communities WHERE concept_name = @name), -1)",
+                new { name = rel.Name });
+            rel.CommunityId = relCommunityRaw >= 0 ? relCommunityRaw : null;
+        }
+
+        // FR-13.7, FR-13.8, FR-13.9: Compute community siblings
+        if (!queryCommunity.HasValue)
+            return;
+
+        // Get all concepts in the same community
+        var sameCommunity = conn.Query<string>(
+            "SELECT concept_name FROM concept_communities WHERE community_id = @cid AND concept_name != @name",
+            new { cid = queryCommunity.Value, name = conceptName }).ToList();
+
+        // Get query concept's direct neighbors (for filtering and scoring)
+        var directNeighborNames = new HashSet<string>(
+            result.DirectRelations.Select(r => r.Name));
+
+        // Load query concept's weighted edges for scoring
+        // Note: Using (string, long) tuple because SQLite returns INTEGER as Int64
+        var queryEdges = conn.Query<(string related, long weight)>(
+            @"SELECT
+                CASE WHEN concept_a = @name THEN concept_b ELSE concept_a END as related,
+                co_occurrence_count as weight
+              FROM concept_graph
+              WHERE concept_a = @name OR concept_b = @name",
+            new { name = conceptName })
+            .ToDictionary(e => e.related, e => (int)e.weight);
+
+        var siblings = new List<CommunitySibling>();
+
+        foreach (var candidate in sameCommunity)
+        {
+            // Skip if candidate has direct edge to query concept
+            if (directNeighborNames.Contains(candidate))
+                continue;
+
+            // Load candidate's weighted edges
+            var candidateEdges = conn.Query<(string related, long weight)>(
+                @"SELECT
+                    CASE WHEN concept_a = @name THEN concept_b ELSE concept_a END as related,
+                    co_occurrence_count as weight
+                  FROM concept_graph
+                  WHERE concept_a = @name OR concept_b = @name",
+                new { name = candidate })
+                .ToDictionary(e => e.related, e => (int)e.weight);
+
+            // Find shared neighbors
+            var sharedNeighbors = queryEdges.Keys.Intersect(candidateEdges.Keys).ToList();
+
+            // FR-13.9: Min shared neighbors threshold
+            if (sharedNeighbors.Count < Config.CommunitySiblingMinSharedNeighbors)
+                continue;
+
+            // FR-13.8: Normalized weighted neighborhood overlap
+            double overlapSum = 0;
+            foreach (var neighbor in sharedNeighbors)
+            {
+                overlapSum += Math.Min(queryEdges[neighbor], candidateEdges[neighbor]);
+            }
+
+            // Total degree of candidate
+            double candidateTotalDegree = candidateEdges.Values.Sum();
+            if (candidateTotalDegree == 0)
+                continue;
+
+            double normalizedOverlap = overlapSum / candidateTotalDegree;
+
+            // FR-13.9: Min overlap threshold
+            if (normalizedOverlap < Config.CommunitySiblingMinOverlap)
+                continue;
+
+            siblings.Add(new CommunitySibling
+            {
+                Name = candidate,
+                CommunityId = queryCommunity.Value,
+                SharedNeighborCount = sharedNeighbors.Count,
+                NormalizedOverlap = normalizedOverlap
+            });
+        }
+
+        // FR-13.9: Sort desc by overlap, cap at max results
+        result.CommunitySiblings = siblings
+            .OrderByDescending(s => s.NormalizedOverlap)
+            .Take(Config.CommunitySiblingMaxResults)
+            .ToList();
     }
 }

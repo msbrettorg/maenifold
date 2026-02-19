@@ -3,14 +3,19 @@
 This file is for agentic coding assistants working in this repo.
 Focus on .NET (core product) and the Next.js site under `site/`.
 
-## Git Workflow
+## Git Workflow (MANDATORY)
 
-- **Development branch**: `dev` - all work happens here
-- **Main branch**: `main` - production releases only
-- **Workflow**: Work on `dev`, create PR to `main` for releases
-- **Tags**: Release tags (e.g., `v1.0.3`) trigger automated builds via GitHub Actions
+**Branch model**: `commons` → `dev` → PR to `main`.
 
-Do NOT merge directly to main. Always use a PR.
+1. **Do all work on `commons`.** Commit early and often with T-* identifiers.
+2. **Merge `commons` into `dev`** when work is complete and tests pass: `git checkout dev && git merge commons`
+3. **Create a PR from `dev` to `main`** for releases.
+
+**Hard rules:**
+- Do NOT commit directly to `dev` or `main`. All work happens on `commons`.
+- Do NOT create feature branches. `commons` is the working branch.
+- Do NOT merge directly to `main`. Always use a PR.
+- **Tags**: Release tags (e.g., `v1.0.3`) trigger automated builds via GitHub Actions.
 
 ## Build, Lint, Test
 
@@ -123,6 +128,14 @@ dotnet build src/Maenifold.csproj -c Debug
 - Use prepared SQL statements; let OS/SQLite enforce boundaries
 - Do not add user-restricting guardrails unless explicitly requested
 
+### Documentation philosophy
+- NO UNSOURCED DOCS: every claim in every `.md` file in this repo must cite its source
+- For repo features: link to the source file, test, or demo artifact that proves the claim
+- For external references: inline Markdown link to the authoritative URL
+- Do not write illustrative examples that fabricate output, statistics, or scenarios — link to real artifacts instead
+- Do not duplicate content that exists elsewhere — link to it
+- Text without traceability to a source will be deleted without review
+
 ## Naming and API conventions
 - Tool names are `PascalCase` and mirrored in docs
 - Tool documentation lives in `src/assets/usage/tools/*.md`
@@ -161,6 +174,15 @@ dotnet publish src/maenifold.csproj -c Release -r osx-arm64 --self-contained
 ```
 
 ## Agent-specific constraints
+
+### Multi-agent environment
+This repo has multiple agents working concurrently. Other agents (and the human) may have uncommitted or recently committed changes in any file. Before editing a file:
+- **Read the file first.** Do not assume you know its current contents.
+- **Make surgical edits.** Do not rewrite entire files. Use targeted replacements that preserve surrounding content you did not write.
+- **PRD.md, RTM.md, TODO.md are especially dangerous.** These are actively maintained by the Product Manager and are the source of truth for requirements, traceability, and backlog. Do not add, remove, or modify entries in these files unless your task explicitly requires it and references a T-* identifier. If you find gaps or ambiguities, ask — do not assume.
+- **Never discard unrecognized content.** If a file contains sections or entries you didn't expect, leave them intact. Another agent or the human put them there for a reason.
+
+### Clean root directory
 - This repo enforces a clean root directory (`Directory.Build.targets`)
   - Avoid dropping ad-hoc files in repo root
   - Keep new files in appropriate subdirectories
@@ -171,17 +193,16 @@ Two-layer plugin architecture:
 
 **plugin-maenifold** (base):
 - MCP server for maenifold tools
-- Hooks: `SessionStart`, `PreCompact`
+- Hooks: `SessionStart`, `PreToolUse` (Task), `SubagentStop`
+- Hook script: `integrations/claude-code/plugin-maenifold/scripts/hooks.sh`
+- Modes: `session_start`, `task_augment`, `subagent_stop`
 - Install: `claude plugin add /path/to/integrations/claude-code/plugin-maenifold`
 
 **plugin-product-team** (opinionated):
 - Requires plugin-maenifold installed first
 - Agents: swe, researcher, red-team, blue-team
-- Hooks: `PreToolUse` (Task), `SubagentStop`
+- Skills: product-manager
 - Install: `claude plugin add /path/to/integrations/claude-code/plugin-product-team`
-
-Shared hook script: `integrations/scripts/hooks.sh`
-- Modes: `session_start`, `task_augment`, `pre_compact`, `subagent_stop`
 
 Scripting reference: `docs/SCRIPTING.md`
 

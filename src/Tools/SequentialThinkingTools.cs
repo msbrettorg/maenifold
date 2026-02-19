@@ -180,14 +180,17 @@ Returns session management with continuation guidance and checkpoint suggestions
         return (true, null);
     }
 
-    private static bool IsValidSessionIdFormat(string sessionId)
+    // T-DATE-001: RTM FR-2 — validate timestamp segment (not random suffix)
+    internal static bool IsValidSessionIdFormat(string sessionId)
     {
-        var lastDash = sessionId.LastIndexOf('-');
-        if (lastDash < 0 || lastDash == sessionId.Length - 1)
+        var firstDash = sessionId.IndexOf('-');
+        if (firstDash < 0 || firstDash == sessionId.Length - 1)
             return false;
 
-        var suffix = sessionId[(lastDash + 1)..];
-        return long.TryParse(suffix, out _);
+        var afterPrefix = sessionId.AsSpan(firstDash + 1);
+        var nextDash = afterPrefix.IndexOf('-');
+        var timestampSpan = nextDash >= 0 ? afterPrefix[..nextDash] : afterPrefix;
+        return long.TryParse(timestampSpan, out _);
     }
 
     private static (bool sessionExists, bool sessionIdProvided) DetermineSessionState(string? sessionId, int thoughtNumber, bool isRevision)
@@ -243,7 +246,8 @@ Returns session management with continuation guidance and checkpoint suggestions
         var heading = $"Thought {thoughtNumber}/{displayTotal} [{agentId}]{suffix}";
 
         var thoughtsSection = !string.IsNullOrEmpty(thoughts) ? $"\n\n*Thoughts: {thoughts}*" : "";
-        var timestamp = CultureInvariantHelpers.FormatDateTime(DateTime.UtcNow, "yyyy-MM-dd HH:mm:ss");
+        // T-DATE-001: RTM NFR-1 — human-readable timestamps include UTC suffix
+        var timestamp = CultureInvariantHelpers.FormatDateTime(DateTime.UtcNow, "yyyy-MM-dd HH:mm:ss' UTC'");
         var content = $"{response}{thoughtsSection}\n\n*{timestamp}*\n";
 
         return (heading, content);
@@ -296,7 +300,7 @@ Returns session management with continuation guidance and checkpoint suggestions
             var (frontmatter, existingContent, _) = MarkdownIO.ReadSession("sequential", sessionId);
             frontmatter ??= new Dictionary<string, object>();
             frontmatter["status"] = "cancelled";
-            frontmatter["cancelled"] = DateTime.UtcNow.ToString("o");
+            frontmatter["cancelled"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
             // Use thoughtNumber if provided (non-negative), otherwise preserve existing thoughtCount
             if (thoughtNumber >= 0)
             {
@@ -316,7 +320,7 @@ Returns session management with continuation guidance and checkpoint suggestions
             var (frontmatter, existingContent, _) = MarkdownIO.ReadSession("sequential", sessionId);
             frontmatter ??= new Dictionary<string, object>();
             frontmatter["status"] = "completed";
-            frontmatter["completed"] = DateTime.UtcNow.ToString("o");
+            frontmatter["completed"] = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture);
             frontmatter["thoughtCount"] = thoughtNumber + 1;
             MarkdownIO.UpdateSession("sequential", sessionId, frontmatter, existingContent);
         }

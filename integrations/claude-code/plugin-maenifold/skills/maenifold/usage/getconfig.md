@@ -1,0 +1,1 @@
+../../../../../../src/assets/usage/tools/getconfig.md

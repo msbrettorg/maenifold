@@ -1,179 +1,124 @@
-import Link from 'next/link';
-import { GlassCard } from './components/GlassCard';
-import { AnimatedText } from './components/AnimatedText';
-import { RippleButton } from './components/RippleButton';
-import { AnimatedGraph } from './components/AnimatedGraph';
+// T-SITE-001.6: RTM FR-15.2, FR-15.3, FR-15.4, FR-15.5, FR-15.7, FR-15.8, FR-15.14, FR-15.20, FR-15.24, FR-15.30
+// T-SITE-001.19: Updated tagline — added "a knowledge graph and"
+// Server component — all content sourced directly from README.md
 import { CopyButton } from './components/CopyButton';
 
-export default function Home() {
+// Source: README.md lines 22-28
+const INSTALL_CODE = `# Homebrew (macOS/Linux)
+brew install msbrettorg/tap/maenifold
+
+# Manual — download from GitHub Releases
+# https://github.com/msbrettorg/maenifold/releases/latest`;
+
+// Source: README.md lines 40-46
+const MCP_CONFIG = `{
+  "mcpServers": {
+    "maenifold": { "command": "maenifold", "args": ["--mcp"], "type": "stdio" }
+  }
+}`;
+
+// Source: README.md lines 33-36
+const CLI_EXAMPLES = `maenifold --tool WriteMemory --payload '{"title":"Auth Decision","content":"Using [[OAuth2]] for [[authentication]]"}'
+maenifold --tool SearchMemories --payload '{"query":"authentication","mode":"Hybrid"}'
+maenifold --tool BuildContext --payload '{"conceptName":"authentication","depth":2}'`;
+
+export default async function Home() {
+
   return (
-    <div className="relative bg-gradient-to-br from-white via-blue-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      {/* Gradient mesh background */}
-      <div className="gradient-mesh-bg fixed inset-0 -z-20 opacity-60 dark:opacity-40" />
+    <main>
 
-      {/* Animated network background */}
-      <div className="knowledge-graph-bg fixed inset-0 -z-10 opacity-20 dark:opacity-10" />
+        {/* 1. Hero — FR-15.2 */}
+        <section className="prose-width section-gap" style={{ padding: '0 1rem' }}>
+          <h1 style={{ marginBottom: '1rem' }}>maenifold</h1>
+          <p style={{ fontSize: '1.25rem', lineHeight: '1.6', marginBottom: '0.75rem' }}>
+            Context engineering infrastructure for AI agents.
+          </p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.0625rem', lineHeight: '1.75', margin: 0 }}>
+            Point it at any domain&#39;s literature, and it builds a knowledge graph and specialized experts that live on your
+            machine, work offline, and get smarter with every use.
+          </p>
+        </section>
 
-      {/* Hero Section - Ephemeral Problem */}
-      <section className="relative flex items-center justify-center px-6 py-32 overflow-hidden">
-        {/* Animated graph canvas */}
-        <div className="absolute inset-0 opacity-30 dark:opacity-20">
-          <AnimatedGraph />
-        </div>
-
-        <div className="max-w-6xl mx-auto text-center relative z-10">
-          {/* Dissolving particles effect */}
-          <div className="relative mb-12">
-            <div className="dissolve-particles absolute inset-0 pointer-events-none"></div>
-            <h1 className="text-7xl md:text-9xl font-bold mb-6 animate-fade-in-up bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-500 bg-clip-text text-transparent">
-              maenifold
-            </h1>
-            <h2 className="text-3xl md:text-5xl font-semibold text-slate-700 dark:text-slate-300 animate-fade-in-up animate-delay-100">
-              Never lose context.
-            </h2>
+        {/* 2. How It Works — FR-15.5 */}
+        <section className="section-gap" style={{ padding: '0 1rem' }}>
+          <div className="prose-width">
+            <h2>How It Works</h2>
+            <p>Seed the graph. Keep the experts. Watch it compound.</p>
+            <ul style={{ paddingLeft: '1.5rem', lineHeight: '2' }}>
+              <li><strong><code>{'[[WikiLinks]]'}</code></strong> &mdash; lightweight concept identifiers, not payloads</li>
+              <li><strong>Hybrid search</strong> &mdash; semantic vectors + full-text with RRF fusion</li>
+              <li><strong>Knowledge graph</strong> &mdash; lazy construction, structure emerges from use</li>
+              <li><strong>Sequential thinking</strong> &mdash; multi-step reasoning with revision, branching, persistence</li>
+              <li><strong>35+ workflows</strong> &mdash; deductive reasoning to multi-agent sprints</li>
+              <li><strong>Memory lifecycle</strong> &mdash; decay, consolidation, repair modeled on cognitive neuroscience</li>
+              <li><strong>16 roles, 7 thinking colors, 12 perspectives</strong> &mdash; composable cognitive assets</li>
+              <li><strong>Community detection</strong> &mdash; Louvain algorithm identifies reasoning domains during sync</li>
+              <li><strong>Decay weighting</strong> &mdash; ACT-R power-law recency bias across search, context, and similarity</li>
+              <li><strong>Graph-of-thought priming</strong> &mdash; hook system injects clustered concept maps at session start</li>
+            </ul>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '1.5rem' }}>
+              Six layers: WikiLinks &rarr; Graph &rarr; Search &rarr; Session State &rarr; Reasoning &rarr; Orchestration.
+            </p>
           </div>
+        </section>
 
-          {/* CTAs */}
-          <div className="max-w-3xl mx-auto space-y-6 mb-12 animate-fade-in-up animate-delay-300">
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        {/* 3. Installation — FR-15.3, FR-15.20 */}
+        <section className="section-gap" style={{ padding: '0 1rem' }}>
+          <div className="prose-width" style={{ marginBottom: '1rem' }}>
+            <h2>Installation</h2>
+          </div>
+          <div className="code-block code-width" style={{ position: 'relative' }}>
+            <pre><code>{INSTALL_CODE}</code></pre>
+            <CopyButton text={INSTALL_CODE} />
+          </div>
+        </section>
+
+        {/* 4. MCP Configuration — FR-15.4 */}
+        <section className="section-gap" style={{ padding: '0 1rem' }}>
+          <div className="prose-width" style={{ marginBottom: '1rem' }}>
+            <h2>MCP Configuration</h2>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              Claude Code, Claude Desktop, Codex, and compatible MCP clients:
+            </p>
+          </div>
+          <div className="code-block code-width" style={{ position: 'relative' }}>
+            <pre><code>{MCP_CONFIG}</code></pre>
+            <CopyButton text={MCP_CONFIG} />
+          </div>
+        </section>
+
+        {/* 5. CLI Examples — FR-15.5 */}
+        <section className="section-gap" style={{ padding: '0 1rem' }}>
+          <div className="prose-width" style={{ marginBottom: '1rem' }}>
+            <h2>CLI Examples</h2>
+          </div>
+          <div className="code-block code-width" style={{ position: 'relative' }}>
+            <pre><code>{CLI_EXAMPLES}</code></pre>
+            <CopyButton text={CLI_EXAMPLES} />
+          </div>
+        </section>
+
+        {/* 6. Explore — FR-15.8 */}
+        <section className="section-gap" style={{ padding: '0 1rem' }}>
+          <div className="prose-width">
+            <h2>Explore</h2>
+            <nav aria-label="Site navigation" style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginTop: '1rem' }}>
+              <a href="/docs" style={{ fontSize: '1rem' }}>Docs</a>
+              <a href="/plugins" style={{ fontSize: '1rem' }}>Plugins</a>
+              <a href="/tools" style={{ fontSize: '1rem' }}>Tools</a>
+              <a href="/workflows" style={{ fontSize: '1rem' }}>Workflows</a>
               <a
-                href="https://github.com/msbrettorg/maenifold/releases/latest"
+                href="https://github.com/msbrettorg/maenifold"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl"
+                style={{ fontSize: '1rem' }}
               >
-                Download Latest Release
+                GitHub
               </a>
-              <Link
-                href="/start"
-                className="px-8 py-4 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-xl font-semibold transition-all"
-              >
-                Quick Start Guide
-              </Link>
-              <Link
-                href="/docs/architecture"
-                className="px-8 py-4 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl font-semibold transition-all"
-              >
-                Documentation
-              </Link>
-            </div>
+            </nav>
           </div>
+        </section>
 
-          {/* Real Knowledge Graph Visualization */}
-          <div className="max-w-4xl mx-auto mt-32 animate-fade-in-up animate-delay-400">
-            <div className="text-center mb-8">
-              <h3 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
-                maenifold's graph <span className="italic text-blue-600 dark:text-blue-400">is</span> the context window
-              </h3>
-              <p className="text-lg text-slate-600 dark:text-slate-400">
-                Every <code className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-blue-600 dark:text-blue-400">[[concept]]</code> becomes searchable. Every connection navigable.
-              </p>
-            </div>
-            <div className="rounded-2xl overflow-hidden border-2 border-blue-200 dark:border-blue-900 shadow-2xl">
-              <img
-                src="/graph.jpeg"
-                alt="Real knowledge graph showing interconnected concepts from maenifold development"
-                className="w-full h-auto"
-              />
-            </div>
-          </div>
-
-          {/* Test-Time Reasoning Infrastructure */}
-          <div className="max-w-6xl mx-auto mt-32 animate-fade-in-up animate-delay-500">
-            <div className="text-center mb-16">
-              <h3 className="text-4xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white">
-                Test-time reasoning infrastructure
-              </h3>
-              <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-                Sequential thinking, workflow orchestration, and multi-agent coordination
-              </p>
-            </div>
-
-            {/* Feature Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <GlassCard className="p-8 hover:scale-105 transition-all duration-300">
-                <div className="text-5xl mb-4">🔄</div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  Sequential Thinking
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Multi-step reasoning with revision and branching. Test-time compute for systematic problem-solving.
-                </p>
-              </GlassCard>
-              <GlassCard className="p-8 hover:scale-105 transition-all duration-300">
-                <div className="text-5xl mb-4">🎭</div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  30 Workflows
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  From deductive reasoning to design thinking—systematic methodologies with quality gates.
-                </p>
-              </GlassCard>
-              <GlassCard className="p-8 hover:scale-105 transition-all duration-300">
-                <div className="text-5xl mb-4">🎨</div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  Multi-Agent
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Coordinate agents in waves. PM preserves context while sub-agents execute.
-                </p>
-              </GlassCard>
-              <GlassCard className="p-8 hover:scale-105 transition-all duration-300">
-                <div className="text-5xl mb-4">🔌</div>
-                <h4 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
-                  Hybrid Search
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  Semantic vectors + full-text with RRF fusion. Never miss exact matches or concepts.
-                </p>
-              </GlassCard>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="relative flex items-center justify-center px-6 py-32 border-t border-slate-200 dark:border-slate-800 overflow-hidden">
-        {/* Animated graph background */}
-        <div className="absolute inset-0 opacity-25 dark:opacity-20">
-          <AnimatedGraph />
-        </div>
-
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-slate-900 dark:text-white">
-            break the conversation boundary
-          </h2>
-          <p className="text-lg text-slate-600 dark:text-slate-400 mb-12 max-w-2xl mx-auto">
-            Every session builds on the last. Every agent learns from every other.
-            Knowledge persists, compounds, and evolves.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <RippleButton
-              href="/start"
-              variant="primary"
-              className="button-hover px-8 py-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all"
-            >
-              Get Started
-            </RippleButton>
-            <RippleButton
-              href="/tools"
-              variant="secondary"
-              className="button-hover px-8 py-4 border-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 text-lg font-bold rounded-xl transition-all"
-            >
-              Browse Tools
-            </RippleButton>
-            <RippleButton
-              href="/docs/architecture"
-              variant="tertiary"
-              className="button-hover px-8 py-4 border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-lg font-bold rounded-xl transition-all"
-            >
-              Documentation
-            </RippleButton>
-          </div>
-        </div>
-      </section>
-    </div>
+    </main>
   );
 }

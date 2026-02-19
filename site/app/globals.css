@@ -1,435 +1,151 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* T-SITE-001.2: RTM FR-15.x — Design System: Warm Restraint */
 
-/* CRITICAL: Wrap all custom CSS in @layer utilities so Tailwind 4.0 doesn't tree-shake it */
-@layer utilities {
-  /* GPU-accelerated keyframe animations */
-  @keyframes float {
-    0%, 100% {
-      transform: translate3d(0, 0, 0);
-      opacity: 0.5;
-    }
-    50% {
-      transform: translate3d(var(--float-x, 20px), var(--float-y, 20px), 0);
-      opacity: 0.8;
-    }
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-hover: var(--bg-hover);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-code-bg: var(--code-bg);
+  --color-code-text: var(--code-text);
+}
+
+@layer base {
+  /* Dark mode — default (:root) */
+  :root {
+    --bg:               #141218;
+    --bg-surface:       #1E1B22;
+    --bg-hover:         #2A2630;
+    --border:           #2A2630;
+    --text:             #E8E0DB;
+    --text-secondary:   #9A938E;
+    --accent:           #6AABB3;
+    --accent-hover:     #8AC0C6;
+    --accent-muted:     #2A3A3D;
+    --code-bg:          #18151C;
+    --code-text:        #D4CEC8;
+    --code-comment:     #8A8480;
   }
 
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 0.3;
-    }
-    50% {
-      opacity: 0.8;
-    }
+  /* Light mode — explicit .light class on <html> */
+  .light {
+    --bg:               #F5F0EC;
+    --bg-surface:       #FFFFFF;
+    --bg-hover:         #EDE7E2;
+    --border:           #DDD6D0;
+    --text:             #1E1B22;
+    --text-secondary:   #7A746F;
+    --accent:           #3A8A94;
+    --accent-hover:     #2A7A84;
+    --accent-muted:     #D0E8EA;
+    --code-bg:          #F8F5F2;
+    --code-text:        #1E1B22;
   }
 
-  @keyframes gradient-shift {
-    0%, 100% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-  }
-
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes mesh-morph {
-    0%, 100% {
-      background-position: 0% 0%, 100% 100%, 50% 50%, 0% 0%;
-    }
-    33% {
-      background-position: 100% 0%, 0% 100%, 30% 70%, 0% 0%;
-    }
-    66% {
-      background-position: 0% 100%, 100% 0%, 70% 30%, 0% 0%;
-    }
-  }
-
-  /* Animation utility classes */
-  .animate-float {
-    animation: float 45s ease-in-out infinite;
-  }
-
-  .animate-pulse-connection {
-    animation: pulse 4s infinite;
-  }
-
-  .animate-gradient-shift {
-    animation: gradient-shift 12.5s ease-in-out infinite;
-  }
-
-  /* Page load animation (REQ-4.3) */
-  .animate-fade-in-up {
-    animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    opacity: 0; /* Start hidden to prevent FOUC */
-  }
-
-  .animate-delay-100 {
-    animation-delay: 0.1s;
-  }
-
-  .animate-delay-200 {
-    animation-delay: 0.2s;
-  }
-
-  .animate-delay-300 {
-    animation-delay: 0.3s;
-  }
-
-  .animate-delay-400 {
-    animation-delay: 0.4s;
-  }
-
-  /* Gradient mesh background animation (REQ-3.2) */
-  .gradient-mesh-bg {
-    background:
-      radial-gradient(at 0% 0%, #0ea5e9 0%, transparent 50%),
-      radial-gradient(at 100% 100%, #a855f7 0%, transparent 50%),
-      radial-gradient(at 50% 50%, #06b6d4 0%, transparent 50%),
-      linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-    background-size: 200% 200%, 200% 200%, 200% 200%, 100% 100%;
-    background-attachment: fixed;
-    animation: mesh-morph 90s ease-in-out infinite;
-    will-change: background-position;
-  }
-
-  .gradient-mesh-bg.reduce-motion {
-    animation: none;
-    will-change: auto;
-  }
-
-  /* Enhanced hover states for buttons (REQ-4.2) */
-  .button-hover {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .button-hover:hover {
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-  }
-
-  /* Knowledge Graph Background Animation */
-  @keyframes graph-float {
-    0%, 100% {
-      transform: translate3d(0, 0, 0) scale(1);
-      opacity: 0.3;
-    }
-    50% {
-      transform: translate3d(30px, -30px, 0) scale(1.1);
-      opacity: 0.6;
+  /* Light mode — OS preference fallback (no explicit dark override) */
+  @media (prefers-color-scheme: light) {
+    :root:not(.dark) {
+      --bg:               #F5F0EC;
+      --bg-surface:       #FFFFFF;
+      --bg-hover:         #EDE7E2;
+      --border:           #DDD6D0;
+      --text:             #1E1B22;
+      --text-secondary:   #7A746F;
+      --accent:           #3A8A94;
+      --accent-hover:     #2A7A84;
+      --accent-muted:     #D0E8EA;
+      --code-bg:          #F8F5F2;
+      --code-text:        #1E1B22;
     }
   }
 
-  .knowledge-graph-bg {
-    background-image:
-      radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.4) 0%, transparent 50%),
-      radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.4) 0%, transparent 50%),
-      radial-gradient(circle at 40% 80%, rgba(34, 211, 238, 0.3) 0%, transparent 40%),
-      radial-gradient(circle at 90% 20%, rgba(236, 72, 153, 0.3) 0%, transparent 40%),
-      radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.2) 0%, transparent 60%);
-    background-size: 200% 200%;
-    animation: graph-float 20s ease-in-out infinite;
+  /* Typography — body */
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+    background-color: var(--bg);
   }
 
-  /* Dissolving Particles Effect */
-  @keyframes dissolve {
-    0% {
-      opacity: 0.8;
-      transform: translateY(0) scale(1);
-    }
-    100% {
-      opacity: 0;
-      transform: translateY(-100px) scale(0.3);
-    }
-  }
-
-  .dissolve-particles::before,
-  .dissolve-particles::after {
+  /* Grain texture overlay — feTurbulence noise at 3% opacity */
+  body::before {
     content: '';
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background: currentColor;
-    border-radius: 50%;
-    opacity: 0.3;
-    animation: dissolve 3s ease-out infinite;
-  }
-
-  .dissolve-particles::before {
-    left: 10%;
-    top: 0;
-    animation-delay: 0s;
-  }
-
-  .dissolve-particles::after {
-    right: 10%;
-    top: 0;
-    animation-delay: 1.5s;
-  }
-
-  /* WikiLink Animation */
-  @keyframes wikilink-glow {
-    0%, 100% {
-      color: rgb(37, 99, 235);
-      text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-    }
-    50% {
-      color: rgb(59, 130, 246);
-      text-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.4);
-    }
-  }
-
-  .wikilink-animate {
-    animation: wikilink-glow 2s ease-in-out infinite;
-    font-weight: 600;
-  }
-
-  .animation-delay-1 {
-    animation-delay: 1s;
-  }
-
-  /* Concept Node Animations */
-  @keyframes node-appear {
-    0% {
-      opacity: 0;
-      transform: scale(0);
-    }
-    50% {
-      opacity: 0.8;
-      transform: scale(1.2);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes node-pulse {
-    0%, 100% {
-      r: 25;
-      opacity: 0.8;
-    }
-    50% {
-      r: 35;
-      opacity: 0.3;
-    }
-  }
-
-  .concept-node {
-    animation: node-appear 1s ease-out forwards;
-    opacity: 0;
-  }
-
-  .concept-node.node-1 {
-    animation-delay: 0.5s;
-  }
-
-  .concept-node.node-2 {
-    animation-delay: 1s;
-  }
-
-  .concept-node.node-3 {
-    animation-delay: 1.5s;
-  }
-
-  .concept-node.node-4 {
-    animation-delay: 0.8s;
-  }
-
-  .concept-node.node-5 {
-    animation-delay: 1.2s;
-  }
-
-  .concept-node.node-6 {
-    animation-delay: 1.6s;
-  }
-
-  .concept-node.node-7 {
-    animation-delay: 1.8s;
-  }
-
-  .concept-node.node-8 {
-    animation-delay: 2.0s;
-  }
-
-  .concept-node.node-9 {
-    animation-delay: 1.4s;
-  }
-
-  .concept-node.node-10 {
-    animation-delay: 2.2s;
-  }
-
-  .concept-node.node-11 {
-    animation-delay: 2.4s;
-  }
-
-  .concept-node.node-12 {
-    animation-delay: 2.6s;
-  }
-
-  .concept-node.node-13 {
-    animation-delay: 2.8s;
-  }
-
-  .concept-node.node-14 {
-    animation-delay: 2.0s;
-  }
-
-  .concept-node-pulse {
-    animation: node-pulse 2s ease-in-out infinite;
-  }
-
-  .concept-node-pulse.node-1 {
-    animation-delay: 0.5s;
-  }
-
-  .concept-node-pulse.node-2 {
-    animation-delay: 1s;
-  }
-
-  .concept-node-pulse.node-3 {
-    animation-delay: 1.5s;
-  }
-
-  .concept-node-pulse.node-4 {
-    animation-delay: 0.8s;
-  }
-
-  .concept-node-pulse.node-5 {
-    animation-delay: 1.2s;
-  }
-
-  .concept-node-pulse.node-6 {
-    animation-delay: 1.6s;
-  }
-
-  .concept-node-pulse.node-7 {
-    animation-delay: 1.8s;
-  }
-
-  .concept-node-pulse.node-8 {
-    animation-delay: 2.0s;
-  }
-
-  .concept-node-pulse.node-9 {
-    animation-delay: 1.4s;
-  }
-
-  .concept-node-pulse.node-10 {
-    animation-delay: 2.2s;
-  }
-
-  .concept-node-pulse.node-11 {
-    animation-delay: 2.4s;
-  }
-
-  .concept-node-pulse.node-12 {
-    animation-delay: 2.6s;
-  }
-
-  .concept-node-pulse.node-13 {
-    animation-delay: 2.8s;
-  }
-
-  .concept-node-pulse.node-14 {
-    animation-delay: 2.0s;
-  }
-
-  .animation-delay-2 {
-    animation-delay: 1.2s;
-  }
-
-  .animation-delay-3 {
-    animation-delay: 1.5s;
-  }
-
-  /* Concept Connection Animation */
-  @keyframes connection-draw {
-    0% {
-      stroke-dashoffset: 400;
-      opacity: 0;
-    }
-    100% {
-      stroke-dashoffset: 0;
-      opacity: 0.3;
-    }
-  }
-
-  .concept-connection {
-    stroke-dasharray: 400;
-    stroke-dashoffset: 400;
-    animation: connection-draw 1.5s ease-out forwards;
-    animation-delay: 1.2s;
-  }
-
-  /* Concept Transform Container */
-  .concept-transform-container {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .concept-transform-container::before {
-    content: '';
-    position: absolute;
+    position: fixed;
     inset: 0;
-    background: linear-gradient(
-      135deg,
-      rgba(59, 130, 246, 0.1) 0%,
-      rgba(139, 92, 246, 0.1) 100%
-    );
-    border-radius: 1rem;
-    opacity: 0.5;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
   }
 
-  /* Accessibility: Respect user motion preferences */
-  @media (prefers-reduced-motion: reduce) {
-    .gradient-mesh-bg,
-    .knowledge-graph-bg,
-    .dissolve-particles,
-    .wikilink-animate,
-    .concept-node,
-    .concept-node-pulse,
-    .concept-connection {
-      animation: none;
-      will-change: auto;
-    }
+  /* Monospace — code, pre, kbd */
+  code, pre, kbd {
+    font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas,
+      'Liberation Mono', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+  }
 
-    .animate-fade-in-up {
-      animation: none;
-      opacity: 1;
-      transform: none;
-    }
+  /* Headings */
+  h1 { font-size: 32px; font-weight: 600; }
+  h2 { font-size: 24px; font-weight: 600; }
+  h3 { font-size: 20px; font-weight: 600; }
 
-    .button-hover {
-      transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+  /* Links */
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-hover); text-decoration: underline; }
 
-    .button-hover:hover {
-      transform: none;
-      box-shadow: none;
-    }
+  /* Focus indicator — WCAG 2.4.7 */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+}
 
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
+/* Layout utilities */
+.prose-width    { max-width: 72ch; margin-inline: auto; }
+.code-width     { max-width: 900px; margin-inline: auto; }
+.section-gap    { margin-block: 5rem; }
+.subsection-gap { margin-block: 3rem; }
+
+/* T-SITE-001.2a: RTM FR-15.10, NFR-15.5 — Markdown content styles */
+.markdown-content h1 { margin-block: 2rem 1rem; }
+.markdown-content h2 { margin-block: 3rem 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+.markdown-content h3 { margin-block: 2rem 0.75rem; }
+.markdown-content p { margin-block: 1.5rem; }
+.markdown-content ul, .markdown-content ol { margin-block: 1rem; padding-left: 2rem; }
+.markdown-content li { margin-block: 0.25rem; }
+.markdown-content table { width: 100%; border-collapse: collapse; margin-block: 1.5rem; }
+.markdown-content th, .markdown-content td { padding: 0.5rem 1rem; border: 1px solid var(--border); text-align: left; }
+.markdown-content th { background-color: var(--bg-surface); font-weight: 600; }
+.markdown-content blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--text-secondary); margin-block: 1.5rem; }
+.markdown-content a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  text-underline-offset: 3px;
+}
+.markdown-content a:hover {
+  text-decoration-color: var(--accent);
+}
+
+.code-block { position: relative; margin-block: 1.5rem; border-radius: 8px; overflow: hidden; }
+.code-block pre { padding: 1.25rem; overflow-x: auto; background-color: var(--code-bg) !important; }
+
+.mermaid-diagram { margin-block: 2rem; text-align: center; }
+.mermaid-diagram svg { max-width: 100%; height: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
   }
 }

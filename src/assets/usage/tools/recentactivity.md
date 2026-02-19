@@ -5,7 +5,7 @@ Monitors system activity with time-based filtering for memory files and thinking
 ## Parameters
 
 - `limit` (int, optional): Max results. Default: 10
-- `filter` (string, optional): `"thinking"`, `"memory"`, or `"all"`. Default: `"all"`
+- `filter` (string, optional): `"thinking"`, `"memory"`, `"assumptions"`, or `"all"`. Default: `"all"`
 - `timespan` (TimeSpan, optional): Format: `"[days.]hours:minutes:seconds"`. Must be positive.
 - `includeContent` (bool, optional): Full content vs headers only. Default: false
 

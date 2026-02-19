@@ -1,97 +1,128 @@
-import fs from 'fs';
-import path from 'path';
+// T-SITE-001.9b: RTM FR-15.11, FR-15.21, FR-15.22 — /tools card grid catalog from src/assets/usage/tools/
+import Link from 'next/link';
+import { readdirSync, readFileSync } from 'fs';
+import { join } from 'path';
 
-interface Tool {
-  name: string;
-  description: string;
-  slug: string;
+/** Strip anything that isn't a valid URL-slug character. */
+function sanitizeSlug(raw: string): string {
+  return raw.replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
-function extractToolData(content: string, filename: string): Tool {
-  // Extract H1 title
-  const titleMatch = content.match(/^# (.+)$/m);
-  const name = titleMatch ? titleMatch[1] : filename.replace('.md', '');
+export const metadata = {
+  title: 'Tools — maenifold',
+  description: 'Complete reference for all maenifold tools.',
+};
 
-  // Extract first paragraph (everything after H1 until next section or empty line with no content)
-  const paragraphMatch = content.match(/^# .+\n\n([\s\S]*?)(?:\n##|\n\n\n|$)/);
-  const description = paragraphMatch
-    ? paragraphMatch[1]
-      .trim()
-      .split('\n')
-      .slice(0, 2)
-      .join(' ')
-      .replace(/\[\[.*?\]\]/g, '') // Remove [[WikiLink]] references
-      .trim()
-    : 'Tool documentation';
+interface ToolEntry {
+  slug: string;
+  name: string;
+  description: string;
+}
 
-  // Convert filename to kebab-case slug (e.g., writememory -> write-memory)
-  const slug = filename
-    .replace('.md', '')
-    .replace(/([a-z])([A-Z])/g, '$1-$2')
-    .toLowerCase();
+function parseToolFile(source: string): { name: string; description: string } {
+  const lines = source.split('\n');
 
-  return { name, description, slug };
+  // Extract name from first # heading
+  const headingLine = lines.find((line) => line.startsWith('# '));
+  const name = headingLine ? headingLine.replace(/^# /, '').trim() : 'Unknown';
+
+  // Extract first non-empty paragraph after the heading
+  let foundHeading = false;
+  let description = '';
+  for (const line of lines) {
+    if (!foundHeading) {
+      if (line.startsWith('# ')) {
+        foundHeading = true;
+      }
+      continue;
+    }
+    // Skip blank lines immediately after heading
+    if (!description && line.trim() === '') continue;
+    // Stop at next heading or blank line after we have content
+    if (description && line.trim() === '') break;
+    if (line.startsWith('#')) break;
+    description += (description ? ' ' : '') + line.trim();
+  }
+
+  return { name, description };
 }
 
 export default function ToolsPage() {
-  // Load all tool markdown files
-  const toolsDir = path.join(process.cwd(), '../src/assets/usage/tools');
-  const toolFiles = fs
-    .readdirSync(toolsDir)
-    .filter((file) => file.endsWith('.md'))
-    .sort();
+  const toolsDir = join(process.cwd(), '..', 'src', 'assets', 'usage', 'tools');
+  const files = readdirSync(toolsDir).filter((f) => f.endsWith('.md'));
 
-  const tools: Tool[] = toolFiles.map((filename) => {
-    const filepath = path.join(toolsDir, filename);
-    const content = fs.readFileSync(filepath, 'utf-8');
-    return extractToolData(content, filename);
-  });
+  const tools: ToolEntry[] = files
+    .map((filename) => {
+      const source = readFileSync(join(toolsDir, filename), 'utf-8');
+      const { name, description } = parseToolFile(source);
+      const slug = sanitizeSlug(filename.replace('.md', ''));
+      return { slug, name, description };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const count = tools.length;
 
   return (
-    <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
-      {/* Page Header */}
-      <div className="max-w-7xl mx-auto px-4 py-12 border-b border-slate-200 dark:border-slate-700">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">Maenifold Tools</h1>
-        <p className="text-lg text-slate-600 dark:text-slate-300">
-          {tools.length} MCP tools for persistent knowledge management, graph operations, and AI orchestration.
-        </p>
-      </div>
+    <main style={{ maxWidth: '1100px', marginInline: 'auto', padding: '4rem 1.5rem' }}>
+      <style>{`
+        .workflow-card {
+          background: var(--bg-surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 1.5rem;
+          transition: border-color 0.15s ease;
+          cursor: pointer;
+        }
+        .workflow-card:hover {
+          border-color: var(--accent-muted);
+        }
+        .workflow-card-link {
+          text-decoration: none;
+          color: inherit;
+          display: block;
+        }
+      `}</style>
 
-      {/* Tools Grid */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tools.map((tool) => (
-            <a
-              key={tool.slug}
-              href={`/tools/${tool.slug}`}
-              className="group border border-slate-200 dark:border-slate-700 rounded-lg p-6 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg dark:hover:shadow-blue-500/10 transition-all"
-            >
-              <h2 className="text-xl font-bold mb-3 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+      <header style={{ marginBottom: '2.5rem' }}>
+        <h1 style={{ marginBottom: '0.5rem' }}>Tools</h1>
+        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+          {count} tools available
+        </p>
+      </header>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: '1rem',
+        }}
+      >
+        {tools.map((tool) => (
+          <Link
+            key={tool.slug}
+            href={`/tools/${tool.slug}`}
+            className="workflow-card-link"
+          >
+            <article className="workflow-card">
+              <h2 style={{ margin: '0 0 0.625rem', fontSize: '1rem', fontWeight: 600 }}>
                 {tool.name}
               </h2>
-              <p className="text-slate-600 dark:text-slate-300 line-clamp-2">
-                {tool.description}
-              </p>
-              <div className="mt-4 text-blue-600 dark:text-blue-400 font-semibold text-sm group-hover:translate-x-1 transition-transform">
-                View tool →
-              </div>
-            </a>
-          ))}
-        </div>
+              {tool.description && (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.875rem',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {tool.description}
+                </p>
+              )}
+            </article>
+          </Link>
+        ))}
       </div>
-
-      {/* Info Section */}
-      <div className="max-w-7xl mx-auto px-4 py-12 border-t border-slate-200 dark:border-slate-700">
-        <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-4">About These Tools</h2>
-          <p className="text-slate-700 dark:text-slate-300 mb-4">
-            Maenifold provides a comprehensive toolkit for knowledge graph operations, semantic search, concept repair, and complex reasoning workflows.
-          </p>
-          <p className="text-slate-700 dark:text-slate-300">
-            Each tool is available as an MCP (Model Context Protocol) server and can be integrated into your Claude projects, Continue IDE extensions, and Cline workflows.
-          </p>
-        </div>
-      </div>
-    </div>
+    </main>
   );
 }

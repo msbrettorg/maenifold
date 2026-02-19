@@ -40,16 +40,16 @@ public static class RecentActivityReader
                 sql += " AND file_path LIKE @filterPattern";
                 parameters["filterPattern"] = $"memory://{Path.GetFileName(Config.ThinkingPath)}/%";
             }
-            else if (filter == "chat")
+            else if (filter == "assumptions")
             {
                 sql += " AND file_path LIKE @filterPattern";
                 parameters["filterPattern"] = "memory://chat/%";
             }
             else if (filter == "memory")
             {
-                sql += " AND file_path NOT LIKE @filterPattern AND file_path NOT LIKE @chatPattern";
+                sql += " AND file_path NOT LIKE @filterPattern AND file_path NOT LIKE @assumptionsPattern";
                 parameters["filterPattern"] = $"memory://{Path.GetFileName(Config.ThinkingPath)}/%";
-                parameters["chatPattern"] = "memory://chat/%";
+                parameters["assumptionsPattern"] = "memory://chat/%";
             }
         }
 
@@ -119,7 +119,7 @@ public static class RecentActivityReader
 
         var path = filePath.Replace("memory://", "").Replace($"{Path.GetFileName(Config.ThinkingPath)}/", "");
         var segments = path.Split('/');
-        return segments.Length > 1 ? segments[1] : Path.GetFileNameWithoutExtension(segments[0]);
+        return Path.GetFileNameWithoutExtension(segments[^1]);
     }
 
     public static string DetermineFileType(string filePath)

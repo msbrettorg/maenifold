@@ -156,7 +156,7 @@ public static class DecayCalculator
     /// Determines grace period from file path:
     /// - thinking/sequential/: 7 days (NFR-7.5.1)
     /// - thinking/workflows/: 14 days (NFR-7.5.1a)
-    /// - all other memory: 14 days (NFR-7.5.2)
+    /// - all other memory: 28 days (NFR-7.5.2)
     /// </summary>
     /// <param name="created">Creation timestamp</param>
     /// <param name="lastAccessed">Last access timestamp (used if set, else created)</param>
@@ -278,7 +278,7 @@ public static class DecayCalculator
             return WorkflowsGracePeriodDays;
         }
 
-        // T-GRAPH-DECAY-001.1: RTM NFR-7.5.2 - Default memory uses 14-day grace
+        // T-GRAPH-DECAY-001.1: RTM NFR-7.5.2 - Default memory uses 28-day grace
         return DefaultGracePeriodDays;
     }
 

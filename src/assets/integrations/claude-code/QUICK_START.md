@@ -2,6 +2,18 @@
 
 ## 1-Minute Setup
 
+### 1. Add the `pm` alias
+
+Add to `~/.zshrc` (or `~/.bashrc`):
+
+```bash
+alias pm='claude --allow-dangerously-skip-permissions --plugin-dir /path/to/integrations/claude-code/plugin-maenifold --agent maenifold-product-team:product-manager'
+```
+
+Now `pm` launches Claude Code as a Product Manager with full subagent orchestration.
+
+### 2. Install the session hook
+
 ```bash
 # Copy the hook
 cp ~/maenifold/assets/integrations/claude-code/hooks/session_start.sh ~/.claude/hooks/
@@ -17,7 +29,7 @@ chmod +x ~/.claude/hooks/session_start.sh
 #   }
 # }
 
-# That's it! Start a new Claude Code session
+# That's it! Start a new session with: pm
 ```
 
 ## What You Get
@@ -37,22 +49,7 @@ Session Start → Query Graph → Extract Concepts → Build Context → Inject 
 
 ## The Magic
 
-Instead of starting cold, Claude sees:
-```markdown
-🧠 **Knowledge Graph Context Restoration**
-
-### [[authentication]]
-Context: JWT implementation with refresh tokens
-Related: oauth (12 files), security (8 files)
-Content: "Implementing RS256 token signing..."
-
-### [[database-migration]]
-Context: Schema versioning strategy
-Related: postgresql (15 files), migrations (10 files)
-Content: "Using Flyway for version control..."
-
-[More concepts with actual context...]
-```
+Instead of starting cold, Claude receives a Graph of Thought section with community-grouped concepts and recent activity threads. Concepts are grouped by Louvain-detected reasoning domains, with bold domain anchors and related concepts as `[[WikiLinks]]`. This provides graph priming without manual searches.
 
 ## Customization
 
@@ -102,10 +99,10 @@ echo '{"session_id":"test","cwd":"."}' | ~/.claude/hooks/session_start.sh
 ```
 
 ### Too much/little context?
-Adjust MAX_TOKENS in the hook (line 32)
+Adjust MAX_TOKENS in the hook (at the top of the file)
 
 ### Wrong Maenifold path?
-Update MAENIFOLD_CLI in the hook (line 18)
+Update MAENIFOLD_CLI in the hook (at the top of the file)
 
 ## Advanced Features
 

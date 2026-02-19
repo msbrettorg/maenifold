@@ -1,7 +1,7 @@
-// T-SITE-001.9: RTM FR-15.11, FR-15.21, FR-15.22 — /tools data-driven catalog from src/assets/usage/tools/
+// T-SITE-001.9b: RTM FR-15.11, FR-15.21, FR-15.22 — /tools card grid catalog from src/assets/usage/tools/
+import Link from 'next/link';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { renderMarkdown } from '@/lib/markdown';
 
 export const metadata = {
   title: 'Tools — maenifold',
@@ -12,7 +12,6 @@ interface ToolEntry {
   slug: string;
   name: string;
   description: string;
-  content: string;
 }
 
 function parseToolFile(source: string): { name: string; description: string } {
@@ -43,68 +42,82 @@ function parseToolFile(source: string): { name: string; description: string } {
   return { name, description };
 }
 
-function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
-}
-
-export default async function ToolsPage() {
+export default function ToolsPage() {
   const toolsDir = join(process.cwd(), '..', 'src', 'assets', 'usage', 'tools');
-  const files = readdirSync(toolsDir)
-    .filter((f) => f.endsWith('.md'))
-    .sort();
+  const files = readdirSync(toolsDir).filter((f) => f.endsWith('.md'));
 
-  const tools: ToolEntry[] = files.map((filename) => {
-    const source = readFileSync(join(toolsDir, filename), 'utf-8');
-    const { name, description } = parseToolFile(source);
-    return {
-      slug: slugify(name),
-      name,
-      description,
-      content: source,
-    };
-  });
+  const tools: ToolEntry[] = files
+    .map((filename) => {
+      const source = readFileSync(join(toolsDir, filename), 'utf-8');
+      const { name, description } = parseToolFile(source);
+      const slug = filename.replace('.md', '');
+      return { slug, name, description };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
-  // Render all tool content at build time
-  const renderedTools = await Promise.all(
-    tools.map(async (tool) => ({
-      ...tool,
-      html: await renderMarkdown(tool.content),
-    }))
-  );
-
-  const toolCount = tools.length;
+  const count = tools.length;
 
   return (
-    <main className="prose-width" style={{ padding: '3rem 1rem 5rem' }}>
-      <h1 style={{ marginBottom: '0.5rem' }}>Tools</h1>
-      <p className="text-text-secondary" style={{ marginTop: 0, marginBottom: '2.5rem' }}>
-        {toolCount} tools available
-      </p>
+    <main style={{ maxWidth: '1100px', marginInline: 'auto', padding: '4rem 1.5rem' }}>
+      <style>{`
+        .workflow-card {
+          background: var(--bg-surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 1.5rem;
+          transition: border-color 0.15s ease;
+          cursor: pointer;
+        }
+        .workflow-card:hover {
+          border-color: var(--accent-muted);
+        }
+        .workflow-card-link {
+          text-decoration: none;
+          color: inherit;
+          display: block;
+        }
+      `}</style>
 
-      {/* Table of contents */}
-      <nav aria-label="Tools" style={{ marginBottom: '3rem' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)', marginBottom: '0.75rem', borderBottom: 'none' }}>
-          Contents
-        </h2>
-        <ol style={{ columns: 2, columnGap: '2rem', padding: 0, margin: 0, listStyle: 'none' }}>
-          {renderedTools.map((tool) => (
-            <li key={tool.slug} style={{ marginBottom: '0.25rem' }}>
-              <a href={`#${tool.slug}`}>{tool.name}</a>
-            </li>
-          ))}
-        </ol>
-      </nav>
+      <header style={{ marginBottom: '2.5rem' }}>
+        <h1 style={{ marginBottom: '0.5rem' }}>Tools</h1>
+        <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+          {count} tools available
+        </p>
+      </header>
 
-      {/* Tool entries */}
-      {renderedTools.map((tool) => (
-        <section key={tool.slug} id={tool.slug} style={{ marginBottom: '4rem' }}>
-          <h2 style={{ marginBottom: '0.5rem' }}>{tool.name}</h2>
-          <p style={{ color: 'var(--text-secondary)', marginTop: 0, marginBottom: '1.5rem' }}>
-            {tool.description}
-          </p>
-          <div className="markdown-content" dangerouslySetInnerHTML={{ __html: tool.html }} />
-        </section>
-      ))}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: '1rem',
+        }}
+      >
+        {tools.map((tool) => (
+          <Link
+            key={tool.slug}
+            href={`/tools/${tool.slug}`}
+            className="workflow-card-link"
+          >
+            <article className="workflow-card">
+              <h2 style={{ margin: '0 0 0.625rem', fontSize: '1rem', fontWeight: 600 }}>
+                {tool.name}
+              </h2>
+              {tool.description && (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.875rem',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {tool.description}
+                </p>
+              )}
+            </article>
+          </Link>
+        ))}
+      </div>
     </main>
   );
 }

@@ -1,4 +1,6 @@
 // T-SITE-001.10: RTM FR-15.12, FR-15.21 — /workflows data-driven catalog
+// T-SITE-001.18: RTM FR-15.12, FR-15.21 — clickable workflow cards linking to detail pages
+import Link from 'next/link';
 import fs from 'fs';
 import path from 'path';
 
@@ -52,9 +54,15 @@ export default function WorkflowsPage() {
           border-radius: 8px;
           padding: 1.5rem;
           transition: border-color 0.15s ease;
+          cursor: pointer;
         }
         .workflow-card:hover {
           border-color: var(--accent-muted);
+        }
+        .workflow-card-link {
+          text-decoration: none;
+          color: inherit;
+          display: block;
         }
       `}</style>
 
@@ -73,46 +81,52 @@ export default function WorkflowsPage() {
         }}
       >
         {workflows.map((workflow) => (
-          <article key={workflow.id} className="workflow-card">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-                marginBottom: '0.625rem',
-              }}
-            >
-              <span style={{ fontSize: '1.25rem', lineHeight: 1 }} aria-hidden="true">
-                {workflow.emoji}
-              </span>
-              <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
-                {workflow.name}
-              </h2>
-            </div>
-
-            {workflow.description && (
-              <p
+          <Link
+            key={workflow.id}
+            href={`/workflows/${workflow.id}`}
+            className="workflow-card-link"
+          >
+            <article className="workflow-card">
+              <div
                 style={{
-                  margin: '0 0 0.75rem',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.625rem',
+                  marginBottom: '0.625rem',
                 }}
               >
-                {workflow.description}
-              </p>
-            )}
+                <span style={{ fontSize: '1.25rem', lineHeight: 1 }} aria-hidden="true">
+                  {workflow.emoji}
+                </span>
+                <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
+                  {workflow.name}
+                </h2>
+              </div>
 
-            <span
-              style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-                fontFamily: 'ui-monospace, monospace',
-              }}
-            >
-              {workflow.steps.length} step{workflow.steps.length !== 1 ? 's' : ''}
-            </span>
-          </article>
+              {workflow.description && (
+                <p
+                  style={{
+                    margin: '0 0 0.75rem',
+                    fontSize: '0.875rem',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {workflow.description}
+                </p>
+              )}
+
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'ui-monospace, monospace',
+                }}
+              >
+                {workflow.steps.length} step{workflow.steps.length !== 1 ? 's' : ''}
+              </span>
+            </article>
+          </Link>
         ))}
       </div>
     </main>

@@ -34,19 +34,27 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Publish
-        run: dotnet publish src/Maenifold.csproj -c Release -r ${{ matrix.rid }} --self-contained -o publish/${{ matrix.artifact }}
+        run: >-
+          dotnet publish src/Maenifold.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=none
+          -o publish/${{ matrix.artifact }}
 
       - name: Create zip (Unix)
         if: runner.os != 'Windows'
         run: |
-          cd publish
-          zip -r ${{ matrix.artifact }}.zip ${{ matrix.artifact }}
+          cd publish/${{ matrix.artifact }}
+          zip -r ../${{ matrix.artifact }}.zip maenifold assets/
 
       - name: Create zip (Windows)
         if: runner.os == 'Windows'
         run: |
-          cd publish
-          Compress-Archive -Path ${{ matrix.artifact }} -DestinationPath ${{ matrix.artifact }}.zip
+          cd publish/${{ matrix.artifact }}
+          Compress-Archive -Path maenifold.exe,assets -DestinationPath ../${{ matrix.artifact }}.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6

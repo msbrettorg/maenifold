@@ -9,9 +9,9 @@ namespace Maenifold.Tools;
 [McpServerToolType]
 public class ConceptMapApp
 {
-    // NOTE: [McpMeta] with JsonValue/ui/resourceUri is not available in ModelContextProtocol 0.8.0-preview.1.
-    // The ui link is documented here for future SDK support.
-    // Resource URI: ui://maenifold/concept-map
+    // T-APP-001.10: _meta.ui.resourceUri linking for MCP App (ext-apps spec)
+    [McpMeta("ui", JsonValue = """{"resourceUri":"ui://maenifold/concept-map"}""")]
+    [McpMeta("ui/resourceUri", "ui://maenifold/concept-map")]
     [McpServerTool]
     [Description("Open an interactive concept map explorer centered on a concept")]
     public static object ExploreConceptMap(

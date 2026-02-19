@@ -104,8 +104,8 @@
   h3 { font-size: 21px; font-weight: 500; }
 
   /* Links */
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { color: var(--accent-hover); text-decoration: underline; }
+  a { color: var(--accent); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 2px; }
+  a:hover { color: var(--accent-hover); text-decoration-color: var(--accent-hover); }
 
   /* Focus indicator — WCAG 2.4.7 */
   :focus-visible {
@@ -378,41 +378,6 @@
   color: var(--text-secondary);
 }
 
-/* T-SITE-001.23: Test-time adaptation cards */
-.adaptation-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-.adaptation-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.5rem;
-}
-.adaptation-label {
-  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.25rem;
-}
-.adaptation-mode {
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 0.75rem;
-}
-.adaptation-card p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.9375rem;
-  line-height: 1.6;
-}
-@media (max-width: 640px) {
-  .adaptation-grid { grid-template-columns: 1fr; }
-}
-
 /* T-SITE-001.23: Built with maenifold — proof list */
 .built-with-list {
   display: flex;
@@ -480,6 +445,7 @@
 }
 .built-with-downloads a:hover {
   border-color: var(--accent);
+  text-decoration: none;
 }
 .built-with-output {
   font-size: 0.875rem;

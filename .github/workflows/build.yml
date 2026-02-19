@@ -39,10 +39,10 @@ jobs:
           REPORT="tests/Maenifold.Tests/coverage/coverage.cobertura.xml"
           if [ -f "$REPORT" ]; then
             # Extract attributes from the root <coverage> element without xmllint
-            LINE=$(grep -oP 'line-rate="\K[^"]+' "$REPORT" | head -1)
-            BRANCH=$(grep -oP 'branch-rate="\K[^"]+' "$REPORT" | head -1)
-            COVERED=$(grep -oP 'lines-covered="\K[^"]+' "$REPORT" | head -1)
-            TOTAL=$(grep -oP 'lines-valid="\K[^"]+' "$REPORT" | head -1)
+            LINE=$(sed -n 's/.*line-rate="\([^"]*\)".*/\1/p' "$REPORT" | head -1)
+            BRANCH=$(sed -n 's/.*branch-rate="\([^"]*\)".*/\1/p' "$REPORT" | head -1)
+            COVERED=$(sed -n 's/.*lines-covered="\([^"]*\)".*/\1/p' "$REPORT" | head -1)
+            TOTAL=$(sed -n 's/.*lines-valid="\([^"]*\)".*/\1/p' "$REPORT" | head -1)
             LINE_PCT=$(awk "BEGIN {printf \"%.1f\", $LINE * 100}")
             BRANCH_PCT=$(awk "BEGIN {printf \"%.1f\", $BRANCH * 100}")
             echo "## Code Coverage" >> "$GITHUB_STEP_SUMMARY"

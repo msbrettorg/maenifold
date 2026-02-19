@@ -285,3 +285,35 @@ ESCAPE HATCHES:
 | T-COV-001.11 | NFR-17.4 | Coverlet thresholds SHALL fail `dotnet test` when coverage drops below line=75%, branch=65%, method=85%. | tests/Maenifold.Tests/Maenifold.Tests.csproj | `dotnet test` exits non-zero below thresholds | **Complete** |
 | T-COV-001.12 | NFR-17.1-3 | Blue-team: Verify all coverage targets met (line ≥ 75%, branch ≥ 65%, method ≥ 85%). | All test files | 801/801 pass. Line 77.65%, Branch 67.38%, Method 93.29% — all exceed targets. | **Complete** |
 | T-COV-001.13 | NFR-17.5 | Red-team: Audit test quality — no mocks/stubs, real infrastructure, meaningful assertions. | All new test files | 58 files audited. Zero mock libraries. Real SQLite + FS throughout. 1 Medium (reflection fragility), 4 Low findings. No blockers. | **Complete** |
+
+---
+
+## T-MCP-001: MCP SDK Upgrade (sprint TBD)
+
+### P1 — Core Upgrade
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-MCP-001.1 | FR-18.1 | Update `ModelContextProtocol` from `0.4.0-preview.3` to `0.8.0-preview.1` in csproj. | src/Maenifold.csproj | `dotnet restore` + `dotnet build -c Debug` succeeds | Pending |
+| T-MCP-001.2 | FR-18.2 | All 26 `[McpServerTool]` methods SHALL compile and function after upgrade. | src/Tools/*.cs (15 files) | `dotnet test` — all tool tests pass | Pending |
+| T-MCP-001.3 | FR-18.3 | All 5 `[McpServerResource]` methods SHALL compile and function after upgrade. | src/Tools/AssetResources.cs | tests/Maenifold.Tests/McpResourceToolsTests.cs | Pending |
+| T-MCP-001.4 | FR-18.4 | `SendNotificationAsync` SHALL continue working for resource change notifications. | src/Tools/AssetWatcherTools.cs | tests/Maenifold.Tests/AssetWatcherToolsTests.cs | Pending |
+| T-MCP-001.5 | FR-18.5 | Server builder pattern SHALL function without changes or with minimal adaptation. | src/Program.cs | Manual smoke test: `maenifold --mcp` | Pending |
+| T-MCP-001.6 | FR-18.6 | If `IMcpTaskStore` required, register default implementation. | src/Program.cs | `maenifold --mcp` starts without exception | Pending |
+| T-MCP-001.7 | NFR-18.1 | All 801+ tests SHALL pass after upgrade. | All test files | `dotnet test` — 801+ pass, 0 fail | Pending |
+| T-MCP-001.8 | NFR-18.2 | Coverage thresholds SHALL not regress (line >= 75%, branch >= 65%, method >= 85%). | tests/Maenifold.Tests/Maenifold.Tests.csproj | Coverlet threshold gate passes | Pending |
+| T-MCP-001.9 | NFR-18.3 | Debug build SHALL compile with zero warnings from SDK migration. | src/Maenifold.csproj | `dotnet build -c Debug` — 0 warnings | Pending |
+
+### P1 — Verification
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-MCP-001.10 | NFR-18.4 | Red-team: Audit new attack surface from SDK changes. | All SDK-touching files | ConfessionReport | Pending |
+| T-MCP-001.11 | NFR-18.4 | Blue-team: Verify all FR-18.x requirements met end-to-end. | All components | Compliance report | Pending |
+
+### P2 — Enhancements (optional, future sprint)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-MCP-001.12 | FR-18.7 | Add tool metadata annotations (`Destructive`, `Idempotent`, `ReadOnly`) to applicable tools. | src/Tools/*.cs | Attribute inspection test | Pending |
+| T-MCP-001.13 | FR-18.8 | Evaluate XML-to-Description source generator — replace manual `[Description]` with `///` XML doc comments. | src/Tools/*.cs | `dotnet build` succeeds, tool descriptions unchanged | Pending |

@@ -70,6 +70,10 @@ export default function Home() {
               <span className="built-with-divider">/</span>
               <span>16 roles</span>
             </div>
+            <div className="built-with-downloads">
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-maenifold.zip">plugin</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-maenifold.zip">skill</a>
+            </div>
           </article>
 
           <article className="built-with-item">
@@ -85,6 +89,10 @@ export default function Home() {
               <span className="built-with-divider">/</span>
               <span>TDD pipeline</span>
             </div>
+            <div className="built-with-downloads">
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-product-team.zip">plugin</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-product-manager.zip">skill</a>
+            </div>
           </article>
 
           <article className="built-with-item">
@@ -92,15 +100,18 @@ export default function Home() {
             <h3>plugin-finops-toolkit</h3>
             <p>
               The official Claude Code plugin
-              for <a href="https://github.com/microsoft/finops-toolkit" target="_blank" rel="noopener noreferrer">Microsoft&rsquo;s FinOps Toolkit</a>.
+              for Microsoft&rsquo;s FinOps Toolkit.
               4 agents (CFO, FinOps practitioner, database query, hubs), 4 commands,
               2 skills, an output style, and 17 KQL queries. Layers on maenifold &mdash;
               the agents inherit the knowledge graph, the reasoning workflows, the memory lifecycle.
             </p>
             <div className="built-with-stats">
               <span>4 agents + 2 skills + 17 queries</span>
-              <span className="built-with-divider">/</span>
-              <span><a href="https://github.com/microsoft/finops-toolkit/pull/2013" target="_blank" rel="noopener noreferrer">microsoft/finops-toolkit#2013</a></span>
+            </div>
+            <div className="built-with-downloads">
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-finops-toolkit.zip">plugin</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-finops-toolkit.zip">skill: finops-toolkit</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-azure-cost-management.zip">skill: azure-cost-management</a>
             </div>
           </article>
 
@@ -115,8 +126,10 @@ export default function Home() {
             </p>
             <div className="built-with-stats">
               <span>Agent + skill + docs site</span>
-              <span className="built-with-divider">/</span>
-              <span><a href="https://github.com/msbrettorg/azcapman" target="_blank" rel="noopener noreferrer">github.com/msbrettorg/azcapman</a></span>
+            </div>
+            <div className="built-with-downloads">
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-capacity-management.zip">plugin</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-azure-capacity-management.zip">skill</a>
             </div>
           </article>
         </div>
@@ -144,9 +157,11 @@ export default function Home() {
           <div className="flywheel-step">
             <dt>Create specialists</dt>
             <dd>
-              <code>role-creation-workflow</code> analyzes your graph and produces constitutional
-              role definitions &mdash; experts grounded in your actual knowledge, not generic
-              personas. 16 built-in roles. Write more. They persist.
+              <code>role-creation-workflow</code> produces perspectives &mdash; cognitive modes
+              grounded in your actual knowledge, not generic personas.
+              <code>agent-creation-workflow</code> produces full agent definitions &mdash; autonomous
+              subprocesses with tools, triggers, and constitutional prompts.
+              16 built-in roles. Write more. They persist.
             </dd>
           </div>
           <div className="flywheel-step">
@@ -229,42 +244,7 @@ export default function Home() {
         </p>
       </section>
 
-      {/* 6. Test-time adaptation */}
-      <section className="section-container section-gap">
-        <div style={{ maxWidth: '60ch' }}>
-          <h2>Test-Time Adaptation</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-            Roles and colors change how the model reasons over the same graph &mdash; not
-            just tone. Same data, different cognitive strategy.
-          </p>
-        </div>
-        <div className="adaptation-grid">
-          <div className="adaptation-card">
-            <div className="adaptation-label" style={{ color: '#4CAF50' }}>Green Hat</div>
-            <div className="adaptation-mode">Creative</div>
-            <p>Knowledge mutation engine, cross-domain pattern transfer, emergent role
-              discovery, &ldquo;what if&rdquo; scenarios.</p>
-          </div>
-          <div className="adaptation-card">
-            <div className="adaptation-label" style={{ color: '#FFC107' }}>Yellow Hat</div>
-            <div className="adaptation-mode">Value</div>
-            <p>Cost governance, enterprise readiness, knowledge leverage, value affirmation.</p>
-          </div>
-          <div className="adaptation-card">
-            <div className="adaptation-label" style={{ color: '#F44336' }}>Black Hat</div>
-            <div className="adaptation-mode">Critical</div>
-            <p>Identity crisis &amp; scope creep, unvalidated claims, graph integrity risks,
-              maintenance burden.</p>
-          </div>
-        </div>
-        <p style={{ color: 'var(--text-secondary)', marginTop: '2rem', fontSize: '0.9375rem', maxWidth: '60ch' }}>
-          All three analyses ran against the same 52-concept graph. 7 thinking colors, 16 roles,
-          12 perspectives &mdash; cognitive modes that change what the model retrieves, questions,
-          and prioritizes. Not prompt decoration. Infrastructure for how agents reason.
-        </p>
-      </section>
-
-      {/* 7. Install */}
+      {/* 6. Install */}
       <section className="section-container section-gap">
         <div style={{ maxWidth: '60ch' }}>
           <h2>Install</h2>

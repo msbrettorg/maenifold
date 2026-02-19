@@ -1,6 +1,8 @@
 // T-SITE-001.3: RTM FR-15.31, FR-15.33
 import type { Metadata } from 'next';
 import './globals.css';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
 
 export const metadata: Metadata = {
   title: 'maenifold',
@@ -42,9 +44,11 @@ export default function RootLayout({
         >
           Skip to content
         </a>
+        <Header />
         <div id="main-content">
           {children}
         </div>
+        <Footer />
       </body>
     </html>
   );

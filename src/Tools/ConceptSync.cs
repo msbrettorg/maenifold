@@ -272,11 +272,21 @@ public static class ConceptSync
         var filesProcessed = 0;
 
         using var transaction = conn.BeginTransaction();
+        var memoryFullPath = Path.GetFullPath(MemoryPath).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
         foreach (var filePath in filePaths)
         {
             try
             {
-                if (ProcessFile(conn, filePath, vectorReady))
+                // Reject files outside the memory directory — prevents corrupt URIs from entering the DB
+                var fileFullPath = Path.GetFullPath(filePath);
+                if (!fileFullPath.StartsWith(memoryFullPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.Error.WriteLine($"[SYNC] Skipping file outside memory directory: {filePath}");
+                    continue;
+                }
+
+                if (ProcessFile(conn, fileFullPath, vectorReady))
                     filesProcessed++;
             }
             catch (Exception ex)
@@ -346,9 +356,19 @@ public static class ConceptSync
 
             foreach (var dbFilePath in dbFilePaths)
             {
-                var diskPath = UriToPath(dbFilePath);
-                if (!File.Exists(diskPath))
+                try
                 {
+                    var diskPath = UriToPath(dbFilePath);
+                    if (!File.Exists(diskPath))
+                    {
+                        deletedFilesCount++;
+                        RemoveFile(conn, dbFilePath, vectorReady);
+                    }
+                }
+                catch (Exception ex) when (ex is ArgumentException or PathTooLongException or NotSupportedException)
+                {
+                    // Corrupt URI (e.g. path traversal, too-long path) — remove the invalid entry
+                    Console.Error.WriteLine($"[SYNC] Removing invalid DB entry ({ex.GetType().Name}): {dbFilePath}");
                     deletedFilesCount++;
                     RemoveFile(conn, dbFilePath, vectorReady);
                 }

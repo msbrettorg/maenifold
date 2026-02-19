@@ -156,18 +156,9 @@ ESCAPE HATCHES:
 
 ---
 
-## T-OC-PLUGIN-001: OpenCode Plugin Integration (sprint-20260215)
+## T-OC-PLUGIN-001: OpenCode Plugin Integration — CANCELLED
 
-| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
-|------|------------|----------------------|--------------|---------|--------|
-| T-OC-PLUGIN-001.1 | FR-12.1, NFR-12.1.1-3 | Plugin SHALL inject FLARE-pattern graph context into system prompt at session start via `experimental.chat.system.transform`. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
-| T-OC-PLUGIN-001.2 | FR-12.2, NFR-12.2.1-3 | Plugin SHALL augment Task tool prompts with graph context from `[[WikiLinks]]` via `tool.execute.before`. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
-| T-OC-PLUGIN-001.3 | FR-12.3, NFR-12.3.1 | Plugin SHALL inject WikiLink tagging guidelines into compaction prompt via `experimental.session.compacting`. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
-| T-OC-PLUGIN-001.4 | FR-12.4, NFR-12.4.1-2 | Plugin SHALL extract concepts/decisions from conversation during compaction and persist via WriteMemory CLI call. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
-| T-OC-PLUGIN-001.5 | FR-12.5, NFR-12.5.1-4 | Plugin SHALL persist compaction summaries to SequentialThinking via CLI, maintaining per-project session chain. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
-| T-OC-PLUGIN-001.6 | FR-12.6, NFR-12.6.1-5 | Plugin SHALL enforce ConfessionReport on task completion via `tool.execute.after`: inspect output, send follow-up prompt to subagent if missing, append confession to parent-visible output. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
-| T-OC-PLUGIN-001.7 | NFR-12.7.1-3 | Plugin SHALL be a single unified file with graceful degradation, configurable timeouts, and CLI discovery. | integrations/opencode/plugins/maenifold.ts | Red-team + blue-team review | Pending |
-| T-OC-PLUGIN-001.8 | Security | Red-team audit: input validation, CLI injection, timeout handling, error propagation, traceability. | integrations/opencode/plugins/maenifold.ts | ConfessionReport | Pending |
+OpenCode integration removed. All files under `integrations/opencode/` deleted. FR-12.x requirements no longer applicable.
 
 
 ---
@@ -262,26 +253,58 @@ ESCAPE HATCHES:
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-COV-001.1 | FR-17.3 | RecentActivity pipeline SHALL have integration tests: query dispatch, DB time filtering, output formatting. | src/Tools/RecentActivityTools.cs, src/Tools/RecentActivityReader.cs, src/Tools/RecentActivityFormatter.cs | tests/Maenifold.Tests/RecentActivityTests.cs | Pending |
-| T-COV-001.2 | FR-17.4 | ToolRegistry SHALL have tests: registration, case-insensitive lookup, dispatch, unknown tool error. | src/Tools/ToolRegistry.cs, src/Tools/ToolDescriptor.cs | tests/Maenifold.Tests/ToolRegistryTests.cs | Pending |
-| T-COV-001.3 | FR-17.5 | IncrementalSyncTools SHALL have tests: file change events, debounce, mtime/hash guards, watcher lifecycle. | src/Tools/IncrementalSyncTools.cs, src/Tools/IncrementalSync.*.cs | tests/Maenifold.Tests/IncrementalSyncToolsTests.cs | Pending |
-| T-COV-001.4 | FR-17.6 | WorkflowTools SHALL have tests: session creation, step advancement, status transitions, serial queuing, conclusion. | src/Tools/WorkflowTools.cs, src/Tools/WorkflowOperations.*.cs | tests/Maenifold.Tests/WorkflowToolsTests.cs | Pending |
-| T-COV-001.5 | FR-17.7 | SessionCleanup SHALL have tests: abandonment detection, age threshold, DB metadata pre-pass. | src/Tools/SessionCleanup.cs | tests/Maenifold.Tests/SessionCleanupTests.cs | Pending |
-| T-COV-001.6 | FR-17.8 | AssetManager SHALL have tests: discovery, copy, dry-run, source-target mapping. | src/Utils/AssetManager.cs, src/Utils/AssetUpdateResult.cs | tests/Maenifold.Tests/AssetManagerTests.cs | Pending |
+| T-COV-001.1 | FR-17.3 | RecentActivity pipeline SHALL have integration tests: query dispatch, DB time filtering, output formatting. | src/Tools/RecentActivityTools.cs, src/Tools/RecentActivityReader.cs, src/Tools/RecentActivityFormatter.cs | tests/Maenifold.Tests/RecentActivityTests.cs | **Complete** |
+| T-COV-001.2 | FR-17.4 | ToolRegistry SHALL have tests: registration, case-insensitive lookup, dispatch, unknown tool error. | src/Tools/ToolRegistry.cs, src/Tools/ToolDescriptor.cs | tests/Maenifold.Tests/ToolRegistryTests.cs | **Complete** |
+| T-COV-001.3 | FR-17.5 | IncrementalSyncTools SHALL have tests: file change events, debounce, mtime/hash guards, watcher lifecycle. | src/Tools/IncrementalSyncTools.cs, src/Tools/IncrementalSync.*.cs | tests/Maenifold.Tests/IncrementalSyncToolsTests.cs | **Complete** |
+| T-COV-001.4 | FR-17.6 | WorkflowTools SHALL have tests: session creation, step advancement, status transitions, serial queuing, conclusion. | src/Tools/WorkflowTools.cs, src/Tools/WorkflowOperations.*.cs | tests/Maenifold.Tests/WorkflowToolsTests.cs | **Complete** |
+| T-COV-001.5 | FR-17.7 | SessionCleanup SHALL have tests: abandonment detection, age threshold, DB metadata pre-pass. | src/Tools/SessionCleanup.cs | tests/Maenifold.Tests/SessionCleanupTests.cs | **Complete** |
+| T-COV-001.6 | FR-17.8 | AssetManager SHALL have tests: discovery, copy, dry-run, source-target mapping. | src/Utils/AssetManager.cs, src/Utils/AssetUpdateResult.cs | tests/Maenifold.Tests/AssetManagerTests.cs | **Complete** |
 
 ### P2 Coverage — Utilities & Secondary Tools
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-COV-001.7 | FR-17.9 | AssumptionLedgerValidation SHALL have tests: all validation rules, edge cases. | src/Tools/AssumptionLedgerValidation.cs | tests/Maenifold.Tests/AssumptionLedgerValidationTests.cs | Pending |
-| T-COV-001.8 | FR-17.10 | McpResourceTools SHALL have tests: URI resolution, content retrieval, invalid URI error. | src/Tools/McpResourceTools.cs | tests/Maenifold.Tests/McpResourceToolsTests.cs | Pending |
-| T-COV-001.9 | FR-17.11 | Utility classes SHALL have targeted branch tests: TimeZoneConverter (DST, UTC, invalid), CultureInvariantHelpers (formatting), StringExtensions, StringBuilderExtensions. | src/Utils/TimeZoneConverter.cs, src/Utils/CultureInvariantHelpers.cs, src/Utils/StringExtensions.cs, src/Utils/StringBuilderExtensions.cs | tests/Maenifold.Tests/UtilityClassTests.cs | Pending |
-| T-COV-001.10 | FR-17.12 | ConceptAnalyzer SHALL have tests: graph analysis, concept extraction, relationship analysis. | src/Tools/ConceptAnalyzer.cs | tests/Maenifold.Tests/ConceptAnalyzerTests.cs | Pending |
+| T-COV-001.7 | FR-17.9 | AssumptionLedgerValidation SHALL have tests: all validation rules, edge cases. | src/Tools/AssumptionLedgerValidation.cs | tests/Maenifold.Tests/AssumptionLedgerValidationTests.cs | **Complete** |
+| T-COV-001.8 | FR-17.10 | McpResourceTools SHALL have tests: URI resolution, content retrieval, invalid URI error. | src/Tools/McpResourceTools.cs | tests/Maenifold.Tests/McpResourceToolsTests.cs | **Complete** |
+| T-COV-001.9 | FR-17.11 | Utility classes SHALL have targeted branch tests: TimeZoneConverter (DST, UTC, invalid), CultureInvariantHelpers (formatting), StringExtensions, StringBuilderExtensions. | src/Utils/TimeZoneConverter.cs, src/Utils/CultureInvariantHelpers.cs, src/Utils/StringExtensions.cs, src/Utils/StringBuilderExtensions.cs | tests/Maenifold.Tests/UtilityClassTests.cs | **Complete** |
+| T-COV-001.10 | FR-17.12 | ConceptAnalyzer SHALL have tests: graph analysis, concept extraction, relationship analysis. | src/Tools/ConceptAnalyzer.cs | tests/Maenifold.Tests/ConceptAnalyzerTests.cs | **Complete** |
 
 ### Threshold Enforcement & Verification
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-COV-001.11 | NFR-17.4 | Coverlet thresholds SHALL fail `dotnet test` when coverage drops below line=75%, branch=65%, method=85%. | tests/Maenifold.Tests/Maenifold.Tests.csproj | `dotnet test` exits non-zero below thresholds | Pending |
-| T-COV-001.12 | NFR-17.1-3 | Blue-team: Verify all coverage targets met (line ≥ 75%, branch ≥ 65%, method ≥ 85%). | All test files | Coverage report analysis | Pending |
-| T-COV-001.13 | NFR-17.5 | Red-team: Audit test quality — no mocks/stubs, real infrastructure, meaningful assertions. | All new test files | ConfessionReport | Pending |
+| T-COV-001.11 | NFR-17.4 | Coverlet thresholds SHALL fail `dotnet test` when coverage drops below line=75%, branch=65%, method=85%. | tests/Maenifold.Tests/Maenifold.Tests.csproj | `dotnet test` exits non-zero below thresholds | **Complete** |
+| T-COV-001.12 | NFR-17.1-3 | Blue-team: Verify all coverage targets met (line ≥ 75%, branch ≥ 65%, method ≥ 85%). | All test files | 801/801 pass. Line 77.65%, Branch 67.38%, Method 93.29% — all exceed targets. | **Complete** |
+| T-COV-001.13 | NFR-17.5 | Red-team: Audit test quality — no mocks/stubs, real infrastructure, meaningful assertions. | All new test files | 58 files audited. Zero mock libraries. Real SQLite + FS throughout. 1 Medium (reflection fragility), 4 Low findings. No blockers. | **Complete** |
+
+---
+
+## T-MCP-001: MCP SDK Upgrade (sprint 2026-02-19)
+
+### P1 — Core Upgrade
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-MCP-001.1 | FR-18.1 | Update `ModelContextProtocol` from `0.4.0-preview.3` to `0.8.0-preview.1` in csproj. | src/Maenifold.csproj | `dotnet restore` + `dotnet build -c Debug` succeeds | Complete — single-line version change, 0 errors |
+| T-MCP-001.2 | FR-18.2 | All 28 `[McpServerTool]` methods SHALL compile and function after upgrade. | src/Tools/*.cs (11 files) | `dotnet test` — all tool tests pass | Complete — 28 tools verified (count grew from 26 during T-COV-001) |
+| T-MCP-001.3 | FR-18.3 | All 5 `[McpServerResource]` methods SHALL compile and function after upgrade. | src/Tools/AssetResources.cs | tests/Maenifold.Tests/McpResourceToolsTests.cs | Complete — 5 resources verified |
+| T-MCP-001.4 | FR-18.4 | `SendNotificationAsync` SHALL continue working for resource change notifications. | src/Tools/AssetWatcherTools.cs | tests/Maenifold.Tests/AssetWatcherToolsTests.cs | Complete — signature match confirmed via IL decompilation |
+| T-MCP-001.5 | FR-18.5 | Server builder pattern SHALL function without changes or with minimal adaptation. | src/Program.cs | Manual smoke test: `maenifold --mcp` | Complete — no source changes required |
+| T-MCP-001.6 | FR-18.6 | If `IMcpTaskStore` required, register default implementation. | src/Program.cs | `maenifold --mcp` starts without exception | Complete — NOT required; TaskStore null path skips registration |
+| T-MCP-001.7 | NFR-18.1 | All 801+ tests SHALL pass after upgrade. | All test files | `dotnet test` — 801+ pass, 0 fail | Complete — 801/801 pass, 0 fail, 0 skipped |
+| T-MCP-001.8 | NFR-18.2 | Coverage thresholds SHALL not regress (line >= 75%, branch >= 65%, method >= 85%). | tests/Maenifold.Tests/Maenifold.Tests.csproj | Coverlet threshold gate passes | Complete — line 77.65%, branch 67.38%, method 93.29% |
+| T-MCP-001.9 | NFR-18.3 | Debug build SHALL compile with zero warnings from SDK migration. | src/Maenifold.csproj | `dotnet build -c Debug` — 0 warnings | Complete — 0 warnings (includes new SDK Roslyn analyzer) |
+
+### P1 — Verification
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-MCP-001.10 | NFR-18.4 | Red-team: Audit new attack surface from SDK changes. | All SDK-touching files | ConfessionReport | Complete — LOW risk, 0 Critical/High findings, 13 total findings. IL-decompiled both SDK versions. Supply chain improved (SSE dep moved prerelease→stable). |
+| T-MCP-001.11 | NFR-18.4 | Blue-team: Verify all FR-18.x requirements met end-to-end. | All components | Compliance report | Complete — all 10 FR/NFR items PASS. 801/801 tests, 0 warnings, coverage thresholds exceeded. |
+
+### P2 — Enhancements (optional, future sprint)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-MCP-001.12 | FR-18.7 | Add tool metadata annotations (`Destructive`, `Idempotent`, `ReadOnly`) to applicable tools. | src/Tools/*.cs | Attribute inspection test | Pending |
+| T-MCP-001.13 | FR-18.8 | Evaluate XML-to-Description source generator — replace manual `[Description]` with `///` XML doc comments. | src/Tools/*.cs | `dotnet build` succeeds, tool descriptions unchanged | Pending |

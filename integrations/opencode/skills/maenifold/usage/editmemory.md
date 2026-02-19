@@ -6,7 +6,7 @@ Modifies existing memory files with [[WikiLink]] preservation and checksum safet
 
 - `identifier` (string, required): Memory URI or title. Example: `"memory://research/notes"` or `"notes"`
 - `operation` (string, required): Edit type: `"append"`, `"prepend"`, `"find_replace"`, `"replace_section"`
-- `content` (string, required): Content to add/replace. MUST contain at least one `[[WikiLink]]` (e.g., [[analysis]], [[findings]]).
+- `content` (string, required): Content to add/replace. MUST contain at least one `[[WikiLink]]` (e.g., `[[analysis]]`, `[[findings]]`).
 - `checksum` (string, optional): From ReadMemory. Prevents stale edits.
 - `findText` (string, optional): For find_replace. Text to find.
 - `expectedCount` (int, optional): For find_replace. Expected match count.

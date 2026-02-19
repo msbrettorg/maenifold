@@ -75,7 +75,7 @@ Productive forgetting is grounded in neuroscience, not heuristics:
 
 The Cognitive Sleep Cycle implements this in maenifold: periodic consolidation (episodic → semantic), decay processing, concept repair, and dream synthesis for novel connections.
 
-Full treatment: [`decay-in-ai-memory-systems.md`](decay-in-ai-memory-systems.md) (29 citations)
+Full treatment of these decay dynamics is documented separately (29 citations).
 
 ## Why This Matters for AI Agents
 

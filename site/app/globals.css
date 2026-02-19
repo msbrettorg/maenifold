@@ -95,10 +95,13 @@
     line-height: 1.6;
   }
 
-  /* Headings */
-  h1 { font-size: 32px; font-weight: 600; }
-  h2 { font-size: 24px; font-weight: 600; }
-  h3 { font-size: 20px; font-weight: 600; }
+  /* Headings — Newsreader serif via next/font CSS variable */
+  h1, h2, h3 {
+    font-family: var(--font-heading), Georgia, 'Times New Roman', serif;
+  }
+  h1 { font-size: 32px; font-weight: 400; letter-spacing: -0.01em; }
+  h2 { font-size: 26px; font-weight: 400; }
+  h3 { font-size: 21px; font-weight: 500; }
 
   /* Links */
   a { color: var(--accent); text-decoration: none; }
@@ -125,7 +128,7 @@
 .markdown-content ul, .markdown-content ol { margin-block: 1rem; padding-left: 2rem; }
 .markdown-content li { margin-block: 0.25rem; }
 .markdown-content table { width: 100%; border-collapse: collapse; margin-block: 1.5rem; }
-.markdown-content th, .markdown-content td { padding: 0.5rem 1rem; border: 1px solid var(--border); text-align: left; }
+.markdown-content th, .markdown-content td { padding: 0.75rem 1rem; border: 1px solid var(--border); text-align: left; }
 .markdown-content th { background-color: var(--bg-surface); font-weight: 600; }
 .markdown-content blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--text-secondary); margin-block: 1.5rem; }
 .markdown-content a {
@@ -142,6 +145,330 @@
 
 .mermaid-diagram { margin-block: 2rem; text-align: center; }
 .mermaid-diagram svg { max-width: 100%; height: auto; }
+
+/* T-SITE-001.20: Homepage features — two-column glossary */
+.features-glossary {
+  margin: 0;
+  columns: 2;
+  column-gap: 3rem;
+}
+.features-entry {
+  break-inside: avoid;
+  margin-bottom: 1.75rem;
+}
+.features-entry dt {
+  font-weight: 600;
+  font-size: 1.0625rem;
+}
+.features-entry dd {
+  margin: 0.25rem 0 0;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+@media (max-width: 640px) {
+  .features-glossary { columns: 1; }
+}
+
+/* T-SITE-001.20: Full-bleed graph break — editorial image divider */
+.graph-break {
+  position: relative;
+  margin-block: 5rem;
+  background: #0F0D15;
+  overflow: hidden;
+}
+.graph-break img {
+  display: block;
+  width: 100%;
+  height: 55vh;
+  min-height: 300px;
+  max-height: 550px;
+  object-fit: cover;
+}
+.graph-break::before,
+.graph-break::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 100px;
+  z-index: 1;
+  pointer-events: none;
+}
+.graph-break::before {
+  top: 0;
+  background: linear-gradient(to bottom, var(--bg), transparent);
+}
+.graph-break::after {
+  bottom: 0;
+  background: linear-gradient(to top, var(--bg), transparent);
+}
+
+/* T-SITE-001.20: Section container — 900px left-aligned content */
+.section-container {
+  max-width: 900px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+/* T-SITE-001.21: Docs two-column layout — sidebar + content */
+.docs-layout {
+  display: flex;
+  max-width: 1100px;
+  margin-inline: auto;
+  padding: 2rem 1rem 5rem;
+  gap: 3rem;
+}
+
+.docs-sidebar {
+  position: sticky;
+  top: 68px;  /* header height (52px) + 16px breathing room */
+  align-self: flex-start;
+  width: 220px;
+  min-width: 220px;
+  max-height: calc(100vh - 84px);
+  overflow-y: auto;
+  padding-right: 0.5rem;
+
+  /* Subtle scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.docs-sidebar a:hover {
+  color: var(--text) !important;
+  text-decoration: none;
+}
+
+.docs-content {
+  flex: 1;
+  min-width: 0;  /* prevent flex blowout from code blocks */
+  max-width: 72ch;
+}
+
+/* Docs page title — the first h1 gets editorial treatment */
+.docs-content > div > h1:first-child {
+  font-size: 2.25rem;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+/* Docs opening tagline (bold paragraph immediately after h1) */
+.docs-content > div > p:first-of-type {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+/* Horizontal rules — deliberate section breathing space */
+.docs-content hr {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin-block: 3.5rem;
+}
+
+/* Code blocks inside docs should not exceed content width */
+.docs-content .code-block { max-width: 100%; }
+.docs-content .code-width { max-width: 100%; margin-inline: 0; }
+
+/* Tables inside docs — tighter type, horizontal scroll on overflow */
+.docs-content table {
+  display: block;
+  overflow-x: auto;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.docs-content th, .docs-content td {
+  white-space: normal;
+  word-break: break-word;
+}
+.docs-content code {
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+/* Collapse sidebar on narrow viewports */
+@media (max-width: 860px) {
+  .docs-layout {
+    flex-direction: column;
+    gap: 0;
+  }
+  .docs-sidebar {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    max-height: none;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+  }
+}
+
+/* T-SITE-001.23: Homepage flywheel — vertical narrative steps */
+.flywheel-steps {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.flywheel-step {
+  padding: 2rem 0;
+  border-top: 1px solid var(--border);
+}
+.flywheel-step:last-child {
+  border-bottom: 1px solid var(--border);
+}
+.flywheel-step dt {
+  font-weight: 600;
+  font-size: 1.125rem;
+  margin-bottom: 0.5rem;
+}
+.flywheel-step dd {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  max-width: 60ch;
+}
+.flywheel-step code {
+  color: var(--accent);
+  font-size: 0.875rem;
+}
+
+/* T-SITE-001.23: Architecture layers table */
+.layers-table-wrap {
+  overflow-x: auto;
+}
+.layers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.layers-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--border);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+.layers-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.layers-table td:first-child {
+  white-space: nowrap;
+  width: 110px;
+}
+.layers-table td code {
+  font-size: 0.8125rem;
+  color: var(--accent);
+  background: var(--bg-hover);
+  padding: 0.1em 0.4em;
+  border-radius: 3px;
+  margin-right: 0.25rem;
+  white-space: nowrap;
+}
+.layers-table td:last-child {
+  color: var(--text-secondary);
+}
+
+/* T-SITE-001.23: Test-time adaptation cards */
+.adaptation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.adaptation-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+.adaptation-label {
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+.adaptation-mode {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+.adaptation-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+@media (max-width: 640px) {
+  .adaptation-grid { grid-template-columns: 1fr; }
+}
+
+/* T-SITE-001.23: Built with maenifold — proof list */
+.built-with-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.built-with-item {
+  padding: 2.5rem 0;
+  border-top: 1px solid var(--border);
+}
+.built-with-item:last-child {
+  border-bottom: 1px solid var(--border);
+}
+.built-with-meta {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.built-with-item h3 {
+  font-family: var(--font-heading), Georgia, 'Times New Roman', serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  margin: 0 0 0.75rem;
+}
+.built-with-item > p {
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin: 0 0 1rem;
+  max-width: 60ch;
+}
+.built-with-item code {
+  color: var(--accent);
+  font-size: 0.875rem;
+}
+.built-with-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+.built-with-divider {
+  color: var(--text-secondary);
+  font-weight: 300;
+}
+.built-with-output {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 60ch;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

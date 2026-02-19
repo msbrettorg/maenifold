@@ -30,6 +30,7 @@
     --accent-muted:     #2A3A3D;
     --code-bg:          #18151C;
     --code-text:        #D4CEC8;
+    --code-comment:     #8A8480;
   }
 
   /* Light mode — explicit .light class on <html> */
@@ -102,6 +103,12 @@
   /* Links */
   a { color: var(--accent); text-decoration: none; }
   a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+  /* Focus indicator — WCAG 2.4.7 */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
 }
 
 /* Layout utilities */
@@ -121,9 +128,24 @@
 .markdown-content th, .markdown-content td { padding: 0.5rem 1rem; border: 1px solid var(--border); text-align: left; }
 .markdown-content th { background-color: var(--bg-surface); font-weight: 600; }
 .markdown-content blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--text-secondary); margin-block: 1.5rem; }
+.markdown-content a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  text-underline-offset: 3px;
+}
+.markdown-content a:hover {
+  text-decoration-color: var(--accent);
+}
 
 .code-block { position: relative; margin-block: 1.5rem; border-radius: 8px; overflow: hidden; }
 .code-block pre { padding: 1.25rem; overflow-x: auto; background-color: var(--code-bg) !important; }
 
 .mermaid-diagram { margin-block: 2rem; text-align: center; }
 .mermaid-diagram svg { max-width: 100%; height: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+}

@@ -163,6 +163,9 @@ export default async function Home() {
               <img
                 src="/graph.jpeg"
                 alt="maenifold knowledge graph"
+                width={1594}
+                height={1149}
+                loading="lazy"
                 style={{
                   width: '100%',
                   borderRadius: '8px',

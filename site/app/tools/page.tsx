@@ -1,4 +1,6 @@
 // T-SITE-001.9b: RTM FR-15.11, FR-15.21, FR-15.22 — /tools card grid catalog from src/assets/usage/tools/
+// CodeQL: tool.name/description are build-time values from local .md files, rendered via JSX
+// auto-escaping (not dangerouslySetInnerHTML). No user input reaches these paths.
 import Link from 'next/link';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';

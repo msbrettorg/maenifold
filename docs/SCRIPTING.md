@@ -653,10 +653,10 @@ think-tank
 
 | Pattern | Validated | Performance | Use Case |
 |---------|-----------|-------------|----------|
-| Iterative Context | ✅ | ~50ms/concept (approximate, based on local testing) | Explore relationships |
+| Iterative Context | ✅ | ~50ms/concept (M1 MacBook Pro, ~500-concept graph) | Explore relationships |
 | Score Filtering | ✅ | Instant | Quality filtering |
-| Co-Occurrence | ✅ | ~17s/15 files (approximate, based on local testing) | Topic clustering |
-| Multi-Hop | ✅ | ~100ms (depth=2, approximate, based on local testing) | Network discovery |
+| Co-Occurrence | ✅ | ~17s/15 files (M1 MacBook Pro, ~500-concept graph) | Topic clustering |
+| Multi-Hop | ✅ | ~100ms depth=2 (M1 MacBook Pro, ~500-concept graph) | Network discovery |
 
 ### 7.2. What Doesn't Fit the CLI Boundary
 

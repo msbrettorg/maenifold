@@ -147,8 +147,13 @@ Every subagent must produce a ConfessionReport before termination. The SubagentS
 
 #### 3. Session Start Context (SessionStart Hook)
 
-On session initialization, the hook calls `RecentActivity` (limit=10, timespan=3d) to identify seed concepts, validates each `[[WikiLink]]` against the graph, then calls `BuildContext` (depth=1) on each valid concept to expand the neighborhood via the Louvain community index. Output is capped at ~150-350 tokens: bold seed labels, up to 5 thread references, and an action footer. Falls back to `SearchMemories` if RecentActivity returns no results.
+On session initialization, the hook:
 
+- Calls `RecentActivity` (limit=10, timespan=3d) to identify seed concepts
+- Validates each discovered `[[WikiLink]]` against the graph
+- Calls `BuildContext` (depth=1) on each valid concept to expand the neighborhood via the Louvain community index
+- Formats output capped at ~150–350 tokens, with bold seed labels, up to 5 thread references, and an action footer
+- Falls back to `SearchMemories` if `RecentActivity` returns no results
 ### Workflow Patterns
 
 #### Wave-Based Orchestration

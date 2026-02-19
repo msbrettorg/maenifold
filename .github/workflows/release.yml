@@ -84,10 +84,17 @@ jobs:
           cd integrations/claude-code
           zip -r ../../artifacts/plugin-maenifold.zip plugin-maenifold/
           zip -r ../../artifacts/plugin-product-team.zip plugin-product-team/
+          zip -r ../../artifacts/plugin-finops-toolkit.zip plugin-finops-toolkit/
+          zip -r ../../artifacts/plugin-capacity-management.zip plugin-capacity-management/
           cd plugin-maenifold/skills
           zip -r ../../../../artifacts/skill-maenifold.zip maenifold/
           cd ../../plugin-product-team/skills
           zip -r ../../../../artifacts/skill-product-manager.zip product-manager/
+          cd ../../plugin-finops-toolkit/skills
+          zip -r ../../../../artifacts/skill-finops-toolkit.zip finops-toolkit/
+          zip -r ../../../../artifacts/skill-azure-cost-management.zip azure-cost-management/
+          cd ../../plugin-capacity-management/skills
+          zip -r ../../../../artifacts/skill-azure-capacity-management.zip azure-capacity-management/
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

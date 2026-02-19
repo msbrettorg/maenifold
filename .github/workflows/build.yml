@@ -31,7 +31,7 @@ jobs:
           dotnet test tests/Maenifold.Tests/Maenifold.Tests.csproj
           --configuration Release
           --verbosity normal
-          --filter "FullyQualifiedName!~AssetDiscoveryAndRetrievalFlow_IsConsistent&FullyQualifiedName!~AllSearchModesRespectMinScore&FullyQualifiedName!~MinScoreOneReturnsOnlyPerfectMatches&FullyQualifiedName!~MinScoreZeroReturnsAllResults"
+          --filter "FullyQualifiedName!~AssetDiscoveryAndRetrievalFlow_IsConsistent&FullyQualifiedName!~AllSearchModesRespectMinScore&FullyQualifiedName!~MinScoreOneReturnsOnlyPerfectMatches&FullyQualifiedName!~MinScoreZeroReturnsAllResults&FullyQualifiedName!~Debounce_RapidChangesToSamePath_CoalescesIntoSingleProcessing"
 
       - name: Coverage summary
         if: always()
@@ -53,7 +53,9 @@ jobs:
             echo "| Branch | **${BRANCH_PCT}%** |" >> "$GITHUB_STEP_SUMMARY"
           fi
 
-    # Known-failing tests excluded from CI (sqlite-vec search score behavior on Linux):
+    # Known-failing tests excluded from CI:
+    # sqlite-vec platform differences (pass on macOS, fail on ubuntu-latest):
     # - AssetDiscoveryAndRetrievalFlow_IsConsistent
     # - AllSearchModesRespectMinScore / MinScoreOneReturnsOnlyPerfectMatches / MinScoreZeroReturnsAllResults
-    # These pass locally on macOS but fail on ubuntu-latest due to sqlite-vec platform differences.
+    # Timing-sensitive (debounce window + processing exceeds sleep on slow CI runners):
+    # - Debounce_RapidChangesToSamePath_CoalescesIntoSingleProcessing

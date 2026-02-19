@@ -23,6 +23,7 @@
 | 3.5 | 2026-02-16 | PM Agent | Added FR-14.6 (session abandonment detection via DB metadata pre-pass) — backfill for shipped CLEANUP-001.1 implementation |
 | 3.6 | 2026-02-16 | PM Agent | Added FR-16.x (Claude Code session start hook redesign) — pointer array loader with community-clustered output |
 | 3.7 | 2026-02-16 | PM Agent | FR-16.x panel review fixes: output format example, hub selection change, includeContent ban, thread cap, timeout behavior, WikiLink validation |
+| 4.0 | 2026-02-19 | PM Agent | Added FR-18.x (MCP SDK upgrade 0.4.0-preview.3 → 0.8.0-preview.1) |
 
 ---
 
@@ -809,3 +810,86 @@ Source: `tests/Maenifold.Tests/coverage/html/Summary.txt`
 - Coverage gates on PR merge (CI displays coverage but does not block PRs on thresholds)
 - Per-class minimum coverage requirements (aggregate targets only)
 - HTML coverage report generation in CI (Cobertura XML + summary table is sufficient)
+
+## 9. MCP SDK Upgrade (FR-18.x)
+
+### 9.1 Problem Statement
+
+Maenifold depends on `ModelContextProtocol` NuGet package version `0.4.0-preview.3` (released 2025-10-14). The latest version is `0.8.0-preview.1` (released 2026-02-05) — four releases behind. The upgrade spans breaking changes in protocol type mutability (v0.4.1), removed obsolete APIs (v0.5.0), and sealed protocol types (v0.8.0). While maenifold's usage patterns (attribute-driven tools, builder pattern, stdio transport) survive largely intact, staying on an outdated preview risks accumulating migration debt and missing security/correctness fixes.
+
+Source: [NuGet Gallery — ModelContextProtocol](https://www.nuget.org/packages/ModelContextProtocol/), [GitHub Releases](https://github.com/modelcontextprotocol/csharp-sdk/releases)
+
+### 9.2 Current State
+
+- **Package**: `ModelContextProtocol` version `0.4.0-preview.3` in `src/Maenifold.csproj`
+- **Target framework**: `net9.0` (supported by all SDK versions through 0.8.0)
+- **SDK surface used**: 14 `[McpServerToolType]` classes, 26 `[McpServerTool]` methods, 1 `[McpServerResourceType]` class, 5 `[McpServerResource]` methods, 8 `McpException` throws, 1 `SendNotificationAsync` call, builder pattern (`AddMcpServer().WithStdioServerTransport().WithToolsFromAssembly().WithResourcesFromAssembly()`)
+- **Files touching SDK**: 24 total (15 tool files, 4 test files, 1 utility, 1 entry point, 3 resource/notification)
+
+Source: Codebase audit of `src/` and `tests/` directories
+
+### 9.3 Functional Requirements
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-18.1 | `ModelContextProtocol` package reference SHALL be updated from `0.4.0-preview.3` to `0.8.0-preview.1` in `src/Maenifold.csproj`. | **P1** |
+| FR-18.2 | All 26 `[McpServerTool]` methods SHALL compile and function identically after upgrade — no tool regressions. | **P1** |
+| FR-18.3 | All 5 `[McpServerResource]` methods SHALL compile and function identically after upgrade — no resource regressions. | **P1** |
+| FR-18.4 | `SendNotificationAsync` in `AssetWatcherTools` SHALL continue to send `notifications/resources/list_changed` notifications after upgrade. | **P1** |
+| FR-18.5 | Server builder pattern in `Program.cs` (`AddMcpServer().WithStdioServerTransport().WithToolsFromAssembly().WithResourcesFromAssembly()`) SHALL function without changes or with minimal adaptation. | **P1** |
+| FR-18.6 | If `AddMcpServer()` requires `IMcpTaskStore` registration (v0.7.0 change), register `InMemoryMcpTaskStore` or equivalent default. | **P1** |
+| FR-18.7 | Tool metadata annotations (`Destructive`, `Idempotent`, `ReadOnly`) SHOULD be added to applicable `[McpServerTool]` attributes where semantics are clear. | P2 |
+| FR-18.8 | Source generator for XML-to-Description (v0.4.1 feature) SHOULD be evaluated — if adopted, replace manual `[Description("...")]` attributes with `///` XML doc comments on tool methods. | P2 |
+
+### 9.4 Non-Functional Requirements
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| NFR-18.1 | All 801+ existing tests SHALL pass after upgrade with no test modifications beyond SDK API changes. | Required |
+| NFR-18.2 | Coverage thresholds (line >= 75%, branch >= 65%, method >= 85%) SHALL not regress. | Required |
+| NFR-18.3 | Debug build (`dotnet build -c Debug`) SHALL compile with zero warnings from SDK migration. | Required |
+| NFR-18.4 | Upgrade SHALL be validated via red-team audit of any new attack surface introduced by SDK changes. | Required |
+
+### 9.5 Breaking Changes to Address
+
+Source: [v0.4.1-preview.1](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v0.4.1-preview.1), [v0.5.0-preview.1](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v0.5.0-preview.1), [v0.8.0-preview.1](https://github.com/modelcontextprotocol/csharp-sdk/releases/tag/v0.8.0-preview.1)
+
+| Version | Change | Impact on Maenifold |
+|---------|--------|---------------------|
+| v0.4.1 | Protocol type properties: `init` → `set`, `required` keyword added | Low — may cause compile errors if maenifold constructs protocol types without all required properties |
+| v0.4.1 | Collection types: `IReadOnlyList<T>` → `IList<T>`, `IReadOnlyDictionary` → `IDictionary` | Low — only affects code referencing old read-only interfaces on protocol types |
+| v0.5.0 | Removed: `McpServerFactory`, `McpClientFactory`, `IMcpEndpoint`, `IMcpClient`, `IMcpServer` | None — maenifold does not use any of these |
+| v0.5.0 | Removed: `Enumerate*Async` methods (replaced by `List*Async`) | None — client-side methods not used by maenifold |
+| v0.5.0 | `CancellationToken token` → `CancellationToken cancellationToken` parameter rename | None — only affects named parameter usage |
+| v0.7.0 | `IMcpTaskStore` may be required by `AddMcpServer()` | Medium — needs verification; may require registering default store |
+| v0.8.0 | All protocol types in Protocol namespace sealed | None — maenifold does not subclass protocol types |
+
+### 9.6 Migration Procedure
+
+1. Update `src/Maenifold.csproj`: change `Version="0.4.0-preview.3"` to `Version="0.8.0-preview.1"`
+2. `dotnet restore src/Maenifold.csproj`
+3. `dotnet build src/Maenifold.csproj -c Debug` — fix any compile errors
+4. Address `IMcpTaskStore` if `AddMcpServer()` throws at runtime
+5. `dotnet test` — verify 801+ tests pass, coverage thresholds met
+6. Manual smoke test: `maenifold --mcp` with a real MCP client
+
+### 9.7 New Capabilities Unlocked (P2 — future sprints)
+
+| Capability | SDK Version | Description |
+|------------|-------------|-------------|
+| Tool metadata | v0.7.0 | `Destructive`, `Idempotent`, `ReadOnly`, `OpenWorld` properties on `[McpServerTool]` |
+| XML-to-Description source generator | v0.4.1 | Auto-generates `[Description]` from `///` XML doc comments |
+| Task support | v0.7.0 | Long-running operations via `TaskSupport` on tools (experimental) |
+| Message filters | v0.8.0 | `AddIncomingMessageFilter` / `AddOutgoingMessageFilter` for JSON-RPC interception |
+| Request filters | v0.8.0 | Per-handler filters: `AddCallToolFilter`, `AddListToolsFilter`, `AddReadResourceFilter` |
+| Icon support | v0.7.0 | `IconSource` property on `[McpServerTool]` and `[McpServerResource]` |
+| Custom JsonSerializerOptions | v0.7.0 | Per-tool serialization configuration |
+| OpenTelemetry alignment | v0.6.0 | MCP semantic conventions for observability |
+
+### 9.8 Out of Scope
+
+- Adopting Streamable HTTP transport (stdio is sufficient for local MCP server)
+- Implementing MCP task support for long-running operations (future sprint)
+- Adding message/request filters (no current use case)
+- Upgrading to net10.0 target framework (net9.0 is current and supported)
+- Migrating from `McpException` to a different error pattern

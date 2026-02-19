@@ -137,6 +137,9 @@ export default async function ToolDetailPage({
       <div
         className="markdown-content"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: build-time markdown render
+        // codeql[js/stored-xss] Source files are repo-committed .md files read at build time
+        // (next build, output: 'export'). No runtime server. No user-controlled input reaches
+        // this pipeline. allowDangerousHtml + rehypeRaw required for inline HTML in docs.
         dangerouslySetInnerHTML={{ __html: contentHtml }}
       />
     </main>

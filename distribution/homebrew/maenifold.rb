@@ -1,3 +1,7 @@
+# Placeholders (VERSION_PLACEHOLDER, *_SHA_PLACEHOLDER) are substituted by the
+# release workflow: scripts/release.sh copies this template into the homebrew-tap
+# repo, replacing VERSION_PLACEHOLDER with the git tag (e.g. "1.0.3") and each
+# SHA_PLACEHOLDER with the sha256 of the corresponding release tarball.
 class Maenifold < Formula
   desc "Context engineering infrastructure for AI agents"
   homepage "https://github.com/msbrettorg/maenifold"

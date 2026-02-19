@@ -1,8 +1,6 @@
 // T-SITE-001.6: RTM FR-15.2, FR-15.3, FR-15.4, FR-15.5, FR-15.7, FR-15.8, FR-15.14, FR-15.20, FR-15.24, FR-15.30
 // Server component — all content sourced directly from README.md
 import { renderMermaid } from '@/lib/mermaid';
-import { Header } from './components/Header';
-import { Footer } from './components/Footer';
 import { CopyButton } from './components/CopyButton';
 
 // Source: README.md lines 22-28
@@ -36,9 +34,7 @@ export default async function Home() {
   const mermaidSvg = await renderMermaid(COGNITIVE_STACK_DIAGRAM);
 
   return (
-    <>
-      <Header />
-      <main id="main-content">
+    <main>
 
         {/* 1. Hero — FR-15.2 */}
         {/* Source: README.md line 16 */}
@@ -202,8 +198,6 @@ export default async function Home() {
           </div>
         </section>
 
-      </main>
-      <Footer />
-    </>
+    </main>
   );
 }

@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: '/plugins', label: 'Plugins' },
   { href: '/tools', label: 'Tools' },
   { href: '/workflows', label: 'Workflows' },
+  { href: '/adapt', label: 'Adapt' },
 ] as const;
 
 export function Header() {

@@ -23,8 +23,11 @@ class Maenifold < Formula
   end
 
   def install
-    bin.install "maenifold"
-    (share/"maenifold").install "assets" if File.directory?("assets")
+    # Self-contained .NET publish includes ~230 DLLs and native libs alongside
+    # the apphost binary. Install everything to libexec/ and symlink the binary
+    # so the apphost can find maenifold.dll in its own directory.
+    libexec.install Dir["*"]
+    bin.install_symlink libexec/"maenifold"
   end
 
   def caveats

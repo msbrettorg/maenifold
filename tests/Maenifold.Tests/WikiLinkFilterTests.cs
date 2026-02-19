@@ -12,9 +12,10 @@ public class WikiLinkFilterTests
     {
         Config.EnsureDirectories();
         _filterPath = WikiLinkFilter.FilterPath;
-        // Clean up any existing filter file to reset static cache
+        // Clean up any existing filter file and reset static cache
         if (File.Exists(_filterPath))
             File.Delete(_filterPath);
+        WikiLinkFilter.ResetCache();
     }
 
     [TearDown]

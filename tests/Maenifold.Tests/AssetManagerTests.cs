@@ -55,9 +55,10 @@ public class AssetManagerTests
             try { Directory.Delete(subDirPath, recursive: true); } catch { }
         }
 
-        // Remove any top-level test files we may have written into _sourceAssetsPath.
-        // These are named with the same _testSubDir prefix to stay isolated.
-        foreach (var f in Directory.GetFiles(_sourceAssetsPath, $"{_testSubDir}*"))
+        // Remove test files from _sourceAssetsPath and all subdirectories.
+        // Tests like UpdateAssets_SourceTargetMapping create files in subdirectories
+        // (workflows/, roles/, etc.) that must also be cleaned to prevent test pollution.
+        foreach (var f in Directory.GetFiles(_sourceAssetsPath, $"{_testSubDir}*", SearchOption.AllDirectories))
         {
             try { File.Delete(f); } catch { }
         }
@@ -69,7 +70,7 @@ public class AssetManagerTests
             try { Directory.Delete(targetSubDirPath, recursive: true); } catch { }
         }
 
-        foreach (var f in Directory.GetFiles(Config.AssetsPath, $"{_testSubDir}*"))
+        foreach (var f in Directory.GetFiles(Config.AssetsPath, $"{_testSubDir}*", SearchOption.AllDirectories))
         {
             try { File.Delete(f); } catch { }
         }

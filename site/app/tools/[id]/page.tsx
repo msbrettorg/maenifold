@@ -8,6 +8,11 @@ import { renderMarkdown } from '@/lib/markdown';
 
 const toolsDir = path.join(process.cwd(), '..', 'src', 'assets', 'usage', 'tools');
 
+/** Strip anything that isn't a valid URL-slug character. */
+function sanitizeSlug(raw: string): string {
+  return raw.replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
 interface ToolData {
   name: string;
   description: string;
@@ -43,7 +48,8 @@ function parseToolFile(source: string): { name: string; description: string } {
 }
 
 function loadTool(id: string): ToolData | null {
-  const filePath = path.join(toolsDir, `${id}.md`);
+  const safeId = sanitizeSlug(id);
+  const filePath = path.join(toolsDir, `${safeId}.md`);
   if (!fs.existsSync(filePath)) return null;
   const source = fs.readFileSync(filePath, 'utf-8');
   const { name, description } = parseToolFile(source);
@@ -67,7 +73,7 @@ function loadTool(id: string): ToolData | null {
 
 export function generateStaticParams(): { id: string }[] {
   const files = fs.readdirSync(toolsDir).filter((f) => f.endsWith('.md'));
-  return files.map((f) => ({ id: f.replace('.md', '') }));
+  return files.map((f) => ({ id: sanitizeSlug(f.replace('.md', '')) }));
 }
 
 // --- Metadata ---
@@ -136,10 +142,8 @@ export default async function ToolDetailPage({
       {/* Full markdown content */}
       <div
         className="markdown-content"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: build-time markdown render
-        // codeql[js/stored-xss] Source files are repo-committed .md files read at build time
-        // (next build, output: 'export'). No runtime server. No user-controlled input reaches
-        // this pipeline. allowDangerousHtml + rehypeRaw required for inline HTML in docs.
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: build-time markdown from
+        // local .md files, sanitized by rehype-sanitize (strips script/iframe/event handlers)
         dangerouslySetInnerHTML={{ __html: contentHtml }}
       />
     </main>

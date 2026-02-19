@@ -169,3 +169,4 @@ artifacts/manual-release/
 site/out/
 site/.next/
 site/node_modules/
+site/tsconfig.tsbuildinfo

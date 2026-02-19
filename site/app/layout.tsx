@@ -1,19 +1,51 @@
-import type { Metadata } from "next";
-import "./globals.css";
+// T-SITE-001.3: RTM FR-15.31, FR-15.33
+import type { Metadata } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "maenifold",
-  description: "Context engineering infrastructure for AI agents.",
+  title: 'maenifold',
+  description: 'Context engineering infrastructure for AI agents.',
 };
+
+// Inline script to prevent FOUC — runs before body renders.
+// Theme cascade: localStorage → prefers-color-scheme → dark (default).
+const themeScript = `
+(function() {
+  var stored = localStorage.getItem('theme');
+  if (stored === 'light') {
+    document.documentElement.classList.add('light');
+  } else if (stored === 'dark') {
+    // dark is default (no class needed)
+  } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+    document.documentElement.classList.add('light');
+  }
+  // If none match, dark is the default (no class = dark mode)
+})();
+`;
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body>
+        {/* Skip link for keyboard nav (WCAG 2.4.1) */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:rounded"
+          style={{ backgroundColor: 'var(--accent)', color: 'var(--bg)' }}
+        >
+          Skip to content
+        </a>
+        <div id="main-content">
+          {children}
+        </div>
+      </body>
     </html>
   );
 }

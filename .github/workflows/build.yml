@@ -38,17 +38,18 @@ jobs:
         run: |
           REPORT="tests/Maenifold.Tests/coverage/coverage.cobertura.xml"
           if [ -f "$REPORT" ]; then
-            LINE=$(xmllint --xpath 'string(//@line-rate)' "$REPORT")
-            BRANCH=$(xmllint --xpath 'string(//@branch-rate)' "$REPORT")
-            METHOD=$(xmllint --xpath 'string(//@lines-covered)' "$REPORT")
-            TOTAL=$(xmllint --xpath 'string(//@lines-valid)' "$REPORT")
+            # Extract attributes from the root <coverage> element without xmllint
+            LINE=$(grep -oP 'line-rate="\K[^"]+' "$REPORT" | head -1)
+            BRANCH=$(grep -oP 'branch-rate="\K[^"]+' "$REPORT" | head -1)
+            COVERED=$(grep -oP 'lines-covered="\K[^"]+' "$REPORT" | head -1)
+            TOTAL=$(grep -oP 'lines-valid="\K[^"]+' "$REPORT" | head -1)
             LINE_PCT=$(awk "BEGIN {printf \"%.1f\", $LINE * 100}")
             BRANCH_PCT=$(awk "BEGIN {printf \"%.1f\", $BRANCH * 100}")
             echo "## Code Coverage" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
             echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
-            echo "| Line | **${LINE_PCT}%** (${METHOD}/${TOTAL}) |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Line | **${LINE_PCT}%** (${COVERED}/${TOTAL}) |" >> "$GITHUB_STEP_SUMMARY"
             echo "| Branch | **${BRANCH_PCT}%** |" >> "$GITHUB_STEP_SUMMARY"
           fi
 

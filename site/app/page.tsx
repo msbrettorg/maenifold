@@ -39,9 +39,12 @@ export default function Home() {
 
       {/* 2. Graph break */}
       <figure className="graph-break">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/graph.jpeg"
           alt="Knowledge graph visualization — 1,623 concepts connected by 58,851 links, colored by connection strength"
+          fetchPriority="high"
+          loading="eager"
         />
       </figure>
 
@@ -71,8 +74,8 @@ export default function Home() {
               <span>16 roles</span>
             </div>
             <div className="built-with-downloads">
-              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-maenifold.zip">plugin</a>
-              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-maenifold.zip">skill</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-maenifold.zip" aria-label="Download plugin-maenifold plugin">plugin</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-maenifold.zip" aria-label="Download maenifold skill">skill</a>
             </div>
           </article>
 
@@ -90,8 +93,8 @@ export default function Home() {
               <span>TDD pipeline</span>
             </div>
             <div className="built-with-downloads">
-              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-product-team.zip">plugin</a>
-              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-product-manager.zip">skill</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-product-team.zip" aria-label="Download plugin-product-team plugin">plugin</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-product-manager.zip" aria-label="Download product-manager skill">skill</a>
             </div>
           </article>
 
@@ -109,9 +112,9 @@ export default function Home() {
               <span>4 agents + 2 skills + 17 queries</span>
             </div>
             <div className="built-with-downloads">
-              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-finops-toolkit.zip">plugin</a>
-              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-finops-toolkit.zip">skill: finops-toolkit</a>
-              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-azure-cost-management.zip">skill: azure-cost-management</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-finops-toolkit.zip" aria-label="Download plugin-finops-toolkit plugin">plugin</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-finops-toolkit.zip" aria-label="Download finops-toolkit skill">skill: finops-toolkit</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-azure-cost-management.zip" aria-label="Download azure-cost-management skill">skill: azure-cost-management</a>
             </div>
           </article>
 
@@ -128,8 +131,8 @@ export default function Home() {
               <span>Agent + skill + docs site</span>
             </div>
             <div className="built-with-downloads">
-              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-capacity-management.zip">plugin</a>
-              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-azure-capacity-management.zip">skill</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/plugin-capacity-management.zip" aria-label="Download plugin-capacity-management plugin">plugin</a>
+              <a href="https://github.com/msbrettorg/maenifold/releases/latest/download/skill-azure-capacity-management.zip" aria-label="Download azure-capacity-management skill">skill</a>
             </div>
           </article>
         </div>
@@ -264,7 +267,7 @@ export default function Home() {
         </p>
       </section>
 
-      {/* 8. Explore */}
+      {/* 7. Explore */}
       <section className="section-container section-gap">
         <div style={{ maxWidth: '60ch' }}>
           <h2>Explore</h2>

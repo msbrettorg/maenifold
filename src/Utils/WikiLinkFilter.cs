@@ -11,6 +11,16 @@ public static class WikiLinkFilter
 
     public static string FilterPath => Path.Combine(Config.MemoryPath, ".wikilink-filter.json");
 
+    /// <summary>Resets static cache. Test use only.</summary>
+    internal static void ResetCache()
+    {
+        lock (FilterLock)
+        {
+            _lastMtime = default;
+            _filterEntries = new(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
     public static (List<string> blocked, Dictionary<string, string> reasons) CheckFilter(List<string> concepts)
     {
         var blocked = new List<string>();

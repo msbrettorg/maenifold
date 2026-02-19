@@ -22,7 +22,7 @@ export function Footer() {
       >
         {/* Logo + version */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <img src="/maenifold-logo.svg" alt="maenifold" style={{ height: '20px' }} />
+          <img src="/maenifold-logo.svg" alt="maenifold" width={48} height={20} style={{ height: '20px' }} />
           <span style={{ fontSize: '0.875rem' }}>{VERSION}</span>
         </div>
 

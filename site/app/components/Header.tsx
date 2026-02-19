@@ -49,6 +49,8 @@ export function Header() {
           <img
             src="/maenifold-logo.svg"
             alt="maenifold"
+            width={58}
+            height={24}
             style={{ height: '24px', display: 'block' }}
           />
         </Link>

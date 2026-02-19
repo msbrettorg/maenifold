@@ -23,7 +23,7 @@ const warmRestraintTheme = {
     },
     {
       scope: ["comment", "punctuation.definition.comment"],
-      settings: { foreground: "#6A645F" },
+      settings: { foreground: "#8A8480" },
     },
     {
       scope: [

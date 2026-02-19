@@ -1,0 +1,5 @@
+{
+  "name": "azure-capacity-management",
+  "version": "1.0.0",
+  "description": "Azure capacity and quota management for SaaS ISVs operating workloads in ISV-owned Azure subscriptions under EA or MCA"
+}

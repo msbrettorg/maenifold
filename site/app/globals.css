@@ -463,6 +463,24 @@
   color: var(--text-secondary);
   font-weight: 300;
 }
+.built-with-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+.built-with-downloads a {
+  font-size: 0.8125rem;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 4px;
+  transition: border-color 0.15s;
+}
+.built-with-downloads a:hover {
+  border-color: var(--accent);
+}
 .built-with-output {
   font-size: 0.875rem;
   color: var(--text-secondary);

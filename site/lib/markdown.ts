@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import remarkRehype from "remark-rehype";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import rehypeSlug from "rehype-slug";
 import rehypeStringify from "rehype-stringify";
 
 // Extend the default sanitization schema to allow elements used in tool docs
@@ -24,12 +25,54 @@ const sanitizeSchema = {
   attributes: {
     ...defaultSchema.attributes,
     // Allow class on any element (needed for code highlighting, mermaid, etc.)
-    "*": [...(defaultSchema.attributes?.["*"] ?? []), "className", "class"],
+    "*": [...(defaultSchema.attributes?.["*"] ?? []), "className", "class", "id"],
   },
 };
 
 import { renderMermaid } from "./mermaid";
 import { highlightCode } from "./shiki";
+
+const GITHUB_REPO = "https://github.com/msbrettorg/maenifold/tree/main";
+
+/**
+ * Transform relative markdown links for the docs site.
+ * - Relative .md links → /docs/{path} (strip .md extension)
+ * - Links starting with ../ → GitHub repo URLs
+ * - External links and anchor-only links → unchanged
+ */
+export function transformDocsLinks(source: string): string {
+  return source.replace(
+    /\]\(([^)]+)\)/g,
+    (match: string, href: string) => {
+      // External links — pass through
+      if (href.startsWith("http://") || href.startsWith("https://")) return match;
+      // Anchor-only links — pass through
+      if (href.startsWith("#")) return match;
+
+      // Links outside docs/ (e.g. ../integrations/) → GitHub
+      if (href.startsWith("../")) {
+        const repoPath = href.replace(/^\.\.\//, "");
+        return `](${GITHUB_REPO}/${repoPath})`;
+      }
+
+      // Relative .md links → /docs/ site routes
+      const [path, anchor] = href.split("#");
+      const cleanPath = path
+        .replace(/\.md$/, "")
+        .replace(/\/README$/, ""); // README.md → directory index
+      const fragment = anchor ? `#${anchor}` : "";
+      return `](/docs/${cleanPath}${fragment})`;
+    },
+  );
+}
+
+/**
+ * Strip a markdown "## Table of Contents" section (through the next horizontal rule).
+ * Used when a sidebar TOC replaces the inline one.
+ */
+export function stripTableOfContents(source: string): string {
+  return source.replace(/## Table of Contents\n[\s\S]*?\n---/, "---");
+}
 
 // Regex patterns for fenced code block extraction
 // Matches ```lang\ncontent\n``` with optional trailing whitespace/newline
@@ -78,6 +121,7 @@ export async function renderMarkdown(source: string): Promise<string> {
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeRaw)
     .use(rehypeSanitize, sanitizeSchema)
+    .use(rehypeSlug)
     .use(rehypeStringify)
     .process(afterCode);
 

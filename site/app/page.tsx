@@ -45,149 +45,7 @@ export default function Home() {
         />
       </figure>
 
-      {/* 3. The flywheel */}
-      <section className="section-container section-gap">
-        <div style={{ maxWidth: '60ch' }}>
-          <h2>Seed. Create. Run. Compound.</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem' }}>
-            Infrastructure that extends itself. Agents create workflows. Workflows produce
-            knowledge. Knowledge sharpens the graph. The graph makes better agents.
-          </p>
-        </div>
-        <dl className="flywheel-steps">
-          <div className="flywheel-step">
-            <dt>Seed the graph</dt>
-            <dd>
-              Run <code>think-tank</code> on any domain&#39;s literature. Parallel agents research
-              in waves &mdash; scoping, deep dives, synthesis, peer review. They write memories
-              with <code>[[WikiLinks]]</code>. Structure emerges from use &mdash; no schema, no
-              ontology, no upfront design.
-            </dd>
-          </div>
-          <div className="flywheel-step">
-            <dt>Create specialists</dt>
-            <dd>
-              <code>role-creation-workflow</code> analyzes your graph and produces constitutional
-              role definitions &mdash; experts grounded in your actual knowledge, not generic
-              personas. 16 built-in roles. Write more. They persist.
-            </dd>
-          </div>
-          <div className="flywheel-step">
-            <dt>Run workflows</dt>
-            <dd>
-              39 built-in workflows, from deductive reasoning to multi-agent sprints. Schedule
-              via cron. They produce structured output &mdash; reports, analyses, roadmaps &mdash;
-              while you sleep. Assets are writable from agents, so new workflows are
-              agent-generated skills.
-            </dd>
-          </div>
-          <div className="flywheel-step">
-            <dt>Watch it compound</dt>
-            <dd>
-              Decay removes noise. Consolidation strengthens signal. Community detection discovers
-              reasoning domains. Every run makes the next one smarter. The graph isn&#39;t storage
-              &mdash; it&#39;s the reasoning substrate that shapes what context is retrieved and how
-              it can be extended.
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      {/* 4. Architecture — primitive layers */}
-      <section className="section-container section-gap">
-        <div style={{ maxWidth: '60ch' }}>
-          <h2>Architecture</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-            Six layers of composable primitives. Complexity emerges from composition.
-          </p>
-        </div>
-        <div className="layers-table-wrap">
-          <table className="layers-table">
-            <thead>
-              <tr>
-                <th>Layer</th>
-                <th>Primitives</th>
-                <th>Purpose</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>Memory</strong></td>
-                <td><code>WriteMemory</code> <code>ReadMemory</code> <code>EditMemory</code> <code>DeleteMemory</code> <code>MoveMemory</code> <code>Sync</code></td>
-                <td>Persist knowledge with <code>[[WikiLinks]]</code></td>
-              </tr>
-              <tr>
-                <td><strong>Graph</strong></td>
-                <td><code>SearchMemories</code> <code>BuildContext</code> <code>FindSimilarConcepts</code> <code>Visualize</code></td>
-                <td>Query and traverse knowledge</td>
-              </tr>
-              <tr>
-                <td><strong>Session</strong></td>
-                <td><code>RecentActivity</code> <code>AssumptionLedger</code> <code>ListMemories</code></td>
-                <td>Track work, state, and uncertainty</td>
-              </tr>
-              <tr>
-                <td><strong>Persona</strong></td>
-                <td><code>Adopt</code></td>
-                <td>Roles, colors, and perspectives</td>
-              </tr>
-              <tr>
-                <td><strong>Reasoning</strong></td>
-                <td><code>SequentialThinking</code></td>
-                <td>Multi-step thought with revision and branching</td>
-              </tr>
-              <tr>
-                <td><strong>Orchestration</strong></td>
-                <td><code>Workflow</code></td>
-                <td>State machines over steps and tools</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p style={{ color: 'var(--text-secondary)', marginTop: '1.5rem', fontSize: '0.9375rem', maxWidth: '60ch' }}>
-          15+ RAG techniques supported natively or via composition &mdash; Knowledge Graph RAG,
-          HyDE, FLARE, RAG-Fusion, Self-RAG, multi-hop traversal. These are infrastructure
-          primitives: small, composable, unix-pipeable. Complexity emerges from
-          scripting them together. The full technique matrix is in <a href="/docs">the docs</a>.
-        </p>
-      </section>
-
-      {/* 5. Test-time adaptation */}
-      <section className="section-container section-gap">
-        <div style={{ maxWidth: '60ch' }}>
-          <h2>Test-Time Adaptation</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-            Roles and colors change how the model reasons over the same graph &mdash; not
-            just tone. Same data, different cognitive strategy.
-          </p>
-        </div>
-        <div className="adaptation-grid">
-          <div className="adaptation-card">
-            <div className="adaptation-label" style={{ color: '#4CAF50' }}>Green Hat</div>
-            <div className="adaptation-mode">Creative</div>
-            <p>Knowledge mutation engine, cross-domain pattern transfer, emergent role
-              discovery, &ldquo;what if&rdquo; scenarios.</p>
-          </div>
-          <div className="adaptation-card">
-            <div className="adaptation-label" style={{ color: '#FFC107' }}>Yellow Hat</div>
-            <div className="adaptation-mode">Value</div>
-            <p>Cost governance, enterprise readiness, knowledge leverage, value affirmation.</p>
-          </div>
-          <div className="adaptation-card">
-            <div className="adaptation-label" style={{ color: '#F44336' }}>Black Hat</div>
-            <div className="adaptation-mode">Critical</div>
-            <p>Identity crisis &amp; scope creep, unvalidated claims, graph integrity risks,
-              maintenance burden.</p>
-          </div>
-        </div>
-        <p style={{ color: 'var(--text-secondary)', marginTop: '2rem', fontSize: '0.9375rem', maxWidth: '60ch' }}>
-          All three analyses ran against the same 52-concept graph. 7 thinking colors, 16 roles,
-          12 perspectives &mdash; cognitive modes that change what the model retrieves, questions,
-          and prioritizes. Not prompt decoration. Infrastructure for how agents reason.
-        </p>
-      </section>
-
-      {/* 6. What ships */}
+      {/* 3. What ships */}
       <section className="section-container section-gap">
         <div style={{ maxWidth: '60ch' }}>
           <h2>What ships</h2>
@@ -262,6 +120,148 @@ export default function Home() {
             </div>
           </article>
         </div>
+      </section>
+
+      {/* 4. The flywheel */}
+      <section className="section-container section-gap">
+        <div style={{ maxWidth: '60ch' }}>
+          <h2>Seed. Create. Run. Compound.</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem' }}>
+            Infrastructure that extends itself. Agents create workflows. Workflows produce
+            knowledge. Knowledge sharpens the graph. The graph makes better agents.
+          </p>
+        </div>
+        <dl className="flywheel-steps">
+          <div className="flywheel-step">
+            <dt>Seed the graph</dt>
+            <dd>
+              Run <code>think-tank</code> on any domain&#39;s literature. Parallel agents research
+              in waves &mdash; scoping, deep dives, synthesis, peer review. They write memories
+              with <code>[[WikiLinks]]</code>. Structure emerges from use &mdash; no schema, no
+              ontology, no upfront design.
+            </dd>
+          </div>
+          <div className="flywheel-step">
+            <dt>Create specialists</dt>
+            <dd>
+              <code>role-creation-workflow</code> analyzes your graph and produces constitutional
+              role definitions &mdash; experts grounded in your actual knowledge, not generic
+              personas. 16 built-in roles. Write more. They persist.
+            </dd>
+          </div>
+          <div className="flywheel-step">
+            <dt>Run workflows</dt>
+            <dd>
+              39 built-in workflows, from deductive reasoning to multi-agent sprints. Schedule
+              via cron. They produce structured output &mdash; reports, analyses, roadmaps &mdash;
+              while you sleep. Assets are writable from agents, so new workflows are
+              agent-generated skills.
+            </dd>
+          </div>
+          <div className="flywheel-step">
+            <dt>Watch it compound</dt>
+            <dd>
+              Decay removes noise. Consolidation strengthens signal. Community detection discovers
+              reasoning domains. Every run makes the next one smarter. The graph isn&#39;t storage
+              &mdash; it&#39;s the reasoning substrate that shapes what context is retrieved and how
+              it can be extended.
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      {/* 5. Architecture — primitive layers */}
+      <section className="section-container section-gap">
+        <div style={{ maxWidth: '60ch' }}>
+          <h2>Architecture</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+            Six layers of composable primitives. Complexity emerges from composition.
+          </p>
+        </div>
+        <div className="layers-table-wrap">
+          <table className="layers-table">
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>Primitives</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Memory</strong></td>
+                <td><code>WriteMemory</code> <code>ReadMemory</code> <code>EditMemory</code> <code>DeleteMemory</code> <code>MoveMemory</code> <code>Sync</code></td>
+                <td>Persist knowledge with <code>[[WikiLinks]]</code></td>
+              </tr>
+              <tr>
+                <td><strong>Graph</strong></td>
+                <td><code>SearchMemories</code> <code>BuildContext</code> <code>FindSimilarConcepts</code> <code>Visualize</code></td>
+                <td>Query and traverse knowledge</td>
+              </tr>
+              <tr>
+                <td><strong>Session</strong></td>
+                <td><code>RecentActivity</code> <code>AssumptionLedger</code> <code>ListMemories</code></td>
+                <td>Track work, state, and uncertainty</td>
+              </tr>
+              <tr>
+                <td><strong>Persona</strong></td>
+                <td><code>Adopt</code></td>
+                <td>Roles, colors, and perspectives</td>
+              </tr>
+              <tr>
+                <td><strong>Reasoning</strong></td>
+                <td><code>SequentialThinking</code></td>
+                <td>Multi-step thought with revision and branching</td>
+              </tr>
+              <tr>
+                <td><strong>Orchestration</strong></td>
+                <td><code>Workflow</code></td>
+                <td>State machines over steps and tools</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', marginTop: '1.5rem', fontSize: '0.9375rem', maxWidth: '60ch' }}>
+          15+ RAG techniques supported natively or via composition &mdash; Knowledge Graph RAG,
+          HyDE, FLARE, RAG-Fusion, Self-RAG, multi-hop traversal. These are infrastructure
+          primitives: small, composable, unix-pipeable. Complexity emerges from
+          scripting them together. The full technique matrix is in <a href="/docs">the docs</a>.
+        </p>
+      </section>
+
+      {/* 6. Test-time adaptation */}
+      <section className="section-container section-gap">
+        <div style={{ maxWidth: '60ch' }}>
+          <h2>Test-Time Adaptation</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+            Roles and colors change how the model reasons over the same graph &mdash; not
+            just tone. Same data, different cognitive strategy.
+          </p>
+        </div>
+        <div className="adaptation-grid">
+          <div className="adaptation-card">
+            <div className="adaptation-label" style={{ color: '#4CAF50' }}>Green Hat</div>
+            <div className="adaptation-mode">Creative</div>
+            <p>Knowledge mutation engine, cross-domain pattern transfer, emergent role
+              discovery, &ldquo;what if&rdquo; scenarios.</p>
+          </div>
+          <div className="adaptation-card">
+            <div className="adaptation-label" style={{ color: '#FFC107' }}>Yellow Hat</div>
+            <div className="adaptation-mode">Value</div>
+            <p>Cost governance, enterprise readiness, knowledge leverage, value affirmation.</p>
+          </div>
+          <div className="adaptation-card">
+            <div className="adaptation-label" style={{ color: '#F44336' }}>Black Hat</div>
+            <div className="adaptation-mode">Critical</div>
+            <p>Identity crisis &amp; scope creep, unvalidated claims, graph integrity risks,
+              maintenance burden.</p>
+          </div>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', marginTop: '2rem', fontSize: '0.9375rem', maxWidth: '60ch' }}>
+          All three analyses ran against the same 52-concept graph. 7 thinking colors, 16 roles,
+          12 perspectives &mdash; cognitive modes that change what the model retrieves, questions,
+          and prioritizes. Not prompt decoration. Infrastructure for how agents reason.
+        </p>
       </section>
 
       {/* 7. Install */}

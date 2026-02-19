@@ -6,7 +6,27 @@ import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
 import remarkRehype from "remark-rehype";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
+
+// Extend the default sanitization schema to allow elements used in tool docs
+// (details/summary, class attributes for styling) while stripping <script>,
+// <iframe>, event handlers, etc.
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [
+    ...(defaultSchema.tagNames ?? []),
+    "details",
+    "summary",
+    "figure",
+    "figcaption",
+  ],
+  attributes: {
+    ...defaultSchema.attributes,
+    // Allow class on any element (needed for code highlighting, mermaid, etc.)
+    "*": [...(defaultSchema.attributes?.["*"] ?? []), "className", "class"],
+  },
+};
 
 import { renderMermaid } from "./mermaid";
 import { highlightCode } from "./shiki";
@@ -57,6 +77,7 @@ export async function renderMarkdown(source: string): Promise<string> {
     .use(remarkGfm)
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeRaw)
+    .use(rehypeSanitize, sanitizeSchema)
     .use(rehypeStringify)
     .process(afterCode);
 

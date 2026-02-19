@@ -717,3 +717,95 @@ Canvas animations, gradient backgrounds, particle effects, glassmorphism, custom
 - i18n / localization
 - CMS or content management (content is markdown in the repo)
 - Custom illustrations or icons beyond the existing logo SVG
+
+---
+
+## 8. Test Coverage (FR-17.x)
+
+### 8.1 Problem Statement
+
+The codebase has 508 passing tests but no coverage tracking infrastructure and significant blind spots. A coverage report (2026-02-18) revealed:
+
+- **Line coverage**: 65.1% (4,488 / 6,892)
+- **Branch coverage**: 56.6% (1,522 / 2,687)
+- **Method coverage**: 76.4% (376 / 492)
+
+Nine classes have **0% coverage** — meaning no test touches them at all. These include the entire RecentActivity pipeline (3 classes), ToolRegistry (the tool dispatch table), and McpResourceTools. Two more classes sit under 25%. Coverage infrastructure (`coverlet.msbuild`) has been added but no thresholds enforce regression prevention.
+
+### 8.2 Baseline (2026-02-18)
+
+Source: `tests/Maenifold.Tests/coverage/html/Summary.txt`
+
+**0% coverage (untested):**
+
+| Class | Lines | Notes |
+|-------|-------|-------|
+| `RecentActivityTools` | 0% | Activity query tool — orchestrates Reader + Formatter |
+| `RecentActivityFormatter` | 0% | Formats activity output for display |
+| `RecentActivityReader` | 5.4% | Reads activity from DB — barely touched |
+| `ConceptAnalyzer` | 0% | Graph analysis utility |
+| `McpResourceTools` | 0% | MCP resource read handler |
+| `ToolDescriptor` | 0% | Tool metadata model |
+| `ToolRegistry` | 0% | Tool dispatch table |
+| `PayloadReader` | 0% | CLI payload parsing |
+| `PerformanceBenchmark` | 0% | Benchmark utility (not product code) |
+| `Program` | 0% | Entry point (hard to unit test) |
+
+**Under 60% (significant gaps):**
+
+| Class | Coverage | Notes |
+|-------|----------|-------|
+| `IncrementalSyncTools` | 23.9% | Core infrastructure — file watcher + incremental processing |
+| `AssetUpdateResult` | 35.7% | Asset update result model |
+| `CultureInvariantHelpers` | 44.4% | Culture-safe string helpers |
+| `StringBuilderExtensions` | 44.4% | StringBuilder utilities |
+| `StringExtensions` | 50% | String utilities |
+| `AssetManager` | 54.3% | Asset file management |
+| `SessionCleanup` | 56.6% | Abandoned session detection |
+| `AssumptionLedgerValidation` | 57.5% | Assumption input validation |
+| `TimeZoneConverter` | 57.8% | Timezone conversion utilities |
+| `WorkflowTools` | 58.9% | Workflow execution engine |
+
+### 8.3 Functional Requirements
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-17.1 | `dotnet test` SHALL automatically collect and display code coverage metrics (line, branch, method) in the build output via `coverlet.msbuild`. | **P0** |
+| FR-17.2 | CI build workflow SHALL display a coverage summary table in the GitHub Actions job summary for every build on `dev`, `main`, and PRs. | **P0** |
+| FR-17.3 | The RecentActivity pipeline (`RecentActivityTools`, `RecentActivityReader`, `RecentActivityFormatter`) SHALL have integration tests covering the primary query and formatting paths. | **P1** |
+| FR-17.4 | `ToolRegistry` SHALL have tests verifying tool registration, lookup, and dispatch for at least the 5 most-used tools. | **P1** |
+| FR-17.5 | `IncrementalSyncTools` SHALL have tests covering file change event processing, debounce behavior, and the mtime/hash guard clause chain. | **P1** |
+| FR-17.6 | `WorkflowTools` SHALL have tests covering workflow session creation, step advancement, status transitions, and serial workflow queuing. | **P1** |
+| FR-17.7 | `SessionCleanup` SHALL have tests covering abandonment detection, threshold logic, and the DB metadata pre-pass. | **P1** |
+| FR-17.8 | `AssetManager` SHALL have tests covering asset discovery, copy, dry-run mode, and source-target mapping. | **P1** |
+| FR-17.9 | `AssumptionLedgerValidation` SHALL have tests covering all validation rules and edge cases for assumption input. | **P2** |
+| FR-17.10 | `McpResourceTools` SHALL have tests covering resource URI resolution and content retrieval. | **P2** |
+| FR-17.11 | Utility classes (`TimeZoneConverter`, `CultureInvariantHelpers`, `StringExtensions`, `StringBuilderExtensions`) SHALL have targeted tests for uncovered branches. | **P2** |
+| FR-17.12 | `ConceptAnalyzer` SHALL have tests covering graph analysis operations. | **P2** |
+
+### 8.4 Non-Functional Requirements
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-17.1 | Line coverage SHALL reach 75% (from 65.1% baseline). | Required |
+| NFR-17.2 | Branch coverage SHALL reach 65% (from 56.6% baseline). | Required |
+| NFR-17.3 | Method coverage SHALL reach 85% (from 76.4% baseline). | Required |
+| NFR-17.4 | Coverage thresholds SHALL be enforced in the test project via `coverlet.msbuild` — `dotnet test` SHALL fail if coverage drops below thresholds. | Required |
+| NFR-17.5 | All new tests SHALL use real SQLite and real filesystem paths per testing philosophy. No mocks, no stubs. | Required |
+| NFR-17.6 | Coverage reports (Cobertura XML) SHALL be generated automatically on every `dotnet test` run via csproj configuration. | Required |
+| NFR-17.7 | `Program` and `PerformanceBenchmark` are excluded from coverage targets — entry point and benchmark utility respectively. | Accepted |
+
+### 8.5 Design Notes
+
+**Testing philosophy alignment**: All tests use real infrastructure per CLAUDE.md — real SQLite databases, real filesystem operations, real tool execution. This means coverage numbers represent genuine behavioral verification, not mock-inflated metrics. A 75% target with real tests is more valuable than 95% with mocks.
+
+**Priority rationale**: P1 classes are either core infrastructure (IncrementalSyncTools, WorkflowTools, SessionCleanup) or tool dispatch infrastructure (ToolRegistry, RecentActivity pipeline). These have the highest blast radius if they break silently. P2 classes are utilities and secondary tools where failures are more contained.
+
+**What we skip**: `Program` (entry point — integration tested via CLI), `PerformanceBenchmark` (diagnostic utility, not product behavior). `PayloadReader` and `ToolDescriptor` are simple data models that get exercised transitively through higher-level tests — explicit tests add noise without value.
+
+### 8.6 Out of Scope
+
+- Coverage targets for the Next.js site (`site/`) — static HTML generation, verified by `next build`
+- Coverage gates on PR merge (CI displays coverage but does not block PRs on thresholds)
+- Per-class minimum coverage requirements (aggregate targets only)
+- HTML coverage report generation in CI (Cobertura XML + summary table is sufficient)

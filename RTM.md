@@ -246,3 +246,42 @@ ESCAPE HATCHES:
 | T-SITE-001.14 | NFR-15.8, FR-15.33 | Lighthouse audit + keyboard navigation verification (skip link, focus indicators, tab order). | All pages | Lighthouse 95+ mobile; all interactive elements reachable via keyboard | Pending |
 | T-SITE-001.15 | Security | Red-team audit: XSS in markdown rendering, content injection, build pipeline integrity, dependency audit. | All site files | ConfessionReport | Pending |
 | T-SITE-001.16 | Coverage | Blue-team: verify all FR-15.x requirements met, content accuracy against README, design system compliance. | All site files | ConfessionReport | Pending |
+
+---
+
+## T-COV-001: Test Coverage (sprint-20260218)
+
+### Infrastructure (complete)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-COV-001.0a | FR-17.1, NFR-17.6 | `dotnet test` SHALL auto-collect coverage via `coverlet.msbuild` and display line/branch/method metrics in build output. | tests/Maenifold.Tests/Maenifold.Tests.csproj | Coverage table visible in `dotnet test` output | **Complete** |
+| T-COV-001.0b | FR-17.2 | CI build SHALL display coverage summary in GitHub Actions job summary. | .github/workflows/build.yml | Coverage table in job summary page | **Complete** |
+
+### P1 Coverage — Core Infrastructure
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-COV-001.1 | FR-17.3 | RecentActivity pipeline SHALL have integration tests: query dispatch, DB time filtering, output formatting. | src/Tools/RecentActivityTools.cs, src/Tools/RecentActivityReader.cs, src/Tools/RecentActivityFormatter.cs | tests/Maenifold.Tests/RecentActivityTests.cs | Pending |
+| T-COV-001.2 | FR-17.4 | ToolRegistry SHALL have tests: registration, case-insensitive lookup, dispatch, unknown tool error. | src/Tools/ToolRegistry.cs, src/Tools/ToolDescriptor.cs | tests/Maenifold.Tests/ToolRegistryTests.cs | Pending |
+| T-COV-001.3 | FR-17.5 | IncrementalSyncTools SHALL have tests: file change events, debounce, mtime/hash guards, watcher lifecycle. | src/Tools/IncrementalSyncTools.cs, src/Tools/IncrementalSync.*.cs | tests/Maenifold.Tests/IncrementalSyncToolsTests.cs | Pending |
+| T-COV-001.4 | FR-17.6 | WorkflowTools SHALL have tests: session creation, step advancement, status transitions, serial queuing, conclusion. | src/Tools/WorkflowTools.cs, src/Tools/WorkflowOperations.*.cs | tests/Maenifold.Tests/WorkflowToolsTests.cs | Pending |
+| T-COV-001.5 | FR-17.7 | SessionCleanup SHALL have tests: abandonment detection, age threshold, DB metadata pre-pass. | src/Tools/SessionCleanup.cs | tests/Maenifold.Tests/SessionCleanupTests.cs | Pending |
+| T-COV-001.6 | FR-17.8 | AssetManager SHALL have tests: discovery, copy, dry-run, source-target mapping. | src/Utils/AssetManager.cs, src/Utils/AssetUpdateResult.cs | tests/Maenifold.Tests/AssetManagerTests.cs | Pending |
+
+### P2 Coverage — Utilities & Secondary Tools
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-COV-001.7 | FR-17.9 | AssumptionLedgerValidation SHALL have tests: all validation rules, edge cases. | src/Tools/AssumptionLedgerValidation.cs | tests/Maenifold.Tests/AssumptionLedgerValidationTests.cs | Pending |
+| T-COV-001.8 | FR-17.10 | McpResourceTools SHALL have tests: URI resolution, content retrieval, invalid URI error. | src/Tools/McpResourceTools.cs | tests/Maenifold.Tests/McpResourceToolsTests.cs | Pending |
+| T-COV-001.9 | FR-17.11 | Utility classes SHALL have targeted branch tests: TimeZoneConverter (DST, UTC, invalid), CultureInvariantHelpers (formatting), StringExtensions, StringBuilderExtensions. | src/Utils/TimeZoneConverter.cs, src/Utils/CultureInvariantHelpers.cs, src/Utils/StringExtensions.cs, src/Utils/StringBuilderExtensions.cs | tests/Maenifold.Tests/UtilityClassTests.cs | Pending |
+| T-COV-001.10 | FR-17.12 | ConceptAnalyzer SHALL have tests: graph analysis, concept extraction, relationship analysis. | src/Tools/ConceptAnalyzer.cs | tests/Maenifold.Tests/ConceptAnalyzerTests.cs | Pending |
+
+### Threshold Enforcement & Verification
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-COV-001.11 | NFR-17.4 | Coverlet thresholds SHALL fail `dotnet test` when coverage drops below line=75%, branch=65%, method=85%. | tests/Maenifold.Tests/Maenifold.Tests.csproj | `dotnet test` exits non-zero below thresholds | Pending |
+| T-COV-001.12 | NFR-17.1-3 | Blue-team: Verify all coverage targets met (line ≥ 75%, branch ≥ 65%, method ≥ 85%). | All test files | Coverage report analysis | Pending |
+| T-COV-001.13 | NFR-17.5 | Red-team: Audit test quality — no mocks/stubs, real infrastructure, meaningful assertions. | All new test files | ConfessionReport | Pending |

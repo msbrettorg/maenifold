@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [dev, main]
+    branches: [commons, dev, main]
   pull_request:
-    branches: [dev, main]
+    branches: [commons, dev, main]
 
 jobs:
   build:
@@ -26,8 +26,27 @@ jobs:
 
       - run: dotnet build src/Maenifold.csproj --configuration Release --no-restore
 
-      - name: Run tests
+      - name: Run tests with coverage
         run: dotnet test tests/Maenifold.Tests/Maenifold.Tests.csproj --configuration Release --verbosity normal
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          REPORT="tests/Maenifold.Tests/coverage/coverage.cobertura.xml"
+          if [ -f "$REPORT" ]; then
+            LINE=$(xmllint --xpath 'string(//@line-rate)' "$REPORT")
+            BRANCH=$(xmllint --xpath 'string(//@branch-rate)' "$REPORT")
+            METHOD=$(xmllint --xpath 'string(//@lines-covered)' "$REPORT")
+            TOTAL=$(xmllint --xpath 'string(//@lines-valid)' "$REPORT")
+            LINE_PCT=$(awk "BEGIN {printf \"%.1f\", $LINE * 100}")
+            BRANCH_PCT=$(awk "BEGIN {printf \"%.1f\", $BRANCH * 100}")
+            echo "## Code Coverage" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Line | **${LINE_PCT}%** (${METHOD}/${TOTAL}) |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Branch | **${BRANCH_PCT}%** |" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
     # Note: 2 tests are marked [Ignore] for performance reasons:
     # - FtsIndexAccumulationTests.MultipleSyncsShouldNotAccumulateFtsRows (30+ seconds)

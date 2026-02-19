@@ -280,13 +280,13 @@ public static class ConceptSync
             {
                 // Reject files outside the memory directory — prevents corrupt URIs from entering the DB
                 var fileFullPath = Path.GetFullPath(filePath);
-                if (!fileFullPath.StartsWith(memoryFullPath, StringComparison.Ordinal))
+                if (!fileFullPath.StartsWith(memoryFullPath, StringComparison.OrdinalIgnoreCase))
                 {
                     Console.Error.WriteLine($"[SYNC] Skipping file outside memory directory: {filePath}");
                     continue;
                 }
 
-                if (ProcessFile(conn, filePath, vectorReady))
+                if (ProcessFile(conn, fileFullPath, vectorReady))
                     filesProcessed++;
             }
             catch (Exception ex)
@@ -365,10 +365,10 @@ public static class ConceptSync
                         RemoveFile(conn, dbFilePath, vectorReady);
                     }
                 }
-                catch (ArgumentException)
+                catch (Exception ex) when (ex is ArgumentException or PathTooLongException or NotSupportedException)
                 {
-                    // Corrupt URI (e.g. path traversal) — remove the invalid entry
-                    Console.Error.WriteLine($"[SYNC] Removing invalid DB entry: {dbFilePath}");
+                    // Corrupt URI (e.g. path traversal, too-long path) — remove the invalid entry
+                    Console.Error.WriteLine($"[SYNC] Removing invalid DB entry ({ex.GetType().Name}): {dbFilePath}");
                     deletedFilesCount++;
                     RemoveFile(conn, dbFilePath, vectorReady);
                 }

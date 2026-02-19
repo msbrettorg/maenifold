@@ -34,48 +34,33 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Publish
-        run: dotnet publish src/Maenifold.csproj -c Release -r ${{ matrix.rid }} --self-contained -o publish/${{ matrix.artifact }}
+        run: >-
+          dotnet publish src/Maenifold.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=none
+          -o publish/${{ matrix.artifact }}
 
-      - name: Create tarball (Unix)
+      - name: Create zip (Unix)
         if: runner.os != 'Windows'
         run: |
-          cd publish
-          tar -czvf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}
+          cd publish/${{ matrix.artifact }}
+          zip -r ../${{ matrix.artifact }}.zip maenifold assets/
 
       - name: Create zip (Windows)
         if: runner.os == 'Windows'
         run: |
-          cd publish
-          Compress-Archive -Path ${{ matrix.artifact }} -DestinationPath ${{ matrix.artifact }}.zip
+          cd publish/${{ matrix.artifact }}
+          Compress-Archive -Path maenifold.exe,assets -DestinationPath ../${{ matrix.artifact }}.zip
 
-      # - name: Build MSI
-      #   if: matrix.rid == 'win-x64'
-      #   run: |
-      #     dotnet tool install --global wix --version 5.0.2
-      #     New-Item -ItemType Directory -Force -Path installer\publish
-      #     Copy-Item -Recurse publish\${{ matrix.artifact }} installer\publish\win-x64
-      #     wix build installer/maenifold.wxs -o publish/maenifold-${{ github.ref_name }}-win-x64.msi -arch x64
-
-      - name: Upload artifact (Unix)
-        if: runner.os != 'Windows'
-        uses: actions/upload-artifact@v6
-        with:
-          name: ${{ matrix.artifact }}
-          path: publish/${{ matrix.artifact }}.tar.gz
-
-      - name: Upload artifact (Windows)
-        if: runner.os == 'Windows'
+      - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
           path: publish/${{ matrix.artifact }}.zip
-
-      # - name: Upload MSI artifact
-      #   if: matrix.rid == 'win-x64'
-      #   uses: actions/upload-artifact@v6
-      #   with:
-      #     name: maenifold-win-x64-msi
-      #     path: publish/maenifold-*.msi
 
   release:
     needs: build
@@ -94,19 +79,21 @@ jobs:
       - name: List artifacts
         run: find artifacts -type f
 
-      - name: Create skill archives
+      - name: Create plugin and skill archives
         run: |
-          cd integrations/claude-code/plugin-maenifold/skills
-          tar -czf ../../../../artifacts/skill-maenifold.tar.gz maenifold/
+          cd integrations/claude-code
+          zip -r ../../artifacts/plugin-maenifold.zip plugin-maenifold/
+          zip -r ../../artifacts/plugin-product-team.zip plugin-product-team/
+          cd plugin-maenifold/skills
+          zip -r ../../../../artifacts/skill-maenifold.zip maenifold/
           cd ../../plugin-product-team/skills
-          tar -czf ../../../../artifacts/skill-maenifold-product-team.tar.gz product-manager/
+          zip -r ../../../../artifacts/skill-product-manager.zip product-manager/
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
-            artifacts/**/*.tar.gz
             artifacts/**/*.zip
 
   update-homebrew:

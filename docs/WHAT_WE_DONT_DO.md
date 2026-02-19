@@ -50,7 +50,7 @@ We *do* apply temporal signals:
 - ✅ **Tiered half-lives** — episodic memories decay faster than procedural ones
 - ✅ **Cognitive sleep cycle** — periodic consolidation of episodic → semantic knowledge
 
-**Why the evolution:** This document originally said "don't score memory importance." Then the [decay research](research/decay-in-ai-memory-systems.md) happened — 29 citations from Ebbinghaus through Richards & Frankland proving that memory systems without forgetting become *worse* over time. The engineering demanded change.
+**Why the evolution:** This document originally said "don't score memory importance." Then the internal decay research (TODO: publish writeup) happened — 29 citations from Ebbinghaus through Richards & Frankland proving that memory systems without forgetting become *worse* over time. The engineering demanded change.
 
 **The distinction we preserve:** Decay scores *freshness*, not *worth*. The system has opinions about when you last used something, not about whether it was good. The LLM still decides what's important. The system decides what's recent.
 

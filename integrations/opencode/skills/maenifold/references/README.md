@@ -353,17 +353,17 @@ Download the latest release for your platform from [GitHub Releases](https://git
 #### macOS
 
 1. Download the appropriate archive:
-   - **Apple Silicon (M1/M2/M3)**: `maenifold-osx-arm64.tar.gz`
-   - **Intel**: `maenifold-osx-x64.tar.gz`
+   - **Apple Silicon (M1/M2/M3)**: `maenifold-osx-arm64.zip`
+   - **Intel**: `maenifold-osx-x64.zip`
 
 2. Extract to `~/maenifold/bin`:
    ```bash
    # Download (replace URL with correct architecture)
-   curl -L -o maenifold.tar.gz https://github.com/msbrettorg/maenifold/releases/latest/download/maenifold-osx-arm64.tar.gz
+   curl -LO https://github.com/msbrettorg/maenifold/releases/latest/download/maenifold-osx-arm64.zip
 
    # Extract to bin directory
    mkdir -p ~/maenifold/bin
-   tar -xzf maenifold.tar.gz -C ~/maenifold/bin --strip-components=1
+   unzip maenifold-osx-arm64.zip -d ~/maenifold/bin
    ```
 
 3. Add to PATH:
@@ -382,16 +382,16 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 #### Linux
 
-1. Download `maenifold-linux-x64.tar.gz`
+1. Download `maenifold-linux-x64.zip`
 
 2. Extract to `~/maenifold/bin`:
    ```bash
    # Download
-   curl -L -o maenifold.tar.gz https://github.com/msbrettorg/maenifold/releases/latest/download/maenifold-linux-x64.tar.gz
+   curl -LO https://github.com/msbrettorg/maenifold/releases/latest/download/maenifold-linux-x64.zip
 
    # Extract to bin directory
    mkdir -p ~/maenifold/bin
-   tar -xzf maenifold.tar.gz -C ~/maenifold/bin --strip-components=1
+   unzip maenifold-linux-x64.zip -d ~/maenifold/bin
    ```
 
 3. Add to PATH:

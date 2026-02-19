@@ -1,0 +1,31 @@
+{
+  "name": "maenifold-site",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "shiki": "latest",
+    "unified": "latest",
+    "remark-parse": "latest",
+    "remark-rehype": "latest",
+    "rehype-stringify": "latest",
+    "rehype-raw": "latest",
+    "@mermaid-js/mermaid-cli": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@types/node": "latest"
+  }
+}

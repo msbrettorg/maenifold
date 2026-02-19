@@ -107,6 +107,17 @@ public static class Config
     // T-GRAPH-DECAY-001.6: RTM NFR-7.5.5 - Decay function (power-law default per ACT-R, exponential opt-in)
     public static readonly string DecayFunction = GetEnvString("MAENIFOLD_DECAY_FUNCTION", "power-law");
 
+    // T-COMMUNITY-001.3: RTM NFR-13.11.1 - Louvain resolution parameter (gamma)
+    public static readonly double LouvainGamma = GetEnvDouble("MAENIFOLD_LOUVAIN_GAMMA", 1.0);
+
+    // T-COMMUNITY-001.3: RTM NFR-13.9.1 - Community sibling thresholds
+    public static readonly int CommunitySiblingMinSharedNeighbors = GetEnvInt("MAENIFOLD_COMMUNITY_MIN_SHARED", 3);
+    public static readonly double CommunitySiblingMinOverlap = GetEnvDouble("MAENIFOLD_COMMUNITY_MIN_OVERLAP", 0.4);
+    public static readonly int CommunitySiblingMaxResults = GetEnvInt("MAENIFOLD_COMMUNITY_MAX_SIBLINGS", 10);
+
+    // T-COMMUNITY-001.3: RTM NFR-13.5.1 - DB watcher debounce for community recomputation
+    public static readonly int CommunityWatcherDebounceMs = GetEnvInt("MAENIFOLD_COMMUNITY_DEBOUNCE_MS", 2000);
+
     public static bool EnableEmbeddingLogs => GetEnvBool("MAENIFOLD_EMBEDDING_LOGS", false);
     public static bool EnableVectorSearchLogs => GetEnvBool("MAENIFOLD_VECTOR_LOGS", false);
 
@@ -157,7 +168,13 @@ public static class Config
     Grace Days (Workflows): {DecayGraceDaysWorkflows}
     Grace Days (Default): {DecayGraceDaysDefault}
     Half-Life Days: {DecayHalfLifeDays}
-    Function: {DecayFunction}";
+    Function: {DecayFunction}
+  Community Detection:
+    Louvain Gamma: {LouvainGamma}
+    Sibling Min Shared Neighbors: {CommunitySiblingMinSharedNeighbors}
+    Sibling Min Overlap: {CommunitySiblingMinOverlap}
+    Sibling Max Results: {CommunitySiblingMaxResults}
+    Watcher Debounce: {CommunityWatcherDebounceMs}ms";
     }
 
     private static string GetEnvString(string name, string defaultValue)
@@ -170,6 +187,14 @@ public static class Config
     {
         var value = Environment.GetEnvironmentVariable(name);
         return int.TryParse(value, out var result) ? result : defaultValue;
+    }
+
+    // T-COMMUNITY-001.3: RTM NFR-13.11.1 - Double env var parser for gamma and overlap thresholds
+    private static double GetEnvDouble(string name, double defaultValue)
+    {
+        var value = Environment.GetEnvironmentVariable(name);
+        return double.TryParse(value, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out var result) ? result : defaultValue;
     }
 
     private static bool GetEnvBool(string name, bool defaultValue)

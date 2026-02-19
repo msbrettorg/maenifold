@@ -1,87 +1,114 @@
 # maenifold
 
-**Test-time adaptive reasoning for AI agents.** maenifold enables AI to think through complex problems systematically, building a persistent knowledge graph that compounds over time.
+**Domain expertise that compounds. Open. Local. Yours.**
+
+Context engineering infrastructure for AI agents. Point it at any domain's literature, and it builds specialized experts that live on your machine, work offline, and get smarter with every use.
 
 ---
 
-**maenifold enables persistent AI reasoning through knowledge graphs.** Where typical AI interactions start fresh each time, maenifold maintains context across sessions through a growing graph of relationships. Every `[[WikiLink]]` creates connections that persist beyond individual conversations.
+## Table of Contents
 
-**The system operates at documented scale**: 1.1M+ graph relationships, 30+ reasoning methodologies, and 85% success rate in our comprehensive E2E testing. Our [Hero Demo](demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) orchestrated 12 agents across 4 waves and found actual bugs that traditional mocks would miss—including file extension loss during move operations.
-
-**Built on 間 (Ma) principles**: The space between thoughts becomes knowledge. maenifold creates room for AI to think systematically through sequential reasoning sessions that can revise, branch, and persist across days. Not forcing intelligence, but creating space for it to emerge. The name "maenifold" represents the multi-dimensional topology of knowledge—Ma (間) + manifold—where thoughts fold through dimensional space creating persistent reasoning patterns.
-
-**This is test-time reasoning infrastructure.** A foundation for AI agents that build knowledge over time rather than starting from zero. Real markdown files you can read, real SQLite you can query, real tool orchestration that scales to production workloads.
+- [Theoretical Foundations](#theoretical-foundations)
+- [How It Works](#how-it-works)
+  - [Sequential Thinking](#sequential-thinking)
+  - [Orchestrated Workflows](#orchestrated-workflows)
+  - [Hybrid RRF Search](#hybrid-rrf-search)
+  - [Lazy Graph Construction](#lazy-graph-construction)
+  - [Memory Lifecycle](#memory-lifecycle)
+- [Quick Start](#quick-start)
+  - [For VSCode Users](#for-vscode-users)
+  - [For Developers](#for-developers)
+- [The Cognitive Stack](#the-cognitive-stack)
+  - [Memory Layer](#memory-layer)
+  - [Graph Layer](#graph-layer)
+  - [Symbolic Communication](#symbolic-communication)
+  - [Reasoning Layer](#reasoning-layer)
+- [Cognitive Assets](#cognitive-assets)
+- [Key Capabilities](#key-capabilities)
+- [Example Usage](#example-usage)
+- [Real-World Impact](#real-world-impact)
+- [Testing & Validation](#testing--validation)
+- [Technical Specifications](#technical-specifications)
+- [Technical Principles](#technical-principles)
+- [Configuration](#configuration)
+- [Skills](#skills)
+- [Project Structure](#project-structure)
+- [License & Attribution](#license--attribution)
 
 ---
 
-間 The space between thoughts becomes knowledge
-∴ Knowledge compounds into wisdom
+## Theoretical Foundations
 
-## 📍 Table of Contents
+### Philosophical Foundations
 
-### Core Understanding
-- [1. Beyond RAG: Real Reasoning](#1-beyond-rag-real-reasoning)
-- [2. How It Works](#2-how-it-works)
-  - [2.1 Sequential Thinking](#21-sequential-thinking)
-  - [2.2 Orchestrated Workflows](#22-orchestrated-workflows)
-  - [2.3 Hybrid RRF Search](#23-hybrid-rrf-search)
-  - [2.4 Lazy Graph Construction](#24-lazy-graph-construction)
-  - [2.5 Memory Lifecycle](#25-memory-lifecycle)
+| Concept | Origin | Application |
+|---------|--------|-------------|
+| **[Ma (間)](MA_MANIFESTO.md)** | Japanese aesthetics | The space between things as the thing itself ([what we don't do](WHAT_WE_DONT_DO.md)) |
 
-### Getting Started
-- [3. Quick Start](#3-quick-start)
-  - [3.1 For VSCode Users](#31-for-vscode-users)
-  - [3.2 For Developers](#32-for-developers)
+### Research Foundations
 
-### Architecture & Capabilities
-- [4. The Cognitive Stack](#4-the-cognitive-stack)
-  - [4.1 Memory Layer](#41-memory-layer)
-  - [4.2 Graph Layer](#42-graph-layer)
-  - [4.3 Symbolic Communication](#43-symbolic-communication)
-  - [4.4 Reasoning Layer](#44-reasoning-layer)
-- [5. Key Capabilities](#5-key-capabilities)
-- [6. Technical Specifications](#6-technical-specifications)
+| Concept | Origin | Application |
+|---------|--------|-------------|
+| **[Context Engineering](research/context-engineering.md)** | Anthropic (2025) | Attention budget management: just-in-time retrieval, compaction, decay, structured notes, sub-agents |
+| **[ACT-R](research/decay-in-ai-memory-systems.md)** | Anderson (CMU); Wixted & Ebbesen (1991) | Power-law inspired decay ([exponential approximation](research/decay-in-ai-memory-systems.md#54-the-act-r-connection)) |
+| **[New Theory of Disuse](research/decay-in-ai-memory-systems.md#23-the-spacing-effect-and-retrieval-strengthening)** | Bjork & Bjork | Storage vs retrieval strength |
+| **[Two-Stage Memory](research/decay-in-ai-memory-systems.md#32-sleep-and-memory-consolidation)** | Cognitive neuroscience | Episodic → semantic consolidation |
+| **[Linguistic Relativity](https://lera.ucsd.edu/papers/linguistic-relativity.pdf)** | Weak form (Boroditsky, 2003) | Perspectives change the linguistic frame of LLM reasoning |
+| **[ConfessionReport](research/confession-reports.md)** | OpenAI (Barak et al., 2025) | Inference-time honesty enforcement via hooks + adversarial audit |
 
-### Real-World Usage
-- [7. Example Usage](#7-example-usage)
-  - [7.1 The PM Protocol](#71-the-pm-protocol)
-  - [7.2 Complex Problem Solving](#72-complex-problem-solving)
-  - [7.3 Multi-Agent Development](#73-multi-agent-development)
-  - [7.4 Knowledge Graph Queries](#74-knowledge-graph-queries)
-  - [7.5 Observing AI Cognition](#75-observing-ai-cognition)
-- [8. Real-World Impact](#8-real-world-impact)
-  - [8.1 What This Enables](#81-what-this-enables)
-  - [8.2 The Compound Effect](#82-the-compound-effect)
+### [Memory System](research/memory-system.md)
 
-### Testing & Validation
-- [9. Real Testing, Real Bugs, Real Confidence](#9-real-testing-real-bugs-real-confidence)
-  - [9.1 The Hero Demo](#91-the-hero-demo)
-  - [9.2 Why This Matters](#92-why-this-matters)
-  - [9.3 Adaptive Test Evolution](#93-adaptive-test-evolution)
-  - [9.4 Test Philosophy](#94-test-philosophy)
+| Feature | What It Means | Implementation |
+|---------|---------------|----------------|
+| **[Two-Stage Model](https://doi.org/10.1152/physrev.00032.2012)** | Fast episodic encoding → slow semantic consolidation | `memory://thinking/` (episodic) vs `memory://research/` (semantic) |
+| **[ACT-R Decay](https://doi.org/10.4324/9781315805696)** | Memories fade without access following power-law | `DecayCalculator`: `base × time^(-0.5)` |
+| **[Storage vs Retrieval](https://www.researchgate.net/publication/281322665)** | Pointers persist; only accessibility fades | WikiLinks never deleted; decay affects ranking |
+| **[Maintenance Cycles](https://doi.org/10.1016/j.neuron.2013.12.025)** | Periodic graph hygiene | 5 workflows in serialized dependency order: repair, hub-detection, consolidation, epistemic, status |
+| **[Consolidation](https://doi.org/10.1038/nrn2762)** | Thinking sessions → semantic memory | Replay via `RecentActivity`, distill to `WriteMemory`, link via `FindSimilarConcepts` |
 
-### Philosophy & Documentation
-- [10. Technical Principles](#10-technical-principles)
-- [11. Project Structure](#11-project-structure)
-- [12. Documentation](#12-documentation)
-- [13. License & Attribution](#13-license--attribution)
+### Symbolic Systems
 
-## 1. Beyond RAG: Real Reasoning
+| Feature | What It Means | Implementation |
+|---------|---------------|----------------|
+| **[Concept-as-Protocol](context-engineering.md)** | WikiLinks carry context between agents | `PreToolUse` hook extracts `[[concepts]]`, injects graph context |
+| **[Lazy Graph](https://en.wikipedia.org/wiki/Zettelkasten)** | No predefined schema; structure emerges | `Sync` extracts WikiLinks; co-occurrence creates edges |
+| **[Hybrid Search](https://dl.acm.org/doi/10.1145/1571941.1572114)** | Semantic similarity + exact matching | `SearchMemories` fuses with Reciprocal Rank Fusion (k=60) |
+| **Concept Repair** | Normalize WikiLink variants safely | `RepairConcepts` validates similarity ≥0.7 before replacing |
+| **WikiLink Filtering** | Write-time concept blocklist | `.wikilink-filter.json` prevents hub concepts from graph pollution |
 
-maenifold isn't just retrieval—it's a cognitive architecture for AI agents that need to:
+### Reasoning
 
-- **Think through multi-step problems** with sequential thinking sessions that can revise and branch
-- **Select optimal reasoning approaches** through intelligent workflow dispatch and meta-cognitive analysis
-- **Orchestrate complex workflows** with 30 distinct methodologies from deductive reasoning to design thinking
-- **Build knowledge that compounds** through a lazily-constructed graph that emerges from use
-- **Coordinate multi-agent systems** with quality gates, validation waves, and sophisticated process control
-- **Maintain complete transparency** with Obsidian-compatible markdown files for every thought
+| Feature | What It Means | Implementation |
+|---------|---------------|----------------|
+| **[Sequential Thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking)** | Multi-step reasoning with persistence, graph integration, multi-agent branching | Extends MCP server with `sessionId`, `branchId`, `parentWorkflowId` |
+| **Assumption Ledger** | Track beliefs and their validation status | `AssumptionLedger` with confidence levels, evidence links |
 
-This implements **test-time compute for systematic problem-solving** - dynamically allocating reasoning resources based on problem complexity and cognitive requirements.
+### Workflow System
 
-## 2. How It Works
+| Feature | What It Means | Implementation |
+|---------|---------------|----------------|
+| **Workflow Engine** | Structured multi-step methodology execution | `Workflow` tool with JSON steps, `toolHints`, guardrails |
+| **Nested Composition** | Workflows invoke other workflows and tools | Workflows embed `SequentialThinking`; bidirectional linking |
+| **Session Persistence** | Resume reasoning across days | State in `memory://workflow/`; session IDs enable continuation |
 
-### 2.1 Sequential Thinking
+**Notable Workflows:**
+
+| Workflow | What It Demonstrates | How |
+|----------|---------------------|-----|
+| **Workflow Dispatch** | Meta-cognitive methodology selection | Analyzes problem characteristics, queries graph for similar past problems, selects optimal workflow |
+| **Research Think Tank** | Multi-agent collaborative reasoning | Defines roles (synthesizer, critic, explorer), structures knowledge construction phases |
+| **Agentic SLC** | Quality-controlled development | Embeds anti-slop checks, requires RTM traceability, enforces ConfessionReports |
+| **Constitutional Roles** | Constitutional AI for persona creation | Uses principles + examples to generate role definitions that constrain agent behavior |
+| **Higher-Order Thinking** | Meta-cognitive reflection | Recursive self-analysis steps: examine reasoning, identify biases, refine approach |
+| **Six Thinking Hats** | Structured perspective switching | Sequences through DeBono's colors with explicit transitions and synthesis |
+
+*Multi-agent orchestration requires an MCP client with agent dispatch (Claude Code, Codex, aishell) or CLI scripting with subprocess spawning.*
+
+---
+
+## How It Works
+
+### Sequential Thinking
 
 AI agents can engage in multi-hour reasoning sessions with full revision capability:
 
@@ -98,7 +125,7 @@ Each session creates a `memory://thinking/session-{id}` file tracking the comple
 - **Persistence**: Continue across days or weeks
 - **Multi-agent**: Share sessions between agents
 
-### 2.2 Orchestrated Workflows
+### Orchestrated Workflows
 
 Pre-built workflows embed sequential thinking at critical decision points:
 
@@ -106,13 +133,13 @@ Pre-built workflows embed sequential thinking at critical decision points:
 - **Validation Wave**: Test assumptions and verify approaches
 - **Implementation Wave**: Execute with confidence
 
-**Intelligent Workflow Selection**: The `workflow-dispatch` meta-system analyzes problem characteristics, researches historical context, assesses cognitive requirements, and automatically selects optimal reasoning methodologies. This meta-cognitive system implements **test-time compute for systematic problem-solving**.
+**Intelligent Workflow Selection**: The `workflow-dispatch` meta-system analyzes problem characteristics, researches historical context, assesses cognitive requirements, and automatically selects optimal reasoning methodologies.
 
-The **PM Pattern**: A primary agent (usually Sonnet) acts as the blue-hat orchestrator, using sequential thinking to maintain project context. It dispatches ephemeral sub-agents for specific tasks—these agents can burn through their context windows on implementation details while the PM preserves the overall vision. All thinking persists to `memory://` for continuity.
+**The PM Pattern**: A primary agent (usually Sonnet) acts as the blue-hat orchestrator, using sequential thinking to maintain project context. It dispatches ephemeral sub-agents for specific tasks — these agents can burn through their context windows on implementation details while the PM preserves the overall vision. All thinking persists to `memory://` for continuity.
 
 Workflows maintain state across days, enabling true long-running projects.
 
-### 2.3 Hybrid RRF Search
+### Hybrid RRF Search
 
 Combines semantic vectors with full-text search using Reciprocal Rank Fusion:
 
@@ -121,9 +148,7 @@ Combines semantic vectors with full-text search using Reciprocal Rank Fusion:
 - **RRF fusion** optimally blends both result sets (k=60)
 - **Returns context** with relevance scores for transparency
 
-This dual approach ensures you never miss exact matches while still finding conceptually similar content.
-
-### 2.4 Lazy Graph Construction
+### Lazy Graph Construction
 
 The knowledge graph builds itself through natural use:
 
@@ -135,11 +160,11 @@ We chose [[REST]] over [[GraphQL]] for our [[public API]] due to
 
 Every `[[WikiLink]]` becomes a node. Every mention strengthens edges. Patterns emerge without planning.
 
-∴ Structure emerges from use, not from schema
+Concepts can be excluded from the graph via `.wikilink-filter.json` — a simple blocklist checked at write time that prevents hub or ephemeral concepts from polluting the graph structure.
 
-### 2.5 Memory Lifecycle
+### Memory Lifecycle
 
-Knowledge isn't static—it follows a lifecycle grounded in cognitive neuroscience:
+Knowledge follows a lifecycle grounded in cognitive neuroscience:
 
 **Decay**: Memories fade without access, following ACT-R's power-law of forgetting:
 ```
@@ -147,57 +172,64 @@ retrieval_strength = base_strength × (time_since_access)^(-decay_rate)
 ```
 
 **Tiered Memory Classes**:
+
 | Tier | Grace Period | Half-Life | Examples |
-|------|--------------|-----------|----------|
-| Episodic | 7 days | 14 days | `memory://thinking/` sessions |
-| Semantic | 14 days | 30 days | `memory://research/`, `memory://decisions/` |
+|------|-------------|-----------|----------|
+| Sequential | 7 days | 30 days | `memory://thinking/sequential/` sessions |
+| Workflows | 14 days | 30 days | `memory://thinking/workflow/` sessions |
+| Semantic | 28 days | 30 days | `memory://research/`, `memory://decisions/` |
 | Immortal | ∞ | ∞ | Validated assumptions, core architecture |
 
-**Sleep Cycles**: Periodic maintenance runs four specialist workflows in parallel:
-- **Consolidation**: Replays high-significance episodic memories, promotes to semantic
-- **Decay**: Analyzes access patterns, flags severely decayed content
+**Sleep Cycles**: Periodic maintenance runs five specialist workflows in serialized dependency order:
 - **Repair**: Normalizes WikiLink variants, cleans orphaned concepts
+- **Hub Detection**: Identifies and filters generic hub concepts from the graph
+- **Consolidation**: Replays high-significance episodic memories, promotes to semantic
 - **Epistemic**: Reviews assumptions, validates or invalidates based on evidence
+- **Status**: Analyzes decay patterns, reports memory health
 
-This mirrors the two-stage memory model from neuroscience: rapid hippocampal encoding (episodic) gradually consolidates to neocortical storage (semantic) during sleep.
+*Decay affects search ranking only. Files are never deleted.*
 
-∴ Forgetting is not loss—it's prioritization
+---
 
-## 3. Quick Start
+## Quick Start
 
-### 3.1 For VSCode Users
+### For VSCode Users
 
 1. **Install maenifold**:
 ```bash
 # macOS/Linux
 brew install msbrettorg/tap/maenifold
 
-# Windows - download MSI from GitHub Releases
-# Or use .NET tool: dotnet tool install --global Maenifold
+# Windows - download from GitHub Releases
+# https://github.com/msbrettorg/maenifold/releases/latest
 ```
 
-2. **Configure your AI assistant** to use maenifold:
+2. **Configure your AI assistant**:
 
-**Single-agent setup** (Continue, Cline, etc.):
+#### Claude Code
+```json
+{
+  "mcpServers": {
+    "maenifold": { "command": "maenifold", "args": ["--mcp"], "type": "stdio" }
+  }
+}
+```
 
-#### Continue.dev Configuration
+#### Continue.dev
 Add to `~/.continue/config.json`:
 ```json
 {
-  "models": [...],
   "mcpServers": {
     "maenifold": {
       "command": "maenifold",
       "args": ["--mcp"],
-      "env": {
-        "MAENIFOLD_ROOT": "~/maenifold"
-      }
+      "env": { "MAENIFOLD_ROOT": "~/maenifold" }
     }
   }
 }
 ```
 
-#### Cline (Claude Dev) Configuration
+#### Cline
 Add to VSCode settings (`Cmd+,` → Extensions → Cline):
 ```json
 {
@@ -205,15 +237,13 @@ Add to VSCode settings (`Cmd+,` → Extensions → Cline):
     "maenifold": {
       "command": "maenifold",
       "args": ["--mcp"],
-      "env": {
-        "MAENIFOLD_ROOT": "~/maenifold"
-      }
+      "env": { "MAENIFOLD_ROOT": "~/maenifold" }
     }
   }
 }
 ```
 
-#### Codex Configuration
+#### Codex
 Add to `~/.codex/config.toml`:
 ```toml
 [mcp_servers.maenifold]
@@ -226,55 +256,72 @@ env = { MAENIFOLD_ROOT = "~/maenifold" }
 ```
 
 **Multi-agent orchestration** requires MCP clients with agent dispatch:
-- **Claude Code** - `claude-code` CLI with Task tool
-- **aishell** - Open-source with agent management
-- **Copilot CLI** - GitHub's multi-agent interface
-- **Codex** - Purpose-built orchestrator
+- **Claude Code** — `claude-code` CLI with Task tool
+- **Codex** — Purpose-built orchestrator
+- **aishell** — Open-source with agent management
 
-3. **Start using it in VSCode**:
+3. **Start using it**:
 - Single agent: "Write a memory about our project architecture"
 - Multi-agent: "Use agentic-dev workflow to implement authentication"
 - Graph query: "Show me how our concepts connect"
 
-### 3.2 For Developers
+### For Developers
 
+**CLI** (macOS/Linux):
 ```bash
-# CLI mode - direct tool access
-maenifold --tool writememory --payload '{"title":"Meeting Notes","content":"# Meeting Notes\n\nDiscussed [[architecture]] and [[performance]]"}'
-
-# MCP server mode
-maenifold --mcp
+maenifold --tool WriteMemory --payload '{"title":"Auth Decision","content":"Using [[OAuth2]] for [[authentication]]"}'
+maenifold --tool SearchMemories --payload '{"query":"authentication","mode":"Hybrid"}'
+maenifold --tool BuildContext --payload '{"conceptName":"authentication","depth":2}'
+maenifold --tool Sync --payload '{}'
 ```
 
-## 4. The Cognitive Stack
+**CLI** (Windows PowerShell):
+```powershell
+maenifold --tool WriteMemory --payload '{\"title\":\"Auth Decision\",\"content\":\"Using [[OAuth2]] for [[authentication]]\"}'
+```
 
-### 4.1 Memory Layer (`memory://`)
+**MCP vs CLI**:
+
+| Interface | Advantage | Best for |
+|-----------|-----------|----------|
+| **MCP** | Auto-sync watcher keeps graph current | Interactive sessions, simple queries |
+| **CLI** | Filter intermediate results, preserve context ([why this matters](https://www.anthropic.com/engineering/code-execution-with-mcp)) | Complex workflows, scripting, [Graph-RAG patterns](SCRIPTING.md) |
+
+See [SCRIPTING.md](SCRIPTING.md) for advanced patterns and [BOOTSTRAP.md](BOOTSTRAP.md) for the full journey from empty graph to domain expertise.
+
+---
+
+## The Cognitive Stack
+
+### Memory Layer
 
 Every piece of knowledge lives as a markdown file with a unique URI:
-- `memory://decisions/api-design` - Architectural decisions
-- `memory://thinking/session-12345` - Sequential thinking sessions
-- `memory://research/rag-comparison` - Research notes
+- `memory://decisions/api-design` — Architectural decisions
+- `memory://thinking/session-12345` — Sequential thinking sessions
+- `memory://research/rag-comparison` — Research notes
 
 All files are human-readable, Obsidian-compatible, and persist across sessions.
 
 **Two-Stage Memory Model**: Following the hippocampal-neocortical distinction:
-- **Episodic** (`memory://thinking/`): Fast encoding, rapid decay—raw reasoning traces
+- **Episodic** (`memory://thinking/`): Fast encoding, rapid decay — raw reasoning traces
 - **Semantic** (`memory://research/`, `memory://decisions/`): Slow consolidation, stable knowledge
-- **Immortal**: Validated assumptions and core architecture—exempt from decay
+- **Immortal**: Validated assumptions and core architecture — exempt from decay
 
 The memory-consolidation workflow transfers high-value episodic memories to semantic storage, mirroring biological memory consolidation during sleep.
 
-### 4.2 Graph Layer (SQLite + Vectors)
+### Graph Layer
 
 Automatic graph construction from WikiLinks with:
 - **384-dimensional embeddings** for semantic similarity
 - **Edge weights** that strengthen with repeated mentions
 - **Concept clustering** revealing emergent patterns
+- **Community detection** via Louvain algorithm identifies reasoning domains
+- **Decay weighting** (ACT-R power-law) biases concept rankings by recency
 - **Incremental sync** keeping the graph current
 
-### 4.3 Symbolic Communication
+### Symbolic Communication
 
-WikiLinks serve as an inter-agent communication protocol—**concept-as-protocol**:
+WikiLinks serve as an inter-agent communication protocol — **concept-as-protocol**:
 
 ```markdown
 # Agent prompt with symbolic references
@@ -287,351 +334,176 @@ When an agent writes `[[concept]]`, the system:
 3. Injects graph neighborhood as enriched context
 4. Receiving agent gets structured knowledge without manual curation
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Concept-as-Protocol Flow                     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Agent A writes: "Implement [[authentication]] for [[OAuth2]]"  │
-│                              │                                  │
-│                              ▼                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │           WikiLink Extraction (regex)                   │    │
-│  │           → ["authentication", "OAuth2"]                │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                              │                                  │
-│          ┌───────────────────┼───────────────────┐              │
-│          ▼                   ▼                   ▼              │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐         │
-│  │ BuildContext │   │FindSimilar   │   │ SearchMemory │         │
-│  │ (graph)      │   │Concepts      │   │ (content)    │         │
-│  │              │   │(embeddings)  │   │              │         │
-│  └──────────────┘   └──────────────┘   └──────────────┘         │
-│          │                   │                   │              │
-│          └───────────────────┼───────────────────┘              │
-│                              ▼                                  │
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │              Enriched Context Injection                 │    │
-│  │  - Graph neighbors: [[session-management]], [[JWT]]     │    │
-│  │  - Similar concepts: "authorization" (0.89)             │    │
-│  │  - Source files: memory://tech/auth/*                   │    │
-│  └─────────────────────────────────────────────────────────┘    │
-│                              │                                  │
-│                              ▼                                  │
-│  Agent B receives: Original prompt + resolved context           │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Information Density**: A 14-byte `[[authentication]]` dereferences to megabytes of structured knowledge—far exceeding what fits in a prompt.
+**Information Density**: A 14-byte `[[authentication]]` dereferences to megabytes of structured knowledge — far exceeding what fits in a prompt.
 
 **Storage vs Retrieval Strength** (New Theory of Disuse):
 - **WikiLinks** = storage strength (pointers persist, never decay)
 - **Decay weight** = retrieval strength (access recency determines surfacing priority)
 
-Forgetting is not loss of the pointer—it's reduced priority for retrieval. The knowledge remains; only its accessibility fades.
+Forgetting is not loss of the pointer — it's reduced priority for retrieval. The knowledge remains; only its accessibility fades.
 
-∴ Symbols carry context; decay prioritizes attention
-
-### 4.4 Reasoning Layer (Tools + Workflows)
+### Reasoning Layer
 
 Where test-time computation happens:
 - **Sequential Thinking**: Multi-step reasoning with revision and branching
-- **Workflow Orchestration**: 30 distinct methodologies with quality gates and guardrails
-- **Assumption Ledger**: Traceable skepticism for agent reasoning—capture, validate, and track assumptions without auto-inference
+- **Workflow Orchestration**: 35+ distinct methodologies with quality gates and guardrails
+- **Assumption Ledger**: Traceable skepticism — capture, validate, and track assumptions
 - **Multi-agent Coordination**: Wave-based execution with parallel agent dispatch
-- **Intelligent Method Selection**: Meta-cognitive system for optimal reasoning approach selection
+- **Intelligent Method Selection**: Meta-cognitive system for optimal reasoning approach
 - **RTM Validation**: Requirements traceability for systematic development
 - **Quality Control**: Stop conditions, validation gates, and anti-slop controls
 
 **Context Window Economics**: The PM (blue hat) uses sequential thinking to preserve expensive context while dispatching fresh agents for implementation. This allows complex projects without context exhaustion.
 
-∴ The PM remembers so agents can forget
+---
 
-## 5. Key Capabilities
+## Cognitive Assets
+
+| Asset | Count | Examples |
+|-------|-------|----------|
+| **Workflows** | 35+ | Deductive, design thinking, agentic sprints, game theory, research think tank |
+| **Roles** | 16 | Architect, PM, red-team, blue-team, researcher, writer, FinOps practitioner |
+| **Thinking Colors** | 7 | DeBono's Six Hats + Gray (skeptical inquiry) |
+| **Perspectives** | 12 | Native language modes for culturally-aware reasoning |
+
+---
+
+## Key Capabilities
 
 - **Test-time Adaptive Reasoning**: Sequential thinking with revision, branching, and multi-agent collaboration
 - **Intelligent Workflow Selection**: Meta-cognitive system that analyzes problems and selects optimal reasoning approaches
-- **30 Distinct Methodologies**: Complete taxonomy from deductive reasoning to design thinking, with sophisticated orchestration
-- **Hybrid RRF Search**: Semantic + full-text fusion for optimal retrieval (not just embedding similarity)
-- **Lazy Graph Construction**: No schema, no ontology—structure emerges from WikiLink usage
-- **Neuroscience-Grounded Decay**: ACT-R power-law forgetting with tiered memory classes (episodic/semantic/immortal)
-- **Autonomous Sleep Cycles**: Four-specialist maintenance (consolidation, decay, repair, epistemic) runs unattended
-- **Symbolic Inter-Agent Protocol**: WikiLinks dereference to graph context, enabling high-bandwidth agent communication
-- **Quality-Gated Orchestration**: Multi-agent coordination with validation waves, guardrails, and RTM compliance
+- **35+ Distinct Methodologies**: Complete taxonomy from deductive reasoning to design thinking
+- **Hybrid RRF Search**: Semantic + full-text fusion for optimal retrieval
+- **Lazy Graph Construction**: No schema, no ontology — structure emerges from WikiLink usage
+- **Neuroscience-Grounded Decay**: ACT-R power-law forgetting with tiered memory classes
+- **Autonomous Sleep Cycles**: Five-specialist maintenance runs unattended
+- **Symbolic Inter-Agent Protocol**: WikiLinks dereference to graph context
+- **Quality-Gated Orchestration**: Multi-agent coordination with validation waves and RTM compliance
 - **Complete Transparency**: Every thought, revision, and decision visible in markdown files
-- **Multi-day Persistence**: Sessions maintain state across restarts, enabling long-running projects
+- **Multi-day Persistence**: Sessions maintain state across restarts
+- **Community Detection**: Louvain algorithm identifies reasoning domains during sync, enabling graph-of-thought priming
+- **Session Abandonment Detection**: 30-minute inactivity threshold marks active sessions as abandoned during sync
+- **Graph-of-Thought Priming**: Hook system queries community index to inject clustered concept maps at session start and task dispatch
 
-## 6. Technical Specifications
+---
 
-- **Language**: C# with .NET 9.0
-- **Vector Dimensions**: 384 (all-MiniLM-L6-v2 via ONNX)
-- **Search Algorithm**: Reciprocal Rank Fusion (k=60)
-- **Database**: SQLite with vector extension
-- **Graph Sync**: Incremental with file watching
-- **Memory Format**: Markdown with YAML frontmatter
-- **URI Scheme**: `memory://` protocol
-- **Tested Scale**: > 1.1 million relationships
-- **Cognitive Assets**:
-  - **30 Distinct Methodologies**: Complete taxonomy from deductive reasoning to design thinking
-    - Reasoning: deductive, inductive, abductive, critical, strategic, higher-order thinking
-    - Creative: design thinking, divergent thinking, lateral thinking, oblique strategies, SCAMPER
-    - Development: agentic-dev with anti-slop controls, agile, SDLC, code review workflows
-    - Collaborative: world café, parallel thinking, six thinking hats
-    - Meta-orchestration: workflow-dispatch for intelligent methodology selection
-  - **7 Roles** (architect, engineer, PM, etc.)
-  - **7 Thinking Hats** (DeBono's Six + Gray)
-- **Memory Lifecycle**:
-  - **Decay Model**: ACT-R power-law (default 30-day half-life)
-  - **Memory Tiers**: Episodic (7d grace/14d half-life), Semantic (14d grace/30d half-life), Immortal
-  - **Sleep Cycle**: 4 specialist workflows (consolidation, decay, repair, epistemic)
-  - **Consolidation Model**: Two-stage (episodic → semantic), inspired by hippocampal-neocortical transfer
-- **MCP Compliance**: Full tool annotation support
+## Demo Artifacts
 
-## 7. Example Usage
+Real orchestration sessions demonstrating the system in use:
 
-### 7.1 The PM Protocol (Orchestration Pattern)
+- **[PM-lite Protocol](demo-artifacts/part1-pm-lite/)** — 12 agents across 4 waves, 85% test success, critical bug found and fixed (28 min)
+- **[Agentic-SLC Workflow](demo-artifacts/part2-agentic-slc/)** — 13 agents, 3 issues fixed via TDD pipeline (40 min)
+- **[Brand Analysis](demo-artifacts/brand-analysis-workflow.md)** — 6 parallel workflows analyzed maenifold's own brand positioning
+- **[Sprint Impact Analysis](demo-artifacts/sprint-knowledge-graph-impact-analysis.md)** — Knowledge graph growth from a real sprint
 
-Here's a battle-tested prompt for multi-agent orchestration:
+See the [demo artifacts README](demo-artifacts/README.md) for the full timeline and directory structure.
 
-```markdown
-## Your PM Protocol
+---
 
-Perform all tasks below with extreme precision and care. Follow the protocol exactly.
+## Testing & Validation
 
-### Initial Setup
-1) Adopt blue hat
-2) Adopt product manager role
-3. Read the product documentation/specifications carefully
-4) Restate the user's task to refine scope and remove ambiguity
+### The Hero Demo
 
-### Task Execution
-- Use waves of concurrent 'agents' to complete the user's task - you are the overseer of the entire process.
-- Do NOT dispatch agents sequentially - they WILL block you till they complete. Use concurrent agents instead.
-- Your agents are ephemeral. Do not expect them to remember anything from previous tasks.
-- Use shared workflows and sequential thinking sessions to communicate with your agents and ground them in their task.
-- Pay attention to session ID's for workflow and sequential thinking sessions and provide them to your agents in their instructions.
-- Require workflow/sequential thinking evidence from agents documenting their discoveries using Codenav and Context7.
-- Never accept an agent's report of success. ALWAYS verify agent work by dispatching follow-up agents using CodeNav + Context7 + Sequential Thinking
-- The build must compile and pass all tests before reporting success.
-- RTM is MANDATORY for ALL code changes, and all changes must link to a specific requirement
-- We build products that are Simple, Lovable and Complete. Do not accept partial solutions or MVPs.
-```
+The [comprehensive E2E test](demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) orchestrated **12 specialized agents** across 4 waves:
 
-### 7.2 Complex Problem Solving
-
-```
-You: "Design a distributed cache for our microservices"
-AI: [Initiates sequential thinking session]
-    → Thought 1: Analyzing consistency requirements
-    → Thought 2: Evaluating Redis vs Hazelcast
-    → Thought 3: Revising Thought 1 based on latency data
-    → Creates memory://decisions/cache-architecture
-    → Links to [[distributed-systems]], [[caching]], [[microservices]]
-```
-
-### 7.3 Multi-Agent Development
-
-```
-You: "Implement the user authentication system"
-AI (Sonnet as PM): [Launches agentic-dev workflow]
-    → Discovery Wave: 3 agents explore approaches in parallel
-    → Validation Wave: Test security implications
-    → Implementation Wave: Coordinated development
-    → Each agent's reasoning persisted to memory://
-```
-
-**Note**: Multi-agent orchestration requires an MCP client that supports agent dispatch:
-- **Claude Code** (Anthropic's CLI)
-- **Copilot CLI** (GitHub's command-line interface)
-- **aishell** (Open-source MCP shell)
-- **Codex** (Multi-agent coordinator)
-
-The PM (typically Sonnet with blue hat) uses sequential thinking to maintain context while dispatching ephemeral sub-agents that burn through their own context windows doing the actual work.
-
-### 7.4 Knowledge Graph Queries
-
-```
-You: "What patterns reduce production incidents?"
-AI: [Traverses graph from [[incident]] concept]
-    → Finds [[error-handling]] mentioned in 80% of solutions
-    → [[monitoring]] appears in 65% of preventions
-    → [[code-review]] correlates with 40% fewer incidents
-    → Returns: Empirical patterns from your codebase history
-```
-
-### 7.5 Observing AI Cognition
-
-```
-You: "Show me what you've been thinking about"
-$ maenifold --tool recentactivity --payload '{"filter":"thinking","limit":3}'
-
-→ session-87234: Debugging race condition (12 thoughts, 3 revisions)
-→ session-87199: API design review (8 thoughts, branched at thought 5)
-→ workflow-87156: Agile sprint planning (completed, 15 steps)
-```
-
-## 8. Real-World Impact
-
-### 8.1 What This Enables
-
-**Multi-day debugging sessions** where the AI remembers every hypothesis:
-```
-Day 1: "The race condition might be in the auth handler"
-Day 3: "Remember when we suspected the auth handler? Let's revisit with new logs"
-```
-
-**Systematic code reviews** that build institutional knowledge:
-```
-Review 1: Creates memory about error handling patterns
-Review 5: Surfaces the pattern, suggests team-wide adoption
-Review 20: Graph reveals which patterns reduce bugs
-```
-
-**Evolving architectures** with full decision history:
-```
-Q: "Why did we choose PostgreSQL over MongoDB?"
-A: [Retrieves original decision, subsequent validations, and current trade-offs]
-```
-
-### 8.2 The Compound Effect
-
-Unlike stateless AI that resets each conversation:
-- **Week 1**: Rapid episodic accumulation—raw thinking sessions pile up
-- **Month 1**: Sleep-consolidation promotes high-value memories to semantic; patterns emerge in the graph
-- **Month 3**: Unused memories decay naturally; validated assumptions become immortal; AI surfaces non-obvious connections
-- **Year 1**: Self-organizing knowledge base—not just accumulation, but prioritized institutional memory
-
-The system maintains itself:
-```
-Sleep Cycle (daily):
-  → Consolidation replays significant episodes, writes semantic notes
-  → Decay flags stale content for natural forgetting
-  → Repair normalizes WikiLink drift, cleans orphans
-  → Epistemic validates or invalidates assumptions
-```
-
-Every interaction strengthens the graph. Every sleep cycle prunes the noise. Every query can traverse relationships. Every decision builds on previous learning.
-
-間 In the space between sessions, understanding grows—and forgets what it should
-
-## 9. Real Testing, Real Bugs, Real Confidence
-
-Unlike traditional unit tests that validate mocks against mocks, maenifold employs **multi-agent orchestration testing** that discovers actual issues:
-
-### 9.1 The Hero Demo
-
-Our [comprehensive E2E test](demo-artifacts/part1-pm-lite/E2E_TEST_REPORT.md) orchestrated **12 specialized agents** across 4 waves to validate maenifold:
-
-- **Found and fixed a critical bug**: Move operations were losing file extensions - mocks would never catch this
-- **Discovered parameter inconsistencies**: minScore filtering wasn't working - only real queries revealed this
+- **Found and fixed a critical bug**: Move operations were losing file extensions — mocks would never catch this
+- **Discovered parameter inconsistencies**: minScore filtering wasn't working — only real queries revealed this
 - **Validated actual performance**: Real operations against real data, not synthetic benchmarks
 - **85% success rate**: Honest assessment, not 100% fake passes
 
-See the [orchestration plan](demo-artifacts/part1-pm-lite/test-matrix-orchestration-plan.md) and [final report](demo-artifacts/part1-pm-lite/hero-demo-final-report.md) for details.
+### Test Philosophy
 
-### 9.2 Why This Matters
-
-**Traditional testing with mocks:**
-```javascript
-// This test always passes but tells you nothing
-mockDB.save = jest.fn().mockResolvedValue({ id: 1 });
-expect(await service.save(data)).toBe(1); // ✅ Meaningless success
-```
-
-**maenifold's approach with real agents:**
-```bash
-# Agent CORE-01 discovers actual behavior
-maenifold --tool movememory --payload '{"source":"test","destination":"verified/test"}'
-# Result: File lost .md extension - REAL BUG FOUND
-```
-
-### 9.3 Adaptive Test Evolution
-
-When maenifold evolves, tests don't break - they adapt:
-
-1. **Agents discover new capabilities** through tool exploration
-2. **PM-lite protocol orchestrates** comprehensive coverage automatically
-3. **Sequential thinking sessions** document test reasoning
-4. **No test maintenance** - agents test what exists, not what was
-
-The [orchestration session](demo-artifacts/part1-pm-lite/orchestration-session.md) shows how agents coordinate to achieve complete coverage without predefined test cases.
-
-### 9.4 Test Philosophy
-
-Following Ma Protocol's **NO FAKE TESTS** principle:
+Following the **NO FAKE TESTS** principle:
 - Real SQLite, not mocks
 - Real file operations, not stubs
 - Real vector embeddings, not fixtures
 - Real multi-agent coordination, not simulations
 
-∴ Real confidence, not false security
+---
 
-## 10. Technical Principles
+## Technical Specifications
+
+| Spec | Value |
+|------|-------|
+| Language | C# / .NET 9.0 |
+| Vectors | 384-dim (all-MiniLM-L6-v2 via ONNX) |
+| Search | Reciprocal Rank Fusion (k=60) |
+| Database | SQLite + [sqlite-vec](https://github.com/asg017/sqlite-vec) (bundled) |
+| Memory Cycle | Configurable interval; decay params expressed as cycle multiples |
+| Decay Model | ACT-R power-law (d=0.5); calibrated to memory cycle |
+| Memory Tiers | Sequential (7d grace) / Workflows (14d) / Semantic (28d) / Half-life 30d |
+| Maintenance | 5 workflows (repair/hub-detection/consolidation/epistemic/status) in serialized dependency order |
+
+*Decay affects search ranking only. Files are never deleted.*
+
+*Local-only, single-user, no authentication. Memory files (markdown) are the source of truth; the SQLite database is a regenerable cache (`maenifold --tool Sync`). Version control memory with git to track changes alongside code. Set `MAENIFOLD_ROOT` to store memory in your repository for atomic commits of code + reasoning.*
+
+---
+
+## Technical Principles
 
 ### Transparency First
-Every operation is inspectable:
-- Thinking sessions show all revisions and branches
-- Search results include similarity scores
-- Graph relationships are queryable SQL
-- All content is readable markdown
+Every operation is inspectable — thinking sessions show all revisions, search results include scores, graph relationships are queryable SQL, all content is readable markdown.
 
 ### Lazy Evaluation
-Nothing is pre-computed or pre-structured:
-- Graph builds from natural WikiLink usage
-- Embeddings generate on demand
-- Relationships emerge from repetition
-- Structure follows function
+Nothing is pre-computed or pre-structured — graph builds from WikiLink usage, embeddings generate on demand, relationships emerge from repetition, structure follows function.
 
 ### Composable Tools
-Each tool does one thing well:
-- `WriteMemory` → Creates markdown with WikiLinks
-- `SequentialThinking` → Iterative reasoning with revision
-- `AssumptionLedger` → Traceable skepticism without auto-inference
-- `BuildContext` → Graph traversal from concepts
-- `Workflow` → Orchestrates tool composition
+Each tool does one thing well — `WriteMemory` creates markdown, `SequentialThinking` reasons iteratively, `BuildContext` traverses the graph, `Workflow` orchestrates tool composition.
 
 ### Files as Source of Truth
-Not a black box database:
-- Direct file access for debugging
-- Git-compatible for version control
-- Obsidian-compatible for human editing
-- Standard markdown for portability
+Not a black box — direct file access for debugging, git-compatible for version control, Obsidian-compatible for human editing, standard markdown for portability.
 
-### Complete Observability
-Watch AI thinking in real-time:
-```
-$ maenifold --tool recentactivity --payload '{"filter":"thinking"}'
+---
 
-session-1758434799362 (sequential)
-  Modified: 2025-09-20 23:07
-  Thoughts: 4
-  Status: completed
-  First: "Analyzing hybrid search capabilities..."
-  Last: "README should be confident but not hyperbolic..."
+## Configuration
+
+**Custom data directory:**
+```bash
+export MAENIFOLD_ROOT=~/my-knowledge-base
 ```
 
-Every reasoning session, every revision, every branch—all queryable, all transparent.
+**Claude Desktop** — Same MCP config, different location:
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-## 11. Project Structure
+---
+
+## Skills
+
+| Skill | What You Get |
+|-------|--------------|
+| **[Maenifold](../integrations/claude-code/plugin-maenifold/skills/maenifold/references/README.md)** | 25+ tools, 6 composable layers, sequential thinking, 35+ workflows |
+| **[Product Manager](../integrations/claude-code/plugin-product-team/skills/product-manager/README.md)** | Multi-agent orchestration, graph context injection, quality gates, sprint traceability |
+
+---
+
+## Integrations
+
+| Integration | What It Does |
+|-------------|-------------|
+| **[Claude Code Plugin](../integrations/claude-code/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
+| **[OpenCode Plugins](../integrations/opencode/)** | WikiLink-aware compaction, session persistence for OpenCode CLI |
+
+---
+
+## Project Structure
 
 ```
 ~/maenifold/
 ├── memory/           # Your markdown memories with WikiLinks
 ├── memory.db         # Knowledge graph and vector embeddings
-└── assets/           # Workflows and system resources
+└── assets/           # Workflows, roles, colors, perspectives
 ```
-
-## 12. Documentation
-
-- [Demo Artifacts](demo-artifacts/) - Real-world testing with multi-agent orchestration
-
-## 13. License & Attribution
-
-**License**: MIT
-
-Sequential Thinking implementation inspired by [MCP Sequential Thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking) - enhanced with lazy graph construction and multi-agent collaboration.
 
 ---
 
-*maenifold - Test-time reasoning that compounds.*
+## License & Attribution
+
+**License**: MIT
+
+Sequential Thinking implementation inspired by [MCP Sequential Thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking) — enhanced with lazy graph construction and multi-agent collaboration.
+
+---
+
+*Domain expertise that compounds.*

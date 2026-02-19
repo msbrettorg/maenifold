@@ -22,7 +22,7 @@ Install maenifold skill:
 claude plugin install msbrettorg/maenifold
 ```
 
-See the [maenifold skill README](../maenifold/README.md) for complete installation instructions.
+See the [plugin-maenifold README](../../../../plugin-maenifold/README.md) for complete installation instructions.
 
 ## Architecture
 
@@ -121,13 +121,10 @@ The system provides **8 concurrent task slots** that can execute specialized sub
 When PM spawns a subagent with `[[WikiLinks]]` in the Task prompt, the PreToolUse hook:
 
 1. Extracts all `[[WikiLink]]` concepts from the prompt
-2. Calls `buildcontext` for each concept (depth=1, maxEntities=5)
-3. Assembles graph context (up to 8000 tokens total)
-4. Injects context into the subagent's prompt before they see it
+2. Enriches the task prompt with graph context from the community index
+3. Injects context into the subagent's prompt before they see it
 
 **Result**: Subagents receive automatic knowledge enrichment without manual searches.
-
-**Token Budget**: 8000 tokens max, 1000 tokens per concept
 
 #### 2. ConfessionReport Gate (SubagentStop Hook)
 
@@ -150,15 +147,7 @@ Every subagent must produce a ConfessionReport before termination. The SubagentS
 
 #### 3. Session Start Context (SessionStart Hook)
 
-On session initialization, automatically inject repository context:
-
-1. Get repository name from git
-2. Search memory:// for project-related files
-3. Get recent activity concepts (last 24 hours)
-4. Build context for top concepts (frequency-ranked)
-5. Inject as "Knowledge Graph Context" message
-
-**Token Budget**: 4000 tokens max, 500 tokens per concept (lightweight bootstrap)
+On session initialization, the hook calls `RecentActivity` (limit=10, timespan=3d) to identify seed concepts, validates each `[[WikiLink]]` against the graph, then calls `BuildContext` (depth=1) on each valid concept to expand the neighborhood via the Louvain community index. Output is capped at ~150-350 tokens: bold seed labels, up to 5 thread references, and an action footer. Falls back to `SearchMemories` if RecentActivity returns no results.
 
 ### Workflow Patterns
 
@@ -283,25 +272,27 @@ Entry point that:
 - Provides access to maenifold's cognitive stack
 - Enforces traceability and quality principles
 
-### Agent Definitions (`/integrations/agents/*.md`)
+### Agent Definitions (`/integrations/claude-code/plugin-product-team/agents/*.md`)
 
 Each agent has:
 - **YAML frontmatter**: Color, skills, description
 - **Markdown body**: Role-specific instructions and behavioral guidelines
 - **Specialization**: SWE (implementation), red-team (security), blue-team (testing), researcher (analysis)
 
-### Hook System (`/integrations/claude-code/plugin-product-team/hooks/`)
+### Hook System
 
-- **`hooks.json`**: Hook configuration (SessionStart, PreToolUse, SubagentStop)
-- **`hooks.sh`**: Bash implementation with timeout handling, CLI discovery, concept extraction
+All hooks live in the **plugin-maenifold** plugin (`/integrations/claude-code/plugin-maenifold/`):
 
-### Workflow Assets (`/bin/assets/workflows/*.json`)
+- **`hooks/hooks.json`**: Hook configuration (SessionStart, PreToolUse, SubagentStop)
+- **`scripts/hooks.sh`**: Bash implementation with timeout handling, CLI discovery, concept extraction
+
+### Workflow Assets (`src/assets/workflows/*.json`)
 
 Structured JSON workflows that define:
 - Step-by-step processes
 - Tool hints and metadata
 - Stop conditions and guardrails
-- Examples: `agentic-slc`, `workflow-dispatch`, `tdd-workflow`
+- Examples: `agentic-slc`, `workflow-dispatch`
 
 ## Execution Flow Example
 
@@ -508,7 +499,7 @@ PM Response:
 
 **Symptom**: Large context injections consume token budget
 **Cause**: Multiple parallel agents with 8000-token contexts each
-**Mitigation**: PreCompact hook saves conversation summary to memory:// before compaction
+**Mitigation**: Use maenifold memory tools to save important context before compaction
 
 ### Graph Fragmentation
 
@@ -526,20 +517,20 @@ PM Response:
 
 ## Related Documentation
 
-- [Maenifold Skill README](../maenifold/README.md) - Required prerequisite skill
+- [Plugin-Maenifold README](../../../../plugin-maenifold/README.md) - Required prerequisite plugin
 - [Architecture Analysis](memory://tech/maenifold/product-manager-skill-architecture-analysis) - Complete technical analysis
 - [SKILL.md](./SKILL.md) - Skill definition and instructions
-- [Agent Definitions](../../agents/) - SWE, red-team, blue-team, researcher
-- [Hooks System](../../claude-code/plugin-product-team/hooks/) - Hook implementation
+- [Agent Definitions](../../agents/) - SWE, red-team, blue-team, researcher (at `/integrations/claude-code/plugin-product-team/agents/`)
+- [Hooks System](../../claude-code/plugin-maenifold/hooks/) - Hook implementation (in plugin-maenifold)
 
 ## Source
 
 This documentation is based on analysis of the maenifold codebase:
 
-- `/integrations/skills/product-manager/SKILL.md`
-- `/integrations/agents/*.md`
-- `/integrations/claude-code/plugin-product-team/hooks/`
-- `/bin/assets/workflows/*.json`
+- `/integrations/claude-code/plugin-product-team/skills/product-manager/SKILL.md`
+- `/integrations/claude-code/plugin-product-team/agents/*.md`
+- `/integrations/claude-code/plugin-maenifold/hooks/` (all hooks)
+- `src/assets/workflows/*.json`
 
 **Date**: 2026-01-29
 **Repository**: https://github.com/msbrettorg/maenifold

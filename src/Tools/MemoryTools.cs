@@ -1,6 +1,7 @@
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Maenifold.Utils;
@@ -35,7 +36,7 @@ public class MemoryTools
             cmd.Parameters.AddWithValue("@path", memoryUri);
             cmd.ExecuteNonQuery();
         }
-        catch
+        catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException)
         {
             // Non-critical: if database update fails, continue without updating timestamp
             // The file read itself still succeeds
@@ -206,6 +207,19 @@ Returns memory:// URI for future reference, checksum for safe editing, confirms 
 
 
         var concepts = MarkdownIO.ExtractWikiLinks(content);
+        var (blocked, reasons) = WikiLinkFilter.CheckFilter(concepts);
+        if (blocked.Count > 0)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("ERROR: Content contains filtered WikiLinks that are excluded from the knowledge graph:");
+            foreach (var concept in blocked)
+                sb.AppendLine(CultureInfo.InvariantCulture, $"  - [[{concept}]]: {reasons[concept]}");
+            sb.AppendLine();
+            sb.AppendLine("Remove these WikiLinks from your content and retry.");
+            if (OutputContext.IsJsonMode)
+                return JsonToolResponse.Fail("FILTERED_WIKILINKS", sb.ToString()).ToJson();
+            return sb.ToString();
+        }
         if (concepts.Count == 0)
         {
             // T-CLI-JSON-001: RTM FR-8.4 - Structured error
@@ -418,6 +432,19 @@ To avoid this, use findText='[[machine learning]]' to replace the entire WikiLin
 
 
         var contentConcepts = MarkdownIO.ExtractWikiLinks(content);
+        var (blocked, reasons) = WikiLinkFilter.CheckFilter(contentConcepts);
+        if (blocked.Count > 0)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("ERROR: Content contains filtered WikiLinks that are excluded from the knowledge graph:");
+            foreach (var concept in blocked)
+                sb.AppendLine(CultureInfo.InvariantCulture, $"  - [[{concept}]]: {reasons[concept]}");
+            sb.AppendLine();
+            sb.AppendLine("Remove these WikiLinks from your content and retry.");
+            if (OutputContext.IsJsonMode)
+                return JsonToolResponse.Fail("FILTERED_WIKILINKS", sb.ToString()).ToJson();
+            return sb.ToString();
+        }
         if (contentConcepts.Count == 0)
         {
             var sb = new StringBuilder();

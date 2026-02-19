@@ -10,6 +10,12 @@ public class BuildContextResult
     public List<RelatedConcept> DirectRelations { get; set; } = new();
     public List<string> ExpandedRelations { get; set; } = new();
 
+    // T-COMMUNITY-001.7: RTM FR-13.6 - Community of the query concept
+    public int? CommunityId { get; set; }
+
+    // T-COMMUNITY-001.8: RTM FR-13.7
+    public List<CommunitySibling> CommunitySiblings { get; set; } = new();
+
     public override string ToString()
     {
         var sb = new StringBuilder();
@@ -19,7 +25,9 @@ public class BuildContextResult
         sb.AppendLineInvariant($"Direct relations ({DirectRelations.Count} CONCEPTS):");
         foreach (var related in DirectRelations)
         {
-            sb.AppendLineInvariant($"  • {related.Name} (co-occurs in {related.CoOccurrenceCount} files)");
+            // T-COMMUNITY-001.7: RTM FR-13.6 - Include community_id when available
+            var communityTag = related.CommunityId.HasValue ? $" [community {related.CommunityId}]" : "";
+            sb.AppendLineInvariant($"  • {related.Name} (co-occurs in {related.CoOccurrenceCount} files){communityTag}");
             if (related.Files.Count > 0)
                 sb.AppendLineInvariant($"    Files: {string.Join(", ", related.Files.Take(3))}");
 
@@ -38,6 +46,16 @@ public class BuildContextResult
             sb.AppendLineInvariant($"\nExpanded relations ({Depth} hops):");
             foreach (var concept in ExpandedRelations.Take(20))
                 sb.AppendLineInvariant($"  • {concept}");
+        }
+
+        // T-COMMUNITY-001.8: RTM FR-13.7 - Community siblings section
+        if (CommunitySiblings.Count > 0)
+        {
+            sb.AppendLineInvariant($"\nCommunity siblings ({CommunitySiblings.Count} concepts in community {CommunityId}):");
+            foreach (var sibling in CommunitySiblings)
+            {
+                sb.AppendLineInvariant($"  • {sibling.Name} (shared neighbors: {sibling.SharedNeighborCount}, overlap: {sibling.NormalizedOverlap:F3})");
+            }
         }
 
         return sb.ToString();
@@ -61,4 +79,16 @@ public class RelatedConcept
     /// Weighted score: CoOccurrenceCount * DecayWeight. Used for sorting.
     /// </summary>
     public double WeightedScore { get; set; }
+
+    // T-COMMUNITY-001.7: RTM FR-13.6 - Community assignment for this concept
+    public int? CommunityId { get; set; }
+}
+
+// T-COMMUNITY-001.8: RTM FR-13.7, FR-13.8, FR-13.9
+public class CommunitySibling
+{
+    public string Name { get; set; } = string.Empty;
+    public int CommunityId { get; set; }
+    public int SharedNeighborCount { get; set; }
+    public double NormalizedOverlap { get; set; }
 }

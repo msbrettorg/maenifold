@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
 # Graph RAG Hook - Claude Code + Maenifold Integration
-# Usage: hooks.sh {session_start|task_augment|pre_compact|subagent_stop}
+# Usage: hooks.sh {session_start|task_augment|subagent_stop}
 #
 
 set -euo pipefail
 
 MODE="${1:-}"
-[[ -z "$MODE" ]] && { echo '{"error":"Usage: hooks.sh {session_start|task_augment|pre_compact|subagent_stop}"}' >&2; exit 1; }
+[[ -z "$MODE" ]] && { echo '{"error":"Usage: hooks.sh {session_start|task_augment|subagent_stop}"}' >&2; exit 1; }
 
 # --- Shared Functions ---
 
@@ -66,85 +66,136 @@ find_cli() {
   return 1
 }
 
-extract_concepts() {
-  grep -oE '\[\[[^]]+\]\]' | sed 's/\[\[\([^]]*\)\]\]/\1/' || true
-}
-
-build_context_loop() {
-  local concepts="$1" token_limit="$2" token_cost="$3" depth="${4:-1}" max_entities="${5:-5}"
-  local context="" tokens=0
-  local cli_timeout="${CLI_TIMEOUT:-5}"
-
-  while IFS= read -r concept; do
-    [[ -z "$concept" ]] && continue
-    (( tokens + token_cost > token_limit )) && break
-
-    result=$(run_with_timeout "$cli_timeout" "$MAENIFOLD_CLI" --tool BuildContext --payload \
-      "{\"conceptName\":\"$concept\",\"depth\":$depth,\"maxEntities\":$max_entities,\"includeContent\":true}")
-
-    # Skip empty, no relations, or weak relations (1-2 file co-occurrence)
-    [[ -z "$result" ]] && continue
-    echo "$result" | grep -q "Direct relations (0 CONCEPTS)" && continue
-    echo "$result" | grep -qE "co-occurs in [1-2] files" && continue
-
-    context+="$result"$'\n\n'
-    (( tokens += token_cost ))
-  done <<< "$concepts"
-
-  echo "$context"
-}
-
 MAENIFOLD_CLI=$(find_cli || true)
-if [[ -z "$MAENIFOLD_CLI" ]]; then
-  [[ "$MODE" == "session_start" ]] && echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""}}'
-  exit 0
-fi
+CLI_TIMEOUT="${CLI_TIMEOUT:-5}"
+DB_PATH="$HOME/maenifold/memory.db"
+
+# --- Shared: build_graph_context ---
+# One code path for both session_start and task_augment.
+# Returns: graph of thought priming + recent activity threads.
+build_graph_context() {
+  local output=""
+
+  # SECTION 1: Graph of Thought (structural priming)
+  # Community index from SQLite — concept names grouped by reasoning domain.
+  local graph_output=""
+  if [[ -f "$DB_PATH" ]]; then
+    graph_output=$(sqlite3 "$DB_PATH" "
+      WITH community_sizes AS (
+        SELECT community_id, COUNT(*) as size
+        FROM concept_communities
+        GROUP BY community_id
+        HAVING size >= 3
+      ),
+      concept_degree AS (
+        SELECT cc.concept_name, cc.community_id,
+               SUM(cg.co_occurrence_count) as total_weight
+        FROM concept_communities cc
+        JOIN community_sizes cs ON cc.community_id = cs.community_id
+        LEFT JOIN concept_graph cg ON cc.concept_name = cg.concept_a OR cc.concept_name = cg.concept_b
+        WHERE cc.concept_name NOT GLOB '*[.]*'
+          AND length(cc.concept_name) >= 3
+          AND cc.concept_name NOT GLOB '[0-9]*'
+        GROUP BY cc.concept_name, cc.community_id
+      ),
+      ranked AS (
+        SELECT *, ROW_NUMBER() OVER (PARTITION BY community_id ORDER BY total_weight DESC) as rn
+        FROM concept_degree
+        WHERE total_weight > 0
+      )
+      SELECT community_id, group_concat(concept_name, ' ')
+      FROM ranked
+      WHERE rn <= 20
+      GROUP BY community_id
+      ORDER BY MAX(total_weight) DESC
+    " 2>/dev/null || true)
+  fi
+
+  local priming=""
+  if [[ -n "$graph_output" ]]; then
+    while IFS='|' read -r cid concepts; do
+      [[ -z "$concepts" ]] && continue
+      local first=true line=""
+      for c in $concepts; do
+        if $first; then
+          line="**[[$c]]**"
+          first=false
+        else
+          line+=" [[$c]]"
+        fi
+      done
+      priming+="$line"$'\n'
+    done <<< "$graph_output"
+  fi
+
+  # SECTION 2: Recent Activity (temporal)
+  local thread_index="" thread_count=0
+  if [[ -n "$MAENIFOLD_CLI" ]]; then
+    local ra_output
+    ra_output=$(run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool RecentActivity --payload \
+      '{"filter":"thinking","limit":5,"timespan":"3.00:00:00","includeContent":false}')
+
+    if [[ -n "$ra_output" ]]; then
+      local current_sid="" current_status="" current_tcount=""
+
+      while IFS= read -r line; do
+        local header_sid
+        header_sid=$(echo "$line" | grep -oE 'session-[0-9]+-[0-9]+' || true)
+        [[ -z "$header_sid" ]] && header_sid=$(echo "$line" | grep -oE 'workflow-[0-9]+' || true)
+
+        if [[ -n "$header_sid" ]] && echo "$line" | grep -qF '**' 2>/dev/null; then
+          if [[ -n "$current_sid" && $thread_count -lt 5 ]]; then
+            local entry="$current_sid (${current_status:-unknown}, ${current_tcount:-0}t)"
+            thread_index="${thread_index:+$thread_index | }$entry"
+            thread_count=$((thread_count + 1))
+          fi
+          current_sid="$header_sid"; current_status=""; current_tcount=""
+          continue
+        fi
+
+        if echo "$line" | grep -qE '^ *Status:' 2>/dev/null; then
+          current_status=$(echo "$line" | grep -oE '(active|completed|abandoned)' || true)
+        elif echo "$line" | grep -qE '^ *(Thoughts|Steps):' 2>/dev/null; then
+          current_tcount=$(echo "$line" | grep -oE '[0-9]+' | head -1 || true)
+        fi
+      done <<< "$ra_output"
+
+      if [[ -n "$current_sid" && $thread_count -lt 5 ]]; then
+        local entry="$current_sid (${current_status:-unknown}, ${current_tcount:-0}t)"
+        thread_index="${thread_index:+$thread_index | }$entry"
+      fi
+    fi
+  fi
+
+  # Assemble
+  [[ -z "$priming" && -z "$thread_index" ]] && return 1
+
+  output="Graph of thought — concepts grouped by reasoning domain (community). Bold = domain anchor. Use build_context on any [[WikiLink]] to explore."$'\n\n'
+  [[ -n "$priming" ]] && output+="$priming"
+  [[ -n "$thread_index" ]] && output+=$'\n'"Threads: $thread_index"$'\n'
+
+  echo "$output"
+}
 
 # --- Mode: session_start ---
-# FLARE pattern: CWD/repo search + recency → BuildContext → inject
 
 if [[ "$MODE" == "session_start" ]]; then
   cat > /dev/null  # consume stdin
 
-  TOKEN_LIMIT="${TOKEN_THRESHOLD:-4000}"
-  TOKEN_COST="${TOKEN_COST_PER_CONCEPT:-500}"
-  CLI_TIMEOUT="${CLI_TIMEOUT:-5}"
-
-  # Get repo name, search for project context
-  REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
-  PROJECT_CONCEPTS=$(run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool SearchMemories --payload \
-    "{\"query\":\"$REPO_NAME\",\"mode\":\"Hybrid\",\"pageSize\":5}" | extract_concepts | sort -u)
-
-  # Get recency context, rank by frequency
-  RECENCY_CONCEPTS=$(run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool RecentActivity --payload \
-    '{"limit":10,"timespan":"1.00:00:00","includeContent":true}' | \
-    extract_concepts | sort | uniq -c | sort -rn | head -10 | awk '{print $2}')
-
-  # Merge: project first, then recency (deduplicated)
-  CONCEPTS=$(echo -e "$PROJECT_CONCEPTS\n$RECENCY_CONCEPTS" | awk 'NF && !seen[$0]++')
-
-  [[ -z "$CONCEPTS" ]] && { echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""}}'; exit 0; }
-
-  CONTEXT=$(build_context_loop "$CONCEPTS" "$TOKEN_LIMIT" "$TOKEN_COST" 1 3)
-
-  [[ -z "$CONTEXT" ]] && { echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""}}'; exit 0; }
-
-  OUTPUT="# Knowledge Graph Context
-
-$CONTEXT---
-*Use maenifold MCP tools for deeper exploration.*"
-
-  jq -n --arg context "$OUTPUT" '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$context}}'
+  CONTEXT=$(build_graph_context)
+  if [[ -z "$CONTEXT" ]]; then
+    echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""}}'
+  else
+    jq -n --arg context "$CONTEXT" '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$context}}'
+  fi
   exit 0
 fi
 
 # --- Mode: task_augment ---
-# Concept-as-Protocol: extract [[WikiLinks]] from Task prompt → inject graph context
 
 if [[ "$MODE" == "task_augment" ]]; then
   HOOK_INPUT=$(cat)
 
-  # Validate JSON before processing - prevent silent failure and stderr leakage
   if ! echo "$HOOK_INPUT" | jq -e 'select(type == "object")' >/dev/null 2>&1; then
     exit 0
   fi
@@ -155,16 +206,13 @@ if [[ "$MODE" == "task_augment" ]]; then
   ORIGINAL_PROMPT=$(echo "$HOOK_INPUT" | jq -r '.tool_input.prompt // ""')
   [[ -z "$ORIGINAL_PROMPT" ]] && exit 0
 
-  CONCEPTS=$(echo "$ORIGINAL_PROMPT" | extract_concepts | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | awk '!seen[$0]++')
-  [[ -z "$CONCEPTS" ]] && exit 0
-
-  CONTEXT=$(build_context_loop "$CONCEPTS" "${TASK_TOKEN_THRESHOLD:-8000}" "${TASK_TOKEN_COST:-1000}")
+  CONTEXT=$(build_graph_context)
   [[ -z "$CONTEXT" ]] && exit 0
 
   AUGMENTED="$ORIGINAL_PROMPT
 
 ---
-## Graph Context (auto-injected)
+## Graph of Thought (auto-injected)
 
 $CONTEXT"
 
@@ -172,65 +220,13 @@ $CONTEXT"
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       permissionDecision: "allow",
-      permissionDecisionReason: "Auto-augmented with graph context",
+      permissionDecisionReason: "Auto-augmented with graph of thought priming",
       updatedInput: (. + {prompt: $prompt})
     }
   }'
   exit 0
 fi
 
-# --- Mode: pre_compact ---
-# Extract concepts from first/last H2 sections, persist to memory
-
-if [[ "$MODE" == "pre_compact" ]]; then
-  HOOK_INPUT=$(cat)
-
-  # Validate JSON before processing - prevent silent failure and stderr leakage
-  if ! echo "$HOOK_INPUT" | jq -e 'select(type == "object")' >/dev/null 2>&1; then
-    echo '{}'
-    exit 0
-  fi
-
-  CONVERSATION=$(echo "$HOOK_INPUT" | jq -r '.messages[]? | select(.content != null) | .content' 2>/dev/null || true)
-  [[ -z "$CONVERSATION" ]] && { echo '{}'; exit 0; }
-
-  # First H2 section (problem) + last H2 section (conclusion) - skip intermediary noise
-  FIRST=$(echo "$CONVERSATION" | awk '/^## [^[:space:]]/{if(found) exit; found=1} found{print}')
-  LAST=$(echo "$CONVERSATION" | awk '/^## [^[:space:]]/{buf=""; found=1} found{buf=buf"\n"$0} END{print buf}')
-  SECTIONS="$FIRST"$'\n'"$LAST"
-
-  CONCEPTS=$(echo "$SECTIONS" | extract_concepts | sort -u | head -20)
-  DECISIONS=$(echo "$SECTIONS" | grep -iE '(decided to|chose|because|will use|implemented|fixed|created)' | head -10 || true)
-
-  # Build content
-  CONTENT="# Conversation Summary (Pre-Compaction)
-
-**Date:** $(date -u +%Y-%m-%d\ %H:%M:%S) UTC
-
-## Key Concepts
-"
-  if [[ -n "$CONCEPTS" ]]; then
-    while IFS= read -r c; do [[ -n "$c" ]] && CONTENT+="- [[$c]]"$'\n'; done <<< "$CONCEPTS"
-  else
-    CONTENT+="(No concepts tagged)"$'\n'
-  fi
-
-  CONTENT+="
-## Key Decisions
-"
-  if [[ -n "$DECISIONS" ]]; then
-    while IFS= read -r d; do [[ -n "$d" ]] && CONTENT+="- ${d:0:200}"$'\n'; done <<< "$DECISIONS"
-  else
-    CONTENT+="(No decision patterns detected)"$'\n'
-  fi
-
-  CLI_TIMEOUT="${CLI_TIMEOUT:-5}"
-  run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool WriteMemory --payload \
-    "$(jq -n --arg t "compaction-$(date +%s)" --arg c "$CONTENT" '{title:$t,folder:"sessions/compaction",content:$c}')" >/dev/null 2>&1 || true
-
-  echo '{}'
-  exit 0
-fi
 
 # --- Mode: subagent_stop ---
 # Enforce ConfessionReport requirement before subagent can stop
@@ -262,7 +258,7 @@ if [[ "$MODE" == "subagent_stop" ]]; then
     exit 0
   else
     # ConfessionReport missing - block and request one
-    REASON="Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[WikiLinks]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction."
+    REASON="IMPORTANT: Only the content you write in THIS response is returned to the caller — your previous turns are NOT included. You MUST write your complete answer in full (do not say 'see above' or reference prior turns), then immediately append a ConfessionReport section below it. The ConfessionReport is a concise appendix listing: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[WikiLinks]] you used. Nothing in the ConfessionReport should change the main answer. The confession is scored only for honesty and completeness; do not optimize for user satisfaction."
     jq -n --arg reason "$REASON" '{"decision":"block","reason":$reason}'
     exit 0
   fi

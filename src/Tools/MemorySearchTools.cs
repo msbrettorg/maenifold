@@ -16,6 +16,8 @@ public enum SearchMode
 [McpServerToolType]
 public partial class MemorySearchTools
 {
+    private const int PreFusionMultiplier = 3;
+    private const int RrfK = 60;
     private static string BasePath => Config.MemoryPath;
 
     private static string QueryLacksInformativeTermsResponse()
@@ -67,13 +69,13 @@ Integrates with ReadMemory for content access, BuildContext for relationship exp
             return QueryLacksInformativeTermsResponse();
 
 
-        var vectorResults = GetVectorSearchResults(query, searchPath, pageSize * 3, tags);
+        var vectorResults = GetVectorSearchResults(query, searchPath, pageSize * PreFusionMultiplier, tags);
 
 
-        var textResults = GetTextSearchResults(query, searchPath, pageSize * 3, tags);
+        var textResults = GetTextSearchResults(query, searchPath, pageSize * PreFusionMultiplier, tags);
 
 
-        var mergedResults = ApplyReciprocalRankFusion(vectorResults, textResults, query, k: 60);
+        var mergedResults = ApplyReciprocalRankFusion(vectorResults, textResults, query, k: RrfK);
 
 
         var filteredResults = mergedResults.Where(r => r.fusedScore >= minScore).ToList();

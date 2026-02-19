@@ -2,7 +2,7 @@
   "id": "socratic-dialogue",
   "name": "Socratic Dialogue",
   "emoji": "🤔",
-  "description": "Expose broken assumptions and flawed reasoning to fix stuck problems",
+  "description": "Expose broken assumptions and flawed reasoning by running a real dialogue with a skeptical partner agent",
   "triggers": [
     "debug reasoning",
     "challenge assumptions",
@@ -30,39 +30,33 @@
       "requiresEnhancedThinking": false
     },
     {
-      "id": "setup-adversary",
-      "name": "Setup Adversarial Questioning",
-      "description": "🧠 SequentialThinking ENHANCED DIALOG REQUIRED: Start a dialogue session where you'll play the role of someone who thinks your approach is wrong.\n\nThis adversary will relentlessly question your reasoning, assumptions, and evidence. Don't be gentle - the goal is to find the flaws in your thinking.\n\nTell the adversary: 'Challenge everything I believe about this problem. Find the flaws in my reasoning. Be ruthless.'\n\n⚠️ CRITICAL: Keep this session active throughout - don't terminate until the final step.",
+      "id": "spawn-skeptic",
+      "name": "Spawn a Gray Skeptic Partner",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nCreate a REAL dialogue partner (a subagent), and keep it alive across steps.\n\n1) Adopt the skepticism posture:\n- Use the role/color system: `Adopt(type=\"color\", identifier=\"gray\")`\n\n2) Spawn the partner using the Task tool (do NOT pick a specific agent type in this workflow). In the Task prompt tell the partner:\n- Adopt `color=gray` (skeptical inquiry)\n- Your job is to challenge my claims, demand evidence, and independently verify when possible (using tools)\n- Maintain a running ledger: Verified facts / Unverified assumptions / Open questions\n- Always end your reply with ONE next question\n\n3) CRITICAL: Save the returned `task_id` as your handle (e.g., `socraticPartnerTaskId`). You will reuse it to continue the same partner conversation.",
       "requiresEnhancedThinking": true
     },
     {
-      "id": "question-assumptions",
-      "name": "Challenge Your Core Assumptions",
-      "description": "🧠 CONTINUE SAME DIALOG & SequentialThinking SESSIONS: Have the adversary attack your fundamental assumptions.\n\nExamples of questions they should ask:\n- 'How do you know that's actually the problem?'\n- 'What evidence do you have that this approach works?'\n- 'What if you're solving the wrong thing entirely?'\n- 'Why do you believe X is necessary?'\n\nDon't defend - genuinely consider whether your assumptions are wrong.\n\n⚠️ CRITICAL: Do NOT terminate the sessions - keep them active.",
+      "id": "dialogue-loop",
+      "name": "Run the Dialogue (Resume via task_id)",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nHave a real back-and-forth. Do NOT restart the partner; resume it.\n\nLoop for 3-10 rounds:\n1) Answer the partner's question plainly.\n2) Provide evidence (or explicitly admit you don't have it).\n3) Resume the same partner using: `Task(task_id=socraticPartnerTaskId, prompt=...)`\n\nPartner requirements each round:\n- If you make a claim: either verify it independently, or say exactly what would verify it\n- Update the ledger (Verified / Unverified / Open)\n- Ask the next single question\n\nYou are NOT trying to win. You are trying to locate the broken assumption.",
       "requiresEnhancedThinking": true
     },
     {
-      "id": "examine-evidence",
-      "name": "Demand Evidence for Your Beliefs",
-      "description": "🧠 CONTINUE SAME DIALOG & SequentialThinking SESSIONS + RESEARCH: The adversary should demand proof for every claim you make.\n\n'Prove it' should be their response to everything. When you can't prove something, you've found an assumption.\n\nResearch actual evidence when challenged - don't just defend with more opinions.\n\n⚠️ CRITICAL: Do NOT terminate the sessions - keep them active.",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "find-contradiction",
-      "name": "Expose the Contradiction",
-      "description": "🧠 CONTINUE SAME DIALOG & SequentialThinking SESSIONS: Look for where your logic breaks down.\n\nThe adversary should find places where:\n- Your solution doesn't actually address the root problem\n- Your reasoning leads to contradictory conclusions\n- Your approach creates the very problem you're trying to solve\n- You're treating symptoms instead of causes\n\n⚠️ CRITICAL: Do NOT terminate the sessions - keep them active.",
+      "id": "contradiction",
+      "name": "Find the Contradiction",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nResume the partner and ask it to do ONE job: identify where your story breaks.\n\nPrompt the partner (via `Task(task_id=...)`) to:\n- Point to the specific assumption that, if false, collapses your approach\n- Show the contradiction or missing link\n- State the smallest test/experiment/check that would discriminate between two competing explanations\n\nThen do that check (or explicitly decide why you can't) and report the result back to the partner.",
       "requiresEnhancedThinking": true
     },
     {
       "id": "reframe-problem",
       "name": "Reframe the Real Problem",
-      "description": "Based on what the questioning exposed, what's the actual problem you need to solve?\n\nThis is often completely different from what you started with.",
+      "description": "Based on what the dialogue exposed, rewrite the problem statement as a falsifiable claim.\n\nFormat:\n- Original problem:\n- Broken assumption:\n- New problem statement (falsifiable):\n- What would make this statement false?",
       "requiresEnhancedThinking": false
     },
     {
-      "id": "test-new-understanding",
-      "name": "Test Your New Understanding",
-      "description": "🧠 CONTINUE SAME DIALOG & SequentialThinking SESSIONS: Have the adversary attack your new understanding.\n\nIf it's actually better, it should hold up to questioning. If it doesn't, keep refining.\n\n⚠️ CRITICAL: Do NOT terminate the sessions - keep them active.",
+      "id": "test-reframe",
+      "name": "Attack the Reframe (Partner Verification)",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nResume the same partner (`Task(task_id=socraticPartnerTaskId, ...)`) and present your reframed problem statement.\n\nPartner must:\n- Try to falsify it\n- Identify any remaining assumptions\n- Independently verify at least one key claim (or explain why verification is blocked)\n\nIterate until the partner agrees the reframe is coherent OR you identify the remaining uncertainty explicitly.",
       "requiresEnhancedThinking": true
     },
     {
@@ -74,7 +68,7 @@
     {
       "id": "final-validation",
       "name": "Final Reality Check",
-      "description": "🧠 COMPLETE ALL SESSIONS: Have one final adversarial challenge to your conclusions, then complete the sessions.\n\nQuestions like:\n- 'Are you sure you're not just finding a more sophisticated way to be wrong?'\n- 'What could still go wrong with this approach?'\n- 'What are you still assuming without evidence?'\n\nThen record your key insights: What assumptions were wrong? What was the real problem? How will you approach similar problems differently?\n\n📝 IMPORTANT: Document the flawed reasoning you discovered and how you'll avoid it in the future.",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nResume the partner one last time and ask for a final audit.\n\nPartner output MUST include:\n- Verified facts (with how verified)\n- Unverified assumptions (and how to verify)\n- Remaining open questions\n- Biggest remaining risk in your proposed solution directions\n\nThen you record your key insights: what assumption was wrong, what the real problem is, and what checks you'll run earlier next time.\n\nFinally, you may end the partner conversation.",
       "requiresEnhancedThinking": true
     }
   ]

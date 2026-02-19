@@ -8,19 +8,21 @@ Just as we refuse to create "smart" code that pretends to make decisions, we ref
 
 ## What This Means
 
-### ❌ NO MOCKS
-```typescript
-// BAD - This is a lie
-const mockDB = {
-  save: vi.fn().mockResolvedValue({ id: 1 })
-};
+### No Mocks
+
+BAD — This is a lie:
+```
+// Illustrative pseudo-code (actual tests use C#/NUnit)
+var mockDB = { save: fn().mockResolvedValue({ id: 1 }) };
 ```
 
-### ✅ REAL SYSTEMS
-```typescript
-// GOOD - This is truth
-const db = new Database(':memory:');
-await db.save(entity);
+### Real Systems
+
+GOOD — This is truth:
+```
+// Illustrative pseudo-code (actual tests use C#/NUnit)
+var db = new SqliteConnection(":memory:");
+db.SaveEntity(entity);
 ```
 
 ## Testing Rules
@@ -32,7 +34,7 @@ await db.save(entity);
 
 2. **Use Real Directories**
    - NO temp directories - use actual project test directories
-   - `/workspace/test-outputs/` for all test artifacts
+   - `test-outputs/` (relative to repo root) for all test artifacts
    - Keep test outputs for debugging failed tests
    - Real file permissions, real disk I/O, real behavior
    - Clean up old runs periodically, not immediately
@@ -69,87 +71,24 @@ Real tests find real bugs:
 ## Practical Examples
 
 ### Testing Database Operations
-```typescript
-describe('MemoryDatabase', () => {
-  let db: MemoryDatabase;
-  
-  beforeEach(() => {
-    // Real database, in memory
-    db = new MemoryDatabase(':memory:');
-  });
-  
-  it('saves and retrieves entities', async () => {
-    const entity = createValidEntity(); // Real, complete entity
-    await db.saveEntity(entity);
-    const retrieved = await db.getEntity(entity.permalink);
-    expect(retrieved).toEqual(entity);
-  });
-});
-```
+
+Use a real SQLite in-memory connection (via `Microsoft.Data.Sqlite`). Open the connection, create schema, insert a complete and valid entity, retrieve it, and assert equality. No mocks; no fakes.
+
+Actual tests use C#/NUnit — see `tests/Maenifold.Tests/` for working examples.
 
 ### Testing File Operations
-```typescript
-describe('MarkdownManager', () => {
-  const baseTestDir = join(process.cwd(), 'test-outputs', 'markdown');
-  const testRunDir = join(baseTestDir, `run-${Date.now()}`);
-  
-  beforeAll(async () => {
-    await mkdir(testRunDir, { recursive: true });
-  });
-  
-  // NO immediate cleanup - keep artifacts for debugging
-  
-  it('writes and reads markdown files', async () => {
-    const manager = new MarkdownManager(testRunDir);
-    await manager.writeMarkdownFile(entity);
-    
-    // Check the ACTUAL file in ACTUAL directory
-    const filePath = join(testRunDir, 'notes', 'test.md');
-    const exists = existsSync(filePath);
-    expect(exists).toBe(true);
-    
-    // Test outputs remain in test-outputs/markdown/run-[timestamp]/
-    // for inspection after test runs
-  });
-});
 
-// Deterministic Test IDs
-// Use generateTestId() instead of Date.now() for reproducible test runs
-// Format: test-${TEST_ID || 'run'}-${sequentialCounter}
-// Example: TEST_ID=debug-issue-123 npm test
-// This allows reproducing specific test failures
+Use a real subdirectory under `test-outputs/` (relative to repo root). Create the directory in `[SetUp]`, write actual files, and assert existence and content against the real filesystem. Do not clean up immediately — keep artifacts for post-run debugging.
 
-// Periodic cleanup in separate maintenance script
-async function cleanOldTestRuns() {
-  const runs = await readdir(baseTestDir);
-  const sorted = runs.sort().reverse();
-  // Keep last 20 runs
-  for (const old of sorted.slice(20)) {
-    await rm(join(baseTestDir, old), { recursive: true });
-  }
-}
-```
+Use a timestamped run folder (e.g., `test-outputs/markdown/run-{timestamp}/`) so multiple runs do not collide. Periodic cleanup can be done in a separate maintenance step, keeping the last N runs.
 
-### Testing MCP Tools
-```typescript
-describe('Fugue Tool', () => {
-  it('handles real tool input/output', async () => {
-    const input = {
-      thought: 'Real thought',
-      thoughtNumber: 1,
-      totalThoughts: 3,
-      nextThoughtNeeded: true
-    };
-    
-    const result = await fugueHandler(input);
-    // Test the CONTRACT, not the implementation
-    expect(JSON.parse(result.content[0].text)).toMatchObject({
-      status: 'thinking',
-      thoughtNumber: 1
-    });
-  });
-});
-```
+Actual tests use C#/NUnit — see `tests/Maenifold.Tests/` for working examples.
+
+### Testing MCP Tools (SequentialThinking)
+
+Invoke the real `SequentialThinkingTools` handler with a complete, valid input payload. Assert on the returned JSON contract — `status`, `thoughtNumber`, etc. — not on internal implementation details.
+
+Actual tests use C#/NUnit — see `tests/Maenifold.Tests/` for working examples.
 
 ## The Only Exceptions
 

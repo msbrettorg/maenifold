@@ -1,0 +1,62 @@
+{
+  "id": "memory-status",
+  "name": "Sleep Status (Memory Health Report)",
+  "emoji": "🍂",
+  "description": "Observation-only memory health report. Analyzes access patterns, calculates decay weights, and flags stale content for review. Does not modify anything — pure status snapshot. Part of the cognitive sleep cycle.",
+  "triggers": [
+    "sleep status",
+    "memory status report",
+    "memory health",
+    "decay report"
+  ],
+  "enhancedThinkingEnabled": false,
+  "steps": [
+    {
+      "id": "memory-replay",
+      "name": "🔄 Memory Replay (Access Pattern Focus)",
+      "description": "Understand access patterns and identify stale content.\n\n1. Run recent_activity to retrieve events from the last 24-48 hours\n2. Note which files were accessed recently (active/fresh)\n3. Identify files that have been dormant (not accessed)\n4. Categorize content by tier:\n   - thinking/sequential/: Ephemeral session data\n   - thinking/workflows/: Workflow session data\n   - Other memory://: Long-term knowledge\n5. Create access pattern summary\n\nIMPORTANT: This step is observation-only. Do NOT use read_memory - it would reset decay clocks.",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "recent_activity": {
+            "reason": "Retrieve recent access patterns without modifying decay state",
+            "priority": "mandatory",
+            "timespan": "2.00:00:00",
+            "includeContent": false
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": ["Access patterns documented", "Dormant files identified", "Tier categorization complete"],
+        "next_actions": ["Status report"],
+        "guardrails": {
+          "no_read_memory": "NEVER use read_memory in this workflow - it resets decay clocks",
+          "observation_only": "Use list_memories for metadata, not read_memory for content"
+        }
+      }
+    },
+    {
+      "id": "status-report",
+      "name": "🍂 Status Report (Memory Health)",
+      "description": "Calculate decay weights and compile memory health report.\n\n1. Run list_memories to enumerate all memory files with decay metadata\n2. Apply tier-specific decay rules:\n   - thinking/sequential/: 7-day grace period, 30-day half-life\n   - thinking/workflows/: 14-day grace period, 30-day half-life\n   - Other memory://: 14-day grace period, 30-day half-life\n3. Calculate decay_weight for each file based on last_accessed timestamp\n4. Flag severely decayed content (decay_weight < 0.25) for review\n\nCRITICAL: Do NOT use read_memory - this would reset decay clocks and defeat the purpose!\n\nDecay formula: weight = 2^(-days_since_access / half_life) after grace period\n\nOutput: Return status report as workflow output - DO NOT write to memory://\nInclude: Tier breakdown, decay statistics, flagged items for review",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "list_memories": {
+            "reason": "Enumerate memories with decay metadata (created, last_accessed, decay_weight)",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": ["Decay weights calculated", "Flagged items identified", "Report returned as output"],
+        "next_actions": ["Return report to orchestrator"],
+        "guardrails": {
+          "no_read_memory": "NEVER use read_memory in this workflow - it resets decay clocks",
+          "no_write_memory": "NEVER use write_memory - status reports are ephemeral, return as output",
+          "observation_only": "This is a read-only status snapshot, nothing is modified",
+          "no_deletion": "Decay affects ranking only, never delete content automatically",
+          "flag_threshold": "Flag items with decay_weight < 0.25 for human review"
+        }
+      }
+    }
+  ]
+}

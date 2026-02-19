@@ -111,10 +111,10 @@ Continue the session by passing the returned `sessionId` with subsequent thought
 
 Once you have foundational knowledge, create specialist roles using constitutional AI.
 
-### Using constitutional-role-architecture
+### Using role-creation-workflow
 
 ```
-Run the constitutional-role-architecture workflow to create a [[kubernetes-architect]] role specializing in [[cloud-native]] [[production]] systems
+Run the role-creation-workflow workflow to create a [[kubernetes-architect]] role specializing in [[cloud-native]] [[production]] systems
 ```
 
 The workflow guides you through:
@@ -270,18 +270,17 @@ Run periodically (daily recommended):
 Run the memory-cycle workflow
 ```
 
-Four specialists run in parallel:
+Three specialists run in parallel (decay is handled within the memory-cycle workflow, not as a standalone workflow):
 1. **Consolidation** — Replays high-significance episodic memories, promotes to semantic
-2. **Decay** — Analyzes access patterns, flags severely decayed content
-3. **Repair** — Normalizes WikiLink variants, cleans orphaned concepts
-4. **Epistemic** — Reviews assumptions, validates or invalidates based on evidence
+2. **Repair** — Normalizes WikiLink variants, cleans orphaned concepts
+3. **Epistemic** — Reviews assumptions, validates or invalidates based on evidence
 
 ### What Happens
 
 | Memory Type | Grace Period | Half-Life | Fate |
 |-------------|--------------|-----------|------|
-| Episodic (`thinking/`) | 7 days | 14 days | Consolidated or decayed |
-| Semantic (`research/`, `decisions/`) | 14 days | 30 days | Stable if accessed |
+| Episodic (`thinking/`) | 7 days | 30 days | Consolidated or decayed |
+| Semantic (`research/`, `decisions/`) | 28 days | 30 days | Stable if accessed |
 | Immortal (validated assumptions) | ∞ | ∞ | Permanent |
 
 ### Dream Synthesis
@@ -339,7 +338,7 @@ maenifold --tool Workflow --payload '{"workflowId":"..."}'
 |----------|---------|
 | `agentic-research` | Deep single-agent research with HyDE and reflexion |
 | `think-tank` | Multi-agent collaborative research in waves |
-| `constitutional-role-architecture` | Create domain-specific roles |
+| `role-creation-workflow` | Create domain-specific roles |
 | `higher-order-thinking` | Design custom workflows |
 | `workflow-dispatch` | Auto-select optimal methodology |
 | `memory-cycle` | Consolidation, decay, repair, epistemic maintenance |

@@ -5,17 +5,6 @@ namespace Maenifold.Tools;
 
 public static class GraphDatabase
 {
-    // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Provide connection factory for decay weight queries
-    /// <summary>
-    /// Gets a read-only database connection. Caller must dispose.
-    /// </summary>
-    public static SqliteConnection GetConnection()
-    {
-        var conn = new SqliteConnection(Config.DatabaseConnectionString);
-        conn.OpenReadOnly();
-        return conn;
-    }
-
     public static void InitializeDatabase()
     {
         using var conn = new SqliteConnection(Config.DatabaseConnectionString);
@@ -29,6 +18,7 @@ public static class GraphDatabase
         CreateConceptTables(conn);
         CreateFileTables(conn);
         CreateGraphTables(conn);
+        CreateCommunityTables(conn);
         CreateVectorTables(conn);
         AddMissingColumns(conn);
     }
@@ -64,7 +54,8 @@ public static class GraphDatabase
                 summary TEXT,
                 last_indexed TEXT,
                 status TEXT,
-                file_md5 TEXT
+                file_md5 TEXT,
+                file_size INTEGER
             )");
 
         conn.Execute(@"
@@ -115,6 +106,22 @@ public static class GraphDatabase
         conn.Execute("CREATE INDEX IF NOT EXISTS idx_graph_concept_b ON concept_graph(concept_b)");
     }
 
+    // T-COMMUNITY-001.1: RTM FR-13.3, NFR-13.3.1 - Community detection results table
+    private static void CreateCommunityTables(SqliteConnection conn)
+    {
+        conn.Execute(@"
+            CREATE TABLE IF NOT EXISTS concept_communities (
+                concept_name TEXT PRIMARY KEY,
+                community_id INTEGER NOT NULL,
+                modularity REAL NOT NULL,
+                resolution REAL NOT NULL,
+                detected_at TEXT NOT NULL,
+                FOREIGN KEY (concept_name) REFERENCES concepts(concept_name) ON DELETE CASCADE
+            )");
+
+        conn.Execute("CREATE INDEX IF NOT EXISTS idx_communities_community_id ON concept_communities(community_id)");
+    }
+
     private static void CreateVectorTables(SqliteConnection conn)
     {
         try
@@ -161,10 +168,30 @@ public static class GraphDatabase
             // Column already exists
         }
 
+        // T-SYNC-MTIME-001.2: RTM FR-14.4 - Persist file_size for size guard
+        try
+        {
+            conn.Execute("ALTER TABLE file_content ADD COLUMN file_size INTEGER");
+        }
+        catch
+        {
+            // Column already exists
+        }
+
         // T-GRAPH-DECAY-002: RTM NFR-7.6.1 - Add last_accessed column for access-boosting decay behavior
         try
         {
             conn.Execute("ALTER TABLE file_content ADD COLUMN last_accessed TEXT");
+        }
+        catch
+        {
+            // Column already exists
+        }
+
+        // T-SYNC-UNIFY-001: concept_graph.source_files tracks which files contribute to each edge
+        try
+        {
+            conn.Execute("ALTER TABLE concept_graph ADD COLUMN source_files TEXT");
         }
         catch
         {

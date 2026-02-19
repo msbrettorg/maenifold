@@ -1,0 +1,82 @@
+{
+  "id": "memory-hub-detection",
+  "name": "Hub Detection & Cleanup (Graph Maintenance)",
+  "emoji": "🎯",
+  "description": "Graph maintenance specialist for detecting high-degree hub concepts that pollute BuildContext results. Identifies generic hubs, updates the WikiLink filter, and cleans existing files.",
+  "triggers": [
+    "hub detection",
+    "hub cleanup",
+    "wikilink filter",
+    "graph hubs"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "hub-detection",
+      "name": "Hub Detection (Graph Analysis)",
+      "description": "Identify high-degree hub concepts that pollute BuildContext results.\n\n1. Query graph for high-degree concepts using build_context with depth=1 on suspected generic terms\n2. Use find_similar_concepts to discover concept families and measure connection breadth\n3. Cross-reference results with existing .wikilink-filter.json file (read it if it exists)\n4. Classify each high-degree concept:\n   - Generic hubs (e.g., \"tool\", \"agent\", \"workflow\") that connect to many unrelated memories -> recommend for filter\n   - Specific concepts with legitimately many connections -> keep\n5. Create classified list of hub candidates with connection counts and recommendation\n\nOutput: Classified list of hub candidates with connection counts and recommendation\nInclude: Concept name, degree count, classification (generic-hub / legitimate), reason\n\nCRITICAL: Do NOT use read_memory - this phase is observation-only to preserve decay integrity.",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "build_context": {
+            "reason": "Query graph topology to find high-degree concepts",
+            "priority": "mandatory",
+            "depth": 1
+          },
+          "find_similar_concepts": {
+            "reason": "Discover concept families and measure connection breadth",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "High-degree concepts identified",
+          "Each candidate classified as generic-hub or legitimate",
+          "Connection counts recorded",
+          "Cross-referenced with existing .wikilink-filter.json"
+        ],
+        "next_actions": [
+          "Hub cleanup"
+        ],
+        "guardrails": {
+          "no_read_memory": "NEVER use read_memory - graph tools do not need file content",
+          "observation_only": "This phase identifies hubs, does not modify anything"
+        }
+      }
+    },
+    {
+      "id": "hub-cleanup",
+      "name": "Hub Cleanup (Filter & Strip)",
+      "description": "Apply filter updates and strip hub WikiLinks from existing memory files.\n\n1. For confirmed generic hubs from the detection step:\n   a. Read the existing .wikilink-filter.json (or start with {})\n   b. Add each confirmed hub as a key with the reason as value\n   c. Write the updated .wikilink-filter.json\n2. Strip hub WikiLinks from ALL memory files using the CLI one-liner:\n   ```\n   jq -r 'keys[]' ~/.wikilink-filter.json | while read c; do find ~/maenifold/memory -name '*.md' -exec sed -i '' \"s/\\[\\[$c\\]\\]/$c/g\" {} +; done\n   ```\n   This replaces [[concept]] with plain text concept across all memory files.\n3. Run sync to rebuild the graph without the stripped hub concepts\n4. Compile cleanup report with: hubs filtered, files modified, WikiLinks stripped\n\nOutput: Return cleanup report as workflow output - DO NOT write to memory://\n\nCRITICAL: Do NOT use read_memory. The sed one-liner does the work - no LLM needed for stripping.",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Bash": {
+            "reason": "Run the sed one-liner to strip hub WikiLinks from memory files",
+            "priority": "mandatory",
+            "command": "jq -r 'keys[]' ~/maenifold/memory/.wikilink-filter.json | while read c; do find ~/maenifold/memory -name '*.md' -exec sed -i '' \"s/\\[\\[$c\\]\\]/$c/g\" {} +; done"
+          },
+          "sync": {
+            "reason": "Rebuild graph after hub WikiLinks are stripped",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Confirmed hubs written to .wikilink-filter.json",
+          "sed one-liner executed to strip WikiLinks from files",
+          "Graph rebuilt via sync",
+          "Report returned as output"
+        ],
+        "next_actions": [
+          "Return report to orchestrator"
+        ],
+        "guardrails": {
+          "no_read_memory": "NEVER use read_memory - sed handles file modifications directly",
+          "no_write_memory": "NEVER use write_memory - cleanup reports are ephemeral, return as output",
+          "filter_format": ".wikilink-filter.json is a JSON object: {\"concept\": \"reason\", ...}"
+        }
+      }
+    }
+  ]
+}

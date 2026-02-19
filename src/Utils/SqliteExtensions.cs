@@ -71,6 +71,7 @@ public static class SqliteExtensions
         connection.LoadExtension(path);
     }
 
+// CA2100: SQL strings are constructed internally, not from user input. Prepared statements used for all user-facing data.
 #pragma warning disable CA2100
     public static void Execute(this SqliteConnection conn, string sql, object? param = null)
     {
@@ -116,15 +117,49 @@ public static class SqliteExtensions
             return (T)(object)reader.GetString(0);
 
 
-        if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(ValueTuple<,,>))
+        // Determine the actual tuple type to construct, unwrapping Nullable<T> if needed.
+        var actualType = typeof(T);
+        var nullableUnderlying = Nullable.GetUnderlyingType(actualType);
+        if (nullableUnderlying != null)
         {
-            var types = typeof(T).GetGenericArguments();
-            var values = new object[types.Length];
-            for (int i = 0; i < types.Length; i++)
+            actualType = nullableUnderlying;
+        }
+
+        if (actualType.IsGenericType)
+        {
+            var def = actualType.GetGenericTypeDefinition();
+            if (def == typeof(ValueTuple<,>) || def == typeof(ValueTuple<,,>) || def == typeof(ValueTuple<,,,>) || def == typeof(ValueTuple<,,,,>) || def == typeof(ValueTuple<,,,,,>) || def == typeof(ValueTuple<,,,,,,>) || def == typeof(ValueTuple<,,,,,,,>))
             {
-                values[i] = reader.IsDBNull(i) ? null! : reader.GetValue(i);
+                var types = actualType.GetGenericArguments();
+                var values = new object[types.Length];
+                for (int i = 0; i < types.Length; i++)
+                {
+                    if (reader.IsDBNull(i))
+                    {
+                        var underlyingNullable = Nullable.GetUnderlyingType(types[i]);
+                        if (types[i].IsValueType && underlyingNullable == null)
+                        {
+                            values[i] = Activator.CreateInstance(types[i])!;
+                        }
+                        else
+                        {
+                            values[i] = null!;
+                        }
+                        continue;
+                    }
+
+                    var value = reader.GetValue(i);
+                    // SQLite returns INTEGER as Int64; convert to target type for ValueTuple construction.
+                    var targetType = Nullable.GetUnderlyingType(types[i]) ?? types[i];
+                    if (value is long && targetType == typeof(int))
+                    {
+                        value = Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                    values[i] = value;
+                }
+
+                return (T)Activator.CreateInstance(actualType, values)!;
             }
-            return (T)Activator.CreateInstance(typeof(T), values)!;
         }
 
         return default;
@@ -149,23 +184,57 @@ public static class SqliteExtensions
 
             if (typeof(T) == typeof(string))
             {
-                results.Add((T)(object)reader.GetString(0));
+                // T-HOOKS-001.2: RTM FR-16.10 — guard against NULL values
+                var val = reader.IsDBNull(0) ? "" : reader.GetString(0);
+                results.Add((T)(object)val);
             }
 
             else if (typeof(T) == typeof((string, int, string)))
             {
-                var related = reader.GetString(0);
-                var count = reader.GetInt32(1);
-                var files = reader.GetString(2);
+                // T-HOOKS-001.2: RTM FR-16.10 — guard against NULL values
+                var related = reader.IsDBNull(0) ? "" : reader.GetString(0);
+                var count = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+                var files = reader.IsDBNull(2) ? "" : reader.GetString(2);
                 results.Add((T)(object)(related, count, files));
             }
 
             else if (typeof(T) == typeof((string, string, int)))
             {
-                var a = reader.GetString(0);
-                var b = reader.GetString(1);
-                var count = reader.GetInt32(2);
+                // T-HOOKS-001.2: RTM FR-16.10 — guard against NULL values
+                var a = reader.IsDBNull(0) ? "" : reader.GetString(0);
+                var b = reader.IsDBNull(1) ? "" : reader.GetString(1);
+                var count = reader.IsDBNull(2) ? 0 : reader.GetInt32(2);
                 results.Add((T)(object)(a, b, count));
+            }
+
+            else if (typeof(T).IsValueType && typeof(T).IsGenericType)
+            {
+                var def = typeof(T).GetGenericTypeDefinition();
+                if (def == typeof(ValueTuple<,>) || def == typeof(ValueTuple<,,>) || def == typeof(ValueTuple<,,,>) || def == typeof(ValueTuple<,,,,>) || def == typeof(ValueTuple<,,,,,>) || def == typeof(ValueTuple<,,,,,,>) || def == typeof(ValueTuple<,,,,,,,>))
+                {
+                    var types = typeof(T).GetGenericArguments();
+                    var values = new object[types.Length];
+                    for (int i = 0; i < types.Length; i++)
+                    {
+                        if (reader.IsDBNull(i))
+                        {
+                            var underlyingNullable = Nullable.GetUnderlyingType(types[i]);
+                            if (types[i].IsValueType && underlyingNullable == null)
+                            {
+                                values[i] = Activator.CreateInstance(types[i])!;
+                            }
+                            else
+                            {
+                                values[i] = null!;
+                            }
+                            continue;
+                        }
+
+                        values[i] = reader.GetValue(i);
+                    }
+
+                    results.Add((T)Activator.CreateInstance(typeof(T), values)!);
+                }
             }
 
             else if (typeof(T).IsClass && !typeof(T).IsAbstract)

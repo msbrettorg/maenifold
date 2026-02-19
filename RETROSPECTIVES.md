@@ -202,5 +202,207 @@ Use this template for future retrospectives:
 
 ---
 
-*Last updated: 2026-02-02*
+## Sprint 2026-02-12: Date Detection Fix (T-DATE-001)
+
+**Sprint Duration**: 2026-02-12
+**Outcome**: RTM-001 through RTM-006 Complete
+**Priority**: P1 (User-reported bug)
+
+### Executive Summary
+
+Fixed date detection bug in `MarkdownWriter.GetSessionPath` where `LastIndexOf('-')` parsed the random suffix instead of the Unix timestamp from session IDs (`session-{ts}-{random}`), storing all sessions under `1970/01/01/`. Also fixed downstream issues: `ExtractSessionId` returning year instead of filename, `IsValidSessionIdFormat` validating wrong segment, UTC suffix missing from 4 timestamp sites, and `InvariantCulture` missing from 2 ISO 8601 sites.
+
+### What Worked Well
+
+1. **Parallel SWE Dispatch**: 4 SWE agents implemented 6 RTM items simultaneously across 5 source files with zero merge conflicts
+   - Each agent got a non-overlapping file scope (MarkdownWriter, SequentialThinkingTools, WorkflowOperations, RecentActivity.Reader)
+   - All 4 completed within ~60s, reducing wall clock from ~4min serial to ~1min parallel
+
+2. **3-File Test Split**: Splitting 21 tests across 3 files (PathTests, ValidationTests, TimestampTests) enabled parallel SWE dispatch for test writing
+   - No file conflicts between test agents
+   - Each file covers exactly 2 RTM items
+
+3. **Red Team Found Real Regression**: WorkflowOperationsTests used `test-session-{ts}` format incompatible with prefix-aware parsing. Without red team audit, 18 pre-existing tests would have remained broken.
+
+4. **RTM Traceability Discipline**: Every commit references RTM items. Red team triage table in RTM.md documents disposition of every finding.
+
+### Issues Encountered
+
+1. **WorkflowOperationsTests Regression (18 failures)**: Test helper `CreateTestSession` used invalid `test-session-{ts}` format
+   - **Resolution**: Changed to production format `workflow-{ts}` (commit a435e20)
+   - **Lesson**: Test helpers must use production-valid formats, not test-only conventions that accidentally work
+
+2. **Build Policy Blocked Sprint**: `sprint-baseline.txt` in project root triggered `Directory.Build.targets` disallowed-files error
+   - **Resolution**: Moved to `docs/sprint-baseline.txt` (commit 7ccf24f)
+   - **Lesson**: Keep sprint artifacts in `docs/` from the start
+
+3. **SWE Agents Skipped Traceability Reads**: All 4 SWE agents confessed to not reading PRD/RTM/TODO before implementation
+   - **Resolution**: Tasks were self-contained enough that this didn't cause defects, but protocol was violated
+   - **Lesson**: Include explicit "read these files first" in SWE task prompts, or accept that well-scoped tasks don't need it
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| Tests Written | 21 (6 path + 11 validation + 4 timestamp) |
+| Tests Passing | 450 (full suite, 0 failures) |
+| Source Files Modified | 5 |
+| Sprint Commits | 11 |
+| Net Lines Changed | +535 / -22 |
+| Agents Dispatched | 11 (4 SWE impl + 3 SWE test + 2 red-team + 1 blue-team + 1 SWE fix) |
+
+### Learnings for Future Sprints
+
+1. **Test helpers are attack surface**: Red team should audit test setup code, not just production code
+2. **Prefix-aware parsing is fragile**: Any session ID format that deviates from `{prefix}-{timestamp}[-{suffix}]` will break. Document the contract.
+3. **3-file test split enables parallelism**: When RTM items map to independent functions, split test files by RTM pair for parallel agent dispatch
+4. **Red team triage table is valuable**: Documenting ACCEPT/REJECT/DEFER for every finding creates auditable decision trail
+
+### Related PRD/RTM
+
+- SPECS: SPECS-sprint-20260212.md (FR-1, FR-2, FR-3, NFR-1, NFR-2)
+- RTM: RTM-001 through RTM-006 (all Complete)
+
+---
+
+## Sprint 2026-02-16: Community Detection (T-COMMUNITY-001)
+
+**Sprint Duration**: 2026-02-16
+**Outcome**: T-COMMUNITY-001.1-12 Complete
+**Priority**: P1
+
+### Executive Summary
+
+Delivered Louvain modularity-based community detection for the concept graph (FR-13.1–13.11). Concepts are now clustered by co-occurrence patterns, community assignments persist to `concept_communities`, and BuildContext surfaces "community siblings" — same-cluster concepts with no direct edge that share mutual neighbors. Full sync runs Louvain automatically; a DB file watcher triggers recomputation after incremental sync settles.
+
+### What Worked Well
+
+1. **3-Wave Execution**: Foundation → Integration → Verification structure enabled clean parallel dispatch
+   - Wave 1: 3 parallel SWE agents (schema, config, algorithm) + 1 blue-team
+   - Wave 2: 3 parallel SWE agents (sync hook, DB watcher, BuildContext enrichment)
+   - Wave 3: 3 parallel agents (blue-team integration tests, red-team audit, blue-team NFR compliance)
+
+2. **Red-Team Found Real Concurrency Bug**: FAIL-001 identified non-atomic DELETE+INSERT in RunAndPersist AND ConceptSync.Sync bypassing the DB watcher's write guard. Under concurrent full sync + watcher, this would silently corrupt community assignments. Fixed with transaction + SetCommunityWriteInProgress.
+
+3. **Session Continuity After Compaction**: Sprint survived context compaction mid-Wave-2. Sequential thinking session preserved enough state to restart Wave 2 cleanly from committed Wave 1.
+
+4. **COALESCE Sentinel Pattern**: SWE-3 worked around a SqliteExtensions nullable int bug using COALESCE with -1 sentinel. Red-team verified -1 can never be a valid community_id (Louvain normalizes to 0..N-1). Pragmatic fix, well-documented.
+
+### Issues Encountered
+
+1. **Wave 2 Lost to Compaction**: First Wave 2 attempt partially wrote code but context compacted before commit. Working tree was left dirty with non-compiling code.
+   - **Resolution**: Verified clean working tree on restart, dispatched fresh agents with full file context
+   - **Lesson**: Commit early — even partial work should be committed if it compiles, so compaction doesn't lose progress
+
+2. **Missing Phase 2 in Louvain**: Implementation is Phase 1 only (local node moves) but comments claimed Phase 1+2. Red-team flagged as WARN-003.
+   - **Resolution**: Corrected comments. Phase 1 alone produces quality communities at current graph scale (modularity 0.67)
+   - **Lesson**: Don't describe aspirational architecture in comments — describe what's actually implemented
+
+3. **DB Watcher Not Testable**: FR-13.5 (watcher debounce) couldn't be covered by automated tests without mocks/sleep. Blue-team noted the gap.
+   - **Resolution**: Accepted as untestable infrastructure. Manual verification planned.
+   - **Lesson**: Async timing-dependent infrastructure has inherent testing limits under No Fake Tests policy
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| Tests Written | 17 (11 unit + 6 integration) |
+| Tests Passing | 506/507 (1 pre-existing vec failure) |
+| New Files | 2 (`CommunityDetection.cs`, `IncrementalSync.CommunityWatcher.cs`) |
+| Modified Files | 5 (`GraphDatabase.cs`, `Config.cs`, `ConceptSync.cs`, `IncrementalSyncTools.cs`, `GraphTools.cs`, `BuildContextResult.cs`) |
+| Commits | 5 (RTM setup + 4 feature commits) |
+| Red-Team Findings | 1 FAIL (fixed), 3 WARN (accepted), 5 PASS |
+| NFR Compliance | 12/12 PASS |
+
+### Learnings for Future Sprints
+
+1. **Commit before compaction**: Wave 2 partial work was lost. If it compiles, commit it.
+2. **Red-team earns its keep on concurrency**: Static analysis + code reading found a real data corruption path
+3. **Transaction discipline in batch writes**: Any DELETE+INSERT pattern must be wrapped in a transaction
+4. **Write guards must be symmetric**: If two code paths write the same table, both must set the guard flag
+5. **Comments must match reality**: Don't describe Phase 2 if only Phase 1 exists
+
+### Related PRD/RTM
+
+- PRD: FR-13.1–13.11, NFR-13.1.1–13.11.1
+- RTM: T-COMMUNITY-001.1 through T-COMMUNITY-001.12
+
+---
+
+## Sprint 2026-02-16: Session Start Hook Redesign (T-HOOKS-001)
+
+**Sprint Duration**: 2026-02-16
+**Outcome**: T-HOOKS-001.1-5 Complete
+**Priority**: P1 (Session context injection was producing zero output)
+
+### Executive Summary
+
+Redesigned the `session_start` mode in `hooks.sh` from a broken FLARE-pattern loader (zero output due to two bugs) to a community-clustered pointer array loader. The new design uses RecentActivity thinking sessions as seeds, expands via BuildContext with a skip list for community diversity, and outputs a compact mind map of recent work grouped by knowledge graph communities. Also fixed a NULL crash in SqliteExtensions.cs affecting ~10% of concepts.
+
+### What Worked Well
+
+1. **Root cause analysis before coding**: Identifying both bugs (BSD awk dedup + co-occurs filter) before designing the replacement prevented wasted effort on a design that would have hit the same issues.
+
+2. **Parallel Wave 1**: Running SWE-1 (hooks.sh bugs) and SWE-2 (SqliteExtensions NULL guard) simultaneously saved wall-clock time. Both completed and committed independently.
+
+3. **Red-team caught a real vulnerability**: REPO_NAME was interpolated directly into a JSON string literal in the fallback path. A crafted directory name (e.g., `my","evil":"true`) could inject arbitrary JSON. Fixed with `jq -n --arg` for safe JSON construction.
+
+4. **Skip list design for community diversity**: Using a newline-delimited string with `grep -qxF` membership check avoided bash 3.2's lack of associative arrays while providing O(n) dedup across seeds, relations, and community siblings.
+
+### What Didn't Work
+
+1. **bash 3.2 compatibility surprise**: Initial SWE-3 implementation used `declare -A` (associative arrays), which fails on macOS default bash. Required a full rewrite to parallel indexed arrays. **Action**: Document bash 3.2 constraint in hooks.sh header comments for future contributors.
+
+2. **BuildContext CLI output format assumption**: Code initially parsed for `[[WikiLinks]]` in CLI output, but CLI uses bullet-point format (`• concept-name`). Required adding `extract_bullet_concepts()` helper. **Action**: This is fragile — consider adding `--json` flag to BuildContext CLI for machine-parseable output.
+
+3. **Execution time marginally over target**: 5.2s vs 5s NFR target. Root cause is .NET runtime startup (~1.8s per CLI invocation x 3 calls). Not fixable without architectural change (persistent daemon, pre-warmed binary, or native AOT). Accepted as marginal.
+
+4. **Single-community output in current graph state**: Blue-team verified the algorithm works but current graph only has 1 community with recent activity. Community diversity verification requires a richer graph. **Action**: Re-verify after graph grows.
+
+### Key Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Parallel indexed arrays over associative arrays | bash 3.2 compat (macOS ships bash 3.2 due to GPLv3) |
+| Skip list as newline-delimited string | Simpler than temp files, no cleanup needed, `grep -qxF` is fast enough for <100 entries |
+| `jq -n --arg` for JSON construction | Prevents injection without manual escaping |
+| Thread index capped at 5, pruned first on token budget | Threads are metadata, pointer array is primary value |
+| No retry on failed BuildContext | Reduces worst-case latency; skip and continue provides graceful degradation |
+
+### Metrics
+
+| Metric | Target | Actual |
+|--------|--------|--------|
+| Token output | 150-350 | 178 |
+| CLI calls | <= 8 | 3 |
+| Execution time | < 5s | 5.2s |
+| Community clusters | >= 3 (when available) | 1 (graph limited) |
+| Test suite | All pass | 508/508 |
+| Blue-team checks | 12/12 | 12/12 PASS |
+| Red-team findings | 0 blockers | 21 findings, 0 blockers |
+
+### Open Items (Tracked Separately)
+
+- `task_augment` path lacks `validate_wikilink` — tracked for next hook sprint
+- `QuerySingle<string>` in SqliteExtensions.cs missing IsDBNull guard — latent, low priority
+- Execution time optimization requires architectural change — accept or address in AOT sprint
+
+### Commits
+
+```
+778612a fix(hooks): T-HOOKS-001.1 — BSD awk dedup + remove broken co-occurs filter
+92aec5b fix(sqlite): T-HOOKS-001.2 — add IsDBNull guards for NULL columns in Query<T>
+1595041 feat(hooks): T-HOOKS-001.3 — rewrite session_start as community-clustered pointer array loader
+66fdd6b fix(hooks): T-HOOKS-001.5 — sanitize REPO_NAME via jq in fallback path + mark sprint complete
+0fed954 docs(sprint): T-HOOKS-001 — mark all RTM entries Complete
+```
+
+### Related PRD/RTM
+
+- PRD: FR-16.1–16.11, NFR-16.1.1–16.1.10
+- RTM: T-HOOKS-001.1 through T-HOOKS-001.5
+
+---
+
+*Last updated: 2026-02-16*
 *Related: [[PRD]] [[RTM]] [[TODO]] [[agentic-slc]]*

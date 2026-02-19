@@ -1,9 +1,0 @@
-{
-  "name": "finops-toolkit",
-  "version": "1.0.1",
-  "description": "FinOps Toolkit is a collection of tools and resources designed to help organizations optimize their cloud costs and improve financial management. It includes features such as cost analysis, budgeting, forecasting, and cost-saving recommendations.",
-  "author": {
-    "name": "Microsoft",
-    "url": "https://github.com/microsoft/finops-toolkit"
-  }
-}

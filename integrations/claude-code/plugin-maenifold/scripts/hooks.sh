@@ -81,7 +81,18 @@ build_graph_context() {
   local graph_output=""
   if [[ -f "$DB_PATH" ]]; then
     graph_output=$(sqlite3 "$DB_PATH" "
-      WITH community_sizes AS (
+      WITH recent_thinking AS (
+        SELECT file_path
+        FROM file_content
+        WHERE file_path LIKE '%thinking/sequential/%'
+          AND last_indexed > datetime('now', '-3 days')
+      ),
+      recency_boost AS (
+        SELECT DISTINCT cm.concept_name, 1 as is_recent
+        FROM concept_mentions cm
+        JOIN recent_thinking rt ON cm.source_file = rt.file_path
+      ),
+      community_sizes AS (
         SELECT community_id, COUNT(*) as size
         FROM concept_communities
         GROUP BY community_id
@@ -89,17 +100,24 @@ build_graph_context() {
       ),
       concept_degree AS (
         SELECT cc.concept_name, cc.community_id,
-               SUM(cg.co_occurrence_count) as total_weight
+               SUM(cg.co_occurrence_count) as total_weight,
+               COALESCE(rb.is_recent, 0) as is_recent
         FROM concept_communities cc
         JOIN community_sizes cs ON cc.community_id = cs.community_id
-        LEFT JOIN concept_graph cg ON cc.concept_name = cg.concept_a OR cc.concept_name = cg.concept_b
+        LEFT JOIN concept_graph cg
+          ON cc.concept_name = cg.concept_a OR cc.concept_name = cg.concept_b
+        LEFT JOIN recency_boost rb ON cc.concept_name = rb.concept_name
         WHERE cc.concept_name NOT GLOB '*[.]*'
           AND length(cc.concept_name) >= 3
           AND cc.concept_name NOT GLOB '[0-9]*'
         GROUP BY cc.concept_name, cc.community_id
       ),
       ranked AS (
-        SELECT *, ROW_NUMBER() OVER (PARTITION BY community_id ORDER BY total_weight DESC) as rn
+        SELECT *,
+          ROW_NUMBER() OVER (
+            PARTITION BY community_id
+            ORDER BY is_recent DESC, total_weight DESC
+          ) as rn
         FROM concept_degree
         WHERE total_weight > 0
       )
@@ -107,7 +125,7 @@ build_graph_context() {
       FROM ranked
       WHERE rn <= 20
       GROUP BY community_id
-      ORDER BY MAX(total_weight) DESC
+      ORDER BY MAX(is_recent) DESC, MAX(total_weight) DESC
     " 2>/dev/null || true)
   fi
 

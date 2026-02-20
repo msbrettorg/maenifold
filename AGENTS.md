@@ -1,219 +1,158 @@
 # AGENTS.md
 
 This file is for agentic coding assistants working in this repo.
-Focus on .NET (core product) and the Next.js site under `site/`.
+Primary focus: core .NET CLI/MCP server (`src/`) and the Next.js site (`site/`).
+
+## Ground Truth (read first)
+- High-level architecture + philosophy: `README.md`, `docs/README.md`
+- Dev commands and project layout: `docs/DEVELOPMENT.md`
+- Non-negotiables: `CONTRIBUTING.md`, `docs/TESTING_PHILOSOPHY.md`
+- Copilot-specific guidance (exists): `.github/copilot-instructions.md`
 
 ## Git Workflow (MANDATORY)
+**Branch model for agent work**: `commons` -> `dev` -> PR to `main`.
 
-**Branch model**: `commons` → `dev` → PR to `main`.
+If `CONTRIBUTING.md` conflicts with this agent workflow, follow `AGENTS.md`.
 
-1. **Do all work on `commons`.** Commit early and often with T-* identifiers.
-2. **Merge `commons` into `dev`** when work is complete and tests pass: `git checkout dev && git merge commons`
-3. **Create a PR from `dev` to `main`** for releases.
+1. Do all work on `commons`.
+2. Merge to `dev` only after tests pass: `git checkout dev && git merge commons`
+3. Release via PR: `dev` -> `main`.
 
-**Hard rules:**
-- Do NOT commit directly to `dev` or `main`. All work happens on `commons`.
-- Do NOT create feature branches. `commons` is the working branch.
-- Do NOT merge directly to `main`. Always use a PR.
-- **Tags**: Release tags (e.g., `v1.0.3`) trigger automated builds via GitHub Actions.
+Hard rules:
+- Do not commit directly to `dev` or `main`.
+- Do not create feature branches for agent work.
+- Do not merge directly to `main`.
+- Release tags (e.g., `v1.0.3`) trigger CI builds.
 
-## Build, Lint, Test
+## Build / Lint / Test
+Project targets `net9.0` (see `src/Maenifold.csproj`).
 
-### Build Policy (CRITICAL)
+### Build policy (CRITICAL)
+- During sprints: Debug builds only.
+- Ask permission before any Release `dotnet build -c Release` or `dotnet publish -c Release`.
 
-**During sprints**: Use Debug build only.
+### .NET (core)
 ```bash
-dotnet build src/Maenifold.csproj           # Debug is default
-dotnet test                                  # Tests use Debug
+dotnet restore src/Maenifold.csproj
+dotnet build src/Maenifold.csproj -c Debug
 ```
 
-**After sprint signoff**: Release build (with permission).
+### Tests (NUnit)
 ```bash
-dotnet build src/Maenifold.csproj -c Release
-dotnet publish src/Maenifold.csproj -c Release --self-contained -o bin
+# All tests
+dotnet test
+
+# List discovered tests
+dotnet test tests/Maenifold.Tests/Maenifold.Tests.csproj --list-tests
+
+# Run a single test (substring match)
+dotnet test tests/Maenifold.Tests/Maenifold.Tests.csproj --filter "FullyQualifiedName~MemoryToolsTests.WriteMemoryCreatesFileWithFrontmatter"
+
+# Run a single test (exact match)
+dotnet test tests/Maenifold.Tests/Maenifold.Tests.csproj --filter "FullyQualifiedName=Maenifold.Tests.MemoryToolsTests.WriteMemoryCreatesFileWithFrontmatter"
+
+# After you already built: faster iteration
+dotnet test tests/Maenifold.Tests/Maenifold.Tests.csproj --no-build --filter "FullyQualifiedName~MemoryToolsTests"
 ```
 
-**Why?** All agents actively use the maenifold release build as their cognitive substrate. Breaking the release build breaks the agents' ability to think, remember, and reason. Don't break the substrate!
-
-**Rule**: ASK PERMISSION before running `dotnet build -c Release` or `dotnet publish -c Release`. The release build replaces the installed binary that agents depend on.
-
-### Core (.NET)
-- Restore: `dotnet restore src/Maenifold.csproj`
-- Build (Debug): `dotnet build src/Maenifold.csproj -c Debug`
-- Build (Release): `dotnet build src/Maenifold.csproj -c Release` **(ask permission first!)**
-- Publish (Release): `dotnet publish src/Maenifold.csproj -c Release --self-contained -o bin`
+Optional test settings (see `test.runsettings`):
+```bash
+dotnet test -s test.runsettings
+dotnet test -s test.runsettings --collect:"XPlat Code Coverage"
+```
 
 ### CLI execution rules
-- `dotnet run` is forbidden for Maenifold CLI usage
-- Compile the CLI first, then run the built `maenifold` binary
-
-### Asset propagation for testing
-
-Workflow JSON files and other assets live in `src/assets/` and must be copied to `~/maenifold/assets/` for testing:
+- Do not use `dotnet run` to exercise the CLI.
+- Build and run the produced binary:
 
 ```bash
-# 1. Build the CLI (Debug)
+./src/bin/Debug/net9.0/maenifold --tool MemoryStatus --payload '{}'
+./src/bin/Debug/net9.0/maenifold --mcp
+```
+
+### Assets (workflows, tool docs, roles, colors)
+Assets live in `src/assets/` and must be copied to `~/maenifold/assets/` for manual testing:
+
+```bash
 dotnet build src/Maenifold.csproj -c Debug
-
-# 2. Preview asset changes (dry-run)
 ./src/bin/Debug/net9.0/maenifold update_assets dryRun=true
-
-# 3. Apply asset changes
 ./src/bin/Debug/net9.0/maenifold update_assets dryRun=false
 ```
 
-**Source → Target mapping:**
-- `src/assets/workflows/*.json` → `~/maenifold/assets/workflows/`
-- `src/assets/usage/tools/*.md` → `~/maenifold/assets/usage/tools/`
-- `src/assets/roles/*.json` → `~/maenifold/assets/roles/`
-- `src/assets/colors/*.json` → `~/maenifold/assets/colors/`
-
-**When to propagate:**
-- After creating/modifying workflow JSON files
-- After updating tool usage documentation
-- Before manual testing of workflows
-
-### Tests (.NET, NUnit)
-- Run all tests: `dotnet test`
-- Run a single test (FullyQualifiedName filter):
-  `dotnet test --filter "FullyQualifiedName~MemoryToolsTests.WriteMemoryCreatesFileWithFrontmatter"`
-- Coverage: `dotnet test --collect:"XPlat Code Coverage"`
-
 ### Site (Next.js)
-- Dev server: `npm run dev` (from `site/`)
-- Lint: `npm run lint` (from `site/`)
+Run from `site/`:
 
-### Cross-platform build scripts (root `package.json`)
+```bash
+npm install
+npm run dev
+npm run lint
+npm run build
+```
 
-## Code Style and Conventions
+### Concept map app (Vite)
 
-### General .NET style (from CONTRIBUTING + DEVELOPMENT)
-- Follow .NET runtime coding guidelines
-- Allman braces; 4 spaces; no tabs
-- Public members: `PascalCase`
-- Private fields: `_camelCase` with underscore
-- Prefer language keywords (`int` not `Int32`)
-- Use `nameof(...)` instead of string literals
-- Keep tools small and composable; avoid unnecessary abstractions
+Run from `src/apps/concept-map/`: `npm install && npm run build && npm run copy`
 
-### Analyzer/EditorConfig rules
-- Treat warnings as errors in builds (`Directory.Build.props`)
-- Nullable enabled, implicit usings enabled
-- Code analysis:
-  - `IDE0005` (remove unused usings) = warning
-  - `IDE0052` (unused private members) = warning
-  - `CA1812`, `CA2201` = warning
-  - `CA1848` and `CA2254` = warning (logging templates)
-  - `CA1031` (catch general exception) = disabled (intentional)
-  - Prefer braces; prefer simple `using` statements
-- Namespace style: `dotnet_style_namespace_match_folder = true`
+## Code Style & Conventions
+### Formatting
+- C#: Allman braces; 4 spaces; no tabs (see `docs/DEVELOPMENT.md`).
+- Use `.editorconfig` + analyzers; `TreatWarningsAsErrors=true` (see `Directory.Build.props`).
+- Remove unused `using` directives (IDE0005 is a warning in `src/.editorconfig`).
+- Prefer block-scoped namespaces (not file-scoped) to match existing code and `dotnet_style_namespace_match_folder = true`.
 
-### Logging and Console
-- MCP mode forbids casual console usage; prefer structured logging
-- Avoid hardcoded strings (CA1303 is suggestion)
+### Imports (C# usings)
+- Keep `using` directives minimal; rely on `ImplicitUsings=enable` where it applies.
+- Order usings consistently (typically `System.*` first, then external packages, then `Maenifold.*`).
+- Avoid unused usings and unused private members; CI treats warnings as errors.
+
+### Naming
+- Public members and tool names: `PascalCase`.
+- Private fields: `_camelCase`.
+- Use `nameof(...)` instead of string literals when referencing identifiers.
+- Prefer C# keywords over BCL types (`int`, `string`).
+
+### Types, nullability, and collections
+- Nullable is enabled; do not suppress nullability warnings without a reason.
+- Prefer concrete types when it improves clarity/perf (see `src/.editorconfig` suggestions).
 
 ### Error handling (Ma Protocol)
-- Let errors surface; no retry logic or “smart” recovery
-- Do not add fallback behavior that hides failures
-- Prefer direct, explicit flow over abstractions
+- NO FAKE AI: do not add retries, background auto-fix, or hidden fallbacks.
+- Let errors propagate with full information; don't swallow exceptions.
+- NO UNNECESSARY ABSTRACTIONS: avoid interfaces/DI for single implementations.
+- Prefer throwing real exceptions over returning magic "ERROR:" strings unless an existing tool contract already does so.
 
-### Testing philosophy
-- NO FAKE TESTS: do not add mocks/stubs/test doubles
-- Use real SQLite and real file system paths
-- Keep test artifacts in `test-outputs/` for debugging
-- Integration over isolated unit tests
+### Logging and console
+- Follow logging analyzer warnings in `src/.editorconfig` (CA1848, CA2254).
+- Avoid casual console writes in MCP-facing code; prefer existing patterns.
 
-### Security philosophy
-- NO FAKE SECURITY: avoid security theater for local tool
-- Use prepared SQL statements; let OS/SQLite enforce boundaries
-- Do not add user-restricting guardrails unless explicitly requested
+### Testing (NO FAKE TESTS)
+- Do not add mocks/stubs/test doubles (see `docs/TESTING_PHILOSOPHY.md`).
+- Use real SQLite (`Microsoft.Data.Sqlite`) and real filesystem paths.
+- Leave useful artifacts for debugging (tests commonly write under `test-outputs/`).
 
-### Documentation philosophy
-- NO UNSOURCED DOCS: every claim in every `.md` file in this repo must cite its source
-- For repo features: link to the source file, test, or demo artifact that proves the claim
-- For external references: inline Markdown link to the authoritative URL
-- Do not write illustrative examples that fabricate output, statistics, or scenarios — link to real artifacts instead
-- Do not duplicate content that exists elsewhere — link to it
-- Text without traceability to a source will be deleted without review
+### Tools and docs (public API surface)
+- Tools are static methods with `[McpServerTool]` and also registered in `src/Tools/ToolRegistry.cs` (see `.github/copilot-instructions.md`).
+- When adding/changing a tool, update its usage doc under `src/assets/usage/tools/`.
 
-## Naming and API conventions
-- Tool names are `PascalCase` and mirrored in docs
-- Tool documentation lives in `src/assets/usage/tools/*.md`
-- Register tools in `src/Tools/ToolRegistry.cs`
-- Prefer explicit parameter names and direct calls
+Checklist for tool changes:
+- Add `[Description]` annotations for tool + parameters (MCP surface).
+- Keep payload shapes stable; agents/scripts call `--tool <Name> --payload '<json>'`.
+- Add/adjust real tests under `tests/Maenifold.Tests/`.
 
-## Project layout (high level)
-- `src/` core .NET implementation
-- `tests/` NUnit tests
-- `docs/` documentation
-- `site/` Next.js site
-- `scripts/` Build helpers
-- `integrations/` Claude Code plugins and shared resources
-  - `agents/` shared agent definitions
-  - `scripts/` shared hook scripts
-  - `skills/` shared skill definitions
-  - `claude-code/plugin-maenifold/` base plugin (MCP server, core hooks)
-  - `claude-code/plugin-product-team/` opinionated workflow plugin
+## Workspace Hygiene
+- Keep repo root clean; `Directory.Build.targets` enforces allowed root files.
+- Multi-agent rule: read a file before editing; make surgical changes; never delete unknown content.
+- Avoid destructive git operations unless explicitly requested.
 
-## Distribution
+## MCP Apps References
+- Getting Started: https://claude.com/docs/connectors/building/mcp-apps/getting-started
+- Design Guidelines: https://claude.com/docs/connectors/building/mcp-apps/design-guidelines
+- Cross-Compatibility: https://claude.com/docs/connectors/building/mcp-apps/cross-compatibility
+- Troubleshooting: https://claude.com/docs/connectors/building/mcp-apps/troubleshooting
+- SDK API: https://modelcontextprotocol.github.io/ext-apps/api/documents/Quickstart.html
+- Examples: https://github.com/modelcontextprotocol/ext-apps/tree/main/examples
 
-### macOS (Homebrew)
-```bash
-brew tap msbrettorg/tap
-brew install maenifold
-```
-
-Tap repo: https://github.com/msbrettorg/homebrew-tap
-
-### Windows
-Download MSI from GitHub Releases (TODO: set up release workflow)
-
-### From source
-```bash
-dotnet publish src/maenifold.csproj -c Release -r osx-arm64 --self-contained
-```
-
-## Agent-specific constraints
-
-### Multi-agent environment
-This repo has multiple agents working concurrently. Other agents (and the human) may have uncommitted or recently committed changes in any file. Before editing a file:
-- **Read the file first.** Do not assume you know its current contents.
-- **Make surgical edits.** Do not rewrite entire files. Use targeted replacements that preserve surrounding content you did not write.
-- **PRD.md, RTM.md, TODO.md are especially dangerous.** These are actively maintained by the Product Manager and are the source of truth for requirements, traceability, and backlog. Do not add, remove, or modify entries in these files unless your task explicitly requires it and references a T-* identifier. If you find gaps or ambiguities, ask — do not assume.
-- **Never discard unrecognized content.** If a file contains sections or entries you didn't expect, leave them intact. Another agent or the human put them there for a reason.
-
-### Clean root directory
-- This repo enforces a clean root directory (`Directory.Build.targets`)
-  - Avoid dropping ad-hoc files in repo root
-  - Keep new files in appropriate subdirectories
-
-## Claude Code plugins
-
-Two-layer plugin architecture:
-
-**plugin-maenifold** (base):
-- MCP server for maenifold tools
-- Hooks: `SessionStart`, `PreToolUse` (Task), `SubagentStop`
-- Hook script: `integrations/claude-code/plugin-maenifold/scripts/hooks.sh`
-- Modes: `session_start`, `task_augment`, `subagent_stop`
-- Install: `claude plugin add /path/to/integrations/claude-code/plugin-maenifold`
-
-**plugin-product-team** (opinionated):
-- Requires plugin-maenifold installed first
-- Agents: swe, researcher, red-team, blue-team
-- Skills: product-manager
-- Install: `claude plugin add /path/to/integrations/claude-code/plugin-product-team`
-
-Scripting reference: `docs/SCRIPTING.md`
-
-## Cursor/Copilot rules
-- No `.cursor/rules/`, `.cursorrules`, or `.github/copilot-instructions.md` found
-
-## Quick context for agents
-- Language: C# (.NET 9), NUnit tests
-- The system is a local MCP server and CLI
-- Design philosophy: Ma Protocol (no fake AI/tests/security)
-
-## Tips for single-test runs
-- NUnit filters support `FullyQualifiedName~` substring matching
-- Use class or test method names from `tests/Maenifold.Tests/*.cs`
+## Cursor / Copilot Rules
+- Cursor: no `.cursor/rules/` or `.cursorrules` found.
+- Copilot: rules exist in `.github/copilot-instructions.md`.
+  If it conflicts with this file for agent workflow (branches / release builds), follow `AGENTS.md`.

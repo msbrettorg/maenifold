@@ -19,50 +19,50 @@
 @layer base {
   /* Dark mode — default (:root) */
   :root {
-    --bg:               #141218;
-    --bg-surface:       #1E1B22;
-    --bg-hover:         #2A2630;
-    --border:           #2A2630;
-    --text:             #E8E0DB;
-    --text-secondary:   #9A938E;
+    --bg:               #1c1c1c;
+    --bg-surface:       #252525;
+    --bg-hover:         #2d2d2d;
+    --border:           #383838;
+    --text:             #e0dbd6;
+    --text-secondary:   #908a85;
     --accent:           #6AABB3;
     --accent-hover:     #8AC0C6;
-    --accent-muted:     #2A3A3D;
-    --code-bg:          #18151C;
-    --code-text:        #D4CEC8;
-    --code-comment:     #8A8480;
+    --accent-muted:     #1e2e30;
+    --code-bg:          #1a1a1a;
+    --code-text:        #d0cac4;
+    --code-comment:     #7a7570;
   }
 
   /* Light mode — explicit .light class on <html> */
   .light {
-    --bg:               #F5F0EC;
-    --bg-surface:       #FFFFFF;
-    --bg-hover:         #EDE7E2;
-    --border:           #DDD6D0;
-    --text:             #1E1B22;
-    --text-secondary:   #7A746F;
+    --bg:               #f5f2ee;
+    --bg-surface:       #ffffff;
+    --bg-hover:         #eae6e1;
+    --border:           #d8d3cd;
+    --text:             #1c1c1c;
+    --text-secondary:   #757069;
     --accent:           #3A8A94;
     --accent-hover:     #2A7A84;
     --accent-muted:     #D0E8EA;
-    --code-bg:          #F8F5F2;
-    --code-text:        #1E1B22;
+    --code-bg:          #f2efeb;
+    --code-text:        #1c1c1c;
   }
 
   /* Light mode — OS preference fallback (no explicit dark override) */
   @media (prefers-color-scheme: light) {
     :root:not(.dark) {
-      --bg:               #F5F0EC;
-      --bg-surface:       #FFFFFF;
-      --bg-hover:         #EDE7E2;
-      --border:           #DDD6D0;
-      --text:             #1E1B22;
-      --text-secondary:   #7A746F;
+      --bg:               #f5f2ee;
+      --bg-surface:       #ffffff;
+      --bg-hover:         #eae6e1;
+      --border:           #d8d3cd;
+      --text:             #1c1c1c;
+      --text-secondary:   #757069;
       --accent:           #3A8A94;
       --accent-hover:     #2A7A84;
       --accent-muted:     #D0E8EA;
-      --code-bg:          #F8F5F2;
-      --code-text:        #1E1B22;
-    }
+      --code-bg:          #f2efeb;
+      --code-text:        #1c1c1c;
+      }
   }
 
   /* Typography — body */
@@ -99,9 +99,9 @@
   h1, h2, h3 {
     font-family: var(--font-heading), Georgia, 'Times New Roman', serif;
   }
-  h1 { font-size: 32px; font-weight: 400; letter-spacing: -0.01em; }
-  h2 { font-size: 26px; font-weight: 400; }
-  h3 { font-size: 21px; font-weight: 500; }
+  h1 { font-size: 32px; font-weight: 400; letter-spacing: -0.01em; color: var(--accent); }
+  h2 { font-size: 26px; font-weight: 400; color: var(--accent); }
+  h3 { font-size: 21px; font-weight: 500; color: var(--accent); }
 
   /* Links */
   a { color: var(--accent); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 2px; }
@@ -173,7 +173,7 @@
 .graph-break {
   position: relative;
   margin-block: 5rem;
-  background: #0F0D15;
+  background: #141414;
   overflow: hidden;
 }
 .graph-break img {
@@ -283,6 +283,10 @@
 .docs-content th, .docs-content td {
   white-space: normal;
   word-break: break-word;
+}
+.docs-content td:first-child,
+.docs-content th:first-child {
+  white-space: nowrap;
 }
 .docs-content code {
   font-size: 0.8125rem;
@@ -453,6 +457,24 @@
   line-height: 1.7;
   max-width: 60ch;
 }
+
+/* T-SITE-001.23: Badge row for hero and install sections */
+.badge-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 1.5rem; }
+.badge-row img { height: 20px; }
+
+/* T-SITE-001.23: Graph break caption */
+.graph-break figcaption {
+  position: absolute; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+  z-index: 2; font-size: 0.875rem; color: var(--text-secondary); text-align: center;
+}
+
+/* T-SITE-001.23: Guided next steps */
+.next-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 1.5rem; }
+.next-steps a { display: block; padding: 1.5rem; border: 1px solid var(--border); border-radius: 8px; text-decoration: none; transition: border-color 0.15s; }
+.next-steps a:hover { border-color: var(--accent); text-decoration: none; }
+.next-steps h3 { margin: 0 0 0.5rem; font-size: 1.0625rem; }
+.next-steps p { margin: 0; color: var(--text-secondary); font-size: 0.9375rem; }
+@media (max-width: 640px) { .next-steps { grid-template-columns: 1fr; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

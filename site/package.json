@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@mermaid-js/mermaid-cli": "11.12.0",
     "next": "16.1.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",

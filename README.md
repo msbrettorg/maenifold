@@ -13,9 +13,7 @@
 
 ---
 
-Context engineering infrastructure for AI agents. Point it at any domain's literature, and it builds specialized experts that live on your machine, work offline, and get smarter with every use.
-
-Three proof domains — [FinOps](integrations/opencode/skills/finops-toolkit/README.md), software engineering, and EDA roles — zero overlap, same infrastructure.
+Context engineering infrastructure for AI agents. Agents think in chains of thought — maenifold captures the important bits as `[[WikiLinks]]`, builds a graph of just those concepts and how they relate, and feeds it back into the context window. The filler is stripped. The signal compounds. Every AI tool on your machine shares one graph.
 
 ## Quick Start
 
@@ -49,20 +47,29 @@ Both interfaces have full feature parity. CLI filters intermediate results and p
 
 ## How It Works
 
-Seed the graph. Keep the experts. Watch it compound.
+**`[[WikiLinks]]` are the primitive.** Each one is a compressed semantic unit — `[[authentication]]`, `[[commitment-discounts]]`, `[[null-reference-exception]]` — carrying meaning in its name alone. When agents tag concepts in their reasoning, those tags become graph nodes. Co-occurring WikiLinks become edges. Structure emerges from use.
 
-- **`[[WikiLinks]]`** — lightweight concept identifiers, not payloads
+**Memory is for humans.** Readable markdown with full prose, citations, and context. Open a file, read it, audit what your agents know.
+
+**The graph is for agents.** A navigable structure of concept names and relationships — the semantic skeleton of everything the machine has learned, stripped of filler. Community detection clusters reasoning domains. Decay weights surface what's fresh. At session start, the graph is injected into the context window as a concept map.
+
+**The graph IS the context window.** Not a database the agent queries and hopes for the best. The compressed, clustered, decay-weighted concept map *is* what primes every session. Agents traverse deeper only when they need the full document.
+
+**One graph. Every agent.** Claude Code, VS Code, Copilot, cron jobs — any MCP client connects to the same local binary. What one agent learns, every agent knows. Knowledge compounds across clients, sessions, domains, and time.
+
+### Capabilities
+
 - **Hybrid search** — semantic vectors + full-text with RRF fusion
-- **Knowledge graph** — lazy construction, structure emerges from use
 - **Sequential thinking** — multi-step reasoning with revision, branching, persistence
-- **35+ workflows** — deductive reasoning to multi-agent sprints
+- **39 workflows** — deductive reasoning to multi-agent sprints
 - **Memory lifecycle** — decay, consolidation, repair modeled on cognitive neuroscience
 - **16 roles, 7 thinking colors, 12 perspectives** — composable cognitive assets
 - **Community detection** — Louvain algorithm identifies reasoning domains during sync
 - **Decay weighting** — ACT-R power-law recency bias across search, context, and similarity
-- **Graph-of-thought priming** — hook system injects clustered concept maps at session start
 
 Six layers: WikiLinks → Graph → Search → Session State → Reasoning → Orchestration.
+
+Three proof domains — [FinOps](integrations/opencode/skills/finops-toolkit/README.md), software engineering, and EDA — zero overlap, same infrastructure.
 
 **See it in action**: [6 parallel agents analyzed this brand statement](docs/demo-artifacts/brand-analysis-workflow.md) using Six Thinking Hats, Strategic Thinking, Lateral Thinking, CRTA, Design Thinking, and Socratic Dialogue — all running simultaneously through maenifold's own workflow engine.
 
@@ -88,7 +95,7 @@ Self-contained (.NET 9.0 bundled). Vector embeddings via ONNX (bundled). No exte
 
 | Skill | What You Get |
 |-------|--------------|
-| **[Maenifold](integrations/claude-code/plugin-maenifold/skills/maenifold/)** | 25+ tools, 6 composable layers, sequential thinking, 35+ workflows |
+| **[Maenifold](integrations/claude-code/plugin-maenifold/skills/maenifold/)** | 25+ tools, 6 composable layers, sequential thinking, 39 workflows |
 | **[Product Manager](integrations/claude-code/plugin-product-team/skills/product-manager/)** | Multi-agent orchestration, graph context injection, quality gates, sprint traceability |
 
 ## Integrations

@@ -15,7 +15,7 @@ const newsreader = Newsreader({
 
 export const metadata: Metadata = {
   title: 'maenifold',
-  description: 'Context engineering infrastructure for AI agents.',
+  description: 'One graph. Every agent. Knowledge that compounds.',
 };
 
 // Inline script to prevent FOUC — runs before body renders.

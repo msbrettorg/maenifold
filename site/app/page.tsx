@@ -30,9 +30,10 @@ export default function Home() {
             Context engineering infrastructure for AI agents.
           </p>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', lineHeight: 1.8, margin: 0 }}>
-            A local reasoning substrate that other systems build on. It manages a knowledge graph,
-            produces specialized roles and workflows, and sharpens itself through use.
-            Domain-specific plugins layer on top.
+            Agents think in chains of thought. Maenifold captures the important bits
+            as <code>[[WikiLinks]]</code>, builds a graph of just those concepts and how
+            they relate, and feeds it back into the context window. Memory for humans.
+            Graph for agents. One graph, every AI tool on your machine.
           </p>
         </div>
       </section>

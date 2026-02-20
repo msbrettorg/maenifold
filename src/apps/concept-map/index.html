@@ -6,13 +6,17 @@
   <title>Concept Map</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
     body {
       background: var(--color-background-primary, #1a1a2e);
       color: var(--color-text-primary, #e0e0e0);
       font-family: var(--font-sans, system-ui, sans-serif);
       overflow: hidden;
     }
-    #app { width: 100%; height: 100vh; position: relative; }
+    #app { width: 100%; height: 100%; position: relative; }
     svg { width: 100%; height: 100%; }
     .node { cursor: pointer; transition: opacity 0.2s; }
     .node:hover { opacity: 0.8; }

@@ -15,6 +15,7 @@ public class SequentialThinkingTools
     [McpServerTool, Description(@"Creates structured thinking sessions with [[WikiLink]] integration and persistent markdown file storage.
 Requires response with [[WikiLinks]], thought tracking, session management, and optional revision capabilities.
 Integrates with WriteMemory for session persistence and maenifold tools.
+Can be registered as a submachine of a Workflow via the Workflow tool's submachineSessionId parameter; the parent workflow blocks until this session completes, is cancelled, or is abandoned.
 Returns session management with continuation guidance and checkpoint suggestions.")]
     public static string SequentialThinking(
         [Description("Main response/thought - MUST include [[WikiLinks]] to build knowledge")] string? response = null,

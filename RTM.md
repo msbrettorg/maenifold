@@ -308,3 +308,17 @@ OpenCode integration removed. All files under `integrations/opencode/` deleted. 
 |------|------------|----------------------|--------------|---------|--------|
 | T-MCP-001.12 | FR-18.7 | Add tool metadata annotations (`Destructive`, `Idempotent`, `ReadOnly`) to applicable tools. | src/Tools/*.cs | Attribute inspection test | Pending |
 | T-MCP-001.13 | FR-18.8 | Evaluate XML-to-Description source generator — replace manual `[Description]` with `///` XML doc comments. | src/Tools/*.cs | `dotnet build` succeeds, tool descriptions unchanged | Pending |
+
+---
+
+## T-HSM-001: Hierarchical State Machines — Workflow Supervisor (sprint-20260220)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-HSM-001.1a | FR-10.3 | Workflow Start() SHALL write `phase: running`, `activeSubmachineType: ""`, `activeSubmachineSessionId: ""` to session frontmatter. | src/Tools/WorkflowOperations.Core.cs | tests/Maenifold.Tests/WorkflowSupervisorTests.cs (Test 1) | **Complete** |
+| T-HSM-001.1b | FR-10.1 | Workflow tool SHALL accept optional `submachineSessionId` parameter. When provided during Continue, SHALL write `phase: waiting`, `activeSubmachineType`, `activeSubmachineSessionId` to frontmatter and NOT advance step. | src/Tools/WorkflowTools.Runner.cs, src/Tools/WorkflowOperations.Management.cs | tests/Maenifold.Tests/WorkflowSupervisorTests.cs (Tests 2, 13) | **Complete** |
+| T-HSM-001.1c | FR-10.4 | Continue() SHALL check `phase` field. If `waiting`: read submachine session status. If terminal (`completed`/`cancelled`/`abandoned`): clear supervisor fields, set `phase: running`, proceed. If active: return blocking message. If session missing: self-heal and resume. | src/Tools/WorkflowOperations.Management.cs | tests/Maenifold.Tests/WorkflowSupervisorTests.cs (Tests 3, 4, 5, 11, 12) | **Complete** |
+| T-HSM-001.1d | FR-10.2, FR-10.5, FR-10.6 | Existing workflows without submachine steps SHALL behave identically (backward compatibility). Submachines remain standalone-invokable. Serial queuing and parallel sessions unchanged. | src/Tools/WorkflowOperations.*.cs | tests/Maenifold.Tests/WorkflowToolsTests.cs (22 existing), WorkflowSupervisorTests.cs (Test 6) | **Complete** |
+| T-HSM-001.2 | FR-10.1-10.4 | Blue-team: Integration tests for supervisor lifecycle — 10 tests covering enter waiting, block while active, unblock on completion/cancellation, backward compat, frontmatter persistence. All PASS. | tests/Maenifold.Tests/WorkflowSupervisorTests.cs | 811/811 tests pass | **Complete** |
+| T-HSM-001.3 | Security | Red-team: HIGH-001 (abandoned status + missing file permanent freeze) REMEDIATED. MEDIUM-001 (response discarded during register) REMEDIATED. 3 remediation tests added. 814/814 tests pass. | All changed files | ConfessionReport + remediation | **Complete** |
+| T-HSM-001.4 | FR-10.1-10.6 | Blue-team: All 6 FR-10.x PASS. 814/814 tests. Line 77.77%, Branch 67.22%, Method 92.92%. 0 warnings. | All components | Compliance report | **Complete** |

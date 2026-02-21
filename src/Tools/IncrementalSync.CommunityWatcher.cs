@@ -10,6 +10,7 @@ public partial class IncrementalSyncTools
     private static FileSystemWatcher? _dbWatcher;
     private static Timer? _dbDebounceTimer;
     private static volatile bool _communityWriteInProgress;
+    private static long _communityWriteFinishedTicks;
 
     // T-COMMUNITY-001.11: RTM FAIL-001 remediation — allow ConceptSync.Sync to set the write guard
     // so the DB watcher skips during full sync community detection.
@@ -55,6 +56,13 @@ public partial class IncrementalSyncTools
         if (_communityWriteInProgress)
             return;
 
+        // Skip delayed FSW events that arrive after the write guard clears.
+        // Hold off for the full debounce window past the write finishing
+        // to prevent the write→notify→refire feedback loop.
+        var ticksSinceWrite = Environment.TickCount64 - Interlocked.Read(ref _communityWriteFinishedTicks);
+        if (ticksSinceWrite < Config.CommunityWatcherDebounceMs)
+            return;
+
         lock (_lock)
         {
             _dbDebounceTimer?.Dispose();
@@ -83,6 +91,7 @@ public partial class IncrementalSyncTools
         }
         finally
         {
+            Interlocked.Exchange(ref _communityWriteFinishedTicks, Environment.TickCount64);
             _communityWriteInProgress = false;
         }
     }

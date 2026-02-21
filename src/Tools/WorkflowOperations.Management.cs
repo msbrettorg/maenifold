@@ -7,6 +7,16 @@ namespace Maenifold.Tools;
 
 internal static partial class WorkflowOperations
 {
+    private static string[] ReadQueue(Dictionary<string, object> frontmatter)
+    {
+        var queueObj = frontmatter["queue"];
+        if (queueObj is object[] objArray)
+            return objArray.Select(x => x?.ToString() ?? "").ToArray();
+        if (queueObj is List<object> list)
+            return list.Select(x => x?.ToString() ?? "").ToArray();
+        return Array.Empty<string>();
+    }
+
     public static string Append(string sessionId, string append)
     {
         if (!MarkdownIO.SessionExists("workflow", sessionId))
@@ -22,16 +32,7 @@ internal static partial class WorkflowOperations
         }
 
         // Read existing queue - handle multiple possible types from YAML deserialization
-        var queueObj = frontmatter["queue"];
-        string[] queueArray;
-        if (queueObj is object[] objArray)
-            queueArray = objArray.Select(x => x?.ToString() ?? "").ToArray();
-        else if (queueObj is List<object> list)
-            queueArray = list.Select(x => x?.ToString() ?? "").ToArray();
-        else
-            queueArray = Array.Empty<string>();
-
-        var queue = new List<string>(queueArray);
+        var queue = new List<string>(ReadQueue(frontmatter));
 
 
         var toAppend = new List<string>();
@@ -68,7 +69,7 @@ internal static partial class WorkflowOperations
         return $"Added {toAppend.Count} workflow(s) to queue. New queue: [{string.Join(", ", queue)}]";
     }
 
-    public static string Continue(string sessionId, string response, string? thoughts, string? status, string? conclusion = null)
+    public static string Continue(string sessionId, string response, string? thoughts, string? status, string? conclusion = null, string? submachineSessionId = null)
     {
         // Validate concepts in response/thoughts
         var conceptError = ValidateConceptsInResponse(response, thoughts);
@@ -82,17 +83,77 @@ internal static partial class WorkflowOperations
         if (frontmatter == null)
             return "ERROR: Invalid session file format";
 
+        // --- Gate check: if workflow is waiting on a submachine, block or clear ---
+        frontmatter.TryGetValue("phase", out var phaseObj);
+        var phase = phaseObj?.ToString() ?? "running";
+        if (phase == "waiting")
+        {
+            var activeSubmachineSessionId = frontmatter.TryGetValue("activeSubmachineSessionId", out var activeIdObj)
+                ? activeIdObj?.ToString() ?? ""
+                : "";
+            var activeSubmachineType = frontmatter.TryGetValue("activeSubmachineType", out var activeTypeObj)
+                ? activeTypeObj?.ToString() ?? ""
+                : "";
+
+            if (!string.IsNullOrEmpty(activeSubmachineSessionId) && !string.IsNullOrEmpty(activeSubmachineType))
+            {
+                if (!MarkdownIO.SessionExists(activeSubmachineType, activeSubmachineSessionId))
+                {
+                    // Session file gone — treat as terminal state and clear waiting
+                    frontmatter["phase"] = "running";
+                    frontmatter["activeSubmachineType"] = "";
+                    frontmatter["activeSubmachineSessionId"] = "";
+                    MarkdownIO.UpdateSession("workflow", sessionId, frontmatter, existingContent);
+                    MarkdownIO.AppendToSession("workflow", sessionId, "Submachine Cleared",
+                        $"Registered submachine '{activeSubmachineSessionId}' session not found (deleted or expired). " +
+                        $"Clearing waiting state and resuming workflow.\n\n" +
+                        $"*{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss' UTC'", CultureInfo.InvariantCulture)}*");
+                    var (clearedFm, clearedContent, _) = MarkdownIO.ReadSession("workflow", sessionId);
+                    frontmatter = clearedFm ?? frontmatter;
+                    existingContent = clearedContent;
+                    // Fall through to normal step advancement below
+                }
+                else
+                {
+                    var (submachineFrontmatter, _, _) = MarkdownIO.ReadSession(activeSubmachineType, activeSubmachineSessionId);
+                    var submachineStatus = submachineFrontmatter != null &&
+                        submachineFrontmatter.TryGetValue("status", out var submachineStatusObj)
+                        ? submachineStatusObj?.ToString() ?? "active"
+                        : "active";
+
+                    if (submachineStatus is "completed" or "cancelled" or "abandoned")
+                    {
+                        // Submachine reached terminal state — clear supervisor fields and resume
+                        frontmatter["phase"] = "running";
+                        frontmatter["activeSubmachineType"] = "";
+                        frontmatter["activeSubmachineSessionId"] = "";
+                        var (_, contentAfterClear, _) = MarkdownIO.ReadSession("workflow", sessionId);
+                        MarkdownIO.UpdateSession("workflow", sessionId, frontmatter, contentAfterClear);
+                        MarkdownIO.AppendToSession("workflow", sessionId, "Submachine Resumed",
+                            $"Submachine {activeSubmachineSessionId} {submachineStatus}. Resuming workflow.\n\n" +
+                            $"*{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss' UTC'", CultureInfo.InvariantCulture)}*");
+                        // Re-read updated content and fall through to normal step advancement
+                        var (updatedFm, updatedContent, _) = MarkdownIO.ReadSession("workflow", sessionId);
+                        frontmatter = updatedFm ?? frontmatter;
+                        existingContent = updatedContent;
+                    }
+                    else
+                    {
+                        return $"Workflow is waiting on submachine {activeSubmachineType} {activeSubmachineSessionId}. " +
+                               $"Complete it first, then call Workflow again.";
+                    }
+                }
+            }
+        }
+
+        // --- Register path: submachineSessionId provided — enter waiting state ---
+        if (!string.IsNullOrEmpty(submachineSessionId))
+            return HandleRegisterSubmachine(sessionId, frontmatter, response, thoughts, submachineSessionId);
+
         var currentWorkflowIndex = Convert.ToInt32(frontmatter["currentWorkflow"], CultureInfo.InvariantCulture);
         var currentStep = Convert.ToInt32(frontmatter["currentStep"], CultureInfo.InvariantCulture);
 
-        var queueObj = frontmatter["queue"];
-        string[] queue;
-        if (queueObj is object[] objArray)
-            queue = objArray.Select(x => x?.ToString() ?? "").ToArray();
-        else if (queueObj is List<object> list)
-            queue = list.Select(x => x?.ToString() ?? "").ToArray();
-        else
-            queue = Array.Empty<string>();
+        var queue = ReadQueue(frontmatter);
 
         var currentWorkflowPath = Path.Combine(WorkflowCommon.WorkflowsPath, $"{queue[currentWorkflowIndex]}.json");
         var currentWorkflow = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(currentWorkflowPath), SafeJson.Options);
@@ -106,8 +167,8 @@ internal static partial class WorkflowOperations
         currentStep++;
         frontmatter["currentStep"] = currentStep;
 
-        var (_, updatedContent, _) = MarkdownIO.ReadSession("workflow", sessionId);
-        existingContent = updatedContent;
+        var (_, updatedContent2, _) = MarkdownIO.ReadSession("workflow", sessionId);
+        existingContent = updatedContent2;
 
         // Handle explicit completion or cancellation
         if (status == "completed")
@@ -127,6 +188,43 @@ internal static partial class WorkflowOperations
         }
 
         return AdvanceToNextStep(sessionId, frontmatter, existingContent, currentStep, steps);
+    }
+
+    private static string HandleRegisterSubmachine(string sessionId, Dictionary<string, object> frontmatter, string response, string? thoughts, string submachineSessionId)
+    {
+        // All submachine sessions are sequential thinking for now
+        var submachineType = "sequential";
+
+        if (!MarkdownIO.SessionExists(submachineType, submachineSessionId))
+        {
+            return $"ERROR: Submachine session '{submachineSessionId}' not found under type '{submachineType}'. " +
+                   $"Ensure the SequentialThinking session exists before registering.";
+        }
+
+        // Persist response content BEFORE writing registration (MEDIUM-001 fix)
+        var currentWorkflowIndexForRegister = Convert.ToInt32(frontmatter["currentWorkflow"], CultureInfo.InvariantCulture);
+        var currentStepForRegister = Convert.ToInt32(frontmatter["currentStep"], CultureInfo.InvariantCulture);
+        var queueForRegister = ReadQueue(frontmatter);
+
+        var currentWorkflowPathForRegister = Path.Combine(WorkflowCommon.WorkflowsPath, $"{queueForRegister[currentWorkflowIndexForRegister]}.json");
+        var currentWorkflowForRegister = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(currentWorkflowPathForRegister), SafeJson.Options);
+        var stepsForRegister = currentWorkflowForRegister.GetProperty("steps").EnumerateArray().ToList();
+        var responseContentForRegister = BuildResponseContent(response, thoughts);
+        var headingForRegister = $"Step {currentStepForRegister + 1}/{stepsForRegister.Count} Response";
+        MarkdownIO.AppendToSession("workflow", sessionId, headingForRegister, responseContentForRegister);
+        // NOTE: currentStep intentionally NOT advanced (FR-10.4)
+
+        frontmatter["phase"] = "waiting";
+        frontmatter["activeSubmachineType"] = submachineType;
+        frontmatter["activeSubmachineSessionId"] = submachineSessionId;
+        var (_, contentBeforeRegister, _) = MarkdownIO.ReadSession("workflow", sessionId);
+        MarkdownIO.UpdateSession("workflow", sessionId, frontmatter, contentBeforeRegister);
+        MarkdownIO.AppendToSession("workflow", sessionId, "Submachine Registered",
+            $"Submachine registered: {submachineType} {submachineSessionId}\n\n" +
+            $"*{DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss' UTC'", CultureInfo.InvariantCulture)}*");
+
+        return $"Registered submachine {submachineSessionId}. Workflow is waiting. " +
+               $"Complete the submachine, then call Workflow with sessionId and response to continue.";
     }
 
     private static string? ValidateConceptsInResponse(string response, string? thoughts)

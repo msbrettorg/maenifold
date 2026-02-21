@@ -18,11 +18,11 @@
 | RAG Patterns | 6 | 6 | 0 | 0 |
 | Documented Failures | 6 | 6 | 0 | 0 |
 | CLI Script Patterns | 6 | 6 | 0 | 0 |
-| Workflow Orchestration | 10 | 10 | 0 | 0 |
+| Workflow Orchestration | 20 | 20 | 0 | 0 |
 | Test-Time Adaptation | 14 | 12 | 2 | 0 |
 | MCP Completeness | 13 | 13 | 0 | 0 |
 | Red Team | 30 | 26 | 4 | 0 |
-| **TOTAL** | **180** | **167** | **6** | **7** |
+| **TOTAL** | **190** | **177** | **6** | **7** |
 
 ### Key Issues Found
 1. **RT-SEC-001 (CRITICAL)**: ListMemories path traversal vulnerability
@@ -449,6 +449,20 @@
 | WORK-008 | Append workflow to queue | CLI | PASS | Multi-workflow queuing works |
 | WORK-009 | Invalid workflow ID handling | CLI | PASS | Clear error message returned |
 | WORK-010 | Embedded SequentialThinking | CLI | PASS | requiresEnhancedThinking metadata present |
+
+### 12.2 Hierarchical State Machine (Supervisor/Submachine)
+| Test ID | Scenario | Interface | Status | Result |
+|---------|----------|-----------|--------|--------|
+| WORK-HSM-001 | Happy: Start workflow has supervisor frontmatter | CLI | PASS | `phase: running`, `activeSubmachineType: ''`, `activeSubmachineSessionId: ''` present in frontmatter |
+| WORK-HSM-002 | Happy: Register submachine with workflow | CLI | PASS | Workflow entered `phase: waiting`, `activeSubmachineSessionId` set, `currentStep` not advanced |
+| WORK-HSM-003 | Happy: Workflow blocks while submachine active | CLI | PASS | "Workflow is waiting on submachine" blocking message returned |
+| WORK-HSM-004 | Happy: Workflow unblocks on submachine completion | CLI | PASS | After SequentialThinking completed, workflow resumed `phase: running`, step advanced to 2/4 |
+| WORK-HSM-005 | Happy: Workflow unblocks on submachine cancellation | CLI | PASS | After cancelling SequentialThinking, workflow unblocked and advanced to step 2/4 |
+| WORK-HSM-006 | Happy: Response persisted during register | CLI | PASS | Response text with [[WikiLinks]] present in session markdown body after register |
+| WORK-HSM-007 | Sad: Register nonexistent submachine session | CLI | PASS | ERROR: "session not found under type 'sequential'", workflow stayed running |
+| WORK-HSM-008 | Sad: Missing submachine file self-heals | CLI | PASS | Deleted session file cleared waiting state, workflow resumed at step 2/4 |
+| WORK-HSM-009 | Happy: Abandoned submachine unblocks workflow | CLI | PASS | `status: abandoned` in submachine unblocked workflow, advanced to step 2/4 |
+| WORK-HSM-010 | Backward compat: Old workflow without phase field | CLI | PASS | Normal step advancement to 2/4, no crash with missing phase fields |
 
 ---
 

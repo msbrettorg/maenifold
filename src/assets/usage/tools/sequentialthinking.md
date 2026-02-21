@@ -64,6 +64,12 @@ maenifold specifics:
 - If sessionId is omitted, a new `session-{timestamp}` is created automatically
 - cancel=true skips concept validation and conclusion requirements
 
+Supervisor/Submachine (HSM):
+- A SequentialThinking session can be registered as a submachine of a Workflow by passing its sessionId to the Workflow tool's `submachineSessionId` parameter
+- While registered, the parent Workflow blocks step advancement until this session reaches a terminal state (completed, cancelled, or abandoned)
+- Use `parentWorkflowId` for bidirectional linking (metadata only) and `submachineSessionId` on the Workflow side for lifecycle gating (behavioral)
+- Typical flow: create session → register with Workflow → think → complete session → Workflow automatically resumes
+
 Common errors (expect these if violated):
 - Missing [[WikiLinks]] in response/thoughts → `ERROR: Must include [[WikiLinks]]. Example: 'Analyzing [[machine-learning]] algorithms with [[neural-networks]]'`
 - Missing conclusion when nextThoughtNeeded=false → `ERROR: Conclusion required when completing session...`

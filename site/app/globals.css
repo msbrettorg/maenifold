@@ -143,9 +143,6 @@
 .code-block { position: relative; margin-block: 1.5rem; border-radius: 8px; overflow: hidden; }
 .code-block pre { padding: 1.25rem; overflow-x: auto; background-color: var(--code-bg) !important; }
 
-.mermaid-diagram { margin-block: 2rem; text-align: center; }
-.mermaid-diagram svg { max-width: 100%; height: auto; }
-
 /* T-SITE-001.20: Homepage features — two-column glossary */
 .features-glossary {
   margin: 0;

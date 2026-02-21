@@ -24,6 +24,30 @@
 | 3.6 | 2026-02-16 | PM Agent | Added FR-16.x (Claude Code session start hook redesign) — pointer array loader with community-clustered output |
 | 3.7 | 2026-02-16 | PM Agent | FR-16.x panel review fixes: output format example, hub selection change, includeContent ban, thread cap, timeout behavior, WikiLink validation |
 | 4.0 | 2026-02-19 | PM Agent | Added FR-18.x (MCP SDK upgrade 0.4.0-preview.3 → 0.8.0-preview.1) |
+| 4.1 | 2026-02-20 | Brett | Status audit — marked completed sections, updated FR-16.x with recency boost |
+
+---
+
+## Completion Status
+
+| Section | Description | Priority | Status |
+|---------|-------------|----------|--------|
+| FR-8.x | CLI JSON Output | P0 | **Done** |
+| FR-7.4-7.6 | Embeddings Quality / Decay / Access Boosting | P1 | **Done** |
+| FR-7.7 | ListMemories Decay Metadata | P2 | **Done** |
+| FR-7.8 | Assumption Decay by Status | P1 | **Done** |
+| FR-7.9-7.11 | Cognitive Sleep Cycle / Tool Access Safety | P2 | **Done** (serialized, not parallel — design choice) |
+| FR-9.x | Product Governance | P2 | **Done** |
+| FR-10.x | Hierarchical State Machines | P0 | **Done** |
+| FR-11.1-11.2 | WikiLink Write Filter | P1 | **Done** |
+| FR-11.3-11.4 | Hub Detection / Sleep Phases | P2 | **Done** |
+| FR-12.x | OpenCode Plugin Integration | P1 | **Cancelled** (OpenCode removed) |
+| FR-13.x | Community Detection | P1 | **Done** |
+| FR-14.x | Sync Mtime Optimization | P1 | **Done** |
+| FR-15.x | Site Rebuild | P0/P1 | **Done** |
+| FR-16.x | Session Start Hook Redesign | P1 | **Done** (recency-boosted SQL, bugs fixed) |
+| FR-17.x | Test Coverage | P0/P1 | **Done** (line 77.75%, branch 67.48%, method 93.34%) |
+| FR-18.x | MCP SDK Upgrade | P1 | **Done** (0.8.0-preview.1) |
 
 ---
 

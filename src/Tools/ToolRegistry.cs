@@ -258,11 +258,13 @@ namespace Maenifold.Tools
                 var view = PayloadReader.GetBool(payload, "view", false);
                 string? append = null;
                 if (payload.TryGetProperty("append", out var ap)) append = ap.GetString();
+                string? submachineSessionId = null;
+                if (payload.TryGetProperty("submachineSessionId", out var submachineProp)) submachineSessionId = submachineProp.GetString();
                 bool learn = false;
                 if (payload.TryGetProperty("learn", out var learnProp))
                     learn = learnProp.GetBoolean();
 
-                return WorkflowTools.Workflow(sessionId, workflowId, response, thoughts, status, conclusion, view, append, learn);
+                return WorkflowTools.Workflow(sessionId, workflowId, response, thoughts, status, conclusion, view, append, submachineSessionId, learn);
             }, new[] { "workflow" }, "Workflow tool");
 
         private static ToolDescriptor CreateRecentActivityDescriptor() =>

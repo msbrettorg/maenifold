@@ -11,6 +11,28 @@
 - HOOKS-001: Claude Code session start hook redesign (**Complete**)
 - SITE-001: Site rebuild ("Warm Restraint")
 - COV-001: Test coverage sprint (FR-17.x)
+- HSM-001: Hierarchical State Machines — Workflow Supervisor (FR-10.x)
+
+## Sprint: Hierarchical State Machines (T-HSM-001)
+
+Wave 1 — Implementation (serial):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-HSM-001.1 | SWE: Implement supervisor state machine — add `phase`/`activeSubmachineType`/`activeSubmachineSessionId` frontmatter to Start(), add `submachineSessionId` param to Workflow(), implement register path and gate check in Continue() | FR-10.1, FR-10.3, FR-10.4 | **Complete** |
+
+Wave 2 — Verification (parallel after Wave 1):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-HSM-001.2 | Blue-team: Integration tests — workflow enters waiting, blocks while submachine active, unblocks on completion, backward compat, frontmatter persistence | FR-10.1-10.4 | **Complete** |
+| T-HSM-001.3 | Red-team: Adversarial review — invalid sessionIds, abandoned status, missing files, response persistence. HIGH-001 + MEDIUM-001 remediated. | Security | **Complete** |
+
+Wave 3 — Close:
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-HSM-001.4 | Blue-team: Verify coverage held, all FR-10.x requirements met — 814/814 tests, line 77.77%, branch 67.22%, method 92.92%, 0 warnings | FR-10.1-10.6 | **Complete** |
 
 ## Sprint: Session Abandonment Sweep (T-CLEANUP-001.1)
 

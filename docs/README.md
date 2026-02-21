@@ -80,7 +80,7 @@ Context engineering infrastructure for AI agents. Point it at any domain's liter
 
 | Feature | What It Means | Implementation |
 |---------|---------------|----------------|
-| **[Sequential Thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking)** | Multi-step reasoning with persistence, graph integration, multi-agent branching | Extends MCP server with `sessionId`, `branchId`, `parentWorkflowId` |
+| **[Sequential Thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking)** | State machine: `active` → `completed`/`cancelled`/`abandoned`. Multi-step reasoning with revision, branching, and concurrent multi-agent branches | Extends MCP server with `sessionId`, `branchId`, `parentWorkflowId`; can be registered as a Workflow submachine |
 | **Assumption Ledger** | Track beliefs and their validation status | `AssumptionLedger` with confidence levels, evidence links |
 
 ### Workflow System
@@ -88,6 +88,7 @@ Context engineering infrastructure for AI agents. Point it at any domain's liter
 | Feature | What It Means | Implementation |
 |---------|---------------|----------------|
 | **Workflow Engine** | Structured multi-step methodology execution | `Workflow` tool with JSON steps, `toolHints`, guardrails |
+| **Supervisor/Submachine** | Workflows manage SequentialThinking lifecycles | `submachineSessionId` registers child; `phase` gates step advancement |
 | **Nested Composition** | Workflows invoke other workflows and tools | Workflows embed `SequentialThinking`; bidirectional linking |
 | **Session Persistence** | Resume reasoning across days | State in `memory://workflow/`; session IDs enable continuation |
 
@@ -345,8 +346,8 @@ Forgetting is not loss of the pointer — it's reduced priority for retrieval. T
 ### Reasoning Layer
 
 Where test-time computation happens:
-- **Sequential Thinking**: Multi-step reasoning with revision and branching
-- **Workflow Orchestration**: 35+ distinct methodologies with quality gates and guardrails
+- **Sequential Thinking**: State machine (`active` → `completed`/`cancelled`/`abandoned`) with revision, branching, and multi-agent sessions
+- **Workflow Orchestration**: Supervisor state machine managing 35+ methodologies; registers SequentialThinking as submachines, gates step advancement until completion
 - **Assumption Ledger**: Traceable skepticism — capture, validate, and track assumptions
 - **Multi-agent Coordination**: Wave-based execution with parallel agent dispatch
 - **Intelligent Method Selection**: Meta-cognitive system for optimal reasoning approach
@@ -378,6 +379,7 @@ Where test-time computation happens:
 - **Neuroscience-Grounded Decay**: ACT-R power-law forgetting with tiered memory classes
 - **Autonomous Sleep Cycles**: Five-specialist maintenance runs unattended
 - **Symbolic Inter-Agent Protocol**: WikiLinks dereference to graph context
+- **Hierarchical State Machines**: Workflows supervise SequentialThinking submachines — gate step advancement, self-heal on missing sessions
 - **Quality-Gated Orchestration**: Multi-agent coordination with validation waves and RTM compliance
 - **Complete Transparency**: Every thought, revision, and decision visible in markdown files
 - **Multi-day Persistence**: Sessions maintain state across restarts

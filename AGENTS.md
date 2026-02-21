@@ -89,10 +89,6 @@ npm run lint
 npm run build
 ```
 
-### Concept map app (Vite)
-
-Run from `src/apps/concept-map/`: `npm install && npm run build && npm run copy`
-
 ## Code Style & Conventions
 ### Formatting
 - C#: Allman braces; 4 spaces; no tabs (see `docs/DEVELOPMENT.md`).
@@ -151,6 +147,8 @@ Checklist for tool changes:
 - Troubleshooting: https://claude.com/docs/connectors/building/mcp-apps/troubleshooting
 - SDK API: https://modelcontextprotocol.github.io/ext-apps/api/documents/Quickstart.html
 - Examples: https://github.com/modelcontextprotocol/ext-apps/tree/main/examples
+- Local playground (`mcp-apps-playground`): `/Users/brett/src/mcp-apps-playground` — demo MCP server with interactive UI tools (list_sort, flame_graph, feature_flags). stdio + HTTP transports, Zod schemas, structuredContent patterns. Good reference for tool→UI wiring.
+- Local ext-apps SDK (`@modelcontextprotocol/ext-apps`): `/Users/brett/src/ext-apps` — the official MCP Apps SDK repo. Contains spec (`specification/2026-01-26/`), SDK source, 25+ example servers (React, Preact, Solid, Svelte, Vue, vanilla JS), and Playwright e2e tests.
 
 ## Cursor / Copilot Rules
 - Cursor: no `.cursor/rules/` or `.cursorrules` found.

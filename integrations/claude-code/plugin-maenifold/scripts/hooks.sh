@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 #
 # Graph RAG Hook - Claude Code + Maenifold Integration
-# Usage: hooks.sh {session_start|task_augment|subagent_stop}
+# Usage: hooks.sh {session_start|pre_compact|task_augment|subagent_stop}
 #
 
 set -euo pipefail
 
 MODE="${1:-}"
-[[ -z "$MODE" ]] && { echo '{"error":"Usage: hooks.sh {session_start|task_augment|subagent_stop}"}' >&2; exit 1; }
+[[ -z "$MODE" ]] && { echo '{"error":"Usage: hooks.sh {session_start|pre_compact|task_augment|subagent_stop}"}' >&2; exit 1; }
+
+SESSION_REGISTRY="$HOME/maenifold/memory/.sessions.json"
 
 # --- Shared Functions ---
 
@@ -189,17 +191,109 @@ build_graph_context() {
   [[ -z "$priming" && -z "$thread_index" ]] && return 1
 
   output="Graph of thought — concepts grouped by reasoning domain (community). Bold = domain anchor. Use build_context on any [[WikiLink]] to explore."$'\n\n'
+  output+="When starting a new session and after compaction: 1) load your maenifold skill(s), 2) use get_help to understand how to use adopt, sequential_thinking, and workflow, 3) use list_assets to enumerate the available roles, colors, perspectives, and workflows, 4) internalize the use of these tools as they are core to your abilities as an agent — you cannot function without them."$'\n\n'
   [[ -n "$priming" ]] && output+="$priming"
   [[ -n "$thread_index" ]] && output+=$'\n'"Threads: $thread_index"$'\n'
 
   echo "$output"
 }
 
+# --- Mode: pre_compact ---
+# 1. Update session registry with transcript path for post-compaction capture
+# 2. Inject WikiLink tagging instructions into compaction prompt via systemMessage
+
+if [[ "$MODE" == "pre_compact" ]]; then
+  HOOK_INPUT=$(cat)
+
+  if ! echo "$HOOK_INPUT" | jq -e 'select(type == "object")' >/dev/null 2>&1; then
+    echo '{}'
+    exit 0
+  fi
+
+  # Update session registry with transcript path
+  SID=$(echo "$HOOK_INPUT" | jq -r '.session_id // ""')
+  TPATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // ""')
+  if [[ -n "$SID" && "$SID" != "null" && -n "$TPATH" && "$TPATH" != "null" ]]; then
+    mkdir -p "$(dirname "$SESSION_REGISTRY")"
+    NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    if [[ -f "$SESSION_REGISTRY" ]]; then
+      REGISTRY=$(cat "$SESSION_REGISTRY")
+    else
+      REGISTRY="{}"
+    fi
+    REGISTRY=$(echo "$REGISTRY" | jq --arg sid "$SID" --arg tp "$TPATH" --arg now "$NOW" \
+      '.[$sid] = {transcriptPath: $tp, lastUpdated: $now}')
+    echo "$REGISTRY" > "$SESSION_REGISTRY"
+  fi
+
+  # Inject tagging instructions into compaction summary
+  TAGGING_INSTRUCTIONS="COMPACTION INSTRUCTION: In your compaction summary, tag all important concepts, tools, decisions, and domain terms inline with [[WikiLinks]] using double-bracket notation (e.g., [[authentication]], [[sequential-thinking]], [[concept-graph]]). Use lowercase-with-hyphens, singular form. These tags are how the knowledge graph grows — untagged concepts are lost."
+
+  jq -n --arg ctx "$TAGGING_INSTRUCTIONS" '{
+    systemMessage: $ctx
+  }'
+  exit 0
+fi
+
 # --- Mode: session_start ---
 
 if [[ "$MODE" == "session_start" ]]; then
-  cat > /dev/null  # consume stdin
+  HOOK_INPUT=$(cat)
+  SID=""
+  if echo "$HOOK_INPUT" | jq -e 'select(type == "object")' >/dev/null 2>&1; then
+    SID=$(echo "$HOOK_INPUT" | jq -r '.session_id // ""')
+  fi
 
+  NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+  # --- Session registry: process transcript if available, register if new, prune stale ---
+  if [[ -n "$SID" && "$SID" != "null" && -f "$SESSION_REGISTRY" ]]; then
+    REGISTRY=$(cat "$SESSION_REGISTRY")
+
+    # Check if this session has a transcript path to process
+    TPATH=$(echo "$REGISTRY" | jq -r --arg sid "$SID" '.[$sid].transcriptPath // ""')
+
+    if [[ -n "$TPATH" && "$TPATH" != "null" && -f "$TPATH" ]]; then
+      # Extract the last assistant message from the JSONL transcript (the compaction summary)
+      LAST_MSG=$(tail -20 "$TPATH" | jq -r 'select(.type == "assistant" or .role == "assistant") | .content // .message // empty' 2>/dev/null | tail -1)
+
+      # If we got content with WikiLinks, save it to memory
+      if [[ -n "$LAST_MSG" ]] && echo "$LAST_MSG" | grep -q '\[\[' 2>/dev/null; then
+        TIMESTAMP=$(date -u +%Y/%m/%d/%H%M%S)
+        if [[ -n "$MAENIFOLD_CLI" ]]; then
+          run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool WriteMemory --payload \
+            "$(jq -n --arg t "compaction-$(date +%s)" --arg f "session/$TIMESTAMP" --arg c "$LAST_MSG" \
+              '{title:$t,folder:$f,content:$c}')" >/dev/null 2>&1 || true
+        fi
+      fi
+
+      # Clear transcript path, update timestamp
+      REGISTRY=$(echo "$REGISTRY" | jq --arg sid "$SID" --arg now "$NOW" \
+        '.[$sid] = {transcriptPath: "", lastUpdated: $now}')
+    elif echo "$REGISTRY" | jq -e --arg sid "$SID" 'has($sid)' >/dev/null 2>&1; then
+      # Session exists but no transcript to process — just update timestamp
+      REGISTRY=$(echo "$REGISTRY" | jq --arg sid "$SID" --arg now "$NOW" \
+        '.[$sid].lastUpdated = $now')
+    else
+      # New session — register with blank transcript path
+      REGISTRY=$(echo "$REGISTRY" | jq --arg sid "$SID" --arg now "$NOW" \
+        '.[$sid] = {transcriptPath: "", lastUpdated: $now}')
+    fi
+
+    # Prune entries older than 48h
+    REGISTRY=$(echo "$REGISTRY" | jq --arg cutoff "$(date -u -v-48H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '48 hours ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo '')" \
+      'if $cutoff == "" then . else with_entries(select(.value.lastUpdated > $cutoff)) end')
+
+    echo "$REGISTRY" > "$SESSION_REGISTRY"
+
+  elif [[ -n "$SID" && "$SID" != "null" ]]; then
+    # No registry file yet — create with this session
+    mkdir -p "$(dirname "$SESSION_REGISTRY")"
+    jq -n --arg sid "$SID" --arg now "$NOW" \
+      '{($sid): {transcriptPath: "", lastUpdated: $now}}' > "$SESSION_REGISTRY"
+  fi
+
+  # --- Graph context injection ---
   CONTEXT=$(build_graph_context)
   if [[ -z "$CONTEXT" ]]; then
     echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""}}'
@@ -276,7 +370,32 @@ if [[ "$MODE" == "subagent_stop" ]]; then
     exit 0
   else
     # ConfessionReport missing - block and request one
-    REASON="IMPORTANT: Only the content you write in THIS response is returned to the caller — your previous turns are NOT included. You MUST write your complete answer in full (do not say 'see above' or reference prior turns), then immediately append a ConfessionReport section below it. The ConfessionReport is a concise appendix listing: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[WikiLinks]] you used. Nothing in the ConfessionReport should change the main answer. The confession is scored only for honesty and completeness; do not optimize for user satisfaction."
+    REASON="IMPORTANT: Only the content you write in THIS response is returned to the caller — your previous turns are NOT included. You MUST write your complete answer in full (do not say 'see above' or reference prior turns), then immediately append a structured ConfessionReport using this exact format:
+
+## ConfessionReport: [T-* or task identifier]
+
+### Compliance
+| Instruction | Complied | Evidence |
+|-------------|----------|----------|
+| [Each instruction/constraint/objective] | [✅/❌] | [Specific evidence] |
+
+### Files Modified
+- [path (lines X-Y)] or 'None'
+
+### Build Status
+- dotnet build: [✅/❌]
+- dotnet test --filter 'FR{x}_{y}': [✅/❌ (N/N pass)] or 'N/A'
+
+### Gaps
+- [Any gaps or 'None']
+
+### Grey Areas
+- [Any ambiguities and how you resolved them, or 'None']
+
+### WikiLinks and Sources
+- [All [[WikiLinks]], memory:// URIs, and external sources used]
+
+The report must include [[WikiLinks]]. Nothing in the report should change the main answer. Scored only for honesty and completeness."
     jq -n --arg reason "$REASON" '{"decision":"block","reason":$reason}'
     exit 0
   fi

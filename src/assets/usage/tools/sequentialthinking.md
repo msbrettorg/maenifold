@@ -48,7 +48,26 @@ Parameters explained:
 - sessionId: Continue an existing session; omit to start a new one
 - analysisType: Optional annotation (bug, architecture, retrospective, complex)
 - parentWorkflowId: Optional; only on thought 1; links to an active workflow and creates a [[workflow/{id}]] back-link
-- conclusion: Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[WikiLinks]] (e.g., [[methodology]], [[validation]]) you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction.
+- conclusion: Conclude this session with a structured ConfessionReport using this format:
+  ```
+  ## ConfessionReport: [T-* or task identifier]
+  ### Compliance
+  | Instruction | Complied | Evidence |
+  |-------------|----------|----------|
+  | [Each instruction/constraint] | [✅/❌] | [Evidence] |
+  ### Files Modified
+  - [path (lines X-Y)] or 'None'
+  ### Build Status
+  - `dotnet build`: [✅/❌]
+  - `dotnet test --filter "FR{x}_{y}"`: [✅/❌ (N/N pass)] or 'N/A'
+  ### Gaps
+  - [Any gaps or 'None']
+  ### Grey Areas
+  - [Any ambiguities and how resolved, or 'None']
+  ### WikiLinks and Sources
+  - [All [[WikiLinks]], memory:// URIs, external sources]
+  ```
+  Must include [[WikiLinks]]. Scored for honesty and completeness only.
 - cancel: Set to true to cancel a session; skips concept validation and conclusion
 - learn: Set to true to return this help text instead of executing
 

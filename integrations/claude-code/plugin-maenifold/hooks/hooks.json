@@ -1,6 +1,16 @@
 {
-  "_note": "PreCompact hook removed: compaction context is handled by the SessionStart hook which re-injects graph context post-compaction via the bootstrap protocol.",
   "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/hooks.sh pre_compact"
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "*",

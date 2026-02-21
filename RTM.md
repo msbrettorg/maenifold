@@ -322,3 +322,116 @@ OpenCode integration removed. All files under `integrations/opencode/` deleted. 
 | T-HSM-001.2 | FR-10.1-10.4 | Blue-team: Integration tests for supervisor lifecycle — 10 tests covering enter waiting, block while active, unblock on completion/cancellation, backward compat, frontmatter persistence. All PASS. | tests/Maenifold.Tests/WorkflowSupervisorTests.cs | 811/811 tests pass | **Complete** |
 | T-HSM-001.3 | Security | Red-team: HIGH-001 (abandoned status + missing file permanent freeze) REMEDIATED. MEDIUM-001 (response discarded during register) REMEDIATED. 3 remediation tests added. 814/814 tests pass. | All changed files | ConfessionReport + remediation | **Complete** |
 | T-HSM-001.4 | FR-10.1-10.6 | Blue-team: All 6 FR-10.x PASS. 814/814 tests. Line 77.77%, Branch 67.22%, Method 92.92%. 0 warnings. | All components | Compliance report | **Complete** |
+
+---
+
+## T-APP-001: MCP Apps UI — Sync & MemoryStatus (sprint-20260221)
+
+### P1 — Resource Registration & Tool Wiring
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-APP-001.1 | FR-19.1, NFR-19.1 | Server SHALL register `ui://maenifold/sync` and `ui://maenifold/memory-status` resources with MIME `text/html;profile=mcp-app`, serving embedded HTML templates implementing SEP-1865 lifecycle. | src/Tools/AppResources.cs (new) | tests/Maenifold.Tests/McpAppTests.cs | Pending |
+| T-APP-001.2 | FR-19.2, FR-19.4, FR-19.9, NFR-19.4, NFR-19.5 | `Sync` tool SHALL include `[McpMeta]` annotation for `ui://maenifold/sync` and return `structuredContent` (filesProcessed, conceptMentions, conceptRelations, orphanedConcepts, communities, modularity, vectors, vectorReady) alongside existing markdown text. CLI path SHALL return markdown only. `learn=true` returns help only. | src/Tools/GraphTools.cs, src/Tools/ConceptSync.cs | tests/Maenifold.Tests/McpAppTests.cs, existing Sync tests | Pending |
+| T-APP-001.3 | FR-19.3, FR-19.5, FR-19.9, NFR-19.4, NFR-19.5 | `MemoryStatus` tool SHALL include `[McpMeta]` annotation for `ui://maenifold/memory-status` and return `structuredContent` (files.total, files.folders, files.sizeBytes, files.sizeMB, graph.concepts, graph.relations, graph.mentions, graph.dbSizeBytes, graph.dbSizeMB) alongside existing markdown text. CLI path SHALL return markdown only. `learn=true` returns help only. | src/Tools/SystemTools.cs | tests/Maenifold.Tests/McpAppTests.cs, existing MemoryStatus tests | Pending |
+
+### P1 — HTML Templates
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-APP-001.4 | FR-19.6, FR-19.7, FR-19.8, NFR-19.1, NFR-19.2, NFR-19.3 | Sync UI HTML template SHALL implement SEP-1865 lifecycle (initialize → initialized → tool-result → render), render structuredContent as read-only dashboard (no user interaction), apply host theme from host-context-changed, be under 5KB, be embedded as C# string constant. | src/Tools/AppResources.cs | Manual: render in MCP-capable host | Pending |
+| T-APP-001.5 | FR-19.6, FR-19.7, FR-19.8, NFR-19.1, NFR-19.2, NFR-19.3 | MemoryStatus UI HTML template SHALL implement SEP-1865 lifecycle (initialize → initialized → tool-result → render), render structuredContent as read-only dashboard (no user interaction), apply host theme from host-context-changed, be under 5KB, be embedded as C# string constant. | src/Tools/AppResources.cs | Manual: render in MCP-capable host | Pending |
+
+### P1 — Verification
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-APP-001.6 | FR-19.1-19.9, NFR-19.4-19.7 | Blue-team: Tests covering structuredContent data shapes (field names, types, non-null), CLI backward compatibility (returns string, not structured), learn parameter (no structuredContent), resource registration (MIME type, URI). All existing Sync/MemoryStatus tests pass. Coverage thresholds held. | tests/Maenifold.Tests/McpAppTests.cs | N/A | Pending |
+| T-APP-001.7 | Security | Red-team: XSS in HTML templates (malicious concept names in structuredContent rendered in UI), CSP compliance of embedded HTML, postMessage origin validation, structuredContent field injection, backward-compat audit (no CLI regressions). | All changed files | ConfessionReport | Pending |
+| T-APP-001.8 | FR-19.1-19.9, NFR-19.1-19.7 | Blue-team: All FR-19.x requirements met. Tests pass. Coverage thresholds held. 0 warnings. | All components | Compliance report | Pending |
+
+---
+
+## T-APP-002: Workflow/HSM Visualizer (sprint-20260221)
+
+### P1 — Resource Registration & Tool Wiring
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-APP-002.1 | FR-20.1, FR-20.7, FR-20.8, FR-20.9 | Server SHALL register `ui://maenifold/workflow` resource with MIME `text/html;profile=mcp-app`, serving an embedded HTML template implementing SEP-1865 lifecycle as a read-only dashboard for workflow/HSM state visualization. | src/Tools/AppResources.cs | tests/Maenifold.Tests/McpAppTests.cs | Pending |
+| T-APP-002.2 | FR-20.2, FR-20.3, FR-20.4, FR-20.5, FR-20.6, FR-20.10 | `Workflow` tool SHALL include `[McpMeta]` annotation for `ui://maenifold/workflow` and return `structuredContent` alongside existing markdown text containing: session state (sessionId, workflowId, phase, currentStep, totalSteps, status), step list (title, index, isCurrent), and submachine state (activeSubmachineType, activeSubmachineSessionId). CLI path SHALL return markdown only. `learn=true` returns help only. | src/Tools/WorkflowTools.Runner.cs, src/Tools/WorkflowOperations.Core.cs, src/Tools/WorkflowOperations.Management.cs | tests/Maenifold.Tests/McpAppTests.cs | Pending |
+
+### P1 — Live Updates
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-APP-002.4 | FR-20.11 | Implement `WorkflowStatus` app-only tool (`visibility: ["app"]`) returning current workflow session state for self-polling UI. | src/Tools/WorkflowTools.Runner.cs | TC-APP-002.4 | Pending |
+| T-APP-002.5 | FR-20.12, FR-20.13, FR-20.14, FR-20.15, FR-20.16, NFR-20.7, NFR-20.8 | Add self-polling logic to Workflow HTML template — poll `WorkflowStatus` via `tools/call` during SEP-1865 Interactive Phase, 3s interval, stop on terminal state. Polling SHALL be visibility-gated via IntersectionObserver + document.visibilityState — start only when visible, pause when hidden. Initial render from tool-result SHALL NOT require polling. | src/Tools/WorkflowAppTemplate.cs | TC-APP-002.5 | Pending |
+
+### P1 — Verification
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-APP-002.3 | FR-20.1-20.16 | Blue-team: Tests covering structuredContent shape (session state fields, step titles from workflow JSON, submachine fields present/null), CLI backward compatibility, learn parameter. All existing Workflow tests pass. Coverage thresholds held. | tests/Maenifold.Tests/McpAppTests.cs | N/A | Pending |
+| T-APP-002.6 | Security | Red-team: Adversarial review — XSS in step titles rendered in HTML template, structuredContent field injection, CLI regression audit. | All changed files | ConfessionReport | Pending |
+| T-APP-002.7 | FR-20.1-20.16 | Blue-team: All FR-20.x requirements met. Tests pass. Coverage thresholds held. 0 warnings. | All components | Compliance report | Pending |
+
+---
+
+## T-APP-003: Sequential Thinking Tree (sprint-20260221)
+
+### P1 — Resource Registration & Thought Parser
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-APP-003.1 | FR-21.1, FR-21.8, FR-21.9, FR-21.10, FR-21.11 | Server SHALL register `ui://maenifold/sequential-thinking` resource with MIME `text/html;profile=mcp-app`, serving an embedded HTML template implementing SEP-1865 lifecycle as a read-only collapsible tree dashboard for sequential thinking session visualization. | src/Tools/AppResources.cs | tests/Maenifold.Tests/McpAppTests.cs | Pending |
+| T-APP-003.2 | NFR-21.3, NFR-21.4 | Implement thought heading parser (`ThoughtParser.cs`) — extract thought number, branchId, branchFromThought, agentId, and revision target from markdown headings; handle trunk thoughts, branch thoughts, revisions, and malformed headings gracefully. | src/Tools/ThoughtParser.cs (new) | tests/Maenifold.Tests/ThoughtParserTests.cs (new) | Pending |
+
+### P1 — Tool Wiring
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-APP-003.3 | FR-21.2, FR-21.3, FR-21.4, FR-21.5, FR-21.6, FR-21.7, FR-21.12 | `SequentialThinking` tool SHALL include `[McpMeta]` annotation for `ui://maenifold/sequential-thinking` and return `structuredContent` alongside existing markdown text containing: session metadata (sessionId, totalThoughts, nextThoughtNeeded), thought nodes (number, branchId, branchFromThought, agentId, content summary), branch metadata, and conclusion. CLI path SHALL return markdown only. `learn=true` returns help only. | src/Tools/SequentialThinkingTools.cs | tests/Maenifold.Tests/McpAppTests.cs | Pending |
+
+### P1 — Live Updates
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-APP-003.5 | FR-21.13 | Implement `ThinkingStatus` app-only tool (`visibility: ["app"]`) returning current thought tree for self-polling UI. | src/Tools/SequentialThinkingTools.cs | TC-APP-003.5 | Pending |
+| T-APP-003.6 | FR-21.14, FR-21.15, FR-21.16, FR-21.17, FR-21.18, NFR-21.9, NFR-21.10 | Add self-polling logic to SequentialThinking HTML template — poll `ThinkingStatus` via `tools/call` during SEP-1865 Interactive Phase, 3s interval, stop on terminal state. Polling SHALL be visibility-gated via IntersectionObserver + document.visibilityState — start only when visible, pause when hidden. Initial render from tool-result SHALL NOT require polling. | src/Tools/SequentialThinkingAppTemplate.cs | TC-APP-003.6 | Pending |
+
+### P1 — Verification
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-APP-003.4 | FR-21.1-21.18 | Blue-team: Tests covering thought parser (trunk, branches, revisions, malformed headings), structuredContent shape (session metadata, thought nodes, branch metadata, conclusion), CLI backward compatibility, learn parameter. All existing SequentialThinking tests pass. Coverage thresholds held. | tests/Maenifold.Tests/McpAppTests.cs, tests/Maenifold.Tests/ThoughtParserTests.cs | N/A | Pending |
+| T-APP-003.7 | Security | Red-team: Adversarial review — XSS in thought content and WikiLinks rendered in HTML template, malformed headings, large sessions (50+ thoughts), CLI regression audit. | All changed files | ConfessionReport | Pending |
+| T-APP-003.8 | FR-21.1-21.18 | Blue-team: All FR-21.x requirements met. Tests pass. Coverage thresholds held. 0 warnings. | All components | Compliance report | Pending |
+
+---
+
+## T-GOOSE-001: Goose Extension (FR-22.x)
+
+### P1 — ServerInstructions (code change)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-GOOSE-001.1 | FR-22.1, FR-22.2, FR-22.3, NFR-22.1, NFR-22.2 | MCP server SHALL include `ServerInstructions` in `initialize` handshake via `McpServerOptions.ServerInstructions`. Text in static class `src/Utils/ServerInstructions.cs`. Describes CLI-first, WikiLinks, graph-first retrieval, search-before-write, memory lineage, categorized tool summary. Under 500 words. | src/Program.cs, src/Utils/ServerInstructions.cs (new) | TC-GOOSE-001.1 | Pending |
+
+### P1 — Goose Packaging (docs/config)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-GOOSE-001.2 | FR-22.4, NFR-22.3 | Full Goose recipe at `integrations/goose/recipes/maenifold.yaml` — extension config, CLI-first instructions, graph navigation, scripting patterns, activities. Validates against Goose recipe schema. | integrations/goose/recipes/maenifold.yaml (new) | YAML validation | Pending |
+| T-GOOSE-001.3 | FR-22.5 | Minimal Goose recipe at `integrations/goose/recipes/maenifold-minimal.yaml` — extension config + core conventions only. | integrations/goose/recipes/maenifold-minimal.yaml (new) | YAML validation | Pending |
+| T-GOOSE-001.4 | FR-22.6 | Config snippet at `integrations/goose/config-snippet.yaml` for manual setup. | integrations/goose/config-snippet.yaml (new) | N/A | Pending |
+| T-GOOSE-001.5 | FR-22.7 | Installation README at `integrations/goose/README.md` — prerequisites, installation methods, disable built-in memory, competitive comparison table, CLI-first usage, key patterns, SCRIPTING.md link. | integrations/goose/README.md (new) | N/A | Pending |
+| T-GOOSE-001.6 | FR-22.8 | `docs/SCRIPTING.md` section 4 updated — Goose integration pattern alongside Claude Code. | docs/SCRIPTING.md | N/A | Pending |
+
+### P1 — Verification
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-GOOSE-001.7 | NFR-22.5, NFR-22.6 | Blue-team: `dotnet build -c Debug` 0 warnings, `dotnet test` all pass, CLI `--tool MemoryStatus` works, `--mcp` starts without error. | All changed files | Build + test suite | Pending |
+| T-GOOSE-001.8 | Security | Red-team: Review ServerInstructions for information leakage, review recipe YAML for injection vectors, verify CLI-first emphasis is consistent, check for contradictions between ServerInstructions and recipe instructions. | All changed files | ConfessionReport | Pending |
+| T-GOOSE-001.9 | FR-22.1-22.8, NFR-22.1-22.6 | Blue-team: All FR-22.x requirements met. Build/tests pass. 0 warnings. | All components | Compliance report | Pending |

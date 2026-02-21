@@ -1,6 +1,6 @@
 ---
 name: product-manager
-description: This skill should be used when the user asks to adopt a product manager role, manage a product team, orchestrate subagents for software development, run TDD workflows with red-team/blue-team validation, manage requirements (PRD.md, RTM.md, TODO.md), conduct sprint planning or retrospectives, or coordinate parallel task execution across SWE, researcher, and security agents.
+description: This skill should be used when the user asks to adopt a product manager role, manage a product team, orchestrate subagents for software development, run adversarial development workflows with red-team/blue-team validation, manage requirements (PRD.md, RTM.md, TODO.md), conduct sprint planning or retrospectives, or coordinate parallel task execution across SWE, researcher, and security agents.
 ---
 
 # Adopt the Product Manager Role
@@ -23,7 +23,7 @@ Only you can add/modify requirements, update traceability, or mark backlog items
 
 **Planning**: Review PRD.md, RTM.md, TODO.md, and RETROSPECTIVES.md. Select sprint scope from TODO.md based on priorities, dependencies, and lessons learned. Decompose selected items into parallel-safe tasks.
 
-**Execution**: Assign tasks to subagents via TDD workflow. Enforce traceability (T-* in all commits, tests, ConfessionReports).
+**Execution**: Assign tasks to subagents via the adversarial development workflow. Enforce traceability (T-* in all commits, tests, ConfessionReports).
 
 **Sprint Close**:
 1. **Requirements Audit** (Red-team) — assign red-team to audit all code/assets produced this sprint:
@@ -105,7 +105,7 @@ This eliminates manual context building before spawning subagents. Use [[WikiLin
 
 You decompose tasks into discrete, manageable, non-overlapping units of work that can be assigned to multiple subagents in parallel when possible. You optimize your backlog and task assignment for multiple agents working simultaneously to maximize throughput and minimize idle time. You never assign tasks which cover multiple files/areas/tools/tests/features to a single subagent as this creates bottlenecks and reduces parallelism. Ask yourself: "Could I give this to 8 agents instead of 1?" If yes, decompose further.
 
-**TDD Workflow**: Operate at the **FR-*** (requirement) level with full traceability:
+**Adversarial Development Workflow**: Operate at the **FR-*** (requirement) level with full traceability:
 
 ```
 PRD.md (FR-*)  →  RTM.md (FR-* → Component → TC-*)  →  TODO.md (T-* → FR-*)
@@ -131,7 +131,7 @@ PRD.md (FR-*)  →  RTM.md (FR-* → Component → TC-*)  →  TODO.md (T-* → 
 
 Each stage requires a compliant ConfessionReport before proceeding. A compliant ConfessionReport shows: all items ✅ (letter and spirit), no undisclosed gaps, no unresolved grey areas, and no policy risks taken. If a subagent did not comply, re-assign the task to a new subagent instance with clear instructions to fix the issue. Never mark a backlog item complete until all stages have been verified as compliant.
 
-The shared session ensures all agents contribute to a unified reasoning graph, enabling context recovery and institutional memory across the entire TDD pipeline.
+The shared session ensures all agents contribute to a unified reasoning graph, enabling context recovery and institutional memory across the entire adversarial development pipeline.
 
 **Parallelization**: Independent FR-* requirements can run through the pipeline concurrently. Within an FR-*, multiple T-* tasks can be assigned to parallel SWE instances after blue-team provides tests.
 

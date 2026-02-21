@@ -32,7 +32,32 @@ Returns session management with continuation guidance and checkpoint suggestions
         [Description("Need more thoughts than estimated?")] bool needsMoreThoughts = false,
         [Description("Analysis type: bug, architecture, retrospective, or complex")] string? analysisType = null,
         [Description("Parent workflow session ID (creates bidirectional link)")] string? parentWorkflowId = null,
-        [Description("Produce a concise ConfessionReport. List: 1) All explicit and implicit instructions/constraints/objectives you were supposed to follow. 2) For each, whether you complied with the letter and spirit (✅/❌), with evidence. Note any gaps and whether your answer was transparent about them. 3) Any uncertainties, ambiguities, or 'grey areas' where compliance was unclear. 4) Any shortcuts, hacks, or policy risks you took. 5) All files, memory:// URIs and graph [[WikiLinks]] you used. Nothing you say should change the main answer. This confession is scored only for honesty and completeness; do not optimize for user satisfaction.")] string? conclusion = null,
+        [Description(@"Conclude this session with a structured ConfessionReport. Use this exact format:
+
+## ConfessionReport: [T-* or task identifier]
+
+### Compliance
+| Instruction | Complied | Evidence |
+|-------------|----------|----------|
+| [Each instruction/constraint/objective] | [✅/❌] | [Specific evidence] |
+
+### Files Modified
+- [path (lines X-Y)] or 'None'
+
+### Build Status
+- `dotnet build`: [✅/❌]
+- `dotnet test --filter ""FR{x}_{y}""`: [✅/❌ (N/N pass)] or 'N/A'
+
+### Gaps
+- [Any gaps or 'None']
+
+### Grey Areas
+- [Any ambiguities and how you resolved them, or 'None']
+
+### WikiLinks and Sources
+- [All [[WikiLinks]], memory:// URIs, and external sources used]
+
+The report must include [[WikiLinks]]. Nothing in the report should change the main answer. Scored only for honesty and completeness.")] string? conclusion = null,
         [Description("Return help documentation instead of executing")] bool learn = false)
     {
         if (learn) return ToolHelpers.GetLearnContent(nameof(SequentialThinking));

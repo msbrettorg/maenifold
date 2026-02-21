@@ -471,10 +471,10 @@ PM Response:
 7. [Verifies all ConfessionReports and traceability]
 ```
 
-### Example 3: TDD Workflow
+### Example 3: Adversarial Development Workflow
 
 ```
-User: Implement feature X using TDD workflow
+User: Implement feature X using adversarial development workflow
 
 PM Response:
 1. Stage 1: SWE defines contract (optional)

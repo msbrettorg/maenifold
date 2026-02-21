@@ -25,6 +25,11 @@
 | 3.7 | 2026-02-16 | PM Agent | FR-16.x panel review fixes: output format example, hub selection change, includeContent ban, thread cap, timeout behavior, WikiLink validation |
 | 4.0 | 2026-02-19 | PM Agent | Added FR-18.x (MCP SDK upgrade 0.4.0-preview.3 → 0.8.0-preview.1) |
 | 4.1 | 2026-02-20 | Brett | Status audit — marked completed sections, updated FR-16.x with recency boost |
+| 5.0 | 2026-02-21 | PM Agent | Added FR-19.x (MCP Apps UI) — structuredContent dashboards for Sync and MemoryStatus tools |
+| 5.1 | 2026-02-21 | PM Agent | Added FR-20.x (Workflow/HSM Visualizer) and FR-21.x (Sequential Thinking Tree) — interactive MCP Apps for state machine and thought session visualization |
+| 5.2 | 2026-02-21 | PM Agent | FR-20.x/FR-21.x: Added self-polling live update requirements (FR-20.11-20.14, FR-21.13-21.16) per SEP-1865 Interactive Phase research |
+| 5.3 | 2026-02-21 | PM Agent | FR-20.x/FR-21.x: Added visibility-gated polling (FR-20.15-20.16, FR-21.17-21.18, NFR-20.7-20.8, NFR-21.9-21.10) — prevent N-iframe polling storm |
+| 6.0 | 2026-02-21 | PM Agent | Added FR-22.x (Goose extension) — ServerInstructions, recipes, competitive positioning vs Goose built-in memory (4 tools) and MCP reference memory server (9 tools) |
 
 ---
 
@@ -48,6 +53,10 @@
 | FR-16.x | Session Start Hook Redesign | P1 | **Done** (recency-boosted SQL, bugs fixed) |
 | FR-17.x | Test Coverage | P0/P1 | **Done** (line 77.75%, branch 67.48%, method 93.34%) |
 | FR-18.x | MCP SDK Upgrade | P1 | **Done** (0.8.0-preview.1) |
+| FR-19.x | MCP Apps UI (Sync + MemoryStatus) | P1 | Active |
+| FR-20.x | Workflow/HSM Visualizer | P1 | Active |
+| FR-21.x | Sequential Thinking Tree | P1 | Active |
+| FR-22.x | Goose Extension | P1 | Active |
 
 ---
 
@@ -917,3 +926,416 @@ Source: [v0.4.1-preview.1](https://github.com/modelcontextprotocol/csharp-sdk/re
 - Adding message/request filters (no current use case)
 - Upgrading to net10.0 target framework (net9.0 is current and supported)
 - Migrating from `McpException` to a different error pattern
+
+---
+
+## 10. MCP Apps UI — Sync & MemoryStatus (FR-19.x)
+
+### 10.1 Problem Statement
+
+The `Sync` and `MemoryStatus` tools return markdown-formatted text strings. When invoked in MCP-capable hosts that support the Apps Extension (SEP-1865), this text renders as plain monospace output — no visual hierarchy, no at-a-glance metrics, no color-coding. The data these tools return (file counts, graph metrics, community statistics, vector index sizes) is inherently dashboard data that benefits from structured visual presentation.
+
+The MCP Apps Extension (SEP-1865) enables MCP servers to register HTML UI resources that render inline in the host's chat interface as sandboxed iframes. By adding `structuredContent` to tool returns and registering `ui://` resources, both tools can provide rich read-only dashboards alongside their existing text output — with zero impact on hosts that don't support the extension.
+
+### 10.2 Current State
+
+- **`Sync`** (`GraphTools.cs:29`): Returns `string` from `ConceptSync.Sync()`. Output includes: files processed, concept mentions, concept relations, orphaned concepts cleaned, communities detected (count + modularity), vector index stats (concept/memory rows + dims).
+- **`MemoryStatus`** (`SystemTools.cs:58`): Returns `string` from `StringBuilder`. Output includes: total files, total folders, total size (MB), graph database metrics (concepts, relations, mentions, DB size MB).
+- **`BuildContext`** already returns `BuildContextResult` (a rich object), confirming the C# SDK supports non-string return types from `[McpServerTool]` methods.
+- **C# SDK 0.8.0-preview.1** supports `[McpMeta]` attribute with `JsonValue` parameter for setting `_meta.ui.resourceUri` on the tool's wire format.
+- **Existing resource pattern**: `AssetResources.cs` registers MCP resources via `[McpServerResource]` with `UriTemplate`, `Name`, and `MimeType`.
+
+Source: Codebase audit (`src/Tools/`), `memory://tech/mcp/mcp-apps-metauiresourceuri-in-c-sdk-080preview1`, `/Users/brett/src/mcp-apps-playground/src/index.ts`
+
+### 10.3 Functional Requirements
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-19.1 | Server SHALL register two `ui://` resources with MIME type `text/html;profile=mcp-app`: `ui://maenifold/sync` and `ui://maenifold/memory-status`. | **P1** |
+| FR-19.2 | `Sync` tool SHALL include `[McpMeta]` annotation advertising `ui://maenifold/sync` as its UI resource. | **P1** |
+| FR-19.3 | `MemoryStatus` tool SHALL include `[McpMeta]` annotation advertising `ui://maenifold/memory-status` as its UI resource. | **P1** |
+| FR-19.4 | `Sync` tool SHALL return both text `content` (existing markdown) and `structuredContent` (typed object with sync metrics) when invoked via MCP. | **P1** |
+| FR-19.5 | `MemoryStatus` tool SHALL return both text `content` (existing markdown) and `structuredContent` (typed object with system metrics) when invoked via MCP. | **P1** |
+| FR-19.6 | Each `ui://` resource SHALL serve a self-contained HTML document implementing the SEP-1865 lifecycle: `ui/initialize` request → `ui/notifications/initialized` notification → handle `ui/notifications/tool-result` (render structuredContent) → handle `ui/notifications/host-context-changed` (theme). | **P1** |
+| FR-19.7 | Both UIs SHALL be read-only dashboards — no user interaction, no `ui/message` back to chat, no form inputs. | **P1** |
+| FR-19.8 | Both UIs SHALL apply host CSS variables and theme (dark/light) from `ui/notifications/host-context-changed` context. | P2 |
+| FR-19.9 | CLI invocation (`--tool Sync`, `--tool MemoryStatus`) SHALL continue returning the existing markdown string format. structuredContent SHALL only be present in MCP responses. | **P1** |
+
+### 10.4 Non-Functional Requirements
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-19.1 | HTML templates SHALL be embedded as C# string constants in source files. No external HTML files shipped. | Required |
+| NFR-19.2 | Each HTML template SHALL be under 5KB (minified). | Target |
+| NFR-19.3 | UI rendering SHALL complete within 100ms of receiving `ui/notifications/tool-result`. | Target |
+| NFR-19.4 | `structuredContent` data shapes SHALL be stable — agents and scripts may depend on field names and types. | Required |
+| NFR-19.5 | Both tools SHALL continue to support the `learn` parameter; when `learn=true`, return help text only (no structuredContent, no UI). | Required |
+| NFR-19.6 | All existing tests for Sync and MemoryStatus SHALL pass without modification. | Required |
+| NFR-19.7 | Coverage thresholds (line >= 75%, branch >= 65%, method >= 85%) SHALL not regress. | Required |
+| NFR-19.8 | MIME type `text/html;profile=mcp-app` SHALL be set in BOTH the resource registration options AND the contents array. Missing either causes silent failure in hosts. | Required |
+| NFR-19.9 | HTML templates embedded in C# string constants SHALL escape `</script>` as `<\/script>` within inline `<script>` blocks to prevent premature tag closure. | Required |
+
+### 10.5 structuredContent Data Shapes
+
+**Sync:**
+
+```json
+{
+  "filesProcessed": 0,
+  "conceptMentions": 4548,
+  "conceptRelations": 96982,
+  "orphanedConcepts": 0,
+  "communities": 33,
+  "modularity": 0.304,
+  "vectors": {
+    "concept": { "rows": 2997, "dims": 384 },
+    "memory": { "rows": 207, "dims": 384 }
+  },
+  "vectorReady": true
+}
+```
+
+**MemoryStatus:**
+
+```json
+{
+  "files": {
+    "total": 207,
+    "folders": 58,
+    "sizeBytes": 2433024,
+    "sizeMB": "2.32"
+  },
+  "graph": {
+    "concepts": 1423,
+    "relations": 96982,
+    "mentions": 4548,
+    "dbSizeBytes": 30886912,
+    "dbSizeMB": "29.45"
+  }
+}
+```
+
+### 10.6 Design Notes
+
+**Why embedded HTML, not external files:** The deleted `ConceptMapApp` used an HTML file in `src/assets/apps/` plus a Vite build pipeline. This added build complexity and a runtime file dependency. Embedding HTML as C# string constants (like the playground's TypeScript template pattern in `/Users/brett/src/mcp-apps-playground/src/ui/hello-world.ts`) eliminates both — the UI ships with the binary, no file resolution needed.
+
+**Why read-only dashboards:** Both tools return system metrics. There's nothing for a user to modify — these are observation tools. Adding interactivity (filters, drill-down) would require additional MCP round-trips and complexity with no clear user value.
+
+**Return type approach:** Current tools return `string`. To support `structuredContent` alongside text content, the return type must change. The C# MCP SDK supports returning rich types from `[McpServerTool]` methods — `BuildContext` already returns `BuildContextResult`. The exact return type mechanism (direct object with `content` + `structuredContent` fields, or SDK-provided result wrapper) SHALL be determined during implementation by consulting SDK documentation and the playground reference implementation.
+
+**Three-part wiring pattern** (verified from playground `/Users/brett/src/mcp-apps-playground/src/index.ts` and SDK):
+1. Register `ui://` resource with `[McpServerResource]` and MIME `text/html;profile=mcp-app`
+2. Annotate tool with `[McpMeta("ui", JsonValue = """{"resourceUri":"ui://maenifold/..."}""")]`
+3. Return `structuredContent` object alongside text `content` from tool method
+
+**Backward compatibility:** Hosts that don't support SEP-1865 ignore `structuredContent` and `_meta.ui.resourceUri`. The text `content` field provides the same markdown output as before. CLI path (`--tool`) extracts text content only. No host is worse off.
+
+**SEP-1865 lifecycle** (verified from playground `/Users/brett/src/mcp-apps-playground/src/ui/hello-world.ts`):
+1. UI sends `ui/initialize` request via `postMessage` to host
+2. Host responds with `McpUiInitializeResult` (includes `hostContext`)
+3. UI sends `ui/notifications/initialized` notification
+4. Host sends `ui/notifications/tool-input` with tool input `arguments` (loading state)
+5. Host sends `ui/notifications/tool-result` with `content` and `structuredContent` (tool complete)
+6. UI renders the dashboard from the `structuredContent` data
+7. Host may send `ui/notifications/host-context-changed` for theme updates
+
+### 10.7 Out of Scope
+
+- Interactive UI elements (forms, buttons, drill-down) — these are read-only dashboards
+- Client-side charting libraries (D3, Chart.js) — CSS-only visual presentation
+- Persistent UI state across tool invocations
+- External CSS or JavaScript dependencies in the HTML templates
+
+---
+
+## 11. Workflow/HSM Visualizer (FR-20.x)
+
+### 11.1 Problem Statement
+
+The Workflow tool manages hierarchical state machines (HSMs) with submachine nesting, serial workflow queuing, and multi-phase lifecycle — but its output is text. A developer running a 5-step workflow with a nested SequentialThinking submachine sees step-by-step text responses and must mentally reconstruct: which step am I on, how many remain, is a submachine blocking, what's the queue state. State machines are visual by nature. The HSM supervisor pattern shipped in FR-10.x makes this worse: a workflow `waiting` on a submachine is invisible in text output.
+
+### 11.2 Current State
+
+- **Workflow frontmatter** persists: `status` (active/completed/cancelled), `phase` (running/waiting), `queue` (array of workflow IDs), `currentWorkflow` (index), `currentStep` (index), `activeSubmachineType`, `activeSubmachineSessionId`
+- **Workflow content** is append-only markdown with timestamped step headings (`## Step N/M Response`), queue update events, submachine register/resume events
+- **Workflow JSON definitions** contain step arrays with titles, descriptions, and tool hints — the source of truth for step names
+- **Workflow tool** returns `string` with current step instruction or status message
+
+Source: `src/Tools/WorkflowOperations.Core.cs`, `src/Tools/WorkflowOperations.Management.cs`, `src/Tools/WorkflowTools.Runner.cs`
+
+### 11.3 Functional Requirements
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-20.1 | Server SHALL register a `ui://maenifold/workflow` resource with MIME type `text/html;profile=mcp-app`. | **P1** |
+| FR-20.2 | `Workflow` tool SHALL include `[McpMeta]` annotation advertising `ui://maenifold/workflow` as its UI resource. | **P1** |
+| FR-20.3 | `Workflow` tool SHALL return `structuredContent` alongside existing text content on every call (start, continue, view, append). | **P1** |
+| FR-20.4 | `structuredContent` SHALL include session state: `sessionId`, `status`, `phase`, `currentWorkflow` (index), `currentStep` (index), `totalSteps` (count), `queue` (array of workflow IDs with names). | **P1** |
+| FR-20.5 | `structuredContent` SHALL include step list: each step with index, title (from workflow JSON definition), and status (`completed`, `active`, `pending`). | **P1** |
+| FR-20.6 | `structuredContent` SHALL include submachine state when `phase=waiting`: `submachineType`, `submachineSessionId`, `submachineStatus`. When `phase=running`, submachine fields SHALL be null. | **P1** |
+| FR-20.7 | UI SHALL render a visual state machine showing steps as nodes with status indicators (completed/active/pending), the active step highlighted, and progression direction. | **P1** |
+| FR-20.8 | UI SHALL render submachine nesting visually — when a workflow is `waiting`, show the submachine as a nested element attached to the active step. | **P1** |
+| FR-20.9 | UI SHALL render queue progression — show which workflow in the queue is active and which are pending. | P2 |
+| FR-20.10 | CLI invocation SHALL continue returning the existing text format. structuredContent SHALL only be present in MCP responses. | **P1** |
+| FR-20.11 | Server SHALL register a `WorkflowStatus` tool with `visibility: ["app"]` that returns current workflow session state (same shape as `structuredContent`). This tool is callable only by the UI View, not by agents. | **P1** |
+| FR-20.12 | UI SHALL poll `WorkflowStatus` via `tools/call` during the Interactive Phase to display live state updates as the workflow progresses. | **P1** |
+| FR-20.13 | UI SHALL stop polling when the session reaches a terminal state (`completed`, `cancelled`, `abandoned`) or when a `ui/resource-teardown` notification is received. | **P1** |
+| FR-20.14 | Poll interval SHALL be configurable in the HTML template (default: 3 seconds). | P2 |
+| FR-20.15 | UI SHALL NOT begin polling on initialization. Polling SHALL only start when the View is visible — detected via `IntersectionObserver` (iframe in viewport) AND `document.visibilityState === "visible"` (tab active). | **P1** |
+| FR-20.16 | UI SHALL pause polling when the View becomes non-visible (scrolled out of viewport OR tab hidden) and resume when visibility is restored. | **P1** |
+
+### 11.4 Non-Functional Requirements
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-20.1 | HTML template SHALL be embedded as C# string constant. No external files. | Required |
+| NFR-20.2 | HTML template SHALL be under 8KB (more complex than dashboards). | Target |
+| NFR-20.3 | `structuredContent` generation SHALL read workflow JSON definition for step titles — NOT parse markdown content. | Required |
+| NFR-20.4 | `structuredContent` data shape SHALL be stable. | Required |
+| NFR-20.5 | `learn=true` SHALL return help text only (no structuredContent, no UI). | Required |
+| NFR-20.6 | All existing Workflow tests SHALL pass without modification. | Required |
+| NFR-20.7 | View SHALL render initial state from `structuredContent` received via `ui/notifications/tool-result` WITHOUT polling. First render is always free. | Required |
+| NFR-20.8 | When multiple Views exist for the same session (N iframes from N tool calls), at most the visible ones poll. Non-visible Views consume zero network/compute. | Required |
+
+### 11.5 structuredContent Data Shape
+
+```json
+{
+  "sessionId": "workflow-1771684183559",
+  "status": "active",
+  "phase": "waiting",
+  "queue": [
+    { "id": "workflow-dispatch", "name": "Workflow Dispatch" },
+    { "id": "memory-cycle", "name": "Memory Cycle" }
+  ],
+  "currentWorkflow": 0,
+  "currentStep": 2,
+  "totalSteps": 5,
+  "steps": [
+    { "index": 0, "title": "Analyze task requirements", "status": "completed" },
+    { "index": 1, "title": "Select methodology", "status": "completed" },
+    { "index": 2, "title": "Execute analysis", "status": "active" },
+    { "index": 3, "title": "Synthesize findings", "status": "pending" },
+    { "index": 4, "title": "Quality gate", "status": "pending" }
+  ],
+  "submachine": {
+    "type": "sequential",
+    "sessionId": "session-1771684200000-40074",
+    "status": "active"
+  }
+}
+```
+
+### 11.6 Design Notes
+
+**Step titles from workflow JSON, not markdown parsing:** The workflow JSON definition (`src/assets/workflows/*.json`) contains step arrays with titles and descriptions. These are the canonical source for step names. The session markdown is append-only and doesn't contain structured step metadata — it's a log, not a model. Reading the workflow JSON for the current queue entry is cheap (single file read + JSON parse, already done on every `Continue` call).
+
+**Submachine as nested visual element:** When `phase=waiting`, the workflow is blocked on a submachine (SequentialThinking or AssumptionLedger). The UI should render this as a nested box or callout attached to the active step, showing the submachine's session ID and status. This makes the HSM nesting visible at a glance — the key insight FR-10.x introduced.
+
+**Live updates via self-polling (SEP-1865 Interactive Phase):** The MCP Apps Extension has no server-to-View push mechanism. But during the Interactive Phase (after `ui/notifications/initialized`), the View can call `tools/call` back to the server. The Workflow View polls a `WorkflowStatus` app-only tool (`visibility: ["app"]`) to get fresh state. This means step transitions, submachine status changes, and queue progression animate live — the user sees the state machine move without scrolling through chat messages.
+
+**Visibility-gated polling (the N-iframe problem):** Each agent-initiated `Workflow` tool call creates a new View (new iframe). A multi-agent workflow session can generate 30+ tool calls = 30+ iframes. If all poll simultaneously, that's 10 requests/second to the server — a self-inflicted DoS. The solution: Views render their initial state from `structuredContent` (free — no poll needed) and only start polling when actually visible. `IntersectionObserver` detects "iframe in viewport" and `document.visibilitychange` detects "tab active." When the user scrolls past a View or switches tabs, polling pauses. When a session reaches a terminal state, polling stops permanently. Net effect: at most 1-2 Views poll at any moment, regardless of how many iframes exist.
+
+**No transition history in v1:** Parsing timestamps from markdown headings to build a timeline is fragile and adds complexity. The first version shows current state only (what step, what's next, is something blocking). Transition history can be added later by either parsing the markdown or adding structured events to frontmatter.
+
+---
+
+## 12. Sequential Thinking Tree (FR-21.x)
+
+### 12.1 Problem Statement
+
+Sequential thinking sessions are trees — a trunk of numbered thoughts with branches (`branchFromThought` + `branchId`) and revisions (`revisesThought`). But the tool outputs linear text. A 24-thought session with 3 branches is a scroll-and-search exercise to understand the structure. Agents working in shared sessions (PM, SWE, red-team, blue-team) each contribute branches, and there's no way to see the tree topology without reading every heading.
+
+### 12.2 Current State
+
+- **Session frontmatter** persists: `sessionId`, `status` (active/completed/cancelled/abandoned), `type` (sequential), `analysisType`, `parentWorkflowId`, `thoughtCount`, `completed`/`cancelled` timestamps
+- **Thought headings** follow the pattern: `## Thought N/M [agentId]` with optional suffix `(Branch: branchId)` or `(Revises: N)` — see `BuildThoughtSection` at `SequentialThinkingTools.cs:240-254`
+- **Thought content** contains response text with `[[WikiLinks]]`, optional `*Thoughts: ...*` ambient section, and `*timestamp UTC*` footer
+- **Branches** are created via `branchFromThought` + `branchId` parameters — the branch heading includes the branch ID but the parent thought number is NOT in the heading (only in the API call)
+- **Revisions** replace a thought — heading includes `(Revises: N)` but are appended sequentially (not in-place)
+- **Conclusion** is appended as `## Conclusion` with WikiLinks
+
+Source: `src/Tools/SequentialThinkingTools.cs:240-254` (BuildThoughtSection), `src/Tools/SequentialThinkingTools.cs:257-280` (CreateNewSession)
+
+### 12.3 Functional Requirements
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-21.1 | Server SHALL register a `ui://maenifold/sequential-thinking` resource with MIME type `text/html;profile=mcp-app`. | **P1** |
+| FR-21.2 | `SequentialThinking` tool SHALL include `[McpMeta]` annotation advertising `ui://maenifold/sequential-thinking` as its UI resource. | **P1** |
+| FR-21.3 | `SequentialThinking` tool SHALL return `structuredContent` alongside existing text content on every call (new thought, branch, revision, completion, cancellation). | **P1** |
+| FR-21.4 | `structuredContent` SHALL include session metadata: `sessionId`, `status`, `analysisType`, `parentWorkflowId`, `thoughtCount`, `branchCount`. | **P1** |
+| FR-21.5 | `structuredContent` SHALL include a flat array of thought nodes, each with: `number`, `branchId` (null for trunk), `branchFromThought` (null for trunk), `isRevision`, `revisesThought`, `agentId`, `preview` (first 200 chars of response), `concepts` (extracted WikiLinks), `timestamp`. | **P1** |
+| FR-21.6 | `structuredContent` SHALL include branch metadata: array of `{ branchId, fromThought, thoughtCount }`. | **P1** |
+| FR-21.7 | `structuredContent` SHALL include conclusion text (truncated to 500 chars) when session is completed. | P2 |
+| FR-21.8 | UI SHALL render the thought session as a collapsible tree: trunk thoughts as root nodes, branches as child subtrees, revisions indicated visually. | **P1** |
+| FR-21.9 | UI SHALL show thought previews (first 200 chars) and extracted `[[WikiLinks]]` for each node without expanding. | **P1** |
+| FR-21.10 | UI SHALL support expand/collapse of branches — collapsed by default, click to expand. | **P1** |
+| FR-21.11 | UI SHALL highlight the most recent thought (current position in the session). | P2 |
+| FR-21.12 | CLI invocation SHALL continue returning the existing text format. structuredContent SHALL only be present in MCP responses. | **P1** |
+| FR-21.13 | Server SHALL register a `ThinkingStatus` tool with `visibility: ["app"]` that accepts `sessionId` and returns current thought tree state (same shape as `structuredContent`). This tool is callable only by the UI View, not by agents. | **P1** |
+| FR-21.14 | UI SHALL poll `ThinkingStatus` via `tools/call` during the Interactive Phase to display live tree growth as new thoughts are added by agents. | **P1** |
+| FR-21.15 | UI SHALL stop polling when the session reaches a terminal state (`completed`, `cancelled`, `abandoned`) or when a `ui/resource-teardown` notification is received. | **P1** |
+| FR-21.16 | Poll interval SHALL be configurable in the HTML template (default: 3 seconds). | P2 |
+| FR-21.17 | UI SHALL NOT begin polling on initialization. Polling SHALL only start when the View is visible — detected via `IntersectionObserver` (iframe in viewport) AND `document.visibilityState === "visible"` (tab active). | **P1** |
+| FR-21.18 | UI SHALL pause polling when the View becomes non-visible (scrolled out of viewport OR tab hidden) and resume when visibility is restored. | **P1** |
+
+### 12.4 Non-Functional Requirements
+
+| ID | Requirement | Target |
+|----|-------------|--------|
+| NFR-21.1 | HTML template SHALL be embedded as C# string constant. No external files. | Required |
+| NFR-21.2 | HTML template SHALL be under 10KB (tree rendering + collapse logic). | Target |
+| NFR-21.3 | `structuredContent` generation SHALL parse session markdown headings to extract thought tree structure. Parsing logic SHALL be a separate method, testable in isolation. | Required |
+| NFR-21.4 | Thought parsing SHALL handle malformed headings gracefully — skip unparseable sections without error. | Required |
+| NFR-21.5 | `structuredContent` data shape SHALL be stable. | Required |
+| NFR-21.6 | `learn=true` SHALL return help text only (no structuredContent, no UI). | Required |
+| NFR-21.7 | All existing SequentialThinking tests SHALL pass without modification. | Required |
+| NFR-21.8 | Tree rendering SHALL handle sessions with 50+ thoughts without visible lag. | Target |
+| NFR-21.9 | View SHALL render initial state from `structuredContent` received via `ui/notifications/tool-result` WITHOUT polling. First render is always free. | Required |
+| NFR-21.10 | When multiple Views exist for the same session (N iframes from N tool calls), at most the visible ones poll. Non-visible Views consume zero network/compute. | Required |
+
+### 12.5 structuredContent Data Shape
+
+```json
+{
+  "sessionId": "session-1771684183559-40074",
+  "status": "active",
+  "analysisType": "architecture",
+  "parentWorkflowId": "workflow-1771684168152",
+  "thoughtCount": 8,
+  "branchCount": 2,
+  "thoughts": [
+    {
+      "number": 1,
+      "branchId": null,
+      "branchFromThought": null,
+      "isRevision": false,
+      "revisesThought": null,
+      "agentId": "pm",
+      "preview": "Planning the implementation of [[authentication]] module...",
+      "concepts": ["authentication", "jwt", "session-management"],
+      "timestamp": "2026-02-21 14:30:00 UTC"
+    },
+    {
+      "number": 2,
+      "branchId": null,
+      "branchFromThought": null,
+      "isRevision": false,
+      "revisesThought": null,
+      "agentId": "pm",
+      "preview": "Evaluating [[OAuth]] vs [[JWT]] for the auth layer...",
+      "concepts": ["oauth", "jwt", "authentication"],
+      "timestamp": "2026-02-21 14:32:00 UTC"
+    },
+    {
+      "number": 1,
+      "branchId": "security-review",
+      "branchFromThought": 2,
+      "isRevision": false,
+      "revisesThought": null,
+      "agentId": "red-team",
+      "preview": "Reviewing [[authentication]] attack surface...",
+      "concepts": ["authentication", "xss", "csrf"],
+      "timestamp": "2026-02-21 14:35:00 UTC"
+    }
+  ],
+  "branches": [
+    { "branchId": "security-review", "fromThought": 2, "thoughtCount": 3 },
+    { "branchId": "performance-analysis", "fromThought": 1, "thoughtCount": 2 }
+  ],
+  "conclusion": null
+}
+```
+
+### 12.6 Design Notes
+
+**Markdown heading parsing is unavoidable:** Unlike Workflow (where step metadata comes from the JSON definition), the thought tree structure is only in the session markdown. Each thought heading follows the pattern `## Thought N/M [agentId] (Branch: branchId)` — this is parseable with regex. The parser needs to extract: thought number, total, agent ID, branch ID (optional), revision target (optional). The branch-from-thought number is NOT in the heading — it's only in the API call. To reconstruct the tree, we need to either:
+1. Parse headings for branch IDs and infer parent from branch order, or
+2. Add `branchFromThought` to the frontmatter/content on write
+
+Option 2 is cleaner — store `branchFromThought` as metadata in the heading suffix when the thought is written, e.g., `(Branch: security-review, from: 2)`. This requires a minor change to `BuildThoughtSection` and is backward-compatible (old headings without `from:` are treated as trunk thoughts).
+
+**Flat array, not nested tree:** The `structuredContent` returns thoughts as a flat array with `branchId` and `branchFromThought` fields. The UI reconstructs the tree client-side. This is simpler server-side (no recursive data building) and more flexible client-side (the UI can choose layout — tree, timeline, or flat list).
+
+**Preview truncation:** Each thought can be thousands of characters. The preview (first 200 chars) gives enough context to identify the thought without bloating structuredContent. Full thought content remains available via the text `content` response and the session file.
+
+**Agent ID from heading:** Multi-agent sessions have different agents contributing thoughts. The `[agentId]` in the heading (set from `AGENT_ID` environment variable) identifies who wrote each thought. The tree UI can color-code by agent.
+
+**Live updates via self-polling (SEP-1865 Interactive Phase):** Same pattern as FR-20.x. The View polls a `ThinkingStatus` app-only tool to get the current thought tree. As agents add thoughts to the session, the tree grows visually — new nodes appear, branches extend, the "most recent" highlight moves. This is the killer feature for multi-agent sessions where PM, SWE, and red-team contribute thoughts to the same session concurrently.
+
+**Visibility-gated polling (the N-iframe problem):** Same pattern as FR-20.x. Sequential thinking sessions are even worse — a 45-thought session with 5 agents contributing branches could produce 45+ iframes. Each View renders its snapshot from `structuredContent` for free. Polling only activates when the iframe is visible in the viewport and the tab is active. Non-visible Views consume zero resources.
+
+### 12.7 Out of Scope
+
+- Full thought content in structuredContent (use preview + text content for full text)
+- Editing thoughts from the UI (read-only visualization)
+- Graph visualization of WikiLink relationships within a session
+- Diff view for revisions (showing what changed between original and revision)
+
+---
+
+## 13. Goose Extension (FR-22.x)
+
+### 13.1 Problem Statement
+
+Maenifold has no official Goose extension. Goose ships with a built-in memory extension (4 tools, flat `.txt` files, tag-based categories, no search) and users can install the MCP reference memory server (9 tools, JSONL, entity-relation model, substring search). Maenifold (27 tools, SQLite graph database, semantic/hybrid search with RRF reranking, community detection, reasoning/orchestration tools) is a categorically superior replacement but has no Goose-specific packaging.
+
+Goose extensions ARE MCP servers. `maenifold --mcp` already speaks the protocol. The work is: ServerInstructions (protocol-level, benefits all MCP clients), Goose-specific packaging (recipes, config, documentation), and competitive positioning.
+
+### 13.2 Competitive Analysis
+
+| Capability | Goose Built-in Memory | MCP Reference Memory | Maenifold |
+|------------|----------------------|---------------------|-----------|
+| **Tools** | 4 (remember, retrieve, remove_category, remove_specific) | 9 (create_entities, create_relations, add_observations, delete_entities, delete_observations, delete_relations, read_graph, search_nodes, open_nodes) | 27 (memory CRUD, graph traversal, semantic search, concept repair, reasoning, orchestration, persona) |
+| **Storage** | Flat `.txt` files | JSONL file | SQLite database with graph schema |
+| **Data model** | Categories + tags | Entities + directed relations + observations | Concept graph with `[[WikiLinks]]`, community detection (Louvain), embeddings |
+| **Search** | Category/tag lookup only | Substring match across names, types, observations | Hybrid semantic/full-text with RRF reranking (k=60), recency decay, access boosting |
+| **Graph** | None | Directed relations, `read_graph` dumps entire graph | Multi-hop traversal (`BuildContext depth=N`), community detection, concept co-occurrence, Mermaid visualization |
+| **Semantic similarity** | None | None | 384-dim embeddings, `FindSimilarConcepts` with plateau detection |
+| **Reasoning** | None | None | `SequentialThinking` (persistent sessions with branching, revision), `Workflow` (declarative state machines with HSM nesting), `AssumptionLedger` |
+| **Persona** | None | None | `Adopt` roles/colors/perspectives — cognitive mode switching over same data |
+| **Scope** | Global (~/.config/goose/memory) vs local (.goose/memory) | Single JSONL file | Configurable root (`MAENIFOLD_ROOT`), folder-based ontology |
+| **CLI access** | No | No | Full CLI: `maenifold --tool <Name> --payload '{...}'` — scriptable, composable |
+
+### 13.3 Functional Requirements
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-22.1 | MCP server SHALL include `ServerInstructions` in the `initialize` handshake response. | **P1** |
+| FR-22.2 | ServerInstructions SHALL describe: CLI-first execution pattern (prefer `maenifold --tool` over MCP when shell access is available), `[[WikiLink]]` convention, graph-first retrieval pattern (SearchMemories → BuildContext → FindSimilarConcepts), search-before-write rule, and memory lineage convention (`## Source` section). | **P1** |
+| FR-22.3 | ServerInstructions SHALL include a categorized tool summary (Memory, Graph, Reasoning, System) so MCP clients understand the full tool surface beyond basic memory CRUD. | **P1** |
+| FR-22.4 | A full Goose recipe SHALL be provided at `integrations/goose/recipes/maenifold.yaml` with: version, title, description, extension config (`maenifold --mcp`, stdio, timeout 600), instructions (CLI-first patterns, WikiLink convention, graph navigation chain pattern, scripting patterns from SCRIPTING.md), and activities (suggested prompts for search, context building, memory writing, status). | **P1** |
+| FR-22.5 | A minimal Goose recipe SHALL be provided at `integrations/goose/recipes/maenifold-minimal.yaml` with: extension config and core conventions only (CLI-first, WikiLink convention). | P2 |
+| FR-22.6 | A config snippet SHALL be provided at `integrations/goose/config-snippet.yaml` for manual `~/.config/goose/config.yaml` setup. | **P1** |
+| FR-22.7 | An installation README SHALL be provided at `integrations/goose/README.md` covering: prerequisites (maenifold binary on PATH), installation methods (config file, recipe command), guidance to disable Goose built-in memory extension, competitive comparison table (vs built-in memory, vs MCP reference memory), CLI-first usage examples, key patterns (WikiLinks, search-before-write, graph navigation), and link to `docs/SCRIPTING.md`. | **P1** |
+| FR-22.8 | `docs/SCRIPTING.md` section 4 (Integration Patterns) SHALL document Goose as an integration pattern alongside Claude Code, describing: recipe-based distribution, CLI-first via developer extension, instructions replace hooks for behavioral guidance. | P2 |
+
+### 13.4 Non-Functional Requirements
+
+| ID | Requirement | Type |
+|----|-------------|------|
+| NFR-22.1 | ServerInstructions text SHALL be under 500 words to minimize token overhead on every MCP connection. | Target |
+| NFR-22.2 | ServerInstructions SHALL be a `const string` in a static class (`src/Utils/ServerInstructions.cs`), not inline in Program.cs. | Required |
+| NFR-22.3 | Recipe YAML SHALL validate against Goose recipe schema (version, title, description, instructions, extensions, activities fields). | Required |
+| NFR-22.4 | Recipe instructions SHALL reference CLI patterns rather than duplicating SCRIPTING.md content verbatim. | Required |
+| NFR-22.5 | All existing tests SHALL pass after ServerInstructions addition — no behavioral change to tool execution. | Required |
+| NFR-22.6 | `dotnet build -c Debug` SHALL produce 0 warnings after changes. | Required |
+
+### 13.5 Design Notes
+
+**ServerInstructions benefits all MCP clients.** This is protocol-level — sent once during `initialize`. Claude Code, VS Code Copilot, Cursor, Goose, and any future MCP client gets baseline usage guidance without needing client-specific integration files. The `ModelContextProtocol` SDK (0.8.0-preview.1) supports `McpServerOptions.ServerInstructions`.
+
+**CLI-first is the key differentiator.** Neither Goose's built-in memory nor the MCP reference memory server has a CLI. Maenifold's CLI means agents with shell access (Goose's developer extension provides this) can call tools directly, reducing token consumption by avoiding MCP tool-definition overhead. This should be the first thing ServerInstructions and recipe instructions communicate.
+
+**Recipes are Goose's distribution mechanism.** Where Claude Code uses hooks + SKILL.md + .mcp.json, Goose uses recipes (YAML with instructions + extension config + activities). The recipe `instructions:` field is the equivalent of SKILL.md — it's how the agent learns to use the extension effectively.
+
+**No hooks in Goose.** Claude Code's `session_start.sh` does active FLARE-style retrieval at session start. Goose has no equivalent lifecycle hook. Recipe instructions can tell the agent to do this manually ("start sessions by running `maenifold --tool RecentActivity`...") but can't automate it.
+
+### 13.6 Out of Scope
+
+- Goose-specific Rust crate or adapter (maenifold --mcp is the extension)
+- New tools or tool wrappers for Goose compatibility
+- Goose UI integration beyond activities
+- Automated testing against a running Goose instance
+- Publishing to Goose extension registry (future work)

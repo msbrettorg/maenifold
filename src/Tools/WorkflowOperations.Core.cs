@@ -63,7 +63,10 @@ internal static partial class WorkflowOperations
             ["status"] = "active",
             ["queue"] = ids.ToArray(),
             ["currentWorkflow"] = 0,
-            ["currentStep"] = 0
+            ["currentStep"] = 0,
+            ["phase"] = "running",
+            ["activeSubmachineType"] = "",
+            ["activeSubmachineSessionId"] = ""
         };
 
 
@@ -90,14 +93,7 @@ internal static partial class WorkflowOperations
         var currentStep = Convert.ToInt32(frontmatter["currentStep"], CultureInfo.InvariantCulture);
 
 
-        var queueObj = frontmatter["queue"];
-        string[] queue;
-        if (queueObj is object[] objArray)
-            queue = objArray.Select(x => x?.ToString() ?? "").ToArray();
-        else if (queueObj is List<object> list)
-            queue = list.Select(x => x?.ToString() ?? "").ToArray();
-        else
-            queue = Array.Empty<string>();
+        var queue = ReadQueue(frontmatter);
 
 
         var currentWorkflowPath = Path.Combine(WorkflowCommon.WorkflowsPath, $"{queue[currentWorkflowIndex]}.json");

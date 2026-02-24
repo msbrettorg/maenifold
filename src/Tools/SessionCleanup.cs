@@ -12,17 +12,25 @@ public static class SessionCleanup
         if ((fileType == "workflow" || fileType == "sequential") && status == "active")
         {
             var modified = frontmatter.TryGetValue("modified", out var modifiedValue) ? modifiedValue?.ToString() : null;
-            if (DateTime.TryParse(modified, out var lastModifiedTime))
+            DateTime lastModifiedTime;
+            if (DateTime.TryParse(modified, out lastModifiedTime))
             {
-                var timeSinceUpdate = DateTime.UtcNow - lastModifiedTime.ToUniversalTime();
-                if (timeSinceUpdate.TotalMinutes > Config.SessionAbandonmentMinutes)
-                {
+                lastModifiedTime = lastModifiedTime.ToUniversalTime();
+            }
+            else
+            {
+                // T-META-001.5a: FR-24.6 — Filesystem fallback when frontmatter missing.
+                // Fixes silent bug where sessions without "modified" are never detected as abandoned.
+                lastModifiedTime = File.GetLastWriteTimeUtc(filePath);
+            }
+            var timeSinceUpdate = DateTime.UtcNow - lastModifiedTime;
+            if (timeSinceUpdate.TotalMinutes > Config.SessionAbandonmentMinutes)
+            {
 
-                    frontmatter["status"] = "abandoned";
-                    MarkdownIO.WriteMarkdown(filePath, frontmatter!, content);
-                    MarkdownIO.AppendH2Section(filePath, "Session Abandoned",
-                        $"⚠️ Session marked as abandoned due to {timeSinceUpdate.TotalMinutes:F0} minutes of inactivity\n*{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}*");
-                }
+                frontmatter["status"] = "abandoned";
+                MarkdownIO.WriteMarkdown(filePath, frontmatter!, content);
+                MarkdownIO.AppendH2Section(filePath, "Session Abandoned",
+                    $"⚠️ Session marked as abandoned due to {timeSinceUpdate.TotalMinutes:F0} minutes of inactivity\n*{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}*");
             }
         }
     }

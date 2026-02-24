@@ -308,7 +308,7 @@ public class ConceptRepairTool
         {
             try
             {
-                var (frontmatter, content, _) = MarkdownReader.ReadMarkdown(file);
+                var (frontmatter, content, _) = MarkdownIO.ReadMarkdown(file);
                 var replacements = new List<string>();
                 var newContent = content;
 
@@ -335,7 +335,7 @@ public class ConceptRepairTool
 
                     if (!dryRun)
                     {
-                        MarkdownWriter.WriteMarkdown(file, frontmatter, newContent);
+                        MarkdownIO.WriteMarkdown(file, frontmatter, newContent);
                         results.Add($"✓ Modified: {relativePath}");
                     }
                     else
@@ -501,7 +501,7 @@ Test with dryRun=true first to see what would be changed.")]
         {
             try
             {
-                var content = File.ReadAllText(file);
+                var (_, content, _) = MarkdownIO.ReadMarkdown(file);
                 var matches = WikiLinkPattern.Matches(content);
 
                 foreach (Match match in matches)

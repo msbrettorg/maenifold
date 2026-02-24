@@ -468,10 +468,10 @@ public class ProximityWeightTests
         // The old behavior (catch { return rawCount; }) is removed per TODO.md.
         var corruptJson = "this is not valid json {{{{";
 
-        Assert.Throws<Exception>(() =>
+        Assert.That(() =>
         {
             CommunityDetection.ComputeEdgeDecayWeight(corruptJson);
-        }, "FR-23.4 AC-2: ComputeEdgeDecayWeight must throw on corrupt source_files JSON.");
+        }, Throws.Exception, "FR-23.4 AC-2: ComputeEdgeDecayWeight must throw on corrupt source_files JSON.");
     }
 
     // ══════════════════════════════════════════════════════════════════════

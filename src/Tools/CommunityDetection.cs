@@ -24,7 +24,9 @@ public static class CommunityDetection
         var edgeList = conn.Query<(string a, string b, string sourceFiles)>(
             "SELECT concept_a, concept_b, source_files FROM concept_graph").ToList();
 
-        // T-PROX-003.2: RTM FR-23.6 - Edge weight = sum(proximity) from source_files
+        // T-PROX-003.2: RTM FR-23.6 — Edge weight = sum(proximity × decay) from source_files
+        // Decay is intentional: communities should shift as knowledge evolves.
+        // GetDecayWeightForFile returns 1.0 for non-existent files (catch block).
         var weightedEdges = edgeList.Select(e =>
         {
             double weight = 0.0;
@@ -32,7 +34,7 @@ public static class CommunityDetection
             {
                 var dict = JsonSerializer.Deserialize<Dictionary<string, double>>(e.sourceFiles, SafeJson.Options);
                 if (dict != null)
-                    weight = dict.Values.Sum();
+                    weight = dict.Sum(kv => kv.Value * MemorySearchTools.GetDecayWeightForFile(kv.Key));
             }
             return (a: e.a, b: e.b, weight: weight);
         }).ToList();

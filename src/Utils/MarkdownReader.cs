@@ -345,6 +345,7 @@ public static class MarkdownReader
                 if (block is HeadingBlock h && h.Level == 2)
                 {
                     sectionIndex++;
+                    ExtractFromBlockTree(content, block, sectionIndex, accumulator);
                     continue;
                 }
 
@@ -392,7 +393,7 @@ public static class MarkdownReader
             return;
         }
 
-        if (block is HeadingBlock heading && heading.Level != 2)
+        if (block is HeadingBlock heading)
         {
             var temp = new HashSet<string>();
             ExtractConceptsFromBlock(content, heading, temp);

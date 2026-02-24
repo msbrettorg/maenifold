@@ -254,10 +254,10 @@ public class IncrementalSyncMtimeOptimizationTests
 
         foreach (var (a, b, files) in edges)
         {
-            var fileList = JsonSerializer.Deserialize<List<string>>(files, SafeJson.Options) ?? new List<string>();
-            fileList.Remove(memoryUri);
+            var fileDict = JsonSerializer.Deserialize<Dictionary<string, double>>(files, SafeJson.Options) ?? new Dictionary<string, double>();
+            fileDict.Remove(memoryUri);
 
-            if (fileList.Count == 0)
+            if (fileDict.Count == 0)
             {
                 conn.Execute("DELETE FROM concept_graph WHERE concept_a = @a AND concept_b = @b", new { a, b });
                 continue;
@@ -267,15 +267,15 @@ public class IncrementalSyncMtimeOptimizationTests
                 "UPDATE concept_graph SET co_occurrence_count = @count, source_files = @files WHERE concept_a = @a AND concept_b = @b",
                 new
                 {
-                    count = fileList.Count,
-                    files = JsonSerializer.Serialize(fileList, SafeJson.Options),
+                    count = fileDict.Count,
+                    files = JsonSerializer.Serialize(fileDict, SafeJson.Options),
                     a,
                     b
                 });
         }
     }
 
-    private static List<string>? GetEdgeSourceFiles(string conceptA, string conceptB)
+    private static Dictionary<string, double>? GetEdgeSourceFiles(string conceptA, string conceptB)
     {
         var (a, b) = string.CompareOrdinal(conceptA, conceptB) < 0 ? (conceptA, conceptB) : (conceptB, conceptA);
 
@@ -291,7 +291,7 @@ public class IncrementalSyncMtimeOptimizationTests
             return null;
         }
 
-        return JsonSerializer.Deserialize<List<string>>(existing.Value.files, SafeJson.Options);
+        return JsonSerializer.Deserialize<Dictionary<string, double>>(existing.Value.files, SafeJson.Options);
     }
 
     private static IDisposable AcquireUnreadableFileGuard(string filePath)

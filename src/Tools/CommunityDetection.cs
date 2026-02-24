@@ -338,4 +338,18 @@ public static class CommunityDetection
 
         return total / sourceFiles.Count;
     }
+
+    // T-PROX-003.3: RTM FR-23.7
+    /// <summary>
+    /// Compute Normalized Mutual Information between two clusterings.
+    /// NMI(A, B) = 2 * I(A; B) / (H(A) + H(B)), range [0, 1].
+    /// Returns 1.0 when clusterings are identical, approaches 0.0 for independent clusterings.
+    /// </summary>
+    /// <remarks>
+    /// STUB — implementation added by T-PROX-003.3.
+    /// </remarks>
+    public static double ComputeNMI(Dictionary<string, int> oldCommunities, Dictionary<string, int> newCommunities)
+    {
+        throw new NotImplementedException("T-PROX-003.3: ComputeNMI not yet implemented.");
+    }
 }

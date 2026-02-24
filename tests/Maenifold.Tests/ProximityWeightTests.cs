@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using Maenifold.Tools;
 using Maenifold.Utils;
@@ -768,6 +770,213 @@ public class ProximityWeightTests
     }
 
     // ══════════════════════════════════════════════════════════════════════
+    // FR-23.6: RunLouvain reads source_files proximity weights (T-PROX-003.2)
+    // ══════════════════════════════════════════════════════════════════════
+
+    [Test]
+    public void FR23_6_AC1_RunLouvain_ProximityWeightedEdges_ClustersHighSumTogether()
+    {
+        // T-PROX-003.4: RTM FR-23.6 AC-1
+        // After T-PROX-003.2, RunLouvain reads source_files and sums proximity values as edge weight.
+        //
+        // Topology: two hubs (H-a, H-b) each with 3 satellites.
+        //   - H-a — H-b: co_occurrence_count=1, source_files sum=20.0 (the bond we're testing)
+        //   - H-a — S1, S2, S3: co_occurrence_count=1, source_files sum=5.0 each
+        //   - H-b — S4, S5, S6: co_occurrence_count=1, source_files sum=5.0 each
+        //
+        // With co_occurrence_count only (current): ALL edges weight=1. Modularity maximization
+        // splits the graph as {H-a, S1, S2, S3} vs {H-b, S4, S5, S6}, keeping the hubs
+        // with their satellites and IGNORING the H-a/H-b bond. The cross-community H-a—H-b
+        // edge has weight=1 just like the satellite edges, so it doesn't overcome the cut.
+        // → communities["prox-h-a"] ≠ communities["prox-h-b"]: assertion FAILS.
+        //
+        // With source_files sums (after fix): H-a—H-b weight=20.0 >> satellite edges (5.0).
+        // The strong bond pulls H-a and H-b into the same community.
+        // → communities["prox-h-a"] == communities["prox-h-b"]: assertion PASSES.
+        //
+        // FAILS until SWE implements T-PROX-003.2.
+        using var conn = OpenTestDb();
+
+        var strongEdge = JsonSerializer.Serialize(new Dictionary<string, double>
+        {
+            ["memory://test/prox-h-heavy.md"] = 20.0,
+        });
+        var satEdge = JsonSerializer.Serialize(new Dictionary<string, double>
+        {
+            ["memory://test/prox-h-sat.md"] = 5.0,
+        });
+
+        // Hubs
+        InsertConcept(conn, "prox-h-a");
+        InsertConcept(conn, "prox-h-b");
+
+        // Strong bond between hubs (proximity sum=20, co_occurrence_count=1)
+        InsertEdgeRawSourceFiles(conn, "prox-h-a", "prox-h-b",
+            coOccurrenceCount: 1, sourceFilesJson: strongEdge);
+
+        // H-a satellites (proximity sum=5 each, co_occurrence_count=1)
+        foreach (var sat in new[] { "prox-h-s1", "prox-h-s2", "prox-h-s3" })
+        {
+            InsertConcept(conn, sat);
+            InsertEdgeRawSourceFiles(conn, "prox-h-a", sat,
+                coOccurrenceCount: 1, sourceFilesJson: satEdge);
+        }
+
+        // H-b satellites (proximity sum=5 each, co_occurrence_count=1)
+        foreach (var sat in new[] { "prox-h-s4", "prox-h-s5", "prox-h-s6" })
+        {
+            InsertConcept(conn, sat);
+            InsertEdgeRawSourceFiles(conn, "prox-h-b", sat,
+                coOccurrenceCount: 1, sourceFilesJson: satEdge);
+        }
+
+        var (communities, _) = CommunityDetection.RunLouvain(conn, gamma: 1.0, seed: 42);
+
+        // After fix: H-a—H-b bond (20.0) dominates satellite bonds (5.0) → same community.
+        // Before fix: all edges weight=1 → H-a pulled to its satellites, H-b to its satellites
+        //             → H-a and H-b end up in different communities → assertion fails.
+        Assert.That(communities["prox-h-a"], Is.EqualTo(communities["prox-h-b"]),
+            "FR-23.6 AC-1: Strong H-a—H-b bond (source_files sum=20.0) must overcome the satellite " +
+            "pull and place both hubs in the same community. Fails before T-PROX-003.2 because " +
+            "all co_occurrence_count=1 edges are treated equally.");
+    }
+
+    [Test]
+    public void FR23_6_AC2_RunLouvain_EmptySourceFiles_TreatedAsIsolated()
+    {
+        // T-PROX-003.4: RTM FR-23.6 AC-2
+        // After T-PROX-003.2, an edge with source_files='{}' yields proximity sum = 0.0.
+        // The two nodes connected only by that edge must be treated as isolated (no real connection).
+        // FAILS until T-PROX-003.2 because currently RunLouvain reads co_occurrence_count=5,
+        // which strongly connects isolated-x/y, putting them in the same community.
+        using var conn = OpenTestDb();
+
+        // Anchor pair: real proximity connection (sum = 1.0)
+        InsertConcept(conn, "prox-anchor-a");
+        InsertConcept(conn, "prox-anchor-b");
+        InsertEdgeWithProximity(conn, "prox-anchor-a", "prox-anchor-b",
+            "memory://test/anchor.md", 1.0);
+
+        // Isolated pair: edge with empty source_files but high co_occurrence_count.
+        // After fix: proximity sum = 0.0 → each node isolated in its own community.
+        // Before fix: co_occurrence_count = 5 → strongly connected → same community.
+        InsertConcept(conn, "prox-isolated-x");
+        InsertConcept(conn, "prox-isolated-y");
+        InsertEdgeRawSourceFiles(conn, "prox-isolated-x", "prox-isolated-y",
+            coOccurrenceCount: 5, sourceFilesJson: "{}");
+
+        var (communities, _) = CommunityDetection.RunLouvain(conn, gamma: 1.0, seed: 42);
+
+        Assert.That(communities["prox-isolated-x"], Is.Not.EqualTo(communities["prox-isolated-y"]),
+            "FR-23.6 AC-2: Edge with empty source_files must yield weight 0.0; nodes must be isolated in separate communities.");
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // FR-23.7: NMI computation + RunAndPersist drift warning (T-PROX-003.3)
+    // ══════════════════════════════════════════════════════════════════════
+
+    [Test]
+    public void FR23_7_AC3_ComputeNMI_IdenticalClusterings_Returns1()
+    {
+        // T-PROX-003.4: RTM FR-23.7 AC-3
+        // NMI of identical clusterings must equal 1.0.
+        // FAILS until T-PROX-003.3 adds CommunityDetection.ComputeNMI.
+        var clustering = new Dictionary<string, int>
+        {
+            ["alpha"] = 0,
+            ["beta"]  = 0,
+            ["gamma"] = 1,
+            ["delta"] = 1,
+        };
+
+        double nmi = CommunityDetection.ComputeNMI(clustering, clustering);
+
+        Assert.That(nmi, Is.EqualTo(1.0).Within(1e-10),
+            "FR-23.7 AC-3: NMI of a clustering with itself must be exactly 1.0.");
+    }
+
+    [Test]
+    public void FR23_7_AC4_ComputeNMI_DifferentClusterings_LessThan1()
+    {
+        // T-PROX-003.4: RTM FR-23.7 AC-4
+        // NMI of two distinct, non-identical clusterings must be strictly less than 1.0.
+        // FAILS until T-PROX-003.3 adds CommunityDetection.ComputeNMI.
+        var clusteringA = new Dictionary<string, int>
+        {
+            ["alpha"] = 0,
+            ["beta"]  = 0,
+            ["gamma"] = 1,
+            ["delta"] = 1,
+        };
+
+        // Completely opposite assignment
+        var clusteringB = new Dictionary<string, int>
+        {
+            ["alpha"] = 1,
+            ["beta"]  = 1,
+            ["gamma"] = 0,
+            ["delta"] = 0,
+        };
+
+        double nmi = CommunityDetection.ComputeNMI(clusteringA, clusteringB);
+
+        Assert.That(nmi, Is.LessThan(1.0),
+            "FR-23.7 AC-4: NMI of two different clusterings must be strictly less than 1.0.");
+        Assert.That(nmi, Is.GreaterThanOrEqualTo(0.0),
+            "FR-23.7 AC-4: NMI must be in [0, 1] range.");
+    }
+
+    [Test]
+    public void FR23_7_AC5_RunAndPersist_LogsWarning_WhenCommunityDriftExceedsThreshold()
+    {
+        // T-PROX-003.4: RTM FR-23.7 AC-5
+        // After T-PROX-003.3, RunAndPersist computes NMI between old and new communities.
+        // When NMI falls below the drift threshold it must emit a warning to Console.Error.
+        // FAILS until T-PROX-003.3 adds NMI tracking + warning logic to RunAndPersist.
+        using var conn = OpenTestDb();
+
+        // --- Topology A: two tight cliques (a0/a1/a2 and b0/b1/b2) ---
+        foreach (var name in new[] { "drift-a0", "drift-a1", "drift-a2" })
+            InsertConcept(conn, name);
+        InsertEdgeWithProximity(conn, "drift-a0", "drift-a1", "memory://test/drift-a.md", 1.0);
+        InsertEdgeWithProximity(conn, "drift-a1", "drift-a2", "memory://test/drift-a.md", 1.0);
+        InsertEdgeWithProximity(conn, "drift-a0", "drift-a2", "memory://test/drift-a.md", 1.0);
+
+        foreach (var name in new[] { "drift-b0", "drift-b1", "drift-b2" })
+            InsertConcept(conn, name);
+        InsertEdgeWithProximity(conn, "drift-b0", "drift-b1", "memory://test/drift-b.md", 1.0);
+        InsertEdgeWithProximity(conn, "drift-b1", "drift-b2", "memory://test/drift-b.md", 1.0);
+        InsertEdgeWithProximity(conn, "drift-b0", "drift-b2", "memory://test/drift-b.md", 1.0);
+
+        // First run: establishes the baseline community partition.
+        CommunityDetection.RunAndPersist(conn, gamma: 1.0, seed: 42);
+
+        // --- Topology B: completely rewired — a-nodes now connect to b-nodes ---
+        conn.Execute("DELETE FROM concept_graph");
+        InsertEdgeWithProximity(conn, "drift-a0", "drift-b0", "memory://test/drift-cross.md", 1.0);
+        InsertEdgeWithProximity(conn, "drift-a1", "drift-b1", "memory://test/drift-cross.md", 1.0);
+        InsertEdgeWithProximity(conn, "drift-a2", "drift-b2", "memory://test/drift-cross.md", 1.0);
+
+        // Second run: should detect NMI drop and emit a drift warning.
+        var stderr = new StringBuilder();
+        var previousStderr = Console.Error;
+        using var capture = new StringWriter(stderr, CultureInfo.InvariantCulture);
+        Console.SetError(capture);
+
+        try
+        {
+            CommunityDetection.RunAndPersist(conn, gamma: 1.0, seed: 42);
+        }
+        finally
+        {
+            Console.SetError(previousStderr);
+        }
+
+        Assert.That(stderr.ToString(), Does.Contain("drift").Or.Contain("DRIFT").Or.Contain("NMI"),
+            "FR-23.7 AC-5: RunAndPersist must emit a drift warning to Console.Error when community NMI drops below threshold.");
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
     // Helpers
     // ══════════════════════════════════════════════════════════════════════
 
@@ -818,6 +1027,22 @@ public class ProximityWeightTests
             @"INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files)
               VALUES (@a, @b, 2, @files)",
             new { a = sortedA, b = sortedB, files = sourceFiles });
+    }
+
+    /// <summary>
+    /// Insert an edge with an explicit source_files string and co_occurrence_count.
+    /// Use this to test how RunLouvain handles edge cases like empty source_files ('{}'
+    /// with a non-zero co_occurrence_count that would mislead the pre-T-PROX-003.2 reader).
+    /// </summary>
+    private static void InsertEdgeRawSourceFiles(
+        SqliteConnection conn, string a, string b,
+        int coOccurrenceCount, string sourceFilesJson)
+    {
+        var (sortedA, sortedB) = string.CompareOrdinal(a, b) < 0 ? (a, b) : (b, a);
+        conn.Execute(
+            @"INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files)
+              VALUES (@a, @b, @count, @files)",
+            new { a = sortedA, b = sortedB, count = coOccurrenceCount, files = sourceFilesJson });
     }
 
     /// <summary>

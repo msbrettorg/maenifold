@@ -235,14 +235,6 @@ Returns hierarchical directory listing with file counts, sizes, and folder organ
                 {
                     createdDate = parsedCreated;
                 }
-
-                // Try to get last_accessed from frontmatter as fallback
-                if (frontmatter.TryGetValue("last_accessed", out var lastAccessedValue) &&
-                    lastAccessedValue != null &&
-                    DateTime.TryParse(lastAccessedValue.ToString(), out var parsedLastAccessed))
-                {
-                    lastAccessedDate = parsedLastAccessed;
-                }
             }
         }
         catch

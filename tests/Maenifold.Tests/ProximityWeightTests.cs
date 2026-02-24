@@ -237,6 +237,53 @@ public class ProximityWeightTests
             "unique-concept must be tagged with sectionIndex=3.");
     }
 
+    // ──────────────────────────────────────────────────────────────────────
+    // AC-5: WikiLinks in H2 heading text → extracted with correct sectionIndex
+    // ──────────────────────────────────────────────────────────────────────
+    [Test]
+    public void FR23_1_AC5_WikiLinksInH2Heading_ExtractedWithCorrectSectionIndex()
+    {
+        // T-PROX-002.1: FR-23.1 AC-5
+        // WikiLinks appearing in the H2 heading text itself must be extracted
+        // and tagged with the section index of that heading.
+        var content = """
+            ## Section about [[heading-concept]]
+
+            Body text with [[body-concept]].
+
+            ## Another [[second-heading]] section
+
+            More body with [[second-body]].
+            """;
+
+        (IReadOnlyList<(string concept, int sectionIndex)> concepts, bool usedFallback) result =
+            MarkdownReader.ExtractWikiLinksWithSections(content);
+
+        Assert.That(result.usedFallback, Is.False, "Should not trigger fallback.");
+
+        var lookup = result.concepts.ToLookup(c => c.concept, c => c.sectionIndex);
+
+        // heading-concept is in the H2 heading that introduces section 1
+        Assert.That(lookup["heading-concept"].Any(), Is.True,
+            "FR-23.1 AC-5: heading-concept must be extracted from H2 heading text.");
+        Assert.That(lookup["heading-concept"].Single(), Is.EqualTo(1),
+            "FR-23.1 AC-5: heading-concept must be tagged with sectionIndex=1.");
+
+        // body-concept is in section 1's body
+        Assert.That(lookup["body-concept"].Single(), Is.EqualTo(1),
+            "body-concept in section 1 body.");
+
+        // second-heading is in the H2 heading that introduces section 2
+        Assert.That(lookup["second-heading"].Any(), Is.True,
+            "FR-23.1 AC-5: second-heading must be extracted from H2 heading text.");
+        Assert.That(lookup["second-heading"].Single(), Is.EqualTo(2),
+            "FR-23.1 AC-5: second-heading must be tagged with sectionIndex=2.");
+
+        // second-body is in section 2's body
+        Assert.That(lookup["second-body"].Single(), Is.EqualTo(2),
+            "second-body in section 2 body.");
+    }
+
     // ══════════════════════════════════════════════════════════════════════
     // T-PROX-001.2: BuildGraphEdges + ComputeProximityWeight — FR-23.1–23.3
     // Tests that edges are created with correct proximity weights and that
@@ -587,6 +634,40 @@ public class ProximityWeightTests
 
         Assert.That(strongRelation!.WeightedScore, Is.GreaterThan(weakRelation!.WeightedScore),
             "FR-23.4 AC-2: Strong-proximity concept must have higher WeightedScore than weak-proximity.");
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // AC-3: Edge with empty source_files → DecayWeight = 0.0 (not 1.0)
+    // ──────────────────────────────────────────────────────────────────────
+    [Test]
+    public void FR23_4_AC3_BuildContext_EmptySourceFiles_DecayWeightZero()
+    {
+        // T-PROX-002.2: FR-23.4 AC-3
+        // An edge with empty source_files (either NULL or "{}") should produce
+        // DecayWeight = 0.0, not 1.0. Empty means no evidence → zero weight.
+        using var conn = OpenTestDb();
+
+        InsertConcept(conn, "empty-query");
+        InsertConcept(conn, "empty-peer");
+
+        // Insert edge with empty dict source_files.
+        var (sortedA, sortedB) = string.CompareOrdinal("empty-query", "empty-peer") < 0
+            ? ("empty-query", "empty-peer")
+            : ("empty-peer", "empty-query");
+        conn.Execute(
+            @"INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files)
+              VALUES (@a, @b, 1, '{}')",
+            new { a = sortedA, b = sortedB });
+
+        conn.Dispose();
+
+        var result = GraphTools.BuildContext("empty-query", depth: 1, maxEntities: 20);
+
+        var peerRelation = result.DirectRelations.FirstOrDefault(r => r.Name == "empty-peer");
+        Assert.That(peerRelation, Is.Not.Null,
+            "empty-peer must appear in DirectRelations.");
+        Assert.That(peerRelation!.DecayWeight, Is.EqualTo(0.0).Within(1e-10),
+            "FR-23.4 AC-3: Empty source_files must produce DecayWeight = 0.0, not 1.0.");
     }
 
     // ══════════════════════════════════════════════════════════════════════

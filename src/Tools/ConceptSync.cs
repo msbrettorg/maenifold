@@ -164,7 +164,8 @@ public static class ConceptSync
             timestamp = CultureInvariantHelpers.FormatDateTime(File.GetLastWriteTimeUtc(filePath), "O");
         }
 
-        var concepts = MarkdownIO.ExtractWikiLinks(content).ToArray();
+        var (conceptsWithSections, _) = MarkdownIO.ExtractWikiLinksWithSections(content);
+        var concepts = conceptsWithSections.Select(c => c.concept).Distinct().ToArray();
 
         var title = GetTitle(filePath, frontmatter!);
         var fileStatus = frontmatter?.ContainsKey("status") == true ? frontmatter["status"]?.ToString() : null;
@@ -208,7 +209,7 @@ public static class ConceptSync
         ConceptSyncVectorSupport.GenerateConceptEmbeddings(conn, concepts, vectorReady);
         ConceptSyncVectorSupport.GenerateFileEmbedding(conn, memoryUri, content, vectorReady);
 
-        BuildGraphEdges(conn, concepts, memoryUri);
+        BuildGraphEdges(conn, memoryUri, conceptsWithSections);
 
         return true;
     }
@@ -226,17 +227,17 @@ public static class ConceptSync
 
         foreach (var edge in edges)
         {
-            var fileList = JsonSerializer.Deserialize<List<string>>(edge.files, SafeJson.Options) ?? new();
-            fileList.Remove(memoryUri);
+            var fileDict = JsonSerializer.Deserialize<Dictionary<string, double>>(edge.files, SafeJson.Options) ?? new();
+            fileDict.Remove(memoryUri);
 
-            if (fileList.Count == 0)
+            if (fileDict.Count == 0)
             {
                 conn.Execute("DELETE FROM concept_graph WHERE concept_a = @a AND concept_b = @b", new { a = edge.a, b = edge.b });
             }
             else
             {
                 conn.Execute("UPDATE concept_graph SET co_occurrence_count = @count, source_files = @files WHERE concept_a = @a AND concept_b = @b",
-                    new { count = fileList.Count, files = JsonSerializer.Serialize(fileList), a = edge.a, b = edge.b });
+                    new { count = fileDict.Count, files = JsonSerializer.Serialize(fileDict), a = edge.a, b = edge.b });
             }
         }
 
@@ -467,36 +468,84 @@ public static class ConceptSync
         return result.ToString().TrimEnd();
     }
 
-    private static void BuildGraphEdges(SqliteConnection conn, string[] concepts, string memoryUri)
+    // T-PROX-001.2: FR-23.2 — Compute proximity weight between two concepts based on their section sets.
+    // Returns 1.0 if they share any named H2 section (index > 0), otherwise 0.5 (preamble or cross-section).
+    internal static double ComputeProximityWeight(HashSet<int> sectionsA, HashSet<int> sectionsB)
     {
-        if (concepts.Length <= 1) return;
+        return sectionsA.Intersect(sectionsB).Any(s => s > 0) ? 1.0 : 0.5;
+    }
 
-        for (int i = 0; i < concepts.Length - 1; i++)
-            for (int j = i + 1; j < concepts.Length; j++)
+    // T-PROX-001.2: FR-23.2 — Build graph edges with proximity weights stored as {"uri": weight} dict.
+    internal static void BuildGraphEdges(SqliteConnection conn, string memoryUri, IReadOnlyList<(string concept, int sectionIndex)> conceptsWithSections)
+    {
+        if (conceptsWithSections.Count == 0) return;
+
+        // Build concept → set of section indices mapping.
+        var sectionMap = new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
+        foreach (var (concept, sectionIndex) in conceptsWithSections)
+        {
+            if (!sectionMap.TryGetValue(concept, out var sections))
             {
-                var (a, b) = string.CompareOrdinal(concepts[i], concepts[j]) < 0 ? (concepts[i], concepts[j]) : (concepts[j], concepts[i]);
-                var existingData = conn.Query<EdgeData>("SELECT co_occurrence_count, source_files FROM concept_graph WHERE concept_a = @a AND concept_b = @b",
-                                new { a, b }).FirstOrDefault();
+                sections = new HashSet<int>();
+                sectionMap[concept] = sections;
+            }
+            sections.Add(sectionIndex);
+        }
+
+        var uniqueConcepts = sectionMap.Keys.OrderBy(c => c, StringComparer.Ordinal).ToArray();
+        if (uniqueConcepts.Length <= 1) return;
+
+        for (int i = 0; i < uniqueConcepts.Length - 1; i++)
+        {
+            for (int j = i + 1; j < uniqueConcepts.Length; j++)
+            {
+                var conceptA = uniqueConcepts[i];
+                var conceptB = uniqueConcepts[j];
+
+                // Enforce alphabetical ordering for canonical edge key.
+                var (a, b) = string.CompareOrdinal(conceptA, conceptB) < 0
+                    ? (conceptA, conceptB)
+                    : (conceptB, conceptA);
+
+                var proximityWeight = ComputeProximityWeight(sectionMap[conceptA], sectionMap[conceptB]);
+
+                var existingData = conn.Query<EdgeData>(
+                    "SELECT co_occurrence_count, source_files FROM concept_graph WHERE concept_a = @a AND concept_b = @b",
+                    new { a, b }).FirstOrDefault();
 
                 if (existingData != null)
                 {
-                    var files = string.IsNullOrWhiteSpace(existingData.source_files)
-                        ? new List<string>()
-                        : JsonSerializer.Deserialize<List<string>>(existingData.source_files, SafeJson.Options) ?? new();
+                    var fileDict = string.IsNullOrWhiteSpace(existingData.source_files)
+                        ? new Dictionary<string, double>(StringComparer.Ordinal)
+                        : JsonSerializer.Deserialize<Dictionary<string, double>>(existingData.source_files, SafeJson.Options)
+                          ?? new Dictionary<string, double>(StringComparer.Ordinal);
 
-                    if (!files.Contains(memoryUri))
+                    // Use max weight when URI already present (concept appears in multiple passes).
+                    if (fileDict.TryGetValue(memoryUri, out var existingWeight))
                     {
-                        files.Add(memoryUri);
-                        conn.Execute("UPDATE concept_graph SET co_occurrence_count = @count, source_files = @files WHERE concept_a = @a AND concept_b = @b",
-                            new { count = files.Count, files = JsonSerializer.Serialize(files), a, b });
+                        fileDict[memoryUri] = Math.Max(existingWeight, proximityWeight);
                     }
+                    else
+                    {
+                        fileDict[memoryUri] = proximityWeight;
+                    }
+
+                    conn.Execute(
+                        "UPDATE concept_graph SET co_occurrence_count = @count, source_files = @files WHERE concept_a = @a AND concept_b = @b",
+                        new { count = fileDict.Count, files = JsonSerializer.Serialize(fileDict), a, b });
                 }
                 else
                 {
-                    ExecuteInsert(conn, "INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files) VALUES (@a, @b, @count, @files)",
-                        new { a, b, count = 1, files = JsonSerializer.Serialize(new[] { memoryUri }) });
+                    var fileDict = new Dictionary<string, double>(StringComparer.Ordinal)
+                    {
+                        [memoryUri] = proximityWeight,
+                    };
+                    ExecuteInsert(conn,
+                        "INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files) VALUES (@a, @b, @count, @files)",
+                        new { a, b, count = 1, files = JsonSerializer.Serialize(fileDict) });
                 }
             }
+        }
     }
 
     private static string PathToUri(string filePath) => MarkdownIO.PathToUri(filePath, MemoryPath);

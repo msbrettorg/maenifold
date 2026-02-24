@@ -308,7 +308,7 @@ public class ConceptRepairTool
         {
             try
             {
-                var content = File.ReadAllText(file);
+                var (frontmatter, content, _) = MarkdownReader.ReadMarkdown(file);
                 var replacements = new List<string>();
                 var newContent = content;
 
@@ -335,7 +335,7 @@ public class ConceptRepairTool
 
                     if (!dryRun)
                     {
-                        File.WriteAllText(file, newContent);
+                        MarkdownWriter.WriteMarkdown(file, frontmatter, newContent);
                         results.Add($"✓ Modified: {relativePath}");
                     }
                     else

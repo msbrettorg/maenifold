@@ -85,7 +85,10 @@ Returns related concepts with relationship types, file references, and connectio
         {
             // SEC-001: Use safe JSON options with depth limit
             // T-PROX-001.4: RTM FR-23.4 - Proximity-weighted co-occurrence dict format
-            var fileDict = JsonSerializer.Deserialize<Dictionary<string, double>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
+            // T-PROX-001.7: M1 - Guard against NULL source_files column value
+            var fileDict = string.IsNullOrWhiteSpace(files)
+                ? new Dictionary<string, double>()
+                : JsonSerializer.Deserialize<Dictionary<string, double>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
 
             // T-PROX-001.4: RTM FR-23.4 - Effective weight = proximity × decay per source file
             var avgDecayWeight = fileDict

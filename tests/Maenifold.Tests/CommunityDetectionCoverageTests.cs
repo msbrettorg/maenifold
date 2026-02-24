@@ -410,7 +410,7 @@ public class CommunityDetectionCoverageTests
         var (sortedA, sortedB) = string.CompareOrdinal(a, b) < 0 ? (a, b) : (b, a);
         conn.Execute(
             @"INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files)
-              VALUES (@a, @b, @w, '[]')",
+              VALUES (@a, @b, @w, '{}')",
             new { a = sortedA, b = sortedB, w = weight });
     }
 }

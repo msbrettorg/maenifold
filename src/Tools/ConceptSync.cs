@@ -227,7 +227,10 @@ public static class ConceptSync
 
         foreach (var edge in edges)
         {
-            var fileDict = JsonSerializer.Deserialize<Dictionary<string, double>>(edge.files, SafeJson.Options) ?? new();
+            // T-PROX-001.7: M1 - Guard against NULL source_files column value before deserializing
+            var fileDict = string.IsNullOrWhiteSpace(edge.files)
+                ? new Dictionary<string, double>()
+                : JsonSerializer.Deserialize<Dictionary<string, double>>(edge.files, SafeJson.Options) ?? new();
             fileDict.Remove(memoryUri);
 
             if (fileDict.Count == 0)
@@ -520,15 +523,9 @@ public static class ConceptSync
                         : JsonSerializer.Deserialize<Dictionary<string, double>>(existingData.source_files, SafeJson.Options)
                           ?? new Dictionary<string, double>(StringComparer.Ordinal);
 
-                    // Use max weight when URI already present (concept appears in multiple passes).
-                    if (fileDict.TryGetValue(memoryUri, out var existingWeight))
-                    {
-                        fileDict[memoryUri] = Math.Max(existingWeight, proximityWeight);
-                    }
-                    else
-                    {
-                        fileDict[memoryUri] = proximityWeight;
-                    }
+                    // T-PROX-001.7: M2 - Unconditional assignment so re-sync reflects current content,
+                    // not a historically-pinned maximum (stale weight from Math.Max removed).
+                    fileDict[memoryUri] = proximityWeight;
 
                     conn.Execute(
                         "UPDATE concept_graph SET co_occurrence_count = @count, source_files = @files WHERE concept_a = @a AND concept_b = @b",

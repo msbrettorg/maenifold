@@ -338,4 +338,46 @@ Wave 3 — Close:
 
 ---
 
+## Sprint: Proximity-Weighted Co-occurrence (T-PROX-001)
+
+Wave 1 — Implementation (parallel where marked):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-PROX-001.1 | SWE: Add `ExtractWikiLinksWithSections` to MarkdownReader.cs + MarkdownIO.cs facade | FR-23.1 | Pending |
+|  | AC-1: Multi-section doc → concepts tagged with correct H2 section indices |  |  |
+|  | AC-2: Flat doc (no H2) → all concepts at sectionIndex=0 |  |  |
+|  | AC-3: Preamble content → sectionIndex=0 |  |  |
+|  | AC-4: Concept in multiple sections → appears with each section's index |  |  |
+| T-PROX-001.2 | SWE: Update `BuildGraphEdges` + add `ComputeProximityWeight` in ConceptSync.cs. Update `ProcessFile` call site. | FR-23.1, FR-23.2, FR-23.3 | Pending |
+|  | AC-1: Same-section pair → weight 1.0 stored in source_files dict |  |  |
+|  | AC-2: Cross-section pair → weight 0.5 |  |  |
+|  | AC-3: Flat doc → all pairs weight 0.5 |  |  |
+|  | AC-4: Concept in preamble + named section, paired with section concept → max 1.0 wins |  |  |
+|  | AC-5: source_files serialized as `{"uri": weight}` dict, not array |  |  |
+| T-PROX-001.3 | SWE: Update `ComputeEdgeDecayWeight` in CommunityDetection.cs — read dict, multiply proximity × decay | FR-23.4 | Pending |
+|  | AC-1: Effective weight = proximity × decay for each source file |  |  |
+|  | AC-2: Remove silent `catch { return rawCount; }` — throw on corrupt data |  |  |
+| T-PROX-001.4 | SWE: Update `BuildContext` in GraphTools.cs — read dict, apply proximity × decay per file | FR-23.4 | Pending |
+|  | AC-1: avgDecayWeight uses `proximity × decay` per file |  |  |
+|  | AC-2: Strong-proximity concept ranks higher than weak-proximity |  |  |
+| T-PROX-001.5 | SWE: Update `RemoveFile` in ConceptSync.cs — deserialize dict, remove by key | FR-23.1, FR-23.5 | Pending |
+|  | AC-1: After RemoveFile, removed doc's weight absent from edge |  |  |
+|  | AC-2: Remaining docs' weights preserved |  |  |
+
+Wave 2 — Verification (parallel after Wave 1):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-PROX-001.6 | Blue-team: Tests — all AC-* criteria above | FR-23.1-23.5 | Pending |
+| T-PROX-001.7 | Red-team: Adversarial review | Security | Pending |
+
+Wave 3 — Close:
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-PROX-001.8 | Blue-team: All FR-23.x met, tests pass, coverage held, 0 warnings | FR-23.1-23.5 | Pending |
+
+---
+
 _See `RETROSPECTIVES.md` for completed work and historical notes._

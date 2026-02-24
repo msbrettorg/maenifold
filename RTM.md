@@ -435,3 +435,15 @@ OpenCode integration removed. All files under `integrations/opencode/` deleted. 
 | T-GOOSE-001.7 | NFR-22.5, NFR-22.6 | Blue-team: `dotnet build -c Debug` 0 warnings, `dotnet test` all pass, CLI `--tool MemoryStatus` works, `--mcp` starts without error. | All changed files | Build + test suite | Pending |
 | T-GOOSE-001.8 | Security | Red-team: Review ServerInstructions for information leakage, review recipe YAML for injection vectors, verify CLI-first emphasis is consistent, check for contradictions between ServerInstructions and recipe instructions. | All changed files | ConfessionReport | Pending |
 | T-GOOSE-001.9 | FR-22.1-22.8, NFR-22.1-22.6 | Blue-team: All FR-22.x requirements met. Build/tests pass. 0 warnings. | All components | Compliance report | Pending |
+
+---
+
+## T-PROX-001: Proximity-Weighted Co-occurrence (sprint-20260223)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-PROX-001.1 | FR-23.1 | ExtractWikiLinksWithSections SHALL tag concepts with H2 section index (preamble=0). | src/Utils/MarkdownReader.cs, src/Utils/MarkdownIO.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
+| T-PROX-001.2 | FR-23.1 | BuildGraphEdges SHALL compute proximity weight per pair and store as `{"uri": weight}` dict in source_files. | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
+| T-PROX-001.3 | FR-23.4 | ComputeEdgeDecayWeight SHALL multiply proximity × decay. | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
+| T-PROX-001.4 | FR-23.4 | BuildContext SHALL use proximity × decay for avgDecayWeight. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
+| T-PROX-001.5 | FR-23.1 | RemoveFile SHALL deserialize dict format and remove by key. | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |

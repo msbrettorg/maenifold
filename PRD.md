@@ -506,6 +506,16 @@ Format rules: bold seed concept as cluster label, WikiLink members on next line 
 
 ---
 
+### 3.11 Proximity-Weighted Co-occurrence (P1)
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| FR-23.1 | When indexing a document with H2 section headings, the system SHALL assign weight 1.0 to concept pairs sharing a section and weight 0.5 to cross-section pairs. `source_files` column changes from JSON array to JSON object `{"uri": weight}`. | **P1** |
+| FR-23.2 | When indexing a flat document (no H2 headings), the system SHALL assign weight 0.5 to all concept pairs. | **P1** |
+| FR-23.3 | Content before the first H2 heading (preamble) SHALL be treated as section 0 with no structural authority (weight 0.5). If a concept also appears in a named section shared with another concept, the max weight (1.0) wins. | **P1** |
+| FR-23.4 | The effective edge weight SHALL be `proximity × decay` — multiplicative composition. All `source_files` consumers (CommunityDetection, GraphTools) SHALL use this formula. | **P1** |
+| FR-23.5 | No backward compatibility. The SQLite DB is a cache. Old format edges are not supported — wipe and re-sync. | **P1** |
+
 ## 6. Out of Scope
 
 - Changing the embedding model itself.

@@ -459,6 +459,6 @@ OpenCode integration removed. All files under `integrations/opencode/` deleted. 
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-PROX-003.1 | FR-23.4 | BuildContext SHALL call CommunityDetection.ComputeEdgeDecayWeight instead of inline formula. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
-| T-PROX-003.2 | FR-23.4 | RunLouvain SHALL use sum(proximity) from source_files as edge weight (not co_occurrence_count). | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
-| T-PROX-003.3 | FR-23.6 | RunAndPersist SHALL compute NMI between old and new community assignments and log warning on drift. | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
+| T-PROX-003.1 | FR-23.4 | BuildContext SHALL call CommunityDetection.ComputeEdgeDecayWeight instead of inline formula. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | **Complete** |
+| T-PROX-003.2 | FR-23.6 | RunLouvain SHALL use sum(proximity) from source_files as edge weight (not co_occurrence_count). | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs, ProximityWeightTests.cs (FR23_6) | **Complete** |
+| T-PROX-003.3 | FR-23.7 | RunAndPersist SHALL compute NMI between old and new community assignments and log warning on drift. | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/ProximityWeightTests.cs (FR23_7) | **Complete** |

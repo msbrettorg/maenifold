@@ -4,6 +4,34 @@ This document captures sprint retrospectives to compound learnings across develo
 
 ---
 
+## Sprint 2026-02-24: Proximity-Weighted Louvain (T-PROX-003)
+
+### Metrics
+- Tasks planned: 6 (+1 red-team remediation) | Completed: 7 | Carried over: 0
+- Failure recovery invocations: 0
+- Conflict prevention blocks: 0
+
+### What Worked
+- **4-wave pipeline executed cleanly** — Wave 1 (parallel: GraphTools + blue-team tests) → Wave 2 (RunLouvain + test helpers) → Wave 3 (NMI) → Wave 4 (parallel: red-team + blue-team verify)
+- **Design decision upfront saved complexity** — "sum(proximity) for Louvain, avg(proximity×decay) for BuildContext" avoided GetDecayWeightForFile dependency in tests and separated structural vs. temporal concerns
+- **InsertEdge helper audit** (from T-PROX-001 retrospective action item) — blue-team flagged 2 helpers writing `'{}'` before SWE started. Clean handoff.
+- **Blue-team AC-4 math error caught before SWE** — PM identified NMI label-invariance issue in test data during Wave 3 planning. SWE fixed as part of implementation.
+- **Red-team found only 1 LOW** (NMI threshold hardcoded) — remediated in-sprint via Config env-var
+- **Coverage improved** — 78.23%/68.15%/93.41% (up from 78.02%/67.95%/93.4%)
+
+### What Didn't
+- **Blue-team wrote AC-4 test with label-swapped partition** (NMI is label-invariant, so "opposite" labeling = same partition = NMI 1.0). PM caught this during Wave 3 planning, but it should have been caught by blue-team during test writing. Blue-team needs NMI understanding when writing NMI tests.
+- **Double JSON parse in GraphTools** — ComputeEdgeDecayWeight parses source_files internally, then GraphTools parses again for the Files display property. Acknowledged but not resolved. Minor perf concern at scale.
+
+### Action Items
+- [x] Move NMI drift threshold to Config env-var (remediated this sprint: MAENIFOLD_COMMUNITY_NMI_THRESHOLD)
+- [x] Audit InsertEdge helpers when changing source_files reading (applied: blue-team flagged both helpers)
+- [x] Blue-team verify exact test count via --list-tests (applied: 5 new tests verified)
+- [ ] When writing math-property tests (NMI, etc.), blue-team should verify expected values manually against the formula before committing
+- [ ] Consider extracting source_files JSON parsing into a shared utility to avoid double parse in GraphTools
+
+---
+
 ## Sprint 2026-02-24: Proximity Bug Fixes (T-PROX-002)
 
 ### Metrics

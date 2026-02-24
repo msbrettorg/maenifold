@@ -253,15 +253,12 @@ Returns memory:// URI for future reference, checksum for safe editing, confirms 
         var filePath = Path.Combine(folderPath, fileName);
 
         var permalink = MarkdownIO.Slugify(title);
-        var now = TimeZoneConverter.GetUtcNowIso();
         var frontmatter = new Dictionary<string, object>
         {
             ["title"] = title,
             ["permalink"] = permalink,
             ["type"] = "memory",
-            ["status"] = "saved",
-            ["created"] = now,
-            ["modified"] = now
+            ["status"] = "saved"
         };
 
         if (tags != null && tags.Length > 0)
@@ -366,8 +363,12 @@ Returns formatted content with timestamps, location, checksum, and full markdown
                 uri = uri,
                 title = title,
                 location = Path.GetRelativePath(BasePath, path),
-                created = frontmatter?.ContainsKey("created") == true ? frontmatter["created"]?.ToString() : null,
-                modified = frontmatter?.ContainsKey("modified") == true ? frontmatter["modified"]?.ToString() : null,
+                created = frontmatter?.ContainsKey("created") == true
+                    ? frontmatter["created"]?.ToString()
+                    : TimeZoneConverter.FileTimeToIso(File.GetCreationTimeUtc(path)),
+                modified = frontmatter?.ContainsKey("modified") == true
+                    ? frontmatter["modified"]?.ToString()
+                    : TimeZoneConverter.FileTimeToIso(File.GetLastWriteTimeUtc(path)),
                 checksum = includeChecksum ? checksum : null,
                 content = content
             }).ToJson();
@@ -379,16 +380,17 @@ Returns formatted content with timestamps, location, checksum, and full markdown
         sb.AppendLineInvariant($"Location: {Path.GetRelativePath(BasePath, path)}");
 
 
-        if (frontmatter?.ContainsKey("created") == true)
-        {
-            var createdLocal = TimeZoneConverter.ToLocalDisplay(frontmatter["created"]?.ToString());
-            sb.AppendLineInvariant($"Created: {createdLocal}");
-        }
-        if (frontmatter?.ContainsKey("modified") == true)
-        {
-            var modifiedLocal = TimeZoneConverter.ToLocalDisplay(frontmatter["modified"]?.ToString());
-            sb.AppendLineInvariant($"Modified: {modifiedLocal}");
-        }
+        var createdStr = frontmatter?.ContainsKey("created") == true
+            ? frontmatter["created"]?.ToString()
+            : TimeZoneConverter.FileTimeToIso(File.GetCreationTimeUtc(path));
+        var createdLocal = TimeZoneConverter.ToLocalDisplay(createdStr);
+        sb.AppendLineInvariant($"Created: {createdLocal}");
+
+        var modifiedStr = frontmatter?.ContainsKey("modified") == true
+            ? frontmatter["modified"]?.ToString()
+            : TimeZoneConverter.FileTimeToIso(File.GetLastWriteTimeUtc(path));
+        var modifiedLocal = TimeZoneConverter.ToLocalDisplay(modifiedStr);
+        sb.AppendLineInvariant($"Modified: {modifiedLocal}");
 
         if (includeChecksum)
             sb.AppendLineInvariant($"Checksum: {checksum}");
@@ -504,9 +506,6 @@ To avoid this, use findText='[[machine learning]]' to replace the entire WikiLin
             frontmatter["type"] = "memory";
         if (!frontmatter.ContainsKey("status"))
             frontmatter["status"] = "saved";
-
-
-        frontmatter["modified"] = TimeZoneConverter.GetUtcNowIso();
 
         // T-CLI-JSON-001: SEC-EDGE-002 - Catch PathTooLongException to prevent info leakage
         try
@@ -627,7 +626,6 @@ Returns movement confirmation showing old → new URIs, maintains all content an
 
         var (frontmatter, content, _) = MarkdownIO.ReadMarkdown(sourcePath);
         frontmatter ??= new Dictionary<string, object>();
-        frontmatter["modified"] = TimeZoneConverter.GetUtcNowIso();
 
         // T-CLI-JSON-001: SEC-EDGE-002 - Catch PathTooLongException to prevent info leakage
         try

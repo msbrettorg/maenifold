@@ -909,13 +909,15 @@ public class ProximityWeightTests
             ["delta"] = 1,
         };
 
-        // Completely opposite assignment
+        // Genuinely different partition: {{alpha, gamma}, {beta, delta}}
+        // (NMI is label-invariant — swapping 0↔1 labels produces the same partition,
+        //  so we use a structurally different assignment instead.)
         var clusteringB = new Dictionary<string, int>
         {
-            ["alpha"] = 1,
-            ["beta"]  = 1,
-            ["gamma"] = 0,
-            ["delta"] = 0,
+            ["alpha"] = 0,
+            ["beta"]  = 1,  // Moved to different community
+            ["gamma"] = 0,  // Moved to different community
+            ["delta"] = 1,
         };
 
         double nmi = CommunityDetection.ComputeNMI(clusteringA, clusteringB);

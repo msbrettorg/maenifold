@@ -234,6 +234,22 @@ public static class CommunityDetection
         if (communities.Count == 0)
             return (0, 0.0);
 
+        // T-PROX-003.3: RTM FR-23.7 - NMI community drift detection
+        // Use long for community_id to match SQLite INTEGER return type (avoids Int64→Int32 cast failure).
+        var oldCommunities = conn.Query<(string name, long communityId)>(
+            "SELECT concept_name, community_id FROM concept_communities")
+            .ToDictionary(r => r.name, r => (int)r.communityId);
+
+        if (oldCommunities.Count > 0)
+        {
+            double nmi = ComputeNMI(oldCommunities, communities);
+            if (nmi < 0.8) // Drift threshold
+            {
+                Console.Error.WriteLine(
+                    $"[COMMUNITY DRIFT] NMI = {nmi:F3} — significant community restructuring detected.");
+            }
+        }
+
         var timestamp = CultureInvariantHelpers.FormatDateTime(DateTime.UtcNow, "O");
 
         // T-COMMUNITY-001.11: RTM FAIL-001 remediation — atomic DELETE+INSERT in transaction
@@ -356,13 +372,74 @@ public static class CommunityDetection
     /// <summary>
     /// Compute Normalized Mutual Information between two clusterings.
     /// NMI(A, B) = 2 * I(A; B) / (H(A) + H(B)), range [0, 1].
-    /// Returns 1.0 when clusterings are identical, approaches 0.0 for independent clusterings.
+    /// Returns 1.0 when clusterings are identical (label-invariant), approaches 0.0 for independent clusterings.
     /// </summary>
     /// <remarks>
-    /// STUB — implementation added by T-PROX-003.3.
+    /// Only keys present in both dictionaries are compared.
+    /// Returns 1.0 when either or both inputs are empty (no elements to compare).
+    /// Returns 1.0 when H(A) + H(B) = 0 (all elements in one community in both clusterings).
     /// </remarks>
     public static double ComputeNMI(Dictionary<string, int> oldCommunities, Dictionary<string, int> newCommunities)
     {
-        throw new NotImplementedException("T-PROX-003.3: ComputeNMI not yet implemented.");
+        // Intersect on shared keys only
+        var sharedKeys = oldCommunities.Keys.Where(k => newCommunities.ContainsKey(k)).ToList();
+
+        int n = sharedKeys.Count;
+        if (n == 0)
+            return 1.0;
+
+        // Build contingency table: n_ij = number of elements in old community i AND new community j
+        // Also accumulate row sums (a_i) and column sums (b_j)
+        var contingency = new Dictionary<(int oldComm, int newComm), int>();
+        var oldSums = new Dictionary<int, int>();  // a_i
+        var newSums = new Dictionary<int, int>();  // b_j
+
+        foreach (var key in sharedKeys)
+        {
+            int oldComm = oldCommunities[key];
+            int newComm = newCommunities[key];
+
+            var cellKey = (oldComm, newComm);
+            contingency.TryGetValue(cellKey, out int existing);
+            contingency[cellKey] = existing + 1;
+
+            oldSums.TryGetValue(oldComm, out int oldCount);
+            oldSums[oldComm] = oldCount + 1;
+
+            newSums.TryGetValue(newComm, out int newCount);
+            newSums[newComm] = newCount + 1;
+        }
+
+        // H(A) = -sum_i (a_i/N) * log(a_i/N)
+        double hA = 0.0;
+        foreach (var ai in oldSums.Values)
+        {
+            double p = (double)ai / n;
+            hA -= p * Math.Log(p);
+        }
+
+        // H(B) = -sum_j (b_j/N) * log(b_j/N)
+        double hB = 0.0;
+        foreach (var bj in newSums.Values)
+        {
+            double p = (double)bj / n;
+            hB -= p * Math.Log(p);
+        }
+
+        double hSum = hA + hB;
+        if (hSum == 0.0)
+            return 1.0;
+
+        // I(A;B) = sum_ij (n_ij/N) * log(N * n_ij / (a_i * b_j))
+        double mi = 0.0;
+        foreach (var ((oldComm, newComm), nij) in contingency)
+        {
+            int ai = oldSums[oldComm];
+            int bj = newSums[newComm];
+            double pij = (double)nij / n;
+            mi += pij * Math.Log((double)n * nij / ((double)ai * bj));
+        }
+
+        return 2.0 * mi / hSum;
     }
 }

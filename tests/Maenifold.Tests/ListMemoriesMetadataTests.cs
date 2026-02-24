@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using Maenifold.Tools;
 using Maenifold.Utils;
+using Microsoft.Data.Sqlite;
 using NUnit.Framework;
 
 namespace Maenifold.Tests;
@@ -33,6 +34,7 @@ public class ListMemoriesMetadataTests
     {
         // Tests run within TestEnvironmentSetup global isolation
         Config.EnsureDirectories();
+        GraphDatabase.InitializeDatabase();
 
         // Create test directories for different tiers
         _testDir = Path.Combine(Config.MemoryPath, "decay-metadata-tests");
@@ -110,11 +112,12 @@ Test content for [[decay-metadata]] created timestamp verification.
     /// <summary>
     /// T-GRAPH-DECAY-003.1: ListMemories output SHALL include last_accessed timestamp.
     /// Verifies FR-7.7 requirement for last_accessed metadata display.
+    /// T-META-001.8c: FR-24.5 — last_accessed lives in SQLite file_content table only (not frontmatter).
     /// </summary>
     [Test]
     public void ListMemories_Output_IncludesLastAccessedTimestamp()
     {
-        // Arrange: Create a test file with last_accessed timestamp in frontmatter
+        // Arrange: Create a test file (last_accessed is NOT in frontmatter per FR-24.5)
         var testFile = Path.Combine(_standardDir, "accessed-test.md");
         var createdDate = "2026-01-10T08:00:00Z";
         var lastAccessedDate = "2026-01-20T14:45:00Z";
@@ -124,7 +127,6 @@ type: memory
 status: saved
 created: {createdDate}
 modified: {createdDate}
-last_accessed: {lastAccessedDate}
 ---
 
 # Accessed Test
@@ -132,6 +134,21 @@ last_accessed: {lastAccessedDate}
 Test content for [[decay-metadata]] last_accessed timestamp verification.
 ";
         File.WriteAllText(testFile, content);
+
+        // Arrange: Insert last_accessed into SQLite file_content table (the correct path per FR-24.5)
+        // SystemTools.LoadLastAccessedTimestamps() reads from file_content keyed by memory:// URI
+        using (var conn = new SqliteConnection(Config.DatabaseConnectionString))
+        {
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                INSERT OR REPLACE INTO file_content (file_path, last_indexed, last_accessed)
+                VALUES (@path, @indexed, @accessed)";
+            cmd.Parameters.AddWithValue("@path", "memory://decay-metadata-tests/standard/accessed-test");
+            cmd.Parameters.AddWithValue("@indexed", DateTime.UtcNow.ToString("o"));
+            cmd.Parameters.AddWithValue("@accessed", lastAccessedDate);
+            cmd.ExecuteNonQuery();
+        }
 
         // Act
         var result = SystemTools.ListMemories("decay-metadata-tests/standard");

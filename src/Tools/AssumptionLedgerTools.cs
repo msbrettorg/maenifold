@@ -55,8 +55,7 @@ Returns declarative next-step suggestions aligned with Ma Protocol restraint.")]
         if (dir != null)
             Directory.CreateDirectory(dir);
 
-        var date = DateTimeOffset.UtcNow.UtcDateTime;
-        var frontmatter = BuildAppendFrontmatter(date, context, validationPlan, confidence);
+        var frontmatter = BuildAppendFrontmatter(context, validationPlan, confidence);
         var content = BuildAppendContent(assumption, validationPlan, concepts!);
 
         MarkdownIO.WriteMarkdown(fullPath, frontmatter, content);
@@ -143,11 +142,10 @@ Returns declarative next-step suggestions aligned with Ma Protocol restraint.")]
     }
 
     private static Dictionary<string, object> BuildAppendFrontmatter(
-        DateTime date, string? context, string? validationPlan, string? confidence)
+        string? context, string? validationPlan, string? confidence)
     {
         var frontmatter = new Dictionary<string, object>
         {
-            ["created"] = date.ToString("o", CultureInfo.InvariantCulture),
             ["status"] = "active",
             ["confidence"] = confidence ?? "unspecified"
         };
@@ -224,8 +222,6 @@ Returns declarative next-step suggestions aligned with Ma Protocol restraint.")]
 
         if (!string.IsNullOrWhiteSpace(validationPlan))
             frontmatter["validation_plan"] = validationPlan;
-
-        frontmatter["updated"] = DateTimeOffset.UtcNow.UtcDateTime.ToString("o", CultureInfo.InvariantCulture);
     }
 
     private static string AppendUpdateNotes(string content, string? notes)
@@ -271,11 +267,29 @@ Returns declarative next-step suggestions aligned with Ma Protocol restraint.")]
             if (frontmatter.TryGetValue("confidence", out var confidence))
                 response.AppendLine(CultureInfo.InvariantCulture, $"**Confidence**: {confidence}");
 
-            if (frontmatter.TryGetValue("created", out var created))
-                response.AppendLine(CultureInfo.InvariantCulture, $"**Created**: {created}");
+            var createdValue = frontmatter.TryGetValue("created", out var createdObj)
+                ? createdObj?.ToString()
+                : null;
+            if (createdValue == null)
+            {
+                var filePath = MarkdownIO.UriToPath(uri, Config.MemoryPath);
+                if (File.Exists(filePath))
+                    createdValue = TimeZoneConverter.FileTimeToIso(File.GetCreationTimeUtc(filePath));
+            }
+            if (createdValue != null)
+                response.AppendLine(CultureInfo.InvariantCulture, $"**Created**: {createdValue}");
 
-            if (frontmatter.TryGetValue("updated", out var updated))
-                response.AppendLine(CultureInfo.InvariantCulture, $"**Updated**: {updated}");
+            var modifiedValue = frontmatter.TryGetValue("modified", out var modifiedObj)
+                ? modifiedObj?.ToString()
+                : null;
+            if (modifiedValue == null)
+            {
+                var filePath = MarkdownIO.UriToPath(uri, Config.MemoryPath);
+                if (File.Exists(filePath))
+                    modifiedValue = TimeZoneConverter.FileTimeToIso(File.GetLastWriteTimeUtc(filePath));
+            }
+            if (modifiedValue != null)
+                response.AppendLine(CultureInfo.InvariantCulture, $"**Modified**: {modifiedValue}");
 
             if (frontmatter.TryGetValue("context", out var ctx))
                 response.AppendLine(CultureInfo.InvariantCulture, $"**Context**: {ctx}");

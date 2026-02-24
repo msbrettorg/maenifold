@@ -83,20 +83,17 @@ Returns related concepts with relationship types, file references, and connectio
 
         foreach (var (related, count, files) in directRelations)
         {
+            // T-PROX-003.1: RTM FR-23.4 - Use ComputeEdgeDecayWeight (eliminate inline duplication)
+            var avgDecayWeight = string.IsNullOrWhiteSpace(files)
+                ? 0.0
+                : CommunityDetection.ComputeEdgeDecayWeight(files);
+            var weightedScore = count * avgDecayWeight;
+
+            // Parse file dict for display only (file list in results)
             // SEC-001: Use safe JSON options with depth limit
-            // T-PROX-001.4: RTM FR-23.4 - Proximity-weighted co-occurrence dict format
-            // T-PROX-001.7: M1 - Guard against NULL source_files column value
             var fileDict = string.IsNullOrWhiteSpace(files)
                 ? new Dictionary<string, double>()
                 : JsonSerializer.Deserialize<Dictionary<string, double>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
-
-            // T-PROX-002.2: RTM FR-23.4 - Empty source_files → 0.0, not 1.0
-            var avgDecayWeight = fileDict.Count == 0
-                ? 0.0
-                : fileDict
-                    .Select(kv => kv.Value * MemorySearchTools.GetDecayWeightForFile(kv.Key))
-                    .Average();
-            var weightedScore = count * avgDecayWeight;
 
             var relatedConcept = new RelatedConcept
             {

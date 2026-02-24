@@ -462,3 +462,17 @@ OpenCode integration removed. All files under `integrations/opencode/` deleted. 
 | T-PROX-003.1 | FR-23.4 | BuildContext SHALL call CommunityDetection.ComputeEdgeDecayWeight instead of inline formula. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | **Complete** |
 | T-PROX-003.2 | FR-23.6 | RunLouvain SHALL use sum(proximity × decay) from source_files as edge weight. Decay via GetDecayWeightForFile. | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs, ProximityWeightTests.cs (FR23_6) | **Complete** |
 | T-PROX-003.3 | FR-23.7 | RunAndPersist SHALL compute NMI between old and new community assignments and log warning on drift. | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/ProximityWeightTests.cs (FR23_7) | **Complete** |
+
+## T-META-001: Frontmatter Metadata Standardization
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-META-001.1 | FR-24.1 | WriteMarkdown SHALL ensure `created` exists (preserve if present, add if absent) and always set `modified` to UTC now. | src/Utils/MarkdownWriter.cs | TBD (FR24_1) | Planned |
+| T-META-001.2 | FR-24.2 | AppendH2Section SHALL read frontmatter, update `modified`, rewrite file (not raw append). | src/Utils/MarkdownWriter.cs | TBD (FR24_2) | Planned |
+| T-META-001.3 | FR-24.1 | Remove manual `created`/`modified` management from MemoryTools — now handled by writer. | src/Tools/MemoryTools.cs | TBD (FR24_1) | Planned |
+| T-META-001.4 | FR-24.1 | Remove manual timestamp management from SequentialThinkingTools — CreateSession/AppendToSession get metadata from writer. | src/Tools/SequentialThinkingTools.cs | TBD (FR24_1) | Planned |
+| T-META-001.5 | FR-24.1 | Remove manual timestamp management from WorkflowOperations — CreateSession/UpdateSession get metadata from writer. | src/Tools/WorkflowOperations.Core.cs, WorkflowOperations.Management.cs | TBD (FR24_1) | Planned |
+| T-META-001.6 | FR-24.4 | AssumptionLedgerTools: rename `updated` key to `modified`, remove manual `created` management. | src/Tools/AssumptionLedgerTools.cs | TBD (FR24_4) | Planned |
+| T-META-001.7 | FR-24.5 | ConceptRepairTool: route writes through MarkdownIO instead of raw File.WriteAllText. | src/Tools/ConceptRepairTool.cs | TBD (FR24_5) | Planned |
+| T-META-001.8 | FR-24.1–6 | Blue-team: tests for all FR-24.x requirements. | tests/Maenifold.Tests/ | FR24_* | Planned |
+| T-META-001.9 | FR-24.1–6 | Red-team: audit all changes for correctness, security, edge cases. | All modified files | N/A | Planned |

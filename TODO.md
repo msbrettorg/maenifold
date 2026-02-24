@@ -444,10 +444,66 @@ Wave 4 — Verification (parallel, after all implementation):
 |------|------|-----|--------|
 | T-PROX-003.5 | Red-team: Audit — LOW: NMI threshold hardcoded (remediated → Config env-var). INFORMATIONAL: RTM FR reference, double JSON parse, AC-1 weight ratio. | Security | **Complete** |
 | T-PROX-003.6 | Blue-team: 839/839 pass, 0 warnings, coverage 78.23%/68.15%/93.41%, 5 new tests (FR23_6 × 2, FR23_7 × 3) | FR-23.6, FR-23.7 | **Complete** |
-| T-PROX-003.7 | GetDecayWeightForFile: change fallback from DateTime.UtcNow to File.GetLastWriteTimeUtc when no `created` frontmatter. Affects 211/277 files. | FR-23.4, FR-23.6 | **In Progress** |
+| T-PROX-003.7 | GetDecayWeightForFile: change fallback from DateTime.UtcNow to File.GetLastWriteTimeUtc when no `created` frontmatter. Affects 211/277 files. | FR-23.4, FR-23.6 | **Complete** |
 |  | AC-1: Files without `created` frontmatter use filesystem last-modified time as decay baseline | | |
 |  | AC-2: Files with `created` frontmatter are unaffected (existing path unchanged) | | |
 |  | AC-3: Non-existent files (test URIs) still return decay 1.0 via catch block | | |
+
+---
+
+## T-META-001: Frontmatter Metadata Standardization
+
+Push `created`/`modified` guarantees into MarkdownWriter so all writes get consistent timestamps. Eliminates 211/277 files with missing metadata.
+
+Wave 1 — Foundation (serial, must complete before Wave 2):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-META-001.1 | MarkdownWriter.WriteMarkdown: ensure `created` exists (preserve if present, add if absent), always set `modified` to now | FR-24.1 | Planned |
+|  | AC-1: New file write → frontmatter contains both `created` and `modified` with ISO 8601 timestamps | | |
+|  | AC-2: Existing file rewrite with `created` already in frontmatter → `created` preserved, `modified` updated | | |
+|  | AC-3: Existing file rewrite with no `created` in frontmatter → `created` added, `modified` updated | | |
+|  | AC-4: Frontmatter is null → `created` and `modified` still written (writer creates frontmatter dict) | | |
+|  | AC-5: All timestamps use `TimeZoneConverter.GetUtcNowIso()` format | | |
+| T-META-001.2 | MarkdownWriter.AppendH2Section: refactor from raw string append to frontmatter-aware read-modify-write | FR-24.2 | Planned |
+|  | AC-1: Appending a section updates `modified` in frontmatter | | |
+|  | AC-2: Existing frontmatter fields are preserved (not clobbered) | | |
+|  | AC-3: Existing content is preserved verbatim (no whitespace changes except the appended section) | | |
+|  | AC-4: File with no frontmatter (edge case) → frontmatter block created with `created` and `modified` | | |
+
+Wave 2 — Consumer cleanup (parallel after Wave 1, each task touches one file):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-META-001.3 | MemoryTools.cs: remove manual `created`/`modified` in WriteMemory (line 263-264), `modified` in EditMemory (line 509), `modified` in MoveMemory (line 630) — writer handles all | FR-24.1 | Planned |
+|  | AC-1: WriteMemory still produces files with `created` and `modified` (via writer) | | |
+|  | AC-2: EditMemory updates `modified` (via writer), no manual set | | |
+|  | AC-3: MoveMemory updates `modified` (via writer), no manual set | | |
+| T-META-001.4 | SequentialThinkingTools.cs: CreateNewSession frontmatter gets `created`/`modified` from writer. FinalizeSession completion/cancellation timestamps preserved as `completed`/`cancelled`. | FR-24.1 | Planned |
+|  | AC-1: New sequential session file has `created` and `modified` in frontmatter | | |
+|  | AC-2: Each appended thought updates `modified` | | |
+|  | AC-3: Completion still writes `completed` timestamp and `thoughtCount` | | |
+|  | AC-4: Cancellation still writes `cancelled` timestamp | | |
+| T-META-001.5 | WorkflowOperations: CreateSession gets `created`/`modified` from writer. Complete/Cancel preserve `completed`/`cancelled`. | FR-24.1 | Planned |
+|  | AC-1: New workflow session file has `created` and `modified` in frontmatter | | |
+|  | AC-2: Step advancement updates `modified` | | |
+|  | AC-3: Completion still writes `completed` timestamp and `stepCount` | | |
+|  | AC-4: Cancellation still writes `cancelled` timestamp | | |
+| T-META-001.6 | AssumptionLedgerTools.cs: rename `updated` key to `modified`. Remove manual `created` — writer handles. | FR-24.4 | Planned |
+|  | AC-1: New assumption file has `created` and `modified` (via writer) | | |
+|  | AC-2: Updated assumption has `modified` updated (not `updated` key) | | |
+|  | AC-3: Existing files with `updated` key still readable (read path tolerates both) | | |
+| T-META-001.7 | ConceptRepairTool.cs: replace `File.WriteAllText` with MarkdownIO read/write — preserves frontmatter, updates `modified` | FR-24.5 | Planned |
+|  | AC-1: Concept repair updates `modified` in frontmatter | | |
+|  | AC-2: Existing frontmatter fields preserved (tags, type, status, etc.) | | |
+|  | AC-3: WikiLink replacements in content are identical to current behavior | | |
+
+Wave 3 — Verification (parallel after Wave 2):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-META-001.8 | Blue-team: tests for FR-24.1 through FR-24.6. Test naming: FR24_{x}_AC{z}_Description | FR-24.1–6 | Planned |
+| T-META-001.9 | Red-team: audit all changes — traceability, edge cases, timestamp format, concurrent access | Security | Planned |
 
 ---
 

@@ -518,6 +518,19 @@ Format rules: bold seed concept as cluster label, WikiLink members on next line 
 | FR-23.6 | RunLouvain SHALL use sum(proximity × decay) from `source_files` as edge weight. Decay is intentional — communities should shift as knowledge evolves. `GetDecayWeightForFile` provides per-file decay. | **P1** |
 | FR-23.7 | RunAndPersist SHALL compute Normalized Mutual Information (NMI) between old and new community assignments before writing. SHALL log a warning when NMI indicates significant community drift. | **P2** |
 
+### 5.7. Frontmatter Metadata Standardization (FR-24.x)
+
+All markdown files in memory:// SHALL have consistent `created` and `modified` YAML frontmatter timestamps. The write layer (MarkdownWriter) guarantees this — tools do not manage timestamps themselves.
+
+| FR | Description | Priority |
+|----|-------------|----------|
+| FR-24.1 | `MarkdownWriter.WriteMarkdown` SHALL ensure `created` exists in frontmatter (preserve if present, set to UTC now if absent) and SHALL always set `modified` to UTC now. | **P1** |
+| FR-24.2 | `MarkdownWriter.AppendH2Section` SHALL update the `modified` frontmatter timestamp when appending content to an existing file. | **P1** |
+| FR-24.3 | All timestamp values written by MarkdownWriter SHALL use ISO 8601 format via `TimeZoneConverter.GetUtcNowIso()`. | **P1** |
+| FR-24.4 | `AssumptionLedgerTools` SHALL use `modified` key (not `updated`) for consistency with all other file types. Existing `updated` fields are preserved on read. | **P2** |
+| FR-24.5 | `ConceptRepairTool` SHALL update `modified` timestamp when modifying file content, routing writes through MarkdownIO. | **P2** |
+| FR-24.6 | `SessionCleanup` SHALL function correctly for abandonment detection using the `modified` timestamp now guaranteed present on sequential/workflow files. | **P1** |
+
 ## 6. Out of Scope
 
 - Changing the embedding model itself.

@@ -30,8 +30,8 @@ This document captures sprint retrospectives to compound learnings across develo
 - [x] Remediate RED-003 (dead code CreateMarkdownWithH1) — deleted from MarkdownWriter + MarkdownIO
 - [x] Remediate RED-005 (stale last_accessed frontmatter read) — removed from SystemTools
 - [x] Fix stale test ListMemories_Output_IncludesLastAccessedTimestamp — updated to use SQLite path
-- [ ] Investigate full test suite hang (pre-existing) — likely FileSystemWatcher or GraphAnalyzer test
-- [ ] Address RED-002 (malformed YAML silent `created` reset in MarkdownReader) — needs dedicated sprint
+- [x] Investigate full test suite hang (pre-existing) — **RESOLVED in T-FIX-001.1**: root cause was GraphTools.Sync() in GraphAnalyzerTests + GraphDecayWeightingTests processing ~300 accumulated files. Fixed with direct SQL inserts and isolated test roots.
+- [x] Address RED-002 (malformed YAML silent `created` reset in MarkdownReader) — **RESOLVED in T-FIX-001.2+001.3**: diagnostic [YAML WARNING] added to MarkdownReader, filesystem fallback added to WriteMarkdown for existing files with null frontmatter.
 - [ ] Consider extracting source_files JSON parsing into shared utility to avoid double parse in GraphTools (carried from T-PROX-003)
 - [ ] When math-property tests needed, blue-team should verify expected values manually against formula (carried from T-PROX-003)
 
@@ -52,6 +52,37 @@ c9e6280 fix(writer): T-META-001.8b — delete dead code CreateMarkdownWithH1
 ### Related PRD/RTM
 - PRD: FR-24.1–24.6
 - RTM: T-META-001.1 through T-META-001.8c
+
+---
+
+## Sprint 2026-02-24: Bug Fixes (T-FIX-001)
+
+### Metrics
+- Tasks planned: 3 | Completed: 3 | Carried over: 0
+- Failure recovery invocations: 0
+- Conflict prevention blocks: 0
+
+### What Worked
+- **Single-wave parallel dispatch** — 3 SWE agents on 3 independent files (MarkdownReader, MarkdownWriter, GraphAnalyzerTests) with zero overlap, all completed successfully
+- **Justified scope extension** — T-FIX-001.1 SWE independently identified GraphDecayWeightingTests had the same root cause and fixed it. PM verified post-hoc: same Sync()-in-SetUp pattern, legitimate fix.
+- **Full suite now completes** — 866/866 tests in 24s. This unblocks single-command verification for all future sprints.
+- **Closed-loop learning worked** — both fixes addressed open action items from T-META-001 retrospective. Action items were identified at sprint planning and directly mapped to tasks.
+
+### What Didn't
+- **No blue-team tests for T-FIX-001.3** (filesystem fallback for existing file with null frontmatter) — AC-1 is untested. Acceptable for a 3-line change where the pattern matches 6 other callsites, but noted as a gap.
+
+### Action Items
+- [ ] Consider adding a test for WriteMarkdown filesystem fallback (existing file + null frontmatter → created = filesystem time)
+- [ ] Consider adding a test isolation pattern guide for test fixtures that use Sync() — the Config.OverrideRoot() pattern should be standard
+
+### Commits
+```
+4acda65 fix: T-FIX-001 — resolve test suite hang, add YAML parse warning, filesystem fallback for WriteMarkdown
+```
+
+### Related PRD/RTM
+- PRD: FR-24.6
+- RTM: T-FIX-001.1 through T-FIX-001.3
 
 ---
 

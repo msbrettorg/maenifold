@@ -18,6 +18,9 @@ public static class MarkdownIO
     public static int CountConceptOccurrences(string content, string concept)
             => MarkdownReader.CountConceptOccurrences(content, concept);
 
+    public static (IReadOnlyList<(string concept, int sectionIndex)> concepts, bool usedFallback) ExtractWikiLinksWithSections(string content)
+            => MarkdownReader.ExtractWikiLinksWithSections(content);
+
 
     public static void WriteMarkdown(string path, Dictionary<string, object>? frontmatter, string content)
             => MarkdownWriter.WriteMarkdown(path, frontmatter, content);

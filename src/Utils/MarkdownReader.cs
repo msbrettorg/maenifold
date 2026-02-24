@@ -325,5 +325,89 @@ public static class MarkdownReader
         return "";
     }
 
+    // T-PROX-001.1: FR-23.1 — Extract WikiLinks tagged with their H2 section index.
+    // Preamble (before first H2) = sectionIndex 0.
+    // First H2 = sectionIndex 1, second H2 = sectionIndex 2, etc.
+    // Concepts are deduplicated per (concept, sectionIndex) pair.
+    // Falls back to regex-only (all at sectionIndex 0) if Markdig exceeds depth limit.
+    public static (IReadOnlyList<(string concept, int sectionIndex)> concepts, bool usedFallback) ExtractWikiLinksWithSections(string content)
+    {
+        var accumulator = new HashSet<(string concept, int sectionIndex)>();
+
+        try
+        {
+            var document = Markdown.Parse(content, Pipeline);
+            var topLevelBlocks = document.ToList();
+            int sectionIndex = 0;
+
+            foreach (var block in topLevelBlocks)
+            {
+                if (block is HeadingBlock h && h.Level == 2)
+                {
+                    sectionIndex++;
+                    continue;
+                }
+
+                ExtractFromBlockTree(content, block, sectionIndex, accumulator);
+            }
+        }
+        catch (ArgumentException ex) when (ex.Message.Contains("depth limit"))
+        {
+            // Fallback: regex-only when Markdig hits depth limit (adversarial deep nesting).
+            var fallbackConcepts = new HashSet<string>();
+            var matches = WikiLinkPattern.Matches(content);
+            foreach (Match match in matches)
+            {
+                var concept = match.Groups[1].Value;
+                var normalized = MarkdownWriter.NormalizeConcept(concept);
+                fallbackConcepts.Add(normalized);
+            }
+
+            var fallbackResult = fallbackConcepts
+                .Select(c => (concept: c, sectionIndex: 0))
+                .ToList();
+            return (fallbackResult, true);
+        }
+
+        return (accumulator.ToList(), false);
+    }
+
+    private static void ExtractFromBlockTree(
+        string content,
+        Markdig.Syntax.Block block,
+        int sectionIndex,
+        HashSet<(string concept, int sectionIndex)> accumulator)
+    {
+        // Skip code blocks at all levels.
+        if (block is CodeBlock || block is FencedCodeBlock)
+            return;
+
+        // Leaf blocks: extract concepts directly.
+        if (block is ParagraphBlock paragraph)
+        {
+            var temp = new HashSet<string>();
+            ExtractConceptsFromBlock(content, paragraph, temp);
+            foreach (var c in temp)
+                accumulator.Add((c, sectionIndex));
+            return;
+        }
+
+        if (block is HeadingBlock heading && heading.Level != 2)
+        {
+            var temp = new HashSet<string>();
+            ExtractConceptsFromBlock(content, heading, temp);
+            foreach (var c in temp)
+                accumulator.Add((c, sectionIndex));
+            return;
+        }
+
+        // Container blocks: recurse into children.
+        if (block is Markdig.Syntax.ContainerBlock container)
+        {
+            foreach (var child in container)
+                ExtractFromBlockTree(content, child, sectionIndex, accumulator);
+        }
+    }
+
     // Embedding-related fields in frontmatter are ignored.
 }

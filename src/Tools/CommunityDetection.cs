@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Maenifold.Utils;
 
@@ -306,5 +307,35 @@ public static class CommunityDetection
             int j = rng.Next(i + 1);
             (list[i], list[j]) = (list[j], list[i]);
         }
+    }
+
+    // T-PROX-001.3: RTM FR-23.4
+    /// <summary>
+    /// Computes the effective edge weight as the average of (proximity × decay) across all source files.
+    /// <para>
+    /// <paramref name="sourceFilesJson"/> must be a JSON object mapping memory:// URIs to their
+    /// proximity weights (e.g. <c>{"memory://notes/foo.md": 0.5}</c>).
+    /// For each entry the temporal decay weight is fetched via
+    /// <see cref="MemorySearchTools.GetDecayWeightForFile"/> and multiplied by the proximity value.
+    /// The average of these products is returned.
+    /// </para>
+    /// <para>Returns 0.0 for an empty source-files dict.</para>
+    /// <para>Throws if <paramref name="sourceFilesJson"/> is not valid JSON (NO FAKE AI — no silent catch).</para>
+    /// </summary>
+    internal static double ComputeEdgeDecayWeight(string sourceFilesJson)
+    {
+        var sourceFiles = JsonSerializer.Deserialize<Dictionary<string, double>>(sourceFilesJson, SafeJson.Options);
+
+        if (sourceFiles == null || sourceFiles.Count == 0)
+            return 0.0;
+
+        double total = 0.0;
+        foreach (var (uri, proximity) in sourceFiles)
+        {
+            double decay = MemorySearchTools.GetDecayWeightForFile(uri);
+            total += proximity * decay;
+        }
+
+        return total / sourceFiles.Count;
     }
 }

@@ -90,11 +90,12 @@ Returns related concepts with relationship types, file references, and connectio
                 ? new Dictionary<string, double>()
                 : JsonSerializer.Deserialize<Dictionary<string, double>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
 
-            // T-PROX-001.4: RTM FR-23.4 - Effective weight = proximity × decay per source file
-            var avgDecayWeight = fileDict
-                .Select(kv => kv.Value * MemorySearchTools.GetDecayWeightForFile(kv.Key))
-                .DefaultIfEmpty(1.0)
-                .Average();
+            // T-PROX-002.2: RTM FR-23.4 - Empty source_files → 0.0, not 1.0
+            var avgDecayWeight = fileDict.Count == 0
+                ? 0.0
+                : fileDict
+                    .Select(kv => kv.Value * MemorySearchTools.GetDecayWeightForFile(kv.Key))
+                    .Average();
             var weightedScore = count * avgDecayWeight;
 
             var relatedConcept = new RelatedConcept

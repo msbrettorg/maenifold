@@ -243,7 +243,7 @@ public static class CommunityDetection
         if (oldCommunities.Count > 0)
         {
             double nmi = ComputeNMI(oldCommunities, communities);
-            if (nmi < 0.8) // Drift threshold
+            if (nmi < Config.CommunityNmiDriftThreshold)
             {
                 Console.Error.WriteLine(
                     $"[COMMUNITY DRIFT] NMI = {nmi:F3} — significant community restructuring detected.");

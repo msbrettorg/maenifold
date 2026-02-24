@@ -118,6 +118,10 @@ public static class Config
     // T-COMMUNITY-001.3: RTM NFR-13.5.1 - DB watcher debounce for community recomputation
     public static readonly int CommunityWatcherDebounceMs = GetEnvInt("MAENIFOLD_COMMUNITY_DEBOUNCE_MS", 2000);
 
+    // T-PROX-003.5-R1: FR-23.7 - NMI drift threshold (red-team remediation: was hardcoded 0.8)
+    public static readonly double CommunityNmiDriftThreshold =
+        GetEnvDouble("MAENIFOLD_COMMUNITY_NMI_THRESHOLD", 0.8);
+
     public static bool EnableEmbeddingLogs => GetEnvBool("MAENIFOLD_EMBEDDING_LOGS", false);
     public static bool EnableVectorSearchLogs => GetEnvBool("MAENIFOLD_VECTOR_LOGS", false);
 
@@ -174,7 +178,8 @@ public static class Config
     Sibling Min Shared Neighbors: {CommunitySiblingMinSharedNeighbors}
     Sibling Min Overlap: {CommunitySiblingMinOverlap}
     Sibling Max Results: {CommunitySiblingMaxResults}
-    Watcher Debounce: {CommunityWatcherDebounceMs}ms";
+    Watcher Debounce: {CommunityWatcherDebounceMs}ms
+    NMI Drift Threshold: {CommunityNmiDriftThreshold}";
     }
 
     private static string GetEnvString(string name, string defaultValue)

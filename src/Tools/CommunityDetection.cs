@@ -20,9 +20,22 @@ public static class CommunityDetection
     public static (Dictionary<string, int> Communities, double Modularity) RunLouvain(
         SqliteConnection conn, double gamma = 1.0, int? seed = null)
     {
-        // Load graph from concept_graph: co_occurrence_count IS the edge weight (NFR-13.2.1)
-        var edgeList = conn.Query<(string a, string b, int weight)>(
-            "SELECT concept_a, concept_b, co_occurrence_count FROM concept_graph").ToList();
+        // T-PROX-003.2: RTM FR-23.6 — Load source_files; edge weight = sum(proximity)
+        var edgeList = conn.Query<(string a, string b, string sourceFiles)>(
+            "SELECT concept_a, concept_b, source_files FROM concept_graph").ToList();
+
+        // T-PROX-003.2: RTM FR-23.6 - Edge weight = sum(proximity) from source_files
+        var weightedEdges = edgeList.Select(e =>
+        {
+            double weight = 0.0;
+            if (!string.IsNullOrWhiteSpace(e.sourceFiles))
+            {
+                var dict = JsonSerializer.Deserialize<Dictionary<string, double>>(e.sourceFiles, SafeJson.Options);
+                if (dict != null)
+                    weight = dict.Values.Sum();
+            }
+            return (a: e.a, b: e.b, weight: weight);
+        }).ToList();
 
         // Build name ↔ ID mapping
         var nameToId = new Dictionary<string, int>();
@@ -38,7 +51,7 @@ public static class CommunityDetection
             }
         }
 
-        foreach (var (a, b, _) in edgeList)
+        foreach (var (a, b, _) in weightedEdges)
         {
             EnsureNode(a);
             EnsureNode(b);
@@ -55,12 +68,12 @@ public static class CommunityDetection
 
         // Build adjacency lists with integer IDs
         // adj[i] = list of (neighbor, weight)
-        var adj = new Dictionary<int, List<(int neighbor, int weight)>>();
+        var adj = new Dictionary<int, List<(int neighbor, double weight)>>();
         for (int i = 0; i < n; i++)
-            adj[i] = new List<(int, int)>();
+            adj[i] = new List<(int, double)>();
 
         double totalWeight = 0; // m = sum of all edge weights (each edge once)
-        foreach (var (a, b, weight) in edgeList)
+        foreach (var (a, b, weight) in weightedEdges)
         {
             int ia = nameToId[a];
             int ib = nameToId[b];
@@ -102,7 +115,7 @@ public static class CommunityDetection
     /// Core Louvain loop: Phase 1 local node moves, repeat until no modularity improvement.
     /// </summary>
     private static int[] LouvainIterative(
-        Dictionary<int, List<(int neighbor, int weight)>> adj,
+        Dictionary<int, List<(int neighbor, double weight)>> adj,
         int[] community, int nodeCount, double m, double gamma, int? seed)
     {
         // Precompute weighted degrees
@@ -247,7 +260,7 @@ public static class CommunityDetection
     /// Compute modularity Q = (1/2m) * sum[A_ij - gamma * k_i * k_j / (2m)] * delta(c_i, c_j)
     /// </summary>
     private static double ComputeModularity(
-        Dictionary<int, List<(int neighbor, int weight)>> adj,
+        Dictionary<int, List<(int neighbor, double weight)>> adj,
         int[] community, int nodeCount, double m, double gamma)
     {
         if (m == 0) return 0.0;

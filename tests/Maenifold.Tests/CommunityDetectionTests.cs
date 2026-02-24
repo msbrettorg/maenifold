@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using Maenifold.Models;
 using Maenifold.Tools;
 using Maenifold.Utils;
@@ -398,10 +399,15 @@ public class CommunityDetectionTests
     private static void InsertEdge(SqliteConnection conn, string a, string b, int weight)
     {
         var (sortedA, sortedB) = string.CompareOrdinal(a, b) < 0 ? (a, b) : (b, a);
+        // T-PROX-003.2: Generate source_files dict so RunLouvain gets sum(proximity) = weight
+        var sourceFiles = new Dictionary<string, double>();
+        for (int i = 0; i < weight; i++)
+            sourceFiles[$"test://f{i}"] = 1.0;
+        var json = JsonSerializer.Serialize(sourceFiles, SafeJson.Options);
         conn.Execute(
             @"INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files)
-              VALUES (@a, @b, @w, '{}')",
-            new { a = sortedA, b = sortedB, w = weight });
+              VALUES (@a, @b, @w, @sf)",
+            new { a = sortedA, b = sortedB, w = weight, sf = json });
     }
 
     /// <summary>

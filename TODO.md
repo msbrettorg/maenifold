@@ -453,44 +453,70 @@ Wave 4 — Verification (parallel, after all implementation):
 
 ## T-META-001: Frontmatter Metadata Standardization
 
-Single write path mandate: every file flushed to memory:// goes through `WriteMarkdown`. The writer manages the envelope (`created`, `modified`). Tools manage content and semantic metadata. Tools NEVER set timestamps.
+Single write path mandate: every file flushed to memory:// goes through `WriteMarkdown`. The writer manages the envelope (`created`, `modified`). Tools manage content and semantic metadata. Tools NEVER set timestamps. No backward compat — filesystem times as fallback when YAML metadata is missing.
 
 Wave 1 — Single write path (serial, MarkdownWriter.cs only):
 
 | T-ID | Task | RTM | Status |
 |------|------|-----|--------|
-| T-META-001.1 | WriteMarkdown: if frontmatter has no `created`, add it (now). Always set `modified` (now). Timestamps via TimeZoneConverter.GetUtcNowIso(). Null frontmatter → create dict. | FR-24.1 | Planned |
+| T-META-001.1 | WriteMarkdown: if frontmatter has no `created`, add it (now). Always set `modified` (now). Timestamps via TimeZoneConverter.GetUtcNowIso(). Null frontmatter → create dict. | FR-24.1 | **Complete** |
 |  | AC-1: New file → frontmatter has `created` and `modified` | | |
 |  | AC-2: Rewrite with `created` present → `created` preserved, `modified` updated | | |
 |  | AC-3: Rewrite without `created` → `created` added, `modified` updated | | |
 |  | AC-4: Null frontmatter → dict created with `created` and `modified` | | |
-| T-META-001.2 | AppendH2Section: replace raw `File.WriteAllText` with read → append to content → WriteMarkdown. AppendH2Section knows nothing about YAML — it reads what's there, appends content, writes through the single path. | FR-24.2 | Planned |
+|  | AC-5: `completed` and `cancelled` timestamps in frontmatter are NOT overwritten (lifecycle carve-out) | | |
+| T-META-001.2 | AppendH2Section: replace raw `File.WriteAllText` with read → append to content → WriteMarkdown. AppendH2Section knows nothing about YAML — it reads what's there, appends content, writes through the single path. | FR-24.2 | **Complete** |
 |  | AC-1: Appending a section updates `modified` (via WriteMarkdown) | | |
 |  | AC-2: All existing frontmatter fields preserved | | |
 |  | AC-3: Existing content preserved verbatim (no whitespace changes except appended section) | | |
 
-Wave 2 — Delete manual timestamps from tools (parallel, each task = one file):
+Wave 2 — Delete manual timestamps + cleanup (parallel, each task = one file):
 
 | T-ID | Task | RTM | Status |
 |------|------|-----|--------|
-| T-META-001.3 | MemoryTools.cs: delete `["created"] = now` (line 263), `["modified"] = now` (line 264), `["modified"] =` in EditMemory (line 509) and MoveMemory (line 630). Writer handles all. | FR-24.3 | Planned |
+| T-META-001.3 | MemoryTools.cs: (a) delete `["created"] = now` (line 263), `["modified"] = now` (line 264), `["modified"] =` in EditMemory (line 509) and MoveMemory (line 630). Writer handles all. (b) Add filesystem fallback for ReadMemory display: `created` → File.GetCreationTimeUtc, `modified` → File.GetLastWriteTimeUtc when frontmatter missing. | FR-24.3, FR-24.6 | **Complete** |
 |  | AC-1: WriteMemory produces files with `created` and `modified` (via writer, not tool) | | |
 |  | AC-2: EditMemory updates `modified` (via writer, not tool) | | |
 |  | AC-3: MoveMemory updates `modified` (via writer, not tool) | | |
-| T-META-001.4 | AssumptionLedgerTools.cs: delete `["created"] =` (line 150) and `["updated"] =` (line 228). Writer handles timestamps. | FR-24.3 | Planned |
+|  | AC-4: ReadMemory displays timestamps from frontmatter when present | | |
+|  | AC-5: ReadMemory displays filesystem timestamps when frontmatter missing | | |
+| T-META-001.4 | AssumptionLedgerTools.cs: (a) delete `["created"] =` (line 150) and `["updated"] =` (line 228). Writer handles timestamps. (b) Add filesystem fallback for display: `created` → File.GetCreationTimeUtc when missing. | FR-24.3, FR-24.6 | **Complete** |
 |  | AC-1: New assumption has `created` and `modified` (via writer) | | |
 |  | AC-2: Updated assumption has `modified` updated (via writer, no `updated` key) | | |
-| T-META-001.5 | ConceptRepairTool.cs: replace raw `File.WriteAllText` (line 338) with MarkdownIO read/write. | FR-24.4 | Planned |
+|  | AC-3: Display uses filesystem fallback when frontmatter timestamps missing | | |
+| T-META-001.5 | ConceptRepairTool.cs: replace raw `File.WriteAllText` (line 338) with MarkdownIO read/write. | FR-24.4 | **Complete** |
 |  | AC-1: Repaired files get `modified` updated | | |
 |  | AC-2: Existing frontmatter preserved | | |
 |  | AC-3: WikiLink replacements identical to current behavior | | |
+| T-META-001.5a | SessionCleanup.cs: add filesystem fallback for `modified` — when frontmatter missing, use File.GetLastWriteTimeUtc. Fixes silent bug where sessions without `modified` are never detected as abandoned. | FR-24.6 | **Complete** |
+|  | AC-1: Sessions with `modified` in frontmatter → existing behavior preserved | | |
+|  | AC-2: Sessions without `modified` → falls back to filesystem last write time | | |
+|  | AC-3: Abandoned sessions detected correctly regardless of frontmatter state | | |
 
 Wave 3 — Verification (parallel):
 
 | T-ID | Task | RTM | Status |
 |------|------|-----|--------|
-| T-META-001.6 | Blue-team: tests for FR-24.x. Verify sequential thinking, workflow, assumptions all get timestamps for free. Test naming: FR24_{x}_AC{z}_Description | FR-24.1–4 | Planned |
-| T-META-001.7 | Red-team: audit — traceability, edge cases, timestamp format, no manual timestamps left in tools, `last_accessed` boundary (DB only, ReadMemory only) | Security, FR-24.5 | Planned |
+| T-META-001.6 | Blue-team: tests for FR-24.x. Verify sequential thinking, workflow, assumptions all get timestamps for free. Verify filesystem fallback for SessionCleanup, ReadMemory display. Test naming: FR24_{x}_AC{z}_Description. Run `dotnet test --list-tests` for exact count. Use `Throws.TypeOf<T>()` for exact exception types. | FR-24.1–6 | **Complete** |
+| T-META-001.7 | Red-team: audit — traceability, edge cases, timestamp format, no manual timestamps left in tools, `last_accessed` boundary (DB only, ReadMemory only), filesystem fallback correctness, lifecycle carve-out (`completed`/`cancelled` not overwritten) | Security, FR-24.5, FR-24.6 | **Complete** |
+
+Wave 4 — Red-team remediation (parallel, each task = one file scope):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-META-001.8a | ConceptRepairTool.cs: (RED-001) Replace `File.ReadAllText` in `AnalyzeConcepts` with `MarkdownIO.ReadMarkdown` to match on content only (aligns analysis count with repair count). (RED-004) Replace direct `MarkdownReader`/`MarkdownWriter` calls in `ProcessConceptReplacements` with `MarkdownIO` facade. | FR-24.4 | **Complete** |
+|  | AC-1: `AnalyzeConcepts` uses `MarkdownIO.ReadMarkdown` and matches WikiLinks in content only (not YAML) | | |
+|  | AC-2: `ProcessConceptReplacements` reads via `MarkdownIO.ReadMarkdown` (not `MarkdownReader`) | | |
+|  | AC-3: `ProcessConceptReplacements` writes via `MarkdownIO.WriteMarkdown` (not `MarkdownWriter`) | | |
+|  | AC-4: All existing ConceptRepair tests pass | | |
+| T-META-001.8b | MarkdownWriter.cs + MarkdownIO.cs: (RED-003) Delete dead code `CreateMarkdownWithH1` — zero external callers, bypasses envelope. | FR-24.1 | **Complete** |
+|  | AC-1: `CreateMarkdownWithH1` removed from `MarkdownWriter.cs` | | |
+|  | AC-2: `CreateMarkdownWithH1` proxy removed from `MarkdownIO.cs` | | |
+|  | AC-3: Build succeeds with 0 warnings | | |
+| T-META-001.8c | SystemTools.cs: (RED-005) Remove stale `last_accessed` frontmatter fallback read (lines 239-245). Per FR-24.5, `last_accessed` lives in SQLite only. + Stale test `ListMemories_Output_IncludesLastAccessedTimestamp` updated to use SQLite path. | FR-24.5 | **Complete** |
+|  | AC-1: `last_accessed` frontmatter read block removed from `SystemTools.cs` | | |
+|  | AC-2: `last_accessed` still read from SQLite DB (existing code below line 254) | | |
+|  | AC-3: All existing ListMemories tests pass | | |
 
 ---
 

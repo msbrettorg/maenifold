@@ -4,6 +4,57 @@ This document captures sprint retrospectives to compound learnings across develo
 
 ---
 
+## Sprint 2026-02-24: Frontmatter Metadata Standardization (T-META-001)
+
+### Metrics
+- Tasks planned: 10 (001.1-001.7 + 001.8a/b/c) | Completed: 10 | Carried over: 0
+- Failure recovery invocations: 1 (stale test fix for T-META-001.8c — pre-existing failure exposed by remediation)
+- Conflict prevention blocks: 0
+
+### What Worked
+- **4-wave execution completed sprint end-to-end** — Wave 1 (single write path, serial) → Wave 2 (4 parallel SWE, delete manual timestamps) → Wave 3 (parallel blue-team tests + red-team audit) → Wave 4 (3 parallel SWE, red-team remediation)
+- **Researcher audit before sprint** found 16 write paths (vs 12 estimated), the SessionCleanup silent bug, and the `updated` vs `modified` inconsistency in AssumptionLedgerTools — all addressed before implementation began
+- **Red-team found 7 real issues** — 3 remediated in-sprint (RED-001 asymmetry, RED-003 dead code, RED-005 stale fallback), 1 addressed alongside (RED-004 facade bypass), 3 deferred with clear rationale
+- **Local copy pattern in WriteMarkdown** — SWE proactively used a local `envelope` dict to avoid mutating the caller's frontmatter reference, preventing subtle bugs in SessionCleanup
+- **File-level exclusivity enforced perfectly** — 3 parallel remediation SWEs touched 4 files total with zero overlaps
+- **Stale test discovered by SWE (not PM or blue-team)** — T-META-001.8c SWE independently verified the test was failing *before* their change by stashing and re-running, demonstrating good diagnostic discipline
+
+### What Didn't
+- **SWE wrote 9 tests in Wave 1** (process deviation from blue-team-first) — acceptable since blue-team independently verified in Wave 3, but breaks adversarial pipeline discipline. The SWE was implementing WriteMarkdown and tests were natural to write alongside. Need clearer PM directive when blue-team-first is mandatory vs. optional.
+- **Pre-existing test suite hang** — full `dotnet test` consistently hangs (suspected FileSystemWatcher or GraphAnalyzer test). All individual fixture groups pass (800+ tests), but unable to run single-command full suite verification. This predates the sprint.
+- **Pre-existing `ListMemories_Output_IncludesLastAccessedTimestamp` test was testing wrong contract** — wrote `last_accessed` to frontmatter when FR-24.5 mandates SQLite-only. Test was already failing before this sprint. Discovered by T-META-001.8c SWE, fixed as follow-up.
+- **RED-002 (malformed YAML → silent `created` reset) deferred** — MarkdownReader's silent catch on YAML parse errors is a broader issue. Blast radius increased by routing more writes through WriteMarkdown. Needs its own sprint.
+
+### Action Items
+- [x] Remediate RED-001 (AnalyzeConcepts asymmetry) — ConceptRepairTool aligned to MarkdownIO
+- [x] Remediate RED-003 (dead code CreateMarkdownWithH1) — deleted from MarkdownWriter + MarkdownIO
+- [x] Remediate RED-005 (stale last_accessed frontmatter read) — removed from SystemTools
+- [x] Fix stale test ListMemories_Output_IncludesLastAccessedTimestamp — updated to use SQLite path
+- [ ] Investigate full test suite hang (pre-existing) — likely FileSystemWatcher or GraphAnalyzer test
+- [ ] Address RED-002 (malformed YAML silent `created` reset in MarkdownReader) — needs dedicated sprint
+- [ ] Consider extracting source_files JSON parsing into shared utility to avoid double parse in GraphTools (carried from T-PROX-003)
+- [ ] When math-property tests needed, blue-team should verify expected values manually against formula (carried from T-PROX-003)
+
+### Commits
+```
+295c103 feat(writer): T-META-001.1+001.2 — WriteMarkdown manages envelope, AppendH2Section routes through single path
+ac407fe refactor(tools): T-META-001.3 — delete manual timestamps from MemoryTools, add filesystem fallback
+3ac75a3 fix(cleanup): T-META-001.5a — filesystem fallback for abandoned session detection
+e1052b2 refactor(tools): T-META-001.5 — route ConceptRepairTool through MarkdownIO
+499ae98 refactor(tools): T-META-001.4 — delete manual timestamps from AssumptionLedgerTools, add filesystem fallback
+06fd0dd test(blue-team): T-META-001.6 — FR24 frontmatter metadata tests (18 tests)
+588d237 fix(tools): T-META-001.8a — align ConceptRepairTool reads/writes through MarkdownIO
+c9e6280 fix(writer): T-META-001.8b — delete dead code CreateMarkdownWithH1
+8b5a430 fix(tools): T-META-001.8c — remove stale last_accessed frontmatter fallback from SystemTools
+78f14a6 fix(test): T-META-001.8c — update ListMemories last_accessed test to use SQLite path
+```
+
+### Related PRD/RTM
+- PRD: FR-24.1–24.6
+- RTM: T-META-001.1 through T-META-001.8c
+
+---
+
 ## Sprint 2026-02-24: Proximity-Weighted Louvain (T-PROX-003)
 
 ### Metrics

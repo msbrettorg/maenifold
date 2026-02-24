@@ -444,6 +444,10 @@ Wave 4 — Verification (parallel, after all implementation):
 |------|------|-----|--------|
 | T-PROX-003.5 | Red-team: Audit — LOW: NMI threshold hardcoded (remediated → Config env-var). INFORMATIONAL: RTM FR reference, double JSON parse, AC-1 weight ratio. | Security | **Complete** |
 | T-PROX-003.6 | Blue-team: 839/839 pass, 0 warnings, coverage 78.23%/68.15%/93.41%, 5 new tests (FR23_6 × 2, FR23_7 × 3) | FR-23.6, FR-23.7 | **Complete** |
+| T-PROX-003.7 | GetDecayWeightForFile: change fallback from DateTime.UtcNow to File.GetLastWriteTimeUtc when no `created` frontmatter. Affects 211/277 files. | FR-23.4, FR-23.6 | **In Progress** |
+|  | AC-1: Files without `created` frontmatter use filesystem last-modified time as decay baseline | | |
+|  | AC-2: Files with `created` frontmatter are unaffected (existing path unchanged) | | |
+|  | AC-3: Non-existent files (test URIs) still return decay 1.0 via catch block | | |
 
 ---
 

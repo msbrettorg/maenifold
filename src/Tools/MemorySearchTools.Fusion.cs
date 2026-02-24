@@ -128,7 +128,7 @@ public partial class MemorySearchTools
 
             // Get 'created' from frontmatter
             var (frontmatter, _, _) = MarkdownIO.ReadMarkdown(filePath);
-            DateTime created = DateTime.UtcNow; // Default to now if not found
+            DateTime created = File.GetLastWriteTimeUtc(filePath); // Fallback: use filesystem last-modified when no frontmatter
 
             if (frontmatter?.ContainsKey("created") == true)
             {

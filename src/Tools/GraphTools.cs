@@ -84,10 +84,12 @@ Returns related concepts with relationship types, file references, and connectio
         foreach (var (related, count, files) in directRelations)
         {
             // SEC-001: Use safe JSON options with depth limit
-            var fileList = JsonSerializer.Deserialize<List<string>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
+            // T-PROX-001.4: RTM FR-23.4 - Proximity-weighted co-occurrence dict format
+            var fileDict = JsonSerializer.Deserialize<Dictionary<string, double>>(files, Maenifold.Utils.SafeJson.Options) ?? new();
 
-            // T-GRAPH-DECAY-001.1: RTM FR-7.5 - Calculate average decay weight across source files
-            var avgDecayWeight = fileList.Select(filePath => MemorySearchTools.GetDecayWeightForFile(filePath))
+            // T-PROX-001.4: RTM FR-23.4 - Effective weight = proximity × decay per source file
+            var avgDecayWeight = fileDict
+                .Select(kv => kv.Value * MemorySearchTools.GetDecayWeightForFile(kv.Key))
                 .DefaultIfEmpty(1.0)
                 .Average();
             var weightedScore = count * avgDecayWeight;
@@ -96,7 +98,7 @@ Returns related concepts with relationship types, file references, and connectio
             {
                 Name = related,
                 CoOccurrenceCount = count,
-                Files = fileList.Take(3).ToList(),
+                Files = fileDict.Keys.Take(3).ToList(),
                 DecayWeight = avgDecayWeight,
                 WeightedScore = weightedScore
             };

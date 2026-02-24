@@ -442,8 +442,8 @@ OpenCode integration removed. All files under `integrations/opencode/` deleted. 
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-PROX-001.1 | FR-23.1 | ExtractWikiLinksWithSections SHALL tag concepts with H2 section index (preamble=0). | src/Utils/MarkdownReader.cs, src/Utils/MarkdownIO.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
-| T-PROX-001.2 | FR-23.1 | BuildGraphEdges SHALL compute proximity weight per pair and store as `{"uri": weight}` dict in source_files. | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
-| T-PROX-001.3 | FR-23.4 | ComputeEdgeDecayWeight SHALL multiply proximity × decay. | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
-| T-PROX-001.4 | FR-23.4 | BuildContext SHALL use proximity × decay for avgDecayWeight. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
-| T-PROX-001.5 | FR-23.1 | RemoveFile SHALL deserialize dict format and remove by key. | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
+| T-PROX-001.1 | FR-23.1 | ExtractWikiLinksWithSections SHALL tag concepts with H2 section index (preamble=0). | src/Utils/MarkdownReader.cs, src/Utils/MarkdownIO.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | **Complete** |
+| T-PROX-001.2 | FR-23.1 | BuildGraphEdges SHALL compute proximity weight per pair and store as `{"uri": weight}` dict in source_files. | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | **Complete** |
+| T-PROX-001.3 | FR-23.4 | ComputeEdgeDecayWeight SHALL multiply proximity × decay. | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | **Complete** |
+| T-PROX-001.4 | FR-23.4 | BuildContext SHALL use proximity × decay for avgDecayWeight. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | **Complete** |
+| T-PROX-001.5 | FR-23.1 | RemoveFile SHALL deserialize dict format and remove by key. | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | **Complete** |

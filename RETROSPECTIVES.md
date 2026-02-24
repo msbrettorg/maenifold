@@ -4,6 +4,35 @@ This document captures sprint retrospectives to compound learnings across develo
 
 ---
 
+## Sprint 2026-02-23: Proximity-Weighted Co-occurrence (T-PROX-001)
+
+### Metrics
+- Tasks planned: 8 | Completed: 8 | Carried over: 0
+- Failure recovery invocations: 1 (retry: 1, narrow: 0, escalate: 0)
+- Conflict prevention blocks: 1 (T-PROX-001.2+5 merged to avoid ConceptSync.cs file conflict)
+
+### What Worked
+- **Adversarial pipeline (tests-first → SWE → red-team → blue-team)** delivered complete feature in one session with zero scope creep
+- **File-level exclusivity** prevented merge conflicts — merging T-PROX-001.2+5 into one task proactively avoided ConceptSync.cs collision
+- **2-wave SWE dispatch** (Wave 1: MarkdownReader alone, Wave 2: 3 parallel tasks in different files) maximized parallelism while respecting dependencies
+- **Red-team found 3 real issues** (null guard, stale Math.Max, missed test file) — all remediated in one SWE pass
+- **Blue-team verified** 832/832 tests, coverage thresholds held (78.01%/67.97%/93.4%)
+- **NO BACKWARD COMPAT rule** simplified everything — no migration code, old format simply not supported
+
+### What Didn't
+- **Blue-team test had Assert.Throws<Exception> bug** — NUnit's `Assert.Throws<T>` checks exact type, `JsonException` is a subclass, so the test failed even though the behavior was correct. Manual PM fix required.
+- **Existing test helpers used old array format** — 11 test regressions from `InsertEdge` writing `'[]'` instead of `'{}'`. Required an extra SWE pass to fix 3 test files. Should have been caught in blue-team test writing phase.
+- **Blue-team ConfessionReport overcounted tests** — said 16, actual was 15. Minor accuracy issue in reporting.
+- **Previous session wasted ~1 hour on spec-driven-development pipeline** before user killed it. Lesson was already learned — this sprint correctly skipped spec bureaucracy.
+
+### Action Items
+- [x] Skip spec-driven-development pipeline for well-understood features (applied this sprint)
+- [ ] Blue-team should run `dotnet test --list-tests` to verify exact test count before reporting
+- [ ] Blue-team should verify `Assert.Throws` type specificity — use `Throws.Exception` for "any exception" or `Throws.TypeOf<T>()` for exact type
+- [ ] When changing serialization format, include existing test helper audit in the blue-team scope (flag all `InsertEdge`-style helpers that write the old format)
+
+---
+
 ## Sprint 2026-02-01: CLI JSON Output (P0)
 
 **Sprint Duration**: 2026-02-01

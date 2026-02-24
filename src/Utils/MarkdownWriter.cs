@@ -13,14 +13,22 @@ public static class MarkdownWriter
 
     public static void WriteMarkdown(string path, Dictionary<string, object>? frontmatter, string content)
     {
+        // T-META-001.1: FR-24.1 — Envelope management: ensure created/modified are always set.
+        // Work on a local copy so the caller's dict is never mutated.
+        var envelope = frontmatter != null
+            ? new Dictionary<string, object>(frontmatter)
+            : new Dictionary<string, object>();
+        if (!envelope.ContainsKey("created"))
+            envelope["created"] = TimeZoneConverter.GetUtcNowIso();
+        envelope["modified"] = TimeZoneConverter.GetUtcNowIso();
+
         var sb = new StringBuilder();
-        if (frontmatter != null && frontmatter.Count > 0)
+        if (envelope.Count > 0)
         {
             sb.AppendLine("---");
-            var frontmatterCopy = new Dictionary<string, object>(frontmatter);
             // Strip any embedding-related fields; embeddings live only in the database.
-            SanitizeFrontmatter(frontmatterCopy);
-            var yaml = YamlSerializer.Serialize(frontmatterCopy);
+            SanitizeFrontmatter(envelope);
+            var yaml = YamlSerializer.Serialize(envelope);
             sb.Append(yaml.TrimEnd());
             sb.AppendLine();
             sb.AppendLine("---");
@@ -98,10 +106,22 @@ public static class MarkdownWriter
 
     public static void AppendH2Section(string path, string heading, string content)
     {
-        var existingContent = File.Exists(path) ? File.ReadAllText(path) : "";
+        // T-META-001.2: FR-24.2 — Route through WriteMarkdown for envelope management.
+        Dictionary<string, object>? frontmatter;
+        string existingContent;
+        if (File.Exists(path))
+        {
+            (frontmatter, existingContent, _) = MarkdownReader.ReadMarkdown(path);
+        }
+        else
+        {
+            frontmatter = null;
+            existingContent = "";
+        }
         if (!string.IsNullOrEmpty(existingContent) && !existingContent.EndsWith('\n'))
             existingContent += "\n";
-        File.WriteAllText(path, existingContent + $"\n## {heading}\n\n{content}\n");
+        var newContent = existingContent + $"\n## {heading}\n\n{content}\n";
+        WriteMarkdown(path, frontmatter, newContent);
     }
 
     public static void CreateMarkdownWithH1(string path, string title, string initialContent = "")

@@ -454,3 +454,11 @@ OpenCode integration removed. All files under `integrations/opencode/` deleted. 
 |------|------------|----------------------|--------------|---------|--------|
 | T-PROX-002.1 | FR-23.1 | ExtractWikiLinksWithSections SHALL extract WikiLinks from H2 heading text (not skip them). | src/Utils/MarkdownReader.cs | tests/Maenifold.Tests/ProximityWeightTests.cs (FR23_1_AC5) | **Complete** |
 | T-PROX-002.2 | FR-23.4 | BuildContext SHALL return DecayWeight 0.0 for edges with empty source_files (not 1.0). | src/Tools/GraphTools.cs | tests/Maenifold.Tests/ProximityWeightTests.cs (FR23_4_AC3) | **Complete** |
+
+## T-PROX-003: Proximity-Weighted Louvain (sprint-20260224)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-PROX-003.1 | FR-23.4 | BuildContext SHALL call CommunityDetection.ComputeEdgeDecayWeight instead of inline formula. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | Pending |
+| T-PROX-003.2 | FR-23.4 | RunLouvain SHALL use sum(proximity) from source_files as edge weight (not co_occurrence_count). | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |
+| T-PROX-003.3 | FR-23.6 | RunAndPersist SHALL compute NMI between old and new community assignments and log warning on drift. | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/CommunityDetectionTests.cs | Pending |

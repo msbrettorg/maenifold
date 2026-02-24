@@ -397,4 +397,54 @@ Wave 3 — Close:
 
 ---
 
+## Sprint: Proximity-Weighted Louvain (T-PROX-003)
+
+Wave 1 — Parallel (GraphTools + blue-team tests):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-PROX-003.1 | SWE: GraphTools.cs — replace inline proximity×decay formula with CommunityDetection.ComputeEdgeDecayWeight call (deferred AC-1 from T-PROX-002.2) | FR-23.4 | Pending |
+|  | AC-1: BuildContext calls CommunityDetection.ComputeEdgeDecayWeight(files) with null guard |  |  |
+|  | AC-2: fileDict still parsed once for Files property (no double JSON parse) |  |  |
+|  | AC-3: All FR23 tests pass |  |  |
+| T-PROX-003.4 | Blue-team: Write tests for R1b (proximity Louvain) and R2 (NMI) | FR-23.4, FR-23.6 | Pending |
+|  | AC-1: RunLouvain with proximity-weighted source_files → community structure reflects weights |  |  |
+|  | AC-2: RunLouvain with empty source_files → edge weight 0.0 |  |  |
+|  | AC-3: NMI computation: identical clusterings → NMI = 1.0 |  |  |
+|  | AC-4: NMI computation: completely different clusterings → NMI < 1.0 |  |  |
+|  | AC-5: RunAndPersist logs warning when NMI below threshold |  |  |
+|  | AC-6: Run `dotnet test --list-tests` to verify exact test count |  |  |
+|  | AC-7: Audit all InsertEdge helpers for source_files format compatibility |  |  |
+
+Wave 2 — RunLouvain proximity wiring (serial, depends on Wave 1):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-PROX-003.2 | SWE: CommunityDetection.cs — RunLouvain reads source_files, uses sum(proximity) as edge weight; update InsertEdge helpers in CommunityDetectionTests.cs + CommunityDetectionCoverageTests.cs | FR-23.4 | Pending |
+|  | AC-1: SQL reads source_files column from concept_graph |  |  |
+|  | AC-2: Edge weight = sum of proximity values from source_files dict (NOT co_occurrence_count) |  |  |
+|  | AC-3: Empty source_files → edge weight 0.0 |  |  |
+|  | AC-4: Type change: (int neighbor, int weight) → (int neighbor, double weight) in adj, LouvainIterative, ComputeModularity |  |  |
+|  | AC-5: InsertEdge helpers write source_files dict with N entries of proximity 1.0 (preserving old int weight semantics) |  |  |
+|  | AC-6: All existing Louvain tests pass with updated helpers |  |  |
+
+Wave 3 — NMI community diff (serial, depends on Wave 2):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-PROX-003.3 | SWE: CommunityDetection.cs — add NMI computation in RunAndPersist; read old assignments, compare, log warning above threshold | FR-23.6 | Pending |
+|  | AC-1: Before writing, read old community assignments from concept_communities |  |  |
+|  | AC-2: Compute NMI between old and new assignments |  |  |
+|  | AC-3: NMI < threshold → warning logged |  |  |
+|  | AC-4: First run (no old data) → skip comparison, no warning |  |  |
+
+Wave 4 — Verification (parallel, after all implementation):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-PROX-003.5 | Red-team: Adversarial review of all T-PROX-003 changes | Security | Pending |
+| T-PROX-003.6 | Blue-team: Verify all tests pass, 0 warnings, coverage held | FR-23.4, FR-23.6 | Pending |
+
+---
+
 _See `RETROSPECTIVES.md` for completed work and historical notes._

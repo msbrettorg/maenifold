@@ -515,6 +515,8 @@ Format rules: bold seed concept as cluster label, WikiLink members on next line 
 | FR-23.3 | Content before the first H2 heading (preamble) SHALL be treated as section 0 with no structural authority (weight 0.5). If a concept also appears in a named section shared with another concept, the max weight (1.0) wins. | **P1** |
 | FR-23.4 | The effective edge weight SHALL be `proximity × decay` — multiplicative composition. All `source_files` consumers (CommunityDetection, GraphTools) SHALL use this formula. | **P1** |
 | FR-23.5 | No backward compatibility. The SQLite DB is a cache. Old format edges are not supported — wipe and re-sync. | **P1** |
+| FR-23.6 | RunLouvain SHALL use sum(proximity) from `source_files` as edge weight (structural signal, no temporal decay). Community structure is based on co-occurrence patterns, not recency. | **P1** |
+| FR-23.7 | RunAndPersist SHALL compute Normalized Mutual Information (NMI) between old and new community assignments before writing. SHALL log a warning when NMI indicates significant community drift. | **P2** |
 
 ## 6. Out of Scope
 

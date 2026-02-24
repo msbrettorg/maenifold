@@ -1,7 +1,9 @@
 #pragma warning disable CA1861
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using Maenifold.Tools;
 using Maenifold.Utils;
 using Microsoft.Data.Sqlite;
@@ -63,38 +65,52 @@ public class GraphAnalyzerTests
 
     /// <summary>
     /// Create test graph with known concept relationships for visualization testing.
+    /// Uses direct SQL inserts instead of Sync() to avoid scanning all files in the
+    /// memory directory (AC-1: SetUp does not call Sync()).
+    ///
+    /// Graph topology (T-FIX-001.1: FR-24.6):
+    ///   concept-a ↔ concept-b  (weight=2)
+    ///   concept-a ↔ concept-c  (weight=2)
+    ///   concept-b ↔ concept-d  (weight=2)
+    ///   concept-c ↔ concept-e  (weight=1)
+    ///   isolated-concept       (no edges)
     /// </summary>
-    private void CreateTestGraphData()
+    private static void CreateTestGraphData()
     {
-        // Create files with interconnected concepts
-        CreateTestFile("concept-a.md",
-            "Concept A Overview",
-            "This discusses [[concept-a]] and its relationship to [[concept-b]] and [[concept-c]].",
-            s_testTags);
+        // T-FIX-001.1: FR-24.6 — direct SQL inserts, no Sync()
+        using var conn = new SqliteConnection(Config.DatabaseConnectionString);
+        conn.Open();
 
-        CreateTestFile("concept-b.md",
-            "Concept B Details",
-            "This covers [[concept-b]] which connects to [[concept-a]] and [[concept-d]].",
-            s_testTags);
+        InsertConcept(conn, "concept-a");
+        InsertConcept(conn, "concept-b");
+        InsertConcept(conn, "concept-c");
+        InsertConcept(conn, "concept-d");
+        InsertConcept(conn, "concept-e");
+        InsertConcept(conn, "isolated-concept");
 
-        CreateTestFile("concept-c.md",
-            "Concept C Analysis",
-            "Analysis of [[concept-c]] and its links to [[concept-a]] and [[concept-e]].",
-            s_testTags);
+        InsertEdge(conn, "concept-a", "concept-b", 2);
+        InsertEdge(conn, "concept-a", "concept-c", 2);
+        InsertEdge(conn, "concept-b", "concept-d", 2);
+        InsertEdge(conn, "concept-c", "concept-e", 1);
+    }
 
-        CreateTestFile("concept-d.md",
-            "Concept D Documentation",
-            "Documentation for [[concept-d]] connecting to [[concept-b]].",
-            s_testTags);
+    private static void InsertConcept(SqliteConnection conn, string name)
+    {
+        conn.Execute("INSERT OR IGNORE INTO concepts (concept_name, first_seen) VALUES (@name, '2026-01-01')",
+            new { name });
+    }
 
-        CreateTestFile("isolated-concept.md",
-            "Isolated Concept",
-            "This is about [[isolated-concept]] with no connections to other concepts in this test.",
-            s_isolatedTags);
-
-        // Sync to build graph relationships
-        var syncResult = GraphTools.Sync();
-        TestContext.Out.WriteLine($"Sync result: {syncResult}");
+    private static void InsertEdge(SqliteConnection conn, string a, string b, int weight)
+    {
+        var (sortedA, sortedB) = string.CompareOrdinal(a, b) < 0 ? (a, b) : (b, a);
+        var sourceFiles = new Dictionary<string, double>();
+        for (int i = 0; i < weight; i++)
+            sourceFiles[$"test://f{i}"] = 1.0;
+        var json = JsonSerializer.Serialize(sourceFiles, SafeJson.Options);
+        conn.Execute(
+            @"INSERT OR REPLACE INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files)
+              VALUES (@a, @b, @w, @sf)",
+            new { a = sortedA, b = sortedB, w = weight, sf = json });
     }
 
     private static readonly string[] s_testTags = { "test", "graph" };

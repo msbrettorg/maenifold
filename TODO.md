@@ -451,6 +451,27 @@ Wave 4 — Verification (parallel, after all implementation):
 
 ---
 
+## Sprint: Bug Fixes (T-FIX-001)
+
+Wave 1 — Implementation (parallel, no file overlap):
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-FIX-001.1 | SWE: Fix GraphAnalyzerTests + GraphDecayWeightingTests full-suite hang — replace `GraphTools.Sync()` with direct SQL inserts (GraphAnalyzerTests) and isolated root per test run (GraphDecayWeightingTests). 866/866 tests pass in 24s. | FR-24.6 | **Complete** |
+|  | AC-1: SetUp does not call Sync() | | |
+|  | AC-2: All 22 GraphAnalyzer tests pass | | |
+|  | AC-3: Full test suite (`dotnet test`) completes without hang (24s) | | |
+| T-FIX-001.2 | SWE: Add diagnostic warning in MarkdownReader YAML parse — bare `catch { }` → `catch (Exception ex)` with `[YAML WARNING]` diagnostic. Frontmatter still returns null. | FR-24.6 | **Complete** |
+|  | AC-1: Warning logged with file path when YAML parse fails | | |
+|  | AC-2: Frontmatter returns null (no behavior change) | | |
+|  | AC-3: Non-YAML files (no frontmatter) → no warning | | |
+| T-FIX-001.3 | SWE: WriteMarkdown filesystem fallback for existing files with null frontmatter — `File.Exists(path)` → `FileTimeToIso(GetCreationTimeUtc)` instead of `GetUtcNowIso()`. | FR-24.6 | **Complete** |
+|  | AC-1: Rewrite of existing file with null frontmatter → created = filesystem creation time (not now) | | |
+|  | AC-2: New file (not exists) → created = now (unchanged behavior) | | |
+|  | AC-3: Existing file with valid `created` in frontmatter → created preserved (unchanged behavior) | | |
+
+---
+
 ## T-META-001: Frontmatter Metadata Standardization
 
 Single write path mandate: every file flushed to memory:// goes through `WriteMarkdown`. The writer manages the envelope (`created`, `modified`). Tools manage content and semantic metadata. Tools NEVER set timestamps. No backward compat — filesystem times as fallback when YAML metadata is missing.

@@ -52,9 +52,9 @@ public static class MarkdownReader
 
                     // Do not parse embedding-related fields from frontmatter; embeddings are database-only.
                 }
-                catch
+                catch (Exception ex)
                 {
-
+                    Console.Error.WriteLine($"[YAML WARNING] Failed to parse frontmatter in '{path}': {ex.Message}");
                 }
             }
 

@@ -1,4 +1,5 @@
 #pragma warning disable CA1861
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -26,71 +27,34 @@ public class GraphDecayWeightingTests
 {
     private const string TestFolder = "graph-decay-weighting-tests";
     private string _testFolderPath = string.Empty;
+    private string _testRoot = string.Empty;
+    private string _previousMaenifoldRootEnv = string.Empty;
+    private string _previousDatabasePathEnv = string.Empty;
 
     [SetUp]
     public void SetUp()
     {
+        // T-FIX-001.1: Use isolated root per test run so Sync() only sees files
+        // created by this test, not accumulated files from other fixtures.
+        _previousMaenifoldRootEnv = Environment.GetEnvironmentVariable("MAENIFOLD_ROOT") ?? string.Empty;
+        _previousDatabasePathEnv = Environment.GetEnvironmentVariable("MAENIFOLD_DATABASE_PATH") ?? string.Empty;
+
+        var repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+        _testRoot = Path.Combine(repoRoot, "test-outputs", "graph-decay-weighting", $"run-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_testRoot);
+
+        var testDbPath = Path.Combine(_testRoot, "memory.db");
+        Environment.SetEnvironmentVariable("MAENIFOLD_ROOT", _testRoot);
+        Environment.SetEnvironmentVariable("MAENIFOLD_DATABASE_PATH", testDbPath);
+        Config.OverrideRoot(_testRoot);
+        Config.SetDatabasePath(testDbPath);
         Config.EnsureDirectories();
         GraphDatabase.InitializeDatabase();
+
         _testFolderPath = Path.Combine(Config.MemoryPath, TestFolder);
-
-        // Directly clean up database entries for this test folder to ensure isolation
-        CleanupDatabaseForTestFolder();
-
-        // Ensure test folder is clean
-        if (Directory.Exists(_testFolderPath))
-        {
-            Directory.Delete(_testFolderPath, recursive: true);
-        }
         Directory.CreateDirectory(_testFolderPath);
     }
 
-    private static void CleanupDatabaseForTestFolder()
-    {
-        try
-        {
-            using var conn = new Microsoft.Data.Sqlite.SqliteConnection(Config.DatabaseConnectionString);
-            conn.Open();
-
-            // Delete all database entries for files in our test folder
-            var pattern = $"memory://{TestFolder}/%";
-
-            // Delete from file_content - the AFTER DELETE trigger handles file_search cleanup
-            using var deleteContent = conn.CreateCommand();
-            deleteContent.CommandText = "DELETE FROM file_content WHERE file_path LIKE @pattern";
-            deleteContent.Parameters.AddWithValue("@pattern", pattern);
-            var deletedCount = deleteContent.ExecuteNonQuery();
-            TestContext.Out.WriteLine($"[TEST CLEANUP] Deleted {deletedCount} entries from file_content for {pattern}");
-
-            using var deleteMentions = conn.CreateCommand();
-            deleteMentions.CommandText = "DELETE FROM concept_mentions WHERE source_file LIKE @pattern";
-            deleteMentions.Parameters.AddWithValue("@pattern", pattern);
-            deleteMentions.ExecuteNonQuery();
-
-            // Try to clean vec tables but ignore errors
-            try
-            {
-                conn.LoadExtension(Path.Combine(AppContext.BaseDirectory, "assets", "native",
-                    System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX)
-                        ? (System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.Arm64 ? "osx-arm64" : "osx-x64")
-                        : "linux-x64",
-                    System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX) ? "vec0.dylib" : "vec0.so"));
-
-                using var deleteVec = conn.CreateCommand();
-                deleteVec.CommandText = "DELETE FROM vec_memory_files WHERE file_path LIKE @pattern";
-                deleteVec.Parameters.AddWithValue("@pattern", pattern);
-                deleteVec.ExecuteNonQuery();
-            }
-            catch
-            {
-                // vec tables may not work on CI - ignore
-            }
-        }
-        catch (System.Exception ex)
-        {
-            TestContext.Out.WriteLine($"[TEST CLEANUP WARNING] Cleanup error: {ex.Message}");
-        }
-    }
 
     private static bool CanCleanVecTables()
     {
@@ -105,26 +69,40 @@ public class GraphDecayWeightingTests
     [TearDown]
     public void TearDown()
     {
-        // Clean up database entries first (before deleting files)
-        CleanupDatabaseForTestFolder();
-
-        if (string.IsNullOrEmpty(_testFolderPath))
-            return;
-
-        var directory = new DirectoryInfo(_testFolderPath);
-        if (directory.Exists)
+        // T-FIX-001.1: Clean up isolated test root and restore Config overrides.
+        try
         {
-            foreach (var file in directory.EnumerateFiles("*", SearchOption.AllDirectories))
+            if (!string.IsNullOrWhiteSpace(_testRoot) && Directory.Exists(_testRoot))
             {
-                file.IsReadOnly = false;
-                file.Delete();
+                var dir = new DirectoryInfo(_testRoot);
+                foreach (var f in dir.GetFiles("*", SearchOption.AllDirectories))
+                    f.Attributes = FileAttributes.Normal;
+                Directory.Delete(_testRoot, recursive: true);
             }
-            foreach (var sub in directory.EnumerateDirectories("*", SearchOption.AllDirectories))
-            {
-                sub.Delete(true);
-            }
-            directory.Delete(true);
         }
+        catch
+        {
+            // Ignore cleanup failures; artifacts are under test-outputs for debugging.
+        }
+
+        Environment.SetEnvironmentVariable("MAENIFOLD_ROOT",
+            string.IsNullOrEmpty(_previousMaenifoldRootEnv) ? null : _previousMaenifoldRootEnv);
+        Environment.SetEnvironmentVariable("MAENIFOLD_DATABASE_PATH",
+            string.IsNullOrEmpty(_previousDatabasePathEnv) ? null : _previousDatabasePathEnv);
+
+        if (string.IsNullOrWhiteSpace(_previousMaenifoldRootEnv) && string.IsNullOrWhiteSpace(_previousDatabasePathEnv))
+        {
+            Config.ResetOverrides();
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(_previousMaenifoldRootEnv))
+                Config.OverrideRoot(_previousMaenifoldRootEnv);
+            if (!string.IsNullOrWhiteSpace(_previousDatabasePathEnv))
+                Config.SetDatabasePath(_previousDatabasePathEnv);
+        }
+        Config.EnsureDirectories();
+        GraphDatabase.InitializeDatabase();
     }
 
     /// <summary>

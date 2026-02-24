@@ -19,7 +19,13 @@ public static class MarkdownWriter
             ? new Dictionary<string, object>(frontmatter)
             : new Dictionary<string, object>();
         if (!envelope.ContainsKey("created"))
-            envelope["created"] = TimeZoneConverter.GetUtcNowIso();
+        {
+            // T-FIX-001.3: FR-24.6 — For existing files with missing/corrupt frontmatter,
+            // use filesystem creation time instead of "now" to prevent silent timestamp reset.
+            envelope["created"] = File.Exists(path)
+                ? TimeZoneConverter.FileTimeToIso(File.GetCreationTimeUtc(path))
+                : TimeZoneConverter.GetUtcNowIso();
+        }
         envelope["modified"] = TimeZoneConverter.GetUtcNowIso();
 
         var sb = new StringBuilder();

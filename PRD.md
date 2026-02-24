@@ -30,6 +30,7 @@
 | 5.2 | 2026-02-21 | PM Agent | FR-20.x/FR-21.x: Added self-polling live update requirements (FR-20.11-20.14, FR-21.13-21.16) per SEP-1865 Interactive Phase research |
 | 5.3 | 2026-02-21 | PM Agent | FR-20.x/FR-21.x: Added visibility-gated polling (FR-20.15-20.16, FR-21.17-21.18, NFR-20.7-20.8, NFR-21.9-21.10) — prevent N-iframe polling storm |
 | 6.0 | 2026-02-21 | PM Agent | Added FR-22.x (Goose extension) — ServerInstructions, recipes, competitive positioning vs Goose built-in memory (4 tools) and MCP reference memory server (9 tools) |
+| 6.1 | 2026-02-24 | PM Agent | FR-24.x validated: added FR-24.6 (filesystem fallback), amended FR-24.3 (updated→modified, lifecycle carve-out), amended FR-24.5 (SystemTools cleanup), found SessionCleanup silent bug (G2) |
 
 ---
 
@@ -526,9 +527,10 @@ Format rules: bold seed concept as cluster label, WikiLink members on next line 
 |----|-------------|----------|
 | FR-24.1 | `MarkdownWriter.WriteMarkdown` SHALL be the single write path for all memory:// files. It SHALL ensure `created` exists in frontmatter (preserve if present, set to UTC now if absent) and SHALL always set `modified` to UTC now. All timestamps use ISO 8601 via `TimeZoneConverter.GetUtcNowIso()`. | **P1** |
 | FR-24.2 | `MarkdownWriter.AppendH2Section` SHALL route through `WriteMarkdown` (read existing file, append to content, write through the single path) instead of raw `File.WriteAllText`. | **P1** |
-| FR-24.3 | Tools SHALL NOT set `created` or `modified` in frontmatter dicts. Manual timestamp management in MemoryTools, AssumptionLedgerTools, and any other tool SHALL be removed. | **P1** |
+| FR-24.3 | Tools SHALL NOT set `created`, `modified`, or `updated` in frontmatter dicts. Manual timestamp management in MemoryTools, AssumptionLedgerTools, and any other tool SHALL be removed. AssumptionLedgerTools uses `updated` key — this is standardized to `modified` via WriteMarkdown. **Exception**: `completed` and `cancelled` timestamps are semantic lifecycle metadata and remain tool-owned. | **P1** |
 | FR-24.4 | `ConceptRepairTool` SHALL route writes through MarkdownIO instead of raw `File.WriteAllText`, ensuring modified files get the envelope update. | **P2** |
-| FR-24.5 | `last_accessed` SHALL remain in the SQLite database only (not YAML frontmatter) and SHALL only be updated by `ReadMemory`. Write operations (WriteMarkdown, AppendH2Section, etc.) SHALL NOT touch `last_accessed`. | **P1** |
+| FR-24.5 | `last_accessed` SHALL remain in the SQLite database only (not YAML frontmatter) and SHALL only be updated by `ReadMemory`. Write operations (WriteMarkdown, AppendH2Section, etc.) SHALL NOT touch `last_accessed`. SystemTools SHALL NOT read `last_accessed` from frontmatter. | **P1** |
+| FR-24.6 | Timestamp consumers SHALL fall back to filesystem times when YAML metadata is missing or unparseable: `created` → `File.GetCreationTimeUtc(path)`, `modified` → `File.GetLastWriteTimeUtc(path)`. No migration of existing files. Existing pattern: `GetDecayWeightForFile` (MemorySearchTools.Fusion.cs:131). Affected consumers: ReadMemory display, SessionCleanup abandonment detection, AssumptionLedger display. | **P1** |
 
 ## 6. Out of Scope
 

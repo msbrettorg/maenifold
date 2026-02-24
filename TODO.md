@@ -380,4 +380,21 @@ Wave 3 — Close:
 
 ---
 
+## Sprint: T-PROX-001 Bug Fixes (T-PROX-002)
+
+| T-ID | Task | RTM | Status |
+|------|------|-----|--------|
+| T-PROX-002.1 | Fix: H2 heading WikiLinks silently dropped by ExtractWikiLinksWithSections | FR-23.1 | **Complete** |
+|  | AC-1: WikiLink in H2 heading text extracted with correct sectionIndex |  |  |
+|  | AC-2: Existing tests unaffected (no regression) |  |  |
+| T-PROX-002.2 | Fix: Empty source_files → weight 0.0 (not 1.0) in BuildContext | FR-23.4 | **Complete** |
+|  | AC-1: BuildContext calls ComputeEdgeDecayWeight instead of inline formula |  | Deferred → T-PROX-003 |
+|  | AC-2: Empty source_files → weight 0.0 (not 1.0) |  |  |
+|  | AC-3: Existing proximity tests still pass |  |  |
+| T-PROX-002.3 | Blue-team: Tests for both fixes (FR23_1_AC5, FR23_4_AC3) | FR-23.1, FR-23.4 | **Complete** |
+| T-PROX-002.4 | Red-team: Audit — MEDIUM: AC-1 inline formula deferred; LOW: annotation + RTM gaps | Security | **Complete** |
+| T-PROX-002.5 | Verify: 834/834 tests pass, 0 warnings, coverage 78.02%/67.95%/93.4% | FR-23.1-23.5 | **Complete** |
+
+---
+
 _See `RETROSPECTIVES.md` for completed work and historical notes._

@@ -447,3 +447,10 @@ OpenCode integration removed. All files under `integrations/opencode/` deleted. 
 | T-PROX-001.3 | FR-23.4 | ComputeEdgeDecayWeight SHALL multiply proximity × decay. | src/Tools/CommunityDetection.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | **Complete** |
 | T-PROX-001.4 | FR-23.4 | BuildContext SHALL use proximity × decay for avgDecayWeight. | src/Tools/GraphTools.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | **Complete** |
 | T-PROX-001.5 | FR-23.1 | RemoveFile SHALL deserialize dict format and remove by key. | src/Tools/ConceptSync.cs | tests/Maenifold.Tests/ProximityWeightTests.cs | **Complete** |
+
+## T-PROX-002: Proximity Bug Fixes (sprint-20260224)
+
+| T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
+|------|------------|----------------------|--------------|---------|--------|
+| T-PROX-002.1 | FR-23.1 | ExtractWikiLinksWithSections SHALL extract WikiLinks from H2 heading text (not skip them). | src/Utils/MarkdownReader.cs | tests/Maenifold.Tests/ProximityWeightTests.cs (FR23_1_AC5) | **Complete** |
+| T-PROX-002.2 | FR-23.4 | BuildContext SHALL return DecayWeight 0.0 for edges with empty source_files (not 1.0). | src/Tools/GraphTools.cs | tests/Maenifold.Tests/ProximityWeightTests.cs (FR23_4_AC3) | **Complete** |

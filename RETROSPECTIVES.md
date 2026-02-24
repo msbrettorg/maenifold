@@ -4,6 +4,34 @@ This document captures sprint retrospectives to compound learnings across develo
 
 ---
 
+## Sprint 2026-02-24: Proximity Bug Fixes (T-PROX-002)
+
+### Metrics
+- Tasks planned: 5 | Completed: 5 | Carried over: 0
+- Failure recovery invocations: 0
+- Conflict prevention blocks: 0
+
+### What Worked
+- **Fast turnaround on well-scoped bug fixes** — 2 surgical changes, both landed and verified in one wave
+- **Blue-team tests preceded SWE** — both fixes were written to make failing tests pass (TDD discipline held)
+- **Red-team audit was efficient** — found MEDIUM (deferred AC-1) and 2 LOW issues, no blockers
+- **Scope control** — PM correctly identified R1b+R2+R4 as a separate sprint (T-PROX-003) rather than expanding mid-sprint
+- **Parallel SWE dispatch** — 2 independent file-level tasks ran simultaneously (MarkdownReader.cs + GraphTools.cs)
+- **Session reload worked** — sprint resumed from session-1771940246319-43251 after session break
+
+### What Didn't
+- **AC-1 of T-PROX-002.2 not fully met** — red-team correctly flagged that inline formula was patched but not replaced with ComputeEdgeDecayWeight call. The dedup will happen in T-PROX-003 when Louvain itself is refactored to use proximity weights.
+- **T-* annotation missing on one fix** — MarkdownReader.cs line 348 lacks `// T-PROX-002.1: RTM FR-23.1` comment. Inconsistent with T-PROX-002.2 which annotates properly.
+
+### Action Items
+- [ ] T-PROX-003: Replace inline proximity×decay formula in GraphTools.cs with ComputeEdgeDecayWeight call (deferred AC-1)
+- [ ] T-PROX-003: Wire ComputeEdgeDecayWeight into RunLouvain (int→double refactor)
+- [ ] T-PROX-003: Add NMI community diff validation in RunAndPersist
+- [x] Blue-team should verify Assert.Throws type specificity (applied: FR23_4_AC3 uses correct pattern)
+- [x] When changing serialization format, include test helper audit (applied: not needed this sprint, no format change)
+
+---
+
 ## Sprint 2026-02-23: Proximity-Weighted Co-occurrence (T-PROX-001)
 
 ### Metrics

@@ -467,12 +467,10 @@ OpenCode integration removed. All files under `integrations/opencode/` deleted. 
 
 | T-ID | PRD FR/NFR | Requirement (Atomic) | Component(s) | Test(s) | Status |
 |------|------------|----------------------|--------------|---------|--------|
-| T-META-001.1 | FR-24.1 | WriteMarkdown SHALL ensure `created` exists (preserve if present, add if absent) and always set `modified` to UTC now. | src/Utils/MarkdownWriter.cs | TBD (FR24_1) | Planned |
-| T-META-001.2 | FR-24.2 | AppendH2Section SHALL read frontmatter, update `modified`, rewrite file (not raw append). | src/Utils/MarkdownWriter.cs | TBD (FR24_2) | Planned |
-| T-META-001.3 | FR-24.1 | Remove manual `created`/`modified` management from MemoryTools — now handled by writer. | src/Tools/MemoryTools.cs | TBD (FR24_1) | Planned |
-| T-META-001.4 | FR-24.1 | Remove manual timestamp management from SequentialThinkingTools — CreateSession/AppendToSession get metadata from writer. | src/Tools/SequentialThinkingTools.cs | TBD (FR24_1) | Planned |
-| T-META-001.5 | FR-24.1 | Remove manual timestamp management from WorkflowOperations — CreateSession/UpdateSession get metadata from writer. | src/Tools/WorkflowOperations.Core.cs, WorkflowOperations.Management.cs | TBD (FR24_1) | Planned |
-| T-META-001.6 | FR-24.4 | AssumptionLedgerTools: rename `updated` key to `modified`, remove manual `created` management. | src/Tools/AssumptionLedgerTools.cs | TBD (FR24_4) | Planned |
-| T-META-001.7 | FR-24.5 | ConceptRepairTool: route writes through MarkdownIO instead of raw File.WriteAllText. | src/Tools/ConceptRepairTool.cs | TBD (FR24_5) | Planned |
-| T-META-001.8 | FR-24.1–6 | Blue-team: tests for all FR-24.x requirements. | tests/Maenifold.Tests/ | FR24_* | Planned |
-| T-META-001.9 | FR-24.1–6 | Red-team: audit all changes for correctness, security, edge cases. | All modified files | N/A | Planned |
+| T-META-001.1 | FR-24.1 | WriteMarkdown: ensure `created` exists (preserve if present, add if absent), always set `modified` to now via TimeZoneConverter.GetUtcNowIso(). | src/Utils/MarkdownWriter.cs | TBD (FR24_1) | Planned |
+| T-META-001.2 | FR-24.2 | AppendH2Section: route through WriteMarkdown (read existing, append to content, write through single path) instead of raw File.WriteAllText. | src/Utils/MarkdownWriter.cs | TBD (FR24_2) | Planned |
+| T-META-001.3 | FR-24.3 | MemoryTools: delete manual `created`/`modified` management (WriteMemory lines 263-264, EditMemory line 509, MoveMemory line 630). | src/Tools/MemoryTools.cs | TBD (FR24_3) | Planned |
+| T-META-001.4 | FR-24.3 | AssumptionLedgerTools: delete manual `created` (line 150) and `updated` (line 228) management. | src/Tools/AssumptionLedgerTools.cs | TBD (FR24_3) | Planned |
+| T-META-001.5 | FR-24.4 | ConceptRepairTool: route File.WriteAllText (line 338) through MarkdownIO read/write. | src/Tools/ConceptRepairTool.cs | TBD (FR24_4) | Planned |
+| T-META-001.6 | FR-24.1–4 | Blue-team: tests for FR-24.x. Sequential thinking, workflow, assumptions all get timestamps for free — verify. | tests/Maenifold.Tests/ | FR24_* | Planned |
+| T-META-001.7 | FR-24.1–5 | Red-team: audit all changes. Verify `last_accessed` boundary (DB only, ReadMemory only). | All modified files | N/A | Planned |

@@ -520,16 +520,15 @@ Format rules: bold seed concept as cluster label, WikiLink members on next line 
 
 ### 5.7. Frontmatter Metadata Standardization (FR-24.x)
 
-All markdown files in memory:// SHALL have consistent `created` and `modified` YAML frontmatter timestamps. The write layer (MarkdownWriter) guarantees this — tools do not manage timestamps themselves.
+**Architecture**: Every file in memory:// has an **envelope** (`created`, `modified`) and **content** (everything else). The envelope is infrastructure — managed by the single write path (`MarkdownWriter.WriteMarkdown`). Tools only deal with content and semantic metadata (`type`, `status`, `tags`, etc.). Tools NEVER manage timestamps.
 
 | FR | Description | Priority |
 |----|-------------|----------|
-| FR-24.1 | `MarkdownWriter.WriteMarkdown` SHALL ensure `created` exists in frontmatter (preserve if present, set to UTC now if absent) and SHALL always set `modified` to UTC now. | **P1** |
-| FR-24.2 | `MarkdownWriter.AppendH2Section` SHALL update the `modified` frontmatter timestamp when appending content to an existing file. | **P1** |
-| FR-24.3 | All timestamp values written by MarkdownWriter SHALL use ISO 8601 format via `TimeZoneConverter.GetUtcNowIso()`. | **P1** |
-| FR-24.4 | `AssumptionLedgerTools` SHALL use `modified` key (not `updated`) for consistency with all other file types. Existing `updated` fields are preserved on read. | **P2** |
-| FR-24.5 | `ConceptRepairTool` SHALL update `modified` timestamp when modifying file content, routing writes through MarkdownIO. | **P2** |
-| FR-24.6 | `SessionCleanup` SHALL function correctly for abandonment detection using the `modified` timestamp now guaranteed present on sequential/workflow files. | **P1** |
+| FR-24.1 | `MarkdownWriter.WriteMarkdown` SHALL be the single write path for all memory:// files. It SHALL ensure `created` exists in frontmatter (preserve if present, set to UTC now if absent) and SHALL always set `modified` to UTC now. All timestamps use ISO 8601 via `TimeZoneConverter.GetUtcNowIso()`. | **P1** |
+| FR-24.2 | `MarkdownWriter.AppendH2Section` SHALL route through `WriteMarkdown` (read existing file, append to content, write through the single path) instead of raw `File.WriteAllText`. | **P1** |
+| FR-24.3 | Tools SHALL NOT set `created` or `modified` in frontmatter dicts. Manual timestamp management in MemoryTools, AssumptionLedgerTools, and any other tool SHALL be removed. | **P1** |
+| FR-24.4 | `ConceptRepairTool` SHALL route writes through MarkdownIO instead of raw `File.WriteAllText`, ensuring modified files get the envelope update. | **P2** |
+| FR-24.5 | `last_accessed` SHALL remain in the SQLite database only (not YAML frontmatter) and SHALL only be updated by `ReadMemory`. Write operations (WriteMarkdown, AppendH2Section, etc.) SHALL NOT touch `last_accessed`. | **P1** |
 
 ## 6. Out of Scope
 

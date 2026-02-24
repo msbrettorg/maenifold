@@ -46,9 +46,6 @@ public static class MarkdownIO
     public static void AppendH2Section(string path, string heading, string content)
             => MarkdownWriter.AppendH2Section(path, heading, content);
 
-    public static void CreateMarkdownWithH1(string path, string title, string initialContent = "")
-            => MarkdownWriter.CreateMarkdownWithH1(path, title, initialContent);
-
     public static string PathToUri(string path, string basePath)
             => MarkdownWriter.PathToUri(path, basePath);
 

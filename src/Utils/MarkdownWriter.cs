@@ -124,13 +124,6 @@ public static class MarkdownWriter
         WriteMarkdown(path, frontmatter, newContent);
     }
 
-    public static void CreateMarkdownWithH1(string path, string title, string initialContent = "")
-    {
-        var markdown = $"# {title}\n\n{initialContent}";
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, markdown);
-    }
-
     public static string PathToUri(string path, string basePath)
     {
         var relativePath = Path.GetRelativePath(basePath, path);

@@ -4,6 +4,18 @@ import type { Plugin } from "@opencode-ai/plugin";
 export const CompactionPlugin: Plugin = async (_ctx) => {
   return {
     "experimental.session.compacting": async (_input, output) => {
+      // Dynamically load banned terms from the wikilink-filter source of truth
+      let bannedLine = "";
+      try {
+        const filterPath = "/Users/brett/maenifold/memory/.wikilink-filter.json";
+        const raw = await Bun.file(filterPath).text();
+        const filterObj: Record<string, string> = JSON.parse(raw);
+        const banned = Object.keys(filterObj).map((k) => `[[${k}]]`).join(", ");
+        bannedLine = `BANNED: ${banned}`;
+      } catch {
+        bannedLine = "BANNED: (could not load filter list)";
+      }
+
       // Inject additional context into the compaction prompt
       output.context.push(`
 When writing your summaries for compaction/continuation, please tag important concepts, entities and terms as [[wikilinks]], adhering to the following wiki-style tagging guidelines.
@@ -14,8 +26,8 @@ What NOT to tag:
 When planning your summary think about what would be useful to link to in a wiki for future reference.
 Tag only the most important concepts and topics discussed in the session.
 Never tag low signal or meta-terms. These degrade the graph:
-BANNED: [[concept]], [[concepts]], [[WikiLink]], [[WikiLinks]], [[tool]], [[tools]], [[example]], [[thing]], [[item]], [[entity]], [[file]], [[agent]], [[system]], [[test]], [[data]], [[model]]
-USE INSTEAD: Specific terms like [[authentication]], [[JWT]], [[vector-embeddings]], [[MCP]]
+${bannedLine}
+USE INSTEAD: Specific terms like [[authentication]], [[JWT]], [[vector-embeddings]], [[maenifold-internals]]
 If the topic isn't worth writing a detailed wiki page about, don't tag it.
 
 Tagging guidelines:

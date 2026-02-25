@@ -1,0 +1,48 @@
+{
+  "id": "strategic-thinking",
+  "name": "Strategic Thinking",
+  "emoji": "💭",
+  "description": "Long-term competitive positioning and systematic strategic analysis",
+  "triggers": [
+    "strategic thinking",
+    "strategy",
+    "competitive analysis",
+    "long term planning",
+    "strategic positioning",
+    "competitive advantage",
+    "strategic planning"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "analyze",
+      "name": "Analyze Current Position - Assess present state",
+      "description": "Systematically analyze current competitive position, strengths, and weaknesses",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "map",
+      "name": "Map Competitive Landscape - Understand the environment",
+      "description": "Analyze competitors, market forces, and environmental factors\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nMap the competitive landscape systematically. Who are the key players? What are their strategies? What market forces are shaping the environment? What threats and opportunities exist? Think about Porter's Five Forces: competition, suppliers, buyers, substitutes, new entrants.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "options",
+      "name": "Identify Strategic Options - Develop alternatives",
+      "description": "Generate and evaluate potential strategic moves and positioning options\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nWhat strategic options are available? Consider different competitive strategies: cost leadership, differentiation, focus. What moves could change your position? Think about timing, resources required, and competitive responses.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "assess",
+      "name": "Assess Long-term Implications - Think ahead",
+      "description": "Evaluate the long-term consequences and sustainability of strategic choices\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink long-term: What are the implications of each strategic option? How will competitors respond? What does this mean 3-5 years out? What capabilities do you need to build? What are the risks and dependencies?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "plan",
+      "name": "Develop Strategic Plan - Create roadmap",
+      "description": "Create a coherent strategic plan with clear positioning and action steps",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

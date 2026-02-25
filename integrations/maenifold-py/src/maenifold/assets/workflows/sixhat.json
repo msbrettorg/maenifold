@@ -1,0 +1,57 @@
+{
+  "id": "sixhat",
+  "name": "Six Thinking Hats",
+  "emoji": "🎩",
+  "description": "Structured thinking using six different perspectives",
+  "triggers": [
+    "six thinking hats",
+    "thinking hats",
+    "white hat",
+    "red hat",
+    "black hat",
+    "yellow hat",
+    "green hat",
+    "blue hat",
+    "de bono",
+    "perspective analysis"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "white",
+      "name": "White Hat - Facts and information",
+      "description": "Focus on objective facts, data, and information without interpretation",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "red",
+      "name": "Red Hat - Emotions and feelings",
+      "description": "Express emotions, feelings, hunches, and intuitions without justification\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about the emotional responses and gut feelings this situation evokes. What do your instincts tell you?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "black",
+      "name": "Black Hat - Critical thinking and caution",
+      "description": "Identify problems, risks, and what could go wrong\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about potential problems, risks, and failure modes. What could go wrong and why?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "yellow",
+      "name": "Yellow Hat - Positive thinking and optimism",
+      "description": "Focus on benefits, value, and optimistic possibilities",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "green",
+      "name": "Green Hat - Creative thinking and alternatives",
+      "description": "Generate new ideas, alternatives, and creative solutions\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply beyond conventional solutions. What creative, unconventional, or innovative approaches might work?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "blue",
+      "name": "Blue Hat - Process control and meta-thinking",
+      "description": "Manage thinking process, set goals, and orchestrate other perspectives",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

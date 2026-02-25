@@ -1,0 +1,23 @@
+{
+  "id": "test-workflow",
+  "name": "Test Workflow",
+  "description": "Simple test workflow for validation",
+  "enhancedThinkingEnabled": false,
+  "steps": [
+    {
+      "id": 1,
+      "name": "First Step",
+      "prompt": "Complete the first step"
+    },
+    {
+      "id": 2,
+      "name": "Second Step",
+      "prompt": "Complete the second step"
+    },
+    {
+      "id": 3,
+      "name": "Third Step",
+      "prompt": "Complete the third step"
+    }
+  ]
+}

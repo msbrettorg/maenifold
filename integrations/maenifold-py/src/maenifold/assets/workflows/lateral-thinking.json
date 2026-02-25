@@ -1,0 +1,48 @@
+{
+  "id": "lateral-thinking",
+  "name": "Lateral Thinking",
+  "emoji": "💭",
+  "description": "Creative problem-solving through indirect and non-linear approaches",
+  "triggers": [
+    "lateral thinking",
+    "creative breakthrough",
+    "assumption challenge",
+    "out of the box",
+    "unconventional solutions",
+    "break conventional thinking",
+    "escape mental models"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "challenge",
+      "name": "Challenge - Question fundamental assumptions",
+      "description": "Systematically challenge existing assumptions and conventional approaches\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSystematically question the fundamental assumptions behind this problem. Ask 'Why?' about every aspect of the current approach. What if the opposite were true? What assumptions are we taking for granted that might be wrong?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "random",
+      "name": "Random Entry - Connect unexpected stimuli",
+      "description": "Use random words or concepts to spark new connections and perspectives\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nGenerate a random word or concept completely unrelated to this problem. Now force connections between this random element and your challenge. How could [random element] inspire a solution? What properties, functions, or characteristics could transfer?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "provoke",
+      "name": "Provocation - Use deliberate incorrectness to spark ideas",
+      "description": "Create deliberately wrong or impossible statements to escape conventional thinking\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nCreate deliberately provocative and seemingly wrong statements about this problem. What if we did the exact opposite of the conventional approach? What if we had infinite resources? What if we had zero resources? Use these provocations to spark new thinking directions.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "fractionate",
+      "name": "Fractionation - Break down conventional views",
+      "description": "Decompose the problem and examine each component from multiple unconventional angles\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBreak this problem into its smallest components. For each component, examine it from completely different perspectives - physical, emotional, temporal, functional, metaphorical. What happens if you recombine these components in unexpected ways?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "synthesize",
+      "name": "Concept Formation - Synthesize breakthrough insights",
+      "description": "Integrate lateral thinking insights into actionable creative solutions",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

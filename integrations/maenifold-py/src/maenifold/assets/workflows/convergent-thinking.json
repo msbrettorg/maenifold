@@ -1,0 +1,48 @@
+{
+  "id": "convergent-thinking",
+  "name": "Convergent Thinking",
+  "emoji": "💭",
+  "description": "Systematic analysis and selection of the single best solution from alternatives",
+  "triggers": [
+    "convergent thinking",
+    "solution selection",
+    "decision making",
+    "evaluation",
+    "best solution",
+    "narrow down",
+    "systematic selection"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "criteria",
+      "name": "Establish Evaluation Criteria - Define success metrics",
+      "description": "Define clear criteria for evaluating and comparing alternative solutions",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "analyze",
+      "name": "Analyze Each Alternative - Systematic evaluation",
+      "description": "Systematically evaluate each alternative against the established criteria\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nEvaluate each alternative systematically. How does each option perform against your criteria? What are the strengths and weaknesses? Use logical analysis to assess feasibility, effectiveness, and fit.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "filter",
+      "name": "Apply Logical Filters - Eliminate weak options",
+      "description": "Use logical reasoning to eliminate options that don't meet minimum requirements\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nApply logical filters systematically. Which options fail to meet minimum requirements? Which have fatal flaws? Use logical reasoning to eliminate options that cannot work, are too risky, or don't fit constraints.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "compare",
+      "name": "Compare Top Candidates - Detailed comparison",
+      "description": "Perform detailed comparison of the remaining top candidate solutions",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "select",
+      "name": "Select Optimal Solution - Make final decision",
+      "description": "Choose the single best solution based on systematic analysis",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

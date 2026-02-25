@@ -1,0 +1,47 @@
+{
+  "id": "parallel-thinking",
+  "name": "Parallel Thinking",
+  "emoji": "💭",
+  "description": "Simultaneous exploration of multiple perspectives and approaches in parallel",
+  "triggers": [
+    "parallel thinking",
+    "multiple perspectives",
+    "simultaneous analysis",
+    "parallel processing",
+    "concurrent approaches",
+    "multi-track thinking"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "identify",
+      "name": "Identify Parallel Tracks - Define multiple approaches",
+      "description": "Identify multiple independent approaches or perspectives to explore simultaneously",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "explore",
+      "name": "Explore Multiple Tracks - Simultaneous analysis",
+      "description": "Explore different approaches simultaneously without forcing convergence\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nExplore multiple tracks simultaneously: Track 1 (analytical), Track 2 (creative), Track 3 (practical), Track 4 (user-focused). Don't try to reconcile yet - let each track develop independently. What does each perspective reveal?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "pollinate",
+      "name": "Cross-Pollinate Insights - Find connections",
+      "description": "Look for unexpected connections and insights between the parallel tracks\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nLook for connections between parallel tracks: How do insights from one track inform another? What unexpected combinations emerge? Where do tracks complement or contradict each other? What new insights arise from the intersections?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "maintain",
+      "name": "Maintain Multiple Options - Preserve diversity",
+      "description": "Keep multiple viable options open rather than forcing premature convergence",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "synthesize",
+      "name": "Synthesize When Ready - Integrate insights",
+      "description": "Synthesize the parallel tracks when natural integration points emerge",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+	"mcpServers": {
+		"maenifold-py": {
+			"command": "/Users/brett/src/ma-collective/maenifold-py/.venv/bin/python",
+			"args": [
+				"-m",
+				"maenifold.main",
+				"--mcp"
+			],
+			"type": "stdio",
+			"env": {
+				"PYTHONPATH": "/Users/brett/src/maenifold-py/src"
+			}
+		}
+	}
+}

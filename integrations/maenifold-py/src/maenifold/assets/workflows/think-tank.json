@@ -1,0 +1,248 @@
+{
+  "id": "think-tank",
+  "name": "Research Think Tank (Multi-Agent Knowledge Construction)",
+  "emoji": "🏛️",
+  "description": "Orchestrated research institution with parallel agent waves building rich knowledge graphs through collaborative investigation",
+  "triggers": [
+    "think tank",
+    "research institution",
+    "parallel research",
+    "knowledge synthesis",
+    "multi agent research",
+    "research orchestration",
+    "collaborative research",
+    "knowledge construction",
+    "research waves",
+    "academic investigation"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "research-charter",
+      "name": "📜 Research Charter & Orchestration Planning",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nAs Research Director, establish the research charter and orchestration strategy.\n\n1. **Topic Analysis**:\n   - Decompose research question into core domains\n   - Identify knowledge boundaries and scope\n   - Define success criteria and deliverables\n\n2. **Coverage Vector Creation**:\n   - Map required knowledge domains (5-10 areas)\n   - Set information gain thresholds (min 20% per wave)\n   - Define completeness targets (80% coverage)\n\n3. **Agent Resource Planning**:\n   - Determine agent count based on complexity\n   - Simple topic: 8-10 agents total\n   - Complex topic: 15-20 agents total\n   - Assign specialized roles per wave\n\n4. **Memory Architecture Setup**:\n```\nmemory://research/[topic]/\n├── charter.md (this planning document)\n├── wave-1-scoping/\n├── wave-2-deep-dive/\n├── wave-3-synthesis/\n├── wave-4-validation/\n└── final-report/\n```\n\n5. **Quality Gates Definition**:\n   - Concept density: 5+ [[WikiLinks]] per file\n   - Information gain: 20%+ new knowledge per wave\n   - Peer review score: 7/10 minimum\n\n⏱️ Duration: 15-20 minutes",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Complex orchestration planning requires systematic thinking",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": ["Topic decomposition", "Coverage vector", "Agent planning", "Quality criteria"]
+          },
+          "WriteMemory": {
+            "reason": "Create research charter with [[WikiLinks]] for knowledge graph",
+            "priority": "mandatory",
+            "output": "memory://research/[topic]/charter.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["Charter documented", "Coverage vector defined", "Agent roles assigned", "Quality gates set"],
+        "next_actions": ["Dispatch Wave 1 agents"]
+      }
+    },
+    {
+      "id": "wave-1-domain-scoping",
+      "name": "🌊 Wave 1: Domain Scoping & Landscape Mapping",
+      "description": "🚫 BLOCKING: Dispatch ALL agents for parallel domain analysis\n\n⚠️ CRITICAL: ALL FOUR AGENTS IN ONE MESSAGE FOR PARALLEL EXECUTION!\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Map knowledge landscape and identify key domains\nAgent: knowledge-agent\nInstruction: Use agentic-research workflow to map the complete knowledge landscape for [topic]. Identify 5-10 core domains, key concepts, and knowledge hierarchies.\nOutput: memory://research/[topic]/wave-1-scoping/domain-map\n\nTask 2: Scan academic sources and identify seminal works\nAgent: knowledge-agent\nInstruction: Use agentic-research workflow focusing on academic literature. Find seminal papers, key researchers, and foundational theories.\nOutput: memory://research/[topic]/wave-1-scoping/literature-review\n\nTask 3: Identify emerging patterns and cutting-edge research\nAgent: knowledge-agent\nInstruction: Use sequential thinking to analyze current trends, emerging technologies, and future directions in [topic].\nOutput: memory://research/[topic]/wave-1-scoping/trends\n\nTask 4: Find knowledge gaps and unexplored territories\nAgent: knowledge-agent\nInstruction: Use sequential thinking to identify gaps in current knowledge, unanswered questions, and research opportunities.\nOutput: memory://research/[topic]/wave-1-scoping/gaps\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each agent MUST include 10+ [[WikiLinks]] in outputs\n- Use HyDE query expansion for semantic depth\n- Create topic coverage vectors for assigned area\n- Read other agents' outputs if available (non-blocking)\n\n⏱️ Wave duration: 45-60 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Critical parallel dispatch - ALL agents must launch in ONE message",
+            "priority": "mandatory",
+            "required_operations": ["knowledge-agent domain mapping", "knowledge-agent literature", "knowledge-agent trends", "knowledge-agent gaps"],
+            "parallel_execution": true,
+            "agent_instructions": {
+              "workflow_choice": "Agents choose agentic-research OR SequentialThinking based on task complexity",
+              "wikilink_requirement": "10+ [[concepts]] per output file",
+              "output_format": "Markdown with rich WikiLinks"
+            }
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": ["All four agents dispatched", "Domain landscape mapped", "Literature identified", "Gaps documented"],
+        "next_actions": ["Review Wave 1 outputs", "Plan Wave 2 deep dives"],
+        "escape_hatches": {
+          "scope_explosion": "If domains > 10, trigger focus narrowing",
+          "insufficient_coverage": "If coverage < 50%, add specialized agents"
+        }
+      }
+    },
+    {
+      "id": "wave-1-review",
+      "name": "📊 Wave 1 Review & Deep Dive Planning",
+      "description": "Review scoping results and plan deep dive agent dispatch.\n\n1. **Read Wave 1 Outputs**:\n   - memory://research/[topic]/wave-1-scoping/domain-map\n   - memory://research/[topic]/wave-1-scoping/literature-review\n   - memory://research/[topic]/wave-1-scoping/trends\n   - memory://research/[topic]/wave-1-scoping/gaps\n\n2. **Coverage Analysis**:\n   - Calculate initial coverage percentage\n   - Identify high-priority domains for deep dive\n   - Determine agent allocation (3-5 agents)\n\n3. **Deep Dive Assignment**:\n   - Assign specific domains to specialized agents\n   - Define research depth per domain\n   - Set information gain targets\n\n4. **Create Deep Dive Plan**:\n   - Document in memory://research/[topic]/wave-2-plan.md\n   - Include agent assignments and focus areas\n\n⏱️ Duration: 10-15 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "ReadMemory": {
+            "reason": "Read all Wave 1 outputs for synthesis",
+            "priority": "mandatory"
+          },
+          "WriteMemory": {
+            "reason": "Document deep dive plan",
+            "priority": "mandatory",
+            "output": "memory://research/[topic]/wave-2-plan.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": ["Wave 1 reviewed", "Deep dive domains selected", "Agent assignments planned"],
+        "next_actions": ["Dispatch Wave 2 deep dive agents"]
+      }
+    },
+    {
+      "id": "wave-2-deep-research",
+      "name": "🌊 Wave 2: Deep Dive Research",
+      "description": "🚫 BLOCKING: Dispatch specialized agents for deep domain research\n\n⚠️ DYNAMIC DISPATCH: 3-5 agents based on Wave 1 findings\n\n```\n# EXAMPLE DISPATCH (ADJUST BASED ON DOMAINS):\n\nTask 1: Deep dive into [Domain 1]\nAgent: knowledge-agent\nInstruction: Use FULL agentic-research workflow for comprehensive investigation of [Domain 1]. Include HyDE expansion, multi-perspective analysis, and reflexion loops.\nFocus: [Specific aspects from gaps analysis]\nOutput: memory://research/[topic]/wave-2-deep-dive/domain-1/\n\nTask 2: Deep dive into [Domain 2]\nAgent: knowledge-agent\nInstruction: Use FULL agentic-research workflow for [Domain 2]. Focus on [specific gaps identified].\nOutput: memory://research/[topic]/wave-2-deep-dive/domain-2/\n\nTask 3: Deep dive into [Domain 3]\nAgent: knowledge-agent\nInstruction: Use FULL agentic-research workflow for [Domain 3]. Emphasize [emerging patterns].\nOutput: memory://research/[topic]/wave-2-deep-dive/domain-3/\n\n[Add more agents as needed based on complexity]\n```\n\n🎯 DEEP DIVE REQUIREMENTS:\n- MUST use complete agentic-research workflow\n- Include HyDE query expansion\n- Create topic coverage vectors\n- Generate 20+ [[WikiLinks]] per domain\n- Achieve 30%+ information gain\n\n⏱️ Wave duration: 90-120 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dynamic parallel dispatch based on identified domains",
+            "priority": "mandatory",
+            "dynamic_scaling": "3-5 agents based on domain count",
+            "workflow_mandate": "FULL agentic-research workflow required",
+            "parallel_execution": true
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["All domains researched", "Information gain > 30%", "Coverage vectors complete"],
+        "next_actions": ["Review deep dive findings", "Dispatch synthesis wave"],
+        "escape_hatches": {
+          "information_saturation": "If gain < 10%, skip to synthesis",
+          "time_boundary": "If > 2 hours, force completion"
+        }
+      }
+    },
+    {
+      "id": "wave-3-synthesis",
+      "name": "🌊 Wave 3: Cross-Domain Synthesis & Pattern Recognition",
+      "description": "🚫 BLOCKING: Dispatch synthesis agents for knowledge integration\n\n⚠️ ALL FOUR SYNTHESIS AGENTS IN ONE MESSAGE!\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Find interdisciplinary connections\nAgent: knowledge-agent\nInstruction: Read ALL Wave 2 outputs. Use sequential thinking to identify connections between domains, shared principles, and interdisciplinary insights. Create knowledge bridges.\nOutput: memory://research/[topic]/wave-3-synthesis/connections\n\nTask 2: Identify emergent patterns and themes\nAgent: knowledge-agent\nInstruction: Analyze all research findings for emergent patterns, recurring themes, and unexpected discoveries. Use pattern recognition and clustering.\nOutput: memory://research/[topic]/wave-3-synthesis/patterns\n\nTask 3: Reconcile contradictions and conflicts\nAgent: knowledge-agent\nInstruction: Identify and resolve contradictory findings across domains. Analyze evidence quality, source reliability, and create coherent synthesis.\nOutput: memory://research/[topic]/wave-3-synthesis/resolution\n\nTask 4: Generate novel insights and innovations\nAgent: knowledge-agent\nInstruction: Use creative synthesis to generate novel insights, innovative applications, and breakthrough ideas from the combined research.\nOutput: memory://research/[topic]/wave-3-synthesis/innovations\n```\n\n🎯 SYNTHESIS REQUIREMENTS:\n- MUST read all Wave 2 outputs first\n- Create cross-domain [[WikiLinks]]\n- Build connection graphs\n- Generate actionable insights\n\n⏱️ Wave duration: 60-75 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Parallel synthesis requiring cross-domain analysis",
+            "priority": "mandatory",
+            "required_operations": ["connection finding", "pattern recognition", "contradiction resolution", "innovation generation"],
+            "parallel_execution": true,
+            "cross_reading": "All agents MUST read Wave 2 outputs"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["Connections mapped", "Patterns identified", "Contradictions resolved", "Innovations generated"],
+        "next_actions": ["Dispatch validation wave"],
+        "escape_hatches": {
+          "contradiction_deadlock": "If 3+ unresolvable conflicts, escalate"
+        }
+      }
+    },
+    {
+      "id": "wave-4-validation",
+      "name": "🌊 Wave 4: Peer Review & Quality Validation",
+      "description": "🚫 BLOCKING: Dispatch validation agents for quality assurance\n\n⚠️ ALL FOUR VALIDATORS IN ONE MESSAGE!\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Validate research methodology and rigor\nAgent: knowledge-agent\nInstruction: Review entire research process for methodological soundness, source quality, and research rigor. Score each domain 1-10.\nOutput: memory://research/[topic]/wave-4-validation/methodology\n\nTask 2: Evaluate evidence quality and bias\nAgent: knowledge-agent\nInstruction: Assess evidence strength, identify potential biases, and evaluate source diversity. Create evidence quality matrix.\nOutput: memory://research/[topic]/wave-4-validation/evidence\n\nTask 3: Verify logic and reasoning chains\nAgent: knowledge-agent\nInstruction: Validate all reasoning chains, check for logical fallacies, and ensure conclusions follow from evidence.\nOutput: memory://research/[topic]/wave-4-validation/logic\n\nTask 4: Assess completeness and coverage\nAgent: knowledge-agent\nInstruction: Evaluate coverage against initial targets, identify remaining gaps, and assess overall completeness.\nOutput: memory://research/[topic]/wave-4-validation/completeness\n```\n\n🎯 VALIDATION CRITERIA:\n- Methodology score: 7/10 minimum\n- Evidence quality: Diverse sources required\n- Logic validation: No critical fallacies\n- Coverage: 80%+ of target domains\n\n⏱️ Wave duration: 45-60 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Parallel peer review for comprehensive validation",
+            "priority": "mandatory",
+            "required_operations": ["methodology review", "evidence evaluation", "logic validation", "completeness audit"],
+            "parallel_execution": true,
+            "scoring_required": true
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["All validations complete", "Quality scores calculated", "Gaps identified"],
+        "next_actions": ["Knowledge integration", "Graph construction"],
+        "quality_gates": {
+          "minimum_score": 7,
+          "coverage_target": 0.8,
+          "evidence_diversity": "required"
+        }
+      }
+    },
+    {
+      "id": "knowledge-integration",
+      "name": "🧠 Knowledge Integration & Graph Construction",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nIntegrate all research into maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\n# Sync all research memory to graph\nTool: Sync\nScope: memory://research/[topic]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[concepts]]\n   - Identify central nodes and connections\n   - Map knowledge architecture\n\n3. **Visualization Creation**:\n   - Generate Mermaid diagram of concept network\n   - Show domain relationships\n   - Highlight novel connections\n\n4. **Knowledge Metrics**:\n   - Total concepts created\n   - Connection density\n   - Information gain achieved\n   - Coverage percentage\n\n5. **Create Integration Report**:\n   - Document in memory://research/[topic]/integration-report.md\n   - Include metrics and visualizations\n   - Map to original research questions\n\n⏱️ Duration: 20-30 minutes",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "Sync": {
+            "reason": "Synchronize all research memories to graph database",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Analyze concept networks and relationships",
+            "priority": "mandatory"
+          },
+          "Visualize": {
+            "reason": "Create knowledge graph visualization",
+            "priority": "mandatory"
+          },
+          "SequentialThinking": {
+            "reason": "Complex integration requires systematic analysis",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["Graph synchronized", "Concepts mapped", "Visualization created", "Metrics calculated"],
+        "next_actions": ["Meta-synthesis", "Final report creation"]
+      }
+    },
+    {
+      "id": "meta-synthesis",
+      "name": "🎭 Director's Meta-Synthesis",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nAs Research Director, synthesize all agent findings into coherent knowledge.\n\n1. **Read All Wave Outputs**:\n   - Wave 1: Scoping findings\n   - Wave 2: Deep dive research\n   - Wave 3: Synthesis insights\n   - Wave 4: Validation results\n\n2. **Meta-Analysis**:\n   - Identify breakthrough insights\n   - Map innovation opportunities\n   - Synthesize actionable recommendations\n   - Document confidence levels\n\n3. **Knowledge Architecture**:\n   - Define core knowledge structure\n   - Map concept hierarchies\n   - Identify leverage points\n   - Document decision frameworks\n\n4. **Strategic Implications**:\n   - Practical applications\n   - Future research directions\n   - Risk assessments\n   - Opportunity analysis\n\n5. **Create Meta-Synthesis**:\n   - memory://research/[topic]/meta-synthesis.md\n   - Executive summary\n   - Key findings\n   - Strategic recommendations\n\n⏱️ Duration: 30-40 minutes",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Meta-synthesis requires deep systematic thinking",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": ["Pattern synthesis", "Strategic implications", "Knowledge architecture", "Actionable insights"]
+          },
+          "ReadMemory": {
+            "reason": "Read all wave outputs for comprehensive synthesis",
+            "priority": "mandatory"
+          },
+          "WriteMemory": {
+            "reason": "Document meta-synthesis with rich [[WikiLinks]]",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["All findings synthesized", "Recommendations documented", "Knowledge architecture defined"],
+        "next_actions": ["Create final deliverable"]
+      }
+    },
+    {
+      "id": "final-deliverable",
+      "name": "📋 Research Institute Report",
+      "description": "Create comprehensive research deliverable.\n\n1. **Report Structure**:\n```markdown\n# [Topic] Research Institute Report\n\n## Executive Summary\n- Key findings (3-5 bullets)\n- Breakthrough insights\n- Strategic recommendations\n\n## Research Methodology\n- Multi-agent orchestration approach\n- Wave-based investigation\n- Coverage and validation metrics\n\n## Domain Findings\n- [For each domain: key discoveries]\n\n## Synthesis & Innovations\n- Cross-domain connections\n- Emergent patterns\n- Novel insights\n\n## Knowledge Graph\n- Concept network visualization\n- Relationship mappings\n- Graph metrics\n\n## Validation & Quality\n- Peer review scores\n- Evidence quality assessment\n- Confidence levels\n\n## Strategic Implications\n- Practical applications\n- Future directions\n- Risk considerations\n\n## Appendices\n- Detailed findings per wave\n- Agent contributions\n- Source bibliography\n```\n\n2. **Quality Checklist**:\n   ✓ All waves represented\n   ✓ 50+ [[WikiLinks]] total\n   ✓ Actionable insights included\n   ✓ Validation scores documented\n   ✓ Knowledge graph integrated\n\n3. **Save Report**:\n   - memory://research/[topic]/final-report/institute-report.md\n   - Include all visualizations\n   - Cross-reference all findings\n\n⏱️ Duration: 20-30 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Create final comprehensive report",
+            "priority": "mandatory",
+            "output": "memory://research/[topic]/final-report/institute-report.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": ["Report complete", "All sections populated", "Quality checklist passed"],
+        "next_actions": ["Research complete", "Knowledge graph enriched"],
+        "success_criteria": {
+          "wikilink_density": "50+ total",
+          "coverage_achievement": "80%+",
+          "validation_score": "7/10+",
+          "actionable_insights": "5+ minimum"
+        }
+      }
+    }
+  ]
+}

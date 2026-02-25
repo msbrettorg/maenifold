@@ -1,0 +1,63 @@
+{
+  "id": "sdlc",
+  "name": "Software Development Lifecycle",
+  "emoji": "🔧",
+  "description": "Systematic approach to software development phases",
+  "triggers": [
+    "sdlc",
+    "software development lifecycle",
+    "planning",
+    "analysis",
+    "design",
+    "implementation",
+    "testing",
+    "deployment",
+    "maintenance",
+    "waterfall"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "planning",
+      "name": "Planning - Define requirements and scope",
+      "description": "Establish project objectives, scope, timeline, and resource requirements\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what we're assuming about user needs, technical constraints, and project scope. What could we be missing?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "analysis",
+      "name": "Analysis - Analyze requirements and feasibility",
+      "description": "Detailed analysis of functional and non-functional requirements",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "design",
+      "name": "Design - Create system architecture and design",
+      "description": "Design system architecture, database schema, and user interfaces\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about how similar systems solve these problems. What design patterns and architectural approaches could work here?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "implement",
+      "name": "Implementation - Code and build the solution",
+      "description": "Write code, implement features, and integrate system components",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "testing",
+      "name": "Testing - Verify functionality and quality",
+      "description": "Execute test plans to verify system meets requirements and quality standards",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "deploy",
+      "name": "Deployment - Release to production",
+      "description": "Deploy system to production environment and configure for live use",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "maintain",
+      "name": "Maintenance - Monitor and maintain the system",
+      "description": "Ongoing monitoring, bug fixes, updates, and system improvements\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what long-term issues and evolution needs we might face. What maintenance patterns are we establishing?",
+      "requiresEnhancedThinking": true
+    }
+  ]
+}

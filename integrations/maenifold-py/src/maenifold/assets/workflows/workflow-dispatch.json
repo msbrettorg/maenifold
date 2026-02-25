@@ -1,0 +1,40 @@
+{
+  "id": "workflow-dispatch",
+  "name": "Workflow Dispatch",
+  "emoji": "🎮",
+  "description": "Intelligent cognitive strategy selection and thinking architecture design",
+  "triggers": [
+    "workflow dispatch",
+    "cognitive strategy",
+    "problem analysis",
+    "workflow selection",
+    "thinking architecture"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "analyze",
+      "name": "Analyze Problem Characteristics - Understand the challenge type",
+      "description": "Systematically analyze the problem's fundamental characteristics, complexity, and domain\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nAnalyze this problem systematically: What type of problem is this? Is it logical, creative, analytical, strategic, or complex/multi-faceted? What domain knowledge is required? What are the key constraints and success criteria? What makes this problem challenging?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "research",
+      "name": "Research Historical Context & Current Knowledge - Learn from past analyses and fresh insights",
+      "description": "Search both memory and online sources for similar problems, successful approaches, and relevant insights. Use SearchMemories for keyword matches, RecentActivity for temporal patterns, BuildContext for deep relationships, BuildContext for connected knowledge, and WebSearch for current external perspectives.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSearch both memory and online: What similar problems have been analyzed in our memory system? What approaches worked well previously? What patterns or insights are relevant from past experiences? Then search online for current perspectives, recent developments, and external approaches to similar challenges. Use SearchMemories to find relevant content, RecentActivity to see latest work, BuildContext to explore relationships, BuildContext for connected knowledge, and WebSearch for fresh external insights. Focus on extracting actionable intelligence from both internal wisdom and external innovation.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "assess",
+      "name": "Assess Cognitive Requirements - Identify thinking needs",
+      "description": "Determine what types of cognitive processes and thinking approaches this problem requires\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nWhat cognitive approaches does this problem need? Does it require: Logical reasoning (deductive/inductive/abductive)? Creative thinking (divergent/lateral/oblique)? Analytical evaluation (critical/convergent)? Strategic analysis? Meta-cognitive reflection? Data-driven analysis? Multiple perspectives? Systematic progression?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "recommend",
+      "name": "Select and Execute Workflows - Choose and run complementary workflows",
+      "description": "Select complementary workflows for this problem based on the problem characteristics and cognitive requirements.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBased on the problem characteristics and cognitive requirements, which workflows would be most effective? Select complementary workflows that build on each other. Consider how they work together and in what sequence.\n\nWhen you've selected the workflows, immediately execute them using the Workflow tool with an array of workflow IDs.\n\nExample: Workflow([\"workflow-1\", \"workflow-2\", \"workflow-4\"])",
+      "requiresEnhancedThinking": true
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "id": "critical-thinking",
+  "name": "Critical Thinking",
+  "emoji": "💭",
+  "description": "Systematic evaluation, analysis, and logical assessment of information and arguments",
+  "triggers": [
+    "critical thinking",
+    "logical analysis",
+    "evaluate",
+    "systematic evaluation",
+    "logical assessment",
+    "analytical thinking",
+    "critical analysis"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "identify",
+      "name": "Identify Claims and Evidence - Clarify the argument",
+      "description": "Clearly identify the claims being made and the evidence presented to support them",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "evaluate",
+      "name": "Evaluate Evidence Quality - Assess credibility",
+      "description": "Systematically evaluate the quality, credibility, and relevance of the evidence\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nEvaluate the evidence systematically: Is it credible? What's the source? Is it relevant to the claim? Is there sufficient quantity? Are there biases? Is the evidence current and applicable? What evidence is missing?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "analyze",
+      "name": "Analyze Logical Structure - Check reasoning",
+      "description": "Examine the logical structure of arguments for validity and soundness\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nAnalyze the logical structure: Do the conclusions follow from the premises? Are there logical fallacies? Are assumptions stated or hidden? Is the reasoning valid? Are there alternative explanations?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "challenge",
+      "name": "Consider Alternative Perspectives - Challenge assumptions",
+      "description": "Actively seek and evaluate alternative viewpoints and explanations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nChallenge the argument systematically: What alternative explanations exist? What assumptions are being made? How might someone with a different perspective view this? What counterarguments are possible?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "conclude",
+      "name": "Draw Reasoned Conclusions - Synthesize assessment",
+      "description": "Reach well-reasoned conclusions based on the critical analysis",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

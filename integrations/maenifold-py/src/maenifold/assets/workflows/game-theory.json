@@ -1,0 +1,264 @@
+{
+  "id": "game-theory",
+  "name": "Game Theory Strategic Analysis (Multi-Agent Equilibrium Finding)",
+  "emoji": "♟️",
+  "description": "Strategic analyst orchestrating parallel agent waves to analyze games, find equilibria, and generate optimal strategies",
+  "triggers": [
+    "game theory",
+    "nash equilibrium",
+    "strategic analysis",
+    "payoff matrix",
+    "dominant strategy",
+    "game tree",
+    "strategic interaction",
+    "equilibrium analysis",
+    "prisoner's dilemma",
+    "best response"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "game-definition",
+      "name": "📜 Game Definition & Strategic Orchestration Planning",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nAs Strategic Analyst, establish the game definition and orchestration strategy.\n\n1. **Game Structure Analysis**:\n   - Identify all players and their objectives\n   - Define strategy spaces for each player\n   - Construct payoff structure (matrix or tree)\n   - Classify game type (cooperative/non-cooperative, zero-sum, sequential/simultaneous, perfect/imperfect information)\n\n2. **Analysis Vector Creation**:\n   - Map required analysis dimensions (player perspectives, equilibrium types, robustness tests)\n   - Define analytical depth per wave\n   - Set completeness targets (all equilibria found, all strategies evaluated)\n\n3. **Agent Resource Planning**:\n   - Determine agent count based on game complexity\n   - Simple 2-player game: 8-10 agents total\n   - Complex multi-player game: 12-15 agents total\n   - Assign specialized roles per wave\n\n4. **Memory Architecture Setup**:\n```\nmemory://game-theory/[game-name]/\n├── definition.md (game structure and this plan)\n├── wave-1-perspectives/\n├── wave-2-equilibria/\n├── wave-3-robustness/\n├── wave-4-validation/\n└── final-analysis/\n```\n\n5. **Quality Gates Definition**:\n   - Concept density: 5+ [[WikiLinks]] per file\n   - Equilibrium coverage: All Nash equilibria identified\n   - Verification score: 8/10 minimum on equilibrium calculations\n\n⏱️ Duration: 15-20 minutes",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Game framing and orchestration planning requires systematic thinking",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": ["Game structure", "Player analysis", "Agent planning", "Quality criteria"]
+          },
+          "WriteMemory": {
+            "reason": "Create game definition with [[WikiLinks]] for knowledge graph",
+            "priority": "mandatory",
+            "output": "memory://game-theory/[game-name]/definition.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["Game formally defined", "Analysis vectors mapped", "Agent roles assigned", "Quality gates set"],
+        "next_actions": ["Dispatch Wave 1 agents"]
+      }
+    },
+    {
+      "id": "wave-1-player-perspectives",
+      "name": "🌊 Wave 1: Player Perspective Analysis & Strategic Landscape",
+      "description": "🚫 BLOCKING: Dispatch ALL agents for parallel player analysis\n\n⚠️ CRITICAL: ALL FOUR AGENTS IN ONE MESSAGE FOR PARALLEL EXECUTION!\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Analyze Player 1's strategic position\nAgent: knowledge-agent\nInstruction: Use sequential thinking to analyze Player 1's objectives, constraints, strategy space, and preferences. Identify dominant strategies and best responses. Map payoff structure from Player 1's perspective.\nOutput: memory://game-theory/[game-name]/wave-1-perspectives/player-1-analysis\n\nTask 2: Analyze Player 2's strategic position\nAgent: knowledge-agent\nInstruction: Use sequential thinking to analyze Player 2's objectives, constraints, strategy space, and preferences. Identify dominant strategies and best responses. Map payoff structure from Player 2's perspective.\nOutput: memory://game-theory/[game-name]/wave-1-perspectives/player-2-analysis\n\nTask 3: Map strategic landscape and dominance relationships\nAgent: knowledge-agent\nInstruction: Use sequential thinking to identify dominated strategies (strict and weak), potential focal points, and coordination issues. Perform iterated elimination of dominated strategies.\nOutput: memory://game-theory/[game-name]/wave-1-perspectives/strategic-landscape\n\nTask 4: Identify equilibrium candidates and key strategic features\nAgent: knowledge-agent\nInstruction: Use sequential thinking to identify obvious equilibrium candidates, strategic interdependencies, and critical game features (commitment problems, information asymmetries, etc.).\nOutput: memory://game-theory/[game-name]/wave-1-perspectives/equilibrium-candidates\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each agent MUST include 10+ [[WikiLinks]] in outputs ([[Nash-equilibrium]], [[dominant-strategy]], [[best-response]], etc.)\n- Include payoff calculations and strategic reasoning\n- Create strategy evaluation matrices\n- Read other agents' outputs if available (non-blocking)\n\n⏱️ Wave duration: 30-45 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Critical parallel dispatch - ALL agents must launch in ONE message",
+            "priority": "mandatory",
+            "required_operations": ["knowledge-agent player-1", "knowledge-agent player-2", "knowledge-agent landscape", "knowledge-agent candidates"],
+            "parallel_execution": true,
+            "agent_instructions": {
+              "workflow_choice": "Agents use SequentialThinking for systematic strategic analysis",
+              "wikilink_requirement": "10+ [[concepts]] per output file",
+              "output_format": "Markdown with payoff calculations and rich WikiLinks"
+            }
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": ["All four agents dispatched", "All player perspectives analyzed", "Strategic landscape mapped", "Equilibrium candidates identified"],
+        "next_actions": ["Review Wave 1 outputs", "Plan Wave 2 equilibrium finding"],
+        "escape_hatches": {
+          "multi_player_game": "If > 2 players, add one agent per additional player",
+          "complex_strategy_space": "If strategy space > 5x5, add strategy pruning agent"
+        }
+      }
+    },
+    {
+      "id": "wave-1-review",
+      "name": "📊 Wave 1 Review & Equilibrium Finding Planning",
+      "description": "Review player perspectives and plan equilibrium finding agent dispatch.\n\n1. **Read Wave 1 Outputs**:\n   - memory://game-theory/[game-name]/wave-1-perspectives/player-1-analysis\n   - memory://game-theory/[game-name]/wave-1-perspectives/player-2-analysis\n   - memory://game-theory/[game-name]/wave-1-perspectives/strategic-landscape\n   - memory://game-theory/[game-name]/wave-1-perspectives/equilibrium-candidates\n\n2. **Strategic Assessment**:\n   - Synthesize player perspectives\n   - Evaluate equilibrium candidates from Wave 1\n   - Identify which equilibrium-finding approaches needed (pure strategy, mixed strategy, subgame perfect)\n   - Determine agent allocation (3-4 agents)\n\n3. **Equilibrium Finding Assignment**:\n   - Assign specific equilibrium types to specialized agents\n   - Define verification requirements\n   - Set calculation accuracy targets\n\n4. **Create Equilibrium Finding Plan**:\n   - Document in memory://game-theory/[game-name]/wave-2-plan.md\n   - Include agent assignments and equilibrium types\n\n⏱️ Duration: 10-15 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "ReadMemory": {
+            "reason": "Read all Wave 1 outputs for synthesis",
+            "priority": "mandatory"
+          },
+          "WriteMemory": {
+            "reason": "Document equilibrium finding plan",
+            "priority": "mandatory",
+            "output": "memory://game-theory/[game-name]/wave-2-plan.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": ["Wave 1 reviewed", "Equilibrium approaches identified", "Agent assignments planned"],
+        "next_actions": ["Dispatch Wave 2 equilibrium finding agents"]
+      }
+    },
+    {
+      "id": "wave-2-equilibrium-finding",
+      "name": "🌊 Wave 2: Equilibrium Finding with Computational Verification",
+      "description": "🚫 BLOCKING: Dispatch specialized agents for equilibrium analysis with nashpy computational verification\n\n⚙️ COMPUTATIONAL SETUP (FIRST):\n\n1. **Install nashpy if needed**:\n```bash\npython3 -m pip show nashpy > /dev/null 2>&1 || python3 -m pip install --user nashpy\n```\n\n2. **Verify nashpy installation**:\n```bash\npython3 -c \"import nashpy; print(f'nashpy version: {nashpy.__version__}')\"\n```\n\n3. **Prepare computational verification** (for 2-player games):\n   - Create payoff matrices in JSON format\n   - Save as: memory://game-theory/[game-name]/wave-2-equilibria/payoff-matrices.json\n   - Format:\n```json\n{\n  \"player1\": [[row1_payoffs], [row2_payoffs], ...],\n  \"player2\": [[row1_payoffs], [row2_payoffs], ...]\n}\n```\n\n4. **Run nashpy equilibrium finder**:\n```bash\npython3 ~/maenifold/assets/python/game_theory_equilibrium.py \\\n  --payoff-file memory://game-theory/[game-name]/wave-2-equilibria/payoff-matrices.json \\\n  --output memory://game-theory/[game-name]/wave-2-equilibria/nashpy-computed-equilibria.md \\\n  --format markdown\n```\n\n⚠️ DYNAMIC DISPATCH: 3-4 agents based on game type and Wave 1 findings\n\n```\n# EXAMPLE DISPATCH (ADJUST BASED ON GAME TYPE):\n\nTask 1: Find pure strategy Nash equilibria with computational verification\nAgent: knowledge-agent\nInstruction: Use sequential thinking to systematically check all strategy profiles for Nash equilibrium. For each candidate: verify no player can improve by unilateral deviation. Calculate equilibrium payoffs. FOR 2-PLAYER GAMES: Read nashpy-computed-equilibria.md and compare your analytical findings with computational results. Document any discrepancies.\nFocus: Mutual best response verification + computational cross-check\nOutput: memory://game-theory/[game-name]/wave-2-equilibria/pure-strategy-nash\n\nTask 2: Analyze mixed strategy equilibria with nashpy verification\nAgent: knowledge-agent\nInstruction: Use sequential thinking to find mixed strategy Nash equilibria. Identify support of mixed strategies, calculate indifference conditions, solve for mixing probabilities. Verify equilibrium conditions. FOR 2-PLAYER GAMES: Compare with nashpy computational results. Verify mixing probabilities match within 0.001 tolerance.\nFocus: Mixed strategy calculation + computational verification\nOutput: memory://game-theory/[game-name]/wave-2-equilibria/mixed-strategy-nash\n\nTask 3: Find subgame perfect equilibria (for sequential games)\nAgent: knowledge-agent\nInstruction: Use sequential thinking and backward induction to find subgame perfect equilibria. Start from terminal nodes, eliminate non-credible threats, verify subgame perfection. Note: nashpy computes Nash equilibria for normal-form games; you must analyze extensive-form structure manually.\nFocus: Backward induction and credibility\nOutput: memory://game-theory/[game-name]/wave-2-equilibria/subgame-perfect\n\nTask 4: Assess Pareto efficiency of equilibria\nAgent: knowledge-agent\nInstruction: Use sequential thinking to evaluate Pareto efficiency of all equilibria found (including nashpy results). Identify Pareto improvements if they exist. Analyze coordination failures or prisoner's dilemma structures.\nFocus: Efficiency analysis\nOutput: memory://game-theory/[game-name]/wave-2-equilibria/pareto-analysis\n```\n\n🎯 EQUILIBRIUM FINDING REQUIREMENTS:\n- MUST install and use nashpy for computational verification (2-player games)\n- MUST use systematic sequential thinking for analytical verification\n- Show all mathematical calculations\n- Cross-reference computational (nashpy) vs analytical results\n- Verify equilibrium conditions rigorously\n- Generate 15+ [[WikiLinks]] per equilibrium type\n- Include payoff tables and strategy profiles\n- Document verification score: analytical vs computational agreement\n\n⏱️ Wave duration: 45-60 minutes (including computational setup)",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dynamic parallel dispatch with computational (nashpy) and analytical verification",
+            "priority": "mandatory",
+            "dynamic_scaling": "3-4 agents based on equilibrium types needed",
+            "workflow_mandate": "Sequential thinking required for rigorous verification",
+            "parallel_execution": true,
+            "computational_requirements": {
+              "nashpy_installation": "python3 -m pip install --user nashpy",
+              "verification_script": "~/maenifold/assets/python/game_theory_equilibrium.py",
+              "verification_tolerance": 0.001,
+              "cross_check_mandate": "Analytical findings MUST be verified against nashpy computational results for 2-player games"
+            }
+          },
+          "WriteMemory": {
+            "reason": "Save payoff matrices and nashpy computational results",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://game-theory/[game-name]/wave-2-equilibria/payoff-matrices.json",
+              "memory://game-theory/[game-name]/wave-2-equilibria/nashpy-computed-equilibria.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["All equilibrium types analyzed", "Nash equilibria verified computationally and analytically", "Pareto analysis complete", "Computational verification score > 0.95"],
+        "next_actions": ["Review equilibrium findings", "Dispatch robustness wave"],
+        "escape_hatches": {
+          "no_pure_equilibrium": "If no pure Nash, mandatory mixed strategy analysis with nashpy verification",
+          "computational_complexity": "If game too large (>5x5), focus on dominant strategy equilibria; nashpy may be slow",
+          "nashpy_unavailable": "If nashpy cannot be installed, proceed with analytical verification only and document limitation"
+        }
+      }
+    },
+    {
+      "id": "wave-3-robustness",
+      "name": "🌊 Wave 3: Robustness & Sensitivity Testing",
+      "description": "🚫 BLOCKING: Dispatch robustness testing agents\n\n⚠️ ALL FOUR TESTING AGENTS IN ONE MESSAGE!\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Payoff sensitivity analysis\nAgent: knowledge-agent\nInstruction: Read ALL Wave 2 equilibrium outputs. Use sequential thinking to test how equilibria change with payoff perturbations. Test ±10% variations in key payoffs. Identify critical thresholds where equilibria shift.\nOutput: memory://game-theory/[game-name]/wave-3-robustness/sensitivity\n\nTask 2: Information structure variations\nAgent: knowledge-agent\nInstruction: Analyze how imperfect information would affect the game. Consider what happens with uncertainty, information asymmetries, or sequential observation. How would equilibria change?\nOutput: memory://game-theory/[game-name]/wave-3-robustness/information-variations\n\nTask 3: Repeated game and dynamic analysis\nAgent: knowledge-agent\nInstruction: If game could be repeated, analyze trigger strategies, folk theorem implications, and reputation effects. Can cooperation be sustained? What are the long-run equilibria?\nOutput: memory://game-theory/[game-name]/wave-3-robustness/repeated-dynamics\n\nTask 4: Behavioral and bounded rationality considerations\nAgent: knowledge-agent\nInstruction: Analyze how real players might deviate from perfect rationality. Consider fairness concerns, risk aversion, bounded rationality, and cognitive limitations. How robust are predictions?\nOutput: memory://game-theory/[game-name]/wave-3-robustness/behavioral\n```\n\n🎯 ROBUSTNESS REQUIREMENTS:\n- MUST read all Wave 2 equilibrium outputs first\n- Test specific parameter variations quantitatively\n- Identify stability regions and tipping points\n- Generate 10+ [[WikiLinks]] per analysis\n\n⏱️ Wave duration: 40-50 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Parallel robustness testing requiring equilibrium analysis",
+            "priority": "mandatory",
+            "required_operations": ["sensitivity testing", "information variations", "repeated game analysis", "behavioral analysis"],
+            "parallel_execution": true,
+            "cross_reading": "All agents MUST read Wave 2 equilibrium outputs"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["Sensitivity tested", "Information variations analyzed", "Repeated game dynamics explored", "Behavioral factors assessed"],
+        "next_actions": ["Dispatch validation wave"],
+        "escape_hatches": {
+          "unstable_equilibria": "If all equilibria highly sensitive, flag as unpredictable game",
+          "simple_game": "If game is too simple for robustness concerns, skip to validation"
+        }
+      }
+    },
+    {
+      "id": "wave-4-validation",
+      "name": "🌊 Wave 4: Strategic Validation & Verification",
+      "description": "🚫 BLOCKING: Dispatch validation agents for strategic verification\n\n⚠️ ALL FOUR VALIDATORS IN ONE MESSAGE!\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Verify equilibrium calculations\nAgent: knowledge-agent\nInstruction: Review all equilibrium calculations from Wave 2. Independently verify Nash equilibrium conditions. Check mutual best response, mixed strategy probabilities, backward induction. Score calculation rigor 1-10.\nOutput: memory://game-theory/[game-name]/wave-4-validation/equilibrium-verification\n\nTask 2: Test strategic recommendations\nAgent: knowledge-agent\nInstruction: Evaluate strategic recommendations for each player. Verify recommendations align with equilibrium analysis. Check for logical consistency and practical feasibility.\nOutput: memory://game-theory/[game-name]/wave-4-validation/recommendation-testing\n\nTask 3: Validate logical reasoning chains\nAgent: knowledge-agent\nInstruction: Trace all reasoning from game definition through equilibrium finding to recommendations. Check for logical fallacies, invalid inferences, or circular reasoning. Verify conclusions follow from analysis.\nOutput: memory://game-theory/[game-name]/wave-4-validation/logic-validation\n\nTask 4: Assess analysis completeness\nAgent: knowledge-agent\nInstruction: Evaluate completeness against initial game definition. All players analyzed? All strategy profiles checked? All relevant equilibrium types considered? Identify any gaps.\nOutput: memory://game-theory/[game-name]/wave-4-validation/completeness\n```\n\n🎯 VALIDATION CRITERIA:\n- Equilibrium calculation score: 8/10 minimum\n- Strategic recommendations: Logically consistent and actionable\n- Logic validation: No critical errors\n- Completeness: All players and strategies covered\n\n⏱️ Wave duration: 30-40 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Parallel strategic validation for comprehensive verification",
+            "priority": "mandatory",
+            "required_operations": ["equilibrium verification", "recommendation testing", "logic validation", "completeness audit"],
+            "parallel_execution": true,
+            "scoring_required": true
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["All validations complete", "Equilibrium scores calculated", "Logical errors identified"],
+        "next_actions": ["Knowledge integration", "Graph construction"],
+        "quality_gates": {
+          "minimum_score": 8,
+          "completeness_required": true,
+          "logical_consistency": "mandatory"
+        }
+      }
+    },
+    {
+      "id": "knowledge-integration",
+      "name": "🧠 Knowledge Integration & Graph Construction",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nIntegrate all game theory analysis into maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\n# Sync all game theory analysis to graph\nTool: Sync\nScope: memory://game-theory/[game-name]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[concepts]] ([[Nash-equilibrium]], [[dominant-strategy]], [[payoff-matrix]], etc.)\n   - Identify central strategic concepts and connections\n   - Map game theory knowledge architecture\n\n3. **Visualization Creation**:\n   - Generate Mermaid diagram of concept network\n   - Show player relationships and strategic connections\n   - Highlight equilibrium structures\n\n4. **Analysis Metrics**:\n   - Total strategic concepts created\n   - Connection density in knowledge graph\n   - Equilibria found and verified\n   - Analysis completeness percentage\n\n5. **Create Integration Report**:\n   - Document in memory://game-theory/[game-name]/integration-report.md\n   - Include metrics and visualizations\n   - Map to original game definition\n\n⏱️ Duration: 15-20 minutes",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "Sync": {
+            "reason": "Synchronize all game theory analysis to graph database",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Analyze strategic concept networks and relationships",
+            "priority": "mandatory"
+          },
+          "Visualize": {
+            "reason": "Create game theory knowledge graph visualization",
+            "priority": "mandatory"
+          },
+          "SequentialThinking": {
+            "reason": "Strategic integration requires systematic analysis",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["Graph synchronized", "Strategic concepts mapped", "Visualization created", "Analysis metrics calculated"],
+        "next_actions": ["Strategic synthesis", "Final analysis report"]
+      }
+    },
+    {
+      "id": "meta-synthesis",
+      "name": "🎭 Analyst's Strategic Synthesis",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nAs Strategic Analyst, synthesize all agent findings into actionable strategic recommendations.\n\n1. **Read All Wave Outputs**:\n   - Wave 1: Player perspective findings\n   - Wave 2: Equilibrium analysis\n   - Wave 3: Robustness testing\n   - Wave 4: Validation results\n\n2. **Strategic Meta-Analysis**:\n   - Identify key strategic insights\n   - Synthesize optimal strategies per player\n   - Predict most likely outcomes\n   - Document confidence levels and uncertainty\n\n3. **Strategic Architecture**:\n   - Define core strategic structure of the game\n   - Map player interdependencies\n   - Identify critical decision points\n   - Document strategic frameworks\n\n4. **Practical Implications**:\n   - Real-world applications\n   - Implementation considerations\n   - Risk factors and mitigation\n   - Opportunity identification\n\n5. **Create Strategic Synthesis**:\n   - memory://game-theory/[game-name]/strategic-synthesis.md\n   - Executive summary\n   - Strategic recommendations per player\n   - Predicted outcomes\n   - Implementation guidance\n\n⏱️ Duration: 25-35 minutes",
+      "requiresEnhancedThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Strategic synthesis requires deep systematic thinking",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": ["Strategic synthesis", "Player recommendations", "Outcome prediction", "Practical applications"]
+          },
+          "ReadMemory": {
+            "reason": "Read all wave outputs for comprehensive strategic synthesis",
+            "priority": "mandatory"
+          },
+          "WriteMemory": {
+            "reason": "Document strategic synthesis with rich [[WikiLinks]]",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": ["All findings synthesized", "Player recommendations documented", "Outcomes predicted"],
+        "next_actions": ["Create final analysis report"]
+      }
+    },
+    {
+      "id": "final-deliverable",
+      "name": "📋 Game Theory Strategic Analysis Report",
+      "description": "Create comprehensive strategic analysis deliverable.\n\n1. **Report Structure**:\n```markdown\n# [Game Name] Strategic Analysis Report\n\n## Executive Summary\n- Game structure and players\n- Key equilibria found (3-5 bullets)\n- Strategic recommendations per player\n- Predicted outcomes\n\n## Game Definition\n- Players, objectives, and constraints\n- Strategy spaces\n- Payoff structure (matrix or tree)\n- Game classification\n\n## Strategic Analysis\n- Player perspectives (Wave 1 findings)\n- Dominant strategies and best responses\n- Strategic landscape\n\n## Equilibrium Analysis\n- Nash equilibria (pure and/or mixed)\n- Equilibrium payoffs and strategy profiles\n- Subgame perfect equilibria (if sequential)\n- Pareto efficiency assessment\n\n## Robustness & Sensitivity\n- Payoff sensitivity analysis\n- Information structure variations\n- Repeated game dynamics\n- Behavioral considerations\n\n## Strategic Recommendations\n- Optimal strategy for each player\n- Coordination advice (if multiple equilibria)\n- Risk assessment\n- Implementation guidance\n\n## Knowledge Graph\n- Strategic concept network visualization\n- Player relationship mappings\n- Equilibrium structure\n\n## Validation Results\n- Equilibrium verification scores\n- Logic validation\n- Completeness assessment\n\n## Real-World Applications\n- Practical scenarios\n- Implementation considerations\n- Mechanism design suggestions\n\n## Appendices\n- Detailed calculations per wave\n- Agent contributions\n- Payoff tables and game trees\n```\n\n2. **Quality Checklist**:\n   ✓ All waves represented\n   ✓ 40+ [[WikiLinks]] total\n   ✓ All equilibria documented with verification\n   ✓ Strategic recommendations actionable\n   ✓ Payoff visualizations included\n   ✓ Knowledge graph integrated\n\n3. **Save Report**:\n   - memory://game-theory/[game-name]/final-analysis/strategic-report.md\n   - Include all payoff matrices/trees\n   - Cross-reference all equilibria\n\n⏱️ Duration: 20-30 minutes",
+      "requiresEnhancedThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Create final comprehensive strategic analysis report",
+            "priority": "mandatory",
+            "output": "memory://game-theory/[game-name]/final-analysis/strategic-report.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": ["Report complete", "All sections populated", "Quality checklist passed"],
+        "next_actions": ["Analysis complete", "Knowledge graph enriched"],
+        "success_criteria": {
+          "wikilink_density": "40+ total",
+          "equilibria_documented": "all found and verified",
+          "validation_score": "8/10+",
+          "actionable_recommendations": "clear for each player"
+        }
+      }
+    }
+  ]
+}

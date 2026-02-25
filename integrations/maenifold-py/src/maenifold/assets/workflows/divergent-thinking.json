@@ -1,0 +1,48 @@
+{
+  "id": "divergent-thinking",
+  "name": "Divergent Thinking",
+  "emoji": "💭",
+  "description": "Systematic generation of multiple creative alternatives and novel solutions",
+  "triggers": [
+    "divergent thinking",
+    "brainstorming",
+    "creative alternatives",
+    "multiple solutions",
+    "ideation",
+    "creative generation",
+    "many possibilities"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "define",
+      "name": "Define the Challenge - Clarify the problem space",
+      "description": "Clearly define the problem or challenge that requires creative solutions",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "generate",
+      "name": "Generate Fluent Ideas - Produce many alternatives",
+      "description": "Generate as many different ideas as possible without judgment or evaluation\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nGenerate as many different ideas as possible. Don't judge or evaluate - just produce volume. Think of obvious solutions, then stretch beyond them. What are all the different ways this could be approached?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "explore",
+      "name": "Explore Flexible Approaches - Vary categories and types",
+      "description": "Deliberately explore different categories, types, and approaches to the problem\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nDeliberately shift between different categories of solutions. If you've been thinking technically, try social solutions. If you've been thinking about tools, try processes. What completely different types of approaches exist?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "elaborate",
+      "name": "Elaborate Creative Details - Add original elements",
+      "description": "Develop ideas with original, creative, and unexpected details\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nAdd creative, original details to your ideas. What would make each idea unique, unexpected, or novel? How could you combine ideas in original ways? What creative twists could you add?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "capture",
+      "name": "Capture All Possibilities - Document the idea space",
+      "description": "Document the full range of generated possibilities for later evaluation",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

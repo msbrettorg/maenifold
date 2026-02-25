@@ -1,0 +1,75 @@
+{
+  "id": "crta",
+  "name": "Compelling Reason to Act",
+  "emoji": "⏰",
+  "description": "Framework for creating urgency and motivating immediate action",
+  "triggers": [
+    "compelling reason to act",
+    "crta",
+    "urgency",
+    "time sensitive",
+    "deadline",
+    "immediate action",
+    "critical decision",
+    "consequences",
+    "opportunity cost",
+    "scarcity"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "current",
+      "name": "Identify Current State - Assess the present situation",
+      "description": "Clearly define the current status, challenges, and existing constraints without action\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what assumptions we're making about the current state. What hidden problems or opportunities might we be missing?\n\nExamples:\n• What assumptions are we making about the status quo?\n• What evidence do we have that this is actually the real situation?\n• What if the current state is actually worse/better than we think?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "consequences",
+      "name": "Define Consequences - Map negative outcomes of inaction",
+      "description": "Identify specific negative consequences that will occur if no action is taken by a certain date\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about the cascade of negative effects. What are the second and third-order consequences of not acting?\n\nExamples:\n• What would happen if we deliberately did nothing?\n• How would this failure cascade through the organization?\n• What opportunities would we permanently lose?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "timing",
+      "name": "Establish Time Constraints - Identify critical deadlines",
+      "description": "Determine specific dates by which action must be taken to avoid consequences or capture opportunities",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "quantify",
+      "name": "Quantify Impact - Calculate costs and benefits",
+      "description": "Put numbers on both the cost of inaction and the value of taking action promptly\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what we're assuming in our calculations. What hidden costs or benefits might we be overlooking?\n\nExamples:\n• What assumptions are we making about value and cost?\n• What if our estimates are wrong by 50%?\n• What indirect impacts haven't we considered?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "opportunities",
+      "name": "Identify Opportunities - Highlight time-sensitive gains",
+      "description": "Define positive outcomes, competitive advantages, or limited opportunities that can only be captured through immediate action\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about ideal outcomes and breakthrough possibilities. What amazing results could happen if we act quickly?\n\nExamples:\n• What would be the absolute best case scenario?\n• What opportunities exist that no one else has noticed?\n• What could we achieve that would be impossible later?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "scarcity",
+      "name": "Create Scarcity - Establish limited availability",
+      "description": "Identify what makes this opportunity unique, limited, or unlikely to be available again",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "consensus",
+      "name": "Build Consensus - Align stakeholders on urgency",
+      "description": "Ensure all decision-makers understand and agree on the critical nature of immediate action\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply from each stakeholder's perspective. What would convince them that action is urgent and necessary?\n\nExamples:\n• From the CEO's perspective: What would get their immediate attention?\n• From the budget owner's view: What would justify immediate spending?\n• From the end user's perspective: What would make this feel urgent to them?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "action",
+      "name": "Present Clear Action - Define specific next steps",
+      "description": "Articulate exactly what needs to be done, by when, and by whom to address the compelling reason",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "accountability",
+      "name": "Create Accountability - Establish tracking and follow-up",
+      "description": "Set up mechanisms to ensure the urgency is maintained and action is taken within the critical timeframe\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what assumptions we're making about accountability. How might people avoid or delay action despite our efforts?\n\nExamples:\n• What assumptions are we making about people's motivation?\n• What if the urgency fades over time?\n• What barriers to action haven't we anticipated?",
+      "requiresEnhancedThinking": true
+    }
+  ]
+}

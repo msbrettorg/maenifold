@@ -1,0 +1,81 @@
+{
+  "id": "socratic-dialogue",
+  "name": "Socratic Dialogue",
+  "emoji": "🤔",
+  "description": "Expose broken assumptions and flawed reasoning to fix stuck problems",
+  "triggers": [
+    "debug reasoning",
+    "challenge assumptions",
+    "stuck on problem",
+    "solution feels hacky",
+    "confident but wrong",
+    "expose assumptions",
+    "question logic",
+    "find the flaw",
+    "reasoning error",
+    "bad thinking"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "state-problem",
+      "name": "What problem are you actually trying to solve?",
+      "description": "State the specific problem you're stuck on. Not what you think the solution should be - what's the actual problem?\n\nExample: 'My tests are flaky' not 'I need to add delays to my tests'",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "current-approach",
+      "name": "What's your current approach and why?",
+      "description": "Describe what you're doing now and your reasoning. This is where we'll find the broken assumptions.\n\nBe honest about shortcuts, hacks, or 'temporary' solutions you're using.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "setup-adversary",
+      "name": "Setup Adversarial Questioning",
+      "description": "🧠 SequentialThinking ENHANCED DIALOG REQUIRED: Start a dialogue session where you'll play the role of someone who thinks your approach is wrong.\n\nThis adversary will relentlessly question your reasoning, assumptions, and evidence. Don't be gentle - the goal is to find the flaws in your thinking.\n\nTell the adversary: 'Challenge everything I believe about this problem. Find the flaws in my reasoning. Be ruthless.'\n\n⚠️ CRITICAL: Keep this session active throughout - don't terminate until the final step.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "question-assumptions",
+      "name": "Challenge Your Core Assumptions",
+      "description": "🧠 CONTINUE SAME DIALOG & SequentialThinking SESSIONS: Have the adversary attack your fundamental assumptions.\n\nExamples of questions they should ask:\n- 'How do you know that's actually the problem?'\n- 'What evidence do you have that this approach works?'\n- 'What if you're solving the wrong thing entirely?'\n- 'Why do you believe X is necessary?'\n\nDon't defend - genuinely consider whether your assumptions are wrong.\n\n⚠️ CRITICAL: Do NOT terminate the sessions - keep them active.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "examine-evidence",
+      "name": "Demand Evidence for Your Beliefs",
+      "description": "🧠 CONTINUE SAME DIALOG & SequentialThinking SESSIONS + RESEARCH: The adversary should demand proof for every claim you make.\n\n'Prove it' should be their response to everything. When you can't prove something, you've found an assumption.\n\nResearch actual evidence when challenged - don't just defend with more opinions.\n\n⚠️ CRITICAL: Do NOT terminate the sessions - keep them active.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "find-contradiction",
+      "name": "Expose the Contradiction",
+      "description": "🧠 CONTINUE SAME DIALOG & SequentialThinking SESSIONS: Look for where your logic breaks down.\n\nThe adversary should find places where:\n- Your solution doesn't actually address the root problem\n- Your reasoning leads to contradictory conclusions\n- Your approach creates the very problem you're trying to solve\n- You're treating symptoms instead of causes\n\n⚠️ CRITICAL: Do NOT terminate the sessions - keep them active.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "reframe-problem",
+      "name": "Reframe the Real Problem",
+      "description": "Based on what the questioning exposed, what's the actual problem you need to solve?\n\nThis is often completely different from what you started with.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "test-new-understanding",
+      "name": "Test Your New Understanding",
+      "description": "🧠 CONTINUE SAME DIALOG & SequentialThinking SESSIONS: Have the adversary attack your new understanding.\n\nIf it's actually better, it should hold up to questioning. If it doesn't, keep refining.\n\n⚠️ CRITICAL: Do NOT terminate the sessions - keep them active.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "solution-direction",
+      "name": "What does this suggest for solutions?",
+      "description": "With the real problem identified and your assumptions corrected, what approaches make sense now?\n\nDon't implement yet - just identify directions that address the actual problem.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "final-validation",
+      "name": "Final Reality Check",
+      "description": "🧠 COMPLETE ALL SESSIONS: Have one final adversarial challenge to your conclusions, then complete the sessions.\n\nQuestions like:\n- 'Are you sure you're not just finding a more sophisticated way to be wrong?'\n- 'What could still go wrong with this approach?'\n- 'What are you still assuming without evidence?'\n\nThen record your key insights: What assumptions were wrong? What was the real problem? How will you approach similar problems differently?\n\n📝 IMPORTANT: Document the flawed reasoning you discovered and how you'll avoid it in the future.",
+      "requiresEnhancedThinking": true
+    }
+  ]
+}

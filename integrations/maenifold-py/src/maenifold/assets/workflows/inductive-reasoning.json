@@ -1,0 +1,48 @@
+{
+  "id": "inductive-reasoning",
+  "name": "Inductive Reasoning",
+  "emoji": "💭",
+  "description": "Bottom-up inference from specific observations to general patterns and theories",
+  "triggers": [
+    "inductive reasoning",
+    "pattern recognition",
+    "generalization",
+    "bottom up reasoning",
+    "empirical inference",
+    "data to theory",
+    "observational reasoning"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "collect",
+      "name": "Collect Specific Observations - Gather empirical data",
+      "description": "Systematically collect specific observations, data points, or empirical evidence",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "patterns",
+      "name": "Identify Patterns - Recognize recurring themes",
+      "description": "Search for patterns, regularities, and recurring themes in the observations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nAnalyze the observations systematically. What patterns emerge? What regularities do you see? What themes recur across different data points? Group similar observations and identify commonalities.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "generalize",
+      "name": "Form Generalizations - Develop broader theories",
+      "description": "Develop general principles or theories that explain the observed patterns\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBased on the patterns, what general principles emerge? What broader theory could explain these observations? How confident can you be in this generalization? What would this theory predict about new cases?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "test",
+      "name": "Test and Refine - Validate generalizations",
+      "description": "Test the generalizations against new evidence and refine as needed",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "conclude",
+      "name": "Draw Probable Conclusions - Establish likelihood",
+      "description": "Reach conclusions about the probability and scope of the generalized theory",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

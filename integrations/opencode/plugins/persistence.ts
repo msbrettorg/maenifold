@@ -15,6 +15,7 @@ const _GUARD_END = "<!-- END:MAENIFOLD -->";
 const _SUMMARY_MAX_CHARS = 32_000;
 const _PAYLOAD_MAX_CHARS = 50_000;
 const _CLI_TIMEOUT_MS = 30_000;
+const _DEBUG = process.env.MAENIFOLD_DEBUG === "true";
 
 // ---------------------------------------------------------------------------
 // State — in-memory, resets on OpenCode restart
@@ -609,10 +610,10 @@ export const PersistencePlugin: Plugin = async ({
   const projectKey = project?.id ?? worktree ?? directory ?? "unknown";
 
   // Seed AGENTS.md with current graph context on startup
-  console.error(`[${_SERVICE}] init: MAENIFOLD_ROOT=${_MAENIFOLD_ROOT}, DB_PATH=${_DB_PATH}`);
+  if (_DEBUG) console.error(`[${_SERVICE}] init: MAENIFOLD_ROOT=${_MAENIFOLD_ROOT}, DB_PATH=${_DB_PATH}`);
   try {
     const wrote = await _refreshAgentsMd();
-    console.error(`[${_SERVICE}] _refreshAgentsMd: ${wrote ? "WROTE" : "SKIPPED (returned false)"}`);
+    if (_DEBUG) console.error(`[${_SERVICE}] _refreshAgentsMd: ${wrote ? "WROTE" : "SKIPPED (returned false)"}`);
     await client.app.log({
       body: {
         service: _SERVICE,
@@ -641,7 +642,7 @@ export const PersistencePlugin: Plugin = async ({
       if (event.type === "session.created") {
         try {
           const wrote = await _refreshAgentsMd();
-          console.error(`[${_SERVICE}] session.created _refreshAgentsMd: ${wrote ? "WROTE" : "SKIPPED"}`);
+          if (_DEBUG) console.error(`[${_SERVICE}] session.created _refreshAgentsMd: ${wrote ? "WROTE" : "SKIPPED"}`);
         } catch (err) {
           console.error(`[${_SERVICE}] session.created _refreshAgentsMd FAILED: ${err}`);
         }
@@ -654,7 +655,7 @@ export const PersistencePlugin: Plugin = async ({
         _refreshTimer = setTimeout(async () => {
           try {
             const wrote = await _refreshAgentsMd();
-            console.error(`[${_SERVICE}] session.updated _refreshAgentsMd: ${wrote ? "WROTE" : "SKIPPED"}`);
+            if (_DEBUG) console.error(`[${_SERVICE}] session.updated _refreshAgentsMd: ${wrote ? "WROTE" : "SKIPPED"}`);
           } catch (err) {
             console.error(`[${_SERVICE}] session.updated _refreshAgentsMd FAILED: ${err}`);
           }
@@ -665,13 +666,13 @@ export const PersistencePlugin: Plugin = async ({
       // --- session.compacted: persist summary, then refresh ---
       if (event.type === "session.compacted") {
         const sessionID = (event.properties as any)?.sessionID;
-        console.error(`[${_SERVICE}] session.compacted: sessionID=${sessionID}`);
+        if (_DEBUG) console.error(`[${_SERVICE}] session.compacted: sessionID=${sessionID}`);
         if (typeof sessionID !== "string") return;
 
         // 1. Persist compaction summary
         try {
           await _persistCompaction(client, sessionID, projectKey);
-          console.error(`[${_SERVICE}] _persistCompaction: OK`);
+          if (_DEBUG) console.error(`[${_SERVICE}] _persistCompaction: OK`);
         } catch (err) {
           console.error(`[${_SERVICE}] _persistCompaction FAILED: ${err}`);
           try {
@@ -699,7 +700,7 @@ export const PersistencePlugin: Plugin = async ({
         // 2. Refresh AGENTS.md with fresh graph data (includes persisted summary)
         try {
           const wrote = await _refreshAgentsMd();
-          console.error(`[${_SERVICE}] post-compaction _refreshAgentsMd: ${wrote ? "WROTE" : "SKIPPED"}`);
+          if (_DEBUG) console.error(`[${_SERVICE}] post-compaction _refreshAgentsMd: ${wrote ? "WROTE" : "SKIPPED"}`);
         } catch (err) {
           console.error(`[${_SERVICE}] post-compaction _refreshAgentsMd FAILED: ${err}`);
           await client.app.log({

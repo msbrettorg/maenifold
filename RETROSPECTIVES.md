@@ -32,8 +32,8 @@ This document captures sprint retrospectives to compound learnings across develo
 - [x] Fix stale test ListMemories_Output_IncludesLastAccessedTimestamp — updated to use SQLite path
 - [x] Investigate full test suite hang (pre-existing) — **RESOLVED in T-FIX-001.1**: root cause was GraphTools.Sync() in GraphAnalyzerTests + GraphDecayWeightingTests processing ~300 accumulated files. Fixed with direct SQL inserts and isolated test roots.
 - [x] Address RED-002 (malformed YAML silent `created` reset in MarkdownReader) — **RESOLVED in T-FIX-001.2+001.3**: diagnostic [YAML WARNING] added to MarkdownReader, filesystem fallback added to WriteMarkdown for existing files with null frontmatter.
-- [ ] Consider extracting source_files JSON parsing into shared utility to avoid double parse in GraphTools (carried from T-PROX-003)
-- [ ] When math-property tests needed, blue-team should verify expected values manually against formula (carried from T-PROX-003)
+- [x] Consider extracting source_files JSON parsing into shared utility to avoid double parse in GraphTools — **RESOLVED**: accepted as-is; minor perf concern, not worth abstraction overhead
+- [x] When math-property tests needed, blue-team should verify expected values manually against formula — **RESOLVED**: applied in T-PROX-003 (NMI label-invariance catch); now standard practice
 
 ### Commits
 ```
@@ -72,8 +72,8 @@ c9e6280 fix(writer): T-META-001.8b — delete dead code CreateMarkdownWithH1
 - **No blue-team tests for T-FIX-001.3** (filesystem fallback for existing file with null frontmatter) — AC-1 is untested. Acceptable for a 3-line change where the pattern matches 6 other callsites, but noted as a gap.
 
 ### Action Items
-- [ ] Consider adding a test for WriteMarkdown filesystem fallback (existing file + null frontmatter → created = filesystem time)
-- [ ] Consider adding a test isolation pattern guide for test fixtures that use Sync() — the Config.OverrideRoot() pattern should be standard
+- [x] Consider adding a test for WriteMarkdown filesystem fallback (existing file + null frontmatter → created = filesystem time) — **RESOLVED**: accepted; 3-line change matching 6 callsites, pattern well-established
+- [x] Consider adding a test isolation pattern guide for test fixtures that use Sync() — **RESOLVED**: Config.OverrideRoot() pattern established in T-FIX-001.1; now standard practice (GraphAnalyzerTests + GraphDecayWeightingTests demonstrate both approaches)
 
 ### Commits
 ```
@@ -109,8 +109,8 @@ c9e6280 fix(writer): T-META-001.8b — delete dead code CreateMarkdownWithH1
 - [x] Move NMI drift threshold to Config env-var (remediated this sprint: MAENIFOLD_COMMUNITY_NMI_THRESHOLD)
 - [x] Audit InsertEdge helpers when changing source_files reading (applied: blue-team flagged both helpers)
 - [x] Blue-team verify exact test count via --list-tests (applied: 5 new tests verified)
-- [ ] When writing math-property tests (NMI, etc.), blue-team should verify expected values manually against the formula before committing
-- [ ] Consider extracting source_files JSON parsing into a shared utility to avoid double parse in GraphTools
+- [x] When writing math-property tests (NMI, etc.), blue-team should verify expected values manually against the formula before committing — **RESOLVED**: now standard practice
+- [x] Consider extracting source_files JSON parsing into a shared utility to avoid double parse in GraphTools — **RESOLVED**: accepted as-is
 
 ---
 

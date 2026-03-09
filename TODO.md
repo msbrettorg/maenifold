@@ -219,4 +219,16 @@ Change `WikiLinkFilter` in `markdown.rs` to read `.wikilink-filter.json` (JSON o
 ### T-10.17: Remove asset catalog cross-repo masking | RTM: FR-20
 Remove or gate `preferred_catalog_assets_root()` in `assets.rs` so it never falls through to a sibling C# repo's `src/assets/`. The function at line 578 hardcodes `../maenifold/src/assets` — this masks missing Rust assets during testing. Either remove the function entirely and always use the Rust repo's own `assets/` path, or gate it behind an explicit env var like `MAENIFOLD_CATALOG_OVERRIDE`. Update any callers.
 - **Files**: `crates/maenifold-core/src/assets.rs`
+- **Status**: done
+
+### Pre-existing failures (not Sprint 10 regressions)
+
+### T-10.18: Fix pre-existing MCP stdio test failures | RTM: NFR-3
+6 tests in `crates/maenifold-cli/tests/mcp_tests.rs` fail with `connection closed: initialized request`. Verified pre-existing via git bisect to before Sprint 10. Root cause: MCP stdio handshake protocol mismatch between test harness and rmcp-based server.
+- **Files**: `crates/maenifold-cli/tests/mcp_tests.rs`, `crates/maenifold-core/src/mcp.rs`
+- **Status**: pending
+
+### T-10.19: Fix pre-existing oracle parity test failures | RTM: NFR-1
+12 tests across `tests/compat/` fail against C# oracle. Verified pre-existing. Failures: read_memory_not_found, write_memory_validation_error, write_memory_path_security_error, read_catalog_json, build_context_json, search_memories_json, sequential_thinking_requires_zero, assumption_ledger_append, workflow_json, extract_concepts, find_similar_concepts, sync_json.
+- **Files**: `tests/compat/*.rs`
 - **Status**: pending

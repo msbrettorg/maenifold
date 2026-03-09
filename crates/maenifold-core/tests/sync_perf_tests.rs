@@ -71,10 +71,10 @@ struct AbandonmentEnvGuard {
 
 impl AbandonmentEnvGuard {
     fn set(minutes: &str) -> Self {
-        let previous = std::env::var("MAENIFOLD_SESSION_ABANDONMENT_MINUTES").ok();
+        let previous = std::env::var("MAENIFOLD_SESSION_ABANDON_MINUTES").ok();
         // SAFETY: tests in this file serialize access with TEST_MUTEX.
         unsafe {
-            std::env::set_var("MAENIFOLD_SESSION_ABANDONMENT_MINUTES", minutes);
+            std::env::set_var("MAENIFOLD_SESSION_ABANDON_MINUTES", minutes);
         }
         Self { previous }
     }
@@ -85,12 +85,12 @@ impl Drop for AbandonmentEnvGuard {
         if let Some(value) = &self.previous {
             // SAFETY: tests in this file serialize access with TEST_MUTEX.
             unsafe {
-                std::env::set_var("MAENIFOLD_SESSION_ABANDONMENT_MINUTES", value);
+                std::env::set_var("MAENIFOLD_SESSION_ABANDON_MINUTES", value);
             }
         } else {
             // SAFETY: tests in this file serialize access with TEST_MUTEX.
             unsafe {
-                std::env::remove_var("MAENIFOLD_SESSION_ABANDONMENT_MINUTES");
+                std::env::remove_var("MAENIFOLD_SESSION_ABANDON_MINUTES");
             }
         }
     }

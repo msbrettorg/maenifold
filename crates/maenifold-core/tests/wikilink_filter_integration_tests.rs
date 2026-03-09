@@ -26,7 +26,7 @@ impl TestEnv {
     }
 
     fn filter_path(&self) -> PathBuf {
-        self.cfg.memory_path.join(".wikilink-filter")
+        self.cfg.memory_path.join(".wikilink-filter.json")
     }
 
     fn test_folder_path(&self) -> PathBuf {
@@ -57,10 +57,14 @@ fn isolated_env() -> TestEnv {
 }
 
 fn write_filter_file(env: &TestEnv) {
-    // T-2.4: RTM FR-11.1 / FR-11.2 seed the Rust line-based WikiLink filter for integration coverage.
+    // T-10.16: RTM FR-19 / RTM-102 / RTM-103 / RTM-104 seeds the shared-root JSON WikiLink filter for integration coverage.
     fs::write(
         env.filter_path(),
-        "tool | Generic hub - too connected\nagent | Generic hub - too connected\n",
+        json!({
+            "tool": "Generic hub - too connected",
+            "agent": "Generic hub - too connected"
+        })
+        .to_string(),
     )
     .expect("write wikilink filter");
 }

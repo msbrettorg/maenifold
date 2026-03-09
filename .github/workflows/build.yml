@@ -42,5 +42,6 @@ jobs:
       - name: Build
         run: cargo build --workspace
 
+      # T-10.8: RTM FR-14 (RTM-080)
       - name: Test
-        run: cargo test -p maenifold-core -p maenifold-cli
+        run: cargo test

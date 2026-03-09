@@ -41,10 +41,7 @@ impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
         // T-5.1: RTM FR-22.1 — server info returned during MCP initialize handshake.
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-            .with_server_info(Implementation::new(
-                "maenifold",
-                env!("CARGO_PKG_VERSION"),
-            ))
+            .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
             .with_instructions(
                 "Use maenifold tools to read, write, search, and organize memory files, \
                  inspect graph relationships, and run workflow or thinking sessions. \

@@ -423,7 +423,8 @@ pub fn assumption_ledger(context: &ToolContext, payload: &Value) -> Result<Strin
 }
 
 pub fn cleanup_abandoned_sessions(config: &Config) -> Result<usize> {
-    let abandonment_minutes = std::env::var("MAENIFOLD_SESSION_ABANDONMENT_MINUTES")
+    // T-10.9: RTM FR-15
+    let abandonment_minutes = std::env::var("MAENIFOLD_SESSION_ABANDON_MINUTES")
         .ok()
         .and_then(|value| value.trim().parse::<i64>().ok())
         .filter(|value| *value > 0)

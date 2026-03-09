@@ -10,7 +10,7 @@ This file captures the current state of the Rust reimplementation of `maenifold`
 - Current parity status: the active Rust parity suite is green against the C# oracle for memory, search/graph, session/workflow, and the current vector/watcher slice.
 
 ## implemented tool surface
-The following registered tools are implemented and covered by tests/parity checks:
+All 28 registered tools now resolve to real handlers. The implemented tool surface is:
 - `WriteMemory`
 - `ReadMemory`
 - `EditMemory`
@@ -23,28 +23,27 @@ The following registered tools are implemented and covered by tests/parity check
 - `Visualize`
 - `SequentialThinking`
 - `Workflow`
-- `AssumptionLedger`
-- `FindSimilarConcepts`
-- `StartWatcher`
-- `StopWatcher`
+- `RecentActivity`
+- `MemoryStatus`
+- `GetConfig`
 - `GetHelp`
 - `ListMemories`
-- `ListAssets`
-- `ReadMcpResource`
-- `GetConfig`
-- `MemoryStatus`
-
-## still placeholder / not fully implemented
-These registry entries still route to placeholders and are the main remaining product gaps:
-- `RecentActivity`
 - `UpdateAssets`
 - `RepairConcepts`
 - `AnalyzeConceptCorruption`
+- `FindSimilarConcepts`
+- `StartWatcher`
+- `StopWatcher`
 - `RunFullBenchmark`
 - `Adopt`
+- `AssumptionLedger`
+- `ListAssets`
+- `ReadMcpResource`
 
-Also still incomplete:
-- MCP stdio server parity is not complete; direct CLI mode is the main working surface.
+Remaining parity gaps are now outside the registry implementation itself:
+- MCP resource parity is not complete; direct CLI mode is still the main working surface.
+- Oracle parity tests are still missing for `Adopt`, `AnalyzeConceptCorruption`, `UpdateAssets`, `RecentActivity`, `RunFullBenchmark`, and `RepairConcepts`.
+- Workflow asset parity is not complete; Rust currently ships 41 workflow JSON files versus 69 in the C# oracle.
 
 ## important compatibility fixes already made
 ### shared storage / db
@@ -148,25 +147,6 @@ Recommended cadence:
 ### oracle policy
 Use the C# repo to define contracts, fixtures, and parity tests, but do not invoke it on every tiny iteration.
 
-## best next work items
-Highest-value remaining surfaces:
-1. `RecentActivity`
-2. `UpdateAssets`
-3. `Adopt`
-4. `RunFullBenchmark`
-5. `RepairConcepts`
-6. `AnalyzeConceptCorruption`
-7. fuller MCP stdio parity
-
-## suggested parallel split for next session
-If using multiple agents, best disjoint ownership is:
-- agent 1: `RecentActivity`
-- agent 2: `UpdateAssets` + `Adopt`
-- agent 3: `RunFullBenchmark`
-- agent 4: `RepairConcepts` + `AnalyzeConceptCorruption`
-- agent 5: MCP stdio parity
-- agent 6: oracle fixture generation / compat harness only
-
 ## known practical notes
 - `vec0` native libraries exist under `assets/native/...`
 - model assets exist under `assets/models/...`
@@ -174,4 +154,4 @@ If using multiple agents, best disjoint ownership is:
 - direct CLI mode is the most reliable validation surface right now
 
 ## definition of done not yet reached
-This repo is in a strong intermediate state, but it is **not** yet at full product parity with the C# implementation because several public tools remain placeholders and MCP parity is still incomplete.
+This repo is in a strong intermediate state, but it is **not** yet at full product parity with the C# implementation because MCP resource parity is still incomplete, oracle parity tests are still missing for the six newly implemented tools, and workflow asset parity is still short of the full C# set.

@@ -41,11 +41,11 @@ struct SessionCleanupEnvGuard {
 
 impl SessionCleanupEnvGuard {
     fn set_abandonment_minutes(value: &str) -> Self {
-        let previous = std::env::var("MAENIFOLD_SESSION_ABANDONMENT_MINUTES").ok();
+        let previous = std::env::var("MAENIFOLD_SESSION_ABANDON_MINUTES").ok();
         // SAFETY: tests in this file hold TEST_MUTEX for their full duration,
         // so this process-wide environment mutation is serialized.
         unsafe {
-            std::env::set_var("MAENIFOLD_SESSION_ABANDONMENT_MINUTES", value);
+            std::env::set_var("MAENIFOLD_SESSION_ABANDON_MINUTES", value);
         }
         Self { previous }
     }
@@ -57,13 +57,13 @@ impl Drop for SessionCleanupEnvGuard {
             // SAFETY: tests in this file hold TEST_MUTEX for their full duration,
             // so this process-wide environment mutation is serialized.
             unsafe {
-                std::env::set_var("MAENIFOLD_SESSION_ABANDONMENT_MINUTES", value);
+                std::env::set_var("MAENIFOLD_SESSION_ABANDON_MINUTES", value);
             }
         } else {
             // SAFETY: tests in this file hold TEST_MUTEX for their full duration,
             // so this process-wide environment mutation is serialized.
             unsafe {
-                std::env::remove_var("MAENIFOLD_SESSION_ABANDONMENT_MINUTES");
+                std::env::remove_var("MAENIFOLD_SESSION_ABANDON_MINUTES");
             }
         }
     }

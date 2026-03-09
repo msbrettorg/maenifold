@@ -189,7 +189,10 @@ fn t9_6_no_model_generate_embedding_returns_err_and_dimensions_none() {
 
     let result = vector::generate_embedding("hello world");
 
-    assert!(result.is_err(), "missing model should return Err, not panic");
+    assert!(
+        result.is_err(),
+        "missing model should return Err, not panic"
+    );
     assert_eq!(vector::embedding_dimensions(), None);
     assert_eq!(vector::model_filename(), None);
 }

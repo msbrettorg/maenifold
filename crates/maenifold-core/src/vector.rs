@@ -348,12 +348,7 @@ fn discover_model(models_dir: &Path) -> Option<PathBuf> {
         })
         .collect::<Vec<_>>();
 
-    candidates.sort_by(|left, right| {
-        right
-            .0
-            .cmp(&left.0)
-            .then_with(|| left.1.cmp(&right.1))
-    });
+    candidates.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
     candidates.into_iter().next().map(|(_, path)| path)
 }
 
@@ -461,10 +456,22 @@ fn build_manual_tokenizer(vocab_path: &Path, config: &BertTokenizerConfig) -> Re
         ));
     }
 
-    let pad_token = config.pad_token.clone().unwrap_or_else(|| "[PAD]".to_string());
-    let unk_token = config.unk_token.clone().unwrap_or_else(|| "[UNK]".to_string());
-    let cls_token = config.cls_token.clone().unwrap_or_else(|| "[CLS]".to_string());
-    let sep_token = config.sep_token.clone().unwrap_or_else(|| "[SEP]".to_string());
+    let pad_token = config
+        .pad_token
+        .clone()
+        .unwrap_or_else(|| "[PAD]".to_string());
+    let unk_token = config
+        .unk_token
+        .clone()
+        .unwrap_or_else(|| "[UNK]".to_string());
+    let cls_token = config
+        .cls_token
+        .clone()
+        .unwrap_or_else(|| "[CLS]".to_string());
+    let sep_token = config
+        .sep_token
+        .clone()
+        .unwrap_or_else(|| "[SEP]".to_string());
     let mask_token = config
         .mask_token
         .clone()
@@ -643,7 +650,12 @@ fn select_best_session_output(outputs: &[ort::value::Outlet]) -> Result<SessionO
     let mut candidates = outputs
         .iter()
         .filter_map(|output| {
-            let dims = output.dtype().tensor_shape()?.iter().copied().collect::<Vec<_>>();
+            let dims = output
+                .dtype()
+                .tensor_shape()?
+                .iter()
+                .copied()
+                .collect::<Vec<_>>();
             Some(SessionOutputCandidate {
                 name: output.name().to_string(),
                 dims,
@@ -666,15 +678,24 @@ fn select_best_session_output(outputs: &[ort::value::Outlet]) -> Result<SessionO
         }
     }
 
-    if let Some(candidate) = candidates.iter().find(|candidate| candidate.dims.len() == 2) {
+    if let Some(candidate) = candidates
+        .iter()
+        .find(|candidate| candidate.dims.len() == 2)
+    {
         return Ok(candidate.clone());
     }
 
-    if let Some(candidate) = candidates.iter().find(|candidate| candidate.dims.len() == 1) {
+    if let Some(candidate) = candidates
+        .iter()
+        .find(|candidate| candidate.dims.len() == 1)
+    {
         return Ok(candidate.clone());
     }
 
-    if let Some(candidate) = candidates.iter().find(|candidate| candidate.dims.len() == 3) {
+    if let Some(candidate) = candidates
+        .iter()
+        .find(|candidate| candidate.dims.len() == 3)
+    {
         return Ok(candidate.clone());
     }
 

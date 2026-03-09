@@ -15,9 +15,10 @@ const MODEL_METADATA_TABLE_SQL: &str = r#"
 
 // T-0.3f: RTM-047
 pub fn open_connection(path: &Path) -> Result<Connection> {
+    // T-10.9: RTM FR-15
     let conn = Connection::open(path)?;
     conn.busy_timeout(std::time::Duration::from_millis(
-        Config::SQLITE_BUSY_TIMEOUT_MS,
+        Config::current().sqlite_busy_timeout_ms(),
     ))?;
     Ok(conn)
 }
@@ -240,8 +241,8 @@ pub fn ensure_vec0_tables(conn: &Connection) -> Result<()> {
         .and_then(|value| value.parse::<usize>().ok());
     let vec_concepts_dims = vec0_table_dimensions(conn, "vec_concepts");
     let vec_memory_files_dims = vec0_table_dimensions(conn, "vec_memory_files");
-    let schema_matches = vec_concepts_dims == Some(current_dims)
-        && vec_memory_files_dims == Some(current_dims);
+    let schema_matches =
+        vec_concepts_dims == Some(current_dims) && vec_memory_files_dims == Some(current_dims);
 
     if stored_dims != Some(current_dims) || !schema_matches {
         if recreate_vec0_tables(conn, current_dims).is_err() {

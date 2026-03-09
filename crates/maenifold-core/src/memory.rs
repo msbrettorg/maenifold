@@ -1221,7 +1221,7 @@ fn render_filtered_wikilinks_error(
         }))
         .expect("filtered wikilinks json serialization"),
         OutputFormat::Markdown => format!(
-            "ERROR: Content contains filtered WikiLinks that are blocked:\n{}\n\nRemove these WikiLinks or update .wikilink-filter to allow them.",
+            "ERROR: Content contains filtered WikiLinks that are blocked:\n{}\n\nRemove these WikiLinks or update .wikilink-filter.json to allow them.",
             blocked
                 .iter()
                 .map(|(concept, reason)| format!("- [[{concept}]]: {reason}"))

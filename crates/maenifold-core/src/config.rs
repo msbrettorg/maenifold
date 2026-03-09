@@ -24,8 +24,6 @@ pub struct Config {
 }
 
 impl Config {
-    pub const SQLITE_BUSY_TIMEOUT_MS: u64 = 5_000;
-
     pub fn current() -> Self {
         let overrides = OVERRIDES.read().clone();
         let home = env::var_os("HOME")
@@ -105,10 +103,49 @@ impl Config {
         env_string("MAENIFOLD_DECAY_FUNCTION", "power-law")
     }
 
-    pub fn enable_incremental_sync(&self) -> bool {
-        env::var("MAENIFOLD_ENABLE_INCREMENTAL_SYNC")
-            .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
-            .unwrap_or(true)
+    // T-10.9: RTM FR-15
+    pub fn enable_auto_sync(&self) -> bool {
+        env_bool("MAENIFOLD_AUTO_SYNC", true)
+    }
+
+    // T-10.9: RTM FR-15
+    pub fn incremental_optimize_every(&self) -> u32 {
+        env_u32("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY", 40).max(1)
+    }
+
+    // T-10.9: RTM FR-15
+    pub fn incremental_vacuum_minutes(&self) -> u32 {
+        env_u32("MAENIFOLD_INCREMENTAL_VACUUM_MINUTES", 720)
+    }
+
+    // T-10.9: RTM FR-15
+    pub fn enable_session_cleanup(&self) -> bool {
+        env_bool("MAENIFOLD_SESSION_CLEANUP", true)
+    }
+
+    // T-10.9: RTM FR-15
+    pub fn enable_sync_logging(&self) -> bool {
+        env_bool("MAENIFOLD_SYNC_LOGGING", true)
+    }
+
+    // T-10.9: RTM FR-15
+    pub fn watcher_buffer_size(&self) -> usize {
+        env_usize("MAENIFOLD_WATCHER_BUFFER", 65_536)
+    }
+
+    // T-10.9: RTM FR-15
+    pub fn sqlite_busy_timeout_ms(&self) -> u64 {
+        env_u64("MAENIFOLD_SQLITE_BUSY_TIMEOUT", 5_000)
+    }
+
+    // T-10.9: RTM FR-15
+    pub fn enable_embedding_logs(&self) -> bool {
+        env_bool("MAENIFOLD_EMBEDDING_LOGS", false)
+    }
+
+    // T-10.9: RTM FR-15
+    pub fn enable_vector_logs(&self) -> bool {
+        env_bool("MAENIFOLD_VECTOR_LOGS", false)
     }
 }
 
@@ -125,4 +162,32 @@ fn env_string(name: &str, default: &str) -> String {
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| default.to_string())
+}
+
+fn env_u32(name: &str, default: u32) -> u32 {
+    env::var(name)
+        .ok()
+        .and_then(|value| value.trim().parse::<u32>().ok())
+        .unwrap_or(default)
+}
+
+fn env_u64(name: &str, default: u64) -> u64 {
+    env::var(name)
+        .ok()
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .unwrap_or(default)
+}
+
+fn env_usize(name: &str, default: usize) -> usize {
+    env::var(name)
+        .ok()
+        .and_then(|value| value.trim().parse::<usize>().ok())
+        .unwrap_or(default)
+}
+
+fn env_bool(name: &str, default: bool) -> bool {
+    env::var(name)
+        .ok()
+        .map(|value| value.trim().eq_ignore_ascii_case("true") || value.trim() == "1")
+        .unwrap_or(default)
 }

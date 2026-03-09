@@ -22,7 +22,7 @@ struct CachedWikiLinkFilter {
     blocked: BTreeMap<String, String>,
 }
 
-// T-2.4: RTM FR-11.1 / NFR-11.1.2 keeps `.wikilink-filter` reads behind an mtime cache.
+// T-10.16: RTM FR-19 / RTM-102 / RTM-103 / RTM-104 keeps `.wikilink-filter.json` reads behind an mtime cache.
 static WIKILINK_FILTER_CACHE: Lazy<Mutex<BTreeMap<PathBuf, CachedWikiLinkFilter>>> =
     Lazy::new(|| Mutex::new(BTreeMap::new()));
 
@@ -34,7 +34,8 @@ pub struct WikiLinkFilter {
 impl WikiLinkFilter {
     pub fn new(memory_path: &Path) -> Self {
         Self {
-            filter_path: memory_path.join(".wikilink-filter"),
+            // T-10.16: RTM FR-19 / RTM-102 / RTM-104 matches C#'s shared-root `.wikilink-filter.json` path.
+            filter_path: memory_path.join(".wikilink-filter.json"),
         }
     }
 
@@ -78,7 +79,7 @@ impl WikiLinkFilter {
     }
 
     fn load_blocked_concepts(&self) -> Result<BTreeMap<String, String>> {
-        // T-2.6: RTM FR-11.1 rejects symlinked `.wikilink-filter` files so policy stays rooted in memory.
+        // T-10.16: RTM FR-19 / RTM-102 / RTM-104 rejects symlinked `.wikilink-filter.json` files so policy stays rooted in memory.
         let metadata = match fs::symlink_metadata(&self.filter_path) {
             Ok(metadata) => metadata,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
@@ -99,11 +100,23 @@ impl WikiLinkFilter {
             return Ok(cached.blocked);
         }
 
-        // T-2.4: RTM FR-11.1 / NFR-11.1.2 parses the dotfile only when mtime changes.
-        let blocked = fs::read_to_string(&self.filter_path)?
-            .lines()
-            .filter_map(parse_wikilink_filter_line)
-            .collect::<BTreeMap<_, _>>();
+        // T-10.16: RTM FR-19 / RTM-102 / RTM-103 parses the JSON dotfile only when mtime changes.
+        let blocked = serde_json::from_str::<BTreeMap<String, String>>(&fs::read_to_string(
+            &self.filter_path,
+        )?)?
+        .into_iter()
+        .filter_map(|(concept, reason)| {
+            let normalized = normalize_concept(&concept);
+            if normalized.is_empty() {
+                eprintln!(
+                    "Warning: skipping empty concept in .wikilink-filter.json entry: {concept}"
+                );
+                return None;
+            }
+
+            Some((normalized, reason))
+        })
+        .collect::<BTreeMap<_, _>>();
 
         WIKILINK_FILTER_CACHE.lock().insert(
             self.filter_path.clone(),
@@ -115,26 +128,6 @@ impl WikiLinkFilter {
 
         Ok(blocked)
     }
-}
-
-fn parse_wikilink_filter_line(line: &str) -> Option<(String, String)> {
-    let trimmed = line.trim();
-    if trimmed.is_empty() || trimmed.starts_with('#') {
-        return None;
-    }
-
-    // T-2.6: RTM FR-11.1 fails closed for malformed filter entries by treating the whole line as the concept.
-    let (concept, reason) = trimmed
-        .split_once('|')
-        .map_or((trimmed, ""), |(concept, reason)| (concept, reason));
-    let normalized = normalize_concept(concept);
-    if normalized.is_empty() {
-        // T-2.6: RTM FR-11.1 skips empty normalized concepts instead of inserting an invalid deny rule.
-        eprintln!("Warning: skipping empty concept in .wikilink-filter line: {trimmed}");
-        return None;
-    }
-
-    Some((normalized, reason.trim().to_string()))
 }
 
 pub fn validate_uri(uri: &str, param_name: &str) -> Result<()> {
@@ -689,8 +682,8 @@ mod tests {
     fn wikilink_filter_blocks_normalized_concepts_with_reasons() {
         let tmp = TempDir::new().expect("tmp");
         std::fs::write(
-            tmp.path().join(".wikilink-filter"),
-            "# comment\nagent | Too generic - hub concept\nsystem | Also blocked\n",
+            tmp.path().join(".wikilink-filter.json"),
+            r#"{"agent":"Too generic - hub concept","system":"Also blocked"}"#,
         )
         .expect("write filter");
 
@@ -707,24 +700,25 @@ mod tests {
     }
 
     #[test]
-    fn wikilink_filter_treats_malformed_lines_as_empty_reason_entries() {
+    fn wikilink_filter_returns_error_for_invalid_json_in_try_check() {
         let tmp = TempDir::new().expect("tmp");
-        std::fs::write(tmp.path().join(".wikilink-filter"), "agent\n").expect("write filter");
+        std::fs::write(
+            tmp.path().join(".wikilink-filter.json"),
+            "not valid json {{{",
+        )
+        .expect("write filter");
 
         let result = WikiLinkFilter::new(tmp.path()).try_check("Testing [[agent]] in one note");
 
-        assert_eq!(
-            result.expect("filter read"),
-            Err(vec![("agent".to_string(), String::new())])
-        );
+        assert!(result.is_err(), "invalid JSON should error: {result:?}");
     }
 
     #[test]
     fn wikilink_filter_skips_empty_normalized_concepts() {
         let tmp = TempDir::new().expect("tmp");
         std::fs::write(
-            tmp.path().join(".wikilink-filter"),
-            "   | missing concept\nagent | blocked\n",
+            tmp.path().join(".wikilink-filter.json"),
+            r#"{"   ":"missing concept","agent":"blocked"}"#,
         )
         .expect("write filter");
 
@@ -741,8 +735,9 @@ mod tests {
     fn wikilink_filter_ignores_symlinked_filter_files() {
         let tmp = TempDir::new().expect("tmp");
         let external = tmp.path().join("external-filter");
-        std::fs::write(&external, "agent | blocked\n").expect("write external filter");
-        unix_fs::symlink(&external, tmp.path().join(".wikilink-filter")).expect("create symlink");
+        std::fs::write(&external, r#"{"agent":"blocked"}"#).expect("write external filter");
+        unix_fs::symlink(&external, tmp.path().join(".wikilink-filter.json"))
+            .expect("create symlink");
 
         let result = WikiLinkFilter::new(tmp.path()).try_check("Testing [[agent]] in one note");
 

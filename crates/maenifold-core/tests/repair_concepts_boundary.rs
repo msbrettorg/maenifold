@@ -2,6 +2,7 @@ use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, Config, ToolRegistry, db};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
+use rusqlite::params;
 use serde_json::{Value, json};
 use std::fs;
 use tempfile::TempDir;
@@ -43,6 +44,37 @@ fn write_memory_fixture(cfg: &Config, relative_path: &str, content: &str) {
 
 fn read_memory_fixture(cfg: &Config, relative_path: &str) -> String {
     fs::read_to_string(cfg.memory_path.join(relative_path)).expect("read memory fixture")
+}
+
+// T-10.10: RTM FR-17
+fn ensure_regular_vec_concepts_table(cfg: &Config) {
+    let connection = db::open_connection(&cfg.database_path).expect("open db");
+    connection
+        .execute_batch(
+            r#"
+            DROP TABLE IF EXISTS vec_concepts;
+            CREATE TABLE vec_concepts (
+                concept_name TEXT PRIMARY KEY,
+                embedding BLOB
+            );
+            "#,
+        )
+        .expect("create vec_concepts table");
+}
+
+// T-10.10: RTM FR-17
+fn insert_blob_embedding(cfg: &Config, concept_name: &str, embedding: &[f32]) {
+    let connection = db::open_connection(&cfg.database_path).expect("open db");
+    let bytes: Vec<u8> = embedding
+        .iter()
+        .flat_map(|value| value.to_le_bytes())
+        .collect();
+    connection
+        .execute(
+            "INSERT OR REPLACE INTO vec_concepts (concept_name, embedding) VALUES (?1, ?2)",
+            params![concept_name, bytes],
+        )
+        .expect("insert blob embedding");
 }
 
 fn invoke_repair_concepts(payload: Value) -> String {
@@ -163,9 +195,9 @@ fn repair_concepts_mode_a_replaces_wikilink_variants_on_disk() {
     );
 }
 
-// T-3.3: RTM FR-6 (RTM-039 / TC-6.2)
+// T-10.10: RTM FR-17 / RTM-094
 #[test]
-fn repair_concepts_mode_b_wraps_plain_text_or_reports_stub() {
+fn repair_concepts_mode_b_wraps_plain_text_mentions_with_canonical_wikilinks() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
@@ -191,21 +223,22 @@ Using tools in prose should become a canonical wikilink.
     }));
 
     let updated = read_memory_fixture(&cfg, path);
-    if output.contains("not yet implemented") {
-        assert!(
-            updated.contains("Using tools in prose"),
-            "stubbed Mode B should not modify files: {updated}"
-        );
-    } else {
-        assert!(
-            updated.contains("[[tool]]"),
-            "Mode B should create canonical wikilinks: {updated}"
-        );
-        assert!(
-            !updated.contains("Using tools in prose"),
-            "plain-text variant should be wrapped or replaced: {updated}"
-        );
-    }
+    assert!(
+        output.contains("✓ Modified: repair/mode-b-wrap.md"),
+        "Mode B should report the modified file: {output}"
+    );
+    assert!(
+        output.contains("Total replacements: 1"),
+        "Mode B should report one replacement for the plain-text mention: {output}"
+    );
+    assert!(
+        updated.contains("Using [[tool]] in prose should become a canonical wikilink."),
+        "Mode B should wrap the plain-text mention with the canonical wikilink: {updated}"
+    );
+    assert!(
+        !updated.contains("Using tools in prose should become a canonical wikilink."),
+        "the original plain-text variant should no longer remain in prose: {updated}"
+    );
 }
 
 // T-3.3: RTM FR-6 (RTM-040 / TC-6.3)
@@ -272,13 +305,16 @@ fn repair_concepts_folder_parameter_restricts_scanning() {
     );
 }
 
-// T-3.3: RTM FR-6 (RTM-042 / TC-6.5)
+// T-10.10: RTM FR-17 / RTM-095
 #[test]
-fn repair_concepts_semantic_validation_blocks_low_similarity_or_gracefully_stubs() {
+fn repair_concepts_semantic_validation_blocks_low_similarity() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
     write_memory_fixture(&cfg, "repair/semantic-block.md", REPAIR_FIXTURE);
+    ensure_regular_vec_concepts_table(&cfg);
+    insert_blob_embedding(&cfg, "banana", &vec![1.0; 384]);
+    insert_blob_embedding(&cfg, "tools", &vec![-1.0; 384]);
 
     let result = ToolRegistry::global().try_invoke(
         "RepairConcepts",
@@ -291,27 +327,25 @@ fn repair_concepts_semantic_validation_blocks_low_similarity_or_gracefully_stubs
         OutputFormat::Markdown,
     );
 
-    match result {
-        Ok(output) => {
-            assert!(
-                output.contains("Scanning") || output.contains("SUMMARY"),
-                "stubbed semantic validation should still return a repair summary: {output}"
-            );
-            let unchanged = read_memory_fixture(&cfg, "repair/semantic-block.md");
-            assert!(
-                unchanged.contains("[[tools]]"),
-                "dry-run/stub path should keep content unchanged: {unchanged}"
-            );
-        }
-        Err(error) => assert!(
-            error.to_string().to_ascii_lowercase().contains("semantic")
-                || error
-                    .to_string()
-                    .to_ascii_lowercase()
-                    .contains("similarity"),
-            "unexpected semantic-validation error: {error}"
-        ),
-    }
+    let error = result.expect_err("low similarity should block RepairConcepts");
+    let message = error.to_string();
+    assert!(
+        message.contains("SEMANTIC VALIDATION"),
+        "semantic blocking should include validation context: {message}"
+    );
+    assert!(
+        message.contains("BLOCKED"),
+        "semantic blocking should explicitly report the operation was blocked: {message}"
+    );
+    assert!(
+        message.contains("tools: similarity -1.00 (threshold: 0.99)"),
+        "semantic blocking should report the failing similarity score: {message}"
+    );
+    let unchanged = read_memory_fixture(&cfg, "repair/semantic-block.md");
+    assert!(
+        unchanged.contains("[[tools]]"),
+        "blocked validation should leave the file unchanged: {unchanged}"
+    );
 }
 
 // T-3.3: RTM FR-6 (RTM-043 / TC-6.6)
@@ -340,9 +374,9 @@ fn repair_concepts_semantic_validation_allows_high_similarity_or_gracefully_degr
     );
 }
 
-// T-3.3: RTM FR-6 (RTM-044 / TC-6.7)
+// T-10.10: RTM FR-17 / RTM-096
 #[test]
-fn repair_concepts_mode_b_skips_code_blocks_and_inline_code_or_reports_stub() {
+fn repair_concepts_mode_b_skips_code_blocks_and_inline_code() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
@@ -374,30 +408,31 @@ tools
     }));
 
     let updated = read_memory_fixture(&cfg, path);
-    if output.contains("not yet implemented") {
-        assert!(
-            updated.contains("Inline code: `tools`"),
-            "stub path should be unchanged: {updated}"
-        );
-    } else {
-        assert!(
-            updated.contains("[[tool]]"),
-            "prose mention should be linked: {updated}"
-        );
-        assert!(
-            updated.contains("`tools`"),
-            "inline code should be preserved: {updated}"
-        );
-        assert!(
-            updated.contains("```text\ntools\n```"),
-            "code block should be preserved: {updated}"
-        );
-    }
+    assert!(
+        output.contains("✓ Modified: repair/mode-b-code.md"),
+        "Mode B should report the modified file: {output}"
+    );
+    assert!(
+        output.contains("Total replacements: 1"),
+        "only the prose mention should be replaced: {output}"
+    );
+    assert!(
+        updated.contains("[[tool]] should be wrapped in prose."),
+        "prose mention should be wrapped with the canonical wikilink: {updated}"
+    );
+    assert!(
+        updated.contains("Inline code: `tools`"),
+        "inline code should be preserved without wikilink creation: {updated}"
+    );
+    assert!(
+        updated.contains("```text\ntools\n```"),
+        "fenced code blocks should be preserved without wikilink creation: {updated}"
+    );
 }
 
-// T-3.3: RTM FR-6 (RTM-045 / TC-6.8)
+// T-10.10: RTM FR-17 / RTM-097
 #[test]
-fn repair_concepts_mode_b_prevents_double_wrapping_or_reports_stub() {
+fn repair_concepts_mode_b_does_not_double_wrap_existing_wikilinks() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
@@ -423,21 +458,27 @@ Existing [[tool]] should stay linked while tools in prose may be added.
     }));
 
     let updated = read_memory_fixture(&cfg, path);
-    if output.contains("not yet implemented") {
-        assert!(
-            updated.contains("Existing [[tool]] should stay linked"),
-            "stub path should leave content unchanged: {updated}"
-        );
-    } else {
-        assert!(
-            !updated.contains("[[[") && !updated.contains("]]]]"),
-            "Mode B should not create nested WikiLinks: {updated}"
-        );
-        assert!(
-            updated.matches("[[tool]]").count() >= 1,
-            "expected canonical link(s) to remain after repair: {updated}"
-        );
-    }
+    assert!(
+        output.contains("✓ Modified: repair/mode-b-double-wrap.md"),
+        "Mode B should report the modified file: {output}"
+    );
+    assert!(
+        output.contains("Total replacements: 1"),
+        "only the plain-text mention should be linked: {output}"
+    );
+    assert!(
+        !updated.contains("[[[") && !updated.contains("]]]]"),
+        "Mode B should not create nested WikiLinks: {updated}"
+    );
+    assert!(
+        updated.matches("[[tool]]").count() == 2,
+        "the existing wikilink should remain single-wrapped and the prose mention should add exactly one new canonical link: {updated}"
+    );
+    assert!(
+        updated
+            .contains("Existing [[tool]] should stay linked while [[tool]] in prose may be added."),
+        "existing wikilinks should remain intact while new plain-text mentions are linked: {updated}"
+    );
 }
 
 // T-3.3: RTM FR-6 (RTM-046 / TC-6.9)

@@ -102,3 +102,70 @@
 - □ RTM-063: release.yml produces linux-x64 binary on v* tag | TC-9.3 | Infrastructure
 - □ RTM-064: release.yml produces win-x64 binary on v* tag | TC-9.4 | Infrastructure
 - □ RTM-065: Release ZIPs include binary + assets/ but exclude *.onnx | TC-9.5 | Infrastructure
+
+---
+
+## Sprint 10 — Port Parity Completion
+
+### FR-10: Workflow Asset Parity (`assets/workflows/`)
+- □ RTM-066: All 69 C# workflow JSONs present in Rust assets/workflows/ | TC-10.1 | Asset
+- □ RTM-067: Workflow tool resolves all 69 workflow IDs without error | TC-10.2 | Boundary+CLI
+
+### FR-11: MCP Resource Parity (`mcp.rs`)
+- □ RTM-068: MCP server capabilities include `resources` | TC-11.1 | MCP
+- □ RTM-069: resources/list returns asset catalogs for all 4 types | TC-11.2 | MCP
+- □ RTM-070: resources/read returns individual asset by URI | TC-11.3 | MCP
+- □ RTM-071: Asset file changes emit notifications/resources/list_changed | TC-11.4 | MCP
+
+### FR-12: MCP Auto-Start Watchers (`cli.rs`)
+- □ RTM-072: --mcp mode auto-starts incremental sync watcher | TC-12.1 | CLI
+- □ RTM-073: --mcp mode auto-starts asset watcher | TC-12.2 | CLI
+
+### FR-13: Oracle Parity Tests (`tests/compat/`)
+- □ RTM-074: Adopt oracle parity test exists and passes | TC-13.1 | Parity
+- □ RTM-075: AnalyzeConceptCorruption oracle parity test exists and passes | TC-13.2 | Parity
+- □ RTM-076: UpdateAssets oracle parity test exists and passes | TC-13.3 | Parity
+- □ RTM-077: RecentActivity oracle parity test exists and passes | TC-13.4 | Parity
+- □ RTM-078: RunFullBenchmark oracle parity test (structure only) exists and passes | TC-13.5 | Parity
+- □ RTM-079: RepairConcepts oracle parity test exists and passes | TC-13.6 | Parity
+
+### FR-14: CI Parity Gate (`.github/workflows/build.yml`)
+- □ RTM-080: build.yml runs `cargo test` at workspace root (not crate-scoped) | TC-14.1 | Infrastructure
+
+### FR-15: Config Env Var Parity (`config.rs`, `watchers.rs`, `search.rs`)
+- □ RTM-081: MAENIFOLD_SESSION_ABANDON_MINUTES (not ABANDONMENT) read correctly | TC-15.1 | Boundary
+- □ RTM-082: MAENIFOLD_AUTO_SYNC (not ENABLE_INCREMENTAL_SYNC) read correctly | TC-15.2 | Boundary
+- □ RTM-083: MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY read with default 40 | TC-15.3 | Boundary
+- □ RTM-084: MAENIFOLD_INCREMENTAL_VACUUM_MINUTES read with default 720 | TC-15.4 | Boundary
+- □ RTM-085: MAENIFOLD_SESSION_CLEANUP read with default true | TC-15.5 | Boundary
+- □ RTM-086: MAENIFOLD_SYNC_LOGGING read with default true | TC-15.6 | Boundary
+- □ RTM-087: MAENIFOLD_WATCHER_BUFFER read with default 65536 | TC-15.7 | Boundary
+- □ RTM-088: MAENIFOLD_SQLITE_BUSY_TIMEOUT read as env var with default 5000 | TC-15.8 | Boundary
+- □ RTM-089: MAENIFOLD_EMBEDDING_LOGS read with default false | TC-15.9 | Boundary
+- □ RTM-090: MAENIFOLD_VECTOR_LOGS read with default false | TC-15.10 | Boundary
+
+### FR-16: Documentation Remediation
+- □ RTM-091: readme.md reflects 28/28 implemented tools | TC-16.1 | Docs
+- □ RTM-092: TODO.md status fields updated for completed items | TC-16.2 | Docs
+- □ RTM-093: docs/DEVELOPMENT.md exists with Rust build/test guide | TC-16.3 | Docs
+
+### FR-17: RepairConcepts Mode B Verification (`repair_concepts_boundary.rs`)
+- □ RTM-094: Mode B plain-text WikiLink creation verified with real assertions | TC-17.1 | Boundary
+- □ RTM-095: Semantic validation blocking verified with real assertions | TC-17.2 | Boundary
+- □ RTM-096: Code-block exclusion verified with real assertions | TC-17.3 | Boundary
+- □ RTM-097: Double-wrap prevention verified with real assertions | TC-17.4 | Boundary
+
+### FR-18: Sprint 9 RTM Coverage Completion
+- □ RTM-098: RTM-052 tokenizer.json preferred over vocab.txt tested | TC-18.1 | Boundary
+- □ RTM-099: RTM-054 max tokens read from config, default 512 tested | TC-18.2 | Boundary
+- □ RTM-100: RTM-058 vec0 tables use runtime dimensions tested | TC-18.3 | Boundary
+- □ RTM-101: RTM-059 vec0 recreation on dimension change tested | TC-18.4 | Boundary
+
+### FR-19: WikiLink Filter Format Parity (`markdown.rs`)
+- □ RTM-102: Rust reads `.wikilink-filter.json` (JSON format) matching C# WikiLinkFilter.cs | TC-19.1 | Boundary
+- □ RTM-103: JSON filter with concept→reason mapping blocks matching WikiLinks | TC-19.2 | Boundary
+- □ RTM-104: Shared root with C#-written .wikilink-filter.json works identically | TC-19.3 | Boundary+Parity
+
+### FR-20: Asset Catalog Isolation (`assets.rs`)
+- □ RTM-105: preferred_catalog_assets_root() does not return sibling C# repo path | TC-20.1 | Boundary
+- □ RTM-106: Missing Rust assets surface as errors, not masked by C# fallback | TC-20.2 | Boundary

@@ -621,7 +621,8 @@ fn render_config_markdown(context: &ToolContext) -> String {
             .and_then(|value| value.parse::<u64>().ok())
             .filter(|value| *value > 0)
             .unwrap_or(150),
-        if context.config.enable_incremental_sync() {
+        // T-10.9: RTM FR-15
+        if context.config.enable_auto_sync() {
             "True"
         } else {
             "False"

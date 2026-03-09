@@ -6,6 +6,7 @@ use crate::tools::ToolContext;
 use serde::Serialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
+use std::env;
 use std::fmt::Display;
 use std::fmt::Write as _;
 use std::fs;
@@ -131,7 +132,11 @@ impl AssetManager {
     }
 
     pub fn catalog(&self) -> Result<AssetCatalog> {
-        let catalog_root = preferred_catalog_assets_root().unwrap_or_else(|| self.root.clone());
+        // T-10.17: RTM FR-20 - default catalog reads from the Rust repo assets path and only
+        // honors a cross-repo oracle root when explicitly opted in for parity testing.
+        let catalog_root = env::var_os("MAENIFOLD_CATALOG_ASSETS_OVERRIDE")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| Config::current().assets_path);
         let workflows = self.load_kind_metadata_from_root(&catalog_root, AssetKind::Workflow)?;
         // T-0.2: RTM NFR-3 - catalog shape mirrors the C# oracle by splitting workflows on `multiAgent`.
         let (multi_agent_workflows, single_agent_workflows): (Vec<_>, Vec<_>) =
@@ -573,19 +578,6 @@ fn asset_files_in_root(root: &Path, kind: AssetKind) -> Result<Vec<PathBuf>> {
     // T-0.2: RTM NFR-3 - C# metadata ordering follows lexicographic file path order.
     files.sort();
     Ok(files)
-}
-
-fn preferred_catalog_assets_root() -> Option<PathBuf> {
-    let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .expect("workspace root");
-    let candidate = workspace_root
-        .parent()?
-        .join("maenifold")
-        .join("src")
-        .join("assets");
-    candidate.is_dir().then_some(candidate)
 }
 
 fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<String> {

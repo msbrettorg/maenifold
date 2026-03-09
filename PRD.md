@@ -75,3 +75,54 @@ Implementation SHALL NOT break any existing passing tests. `cargo test` SHALL re
 
 ### NFR-4: Code Quality
 All code SHALL pass `cargo clippy --workspace --all-targets -- -D warnings` and `cargo fmt --all --check`.
+
+---
+
+## Sprint 10 — Port Parity Completion
+
+### FR-10: Workflow Asset Parity
+The system SHALL ship the same set of workflow JSON files as the C# reference implementation.
+- **Gap**: Rust has 41 workflows; C# has 69. 28 scientific-method-family workflows are absent.
+- **Behavior**: `Workflow` tool SHALL find and execute any workflow available in the C# release.
+
+### FR-11: MCP Resource Parity
+The system SHALL expose native MCP `resources` capability matching the C# server.
+- **resources/list**: Enumerate asset catalogs (workflows, roles, colors, perspectives)
+- **resources/read**: Read individual asset by `asset://{type}/{id}` URI
+- **notifications/resources/list_changed**: Emit when asset files change on disk
+- **Parity**: Match C# `AssetResources.cs` (197 lines) + `AssetWatcherTools.cs` notification path
+
+### FR-12: MCP Auto-Start Watchers
+The `--mcp` CLI mode SHALL auto-start the incremental sync watcher and asset watcher on startup, matching C# `Program.cs` lines 33-41.
+
+### FR-13: Oracle Parity Tests for All Tools
+Every tool in the registry SHALL have oracle-comparison tests in `tests/compat/` verifying output matches the C# binary.
+- **Gap**: Adopt, AnalyzeConceptCorruption, UpdateAssets, RecentActivity, RunFullBenchmark, RepairConcepts have boundary/CLI tests but no oracle comparison tests.
+
+### FR-14: CI Parity Gate
+`build.yml` SHALL run `cargo test` at workspace root (not just `-p maenifold-core -p maenifold-cli`), ensuring oracle parity tests are gated in CI.
+
+### FR-15: Config Env Var Parity
+The system SHALL read all C# configuration environment variables with matching names and defaults.
+- **Naming**: `MAENIFOLD_SESSION_ABANDON_MINUTES` (not `ABANDONMENT`), `MAENIFOLD_AUTO_SYNC` (not `ENABLE_INCREMENTAL_SYNC`)
+- **Missing vars**: `MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY`, `MAENIFOLD_INCREMENTAL_VACUUM_MINUTES`, `MAENIFOLD_SESSION_CLEANUP`, `MAENIFOLD_SYNC_LOGGING`, `MAENIFOLD_EMBEDDING_LOGS`, `MAENIFOLD_VECTOR_LOGS`, `MAENIFOLD_WATCHER_BUFFER`, `MAENIFOLD_SQLITE_BUSY_TIMEOUT` (as runtime env var, not const)
+
+### FR-16: Stale Documentation Remediation
+- `readme.md` SHALL be updated to reflect 28/28 implemented tools and current status
+- `TODO.md` status fields SHALL be updated from `pending` to `done` for completed items
+- A `docs/` directory SHALL exist with at minimum: DEVELOPMENT.md (Rust build/test guide)
+
+### FR-17: RepairConcepts Mode B Verification
+RepairConcepts boundary tests SHALL NOT accept `"not yet implemented"` as a passing condition. Mode B (WikiLink creation), semantic validation, code-block exclusion, and double-wrap prevention SHALL be verified with real assertions.
+
+### FR-18: Sprint 9 RTM Coverage
+Tests SHALL exist for RTM-052 (tokenizer.json preferred), RTM-054 (max tokens default 512), RTM-058 (vec0 runtime dimensions), RTM-059 (vec0 recreation on dimension change).
+
+### FR-19: WikiLink Filter Format Parity
+The system SHALL read `.wikilink-filter.json` (JSON format) matching C# `WikiLinkFilter.cs`, not `.wikilink-filter` (line-based text). A shared `~/maenifold/memory/` root MUST behave identically under both runtimes.
+- **C# format**: `.wikilink-filter.json` — JSON object where keys are concept names and values are block reasons
+- **Rust current**: `.wikilink-filter` — line-based text with `concept|reason` per line
+- **Migration**: Read JSON format as primary. Optionally fall back to line-based format for backward compat, then deprecate.
+
+### FR-20: Asset Catalog Isolation
+`preferred_catalog_assets_root()` in `assets.rs` SHALL NOT fall through to a sibling C# repo's assets. The function either returns the Rust repo's own assets or `None`. Cross-repo masking during development/testing must be eliminated so missing Rust assets surface as real errors.

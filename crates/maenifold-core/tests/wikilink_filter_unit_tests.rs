@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use tempfile::TempDir;
 
-// T-2.4: RTM FR-11.1 ports C# WikiLinkFilter unit coverage to Rust's line-based dotfile filter.
+// T-10.16: RTM FR-19 / RTM-102 / RTM-103 / RTM-104 ports C# WikiLinkFilter unit coverage to Rust's JSON dotfile filter.
 fn check_filter(
     filter_contents: Option<&str>,
     content: &str,
@@ -11,7 +11,7 @@ fn check_filter(
     let tmp = TempDir::new().expect("tmp");
 
     if let Some(filter_contents) = filter_contents {
-        fs::write(tmp.path().join(".wikilink-filter"), filter_contents).expect("write filter");
+        fs::write(tmp.path().join(".wikilink-filter.json"), filter_contents).expect("write filter");
     }
 
     WikiLinkFilter::new(tmp.path())
@@ -19,7 +19,7 @@ fn check_filter(
         .expect("filter evaluation")
 }
 
-// T-2.4: RTM FR-11.1 normalizes blocked concepts into an assertion-friendly map.
+// T-10.16: RTM FR-19 / RTM-103 normalizes blocked concepts into an assertion-friendly map.
 fn blocked_map(result: std::result::Result<(), Vec<(String, String)>>) -> BTreeMap<String, String> {
     match result {
         Ok(()) => BTreeMap::new(),
@@ -27,11 +27,11 @@ fn blocked_map(result: std::result::Result<(), Vec<(String, String)>>) -> BTreeM
     }
 }
 
-// T-2.4: RTM FR-11.1
+// T-10.16: RTM FR-19 / RTM-102 / RTM-103
 #[test]
 fn check_filter_with_filter_file_blocks_matching_concepts() {
     let blocked = blocked_map(check_filter(
-        Some("tool | Generic hub\n"),
+        Some(r#"{"tool":"Generic hub"}"#),
         "Testing [[tool]] and [[react]] together.",
     ));
 
@@ -39,7 +39,7 @@ fn check_filter_with_filter_file_blocks_matching_concepts() {
     assert!(!blocked.contains_key("react"));
 }
 
-// T-2.4: RTM FR-11.1
+// T-10.16: RTM FR-19 / RTM-102
 #[test]
 fn check_filter_missing_file_returns_empty() {
     let result = check_filter(None, "Testing [[tool]] and [[agent]] together.");
@@ -47,19 +47,19 @@ fn check_filter_missing_file_returns_empty() {
     assert_eq!(result, Ok(()));
 }
 
-// T-2.4: RTM FR-11.1
+// T-10.16: RTM FR-19 / RTM-103 / RTM-104
 #[test]
 fn check_filter_case_insensitive_matching() {
-    let blocked = blocked_map(check_filter(Some("Tool | Hub\n"), "Testing [[tool]]."));
+    let blocked = blocked_map(check_filter(Some(r#"{"Tool":"Hub"}"#), "Testing [[tool]]."));
 
     assert_eq!(blocked.get("tool").map(String::as_str), Some("Hub"));
 }
 
-// T-2.4: RTM FR-11.1
+// T-10.16: RTM FR-19 / RTM-103
 #[test]
 fn check_filter_mixed_filtered_and_unfiltered() {
     let blocked = blocked_map(check_filter(
-        Some("tool | Generic hub\nagent | Generic hub\n"),
+        Some(r#"{"tool":"Generic hub","agent":"Generic hub"}"#),
         "Testing [[tool]], [[react]], [[agent]], and [[typescript]].",
     ));
 
@@ -73,18 +73,24 @@ fn check_filter_mixed_filtered_and_unfiltered() {
     assert!(!blocked.contains_key("typescript"));
 }
 
-// T-2.4: RTM FR-11.1
+// T-10.16: RTM FR-19 / RTM-103
 #[test]
 fn check_filter_empty_concepts_list_returns_empty() {
-    let result = check_filter(Some("tool | Generic hub\nagent | Generic hub\n"), "");
+    let result = check_filter(Some(r#"{"tool":"Generic hub","agent":"Generic hub"}"#), "");
 
     assert_eq!(result, Ok(()));
 }
 
-// T-2.4: RTM FR-11.1 current Rust parsing treats malformed JSON text as a non-matching line entry.
+// T-10.16: RTM FR-19 preserves `check()`'s fail-open behavior when `.wikilink-filter.json` is invalid.
 #[test]
-fn check_filter_malformed_json_returns_empty() {
-    let result = check_filter(Some("not valid json {{{"), "Testing [[tool]].");
+fn check_filter_invalid_json_returns_empty() {
+    let tmp = TempDir::new().expect("tmp");
+    fs::write(
+        tmp.path().join(".wikilink-filter.json"),
+        "not valid json {{{",
+    )
+    .expect("write filter");
+    let result = WikiLinkFilter::new(tmp.path()).check("Testing [[tool]].");
 
     assert_eq!(result, Ok(()));
 }

@@ -6,6 +6,7 @@ use crate::tools::ToolContext;
 use serde::Serialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
+use std::fmt::Display;
 use std::fmt::Write as _;
 use std::fs;
 use std::io::ErrorKind;
@@ -182,6 +183,10 @@ impl AssetManager {
         for path in candidates {
             let content = fs::read_to_string(&path)?;
             let Ok(value) = serde_json::from_str::<Value>(&content) else {
+                // T-0.1: RTM FR-25.2 preserves degraded asset lookup diagnostics when malformed JSON is skipped.
+                if let Err(error) = serde_json::from_str::<Value>(&content) {
+                    emit_asset_degraded_diagnostic("FindAssetFileById", &path, &error);
+                }
                 continue;
             };
             if value
@@ -206,7 +211,15 @@ impl AssetManager {
     fn load_kind_metadata_from_root(&self, root: &Path, kind: AssetKind) -> Result<Vec<Value>> {
         let mut items = Vec::new();
         for path in asset_files_in_root(root, kind)? {
-            let value: Value = serde_json::from_str(&fs::read_to_string(path)?)?;
+            let text = fs::read_to_string(&path)?;
+            let value: Value = match serde_json::from_str(&text) {
+                Ok(value) => value,
+                Err(error) => {
+                    // T-0.1: RTM FR-25.2 preserves degraded metadata listing diagnostics when malformed JSON is skipped.
+                    emit_asset_degraded_diagnostic("GetAssetMetadata", &path, &error);
+                    continue;
+                }
+            };
             let mut metadata = serde_json::Map::new();
             for field in ["id", "name", "emoji", "description"] {
                 if let Some(v) = value.get(field).cloned() {
@@ -614,6 +627,36 @@ fn validate_adopt_identifier(identifier: &str) -> Result<&str> {
     }
 
     Ok(trimmed)
+}
+
+fn emit_asset_degraded_diagnostic(method: &str, path: &Path, error: &impl Display) {
+    let display_name = path
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.display().to_string());
+    emit_stderr_line(&format!(
+        "[DEGRADED][AssetResources][{method}] Skipping malformed asset '{display_name}': {error}"
+    ));
+}
+
+#[cfg(unix)]
+fn emit_stderr_line(message: &str) {
+    unsafe extern "C" {
+        fn write(fd: i32, buf: *const u8, count: usize) -> isize;
+    }
+
+    let mut line = String::with_capacity(message.len() + 1);
+    line.push_str(message);
+    line.push('\n');
+    // SAFETY: fd=2 is the process stderr and the buffer is valid for the call duration.
+    unsafe {
+        let _ = write(2, line.as_ptr(), line.len());
+    }
+}
+
+#[cfg(not(unix))]
+fn emit_stderr_line(message: &str) {
+    eprintln!("{message}");
 }
 
 pub fn adopt(context: &ToolContext, payload: &Value) -> Result<String> {

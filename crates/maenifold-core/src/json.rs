@@ -48,6 +48,28 @@ where
     serde_json::from_str(input)
 }
 
+// T-0.1: RTM FR-25.2 preserves C# PayloadReader degraded diagnostics for string-backed arrays.
+pub fn get_string_array(payload: &Value, key: &str) -> Option<Vec<String>> {
+    let value = payload.get(key)?;
+    match value {
+        Value::Array(items) => items
+            .iter()
+            .map(|item| item.as_str().map(str::to_string))
+            .collect(),
+        Value::String(text) => match from_str_safe::<Vec<String>>(text) {
+            Ok(values) => Some(values),
+            Err(error) => {
+                emit_payload_reader_diagnostic(
+                    "GetStringArray",
+                    &format!("Failed to deserialize string property '{key}' as string[]: {error}"),
+                );
+                None
+            }
+        },
+        _ => None,
+    }
+}
+
 fn ensure_max_depth(input: &str, max_depth: usize) -> serde_json::Result<()> {
     let mut depth = 0usize;
     let mut in_string = false;
@@ -86,4 +108,28 @@ fn ensure_max_depth(input: &str, max_depth: usize) -> serde_json::Result<()> {
     }
 
     Ok(())
+}
+
+fn emit_payload_reader_diagnostic(method: &str, message: &str) {
+    emit_stderr_line(&format!("[DEGRADED][PayloadReader][{method}] {message}"));
+}
+
+#[cfg(unix)]
+fn emit_stderr_line(message: &str) {
+    unsafe extern "C" {
+        fn write(fd: i32, buf: *const u8, count: usize) -> isize;
+    }
+
+    let mut line = String::with_capacity(message.len() + 1);
+    line.push_str(message);
+    line.push('\n');
+    // SAFETY: fd=2 is the process stderr and the buffer is valid for the call duration.
+    unsafe {
+        let _ = write(2, line.as_ptr(), line.len());
+    }
+}
+
+#[cfg(not(unix))]
+fn emit_stderr_line(message: &str) {
+    eprintln!("{message}");
 }

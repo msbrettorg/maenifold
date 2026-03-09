@@ -619,16 +619,65 @@ fn load_last_accessed_timestamps(
         return Ok(cache);
     }
 
-    let connection = db::open_connection(&config.database_path)?;
-    let mut statement = connection.prepare(
+    let connection = match db::open_connection(&config.database_path) {
+        Ok(connection) => connection,
+        Err(error) => {
+            // T-0.1: RTM FR-25.2 preserves degraded diagnostics when last_accessed cache loading fails.
+            emit_system_tools_diagnostic(
+                "LoadLastAccessedTimestamps",
+                "Failed to open SQLite cache; returning empty timestamp dictionary",
+                &config.database_path.to_string_lossy(),
+                config,
+                &error.to_string(),
+            );
+            return Ok(cache);
+        }
+    };
+    let mut statement = match connection.prepare(
         "SELECT file_path, last_accessed FROM file_content WHERE last_accessed IS NOT NULL",
-    )?;
-    let rows = statement.query_map([], |row| {
+    ) {
+        Ok(statement) => statement,
+        Err(error) => {
+            emit_system_tools_diagnostic(
+                "LoadLastAccessedTimestamps",
+                "Failed to query last_accessed timestamps; returning empty timestamp dictionary",
+                &config.database_path.to_string_lossy(),
+                config,
+                &error.to_string(),
+            );
+            return Ok(cache);
+        }
+    };
+    let rows = match statement.query_map([], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-    })?;
+    }) {
+        Ok(rows) => rows,
+        Err(error) => {
+            emit_system_tools_diagnostic(
+                "LoadLastAccessedTimestamps",
+                "Failed to enumerate last_accessed timestamps; returning empty timestamp dictionary",
+                &config.database_path.to_string_lossy(),
+                config,
+                &error.to_string(),
+            );
+            return Ok(cache);
+        }
+    };
 
     for row in rows {
-        let (file_path, timestamp) = row?;
+        let (file_path, timestamp) = match row {
+            Ok(row) => row,
+            Err(error) => {
+                emit_system_tools_diagnostic(
+                    "LoadLastAccessedTimestamps",
+                    "Failed to read a last_accessed row; returning empty timestamp dictionary",
+                    &config.database_path.to_string_lossy(),
+                    config,
+                    &error.to_string(),
+                );
+                return Ok(BTreeMap::new());
+            }
+        };
         if let Some(parsed) = parse_datetime(&timestamp) {
             cache.insert(file_path, parsed);
         }
@@ -669,7 +718,20 @@ fn get_decay_metadata_for_file(
 fn read_created_date(file_path: &Path) -> Result<DateTime<Utc>> {
     match fs::read_to_string(file_path) {
         Ok(full_text) => {
-            let (frontmatter, _) = parse_frontmatter_map(&full_text)?;
+            let (frontmatter, _) = match parse_frontmatter_map(&full_text) {
+                Ok(parsed) => parsed,
+                Err(error) => {
+                    // T-0.1: RTM FR-25.2 preserves degraded diagnostics when frontmatter parsing fails.
+                    emit_system_tools_diagnostic(
+                        "GetDecayMetadataForFile",
+                        "Failed to parse frontmatter; falling back to file-system timestamps",
+                        &file_path.to_string_lossy(),
+                        &crate::config::Config::current(),
+                        &error.to_string(),
+                    );
+                    return Ok(system_time_to_datetime(file_path)?);
+                }
+            };
             if let Some(parsed) = frontmatter
                 .and_then(|frontmatter| frontmatter.get("created").and_then(yaml_value_to_string))
                 .and_then(|created| parse_datetime(&created))
@@ -883,6 +945,19 @@ fn emit_degraded_decay_diagnostic(
 ) {
     emit_stderr_line(&format!(
         "[DEGRADED][MemorySearchTools.Fusion][{method}] {message} for '{}'",
+        redact_diagnostic_path(file_identifier, config)
+    ));
+}
+
+fn emit_system_tools_diagnostic(
+    method: &str,
+    message: &str,
+    file_identifier: &str,
+    config: &crate::config::Config,
+    detail: &str,
+) {
+    emit_stderr_line(&format!(
+        "[DEGRADED][SystemTools][{method}] {message} for '{}': {detail}",
         redact_diagnostic_path(file_identifier, config)
     ));
 }

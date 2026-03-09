@@ -261,7 +261,19 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
         });
     }
 
-    GraphDatabase::initialize_database(&context.config)?;
+    if let Err(error) = GraphDatabase::initialize_database(&context.config) {
+        let message = error.to_string();
+        // T-0.1: RTM FR-25.2 preserves BuildContext availability when community enrichment schema is degraded.
+        if message.contains("concept_communities") || message.contains("community_id") {
+            emit_graph_tools_diagnostic(
+                "EnrichWithCommunityData",
+                "Community enrichment schema is degraded; continuing without community data",
+                &message,
+            );
+        } else {
+            return Err(error);
+        }
+    }
     let configured_role = sync_role();
     if configured_role == "follower" {
         let markdown = render_sync_markdown(
@@ -1251,11 +1263,34 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
         .and_then(Value::as_bool)
         .unwrap_or(false);
 
-    GraphDatabase::initialize_database(&context.config)?;
+    if let Err(error) = GraphDatabase::initialize_database(&context.config) {
+        let message = error.to_string();
+        // T-0.1: RTM FR-25.2 preserves BuildContext availability when community enrichment schema is degraded.
+        if message.contains("concept_communities") || message.contains("community_id") {
+            emit_graph_tools_diagnostic(
+                "EnrichWithCommunityData",
+                "Community enrichment schema is degraded; continuing without community data",
+                &message,
+            );
+        } else {
+            return Err(error);
+        }
+    }
     let connection = db::open_connection(&context.config.database_path)?;
 
     // T-3.2b: RTM FR-13.10
-    let query_community_id = load_concept_community_id(&connection, &concept_name)?;
+    let query_community_id = match load_concept_community_id(&connection, &concept_name) {
+        Ok(value) => value,
+        Err(error) => {
+            // T-0.1: RTM FR-25.2 preserves degraded diagnostics when community enrichment storage is unavailable.
+            emit_graph_tools_diagnostic(
+                "EnrichWithCommunityData",
+                "Community enrichment unavailable; continuing without community data",
+                &error.to_string(),
+            );
+            None
+        }
+    };
     let include_community_data = query_community_id.is_some();
 
     // T-3.2b: RTM FR-13.6
@@ -1388,8 +1423,18 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
             .iter()
             .map(|relation| {
                 let content_preview = if include_content {
-                    load_content_preview_map(&connection, &concept_name, &relation.source_files)
-                        .unwrap_or_else(|_| json!({}))
+                    match load_content_preview_map(&connection, &concept_name, &relation.source_files)
+                    {
+                        Ok(preview) => preview,
+                        Err(error) => {
+                            emit_graph_tools_diagnostic(
+                                "BuildContext",
+                                "Content preview unavailable; continuing without preview content",
+                                &error.to_string(),
+                            );
+                            json!({})
+                        }
+                    }
                 } else {
                     json!({})
                 };
@@ -1420,8 +1465,18 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
             .iter()
             .map(|relation| {
                 let content_preview = if include_content {
-                    load_content_preview_map(&connection, &relation.name, &relation.source_files)
-                        .unwrap_or_else(|_| json!({}))
+                    match load_content_preview_map(&connection, &relation.name, &relation.source_files)
+                    {
+                        Ok(preview) => preview,
+                        Err(error) => {
+                            emit_graph_tools_diagnostic(
+                                "BuildContext",
+                                "Content preview unavailable; continuing without preview content",
+                                &error.to_string(),
+                            );
+                            json!({})
+                        }
+                    }
                 } else {
                     json!({})
                 };
@@ -2058,6 +2113,32 @@ where
     let rows = statement.query_map(params, |row| row.get::<_, String>(0))?;
     rows.collect::<std::result::Result<Vec<_>, _>>()
         .map_err(Into::into)
+}
+
+fn emit_graph_tools_diagnostic(method: &str, message: &str, detail: &str) {
+    emit_graph_tools_stderr_line(&format!(
+        "[DEGRADED][GraphTools][{method}] {message}: {detail}"
+    ));
+}
+
+#[cfg(unix)]
+fn emit_graph_tools_stderr_line(message: &str) {
+    unsafe extern "C" {
+        fn write(fd: i32, buf: *const u8, count: usize) -> isize;
+    }
+
+    let mut line = String::with_capacity(message.len() + 1);
+    line.push_str(message);
+    line.push('\n');
+    // SAFETY: fd=2 is the process stderr and the buffer is valid for the call duration.
+    unsafe {
+        let _ = write(2, line.as_ptr(), line.len());
+    }
+}
+
+#[cfg(not(unix))]
+fn emit_graph_tools_stderr_line(message: &str) {
+    eprintln!("{message}");
 }
 
 pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Result<String> {

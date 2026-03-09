@@ -12,11 +12,12 @@ use tokenizers::{
     pre_tokenizers::bert::BertPreTokenizer, processors::template::TemplateProcessing,
 };
 
-pub const EMBEDDING_DIMENSIONS: usize = 384;
-pub const MAX_TOKENS: usize = 512;
+pub const DEFAULT_EMBEDDING_DIMENSIONS: usize = 384;
+const DEFAULT_MAX_TOKENS: usize = 512;
+#[doc(hidden)]
+pub const EMBEDDING_DIMENSIONS: usize = DEFAULT_EMBEDDING_DIMENSIONS;
 
 const DEFAULT_MAX_BATCH: usize = 32;
-const MODEL_FILENAME: &str = "all-MiniLM-L6-v2.onnx";
 const VOCAB_FILENAME: &str = "vocab.txt";
 const TOKENIZER_CONFIG_FILENAME: &str = "tokenizer_config.json";
 const TOKENIZER_JSON_FILENAME: &str = "tokenizer.json";
@@ -34,15 +35,17 @@ const OUTPUT_NAME_PREFERENCES: [&str; 6] = [
 struct ModelState {
     session: Session,
     tokenizer: TokenizerAssets,
+    // T-9.1: RTM FR-7 — runtime model metadata comes from the loaded ONNX/tokenizer assets
+    // instead of hardcoded constants so [[dynamic model loading]] works across model swaps.
+    embedding_dims: usize,
+    max_tokens: usize,
+    model_filename: String,
 }
 
 #[derive(Debug, Clone)]
 struct TokenizerAssets {
     tokenizer: Tokenizer,
     pad_id: u32,
-    unknown_id: u32,
-    class_id: u32,
-    separator_id: u32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -99,7 +102,6 @@ pub fn generate_embeddings(texts: &[&str], max_batch: usize) -> Result<Vec<Vec<f
         return Ok(Vec::new());
     }
 
-    let mut results = vec![zero_embedding_vector(); texts.len()];
     let non_empty = texts
         .iter()
         .enumerate()
@@ -115,7 +117,7 @@ pub fn generate_embeddings(texts: &[&str], max_batch: usize) -> Result<Vec<Vec<f
         .collect::<Vec<_>>();
 
     if non_empty.is_empty() {
-        return Ok(results);
+        return Ok(vec![zero_embedding_vector(); texts.len()]);
     }
 
     load_model()?;
@@ -132,15 +134,15 @@ pub fn generate_embeddings(texts: &[&str], max_batch: usize) -> Result<Vec<Vec<f
     let state = guard.as_mut().ok_or_else(|| {
         MaenifoldError::Message("embedding model session was not initialized".to_string())
     })?;
+    let mut results = vec![vec![0.0; state.embedding_dims]; texts.len()];
 
     for chunk in non_empty.chunks(effective_batch) {
         let batch_size = chunk.len();
-        debug_assert_ne!(state.tokenizer.unknown_id, state.tokenizer.pad_id);
-        debug_assert_ne!(state.tokenizer.class_id, state.tokenizer.separator_id);
+        let max_tokens = state.max_tokens;
 
-        let mut input_ids = vec![i64::from(state.tokenizer.pad_id); batch_size * MAX_TOKENS];
-        let mut attention_mask = vec![0_i64; batch_size * MAX_TOKENS];
-        let mut token_type_ids = vec![0_i64; batch_size * MAX_TOKENS];
+        let mut input_ids = vec![i64::from(state.tokenizer.pad_id); batch_size * max_tokens];
+        let mut attention_mask = vec![0_i64; batch_size * max_tokens];
+        let mut token_type_ids = vec![0_i64; batch_size * max_tokens];
 
         for (batch_index, (_, text)) in chunk.iter().enumerate() {
             let encoding = state
@@ -155,8 +157,8 @@ pub fn generate_embeddings(texts: &[&str], max_batch: usize) -> Result<Vec<Vec<f
             let mask = encoding.get_attention_mask();
             let types = encoding.get_type_ids();
 
-            let max_copy = ids.len().min(MAX_TOKENS);
-            let row_offset = batch_index * MAX_TOKENS;
+            let max_copy = ids.len().min(max_tokens);
+            let row_offset = batch_index * max_tokens;
             for token_index in 0..max_copy {
                 input_ids[row_offset + token_index] = i64::from(ids[token_index]);
                 attention_mask[row_offset + token_index] = i64::from(mask[token_index]);
@@ -167,9 +169,9 @@ pub fn generate_embeddings(texts: &[&str], max_batch: usize) -> Result<Vec<Vec<f
         let outputs = state
             .session
             .run(ort::inputs! {
-                "input_ids" => Tensor::from_array(([batch_size, MAX_TOKENS], input_ids.clone().into_boxed_slice())).map_err(map_ort_error)?,
-                "attention_mask" => Tensor::from_array(([batch_size, MAX_TOKENS], attention_mask.clone().into_boxed_slice())).map_err(map_ort_error)?,
-                "token_type_ids" => Tensor::from_array(([batch_size, MAX_TOKENS], token_type_ids.into_boxed_slice())).map_err(map_ort_error)?,
+                "input_ids" => Tensor::from_array(([batch_size, max_tokens], input_ids.clone().into_boxed_slice())).map_err(map_ort_error)?,
+                "attention_mask" => Tensor::from_array(([batch_size, max_tokens], attention_mask.clone().into_boxed_slice())).map_err(map_ort_error)?,
+                "token_type_ids" => Tensor::from_array(([batch_size, max_tokens], token_type_ids.into_boxed_slice())).map_err(map_ort_error)?,
             })
             .map_err(map_ort_error)?;
 
@@ -181,9 +183,9 @@ pub fn generate_embeddings(texts: &[&str], max_batch: usize) -> Result<Vec<Vec<f
                 &dims,
                 &flat_data,
                 batch_index,
-                &attention_mask[(batch_index * MAX_TOKENS)..((batch_index + 1) * MAX_TOKENS)],
+                &attention_mask[(batch_index * max_tokens)..((batch_index + 1) * max_tokens)],
             );
-            results[*result_index] = pad_or_truncate(&embedding, EMBEDDING_DIMENSIONS);
+            results[*result_index] = pad_or_truncate(&embedding, state.embedding_dims);
         }
     }
 
@@ -230,14 +232,27 @@ pub fn load_model() -> Result<()> {
     }
 
     let model_path = find_model_path()?;
-    let vocab_path = find_vocab_path()?;
-    let tokenizer_config_path = find_tokenizer_config_path()?;
     let session = Session::builder()
         .map_err(map_ort_error)?
         .commit_from_file(&model_path)
         .map_err(map_ort_error)?;
-    let tokenizer = load_tokenizer_assets(&vocab_path, &tokenizer_config_path)?;
-    *guard = Some(ModelState { session, tokenizer });
+    let embedding_dims = discover_embedding_dimensions(&session)?;
+    let model_dir = model_path.parent().ok_or_else(|| {
+        MaenifoldError::Message("embedding model has no parent directory".to_string())
+    })?;
+    let (tokenizer, max_tokens) = load_tokenizer_assets(model_dir)?;
+    let model_filename = model_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| MaenifoldError::NonUtf8Path(model_path.clone()))?
+        .to_string();
+    *guard = Some(ModelState {
+        session,
+        tokenizer,
+        embedding_dims,
+        max_tokens,
+        model_filename,
+    });
     Ok(())
 }
 
@@ -259,55 +274,173 @@ pub fn is_initialized() -> bool {
         .unwrap_or(false)
 }
 
+/// Get the current model's embedding dimensions, or None if no model loaded
+pub fn embedding_dimensions() -> Option<usize> {
+    MODEL_STATE
+        .get()
+        .and_then(|state| state.lock().ok())
+        .and_then(|guard| guard.as_ref().map(|state| state.embedding_dims))
+}
+
+/// Get the loaded model filename, or None if no model loaded
+pub fn model_filename() -> Option<String> {
+    MODEL_STATE
+        .get()
+        .and_then(|state| state.lock().ok())
+        .and_then(|guard| guard.as_ref().map(|state| state.model_filename.clone()))
+}
+
 fn model_state() -> &'static Mutex<Option<ModelState>> {
     MODEL_STATE.get_or_init(|| Mutex::new(None))
 }
 
 fn find_model_path() -> Result<PathBuf> {
-    find_asset_path(MODEL_FILENAME)
-}
-
-fn find_vocab_path() -> Result<PathBuf> {
-    find_asset_path(VOCAB_FILENAME)
-}
-
-fn find_tokenizer_config_path() -> Result<PathBuf> {
-    find_asset_path(TOKENIZER_CONFIG_FILENAME)
-}
-
-fn find_asset_path(file_name: &str) -> Result<PathBuf> {
     let executable = env::current_exe()?;
     let base_dir = executable
         .parent()
         .ok_or(MaenifoldError::MissingExecutableParent)?;
 
-    let direct_path = base_dir.join("assets").join("models").join(file_name);
-    if direct_path.exists() {
-        return Ok(direct_path);
+    // T-9.1: RTM FR-7 — search every supported assets/models directory for any usable ONNX
+    // file so the runtime can adopt the largest available model without filename pinning.
+    let direct_models_dir = base_dir.join("assets").join("models");
+    if let Some(model_path) = discover_model(&direct_models_dir) {
+        return Ok(model_path);
     }
 
     for ancestor in base_dir.ancestors() {
         let workspace_manifest = ancestor.join("Cargo.toml");
-        let candidate = ancestor.join("assets").join("models").join(file_name);
-        if workspace_manifest.exists() && candidate.exists() {
-            return Ok(candidate);
+        let models_dir = ancestor.join("assets").join("models");
+        if workspace_manifest.exists()
+            && let Some(model_path) = discover_model(&models_dir)
+        {
+            return Ok(model_path);
         }
     }
 
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let fallback = manifest_dir.join("../../assets/models").join(file_name);
-    if fallback.exists() {
-        return Ok(fallback);
+    let fallback_models_dir = manifest_dir.join("../../assets/models");
+    if let Some(model_path) = discover_model(&fallback_models_dir) {
+        return Ok(model_path);
     }
 
     Err(MaenifoldError::Message(format!(
-        "embedding asset not found: {file_name}"
+        "embedding model not found: expected a non-empty *.onnx file under assets/models"
     )))
 }
 
-fn load_tokenizer_assets(vocab_path: &Path, config_path: &Path) -> Result<TokenizerAssets> {
+fn discover_model(models_dir: &Path) -> Option<PathBuf> {
+    let mut candidates = fs::read_dir(models_dir)
+        .ok()?
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            let extension = path.extension()?.to_str()?;
+            if !extension.eq_ignore_ascii_case("onnx") {
+                return None;
+            }
+
+            let metadata = entry.metadata().ok()?;
+            if !metadata.is_file() || metadata.len() == 0 {
+                return None;
+            }
+
+            Some((metadata.len(), path))
+        })
+        .collect::<Vec<_>>();
+
+    candidates.sort_by(|left, right| {
+        right
+            .0
+            .cmp(&left.0)
+            .then_with(|| left.1.cmp(&right.1))
+    });
+    candidates.into_iter().next().map(|(_, path)| path)
+}
+
+fn load_tokenizer_assets(model_dir: &Path) -> Result<(TokenizerAssets, usize)> {
+    let tokenizer_config_path = model_dir.join(TOKENIZER_CONFIG_FILENAME);
+    let config = load_tokenizer_config(&tokenizer_config_path)?;
+    let max_tokens = config
+        .as_ref()
+        .map(|config| config.model_max_length)
+        .filter(|max_tokens| *max_tokens > 0)
+        .unwrap_or(DEFAULT_MAX_TOKENS);
+
+    // T-9.1: RTM FR-7 — prefer HuggingFace tokenizer.json for cross-model compatibility and
+    // only fall back to manual BERT WordPiece reconstruction when tokenizer.json is absent.
+    let mut tokenizer = {
+        let tokenizer_json = model_dir.join(TOKENIZER_JSON_FILENAME);
+        if tokenizer_json.is_file() {
+            Tokenizer::from_file(&tokenizer_json).map_err(|error| {
+                MaenifoldError::Message(format!("tokenizer.json load failed: {error}"))
+            })?
+        } else {
+            let config = config.as_ref().ok_or_else(|| {
+                MaenifoldError::Message(format!(
+                    "tokenizer.json not found and tokenizer config missing: {}",
+                    tokenizer_config_path.display()
+                ))
+            })?;
+            let vocab_path = model_dir.join(VOCAB_FILENAME);
+            if !vocab_path.is_file() {
+                return Err(MaenifoldError::Message(format!(
+                    "tokenizer.json not found and vocab missing: {}",
+                    vocab_path.display()
+                )));
+            }
+            build_manual_tokenizer(&vocab_path, config)?
+        }
+    };
+
+    let pad_token = tokenizer
+        .get_padding()
+        .map(|padding| padding.pad_token.clone())
+        .or_else(|| config.as_ref().and_then(|config| config.pad_token.clone()))
+        .unwrap_or_else(|| "[PAD]".to_string());
+    let pad_id = tokenizer
+        .get_padding()
+        .map(|padding| padding.pad_id)
+        .or_else(|| tokenizer.token_to_id(&pad_token))
+        .or_else(|| tokenizer.token_to_id("<pad>"))
+        .ok_or_else(|| {
+            MaenifoldError::Message(format!(
+                "missing tokenizer pad token id for tokenizer in {}",
+                model_dir.display()
+            ))
+        })?;
+
+    tokenizer
+        .with_truncation(Some(TruncationParams {
+            max_length: max_tokens,
+            strategy: TruncationStrategy::LongestFirst,
+            stride: 0,
+            ..Default::default()
+        }))
+        .map_err(|error| {
+            MaenifoldError::Message(format!("tokenizer truncation setup failed: {error}"))
+        })?;
+    tokenizer.with_padding(Some(PaddingParams {
+        strategy: PaddingStrategy::Fixed(max_tokens),
+        pad_id,
+        pad_type_id: 0,
+        pad_token,
+        ..Default::default()
+    }));
+
+    Ok((TokenizerAssets { tokenizer, pad_id }, max_tokens))
+}
+
+fn load_tokenizer_config(config_path: &Path) -> Result<Option<BertTokenizerConfig>> {
+    if !config_path.is_file() {
+        return Ok(None);
+    }
+
     let config_text = fs::read_to_string(config_path)?;
     let config: BertTokenizerConfig = serde_json::from_str(&config_text)?;
+    Ok(Some(config))
+}
+
+fn build_manual_tokenizer(vocab_path: &Path, config: &BertTokenizerConfig) -> Result<Tokenizer> {
     let tokenizer_class = config.tokenizer_class.as_deref().unwrap_or("BertTokenizer");
     if !tokenizer_class.eq_ignore_ascii_case("BertTokenizer") {
         return Err(MaenifoldError::Message(
@@ -328,81 +461,51 @@ fn load_tokenizer_assets(vocab_path: &Path, config_path: &Path) -> Result<Tokeni
         ));
     }
 
-    let pad_token = config.pad_token.unwrap_or_else(|| "[PAD]".to_string());
-    let unk_token = config.unk_token.unwrap_or_else(|| "[UNK]".to_string());
-    let cls_token = config.cls_token.unwrap_or_else(|| "[CLS]".to_string());
-    let sep_token = config.sep_token.unwrap_or_else(|| "[SEP]".to_string());
-    let mask_token = config.mask_token.unwrap_or_else(|| "[MASK]".to_string());
-    let model_dir = config_path.parent().ok_or_else(|| {
-        MaenifoldError::Message("tokenizer config has no parent directory".to_string())
-    })?;
+    let pad_token = config.pad_token.clone().unwrap_or_else(|| "[PAD]".to_string());
+    let unk_token = config.unk_token.clone().unwrap_or_else(|| "[UNK]".to_string());
+    let cls_token = config.cls_token.clone().unwrap_or_else(|| "[CLS]".to_string());
+    let sep_token = config.sep_token.clone().unwrap_or_else(|| "[SEP]".to_string());
+    let mask_token = config
+        .mask_token
+        .clone()
+        .unwrap_or_else(|| "[MASK]".to_string());
 
-    let mut tokenizer = {
-        let tokenizer_json = model_dir.join(TOKENIZER_JSON_FILENAME);
-        if tokenizer_json.exists() {
-            Tokenizer::from_file(&tokenizer_json).map_err(|error| {
-                MaenifoldError::Message(format!("tokenizer.json load failed: {error}"))
-            })?
-        } else {
-            build_wordpiece_tokenizer(
-                vocab_path,
-                config.do_lower_case.unwrap_or(true),
-                config.tokenize_chinese_chars,
-                config.strip_accents,
-                &pad_token,
-                &unk_token,
-                &cls_token,
-                &sep_token,
-            )?
-        }
-    };
+    let mut tokenizer = build_wordpiece_tokenizer(
+        vocab_path,
+        config.do_lower_case.unwrap_or(true),
+        config.tokenize_chinese_chars,
+        config.strip_accents,
+        &pad_token,
+        &unk_token,
+        &cls_token,
+        &sep_token,
+    )?;
 
     tokenizer.add_special_tokens(&[
-        AddedToken::from(pad_token.clone(), true),
-        AddedToken::from(unk_token.clone(), true),
-        AddedToken::from(cls_token.clone(), true),
-        AddedToken::from(sep_token.clone(), true),
+        AddedToken::from(pad_token, true),
+        AddedToken::from(unk_token, true),
+        AddedToken::from(cls_token, true),
+        AddedToken::from(sep_token, true),
         AddedToken::from(mask_token, true),
     ]);
 
-    let pad_id = tokenizer
-        .token_to_id(&pad_token)
-        .ok_or_else(|| MaenifoldError::Message("missing tokenizer [PAD] token id".to_string()))?;
-    let unknown_id = tokenizer
-        .token_to_id(&unk_token)
-        .ok_or_else(|| MaenifoldError::Message("missing tokenizer [UNK] token id".to_string()))?;
-    let class_id = tokenizer
-        .token_to_id(&cls_token)
-        .ok_or_else(|| MaenifoldError::Message("missing tokenizer [CLS] token id".to_string()))?;
-    let separator_id = tokenizer
-        .token_to_id(&sep_token)
-        .ok_or_else(|| MaenifoldError::Message("missing tokenizer [SEP] token id".to_string()))?;
+    Ok(tokenizer)
+}
 
-    tokenizer
-        .with_truncation(Some(TruncationParams {
-            max_length: config.model_max_length.min(MAX_TOKENS),
-            strategy: TruncationStrategy::LongestFirst,
-            stride: 0,
-            ..Default::default()
-        }))
-        .map_err(|error| {
-            MaenifoldError::Message(format!("tokenizer truncation setup failed: {error}"))
-        })?;
-    tokenizer.with_padding(Some(PaddingParams {
-        strategy: PaddingStrategy::Fixed(MAX_TOKENS),
-        pad_id,
-        pad_type_id: 0,
-        pad_token: pad_token.clone(),
-        ..Default::default()
-    }));
-
-    Ok(TokenizerAssets {
-        tokenizer,
-        pad_id,
-        unknown_id,
-        class_id,
-        separator_id,
-    })
+fn discover_embedding_dimensions(session: &Session) -> Result<usize> {
+    let chosen = select_best_session_output(session.outputs())?;
+    chosen
+        .dims
+        .last()
+        .copied()
+        .filter(|dimension| *dimension > 0)
+        .and_then(|dimension| usize::try_from(dimension).ok())
+        .ok_or_else(|| {
+            MaenifoldError::Message(format!(
+                "embedding model output `{}` does not expose a concrete embedding dimension",
+                chosen.name
+            ))
+        })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -505,7 +608,7 @@ fn select_best_output(outputs: &ort::session::SessionOutputs<'_>) -> Result<Outp
 
     if let Some(candidate) = candidates
         .iter()
-        .find(|candidate| candidate.dims.len() == 2 && candidate.dims[0] == 1)
+        .find(|candidate| candidate.dims.len() == 2)
     {
         return Ok(candidate.clone());
     }
@@ -517,10 +620,65 @@ fn select_best_output(outputs: &ort::session::SessionOutputs<'_>) -> Result<Outp
         return Ok(candidate.clone());
     }
 
+    if let Some(candidate) = candidates
+        .iter()
+        .find(|candidate| candidate.dims.len() == 3)
+    {
+        return Ok(candidate.clone());
+    }
+
     Ok(candidates
         .into_iter()
         .next()
         .expect("candidate list already checked as non-empty"))
+}
+
+#[derive(Debug, Clone)]
+struct SessionOutputCandidate {
+    name: String,
+    dims: Vec<i64>,
+}
+
+fn select_best_session_output(outputs: &[ort::value::Outlet]) -> Result<SessionOutputCandidate> {
+    let mut candidates = outputs
+        .iter()
+        .filter_map(|output| {
+            let dims = output.dtype().tensor_shape()?.iter().copied().collect::<Vec<_>>();
+            Some(SessionOutputCandidate {
+                name: output.name().to_string(),
+                dims,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    if candidates.is_empty() {
+        return Err(MaenifoldError::Message(
+            "embedding model metadata exposes no tensor outputs".to_string(),
+        ));
+    }
+
+    for preferred_name in OUTPUT_NAME_PREFERENCES {
+        if let Some(candidate) = candidates
+            .iter()
+            .find(|candidate| candidate.name.to_ascii_lowercase().contains(preferred_name))
+        {
+            return Ok(candidate.clone());
+        }
+    }
+
+    if let Some(candidate) = candidates.iter().find(|candidate| candidate.dims.len() == 2) {
+        return Ok(candidate.clone());
+    }
+
+    if let Some(candidate) = candidates.iter().find(|candidate| candidate.dims.len() == 1) {
+        return Ok(candidate.clone());
+    }
+
+    if let Some(candidate) = candidates.iter().find(|candidate| candidate.dims.len() == 3) {
+        return Ok(candidate.clone());
+    }
+
+    Ok(candidates.remove(0))
 }
 
 fn extract_output_data(
@@ -551,8 +709,8 @@ fn extract_embedding_from_output(
 ) -> Vec<f32> {
     match dims {
         [batch, hidden] if batch_index < *batch => {
-            let start = batch_index * hidden;
-            let end = start + hidden;
+            let start = batch_index * *hidden;
+            let end = start + *hidden;
             flat_data
                 .get(start..end)
                 .map(|slice| slice.to_vec())
@@ -569,8 +727,8 @@ fn extract_embedding_from_output(
         }
         [hidden] => {
             let mut vec = vec![0.0; *hidden];
-            let start = batch_index * EMBEDDING_DIMENSIONS;
-            let end = start + EMBEDDING_DIMENSIONS.min(*hidden);
+            let start = batch_index * *hidden;
+            let end = (start + *hidden).min(flat_data.len());
             if let Some(slice) = flat_data.get(start..end) {
                 vec[..slice.len()].copy_from_slice(slice);
             }
@@ -645,7 +803,7 @@ fn shape_to_usize_vec(shape: &ort::value::Shape) -> Result<Vec<usize>> {
 }
 
 fn zero_embedding_vector() -> Vec<f32> {
-    vec![0.0; EMBEDDING_DIMENSIONS]
+    vec![0.0; embedding_dimensions().unwrap_or(DEFAULT_EMBEDDING_DIMENSIONS)]
 }
 
 fn map_ort_error(error: ort::Error) -> MaenifoldError {
@@ -657,7 +815,7 @@ const fn default_true() -> bool {
 }
 
 const fn default_model_max_length() -> usize {
-    MAX_TOKENS
+    DEFAULT_MAX_TOKENS
 }
 
 #[cfg(test)]
@@ -683,7 +841,10 @@ mod tests {
         cleanup();
         load_model().expect("model loads");
         let embedding = generate_embedding("hello world").expect("embedding generated");
-        assert_eq!(embedding.len(), EMBEDDING_DIMENSIONS);
+        assert_eq!(
+            embedding.len(),
+            embedding_dimensions().unwrap_or(DEFAULT_EMBEDDING_DIMENSIONS)
+        );
         assert!(
             embedding.iter().any(|value| *value != 0.0),
             "hello world embedding should not be all zeros"
@@ -702,7 +863,10 @@ mod tests {
         let individual = generate_embedding(text).expect("individual embedding");
         let batched = generate_embeddings(&[text], DEFAULT_MAX_BATCH).expect("batch embedding");
         assert_eq!(batched.len(), 1);
-        assert_eq!(batched[0].len(), EMBEDDING_DIMENSIONS);
+        assert_eq!(
+            batched[0].len(),
+            embedding_dimensions().unwrap_or(DEFAULT_EMBEDDING_DIMENSIONS)
+        );
         for (index, (left, right)) in individual.iter().zip(batched[0].iter()).enumerate() {
             assert!(
                 (left - right).abs() <= 1e-6,

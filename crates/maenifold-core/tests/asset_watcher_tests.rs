@@ -235,6 +235,7 @@ fn spawn_worker(
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         let debounce_window = Duration::from_millis(debounce_ms.max(1));
+        let flush_grace_window = debounce_grace_window(debounce_window);
         let mut pending_paths = HashSet::new();
 
         loop {
@@ -258,8 +259,25 @@ fn spawn_worker(
                         return;
                     }
                     Err(RecvTimeoutError::Timeout) => {
-                        flush_pending_paths(&notifications, &batch_tx, &mut pending_paths);
-                        break;
+                        // T-0.1: RTM NFR-3 — mirror production watcher debounce semantics so
+                        // delayed poll events from the same burst still produce one notification.
+                        match event_rx.recv_timeout(flush_grace_window) {
+                            Ok(WatcherSignal::Event(event)) => {
+                                collect_pending_paths(&assets_path, &event, &mut pending_paths);
+                            }
+                            Ok(WatcherSignal::Stop) => {
+                                flush_pending_paths(&notifications, &batch_tx, &mut pending_paths);
+                                return;
+                            }
+                            Err(RecvTimeoutError::Timeout) => {
+                                flush_pending_paths(&notifications, &batch_tx, &mut pending_paths);
+                                break;
+                            }
+                            Err(RecvTimeoutError::Disconnected) => {
+                                flush_pending_paths(&notifications, &batch_tx, &mut pending_paths);
+                                return;
+                            }
+                        }
                     }
                     Err(RecvTimeoutError::Disconnected) => {
                         flush_pending_paths(&notifications, &batch_tx, &mut pending_paths);
@@ -269,6 +287,10 @@ fn spawn_worker(
             }
         }
     })
+}
+
+fn debounce_grace_window(debounce_window: Duration) -> Duration {
+    debounce_window.min(Duration::from_millis(50))
 }
 
 fn collect_pending_paths(assets_path: &Path, event: &Event, pending_paths: &mut HashSet<PathBuf>) {

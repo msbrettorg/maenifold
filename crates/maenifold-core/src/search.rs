@@ -318,10 +318,10 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
             let metadata = fs::metadata(&file_path)?;
             let indexed_at = indexed_timestamp_for_metadata(&metadata);
             let stored_file = load_indexed_file_state(&tx, uri)?;
-            // T-2.3: RTM FR-14.1 / FR-14.2 / FR-14.4
-            // Trust persisted file_content state for mtime/hash guards even when concept_mentions
-            // were externally tampered; otherwise a missing mention row forces an unnecessary reread.
-            let synced_file = stored_file.as_ref();
+            // T-0.1: RTM NFR-3 - bootstrap graph state for WriteMemory rows that only pre-indexed file_content.
+            let synced_file = stored_file
+                .as_ref()
+                .filter(|indexed_file| !should_bootstrap_graph_state(indexed_file));
             let stored_hash = synced_file.and_then(|indexed_file| indexed_file.file_md5.as_deref());
             let last_indexed =
                 synced_file.and_then(|indexed_file| indexed_file.last_indexed.as_deref());
@@ -549,6 +549,7 @@ pub fn recompute_communities_if_needed(context: &ToolContext) -> Result<Option<u
 struct IndexedFileState {
     last_indexed: Option<String>,
     file_md5: Option<String>,
+    has_mentions: bool,
 }
 
 type RelationKey = (String, String);
@@ -563,7 +564,8 @@ fn load_indexed_file_state(
         .query_row(
             "SELECT \
                  last_indexed, \
-                 file_md5 \
+                 file_md5, \
+                 EXISTS(SELECT 1 FROM concept_mentions WHERE source_file = file_content.file_path) \
              FROM file_content \
              WHERE file_path = ?1",
             params![file_uri],
@@ -571,10 +573,22 @@ fn load_indexed_file_state(
                 Ok(IndexedFileState {
                     last_indexed: row.get(0)?,
                     file_md5: row.get(1)?,
+                    // T-0.1: RTM NFR-3 - Sync must rebuild graph state when WriteMemory pre-indexed file_content rows lack concept_mentions.
+                    has_mentions: row.get::<_, i64>(2)? != 0,
                 })
             },
         )
         .optional()?)
+}
+
+fn should_bootstrap_graph_state(indexed_file: &IndexedFileState) -> bool {
+    !indexed_file.has_mentions
+        && indexed_file
+            .last_indexed
+            .as_deref()
+            // T-0.1: RTM NFR-3 - WriteMemory pre-indexes file_content with second-precision UTC timestamps like 2026-03-09T17:38:24Z.
+            .map(|value| value.len() == 20 && value.ends_with('Z') && !value.contains('+'))
+            .unwrap_or(false)
 }
 
 fn delete_missing_files(connection: &Connection, existing_files: &HashSet<String>) -> Result<()> {
@@ -1197,10 +1211,13 @@ fn flush_relation_counts(
             } else {
                 (second.clone(), first.clone())
             };
-            let weight = if first_sections
+            let same_named_section = first_sections
                 .iter()
-                .any(|section_index| *section_index > 0 && second_sections.contains(section_index))
-            {
+                .copied()
+                .find(|section_index| second_sections.contains(section_index));
+            // T-4.3: RTM FR-23.2 - flat docs keep section_index=0 for extraction, but sync must
+            // treat that implicit root as cross-section so headingless documents store half-weight pairs.
+            let weight = if same_named_section.is_some_and(|section_index| section_index > 0) {
                 1.0
             } else {
                 0.5

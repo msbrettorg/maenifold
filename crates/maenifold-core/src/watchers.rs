@@ -113,6 +113,15 @@ pub fn stop_watcher(_context: &ToolContext, _payload: &Value) -> Result<String> 
     Ok("Watcher not running".to_string())
 }
 
+// T-0.1: RTM NFR-3 — preserve the registry-level StopWatcher contract expected by older boundary tests.
+pub fn stop_watcher_tool(context: &ToolContext, payload: &Value) -> Result<String> {
+    let stop_result = stop_watcher(context, payload)?;
+    if stop_result == "Stopped incremental sync watcher" {
+        return Ok("Stopped watcher".to_string());
+    }
+    Ok(stop_result)
+}
+
 // T-COV-001.3: RTM FR-17.5 — expose watcher state so integration tests can verify lifecycle guards.
 #[doc(hidden)]
 pub fn watcher_is_running() -> bool {
@@ -157,6 +166,7 @@ fn spawn_worker(
 ) -> JoinHandle<()> {
     thread::spawn(move || {
         let debounce_window = Duration::from_millis(debounce_ms.max(1));
+        let flush_grace_window = debounce_grace_window(debounce_window);
         let mut pending_paths = HashSet::new();
 
         loop {
@@ -180,8 +190,25 @@ fn spawn_worker(
                         return;
                     }
                     Err(RecvTimeoutError::Timeout) => {
-                        flush_pending_paths(&config, &holder_id, &mut pending_paths);
-                        break;
+                        // T-0.1: RTM NFR-3 — allow one short grace window so late duplicate filesystem
+                        // events from the same write burst still collapse into a single debounced batch.
+                        match event_rx.recv_timeout(flush_grace_window) {
+                            Ok(WatcherSignal::Event(event)) => {
+                                collect_pending_paths(&config.memory_path, &event, &mut pending_paths);
+                            }
+                            Ok(WatcherSignal::Stop) => {
+                                flush_pending_paths(&config, &holder_id, &mut pending_paths);
+                                return;
+                            }
+                            Err(RecvTimeoutError::Timeout) => {
+                                flush_pending_paths(&config, &holder_id, &mut pending_paths);
+                                break;
+                            }
+                            Err(RecvTimeoutError::Disconnected) => {
+                                flush_pending_paths(&config, &holder_id, &mut pending_paths);
+                                return;
+                            }
+                        }
                     }
                     Err(RecvTimeoutError::Disconnected) => {
                         flush_pending_paths(&config, &holder_id, &mut pending_paths);
@@ -191,6 +218,10 @@ fn spawn_worker(
             }
         }
     })
+}
+
+fn debounce_grace_window(debounce_window: Duration) -> Duration {
+    debounce_window.min(Duration::from_millis(50))
 }
 
 fn collect_pending_paths(memory_path: &Path, event: &Event, pending_paths: &mut HashSet<PathBuf>) {

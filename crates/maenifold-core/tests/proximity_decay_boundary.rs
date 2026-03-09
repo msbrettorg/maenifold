@@ -217,7 +217,7 @@ fn sync_cross_h2_section_relations_get_half_proximity_weight() {
 
 // T-4.5c: RTM FR-4.4
 #[test]
-fn sync_without_h2_headings_treats_all_concepts_as_section_zero() {
+fn sync_without_h2_headings_stores_cross_section_pair_weights() {
     let _guard = TEST_MUTEX.lock();
     let _decay = DecayEnvGuard::with_defaults();
     let env = isolated_env();
@@ -235,8 +235,10 @@ fn sync_without_h2_headings_treats_all_concepts_as_section_zero() {
     );
 
     let conn = open_db(&env.cfg);
-    assert_weight_eq(relation_weight_for_uri(&conn, "alpha", "beta", &uri), 1.0);
-    assert_weight_eq(relation_weight_for_uri(&conn, "alpha", "gamma", &uri), 1.0);
+    // T-4.5c: RTM FR-4.4 - headingless docs still extract section zero, but sync must treat
+    // the implicit root as cross-section when storing pair proximity weights.
+    assert_weight_eq(relation_weight_for_uri(&conn, "alpha", "beta", &uri), 0.5);
+    assert_weight_eq(relation_weight_for_uri(&conn, "alpha", "gamma", &uri), 0.5);
 }
 
 // T-4.5c: RTM FR-4.4

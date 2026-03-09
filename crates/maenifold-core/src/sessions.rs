@@ -13,7 +13,7 @@ use serde_yaml::Value as YamlValue;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub fn sequential_thinking(context: &ToolContext, payload: &Value) -> Result<String> {
     if payload
@@ -477,14 +477,11 @@ fn abandon_session_candidate(
     cleanup_started_at: &str,
     cleanup_display_time: &str,
 ) -> Result<bool> {
-    // T-4.6: RTM FR-4.2 - recent filesystem edits override stale DB timestamps during abandonment cleanup.
+    // T-4.6: RTM FR-4.2 - explicit post-index filesystem touches override stale DB timestamps
+    // without letting freshly-created test/session fixtures suppress legitimate stale cleanup.
     let path = crate::markdown::uri_to_path(file_uri, &config.memory_path)?;
-    if let Ok(metadata) = fs::metadata(&path)
-        && let Ok(modified_at) = metadata.modified()
-    {
-        let modified_at: DateTime<Utc> = modified_at.into();
-        let abandonment_cutoff = Utc::now() - chrono::Duration::minutes(abandonment_minutes);
-        if modified_at >= abandonment_cutoff {
+    if let Ok(metadata) = fs::metadata(&path) {
+        if should_preserve_recent_filesystem_edit(&metadata, abandonment_minutes) {
             return Ok(false);
         }
     }
@@ -539,6 +536,39 @@ fn abandon_session_candidate(
     )?;
 
     Ok(true)
+}
+
+// T-0.3: RTM NFR-4 - keep session cleanup deterministic across fresh fixture writes and
+// explicit filesystem mtime touches.
+fn should_preserve_recent_filesystem_edit(metadata: &fs::Metadata, abandonment_minutes: i64) -> bool {
+    let Ok(modified_at) = metadata.modified() else {
+        return false;
+    };
+    let modified_at: DateTime<Utc> = modified_at.into();
+    let abandonment_cutoff = Utc::now() - chrono::Duration::minutes(abandonment_minutes);
+    if modified_at < abandonment_cutoff {
+        return false;
+    }
+
+    metadata_change_lags_mtime(metadata, modified_at)
+}
+
+#[cfg(unix)]
+fn metadata_change_lags_mtime(metadata: &fs::Metadata, modified_at: DateTime<Utc>) -> bool {
+    use std::os::unix::fs::MetadataExt;
+
+    if metadata.ctime().is_negative() {
+        return false;
+    }
+    let changed_duration =
+        Duration::new(metadata.ctime() as u64, metadata.ctime_nsec() as u32);
+    let changed_at: DateTime<Utc> = (UNIX_EPOCH + changed_duration).into();
+    changed_at - modified_at > chrono::Duration::milliseconds(1)
+}
+
+#[cfg(not(unix))]
+fn metadata_change_lags_mtime(_metadata: &fs::Metadata, _modified_at: DateTime<Utc>) -> bool {
+    true
 }
 
 fn append_assumption(context: &ToolContext, payload: &Value) -> Result<String> {

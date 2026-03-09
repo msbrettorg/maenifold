@@ -1,0 +1,62 @@
+{
+  "id": "scamper",
+  "name": "SCAMPER Method",
+  "emoji": "🎨",
+  "description": "Creative problem-solving technique using 7 prompts",
+  "triggers": [
+    "scamper",
+    "substitute",
+    "combine",
+    "adapt",
+    "modify",
+    "eliminate",
+    "reverse",
+    "creative problem solving",
+    "innovation techniques"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "substitute",
+      "name": "Substitute - What can be substituted?",
+      "description": "Replace components, materials, or processes with alternatives",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "combine",
+      "name": "Combine - What can be combined?",
+      "description": "Explore creative ways to merge different elements, ideas, or approaches\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about unexpected combinations and synergies. What happens when we merge seemingly unrelated elements?\n\nExamples:\n• Merge features: Can we combine two separate features into one unified experience?\n• Blend approaches: What if we used multiple methods simultaneously?\n• Unite teams or resources: What synergies emerge from combining different groups or assets?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "adapt",
+      "name": "Adapt - What can be adapted?",
+      "description": "Consider how ideas from other contexts can be applied here\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about how solutions from different domains, industries, or natural systems could be adapted to this context.\n\nExamples:\n• Natural world analogy: How might nature solve this problem?\n• Different industry perspective: How would another field approach this?\n• Historical precedent: What similar challenges have been solved before?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "modify",
+      "name": "Modify - What can be modified or magnified?",
+      "description": "Change attributes, scale, or emphasis to improve functionality",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "repurpose",
+      "name": "Put to other uses - How can this be used differently?",
+      "description": "Find new applications or purposes beyond the original intent",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "eliminate",
+      "name": "Eliminate - What can be removed or simplified?",
+      "description": "Remove unnecessary elements to improve efficiency or clarity",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "reverse",
+      "name": "Reverse - What can be rearranged or reversed?",
+      "description": "Think about inverting, flipping, or completely reversing the typical approach\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about challenging conventional approaches by exploring opposites, inversions, and alternative sequences. What if we did the complete opposite of what's expected?\n\nExamples:\n• What if we inverted the typical approach to this problem?\n• How might the opposite perspective reveal new opportunities?\n• What assumptions are we making that could be reversed?",
+      "requiresEnhancedThinking": true
+    }
+  ]
+}

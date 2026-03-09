@@ -1,0 +1,177 @@
+{
+  "id": "world-cafe",
+  "name": "World Café",
+  "emoji": "☕",
+  "description": "Collaborative dialogue process leveraging diverse role perspectives across conversation rounds",
+  "triggers": [
+    "world cafe",
+    "world café",
+    "collaborative dialogue",
+    "group conversation",
+    "cross-pollination",
+    "collective intelligence",
+    "multi-table discussion",
+    "collaborative thinking",
+    "role rotation",
+    "perspective synthesis"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "setup",
+      "name": "Setup - Define the central question",
+      "description": "Establish the core inquiry question that will guide all table conversations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about the central question from multiple angles. What makes this question compelling and worth exploring from diverse perspectives?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "architect",
+      "name": "Table 1 - Architect perspective",
+      "description": "Technical Architecture Table: Architect explores system design and architectural considerations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as an architect. What system design, scalability, and architectural patterns are relevant to this question?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "engineer",
+      "name": "Table 1 - Engineer perspective",
+      "description": "Technical Architecture Table: Engineer explores implementation and technical feasibility\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as an engineer. What implementation challenges, technical constraints, and coding considerations emerge?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "devops",
+      "name": "Table 1 - DevOps Engineer perspective",
+      "description": "Technical Architecture Table: DevOps Engineer explores deployment, infrastructure, and operational concerns\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a DevOps engineer. What infrastructure, deployment, and operational considerations are critical here?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "dataengineer",
+      "name": "Table 1 - Data Engineer perspective",
+      "description": "Technical Architecture Table: Data Engineer explores data pipeline, storage, and processing aspects\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a data engineer. What data architecture, pipeline, and processing considerations are involved?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "solutionsarchitect",
+      "name": "Table 1 - Solutions Architect perspective",
+      "description": "Technical Architecture Table: Solutions Architect explores end-to-end solution design and integration\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a solutions architect. How do all technical components integrate into a cohesive solution?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "aisolutions",
+      "name": "Table 1 - AI Solutions Engineer perspective",
+      "description": "Technical Architecture Table: AI Solutions Engineer explores AI/ML integration and intelligent features\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as an AI solutions engineer. What AI/ML capabilities and intelligent features could enhance this solution?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "productmanager",
+      "name": "Table 2 - Product Manager perspective",
+      "description": "Business & Strategy Table: Product Manager explores user needs, features, and product strategy\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a product manager. What user needs, feature priorities, and product strategy considerations are key?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "businessanalyst",
+      "name": "Table 2 - Business Analyst perspective",
+      "description": "Business & Strategy Table: Business Analyst explores requirements, processes, and business impact\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a business analyst. What business requirements, process flows, and stakeholder needs must be addressed?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "strategist",
+      "name": "Table 2 - Strategist perspective",
+      "description": "Business & Strategy Table: Strategist explores competitive positioning, market dynamics, and strategic implications\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a strategist. What competitive advantages, market positioning, and strategic opportunities exist?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "marketingstrategist",
+      "name": "Table 2 - Marketing Strategist perspective",
+      "description": "Business & Strategy Table: Marketing Strategist explores go-to-market, messaging, and customer acquisition\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a marketing strategist. What go-to-market strategy, messaging, and customer acquisition approaches are needed?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "customersuccess",
+      "name": "Table 2 - Customer Success perspective",
+      "description": "Business & Strategy Table: Customer Success explores customer value, retention, and satisfaction\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as customer success. How does this create customer value, drive retention, and ensure satisfaction?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "uxdesigner",
+      "name": "Table 3 - UX Designer perspective",
+      "description": "Experience & Operations Table: UX Designer explores user experience, interface design, and usability\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a UX designer. What user experience, interface design, and usability considerations are critical?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "writer",
+      "name": "Table 3 - Writer perspective",
+      "description": "Experience & Operations Table: Writer explores communication, documentation, and content strategy\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a writer. What communication, documentation, and content needs must be addressed?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "qa",
+      "name": "Table 3 - Quality Assurance perspective",
+      "description": "Experience & Operations Table: QA explores testing strategy, quality metrics, and reliability\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as QA. What testing strategies, quality standards, and reliability measures are essential?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "tpm",
+      "name": "Table 3 - Technical Program Manager perspective",
+      "description": "Experience & Operations Table: TPM explores project coordination, delivery, and cross-functional alignment\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a technical program manager. What coordination, delivery timelines, and cross-team dependencies exist?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "salesengineer",
+      "name": "Table 3 - Sales Engineer perspective",
+      "description": "Experience & Operations Table: Sales Engineer explores customer technical needs and solution positioning\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a sales engineer. What customer technical requirements and solution positioning strategies are needed?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "securityanalyst",
+      "name": "Table 4 - Security Analyst perspective",
+      "description": "Security & Governance Table: Security Analyst explores security requirements, vulnerabilities, and compliance\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a security analyst. What security risks, requirements, and compliance considerations must be addressed?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "blueteam",
+      "name": "Table 4 - Blue Team perspective",
+      "description": "Security & Governance Table: Blue Team explores defensive security, monitoring, and incident response\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as blue team. What defensive measures, monitoring capabilities, and incident response plans are needed?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "redteam",
+      "name": "Table 4 - Red Team perspective",
+      "description": "Security & Governance Table: Red Team explores attack vectors, vulnerabilities, and security testing\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as red team. What attack vectors, security weaknesses, and penetration testing approaches should be considered?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "legal",
+      "name": "Table 4 - Legal Compliance perspective",
+      "description": "Security & Governance Table: Legal Compliance explores regulatory requirements, legal risks, and governance\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as legal compliance. What regulatory requirements, legal risks, and governance frameworks apply?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "finops",
+      "name": "Table 4 - FinOps perspective",
+      "description": "Security & Governance Table: FinOps explores cost optimization, financial governance, and resource efficiency\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as FinOps. What cost implications, resource optimization, and financial governance considerations exist?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "datascientist",
+      "name": "Cross-pollination - Data Scientist connector",
+      "description": "Data Scientist moves between tables to identify patterns and analytical insights across conversations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a data scientist connecting insights across tables. What data patterns, analytical opportunities, and measurable outcomes emerge?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "facilitator",
+      "name": "Cross-pollination - Facilitator connector",
+      "description": "Facilitator synthesizes conversations and facilitates connections between table insights\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a facilitator. What common themes, tensions, and synergies exist across all table conversations?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "synthesis",
+      "name": "Synthesis - Breakthrough solutions",
+      "description": "Generate breakthrough ideas by combining insights from all 21 role perspectives across 4 tables\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply beyond conventional approaches. What breakthrough solutions emerge from integrating all role perspectives across technical, business, experience, and governance domains?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "harvest",
+      "name": "Harvest - Collective wisdom",
+      "description": "Harvest collective intelligence and distill key insights, patterns, and actionable next steps\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about the meta-patterns across all 23 perspectives. What collective wisdom has emerged that no single role or table could have generated?",
+      "requiresEnhancedThinking": true
+    }
+  ]
+}

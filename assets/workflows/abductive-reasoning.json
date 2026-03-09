@@ -1,0 +1,50 @@
+{
+  "id": "abductive-reasoning",
+  "name": "Abductive Reasoning",
+  "emoji": "💭",
+  "description": "Systematic hypothesis formation through inference to best explanation",
+  "triggers": [
+    "abductive reasoning",
+    "hypothesis",
+    "investigate",
+    "diagnose",
+    "explain",
+    "detective work",
+    "inference to best explanation",
+    "root cause",
+    "systematic investigation"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "observe",
+      "name": "Observe Surprising Facts - Identify puzzling observations",
+      "description": "Systematically catalog unexpected, anomalous, or puzzling observations that need explanation",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "generate",
+      "name": "Generate Hypotheses - Form potential explanations",
+      "description": "Create multiple plausible explanations that could account for the observed facts\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nFor each surprising fact, generate multiple potential explanations. Think systematically: What could cause this? What conditions would make this outcome likely? Consider obvious explanations, but also think about underlying systemic causes, external factors, and less obvious mechanisms.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "evaluate",
+      "name": "Evaluate Plausibility - Assess which explanations fit best",
+      "description": "Systematically evaluate each hypothesis against available evidence and logical consistency\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nFor each hypothesis, evaluate: Does it explain all the observed facts? Is it consistent with known constraints? What would we expect to see if this hypothesis were true? Which hypothesis is simplest while still explaining the phenomena? Which has the most supporting evidence?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "test",
+      "name": "Design Tests - Plan validation approaches",
+      "description": "Develop specific ways to test and validate the most promising hypotheses",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "select",
+      "name": "Select Best Explanation - Choose most likely hypothesis",
+      "description": "Choose the hypothesis that best explains all observations with minimal assumptions",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

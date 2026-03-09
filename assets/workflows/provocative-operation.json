@@ -1,0 +1,47 @@
+{
+  "id": "provocative-operation",
+  "name": "Provocative Operation",
+  "emoji": "💥",
+  "description": "Systematic use of deliberate provocations to escape conventional thinking patterns",
+  "triggers": [
+    "provocative operation",
+    "deliberate provocation",
+    "provocative thinking",
+    "escape conventional thinking",
+    "challenging assumptions",
+    "provocative statements"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "create",
+      "name": "Create Provocations - Generate challenging statements",
+      "description": "Deliberately create provocative, challenging, or seemingly impossible statements\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nCreate deliberate provocations: 'What if we had zero budget?', 'What if this problem didn't exist?', 'What if we did the exact opposite?', 'What if we had unlimited resources?', 'What if we started from scratch?'. Make statements that challenge fundamental assumptions.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "suspend",
+      "name": "Suspend Judgment - Accept the provocations",
+      "description": "Temporarily accept the provocative statements without immediate judgment or dismissal",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "extract",
+      "name": "Extract Movement - Find useful directions",
+      "description": "Extract useful concepts, directions, or insights from the provocative statements\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nExtract movement from the provocations: What useful concepts emerge? What new directions become visible? Even if the provocation is impossible, what aspects could be adapted? What principles or approaches does it suggest?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "develop",
+      "name": "Develop Practical Ideas - Transform insights",
+      "description": "Transform the provocative insights into practical, implementable ideas",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "iterate",
+      "name": "Iterate with New Provocations - Continue the process",
+      "description": "Create new provocations based on emerging insights and continue the process",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

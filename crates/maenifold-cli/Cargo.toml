@@ -1,0 +1,24 @@
+[package]
+name = "maenifold-cli"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "maenifold"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+maenifold-core = { path = "../maenifold-core" }
+rmcp.workspace = true
+tokio.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+assert_cmd.workspace = true
+chrono.workspace = true
+predicates.workspace = true
+rusqlite.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+

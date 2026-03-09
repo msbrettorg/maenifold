@@ -1,0 +1,75 @@
+{
+  "id": "socratic-dialogue",
+  "name": "Socratic Dialogue",
+  "emoji": "🤔",
+  "description": "Expose broken assumptions and flawed reasoning by running a real dialogue with a skeptical partner agent",
+  "triggers": [
+    "debug reasoning",
+    "challenge assumptions",
+    "stuck on problem",
+    "solution feels hacky",
+    "confident but wrong",
+    "expose assumptions",
+    "question logic",
+    "find the flaw",
+    "reasoning error",
+    "bad thinking"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "state-problem",
+      "name": "What problem are you actually trying to solve?",
+      "description": "State the specific problem you're stuck on. Not what you think the solution should be - what's the actual problem?\n\nExample: 'My tests are flaky' not 'I need to add delays to my tests'",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "current-approach",
+      "name": "What's your current approach and why?",
+      "description": "Describe what you're doing now and your reasoning. This is where we'll find the broken assumptions.\n\nBe honest about shortcuts, hacks, or 'temporary' solutions you're using.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "spawn-skeptic",
+      "name": "Spawn a Gray Skeptic Partner",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nCreate a REAL dialogue partner (a subagent), and keep it alive across steps.\n\n1) Adopt the skepticism posture:\n- Use the role/color system: `Adopt(type=\"color\", identifier=\"gray\")`\n\n2) Spawn the partner using the Task tool (do NOT pick a specific agent type in this workflow). In the Task prompt tell the partner:\n- Adopt `color=gray` (skeptical inquiry)\n- Your job is to challenge my claims, demand evidence, and independently verify when possible (using tools)\n- Maintain a running ledger: Verified facts / Unverified assumptions / Open questions\n- Always end your reply with ONE next question\n\n3) CRITICAL: Save the returned `task_id` as your handle (e.g., `socraticPartnerTaskId`). You will reuse it to continue the same partner conversation.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "dialogue-loop",
+      "name": "Run the Dialogue (Resume via task_id)",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nHave a real back-and-forth. Do NOT restart the partner; resume it.\n\nLoop for 3-10 rounds:\n1) Answer the partner's question plainly.\n2) Provide evidence (or explicitly admit you don't have it).\n3) Resume the same partner using: `Task(task_id=socraticPartnerTaskId, prompt=...)`\n\nPartner requirements each round:\n- If you make a claim: either verify it independently, or say exactly what would verify it\n- Update the ledger (Verified / Unverified / Open)\n- Ask the next single question\n\nYou are NOT trying to win. You are trying to locate the broken assumption.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "contradiction",
+      "name": "Find the Contradiction",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nResume the partner and ask it to do ONE job: identify where your story breaks.\n\nPrompt the partner (via `Task(task_id=...)`) to:\n- Point to the specific assumption that, if false, collapses your approach\n- Show the contradiction or missing link\n- State the smallest test/experiment/check that would discriminate between two competing explanations\n\nThen do that check (or explicitly decide why you can't) and report the result back to the partner.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "reframe-problem",
+      "name": "Reframe the Real Problem",
+      "description": "Based on what the dialogue exposed, rewrite the problem statement as a falsifiable claim.\n\nFormat:\n- Original problem:\n- Broken assumption:\n- New problem statement (falsifiable):\n- What would make this statement false?",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "test-reframe",
+      "name": "Attack the Reframe (Partner Verification)",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nResume the same partner (`Task(task_id=socraticPartnerTaskId, ...)`) and present your reframed problem statement.\n\nPartner must:\n- Try to falsify it\n- Identify any remaining assumptions\n- Independently verify at least one key claim (or explain why verification is blocked)\n\nIterate until the partner agrees the reframe is coherent OR you identify the remaining uncertainty explicitly.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "solution-direction",
+      "name": "What does this suggest for solutions?",
+      "description": "With the real problem identified and your assumptions corrected, what approaches make sense now?\n\nDon't implement yet - just identify directions that address the actual problem.",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "final-validation",
+      "name": "Final Reality Check",
+      "description": "🧠 ENHANCED THINKING REQUIRED\n\nResume the partner one last time and ask for a final audit.\n\nPartner output MUST include:\n- Verified facts (with how verified)\n- Unverified assumptions (and how to verify)\n- Remaining open questions\n- Biggest remaining risk in your proposed solution directions\n\nThen you record your key insights: what assumption was wrong, what the real problem is, and what checks you'll run earlier next time.\n\nFinally, you may end the partner conversation.",
+      "requiresEnhancedThinking": true
+    }
+  ]
+}

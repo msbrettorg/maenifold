@@ -1,0 +1,42 @@
+{
+  "id": "deductive-reasoning",
+  "name": "Deductive Reasoning",
+  "emoji": "💭",
+  "description": "Top-down logical inference from general principles to specific conclusions",
+  "triggers": [
+    "deductive reasoning",
+    "logical deduction",
+    "syllogism",
+    "top down reasoning",
+    "logical inference",
+    "formal logic",
+    "logical proof"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "principles",
+      "name": "Identify General Principles - Establish universal premises",
+      "description": "Identify the general rules, laws, or principles that apply to this domain",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "apply",
+      "name": "Apply Logical Rules - Construct valid inference chains",
+      "description": "Apply logical rules to derive conclusions from the general principles\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nApply logical rules systematically. If the general principle is true, what must logically follow? Construct valid syllogisms: Major premise + Minor premise → Conclusion. Ensure each step follows logically from the previous.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "conclude",
+      "name": "Draw Specific Conclusions - Derive particular results",
+      "description": "Reach specific conclusions that logically follow from the general principles",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "validate",
+      "name": "Validate Reasoning Chain - Check logical validity",
+      "description": "Verify that each step in the reasoning chain is logically valid and sound\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nCheck the logical validity: Are the premises true? Does the conclusion follow necessarily? Are there any logical fallacies? Is the reasoning chain complete and valid?",
+      "requiresEnhancedThinking": true
+    }
+  ]
+}

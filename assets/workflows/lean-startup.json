@@ -1,0 +1,42 @@
+{
+  "id": "lean-startup",
+  "name": "Lean Startup",
+  "emoji": "🚀",
+  "description": "Build-measure-learn approach to product development",
+  "triggers": [
+    "lean startup",
+    "mvp",
+    "minimum viable product",
+    "build-measure-learn",
+    "pivot",
+    "validate",
+    "startup methodology"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "build",
+      "name": "Build - Create minimum viable product (MVP)",
+      "description": "Build the simplest version that tests core hypotheses with real users\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what we're assuming customers want. What's the minimum we can build to test our riskiest assumptions?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "measure",
+      "name": "Measure - Collect data and metrics",
+      "description": "Gather quantitative and qualitative data about user behavior and outcomes",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "learn",
+      "name": "Learn - Validate or pivot based on feedback",
+      "description": "Analyze data to validate or invalidate hypotheses and decide next steps\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what the data is really telling us. Are we seeing what we want to see, or what's actually happening?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "iterate",
+      "name": "Iterate - Refine and improve the solution",
+      "description": "Apply learnings to improve the product or pivot to new approach",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

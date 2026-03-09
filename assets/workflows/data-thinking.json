@@ -1,0 +1,49 @@
+{
+  "id": "data-thinking",
+  "name": "Data Thinking",
+  "emoji": "💭",
+  "description": "User-centric systematic approach to data strategy and analytics",
+  "triggers": [
+    "data thinking",
+    "data strategy",
+    "analytics",
+    "data driven",
+    "evidence based",
+    "data canvas",
+    "data mvp",
+    "systematic data analysis"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "context",
+      "name": "Understand Business Context - Map processes and data relevance",
+      "description": "Systematically map business processes and assess their data potential and strategic importance",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "ideate",
+      "name": "Ideate with Data Canvas - Design data-driven solutions",
+      "description": "Use structured canvas approach to design data solutions that create user value\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink systematically about the data ecosystem: What user needs could data address? What data sources exist or could be created? How would users interact with data insights? What business model emerges from data value? Map the relationships between data creation, management, and operation.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "prioritize",
+      "name": "Prioritize KPIs - Select actionable metrics",
+      "description": "Identify the most impactful and actionable key performance indicators\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nEvaluate potential metrics: Which KPIs directly connect to user value? Which are actionable vs. just informational? What leading indicators predict success? How will each metric drive decisions? Prioritize based on impact, feasibility, and strategic alignment.",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "design",
+      "name": "Design Data MVP - Plan minimal viable data product",
+      "description": "Create the simplest data solution that validates core hypotheses and delivers user value",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "validate",
+      "name": "Validate and Iterate - Test and refine approach",
+      "description": "Implement learning cycles to test assumptions and improve the data strategy",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

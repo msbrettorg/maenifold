@@ -1,0 +1,48 @@
+{
+  "id": "higher-order-thinking",
+  "name": "Higher-Order Thinking",
+  "emoji": "💭",
+  "description": "Meta-cognitive reflection and complex reasoning about thinking processes",
+  "triggers": [
+    "higher order thinking",
+    "metacognition",
+    "thinking about thinking",
+    "complex reasoning",
+    "meta analysis",
+    "cognitive reflection",
+    "advanced reasoning"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "examine",
+      "name": "Examine Thinking Processes - Analyze how you think",
+      "description": "Reflect on and analyze the thinking processes being used to approach the problem\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nStep back and examine your thinking process: What approaches are you using? What assumptions are you making about how to think about this? What cognitive biases might be affecting your analysis? How is your thinking process itself shaping your conclusions?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "evaluate",
+      "name": "Evaluate Thinking Quality - Assess cognitive approach",
+      "description": "Critically evaluate the quality and appropriateness of the thinking strategies\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nEvaluate your thinking strategies: Are you using the most appropriate cognitive approaches? What are the strengths and limitations of your current thinking? Could different thinking strategies yield better insights? What thinking patterns should you change?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "synthesize",
+      "name": "Synthesize Multiple Perspectives - Integrate complex viewpoints",
+      "description": "Integrate insights from multiple thinking approaches and perspectives\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSynthesize multiple levels of analysis: How do different thinking approaches complement each other? What emerges when you combine analytical, creative, and intuitive perspectives? What higher-level patterns become visible?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "design",
+      "name": "Design Thinking Strategies - Plan cognitive approach",
+      "description": "Deliberately design thinking strategies for complex problems",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "monitor",
+      "name": "Monitor and Adjust - Regulate thinking process",
+      "description": "Continuously monitor and adjust thinking processes for optimal results",
+      "requiresEnhancedThinking": false
+    }
+  ]
+}

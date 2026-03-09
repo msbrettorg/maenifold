@@ -1,0 +1,49 @@
+{
+  "id": "agile",
+  "name": "Agile Methodology",
+  "emoji": "🔄",
+  "description": "Iterative and incremental approach to project management",
+  "triggers": [
+    "agile",
+    "sprint planning",
+    "standups",
+    "sprint review",
+    "retrospective",
+    "scrum",
+    "iterative development",
+    "agile methodology"
+  ],
+  "enhancedThinkingEnabled": true,
+  "steps": [
+    {
+      "id": "plan",
+      "name": "Sprint Planning - Define sprint goals and tasks",
+      "description": "Collaborate to define clear sprint objectives and break work into manageable tasks\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what assumptions we're making about scope, capacity, and priorities. What could derail this sprint?\n\nExamples:\n• What assumptions are we making that might not be true?\n• What if our constraints were different?\n• What evidence do we have for our current approach?",
+      "requiresEnhancedThinking": true
+    },
+    {
+      "id": "sync",
+      "name": "Daily Standups - Sync progress and blockers",
+      "description": "Brief daily synchronization on progress, impediments, and plans",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "develop",
+      "name": "Development - Build features incrementally",
+      "description": "Implement features in small, testable increments with continuous integration",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "review",
+      "name": "Sprint Review - Demonstrate completed work",
+      "description": "Show stakeholders what was accomplished and gather feedback",
+      "requiresEnhancedThinking": false
+    },
+    {
+      "id": "retrospective",
+      "name": "Sprint Retrospective - Reflect and improve process",
+      "description": "Team reflection on what worked well and what can be improved\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what patterns are emerging in our process. What underlying issues are we not addressing?\n\nExamples:\n• What assumptions are we making that might not be true?\n• What if our constraints were different?\n• What evidence do we have for our current approach?",
+      "requiresEnhancedThinking": true
+    }
+  ]
+}

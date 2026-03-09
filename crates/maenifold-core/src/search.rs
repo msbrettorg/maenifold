@@ -3670,12 +3670,14 @@ fn render_sync_markdown(summary: SyncSummary, vector_section: Option<&str>) -> S
 - WARNING_CODE {warning_code}"
         ));
     } else {
-        output.push_str(
+        // T-9.3: RTM FR-7, FR-8 — runtime embedding dimensions must match the loaded model.
+        let dims = vector::embedding_dimensions().unwrap_or(vector::DEFAULT_EMBEDDING_DIMENSIONS);
+        output.push_str(&format!(
             "
 Vector index verification:
-- CONCEPT embeddings: 0 rows (384 dims, self-distance n/a)
-- MEMORY embeddings: 0 rows (384 dims, self-distance n/a)",
-        );
+- CONCEPT embeddings: 0 rows ({dims} dims, self-distance n/a)
+- MEMORY embeddings: 0 rows ({dims} dims, self-distance n/a)"
+        ));
     }
     output
 }
@@ -3820,7 +3822,9 @@ pub fn generate_concept_embeddings(
         return 0;
     }
 
-    let expected_bytes = vector::EMBEDDING_DIMENSIONS * std::mem::size_of::<f32>();
+    // T-9.3: RTM FR-7, FR-8 — derive embedding byte width from the runtime model dimensions.
+    let dims = vector::embedding_dimensions().unwrap_or(vector::DEFAULT_EMBEDDING_DIMENSIONS);
+    let expected_bytes = dims * std::mem::size_of::<f32>();
     let unique_concepts = concepts
         .iter()
         .map(|concept| normalize_concept(concept))
@@ -3979,7 +3983,9 @@ pub fn generate_file_embedding(
         return false;
     }
 
-    let expected_bytes = vector::EMBEDDING_DIMENSIONS * std::mem::size_of::<f32>();
+    // T-9.3: RTM FR-7, FR-8 — derive embedding byte width from the runtime model dimensions.
+    let dims = vector::embedding_dimensions().unwrap_or(vector::DEFAULT_EMBEDDING_DIMENSIONS);
+    let expected_bytes = dims * std::mem::size_of::<f32>();
     let text_to_embed = truncate_for_file_embedding(content, 1000);
     let embedding = match vector::generate_embedding(text_to_embed) {
         Ok(embedding) => embedding,

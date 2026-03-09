@@ -1,5 +1,5 @@
 use maenifold_core::{AssetKind, AssetManager, Config, MaenifoldError};
-use notify::{Event, EventKind, RecursiveMode, Watcher};
+use notify::{Config as NotifyConfig, Event, EventKind, PollWatcher, RecursiveMode, Watcher};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use std::collections::HashSet;
@@ -25,7 +25,7 @@ impl Drop for ConfigOverrideReset {
 }
 
 struct WatcherState {
-    watcher: notify::RecommendedWatcher,
+    watcher: PollWatcher,
     control_tx: Sender<WatcherSignal>,
     worker: Option<JoinHandle<()>>,
 }
@@ -76,18 +76,27 @@ impl TestAssetWatcher {
         let assets_path = self.assets_path.clone();
         let notifications = Arc::clone(&self.notifications);
         let debounce_ms = self.debounce_ms;
-        let worker = spawn_worker(assets_path.clone(), debounce_ms, notifications, event_rx, batch_tx);
+        let worker = spawn_worker(
+            assets_path.clone(),
+            debounce_ms,
+            notifications,
+            event_rx,
+            batch_tx,
+        );
         let callback_tx = event_tx.clone();
 
-        let mut watcher = notify::recommended_watcher(move |event: notify::Result<Event>| {
-            let Ok(event) = event else {
-                return;
-            };
-            if !is_relevant_event_kind(&event.kind) {
-                return;
-            }
-            let _ = callback_tx.send(WatcherSignal::Event(event));
-        })?;
+        let mut watcher = PollWatcher::new(
+            move |event: notify::Result<Event>| {
+                let Ok(event) = event else {
+                    return;
+                };
+                if !is_relevant_event_kind(&event.kind) {
+                    return;
+                }
+                let _ = callback_tx.send(WatcherSignal::Event(event));
+            },
+            NotifyConfig::default().with_poll_interval(Duration::from_millis(50)),
+        )?;
 
         if let Err(error) = watcher.watch(&assets_path, RecursiveMode::Recursive) {
             let _ = event_tx.send(WatcherSignal::Stop);
@@ -409,7 +418,9 @@ fn file_changed_triggers_debounce_and_notification() {
 
     let test_file = harness.workflows_path.join("test-modify.json");
     fs::write(&test_file, r#"{"version":"1.0.0"}"#).expect("write initial asset");
-    harness.watcher.wait_for_notifications(1, Duration::from_secs(5));
+    harness
+        .watcher
+        .wait_for_notifications(1, Duration::from_secs(5));
 
     fs::write(&test_file, r#"{"version":"2.0.0"}"#).expect("write updated asset");
     let batch = harness
@@ -417,7 +428,10 @@ fn file_changed_triggers_debounce_and_notification() {
         .wait_for_batch_with_path(&test_file, Duration::from_secs(5));
 
     let content = fs::read_to_string(&test_file).expect("read updated asset");
-    assert!(content.contains("2.0.0"), "file should contain updated content");
+    assert!(
+        content.contains("2.0.0"),
+        "file should contain updated content"
+    );
     assert!(
         batch.iter().any(|path| path == &test_file),
         "debounced batch should include the changed file: {batch:?}"
@@ -438,7 +452,9 @@ fn file_deleted_triggers_debounce_and_notification() {
 
     let test_file = harness.workflows_path.join("test-delete.json");
     fs::write(&test_file, r#"{"name":"delete-me"}"#).expect("write asset");
-    harness.watcher.wait_for_notifications(1, Duration::from_secs(5));
+    harness
+        .watcher
+        .wait_for_notifications(1, Duration::from_secs(5));
 
     fs::remove_file(&test_file).expect("delete asset");
     let batch = harness
@@ -470,10 +486,14 @@ fn file_renamed_triggers_debounce_and_notification() {
     let old_file = harness.workflows_path.join("test-old-name.json");
     let new_file = harness.workflows_path.join("test-new-name.json");
     fs::write(&old_file, r#"{"name":"rename-test"}"#).expect("write old asset");
-    harness.watcher.wait_for_notifications(1, Duration::from_secs(5));
+    harness
+        .watcher
+        .wait_for_notifications(1, Duration::from_secs(5));
 
     fs::rename(&old_file, &new_file).expect("rename asset");
-    harness.watcher.wait_for_notifications(2, Duration::from_secs(5));
+    harness
+        .watcher
+        .wait_for_notifications(2, Duration::from_secs(5));
     let batches = harness.watcher.drain_batches();
 
     assert!(new_file.exists(), "renamed file should exist at new path");
@@ -509,7 +529,9 @@ fn rapid_file_changes_are_debounced_into_single_notification() {
         }
     }
 
-    harness.watcher.wait_for_notifications(1, Duration::from_secs(5));
+    harness
+        .watcher
+        .wait_for_notifications(1, Duration::from_secs(5));
     thread::sleep(Duration::from_millis(300));
 
     let content = fs::read_to_string(&test_file).expect("read final asset");
@@ -531,7 +553,9 @@ fn debounce_latency_is_under_500ms() {
     let test_file = harness.workflows_path.join("test-latency.json");
     let started = Instant::now();
     fs::write(&test_file, r#"{"name":"latency-test"}"#).expect("write latency asset");
-    harness.watcher.wait_for_notifications(1, Duration::from_secs(5));
+    harness
+        .watcher
+        .wait_for_notifications(1, Duration::from_secs(5));
     let elapsed = started.elapsed();
 
     assert!(

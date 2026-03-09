@@ -88,7 +88,10 @@ fn write_memory_with_filtered_concept_returns_error() {
     .expect("write memory");
 
     assert!(result.contains("ERROR"), "unexpected: {result}");
-    assert!(result.contains("filtered WikiLinks"), "unexpected: {result}");
+    assert!(
+        result.contains("filtered WikiLinks"),
+        "unexpected: {result}"
+    );
     assert!(result.contains("[[tool]]"), "unexpected: {result}");
     assert!(
         !result.contains("[[react]]"),
@@ -181,7 +184,10 @@ fn edit_memory_with_filtered_concept_returns_error() {
         edit_result.contains("filtered WikiLinks"),
         "unexpected: {edit_result}"
     );
-    assert!(edit_result.contains("[[tool]]"), "unexpected: {edit_result}");
+    assert!(
+        edit_result.contains("[[tool]]"),
+        "unexpected: {edit_result}"
+    );
 }
 
 // T-2.4: RTM FR-11.2 / NFR-11.2.3

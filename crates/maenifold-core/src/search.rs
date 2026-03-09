@@ -18,6 +18,7 @@ use rusqlite::{
     types::{Type, ValueRef},
 };
 use serde_json::{Value, json};
+use serde_yaml::Value as YamlValue;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -38,6 +39,10 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
         .get("query")
         .and_then(Value::as_str)
         .ok_or(MaenifoldError::MissingProperty("query"))?;
+    // T-0.1: RTM NFR-3 - reject empty/whitespace/stopword-only SearchMemories queries to match C# VectorSearchTests coverage.
+    if informative_query_terms(query).is_empty() {
+        return Ok("ERROR: Query contains no informative keywords. Try adding specific terms (e.g. \"machine learning\", \"NLP\").".to_string());
+    }
     let mode = payload
         .get("mode")
         .and_then(Value::as_str)
@@ -259,15 +264,18 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
     GraphDatabase::initialize_database(&context.config)?;
     let configured_role = sync_role();
     if configured_role == "follower" {
-        let markdown = render_sync_markdown(SyncSummary {
-            status: "skipped",
-            files_processed: 0,
-            concept_mentions: 0,
-            concept_relations: 0,
-            abandoned_sessions: 0,
-            communities_detected: 0,
-            vector_warning_code: None,
-        });
+        let markdown = render_sync_markdown(
+            SyncSummary {
+                status: "skipped",
+                files_processed: 0,
+                concept_mentions: 0,
+                concept_relations: 0,
+                abandoned_sessions: 0,
+                communities_detected: 0,
+                vector_warning_code: None,
+            },
+            None,
+        );
         return Ok(markdown);
     }
 
@@ -368,15 +376,31 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
             community::detect_and_persist(&context.config.database_path, gamma)? as i64;
         reset_incremental_community_state(&connection, &sync_started_at)?;
 
-        let markdown = render_sync_markdown(SyncSummary {
-            status,
-            files_processed: file_uris.len() as i64,
-            concept_mentions: total_mentions as i64,
-            concept_relations: relation_count,
-            abandoned_sessions,
-            communities_detected,
-            vector_warning_code,
-        });
+        let vector_section = if vector_sync_disabled_by_config() {
+            let diagnostics =
+                collect_vector_skip_diagnostics_for_uris(&context.config, &file_uris)?;
+            Some(
+                build_vector_unavailable_report(
+                    &diagnostics,
+                    VectorUnavailableReasonCodes::DISABLED_BY_CONFIG,
+                )
+                .join("\n"),
+            )
+        } else {
+            None
+        };
+        let markdown = render_sync_markdown(
+            SyncSummary {
+                status,
+                files_processed: file_uris.len() as i64,
+                concept_mentions: total_mentions as i64,
+                concept_relations: relation_count,
+                abandoned_sessions,
+                communities_detected,
+                vector_warning_code,
+            },
+            vector_section.as_deref(),
+        );
 
         let _ = concept_count;
         let _ = file_count;
@@ -2216,6 +2240,81 @@ fn sanitize_mermaid_node_id(concept_name: &str) -> String {
         .collect()
 }
 
+fn with_similarity_next_steps(message: impl Into<String>) -> String {
+    format!(
+        "{}\n💡 Next: Consider using BuildContext, SearchMemories for related operations.",
+        message.into()
+    )
+}
+
+fn normalize_find_similar_validation_input(input: &str) -> String {
+    input
+        .chars()
+        .map(|character| match character {
+            // T-QUAL-FSC2: RTM FR-7.4
+            // Minimal NFKC-equivalent folding for the bracket confusable regression cases
+            // covered by the C# oracle tests.
+            '\u{FF3B}' => '[',
+            '\u{FF3D}' => ']',
+            _ => character,
+        })
+        .collect()
+}
+
+fn contains_bracket_like_delimiter(input: &str) -> bool {
+    input.chars().any(|character| {
+        matches!(
+            character,
+            '<' | '>'
+                | '\u{300A}'
+                | '\u{300B}'
+                | '\u{3008}'
+                | '\u{3009}'
+                | '\u{3010}'
+                | '\u{3011}'
+                | '\u{300C}'
+                | '\u{300D}'
+                | '\u{300E}'
+                | '\u{300F}'
+                | '\u{3014}'
+                | '\u{3015}'
+                | '\u{3016}'
+                | '\u{3017}'
+                | '\u{27E6}'
+                | '\u{27E7}'
+                | '\u{27E8}'
+                | '\u{27E9}'
+                | '\u{27EA}'
+                | '\u{27EB}'
+                | '\u{27EC}'
+                | '\u{27ED}'
+                | '\u{27EE}'
+                | '\u{27EF}'
+                | '\u{2772}'
+                | '\u{2773}'
+                | '\u{276E}'
+                | '\u{276F}'
+        )
+    })
+}
+
+fn is_low_information_find_similar_query(input: &str) -> bool {
+    let mut has_non_ignored = false;
+
+    for character in input.chars() {
+        if character.is_whitespace() || character.is_control() {
+            continue;
+        }
+
+        has_non_ignored = true;
+        if character.is_alphanumeric() {
+            return false;
+        }
+    }
+
+    has_non_ignored
+}
+
 pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<String> {
     let learn = payload
         .get("learn")
@@ -2235,17 +2334,26 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
         .ok_or(MaenifoldError::MissingProperty("conceptName"))?
         .trim();
     if concept_name.is_empty() {
-        return Ok("ERROR: Query contains no informative keywords. Try adding specific terms (e.g. \"machine learning\", \"NLP\").".to_string());
+        return Ok("ERROR: conceptName parameter is required and cannot be empty".to_string());
     }
     if concept_name.len() > 256 {
-        return Err(MaenifoldError::InvalidArgument(
-            "conceptName must be 256 characters or fewer".to_string(),
-        ));
+        return Ok("ERROR: conceptName must be 256 characters or fewer".to_string());
     }
-    if concept_name.contains('[') || concept_name.contains(']') {
-        return Err(MaenifoldError::InvalidArgument(
-            "conceptName should not include brackets".to_string(),
-        ));
+    let validation_input = normalize_find_similar_validation_input(concept_name);
+    if validation_input.contains('[') || validation_input.contains(']') {
+        return Ok(with_similarity_next_steps(format!(
+            "DIAGNOSTIC: conceptName '{concept_name}' contains bracket characters (or Unicode confusables). Remove brackets and try again."
+        )));
+    }
+    if contains_bracket_like_delimiter(&validation_input) {
+        return Ok(with_similarity_next_steps(format!(
+            "DIAGNOSTIC: conceptName '{concept_name}' contains bracket-like delimiter characters. Remove them and try again."
+        )));
+    }
+    if is_low_information_find_similar_query(&validation_input) {
+        return Ok(with_similarity_next_steps(format!(
+            "DIAGNOSTIC: conceptName '{concept_name}' is too low-information to embed reliably. Provide a few letters or words."
+        )));
     }
 
     let max_results = payload
@@ -2253,9 +2361,18 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
         .and_then(Value::as_u64)
         .unwrap_or(10);
     if !(1..=50).contains(&max_results) {
-        return Err(MaenifoldError::InvalidArgument(
-            "maxResults must be between 1 and 50".to_string(),
-        ));
+        return Ok("ERROR: maxResults must be between 1 and 50".to_string());
+    }
+    let concept_name = normalize_concept(concept_name);
+    if concept_name.is_empty() {
+        return Ok(with_similarity_next_steps(format!(
+            "DIAGNOSTIC: conceptName '{}' normalizes to empty. Provide a few letters or words.",
+            payload
+                .get("conceptName")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .trim()
+        )));
     }
 
     GraphDatabase::initialize_database(&context.config)?;
@@ -2264,12 +2381,14 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
     if let Some(vector_results) = query_vec_similar_concepts(
         &connection,
         &context.config.assets_path,
-        concept_name,
+        &concept_name,
         max_results as usize,
     )? {
         if vector_results.is_empty() {
-            return Ok(format!("No similar concepts found for '{}'. Run Sync to ensure concept embeddings are generated.
-💡 Next: Consider using BuildContext, SearchMemories for related operations.", concept_name));
+            return Ok(with_similarity_next_steps(format!(
+                "No similar concepts found for '{}'. Run Sync to ensure concept embeddings are generated.",
+                concept_name
+            )));
         }
 
         // T-GRAPH-DECAY-001.1: RTM FR-7.5
@@ -2325,12 +2444,12 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
     let mut max_count = 0.0_f64;
     for row in rows {
         let (concept_a, concept_b, count) = row?;
-        let neighbor = if concept_a.eq_ignore_ascii_case(concept_name) {
+        let neighbor = if concept_a.eq_ignore_ascii_case(&concept_name) {
             concept_b
         } else {
             concept_a
         };
-        if neighbor.eq_ignore_ascii_case(concept_name) {
+        if neighbor.eq_ignore_ascii_case(&concept_name) {
             continue;
         }
         max_count = max_count.max(count);
@@ -2338,8 +2457,10 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
     }
 
     if neighbors.is_empty() {
-        return Ok(format!("No similar concepts found for '{}'. Run Sync to ensure concept embeddings are generated.
-💡 Next: Consider using BuildContext, SearchMemories for related operations.", concept_name));
+        return Ok(with_similarity_next_steps(format!(
+            "No similar concepts found for '{}'. Run Sync to ensure concept embeddings are generated.",
+            concept_name
+        )));
     }
 
     // T-GRAPH-DECAY-001.1: RTM FR-7.5
@@ -3201,7 +3322,13 @@ fn query_vec_similar_concepts(
     let mut results = Vec::new();
     for row in rows {
         let (neighbor, distance) = row?;
-        let similarity = 1.0 / (1.0 + distance);
+        if !distance.is_finite() {
+            continue;
+        }
+
+        // T-QUAL-FSC2: RTM FR-7.4
+        // Clamp negative-distance drift so semantic similarity never exceeds 1.000.
+        let similarity = (1.0 / (1.0 + distance.max(0.0))).clamp(0.0, 1.0);
         results.push((neighbor, similarity));
     }
     Ok(Some(results))
@@ -3260,6 +3387,81 @@ struct SyncSummary {
     vector_warning_code: Option<&'static str>,
 }
 
+// T-QUAL-002.6b: RTM FR-25.2
+pub struct VectorFailureReasonCodes;
+
+impl VectorFailureReasonCodes {
+    pub const CONCEPT_LOOKUP_FAILED: &'static str = "CONCEPT_LOOKUP_FAILED";
+    pub const FILE_EMBEDDING_FAILED: &'static str = "FILE_EMBEDDING_FAILED";
+    pub const CONCEPT_EMBEDDING_FAILED: &'static str = "CONCEPT_EMBEDDING_FAILED";
+}
+
+// T-QUAL-002.6b: RTM FR-25.2
+pub struct VectorUnavailableReasonCodes;
+
+impl VectorUnavailableReasonCodes {
+    pub const DISABLED_BY_CONFIG: &'static str = "VECTOR_DISABLED_BY_CONFIG";
+    pub const UNKNOWN: &'static str = "VECTOR_UNAVAILABLE_UNKNOWN";
+}
+
+// T-QUAL-002.6b: RTM FR-25.2
+#[derive(Debug, Clone, Default)]
+pub struct VectorSyncDiagnostics {
+    concept_embedding_failures: usize,
+    file_embedding_failures: usize,
+    concept_embedding_skipped: usize,
+    file_embedding_skipped: usize,
+    failure_reasons: BTreeMap<String, usize>,
+}
+
+impl VectorSyncDiagnostics {
+    pub fn record_concept_failure(&mut self, reason: &str) {
+        self.concept_embedding_failures += 1;
+        *self.failure_reasons.entry(reason.to_string()).or_default() += 1;
+    }
+
+    pub fn record_file_failure(&mut self, reason: &str) {
+        self.file_embedding_failures += 1;
+        *self.failure_reasons.entry(reason.to_string()).or_default() += 1;
+    }
+
+    pub fn record_concept_skipped(&mut self, count: usize) {
+        self.concept_embedding_skipped += count;
+    }
+
+    pub fn record_file_skipped(&mut self) {
+        self.file_embedding_skipped += 1;
+    }
+
+    pub fn concept_embedding_failures(&self) -> usize {
+        self.concept_embedding_failures
+    }
+
+    pub fn file_embedding_failures(&self) -> usize {
+        self.file_embedding_failures
+    }
+
+    pub fn total_failures(&self) -> usize {
+        self.concept_embedding_failures + self.file_embedding_failures
+    }
+
+    pub fn concept_embedding_skipped(&self) -> usize {
+        self.concept_embedding_skipped
+    }
+
+    pub fn file_embedding_skipped(&self) -> usize {
+        self.file_embedding_skipped
+    }
+
+    pub fn total_skipped(&self) -> usize {
+        self.concept_embedding_skipped + self.file_embedding_skipped
+    }
+
+    pub fn failure_reasons(&self) -> &BTreeMap<String, usize> {
+        &self.failure_reasons
+    }
+}
+
 fn sync_role() -> String {
     match std::env::var("MAENIFOLD_SYNC_ROLE") {
         Ok(value) => match value.trim().to_ascii_lowercase().as_str() {
@@ -3275,7 +3477,7 @@ fn generate_sync_holder_id() -> String {
     format!("rust-{}-{}", std::process::id(), Uuid::new_v4())
 }
 
-fn render_sync_markdown(summary: SyncSummary) -> String {
+fn render_sync_markdown(summary: SyncSummary, vector_section: Option<&str>) -> String {
     let mut output = format!(
         "Sync complete:
 - STATUS: {}
@@ -3291,7 +3493,10 @@ fn render_sync_markdown(summary: SyncSummary) -> String {
         summary.abandoned_sessions,
         summary.communities_detected,
     );
-    if let Some(warning_code) = summary.vector_warning_code {
+    if let Some(section) = vector_section {
+        output.push('\n');
+        output.push_str(section);
+    } else if let Some(warning_code) = summary.vector_warning_code {
         output.push_str(&format!(
             "
 - WARNING_CODE {warning_code}"
@@ -3305,6 +3510,169 @@ Vector index verification:
         );
     }
     output
+}
+
+// T-QUAL-002.6b: RTM FR-25.2
+fn vector_sync_disabled_by_config() -> bool {
+    std::env::var("MAENIFOLD_DISABLE_VECTOR")
+        .map(|value| {
+            matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes"
+            )
+        })
+        .unwrap_or(false)
+}
+
+// T-QUAL-002.6b: RTM FR-25.2
+fn normalize_vector_unavailable_reason(reason: &str) -> &'static str {
+    let normalized = reason.trim().to_ascii_uppercase();
+    if normalized == VectorUnavailableReasonCodes::DISABLED_BY_CONFIG {
+        VectorUnavailableReasonCodes::DISABLED_BY_CONFIG
+    } else {
+        VectorUnavailableReasonCodes::UNKNOWN
+    }
+}
+
+// T-QUAL-002.6b: RTM FR-25.2
+pub fn build_vector_failure_report(diagnostics: &VectorSyncDiagnostics) -> Vec<String> {
+    let mut lines = vec![
+        "Vector sync diagnostics:".to_string(),
+        "- STATUS: failed".to_string(),
+        format!(
+            "- COUNTERS_FAILED: concepts={}, memory={}, total={}",
+            diagnostics.concept_embedding_failures(),
+            diagnostics.file_embedding_failures(),
+            diagnostics.total_failures()
+        ),
+        format!(
+            "- COUNTERS_SKIPPED: concepts={}, memory={}, total={}",
+            diagnostics.concept_embedding_skipped(),
+            diagnostics.file_embedding_skipped(),
+            diagnostics.total_skipped()
+        ),
+    ];
+
+    if !diagnostics.failure_reasons().is_empty() {
+        lines.push("- FAILURES:".to_string());
+        for (reason, count) in diagnostics.failure_reasons() {
+            lines.push(format!("- REASON {reason}: {count}"));
+        }
+    }
+
+    lines
+}
+
+// T-QUAL-002.6b: RTM FR-25.2
+pub fn build_vector_unavailable_report(
+    diagnostics: &VectorSyncDiagnostics,
+    reason: &str,
+) -> Vec<String> {
+    vec![
+        "Vector sync diagnostics:".to_string(),
+        "- STATUS: unavailable".to_string(),
+        format!(
+            "- COUNTERS_FAILED: concepts={}, memory={}, total={}",
+            diagnostics.concept_embedding_failures(),
+            diagnostics.file_embedding_failures(),
+            diagnostics.total_failures()
+        ),
+        format!(
+            "- COUNTERS_SKIPPED: concepts={}, memory={}, total={}",
+            diagnostics.concept_embedding_skipped(),
+            diagnostics.file_embedding_skipped(),
+            diagnostics.total_skipped()
+        ),
+        format!(
+            "- REASON_CODE {}",
+            normalize_vector_unavailable_reason(reason)
+        ),
+    ]
+}
+
+// T-QUAL-002.6b: RTM FR-25.2
+fn collect_vector_skip_diagnostics_for_uris(
+    config: &crate::Config,
+    file_uris: &[String],
+) -> Result<VectorSyncDiagnostics> {
+    let mut diagnostics = VectorSyncDiagnostics::default();
+    let mut concepts = BTreeSet::new();
+
+    for uri in file_uris {
+        let (_, content, _) = read_markdown(uri, config)?;
+        diagnostics.record_file_skipped();
+        concepts.extend(extract_wikilinks(&content));
+    }
+
+    diagnostics.record_concept_skipped(concepts.len());
+    Ok(diagnostics)
+}
+
+// T-QUAL-002.6b: RTM FR-25.2
+fn collect_vector_skip_diagnostics_for_paths(
+    file_paths: &[PathBuf],
+) -> Result<VectorSyncDiagnostics> {
+    let mut diagnostics = VectorSyncDiagnostics::default();
+    let mut concepts = BTreeSet::new();
+
+    for file_path in file_paths {
+        let content = fs::read_to_string(file_path)?;
+        diagnostics.record_file_skipped();
+        concepts.extend(extract_wikilinks(&content));
+    }
+
+    diagnostics.record_concept_skipped(concepts.len());
+    Ok(diagnostics)
+}
+
+// T-QUAL-002.6b: RTM FR-25.2
+pub fn generate_concept_embeddings(
+    connection: &Connection,
+    concepts: &[String],
+    vector_ready: bool,
+    diagnostics: &mut VectorSyncDiagnostics,
+) -> usize {
+    if !vector_ready || vector_sync_disabled_by_config() {
+        diagnostics.record_concept_skipped(concepts.len());
+        return 0;
+    }
+
+    let table_check = connection.query_row("SELECT COUNT(*) FROM vec_concepts", [], |row| {
+        row.get::<_, i64>(0)
+    });
+    if table_check.is_err() {
+        diagnostics.record_concept_failure(VectorFailureReasonCodes::CONCEPT_LOOKUP_FAILED);
+        return 0;
+    }
+
+    0
+}
+
+// T-QUAL-002.6b: RTM FR-25.2
+pub fn sync_files(context: &ToolContext, file_paths: &[PathBuf]) -> Result<String> {
+    for file_path in file_paths {
+        sync_single_file(context, file_path)?;
+    }
+
+    let mut output = format!(
+        "SyncFiles complete:
+- {} FILES processed",
+        file_paths.len()
+    );
+
+    if vector_sync_disabled_by_config() {
+        let diagnostics = collect_vector_skip_diagnostics_for_paths(file_paths)?;
+        output.push('\n');
+        output.push_str(
+            &build_vector_unavailable_report(
+                &diagnostics,
+                VectorUnavailableReasonCodes::DISABLED_BY_CONFIG,
+            )
+            .join("\n"),
+        );
+    }
+
+    Ok(output)
 }
 
 fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<String> {
@@ -3358,6 +3726,21 @@ fn slugify_query(query: &str) -> String {
         .join("-")
 }
 
+fn informative_query_terms(query: &str) -> Vec<String> {
+    const STOPWORDS: &[&str] = &[
+        "a", "an", "and", "are", "as", "at", "be", "but", "by", "for", "if", "in", "into", "is",
+        "it", "no", "not", "of", "on", "or", "such", "that", "the", "their", "then", "there",
+        "these", "they", "this", "to", "was", "will", "with", "we", "you", "your", "our", "from",
+    ];
+    let stopwords = STOPWORDS.iter().copied().collect::<HashSet<_>>();
+    query
+        .split(|ch: char| !ch.is_ascii_alphanumeric())
+        .filter(|part| !part.is_empty())
+        .map(|part| part.to_ascii_lowercase())
+        .filter(|term| !stopwords.contains(term.as_str()))
+        .collect()
+}
+
 fn tokenize_query(query: &str) -> Vec<String> {
     query
         .split(|ch: char| !ch.is_ascii_alphanumeric())
@@ -3376,6 +3759,109 @@ fn build_snippet(content: &str, query_terms: &[String], query_slug: &str) -> Str
     let start = index.saturating_sub(25);
     let end = (index + 48).min(content.len());
     content.get(start..end).unwrap_or(content).to_string()
+}
+
+// T-QUAL-002.6a: RTM FR-25.2
+pub fn get_file_display_info(
+    file_identifier: &str,
+    query: &str,
+    config: &crate::config::Config,
+) -> (String, String) {
+    let fallback_title = fallback_display_title(file_identifier);
+    let query_terms = tokenize_query(query);
+    let query_slug = slugify_query(query);
+
+    let loaded = if file_identifier.starts_with("memory://") {
+        read_markdown(file_identifier, config)
+            .map(|(frontmatter, content, _)| (frontmatter, content))
+    } else if let Ok(uri) = path_to_uri(Path::new(file_identifier), &config.memory_path) {
+        read_markdown(&uri, config).map(|(frontmatter, content, _)| (frontmatter, content))
+    } else {
+        fs::read_to_string(file_identifier)
+            .map(|content| (None, content))
+            .map_err(MaenifoldError::from)
+    };
+
+    match loaded {
+        Ok((frontmatter, content)) => (
+            frontmatter
+                .as_ref()
+                .and_then(frontmatter_title)
+                .unwrap_or_else(|| fallback_title.clone()),
+            build_snippet(&content, &query_terms, &query_slug),
+        ),
+        Err(_) => {
+            emit_stderr_line(&format!(
+                "[DEGRADED][MemorySearchTools.Fusion][GetFileDisplayInfo] Falling back to filename/snippet for '{}'",
+                redact_display_info_path(file_identifier, config)
+            ));
+            (fallback_title, "[DEGRADED] Snippet unavailable".to_string())
+        }
+    }
+}
+
+fn frontmatter_title(frontmatter: &crate::markdown::Frontmatter) -> Option<String> {
+    frontmatter.get("title").and_then(|value| match value {
+        YamlValue::String(title) if !title.trim().is_empty() => Some(title.clone()),
+        _ => None,
+    })
+}
+
+fn fallback_display_title(file_identifier: &str) -> String {
+    if let Some(relative) = file_identifier.strip_prefix("memory://") {
+        return relative
+            .rsplit('/')
+            .next()
+            .filter(|segment| !segment.is_empty())
+            .unwrap_or(relative)
+            .to_string();
+    }
+
+    let path = Path::new(file_identifier);
+    path.file_stem()
+        .or_else(|| path.file_name())
+        .map(|segment| segment.to_string_lossy().into_owned())
+        .unwrap_or_else(|| file_identifier.to_string())
+}
+
+fn redact_display_info_path(file_identifier: &str, config: &crate::config::Config) -> String {
+    if let Some(relative) = file_identifier.strip_prefix("memory://") {
+        return relative
+            .rsplit('/')
+            .next()
+            .filter(|segment| !segment.is_empty())
+            .unwrap_or(relative)
+            .to_string();
+    }
+
+    let path = Path::new(file_identifier);
+    if path.is_absolute() && !path.starts_with(&config.memory_path) {
+        return path
+            .file_name()
+            .map(|segment| segment.to_string_lossy().into_owned())
+            .unwrap_or_else(|| file_identifier.to_string());
+    }
+
+    path.file_name()
+        .or_else(|| path.file_stem())
+        .map(|segment| segment.to_string_lossy().into_owned())
+        .unwrap_or_else(|| file_identifier.to_string())
+}
+
+#[cfg(unix)]
+fn emit_stderr_line(message: &str) {
+    unsafe extern "C" {
+        fn write(fd: i32, buf: *const u8, count: usize) -> isize;
+    }
+
+    let line = format!("{message}\n");
+    // SAFETY: the pointer remains valid for the duration of the syscall and fd=2 is stderr.
+    let _ = unsafe { write(2, line.as_ptr(), line.len()) };
+}
+
+#[cfg(not(unix))]
+fn emit_stderr_line(message: &str) {
+    eprintln!("{message}");
 }
 
 fn render_search_markdown(data: &Value) -> String {

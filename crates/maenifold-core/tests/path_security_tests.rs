@@ -84,10 +84,22 @@ fn fr25_5_ac1_shared_path_validator_absolute_path_rejected_by_memory_and_system_
     );
     let list_result = list_memories_output(&env, &absolute_path);
 
-    assert!(write_result.starts_with("ERROR:"), "unexpected: {write_result}");
-    assert!(write_result.contains(expected_reason), "unexpected: {write_result}");
-    assert!(list_result.starts_with("ERROR:"), "unexpected: {list_result}");
-    assert!(list_result.contains(expected_reason), "unexpected: {list_result}");
+    assert!(
+        write_result.starts_with("ERROR:"),
+        "unexpected: {write_result}"
+    );
+    assert!(
+        write_result.contains(expected_reason),
+        "unexpected: {write_result}"
+    );
+    assert!(
+        list_result.starts_with("ERROR:"),
+        "unexpected: {list_result}"
+    );
+    assert!(
+        list_result.contains(expected_reason),
+        "unexpected: {list_result}"
+    );
 }
 
 // T-QUAL-002.6h: RTM FR-25.6
@@ -106,10 +118,22 @@ fn fr25_6_ac1_shared_path_validator_dot_sequence_rejected_by_memory_and_system_t
     );
     let list_result = list_memories_output(&env, traversal_path);
 
-    assert!(write_result.starts_with("ERROR:"), "unexpected: {write_result}");
-    assert!(write_result.contains(expected_reason), "unexpected: {write_result}");
-    assert!(list_result.starts_with("ERROR:"), "unexpected: {list_result}");
-    assert!(list_result.contains(expected_reason), "unexpected: {list_result}");
+    assert!(
+        write_result.starts_with("ERROR:"),
+        "unexpected: {write_result}"
+    );
+    assert!(
+        write_result.contains(expected_reason),
+        "unexpected: {write_result}"
+    );
+    assert!(
+        list_result.starts_with("ERROR:"),
+        "unexpected: {list_result}"
+    );
+    assert!(
+        list_result.contains(expected_reason),
+        "unexpected: {list_result}"
+    );
 }
 
 // T-QUAL-002.6h: RTM FR-25.5
@@ -158,7 +182,10 @@ fn fr25_6_ac2_path_traversal_protection_system_tools_still_allows_valid_relative
 
     let list_result = list_memories_output(&env, &valid_folder);
 
-    assert!(list_result.starts_with("# Directory:"), "unexpected: {list_result}");
+    assert!(
+        list_result.starts_with("# Directory:"),
+        "unexpected: {list_result}"
+    );
     assert!(
         list_result.contains("system-list-target.md"),
         "unexpected: {list_result}"
@@ -230,7 +257,10 @@ fn fr25_6_ac4_list_memories_rejects_symlink_escaping_memory_path() {
 
     let list_result = list_memories_output(&env, &format!("{test_folder}/link-outside"));
 
-    assert!(list_result.starts_with("ERROR:"), "unexpected: {list_result}");
+    assert!(
+        list_result.starts_with("ERROR:"),
+        "unexpected: {list_result}"
+    );
     assert!(
         list_result.contains("Resolved path escapes memory root"),
         "unexpected: {list_result}"

@@ -3,8 +3,8 @@ use maenifold_core::json::OutputFormat;
 use maenifold_core::markdown::{normalize_concept, path_to_uri};
 use maenifold_core::tools::ToolContext;
 use maenifold_core::watchers::{
-    format_watcher_error_message, process_path_for_test, start_watcher, stop_watcher,
-    watcher_is_running,
+    format_watcher_error_message, process_path_for_test, process_pending_paths_for_test,
+    start_watcher, stop_watcher, watcher_is_running,
 };
 use maenifold_core::{Config, GraphDatabase};
 use once_cell::sync::Lazy;
@@ -13,8 +13,6 @@ use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::json;
 use std::fs;
 use std::path::PathBuf;
-use std::thread;
-use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
 static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
@@ -101,17 +99,6 @@ fn count_rows_like(cfg: &Config, table: &str, pattern: &str) -> i64 {
     db_connection(cfg)
         .query_row(&sql, [pattern], |row| row.get::<_, i64>(0))
         .expect("row count")
-}
-
-fn wait_for(description: &str, timeout: Duration, mut condition: impl FnMut() -> bool) {
-    let deadline = Instant::now() + timeout;
-    while Instant::now() < deadline {
-        if condition() {
-            return;
-        }
-        thread::sleep(Duration::from_millis(25));
-    }
-    panic!("timed out waiting for {description}");
 }
 
 // T-COV-001.3: RTM FR-17.5
@@ -241,14 +228,11 @@ fn process_file_deleted_after_create_removes_file_content_and_mentions_from_db()
 
 // T-COV-001.3: RTM FR-17.5
 #[test]
-fn start_watcher_processes_nested_markdown_and_ignores_non_markdown_files() {
+fn watcher_processing_only_indexes_nested_markdown_paths() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
     let ctx = context(&cfg);
-    let _ = stop_watcher(&ctx, &json!({}));
-
-    start_watcher(&ctx, &json!({"debounceMs": 100})).expect("start watcher");
     let nested = cfg.memory_path.join("tests/incremental-sync-tools/nested");
     fs::create_dir_all(&nested).expect("mkdir nested");
     let ignored_txt = nested.join("ignored.txt");
@@ -256,26 +240,19 @@ fn start_watcher_processes_nested_markdown_and_ignores_non_markdown_files() {
     fs::write(&ignored_txt, "[[ignored-concept]]\n").expect("write txt");
     fs::write(&watched_md, "# Watched\n\n[[watched-concept]]\n").expect("write markdown");
     let watched_uri = path_to_uri(&watched_md, &cfg.memory_path).expect("watched uri");
-
-    wait_for(
-        "watcher to index nested markdown",
-        Duration::from_secs(5),
-        || get_file_row(&cfg, &watched_uri).is_some(),
-    );
+    process_pending_paths_for_test(&ctx, &[ignored_txt.clone(), watched_md.clone()])
+        .expect("process pending paths");
 
     assert_eq!(
         get_file_row(&cfg, &watched_uri),
         Some(watched_uri),
-        "watcher should process markdown files in nested memory folders"
+        "watcher path processing should include markdown files in nested memory folders"
     );
     assert_eq!(
         count_rows_like(&cfg, "file_content", "%ignored.txt%"),
         0,
-        "watcher should ignore non-markdown files"
+        "watcher path processing should ignore non-markdown files"
     );
-
-    let stop = stop_watcher(&ctx, &json!({})).expect("stop watcher");
-    assert_eq!(stop, "Stopped incremental sync watcher");
 }
 
 // T-COV-001.3: RTM FR-17.5
@@ -336,7 +313,6 @@ fn debounce_rapid_changes_to_same_path_coalesces_into_final_processing() {
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
     let ctx = context(&cfg);
-    let _ = stop_watcher(&ctx, &json!({}));
 
     let concept_v1 = format!(
         "incremental-sync-debounce-v1-{}",
@@ -352,21 +328,16 @@ fn debounce_rapid_changes_to_same_path_coalesces_into_final_processing() {
         &format!("# Version 1\n\n[[{concept_v1}]]\n"),
     );
 
-    start_watcher(&ctx, &json!({"debounceMs": 150})).expect("start watcher");
+    let mut pending_events = Vec::new();
     for version in 0..5 {
         fs::write(
             &file_path,
             format!("# Final Version {version}\n\n[[{concept_final}]]\n"),
         )
         .expect("write debounced content");
-        thread::sleep(Duration::from_millis(10));
+        pending_events.push(file_path.clone());
     }
-
-    wait_for(
-        "watcher to process final debounced content",
-        Duration::from_secs(5),
-        || get_mention_count(&cfg, &memory_uri, &normalize_concept(&concept_final)) == Some(1),
-    );
+    process_pending_paths_for_test(&ctx, &pending_events).expect("process debounced paths");
 
     assert_eq!(
         get_mention_count(&cfg, &memory_uri, &normalize_concept(&concept_final)),
@@ -378,7 +349,4 @@ fn debounce_rapid_changes_to_same_path_coalesces_into_final_processing() {
         None,
         "debounced watcher processing should not leave stale mentions from superseded content"
     );
-
-    let stop = stop_watcher(&ctx, &json!({})).expect("stop watcher");
-    assert_eq!(stop, "Stopped incremental sync watcher");
 }

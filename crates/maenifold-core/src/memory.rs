@@ -8,7 +8,7 @@ use crate::markdown::{
 use crate::tools::ToolContext;
 use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use regex::Regex;
-use rusqlite::params;
+use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Value, json};
 use serde_yaml::Value as YamlValue;
 use std::collections::BTreeMap;
@@ -768,6 +768,166 @@ pub fn compute_decay_weight(
     }
     let exponent = (age_days - grace_period_days) as f64 / half_life_days as f64;
     (0.5f64.powf(exponent)).clamp(0.0, 1.0)
+}
+
+// T-QUAL-002.6a: RTM FR-25.2
+pub fn get_decay_weight_for_file(file_identifier: &str, config: &crate::config::Config) -> f64 {
+    let connection = GraphDatabase::initialize_database(config)
+        .and_then(|_| db::open_connection(&config.database_path));
+
+    match connection {
+        Ok(connection) => {
+            get_decay_weight_for_file_with_connection(file_identifier, &connection, config)
+        }
+        Err(_) => get_decay_weight_from_disk(file_identifier, config),
+    }
+}
+
+// T-QUAL-002.6a: RTM FR-25.2
+fn get_decay_weight_for_file_with_connection(
+    file_identifier: &str,
+    connection: &Connection,
+    config: &crate::config::Config,
+) -> f64 {
+    let row = connection
+        .query_row(
+            "SELECT created, last_accessed, status FROM file_content WHERE file_path = ?1",
+            params![file_identifier],
+            |row| {
+                Ok((
+                    row.get::<_, Option<String>>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            },
+        )
+        .optional();
+
+    match row {
+        Ok(Some((created, last_accessed, status))) => {
+            if let Some(last_accessed) = last_accessed.as_deref().and_then(parse_datetime) {
+                return compute_decay_weight(
+                    file_identifier,
+                    Some(&last_accessed.to_rfc3339()),
+                    config,
+                    status.as_deref(),
+                );
+            }
+
+            if let Some(created_value) = created.as_deref() {
+                if let Some(created) = parse_datetime(created_value) {
+                    return compute_decay_weight(
+                        file_identifier,
+                        Some(&created.to_rfc3339()),
+                        config,
+                        status.as_deref(),
+                    );
+                }
+
+                emit_degraded_decay_diagnostic(
+                    "GetDecayWeightForFile(reuse-conn)",
+                    "Malformed file_content.created timestamp; using current UTC as degraded fallback",
+                    file_identifier,
+                    config,
+                );
+                let now = Utc::now().to_rfc3339();
+                return compute_decay_weight(
+                    file_identifier,
+                    Some(&now),
+                    config,
+                    status.as_deref(),
+                );
+            }
+
+            let now = Utc::now().to_rfc3339();
+            compute_decay_weight(file_identifier, Some(&now), config, status.as_deref())
+        }
+        Ok(None) | Err(_) => get_decay_weight_from_disk(file_identifier, config),
+    }
+}
+
+// T-QUAL-002.6a: RTM FR-25.2
+fn get_decay_weight_from_disk(file_identifier: &str, config: &crate::config::Config) -> f64 {
+    let path = if file_identifier.starts_with("memory://") {
+        crate::markdown::uri_to_path(file_identifier, &config.memory_path)
+    } else {
+        Ok(PathBuf::from(file_identifier))
+    };
+
+    match path.and_then(|path| {
+        read_created_date(&path).map(|created| {
+            (
+                path,
+                compute_decay_weight(file_identifier, Some(&created.to_rfc3339()), config, None),
+            )
+        })
+    }) {
+        Ok((_, decay_weight)) => decay_weight,
+        Err(_) => {
+            emit_degraded_decay_diagnostic(
+                "GetDecayWeightFromDisk",
+                "Falling back to neutral decay weight",
+                file_identifier,
+                config,
+            );
+            1.0
+        }
+    }
+}
+
+fn emit_degraded_decay_diagnostic(
+    method: &str,
+    message: &str,
+    file_identifier: &str,
+    config: &crate::config::Config,
+) {
+    emit_stderr_line(&format!(
+        "[DEGRADED][MemorySearchTools.Fusion][{method}] {message} for '{}'",
+        redact_diagnostic_path(file_identifier, config)
+    ));
+}
+
+fn redact_diagnostic_path(file_identifier: &str, config: &crate::config::Config) -> String {
+    if let Some(relative) = file_identifier.strip_prefix("memory://") {
+        return relative
+            .rsplit('/')
+            .next()
+            .filter(|segment| !segment.is_empty())
+            .unwrap_or(relative)
+            .to_string();
+    }
+
+    let path = Path::new(file_identifier);
+    if path.is_absolute() && !path.starts_with(&config.memory_path) {
+        return path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_else(|| file_identifier.to_string());
+    }
+
+    path.file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .or_else(|| {
+            path.file_stem()
+                .map(|stem| stem.to_string_lossy().into_owned())
+        })
+        .unwrap_or_else(|| file_identifier.to_string())
+}
+
+#[cfg(unix)]
+fn emit_stderr_line(message: &str) {
+    unsafe extern "C" {
+        fn write(fd: i32, buf: *const u8, count: usize) -> isize;
+    }
+
+    let line = format!("{message}\n");
+    // SAFETY: the pointer remains valid for the duration of the syscall and fd=2 is stderr.
+    let _ = unsafe { write(2, line.as_ptr(), line.len()) };
+}
+
+#[cfg(not(unix))]
+fn emit_stderr_line(message: &str) {
+    eprintln!("{message}");
 }
 
 fn grace_period_for_path(file_path: &str, config: &crate::config::Config) -> i64 {

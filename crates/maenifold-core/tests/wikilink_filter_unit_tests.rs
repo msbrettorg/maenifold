@@ -4,7 +4,10 @@ use std::fs;
 use tempfile::TempDir;
 
 // T-2.4: RTM FR-11.1 ports C# WikiLinkFilter unit coverage to Rust's line-based dotfile filter.
-fn check_filter(filter_contents: Option<&str>, content: &str) -> std::result::Result<(), Vec<(String, String)>> {
+fn check_filter(
+    filter_contents: Option<&str>,
+    content: &str,
+) -> std::result::Result<(), Vec<(String, String)>> {
     let tmp = TempDir::new().expect("tmp");
 
     if let Some(filter_contents) = filter_contents {
@@ -62,7 +65,10 @@ fn check_filter_mixed_filtered_and_unfiltered() {
 
     assert_eq!(blocked.len(), 2);
     assert_eq!(blocked.get("tool").map(String::as_str), Some("Generic hub"));
-    assert_eq!(blocked.get("agent").map(String::as_str), Some("Generic hub"));
+    assert_eq!(
+        blocked.get("agent").map(String::as_str),
+        Some("Generic hub")
+    );
     assert!(!blocked.contains_key("react"));
     assert!(!blocked.contains_key("typescript"));
 }

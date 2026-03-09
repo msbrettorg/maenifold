@@ -4,20 +4,91 @@ use crate::db::GraphDatabase;
 use crate::error::{MaenifoldError, Result};
 use crate::json::OutputFormat;
 use crate::registry::ToolRegistry;
+use rmcp::model::{
+    CallToolRequestParams, CallToolResult, Content, Implementation, ListToolsResult,
+    ServerCapabilities, ServerInfo, Tool,
+};
+use rmcp::{ServerHandler, ServiceExt};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
-use std::io::{self, BufRead, BufReader, Read, Write};
+use std::sync::Arc;
 
 pub struct MaenifoldMcpServer;
 
-// T-5.8: RTM NFR-3, NFR-4 hardens stdio framing against oversized MCP requests.
-const MAX_MCP_FRAME_SIZE: usize = 16 * 1024 * 1024;
+// T-5.1: RTM FR-22.1 — rmcp-based async MCP handler.
+struct MaenifoldHandler {
+    tools: Vec<Tool>,
+}
 
-#[derive(Debug)]
-enum StdioReadResult {
-    Eof,
-    Request(Value),
-    ProtocolError { code: i64, message: String },
+impl MaenifoldHandler {
+    fn new() -> Result<Self> {
+        let mcp_tools = list_mcp_tools(&ToolRegistry::new())?;
+        let tools = mcp_tools
+            .into_iter()
+            .map(|t| {
+                let schema: serde_json::Map<String, Value> = match t.input_schema {
+                    Value::Object(map) => map,
+                    _ => serde_json::Map::new(),
+                };
+                Tool::new(t.name, t.description, Arc::new(schema))
+            })
+            .collect();
+        Ok(Self { tools })
+    }
+}
+
+impl ServerHandler for MaenifoldHandler {
+    fn get_info(&self) -> ServerInfo {
+        // T-5.1: RTM FR-22.1 — server info returned during MCP initialize handshake.
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_server_info(Implementation::new(
+                "maenifold",
+                env!("CARGO_PKG_VERSION"),
+            ))
+            .with_instructions(
+                "Use maenifold tools to read, write, search, and organize memory files, \
+                 inspect graph relationships, and run workflow or thinking sessions. \
+                 Prefer exact tool names from tools/list and pass JSON arguments that \
+                 match each tool schema.",
+            )
+    }
+
+    // T-5.2: RTM FR-22.4 — tools/list returns all 28 tool schemas.
+    fn list_tools(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<ListToolsResult, rmcp::ErrorData>> + Send + '_
+    {
+        std::future::ready(Ok(ListToolsResult {
+            tools: self.tools.clone(),
+            next_cursor: None,
+            meta: None,
+        }))
+    }
+
+    // T-5.1: RTM FR-22.1 — tools/call dispatches through ToolRegistry.
+    fn call_tool(
+        &self,
+        request: CallToolRequestParams,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<CallToolResult, rmcp::ErrorData>> + Send + '_
+    {
+        let tool_name = request.name.to_string();
+        let arguments: Value = match request.arguments {
+            Some(map) => Value::Object(map),
+            None => json!({}),
+        };
+
+        std::future::ready(
+            match ToolRegistry::global().try_invoke(&tool_name, &arguments, OutputFormat::Json) {
+                Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
+                Err(err) => Ok(CallToolResult::error(vec![Content::text(format!(
+                    "Error invoking {tool_name}: {err}"
+                ))])),
+            },
+        )
+    }
 }
 
 impl MaenifoldMcpServer {
@@ -25,40 +96,18 @@ impl MaenifoldMcpServer {
         list_mcp_tools(ToolRegistry::global())
     }
 
-    // T-5.1: RTM FR-22.1
-    pub fn serve_stdio() -> Result<()> {
-        let stdin = io::stdin();
-        let stdout = io::stdout();
-        let mut reader = BufReader::new(stdin.lock());
-        let mut writer = stdout.lock();
-
-        loop {
-            let request = match read_stdio_message(&mut reader)? {
-                StdioReadResult::Eof => break,
-                StdioReadResult::ProtocolError { code, message } => {
-                    write_stdio_message(&mut writer, &error_response(Value::Null, code, message))?;
-                    writer.flush()?;
-                    continue;
-                }
-                StdioReadResult::Request(request) => request,
-            };
-
-            let request_id = request.get("id").cloned().unwrap_or(Value::Null);
-            match handle_stdio_request(request) {
-                Ok(Some(response)) => {
-                    write_stdio_message(&mut writer, &response)?;
-                    writer.flush()?;
-                }
-                Ok(None) => {}
-                Err(error) => {
-                    // T-5.8: RTM NFR-3, NFR-4 keeps the MCP server alive on malformed requests.
-                    let response = json_rpc_error_for_request_error(request_id, error);
-                    write_stdio_message(&mut writer, &response)?;
-                    writer.flush()?;
-                }
-            }
-        }
-
+    // T-5.1: RTM FR-22.1 — serve MCP over stdio using rmcp transport.
+    pub async fn serve_stdio() -> Result<()> {
+        let handler = MaenifoldHandler::new()?;
+        let transport = rmcp::transport::io::stdio();
+        let service = handler
+            .serve(transport)
+            .await
+            .map_err(|e| MaenifoldError::Message(format!("MCP server init failed: {e}")))?;
+        service
+            .waiting()
+            .await
+            .map_err(|e| MaenifoldError::Message(format!("MCP server error: {e}")))?;
         Ok(())
     }
 }
@@ -887,208 +936,6 @@ fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpToolDefinition>
     Ok(tool)
 }
 
-fn read_stdio_message(reader: &mut BufReader<impl Read>) -> Result<StdioReadResult> {
-    let mut content_length = None;
-    let mut header_error = None;
-
-    loop {
-        let mut header_line = String::new();
-        match reader.read_line(&mut header_line)? {
-            0 if content_length.is_none() && header_error.is_none() => {
-                return Ok(StdioReadResult::Eof);
-            }
-            0 => {
-                return Err(MaenifoldError::Message(
-                    "Unexpected EOF while reading MCP headers".to_string(),
-                ));
-            }
-            _ => {}
-        }
-
-        let trimmed = header_line.trim_end_matches(['\r', '\n']);
-        if trimmed.is_empty() {
-            break;
-        }
-
-        if let Some(value) = trimmed.strip_prefix("Content-Length:") {
-            match value.trim().parse::<usize>() {
-                Ok(length) => content_length = Some(length),
-                Err(err) => {
-                    header_error = Some(format!("Invalid Content-Length header: {err}"));
-                }
-            }
-        }
-    }
-
-    if let Some(message) = header_error {
-        return Ok(StdioReadResult::ProtocolError {
-            code: -32600,
-            message,
-        });
-    }
-
-    let Some(content_length) = content_length else {
-        return Ok(StdioReadResult::ProtocolError {
-            code: -32600,
-            message: "Missing Content-Length header".to_string(),
-        });
-    };
-
-    if content_length > MAX_MCP_FRAME_SIZE {
-        discard_stdio_body(reader, content_length)?;
-        return Ok(StdioReadResult::ProtocolError {
-            code: -32600,
-            message: format!(
-                "MCP frame exceeds max size of {MAX_MCP_FRAME_SIZE} bytes: {content_length}"
-            ),
-        });
-    }
-
-    let mut body = vec![0_u8; content_length];
-    reader.read_exact(&mut body)?;
-    match serde_json::from_slice(&body) {
-        Ok(request) => Ok(StdioReadResult::Request(request)),
-        Err(err) => Ok(StdioReadResult::ProtocolError {
-            code: -32700,
-            message: format!("Parse error: {err}"),
-        }),
-    }
-}
-
-fn write_stdio_message(writer: &mut impl Write, response: &Value) -> Result<()> {
-    let body = serde_json::to_vec(response)?;
-    write!(writer, "Content-Length: {}\r\n\r\n", body.len())?;
-    writer.write_all(&body)?;
-    Ok(())
-}
-
-fn handle_stdio_request(request: Value) -> Result<Option<Value>> {
-    let method = request
-        .get("method")
-        .and_then(Value::as_str)
-        .ok_or_else(|| MaenifoldError::InvalidPayload("Missing JSON-RPC method".to_string()))?;
-    let id = request.get("id").cloned().unwrap_or(Value::Null);
-    let params = request.get("params").cloned().unwrap_or_else(|| json!({}));
-
-    let response = match method {
-        "initialize" => Some(success_response(id, initialize_result())),
-        "notifications/initialized" => None,
-        "tools/list" => Some(success_response(
-            id,
-            json!({
-                "tools": MaenifoldMcpServer::list_tools()?,
-            }),
-        )),
-        "tools/call" => Some(success_response(id, call_tool(params))),
-        _ => Some(error_response(
-            id,
-            -32601,
-            format!("Method not found: {method}"),
-        )),
-    };
-
-    Ok(response)
-}
-
-fn discard_stdio_body(reader: &mut BufReader<impl Read>, content_length: usize) -> Result<()> {
-    let mut remaining = content_length;
-    let mut buffer = [0_u8; 8192];
-
-    while remaining > 0 {
-        let read_len = remaining.min(buffer.len());
-        reader.read_exact(&mut buffer[..read_len])?;
-        remaining -= read_len;
-    }
-
-    Ok(())
-}
-
-fn json_rpc_error_for_request_error(id: Value, error: MaenifoldError) -> Value {
-    let (code, message) = match error {
-        MaenifoldError::InvalidPayload(message) => (-32600, message),
-        MaenifoldError::Json(error) => (-32700, format!("Parse error: {error}")),
-        other => (-32603, other.to_string()),
-    };
-    error_response(id, code, message)
-}
-
-fn initialize_result() -> Value {
-    json!({
-        "protocolVersion": "2024-11-05",
-        "serverInfo": {
-            "name": "maenifold",
-            "version": env!("CARGO_PKG_VERSION"),
-        },
-        "capabilities": {
-            "tools": {},
-        },
-        "instructions": "Use maenifold tools to read, write, search, and organize memory files, inspect graph relationships, and run workflow or thinking sessions. Prefer exact tool names from tools/list and pass JSON arguments that match each tool schema.",
-    })
-}
-
-fn call_tool(params: Value) -> Value {
-    let Some(tool_name) = params.get("name").and_then(Value::as_str) else {
-        return tool_error("Missing tools/call parameter: name");
-    };
-
-    let arguments = match params.get("arguments") {
-        Some(Value::Object(_)) => params["arguments"].clone(),
-        Some(_) => return tool_error("Invalid tools/call parameter: arguments must be an object"),
-        None => json!({}),
-    };
-
-    match ToolRegistry::global().try_invoke(tool_name, &arguments, OutputFormat::Json) {
-        Ok(output) => json!({
-            "content": [
-                {
-                    "type": "text",
-                    "text": output,
-                }
-            ]
-        }),
-        Err(err) => json!({
-            "content": [
-                {
-                    "type": "text",
-                    "text": format!("Error invoking {tool_name}: {err}"),
-                }
-            ],
-            "isError": true,
-        }),
-    }
-}
-
-fn tool_error(message: &str) -> Value {
-    json!({
-        "content": [
-            {
-                "type": "text",
-                "text": message,
-            }
-        ],
-        "isError": true,
-    })
-}
-
-fn success_response(id: Value, result: Value) -> Value {
-    json!({
-        "jsonrpc": "2.0",
-        "id": id,
-        "result": result,
-    })
-}
-
-fn error_response(id: Value, code: i64, message: String) -> Value {
-    json!({
-        "jsonrpc": "2.0",
-        "id": id,
-        "error": {
-            "code": code,
-            "message": message,
-        }
-    })
-}
-
 fn object_schema(properties: Vec<(&str, Value)>, required: &[&str]) -> Value {
     let mut property_map = Map::new();
     for (name, schema) in properties {
@@ -1182,8 +1029,8 @@ impl From<SchemaProperty> for Value {
 mod tests {
     use super::*;
     use std::collections::BTreeSet;
-    use std::io::Cursor;
 
+    // T-5.2: RTM FR-22.4 — all 28 tools are represented in the MCP schema mapping.
     #[test]
     fn t_5_2_registry_mapping_covers_all_tools() {
         let tools = list_mcp_tools(&ToolRegistry::new()).expect("registry mapping should succeed");
@@ -1199,6 +1046,7 @@ mod tests {
         assert!(names.contains("RunFullBenchmark"));
     }
 
+    // T-5.2: RTM FR-22.4 — WriteMemory schema declares required fields.
     #[test]
     fn t_5_2_write_memory_schema_requires_title_and_content() {
         let tools = list_mcp_tools(&ToolRegistry::new()).expect("registry mapping should succeed");
@@ -1219,6 +1067,7 @@ mod tests {
         assert_eq!(required, vec!["title", "content"]);
     }
 
+    // T-5.2: RTM FR-22.4 — canonical names survive the McpToolDefinition mapping.
     #[test]
     fn t_5_2_registry_names_match_canonical_names() {
         let tools = list_mcp_tools(&ToolRegistry::new()).expect("registry mapping should succeed");
@@ -1229,50 +1078,33 @@ mod tests {
         assert!(names.contains(&"RunFullBenchmark".to_string()));
     }
 
+    // T-5.1: RTM FR-22.1 — handler builds and exposes correct server info.
     #[test]
-    fn t_5_8_read_stdio_message_rejects_oversized_frames() {
-        let body = vec![b'a'; MAX_MCP_FRAME_SIZE + 1];
-        let input = format!("Content-Length: {}\r\n\r\n", body.len()).into_bytes();
-        let mut framed = input;
-        framed.extend_from_slice(&body);
-        let mut reader = BufReader::new(Cursor::new(framed));
+    fn t_5_1_handler_server_info_matches_expected() {
+        let handler = MaenifoldHandler::new().expect("handler should build");
+        let info = handler.get_info();
 
-        let result = read_stdio_message(&mut reader).expect("oversized frame should be handled");
-
-        match result {
-            StdioReadResult::ProtocolError { code, message } => {
-                assert_eq!(code, -32600);
-                assert!(message.contains("MCP frame exceeds max size"));
-            }
-            other => panic!("expected protocol error, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn t_5_8_read_stdio_message_reports_parse_errors() {
-        let input = b"Content-Length: 8\r\n\r\nnot-json".to_vec();
-        let mut reader = BufReader::new(Cursor::new(input));
-
-        let result = read_stdio_message(&mut reader).expect("invalid JSON should be handled");
-
-        match result {
-            StdioReadResult::ProtocolError { code, message } => {
-                assert_eq!(code, -32700);
-                assert!(message.contains("Parse error"));
-            }
-            other => panic!("expected protocol error, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn t_5_8_handle_stdio_request_errors_map_to_invalid_request() {
-        let response = json_rpc_error_for_request_error(
-            json!(7),
-            MaenifoldError::InvalidPayload("bad".into()),
+        assert_eq!(info.server_info.name, "maenifold");
+        assert!(!info.server_info.version.is_empty());
+        assert!(info.capabilities.tools.is_some());
+        assert!(info.instructions.is_some());
+        assert!(
+            info.instructions
+                .as_ref()
+                .unwrap()
+                .contains("maenifold tools")
         );
+    }
 
-        assert_eq!(response["id"], json!(7));
-        assert_eq!(response["error"]["code"], json!(-32600));
-        assert_eq!(response["error"]["message"], json!("bad"));
+    // T-5.1: RTM FR-22.1 — handler converts all 28 McpToolDefinitions into rmcp Tools.
+    #[test]
+    fn t_5_1_handler_builds_28_rmcp_tools() {
+        let handler = MaenifoldHandler::new().expect("handler should build");
+        assert_eq!(handler.tools.len(), 28);
+
+        let names: BTreeSet<&str> = handler.tools.iter().map(|t| t.name.as_ref()).collect();
+        assert!(names.contains("WriteMemory"));
+        assert!(names.contains("SequentialThinking"));
+        assert!(names.contains("ReadMcpResource"));
     }
 }

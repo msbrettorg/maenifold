@@ -32,8 +32,16 @@ impl CliApp {
             return 1;
         }
 
-        // T-5.1: RTM FR-22.1
-        match MaenifoldMcpServer::serve_stdio() {
+        // T-5.1: RTM FR-22.1 — rmcp requires a tokio async runtime for stdio transport.
+        let rt = match tokio::runtime::Runtime::new() {
+            Ok(rt) => rt,
+            Err(err) => {
+                eprintln!("Error creating async runtime: {err}");
+                return 1;
+            }
+        };
+
+        match rt.block_on(MaenifoldMcpServer::serve_stdio()) {
             Ok(()) => 0,
             Err(err) => {
                 eprintln!("Error running MCP stdio server: {err}");

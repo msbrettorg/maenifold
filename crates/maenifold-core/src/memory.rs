@@ -209,6 +209,20 @@ pub fn edit_memory(context: &ToolContext, payload: &Value) -> Result<String> {
     };
 
     let (mut frontmatter, existing_content, _) = read_markdown(&uri, &context.config)?;
+    if matches!(operation, "append" | "prepend" | "replace_section")
+        && crate::markdown::extract_wikilinks(content).is_empty()
+    {
+        return Ok(match context.output_format {
+            OutputFormat::Json => failure(
+                "VALIDATION_ERROR",
+                "Edited content must contain at least one [[concept]] in double brackets to connect to the knowledge graph.",
+            ),
+            OutputFormat::Markdown => {
+                "ERROR: Edited content must contain at least one [[concept]] in double brackets to connect to the knowledge graph."
+                    .to_string()
+            }
+        });
+    }
     let updated_content = match operation {
         "append" => format!("{existing_content}{content}"),
         "prepend" => format!("{content}{existing_content}"),
@@ -217,6 +231,15 @@ pub fn edit_memory(context: &ToolContext, payload: &Value) -> Result<String> {
                 .get("findText")
                 .and_then(Value::as_str)
                 .ok_or(MaenifoldError::MissingProperty("findText"))?;
+            let expected_count = payload.get("expectedCount").and_then(Value::as_i64);
+            if let Some(expected_count) = expected_count {
+                let actual_count = count_non_overlapping_occurrences(&existing_content, find_text);
+                if actual_count != expected_count as usize {
+                    return Err(MaenifoldError::InvalidArgument(format!(
+                        "Expected {expected_count} matches but found {actual_count}. Find text: '{find_text}'"
+                    )));
+                }
+            }
             existing_content.replace(find_text, content)
         }
         "replace_section" => {
@@ -233,7 +256,9 @@ pub fn edit_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         }
     };
 
-    if crate::markdown::extract_wikilinks(&updated_content).is_empty() {
+    if contains_malformed_wikilinks(&updated_content)
+        || crate::markdown::extract_wikilinks(&updated_content).is_empty()
+    {
         return Ok(match context.output_format {
             OutputFormat::Json => failure(
                 "VALIDATION_ERROR",
@@ -771,21 +796,107 @@ fn replace_section(
     section_name: &str,
     new_content: &str,
 ) -> Result<String> {
-    let pattern = Regex::new(&format!(
-        r"(?ms)(^|\n)(#+\s*{}[^\n]*\n)(.*?)(?=\n#|\z)",
-        regex::escape(section_name)
-    ))
-    .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let mut line_start = 0usize;
+    let mut section_start = None;
+    let mut heading_end = None;
+    let mut section_end = existing_content.len();
 
-    if !pattern.is_match(existing_content) {
-        return Err(MaenifoldError::Message(format!(
-            "Section not found: '{section_name}'. Cannot replace a section that doesn't exist."
-        )));
+    for line in existing_content.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with('#') {
+            let heading_text = trimmed.trim_end().trim_start_matches('#').trim();
+            if section_start.is_some() {
+                section_end = line_start;
+                break;
+            }
+            if heading_text == section_name {
+                section_start = Some(line_start);
+                heading_end = Some(line_start + line.len());
+            }
+        }
+        line_start += line.len();
     }
 
-    Ok(pattern
-        .replace(existing_content, format!("$1$2{new_content}"))
-        .to_string())
+    let section_start = section_start.ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "Section not found: '{section_name}'. Cannot replace a section that doesn't exist."
+        ))
+    })?;
+    let heading_end = heading_end.expect("heading end set with section start");
+
+    let replacement = if starts_with_markdown_heading(new_content) {
+        new_content.trim_end().to_string()
+    } else {
+        format!(
+            "{}{}",
+            &existing_content[section_start..heading_end],
+            new_content.trim_end()
+        )
+    };
+
+    Ok(format!(
+        "{}{}{}",
+        &existing_content[..section_start],
+        replacement,
+        &existing_content[section_end..]
+    ))
+}
+
+fn count_non_overlapping_occurrences(haystack: &str, needle: &str) -> usize {
+    if needle.is_empty() {
+        return 0;
+    }
+    haystack.match_indices(needle).count()
+}
+
+fn starts_with_markdown_heading(content: &str) -> bool {
+    content
+        .trim_start()
+        .lines()
+        .next()
+        .map(|line| {
+            let trimmed = line.trim_start();
+            trimmed.starts_with('#')
+                && trimmed
+                    .chars()
+                    .nth(1)
+                    .map(char::is_whitespace)
+                    .unwrap_or(false)
+        })
+        .unwrap_or(false)
+}
+
+fn contains_malformed_wikilinks(content: &str) -> bool {
+    let bytes = content.as_bytes();
+    let mut index = 0usize;
+
+    while index + 1 < bytes.len() {
+        if bytes[index] != b'[' || bytes[index + 1] != b'[' {
+            index += 1;
+            continue;
+        }
+
+        let mut cursor = index + 2;
+        while cursor + 1 < bytes.len() {
+            match (bytes[cursor], bytes[cursor + 1]) {
+                (b']', b']') => {
+                    if cursor + 2 < bytes.len() && bytes[cursor + 2] == b']' {
+                        return true;
+                    }
+                    index = cursor + 2;
+                    break;
+                }
+                (b'[', _) | (b']', _) => return true,
+                _ => cursor += 1,
+            }
+        }
+
+        if cursor + 1 >= bytes.len() {
+            return true;
+        }
+    }
+
+    false
 }
 
 pub fn sanitize_user_input(input: &str) -> String {

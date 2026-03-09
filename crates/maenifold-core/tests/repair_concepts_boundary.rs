@@ -51,6 +51,12 @@ fn invoke_repair_concepts(payload: Value) -> String {
         .expect("invoke RepairConcepts")
 }
 
+fn try_invoke_repair_concepts(
+    payload: Value,
+) -> Result<String, maenifold_core::error::MaenifoldError> {
+    ToolRegistry::global().try_invoke("RepairConcepts", &payload, OutputFormat::Markdown)
+}
+
 fn write_memory_via_registry(title: &str, content: &str) {
     let output = ToolRegistry::global()
         .try_invoke(
@@ -455,6 +461,458 @@ fn repair_concepts_learn_true_returns_help_documentation() {
     assert!(
         !outside_code_blocks.contains("\nScanning "),
         "learn=true should return help instead of live repair output: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_dry_run_reports_replacement_counts() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    write_memory_fixture(&cfg, "repair/replacement-count.md", REPAIR_FIXTURE);
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool,tools",
+        "canonicalConcept": "development-tool",
+        "dryRun": true,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    assert!(
+        output.contains("Total replacements:"),
+        "expected replacement count summary: {output}"
+    );
+    assert!(
+        output.contains("Would modify: repair/replacement-count.md"),
+        "expected dry-run file preview: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_dry_run_with_invalid_folder_returns_error_output() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, _cfg) = isolated_config();
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool",
+        "canonicalConcept": "build-tool",
+        "folder": "nonexistent-folder-xyz",
+        "dryRun": true,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    assert!(
+        output.contains("ERROR"),
+        "expected invalid folder error output: {output}"
+    );
+    assert!(
+        output.contains("Directory not found"),
+        "expected directory-not-found detail: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_dry_run_with_empty_variants_returns_error() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, _cfg) = isolated_config();
+
+    let result = try_invoke_repair_concepts(json!({
+        "conceptsToReplace": "",
+        "canonicalConcept": "generic-tool",
+        "dryRun": true,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    let error = result.expect_err("empty conceptsToReplace should fail");
+    assert!(
+        error.to_string().contains("No concepts"),
+        "expected empty-concepts error message: {error}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_excludes_git_directories_from_scanning() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    write_memory_fixture(&cfg, "repair/.git/test.md", "[[tool]]");
+    write_memory_fixture(&cfg, "repair/visible.md", "No matching concepts here.");
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool",
+        "canonicalConcept": "concept",
+        "folder": "repair",
+        "dryRun": true,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    assert!(
+        !output.contains(".git"),
+        "hidden .git directories should be excluded from repair scanning: {output}"
+    );
+    assert!(
+        output.contains("Files modified: 0"),
+        "only hidden matches should yield no visible modifications: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_semantic_bypass_with_zero_threshold_skips_validation_output() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    write_memory_fixture(&cfg, "repair/semantic-bypass.md", "[[tool]]");
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool",
+        "canonicalConcept": "kitchen-appliance",
+        "dryRun": true,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    assert!(
+        !output.contains("SEMANTIC VALIDATION"),
+        "threshold 0.0 should bypass semantic validation output: {output}"
+    );
+    assert!(
+        output.contains("Scanning"),
+        "repair should still proceed after bypassing semantic validation: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_default_semantic_threshold_returns_feedback() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    write_memory_fixture(&cfg, "repair/default-semantic-threshold.md", "[[tool]]");
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool",
+        "canonicalConcept": "utility-tool",
+        "dryRun": true
+    }));
+
+    assert!(
+        output.contains("SEMANTIC VALIDATION"),
+        "default threshold should emit semantic validation feedback: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_create_wikilinks_mode_respects_word_boundaries() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let path = "repair/word-boundary.md";
+    write_memory_fixture(
+        &cfg,
+        path,
+        "# Test\nThe tool is used in toolbox management.\nThis is a toolkit.\nNo: the tool (parentheses)\n",
+    );
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool",
+        "canonicalConcept": "software-tool",
+        "createWikiLinks": true,
+        "dryRun": false,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    let updated = read_memory_fixture(&cfg, path);
+    assert!(
+        updated.matches("[[software-tool]]").count() == 2,
+        "standalone word matches should be wrapped exactly twice: {updated}"
+    );
+    assert!(
+        updated.contains("toolbox") && updated.contains("toolkit"),
+        "embedded substrings should remain unchanged: {updated}"
+    );
+    assert!(
+        output.contains("✓ Modified: repair/word-boundary.md"),
+        "expected create-wikilinks modification output: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_create_wikilinks_preserves_existing_wikilinks() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let path = "repair/existing-wikilinks.md";
+    let original = "# Test\nAlready [[existing-concept]] with tool text.\n[[existing-concept]] is already a link.\ntool should be converted but [[existing-concept]] should stay.\n";
+    write_memory_fixture(&cfg, path, original);
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool",
+        "canonicalConcept": "build-tool",
+        "createWikiLinks": true,
+        "dryRun": false,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    let updated = read_memory_fixture(&cfg, path);
+    assert_eq!(
+        updated.matches("[[existing-concept]]").count(),
+        original.matches("[[existing-concept]]").count(),
+        "existing wikilinks should be preserved without modification: {updated}"
+    );
+    assert!(
+        updated.contains("[[build-tool]]"),
+        "plain-text tool mentions should become build-tool wikilinks: {updated}"
+    );
+    assert!(
+        output.contains("build-tool"),
+        "expected canonical concept mention in output: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_can_replace_multiple_variants_in_one_operation() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let path = "repair/multi-replace.md";
+    write_memory_fixture(
+        &cfg,
+        path,
+        "# Test\n[[tool]] [[tools]] [[utility]] work together.\nThe [[tool]] is essential.\n",
+    );
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool,tools,utility",
+        "canonicalConcept": "generic-tool",
+        "dryRun": false,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    let updated = read_memory_fixture(&cfg, path);
+    assert!(
+        !updated.contains("[[tool]]")
+            && !updated.contains("[[tools]]")
+            && !updated.contains("[[utility]]"),
+        "all specified variants should be replaced: {updated}"
+    );
+    assert!(
+        updated.matches("[[generic-tool]]").count() == 4,
+        "expected four canonical replacements in output file: {updated}"
+    );
+    assert!(
+        output.contains("Total replacements: 4"),
+        "expected total replacement count of 4: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_modifies_multiple_files_in_a_single_batch() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    write_memory_fixture(
+        &cfg,
+        "repair/batch-file1.md",
+        "# File 1\n\n[[agent]] and more content\n",
+    );
+    write_memory_fixture(
+        &cfg,
+        "repair/batch-file2.md",
+        "# File 2\n\n[[agent]] in different file\n",
+    );
+    write_memory_fixture(
+        &cfg,
+        "repair/batch-file3.md",
+        "# File 3\n\nNo matching concepts here\n",
+    );
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "agent",
+        "canonicalConcept": "ai-agent",
+        "folder": "repair",
+        "dryRun": false,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    assert!(
+        read_memory_fixture(&cfg, "repair/batch-file1.md").contains("[[ai-agent]]"),
+        "first matching file should be modified"
+    );
+    assert!(
+        read_memory_fixture(&cfg, "repair/batch-file2.md").contains("[[ai-agent]]"),
+        "second matching file should be modified"
+    );
+    assert!(
+        read_memory_fixture(&cfg, "repair/batch-file3.md").contains("No matching concepts here"),
+        "non-matching file should remain unchanged"
+    );
+    assert!(
+        output.contains("Files modified: 2"),
+        "summary should report two modified files: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_handles_empty_files_gracefully() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let path = "repair/empty-file.md";
+    write_memory_fixture(&cfg, path, "");
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool",
+        "canonicalConcept": "testing-tool",
+        "dryRun": false,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    assert_eq!(
+        read_memory_fixture(&cfg, path),
+        "",
+        "empty file should remain empty"
+    );
+    assert!(
+        output.contains("Files modified: 0"),
+        "empty file should not produce modifications: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_handles_whitespace_only_files_gracefully() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let path = "repair/whitespace-file.md";
+    write_memory_fixture(&cfg, path, "   \n\n   \t\n");
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool",
+        "canonicalConcept": "automation-tool",
+        "dryRun": false,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    assert!(
+        read_memory_fixture(&cfg, path).trim().is_empty(),
+        "whitespace-only file should remain whitespace-only"
+    );
+    assert!(
+        output.contains("Files modified: 0"),
+        "whitespace-only file should not be modified: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_replaces_variants_with_special_characters() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let path = "repair/special-chars.md";
+    write_memory_fixture(&cfg, path, "[[c#]] [[c++]] [[.net]]");
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "c#,c++,.net",
+        "canonicalConcept": "dotnet-ecosystem",
+        "dryRun": false,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    let updated = read_memory_fixture(&cfg, path);
+    assert!(
+        updated.matches("[[dotnet-ecosystem]]").count() == 3,
+        "special-character concepts should all be replaced: {updated}"
+    );
+    assert!(
+        output.contains("Total replacements: 3"),
+        "expected three replacements for special-character concepts: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_matches_wikilinks_case_insensitively() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let path = "repair/case-sensitivity.md";
+    write_memory_fixture(&cfg, path, "[[Tool]] [[TOOL]] [[tool]]");
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tool",
+        "canonicalConcept": "unified-tool",
+        "dryRun": false,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    let updated = read_memory_fixture(&cfg, path);
+    assert!(
+        !updated.contains("[[Tool]]")
+            && !updated.contains("[[TOOL]]")
+            && !updated.contains("[[tool]]"),
+        "case-insensitive matching should replace all case variants: {updated}"
+    );
+    assert!(
+        updated.matches("[[unified-tool]]").count() == 3,
+        "all case variants should normalize to the canonical concept: {updated}"
+    );
+    assert!(
+        output.contains("Total replacements: 3"),
+        "summary should report three case-insensitive replacements: {output}"
+    );
+}
+
+// T-W1-4: RTM FR-6
+#[test]
+fn repair_concepts_scans_nested_folder_depths() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    write_memory_fixture(&cfg, "repair/level1/file1.md", "[[database-schema]]");
+    write_memory_fixture(&cfg, "repair/level1/level2/file2.md", "[[database-schema]]");
+    write_memory_fixture(
+        &cfg,
+        "repair/level1/level2/level3/file3.md",
+        "[[database-schema]]",
+    );
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "database-schema",
+        "canonicalConcept": "data-model",
+        "folder": "repair",
+        "dryRun": false,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    assert!(
+        read_memory_fixture(&cfg, "repair/level1/file1.md").contains("[[data-model]]"),
+        "level 1 file should be modified"
+    );
+    assert!(
+        read_memory_fixture(&cfg, "repair/level1/level2/file2.md").contains("[[data-model]]"),
+        "level 2 file should be modified"
+    );
+    assert!(
+        read_memory_fixture(&cfg, "repair/level1/level2/level3/file3.md")
+            .contains("[[data-model]]"),
+        "level 3 file should be modified"
+    );
+    assert!(
+        output.contains("Files modified: 3"),
+        "nested folder scan should report all three modified files: {output}"
     );
 }
 

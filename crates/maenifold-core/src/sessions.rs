@@ -102,6 +102,26 @@ pub fn sequential_thinking(context: &ToolContext, payload: &Value) -> Result<Str
         });
     }
 
+    // T-W1-5: RTM FR-17.9 - parent workflow links are only valid for the first thought.
+    if let Some(parent_workflow_id) = parent_workflow_id.filter(|value| !value.trim().is_empty()) {
+        if thought_number > 0 {
+            let message = "Parent workflow can only be set on first thought";
+            return Ok(match context.output_format {
+                OutputFormat::Json => failure("PARENT_WORKFLOW_FIRST_THOUGHT_ONLY", message),
+                OutputFormat::Markdown => format!("ERROR: {message}"),
+            });
+        }
+
+        let parent_uri = workflow_session_uri(parent_workflow_id);
+        if !file_exists(&parent_uri, &context.config)? {
+            let message = format!("Parent workflow '{parent_workflow_id}' not found");
+            return Ok(match context.output_format {
+                OutputFormat::Json => failure("PARENT_WORKFLOW_NOT_FOUND", &message),
+                OutputFormat::Markdown => format!("ERROR: {message}"),
+            });
+        }
+    }
+
     let (year, month, day) = date_parts_from_session_id(&session_id);
     let uri = format!("memory://thinking/sequential/{year:04}/{month:02}/{day:02}/{session_id}");
     let session_exists = file_exists(&uri, &context.config)?;
@@ -179,6 +199,37 @@ pub fn sequential_thinking(context: &ToolContext, payload: &Value) -> Result<Str
             "# Sequential Thinking Session\n\n",
             &context.config,
         )?;
+
+        if let Some(parent_workflow_id) =
+            parent_workflow_id.filter(|value| !value.trim().is_empty())
+        {
+            let parent_uri = workflow_session_uri(parent_workflow_id);
+            let (parent_frontmatter, parent_content, _) =
+                read_markdown(&parent_uri, &context.config)?;
+            let mut parent_frontmatter = parent_frontmatter.unwrap_or_default();
+            let related_link = format!("[[sequential/{session_id}]]");
+            let mut related = match parent_frontmatter.remove("related") {
+                Some(YamlValue::Sequence(values)) => values,
+                Some(YamlValue::String(value)) if !value.trim().is_empty() => {
+                    vec![YamlValue::String(value)]
+                }
+                _ => Vec::new(),
+            };
+            if !related
+                .iter()
+                .filter_map(YamlValue::as_str)
+                .any(|existing| existing == related_link)
+            {
+                related.push(YamlValue::String(related_link));
+            }
+            parent_frontmatter.insert("related".to_string(), YamlValue::Sequence(related));
+            write_markdown(
+                &parent_uri,
+                Some(&parent_frontmatter),
+                &parent_content,
+                &context.config,
+            )?;
+        }
     }
 
     if !cancel {
@@ -361,20 +412,14 @@ pub fn assumption_ledger(context: &ToolContext, payload: &Value) -> Result<Strin
     }
 
     if action.eq_ignore_ascii_case("update") {
-        let valid_statuses = ["active", "validated", "invalidated", "refined"];
-        if let Some(status) = payload.get("status").and_then(Value::as_str)
-            && !valid_statuses.iter().any(|candidate| candidate == &status)
-        {
-            return Ok(
-                "ERROR: Invalid status. Use one of: active, validated, invalidated, refined"
-                    .to_string(),
-            );
-        }
+        return update_assumption(context, payload);
     }
 
-    Err(MaenifoldError::InvalidArgument(format!(
-        "Unsupported assumption ledger action: {action}"
-    )))
+    if action.eq_ignore_ascii_case("read") {
+        return read_assumption(context, payload);
+    }
+
+    Ok("ERROR: Invalid action. Use 'append', 'update', or 'read'".to_string())
 }
 
 pub fn cleanup_abandoned_sessions(config: &Config) -> Result<usize> {
@@ -485,10 +530,8 @@ fn abandon_session_candidate(
 }
 
 fn append_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
-    let assumption = payload
-        .get("assumption")
-        .and_then(Value::as_str)
-        .ok_or(MaenifoldError::MissingProperty("assumption"))?;
+    // T-W1-5: RTM FR-17.9 - preserve C# assumption ledger validation contracts.
+    let assumption = payload.get("assumption").and_then(Value::as_str);
     let confidence = payload
         .get("confidence")
         .and_then(Value::as_str)
@@ -504,23 +547,16 @@ fn append_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
         .cloned()
         .unwrap_or_default();
 
-    if concepts.is_empty() {
-        return Ok("ERROR: At least one [[WikiLink]] tag must be provided".to_string());
-    }
-
     let concepts: Vec<String> = concepts
         .into_iter()
         .filter_map(|value| value.as_str().map(str::to_string))
         .collect();
-    if concepts.is_empty() {
-        return Ok("ERROR: At least one [[WikiLink]] tag must be provided".to_string());
+
+    if let Some(message) = validate_assumption_append_input(assumption, Some(&concepts)) {
+        return Ok(message);
     }
-    if concepts
-        .iter()
-        .any(|concept| concept.contains("[[") || concept.contains("]]"))
-    {
-        return Ok("ERROR: Concept tags should not include brackets".to_string());
-    }
+
+    let assumption = assumption.expect("validated assumption");
 
     let now = Utc::now();
     let entry_id = format!("assumption-{}", now.timestamp_millis());
@@ -572,6 +608,153 @@ fn append_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
     }
 
     Ok(output)
+}
+
+fn update_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
+    // T-W1-5: RTM FR-17.9 - port update lifecycle semantics from the C# oracle.
+    let uri = payload.get("uri").and_then(Value::as_str);
+    let status = payload.get("status").and_then(Value::as_str);
+    let notes = payload.get("notes").and_then(Value::as_str);
+    let confidence = payload.get("confidence").and_then(Value::as_str);
+
+    if let Some(message) = validate_assumption_update_input(uri, status) {
+        return Ok(message);
+    }
+
+    let uri = uri.expect("validated uri");
+    if !file_exists(uri, &context.config)? {
+        return Ok("ERROR: Assumption not found".to_string());
+    }
+
+    let (frontmatter, content, _) = read_markdown(uri, &context.config)?;
+    let mut frontmatter = frontmatter.unwrap_or_default();
+    let mut updated_content = content;
+
+    let normalized_status = status
+        .filter(|value| !value.trim().is_empty())
+        .map(|value| value.trim().to_ascii_lowercase());
+    if let Some(status) = normalized_status.as_ref() {
+        frontmatter.insert("status".to_string(), YamlValue::String(status.clone()));
+    }
+    if let Some(confidence) = confidence.filter(|value| !value.trim().is_empty()) {
+        frontmatter.insert(
+            "confidence".to_string(),
+            YamlValue::String(confidence.trim().to_string()),
+        );
+    }
+
+    if let Some(notes) = notes.filter(|value| !value.trim().is_empty()) {
+        if !updated_content.ends_with('\n') {
+            updated_content.push('\n');
+        }
+        updated_content.push_str(&format!(
+            "\n## Update: {}\n\n{}\n",
+            display_utc_now(),
+            notes.trim()
+        ));
+    }
+
+    write_markdown(uri, Some(&frontmatter), &updated_content, &context.config)?;
+
+    let mut output = format!("✅ Assumption updated at {uri}");
+    if let Some(status) = normalized_status {
+        output.push_str(&format!("\n**New Status**: {status}"));
+    }
+    if let Some(confidence) = confidence.filter(|value| !value.trim().is_empty()) {
+        output.push_str(&format!("\n**New Confidence**: {}", confidence.trim()));
+    }
+    Ok(output)
+}
+
+fn read_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
+    // T-W1-5: RTM FR-17.9 - support direct inspection of recorded assumptions.
+    let uri = payload.get("uri").and_then(Value::as_str);
+    if let Some(message) = validate_assumption_read_input(uri) {
+        return Ok(message);
+    }
+
+    let uri = uri.expect("validated uri");
+    if !file_exists(uri, &context.config)? {
+        return Ok("ERROR: Assumption not found".to_string());
+    }
+
+    let (frontmatter, content, _) = read_markdown(uri, &context.config)?;
+    let frontmatter = frontmatter.unwrap_or_default();
+    let statement = content
+        .lines()
+        .find_map(|line| line.strip_prefix("# Assumption: "))
+        .unwrap_or("Unknown assumption");
+    let status = frontmatter_string(&frontmatter, "status");
+    let confidence = frontmatter_string(&frontmatter, "confidence");
+    let context_text = frontmatter_string(&frontmatter, "context");
+
+    let mut output = format!(
+        "📋 **Assumption**: {statement}\n\n**Status**: {status}\n**Confidence**: {confidence}"
+    );
+    if !context_text.is_empty() {
+        output.push_str(&format!("\n**Context**: {context_text}"));
+    }
+    output.push_str("\n\n");
+    output.push_str(&content);
+    Ok(output)
+}
+
+// T-W1-5: RTM FR-17.9 - exported for parity-focused validation tests.
+pub fn validate_assumption_append_input(
+    assumption: Option<&str>,
+    concepts: Option<&[String]>,
+) -> Option<String> {
+    if assumption.is_none_or(|value| value.trim().is_empty()) {
+        return Some("ERROR: Assumption text is required".to_string());
+    }
+    let Some(concepts) = concepts else {
+        return Some("ERROR: At least one [[WikiLink]] tag must be provided".to_string());
+    };
+    if concepts.is_empty() {
+        return Some("ERROR: At least one [[WikiLink]] tag must be provided".to_string());
+    }
+    if concepts
+        .iter()
+        .any(|concept| concept.contains("[[") || concept.contains("]]"))
+    {
+        return Some("ERROR: Concept tags should not include brackets".to_string());
+    }
+    None
+}
+
+// T-W1-5: RTM FR-17.9 - mirror C# URI and status validation behavior.
+pub fn validate_assumption_update_input(uri: Option<&str>, status: Option<&str>) -> Option<String> {
+    if uri.is_none_or(|value| value.trim().is_empty()) {
+        return Some("ERROR: URI is required".to_string());
+    }
+    if let Some(status) = status.filter(|value| !value.trim().is_empty()) {
+        return validate_assumption_status(status);
+    }
+    None
+}
+
+// T-W1-5: RTM FR-17.9 - read requires only a non-empty URI.
+pub fn validate_assumption_read_input(uri: Option<&str>) -> Option<String> {
+    if uri.is_none_or(|value| value.trim().is_empty()) {
+        return Some("ERROR: URI is required".to_string());
+    }
+    None
+}
+
+// T-W1-5: RTM FR-17.9 - keep status enum handling case-insensitive.
+pub fn validate_assumption_status(status: &str) -> Option<String> {
+    let status = status.trim();
+    if ["active", "validated", "invalidated", "refined"]
+        .iter()
+        .any(|candidate| candidate.eq_ignore_ascii_case(status))
+    {
+        None
+    } else {
+        Some(
+            "ERROR: Invalid status. Use one of: active, validated, invalidated, refined"
+                .to_string(),
+        )
+    }
 }
 
 // T-0.3a: RTM FR-4, RTM-047

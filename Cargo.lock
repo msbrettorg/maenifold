@@ -711,6 +711,7 @@ dependencies = [
  "assert_cmd",
  "base64",
  "chrono",
+ "filetime",
  "gray_matter",
  "notify",
  "once_cell",

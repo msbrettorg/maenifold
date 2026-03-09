@@ -31,3 +31,4 @@ assert_cmd.workspace = true
 predicates.workspace = true
 similar-asserts.workspace = true
 tempfile.workspace = true
+filetime = "0.2.25"

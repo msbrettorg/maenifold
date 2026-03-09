@@ -1769,15 +1769,16 @@ pub fn repair_concepts(context: &ToolContext, payload: &Value) -> Result<String>
         ));
     }
 
-    let folder_uri = payload
+    let folder_relative = payload
         .get("folder")
         .and_then(Value::as_str)
         .map(str::trim)
         .filter(|folder| !folder.is_empty())
-        .and_then(|folder| {
-            let relative = folder.trim_matches('/');
-            (!relative.is_empty()).then(|| format!("memory://{relative}"))
-        });
+        .map(|folder| folder.trim_matches('/').to_string())
+        .filter(|folder| !folder.is_empty());
+    let folder_uri = folder_relative
+        .as_deref()
+        .map(|folder| format!("memory://{folder}"));
     let dry_run = payload
         .get("dryRun")
         .and_then(Value::as_bool)
@@ -1786,6 +1787,13 @@ pub fn repair_concepts(context: &ToolContext, payload: &Value) -> Result<String>
         .get("minSemanticSimilarity")
         .and_then(Value::as_f64)
         .unwrap_or(0.7);
+
+    if let Some(relative_folder) = folder_relative.as_deref() {
+        let folder_path = context.config.memory_path.join(relative_folder);
+        if !folder_path.exists() {
+            return Ok(format!("ERROR: Directory not found: {relative_folder}"));
+        }
+    }
 
     let semantic_validation_output = validate_repair_concepts_semantics(
         context,
@@ -1923,6 +1931,7 @@ pub fn analyze_concept_corruption(context: &ToolContext, payload: &Value) -> Res
         }
     }
 
+    let total_unique_variants = counts.len();
     let mut variants = counts.into_iter().collect::<Vec<_>>();
     variants.sort_by(|left, right| {
         right
@@ -1947,8 +1956,7 @@ pub fn analyze_concept_corruption(context: &ToolContext, payload: &Value) -> Res
 
     let mut output = format!(
         "=== Concept Family Analysis: '{}' ===\nFound {} unique variants",
-        concept_family,
-        variants.len()
+        concept_family, total_unique_variants
     );
 
     for category in [

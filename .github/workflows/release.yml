@@ -1,0 +1,92 @@
+# T-9.5: RTM FR-9 (RTM-062, RTM-063, RTM-064, RTM-065)
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # T-9.5: RTM FR-9 (RTM-062)
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: maenifold-osx-arm64
+          # T-9.5: RTM FR-9 (RTM-063)
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: maenifold-linux-x64
+          # T-9.5: RTM FR-9 (RTM-064)
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: maenifold-win-x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build release
+        run: cargo build --release --target ${{ matrix.target }} -p maenifold-cli
+
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p staging
+          cp target/${{ matrix.target }}/release/maenifold staging/
+          # T-9.5: RTM FR-9 (RTM-065) — bundle release assets but exclude ONNX models
+          rsync -a --exclude='*.onnx' assets/ staging/assets/
+          cd staging && zip -r ../${{ matrix.artifact }}.zip .
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path staging | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/maenifold.exe" staging/
+          # T-9.5: RTM FR-9 (RTM-065) — bundle release assets but exclude ONNX models
+          $source = "assets"
+          $dest = "staging/assets"
+          Get-ChildItem -Path $source -Recurse -File | Where-Object { $_.Extension -ne '.onnx' } | ForEach-Object {
+            $relativePath = $_.FullName.Substring((Resolve-Path $source).Path.Length + 1)
+            $destPath = Join-Path $dest $relativePath
+            $destDir = Split-Path $destPath -Parent
+            New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+            Copy-Item $_.FullName $destPath
+          }
+          Compress-Archive -Path staging/* -DestinationPath "${{ matrix.artifact }}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/**/*.zip

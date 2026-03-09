@@ -22,9 +22,7 @@ impl CliRun {
 }
 
 pub fn run_csharp_cli(args: &[&str], sandbox: &IsolatedRoot) -> io::Result<CliRun> {
-    let project = env::var_os("MAENIFOLD_CSHARP_PROJECT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(DEFAULT_CSHARP_PROJECT));
+    let project = csharp_project_path();
 
     let mut command = Command::new("dotnet");
     command.arg("run").arg("--project").arg(project).arg("--");
@@ -34,6 +32,14 @@ pub fn run_csharp_cli(args: &[&str], sandbox: &IsolatedRoot) -> io::Result<CliRu
 }
 
 pub fn run_rust_cli(args: &[&str], sandbox: &IsolatedRoot) -> io::Result<CliRun> {
+    run_rust_cli_with_extra_env(args, sandbox, &[])
+}
+
+pub fn run_rust_cli_with_extra_env(
+    args: &[&str],
+    sandbox: &IsolatedRoot,
+    extra_env: &[(&str, &str)],
+) -> io::Result<CliRun> {
     if let Some(program) = env::var_os("MAENIFOLD_RUST_CLI")
         .or_else(|| env::var_os("CARGO_BIN_EXE_maenifold-cli"))
         .or_else(|| env::var_os("CARGO_BIN_EXE_maenifold"))
@@ -42,6 +48,9 @@ pub fn run_rust_cli(args: &[&str], sandbox: &IsolatedRoot) -> io::Result<CliRun>
         let mut command = Command::new(program);
         command.args(args);
         sandbox.apply_to_command(&mut command);
+        for (key, value) in extra_env {
+            command.env(key, value);
+        }
         return capture(command);
     }
 
@@ -56,7 +65,23 @@ pub fn run_rust_cli(args: &[&str], sandbox: &IsolatedRoot) -> io::Result<CliRun>
         .arg("--");
     command.args(args);
     sandbox.apply_to_command(&mut command);
+    for (key, value) in extra_env {
+        command.env(key, value);
+    }
     capture(command)
+}
+
+pub fn csharp_assets_dir() -> PathBuf {
+    csharp_project_path()
+        .parent()
+        .map(|dir| dir.join("assets"))
+        .unwrap_or_else(|| PathBuf::from("assets"))
+}
+
+fn csharp_project_path() -> PathBuf {
+    env::var_os("MAENIFOLD_CSHARP_PROJECT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(DEFAULT_CSHARP_PROJECT))
 }
 
 fn capture(mut command: Command) -> io::Result<CliRun> {

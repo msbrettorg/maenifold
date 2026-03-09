@@ -128,7 +128,10 @@ fn catalog_uses_current_config_assets_path_by_default() {
     let _guard = TEST_MUTEX.lock();
     let (_tmp, cfg) = isolated_config();
     let sentinel_id = "t-10-17-default-catalog-root";
-    let sentinel_path = cfg.assets_path.join("roles").join(format!("{sentinel_id}.json"));
+    let sentinel_path = cfg
+        .assets_path
+        .join("roles")
+        .join(format!("{sentinel_id}.json"));
     fs::write(
         &sentinel_path,
         format!(
@@ -142,9 +145,10 @@ fn catalog_uses_current_config_assets_path_by_default() {
     let catalog = manager.catalog().expect("catalog");
 
     assert!(
-        catalog.roles.iter().any(|role| {
-            role.get("id").and_then(|value| value.as_str()) == Some(sentinel_id)
-        }),
+        catalog
+            .roles
+            .iter()
+            .any(|role| { role.get("id").and_then(|value| value.as_str()) == Some(sentinel_id) }),
         "catalog should read roles from Config::current().assets_path by default"
     );
 
@@ -162,7 +166,9 @@ fn catalog_honors_explicit_assets_override_env_var() {
 
     let sentinel_id = "t-10-17-override-role";
     fs::write(
-        override_root.join("roles").join(format!("{sentinel_id}.json")),
+        override_root
+            .join("roles")
+            .join(format!("{sentinel_id}.json")),
         format!(r#"{{"id":"{sentinel_id}","name":"Override Role","prompt":"override"}}"#),
     )
     .expect("write override role");
@@ -175,7 +181,11 @@ fn catalog_honors_explicit_assets_override_env_var() {
     let manager = AssetManager::new(&cfg);
     let catalog = manager.catalog().expect("catalog");
 
-    assert_eq!(catalog.roles.len(), 1, "override should replace default role catalog");
+    assert_eq!(
+        catalog.roles.len(),
+        1,
+        "override should replace default role catalog"
+    );
     assert_eq!(
         catalog.roles[0].get("id").and_then(|value| value.as_str()),
         Some(sentinel_id)

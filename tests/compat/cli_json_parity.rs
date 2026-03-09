@@ -5,9 +5,10 @@ mod compat_env;
 #[path = "../support/json_semantic.rs"]
 mod json_semantic;
 
-use cli_runner::{run_csharp_cli, run_rust_cli};
+use cli_runner::{csharp_assets_dir, run_csharp_cli, run_rust_cli, run_rust_cli_with_extra_env};
 use compat_env::IsolatedRoot;
 use json_semantic::{assert_semantically_equal, assert_semantically_equal_ignoring_fields};
+use serde_json::Value;
 
 #[test]
 fn isolated_root_sets_expected_locations() {
@@ -58,10 +59,28 @@ fn read_catalog_json_matches_csharp_oracle() {
     let csharp = run_csharp_cli(&args, &sandbox).expect("csharp cli");
     assert!(csharp.success(), "C# CLI failed: {}", csharp.stderr);
 
-    let rust = run_rust_cli(&args, &sandbox).expect("rust cli");
+    // T-10.19: RTM FR-13 / NFR-1 — force Rust to read the C# asset catalog source so
+    // the parity check compares identical catalog inputs after T-10.17 removed fallback masking.
+    let csharp_assets = csharp_assets_dir();
+    let csharp_assets = csharp_assets.to_string_lossy().into_owned();
+    let rust = run_rust_cli_with_extra_env(
+        &args,
+        &sandbox,
+        &[("MAENIFOLD_CATALOG_ASSETS_OVERRIDE", csharp_assets.as_str())],
+    )
+    .expect("rust cli");
     assert!(rust.success(), "Rust CLI failed: {}", rust.stderr);
 
-    assert_semantically_equal(&csharp.stdout, &rust.stdout);
+    // T-10.19: RTM FR-13 / NFR-1 — catalog payloads are JSON strings inside the response envelope,
+    // so compare the envelope fields directly and then compare the embedded catalog JSON semantically.
+    let csharp_json: Value = serde_json::from_str(&csharp.stdout).expect("csharp catalog json");
+    let rust_json: Value = serde_json::from_str(&rust.stdout).expect("rust catalog json");
+    assert_eq!(csharp_json["success"], rust_json["success"]);
+    assert_eq!(csharp_json["error"], rust_json["error"]);
+    assert_semantically_equal(
+        csharp_json["data"].as_str().expect("csharp catalog data"),
+        rust_json["data"].as_str().expect("rust catalog data"),
+    );
 }
 
 
@@ -91,10 +110,10 @@ fn write_memory_validation_error_matches_csharp_oracle_without_wikilinks() {
     let args = ["--tool", "WriteMemory", "--payload", payload, "--json"];
 
     let csharp = run_csharp_cli(&args, &sandbox).expect("csharp cli");
-    assert!(csharp.success(), "C# CLI failed: {}", csharp.stderr);
-
     let rust = run_rust_cli(&args, &sandbox).expect("rust cli");
-    assert!(rust.success(), "Rust CLI failed: {}", rust.stderr);
+    // T-10.19: RTM FR-13 / NFR-1 — validation parity for intentional error cases
+    // compares JSON payload + exit code, not process success.
+    assert_eq!(csharp.exit_code, rust.exit_code, "exit codes differ");
 
     assert_semantically_equal(&csharp.stdout, &rust.stdout);
 }
@@ -203,10 +222,9 @@ fn read_memory_not_found_matches_csharp_oracle() {
     ];
 
     let csharp = run_csharp_cli(&args, &sandbox).expect("csharp cli");
-    assert!(csharp.success(), "C# CLI failed: {}", csharp.stderr);
-
     let rust = run_rust_cli(&args, &sandbox).expect("rust cli");
-    assert!(rust.success(), "Rust CLI failed: {}", rust.stderr);
+    // T-10.19: RTM FR-13 / NFR-1 — missing-memory parity is an expected error path.
+    assert_eq!(csharp.exit_code, rust.exit_code, "exit codes differ");
 
     assert_semantically_equal(&csharp.stdout, &rust.stdout);
 }
@@ -279,10 +297,9 @@ fn write_memory_path_security_error_matches_csharp_oracle() {
     let args = ["--tool", "WriteMemory", "--payload", payload, "--json"];
 
     let csharp = run_csharp_cli(&args, &sandbox).expect("csharp cli");
-    assert!(csharp.success(), "C# CLI process failed: {}", csharp.stderr);
-
     let rust = run_rust_cli(&args, &sandbox).expect("rust cli");
-    assert!(rust.success(), "Rust CLI process failed: {}", rust.stderr);
+    // T-10.19: RTM FR-13 / NFR-1 — path traversal rejection is an expected error path.
+    assert_eq!(csharp.exit_code, rust.exit_code, "exit codes differ");
 
     assert_semantically_equal(&csharp.stdout, &rust.stdout);
 }

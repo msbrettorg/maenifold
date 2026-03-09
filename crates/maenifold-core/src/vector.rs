@@ -282,6 +282,16 @@ pub fn embedding_dimensions() -> Option<usize> {
         .and_then(|guard| guard.as_ref().map(|state| state.embedding_dims))
 }
 
+/// Get the loaded tokenizer max token length, or None if no model loaded
+pub fn max_tokens() -> Option<usize> {
+    // T-10.11: RTM FR-18 — expose runtime tokenizer limits so boundary tests can verify
+    // `model_max_length` loading and 512-default behavior without reaching into private state.
+    MODEL_STATE
+        .get()
+        .and_then(|state| state.lock().ok())
+        .and_then(|guard| guard.as_ref().map(|state| state.max_tokens))
+}
+
 /// Get the loaded model filename, or None if no model loaded
 pub fn model_filename() -> Option<String> {
     MODEL_STATE

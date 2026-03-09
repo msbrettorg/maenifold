@@ -5,7 +5,7 @@
 //! MCP protocol conformance tests for the `maenifold --mcp` stdio server.
 //!
 //! These tests spawn the `maenifold` binary with `--mcp` and exercise the MCP
-//! JSON-RPC 2.0 protocol over MCP stdio framing (`Content-Length` headers).
+//! JSON-RPC 2.0 protocol over the rmcp stdio transport.
 //! They verify:
 //!
 //!   1. `initialize` returns server info (name + version)
@@ -62,11 +62,13 @@ impl McpTestHarness {
         let stdout = child.stdout.take().expect("piped stdout");
         let stderr = child.stderr.take().expect("piped stderr");
 
-        // Reader thread: decodes MCP stdio frames from stdout into a channel.
+        // T-10.18: RTM NFR-3 — rmcp stdio uses newline-delimited JSON-RPC, not
+        // `Content-Length` framing, so the harness must read one JSON message
+        // per line from stdout.
         let (tx, rx) = mpsc::channel();
         std::thread::spawn(move || {
             let mut reader = BufReader::new(stdout);
-            while let Some(message) = read_mcp_message(&mut reader) {
+            while let Some(message) = read_jsonrpc_message(&mut reader) {
                 if tx.send(message).is_err() {
                     break;
                 }
@@ -97,14 +99,16 @@ impl McpTestHarness {
         }
     }
 
-    /// Send a raw JSON-RPC message using MCP stdio framing.
+    /// Send a raw JSON-RPC message using rmcp's newline-delimited stdio
+    /// transport.
     fn send_raw(&mut self, msg: &Value) {
         let body = serde_json::to_vec(msg).expect("serialize JSON-RPC message");
-        write!(self.stdin, "Content-Length: {}\r\n\r\n", body.len())
-            .expect("write MCP Content-Length header");
         self.stdin
             .write_all(&body)
             .expect("write MCP JSON-RPC body");
+        self.stdin
+            .write_all(b"\n")
+            .expect("write MCP newline delimiter");
         self.stdin.flush().expect("flush child stdin");
     }
 
@@ -194,35 +198,22 @@ fn isolated_root() -> TempDir {
     TempDir::new().expect("create temp dir")
 }
 
-fn read_mcp_message(reader: &mut BufReader<impl Read>) -> Option<String> {
-    let mut content_length = None;
-
+// T-10.18: RTM NFR-3 — rmcp's AsyncRwTransport encodes each JSON-RPC message
+// as a single JSON line terminated by `\n`.
+fn read_jsonrpc_message(reader: &mut BufReader<impl Read>) -> Option<String> {
     loop {
-        let mut header_line = String::new();
-        match reader.read_line(&mut header_line) {
+        let mut line = String::new();
+        match reader.read_line(&mut line) {
             Ok(0) => return None,
-            Ok(_) => {}
+            Ok(_) => {
+                let trimmed = line.trim_end_matches(['\r', '\n']);
+                if !trimmed.is_empty() {
+                    return Some(trimmed.to_string());
+                }
+            }
             Err(_) => return None,
         }
-
-        let trimmed = header_line.trim_end_matches(['\r', '\n']);
-        if trimmed.is_empty() {
-            break;
-        }
-
-        if let Some(value) = trimmed.strip_prefix("Content-Length:") {
-            let parsed = value.trim().parse::<usize>().ok()?;
-            content_length = Some(parsed);
-        }
     }
-
-    let content_length = content_length?;
-    let mut body = vec![0_u8; content_length];
-    if reader.read_exact(&mut body).is_err() {
-        return None;
-    }
-
-    String::from_utf8(body).ok()
 }
 
 // ---------------------------------------------------------------------------

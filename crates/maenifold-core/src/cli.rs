@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::error::MaenifoldError;
-use crate::json::{OutputFormat, failure};
+use crate::json::{OutputFormat, failure, from_str_safe};
 use crate::mcp::{self, MaenifoldMcpServer};
 use crate::registry::ToolRegistry;
 use serde_json::Value;
@@ -71,7 +71,7 @@ impl CliApp {
             OutputFormat::Markdown
         };
 
-        let payload: Value = match serde_json::from_str(payload_json) {
+        let payload: Value = match from_str_safe(payload_json) {
             Ok(value) => value,
             Err(err) => {
                 let output = if output_format == OutputFormat::Json {

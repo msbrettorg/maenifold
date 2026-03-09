@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
-use chrono::{Datelike, Utc};
+use chrono::{Datelike, TimeZone, Utc};
 use std::path::{Path, PathBuf};
 
 const ABSOLUTE_PATH_ERROR: &str = "Absolute paths are not allowed. Use relative paths only.";
@@ -68,12 +68,30 @@ pub fn memory_uri_to_path(identifier: &str, config: &Config) -> Result<PathBuf> 
     Ok(full)
 }
 
-pub fn dated_sequential_path(session_id: &str, config: &Config) -> PathBuf {
-    let now = Utc::now();
+// T-DATE-001: RTM-001 - Session paths must derive their date directories from the session ID timestamp.
+pub fn dated_thinking_path(session_type: &str, session_id: &str, config: &Config) -> PathBuf {
+    let (year, month, day) = date_parts_from_session_id(session_id);
     config
-        .sequential_path
-        .join(format!("{:04}", now.year()))
-        .join(format!("{:02}", now.month()))
-        .join(format!("{:02}", now.day()))
+        .thinking_path
+        .join(session_type)
+        .join(format!("{year:04}"))
+        .join(format!("{month:02}"))
+        .join(format!("{day:02}"))
         .join(format!("{session_id}.md"))
+}
+
+// T-DATE-001: RTM-002 - Sequential session paths must avoid regressing to epoch-derived directories.
+pub fn dated_sequential_path(session_id: &str, config: &Config) -> PathBuf {
+    dated_thinking_path("sequential", session_id, config)
+}
+
+fn date_parts_from_session_id(session_id: &str) -> (i32, u32, u32) {
+    let millis = session_id
+        .split('-')
+        .nth(1)
+        .and_then(|part| part.parse::<i64>().ok());
+    let timestamp = millis
+        .and_then(|value| Utc.timestamp_millis_opt(value).single())
+        .unwrap_or_else(Utc::now);
+    (timestamp.year(), timestamp.month(), timestamp.day())
 }

@@ -456,7 +456,8 @@ pub fn cleanup_abandoned_sessions(config: &Config) -> Result<usize> {
             &cleanup_started_at,
             &cleanup_display_time,
         ) {
-            Ok(()) => abandoned_count += 1,
+            Ok(true) => abandoned_count += 1,
+            Ok(false) => {}
             Err(error) => {
                 eprintln!("Warning: failed to abandon session candidate {file_uri}: {error}");
             }
@@ -475,7 +476,19 @@ fn abandon_session_candidate(
     abandonment_minutes: i64,
     cleanup_started_at: &str,
     cleanup_display_time: &str,
-) -> Result<()> {
+) -> Result<bool> {
+    // T-4.6: RTM FR-4.2 - recent filesystem edits override stale DB timestamps during abandonment cleanup.
+    let path = crate::markdown::uri_to_path(file_uri, &config.memory_path)?;
+    if let Ok(metadata) = fs::metadata(&path)
+        && let Ok(modified_at) = metadata.modified()
+    {
+        let modified_at: DateTime<Utc> = modified_at.into();
+        let abandonment_cutoff = Utc::now() - chrono::Duration::minutes(abandonment_minutes);
+        if modified_at >= abandonment_cutoff {
+            return Ok(false);
+        }
+    }
+
     let (frontmatter, content, _) = read_markdown(file_uri, config)?;
     let mut frontmatter = frontmatter.unwrap_or_default();
     frontmatter.insert(
@@ -494,7 +507,6 @@ fn abandon_session_candidate(
         append_abandoned_notice(&content, inactivity_minutes, cleanup_display_time);
     write_markdown(file_uri, Some(&frontmatter), &updated_content, config)?;
 
-    let path = crate::markdown::uri_to_path(file_uri, &config.memory_path)?;
     let metadata = fs::metadata(&path)?;
     let (updated_frontmatter, updated_body, checksum) = read_markdown(file_uri, config)?;
     let title = updated_frontmatter
@@ -526,7 +538,7 @@ fn abandon_session_candidate(
         ],
     )?;
 
-    Ok(())
+    Ok(true)
 }
 
 fn append_assumption(context: &ToolContext, payload: &Value) -> Result<String> {

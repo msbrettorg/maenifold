@@ -80,9 +80,49 @@ impl Config {
         Ok(format!("file:{path}?mode=rwc"))
     }
 
+    // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x
+    pub fn decay_grace_days_sequential(&self) -> i64 {
+        env_i64("MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL", 7)
+    }
+
+    // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x
+    pub fn decay_grace_days_workflows(&self) -> i64 {
+        env_i64("MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS", 14)
+    }
+
+    // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x
+    pub fn decay_grace_days_default(&self) -> i64 {
+        env_i64("MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT", 28)
+    }
+
+    // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x
+    pub fn decay_half_life_days(&self) -> i64 {
+        env_i64("MAENIFOLD_DECAY_HALF_LIFE_DAYS", 30)
+    }
+
+    // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x
+    pub fn decay_function(&self) -> String {
+        env_string("MAENIFOLD_DECAY_FUNCTION", "power-law")
+    }
+
     pub fn enable_incremental_sync(&self) -> bool {
         env::var("MAENIFOLD_ENABLE_INCREMENTAL_SYNC")
             .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
             .unwrap_or(true)
     }
+}
+
+fn env_i64(name: &str, default: i64) -> i64 {
+    env::var(name)
+        .ok()
+        .and_then(|value| value.parse::<i64>().ok())
+        .unwrap_or(default)
+}
+
+fn env_string(name: &str, default: &str) -> String {
+    env::var(name)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| default.to_string())
 }

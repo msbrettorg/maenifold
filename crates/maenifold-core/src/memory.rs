@@ -31,6 +31,18 @@ pub fn write_memory(context: &ToolContext, payload: &Value) -> Result<String> {
     let tags = payload.get("tags").and_then(Value::as_array).cloned();
 
     let title = sanitize_user_input(title);
+    // T-0.1: RTM NFR-3 - reject overlong write targets before filesystem I/O so CLI JSON callers get a structured error without path leakage.
+    if slugify(&title).len() > 255 {
+        return Ok(match context.output_format {
+            OutputFormat::Json => failure(
+                "PATH_TOO_LONG",
+                "Memory title is too long to create a safe file path.",
+            ),
+            OutputFormat::Markdown => {
+                "ERROR: Memory title is too long to create a safe file path.".to_string()
+            }
+        });
+    }
     let concepts = crate::markdown::extract_wikilinks(content);
     if concepts.is_empty() {
         return Ok(match context.output_format {
@@ -424,6 +436,12 @@ pub fn list_memories(context: &ToolContext, payload: &Value) -> Result<String> {
     if !target_path.is_dir() {
         return Ok(format!("Directory not found: {}", path.unwrap_or_default()));
     }
+    // T-QUAL-002.6h: RTM FR-25.6
+    let canonical_memory_root = fs::canonicalize(&context.config.memory_path)?;
+    let canonical_target_path = fs::canonicalize(&target_path)?;
+    if !canonical_target_path.starts_with(&canonical_memory_root) {
+        return Ok("ERROR: Resolved path escapes memory root".to_string());
+    }
 
     let last_accessed_cache = load_last_accessed_timestamps(&context.config)?;
     // T-0.3c: RTM NFR-4 / RTM-047
@@ -706,10 +724,7 @@ pub fn compute_decay_weight(
 ) -> f64 {
     // T-4.4: RTM FR-4.4
     let mut grace_period_days = grace_period_for_path(file_path, config);
-    let mut half_life_days = std::env::var("MAENIFOLD_DECAY_HALF_LIFE_DAYS")
-        .ok()
-        .and_then(|value| value.parse::<i64>().ok())
-        .unwrap_or(30);
+    let mut half_life_days = config.decay_half_life_days();
     let normalized_path = normalize_decay_path(file_path, config);
     // T-7.8: RTM FR-7.8
     if (normalized_path.contains("/assumptions/") || normalized_path.contains("/chat/"))
@@ -728,8 +743,7 @@ pub fn compute_decay_weight(
             _ => {}
         }
     }
-    let decay_function =
-        std::env::var("MAENIFOLD_DECAY_FUNCTION").unwrap_or_else(|_| "power-law".to_string());
+    let decay_function = config.decay_function();
 
     let Some(reference_date) = last_accessed.and_then(parse_datetime) else {
         return 1.0;
@@ -759,21 +773,12 @@ pub fn compute_decay_weight(
 fn grace_period_for_path(file_path: &str, config: &crate::config::Config) -> i64 {
     let normalized = normalize_decay_path(file_path, config);
     if normalized.contains("/thinking/sequential/") {
-        return std::env::var("MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL")
-            .ok()
-            .and_then(|value| value.parse::<i64>().ok())
-            .unwrap_or(7);
+        return config.decay_grace_days_sequential();
     }
     if normalized.contains("/thinking/workflow/") || normalized.contains("/thinking/workflows/") {
-        return std::env::var("MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS")
-            .ok()
-            .and_then(|value| value.parse::<i64>().ok())
-            .unwrap_or(14);
+        return config.decay_grace_days_workflows();
     }
-    std::env::var("MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT")
-        .ok()
-        .and_then(|value| value.parse::<i64>().ok())
-        .unwrap_or(28)
+    config.decay_grace_days_default()
 }
 
 fn normalize_decay_path(file_path: &str, config: &crate::config::Config) -> String {
@@ -905,9 +910,6 @@ pub fn sanitize_user_input(input: &str) -> String {
     } else {
         input.to_string()
     };
-    if input.len() > 255 {
-        input.truncate(255);
-    }
     if let Ok(decoded) = urlencoding::decode(&input) {
         input = decoded.into_owned();
     }

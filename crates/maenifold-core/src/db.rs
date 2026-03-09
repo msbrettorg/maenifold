@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::error::Result;
 use rusqlite::Connection;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub struct GraphDatabase;
 
@@ -12,6 +12,51 @@ pub fn open_connection(path: &Path) -> Result<Connection> {
         Config::SQLITE_BUSY_TIMEOUT_MS,
     ))?;
     Ok(conn)
+}
+
+// T-QUAL-SYNC-001.3: RTM FR-25.6
+pub fn run_full_maintenance(conn: &mut Connection) -> Result<()> {
+    conn.execute_batch(
+        "INSERT INTO file_search(file_search) VALUES('optimize');
+         INSERT INTO file_search(file_search) VALUES('rebuild');
+         PRAGMA wal_checkpoint(TRUNCATE);",
+    )?;
+
+    let database_path = file_backed_database_path(conn)?;
+    let placeholder = Connection::open_in_memory()?;
+    let existing = std::mem::replace(conn, placeholder);
+    existing.close().map_err(|(_, error)| error)?;
+
+    {
+        let vacuum_conn = open_connection(&database_path)?;
+        vacuum_conn.execute_batch("VACUUM;")?;
+    }
+
+    let reopened = open_connection(&database_path)?;
+    reopened.pragma_update(None, "journal_mode", "WAL")?;
+    reopened.pragma_update(None, "synchronous", "NORMAL")?;
+    *conn = reopened;
+    Ok(())
+}
+
+// T-QUAL-SYNC-001.3: RTM FR-25.6
+pub fn run_light_maintenance(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "INSERT INTO file_search(file_search) VALUES('optimize');
+         PRAGMA wal_checkpoint(PASSIVE);",
+    )?;
+    Ok(())
+}
+
+fn file_backed_database_path(conn: &Connection) -> Result<PathBuf> {
+    conn.path()
+        .filter(|path| !path.is_empty())
+        .map(PathBuf::from)
+        .ok_or_else(|| {
+            crate::error::MaenifoldError::Message(
+                "Database maintenance requires a file-backed SQLite connection".to_string(),
+            )
+        })
 }
 
 impl GraphDatabase {

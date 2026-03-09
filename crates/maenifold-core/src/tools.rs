@@ -1,11 +1,11 @@
 use crate::assets::{AssetKind, AssetManager};
 use crate::config::Config;
-use crate::db::{self, GraphDatabase};
+use crate::db;
 use crate::error::{MaenifoldError, Result};
 use crate::json::{OutputFormat, failure, success};
 use crate::markdown::extract_h2_sections;
 use chrono::{DateTime, TimeDelta, Utc};
-use rusqlite::params;
+use rusqlite::{Connection, params};
 use serde_json::{Value, json};
 use std::fs;
 use std::path::Path;
@@ -52,7 +52,21 @@ pub fn read_mcp_resource(context: &ToolContext, payload: &Value) -> Result<Strin
     })
 }
 
-pub fn get_config(context: &ToolContext, _payload: &Value) -> Result<String> {
+pub fn get_config(context: &ToolContext, payload: &Value) -> Result<String> {
+    // T-1.5: RTM FR-1 / FR-3 / FR-4 / FR-5 / FR-6 preserve C#-compatible learn mode for system diagnostics.
+    let learn = payload
+        .get("learn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if learn {
+        let help = load_help_doc(&context.config.assets_path, "GetConfig")
+            .unwrap_or_else(|| "ERROR: Help file not found for GetConfig".to_string());
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
+    }
+
     let rendered = render_config_markdown(context);
     Ok(match context.output_format {
         OutputFormat::Json => success(rendered),
@@ -60,7 +74,21 @@ pub fn get_config(context: &ToolContext, _payload: &Value) -> Result<String> {
     })
 }
 
-pub fn memory_status(context: &ToolContext, _payload: &Value) -> Result<String> {
+pub fn memory_status(context: &ToolContext, payload: &Value) -> Result<String> {
+    // T-1.5: RTM FR-1 / FR-3 / FR-4 / FR-5 / FR-6 preserve C#-compatible learn mode for system diagnostics.
+    let learn = payload
+        .get("learn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if learn {
+        let help = load_help_doc(&context.config.assets_path, "MemoryStatus")
+            .unwrap_or_else(|| "ERROR: Help file not found for MemoryStatus".to_string());
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
+    }
+
     let file_count = walkdir::WalkDir::new(&context.config.memory_path)
         .into_iter()
         .filter_map(|e| e.ok())
@@ -109,46 +137,9 @@ pub fn recent_activity(context: &ToolContext, payload: &Value) -> Result<String>
         .map(parse_recent_activity_timespan)
         .transpose()?;
 
-    GraphDatabase::initialize_database(&context.config)?;
-    let connection = db::open_connection(&context.config.database_path)?;
-
-    let filter_clause = filter.sql_clause();
-    let mut sql = format!(
-        "SELECT file_path, COALESCE(title, ''), COALESCE(last_indexed, ''), COALESCE(content, ''), COALESCE(status, '') \
-         FROM file_content WHERE {filter_clause}"
-    );
-
-    let cutoff = timespan.map(|span| (Utc::now() - span).format("%Y-%m-%d %H:%M:%S").to_string());
-    if cutoff.is_some() {
-        sql.push_str(" AND datetime(last_indexed) >= datetime(?)");
-    }
-    sql.push_str(" ORDER BY datetime(last_indexed) DESC LIMIT ?");
-
-    let mut statement = connection.prepare(&sql)?;
-    let rows = if let Some(cutoff) = cutoff.as_deref() {
-        statement.query_map(params![cutoff, limit], map_recent_activity_row)?
-    } else {
-        statement.query_map(params![limit], map_recent_activity_row)?
-    };
-
-    let mut entries = Vec::new();
-    for row in rows {
-        let row = row?;
-        let file_type = classify_recent_activity_type(&row.file_path);
-        let sections = extract_h2_sections(&row.content);
-        entries.push(format_recent_activity_entry(
-            row,
-            file_type,
-            sections,
-            include_content,
-        ));
-    }
-
-    let report = if entries.is_empty() {
-        "No recent activity found".to_string()
-    } else {
-        format!("# Recent Activity\n\n{}", entries.join("\n\n"))
-    };
+    let rows =
+        collect_recent_activity_records_with_filter(&context.config, timespan, filter, limit)?;
+    let report = format_recent_activity_report(rows, include_content);
 
     Ok(match context.output_format {
         OutputFormat::Json => success(report),
@@ -197,12 +188,13 @@ impl RecentActivityFilter {
     }
 }
 
-struct RecentActivityRow {
-    file_path: String,
-    title: String,
-    last_indexed: String,
-    content: String,
-    status: String,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecentActivityRecord {
+    pub file_path: String,
+    pub title: String,
+    pub last_indexed: String,
+    pub content: String,
+    pub status: String,
 }
 
 #[derive(Clone, Copy)]
@@ -334,8 +326,63 @@ fn parse_recent_activity_timespan(input: &str) -> Result<TimeDelta> {
         })
 }
 
-fn map_recent_activity_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RecentActivityRow> {
-    Ok(RecentActivityRow {
+pub fn collect_recent_activity_records(
+    config: &Config,
+    timespan: Option<TimeDelta>,
+    filter: Option<&str>,
+    limit: i64,
+) -> Result<Vec<RecentActivityRecord>> {
+    let filter = parse_recent_activity_filter(filter)?;
+    collect_recent_activity_records_with_filter(config, timespan, filter, limit)
+}
+
+// T-2.1: RTM FR-4 / RTM-020-RTM-029 exposes RecentActivity query behavior for pipeline tests.
+fn collect_recent_activity_records_with_filter(
+    config: &Config,
+    timespan: Option<TimeDelta>,
+    filter: RecentActivityFilter,
+    limit: i64,
+) -> Result<Vec<RecentActivityRecord>> {
+    let connection = db::open_connection(&config.database_path)?;
+    if !recent_activity_table_exists(&connection)? {
+        return Err(MaenifoldError::Message(
+            "No database found. Run the `Sync` command first to index memory files.".to_string(),
+        ));
+    }
+
+    let filter_clause = filter.sql_clause();
+    let mut sql = format!(
+        "SELECT file_path, COALESCE(title, ''), COALESCE(last_indexed, ''), COALESCE(content, ''), COALESCE(status, '') \
+         FROM file_content WHERE {filter_clause}"
+    );
+
+    let cutoff = timespan.map(|span| (Utc::now() - span).format("%Y-%m-%d %H:%M:%S").to_string());
+    if cutoff.is_some() {
+        sql.push_str(" AND datetime(last_indexed) >= datetime(?)");
+    }
+    sql.push_str(" ORDER BY datetime(last_indexed) DESC LIMIT ?");
+
+    let mut statement = connection.prepare(&sql)?;
+    let rows = if let Some(cutoff) = cutoff.as_deref() {
+        statement.query_map(params![cutoff, limit], map_recent_activity_row)?
+    } else {
+        statement.query_map(params![limit], map_recent_activity_row)?
+    };
+
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(MaenifoldError::from)
+}
+
+fn recent_activity_table_exists(connection: &Connection) -> Result<bool> {
+    Ok(connection.query_row(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='file_content'",
+        [],
+        |row| row.get::<_, i64>(0),
+    )? > 0)
+}
+
+fn map_recent_activity_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RecentActivityRecord> {
+    Ok(RecentActivityRecord {
         file_path: row.get(0)?,
         title: row.get(1)?,
         last_indexed: row.get(2)?,
@@ -357,8 +404,49 @@ fn classify_recent_activity_type(file_path: &str) -> RecentActivityType {
     }
 }
 
+// T-2.1: RTM FR-4 / RTM-029 exposes path classification parity for RecentActivity pipeline tests.
+pub fn recent_activity_determine_file_type(file_path: &str) -> &'static str {
+    classify_recent_activity_type(file_path).as_str()
+}
+
+// T-2.3: RTM FR-4 exposes session-id validation used by pure date-detection regression tests.
+pub fn is_valid_session_id_format(session_id: &str) -> bool {
+    session_id
+        .split('-')
+        .nth(1)
+        .filter(|segment| !segment.is_empty())
+        .and_then(|segment| segment.parse::<i64>().ok())
+        .is_some()
+}
+
+// T-2.1: RTM FR-4 / RTM-029 exposes session-id extraction parity for RecentActivity pipeline tests.
+pub fn recent_activity_extract_session_id(file_path: &str) -> String {
+    extract_recent_activity_session_id(file_path)
+}
+
+// T-2.1: RTM FR-4 / RTM-025 exposes formatter behavior for RecentActivity pipeline tests.
+pub fn format_recent_activity_report(
+    rows: Vec<RecentActivityRecord>,
+    include_content: bool,
+) -> String {
+    let entries = rows
+        .iter()
+        .map(|row| {
+            let file_type = classify_recent_activity_type(&row.file_path);
+            let sections = extract_h2_sections(&row.content);
+            format_recent_activity_entry(row, file_type, sections, include_content)
+        })
+        .collect::<Vec<_>>();
+
+    if entries.is_empty() {
+        "No recent activity found".to_string()
+    } else {
+        format!("# Recent Activity\n\n{}", entries.join("\n\n"))
+    }
+}
+
 fn format_recent_activity_entry(
-    row: RecentActivityRow,
+    row: &RecentActivityRecord,
     file_type: RecentActivityType,
     sections: Vec<(String, String)>,
     include_content: bool,
@@ -429,31 +517,57 @@ fn section_details(section: Option<&(String, String)>) -> (String, String) {
     }
 }
 
+// T-2.1: RTM FR-4 / RTM-025 exposes snippet extraction parity for RecentActivity pipeline tests.
+pub fn recent_activity_extract_snippet(content: &str, max_length: i32) -> String {
+    let max_length = if max_length == -1 {
+        std::env::var("MAENIFOLD_SNIPPET_LENGTH")
+            .ok()
+            .and_then(|value| value.parse::<usize>().ok())
+            .filter(|value| *value > 0)
+            .unwrap_or(1000)
+    } else {
+        usize::try_from(max_length)
+            .ok()
+            .filter(|value| *value > 0)
+            .unwrap_or(0)
+    };
+    if max_length == 0 {
+        return String::new();
+    }
+
+    let lines = content
+        .lines()
+        .map(str::trim_end)
+        .filter(|line| !line.trim().is_empty())
+        .collect::<Vec<_>>();
+    let mut content_lines = lines
+        .iter()
+        .copied()
+        .filter(|line| !line.trim_start().starts_with('*'))
+        .collect::<Vec<_>>();
+    if content_lines.is_empty() {
+        content_lines = lines;
+    }
+
+    let snippet = content_lines.join(" ").trim().to_string();
+    if snippet.chars().count() <= max_length {
+        return snippet;
+    }
+
+    if max_length <= 3 {
+        return ".".repeat(max_length);
+    }
+    let prefix = snippet.chars().take(max_length - 3).collect::<String>();
+    format!("{prefix}...")
+}
+
 fn render_recent_activity_snippet(section: Option<&(String, String)>) -> String {
     let source = match section {
         Some((_, content)) if !content.trim().is_empty() => content,
         Some((heading, _)) => heading,
         None => "",
     };
-    truncate_recent_activity_text(normalize_recent_activity_text(source))
-}
-
-fn normalize_recent_activity_text(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ")
-}
-
-fn truncate_recent_activity_text(text: String) -> String {
-    let limit = std::env::var("MAENIFOLD_SNIPPET_LENGTH")
-        .ok()
-        .and_then(|value| value.parse::<usize>().ok())
-        .filter(|value| *value > 0)
-        .unwrap_or(1000);
-    if text.chars().count() <= limit {
-        return text;
-    }
-
-    let truncated = text.chars().take(limit).collect::<String>();
-    format!("{}...", truncated.trim_end())
+    recent_activity_extract_snippet(source, -1)
 }
 
 fn extract_recent_activity_session_id(file_path: &str) -> String {
@@ -512,23 +626,11 @@ fn render_config_markdown(context: &ToolContext) -> String {
         } else {
             "False"
         },
-        std::env::var("MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL")
-            .ok()
-            .and_then(|value| value.parse::<i64>().ok())
-            .unwrap_or(7),
-        std::env::var("MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS")
-            .ok()
-            .and_then(|value| value.parse::<i64>().ok())
-            .unwrap_or(14),
-        std::env::var("MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT")
-            .ok()
-            .and_then(|value| value.parse::<i64>().ok())
-            .unwrap_or(28),
-        std::env::var("MAENIFOLD_DECAY_HALF_LIFE_DAYS")
-            .ok()
-            .and_then(|value| value.parse::<i64>().ok())
-            .unwrap_or(30),
-        std::env::var("MAENIFOLD_DECAY_FUNCTION").unwrap_or_else(|_| "power-law".to_string()),
+        context.config.decay_grace_days_sequential(),
+        context.config.decay_grace_days_workflows(),
+        context.config.decay_grace_days_default(),
+        context.config.decay_half_life_days(),
+        context.config.decay_function(),
         std::env::var("MAENIFOLD_LOUVAIN_GAMMA")
             .ok()
             .and_then(|value| value.parse::<f64>().ok())

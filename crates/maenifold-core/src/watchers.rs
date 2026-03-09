@@ -2,6 +2,7 @@ use crate::community;
 use crate::config::Config;
 use crate::db::{self, GraphDatabase};
 use crate::error::{MaenifoldError, Result};
+use crate::json::OutputFormat;
 use crate::leader::LeaderElection;
 use crate::markdown::{
     Frontmatter, extract_wikilinks, extract_wikilinks_with_sections, path_to_uri, read_markdown,
@@ -63,8 +64,8 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
     let config = context.config.clone();
     let holder_id = generate_sync_holder_id();
 
-    if let Some(existing) = WATCHER.lock().take() {
-        existing.stop();
+    if WATCHER.lock().is_some() {
+        return Ok("Watcher already running".to_string());
     }
 
     let (event_tx, event_rx) = mpsc::channel();
@@ -73,6 +74,9 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
 
     let mut watcher = notify::recommended_watcher(move |event: notify::Result<Event>| {
         let Ok(event) = event else {
+            if let Err(error) = event {
+                eprintln!("{}", format_watcher_error_message(&error.to_string()));
+            }
             return;
         };
         if !is_relevant_event_kind(&event.kind) {
@@ -104,8 +108,45 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
 pub fn stop_watcher(_context: &ToolContext, _payload: &Value) -> Result<String> {
     if let Some(state) = WATCHER.lock().take() {
         state.stop();
+        return Ok("Stopped incremental sync watcher".to_string());
     }
     Ok("Watcher not running".to_string())
+}
+
+// T-COV-001.3: RTM FR-17.5 — expose watcher state so integration tests can verify lifecycle guards.
+#[doc(hidden)]
+pub fn watcher_is_running() -> bool {
+    WATCHER.lock().is_some()
+}
+
+// T-COV-001.3: RTM FR-17.5 — expose private incremental path processing so integration tests can port C# handler coverage.
+#[doc(hidden)]
+pub fn process_path_for_test(context: &ToolContext, path: &Path) -> Result<()> {
+    if path_to_memory_uri(&context.config, path)?.is_none() {
+        return Ok(());
+    }
+    crate::search::sync_single_file(context, path)?;
+    Ok(())
+}
+
+// T-COV-001.3: RTM FR-17.5 — expose debounced batch semantics so integration tests can port watcher coalescing coverage deterministically.
+#[doc(hidden)]
+pub fn process_pending_paths_for_test(context: &ToolContext, paths: &[PathBuf]) -> Result<()> {
+    let mut unique_paths = HashSet::new();
+    for path in paths {
+        if path_to_memory_uri(&context.config, path)?.is_some() {
+            unique_paths.insert(path.clone());
+        }
+    }
+
+    let paths = unique_paths.into_iter().collect::<Vec<_>>();
+    process_incremental_batch(&context.config, &paths)
+}
+
+// T-COV-001.3: RTM FR-17.5 — keep watcher error text stable for parity-style assertions in integration tests.
+#[doc(hidden)]
+pub fn format_watcher_error_message(error: &str) -> String {
+    format!("[FileWatcher] Error: {error}")
 }
 
 fn spawn_worker(
@@ -204,19 +245,13 @@ fn process_pending_paths(config: &Config, holder_id: &str, paths: &[PathBuf]) ->
 }
 
 fn process_incremental_batch(config: &Config, paths: &[PathBuf]) -> Result<()> {
-    let mut connection = db::open_connection(&config.database_path)?;
-    let mut tx = connection.transaction()?;
-    let sync_started_at = current_iso_timestamp();
-
     let mut sorted_paths = paths.to_vec();
     sorted_paths.sort();
+    let context = ToolContext::new(config.clone(), OutputFormat::Markdown);
 
     for path in sorted_paths {
-        let savepoint = tx.savepoint()?;
-        match process_incremental_path(&savepoint, config, &path, &sync_started_at) {
-            Ok(()) => {
-                savepoint.commit()?;
-            }
+        match crate::search::sync_single_file(&context, &path) {
+            Ok(_) => {}
             Err(error) => {
                 // T-5.8: RTM NFR-3, NFR-4 isolates watcher batch failures per file.
                 eprintln!(
@@ -227,15 +262,7 @@ fn process_incremental_batch(config: &Config, paths: &[PathBuf]) -> Result<()> {
         }
     }
 
-    let _total_mentions = rebuild_graph_from_mentions(&tx, &sync_started_at)?;
-    tx.commit()?;
-
-    let gamma = std::env::var("MAENIFOLD_LOUVAIN_GAMMA")
-        .ok()
-        .and_then(|value| value.parse::<f64>().ok())
-        .filter(|value| value.is_finite())
-        .unwrap_or(1.0);
-    let _communities_detected = community::detect_and_persist(&config.database_path, gamma)?;
+    let _communities_detected = crate::search::recompute_communities_if_needed(&context)?;
     let _abandoned_sessions = sessions::cleanup_abandoned_sessions(config)?;
     Ok(())
 }
@@ -376,11 +403,11 @@ fn load_indexed_file_state(
 ) -> Result<Option<IndexedFileState>> {
     Ok(connection
         .query_row(
-            "SELECT \\
-                 last_indexed, \\
-                 file_md5, \\
-                 EXISTS(SELECT 1 FROM concept_mentions WHERE source_file = file_content.file_path) \\
-             FROM file_content \\
+            "SELECT
+                 last_indexed,
+                 file_md5,
+                 EXISTS(SELECT 1 FROM concept_mentions WHERE source_file = file_content.file_path)
+             FROM file_content
              WHERE file_path = ?1",
             params![file_uri],
             |row| {
@@ -460,8 +487,8 @@ fn upsert_processed_file(
         .map(str::to_string);
 
     connection.execute(
-        "INSERT INTO file_content (file_path, title, content, summary, last_indexed, status, file_md5, file_size, created, last_accessed) \\
-         VALUES (?1, ?2, ?3, '', ?4, ?5, ?6, ?7, COALESCE(?8, ?4), COALESCE((SELECT last_accessed FROM file_content WHERE file_path = ?1), COALESCE(?8, ?4))) \\
+        "INSERT INTO file_content (file_path, title, content, summary, last_indexed, status, file_md5, file_size, created, last_accessed)
+         VALUES (?1, ?2, ?3, '', ?4, ?5, ?6, ?7, COALESCE(?8, ?4), COALESCE((SELECT last_accessed FROM file_content WHERE file_path = ?1), COALESCE(?8, ?4)))
          ON CONFLICT(file_path) DO UPDATE SET title=excluded.title, content=excluded.content, summary=excluded.summary, last_indexed=excluded.last_indexed, status=excluded.status, file_md5=excluded.file_md5, file_size=excluded.file_size, created=COALESCE(file_content.created, excluded.created), last_accessed=COALESCE(file_content.last_accessed, excluded.last_accessed)",
         params![uri, title, content, indexed_at, status, checksum, file_size, created],
     )?;
@@ -482,7 +509,7 @@ fn upsert_processed_file(
             params![concept, indexed_at],
         )?;
         connection.execute(
-            "INSERT INTO concept_mentions (concept_name, source_file, mention_count) VALUES (?1, ?2, ?3) \\
+            "INSERT INTO concept_mentions (concept_name, source_file, mention_count) VALUES (?1, ?2, ?3)
              ON CONFLICT(concept_name, source_file) DO UPDATE SET mention_count = excluded.mention_count",
             params![concept, uri, mention_count as i64],
         )?;

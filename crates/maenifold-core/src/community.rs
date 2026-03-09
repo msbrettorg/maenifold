@@ -1,6 +1,7 @@
 use crate::db;
 use crate::error::Result;
 use rusqlite::{Connection, params};
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 
@@ -16,6 +17,8 @@ struct GraphData {
 // T-3.2a: RTM FR-13.1 / FR-13.3 / FR-13.11
 pub fn detect_and_persist(db_path: &Path, gamma: f64) -> Result<usize> {
     let mut connection = db::open_connection(db_path)?;
+    // T-4.3: RTM FR-23.7
+    let previous_assignments = load_assignments(&connection)?;
     let graph = load_graph(&connection)?;
     let (communities, modularity) = run_louvain(&graph, gamma);
     let (communities, modularity) =
@@ -27,6 +30,8 @@ pub fn detect_and_persist(db_path: &Path, gamma: f64) -> Result<usize> {
         modularity,
         gamma,
     )?;
+    // T-4.3: RTM FR-23.7
+    maybe_warn_on_community_drift(&previous_assignments, &graph.concepts, &communities);
     Ok(communities.iter().copied().collect::<BTreeSet<_>>().len())
 }
 
@@ -46,7 +51,7 @@ fn load_graph(connection: &Connection) -> Result<GraphData> {
 
     let mut adjacency = vec![Vec::new(); concepts.len()];
     let mut edge_stmt = connection.prepare(
-        "SELECT concept_a, concept_b, co_occurrence_count \
+        "SELECT concept_a, concept_b, co_occurrence_count, COALESCE(source_files, '') \
          FROM concept_graph \
          ORDER BY concept_a, concept_b",
     )?;
@@ -56,17 +61,20 @@ fn load_graph(connection: &Connection) -> Result<GraphData> {
             row.get::<_, String>(1)?,
             // T-4.3: RTM FR-23.x
             row.get::<_, f64>(2)?,
+            row.get::<_, String>(3)?,
         ))
     })?;
 
     for edge_row in edge_rows {
-        let (concept_a, concept_b, weight) = edge_row?;
+        let (concept_a, concept_b, co_occurrence_count, source_files) = edge_row?;
         let Some(&index_a) = index_by_name.get(&concept_a) else {
             continue;
         };
         let Some(&index_b) = index_by_name.get(&concept_b) else {
             continue;
         };
+        // T-4.3: RTM FR-23.6
+        let weight = graph_edge_weight(co_occurrence_count, &source_files);
         if weight <= 0.0 {
             continue;
         }
@@ -89,6 +97,160 @@ fn load_graph(connection: &Connection) -> Result<GraphData> {
         adjacency,
         total_edge_weight,
     })
+}
+
+// T-4.3: RTM FR-23.4
+pub fn compute_edge_decay_weight(source_files: &str) -> Result<f64> {
+    let weights = parse_source_file_weights(source_files)?;
+    if weights.is_empty() {
+        return Ok(0.0);
+    }
+
+    Ok(weights.values().sum::<f64>() / weights.len() as f64)
+}
+
+// T-4.3: RTM FR-23.7
+pub fn compute_nmi(left: &BTreeMap<String, usize>, right: &BTreeMap<String, usize>) -> f64 {
+    let shared = left
+        .keys()
+        .filter(|concept| right.contains_key(*concept))
+        .cloned()
+        .collect::<Vec<_>>();
+    if shared.is_empty() {
+        return 1.0;
+    }
+
+    let total = shared.len() as f64;
+    let mut left_counts = BTreeMap::<usize, usize>::new();
+    let mut right_counts = BTreeMap::<usize, usize>::new();
+    let mut joint_counts = BTreeMap::<(usize, usize), usize>::new();
+
+    for concept in shared {
+        let left_cluster = left[&concept];
+        let right_cluster = right[&concept];
+        *left_counts.entry(left_cluster).or_insert(0) += 1;
+        *right_counts.entry(right_cluster).or_insert(0) += 1;
+        *joint_counts
+            .entry((left_cluster, right_cluster))
+            .or_insert(0) += 1;
+    }
+
+    let entropy = |counts: &BTreeMap<usize, usize>| {
+        counts
+            .values()
+            .map(|count| {
+                let probability = *count as f64 / total;
+                if probability <= EPSILON {
+                    0.0
+                } else {
+                    -probability * probability.ln()
+                }
+            })
+            .sum::<f64>()
+    };
+
+    let left_entropy = entropy(&left_counts);
+    let right_entropy = entropy(&right_counts);
+    if left_entropy <= EPSILON && right_entropy <= EPSILON {
+        return 1.0;
+    }
+
+    let mut mutual_information = 0.0;
+    for ((left_cluster, right_cluster), joint_count) in joint_counts {
+        let joint_probability = joint_count as f64 / total;
+        if joint_probability <= EPSILON {
+            continue;
+        }
+        let left_probability = *left_counts.get(&left_cluster).unwrap_or(&0) as f64 / total;
+        let right_probability = *right_counts.get(&right_cluster).unwrap_or(&0) as f64 / total;
+        if left_probability <= EPSILON || right_probability <= EPSILON {
+            continue;
+        }
+        mutual_information +=
+            joint_probability * (joint_probability / (left_probability * right_probability)).ln();
+    }
+
+    let normalized = (2.0 * mutual_information) / (left_entropy + right_entropy);
+    normalized.clamp(0.0, 1.0)
+}
+
+// T-4.3: RTM FR-23.6
+fn graph_edge_weight(co_occurrence_count: f64, source_files: &str) -> f64 {
+    parse_source_file_weights(source_files)
+        .map(|weights| weights.values().sum::<f64>())
+        .unwrap_or(co_occurrence_count)
+}
+
+// T-4.3: RTM FR-23.x
+fn parse_source_file_weights(source_files: &str) -> Result<BTreeMap<String, f64>> {
+    let trimmed = source_files.trim();
+    if trimmed.is_empty() {
+        return Ok(BTreeMap::new());
+    }
+
+    match serde_json::from_str::<Value>(trimmed)? {
+        Value::Object(map) => Ok(map
+            .into_iter()
+            .filter_map(|(path, value)| value.as_f64().map(|weight| (path, weight)))
+            .collect()),
+        Value::Array(entries) => Ok(entries
+            .into_iter()
+            .filter_map(|value| value.as_str().map(|path| (path.to_string(), 1.0)))
+            .collect()),
+        _ => Ok(BTreeMap::new()),
+    }
+}
+
+// T-4.3: RTM FR-23.7
+fn load_assignments(connection: &Connection) -> Result<BTreeMap<String, usize>> {
+    let mut statement = connection.prepare(
+        "SELECT concept_name, community_id
+         FROM concept_communities
+         ORDER BY concept_name",
+    )?;
+    let rows = statement.query_map([], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)? as usize))
+    })?;
+    Ok(rows.collect::<std::result::Result<BTreeMap<_, _>, _>>()?)
+}
+
+// T-4.3: RTM FR-23.7
+fn maybe_warn_on_community_drift(
+    previous_assignments: &BTreeMap<String, usize>,
+    concepts: &[String],
+    communities: &[usize],
+) {
+    if previous_assignments.is_empty() || concepts.len() != communities.len() {
+        return;
+    }
+
+    let current_assignments = concepts
+        .iter()
+        .cloned()
+        .zip(communities.iter().copied())
+        .collect::<BTreeMap<_, _>>();
+    let nmi = compute_nmi(previous_assignments, &current_assignments);
+    let threshold = std::env::var("MAENIFOLD_COMMUNITY_NMI_DRIFT_THRESHOLD")
+        .ok()
+        .and_then(|value| value.parse::<f64>().ok())
+        .unwrap_or(0.8);
+
+    if nmi < threshold {
+        let warning = format!(
+            "Community drift warning: NMI {:.4} fell below threshold {:.4}\n",
+            nmi, threshold
+        );
+        #[cfg(unix)]
+        unsafe {
+            unsafe extern "C" {
+                fn write(fd: i32, buf: *const u8, count: usize) -> isize;
+            }
+
+            let _ = write(2, warning.as_ptr(), warning.len());
+        }
+        #[cfg(not(unix))]
+        eprintln!("{warning}");
+    }
 }
 
 // T-3.2a: RTM FR-13.1 / FR-13.11

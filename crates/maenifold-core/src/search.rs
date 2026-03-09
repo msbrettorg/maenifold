@@ -47,6 +47,16 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
         .and_then(Value::as_u64)
         .unwrap_or(10) as usize;
     let page = payload.get("page").and_then(Value::as_u64).unwrap_or(1) as usize;
+    let min_score = payload
+        .get("minScore")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    let folder_prefix = payload
+        .get("folder")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|folder| !folder.is_empty())
+        .map(|folder| format!("memory://{}", folder.trim_matches('/')));
 
     GraphDatabase::initialize_database(&context.config)?;
     let connection = db::open_connection(&context.config.database_path)?;
@@ -66,12 +76,16 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
     let query_lower = query.to_ascii_lowercase();
     let query_slug = slugify_query(query);
     let query_terms = tokenize_query(query);
-    let mut text_result_count = 0usize;
-    let mut semantic_result_count = 0usize;
     let mut results = Vec::new();
 
     for row in rows {
         let (path, title, content, last_accessed, status) = row?;
+        if let Some(prefix) = folder_prefix.as_deref()
+            && path != prefix
+            && !path.starts_with(&format!("{prefix}/"))
+        {
+            continue;
+        }
         let title_lower = title.to_ascii_lowercase();
         let content_lower = content.to_ascii_lowercase();
 
@@ -100,13 +114,6 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
         if text_score <= 0.0 && semantic_score <= 0.0 {
             continue;
         }
-        if text_score > 0.0 {
-            text_result_count += 1;
-        }
-        if semantic_score > 0.0 {
-            semantic_result_count += 1;
-        }
-
         let fused_score = text_score + semantic_score;
         results.push(json!({
             "title": title,
@@ -187,6 +194,29 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
             .then_with(|| left["path"].as_str().cmp(&right["path"].as_str()))
     });
 
+    // T-0.1: RTM NFR-3 - apply SearchMemories thresholding and folder scoping so parity coverage can guard regressions.
+    let mode_score_key = if mode.eq_ignore_ascii_case("semantic") {
+        "semanticScore"
+    } else if mode.eq_ignore_ascii_case("fulltext") || mode.eq_ignore_ascii_case("full-text") {
+        "textScore"
+    } else {
+        "fusedScore"
+    };
+
+    let results = results
+        .into_iter()
+        .filter(|value| value[mode_score_key].as_f64().unwrap_or(0.0) >= min_score)
+        .collect::<Vec<_>>();
+
+    let text_result_count = results
+        .iter()
+        .filter(|value| value["textScore"].as_f64().unwrap_or(0.0) > 0.0)
+        .count();
+    let semantic_result_count = results
+        .iter()
+        .filter(|value| value["semanticScore"].as_f64().unwrap_or(0.0) > 0.0)
+        .count();
+
     let total_count = results.len();
     let start = page.saturating_sub(1) * page_size;
     let paged_results = results
@@ -266,10 +296,12 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
         for uri in &file_uris {
             let file_path = crate::markdown::uri_to_path(uri, &context.config.memory_path)?;
             let metadata = fs::metadata(&file_path)?;
+            let indexed_at = indexed_timestamp_for_metadata(&metadata);
             let stored_file = load_indexed_file_state(&tx, uri)?;
-            let synced_file = stored_file
-                .as_ref()
-                .filter(|indexed_file| indexed_file.has_mentions);
+            // T-2.3: RTM FR-14.1 / FR-14.2 / FR-14.4
+            // Trust persisted file_content state for mtime/hash guards even when concept_mentions
+            // were externally tampered; otherwise a missing mention row forces an unnecessary reread.
+            let synced_file = stored_file.as_ref();
             let stored_hash = synced_file.and_then(|indexed_file| indexed_file.file_md5.as_deref());
             let last_indexed =
                 synced_file.and_then(|indexed_file| indexed_file.last_indexed.as_deref());
@@ -285,7 +317,7 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
             if stored_hash == Some(checksum.as_str()) {
                 tx.execute(
                     "UPDATE file_content SET last_indexed = ?2 WHERE file_path = ?1",
-                    params![uri, sync_started_at],
+                    params![uri, indexed_at],
                 )?;
                 continue;
             }
@@ -298,7 +330,7 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
                 &content,
                 &checksum,
                 metadata.len() as i64,
-                &sync_started_at,
+                &indexed_at,
             )?;
         }
 
@@ -391,6 +423,7 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
     }
 
     let metadata = fs::metadata(file_path)?;
+    let indexed_at = indexed_timestamp_for_metadata(&metadata);
     let last_indexed = indexed_state
         .as_ref()
         .and_then(|state| state.last_indexed.as_deref());
@@ -410,7 +443,7 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
     if stored_hash == Some(checksum.as_str()) {
         tx.execute(
             "UPDATE file_content SET last_indexed = ?2 WHERE file_path = ?1",
-            params![file_uri, sync_started_at],
+            params![file_uri, indexed_at],
         )?;
         tx.commit()?;
         return Ok(format!("Skipped {file_uri}: hash guard"));
@@ -424,7 +457,7 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
         &content,
         &checksum,
         metadata.len() as i64,
-        &sync_started_at,
+        &indexed_at,
     )?;
     let new_concepts = load_file_concepts(&tx, &file_uri)?;
     let affected_concepts = previous_concepts
@@ -480,7 +513,6 @@ pub fn recompute_communities_if_needed(context: &ToolContext) -> Result<Option<u
 struct IndexedFileState {
     last_indexed: Option<String>,
     file_md5: Option<String>,
-    has_mentions: bool,
 }
 
 type RelationKey = (String, String);
@@ -495,8 +527,7 @@ fn load_indexed_file_state(
         .query_row(
             "SELECT \
                  last_indexed, \
-                 file_md5, \
-                 EXISTS(SELECT 1 FROM concept_mentions WHERE source_file = file_content.file_path) \
+                 file_md5 \
              FROM file_content \
              WHERE file_path = ?1",
             params![file_uri],
@@ -504,7 +535,6 @@ fn load_indexed_file_state(
                 Ok(IndexedFileState {
                     last_indexed: row.get(0)?,
                     file_md5: row.get(1)?,
-                    has_mentions: row.get::<_, i64>(2)? != 0,
                 })
             },
         )
@@ -585,6 +615,14 @@ fn parse_indexed_timestamp(value: &str) -> Option<DateTime<Utc>> {
     DateTime::parse_from_rfc3339(value)
         .ok()
         .map(|parsed| parsed.with_timezone(&Utc))
+}
+
+fn indexed_timestamp_for_metadata(metadata: &fs::Metadata) -> String {
+    metadata
+        .modified()
+        .ok()
+        .map(|modified| DateTime::<Utc>::from(modified).to_rfc3339())
+        .unwrap_or_else(current_iso_timestamp)
 }
 
 fn upsert_processed_file(
@@ -715,7 +753,8 @@ fn rebuild_affected_graph_from_mentions(
     }
 
     let existing_first_seen = load_existing_first_seen(connection)?;
-    delete_affected_graph_edges(connection, affected_concepts)?;
+    let mut existing_relations =
+        load_existing_relations_for_concepts(connection, affected_concepts)?;
     refresh_affected_concepts(
         connection,
         affected_concepts,
@@ -729,15 +768,38 @@ fn rebuild_affected_graph_from_mentions(
 
     let mut relation_count = 0usize;
     for ((concept_a, concept_b), (count, files)) in relation_counts {
+        let key = (concept_a.clone(), concept_b.clone());
         let source_files = serde_json::to_string(&files)?;
-        connection.execute(
-            "INSERT INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files) VALUES (?1, ?2, ?3, ?4)",
-            params![concept_a, concept_b, count, source_files],
-        )?;
+        let should_write = existing_relations.remove(&key).is_none_or(|existing| {
+            existing.co_occurrence_count != count || existing.source_files != source_files
+        });
+        if should_write {
+            connection.execute(
+                "INSERT INTO concept_graph (concept_a, concept_b, co_occurrence_count, source_files)
+                 VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT(concept_a, concept_b) DO UPDATE SET
+                     co_occurrence_count = excluded.co_occurrence_count,
+                     source_files = excluded.source_files",
+                params![concept_a, concept_b, count, source_files],
+            )?;
+        }
         relation_count += 1;
     }
 
+    for ((concept_a, concept_b), _) in existing_relations {
+        connection.execute(
+            "DELETE FROM concept_graph WHERE concept_a = ?1 AND concept_b = ?2",
+            params![concept_a, concept_b],
+        )?;
+    }
+
     Ok(relation_count)
+}
+
+#[derive(Debug, Clone)]
+struct ExistingRelationRow {
+    co_occurrence_count: f64,
+    source_files: String,
 }
 
 fn load_existing_first_seen(connection: &Connection) -> Result<BTreeMap<String, String>> {
@@ -760,6 +822,35 @@ fn delete_affected_graph_edges(
         delete_statement.execute(params![concept])?;
     }
     Ok(())
+}
+
+fn load_existing_relations_for_concepts(
+    connection: &Connection,
+    affected_concepts: &BTreeSet<String>,
+) -> Result<BTreeMap<(String, String), ExistingRelationRow>> {
+    let mut relations = BTreeMap::new();
+    let mut statement = connection.prepare(
+        "SELECT concept_a, concept_b, COALESCE(co_occurrence_count, 0.0), COALESCE(source_files, '')
+         FROM concept_graph
+         WHERE concept_a = ?1 OR concept_b = ?1",
+    )?;
+    for concept in affected_concepts {
+        let rows = statement.query_map(params![concept], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                ExistingRelationRow {
+                    co_occurrence_count: row.get::<_, f64>(2)?,
+                    source_files: row.get::<_, String>(3)?,
+                },
+            ))
+        })?;
+        for row in rows {
+            let (concept_a, concept_b, relation) = row?;
+            relations.entry((concept_a, concept_b)).or_insert(relation);
+        }
+    }
+    Ok(relations)
 }
 
 #[allow(dead_code)]
@@ -883,9 +974,18 @@ fn load_relation_counts_for_files(
         let Some(content) = content else {
             continue;
         };
+        let allowed_concepts = load_file_concepts(connection, source_file)?;
+        if allowed_concepts.is_empty() {
+            continue;
+        }
 
         let mut per_file_counts = RelationCounts::new();
-        flush_relation_counts(source_file, &content, &mut per_file_counts);
+        flush_relation_counts(
+            source_file,
+            &content,
+            Some(&allowed_concepts),
+            &mut per_file_counts,
+        );
         merge_relation_counts(&mut relation_counts, per_file_counts, affected_concepts);
     }
 
@@ -995,6 +1095,21 @@ fn community_recompute_time_threshold() -> chrono::Duration {
 
 // T-4.3: RTM FR-23.x
 fn load_relation_counts(connection: &Connection) -> Result<RelationCounts> {
+    let mut mentions_statement = connection.prepare(
+        "SELECT source_file, concept_name FROM concept_mentions ORDER BY source_file, concept_name",
+    )?;
+    let mention_rows = mentions_statement.query_map([], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })?;
+    let mut active_concepts_by_file = BTreeMap::<String, BTreeSet<String>>::new();
+    for row in mention_rows {
+        let (source_file, concept_name) = row?;
+        active_concepts_by_file
+            .entry(source_file)
+            .or_default()
+            .insert(concept_name);
+    }
+
     let mut statement =
         connection.prepare("SELECT file_path, content FROM file_content ORDER BY file_path")?;
     let rows = statement.query_map([], |row| {
@@ -1004,16 +1119,32 @@ fn load_relation_counts(connection: &Connection) -> Result<RelationCounts> {
     let mut relation_counts = RelationCounts::new();
     for row in rows {
         let (source_file, content) = row?;
-        flush_relation_counts(&source_file, &content, &mut relation_counts);
+        let Some(allowed_concepts) = active_concepts_by_file.get(&source_file) else {
+            continue;
+        };
+        flush_relation_counts(
+            &source_file,
+            &content,
+            Some(allowed_concepts),
+            &mut relation_counts,
+        );
     }
 
     Ok(relation_counts)
 }
 
 // T-4.3: RTM FR-23.x
-fn flush_relation_counts(source_file: &str, content: &str, relation_counts: &mut RelationCounts) {
+fn flush_relation_counts(
+    source_file: &str,
+    content: &str,
+    allowed_concepts: Option<&BTreeSet<String>>,
+    relation_counts: &mut RelationCounts,
+) {
     let mut concepts_by_section = BTreeMap::<String, BTreeSet<usize>>::new();
     for (concept, section_index) in extract_wikilinks_with_sections(content) {
+        if allowed_concepts.is_some_and(|allowed| !allowed.contains(&concept)) {
+            continue;
+        }
         concepts_by_section
             .entry(concept)
             .or_default()
@@ -1032,7 +1163,7 @@ fn flush_relation_counts(source_file: &str, content: &str, relation_counts: &mut
             };
             let weight = if first_sections
                 .iter()
-                .any(|section_index| second_sections.contains(section_index))
+                .any(|section_index| *section_index > 0 && second_sections.contains(section_index))
             {
                 1.0
             } else {
@@ -1065,11 +1196,12 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
         });
     }
 
-    let concept_name = payload
-        .get("conceptName")
-        .and_then(Value::as_str)
-        .ok_or(MaenifoldError::MissingProperty("conceptName"))?
-        .to_ascii_lowercase();
+    let concept_name = normalize_concept(
+        payload
+            .get("conceptName")
+            .and_then(Value::as_str)
+            .ok_or(MaenifoldError::MissingProperty("conceptName"))?,
+    );
     let depth = match payload.get("depth").and_then(Value::as_i64) {
         Some(value) if value < 0 => {
             return Err(MaenifoldError::InvalidArgument(
@@ -1089,6 +1221,11 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
         Some(value) => value as usize,
         None => 20,
     };
+    // T-1.6: RTM NFR-1 - ported ConceptGraphTests require C#-compatible content preview opt-in.
+    let include_content = payload
+        .get("includeContent")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
 
     GraphDatabase::initialize_database(&context.config)?;
     let connection = db::open_connection(&context.config.database_path)?;
@@ -1098,7 +1235,30 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
     let include_community_data = query_community_id.is_some();
 
     // T-3.2b: RTM FR-13.6
-    let direct_relations = load_graph_neighbors(&connection, &concept_name)?;
+    let mut direct_relations = load_graph_neighbors(&connection, &concept_name)?;
+    // T-GRAPH-DECAY-001.1: RTM FR-7.5
+    direct_relations.sort_by(|left, right| {
+        let left_score = relation_weighted_score(
+            &connection,
+            &context.config,
+            left.co_occurrence_count,
+            &left.source_files,
+        )
+        .map(|(_, weighted_score)| weighted_score)
+        .unwrap_or(left.co_occurrence_count);
+        let right_score = relation_weighted_score(
+            &connection,
+            &context.config,
+            right.co_occurrence_count,
+            &right.source_files,
+        )
+        .map(|(_, weighted_score)| weighted_score)
+        .unwrap_or(right.co_occurrence_count);
+        right_score
+            .partial_cmp(&left_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| left.name.cmp(&right.name))
+    });
     let direct_relation_names = direct_relations
         .iter()
         .map(|relation| relation.name.clone())
@@ -1139,10 +1299,26 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
         }
 
         let mut hop_relations = hop_candidates.into_values().collect::<Vec<_>>();
+        // T-GRAPH-DECAY-001.1: RTM FR-7.5
         hop_relations.sort_by(|left, right| {
-            right
-                .co_occurrence_count
-                .partial_cmp(&left.co_occurrence_count)
+            let left_score = relation_weighted_score(
+                &connection,
+                &context.config,
+                left.co_occurrence_count,
+                &left.source_files,
+            )
+            .map(|(_, weighted_score)| weighted_score)
+            .unwrap_or(left.co_occurrence_count);
+            let right_score = relation_weighted_score(
+                &connection,
+                &context.config,
+                right.co_occurrence_count,
+                &right.source_files,
+            )
+            .map(|(_, weighted_score)| weighted_score)
+            .unwrap_or(right.co_occurrence_count);
+            right_score
+                .partial_cmp(&left_score)
                 .unwrap_or(std::cmp::Ordering::Equal)
                 .then_with(|| left.name.cmp(&right.name))
         });
@@ -1187,13 +1363,27 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
         let direct_relations_json = direct_relations
             .iter()
             .map(|relation| {
+                let content_preview = if include_content {
+                    load_content_preview_map(&connection, &concept_name, &relation.source_files)
+                        .unwrap_or_else(|_| json!({}))
+                } else {
+                    json!({})
+                };
+                let (decay_weight, weighted_score) = relation_weighted_score(
+                    &connection,
+                    &context.config,
+                    relation.co_occurrence_count,
+                    &relation.source_files,
+                )
+                .unwrap_or((1.0, relation.co_occurrence_count));
                 json!({
                     "Name": relation.name,
                     "CoOccurrenceCount": relation.co_occurrence_count,
                     "Files": parse_source_files_for_json(&relation.source_files),
-                    "ContentPreview": {},
-                    "DecayWeight": 0.5,
-                    "WeightedScore": relation.co_occurrence_count * 0.5,
+                    "ContentPreview": content_preview,
+                    // T-GRAPH-DECAY-001.1: RTM FR-7.5
+                    "DecayWeight": decay_weight,
+                    "WeightedScore": weighted_score,
                     "CommunityId": if include_community_data {
                         load_concept_community_id(&connection, &relation.name).ok().flatten()
                     } else {
@@ -1205,13 +1395,27 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
         let expanded_relations_json = related_concepts
             .iter()
             .map(|relation| {
+                let content_preview = if include_content {
+                    load_content_preview_map(&connection, &relation.name, &relation.source_files)
+                        .unwrap_or_else(|_| json!({}))
+                } else {
+                    json!({})
+                };
+                let (decay_weight, weighted_score) = relation_weighted_score(
+                    &connection,
+                    &context.config,
+                    relation.co_occurrence_count,
+                    &relation.source_files,
+                )
+                .unwrap_or((1.0, relation.co_occurrence_count));
                 json!({
                     "Name": relation.name,
                     "CoOccurrenceCount": relation.co_occurrence_count,
                     "Files": parse_source_files_for_json(&relation.source_files),
-                    "ContentPreview": {},
-                    "DecayWeight": 0.5,
-                    "WeightedScore": relation.co_occurrence_count * 0.5,
+                    "ContentPreview": content_preview,
+                    // T-GRAPH-DECAY-001.1: RTM FR-7.5
+                    "DecayWeight": decay_weight,
+                    "WeightedScore": weighted_score,
                     "CommunityId": relation.community_id,
                 })
             })
@@ -1287,6 +1491,75 @@ fn format_empty_build_context(concept_name: &str, depth: usize) -> String {
     output
 }
 
+// T-1.6: RTM NFR-1 - port CreateSmartPreview parity helper from C# GraphTools.cs.
+pub fn create_smart_preview(content: &str, target_length: usize, tolerance: usize) -> String {
+    let content_len = content.chars().count();
+    if content_len <= target_length {
+        return content.to_string();
+    }
+
+    let max_length = target_length.saturating_add(tolerance).min(content_len);
+    let search_space = truncate_chars(content, max_length);
+    let minimum_acceptable_boundary = target_length.saturating_sub(tolerance);
+
+    if let Some(sentence_end) = find_last_sentence_boundary(&search_space) {
+        if sentence_end >= minimum_acceptable_boundary {
+            return truncate_chars(content, sentence_end + 1)
+                .trim_end()
+                .to_string();
+        }
+    }
+
+    if let Some(paragraph_end) = search_space.rfind("\n\n") {
+        let paragraph_char_end = search_space[..paragraph_end].chars().count();
+        if paragraph_char_end >= minimum_acceptable_boundary {
+            return format!("{}...", search_space[..paragraph_end].trim_end());
+        }
+    }
+
+    if let Some(word_end) = search_space.rfind(' ') {
+        if word_end > 0 {
+            return format!("{}...", search_space[..word_end].trim_end());
+        }
+    }
+
+    format!("{}...", truncate_chars(content, target_length))
+}
+
+fn truncate_chars(content: &str, char_count: usize) -> &str {
+    if char_count == 0 {
+        return "";
+    }
+
+    match content.char_indices().nth(char_count) {
+        Some((index, _)) => &content[..index],
+        None => content,
+    }
+}
+
+fn find_last_sentence_boundary(text: &str) -> Option<usize> {
+    let chars = text.chars().collect::<Vec<_>>();
+    let mut last_index = None;
+
+    for (index, ch) in chars.iter().enumerate() {
+        if !matches!(ch, '.' | '!' | '?') {
+            continue;
+        }
+
+        let is_boundary = match chars.get(index + 1) {
+            Some(' ' | '\n') => true,
+            None => true,
+            _ => false,
+        };
+
+        if is_boundary {
+            last_index = Some(index);
+        }
+    }
+
+    last_index
+}
+
 #[derive(Clone)]
 struct GraphRelation {
     name: String,
@@ -1323,6 +1596,251 @@ fn parse_source_files_for_json(source_files: &str) -> Value {
                 .collect(),
         ),
     }
+}
+
+fn parse_source_file_uris(source_files: &str) -> Vec<String> {
+    match serde_json::from_str::<Value>(source_files) {
+        Ok(Value::Array(entries)) => entries
+            .into_iter()
+            .filter_map(|entry| entry.as_str().map(str::to_string))
+            .collect(),
+        // T-0.3: RTM-047 - Preserve source file URI extraction on older serde_json Map APIs.
+        Ok(Value::Object(map)) => map.into_iter().map(|(key, _)| key).collect(),
+        Ok(Value::String(uri)) => vec![uri],
+        Ok(_) => Vec::new(),
+        Err(_) => source_files
+            .split(',')
+            .map(str::trim)
+            .filter(|uri| !uri.is_empty())
+            .map(str::to_string)
+            .collect(),
+    }
+}
+
+fn load_content_preview_map(
+    connection: &Connection,
+    focus_concept: &str,
+    source_files: &str,
+) -> Result<Value> {
+    let mut previews = serde_json::Map::new();
+    for uri in parse_source_file_uris(source_files) {
+        let content = connection
+            .query_row(
+                "SELECT COALESCE(content, '') FROM file_content WHERE file_path = ?1",
+                [uri.as_str()],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        let Some(content) = content else {
+            continue;
+        };
+        let preview = extract_section_with_concept(&content, focus_concept, 500);
+        if !preview.is_empty() {
+            previews.insert(uri, Value::String(preview));
+        }
+    }
+    Ok(Value::Object(previews))
+}
+
+// T-1.6: RTM NFR-1 - ports C# ConceptGraphTests ExtractSectionWithConcept coverage for BuildContext previews.
+pub fn extract_section_with_concept(
+    content: &str,
+    concept_name: &str,
+    max_length: usize,
+) -> String {
+    let (_, body, _) = split_frontmatter_for_repair(content);
+    let body = body.trim();
+    if body.is_empty() || max_length == 0 {
+        return String::new();
+    }
+
+    let normalized_concept = normalize_concept(concept_name);
+    if normalized_concept.is_empty() {
+        return truncate_preview(body, max_length);
+    }
+
+    let mut sections = Vec::new();
+    let mut current_section = String::new();
+    for line in body.lines() {
+        if line.starts_with("## ") && !current_section.trim().is_empty() {
+            sections.push(std::mem::take(&mut current_section));
+        }
+        current_section.push_str(line);
+        current_section.push('\n');
+    }
+    if !current_section.trim().is_empty() {
+        sections.push(current_section);
+    }
+
+    if let Some(section) = sections
+        .iter()
+        .find(|section| section_contains_concept(section, &normalized_concept))
+    {
+        return truncate_preview(section, max_length);
+    }
+
+    truncate_preview(body, max_length)
+}
+
+fn section_contains_concept(section: &str, normalized_concept: &str) -> bool {
+    let section_lower = section.to_ascii_lowercase();
+    if section_lower.contains(&format!("[[{normalized_concept}]]")) {
+        return true;
+    }
+
+    let plain_concept = normalized_concept.replace('-', " ");
+    if plain_concept.is_empty() {
+        return false;
+    }
+
+    let pattern = format!(
+        r"(?iu)(?:^|[^\p{{L}}\p{{N}}]){}(?:$|[^\p{{L}}\p{{N}}])",
+        regex::escape(&plain_concept)
+    );
+    Regex::new(&pattern)
+        .map(|regex| regex.is_match(section))
+        .unwrap_or(false)
+}
+
+fn truncate_preview(content: &str, max_length: usize) -> String {
+    let trimmed = content.trim();
+    let char_count = trimmed.chars().count();
+    if char_count <= max_length {
+        return trimmed.to_string();
+    }
+
+    let truncated = trimmed
+        .chars()
+        .take(max_length)
+        .collect::<String>()
+        .trim_end()
+        .to_string();
+    format!("{truncated}...")
+}
+
+fn relation_weighted_score(
+    connection: &Connection,
+    config: &crate::config::Config,
+    co_occurrence_count: f64,
+    source_files: &str,
+) -> Result<(f64, f64)> {
+    let trimmed = source_files.trim();
+    if trimmed.is_empty() {
+        return Ok((0.0, 0.0));
+    }
+
+    let mut weighted_score = 0.0;
+    let mut document_count = 0.0;
+
+    match serde_json::from_str::<Value>(trimmed) {
+        Ok(Value::Object(map)) => {
+            for (uri, weight) in map {
+                let file_weight = weight.as_f64().unwrap_or(1.0);
+                let decay_weight = load_file_decay_weight(connection, config, &uri)?;
+                weighted_score += file_weight * decay_weight;
+                document_count += 1.0;
+            }
+        }
+        Ok(Value::Array(entries)) => {
+            for entry in entries {
+                if let Some(uri) = entry.as_str() {
+                    let decay_weight = load_file_decay_weight(connection, config, uri)?;
+                    weighted_score += decay_weight;
+                    document_count += 1.0;
+                }
+            }
+        }
+        _ => {
+            for uri in trimmed
+                .split(',')
+                .map(str::trim)
+                .filter(|uri| !uri.is_empty())
+            {
+                let decay_weight = load_file_decay_weight(connection, config, uri)?;
+                weighted_score += decay_weight;
+                document_count += 1.0;
+            }
+        }
+    }
+
+    if document_count <= 0.0 {
+        return Ok((0.0, 0.0));
+    }
+
+    let decay_weight = (weighted_score / document_count).clamp(0.0, 1.0);
+    Ok((decay_weight, co_occurrence_count * decay_weight))
+}
+
+fn load_file_decay_weight(
+    connection: &Connection,
+    config: &crate::config::Config,
+    uri: &str,
+) -> Result<f64> {
+    let row = connection
+        .query_row(
+            "SELECT last_accessed, status FROM file_content WHERE file_path = ?1",
+            [uri],
+            |row| {
+                Ok((
+                    row.get::<_, Option<String>>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                ))
+            },
+        )
+        .optional()?;
+
+    let Some((last_accessed, status)) = row else {
+        return Ok(1.0);
+    };
+
+    Ok(compute_decay_weight(
+        uri,
+        last_accessed.as_deref(),
+        config,
+        status.as_deref(),
+    ))
+}
+
+fn concept_decay_weight(
+    connection: &Connection,
+    config: &crate::config::Config,
+    concept_name: &str,
+) -> Result<f64> {
+    let mut statement = connection.prepare(
+        "SELECT cm.mention_count, fc.file_path, fc.last_accessed, fc.status
+         FROM concept_mentions cm
+         LEFT JOIN file_content fc ON fc.file_path = cm.source_file
+         WHERE cm.concept_name = ?1",
+    )?;
+    let rows = statement.query_map([concept_name], |row| {
+        Ok((
+            row.get::<_, i64>(0)?,
+            row.get::<_, Option<String>>(1)?,
+            row.get::<_, Option<String>>(2)?,
+            row.get::<_, Option<String>>(3)?,
+        ))
+    })?;
+
+    let mut total_mentions = 0.0;
+    let mut total_weight = 0.0;
+    for row in rows {
+        let (mention_count, file_path, last_accessed, status) = row?;
+        let mentions = mention_count.max(1) as f64;
+        let file_weight = file_path
+            .as_deref()
+            .map(|path| {
+                compute_decay_weight(path, last_accessed.as_deref(), config, status.as_deref())
+            })
+            .unwrap_or(1.0);
+        total_mentions += mentions;
+        total_weight += mentions * file_weight;
+    }
+
+    if total_mentions <= 0.0 {
+        return Ok(1.0);
+    }
+
+    Ok((total_weight / total_mentions).clamp(0.0, 1.0))
 }
 
 // T-3.2b: RTM FR-13.6
@@ -1545,37 +2063,157 @@ pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Res
     Ok(output.trim_end().to_string())
 }
 
+// T-1.6: RTM NFR-1 - port the C# GraphAnalyzer.RandomWalk helper for graph traversal parity.
+pub fn random_walk(
+    connection: &Connection,
+    start_concept: &str,
+    walk_length: Option<usize>,
+) -> Result<Vec<String>> {
+    let start_concept = normalize_concept(start_concept);
+    let walk_length = walk_length.unwrap_or(10).max(1);
+    let mut walk = vec![start_concept.clone()];
+    let mut current = start_concept;
+
+    for _ in 1..walk_length {
+        let mut statement = connection.prepare(
+            "SELECT DISTINCT \
+                 CASE WHEN concept_a = ?1 THEN concept_b ELSE concept_a END AS neighbor \
+             FROM concept_graph \
+             WHERE concept_a = ?1 OR concept_b = ?1 \
+             ORDER BY neighbor ASC",
+        )?;
+        let rows = statement.query_map(params![current], |row| row.get::<_, String>(0))?;
+        let neighbors = rows.collect::<std::result::Result<Vec<_>, _>>()?;
+        if neighbors.is_empty() {
+            break;
+        }
+
+        let index = (Uuid::new_v4().as_u128() % neighbors.len() as u128) as usize;
+        current = neighbors[index].clone();
+        walk.push(current.clone());
+    }
+
+    Ok(walk)
+}
+
+// T-1.6: RTM NFR-1 - mirror the C# GraphAnalyzer.Visualize contract for Mermaid output.
 pub fn visualize(context: &ToolContext, payload: &Value) -> Result<String> {
+    let learn = payload
+        .get("learn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if learn {
+        let help = load_help_doc(&context.config.assets_path, "Visualize")
+            .unwrap_or_else(|| "ERROR: Help file not found for Visualize".to_string());
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
+    }
+
     let concept_name = payload
         .get("conceptName")
         .and_then(Value::as_str)
-        .ok_or(MaenifoldError::MissingProperty("conceptName"))?
-        .to_ascii_lowercase();
-    let build_context = build_context(context, &json!({"conceptName": concept_name}))?;
-    let mut mermaid = String::from("graph TD\n");
-    let center = payload
-        .get("conceptName")
-        .and_then(Value::as_str)
         .unwrap_or_default()
-        .to_ascii_lowercase();
-    mermaid.push_str(&format!("    center[\"{}\"]\n", center));
-    for line in build_context
-        .lines()
-        .filter(|line| line.trim_start().starts_with('•') || line.contains("• "))
-    {
-        if let Some(neighbor) = line
-            .split('•')
-            .nth(1)
-            .and_then(|rest| rest.split(' ').next())
-        {
-            mermaid.push_str(&format!(
-                "    center --> neighbor_{}[\"{}\"]\n",
-                neighbor.replace('-', "_"),
-                neighbor
-            ));
-        }
+        .trim();
+    if concept_name.is_empty() {
+        return Ok("ERROR: conceptName is required".to_string());
     }
-    Ok(mermaid)
+
+    let depth = payload.get("depth").and_then(Value::as_i64).unwrap_or(2);
+    if !(1..=5).contains(&depth) {
+        return Ok("ERROR: depth must be between 1 and 5".to_string());
+    }
+
+    let max_nodes = payload
+        .get("maxNodes")
+        .and_then(Value::as_i64)
+        .unwrap_or(30);
+    if !(5..=100).contains(&max_nodes) {
+        return Ok("ERROR: maxNodes must be between 5 and 100".to_string());
+    }
+
+    let concept_name = normalize_concept(concept_name);
+
+    GraphDatabase::initialize_database(&context.config)?;
+    let connection = db::open_connection(&context.config.database_path)?;
+    let exists = connection.query_row(
+        "SELECT COUNT(*) > 0 FROM concepts WHERE concept_name = ?1",
+        params![concept_name],
+        |row| row.get::<_, bool>(0),
+    )?;
+    if !exists {
+        return Ok(format!(
+            "CONCEPT '{concept_name}' not found. Run sync first."
+        ));
+    }
+
+    let mut statement = connection.prepare(
+        "WITH RECURSIVE search(depth, from_concept, to_concept, count, path) AS ( \
+             SELECT \
+                 1 AS depth, \
+                 ?1 AS from_concept, \
+                 CASE WHEN concept_a = ?1 THEN concept_b ELSE concept_a END AS to_concept, \
+                 co_occurrence_count AS count, \
+                 '|' || ?1 || '|' || (CASE WHEN concept_a = ?1 THEN concept_b ELSE concept_a END) || '|' AS path \
+             FROM concept_graph \
+             WHERE concept_a = ?1 OR concept_b = ?1 \
+             UNION ALL \
+             SELECT \
+                 s.depth + 1, \
+                 s.to_concept AS from_concept, \
+                 CASE WHEN g.concept_a = s.to_concept THEN g.concept_b ELSE g.concept_a END AS to_concept, \
+                 g.co_occurrence_count AS count, \
+                 s.path || (CASE WHEN g.concept_a = s.to_concept THEN g.concept_b ELSE g.concept_a END) || '|' AS path \
+             FROM search s \
+             JOIN concept_graph g ON (g.concept_a = s.to_concept OR g.concept_b = s.to_concept) \
+             WHERE s.depth < ?2 \
+               AND instr(s.path, '|' || (CASE WHEN g.concept_a = s.to_concept THEN g.concept_b ELSE g.concept_a END) || '|') = 0 \
+         ) \
+         SELECT DISTINCT from_concept, to_concept, count \
+         FROM search \
+         ORDER BY count DESC, from_concept ASC, to_concept ASC \
+         LIMIT ?3",
+    )?;
+    let rows = statement.query_map(params![concept_name, depth, max_nodes], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, f64>(2)?,
+        ))
+    })?;
+
+    let relations = rows.collect::<std::result::Result<Vec<_>, _>>()?;
+    let mut mermaid = String::from("graph TD\n");
+    for (from_concept, to_concept, count) in &relations {
+        mermaid.push_str(&format!(
+            "    {} -->|{}| {}\n",
+            sanitize_mermaid_node_id(from_concept),
+            format_co_occurrence_weight(*count),
+            sanitize_mermaid_node_id(to_concept)
+        ));
+    }
+    if relations.is_empty() {
+        mermaid.push_str(&format!(
+            "    {} [No connections found]\n",
+            sanitize_mermaid_node_id(&concept_name)
+        ));
+    }
+
+    Ok(match context.output_format {
+        OutputFormat::Json => success(mermaid),
+        OutputFormat::Markdown => mermaid,
+    })
+}
+
+fn sanitize_mermaid_node_id(concept_name: &str) -> String {
+    concept_name
+        .chars()
+        .map(|character| match character {
+            ' ' | '-' => '_',
+            _ => character,
+        })
+        .collect()
 }
 
 pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<String> {
@@ -1634,13 +2272,31 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
 💡 Next: Consider using BuildContext, SearchMemories for related operations.", concept_name));
         }
 
+        // T-GRAPH-DECAY-001.1: RTM FR-7.5
+        let mut ranked_results = vector_results
+            .into_iter()
+            .map(|(neighbor, similarity)| {
+                let decay_weight =
+                    concept_decay_weight(&connection, &context.config, &neighbor).unwrap_or(1.0);
+                let weighted_similarity = similarity * decay_weight;
+                (neighbor, similarity, weighted_similarity)
+            })
+            .collect::<Vec<_>>();
+        ranked_results.sort_by(|left, right| {
+            right
+                .2
+                .partial_cmp(&left.2)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| left.0.cmp(&right.0))
+        });
+
         let mut output = format!(
             "Similar concepts to '{}' (by semantic similarity):
 
 ",
             concept_name
         );
-        for (neighbor, similarity) in vector_results {
+        for (neighbor, similarity, _) in ranked_results {
             output.push_str(&format!(
                 "  • {} (similarity: {:.3})
 ",
@@ -1686,18 +2342,36 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
 💡 Next: Consider using BuildContext, SearchMemories for related operations.", concept_name));
     }
 
+    // T-GRAPH-DECAY-001.1: RTM FR-7.5
+    let mut ranked_neighbors = neighbors
+        .into_iter()
+        .map(|(neighbor, count)| {
+            let similarity = if max_count <= 0.0 {
+                0.0
+            } else {
+                count / max_count
+            };
+            let decay_weight =
+                concept_decay_weight(&connection, &context.config, &neighbor).unwrap_or(1.0);
+            let weighted_similarity = similarity * decay_weight;
+            (neighbor, similarity, weighted_similarity)
+        })
+        .collect::<Vec<_>>();
+    ranked_neighbors.sort_by(|left, right| {
+        right
+            .2
+            .partial_cmp(&left.2)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| left.0.cmp(&right.0))
+    });
+
     let mut output = format!(
         "Similar concepts to '{}' (by semantic similarity):
 
 ",
         concept_name
     );
-    for (neighbor, count) in neighbors {
-        let similarity = if max_count <= 0.0 {
-            0.0
-        } else {
-            count / max_count
-        };
+    for (neighbor, similarity, _) in ranked_neighbors {
         output.push_str(&format!(
             "  • {} (similarity: {:.3})
 ",
@@ -2705,12 +3379,22 @@ fn build_snippet(content: &str, query_terms: &[String], query_slug: &str) -> Str
 }
 
 fn render_search_markdown(data: &Value) -> String {
+    let mode = data.get("mode").and_then(Value::as_str).unwrap_or("Hybrid");
+    let heading = if mode.eq_ignore_ascii_case("semantic") {
+        "Semantic Search"
+    } else if mode.eq_ignore_ascii_case("fulltext") || mode.eq_ignore_ascii_case("full-text") {
+        "Full-Text Search"
+    } else if mode.eq_ignore_ascii_case("hybrid") {
+        "Hybrid Search"
+    } else {
+        "Search Results"
+    };
     let query = data
         .get("query")
         .and_then(Value::as_str)
         .unwrap_or_default();
     let total_count = data.get("totalCount").and_then(Value::as_u64).unwrap_or(0);
-    let mut output = format!("# Search Results\nQuery: {query}\nTotal: {total_count}\n\n");
+    let mut output = format!("# {heading}\nQuery: {query}\nFound {total_count} result(s)\n\n");
     if let Some(results) = data.get("results").and_then(Value::as_array) {
         for result in results {
             output.push_str(&format!(

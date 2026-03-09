@@ -382,8 +382,9 @@ pub fn extract_wikilinks(content: &str) -> Vec<String> {
     let mut seen = HashSet::new();
     let mut visible = String::with_capacity(content.len());
     let mut code_block_depth = 0usize;
+    let bytes = content.as_bytes();
 
-    for event in Parser::new_ext(content, Options::all()) {
+    for (event, range) in Parser::new_ext(content, Options::all()).into_offset_iter() {
         match event {
             Event::Start(Tag::CodeBlock(_)) => code_block_depth += 1,
             Event::End(TagEnd::CodeBlock) => code_block_depth = code_block_depth.saturating_sub(1),
@@ -392,7 +393,12 @@ pub fn extract_wikilinks(content: &str) -> Vec<String> {
                 dest_url,
                 ..
             }) => {
-                if code_block_depth == 0 {
+                // T-2.3: RTM FR-4 / RTM-030 rejects malformed triple-bracket forms like `[[[attack]]]`.
+                let has_clean_open = range.start == 0 || bytes[range.start - 1] != b'[';
+                let has_clean_close = range.end < bytes.len() && bytes[range.end] == b']';
+                let has_extra_close = range.end + 1 < bytes.len() && bytes[range.end + 1] == b']';
+
+                if code_block_depth == 0 && has_clean_open && has_clean_close && !has_extra_close {
                     let link = normalize_concept(dest_url.as_ref());
                     if !link.is_empty() && seen.insert(link.clone()) {
                         links.push(link);

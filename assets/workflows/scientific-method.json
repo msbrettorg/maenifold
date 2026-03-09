@@ -1,0 +1,637 @@
+{
+  "id": "scientific-method",
+  "name": "Scientific Method (Multi-Agent Full Cycle — Observation to Publication)",
+  "emoji": "🔬",
+  "description": "The CAPSTONE multi-agent workflow orchestrating the complete scientific method cycle per Wikipedia's 'Scientific method' article. Models the full iterative cycle: (1) Define a question, (2) Gather information and resources (observe), (3) Form an explanatory hypothesis, (4) Test the hypothesis by performing an experiment and collecting data in a reproducible manner, (5) Analyze the data, (6) Interpret the data and draw conclusions that serve as a starting point for a new hypothesis, (7) Publish results, (8) Retest (frequently done by other scientists). Per Wikipedia: 'The scientific method is an empirical method for acquiring knowledge that has characterized the development of science since at least the 17th century... It involves careful observation, applying rigorous skepticism about what is observed, given that cognitive assumptions can distort how one interprets the observation. It involves formulating hypotheses, via induction, based on such observations; the testability of hypotheses, experimental and measurement-based statistical testing of deductions drawn from the hypotheses; and refinement (or elimination) of the hypotheses based on the experimental findings.' This workflow dispatches specialist agents — Observers, Theorists, Experimentalists, Analysts, Reviewers, and Communicators — across parallel waves that mirror the scientific community's division of labor. The iterative cycle inherent in this method goes from hypothesis (step 3) through analysis (step 6) and back to hypothesis again. Sub-workflows are referenced at each phase: systematic-observation (FR-27.1) for characterization, hypothesis-development (FR-27.2) for conjecture, prediction (FR-27.3) for deductive consequences, experimental-design (FR-27.4) with controlled-experiment (FR-27.5) and double-blind-study (FR-27.6) for testing, statistical-analysis (FR-27.10) for data interpretation, confirmation-replication (FR-27.12) and reproducibility (FR-27.13) for verification, peer-review (FR-27.26) for scholarly evaluation, and communication-iteration (FR-27.11) for publication and recycling. Philosophical guard-rails from empiricism (FR-27.18), rationalism (FR-27.19), bayesian-reasoning (FR-27.14), occams-razor (FR-27.16), confirmation-bias (FR-27.15), and theory-ladenness (FR-27.17) are woven throughout. Multi-agent methods — hypothetico-deductive (FR-27.22), falsification (FR-27.23), conjecture-refutation (FR-27.24), strong-inference (FR-27.25), and paradigm-analysis (FR-27.27) — are available as escalation paths when the standard cycle encounters anomalies.",
+  "triggers": [
+    "scientific method",
+    "full scientific cycle",
+    "hypothesis to publication",
+    "complete investigation",
+    "empirical inquiry",
+    "observation to conclusion",
+    "scientific inquiry",
+    "complete scientific method",
+    "full empirical cycle"
+  ],
+  "specification": "https://en.wikipedia.org/wiki/Scientific_method",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": true,
+  "steps": [
+    {
+      "id": "define-question",
+      "name": "❓ Phase 1: Define the Question (Problem Framing)",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Wikipedia's scientific method, the cycle begins with defining a question. 'The scientific method is often represented as an ongoing process. This diagram represents one variant, and there are many others.' The question arises from curiosity, anomaly, or practical need.\n\nThis phase establishes the investigative scope that ALL subsequent phases will address.\n\n1. **Articulate the Question**:\n   - What specific phenomenon, anomaly, or problem demands investigation?\n   - Why is this question important? What depends on the answer?\n   - What is the domain and disciplinary context?\n   - What would a satisfactory answer look like?\n\n2. **Scope and Boundaries**:\n   - What is IN scope for this investigation? What is OUT of scope?\n   - What are the time, resource, and methodological constraints?\n   - What level of confidence is required for the conclusion?\n   - What prior work exists on this question?\n\n3. **Philosophical Orientation** (guard-rails):\n   - Acknowledge [[theory-ladenness]]: what assumptions shape how we frame this question?\n   - Apply [[empiricism]]: what observable evidence is relevant?\n   - Apply [[rationalism]]: what logical structure constrains possible answers?\n   - Apply [[confirmation-bias]] mitigation: what answer are we hoping for, and how do we guard against that?\n\n4. **Establish Investigation Architecture**:\n```\nmemory://scientific-method/[topic]/\n├── question-definition.md\n├── phase-1-observations/\n├── phase-2-hypotheses/\n│   ├── hypothesis-1.md\n│   ├── hypothesis-2.md\n│   └── hypothesis-3.md\n├── phase-3-predictions/\n├── phase-4-experiments/\n│   ├── experiment-design.md\n│   ├── experiment-1-result.md\n│   ├── experiment-2-result.md\n│   └── experiment-3-result.md\n├── phase-5-analysis/\n│   ├── statistical-analysis.md\n│   └── data-interpretation.md\n├── phase-6-conclusions/\n│   ├── conclusion.md\n│   └── new-hypotheses.md\n├── phase-7-communication/\n│   ├── publication-draft.md\n│   └── peer-review-response.md\n├── phase-8-replication/\n│   ├── replication-attempt-1.md\n│   └── replication-attempt-2.md\n└── meta/\n    ├── iteration-log.md\n    └── philosophical-guardrails.md\n```\n\n⏱️ Duration: 10-15 minutes\n\n📎 Sub-workflows: This framing step seeds ALL subsequent phases. The question definition is the anchor for the entire investigation.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Rigorous question framing prevents scope creep and ensures the investigation is well-defined before committing resources",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Question articulation",
+              "Scope definition",
+              "Philosophical orientation",
+              "Prior work review",
+              "Memory architecture establishment"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the question definition — ALL subsequent agents will read this as their starting point",
+            "priority": "mandatory",
+            "output": "memory://scientific-method/[topic]/question-definition.md"
+          },
+          "BuildContext": {
+            "reason": "Ground the question in existing knowledge graph concepts",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Question clearly articulated with observable specifics",
+          "Scope boundaries established (in/out)",
+          "Philosophical guard-rails acknowledged",
+          "Investigation memory architecture created",
+          "Prior work surveyed"
+        ],
+        "next_actions": [
+          "Proceed to Phase 2: Systematic Observation & Characterization"
+        ]
+      }
+    },
+    {
+      "id": "systematic-observation",
+      "name": "🔭 Phase 2: Gather Information & Observe (Parallel Observers)",
+      "description": "🚫 BLOCKING: Dispatch ALL Observer agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer Wikipedia's scientific method: 'Scientific measurements are usually tabulated, graphed, or mapped, and statistical manipulations, such as correlation and regression, performed on them. The measurements might be made in a controlled setting, such as a laboratory, or made on more or less inaccessible or unmanipulable objects such as stars or human populations.'\n\nThis phase maps to the `systematic-observation` workflow (FR-27.1). Three parallel Observer agents gather information from different perspectives.\n\n```\nTask 1: Empirical Observer\nAgent: researcher\nInstruction: You are an Empirical Observer in the scientific method. Read memory://scientific-method/[topic]/question-definition.md. Gather systematic, empirical observations relevant to the question. Focus on:\n- Measurable, observable phenomena and their characteristics\n- Quantitative data: measurements, frequencies, distributions, patterns\n- Environmental conditions and contextual factors\n- Prior published observations and data sets\n- Anomalies or unexpected patterns that demand explanation\nApply [[empiricism]]: ground every claim in observable evidence. Apply [[theory-ladenness]] awareness: note where your observational choices are influenced by pre-existing theories.\nInclude 10+ [[WikiLinks]] (e.g., [[systematic-observation]], [[empiricism]], [[scientific-measurement]], [[theory-ladenness]])\nOutput: memory://scientific-method/[topic]/phase-1-observations/empirical-observations.md\n\nTask 2: Literature & Prior Work Surveyor\nAgent: researcher\nInstruction: You are a Literature Surveyor in the scientific method. Read memory://scientific-method/[topic]/question-definition.md. Survey prior work, existing theories, and established knowledge relevant to this question. Focus on:\n- What hypotheses have previously been proposed for this phenomenon?\n- What experiments have been run and what were their outcomes?\n- Where do existing explanations succeed and fail?\n- What data is publicly available?\n- What methodological approaches have been tried?\nApply [[bayesian-reasoning]]: establish prior probability distributions based on existing evidence. Apply [[confirmation-bias]] awareness: survey disconfirming evidence as actively as confirming evidence.\nInclude 10+ [[WikiLinks]] (e.g., [[literature-review]], [[bayesian-reasoning]], [[prior-probability]], [[confirmation-bias]])\nOutput: memory://scientific-method/[topic]/phase-1-observations/literature-survey.md\n\nTask 3: Structural & Pattern Analyst\nAgent: researcher\nInstruction: You are a Structural Analyst in the scientific method. Read memory://scientific-method/[topic]/question-definition.md. Analyze the structural properties, relationships, and patterns in the domain. Focus on:\n- Taxonomies, classifications, and category structures\n- Causal relationships and dependency graphs\n- Analogies with phenomena in other domains\n- Boundary conditions and edge cases\n- Temporal patterns: trends, cycles, discontinuities\nApply [[rationalism]]: use logical structure and deductive reasoning to identify constraints on possible explanations.\nInclude 10+ [[WikiLinks]] (e.g., [[structural-analysis]], [[rationalism]], [[analogy]], [[pattern-recognition]])\nOutput: memory://scientific-method/[topic]/phase-1-observations/structural-analysis.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each agent MUST read the question definition before observing\n- Observations must be grounded in evidence, not speculation\n- Each agent works independently — no coordination between observers\n- Flag any observations that are surprising or anomalous\n- Distinguish between established facts and preliminary observations\n\n⏱️ Duration: 15-25 minutes per agent (all run in parallel)\n\n📎 Sub-workflow reference: `systematic-observation` (FR-27.1), `statistical-analysis` (FR-27.10) for measurement methodology",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Observer agents: Empirical, Literature, and Structural — each gathering independent observations",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each agent reads the question definition established in Phase 1",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/question-definition.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each agent persists its independent observations",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://scientific-method/[topic]/phase-1-observations/empirical-observations.md",
+              "memory://scientific-method/[topic]/phase-1-observations/literature-survey.md",
+              "memory://scientific-method/[topic]/phase-1-observations/structural-analysis.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Observer agents dispatched in a single message",
+          "Each observation report grounded in evidence with citations",
+          "Anomalies and surprises explicitly flagged",
+          "Philosophical guard-rails applied (empiricism, theory-ladenness, confirmation-bias)",
+          "Observations span empirical, literature, and structural dimensions"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Observer agents",
+          "Proceed to Phase 3: Hypothesis Formation"
+        ]
+      }
+    },
+    {
+      "id": "observation-synthesis",
+      "name": "🔍 Observation Synthesis & Hypothesis Seeding",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nSynthesize the three parallel observation reports into a coherent evidence base that will seed hypothesis formation. Per Wikipedia: 'The more carefully controlled the experiment is, the better one can determine the effect of the change.'\n\n1. **Read All Observation Reports**:\n   - Empirical observations: what was measured and found?\n   - Literature survey: what is already known and what gaps exist?\n   - Structural analysis: what patterns and constraints were identified?\n\n2. **Identify Convergence & Divergence**:\n   - Where do all three observers agree? (High-confidence observations)\n   - Where do observers diverge? (Areas requiring further investigation)\n   - What anomalies or surprises emerged across observers?\n\n3. **Construct Evidence Summary**:\n   - Tier 1: Established facts (high confidence, multiply confirmed)\n   - Tier 2: Strong observations (good evidence, single source)\n   - Tier 3: Preliminary signals (weak evidence, worth investigating)\n   - Tier 4: Anomalies (unexpected, potentially paradigm-challenging)\n\n4. **Seed Hypotheses**:\n   - Based on the evidence, what classes of explanation are plausible?\n   - What minimum set of hypotheses would cover the evidence landscape?\n   - Per [[occams-razor]]: what is the simplest explanation consistent with ALL observations?\n   - Per [[confirmation-bias]]: what explanation would we PREFER, and is there a competing explanation we should force ourselves to consider?\n\n5. **Persist Synthesis**:\n   - Write consolidated evidence summary to memory\n   - Include explicit pointers to source observation reports\n\n⏱️ Duration: 10-15 minutes\n\n📎 Sub-workflow reference: `occams-razor` (FR-27.16) for parsimony evaluation, `confirmation-bias` (FR-27.15) for bias mitigation",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic synthesis of multi-source observations prevents premature hypothesis commitment",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Cross-observer convergence analysis",
+              "Anomaly identification",
+              "Evidence tiering",
+              "Hypothesis class identification",
+              "Parsimony evaluation"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all three observation reports from Phase 2",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/phase-1-observations/empirical-observations.md",
+              "memory://scientific-method/[topic]/phase-1-observations/literature-survey.md",
+              "memory://scientific-method/[topic]/phase-1-observations/structural-analysis.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the consolidated evidence summary for hypothesis agents to read",
+            "priority": "mandatory",
+            "output": "memory://scientific-method/[topic]/observation-synthesis.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three observation reports read and cross-referenced",
+          "Evidence tiered into 4 confidence levels",
+          "Anomalies explicitly catalogued",
+          "Hypothesis classes identified (minimum 3)",
+          "Parsimony and bias guard-rails applied"
+        ],
+        "next_actions": [
+          "Dispatch Phase 3: Parallel Hypothesis Formation"
+        ]
+      }
+    },
+    {
+      "id": "hypothesis-formation",
+      "name": "💡 Phase 3: Form Explanatory Hypotheses (Parallel Theorists)",
+      "description": "🚫 BLOCKING: Dispatch ALL Theorist agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer Wikipedia's scientific method: 'A hypothesis is a conjecture, based on knowledge obtained while seeking answers to the question. The hypothesis might be very specific, or it might be broad. Scientists then test hypotheses by conducting experiments or studies. A scientific hypothesis must be falsifiable, implying that it is possible to identify a possible outcome of an experiment or observation that conflicts with predictions deduced from the hypothesis; otherwise, the hypothesis cannot be meaningfully tested.'\n\nThis phase maps to the `hypothesis-development` workflow (FR-27.2). Three parallel Theorist agents each formulate an independent, ALTERNATIVE, FALSIFIABLE hypothesis.\n\n```\nTask 1: Theorist Alpha — Mechanistic Hypothesis\nAgent: researcher\nInstruction: You are a Theorist in the scientific method. Read memory://scientific-method/[topic]/observation-synthesis.md. Formulate a MECHANISTIC HYPOTHESIS that proposes a specific causal mechanism explaining the observed phenomena.\n\nPer Wikipedia, your hypothesis MUST be:\n1. **Falsifiable**: 'It is possible to identify a possible outcome of an experiment or observation that conflicts with predictions deduced from the hypothesis'\n2. **Testable**: Makes specific predictions that can be experimentally checked\n3. **Consistent**: Compatible with established Tier 1 facts from the observation synthesis\n4. **Explanatory**: Accounts for the anomalies identified in the observation phase\n\nStructure your hypothesis:\n- State the hypothesis as a clear, testable proposition\n- Identify the causal mechanism proposed\n- List 3-5 specific, falsifiable predictions\n- State what experimental outcome would REFUTE this hypothesis\n- State what outcome would SUPPORT it over alternatives\n- Assess parsimony per [[occams-razor]]\nInclude 10+ [[WikiLinks]] (e.g., [[hypothesis]], [[falsifiability]], [[causal-mechanism]], [[scientific-method]])\nOutput: memory://scientific-method/[topic]/phase-2-hypotheses/hypothesis-1.md\n\nTask 2: Theorist Beta — Structural/Systemic Hypothesis\nAgent: researcher\nInstruction: You are a Theorist in the scientific method. Read memory://scientific-method/[topic]/observation-synthesis.md. Formulate a STRUCTURAL or SYSTEMIC HYPOTHESIS that explains the observations through emergent properties, structural relationships, or system dynamics — NOT through a single causal mechanism.\n\nYour hypothesis MUST be falsifiable, testable, consistent with Tier 1 facts, and genuinely ALTERNATIVE to a simple mechanistic explanation.\n\nStructure:\n- State the hypothesis as a clear, testable proposition\n- Identify the structural or systemic explanation proposed\n- List 3-5 specific, falsifiable predictions (at least 2 must differ from those a mechanistic explanation would make)\n- State refutation and support conditions\n- Assess parsimony\nInclude 10+ [[WikiLinks]]\nOutput: memory://scientific-method/[topic]/phase-2-hypotheses/hypothesis-2.md\n\nTask 3: Theorist Gamma — Null/Contrarian Hypothesis\nAgent: researcher\nInstruction: You are a Theorist in the scientific method. Read memory://scientific-method/[topic]/observation-synthesis.md. Formulate either:\n(a) A NULL HYPOTHESIS: the observations are explained by chance, artifact, or simpler processes than the other hypotheses assume, OR\n(b) A CONTRARIAN HYPOTHESIS: challenges the most obvious assumption shared by mainstream explanations\n\nPer Chamberlin's 'method of multiple working hypotheses,' this prevents premature commitment to a favored explanation. Per [[confirmation-bias]], this hypothesis serves as a crucial foil.\n\nStructure:\n- State which assumption is being challenged\n- State the hypothesis as a clear, testable proposition\n- List 3-5 specific, falsifiable predictions\n- State refutation and support conditions\n- This hypothesis should be the hardest to dismiss — it keeps the other theorists honest\nInclude 10+ [[WikiLinks]]\nOutput: memory://scientific-method/[topic]/phase-2-hypotheses/hypothesis-3.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each agent MUST read the observation synthesis before hypothesizing\n- Hypotheses must be genuinely ALTERNATIVE — not minor variations of the same idea\n- Every hypothesis must specify what experimental outcome would REFUTE it\n- Each agent works independently — no coordination between theorists\n- Apply [[bayesian-reasoning]]: consider prior probabilities given the evidence\n\n⏱️ Duration: 15-25 minutes per agent (all run in parallel)\n\n📎 Sub-workflow reference: `hypothesis-development` (FR-27.2), `bayesian-reasoning` (FR-27.14), `thought-experiment` (FR-27.8) for conceptual testing",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Theorist agents: Mechanistic, Structural, and Null/Contrarian — each formulating an independent alternative hypothesis",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each agent reads the observation synthesis to ground their hypothesis in evidence",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/observation-synthesis.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each agent persists its independent hypothesis",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://scientific-method/[topic]/phase-2-hypotheses/hypothesis-1.md",
+              "memory://scientific-method/[topic]/phase-2-hypotheses/hypothesis-2.md",
+              "memory://scientific-method/[topic]/phase-2-hypotheses/hypothesis-3.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Theorist agents dispatched in a single message",
+          "Each hypothesis is falsifiable with explicit refutation conditions",
+          "Hypotheses are genuinely alternative — not minor variations",
+          "Each includes 3-5 specific testable predictions",
+          "Philosophical guard-rails applied (falsifiability, Occam's razor, confirmation bias)"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Theorist agents",
+          "Proceed to Phase 4: Prediction Derivation"
+        ]
+      }
+    },
+    {
+      "id": "prediction-derivation",
+      "name": "📐 Phase 4: Derive Predictions from Hypotheses",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Wikipedia's scientific method: 'This step involves determining the logical consequences of the hypothesis. One or more predictions are then selected for further testing. The more unlikely that a prediction would be correct simply by coincidence, then the more convincing it would be if the prediction were fulfilled; evidence is also stronger if the answer to the prediction is not already known, due to the effects of hindsight bias.'\n\nThis phase maps to the `prediction` workflow (FR-27.3). The Director reads all three hypotheses and derives discriminating predictions — predictions that would be TRUE under one hypothesis but FALSE under another.\n\n1. **Read All Three Hypotheses**:\n   - Hypothesis 1 (Mechanistic): predictions P1a, P1b, P1c...\n   - Hypothesis 2 (Structural): predictions P2a, P2b, P2c...\n   - Hypothesis 3 (Null/Contrarian): predictions P3a, P3b, P3c...\n\n2. **Construct Discrimination Matrix**:\n```\n                   | H1-Mechanistic | H2-Structural | H3-Null/Contrarian\nPrediction A       | TRUE           | TRUE          | FALSE\nPrediction B       | TRUE           | FALSE         | FALSE\nPrediction C       | FALSE          | TRUE          | TRUE\nPrediction D       | TRUE           | FALSE         | TRUE\n```\n\n3. **Identify Crucial Predictions**:\n   - Per [[crucial-experiment]]: which predictions maximally discriminate between hypotheses?\n   - Per Wikipedia: 'The more unlikely that a prediction would be correct simply by coincidence, then the more convincing it would be if the prediction were fulfilled'\n   - Rank predictions by discriminating power (number of hypothesis pairs they separate)\n   - Identify any predictions that ALL hypotheses share (non-discriminating — useful for validation only)\n\n4. **Assess Testability**:\n   - For each crucial prediction: can it be tested with available methods and resources?\n   - If not: per Wikipedia, 'the hypothesis is not yet testable and so it will have to wait for others to devise an experiment'\n   - Flag predictions requiring novel experimental methods\n\n5. **Select Experimental Targets**:\n   - Choose 3 predictions that together can eliminate at least 2 of the 3 hypotheses\n   - Ensure the selected predictions are independently testable\n   - Design the experimental specification for each\n\n⏱️ Duration: 15-20 minutes\n\n📎 Sub-workflow reference: `prediction` (FR-27.3), `crucial-experiment` (FR-27.7) for discriminating test design, `mathematical-modeling` (FR-27.9) for quantitative prediction derivation",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic prediction derivation with discrimination matrix prevents confirmation-biased test selection",
+            "priority": "mandatory",
+            "estimated_thoughts": 6,
+            "focus_areas": [
+              "Hypothesis comparison",
+              "Discrimination matrix construction",
+              "Crucial prediction identification",
+              "Testability assessment",
+              "Experimental target selection"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all three hypotheses and the observation synthesis",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/phase-2-hypotheses/hypothesis-1.md",
+              "memory://scientific-method/[topic]/phase-2-hypotheses/hypothesis-2.md",
+              "memory://scientific-method/[topic]/phase-2-hypotheses/hypothesis-3.md",
+              "memory://scientific-method/[topic]/observation-synthesis.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist prediction derivation with discrimination matrix for experiment designers",
+            "priority": "mandatory",
+            "output": "memory://scientific-method/[topic]/phase-3-predictions/discrimination-matrix.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three hypotheses read and predictions extracted",
+          "Discrimination matrix constructed showing hypothesis × prediction",
+          "Crucial predictions identified with discriminating power ranked",
+          "3 experimental targets selected covering maximum discrimination",
+          "Testability assessed for each target"
+        ],
+        "next_actions": [
+          "Dispatch Phase 5: Parallel Experiment Execution"
+        ]
+      }
+    },
+    {
+      "id": "experimental-testing",
+      "name": "🧪 Phase 5: Test Hypotheses by Experiment (Parallel Experimentalists)",
+      "description": "🚫 BLOCKING: Dispatch ALL Experimentalist agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer Wikipedia's scientific method: 'Once predictions are made, they can be sought by experiments. If the test results contradict the predictions, the hypotheses which entailed them are called into question and become less tenable. Sometimes the experiments are done incorrectly or are not very well designed when compared to a crucial experiment. If the experimental results confirm the predictions, then the hypotheses are considered more likely to be correct, but might still be wrong and continue to be subject to further testing.'\n\nThis phase maps to the `experimental-design` (FR-27.4), `controlled-experiment` (FR-27.5), and `double-blind-study` (FR-27.6) workflows. Three parallel Experimentalist agents each execute one of the three crucial prediction tests.\n\n```\nTask 1: Experimentalist Alpha — Crucial Test 1\nAgent: researcher\nInstruction: You are an Experimentalist in the scientific method. Read memory://scientific-method/[topic]/phase-3-predictions/discrimination-matrix.md. Execute Crucial Test 1 to test the first discriminating prediction.\n\nPer Wikipedia on controlled experiments:\n- Establish clear experimental and control conditions\n- Identify and control for confounding variables\n- Collect data in a reproducible manner\n- Document methodology in sufficient detail for replication\n\nStructure:\n- Experimental design: what is being tested, how, and what controls are in place?\n- Data collection: what was measured and how?\n- Raw results: present data before interpretation\n- Outcome verdict: does the prediction hold or fail?\n- For each hypothesis: does this result SUPPORT, REFUTE, or remain NEUTRAL?\n- Confidence level and potential confounds\n- Apply [[controlled-experiment]] methodology. Apply [[double-blind-study]] where possible to control for observer bias.\nInclude 10+ [[WikiLinks]] (e.g., [[experiment]], [[controlled-experiment]], [[confounding-variable]], [[reproducibility]])\nOutput: memory://scientific-method/[topic]/phase-4-experiments/experiment-1-result.md\n\nTask 2: Experimentalist Beta — Crucial Test 2\nAgent: researcher\nInstruction: You are an Experimentalist in the scientific method. Read memory://scientific-method/[topic]/phase-3-predictions/discrimination-matrix.md. Execute Crucial Test 2.\n\n[Same structure as Task 1 — independent execution of a different crucial test]\n\nFocus on the second discriminating prediction. Ensure methodological independence from Test 1.\nApply [[experimental-design]] best practices. Document for [[reproducibility]].\nInclude 10+ [[WikiLinks]]\nOutput: memory://scientific-method/[topic]/phase-4-experiments/experiment-2-result.md\n\nTask 3: Experimentalist Gamma — Crucial Test 3\nAgent: researcher\nInstruction: You are an Experimentalist in the scientific method. Read memory://scientific-method/[topic]/phase-3-predictions/discrimination-matrix.md. Execute Crucial Test 3.\n\n[Same structure as Tasks 1 and 2 — third independent crucial test]\n\nFocus on the third discriminating prediction. Consider using a [[thought-experiment]] approach if empirical testing is infeasible.\nApply [[crucial-experiment]] design principles to maximize discriminating power.\nInclude 10+ [[WikiLinks]]\nOutput: memory://scientific-method/[topic]/phase-4-experiments/experiment-3-result.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each agent MUST read the discrimination matrix before experimenting\n- Experiments must be methodologically independent of each other\n- Document methodology in sufficient detail for others to replicate\n- Raw data first, then interpretation — never reverse the order\n- Flag any confounds, limitations, or ambiguous results\n- State verdict clearly: prediction CONFIRMED, REFUTED, or INCONCLUSIVE\n\n⏱️ Duration: 20-30 minutes per agent (all run in parallel)\n\n📎 Sub-workflow reference: `experimental-design` (FR-27.4), `controlled-experiment` (FR-27.5), `double-blind-study` (FR-27.6), `crucial-experiment` (FR-27.7), `thought-experiment` (FR-27.8)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Experimentalist agents, each executing one crucial prediction test independently",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each agent reads the discrimination matrix to know which prediction to test",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/phase-3-predictions/discrimination-matrix.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each agent persists independent experiment results",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://scientific-method/[topic]/phase-4-experiments/experiment-1-result.md",
+              "memory://scientific-method/[topic]/phase-4-experiments/experiment-2-result.md",
+              "memory://scientific-method/[topic]/phase-4-experiments/experiment-3-result.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Experimentalist agents dispatched in a single message",
+          "Each experiment has clear methodology, controls, and raw data",
+          "Each provides a verdict: prediction CONFIRMED, REFUTED, or INCONCLUSIVE",
+          "Confounds and limitations explicitly flagged",
+          "Methodology documented for reproducibility"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Experimentalist agents",
+          "Proceed to Phase 6: Data Analysis"
+        ]
+      }
+    },
+    {
+      "id": "data-analysis",
+      "name": "📊 Phase 6: Analyze the Data (Statistical & Interpretive Analysis)",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Wikipedia's scientific method: 'Analysis...involves determining what the results of the experiment show and deciding on the next actions to take.' This phase applies rigorous statistical and logical analysis to the experimental results to determine which hypotheses are supported, refuted, or remain indeterminate.\n\nThis phase maps to the `statistical-analysis` workflow (FR-27.10).\n\n1. **Read All Experiment Results**:\n   - Experiment 1: prediction tested, outcome, confidence\n   - Experiment 2: prediction tested, outcome, confidence\n   - Experiment 3: prediction tested, outcome, confidence\n\n2. **Statistical Analysis** (per FR-27.10):\n   - Assess effect sizes, not just binary outcomes\n   - Consider statistical significance vs. practical significance\n   - Apply [[bayesian-reasoning]]: update prior probabilities for each hypothesis given the experimental evidence\n   - Check for multiple comparisons problems\n   - Assess whether sample sizes / experimental power are adequate\n\n3. **Update Discrimination Matrix**:\n```\n                   | H1-Mechanistic | H2-Structural | H3-Null/Contrarian\nExperiment 1       | CONFIRMED ✓    | REFUTED ✗     | REFUTED ✗\nExperiment 2       | CONFIRMED ✓    | CONFIRMED ✓   | INCONCLUSIVE ?\nExperiment 3       | INCONCLUSIVE ? | REFUTED ✗     | CONFIRMED ✓\n\nVerdict:           | SUPPORTED      | ELIMINATED    | WEAKENED\nPosterior prob:    | 0.65           | 0.05          | 0.30\n```\n\n4. **Hypothesis Elimination Ledger**:\n   - For each hypothesis: ELIMINATED, SUPPORTED, or INDETERMINATE\n   - Evidence chain: which experiments contributed to the verdict?\n   - Confidence assessment: how clean was the elimination?\n   - Per [[falsification]]: was the refutation decisive or marginal?\n\n5. **Anomaly Check**:\n   - Did any result surprise ALL hypotheses? (potential paradigm issue — see `paradigm-analysis` FR-27.27)\n   - Are there results that no current hypothesis explains?\n   - Per [[theory-ladenness]]: are we interpreting results through a biased lens?\n\n6. **Decision Point — Iterate or Conclude**:\n   - If ONE hypothesis clearly survives: proceed to Phase 7 (Conclusions)\n   - If MULTIPLE survive: consider additional experiments or escalate to `strong-inference` (FR-27.25)\n   - If NONE survive: return to Phase 3 to formulate new hypotheses (per Wikipedia's iterative cycle)\n   - If results are ANOMALOUS: consider escalating to `paradigm-analysis` (FR-27.27)\n\n⏱️ Duration: 15-20 minutes\n\n📎 Sub-workflow reference: `statistical-analysis` (FR-27.10), `bayesian-reasoning` (FR-27.14), `falsification` (FR-27.23), `strong-inference` (FR-27.25) as escalation",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Rigorous statistical and logical analysis of experimental results prevents premature conclusion",
+            "priority": "mandatory",
+            "estimated_thoughts": 7,
+            "focus_areas": [
+              "Experiment result integration",
+              "Statistical analysis",
+              "Bayesian posterior update",
+              "Hypothesis elimination ledger",
+              "Anomaly detection",
+              "Iteration decision",
+              "Confidence assessment"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all experiment results, the discrimination matrix, and original hypotheses",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/phase-4-experiments/experiment-1-result.md",
+              "memory://scientific-method/[topic]/phase-4-experiments/experiment-2-result.md",
+              "memory://scientific-method/[topic]/phase-4-experiments/experiment-3-result.md",
+              "memory://scientific-method/[topic]/phase-3-predictions/discrimination-matrix.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the data analysis with updated discrimination matrix and elimination ledger",
+            "priority": "mandatory",
+            "output": "memory://scientific-method/[topic]/phase-5-analysis/data-analysis.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All experiment results read and integrated",
+          "Discrimination matrix updated with actual outcomes",
+          "Bayesian posteriors computed for each hypothesis",
+          "Elimination ledger constructed with evidence chains",
+          "Iteration vs. conclusion decision made with justification"
+        ],
+        "next_actions": [
+          "If CONCLUDE: Proceed to Phase 7 (Conclusions)",
+          "If ITERATE: Return to Phase 3 (Hypothesis Formation) with refined question",
+          "If ESCALATE: Invoke strong-inference or paradigm-analysis workflow"
+        ],
+        "escape_hatches": {
+          "all_hypotheses_eliminated": "Return to Phase 3 with revised observation synthesis — the phenomenon requires fundamentally different explanatory frameworks",
+          "multiple_survivors": "Escalate to strong-inference (FR-27.25) for systematic multi-hypothesis elimination",
+          "anomalous_results": "Escalate to paradigm-analysis (FR-27.27) to assess whether existing frameworks are adequate"
+        }
+      }
+    },
+    {
+      "id": "conclusions",
+      "name": "🎯 Phase 7: Interpret Data & Draw Conclusions",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Wikipedia's scientific method: conclusions 'serve as a starting point for a new hypothesis.' This phase interprets the analytical results, states what has been learned, and identifies what questions remain open — seeding the next iteration of the cycle.\n\n1. **Read the Data Analysis**:\n   - Which hypothesis survived? With what confidence?\n   - What was the evidence chain?\n   - What anomalies or limitations were identified?\n\n2. **State the Conclusion**:\n   - What is the best-supported explanation for the phenomenon?\n   - What is the confidence level? (Definitive / Strong / Moderate / Tentative)\n   - What are the boundary conditions of this conclusion? (When does it apply? When might it fail?)\n\n3. **Evaluate Against Philosophical Guard-Rails**:\n   - [[empiricism]]: Is the conclusion grounded in empirical evidence?\n   - [[rationalism]]: Is the conclusion logically consistent?\n   - [[falsifiability]]: What observation would force revision of this conclusion?\n   - [[occams-razor]]: Is this the simplest explanation consistent with the evidence?\n   - [[model-dependent-realism]]: Is this conclusion model-dependent? Would a different framework yield a different conclusion?\n   - [[pragmatism]]: What practical consequences follow from accepting this conclusion?\n\n4. **Identify Open Questions & New Hypotheses**:\n   - Per Wikipedia: conclusions 'serve as a starting point for a new hypothesis'\n   - What new questions does this conclusion raise?\n   - What predictions does the accepted theory make that have NOT yet been tested?\n   - What would the NEXT cycle of investigation look like?\n\n5. **Assess Replication Needs**:\n   - What aspects of this conclusion are most in need of independent confirmation?\n   - What would convince a skeptic?\n   - What methodology would a replicator need to follow?\n\n⏱️ Duration: 10-15 minutes\n\n📎 Sub-workflow reference: `empiricism` (FR-27.18), `rationalism` (FR-27.19), `pragmatism` (FR-27.20), `model-dependent-realism` (FR-27.21), `occams-razor` (FR-27.16)",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Drawing conclusions requires integrating all prior phases under philosophical guard-rails",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Conclusion formulation with confidence assessment",
+              "Philosophical guard-rail evaluation",
+              "Open question identification",
+              "New hypothesis seeding",
+              "Replication needs assessment"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read data analysis, observation synthesis, and original question definition",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/phase-5-analysis/data-analysis.md",
+              "memory://scientific-method/[topic]/observation-synthesis.md",
+              "memory://scientific-method/[topic]/question-definition.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist conclusions and open questions",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://scientific-method/[topic]/phase-6-conclusions/conclusion.md",
+              "memory://scientific-method/[topic]/phase-6-conclusions/new-hypotheses.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Conclusion stated with explicit confidence level",
+          "All 6 philosophical guard-rails evaluated",
+          "Falsification condition for the conclusion clearly stated",
+          "Open questions and new hypotheses documented",
+          "Replication needs assessed"
+        ],
+        "next_actions": [
+          "Proceed to Phase 8: Communication & Peer Review"
+        ]
+      }
+    },
+    {
+      "id": "peer-review-communication",
+      "name": "📝 Phase 8: Publish Results & Peer Review (Parallel Reviewers)",
+      "description": "🚫 BLOCKING: Dispatch ALL Reviewer agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL FOUR AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer Wikipedia's scientific method, Step 7 is 'Publish results' and Step 8 is 'Retest (frequently done by other scientists).' Per the Confirmation section: 'Science is a social enterprise, and scientific work tends to be accepted by the scientific community when it has been confirmed. Crucially, experimental and theoretical results must be reproduced by others within the scientific community.'\n\nThis phase maps to the `communication-iteration` (FR-27.11), `peer-review` (FR-27.26), `confirmation-replication` (FR-27.12), and `reproducibility` (FR-27.13) workflows. Four parallel Reviewer agents evaluate the investigation from different disciplinary perspectives.\n\n```\nTask 1: Methodology Reviewer\nAgent: researcher\nInstruction: You are a Methodology Reviewer evaluating a scientific investigation. Read ALL of:\n- memory://scientific-method/[topic]/question-definition.md\n- memory://scientific-method/[topic]/observation-synthesis.md\n- memory://scientific-method/[topic]/phase-3-predictions/discrimination-matrix.md\n- memory://scientific-method/[topic]/phase-5-analysis/data-analysis.md\n- memory://scientific-method/[topic]/phase-6-conclusions/conclusion.md\n\nEvaluate:\n- Was the experimental design adequate to test the hypotheses?\n- Were confounds properly controlled?\n- Were statistical methods appropriate?\n- Are there methodological weaknesses that undermine the conclusions?\n- Would the results replicate with the same methodology?\nApply [[reproducibility]] and [[controlled-experiment]] standards.\nRate: Accept / Major Revision / Minor Revision / Reject\nInclude 10+ [[WikiLinks]]\nOutput: memory://scientific-method/[topic]/phase-7-communication/review-methodology.md\n\nTask 2: Novelty & Significance Reviewer\nAgent: researcher\nInstruction: You are a Novelty Reviewer. Read the conclusion and question definition.\nEvaluate:\n- Does this investigation answer a question that matters?\n- Is the conclusion genuinely new, or does it merely confirm what was already known?\n- What is the significance relative to the current state of knowledge?\n- Does this advance the field or fill a meaningful gap?\nApply [[paradigm-analysis]] lens: does this result fit within or challenge existing paradigms?\nRate: Accept / Major Revision / Minor Revision / Reject\nInclude 10+ [[WikiLinks]]\nOutput: memory://scientific-method/[topic]/phase-7-communication/review-novelty.md\n\nTask 3: Reproducibility Reviewer\nAgent: researcher\nInstruction: You are a Reproducibility Reviewer. Read all experiment results and methodology.\nEvaluate per [[reproducibility]] standards:\n- Is sufficient detail provided for independent replication?\n- Are data and methods transparently reported?\n- Are there concerns about p-hacking, selective reporting, or HARKing?\n- Per Ioannidis (2005): 'most published research findings are false' — what is the false-positive risk here?\n- What would a replication study need to do?\nRate: Accept / Major Revision / Minor Revision / Reject\nInclude 10+ [[WikiLinks]] (e.g., [[reproducibility]], [[replication-crisis]], [[p-hacking]], [[selective-reporting]])\nOutput: memory://scientific-method/[topic]/phase-7-communication/review-reproducibility.md\n\nTask 4: Theoretical Consistency Reviewer\nAgent: researcher\nInstruction: You are a Theoretical Reviewer. Read the conclusion, hypotheses, and data analysis.\nEvaluate:\n- Is the conclusion logically consistent with the evidence presented?\n- Are there alternative interpretations the authors have not considered?\n- Does the conclusion follow from the data, or is there an inferential leap?\n- Is the conclusion consistent with established theory? If not, is the challenge justified?\n- Apply [[bayesian-reasoning]]: is the posterior probability reasonable given priors and evidence?\nRate: Accept / Major Revision / Minor Revision / Reject\nInclude 10+ [[WikiLinks]]\nOutput: memory://scientific-method/[topic]/phase-7-communication/review-theory.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each reviewer operates independently — no coordination\n- Reviewers must be CRITICAL, not accommodating — the goal is to stress-test the conclusion\n- Each review must provide a clear rating and specific revision recommendations\n- Per Wikipedia: 'Peer review — anonymous expert evaluation of research — assesses experimental soundness rather than certifying correctness.'\n\n⏱️ Duration: 15-25 minutes per agent (all run in parallel)\n\n📎 Sub-workflow reference: `peer-review` (FR-27.26), `communication-iteration` (FR-27.11), `confirmation-replication` (FR-27.12), `reproducibility` (FR-27.13)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch four parallel Reviewer agents: Methodology, Novelty, Reproducibility, and Theory — each evaluating independently",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 4,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each reviewer reads the relevant investigation artifacts",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/question-definition.md",
+              "memory://scientific-method/[topic]/observation-synthesis.md",
+              "memory://scientific-method/[topic]/phase-3-predictions/discrimination-matrix.md",
+              "memory://scientific-method/[topic]/phase-5-analysis/data-analysis.md",
+              "memory://scientific-method/[topic]/phase-6-conclusions/conclusion.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each reviewer persists their independent evaluation",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://scientific-method/[topic]/phase-7-communication/review-methodology.md",
+              "memory://scientific-method/[topic]/phase-7-communication/review-novelty.md",
+              "memory://scientific-method/[topic]/phase-7-communication/review-reproducibility.md",
+              "memory://scientific-method/[topic]/phase-7-communication/review-theory.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All four Reviewer agents dispatched in a single message",
+          "Each reviewer provides a clear Accept/Revision/Reject rating",
+          "Specific revision recommendations provided by each reviewer",
+          "Reviews are genuinely critical — not rubber-stamp approvals",
+          "Reproducibility concerns explicitly addressed"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Reviewer agents",
+          "Proceed to Editorial Synthesis & Iteration Decision"
+        ]
+      }
+    },
+    {
+      "id": "editorial-synthesis",
+      "name": "⚖️ Editorial Synthesis & Iteration Decision",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nAs Scientific Method Director, synthesize all peer review feedback and decide whether the investigation is complete or requires iteration. Per Wikipedia: 'The scientific method is iterative. At any stage, it is possible to refine its accuracy and precision, so that some consideration will lead the scientist to repeat an earlier part of the process.'\n\n1. **Read All Reviews**:\n   - Methodology review: rating and concerns\n   - Novelty review: rating and significance assessment\n   - Reproducibility review: rating and replication concerns\n   - Theory review: rating and consistency assessment\n\n2. **Synthesize Editorial Decision**:\n   - How many reviewers Accept vs. require Revision vs. Reject?\n   - What are the most serious concerns?\n   - Are concerns addressable by revision or do they require new experiments?\n   - Per [[peer-review]]: 'assesses experimental soundness rather than certifying correctness'\n\n3. **Iteration Decision**:\n   - **ACCEPT**: 3+ reviewers Accept → proceed to final deliverable\n   - **MINOR REVISION**: Concerns are addressable by re-analysis or re-interpretation → revise conclusions (return to Phase 7)\n   - **MAJOR REVISION**: Concerns require additional experiments → return to Phase 5 with revised experimental design\n   - **REJECT / RESTART**: Fundamental methodological or conceptual flaws → return to Phase 1 with lessons learned\n\n4. **If Iterating** (per Wikipedia's circular model):\n   - Document what was learned from this iteration\n   - Specify what must change in the next cycle\n   - Per Wikipedia: 'new information leads to new characterisations, and the cycle of science continues'\n   - Append to iteration log: memory://scientific-method/[topic]/meta/iteration-log.md\n\n5. **If Accepting**:\n   - Document the editorial decision and its rationale\n   - Summarize reviewer consensus and dissent\n   - Prepare for final deliverable\n\n⏱️ Duration: 10-15 minutes\n\n📎 Sub-workflow reference: `peer-review` (FR-27.26) for editorial process, `communication-iteration` (FR-27.11) for iterative refinement",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Editorial synthesis of multi-reviewer feedback requires weighing competing concerns and making a fair, evidence-based decision",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Review synthesis and rating tabulation",
+              "Concern severity assessment",
+              "Iteration decision with justification",
+              "Revision specification (if iterating)",
+              "Editorial consensus documentation"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all four reviewer reports",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/phase-7-communication/review-methodology.md",
+              "memory://scientific-method/[topic]/phase-7-communication/review-novelty.md",
+              "memory://scientific-method/[topic]/phase-7-communication/review-reproducibility.md",
+              "memory://scientific-method/[topic]/phase-7-communication/review-theory.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist editorial decision and iteration log",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://scientific-method/[topic]/phase-7-communication/editorial-decision.md",
+              "memory://scientific-method/[topic]/meta/iteration-log.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All four reviews read and synthesized",
+          "Editorial decision rendered: ACCEPT / MINOR REVISION / MAJOR REVISION / REJECT",
+          "Decision justified with specific evidence from reviews",
+          "If iterating: revision specification clearly documented",
+          "Iteration log updated"
+        ],
+        "next_actions": [
+          "If ACCEPT: Proceed to Knowledge Integration",
+          "If MINOR REVISION: Return to Phase 7 (Conclusions) with revision notes",
+          "If MAJOR REVISION: Return to Phase 5 (Experiments) with revised design",
+          "If REJECT: Return to Phase 1 (Question Definition) with lessons learned"
+        ],
+        "escape_hatches": {
+          "reviewer_deadlock": "If reviewers disagree fundamentally (2 Accept, 2 Reject), invoke conjecture-refutation (FR-27.24) to model the disagreement as a dialectic",
+          "paradigm_challenge": "If the conclusion challenges an established paradigm, invoke paradigm-analysis (FR-27.27) before accepting",
+          "replication_crisis_concern": "If reproducibility reviewer raises serious concerns, invoke reproducibility (FR-27.13) workflow before accepting"
+        }
+      }
+    },
+    {
+      "id": "knowledge-integration",
+      "name": "🧠 Knowledge Integration & Graph Construction",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nIntegrate all scientific method investigation results into the maenifold knowledge graph. This step ensures the investigation's findings become part of the institutional memory and can be discovered, built upon, and challenged by future investigations.\n\n1. **Graph Synchronization**:\n```bash\nTool: Sync\nScope: memory://scientific-method/[topic]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[WikiLinks]]: [[scientific-method]], [[hypothesis]], [[experiment]], [[falsification]], [[peer-review]], [[reproducibility]]\n   - Identify which concepts this investigation has enriched\n   - Map relationships between the question, hypotheses, experiments, and conclusions\n\n3. **Cross-Reference with Existing Knowledge**:\n   - How does this conclusion relate to prior investigations in the graph?\n   - Does it confirm, extend, challenge, or contradict existing knowledge?\n   - What new concept relationships were created?\n\n4. **Tag for Discoverability**:\n   - Ensure key findings have explicit [[WikiLinks]] for future BuildContext queries\n   - Tag the philosophical frameworks applied (e.g., [[empiricism]], [[bayesian-reasoning]])\n   - Tag the methodological approach (e.g., [[controlled-experiment]], [[crucial-experiment]])\n\n5. **Lineage Documentation**:\n   - This investigation's full lineage: Question → Observations → Hypotheses → Predictions → Experiments → Analysis → Conclusion → Peer Review\n   - Each node in the lineage is a memory:// URI that can be independently read and built upon\n\n⏱️ Duration: 5-10 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "Sync": {
+            "reason": "Synchronize all investigation artifacts with the knowledge graph",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Ground the investigation in existing knowledge graph concepts",
+            "priority": "mandatory"
+          },
+          "SequentialThinking": {
+            "reason": "Systematic knowledge integration ensures nothing is lost and relationships are properly mapped",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Concept relationship mapping",
+              "Cross-reference with existing knowledge",
+              "Lineage documentation"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Graph synchronized with all investigation outputs",
+          "Concept relationships mapped",
+          "Cross-references with existing knowledge documented",
+          "Investigation lineage fully traceable through memory:// URIs",
+          "Key findings tagged with [[WikiLinks]] for discoverability"
+        ],
+        "next_actions": [
+          "Proceed to Director's Meta-Synthesis"
+        ]
+      }
+    },
+    {
+      "id": "meta-synthesis",
+      "name": "🎭 Director's Meta-Synthesis",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nAs Scientific Method Director, synthesize the ENTIRE investigation into a coherent narrative. This is the capstone analytical step — weaving together 8 phases, multiple parallel agent waves, and the iterative cycle into a unified knowledge product.\n\n1. **Read All Key Outputs**:\n   - Question definition (Phase 1)\n   - Observation synthesis (Phase 2)\n   - Three alternative hypotheses (Phase 3)\n   - Discrimination matrix and predictions (Phase 4)\n   - Three experiment results (Phase 5)\n   - Data analysis with elimination ledger (Phase 6)\n   - Conclusion with philosophical evaluation (Phase 7)\n   - Four peer reviews and editorial decision (Phase 8)\n\n2. **Construct the Complete Investigation Narrative**:\n   - How did the question lead to the observations?\n   - How did the observations constrain the hypothesis space?\n   - How did the predictions discriminate between hypotheses?\n   - How did the experiments eliminate competing explanations?\n   - How confident is the surviving conclusion?\n   - What did the peer reviewers find?\n\n3. **Assess Investigation Quality**:\n   - **Empirical rigor**: Were observations systematic and measurements reproducible?\n   - **Hypothesis quality**: Were hypotheses genuinely alternative and falsifiable?\n   - **Experimental design**: Were tests discriminating with proper controls?\n   - **Analytical rigor**: Was data analysis statistically and logically sound?\n   - **Conclusion strength**: Is the conclusion well-supported with appropriate confidence?\n   - **Peer review thoroughness**: Were reviews critical and substantive?\n\n4. **Rate Against Scientific Method Criteria (per Wikipedia)**:\n   - Were ALL 8 steps of the cycle executed? (define, observe, hypothesize, predict, experiment, analyze, conclude, communicate)\n   - Was the method iterative where needed? ('At any stage, it is possible to refine its accuracy and precision')\n   - Was skepticism applied throughout? ('rigorous skepticism about what is observed')\n   - Were cognitive biases mitigated? (confirmation bias, theory-ladenness, hindsight bias)\n\n5. **Identify Future Directions**:\n   - What is the most important next investigation?\n   - What predictions remain untested?\n   - What would Kuhn, Popper, or Platt recommend as the next step?\n   - Per Wikipedia: 'Published papers can be built upon'\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Meta-synthesis of the complete investigation requires integrating 8 phases into a coherent narrative with quality assessment",
+            "priority": "mandatory",
+            "estimated_thoughts": 8,
+            "focus_areas": [
+              "Question-to-conclusion narrative",
+              "Observation-hypothesis linkage",
+              "Prediction-experiment-elimination chain",
+              "Peer review integration",
+              "Quality assessment against Wikipedia criteria",
+              "Bias mitigation review",
+              "Future directions",
+              "Philosophical guard-rail evaluation"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read ALL key investigation outputs for comprehensive synthesis",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/question-definition.md",
+              "memory://scientific-method/[topic]/observation-synthesis.md",
+              "memory://scientific-method/[topic]/phase-5-analysis/data-analysis.md",
+              "memory://scientific-method/[topic]/phase-6-conclusions/conclusion.md",
+              "memory://scientific-method/[topic]/phase-7-communication/editorial-decision.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the meta-synthesis as the investigation's executive summary",
+            "priority": "mandatory",
+            "output": "memory://scientific-method/[topic]/meta/meta-synthesis.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Complete investigation narrative constructed",
+          "All 8 phases of scientific method accounted for",
+          "Quality assessment completed across all dimensions",
+          "Investigation rated against Wikipedia's scientific method criteria",
+          "Future directions identified"
+        ],
+        "next_actions": [
+          "Proceed to Final Deliverable"
+        ]
+      }
+    },
+    {
+      "id": "final-deliverable",
+      "name": "📋 Scientific Method Investigation Report",
+      "description": "Create the comprehensive Scientific Method investigation deliverable — the published record of the complete cycle from question to conclusion.\n\n1. **Report Structure**:\n```markdown\n# [Topic] — Scientific Method Investigation Report\n\n## Executive Summary\n- Question investigated\n- Key finding in 2-3 sentences\n- Confidence level and basis\n- Significance and implications\n\n## Phase 1: Question Definition\n- The question and why it matters\n- Scope and boundaries\n- Philosophical orientation\n\n## Phase 2: Observations\n- Empirical observations (key findings)\n- Literature survey (prior work summary)\n- Structural analysis (patterns and constraints)\n- Observation synthesis: evidence tiers\n\n## Phase 3: Hypotheses\n- H1 (Mechanistic): [proposition] — key predictions\n- H2 (Structural): [proposition] — key predictions\n- H3 (Null/Contrarian): [proposition] — key predictions\n- Discrimination potential: how the hypotheses differ\n\n## Phase 4: Predictions & Experimental Design\n- Discrimination matrix\n- Crucial predictions selected\n- Experimental design for each test\n\n## Phase 5: Experimental Results\n- Experiment 1: [design] → [result] → [verdict]\n- Experiment 2: [design] → [result] → [verdict]\n- Experiment 3: [design] → [result] → [verdict]\n\n## Phase 6: Analysis\n- Updated discrimination matrix with actual outcomes\n- Bayesian posterior probabilities\n- Hypothesis elimination ledger\n- Anomalies and surprises\n\n## Phase 7: Conclusion\n- Best-supported explanation\n- Confidence level and boundary conditions\n- Philosophical guard-rail evaluation\n- Open questions and new hypotheses\n\n## Phase 8: Peer Review & Communication\n- Methodology review: [rating] — key concerns\n- Novelty review: [rating] — significance assessment\n- Reproducibility review: [rating] — replication concerns\n- Theory review: [rating] — consistency assessment\n- Editorial decision: [verdict]\n\n## Investigation Quality Scorecard\n| Criterion | Rating | Notes |\n|-----------|--------|-------|\n| Empirical rigor | ★★★★☆ | ... |\n| Hypothesis quality | ★★★★★ | ... |\n| Experimental design | ★★★☆☆ | ... |\n| Analytical rigor | ★★★★☆ | ... |\n| Conclusion strength | ★★★★☆ | ... |\n| Peer review thoroughness | ★★★★★ | ... |\n\n## Future Directions\n- Most important next investigation\n- Untested predictions\n- Recommended methodological improvements\n\n## Knowledge Graph\n- Concept network with [[WikiLinks]]\n- Investigation lineage: memory:// URI chain\n- Cross-references with existing knowledge\n\n## Sub-Workflows Referenced\n- systematic-observation (FR-27.1)\n- hypothesis-development (FR-27.2)\n- prediction (FR-27.3)\n- experimental-design (FR-27.4)\n- controlled-experiment (FR-27.5)\n- double-blind-study (FR-27.6)\n- crucial-experiment (FR-27.7)\n- statistical-analysis (FR-27.10)\n- communication-iteration (FR-27.11)\n- confirmation-replication (FR-27.12)\n- reproducibility (FR-27.13)\n- peer-review (FR-27.26)\n- Philosophical: empiricism, rationalism, pragmatism, model-dependent-realism\n- Guard-rails: bayesian-reasoning, occams-razor, confirmation-bias, theory-ladenness, falsification\n- Escalation: hypothetico-deductive, strong-inference, conjecture-refutation, paradigm-analysis\n```\n\n2. **Quality Checklist**:\n- [ ] All 8 phases of the scientific method documented\n- [ ] Iterative cycle documented (if iteration occurred)\n- [ ] All agent outputs cited and synthesized\n- [ ] Philosophical guard-rails evaluated\n- [ ] Peer review results integrated\n- [ ] 30+ [[WikiLinks]] throughout the report\n- [ ] Investigation quality scorecard completed\n- [ ] Future directions specified\n- [ ] All sub-workflow references documented\n- [ ] Complete memory:// lineage chain\n\n3. **Persist the Report**:\n   - Output to: memory://scientific-method/[topic]/report.md\n   - This report is the permanent, citable record of the investigation\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "ReadMemory": {
+            "reason": "Read meta-synthesis, conclusions, and editorial decision to compile the report",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://scientific-method/[topic]/meta/meta-synthesis.md",
+              "memory://scientific-method/[topic]/phase-6-conclusions/conclusion.md",
+              "memory://scientific-method/[topic]/phase-7-communication/editorial-decision.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the final investigation report as the permanent record",
+            "priority": "mandatory",
+            "output": "memory://scientific-method/[topic]/report.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Report complete with all 8 phases documented",
+          "Quality checklist passed (all items checked)",
+          "30+ WikiLinks included",
+          "Investigation quality scorecard completed",
+          "All sub-workflow references listed"
+        ],
+        "next_actions": [
+          "Investigation complete — report available at memory://scientific-method/[topic]/report.md",
+          "Future investigations can build upon this report per Wikipedia: 'Published papers can be built upon'"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,213 @@
+{
+  "id": "confirmation-bias",
+  "name": "Confirmation Bias Mitigation",
+  "emoji": "🔍",
+  "description": "Structured audit for confirmation bias — the tendency to search for, interpret, favor, and recall information in a way that confirms or supports one's prior beliefs (Nickerson, 1998). Walks through the three bias channels identified in the psychological literature (biased search, biased interpretation, biased memory) and applies debiasing strategies including consider-the-opposite (Lord, Lepper & Preston, 1984) and active open-mindedness (Baron, 1995).",
+  "triggers": [
+    "confirmation bias",
+    "bias check",
+    "cognitive bias",
+    "cherry picking",
+    "belief perseverance",
+    "motivated reasoning"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "state-hypothesis",
+      "name": "State Hypothesis Explicitly",
+      "description": "Articulate the belief, hypothesis, or prior commitment being evaluated.\n\nPer Wikipedia: confirmation bias is 'the tendency to search for, interpret, favor and recall information in a way that confirms or supports one's prior beliefs or values.' Peter Wason refined this as 'a preference for information that is consistent with a hypothesis rather than information which opposes it.' The bias is strongest for desired outcomes, emotionally charged issues, and deeply entrenched beliefs.\n\nYou must make the hypothesis explicit before auditing for bias. State: (1) the belief or hypothesis under examination, (2) when and how it was formed, (3) what evidence originally supported it, (4) your emotional investment in its truth, and (5) what costs you would face if it were wrong.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Retrieve prior knowledge-graph context about the hypothesis — identify what the agent already 'believes' and has committed to",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Surface related concepts and assumptions already encoded in the knowledge graph that may anchor the hypothesis",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Hypothesis stated in falsifiable form",
+          "Origin of belief identified — when and how it was formed",
+          "Original supporting evidence cataloged",
+          "Emotional investment and cost-of-being-wrong assessed"
+        ],
+        "next_actions": [
+          "Proceed to Audit Biased Search — examine whether evidence gathering was one-sided"
+        ]
+      }
+    },
+    {
+      "id": "audit-biased-search",
+      "name": "Audit for Biased Search",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nExamine whether evidence gathering has been one-sided — the 'biased search for information' channel.\n\nPer Wikipedia: 'people tend to test hypotheses in a one-sided way, by searching for evidence consistent with their current hypothesis' (Nickerson, 1998; Kunda, 1999). Rather than searching through all relevant evidence, they 'phrase questions to receive an affirmative answer that supports their theory' (Baron, 2000). Klayman and Ha (1987) identified this as the 'positive test strategy' — testing cases where the expected property should occur, while ignoring cases where it should not.\n\nAudit checklist:\n1. What sources were consulted? Were they pre-selected to agree?\n2. Were questions framed to elicit confirming answers (loaded questions)?\n3. Was a positive test strategy used — testing only where the hypothesis predicts success?\n4. Were disconfirming sources actively sought, or only confirming ones?\n5. Does selective exposure apply — was information consumption limited to belief-consistent sources?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic audit of search behavior requires structured step-by-step evaluation of each evidence source against the positive-test-strategy checklist (Klayman & Ha, 1987)",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Retrieve all evidence previously gathered — identify which sources were consulted and whether the search was balanced",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All consulted sources enumerated and classified as confirming or disconfirming",
+          "Positive test strategy instances identified — questions framed to elicit yes-answers",
+          "Selective exposure patterns documented — belief-consistent source preferences",
+          "Search gaps identified — disconfirming sources that were available but not consulted"
+        ],
+        "next_actions": [
+          "Proceed to Audit Biased Interpretation — examine how evidence was evaluated"
+        ]
+      }
+    },
+    {
+      "id": "audit-biased-interpretation",
+      "name": "Audit for Biased Interpretation",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nExamine whether evidence was interpreted in a biased manner — the 'biased interpretation of information' channel.\n\nPer Wikipedia: 'Even if two individuals have the same information, the way they interpret it can be biased.' The Stanford capital-punishment study (Lord, Ross & Lepper, 1979) demonstrated that people 'set higher standards of evidence for hypotheses that go against their current expectations' — the 'disconfirmation bias.' Participants described studies supporting their pre-existing view as superior in detailed and specific ways, while dismissing contrary studies on methodological grounds.\n\nMRI research (Westen et al., 2006) showed that when evaluating contradictory statements from a favored candidate, emotional brain centers were aroused — participants were 'actively reducing cognitive dissonance' rather than making passive reasoning errors. Stanovich found this effect is persistent regardless of intelligence level.\n\nAudit checklist:\n1. Was ambiguous evidence interpreted as supporting the hypothesis?\n2. Were higher evidential standards applied to disconfirming evidence (disconfirmation bias)?\n3. Were confirming sources rated as more credible, methodologically sound, or relevant?\n4. Was cognitive dissonance triggered by contrary evidence — and resolved by dismissing the evidence rather than updating the belief?\n5. Were 'Can I believe this?' vs 'Must I believe this?' asymmetric standards applied?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Detecting disconfirmation bias requires comparing evidential standards applied to confirming vs. disconfirming evidence — the asymmetric scrutiny identified by Lord, Ross & Lepper (1979)",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each piece of evidence re-examined for asymmetric scrutiny",
+          "Disconfirmation bias instances identified — higher bar for unwelcome evidence",
+          "Ambiguous evidence re-evaluated — was it genuinely supporting or just not contradicting?",
+          "Cognitive dissonance resolution pattern documented — was evidence dismissed to preserve belief?"
+        ],
+        "next_actions": [
+          "Proceed to Audit Biased Memory — examine whether recall is selective"
+        ]
+      }
+    },
+    {
+      "id": "audit-biased-memory",
+      "name": "Audit for Biased Memory",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nExamine whether recall of evidence is selective — the 'biased memory recall' channel.\n\nPer Wikipedia: 'People may remember evidence selectively to reinforce their expectations, even if they gather and interpret evidence in a neutral manner. This effect is called selective recall, confirmatory memory, or access-biased memory.' Schema theory predicts that 'information matching prior expectations will be more easily stored and recalled than information that does not match' (Oswald & Grosjean, 2004).\n\nThe Snyder & Cantor (1979) study showed that people recalled different behaviors from the same profile depending on context — a 'librarian' framing produced recall of introverted behaviors while a 'sales' framing produced extroverted recall. Levine et al. demonstrated that 'emotional memories are reconstructed by current emotional states' — people's recall of past feelings aligns with present feelings, not actual past experience.\n\nAudit checklist:\n1. What confirming evidence is readily recalled? What disconfirming evidence has been forgotten?\n2. Is the ease of recall (availability heuristic) inflating confidence in the hypothesis?\n3. Has the framing of the question influenced which memories surface?\n4. Have emotional states shifted since evidence was gathered — and has memory been reconstructed accordingly?\n5. Is there a base-rate neglect — are vivid confirming anecdotes overweighing statistical evidence?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Memory audit requires systematic comparison of what is readily recalled vs. what exists in the record — detecting selective recall (Snyder & Cantor, 1979) and access-biased memory",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "SearchMemories": {
+            "reason": "Cross-reference the agent's 'memory' (knowledge graph) against the full evidence record to detect selective recall patterns",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Confirming vs. disconfirming evidence recall asymmetry measured",
+          "Availability heuristic influence assessed — vivid anecdotes vs. base rates",
+          "Framing effects on memory retrieval identified",
+          "Emotional reconstruction of memory documented if applicable"
+        ],
+        "next_actions": [
+          "Proceed to Consider the Opposite — the primary debiasing intervention"
+        ]
+      }
+    },
+    {
+      "id": "consider-the-opposite",
+      "name": "Consider the Opposite",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nApply the 'consider-the-opposite' debiasing strategy — the most empirically supported intervention against confirmation bias.\n\nPer Wikipedia: Lerner and Tetlock distinguish 'exploratory thought' which 'neutrally considers multiple points of view and tries to anticipate all possible objections to a particular position' from 'confirmatory thought' which 'seeks to justify a specific point of view.' They found that people 'only push themselves to think critically and logically when they know in advance they will need to explain themselves to others who are well-informed, genuinely interested in the truth, and whose views they do not already know.'\n\nBaron (1995) identified 'active open-mindedness' as the antidote — 'the active search for why an initial idea may be wrong.' The consider-the-opposite technique (Lord, Lepper & Preston, 1984) asks: if the opposite hypothesis were true, what evidence would you expect to see — and does that evidence in fact exist?\n\nProtocol:\n1. State the opposite hypothesis explicitly\n2. Generate the strongest possible case for the opposite — steelman, not strawman\n3. Identify what evidence would be expected if the opposite were true\n4. Search for that evidence with the same rigor applied to the original hypothesis\n5. Assess the costs of each type of error: accepting a false hypothesis vs. rejecting a true one (Friedrich, 1993; Trope & Liberman)",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Consider-the-opposite requires systematically constructing the strongest counter-case — the exploratory thought mode identified by Lerner & Tetlock as the antithesis of confirmatory thought",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph specifically for disconfirming evidence that may have been overlooked during biased search",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Opposite hypothesis stated in falsifiable form",
+          "Steelman case for opposite constructed — strongest version, not strawman",
+          "Evidence expected under opposite hypothesis identified and searched for",
+          "Asymmetric error costs evaluated — cost of false acceptance vs. false rejection"
+        ],
+        "next_actions": [
+          "Proceed to Check Associated Effects — audit for downstream bias phenomena"
+        ]
+      }
+    },
+    {
+      "id": "check-associated-effects",
+      "name": "Check for Associated Effects",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nAudit for the four downstream effects that biased search, interpretation, and memory produce.\n\nPer Wikipedia, confirmation bias has been invoked to explain four specific effects:\n\n1. **Attitude polarization** — 'when a disagreement becomes more extreme despite the different parties being exposed to the same evidence.' Taber & Lodge found this most strongly in those with strong prior opinions and political knowledge. Check: has exposure to mixed evidence made the position more extreme rather than more nuanced?\n\n2. **Belief perseverance** — 'when beliefs persist after the evidence for them is shown to be false.' Ross & Anderson's debriefing paradigm showed that 'at least some of the initial belief remains even after a full debriefing.' Check: has previously debunked evidence continued to anchor the belief?\n\n3. **Irrational primacy effect** — 'a greater reliance on information encountered early in a series.' Check: is early evidence being weighted more heavily than later, potentially better evidence?\n\n4. **Illusory correlation** — 'when people falsely perceive an association between two events or situations.' People 'rely heavily on the number of positive-positive cases' while ignoring other observations. Check: are correlations being perceived from coincident positive cases while ignoring base rates?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Checking for four distinct downstream effects requires structured evaluation of each — attitude polarization, belief perseverance, irrational primacy, and illusory correlation per Nickerson (1998)",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Attitude polarization assessed — has position become more extreme from mixed evidence?",
+          "Belief perseverance assessed — are debunked premises still anchoring the conclusion?",
+          "Irrational primacy assessed — is early evidence overweighted relative to later evidence?",
+          "Illusory correlation assessed — are associations based on positive-positive cases only?"
+        ],
+        "next_actions": [
+          "Proceed to Synthesize Debiased Assessment — integrate audit findings"
+        ]
+      }
+    },
+    {
+      "id": "synthesize-debiased-assessment",
+      "name": "Synthesize Debiased Assessment",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nIntegrate all audit findings into a balanced, debiased reassessment of the original hypothesis.\n\nPer Wikipedia on the science of debiasing: 'scientific training teaches ways to prevent bias' — including experimental design of randomized controlled trials, systematic review, and peer review. The cognitive therapy tradition (Beck, 1960s) 'teaches people to treat evidence impartially, rather than selectively reinforcing negative outlooks.' Zhong's economic model shows that under resource constraints, some confirmatory search may be rational — but only when 'expected confirmatory signals are not received' does 'confidence in the initial hypothesis gradually decline.'\n\nSynthesis protocol:\n1. Enumerate all bias instances found across the three channels (search, interpretation, memory)\n2. Re-weight evidence correcting for identified asymmetries\n3. State the revised confidence level in the original hypothesis — explicitly acknowledging what changed and why\n4. Identify residual uncertainty that cannot be resolved without new evidence\n5. Document the debiased conclusion with its full derivation chain\n6. Prescribe what new evidence would most efficiently discriminate between the hypothesis and its opposite",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Final synthesis requires integrating findings from all prior audit steps and re-weighting evidence with identified biases corrected — the debiased assessment per cognitive therapy tradition (Beck) and scientific method",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Persist the debiased assessment with full derivation chain — including all identified biases and corrections applied — as institutional memory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All bias instances enumerated across search, interpretation, and memory channels",
+          "Evidence re-weighted with asymmetries corrected",
+          "Revised confidence level stated with explicit change rationale",
+          "Residual uncertainty and evidence gaps documented",
+          "Most discriminating future evidence identified"
+        ],
+        "next_actions": [
+          "Document debiased conclusion with full audit trail in knowledge graph"
+        ]
+      }
+    }
+  ]
+}

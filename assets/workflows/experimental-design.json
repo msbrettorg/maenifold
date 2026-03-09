@@ -1,0 +1,234 @@
+{
+  "id": "experimental-design",
+  "name": "Experimental Design (Design of Experiments — DOE)",
+  "emoji": "🧪",
+  "description": "A structured methodology for planning experiments that describe and explain variation under controlled conditions, grounded in the Wikipedia article on Design of Experiments. The workflow applies Ronald Fisher's foundational principles — comparison, randomization, replication, blocking, and orthogonality — to design statistically optimal experiments given resource constraints. It guides systematic selection of independent, dependent, and control variables; choice of design type (factorial, fractional factorial, randomized block, etc.); sample size determination via power analysis; and bias prevention through blinding and pre-registration. The methodology produces experiments that establish validity, reliability, and replicability — the three core concerns of experimental design per the Wikipedia framework.",
+  "triggers": [
+    "experimental design",
+    "design of experiments",
+    "DOE",
+    "factorial design",
+    "randomization",
+    "control group",
+    "independent variable"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "formulate-research-question",
+      "name": "Formulate Research Question & Hypothesis — Define the variation to be explained",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nDefine the research question, hypothesis, and the variation to be explained by the experiment.\n\nPer the Wikipedia article on Design of Experiments: 'The design of experiments (DOE) is the design of any task that aims to describe and explain the variation of information under conditions that are hypothesized to reflect the variation.' The design 'introduces conditions that directly affect the variation.'\n\nPer Wikipedia: 'In its simplest form, an experiment aims at predicting the outcome by introducing a change of the preconditions, which is represented by one or more independent variables, also referred to as \"input variables\" or \"predictor variables.\" The change in one or more independent variables is generally hypothesized to result in a change in one or more dependent variables, also referred to as \"output variables\" or \"response variables.\"'\n\nFor the subject under examination:\n• What specific variation or outcome do you seek to describe and explain?\n• What is the testable hypothesis — what precondition change is predicted to affect the outcome?\n• Per Wikipedia's discussion topics: 'How many factors does the design have, and are the levels of these factors fixed or random?'\n• What is the scope of the experiment — what population or domain should results generalize to?\n• Per Wikipedia on validity: the design must establish 'validity, reliability, and replicability' — define what each means for this specific experiment\n• What are the constraints of available resources that will bound the design?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Formulating a precise, testable research question requires systematic decomposition of the problem space — per Wikipedia, the experiment must 'describe and explain the variation of information under conditions that are hypothesized to reflect the variation'",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior work, existing hypotheses, and known variables related to the subject — avoid designing experiments that duplicate existing knowledge",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the subject domain to identify what variation exists and what factors are already known to influence it",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Research question precisely stated — specifies the variation to be described and explained",
+          "Testable hypothesis formulated — identifies the precondition change and predicted outcome change",
+          "Number of factors and whether their levels are fixed or random determined",
+          "Target population or domain for generalization defined",
+          "Resource constraints identified that will bound the experimental design",
+          "Success criteria for validity, reliability, and replicability defined for this experiment"
+        ],
+        "next_actions": [
+          "Proceed to identifying and classifying all variables"
+        ]
+      }
+    },
+    {
+      "id": "identify-variables-and-factors",
+      "name": "Identify Variables & Factors — Classify independent, dependent, and control variables",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically classify all variables.\n\nPer the Wikipedia article on Design of Experiments, experimental design involves 'not only the selection of suitable independent, dependent, and control variables, but planning the delivery of the experiment under statistically optimal conditions given the constraints of available resources.'\n\nPer Wikipedia: 'The experimental design may also identify control variables that must be held constant to prevent external factors from affecting the results.'\n\nSystematically identify and classify:\n\n1. **Independent Variables (Factors)** — the preconditions you will manipulate:\n   • What are the factors under investigation?\n   • How many levels does each factor have?\n   • Are levels fixed (specific values of interest) or random (sampled from a population of possible values)?\n   • Per Wikipedia discussion: 'What is the relevance of interactions between factors?'\n\n2. **Dependent Variables (Responses)** — the outcomes you will measure:\n   • What output variables will be observed or measured?\n   • What measurement instruments or methods will be used?\n   • Per Wikipedia: concerns include 'reducing the risk of measurement error'\n\n3. **Control Variables** — factors held constant:\n   • What must be held constant to prevent external factors from affecting results?\n   • Per Wikipedia discussion: 'What are the background variables?'\n   • Are there confounding variables? Per Wikipedia: 'There could be a third variable (Z) that influences (Y), and X might not be the true cause at all. Z is said to be a spurious variable and must be controlled for.'\n   • Identify intervening variables ('a variable in between the supposed cause (X) and the effect (Y)') and antecedent variables ('a variable prior to the supposed cause (X) that is the true cause')\n\n4. **Nuisance Variables** — factors that add variation but are not of primary interest:\n   • What known sources of variation exist beyond the factors of interest?\n   • Which can be controlled, which must be blocked, and which must be randomized?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic classification of all variables is critical — per Wikipedia, uncontrolled confounding, intervening, and antecedent variables can invalidate causal claims. Each variable must be traced through the causal chain X→Y to identify spurious relationships",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for known confounding variables, established measurement methods, and documented variable relationships in the subject domain",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All independent variables (factors) enumerated with their levels classified as fixed or random",
+          "All dependent variables (responses) identified with measurement methods specified",
+          "Control variables listed — factors that must be held constant to prevent external influence",
+          "Confounding, intervening, and antecedent variables explicitly identified per Wikipedia's causal attribution framework",
+          "Nuisance variables cataloged and assigned to control, blocking, or randomization strategies",
+          "Potential interactions between factors assessed for relevance"
+        ],
+        "next_actions": [
+          "Proceed to selecting the experimental design type"
+        ]
+      }
+    },
+    {
+      "id": "select-experimental-design",
+      "name": "Select Experimental Design Type — Choose the optimal design structure",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to evaluate and select the design type.\n\nPer the Wikipedia article on Design of Experiments, there are 'multiple approaches for determining the set of design points (unique combinations of the settings of the independent variables) to be used in the experiment.'\n\nSelect from the design types documented in Wikipedia:\n\n1. **Full Factorial Design** — test all possible combinations of factor levels:\n   • Per Wikipedia: 'Use of factorial experiments instead of the one-factor-at-a-time method. These are efficient at evaluating the effects and possible interactions of several factors (independent variables).'\n   • Appropriate when: few factors, interactions are important, resources permit full enumeration\n\n2. **Fractional Factorial Design** — test a strategically selected subset:\n   • Per Wikipedia's 'See also': fractional factorial designs reduce experimental runs while estimating main effects\n   • Appropriate when: many factors, higher-order interactions assumed negligible\n\n3. **Randomized Block Design** — group experimental units into blocks:\n   • Per Fisher's principles: 'Blocking is the non-random arrangement of experimental units into groups (blocks) consisting of units that are similar to one another.'\n   • Appropriate when: known nuisance variables can be used to form homogeneous blocks\n\n4. **Optimal Design** — mathematically optimized for specific criteria:\n   • Per Wikipedia: Peirce contributed 'the first English-language publication on an optimal design for regression models in 1876'\n   • Appropriate when: resource constraints are severe, design matrix must be optimized\n\n5. **Sequential Design** — adapt based on prior results:\n   • Per Wikipedia: 'The use of a sequence of experiments, where the design of each may depend on the results of previous experiments, including the possible decision to stop experimenting, is within the scope of sequential analysis.'\n   • Appropriate when: experiments are expensive, adaptive learning is valuable\n\n6. **Response Surface Methodology** — model the response surface:\n   • Per Wikipedia (figure caption): 'Design of experiments with full factorial design (left), response surface with second-degree polynomial (right)'\n   • Includes Box-Behnken and Central Composite designs\n\nEvaluate each design type against:\n• Number of factors and levels from the previous step\n• Resource constraints (number of experimental runs affordable)\n• Importance of estimating interactions vs. main effects only\n• Whether the design achieves orthogonality — per Fisher: 'sets of orthogonal contrasts are uncorrelated and independently distributed'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Design type selection requires evaluating multiple options against constraints — per Wikipedia, the design must be 'statistically optimal given the constraints of available resources' and achieve orthogonality for independent estimation of effects",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Persist the selected design type with rationale as a referenceable decision record",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Design type selected with explicit rationale tied to factor count, resource constraints, and interaction importance",
+          "Design points (unique combinations of factor level settings) enumerated or design matrix specified",
+          "Orthogonality assessed — per Fisher, orthogonal contrasts provide independent information",
+          "One-factor-at-a-time method explicitly rejected in favor of factorial approach where applicable, per Wikipedia",
+          "Trade-off between design resolution and experimental cost documented"
+        ],
+        "next_actions": [
+          "Proceed to applying Fisher's principles to the selected design"
+        ]
+      }
+    },
+    {
+      "id": "apply-fishers-principles",
+      "name": "Apply Fisher's Principles — Implement comparison, randomization, replication, and blocking",
+      "description": "Apply Ronald Fisher's foundational principles of experimental design to the selected design structure.\n\nPer the Wikipedia article on Design of Experiments: 'A methodology for designing experiments was proposed by Ronald Fisher, in his innovative books: The Arrangement of Field Experiments (1926) and The Design of Experiments (1935).'\n\nApply each principle systematically:\n\n1. **Comparison** — establish baseline and treatment groups:\n   • Per Wikipedia: 'Comparisons between treatments are much more valuable and are usually preferable, and often compared against a scientific control or traditional treatment that acts as baseline.'\n   • Per Wikipedia discussion: 'Are control conditions needed, and what should they be?'\n   • Determine if an experimental group and control group structure is appropriate, or if two experimental groups are needed when 'having a control group is not ethical'\n\n2. **Randomization** — assign units to treatments randomly:\n   • Per Wikipedia: 'Random assignment is the process of assigning individuals at random to groups or to different groups in an experiment, so that each individual of the population has the same chance of becoming a participant in the study.'\n   • Per Wikipedia: 'The random assignment of individuals to groups (or conditions within a group) distinguishes a rigorous, \"true\" experiment from an observational study or \"quasi-experiment\".'\n   • Per Wikipedia: 'Assigning units to treatments at random tends to mitigate confounding, which makes effects due to factors other than the treatment to appear to result from the treatment.'\n   • Specify the randomization mechanism (random number tables, randomization devices)\n\n3. **Replication** — plan repeated measurements:\n   • Per Wikipedia: 'Measurements are usually subject to variation and measurement uncertainty; thus they are repeated and full experiments are replicated to help identify the sources of variation, to better estimate the true effects of treatments, to further strengthen the experiment's reliability and validity.'\n   • Determine how many replications are needed\n\n4. **Blocking** — group similar experimental units:\n   • Per Wikipedia: 'Blocking reduces known but irrelevant sources of variation between units and thus allows greater precision in the estimation of the source of variation under study.'\n   • Map nuisance variables to blocking factors\n   • Determine block structure\n\n5. **Orthogonality** — ensure independent estimation:\n   • Per Wikipedia: 'If there are T treatments and T − 1 orthogonal contrasts, all the information that can be captured from the experiment is obtainable from the set of contrasts.'\n   • Verify the design matrix provides orthogonal contrasts where possible",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search for domain-specific blocking factors, known sources of variation, and established randomization procedures",
+            "priority": "recommended"
+          },
+          "WriteMemory": {
+            "reason": "Persist the experimental protocol — randomization scheme, blocking structure, replication plan — as institutional memory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Control or comparison conditions established — baseline treatment defined per Fisher's comparison principle",
+          "Randomization mechanism specified — random assignment of units to treatments documented",
+          "Replication plan defined — number of replications justified for estimating true treatment effects",
+          "Blocking structure determined — nuisance variables mapped to blocks that reduce irrelevant variation",
+          "Orthogonality verified — contrasts are uncorrelated for independent estimation of effects",
+          "All five of Fisher's principles applied to the selected design"
+        ],
+        "next_actions": [
+          "Proceed to determining sample size and statistical power"
+        ]
+      }
+    },
+    {
+      "id": "determine-sample-size-and-power",
+      "name": "Determine Sample Size & Statistical Power — Ensure adequate sensitivity",
+      "description": "Determine the sample size required for the experiment to achieve adequate statistical power and sensitivity.\n\nPer the Wikipedia article on Design of Experiments: 'Main concerns in experimental design include the establishment of validity, reliability, and replicability.' Related concerns include 'achieving appropriate levels of statistical power and sensitivity.'\n\nPer Wikipedia's discussion topics: 'What is the sample size? How many units must be collected for the experiment to be generalisable and have enough power?'\n\nAddress the following:\n\n1. **Statistical Power**:\n   • What is the minimum effect size of practical significance?\n   • What Type I error rate (α) is acceptable? (typically 0.05)\n   • What Type II error rate (β) is acceptable? What power (1 − β) is targeted? (typically 0.80 or higher)\n   • Calculate the minimum sample size needed to detect the effect size with the desired power\n\n2. **Precision of Estimates**:\n   • Per Wikipedia's weighing example: a well-designed experiment (Hadamard matrix design) can achieve '8 times as much precision for the estimate of a single item, despite costing the same number of resources (number of weighings)'\n   • How does the selected design type affect estimation precision?\n   • What is the expected variance of measurements?\n\n3. **Generalizability**:\n   • Per Wikipedia: 'The results of an experiment can be generalized reliably from the experimental units to a larger statistical population of units only if the experimental units are a random sample from the larger population; the probable error of such an extrapolation depends on the sample size.'\n   • Consider stratified sampling if the population contains distinct subpopulations\n   • Per Wikipedia: 'if the population is divided into several subpopulations that somehow differ, and the research requires each subpopulation to be equal in size, stratified sampling can be used'\n\n4. **Resource Feasibility**:\n   • Is the calculated sample size feasible given available resources?\n   • If not, can the design be modified (e.g., fractional factorial) while maintaining adequate power?\n   • Per Wikipedia: 'The risks associated with random allocation (such as having a serious imbalance in a key characteristic between a treatment group and a control group) are calculable and hence can be managed down to an acceptable level by using enough experimental units.'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search for known effect sizes, variance estimates, and standard sample size calculations in the subject domain",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Minimum detectable effect size specified with justification for practical significance",
+          "Target statistical power and acceptable error rates (α, β) defined",
+          "Sample size calculated and justified — sufficient units to detect effects with desired power",
+          "Generalizability assessed — sample representativeness of the target population confirmed",
+          "Resource feasibility confirmed — calculated sample size is achievable within constraints",
+          "Design precision evaluated — estimation variance acceptable per the design matrix properties"
+        ],
+        "next_actions": [
+          "Proceed to designing controls and bias prevention measures"
+        ]
+      }
+    },
+    {
+      "id": "design-controls-and-bias-prevention",
+      "name": "Design Controls & Prevent Bias — Blinding, manipulation checks, and false positive prevention",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically address all bias threats.\n\nPer the Wikipedia article on Design of Experiments: 'False positive conclusions, often resulting from the pressure to publish or the author's own confirmation bias, are an inherent hazard in many fields.'\n\nAddress each bias prevention mechanism:\n\n1. **Blinding**:\n   • Per Wikipedia: 'Use of double-blind designs can prevent biases potentially leading to false positives in the data collection phase.'\n   • Per Wikipedia: 'When a double-blind design is used, participants are randomly assigned to experimental groups but the researcher is unaware of what participants belong to which group.'\n   • Per Wikipedia discussion: 'Should the client/patient, researcher or even the analyst of the data be blind to conditions?'\n   • Consider triple-blind: per Wikipedia, 'taking a double-blind design to the data-analysis phase, making the study triple-blind, where the data are sent to a data-analyst unrelated to the research who scrambles up the data'\n\n2. **Manipulation Checks**:\n   • Per Wikipedia discussion: 'Manipulation checks: did the manipulation really work?'\n   • Per Wikipedia: 'Manipulation checks allow investigators to isolate the chief variables to strengthen support that these variables are operating as planned.'\n   • Design checks to verify the independent variable manipulation actually affected what it was intended to affect\n\n3. **Avoiding P-Hacking**:\n   • Per Wikipedia: experimental designs with undisclosed degrees of freedom 'can lead to conscious or unconscious \"p-hacking\": trying multiple things until you get the desired result'\n   • Per Wikipedia: 'P-hacking can be prevented by preregistering researches, in which researchers have to send their data analysis plan to the journal they wish to publish their paper in before they even start their data collection, so no data manipulation is possible.'\n   • Define the analysis plan before data collection begins\n\n4. **Statistical Control**:\n   • Per Wikipedia: 'It is best that a process be in reasonable statistical control prior to conducting designed experiments. When this is not possible, proper blocking, replication, and randomization allow for the careful conduct of designed experiments.'\n   • Per Wikipedia: 'Investigators should ensure that uncontrolled influences (e.g., source credibility perception) do not skew the findings of the study.'\n\n5. **Documentation**:\n   • Per Wikipedia: 'Clear and complete documentation of the experimental methodology is also important in order to support replication of results.'\n   • Document the full experimental protocol for replicability",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Bias prevention requires systematically auditing every threat to validity — per Wikipedia, false positives from confirmation bias and p-hacking are 'inherent hazards' that must be proactively designed against",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "WriteMemory": {
+            "reason": "Persist the complete experimental protocol — blinding scheme, manipulation checks, pre-registered analysis plan — for replicability per Wikipedia's documentation requirement",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Blinding level determined (single, double, or triple-blind) with justification",
+          "Manipulation checks designed to verify the independent variable operates as planned",
+          "Analysis plan pre-registered — all statistical tests and decision criteria specified before data collection",
+          "P-hacking prevention measures documented — degrees of freedom fully disclosed",
+          "Statistical control of the process assessed — blocking, replication, and randomization confirmed adequate",
+          "Full experimental protocol documented to support replication per Wikipedia's documentation standard"
+        ],
+        "next_actions": [
+          "Proceed to planning the analysis method and execution"
+        ]
+      }
+    },
+    {
+      "id": "plan-analysis-and-evaluate",
+      "name": "Plan Analysis Method & Evaluate Causal Attribution — ANOVA, validity, and interpretation",
+      "description": "Plan the statistical analysis method and establish the criteria for causal attribution from the experimental results.\n\nPer the Wikipedia article on Design of Experiments: 'Analysis of experiment design is built on the foundation of the analysis of variance, a collection of models that partition the observed variance into components, according to what factors the experiment must estimate or test.'\n\n1. **Select Analysis Method**:\n   • Analysis of Variance (ANOVA) — partition observed variance into components per factor\n   • Per Wikipedia: the design can be represented with a 'general linear model, with the design matrix W'\n   • Choose appropriate ANOVA model: one-way, two-way, factorial, nested, or mixed based on design structure\n   • For regression models: per Wikipedia, optimal designs for regression models date to Peirce (1876)\n\n2. **Evaluate Causal Attribution**:\n   • Per Wikipedia: 'In the pure experimental design, the independent (predictor) variable is manipulated by the researcher — that is — every participant of the research is chosen randomly from the population, and each participant chosen is assigned randomly to conditions of the independent variable. Only when this is done is it possible to certify with high probability that the reason for the differences in the outcome variables are caused by the different conditions.'\n   • Per Wikipedia: 'researchers must be aware of not certifying about causal attribution when their design doesn't allow for it'\n   • If quasi-experimental: acknowledge that 'if there are differences found in outcome variables between conditions, it is likely that there is something other than the differences between the conditions that causes the differences in outcomes, that is — a third variable'\n\n3. **Assess Delayed and Repeated Effects**:\n   • Per Wikipedia discussion: 'What is the influence of delayed effects of substantive factors on outcomes?'\n   • Per Wikipedia discussion: 'How feasible is repeated administration of the same measurement instruments to the same units at different occasions, with a post-test and follow-up tests?'\n   • Plan for post-tests and follow-up measurements if delayed effects are relevant\n\n4. **Final Validity Check**:\n   • Internal validity: does the design support causal inference?\n   • External validity: can results generalize beyond the experimental context?\n   • Construct validity: do measurements actually capture the intended constructs?\n   • Per Wikipedia: the experiment must establish 'validity, reliability, and replicability'\n\n5. **Compile Experimental Design Document**:\n   • Research question and hypothesis\n   • Variables and factors (independent, dependent, control)\n   • Design type and design matrix\n   • Fisher's principles implementation (randomization, replication, blocking)\n   • Sample size and power analysis\n   • Controls, blinding, and pre-registered analysis plan\n   • Analysis method and causal attribution criteria",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist the complete experimental design document — the final compiled protocol covering all steps — as institutional memory for execution and future reference",
+            "priority": "mandatory"
+          },
+          "SearchMemories": {
+            "reason": "Search for established analysis methods and validity frameworks in the subject domain to inform the analysis plan",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Statistical analysis method selected and justified — ANOVA model type matched to design structure",
+          "Causal attribution criteria established — whether the design supports causal inference or only correlation per Wikipedia",
+          "Delayed effects and repeated measurement feasibility assessed",
+          "All four validity types (internal, external, construct, and statistical conclusion validity) evaluated",
+          "Complete experimental design document compiled covering all workflow steps",
+          "Design is ready for execution — all decisions documented, analysis pre-registered, protocol replicable"
+        ],
+        "next_actions": [
+          "Execute the experiment according to the documented protocol",
+          "Collect data following the randomization and blinding procedures",
+          "Analyze results using the pre-registered analysis plan"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "id": "pragmatism",
+  "name": "Pragmatism",
+  "emoji": "🔨",
+  "description": "Practical-consequences reasoning — Peirce's method of clarifying conceptions by tracing their conceivable practical effects, James's 'cash value' evaluation of ideas in lived experience, and Dewey's instrumentalist pattern of inquiry that treats hypotheses as tools for resolving indeterminate situations, achieving warranted assertibility through self-correcting communal investigation",
+  "triggers": [
+    "pragmatism",
+    "pragmatic",
+    "practical consequences",
+    "Peirce pragmatic maxim",
+    "James",
+    "Dewey",
+    "instrumentalism",
+    "pragmatic maxim",
+    "cash value of ideas",
+    "warranted assertibility",
+    "fixation of belief",
+    "what works in practice",
+    "practical effects"
+  ],
+  "specification": "https://en.wikipedia.org/wiki/Pragmatism",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "encounter-indeterminate-situation",
+      "name": "Encounter the Indeterminate Situation — Identify genuine doubt that triggers inquiry",
+      "description": "Identify the indeterminate situation — the genuine doubt, disruption, or problematic experience that triggers inquiry.\n\nPer Wikipedia on Pragmatism, Peirce insisted that 'doubt cannot be feigned or created by verbal fiat to motivate fruitful inquiry, and much less can philosophy begin in universal doubt.' This is the anti-Cartesian foundation of pragmatism: inquiry begins not with hyperbolic doubt but with genuine doubt that 'irritates and inhibits, in the sense that belief is that upon which one is prepared to act.' Doubt, like belief, requires justification.\n\nPer Peirce's 'Fixation of Belief' (1877), inquiry is 'the rationally self-controlled process of attempting to return to a settled state of belief about the matter.' It arises from 'confrontation with some specific recalcitrant matter of fact' — what Dewey called an 'indeterminate situation' — which unsettles our belief in some specific proposition.\n\nPer Dewey's pattern of inquiry, this first phase involves experiencing a problematic situation where routine activity is disrupted by an obstacle, conflict, or indeterminacy. The situation is felt as genuinely doubtful before it is intellectually analyzed.\n\nCatalog: What specific beliefs have been unsettled? What recalcitrant facts or experiences triggered the doubt? What practical activities are disrupted? Distinguish genuine doubt (arising from confrontation with facts) from paper doubt (manufactured by philosophical method).",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior beliefs, established positions, and existing context around the problematic situation to understand what has been unsettled",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the domain of the indeterminate situation to map the current state of belief and identify what specific propositions are in doubt",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "The indeterminate situation explicitly identified — what specific practical activity is disrupted",
+          "Genuine doubt distinguished from paper doubt — the doubt arises from confrontation with recalcitrant facts, not verbal fiat",
+          "Specific unsettled beliefs cataloged — which propositions are no longer reliable guides to action",
+          "The disruption to action articulated — belief is 'that upon which one is prepared to act' and current beliefs no longer suffice",
+          "Scope of inquiry bounded — what settled state of belief would resolve the situation"
+        ],
+        "next_actions": [
+          "Proceed to clarifying conceptions via the pragmatic maxim"
+        ]
+      }
+    },
+    {
+      "id": "apply-pragmatic-maxim",
+      "name": "Apply the Pragmatic Maxim — Clarify meaning through conceivable practical effects",
+      "description": "Apply Peirce's pragmatic maxim to clarify the meaning of the conceptions at stake in the inquiry.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Peirce's 1878 canonical statement: 'Consider what effects, that might conceivably have practical bearings, we conceive the object of our conception to have. Then, our conception of these effects is the whole of our conception of the object.' This is the foundational method of pragmatism — a rule for attaining 'the third grade of clearness of apprehension.'\n\nPer Wikipedia on the Pragmatic Maxim, Peirce restated this as: 'The entire intellectual purport of any symbol consists in the total of all general modes of rational conduct which, conditionally upon all the possible different circumstances and desires, would ensue upon the acceptance of the symbol.' A conception's meaning equates to its acceptance's implications for general practice — not to any definite set of real effects, but to conceivable verifications.\n\nPer Peirce's 1905 clarification, pragmatism 'is not a Weltanschauung but is a method of reflexion having for its purpose to render ideas clear.' The study consists in reflexion guided by constantly holding in view the purpose of the ideas analyzed.\n\nFor each key conception in the inquiry:\n1. Enumerate all conceivable practical effects — what difference would it make to action if this conception were true?\n2. Trace implications for general practice — what modes of rational conduct would ensue under various circumstances?\n3. Identify conceivable confirmatory and disconfirmatory circumstances — what tests could verify or refute?\n4. Eliminate pseudo-distinctions — where two conceptions have identical practical effects, they are the same conception\n5. Apply James's 'cash value' test — what is the concrete difference this idea makes in someone's actual life?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically tracing the conceivable practical effects of each conception requires structured enumeration of effects, implications for conduct, and confirmatory/disconfirmatory circumstances — Peirce's method of 'experimentational mental reflection arriving at conceptions in terms of conceivable confirmatory and disconfirmatory circumstances'",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find prior clarifications of related conceptions, established practical effects, and known tests in the knowledge graph",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Explore concept relationships to identify practical effects that might not be immediately obvious from the conception alone",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each key conception's meaning clarified through its conceivable practical effects — per Peirce, 'our conception of these effects is the whole of our conception of the object'",
+          "Implications for general practice enumerated — all modes of rational conduct that would ensue upon acceptance",
+          "Conceivable confirmatory and disconfirmatory circumstances identified for each conception",
+          "Pseudo-distinctions eliminated — conceptions with identical practical effects recognized as equivalent",
+          "James's 'cash value' assessed — concrete difference each idea makes in actual lived experience articulated"
+        ],
+        "next_actions": [
+          "Proceed to generating hypotheses as instruments"
+        ]
+      }
+    },
+    {
+      "id": "generate-hypotheses-as-instruments",
+      "name": "Generate Hypotheses as Instruments — Propose ideas as tools for resolving the problem",
+      "description": "Generate candidate hypotheses treating ideas as instruments for resolving the indeterminate situation.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Dewey's instrumentalism as described in Wikipedia, 'concepts and theories are merely useful instruments and progress in science cannot be couched in terms of concepts and theories somehow mirroring reality.' Ideas are tools for managing experience and solving real-world problems — not passive reflections of an independent reality.\n\nPer Dewey's pattern of inquiry, this phase involves defining the problem precisely and formulating hypotheses as possible solutions. The problem definition transforms the initial felt difficulty into a well-defined question. Each hypothesis proposes a way to render the indeterminate situation determinate — to restore the capacity for action.\n\nReject the three inferior methods of fixing belief that Peirce identified in 'The Fixation of Belief' (1877):\n• Method of Tenacity — clinging to existing beliefs while shutting out contrary information\n• Method of Authority — accepting beliefs dictated by institutions or traditions without investigation\n• A Priori Method — fixing beliefs by what seems intuitively reasonable rather than what evidence supports\n\nInstead, apply the Method of Science: generate hypotheses that can be tested through investigation, experimentation, and reasoning based on empirical evidence. Per Peirce, only this method is 'self-correcting and communal' — producing beliefs consonant with reality.\n\nFor each hypothesis: articulate how it would resolve the indeterminate situation, what practical consequences it predicts, and how it could be tested or refuted. Per Dewey's anti-reification principle, avoid taking conceptual categories for granted — recognize that concepts are 'nominal, invented to help solve specific problems.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Generating hypotheses as instruments requires systematically defining the problem, proposing solutions that would restore the capacity for action, and screening each against Peirce's four methods of fixing belief — ensuring only hypotheses amenable to the method of science are advanced",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find prior solutions, established instruments, and analogous problems in the knowledge graph that could inform hypothesis generation",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Explore related problem domains to discover candidate instruments (ideas-as-tools) that might resolve the indeterminate situation",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Problem precisely defined — indeterminate situation transformed into a well-formed question per Dewey's pattern of inquiry",
+          "Multiple hypotheses generated as instruments — each articulates how it would render the situation determinate",
+          "Inferior methods screened out — no hypothesis relies on tenacity, authority, or a priori intuition alone",
+          "Each hypothesis specifies practical consequences it predicts and how it could be tested or refuted (method of science)",
+          "Anti-reification applied — conceptual categories examined rather than taken for granted per Dewey"
+        ],
+        "next_actions": [
+          "Proceed to testing hypotheses by practical consequences"
+        ]
+      }
+    },
+    {
+      "id": "test-by-practical-consequences",
+      "name": "Test by Practical Consequences — Evaluate through action, observation, and experience",
+      "description": "Test candidate hypotheses by tracing and evaluating their practical consequences through action and observation.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer James's pragmatism as described in Wikipedia, the 'cash value' of an idea is how it works in lived experience — 'truth is not static but is an evolving property of beliefs as they prove themselves in lived experience and practice.' Evaluate each hypothesis by what concrete difference it makes when put into practice.\n\nPer Dewey's pattern of inquiry, this is the phase of reasoning and testing — hypotheses are tested through observation and experimental action. Per Wikipedia: Dewey believed inquiry was 'a process of intelligent problem-solving, rooted in experience, experimentation, and adaptation.' Ideas are validated not by correspondence to abstract reality but by their effectiveness as tools for managing experience.\n\nPer the pragmatic maxim's testing function, Peirce characterized pragmatism as 'a method of experimentational mental reflection arriving at conceptions in terms of conceivable confirmatory and disconfirmatory circumstances — a method hospitable to the generation of explanatory hypotheses, and conducive to the employment and improvement of verification.'\n\nApply the pragmatist theory of truth pluralistically:\n• Peirce's convergence criterion — would a community of inquirers converge on this conclusion if investigation were taken far enough?\n• James's workability criterion — does this hypothesis work satisfactorily in practice? Does it help people achieve results?\n• Dewey's experimental criterion — does testing through action resolve the indeterminate situation? Does the situation become determinate?\n\nPer Hilary Putnam (Wikipedia), reconcile anti-skepticism with fallibilism: maintain confidence in the testing process while acknowledging that all conclusions are provisional and subject to revision.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Testing hypotheses pragmatically requires systematically tracing practical consequences through each of the three truth criteria (Peirce's convergence, James's workability, Dewey's experimental resolution) — each thought evaluates one hypothesis against one criterion with concrete evidence",
+            "priority": "mandatory",
+            "estimated_thoughts": 7
+          },
+          "SearchMemories": {
+            "reason": "Find prior test results, known practical consequences, and evidence from experience in the knowledge graph that bear on the hypotheses",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each hypothesis evaluated by James's 'cash value' — concrete difference it makes in actual practice identified",
+          "Peirce's convergence criterion applied — assessment of whether a community of inquirers would converge on this conclusion",
+          "Dewey's experimental criterion applied — whether testing through action resolves the indeterminate situation",
+          "Anti-skepticism and fallibilism reconciled — conclusions are provisionally trusted but recognized as revisable per Putnam",
+          "Hypotheses ranked by practical effectiveness — which instrument best resolves the problematic situation"
+        ],
+        "next_actions": [
+          "Proceed to achieving warranted assertibility"
+        ]
+      }
+    },
+    {
+      "id": "achieve-warranted-assertibility",
+      "name": "Achieve Warranted Assertibility — Fix belief through self-correcting communal inquiry",
+      "description": "Conclude the inquiry by achieving warranted assertibility — settling belief through the self-correcting method of science within a community of inquiry.\n\nPer Dewey's concept of warranted assertibility as described on Wikipedia, conclusions are justified as long as they stand up to the methods and tests of inquiry. This is not fixed 'truth' but 'a claim solidly supported by inquiry at a given time' — reflecting the open, ongoing, and self-correcting nature of knowledge.\n\nPer Peirce's theory of truth (Wikipedia): truth is 'what would be agreed upon by a community of inquirers in the long run.' The method of science is distinguished by being 'self-correcting and communal' — it aims at knowledge independent of any individual's particular opinions. Peirce insisted that 'in reasoning, there is the presupposition, and at least the hope, that truth and the real are discoverable and would be discovered, sooner or later but still inevitably, by investigation taken far enough.'\n\nPer the pragmatist reconciliation of anti-skepticism and fallibilism (Putnam, per Wikipedia): 'Although all human knowledge is partial, with no ability to take a God's-eye view, this does not necessitate a globalized skeptical attitude.' Maintain confidence in the selected conclusion while acknowledging its provisional character.\n\nDocument the warranted conclusion with:\n1. The practical effects that constitute its meaning (per the pragmatic maxim)\n2. The evidence from testing that warrants the assertion (per Dewey)\n3. The conditions under which it would need revision (per fallibilism)\n4. How it resolves the original indeterminate situation and restores capacity for action\n5. How it connects to the broader community of inquiry — what others would need to verify or challenge it",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the warranted conclusion with its full pragmatic justification — practical effects, test evidence, revision conditions, and community of inquiry implications — for institutional memory",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Verify the conclusion against existing knowledge in the graph and identify related inquiries that might inform or be informed by this result",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Warranted assertibility achieved — conclusion is solidly supported by the inquiry process per Dewey",
+          "Practical effects constituting the conclusion's meaning documented per the pragmatic maxim",
+          "Fallibilist revision conditions specified — under what circumstances the conclusion would need updating",
+          "Original indeterminate situation resolved — capacity for action restored",
+          "Community of inquiry implications stated — what convergence or verification by others would look like per Peirce",
+          "Anti-reification maintained — the conclusion is recognized as an instrument, not a mirror of ultimate reality"
+        ],
+        "next_actions": [
+          "Document conclusion: the warranted assertion with its practical meaning, evidence, and revision conditions"
+        ]
+      }
+    }
+  ]
+}

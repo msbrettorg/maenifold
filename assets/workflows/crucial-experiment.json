@@ -1,0 +1,238 @@
+{
+  "id": "crucial-experiment",
+  "name": "Crucial Experiment (Experimentum Crucis)",
+  "emoji": "⚗️",
+  "description": "Decisive experimental test designed to conclusively choose between competing hypotheses or theories — an experiment capable of decisively determining whether or not a particular hypothesis or theory is superior to all others whose acceptance is currently widespread, producing a result that rules out all rival hypotheses under the same conditions, thereby proving them false while leaving the experimenter's hypothesis not ruled out",
+  "triggers": [
+    "crucial experiment",
+    "experimentum crucis",
+    "critical test",
+    "decisive experiment",
+    "Newton prism"
+  ],
+  "specification": "https://en.wikipedia.org/wiki/Experimentum_crucis",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "enumerate-competing-hypotheses",
+      "name": "Enumerate Competing Hypotheses — Catalog all rival theories whose acceptance is currently widespread",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically enumerate all competing hypotheses.\n\nPer the Wikipedia article on Experimentum crucis: a crucial experiment is 'an experiment capable of decisively determining whether or not a particular hypothesis or theory is superior to all others whose acceptance is currently widespread in the scientific community.'\n\nThe crucial experiment requires as its precondition a well-defined set of rival explanations. Per Wikipedia, 'such an experiment — if true — must typically be able to produce a result that rules out all other hypotheses or theories.' To rule them out, they must first be explicitly identified.\n\nPer Wikipedia, Francis Bacon in his Novum Organum (1620) 'first described the concept of a situation in which one theory but not others would hold true, using the name instantia crucis (crucial instance).' Bacon's insight was that the 'crossroads' (from Latin crux) requires that the paths — the rival theories — be clearly mapped before the experiment can serve as the decisive fork.\n\nFor the subject under examination:\n• What phenomenon or question requires decisive resolution?\n• What are ALL competing hypotheses or theories currently accepted or considered by the relevant community?\n• What is each theory's core explanatory mechanism — what does it claim causes or explains the phenomenon?\n• What evidence currently supports each rival theory? Per Wikipedia, 'a given theory which is in accordance with known experiment but which has not yet produced a critical experiment is typically considered worthy of exploration'\n• Are there theories that account for existing anomalous results? Per Wikipedia on the quantum hypothesis: 'In some cases, a proposed theory can account for existing anomalous experimental results for which no other existing theory can furnish an explanation'\n• Which hypotheses are well-established, and which are newer challengers?\n• Per Wikipedia: enumerate theories exhaustively — any theory not included cannot be ruled out by the crucial experiment",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic enumeration of all rival theories is the essential precondition — per Wikipedia, the crucial experiment must 'rule out all other hypotheses or theories,' which requires complete enumeration to avoid leaving an unexamined alternative standing",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for existing knowledge about the competing theories, their evidential support, and prior attempts to discriminate between them",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the phenomenon to surface implicit theoretical commitments and identify theories that may not be immediately obvious",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All competing hypotheses or theories with current acceptance explicitly enumerated",
+          "Each theory's core explanatory mechanism articulated — what it claims causes or explains the phenomenon",
+          "Current evidential support for each rival theory documented",
+          "Theories that account for existing anomalous results identified per Wikipedia's quantum-hypothesis example",
+          "Enumeration assessed for exhaustiveness — no known rival left unexamined"
+        ],
+        "next_actions": [
+          "Proceed to identifying the crucial differentia — the point where theories make divergent predictions"
+        ]
+      }
+    },
+    {
+      "id": "identify-crucial-differentia",
+      "name": "Identify the Instantia Crucis — Locate the crossroads where rival theories diverge",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to find the decisive point of divergence.\n\nPer the Wikipedia article on Experimentum crucis, Francis Bacon described the instantia crucis — the 'crucial instance' — as the crossroads (from Latin crux) where one theory but not others would hold true. The term experimentum crucis, 'denoting the deliberate creation of such a situation for the purpose of testing the rival theories, was later coined by Robert Hooke and then famously used by Isaac Newton and Robert Boyle.'\n\nThe crucial differentia is the specific prediction or observable consequence where the competing theories make mutually exclusive claims. This is the intellectual heart of the crucial experiment.\n\nPer Wikipedia's account of Newton's experimentum crucis: Newton identified that rival theories of light made different predictions about what would happen when an isolated spectral color was passed through a second prism. Newton's theory predicted no further separation; the modification theory predicted further change. This divergent prediction was the instantia crucis.\n\nPer Wikipedia's account of the Arago spot: Poisson identified that Fresnel's wave theory predicted 'a bright spot in the center of the shadow of a perfectly circular object, a result that could not be explained by the (then current) particle theory of light.' The existence or absence of this spot was the crucial differentia.\n\nFor the subject under examination:\n• At what specific point do the competing hypotheses make mutually exclusive predictions?\n• What observable outcome would be consistent with one theory but inconsistent with all others?\n• Per Wikipedia: the result must be able to 'rule out all other hypotheses or theories' under ceteris paribus conditions — is the divergence sharp enough to achieve this?\n• Can you identify a 'Poisson's bright spot' — a surprising or counterintuitive prediction of one theory that rivals cannot accommodate?\n• What are the ceteris paribus conditions — the 'same external circumstances' and 'same input variables' — that must hold for the divergence to be meaningful?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Identifying the precise point of theoretical divergence requires careful logical analysis of each theory's predictions — per Wikipedia, the crucial instance is the 'crossroads' (crux) and must produce mutually exclusive outcomes across all rivals",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for known points of divergence between the theories, prior crucial tests, and documented predictions",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Specific point of divergence identified — where competing hypotheses make mutually exclusive predictions",
+          "Observable outcome specified that is consistent with one theory but inconsistent with all others",
+          "Ceteris paribus conditions defined — the external circumstances and input variables that must remain constant",
+          "Sharpness of divergence assessed — whether the predicted outcomes are sufficiently distinct to be decisive",
+          "The instantia crucis articulated as a clear, testable proposition"
+        ],
+        "next_actions": [
+          "Proceed to designing the decisive experimental test"
+        ]
+      }
+    },
+    {
+      "id": "design-decisive-test",
+      "name": "Design the Experimentum Crucis — Construct the experiment that forces nature's verdict",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to design the experiment systematically.\n\nPer the Wikipedia article on Experimentum crucis, the term denotes 'the deliberate creation of such a situation for the purpose of testing the rival theories.' The experiment must be designed such that its result 'rules out all other hypotheses or theories, thereby demonstrating that under the conditions of the experiment (i.e., under the same external circumstances and for the same input variables within the experiment), those hypotheses and theories are proven false but the experimenter's hypothesis is not ruled out.'\n\nPer Wikipedia's account of Newton's prism experiment: Newton 'describes an optical experimentum crucis in the First Book, Part I, Proposition II, Theorem II, Experiment 6, to prove that sunlight consists of rays that differ in their index of refraction.' Newton isolated one spectral color from the first prism's output and passed it through a second prism, demonstrating that it did not separate further — proving 'that the colors in white light are intrinsic and not due to the prism or differing speeds in the medium.'\n\nPer Wikipedia on Robert Boyle and the mercury barometer: Boyle 'was the first person to hail an experiment as experimentum crucis when he referred to the famous mercury barometer experiment on Puy-de-Dôme in 1648. This experiment settled the question: Was there some natural resistance to the creation of an apparently empty space at the top of the tube, or was the height of the mercury determined solely by the weight of the air?'\n\nFor the subject under examination:\n• What specific experimental setup will create the conditions under which the theories diverge?\n• What must be observed or measured, and how?\n• What controls are needed to maintain the ceteris paribus conditions?\n• Per Wikipedia: the experiment must operate 'under the same external circumstances and for the same input variables' — specify what these are\n• Per Newton's example: can you isolate the variable of interest to make the test as clean as possible?\n• Per the Puy-de-Dôme example: can the experiment be performed in a context where the competing theories make maximally different predictions?\n• What constitutes a clear positive result versus a clear negative result?\n• Per Wikipedia: 'The production of such an experiment is considered necessary for a particular hypothesis or theory to be considered an established part of the body of scientific knowledge'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Experimental design must ensure the setup forces a decisive outcome — per Wikipedia, the experiment must 'rule out all other hypotheses' under controlled conditions, requiring systematic design of controls, measurements, and observation protocols",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for prior experimental designs, measurement methodologies, and known confounding factors in the subject domain",
+            "priority": "recommended"
+          },
+          "WriteMemory": {
+            "reason": "Record the experimental design specification for traceability and future reference — this is the core artifact of the crucial experiment methodology",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Experimental setup specified — conditions under which the theories make divergent predictions are deliberately created",
+          "Observation and measurement protocols defined — what will be observed, how, and by whom",
+          "Controls established to maintain ceteris paribus conditions per Wikipedia's requirement",
+          "Clear positive and negative results defined for each competing hypothesis",
+          "The experiment is sufficient per Wikipedia's standard: capable of 'decisively determining whether or not a particular hypothesis is superior to all others'"
+        ],
+        "next_actions": [
+          "Proceed to specifying the falsification criteria for each rival theory"
+        ]
+      }
+    },
+    {
+      "id": "specify-falsification-criteria",
+      "name": "Specify Falsification Criteria — Define what outcome proves each rival false",
+      "description": "Per the Wikipedia article on Experimentum crucis, the experiment 'must typically be able to produce a result that rules out all other hypotheses or theories, thereby demonstrating that under the conditions of the experiment... those hypotheses and theories are proven false but the experimenter's hypothesis is not ruled out.'\n\nFor each competing hypothesis enumerated in step 1, specify the exact criterion by which the experimental result would falsify it. This is the logical backbone of the crucial experiment — without explicit falsification criteria, the experiment cannot be decisive.\n\nPer Wikipedia's reference to Contraposition as 'the formal basis of an experimentum crucis': the logical structure is that if theory T predicts outcome O under conditions C, then observing not-O under conditions C falsifies T (by modus tollens). Make this explicit for each rival.\n\nPer Wikipedia's account of the Arago spot: the particle theory of light could not explain a bright spot in the center of a circular shadow — thus observing the bright spot falsified the particle theory. The wave theory predicted the spot — thus observing it was consistent with (but did not definitively prove) the wave theory.\n\nFor the subject under examination:\n• For EACH competing hypothesis: what specific experimental outcome would prove it false?\n• What is the logical structure? (If theory T, then outcome O; observed not-O; therefore not-T)\n• Per Wikipedia: are the falsification criteria sharp — does each outcome cleanly eliminate exactly one or more rivals?\n• Are there outcomes that would falsify ALL theories, including the experimenter's? Per Wikipedia: 'it is not unusual in the history of science for theories to be developed fully before producing a critical experiment' — the experimenter's theory may also be at risk\n• What outcome would leave the result ambiguous or inconclusive?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search for known falsification conditions, prior refutations, and documented failure modes of each competing theory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Falsification criterion explicitly stated for each competing hypothesis — what outcome would prove it false",
+          "Logical structure made explicit per Wikipedia's reference to Contraposition as the formal basis (modus tollens)",
+          "Sharpness assessed — whether each outcome cleanly eliminates one or more rivals without ambiguity",
+          "Conditions under which ALL theories (including the experimenter's) would be falsified identified",
+          "Conditions under which the result would be ambiguous or inconclusive documented"
+        ],
+        "next_actions": [
+          "Proceed to executing the experiment and recording observations"
+        ]
+      }
+    },
+    {
+      "id": "execute-and-observe",
+      "name": "Execute the Experimentum Crucis — Perform the test and record observations",
+      "description": "Carry out the designed experiment and record observations faithfully.\n\nPer the Wikipedia article on Experimentum crucis and Newton's example: Newton performed his prism experiment by passing sunlight through a first prism to produce a spectrum, isolating a single spectral color, then passing that isolated color through a second prism. He observed that 'it did not separate further. This proved that the colors in white light are intrinsic and not due to the prism or differing speeds in the medium — contradicting the prevailing theory that color was produced by modifications in white light passing through a medium.'\n\nPer Wikipedia on the Eddington experiment (1919): 'The observation of star positions confirmed predictions of gravitational lensing made by Albert Einstein in the general theory of relativity published in 1915. Eddington's observations were considered to be the first solid evidence in favor of Einstein's theory.' The expedition to Principe Island during a solar eclipse was a physical execution of a crucial experiment.\n\nPer Wikipedia on the Puy-de-Dôme barometer experiment (1648): the physical ascent of the mountain with the mercury barometer, observing the mercury level drop with altitude, was the execution that settled the debate.\n\nFor the subject under examination:\n• Execute the experiment as designed — maintain fidelity to the experimental protocol\n• Record all observations precisely — distinguish raw data from interpretation\n• Note any deviations from the planned protocol and their potential impact\n• Were the ceteris paribus conditions maintained throughout?\n• Did any unexpected observations occur that were not predicted by any of the competing theories?\n• Per Wikipedia on anomalous results: did the experiment reveal 'existing anomalous experimental results for which no other existing theory can furnish an explanation'?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search for relevant prior observations, baseline data, and known experimental artifacts that might affect interpretation of results",
+            "priority": "recommended"
+          },
+          "WriteMemory": {
+            "reason": "Record raw experimental observations as they are made — preserving the primary data before interpretation begins",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Experiment executed as designed with protocol fidelity documented",
+          "All observations recorded precisely — raw data distinguished from interpretation",
+          "Deviations from planned protocol noted with assessment of their potential impact",
+          "Ceteris paribus conditions assessed — whether external circumstances and input variables remained constant",
+          "Any unexpected or anomalous observations documented"
+        ],
+        "next_actions": [
+          "Proceed to evaluating the decisiveness of the result"
+        ]
+      }
+    },
+    {
+      "id": "evaluate-decisiveness",
+      "name": "Evaluate Decisiveness — Assess whether the result is truly conclusive, accounting for Duhem–Quine concerns",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to rigorously evaluate whether the experimental result is genuinely decisive.\n\nPer the Wikipedia article on Experimentum crucis: 'An opposite view, rejecting the decisive value of the experimentum crucis in choosing one hypothesis or theory over its rivals, is the Duhem–Quine thesis.'\n\nThe Duhem–Quine thesis holds that experiments are always bound to auxiliary theoretical assumptions — a negative result could indicate a failure of the main hypothesis OR a failure of one of the auxiliary assumptions. This philosophical challenge must be confronted directly.\n\nPer Wikipedia on the quantum hypothesis: 'Such cases are not considered strong enough to fully establish a new theory, however, and in the case of quantum mechanics, it took the confirmation of the theory through new predictions for the theory to gain full acceptance.' Accounting for existing anomalies alone is insufficient — the crucial experiment must produce NEW decisive evidence.\n\nFor the subject under examination:\n• Apply the falsification criteria from step 4: which rival hypotheses are ruled out by the observed result?\n• Which hypothesis survives — is 'not ruled out' by the experimental outcome?\n• Confront the Duhem–Quine thesis: could the result be explained by failure of an auxiliary assumption rather than the main hypothesis?\n• What auxiliary assumptions were required for the experiment to be decisive? Are any of them questionable?\n• Per Wikipedia: does the result merely account for existing anomalies, or does it constitute genuinely NEW evidence that establishes the surviving hypothesis?\n• Per Wikipedia's standard: is the result sufficient for the surviving hypothesis 'to be considered an established part of the body of scientific knowledge'?\n• Would replication strengthen or weaken confidence in the decisiveness?\n• Per Wikipedia on Eddington: even observations 'considered to be the first solid evidence' may require further confirmation",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Evaluating decisiveness requires rigorous logical analysis — per Wikipedia, the Duhem–Quine thesis challenges whether any single experiment can be truly decisive, and this challenge must be addressed through careful examination of auxiliary assumptions and logical structure",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for known Duhem–Quine challenges in the subject domain, prior disputed crucial experiments, and auxiliary assumptions that have historically proven problematic",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Falsification criteria applied to each rival hypothesis — which are ruled out by the observed result",
+          "Surviving hypothesis identified — the one 'not ruled out' by the experiment",
+          "Duhem–Quine thesis confronted — auxiliary assumptions required for decisiveness explicitly examined",
+          "Assessment of whether the result constitutes NEW decisive evidence or merely accounts for existing anomalies",
+          "Confidence level stated — whether the result meets Wikipedia's standard for establishment as scientific knowledge",
+          "Need for replication or further confirmation assessed"
+        ],
+        "next_actions": [
+          "Proceed to recording the verdict and its implications"
+        ]
+      }
+    },
+    {
+      "id": "record-verdict",
+      "name": "Record the Verdict — Document the conclusive result and its implications for the body of knowledge",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to synthesize the final verdict.\n\nPer the Wikipedia article on Experimentum crucis: 'The production of such an experiment is considered necessary for a particular hypothesis or theory to be considered an established part of the body of scientific knowledge.'\n\nThe verdict of the crucial experiment must be recorded with the same precision and care as the great decisive moments in the history of science.\n\nPer Wikipedia's historical examples:\n• Newton's verdict: 'the colors in white light are intrinsic' — ruling out modification theories\n• Arago's verdict: the existence of the bright spot 'led to the acceptance of the wave theory' — ruling out the particle theory\n• Eddington's verdict: star positions 'confirmed predictions of gravitational lensing' — providing 'the first solid evidence in favor of Einstein's theory'\n• The Puy-de-Dôme verdict: 'the height of the mercury determined solely by the weight of the air' — ruling out horror vacui\n\nFor the subject under examination:\n• State the verdict clearly: which hypothesis or theory has the crucial experiment confirmed as superior?\n• Which rival hypotheses have been proven false, and by what specific evidence?\n• What are the implications for the broader body of knowledge?\n• Per Wikipedia: does the surviving theory now qualify 'to be considered an established part of the body of scientific knowledge,' or does it require further confirmation?\n• What new predictions does the surviving theory make that could serve as the basis for future crucial experiments?\n• Per Wikipedia on the DNA discovery: does the verdict have practical implications — as DNA's structure 'led to its application in synthetic biology, in genetic engineering, in forensics, genetic testing, genomics and pharmaceuticals'?\n• Document any caveats, limitations, or domains where the verdict may not apply\n• Record the full chain of reasoning from hypothesis enumeration through experimental execution to verdict",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Synthesizing the final verdict requires integrating all prior steps — the enumerated hypotheses, the crucial differentia, the experimental design, the falsification criteria, the observations, and the decisiveness evaluation — into a coherent conclusive statement",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "WriteMemory": {
+            "reason": "Record the verdict, the evidence chain, and the implications to the knowledge graph — per Wikipedia, this is the moment where a hypothesis becomes 'an established part of the body of scientific knowledge'",
+            "priority": "mandatory"
+          },
+          "SearchMemories": {
+            "reason": "Search for related knowledge that should be updated or connected in light of the verdict — the crucial experiment's implications propagate through the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Verdict clearly stated — which hypothesis the crucial experiment confirms as superior",
+          "Rival hypotheses explicitly listed as falsified with the specific evidence that rules each out",
+          "Implications for the broader body of knowledge articulated",
+          "Assessment of whether the surviving theory qualifies as established scientific knowledge per Wikipedia's standard",
+          "New predictions of the surviving theory identified — potential bases for future crucial experiments",
+          "Practical implications documented where applicable",
+          "Caveats and limitations recorded",
+          "Full reasoning chain from enumeration through verdict documented and persisted to memory"
+        ],
+        "next_actions": [
+          "Verdict recorded — the crucial experiment is complete"
+        ]
+      }
+    }
+  ]
+}

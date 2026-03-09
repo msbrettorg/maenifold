@@ -1,0 +1,290 @@
+{
+  "id": "hypothetico-deductive",
+  "name": "Hypothetico-Deductive Method (Multi-Agent H-D Scientific Inquiry)",
+  "emoji": "🔬",
+  "description": "A multi-agent implementation of the hypothetico-deductive model — the canonical formulation of the scientific method described on Wikipedia. Scientific inquiry proceeds by: (1) gathering experience and framing a problem, (2) formulating a falsifiable hypothesis, (3) deducing testable predictions from the hypothesis, and (4) testing those predictions against evidence. A test outcome that conflicts with the predictions falsifies the hypothesis; an outcome that does not conflict corroborates it (but never proves it). Per Einstein: 'No amount of experimentation can ever prove me right; a single experiment can prove me wrong.' This workflow instantiates the full H-D cycle with three parallel hypothesis-prediction-test pipelines, incorporating Hempel's probabilistic extension (Bayesian updating), Popper's falsificationist methodology, and safeguards against affirming the consequent.",
+  "triggers": [
+    "hypothetico-deductive",
+    "H-D method",
+    "hypothetico-deductive model",
+    "hypothesis testing",
+    "deductive testing"
+  ],
+  "specification": "https://en.wikipedia.org/wiki/Hypothetico-deductive_model",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": true,
+  "steps": [
+    {
+      "id": "observation-and-experience",
+      "name": "🔍 Observation & Experience (Problem Framing)",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer the H-D model's Step 1: 'Use your experience: Consider the problem and try to make sense of it. Gather data and look for previous explanations.' This step frames the problem situation that the H-D cycle will address.\n\n1. **Articulate the Problem**:\n   - What specific phenomenon, anomaly, or question requires explanation?\n   - What existing theories or explanations currently address this domain?\n   - Where do current explanations fail, leave gaps, or generate contradictions?\n\n2. **Gather Relevant Data**:\n   - What empirical observations are available?\n   - What background knowledge and prior research bear on this problem?\n   - What domain constraints or boundary conditions apply?\n   - Query the knowledge graph: use BuildContext on [[hypothetico-deductive-model]], [[scientific-method]], [[falsifiability]] and any domain-specific concepts\n\n3. **Identify Explanatory Gaps**:\n   - What observations are unexplained by current theories?\n   - What predictions of current theories have failed?\n   - Are there competing explanations that each account for some but not all observations?\n\n4. **Establish Falsifiability Criteria**:\n   - Per Popper's demarcation criterion: what would count as a falsifiable hypothesis for this domain?\n   - What kinds of predictions would be genuinely risky (could be wrong)?\n   - Define what constitutes a 'severe test' — one the hypothesis is unlikely to pass unless it captures something real\n   - ⚠️ CRITICAL: Avoid the fallacy of affirming the consequent — seeking confirmations is not the same as testing predictions\n\n5. **Memory Architecture**:\n```\nmemory://hypothetico-deductive/[topic]/\n├── problem-framing.md\n├── hypotheses/\n│   ├── hypothesis-1.md\n│   ├── hypothesis-2.md\n│   └── hypothesis-3.md\n├── predictions/\n│   ├── predictions-1.md\n│   ├── predictions-2.md\n│   └── predictions-3.md\n├── tests/\n│   ├── test-results-1.md\n│   ├── test-results-2.md\n│   └── test-results-3.md\n├── falsification-analysis.md\n├── bayesian-evaluation.md\n└── refined-theory.md\n```\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Problem framing determines the quality of all subsequent hypotheses — poor framing yields unfalsifiable or trivial hypotheses",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Problem articulation with specific explanatory gap",
+              "Background knowledge and data inventory",
+              "Falsifiability criteria for this domain",
+              "Severe test design parameters"
+            ]
+          },
+          "BuildContext": {
+            "reason": "Ground the problem framing in existing knowledge graph concepts",
+            "priority": "recommended"
+          },
+          "WriteMemory": {
+            "reason": "Persist the problem framing as the anchor for the entire H-D cycle",
+            "priority": "mandatory",
+            "output": "memory://hypothetico-deductive/[topic]/problem-framing.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Problem situation articulated with specific explanatory gap or anomaly",
+          "Background knowledge and relevant data gathered",
+          "Falsifiability criteria established for this domain",
+          "Severe test parameters defined — neither trivially passable nor impossible",
+          "Memory architecture initialized"
+        ],
+        "next_actions": [
+          "Dispatch Hypothesizer agents for parallel hypothesis formulation"
+        ]
+      }
+    },
+    {
+      "id": "hypothesis-formulation",
+      "name": "💡 Hypothesis Formulation (Parallel Hypothesizers)",
+      "description": "🚫 BLOCKING: Dispatch ALL Hypothesizer agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer the H-D model's Step 2: 'Form a conjecture (hypothesis): When nothing else is yet known, try to state an explanation, to someone else, or to your notebook.' Each agent formulates a distinct, falsifiable hypothesis — a tentative explanation that can be subjected to deductive testing.\n\n```\nTask 1: Hypothesis — Primary Explanatory Account\nAgent: researcher\nInstruction: You are an H-D Hypothesizer. Read memory://hypothetico-deductive/[topic]/problem-framing.md. Formulate a PRIMARY HYPOTHESIS that offers the most straightforward explanatory account for the problem situation. Your hypothesis MUST be:\n\n1. **Falsifiable**: Makes specific claims that could be proven wrong by observation\n2. **Explanatory**: Accounts for the observed data and anomalies identified in the problem framing\n3. **Precise**: Stated clearly enough that specific predictions can be deduced from it\n4. **Parsimonious**: Does not invoke unnecessary entities or mechanisms (Occam's razor)\n\nStructure:\n- State the hypothesis as a clear, testable proposition\n- Explain what phenomenon it explains and how\n- Identify what observations would FALSIFY it (not just what would support it)\n- List any auxiliary assumptions required for the hypothesis to hold\n- Rate its empirical content: low (rules out few possibilities) → medium → high (rules out many possible states of affairs)\n- Include 10+ [[WikiLinks]] (e.g., [[falsifiability]], [[hypothesis]], [[empirical-content]], [[parsimony]])\n\nOutput: memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-1.md\n\nTask 2: Hypothesis — Mechanistic/Structural Alternative\nAgent: researcher\nInstruction: You are an H-D Hypothesizer. Read memory://hypothetico-deductive/[topic]/problem-framing.md. Formulate an ALTERNATIVE HYPOTHESIS that proposes a different mechanism, structure, or causal process to explain the same problem. This hypothesis MUST differ substantively from the most obvious explanation. It should:\n\n1. **Falsifiable**: Make distinct predictions that differ from the primary hypothesis\n2. **Mechanistic**: Identify a specific causal mechanism, structural relationship, or generative process\n3. **Novel**: Propose something not already part of the standard explanation\n4. **Testable**: Generate predictions that can distinguish it from the primary hypothesis\n\nStructure:\n- State the hypothesis as a clear, testable proposition about mechanisms or structure\n- Explain what observations it explains that the primary hypothesis does not (or explains better)\n- Identify falsification conditions specific to this mechanistic account\n- List auxiliary assumptions and their independent testability\n- Rate empirical content: low → medium → high\n- Include 10+ [[WikiLinks]]\n\nOutput: memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-2.md\n\nTask 3: Hypothesis — Contrarian/Null Hypothesis\nAgent: researcher\nInstruction: You are an H-D Hypothesizer playing devil's advocate. Read memory://hypothetico-deductive/[topic]/problem-framing.md. Formulate a CONTRARIAN HYPOTHESIS — one that challenges the assumptions underlying the problem itself, or a null hypothesis that the observed phenomenon requires no special explanation. This serves as a critical control:\n\n1. **Falsifiable**: Even the null/contrarian position must make specific testable predictions\n2. **Challenging**: Questions whether the anomaly is real, or whether existing explanations already suffice\n3. **Parsimonious**: Shows what the simplest possible account would look like\n4. **Baseline**: Provides a benchmark against which bolder hypotheses can be compared\n\nStructure:\n- State the contrarian/null hypothesis clearly\n- Explain what it predicts that differs from the other hypotheses\n- Identify what evidence would falsify even this minimal position\n- Identify what evidence would compel moving beyond this baseline\n- Rate empirical content: low → medium → high\n- Include 10+ [[WikiLinks]] (e.g., [[null-hypothesis]], [[confirmation-bias]], [[underdetermination]])\n\nOutput: memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-3.md\n```\n\n⏱️ Duration: 15-20 minutes (parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Hypothesizer agents — each formulates a distinct, falsifiable hypothesis",
+            "priority": "mandatory",
+            "agent_type": "researcher",
+            "parallel_dispatch": true,
+            "agent_count": 3
+          },
+          "ReadMemory": {
+            "reason": "Each agent reads the problem framing to ground its hypothesis",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://hypothetico-deductive/[topic]/problem-framing.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Hypothesizer agents dispatched in a single message",
+          "Each hypothesis is falsifiable — makes predictions that could be wrong",
+          "Each hypothesis includes explicit falsification conditions",
+          "Each hypothesis lists auxiliary assumptions",
+          "Hypotheses are genuinely distinct — not trivial variations"
+        ],
+        "next_actions": [
+          "Dispatch Deductionist agents for parallel prediction derivation"
+        ]
+      }
+    },
+    {
+      "id": "prediction-derivation",
+      "name": "📐 Prediction Derivation (Parallel Deductionists)",
+      "description": "🚫 BLOCKING: Dispatch ALL Deductionist agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer the H-D model's Step 3: 'Deduce predictions from the hypothesis: if you assume 2 is true, what consequences follow?' Each Deductionist agent takes one hypothesis and rigorously derives specific, testable predictions through deductive logic. The quality of the H-D cycle depends on whether predictions are genuinely deduced (not merely suggested) and are empirically discriminating.\n\n```\nTask 1: Deductionist — Derive Predictions from Hypothesis 1\nAgent: researcher\nInstruction: You are an H-D Deductionist — a specialist in deductive logic. Read:\n- memory://hypothetico-deductive/[topic]/problem-framing.md\n- memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-1.md\n\nDerive SPECIFIC, TESTABLE PREDICTIONS from Hypothesis 1 through strict deductive logic:\n\n1. **Deductive Chain**: For each prediction, show the logical steps:\n   - Premise 1 (the hypothesis): H₁ states that...\n   - Premise 2 (auxiliary assumption or background knowledge): Given that...\n   - Conclusion (prediction): Therefore, we should observe...\n\n2. **Prediction Categories**:\n   - **Novel predictions**: Outcomes the hypothesis predicts that no existing theory predicts\n   - **Discriminating predictions**: Outcomes where this hypothesis predicts differently from alternatives\n   - **Risky predictions**: Outcomes that would be very unlikely if the hypothesis were false\n\n3. **Falsification Mapping**: For each prediction, explicitly state:\n   - What observation would CONFIRM this prediction\n   - What observation would DISCONFIRM this prediction\n   - ⚠️ WARNING: Seeking confirming instances is the fallacy of affirming the consequent. The goal is to find predictions that COULD BE WRONG.\n\n4. Derive at least 5 predictions, ranked by severity (how discriminating they are)\n- Include 10+ [[WikiLinks]] (e.g., [[prediction]], [[deductive-reasoning]], [[affirming-the-consequent]], [[severe-test]])\n\nOutput: memory://hypothetico-deductive/[topic]/predictions/predictions-1.md\n\nTask 2: Deductionist — Derive Predictions from Hypothesis 2\nAgent: researcher\nInstruction: You are an H-D Deductionist. Read:\n- memory://hypothetico-deductive/[topic]/problem-framing.md\n- memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-2.md\n\nDerive SPECIFIC, TESTABLE PREDICTIONS from Hypothesis 2 using the same methodology:\n\n1. **Deductive Chain**: Show logical steps for each prediction\n2. **Prediction Categories**: Novel, discriminating, and risky predictions\n3. **Falsification Mapping**: What would confirm vs. disconfirm each prediction\n4. Derive at least 5 predictions, ranked by severity\n5. **Cross-Hypothesis Comparison**: Note any predictions that overlap with or contradict Hypothesis 1's predictions\n- Include 10+ [[WikiLinks]]\n\nOutput: memory://hypothetico-deductive/[topic]/predictions/predictions-2.md\n\nTask 3: Deductionist — Derive Predictions from Hypothesis 3\nAgent: researcher\nInstruction: You are an H-D Deductionist. Read:\n- memory://hypothetico-deductive/[topic]/problem-framing.md\n- memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-3.md\n\nDerive SPECIFIC, TESTABLE PREDICTIONS from the contrarian/null Hypothesis 3:\n\n1. **Deductive Chain**: Show logical steps for each prediction\n2. **Prediction Categories**: Novel, discriminating, and risky predictions\n3. **Falsification Mapping**: What would confirm vs. disconfirm each prediction\n4. **Baseline Predictions**: What does the null/contrarian position predict? If this is a null hypothesis, its predictions serve as the baseline against which the bolder hypotheses are measured\n5. Derive at least 5 predictions, ranked by severity\n- Include 10+ [[WikiLinks]] (e.g., [[null-hypothesis]], [[prediction]], [[underdetermination]])\n\nOutput: memory://hypothetico-deductive/[topic]/predictions/predictions-3.md\n```\n\n⏱️ Duration: 15-20 minutes (parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Deductionist agents — each derives testable predictions from one hypothesis",
+            "priority": "mandatory",
+            "agent_type": "researcher",
+            "parallel_dispatch": true,
+            "agent_count": 3
+          },
+          "ReadMemory": {
+            "reason": "Each agent reads its assigned hypothesis and the problem framing",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://hypothetico-deductive/[topic]/problem-framing.md",
+              "memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-*.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Deductionist agents dispatched in a single message",
+          "Each agent derives at least 5 testable predictions with deductive chains",
+          "Each prediction includes explicit falsification conditions",
+          "Predictions are ranked by discriminating power (severity)",
+          "Affirming-the-consequent fallacy explicitly guarded against"
+        ],
+        "next_actions": [
+          "Dispatch Experimenter agents for parallel hypothesis testing"
+        ]
+      }
+    },
+    {
+      "id": "experimental-testing",
+      "name": "🧪 Experimental Testing (Parallel Experimenters)",
+      "description": "🚫 BLOCKING: Dispatch ALL Experimenter agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer the H-D model's Step 4: 'Test (or experiment): Look for evidence (observations) that conflict with these predictions in order to disprove 2. It is a fallacy or error in one's reasoning to seek 3 directly as proof of 2. This formal fallacy is called affirming the consequent.' Each Experimenter agent tests one hypothesis's predictions by actively seeking disconfirming evidence.\n\n```\nTask 1: Experimenter — Test Hypothesis 1\nAgent: researcher\nInstruction: You are an H-D Experimenter — your mission is to TEST, not confirm. Read:\n- memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-1.md\n- memory://hypothetico-deductive/[topic]/predictions/predictions-1.md\n- memory://hypothetico-deductive/[topic]/problem-framing.md\n\nFor each prediction derived from Hypothesis 1, systematically search for evidence that CONFLICTS with it:\n\n1. **Evidence Gathering**:\n   - Search for empirical data, observations, case studies, or established facts that bear on each prediction\n   - Prioritize evidence that could DISCONFIRM predictions over evidence that merely confirms them\n   - Use thought experiments where empirical data is unavailable\n   - Check for known counterexamples, edge cases, or boundary conditions\n\n2. **Test Execution**: For each prediction:\n   - State the prediction being tested\n   - Present the evidence found (confirming AND disconfirming)\n   - Assess whether the evidence conflicts with the prediction\n   - Note the strength of the evidence (anecdotal → correlational → experimental → meta-analytic)\n\n3. **Verdict per Prediction**: CONFIRMED / DISCONFIRMED / INCONCLUSIVE\n\n4. **Overall Hypothesis Verdict**:\n   - FALSIFIED: One or more critical predictions decisively disconfirmed\n   - CORROBORATED: Predictions survived testing but hypothesis is NOT proven (can never be)\n   - INCONCLUSIVE: Evidence insufficient to discriminate\n\n5. **Hempel's Extension**: If predictions involve probabilities, note the Bayesian update — how much should our confidence shift based on this evidence?\n\n- Include 10+ [[WikiLinks]] (e.g., [[falsification]], [[corroboration]], [[severe-test]], [[experimental-design]])\n\nOutput: memory://hypothetico-deductive/[topic]/tests/test-results-1.md\n\nTask 2: Experimenter — Test Hypothesis 2\nAgent: researcher\nInstruction: You are an H-D Experimenter. Read:\n- memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-2.md\n- memory://hypothetico-deductive/[topic]/predictions/predictions-2.md\n- memory://hypothetico-deductive/[topic]/problem-framing.md\n\nApply the same rigorous testing methodology to Hypothesis 2:\n\n1. **Evidence Gathering**: Actively seek disconfirming evidence for each prediction\n2. **Test Execution**: Present evidence and assess conflict with predictions\n3. **Verdict per Prediction**: CONFIRMED / DISCONFIRMED / INCONCLUSIVE\n4. **Overall Hypothesis Verdict**: FALSIFIED / CORROBORATED / INCONCLUSIVE\n5. **Cross-Hypothesis Evidence**: Note if evidence that corroborates H2 simultaneously falsifies H1 or H3 (discriminating evidence)\n6. **Hempel's Extension**: Bayesian confidence update\n\n- Include 10+ [[WikiLinks]]\n\nOutput: memory://hypothetico-deductive/[topic]/tests/test-results-2.md\n\nTask 3: Experimenter — Test Hypothesis 3 (Null/Contrarian)\nAgent: researcher\nInstruction: You are an H-D Experimenter. Read:\n- memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-3.md\n- memory://hypothetico-deductive/[topic]/predictions/predictions-3.md\n- memory://hypothetico-deductive/[topic]/problem-framing.md\n\nApply rigorous testing to the null/contrarian Hypothesis 3:\n\n1. **Evidence Gathering**: Seek evidence that the phenomenon genuinely requires explanation beyond the null position\n2. **Test Execution**: Present evidence and assess conflict with null predictions\n3. **Verdict per Prediction**: CONFIRMED / DISCONFIRMED / INCONCLUSIVE\n4. **Overall Hypothesis Verdict**: FALSIFIED / CORROBORATED / INCONCLUSIVE\n5. **Baseline Comparison**: If the null hypothesis is corroborated, this challenges whether the bolder hypotheses are needed at all\n6. **Hempel's Extension**: Bayesian confidence update\n\n- Include 10+ [[WikiLinks]] (e.g., [[null-hypothesis]], [[falsification]], [[thought-experiment]])\n\nOutput: memory://hypothetico-deductive/[topic]/tests/test-results-3.md\n```\n\n⏱️ Duration: 20-25 minutes (parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Experimenter agents — each tests one hypothesis by seeking disconfirming evidence",
+            "priority": "mandatory",
+            "agent_type": "researcher",
+            "parallel_dispatch": true,
+            "agent_count": 3
+          },
+          "ReadMemory": {
+            "reason": "Each agent reads its assigned hypothesis, predictions, and problem framing",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://hypothetico-deductive/[topic]/hypotheses/hypothesis-*.md",
+              "memory://hypothetico-deductive/[topic]/predictions/predictions-*.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Experimenter agents dispatched in a single message",
+          "Each agent assessed every prediction with evidence",
+          "Each agent declared a verdict per prediction: CONFIRMED / DISCONFIRMED / INCONCLUSIVE",
+          "Each agent declared an overall hypothesis verdict: FALSIFIED / CORROBORATED / INCONCLUSIVE",
+          "Affirming the consequent explicitly guarded against — confirmation ≠ proof"
+        ],
+        "next_actions": [
+          "Proceed to Falsification Analysis"
+        ]
+      }
+    },
+    {
+      "id": "falsification-analysis",
+      "name": "⚖️ Falsification Analysis & Iterative Refinement",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer the H-D model's iterative logic: 'If the outcome of 4 holds, and 3 is not yet disproven, you may continue with 3, 4, 1, and so forth; but if the outcome of 4 shows 3 to be false, you will have to go back to 2 and try to invent a new 2, deduce a new 3, look for 4, and so forth.' This step performs the critical analysis of all three hypothesis-prediction-test pipelines.\n\n1. **Read All Test Reports**:\n   - Review each Experimenter's verdicts and supporting evidence\n   - Assess whether each test was genuinely severe (could the hypothesis have failed?)\n   - Check for instances of confirmation holism — could auxiliary hypotheses be blamed instead of the main hypothesis?\n\n2. **Triage Hypotheses**:\n   - **FALSIFIED**: Hypotheses with decisively disconfirmed predictions. Per the H-D model, these must be revised or replaced. Note: 'this method can never absolutely verify (prove the truth of) 2. It can only falsify 2.'\n   - **CORROBORATED**: Hypotheses whose predictions survived testing. These earn provisional acceptance but are NOT proven true — future evidence may still falsify them.\n   - **INCONCLUSIVE**: Hypotheses where evidence was insufficient. Identify what additional tests would be needed.\n\n3. **Cross-Hypothesis Comparison**:\n   - Which hypothesis has the highest empirical content (rules out the most possibilities)?\n   - Which survived the most severe tests?\n   - Per Popper: compare 'the explanatory value of competing hypotheses by testing how stringently they are corroborated by their predictions'\n   - Is there discriminating evidence — observations that support one hypothesis while falsifying another?\n\n4. **Guard Against Logical Fallacies**:\n   - **Affirming the consequent**: Confirmation of predictions does NOT prove the hypothesis\n   - **Confirmation holism**: Can the hypothesis be 'saved' by modifying auxiliary assumptions? If so, flag this as an immunizing stratagem\n   - **Raven paradox**: Is corroborating evidence truly probative, or is it trivially generated?\n   - **Underdetermination** (per Sean Carroll): Multiple hypotheses may be equally consistent with the evidence\n\n5. **Hempel's Probabilistic Extension**:\n   - Per Carl Hempel: hypotheses can incorporate probabilities\n   - Apply Bayesian analysis: how much should our confidence in each hypothesis shift given the test results?\n   - Per Bayes' theorem: probability will never reach exactly 0% or 100% — absolute certainty is impossible in either direction\n\n6. **Iterative Refinement**:\n   - For falsified hypotheses: what was learned? Can elements be salvaged?\n   - For corroborated hypotheses: what further predictions should be derived and tested?\n   - Synthesize the strongest surviving elements into a refined theory\n   - Identify the refined theory's most vulnerable prediction (its Achilles' heel)\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Falsification analysis requires systematic comparison of three H-D pipelines and meta-level assessment of test severity",
+            "priority": "mandatory",
+            "estimated_thoughts": 6,
+            "focus_areas": [
+              "Validate test severity — were the tests genuinely discriminating?",
+              "Triage: classify each hypothesis as FALSIFIED / CORROBORATED / INCONCLUSIVE",
+              "Cross-hypothesis comparison — which has highest corroboration?",
+              "Guard against affirming the consequent and confirmation holism",
+              "Bayesian confidence update (Hempel's extension)",
+              "Synthesize refined theory from surviving elements"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all test results for comparative analysis",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://hypothetico-deductive/[topic]/tests/test-results-1.md",
+              "memory://hypothetico-deductive/[topic]/tests/test-results-2.md",
+              "memory://hypothetico-deductive/[topic]/tests/test-results-3.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the falsification analysis and Bayesian evaluation",
+            "priority": "mandatory",
+            "output": "memory://hypothetico-deductive/[topic]/falsification-analysis.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three test reports reviewed and validated for test severity",
+          "Each hypothesis classified: FALSIFIED / CORROBORATED / INCONCLUSIVE",
+          "Cross-hypothesis comparison completed with discriminating evidence identified",
+          "Logical fallacies checked: affirming the consequent, confirmation holism, raven paradox",
+          "Bayesian confidence update applied (Hempel's extension)",
+          "Refined theory synthesized from surviving elements"
+        ],
+        "next_actions": [
+          "Proceed to Knowledge Integration"
+        ]
+      }
+    },
+    {
+      "id": "knowledge-integration",
+      "name": "🧠 Knowledge Integration & Graph Construction",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nIntegrate all H-D cycle results into the maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\nTool: Sync\nScope: memory://hypothetico-deductive/[topic]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[WikiLinks]]: [[hypothetico-deductive-model]], [[falsifiability]], [[corroboration]], [[prediction]], [[experimental-design]], [[thought-experiment]], [[affirming-the-consequent]], [[confirmation-holism]], [[bayesian-inference]], [[severe-test]]\n   - Map relationships between: problem framing → hypotheses → predictions → test results → refined theory\n   - Connect to existing knowledge graph concepts from dependency workflows (prediction, experimental-design, thought-experiment)\n\n3. **Epistemological Metrics**:\n   - Hypotheses generated vs. hypotheses surviving\n   - Predictions derived vs. predictions confirmed/disconfirmed\n   - Falsification rate and severity of tests\n   - Net Bayesian confidence shift\n   - [[WikiLink]] density across all outputs\n\n4. **Create Integration Report**:\n   - Document in memory://hypothetico-deductive/[topic]/bayesian-evaluation.md\n   - Include concept network, epistemological metrics, and confidence assessments\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "Sync": {
+            "reason": "Synchronize all H-D cycle memories to graph database",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Analyze concept networks for H-D epistemological terms",
+            "priority": "mandatory"
+          },
+          "SequentialThinking": {
+            "reason": "Integration requires systematic mapping of hypothesis-prediction-test chains to knowledge graph",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          },
+          "WriteMemory": {
+            "reason": "Persist the Bayesian evaluation and integration report",
+            "priority": "mandatory",
+            "output": "memory://hypothetico-deductive/[topic]/bayesian-evaluation.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Graph synchronized with all H-D cycle outputs",
+          "Concept relationships mapped across H-D terms",
+          "Epistemological metrics calculated",
+          "Integration report written with Bayesian confidence assessments"
+        ],
+        "next_actions": [
+          "Produce final H-D Method Report"
+        ]
+      }
+    },
+    {
+      "id": "final-deliverable",
+      "name": "📋 Hypothetico-Deductive Method Report",
+      "description": "Produce the final deliverable: a structured report of the complete H-D cycle.\n\n**Report Structure**:\n\n1. **Problem Situation**: The phenomenon, anomaly, or question that motivated the H-D inquiry\n   - Background knowledge and data gathered\n   - Explanatory gaps that motivated hypothesis formation\n\n2. **Competing Hypotheses**:\n   - Hypothesis 1 (Primary Explanatory): [summary]\n   - Hypothesis 2 (Mechanistic/Structural): [summary]\n   - Hypothesis 3 (Contrarian/Null): [summary]\n\n3. **Deduced Predictions**: For each hypothesis, the key predictions derived through deductive logic\n   - Novel predictions, discriminating predictions, risky predictions\n   - Deductive chains shown\n\n4. **Test Results**: For each hypothesis:\n   - Evidence gathered (confirming and disconfirming)\n   - Verdict: FALSIFIED / CORROBORATED / INCONCLUSIVE\n   - Severity of tests applied\n\n5. **Falsification Analysis**:\n   - Which hypotheses were falsified and why\n   - Which survived and what this means (corroboration ≠ proof)\n   - Discriminating evidence identified\n\n6. **Refined Theory**: The synthesized position that survived H-D testing\n   - Key claims and remaining predictions\n   - Achilles' heel — its most vulnerable point\n   - Bayesian confidence assessment (Hempel's extension)\n\n7. **Iterative Outlook**: Per the H-D model's cycle:\n   - If corroborated: what further predictions should be tested next?\n   - If falsified: what new hypotheses should replace the old?\n   - 'If the outcome of 4 shows 3 to be false, you will have to go back to 2 and try to invent a new 2'\n\n8. **Epistemological Reflection**:\n   - Per the H-D model: 'this method can never absolutely verify (prove the truth of) 2. It can only falsify 2.'\n   - What assumptions remain untested?\n   - What would it take to falsify the refined theory?\n   - Per Einstein: 'No amount of experimentation can ever prove me right; a single experiment can prove me wrong.'\n\nPersist findings to knowledge graph with [[WikiLinks]] throughout.\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "ReadMemory": {
+            "reason": "Read all H-D cycle outputs for final report compilation",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://hypothetico-deductive/[topic]/problem-framing.md",
+              "memory://hypothetico-deductive/[topic]/falsification-analysis.md",
+              "memory://hypothetico-deductive/[topic]/bayesian-evaluation.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the refined theory as a durable knowledge artifact",
+            "priority": "mandatory",
+            "output": "memory://hypothetico-deductive/[topic]/refined-theory.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Final report covers all eight sections",
+          "Each hypothesis's fate clearly stated with supporting evidence",
+          "Refined theory stated with explicit falsification conditions",
+          "Iterative outlook identifies next H-D cycle targets",
+          "Epistemological reflection addresses limits of verification",
+          "Key findings persisted to knowledge graph with [[WikiLinks]]"
+        ],
+        "next_actions": [
+          "Deliver final H-D Method Report to user",
+          "Identify whether a second H-D cycle is warranted for remaining questions"
+        ]
+      }
+    }
+  ]
+}

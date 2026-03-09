@@ -1,0 +1,201 @@
+{
+  "id": "prediction",
+  "name": "Prediction from Hypothesis",
+  "emoji": "🔮",
+  "description": "Deriving rigorous, testable predictions from a hypothesis — extracting logical consequences through deductive and inductive reasoning, formulating quantitative and qualitative statements forecasting what would be observed under specific conditions, distinguishing genuinely unknown predictions from already-known consequences, assessing testability and predictive power, and establishing falsification criteria that connect predictions to experiments. Per Wikipedia: 'In science, a prediction is a rigorous, often quantitative, statement, forecasting what would be observed under specific conditions.' The scientific method 'involves making conjectures (hypothetical explanations), predicting the logical consequences of hypothesis, then carrying out experiments or empirical observations based on those predictions.' Any useful hypothesis will enable predictions — and 'new theories that generate many new predictions can more easily be supported or falsified.'",
+  "specification": "https://en.wikipedia.org/wiki/Prediction",
+  "triggers": [
+    "prediction",
+    "forecast",
+    "scientific prediction",
+    "testable prediction",
+    "predictive model"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "identify-hypothesis-structure",
+      "name": "Identify the Hypothesis and Its Logical Structure — Understand what is being predicted from",
+      "description": "Identify the hypothesis from which predictions will be derived and understand its logical structure.\n\nPer the Wikipedia article on the Scientific Method: 'The scientific method involves making conjectures (hypothetical explanations), predicting the logical consequences of hypothesis, then carrying out experiments or empirical observations based on those predictions.' Prediction is the third element of the scientific method, following Characterizations and Hypotheses: 'Predictions (inductive and deductive reasoning from the hypothesis or theory).'\n\nPer the Wikipedia article on Prediction, scientific prediction is 'a rigorous, often quantitative, statement, forecasting what would be observed under specific conditions.' To derive such statements, one must first understand the hypothesis's logical form — its claims, scope, and the domain of phenomena it addresses.\n\nPer the Scientific Method article: 'Any useful hypothesis will enable predictions, by reasoning including deductive reasoning.' Before deriving predictions, articulate:\n• What is the hypothesis's core claim — what does it propose to explain?\n• What is the hypothesis's logical form — universal statement, existential statement, mathematical model, or causal explanation?\n• What domain of phenomena does it address — what kinds of observations fall within its scope?\n• What prior observations or consequences are already known — per Wikipedia, 'if the outcome is already known, it is called a consequence and should have already been considered while formulating the hypothesis'\n• What types of reasoning (deductive, inductive, abductive) are applicable to this hypothesis's structure?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for the hypothesis being investigated, its formulation, supporting evidence, and the domain of phenomena it addresses — these determine what predictions can be derived",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the hypothesis and its theoretical framework to understand the full logical structure from which predictions will be extracted",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Hypothesis clearly identified with its core claim stated explicitly",
+          "Logical form classified — universal statement, existential statement, mathematical model, or causal explanation",
+          "Domain of phenomena the hypothesis addresses is delineated — what observations fall within scope",
+          "Already-known consequences distinguished from genuinely unknown predictions per Wikipedia's critical distinction",
+          "Applicable reasoning types identified — deductive, inductive, abductive — based on the hypothesis's structure"
+        ],
+        "next_actions": [
+          "Proceed to deriving logical consequences through reasoning"
+        ]
+      }
+    },
+    {
+      "id": "derive-logical-consequences",
+      "name": "Derive Logical Consequences — Extract what the hypothesis implies through deductive reasoning",
+      "description": "Systematically derive the logical consequences of the hypothesis using deductive and inductive reasoning.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia article on the Scientific Method: 'Any useful hypothesis will enable predictions, by reasoning including deductive reasoning. It might predict the outcome of an experiment in a laboratory setting or the observation of a phenomenon in nature. The prediction can also be statistical and deal only with probabilities.'\n\nPer the Scientific Method article, predictions are 'inductive and deductive reasoning from the hypothesis or theory.' Per the Prediction article, 'a prediction of this kind might be informed by a predicting person's abductive reasoning, inductive reasoning, deductive reasoning, and experience.'\n\nThe canonical example from Wikipedia: Watson and Crick 'hypothesized that DNA had a helical structure. This implied that DNA's X-ray diffraction pattern would be \"x shaped.\" This prediction followed from the work of Cochran, Crick and Vand' — the mathematical theorem provided the bridge from hypothesis (helical structure) to observable consequence (X-shaped diffraction pattern). Watson and Crick 'also noted that the double helix structure they proposed provided a simple mechanism for DNA replication' — a further logical consequence.\n\nFor each logical consequence:\n• Trace the deductive chain from hypothesis to implied observation — what must be true if the hypothesis is correct?\n• Identify whether the consequence requires mathematical, computational, or purely logical derivation\n• Note whether the consequence predicts a specific outcome or a probability distribution — per Wikipedia, 'in some cases the probability of an outcome, rather than a specific outcome, can be predicted, for example in much of quantum physics'\n• Per Wikipedia: 'Mathematical equations and models, and computer models, are frequently used to describe the past and future behaviour of a process within the boundaries of that model' — identify if formal models are needed\n• Distinguish novel predictions from already-established consequences",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Deriving logical consequences requires step-by-step deductive reasoning from hypothesis to observable implications — each thought traces one inferential link in the chain, per the scientific method's requirement that predictions follow from 'reasoning including deductive reasoning'",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Search for existing theoretical results, mathematical models, and known implications in the domain that can serve as bridges from hypothesis to prediction — as the Cochran-Crick-Vand theorem bridged DNA helical structure to X-shaped diffraction",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each logical consequence explicitly derived with the deductive chain from hypothesis to implication documented",
+          "Type of reasoning used for each derivation identified — deductive, inductive, abductive, or mathematical",
+          "Each consequence classified as deterministic (specific outcome) or probabilistic (probability distribution) per Wikipedia's distinction",
+          "Novel predictions distinguished from already-known consequences — per Wikipedia, only unknown outcomes constitute genuine predictions",
+          "No major logical consequence of the hypothesis overlooked — all observable domains within scope have been examined"
+        ],
+        "next_actions": [
+          "Proceed to formulating logical consequences as rigorous, testable prediction statements"
+        ]
+      }
+    },
+    {
+      "id": "formulate-testable-predictions",
+      "name": "Formulate Testable Predictions — State rigorous, often quantitative, forecasts of what would be observed",
+      "description": "Convert the logical consequences into rigorous, testable prediction statements — the formal output of this workflow.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia article on Prediction: 'In science, a prediction is a rigorous, often quantitative, statement, forecasting what would be observed under specific conditions; for example, according to theories of gravity, if an apple fell from a tree it would be seen to move towards the center of the Earth with a specified and constant acceleration.'\n\nEach prediction must be formulated as a statement of the form: 'Under conditions C, if the hypothesis is correct, then observation O will be obtained.' Per the Scientific Method article, predictions should state what 'would be observed under specific conditions.'\n\nPer the Wikipedia article on Prediction, scientific predictions can take multiple forms:\n• Quantitative predictions — specifying numerical values, ranges, or functional relationships (e.g., 'light bends in a gravitational field, and the amount of bending depends in a precise way on the strength of that gravitational field')\n• Qualitative predictions — specifying observable patterns or categories (e.g., DNA's X-ray diffraction pattern 'would be x shaped')\n• Probabilistic predictions — specifying probability distributions rather than point values (e.g., quantum physics predictions)\n• Statistical predictions — using regression, time series, or predictive models to forecast dependent variable values from explanatory variables\n\nPer the Scientific Method article, the critical distinction: 'It is essential that the outcome of testing such a prediction be currently unknown. Only in this case does a successful outcome increase the probability that the hypothesis is true.' Ensure each prediction targets a genuinely unknown outcome.\n\nPer Wikipedia on Prediction: 'The scientific method is built on testing statements that are logical consequences of scientific theories. This is done through repeatable experiments or observational studies.' Each prediction must be formulated so that it can be tested through repeatable experiments or observations.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Formulating each prediction as a rigorous statement requires careful specification of conditions, observables, precision, and unknownness — each thought formulates one prediction with its conditions, expected observation, and measurement criteria",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for existing measurement techniques, experimental methods, and observable quantities in the domain to ensure predictions are formulated in terms that can actually be tested",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each prediction stated as a rigorous statement: 'Under conditions C, observation O will be obtained' — per Wikipedia's definition",
+          "Predictions classified by type: quantitative, qualitative, probabilistic, or statistical",
+          "Each prediction confirmed to target a currently unknown outcome — not an already-known consequence",
+          "Precision and specificity established — quantitative predictions specify values, ranges, or functional relationships",
+          "Each prediction formulated to be testable through repeatable experiments or observational studies per Wikipedia"
+        ],
+        "next_actions": [
+          "Proceed to assessing whether predictions are accessible by observation or experience"
+        ]
+      }
+    },
+    {
+      "id": "assess-testability-and-predictive-power",
+      "name": "Assess Testability and Predictive Power — Determine if predictions are accessible by observation",
+      "description": "Evaluate whether the formulated predictions are accessible by observation or experience, and assess the overall predictive power of the hypothesis.\n\nPer the Wikipedia article on the Scientific Method: 'If the predictions are not accessible by observation or experience, the hypothesis is not yet testable and so will remain to that extent unscientific in a strict sense. A new technology or theory might make the necessary experiments feasible.' This is the critical testability gate — predictions that cannot currently be tested leave the hypothesis unscientific.\n\nPer the Wikipedia article on Prediction: 'Notions that make no testable predictions are usually considered not to be part of science (protoscience or nescience) until testable predictions can be made.' The boundary between science and non-science is drawn at prediction testability.\n\nAssess predictive power per Wikipedia: 'New theories that generate many new predictions can more easily be supported or falsified (see predictive power).' A hypothesis that generates many diverse, testable predictions has greater predictive power than one that generates few. Per Wikipedia, 'established science makes useful predictions which are often extremely reliable and accurate; for example, eclipses are routinely predicted.'\n\nPer the Scientific Method article, Einstein's general relativity example: the theory 'makes several specific predictions about the observable structure of spacetime' — multiple specific predictions across different observable domains demonstrated high predictive power.\n\nFor each prediction, assess:\n• Is the prediction accessible by current observation or experience? What instruments, experiments, or observational methods are required?\n• If not currently accessible, what new technology or theory would make it feasible? Per Wikipedia, 'a new technology or theory might make the necessary experiments feasible'\n• How many distinct, independent predictions does the hypothesis generate? More predictions = greater predictive power\n• Are the predictions specific enough to be genuinely falsifiable — could a clear negative result be obtained?\n• Per Wikipedia on accuracy: 'accurate prediction and forecasting are very difficult in some areas' — assess the inherent difficulty of testing each prediction",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search for available experimental methods, instruments, and observational techniques that could test the predictions — and for known limitations on testability in the relevant domain",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the experimental and observational landscape to determine what is currently feasible and what would require new technology or theory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Each prediction classified as currently testable or not yet testable per Wikipedia's testability gate",
+          "For untestable predictions, the required new technology or theory identified — or prediction flagged as unscientific in the strict sense",
+          "Overall predictive power assessed — number and diversity of independent testable predictions the hypothesis generates",
+          "Specificity of each prediction evaluated — whether a clear negative result could be obtained",
+          "Inherent difficulty of testing acknowledged where applicable — per Wikipedia's note that some domains resist accurate prediction"
+        ],
+        "next_actions": [
+          "Proceed to establishing falsification criteria and connecting predictions to experiments"
+        ]
+      }
+    },
+    {
+      "id": "establish-falsification-criteria",
+      "name": "Establish Falsification Criteria — Define what would contradict the predictions and reject the hypothesis",
+      "description": "Define explicit falsification criteria for each prediction — what observations would contradict the predictions and thus call the hypothesis into question.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia article on Prediction: 'A scientific theory whose predictions are contradicted by observations and evidence will be rejected. New theories that generate many new predictions can more easily be supported or falsified.' The power of predictions lies in their ability to be falsified.\n\nPer the Scientific Method article: 'Once predictions are made, they can be sought by experiments. If the test results contradict the predictions, the hypotheses which entailed them are called into question and become less tenable.' And: 'If the experimental results confirm the predictions, then the hypotheses are considered more likely to be correct, but might still be wrong and continue to be subject to further testing.'\n\nPer the Scientific Method article on hypothesis requirements: a hypothesis must be 'falsifiable, implying that it is possible to identify a possible outcome of an experiment or observation that conflicts with predictions deduced from the hypothesis; otherwise, the hypothesis cannot be meaningfully tested.'\n\nThe canonical counterexample from Wikipedia on Prediction: 'The famous Michelson–Morley experiment demonstrated that predictions deduced from this concept were not borne out in reality, thus disproving the theory of an absolute frame of reference. The special theory of relativity was proposed by Einstein as an explanation for the seeming inconsistency.'\n\nConversely, the confirmation example: Einstein's general relativity 'predicted that large masses such as stars would bend light, in contradiction to accepted theory; this was observed in a 1919 eclipse' — Eddington's observations supported General Relativity.\n\nFor each prediction, specify:\n• What observation would constitute a clear contradiction — what result would falsify this prediction?\n• What experimental design would provide the strongest test — per Wikipedia, 'testing statements that are logical consequences of scientific theories is done through repeatable experiments or observational studies'\n• What threshold of evidence would be required to accept or reject the prediction?\n• If the prediction is falsified, what would this imply for the hypothesis — complete rejection, or revision to a narrower scope?\n• What alternative hypotheses might the same experiment discriminate between?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Establishing precise falsification criteria for each prediction requires systematic reasoning about what contradictory observations would look like, what experimental designs would test them, and what the implications of falsification would be for the hypothesis",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for known experimental methods, historical falsification examples, and alternative hypotheses in the domain that the predictions should discriminate between",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Falsification criteria specified for each testable prediction — what observation would contradict it",
+          "Experimental or observational method identified for testing each prediction — repeatable and accessible",
+          "Evidence thresholds established — what level of contradictory evidence would call the hypothesis into question",
+          "Implications of falsification articulated — complete rejection versus scope revision for the hypothesis",
+          "Alternative hypotheses that the same experiments could discriminate between identified where applicable"
+        ],
+        "next_actions": [
+          "Proceed to documenting the complete prediction set"
+        ]
+      }
+    },
+    {
+      "id": "document-prediction-set",
+      "name": "Document the Prediction Set — Synthesize all predictions with their epistemic status and experimental connections",
+      "description": "Synthesize the complete set of predictions derived from the hypothesis, documenting their epistemic status, testability, falsification criteria, and connection to experimental design.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia article on the Scientific Method, predictions occupy the third position in the scientific method cycle: 'Characterizations (observations, definitions, and measurements) → Hypotheses (theoretical, hypothetical explanations) → Predictions (inductive and deductive reasoning from the hypothesis or theory) → Experiments (tests of all of the above).' The prediction set is the bridge between hypothesis and experiment.\n\nPer Wikipedia on the Scientific Method: 'The scientific method is not a single recipe: it requires intelligence, imagination, and creativity. In this sense, it is not a mindless set of standards and procedures to follow but is rather an ongoing cycle, constantly developing more useful, accurate, and comprehensive models and methods.'\n\nFor the synthesized prediction set, document:\n• Complete catalog of predictions — each stated as a rigorous, testable statement with conditions and expected observations\n• Classification of each prediction — quantitative, qualitative, probabilistic, or statistical\n• Testability status — currently testable vs. awaiting new technology or theory\n• Falsification criteria — what would contradict each prediction\n• Predictive power assessment — how many diverse, independent predictions the hypothesis generates\n• Connection to experiments — what experimental designs would test each prediction\n• Epistemic status — per Wikipedia, 'if the experimental results confirm the predictions, then the hypotheses are considered more likely to be correct, but might still be wrong and continue to be subject to further testing'\n• Per the Wikipedia Prediction article: 'Future events are necessarily uncertain, so guaranteed accurate information about the future is impossible. Prediction can be useful to assist in making plans about possible developments.' — acknowledge inherent uncertainty",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Synthesizing the complete prediction set requires systematically organizing all predictions, their classifications, testability assessments, falsification criteria, and experimental connections into a coherent document that bridges hypothesis and experiment",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document the complete prediction set as institutional memory — the predictions, their derivation chains, testability assessments, and falsification criteria for future reference by experimental design and testing workflows",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Search for related predictions, experimental designs, and prior results that should be cross-referenced in the prediction set documentation",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Complete catalog of predictions documented — each as a rigorous statement with conditions and expected observations",
+          "Each prediction classified by type (quantitative, qualitative, probabilistic, statistical) and testability status",
+          "Falsification criteria and experimental connections documented for each testable prediction",
+          "Overall predictive power assessed — diversity and independence of predictions generated by the hypothesis",
+          "Epistemic status acknowledged — predictions increase or decrease hypothesis probability but do not guarantee truth",
+          "Prediction set documented as institutional memory for downstream experimental design and testing workflows"
+        ],
+        "next_actions": [
+          "Prediction set ready for experimental design — proceed to designing experiments to test the predictions"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,232 @@
+{
+  "id": "controlled-experiment",
+  "name": "Controlled Experiment",
+  "emoji": "⚗️",
+  "description": "A structured methodology for designing and executing controlled experiments grounded in the Wikipedia article on Scientific control. Scientific controls minimize the influence of variables other than the independent variable, reducing the risk of confounding and increasing reliability and validity of results. The workflow guides selection of appropriate control types — negative, positive, vehicle, sham, and comparative — alongside treatment and control group assignment via randomization, bias prevention through blinding and placebo, and validity assessment via falsification tests including Negative Control Exposures (NCEs) and Negative Control Outcomes (NCOs). Per Wikipedia: 'A scientific control is an element of an experiment or observation designed to minimize the influence of variables other than the independent variable under investigation, thereby reducing the risk of confounding.'",
+  "triggers": [
+    "controlled experiment",
+    "scientific control",
+    "control group",
+    "treatment group",
+    "experimental control",
+    "placebo"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "formulate-causal-hypothesis",
+      "name": "Formulate Causal Hypothesis — Define the specific causal claim to be tested",
+      "description": "Define the specific causal hypothesis that the controlled experiment will test.\n\nPer the Wikipedia article on Scientific control, a controlled experiment aims to isolate the effect of an independent variable on a dependent variable by eliminating alternate explanations. Before designing controls, you must articulate precisely what causal claim is being tested.\n\nFor the subject under examination:\n• What is the specific causal claim — which independent variable (treatment/intervention) is hypothesized to affect which dependent variable (outcome)?\n• Per Wikipedia: 'In its simplest form, an experiment aims at predicting the outcome by introducing a change of the preconditions, which is represented by one or more independent variables.'\n• What is the expected direction and magnitude of the effect?\n• What alternative explanations or confounding mechanisms could produce the same observed effect without the hypothesized cause being operative?\n• Per Wikipedia's discussion of confounding: 'A confounder is an extraneous variable that is related to both the independent variable and the dependent variable, potentially distorting the true association.'\n• What existing knowledge from the graph bears on this hypothesis?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior hypotheses, known causal mechanisms, and existing evidence related to the subject — identify what is already known before designing a new experiment",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the domain to understand existing causal models and identify potential confounders",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Causal hypothesis precisely stated — identifies specific independent variable (cause) and dependent variable (effect)",
+          "Expected direction and magnitude of the effect articulated",
+          "Alternative explanations and potential confounding mechanisms enumerated",
+          "Existing knowledge from the graph consulted and incorporated",
+          "The hypothesis is testable — it can in principle be proved incorrect"
+        ],
+        "next_actions": [
+          "Proceed to identifying and classifying all variables including confounders"
+        ]
+      }
+    },
+    {
+      "id": "identify-variables-and-confounders",
+      "name": "Identify Variables & Confounders — Classify independent, dependent, control, and confounding variables",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically classify all variables.\n\nPer the Wikipedia article on Scientific control: 'The use of controls increases the reliability and validity of results by providing a baseline for comparison between experimental measurements and control measurements.' Before selecting control types, all relevant variables must be identified.\n\nSystematically identify and classify:\n\n1. **Independent Variable(s)** — the treatment or intervention being tested. Per Wikipedia's fertilizer example: 'give fertilizer to half of them' — the fertilizer is the independent variable.\n\n2. **Dependent Variable(s)** — the measured outcome. Per the same example: differences between fertilized and unfertilized treatments.\n\n3. **Confounding Variables** — Per Wikipedia: 'Confounding is a critical issue... A confounder is an extraneous variable that is related to both the independent variable (treatment or exposure) and the dependent variable (outcome), potentially distorting the true association.' Identify:\n   • Spurious variables: 'There could be a third variable (Z) that influences (Y), and X might not be the true cause at all.'\n   • Intervening variables: 'a variable in between the supposed cause (X) and the effect (Y)'\n   • Antecedent variables: 'a variable prior to the supposed cause (X) that is the true cause'\n\n4. **Variables Requiring Control** — Per Wikipedia's tractor example: 'it may be necessary to use a tractor to spread fertilizer where there is no other practicable way... The simplest solution is to have a treatment where a tractor is driven over plots without spreading fertilizer and in that way, the effects of tractor traffic are controlled.' Identify all procedural artifacts that must be controlled.\n\n5. **Nuisance Variables** — sources of variation not of primary interest but which add noise.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic variable identification requires careful causal chain analysis — per Wikipedia, failure to identify confounders 'can result in incorrect policy recommendations, ineffective interventions, or flawed scientific understanding'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for known confounders, causal models, and variable taxonomies relevant to the domain",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Independent variable(s) precisely defined — the treatment or intervention being manipulated",
+          "Dependent variable(s) precisely defined — the outcome being measured",
+          "All confounding variables identified — spurious, intervening, and antecedent variables distinguished",
+          "Procedural artifacts requiring control identified (per Wikipedia's tractor example)",
+          "Nuisance variables cataloged with strategy for each (hold constant, block, or randomize)",
+          "No known confounder overlooked — per Wikipedia, uncontrolled confounders 'could lead to biased or misleading conclusions'"
+        ],
+        "next_actions": [
+          "Proceed to selecting appropriate control types"
+        ]
+      }
+    },
+    {
+      "id": "design-control-conditions",
+      "name": "Design Control Conditions — Select negative, positive, vehicle, sham, and comparative controls",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically design the control conditions.\n\nPer the Wikipedia article on Scientific control: 'The simplest types of control are negative and positive controls, and both are found in many different types of experiments. These two controls, when both are successful, are usually sufficient to eliminate most potential confounding variables: it means that the experiment produces a negative result when a negative result is expected, and a positive result when a positive result is expected. Other controls include vehicle controls, sham controls and comparative controls.'\n\nFor each identified confounding variable and procedural artifact, select the appropriate control type:\n\n1. **Negative Control** — the group that does not receive the treatment, establishing the baseline. Per Wikipedia: 'if the treatment group and the negative control (non-treatment group) both produce a negative result, it can be inferred that the treatment had no effect. If the treatment group and the negative control both produce a positive result, it can be inferred that a confounding variable is involved.'\n\n2. **Positive Control** — a known-effective treatment that should produce a positive result, confirming the experimental system is working properly. Per Wikipedia: confirms 'the experiment produces a positive result when a positive result is expected.'\n\n3. **Vehicle Control** — controls for the delivery mechanism. Per Wikipedia's dilutant example: 'the artificial sweetener might be mixed with a dilutant and it might be the dilutant that causes the effect. To control for the effect of the dilutant, the same test is run twice; once with the artificial sweetener in the dilutant, and another done exactly the same way but using the dilutant alone.'\n\n4. **Sham Control** — a simulated treatment that controls for the procedure itself without the active component (e.g., sham surgery controls for the surgical procedure's effect distinct from the intervention).\n\n5. **Comparative Control** — where ethical considerations prohibit no-treatment, use a standard-of-care or existing treatment as the control. Per the Wikipedia article on Treatment and control groups: 'In some medical studies, where it may be unethical not to treat patients who present with symptoms, controls may be given a standard treatment, rather than no treatment at all.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Selecting the right combination of control types requires matching each identified confounder to the appropriate control strategy — per Wikipedia, 'the selection and use of proper controls to ensure that experimental results are valid can be very difficult'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for established control designs in analogous experiments within the knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Negative control defined — establishes baseline by withholding the treatment",
+          "Positive control defined — confirms experimental system can detect the expected effect",
+          "Vehicle and sham controls designed where procedural artifacts could confound results",
+          "Comparative controls specified where ethical constraints preclude no-treatment arms",
+          "Every identified confounding variable from the prior step has a corresponding control strategy",
+          "Per Wikipedia: both negative and positive controls, when successful, 'are usually sufficient to eliminate most potential confounding variables'"
+        ],
+        "next_actions": [
+          "Proceed to assigning treatment and control groups"
+        ]
+      }
+    },
+    {
+      "id": "assign-treatment-control-groups",
+      "name": "Assign Treatment & Control Groups — Randomize subjects to minimize selection bias",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to design the group assignment protocol.\n\nPer the Wikipedia article on Treatment and control groups: 'In the design of experiments, hypotheses are applied to experimental units in a treatment group. In comparative experiments, members of a control group receive a standard treatment, a placebo, or no treatment at all. There may be more than one treatment group, more than one control group, or both.'\n\nDesign the group assignment protocol:\n\n1. **Define Groups** — Per Wikipedia: 'For the conclusions drawn from the results of an experiment to have validity, it is essential that the items or patients assigned to treatment and control groups be representative of the same population.' Specify:\n   • How many treatment groups (varying levels of the independent variable)\n   • How many control groups (negative, positive, vehicle, sham, comparative as designed above)\n   • What population the groups must be representative of\n\n2. **Randomization** — Per Wikipedia: 'this can be achieved by randomly assigning items from a common population to one of the treatment and control groups.' Specify:\n   • The randomization method (simple, stratified, block, adaptive)\n   • For matched designs (e.g., twins): 'it is statistically efficient to do this random assignment separately for each pair of twins, so that one is in the treatment group and one in the control group'\n\n3. **Sample Size** — Determine the number of subjects per group needed to detect the expected effect size with adequate statistical power.\n\n4. **Blinding Protocol** — Design blinding to prevent bias:\n   • Single-blind: participants don't know their group assignment\n   • Double-blind: neither participants nor experimenters know\n   • Per Wikipedia: 'A placebo control group can be used to support a double-blind study, in which some subjects are given an ineffective treatment to minimize differences in the experiences of subjects in the different groups'\n\n5. **Placebo Design** — Per Wikipedia: 'a third, non-treatment control group can be used to measure the placebo effect directly, as the difference between the responses of placebo subjects and untreated subjects, perhaps paired by age group or other factors.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Group assignment design involves interdependent decisions about number of groups, randomization strategy, sample size, and blinding — each choice constrains the others and determines the experiment's statistical validity",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for established randomization and blinding protocols in analogous experimental domains within the knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All treatment and control groups defined with clear inclusion/exclusion criteria",
+          "Groups are representative of the same population per Wikipedia's validity requirement",
+          "Randomization method specified and justified — eliminates selection bias",
+          "Sample size determined with power analysis justification",
+          "Blinding protocol defined (single-blind, double-blind, or open-label with justification)",
+          "Placebo design specified where applicable — per Wikipedia, enables measuring the placebo effect directly"
+        ],
+        "next_actions": [
+          "Proceed to executing the experiment and collecting data"
+        ]
+      }
+    },
+    {
+      "id": "execute-and-collect-data",
+      "name": "Execute Experiment & Collect Data — Administer treatments while maintaining control integrity",
+      "description": "Execute the controlled experiment, administering the treatment to experimental groups while maintaining control group integrity and protocol adherence.\n\nPer the Wikipedia article on Scientific control: 'Controls eliminate alternate explanations of experimental results, especially experimental errors and experimenter bias. Many controls are specific to the type of experiment being performed... and may simply have the purpose of ensuring that the equipment is working properly.'\n\nDuring execution:\n\n1. **Administer Treatment** — Apply the independent variable to the treatment group(s) exactly as specified. Administer placebo or no treatment to control groups exactly as designed.\n\n2. **Maintain Blinding** — Ensure neither participants nor experimenters (as appropriate to the protocol) can determine group assignment during the experiment.\n\n3. **Hold Constants** — Keep all control variables constant across groups. Per Wikipedia's tractor example: if a tractor must be used to spread fertilizer, drive the tractor over control plots too.\n\n4. **Record Measurements** — Collect dependent variable measurements using consistent instruments and methods across all groups. Per Wikipedia: 'a measurement of a microphone's background noise in the absence of a signal allows the noise to be subtracted from later measurements of the signal, thus producing a processed signal of higher quality.' Record control measurements for calibration.\n\n5. **Monitor Protocol Adherence** — Track any deviations from the experimental protocol. Note any unexpected events that could introduce confounding.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for established measurement protocols, data collection best practices, and known pitfalls in analogous experimental domains",
+            "priority": "optional"
+          },
+          "WriteMemory": {
+            "reason": "Document raw experimental observations, measurements, and any protocol deviations as institutional memory for reproducibility",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Treatment administered to all experimental group subjects per protocol",
+          "Control groups received their specified condition (no treatment, placebo, standard treatment, or vehicle)",
+          "Blinding maintained throughout data collection — no unblinding events",
+          "All control variables held constant across groups — procedural artifacts controlled (tractor effect)",
+          "Dependent variable measurements collected consistently across all groups",
+          "Protocol deviations documented for later assessment"
+        ],
+        "next_actions": [
+          "Proceed to comparing outcomes between treatment and control groups"
+        ]
+      }
+    },
+    {
+      "id": "compare-outcomes-against-controls",
+      "name": "Compare Outcomes Against Controls — Measure treatment effect relative to control baseline",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically analyze the results.\n\nCompare outcomes between treatment and control groups to determine whether the independent variable produced a measurable effect.\n\nPer the Wikipedia article on Scientific control, the comparison logic depends on the outcome type:\n\n1. **Binary Outcomes** — Per Wikipedia: 'Where there are only two possible outcomes, e.g. positive or negative, if the treatment group and the negative control (non-treatment group) both produce a negative result, it can be inferred that the treatment had no effect. If the treatment group and the negative control both produce a positive result, it can be inferred that a confounding variable is involved in the phenomenon under study, and the positive results are not solely due to the treatment.'\n\n2. **Continuous Outcomes** — Per Wikipedia (drug testing example): 'Some improvement is expected in the placebo group due to the placebo effect, and this result sets the baseline upon which the treatment must improve upon. Even if the treatment group shows improvement, it needs to be compared to the placebo group. If the groups show the same effect, then the treatment was not responsible for the improvement (because the same number of patients were cured in the absence of the treatment). The treatment is only effective if the treatment group shows more improvement than the placebo group.'\n\n3. **Calibration via Controls** — Per Wikipedia, control measurements can be used to improve signal quality: 'a measurement of a microphone's background noise in the absence of a signal allows the noise to be subtracted from later measurements.'\n\nApply appropriate statistical tests to determine whether differences between groups are statistically significant or could be attributed to chance.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic comparison requires evaluating treatment vs. each control type, applying the correct comparison logic per Wikipedia (binary vs. continuous outcomes), accounting for placebo effect baseline, and assessing statistical significance",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document the comparison results, effect sizes, and statistical findings as institutional memory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Treatment group outcomes compared to negative control — baseline effect established",
+          "Positive control confirmed the experimental system detected the expected effect",
+          "Placebo effect baseline measured and subtracted from treatment effect where applicable",
+          "Vehicle/sham control results confirmed procedural artifacts did not produce the observed effect",
+          "Statistical significance of treatment-control differences assessed",
+          "Per Wikipedia's logic: both confounding-variable and no-effect interpretations explicitly evaluated"
+        ],
+        "next_actions": [
+          "Proceed to assessing validity through falsification tests"
+        ]
+      }
+    },
+    {
+      "id": "assess-validity-falsification-tests",
+      "name": "Assess Validity via Falsification Tests — Apply NCE and NCO to detect unmeasured confounding",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically apply falsification tests.\n\nPer the Wikipedia article on Scientific control: 'Falsification tests are a robustness-checking technique used in observational studies to assess whether observed associations are likely due to confounding, bias, or model misspecification rather than a true causal effect. These tests help validate findings by applying the same analytical approach to a scenario where no effect is expected. If an association still appears where none should exist, it raises concerns that the primary analysis may suffer from confounding or other biases.'\n\nApply two categories of falsification tests:\n\n1. **Negative Control Exposure (NCE)** — Per Wikipedia: 'NCE is a variable that should not causally affect the outcome, but may suffer from the same confounding as the exposure-outcome relationship in question. A priori, there should be no statistical association between the NCE and the outcome. If an association is found, then it [is] through the unmeasured confounder... the study design is invalid.'\n   • Example per Wikipedia (Yerushalmy): husband's smoking as NCE for maternal smoking's effect on fetal development — shares confounders but should not causally affect the fetus.\n\n2. **Negative Control Outcome (NCO)** — Per Wikipedia: 'NCO is a variable that is not causally affected by the treatment, but suspected to have a similar confounding mechanism as the treatment-outcome relationship. If the study design is valid, there should be no statistical association between the NCO and the treatment.'\n   • Example per Wikipedia (Jackson et al.): mortality from all causes outside influenza season as NCO for influenza vaccine effectiveness — detects healthy-user bias.\n\nPer Wikipedia: 'A Negative control test can reject study design, but it cannot validate them. Either because there might be another confounding mechanism, or because of low statistical power.'\n\nDocument conclusions about internal validity and remaining threats.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Falsification testing requires careful selection of NCE and NCO variables that share confounding mechanisms with the primary relationship but should show no association if the design is valid — per Wikipedia, this 'can reject study design, but cannot validate them'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document the validity assessment, falsification test results, identified limitations, and conclusions as institutional memory for future replication and extension",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "At least one Negative Control Exposure (NCE) identified and tested — shares confounders but should not causally affect the outcome",
+          "At least one Negative Control Outcome (NCO) identified and tested — not causally affected by treatment but shares confounding mechanism",
+          "Falsification test results interpreted per Wikipedia: association where none expected indicates design invalidity",
+          "Limitation acknowledged per Wikipedia: 'A Negative control test can reject study design, but it cannot validate them'",
+          "Internal validity assessment documented — all threats to validity explicitly enumerated",
+          "Conclusions state whether the controlled experiment supports, refutes, or is inconclusive regarding the original causal hypothesis"
+        ],
+        "next_actions": [
+          "Document conclusion: experimental findings with validity assessment, effect sizes, and recommendations for replication"
+        ]
+      }
+    }
+  ]
+}

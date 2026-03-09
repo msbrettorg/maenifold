@@ -1,0 +1,428 @@
+{
+  "id": "paradigm-analysis",
+  "name": "Paradigm Analysis (Multi-Agent Kuhnian Revolution)",
+  "emoji": "🔬",
+  "description": "Analyzes a domain through the lens of Thomas Kuhn's paradigm shift framework from The Structure of Scientific Revolutions (1962). Multi-agent workflow where parallel agents represent competing paradigms — the incumbent defending normal science and challengers proposing revolutionary alternatives — modeling the four stages Kuhn identified: normal science (puzzle-solving within a dominant paradigm), extraordinary research (anomaly accumulation triggering crisis), adoption of a new paradigm (competing frameworks debate incommensurably), and aftermath (institutionalization of the new paradigm). Per Wikipedia, 'paradigm shifts arise when the dominant paradigm under which normal science operates is rendered incompatible with new phenomena, facilitating the adoption of a new theory or paradigm.' Agents debate across the incommensurability gap, forcing explicit confrontation of what each paradigm can and cannot explain.",
+  "triggers": [
+    "paradigm",
+    "paradigm shift",
+    "Kuhn",
+    "normal science",
+    "anomaly",
+    "scientific revolution",
+    "incommensurability",
+    "paradigm analysis",
+    "paradigm change",
+    "Kuhnian",
+    "structure of scientific revolutions",
+    "extraordinary research",
+    "puzzle solving"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": true,
+  "steps": [
+    {
+      "id": "paradigm-identification",
+      "name": "🔬 Paradigm Identification & Domain Scoping",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nIdentify the dominant paradigm governing the domain under investigation. Per Kuhn, a paradigm is not merely a theory — it encompasses the 'whole of techniques, patents and values shared by the members of the community.' Wikipedia notes Kuhn used 'paradigm' in two senses: (1) the shared commitments of a scientific community, and (2) a single exemplar (like Newton's Principia) that defines a coherent tradition of investigation.\n\n1. **Define the Domain**:\n   - What is the specific domain, discipline, or problem space under analysis?\n   - Who constitutes the relevant community of practitioners?\n   - What is the scope — is this a mature field with a single dominant paradigm, or a pre-paradigmatic field with competing schools?\n\n2. **Characterize the Dominant Paradigm**:\n   - What are its foundational assumptions and ontological commitments?\n   - What are its exemplary achievements (Kuhn's 'exemplars') that serve as models for future work?\n   - What methodologies and instruments does it privilege?\n   - What questions does it consider legitimate and worth pursuing?\n   - What phenomena does it explain well?\n\n3. **Map the Disciplinary Matrix**:\n   - Symbolic generalizations (laws, equations, formal expressions)\n   - Metaphysical models (shared beliefs about entities and processes)\n   - Values (accuracy, consistency, broad scope, simplicity, fruitfulness)\n   - Exemplars (concrete problem-solutions that serve as models)\n\n4. **Memory Architecture**:\n```\nmemory://paradigm-analysis/[domain]/\n├── paradigm-charter.md (domain, paradigm, scope)\n├── normal-science/\n│   └── puzzle-solving.md\n├── anomalies/\n│   ├── agent-empirical.md\n│   ├── agent-theoretical.md\n│   ├── agent-methodological.md\n│   └── agent-sociological.md\n├── crisis-assessment.md\n├── revolutionary-proposals/\n│   ├── incumbent-defense.md\n│   ├── challenger-alpha.md\n│   └── challenger-beta.md\n├── incommensurability-debate.md\n├── revolution-assessment.md\n├── integration-report.md\n└── final-analysis.md\n```\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Identifying a paradigm requires careful analysis of a community's shared commitments, exemplars, and methodological norms — Kuhn's 'disciplinary matrix'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Domain definition and practitioner community",
+              "Foundational assumptions and ontological commitments",
+              "Exemplary achievements (Kuhn's exemplars)",
+              "Methodological commitments and privileged instruments",
+              "Disciplinary matrix mapping (generalizations, models, values, exemplars)"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the paradigm charter with [[WikiLinks]] to the paradigm and its key concepts",
+            "priority": "mandatory",
+            "output": "memory://paradigm-analysis/[domain]/paradigm-charter.md"
+          },
+          "BuildContext": {
+            "reason": "Ground the paradigm identification in existing knowledge graph concepts",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Domain and practitioner community clearly defined",
+          "Dominant paradigm characterized with foundational assumptions",
+          "Exemplars identified — concrete achievements that define the tradition",
+          "Disciplinary matrix mapped (generalizations, models, values, exemplars)",
+          "Pre-paradigmatic vs. mature field status determined"
+        ],
+        "next_actions": [
+          "Characterize normal science and puzzle-solving within this paradigm"
+        ]
+      }
+    },
+    {
+      "id": "normal-science-characterization",
+      "name": "🧩 Normal Science & Puzzle-Solving",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nCharacterize the practice of 'normal science' within the dominant paradigm. Per Wikipedia, Kuhn sees normal science as 'most prominent in science' — the dominant paradigm gives 'scientists a clear set of tools to approach certain problems.' Normal science is puzzle-solving: the paradigm guarantees that a solution exists, and the scientist's task is to find it.\n\n1. **Puzzle-Solving Activity**:\n   - What are the canonical puzzles this paradigm defines? What counts as a legitimate problem?\n   - What solution methods are considered acceptable? What tools and techniques are standard?\n   - How is success measured? What does a 'good' solution look like within this paradigm?\n   - Per Kuhn: 'Normal science does not mean at all a science guided by a coherent system of rules' — the paradigm guides even without explicit rules\n\n2. **Paradigm Commitments & Constraints**:\n   - What phenomena does the paradigm render invisible or uninteresting?\n   - What questions are considered meaningless or illegitimate under this framework?\n   - Where does the paradigm draw its boundaries between science and non-science?\n   - Per Kuhn on theory-ladenness: paradigms can be 'particular to different people' — a chemist and physicist may have different paradigms of the same entity\n\n3. **Cumulative Progress**:\n   - What achievements has normal science accumulated under this paradigm?\n   - How has the paradigm expanded in scope and precision over time?\n   - What refinements and articulations have been made to the core theory?\n\n4. **Textbook Narrative**:\n   - How do textbooks present this paradigm? Per Kuhn, textbooks 'obscure the revolutionary process' and present science as cumulative\n   - What historical narrative justifies the paradigm's dominance?\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Characterizing normal science requires understanding what the paradigm makes visible and invisible, what it counts as legitimate puzzles, and how it constrains inquiry",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Canonical puzzles and legitimate problems",
+              "Solution methods and success criteria",
+              "Paradigm-imposed boundaries and blind spots",
+              "Cumulative achievements and textbook narrative"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read the paradigm charter to understand the paradigm being characterized",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://paradigm-analysis/[domain]/paradigm-charter.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist normal science characterization with [[WikiLinks]]",
+            "priority": "mandatory",
+            "output": "memory://paradigm-analysis/[domain]/normal-science/puzzle-solving.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Canonical puzzles and solution methods documented",
+          "Paradigm's blind spots and boundary conditions identified",
+          "Cumulative achievements listed",
+          "Textbook narrative characterized"
+        ],
+        "next_actions": [
+          "Dispatch parallel agents to detect anomalies from multiple perspectives"
+        ]
+      }
+    },
+    {
+      "id": "anomaly-detection-wave",
+      "name": "🌊 Anomaly Detection Wave (Multi-Agent)",
+      "description": "🚫 BLOCKING: Dispatch ALL anomaly-detection agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL FOUR AGENTS MUST BE DISPATCHED SIMULTANEOUSLY!\n\nPer Wikipedia, anomalies are phenomena that 'cannot be explained by the universally accepted paradigm within which scientific progress has thereto been made.' When 'enough significant anomalies have accrued,' the discipline enters crisis. Each agent searches for anomalies from a different perspective.\n\n```\nTask 1: Empirical Anomalies\nAgent: researcher\nInstruction: You are an empirical anomaly detector. Examine the dominant paradigm defined in the charter and search for empirical findings that resist explanation within it. Your mandate:\n\n1. **Recalcitrant Data**: What observations, measurements, or experimental results cannot be accommodated by the current paradigm? Per Kuhn, 'discovery commences with the awareness of anomaly' — data that violates paradigm-induced expectations.\n2. **Failed Predictions**: Where has the paradigm predicted outcomes that failed to materialize? What systematic discrepancies exist between theory and observation?\n3. **Unexplained Phenomena**: What well-documented phenomena does the paradigm simply ignore or dismiss as unimportant?\n4. **Ad Hoc Patches**: Where has the paradigm required ad hoc modifications (epicycles) to accommodate inconvenient data? Are these patches proliferating?\n\nInclude 10+ [[WikiLinks]] to relevant concepts (e.g., [[anomaly]], [[paradigm]], [[normal-science]], [[falsifiability]]).\nOutput: memory://paradigm-analysis/[domain]/anomalies/agent-empirical.md\n```\n\n```\nTask 2: Theoretical Anomalies\nAgent: researcher\nInstruction: You are a theoretical anomaly detector. Examine the paradigm's internal logical structure for tensions, inconsistencies, and limitations. Your mandate:\n\n1. **Internal Contradictions**: Does the paradigm contain logical tensions or inconsistencies between its own principles? Are there domains where its core equations or models break down?\n2. **Boundary Failures**: At what scales, extremes, or edge cases does the paradigm lose explanatory power? Per Kuhn, paradigms often fail at their boundaries.\n3. **Complexity Accumulation**: Has the theoretical apparatus grown unwieldy? Per the Copernican Revolution example, Ptolemaic astronomy accumulated epicycles until the system was 'strained' — is something similar happening here?\n4. **Unification Failures**: What phenomena that should be related under this paradigm remain stubbornly disconnected?\n\nInclude 10+ [[WikiLinks]] to relevant concepts (e.g., [[incommensurability]], [[theory-ladenness]], [[crucial-experiment]]).\nOutput: memory://paradigm-analysis/[domain]/anomalies/agent-theoretical.md\n```\n\n```\nTask 3: Methodological Anomalies\nAgent: researcher\nInstruction: You are a methodological anomaly detector. Examine whether the paradigm's methods and instruments are adequate to the phenomena they purport to study. Your mandate:\n\n1. **Instrumental Limitations**: Are the paradigm's standard instruments and methods unable to detect or measure phenomena that other approaches can?\n2. **Reproducibility Problems**: Are canonical results proving difficult to reproduce? Per Kuhn, paradigms provide the 'tools to approach certain problems' — are these tools failing?\n3. **Methodological Circularity**: Does the paradigm define its own success criteria in ways that make disconfirmation impossible?\n4. **New Methods Revealing New Phenomena**: Are novel methodologies (from adjacent fields or new technologies) revealing phenomena invisible to standard paradigmatic methods?\n\nInclude 10+ [[WikiLinks]] to relevant concepts (e.g., [[reproducibility]], [[scientific-method]], [[confirmation-bias]]).\nOutput: memory://paradigm-analysis/[domain]/anomalies/agent-methodological.md\n```\n\n```\nTask 4: Sociological Anomalies\nAgent: researcher\nInstruction: You are a sociological anomaly detector. Per Kuhn, paradigm shifts are not purely logical — they involve social processes. Examine the community dynamics around the paradigm. Your mandate:\n\n1. **Generational Fractures**: Per Max Planck (quoted by Kuhn): 'a new scientific truth does not triumph by convincing its opponents... but rather because its opponents eventually die.' Are younger practitioners questioning the paradigm while seniors defend it?\n2. **Dissenter Marginalization**: Are credible critics being marginalized, defunded, or denied publication? Is there suppression of anomalous findings?\n3. **Field Fragmentation**: Is the community splitting into sub-schools with incompatible assumptions? Per Kuhn, crisis is characterized by 'proliferation of competing articulations' and 'recourse to philosophy and debate over fundamentals.'\n4. **External Pressure**: Are adjacent disciplines, funders, or practical demands creating pressure that the paradigm cannot satisfy?\n\nInclude 10+ [[WikiLinks]] to relevant concepts (e.g., [[paradigm-shift]], [[scientific-revolution]], [[sociology-of-scientific-knowledge]]).\nOutput: memory://paradigm-analysis/[domain]/anomalies/agent-sociological.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each agent MUST read memory://paradigm-analysis/[domain]/paradigm-charter.md and memory://paradigm-analysis/[domain]/normal-science/puzzle-solving.md before searching for anomalies\n- Each agent MUST include 10+ [[WikiLinks]]\n- Rate each anomaly's severity: minor (absorbed by ad hoc patch), moderate (strains paradigm), severe (paradigm cannot accommodate)\n\n⏱️ Wave duration: 30-45 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Critical parallel dispatch — ALL FOUR anomaly-detection agents must launch in ONE message",
+            "priority": "mandatory",
+            "required_operations": [
+              "researcher: empirical-anomalies",
+              "researcher: theoretical-anomalies",
+              "researcher: methodological-anomalies",
+              "researcher: sociological-anomalies"
+            ],
+            "parallel_execution": true,
+            "agent_instructions": {
+              "workflow_choice": "Each agent uses SequentialThinking for systematic anomaly identification",
+              "wikilink_requirement": "10+ [[WikiLinks]] per output",
+              "output_format": "Structured anomaly catalog with severity ratings (minor/moderate/severe)",
+              "required_reads": [
+                "memory://paradigm-analysis/[domain]/paradigm-charter.md",
+                "memory://paradigm-analysis/[domain]/normal-science/puzzle-solving.md"
+              ]
+            }
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All four anomaly-detection agents dispatched in single message",
+          "Empirical anomalies cataloged with severity ratings",
+          "Theoretical tensions and boundary failures identified",
+          "Methodological limitations documented",
+          "Sociological fractures and community dynamics assessed"
+        ],
+        "next_actions": [
+          "Await completion of all parallel anomaly-detection agents",
+          "Proceed to crisis assessment once all anomaly catalogs received"
+        ],
+        "escape_hatches": {
+          "no_anomalies_found": "If a perspective yields no anomalies, document why — the paradigm may be genuinely robust in that dimension, or the agent's search scope may need widening",
+          "overwhelming_anomalies": "If anomalies are pervasive, prioritize the 5-7 most consequential ones per perspective"
+        }
+      }
+    },
+    {
+      "id": "crisis-assessment",
+      "name": "⚡ Crisis Assessment & Extraordinary Research",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nSynthesize all anomaly catalogs and assess whether the paradigm is in genuine Kuhnian crisis. Per Wikipedia, crisis occurs when 'enough significant anomalies have accrued against a current paradigm' and 'the scientific discipline is thrown into a state of crisis.' Extraordinary research follows — characterized by 'proliferation of competing articulations, the willingness to try anything, the expression of explicit discontent, the recourse to philosophy and to debate over fundamentals.'\n\n1. **Read All Anomaly Catalogs**: Review outputs from all four anomaly-detection agents.\n\n2. **Anomaly Severity Matrix**: Cross-reference anomalies across perspectives. Which anomalies appear in multiple catalogs? Which are isolated?\n\n3. **Crisis Indicators** (per Kuhn):\n   - Are anomalies proliferating faster than the paradigm can absorb them?\n   - Is the paradigm requiring increasingly ad hoc modifications (epicycle accumulation)?\n   - Are practitioners expressing 'explicit discontent' and debating fundamentals?\n   - Is there a 'proliferation of competing articulations' of the paradigm?\n   - Are practitioners turning to philosophy and foundational questions?\n   - Are some practitioners abandoning the field or switching to alternative approaches?\n\n4. **Crisis Classification**:\n   - **No crisis**: Anomalies are minor and being absorbed through normal science puzzle-solving\n   - **Pre-crisis**: Significant anomalies exist but the paradigm retains majority support\n   - **Active crisis**: Multiple severe anomalies, community fragmentation, explicit debate over fundamentals\n   - **Post-crisis / Revolutionary**: A competing paradigm has emerged and is gaining adherents\n\n5. **Extraordinary Research Landscape**: If crisis is active or revolutionary, map the landscape of extraordinary research:\n   - What alternative approaches are being explored?\n   - Who are the key figures challenging the paradigm?\n   - What new thought experiments, theories, or methods are emerging?\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Crisis assessment requires cross-referencing four independent anomaly catalogs and making a judgment about paradigm stability — a high-stakes synthesis requiring careful reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Cross-catalog anomaly correlation",
+              "Ad hoc patch accumulation assessment",
+              "Community fragmentation and discontent evaluation",
+              "Crisis stage classification",
+              "Extraordinary research landscape mapping"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all four anomaly catalogs plus paradigm charter for crisis assessment",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://paradigm-analysis/[domain]/anomalies/agent-empirical.md",
+              "memory://paradigm-analysis/[domain]/anomalies/agent-theoretical.md",
+              "memory://paradigm-analysis/[domain]/anomalies/agent-methodological.md",
+              "memory://paradigm-analysis/[domain]/anomalies/agent-sociological.md",
+              "memory://paradigm-analysis/[domain]/paradigm-charter.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist crisis assessment with [[WikiLinks]] to Kuhnian concepts",
+            "priority": "mandatory",
+            "output": "memory://paradigm-analysis/[domain]/crisis-assessment.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All four anomaly catalogs read and cross-referenced",
+          "Anomaly severity matrix produced",
+          "Crisis classification determined (no crisis / pre-crisis / active / post-crisis)",
+          "Extraordinary research landscape mapped (if applicable)",
+          "Key challengers and alternative approaches identified"
+        ],
+        "next_actions": [
+          "If crisis is active or revolutionary: dispatch competing paradigm agents",
+          "If no crisis: skip to knowledge integration with finding that paradigm is stable"
+        ]
+      }
+    },
+    {
+      "id": "revolutionary-paradigm-proposals",
+      "name": "🌊 Revolutionary Paradigm Proposals (Multi-Agent Debate)",
+      "description": "🚫 BLOCKING: Dispatch ALL paradigm agents in ONE message for parallel execution\n\n⚠️ CRITICAL: THREE AGENTS — the incumbent defender and two challenger paradigms — MUST BE DISPATCHED SIMULTANEOUSLY!\n\nPer Wikipedia, during the adoption phase 'a new paradigm is formed, which gains its own new followers.' Kuhn stresses that paradigms are difficult to change because 'scientists are committed to the dominant paradigm, and paradigm shifts involve gestalt-like changes.' Proponents for competing paradigms address 'whether a given paradigm will be a good guide for future problems.'\n\nKuhn illustrated this with the duck-rabbit ambiguous image (from Wittgenstein): a paradigm shift causes one to 'see the same information in an entirely different way.'\n\n```\nTask 1: Incumbent Paradigm Defense\nAgent: researcher\nInstruction: You are the DEFENDER of the dominant paradigm. Your role is to demonstrate that the current paradigm can accommodate the anomalies identified in the crisis assessment. Your mandate:\n\n1. **Anomaly Absorption**: For each severe anomaly, argue that it can be resolved through normal science — perhaps with a refinement, extension, or ad hoc modification of the current paradigm.\n2. **Track Record**: Emphasize the paradigm's cumulative achievements and explanatory successes. Past crises have been resolved within the paradigm before.\n3. **Challenger Weaknesses**: Argue that proposed alternatives are immature, unproven, and cannot yet match the paradigm's precision and scope.\n4. **Institutional Investment**: The community has invested decades of training, instrumentation, and institutional infrastructure in this paradigm. Switching costs are enormous.\n5. **Future Promise**: Argue that the paradigm still has untapped explanatory potential — the anomalies are puzzles that will yield to persistent effort.\n\nBe the strongest possible advocate. Per Kuhn, resistance to new paradigms is rational, not mere stubbornness.\n\nInclude 10+ [[WikiLinks]].\nOutput: memory://paradigm-analysis/[domain]/revolutionary-proposals/incumbent-defense.md\n```\n\n```\nTask 2: Challenger Paradigm Alpha\nAgent: researcher\nInstruction: You are CHALLENGER ALPHA proposing a revolutionary new paradigm. Read the crisis assessment and anomaly catalogs, then construct the strongest possible alternative framework. Your mandate:\n\n1. **New Foundations**: Propose different foundational assumptions, ontological commitments, or core principles that reframe the domain.\n2. **Anomaly Resolution**: Demonstrate how your paradigm naturally explains the anomalies that plague the incumbent — especially the severe ones that required ad hoc patches.\n3. **New Questions**: Per Kuhn, new paradigms 'ask new questions of old data.' What previously invisible phenomena become visible and important under your framework?\n4. **Exemplar Achievement**: Provide at least one concrete exemplar — a specific problem that your paradigm solves elegantly where the incumbent struggles.\n5. **Future Fruitfulness**: Per Kuhn, paradigm debates center on 'whether a given paradigm will be a good guide for future problems.' Argue that your paradigm opens more productive research avenues.\n\nBe bold and revolutionary. Per Wikipedia, 'paradigms can gain influence by explaining or predicting phenomena much better than before.'\n\nInclude 10+ [[WikiLinks]].\nOutput: memory://paradigm-analysis/[domain]/revolutionary-proposals/challenger-alpha.md\n```\n\n```\nTask 3: Challenger Paradigm Beta\nAgent: researcher\nInstruction: You are CHALLENGER BETA proposing a DIFFERENT revolutionary paradigm from Challenger Alpha. Read the same crisis materials but construct a fundamentally different alternative. Your mandate:\n\n1. **Distinct Foundations**: Your paradigm MUST differ from Challenger Alpha in its core assumptions. If Alpha emphasizes reductionism, you might emphasize emergence. If Alpha is quantitative, you might be structural. Ensure genuine pluralism of alternatives — per Kuhn, crisis produces 'proliferation of competing articulations.'\n2. **Different Anomaly Emphasis**: Prioritize different anomalies than Alpha. Show that the choice of which anomalies matter most is itself paradigm-dependent.\n3. **Paradigm-Dependent Observation**: Per Kuhn on theory-ladenness, demonstrate how your paradigm makes different observations visible — 'rather than being monolithic, the paradigms that define normal science can be particular to different people.'\n4. **Subjective Appeal**: Per Kuhn, paradigm choice involves aesthetic and subjective elements — paradigms can gain influence by being 'more subjectively pleasing.' Articulate why your framework is more elegant, simpler, or more beautiful.\n5. **Synthesis Potential**: Can your paradigm potentially subsume elements of both the incumbent and Challenger Alpha?\n\nInclude 10+ [[WikiLinks]].\nOutput: memory://paradigm-analysis/[domain]/revolutionary-proposals/challenger-beta.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each agent MUST read crisis-assessment.md and all anomaly catalogs before constructing their position\n- Each paradigm proposal must be internally consistent and genuinely different from the others\n- Include concrete examples, not just abstract principles\n- Rate confidence in each claim: established, probable, speculative\n\n⏱️ Wave duration: 30-45 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Critical parallel dispatch — THREE paradigm agents (incumbent + two challengers) must launch in ONE message",
+            "priority": "mandatory",
+            "required_operations": [
+              "researcher: incumbent-defense",
+              "researcher: challenger-alpha",
+              "researcher: challenger-beta"
+            ],
+            "parallel_execution": true,
+            "agent_instructions": {
+              "workflow_choice": "Each agent uses SequentialThinking to construct a coherent paradigm position",
+              "wikilink_requirement": "10+ [[WikiLinks]] per output",
+              "output_format": "Structured paradigm proposal with foundations, anomaly resolution, exemplars, and future fruitfulness",
+              "required_reads": [
+                "memory://paradigm-analysis/[domain]/crisis-assessment.md",
+                "memory://paradigm-analysis/[domain]/anomalies/agent-empirical.md",
+                "memory://paradigm-analysis/[domain]/anomalies/agent-theoretical.md",
+                "memory://paradigm-analysis/[domain]/anomalies/agent-methodological.md",
+                "memory://paradigm-analysis/[domain]/anomalies/agent-sociological.md"
+              ]
+            }
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All three paradigm agents dispatched in single message",
+          "Incumbent defense constructed with anomaly absorption strategy",
+          "Challenger Alpha proposes coherent alternative with distinct foundations",
+          "Challenger Beta proposes genuinely different alternative from Alpha",
+          "Each proposal includes concrete exemplars and future fruitfulness arguments"
+        ],
+        "next_actions": [
+          "Await completion of all parallel paradigm agents",
+          "Proceed to incommensurability analysis and paradigm debate"
+        ],
+        "escape_hatches": {
+          "no_crisis": "If crisis assessment found no crisis, this step may be abbreviated — focus incumbent defense on paradigm strengths, and challengers on speculative future alternatives",
+          "single_challenger": "If only one viable alternative exists, Challenger Beta may strengthen the incumbent position from a different angle or propose a synthesis paradigm"
+        }
+      }
+    },
+    {
+      "id": "incommensurability-debate",
+      "name": "🔄 Incommensurability Analysis & Paradigm Debate",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nConduct the core paradigm debate, focusing on Kuhn's concept of incommensurability. Per Wikipedia: 'the language and theories of different paradigms cannot be translated into one another or rationally evaluated against one another — that they are incommensurable.' However, Donald Davidson argued this strong version is 'itself incoherent,' and Kuhn's claims should be 'taken in a weaker sense.'\n\n1. **Read All Paradigm Proposals**: Review the incumbent defense and both challenger proposals.\n\n2. **Translation Problem Analysis**:\n   - Where do the paradigms use the same terms with different meanings? (E.g., 'mass' means different things in Newtonian and relativistic physics)\n   - What concepts in one paradigm have no equivalent in the others?\n   - Where do paradigms disagree about what counts as evidence or what constitutes a good explanation?\n\n3. **Gestalt Shift Mapping**:\n   - Per Kuhn's duck-rabbit illustration: what does each paradigm make visible that the others render invisible?\n   - Is there data that all three paradigms explain but interpret completely differently?\n   - What would it take for a practitioner to 'switch gestalt' from the incumbent to a challenger?\n\n4. **Criteria Incommensurability**:\n   - Do the paradigms disagree about what criteria should be used to evaluate paradigms?\n   - Per Kuhn, each paradigm will to some extent 'define its own evaluation standards'\n   - Are there shared meta-criteria (accuracy, consistency, scope, simplicity, fruitfulness) that allow partial comparison?\n\n5. **Paradigm Comparison Matrix**:\n   | Criterion | Incumbent | Challenger Alpha | Challenger Beta |\n   |-----------|-----------|------------------|------------------|\n   | Anomaly resolution | ... | ... | ... |\n   | Scope of explanation | ... | ... | ... |\n   | Simplicity/elegance | ... | ... | ... |\n   | Future fruitfulness | ... | ... | ... |\n   | Institutional support | ... | ... | ... |\n   | Practitioner adoption | ... | ... | ... |\n\n6. **Kuhn vs. Popper**: Assess whether the debate is better characterized by Kuhn's social-revolutionary model or Popper's falsificationist model. Per Wikipedia, Kuhn explicitly responded to Popper's falsificationism in the book.\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Incommensurability analysis requires holding three paradigmatic perspectives simultaneously and identifying where translation between them breaks down — this is among the most cognitively demanding tasks in the workflow",
+            "priority": "mandatory",
+            "estimated_thoughts": 6,
+            "focus_areas": [
+              "Translation problems between paradigms (same terms, different meanings)",
+              "Gestalt shift mapping (what each paradigm makes visible/invisible)",
+              "Criteria incommensurability (disagreement about evaluation standards)",
+              "Paradigm comparison matrix construction",
+              "Shared meta-criteria identification (accuracy, simplicity, scope, fruitfulness)",
+              "Kuhn vs. Popper assessment"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all three paradigm proposals for incommensurability analysis",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://paradigm-analysis/[domain]/revolutionary-proposals/incumbent-defense.md",
+              "memory://paradigm-analysis/[domain]/revolutionary-proposals/challenger-alpha.md",
+              "memory://paradigm-analysis/[domain]/revolutionary-proposals/challenger-beta.md",
+              "memory://paradigm-analysis/[domain]/crisis-assessment.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the incommensurability analysis and paradigm comparison with [[WikiLinks]]",
+            "priority": "mandatory",
+            "output": "memory://paradigm-analysis/[domain]/incommensurability-debate.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Translation problems between paradigms documented",
+          "Gestalt shift dynamics mapped for each paradigm pair",
+          "Criteria incommensurability assessed",
+          "Paradigm comparison matrix completed",
+          "Kuhn vs. Popper framing evaluated"
+        ],
+        "next_actions": [
+          "Assess the current state of the revolution"
+        ]
+      }
+    },
+    {
+      "id": "revolution-assessment",
+      "name": "🔮 Revolution Assessment & Aftermath",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nAssess the current state and likely trajectory of the paradigm shift. Per Wikipedia, Kuhn identified four stages: normal science → extraordinary research → adoption of new paradigm → aftermath. This step determines where the domain currently sits and what comes next.\n\n1. **Stage Determination**: Where is the domain in Kuhn's cycle?\n   - **Normal science**: Paradigm stable, anomalies absorbed through puzzle-solving\n   - **Crisis / Extraordinary research**: Anomalies accumulating, competing approaches proliferating\n   - **Revolution in progress**: A challenger paradigm is gaining adherents, gestalt shifts occurring\n   - **Aftermath**: New paradigm dominant, textbooks being rewritten\n\n2. **Revolution Dynamics** (if applicable):\n   - Per Kuhn: paradigm shifts 'tend to be most dramatic in sciences that appear to be stable and mature'\n   - Is this a gradual transition or a sudden gestalt shift? Per Wikipedia, 'Kuhn himself ultimately accepted a modified version of Kuhn's model, which synthesizes his original view with the gradualist model'\n   - What role do generational dynamics play? Planck's principle: opposition dies rather than converts\n\n3. **Progress Assessment**:\n   - Per Kuhn, 'when a scientific paradigm is replaced by a new one, albeit through a complex social process, the new one is always better, not just different' — he vehemently denied relativism\n   - If a shift is occurring or has occurred, in what sense is the new paradigm 'better'? More accurate? Broader scope? Greater simplicity? More fruitful?\n   - Does the new paradigm resolve the anomalies that triggered the crisis?\n\n4. **Aftermath Projection**:\n   - How will the new paradigm restructure the field?\n   - What research programs will it enable that were impossible before?\n   - What old knowledge will be preserved, reinterpreted, or discarded?\n   - Per Kuhn, textbooks will be rewritten to present the shift as inevitable progress — what narrative will emerge?\n\n5. **Multi-Paradigm Possibility**:\n   - Per Wikipedia, 'the hold of the Kuhnian analysis on social science has long been tenuous, with the wide application of multi-paradigmatic approaches'\n   - Is this a domain where multiple paradigms can coexist productively, or is convergence on a single paradigm likely?\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Assessing revolution stage and projecting aftermath requires integrating all prior analysis and making forward-looking judgments about paradigm trajectory",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Stage determination in Kuhn's cycle",
+              "Gradual vs. sudden transition dynamics",
+              "Progress assessment (is the new paradigm genuinely 'better'?)",
+              "Aftermath projection (textbook rewriting, field restructuring)",
+              "Multi-paradigm coexistence possibility"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read the full chain of analysis for final assessment",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://paradigm-analysis/[domain]/paradigm-charter.md",
+              "memory://paradigm-analysis/[domain]/crisis-assessment.md",
+              "memory://paradigm-analysis/[domain]/incommensurability-debate.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist revolution assessment with [[WikiLinks]] and forward-looking projections",
+            "priority": "mandatory",
+            "output": "memory://paradigm-analysis/[domain]/revolution-assessment.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Current stage in Kuhn's cycle determined with evidence",
+          "Revolution dynamics characterized (gradual vs. sudden, generational factors)",
+          "Progress claim evaluated — is the emerging paradigm 'better'?",
+          "Aftermath projected with specific research program implications",
+          "Multi-paradigm coexistence assessed"
+        ],
+        "next_actions": [
+          "Integrate all findings into knowledge graph"
+        ]
+      }
+    },
+    {
+      "id": "knowledge-integration",
+      "name": "🧠 Knowledge Integration & Graph Construction",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nIntegrate all paradigm analysis into the maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\nTool: Sync\nScope: memory://paradigm-analysis/[domain]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[WikiLinks]]: [[paradigm]], [[paradigm-shift]], [[normal-science]], [[anomaly]], [[incommensurability]], [[scientific-revolution]], [[Thomas-Kuhn]], [[theory-ladenness]], [[falsifiability]]\n   - Map relationships between the paradigms identified, their anomalies, and the revolutionary dynamics\n   - Connect this analysis to existing knowledge graph concepts in the domain\n\n3. **Knowledge Metrics**:\n   - Total paradigm-related concepts created\n   - Connection density across analysis phases\n   - Cross-domain links discovered (how does this paradigm analysis connect to other knowledge)\n\n4. **Create Integration Report**:\n   - Document in memory://paradigm-analysis/[domain]/integration-report.md\n   - Include concept network, metrics, and notable cross-domain connections\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "Sync": {
+            "reason": "Synchronize all paradigm-analysis memories to the knowledge graph database",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Analyze concept networks for paradigm-related terms and map relationships",
+            "priority": "mandatory"
+          },
+          "SequentialThinking": {
+            "reason": "Integration requires systematic connection of paradigm analysis to the broader knowledge graph",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Graph synchronized with all paradigm analysis outputs",
+          "Concept relationships mapped across paradigms",
+          "Integration metrics calculated",
+          "Cross-domain connections documented"
+        ],
+        "next_actions": [
+          "Generate final paradigm analysis report"
+        ]
+      }
+    },
+    {
+      "id": "paradigm-analysis-report",
+      "name": "📋 Paradigm Analysis Report",
+      "description": "Create the comprehensive paradigm analysis deliverable.\n\n1. **Report Structure**:\n```markdown\n# [Domain] — Kuhnian Paradigm Analysis\n\n## Executive Summary\n- Current paradigm and its stage in Kuhn's cycle (2-3 sentences)\n- Key anomalies threatening the paradigm\n- Revolutionary alternatives and their prospects\n\n## The Dominant Paradigm\n- Foundational assumptions and disciplinary matrix\n- Exemplars and canonical achievements\n- Normal science: puzzles, methods, boundaries\n\n## Anomaly Catalog\n- Empirical anomalies (with severity ratings)\n- Theoretical tensions and boundary failures\n- Methodological limitations\n- Sociological fractures\n- Cross-cutting anomaly synthesis\n\n## Crisis Assessment\n- Stage classification (no crisis / pre-crisis / active / post-crisis)\n- Evidence for classification\n- Extraordinary research landscape\n\n## Competing Paradigms\n### Incumbent Defense\n- Anomaly absorption strategy\n- Future promise arguments\n\n### Challenger Alpha: [Name]\n- Foundational reframing\n- Anomaly resolution strengths\n- Key exemplar\n\n### Challenger Beta: [Name]\n- Distinct alternative foundations\n- Unique insights and observations\n- Synthesis potential\n\n## Incommensurability Analysis\n- Translation problems between paradigms\n- Gestalt shift dynamics\n- Paradigm comparison matrix\n- Criteria disputes\n\n## Revolution Assessment\n- Current stage in Kuhn's cycle\n- Trajectory projection\n- Progress evaluation (is the shift an improvement?)\n- Aftermath implications\n\n## Strategic Implications\n- For practitioners within the incumbent paradigm\n- For practitioners exploring alternatives\n- For decision-makers and resource allocators\n- For educators and textbook authors\n\n## Knowledge Graph\n- Concept network with [[WikiLinks]]\n- Key relationships between paradigms and anomalies\n- Cross-domain connections\n```\n\n2. **Quality Checklist**:\n   ✓ All four Kuhn stages addressed (normal science → crisis → revolution → aftermath)\n   ✓ Paradigm characterized with full disciplinary matrix\n   ✓ Anomalies cataloged from 4 perspectives with severity ratings\n   ✓ At least 3 competing paradigm positions (incumbent + 2 challengers)\n   ✓ Incommensurability explicitly analyzed — not just disagreement but translation failure\n   ✓ 50+ [[WikiLinks]] total across all outputs\n   ✓ Every claim grounded in Wikipedia Paradigm shift / Structure of Scientific Revolutions content\n   ✓ Kuhn's anti-relativism respected: new paradigm assessed as 'better,' not just 'different'\n   ✓ Actionable strategic implications for different stakeholders\n\n3. **Save Report**:\n   - memory://paradigm-analysis/[domain]/final-analysis.md\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "ReadMemory": {
+            "reason": "Read all analysis phases for final report synthesis",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://paradigm-analysis/[domain]/paradigm-charter.md",
+              "memory://paradigm-analysis/[domain]/normal-science/puzzle-solving.md",
+              "memory://paradigm-analysis/[domain]/crisis-assessment.md",
+              "memory://paradigm-analysis/[domain]/incommensurability-debate.md",
+              "memory://paradigm-analysis/[domain]/revolution-assessment.md",
+              "memory://paradigm-analysis/[domain]/integration-report.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Create final paradigm analysis report with full [[WikiLinks]]",
+            "priority": "mandatory",
+            "output": "memory://paradigm-analysis/[domain]/final-analysis.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Report complete with all sections populated",
+          "Quality checklist passed — all 9 criteria met",
+          "All Kuhn stages addressed with Wikipedia-grounded analysis",
+          "Strategic implications articulated for each stakeholder group"
+        ],
+        "next_actions": [
+          "Analysis complete",
+          "Knowledge graph enriched with paradigm-related concepts"
+        ],
+        "success_criteria": {
+          "wikilink_density": "50+ total [[WikiLinks]] across all outputs (e.g., [[paradigm]], [[paradigm-shift]], [[normal-science]], [[incommensurability]], [[Thomas-Kuhn]], [[scientific-revolution]])",
+          "kuhn_fidelity": "All four stages faithfully represented per Wikipedia's summary of The Structure of Scientific Revolutions",
+          "multi_agent_coverage": "Three competing paradigmatic positions fully articulated",
+          "grounding_score": "Every concept traceable to Wikipedia Paradigm shift or Structure of Scientific Revolutions article",
+          "actionable_insights": "Strategic implications for practitioners, decision-makers, and educators"
+        }
+      }
+    }
+  ]
+}

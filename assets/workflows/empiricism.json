@@ -1,0 +1,203 @@
+{
+  "id": "empiricism",
+  "name": "Empiricism",
+  "emoji": "🔭",
+  "description": "Empiricist epistemology — deriving knowledge from sensory experience and empirical evidence rather than innate ideas or pure reason, applying Locke's sensation/reflection distinction, Hume's impressions/ideas framework and problem of induction, Bacon's inductive method, the verification principle, and Peirce's fallibilism to form tentative, revisable conclusions grounded in a posteriori observation",
+  "specification": "https://en.wikipedia.org/wiki/Empiricism",
+  "triggers": [
+    "empiricism",
+    "empirical",
+    "sense experience",
+    "observation-based",
+    "evidence-based",
+    "a posteriori"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "adopt-tabula-rasa",
+      "name": "Adopt the Tabula Rasa — Suspend prior assumptions and ground in direct observation",
+      "description": "Begin from the empiricist starting point: the mind as a blank slate upon which experience writes.\n\nPer the Wikipedia article on Empiricism: 'empiricism is an epistemological view which holds that true knowledge or justification comes either only or primarily from sensory experience and empirical evidence.' The approach 'emphasizes the central role of empirical evidence in the formation of ideas, rather than innate ideas or traditions.'\n\nPer Wikipedia, empiricism was 'associated with the \"blank slate\" concept (tabula rasa), according to which the human mind is \"blank\" at birth and develops its thoughts only through later experience.' This traces to Aristotle: 'What the mind (nous) thinks must be in it in the same sense as letters are on a tablet (grammateion) which bears no actual writing (grammenon).' Locke described the mind as 'white paper' on which experience leaves marks.\n\nFor the subject under examination:\n• What preconceptions, innate assumptions, or a priori commitments currently shape understanding of this topic?\n• What would a tabula rasa observer — encountering this subject with no theoretical prejudice — actually observe?\n• Per Locke: no knowledge is properly inferred or deduced unless derived from sense-based experience — what is the direct sensory or empirical evidence available?\n• Distinguish what is directly observed from what is theorized, assumed, or inherited from tradition\n• Per Wikipedia: 'Empiricists may argue that traditions (or customs) arise due to relations of previous sensory experiences' — identify which current beliefs are traditions vs. direct observations",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for existing beliefs, assumptions, and received wisdom about the subject — these must be identified and suspended to achieve the tabula rasa starting point",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the subject to surface implicit theoretical commitments and traditions that may be masquerading as direct observations",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All preconceptions, innate assumptions, and a priori commitments about the subject explicitly identified",
+          "Direct sensory or empirical evidence distinguished from theorized, assumed, or tradition-inherited beliefs",
+          "The tabula rasa starting point established: what is actually observed vs. what is merely believed",
+          "Traditions and customs about the subject traced to their experiential origins where possible",
+          "Readiness to proceed with only empirical evidence as the foundation for knowledge"
+        ],
+        "next_actions": [
+          "Proceed to cataloging impressions and ideas from direct experience"
+        ]
+      }
+    },
+    {
+      "id": "catalog-impressions-and-ideas",
+      "name": "Catalog Impressions and Ideas — Identify and classify sensory evidence per Locke and Hume",
+      "description": "Systematically catalog the empirical evidence using Locke's and Hume's frameworks for classifying experience.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Locke's empiricism: 'There are two sources of our ideas: sensation and reflection.' Per Locke, 'a distinction is made between simple and complex ideas. The former are unanalysable, and are broken down into primary and secondary qualities.'\n\n• **Primary qualities** — 'essential for the object in question to be what it is. Without specific primary qualities, an object would not be what it is.' These are intrinsic, objective properties.\n• **Secondary qualities** — 'the sensory information we can perceive from its primary qualities.' These are perceiver-dependent.\n• **Complex ideas** — 'combine simple ones, and divide into substances, modes, and relations.'\n\nPer Wikipedia on Hume's empiricism: 'All of people's \"ideas\", in turn, are derived from their \"impressions\". For Hume, an \"impression\" corresponds roughly with what we call a sensation. To remember or to imagine such impressions is to have an \"idea\". Ideas are therefore the faint copies of sensations.'\n\nFor each piece of evidence:\n• Classify as impression (direct sensation) or idea (memory/imagination derived from impression)\n• If an idea: trace it back to the original impression from which it derives\n• Apply Locke's distinction: is the evidence from sensation (external sense) or reflection (internal sense)?\n• Distinguish primary qualities (intrinsic to the subject) from secondary qualities (perceiver-dependent)\n• Identify simple ideas vs. complex ideas (substances, modes, relations)",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Cataloging evidence through Locke's sensation/reflection and Hume's impression/idea frameworks requires systematic classification of each piece of evidence — per Wikipedia, ideas are 'faint copies of sensations' and must be traced to originating impressions",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for empirical data, observations, measurements, and documented experiences related to the subject under examination",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All available evidence cataloged and classified as impression (direct sensation) or idea (derived from impression)",
+          "Each idea traced to its originating impression — per Hume, any idea without a corresponding impression is suspect",
+          "Evidence classified by source: sensation (external sense) or reflection (internal sense) per Locke",
+          "Primary qualities (intrinsic, objective) distinguished from secondary qualities (perceiver-dependent)",
+          "Simple ideas identified and complex ideas decomposed into their constituent substances, modes, and relations"
+        ],
+        "next_actions": [
+          "Proceed to classifying knowledge claims as a posteriori or a priori"
+        ]
+      }
+    },
+    {
+      "id": "classify-knowledge-claims",
+      "name": "Classify Knowledge Claims — Separate a posteriori from a priori, matters of fact from relations of ideas",
+      "description": "Apply the core empiricist distinctions to classify every knowledge claim under consideration.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Empiricism: the view 'stresses knowledge that is a posteriori (after experience) rather than a priori (independent of experience).' Empiricism in the philosophy of science 'emphasizes evidence, especially as discovered in experiments. It is a fundamental part of the scientific method that all hypotheses and theories must be tested against observations of the natural world rather than resting solely on a priori reasoning, intuition, or revelation.'\n\nPer Wikipedia on Hume's classification: 'Hume divided all of human knowledge into two categories: relations of ideas and matters of fact.' Per the analytic-synthetic distinction:\n• **Relations of ideas** — mathematical and logical propositions (e.g., 'the square of the hypotenuse is equal to the sum of the squares of the two sides') — these are analytic, a priori, necessarily true\n• **Matters of fact** — propositions involving 'some contingent observation of the world' (e.g., 'the sun rises in the East') — these are synthetic, a posteriori, contingently true\n\nPer the logical positivists (Vienna Circle): 'Any sentence that is not purely logical, or is unverifiable, is devoid of meaning.' The verification principle demands that 'any genuinely synthetic assertion must be reducible to an ultimate assertion that expresses direct observations or perceptions.'\n\nFor each knowledge claim:\n• Classify as a priori (independent of experience) or a posteriori (dependent on experience)\n• Apply Hume's division: relation of ideas (analytic, necessary) or matter of fact (synthetic, contingent)?\n• Apply the verification principle: is the claim verifiable by observation or experiment?\n• Flag any claim that rests solely on a priori reasoning, intuition, or revelation — these require empirical grounding\n• Per Locke: 'our knowledge of things is a perception of ideas that are in accordance or discordance with each other'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Classifying knowledge claims requires systematic application of Hume's relations-of-ideas vs. matters-of-fact distinction and the verification principle to each claim — per Wikipedia, only matters of fact grounded in observation constitute genuine empirical knowledge",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for prior analyses, established facts, and knowledge claims in the graph that may have been classified without empirical grounding",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Every knowledge claim classified as a priori or a posteriori",
+          "Hume's division applied: each claim labeled as relation of ideas (analytic, necessary) or matter of fact (synthetic, contingent)",
+          "Verification principle applied: each synthetic claim assessed for verifiability by observation or experiment",
+          "Claims resting solely on a priori reasoning, intuition, or revelation flagged for empirical grounding",
+          "Any claims 'devoid of meaning' under the verification principle identified — per the logical positivists"
+        ],
+        "next_actions": [
+          "Proceed to applying the inductive method to matters of fact"
+        ]
+      }
+    },
+    {
+      "id": "apply-inductive-method",
+      "name": "Apply the Inductive Method — Generalize from particular observations per Bacon's method",
+      "description": "Apply Baconian induction to generalize from particular empirical observations to general principles.\n\nPer Wikipedia on Empiricism: Francis Bacon 'first advocated for empiricism in 1620' in the Novum Organum. Bacon advanced the systematic inductive method for scientific inquiry — 'systemic observation and careful collection of data' leading to general laws. Empiricists 'generally favor induction (from particular observations to general laws) — contrasting with deductive reasoning used in rationalism.'\n\nPer Wikipedia, the empirical method 'employs a cyclical process where hypotheses are tested by experiment or observation; results feed back into theory-modification.' The process:\n\n1. **Observation** — Gather the specific sensory experiences and empirical data (from previous steps)\n2. **Pattern recognition** — Identify regularities, recurrences, and correlations across observations\n3. **Tentative generalization** — Formulate a general principle that accounts for the observed patterns\n4. **Verification** — Test the generalization against additional observations or experiments\n5. **Revision** — If new observations contradict the generalization, revise or narrow its scope\n\nPer Peirce's contribution to empiricism: he placed 'inductive reasoning and deductive reasoning in a complementary rather than competitive mode' and added 'the concept of abductive reasoning.' The 'combined three forms of reasoning serve as a primary conceptual foundation for the empirically based scientific method today.'\n\nPer Wikipedia: 'knowledge is based on experience' and 'knowledge is tentative and probabilistic, subject to continued revision and falsification.' Do not treat inductive generalizations as certain — they are probable conclusions from observed evidence.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for additional observations, patterns, and existing generalizations that could strengthen or challenge the inductive inference being constructed",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the emerging generalizations to test whether they cohere with the broader body of empirical knowledge",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Specific observations cataloged and patterns identified across them",
+          "Tentative generalizations formulated — general principles that account for observed patterns",
+          "Each generalization tested against the full body of available observations",
+          "Scope of each generalization specified — what range of cases it covers, with what probability",
+          "Generalizations marked as tentative and probabilistic, not certain — per the empiricist commitment to revisability"
+        ],
+        "next_actions": [
+          "Proceed to confronting the problem of induction"
+        ]
+      }
+    },
+    {
+      "id": "confront-problem-of-induction",
+      "name": "Confront the Problem of Induction — Assess limits of generalization per Hume's critique",
+      "description": "Critically examine the inductive generalizations for the fundamental limitations Hume identified.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Empiricism: 'Among his many arguments Hume also added another important slant to the debate about scientific method — that of the problem of induction. Hume argued that it requires inductive reasoning to arrive at the premises for the principle of inductive reasoning, and therefore the justification for inductive reasoning is a circular argument.'\n\nPer Wikipedia: 'Among Hume's conclusions regarding the problem of induction is that there is no certainty that the future will resemble the past. Thus, as a simple instance posed by Hume, we cannot know with certainty by inductive reasoning that the sun will continue to rise in the East, but instead come to expect it to do so because it has repeatedly done so in the past.'\n\nPer Wikipedia on Hume's deeper point: 'no knowledge, even the most basic beliefs about the natural world, can be conclusively established by reason. Rather, he maintained, our beliefs are more a result of accumulated habits, developed in response to accumulated sense experiences.'\n\nFor each inductive generalization:\n• Does the justification for this generalization rely on circular reasoning — using induction to justify induction?\n• What is the basis for assuming the future will resemble the past in this domain?\n• How much of the belief is 'accumulated habit' (Hume) vs. genuinely justified by evidence?\n• Per Mill's extreme empiricism: even seemingly necessary truths (mathematical, logical) may be 'merely very highly confirmed generalizations from experience' — are any claims being treated as more certain than their empirical basis warrants?\n• What would it take for this generalization to be falsified?\n\nPer Wikipedia on Hume's resolution: 'such things as belief in an external world and belief in the existence of the self were not rationally justifiable' but 'were to be accepted nonetheless because of their profound basis in instinct and custom.' Acknowledge which beliefs rest on habit rather than proof, while still accepting them as working premises where justified by practical necessity.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Confronting the problem of induction requires rigorous sequential examination of each generalization for circular justification, habituation bias, and unwarranted certainty — per Hume, 'there is no certainty that the future will resemble the past'",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Search for counterexamples, edge cases, and historical instances where similar inductive generalizations proved false — these stress-test the generalizations",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each inductive generalization examined for Hume's circularity — does it use induction to justify induction?",
+          "The assumption that 'the future will resemble the past' explicitly assessed for each generalization",
+          "Accumulated habit (Hume) distinguished from genuine evidential support",
+          "Falsification conditions specified: what observations would refute each generalization",
+          "Claims treated as certain downgraded to tentative where their empirical basis warrants only probability",
+          "Beliefs resting on instinct and custom acknowledged as such — accepted as working premises only where practical necessity justifies"
+        ],
+        "next_actions": [
+          "Proceed to synthesizing conclusions under fallibilism"
+        ]
+      }
+    },
+    {
+      "id": "synthesize-under-fallibilism",
+      "name": "Synthesize Under Fallibilism — Form tentative, revisable conclusions per Peirce's self-corrective method",
+      "description": "Form final conclusions that embody the empiricist commitment to fallibilism and self-correction.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Peirce's empiricism: his doctrine of fallibilism holds that 'the conclusions of science are always tentative. The rationality of the scientific method does not depend on the certainty of its conclusions, but on its self-corrective character: by continued application of the method science can detect and correct its own mistakes, and thus eventually lead to the discovery of truth.'\n\nPeirce's approach 'presupposes that (1) the objects of knowledge are real things, (2) the characters (properties) of real things do not depend on our perceptions of them, and (3) everyone who has sufficient experience of real things will agree on the truth about them.'\n\nPer Wikipedia on James's radical empiricism: 'the empirically observed \"directly apprehended universe needs no extraneous trans-empirical connective support\"' — conclusions should not rely on supernatural or non-empirical explanations for natural phenomena.\n\nPer Wikipedia on Dewey's instrumentalism: 'reality is determined by past experience. Therefore, humans adapt their past experiences of things to perform experiments upon and test the pragmatic values of such experience. The value of such experience is measured experientially and scientifically, and the results of such tests generate ideas that serve as instruments for future experimentation.'\n\nSynthesize the empirically grounded conclusions:\n• State each conclusion with its degree of empirical support (confirmed, probable, tentative)\n• Specify what further observations or experiments could strengthen, weaken, or falsify each conclusion\n• Per Peirce: design the self-corrective mechanism — how will continued application of empirical method detect and correct mistakes?\n• Per Dewey: frame conclusions as instruments for future experimentation, not final truths\n• Acknowledge per Hume that 'knowledge is tentative and probabilistic, subject to continued revision and falsification'\n• Per Locke's foundational insight: ensure every conclusion traces back to sensory experience — no conclusion should rest on innate ideas or pure reason alone",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Synthesizing empiricist conclusions requires systematically assessing each finding's empirical grounding, degree of certainty, falsification conditions, and self-corrective mechanisms — per Peirce, the rationality of the method depends on its self-corrective character",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document the empirically grounded conclusions, their degree of support, and the specified conditions for revision — per Peirce's fallibilism, these are instruments for future inquiry, not final truths",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Search for related conclusions in the knowledge graph to contextualize findings and identify potential contradictions with existing empirical knowledge",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each conclusion stated with its degree of empirical support: confirmed (strong evidence), probable (moderate evidence), or tentative (limited evidence)",
+          "Every conclusion traced back to originating sensory experience — per Locke, no conclusion rests on innate ideas or pure reason alone",
+          "Falsification conditions specified for each conclusion: what observations would require revision",
+          "Self-corrective mechanism designed per Peirce: how continued empirical inquiry will detect and correct errors",
+          "Conclusions framed as instruments for future experimentation per Dewey — not final truths",
+          "The full empirical audit trail documented: from tabula rasa through impressions, classification, induction, and Humean critique to fallibilist synthesis"
+        ],
+        "next_actions": [
+          "Document findings with empirical audit trail for institutional memory"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "id": "bayesian-reasoning",
+  "name": "Bayesian Reasoning",
+  "emoji": "📊",
+  "description": "Bayesian inference — using Bayes' theorem to update the probability of a hypothesis as more evidence becomes available, combining prior probability with likelihood to compute posterior probability through sequential belief revision",
+  "triggers": [
+    "bayesian",
+    "bayes",
+    "prior probability",
+    "posterior",
+    "likelihood",
+    "bayesian inference",
+    "belief update"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "establish-prior",
+      "name": "Establish Prior Distribution — Specify P(H) before observing new evidence",
+      "description": "Specify the prior probability distribution P(H) — the estimate of the probability of the hypothesis before the current evidence is observed.\n\nPer Wikipedia on Bayesian inference: 'Bayesian inference derives the posterior probability as a consequence of two antecedents: a prior probability and a likelihood function derived from a statistical model for the observed data.' The prior P(H) is 'the estimate of the probability of the hypothesis H before the data E, the current evidence, is observed.'\n\nPer Wikipedia on prior probability: 'A prior probability distribution of an uncertain quantity is its assumed probability distribution before evidence is taken into account.' Priors may be:\n\n• Informative — expressing 'specific, definite information about a variable,' e.g., from previous experiments or expert knowledge\n• Weakly informative — expressing 'partial information about a variable, steering the analysis toward solutions that align with existing knowledge without overly constraining the results'\n• Uninformative (flat/diffuse) — expressing 'vague or general information,' determined by the principle of indifference (equal probabilities to all possibilities), maximum entropy (Jaynes), or Jeffreys prior\n\nPer Wikipedia: 'the posterior from one problem becomes the prior for another problem; pre-existing evidence which has already been taken into account is part of the prior.' Identify what is already known vs. what is genuinely uncertain. State all hypotheses H under consideration — they should be mutually exclusive and exhaustive where possible. Assign prior probabilities that sum to 1. Per Wikipedia's formal description, the prior p(θ|α) may itself depend on hyperparameters α, allowing hierarchical priors where uncertainty about the prior is expressed as hyperprior distributions.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior evidence, established principles, and existing beliefs about the hypotheses under consideration — these constitute the informative prior",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around related concepts to understand what background knowledge should inform the prior distribution",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All competing hypotheses H explicitly enumerated — mutually exclusive and exhaustive where possible",
+          "Prior probability P(H) assigned for each hypothesis, summing to 1",
+          "Prior type classified: informative (from data/expertise), weakly informative (regularizing), or uninformative (principle of indifference / Jeffreys)",
+          "Pre-existing evidence already incorporated into the prior clearly distinguished from new evidence to be observed",
+          "Justification stated for prior choice — why these probability assignments represent the current state of belief"
+        ],
+        "next_actions": [
+          "Proceed to specifying the likelihood function"
+        ]
+      }
+    },
+    {
+      "id": "specify-likelihood",
+      "name": "Specify Likelihood Function — Determine P(E|H) from the statistical model",
+      "description": "Determine the likelihood function P(E|H) — the probability of observing the evidence E given each hypothesis H.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Bayesian inference: P(E|H) 'is the probability of observing E given H and is called the likelihood. As a function of E with H fixed, it indicates the compatibility of the evidence with the given hypothesis. The likelihood function is a function of the evidence, E, while the posterior probability is a function of the hypothesis, H.'\n\nPer the formal description on Wikipedia: 'The sampling distribution is the distribution of the observed data conditional on its parameters, i.e. p(X|θ). This is also termed the likelihood, especially when viewed as a function of the parameter(s), sometimes written L(θ|X) = p(X|θ).'\n\nFor each hypothesis H under consideration:\n1. Define the data-generating model — what process would produce the observed evidence if H were true?\n2. Compute P(E|H) — how probable is the specific observed evidence under this hypothesis?\n3. Assess the compatibility of the evidence with each hypothesis\n\nPer Wikipedia's proportionality insight: 'the posterior probability of a hypothesis is proportional to its prior probability (its inherent likeliness) and the newly acquired likelihood (its compatibility with the new observed evidence).' Only P(H) and P(E|H) affect the relative posterior probabilities of different hypotheses.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Computing likelihood P(E|H) for each hypothesis requires systematic evaluation of the data-generating model under each hypothesis — per Wikipedia, the likelihood indicates 'the compatibility of the evidence with the given hypothesis'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find known statistical models, base rates, and empirical data that can inform the likelihood computation for each hypothesis",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Likelihood P(E|H) computed for each hypothesis — specifying the probability of the observed evidence under each",
+          "Data-generating model explicitly stated for each hypothesis — what process would produce this evidence if H were true",
+          "Likelihoods compared across hypotheses — which hypothesis makes the observed evidence most probable",
+          "Independence assumptions stated if using product likelihood for multiple observations: P(E|θ) = Π P(eₖ|θ)",
+          "No hypothesis assigned likelihood of exactly 0 without strong justification — per Wikipedia, P(E) > 0 is required"
+        ],
+        "next_actions": [
+          "Proceed to computing the posterior via Bayes' theorem"
+        ]
+      }
+    },
+    {
+      "id": "compute-posterior",
+      "name": "Compute Posterior via Bayes' Theorem — Calculate P(H|E) = P(E|H)·P(H)/P(E)",
+      "description": "Apply Bayes' theorem to compute the posterior probability P(H|E) — the probability of each hypothesis given the observed evidence.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Bayesian inference, Bayes' theorem states:\n\n  P(H|E) = P(E|H) · P(H) / P(E)\n\nwhere:\n• P(H|E) is the posterior probability — 'the probability of H given E, i.e., after E is observed. This is what we want to know: the probability of a hypothesis given the observed evidence.'\n• P(E|H) is the likelihood (from previous step)\n• P(H) is the prior probability (from first step)\n• P(E) is the marginal likelihood / evidence — 'sometimes termed the marginal likelihood or model evidence. This factor is the same for all possible hypotheses being considered and hence does not factor into determining the relative probabilities of different hypotheses.'\n\nPer Wikipedia, the marginal likelihood is computed as: P(E) = Σ P(E|Hₘ)·P(Hₘ) over all hypotheses, or in continuous form: p(X|α) = ∫ p(X|θ)p(θ|α)dθ. Per Wikipedia: 'It quantifies the agreement between data and expert opinion.'\n\nPer Wikipedia's interpretation of the update factor: P(E|M)/P(E) > 1 means 'if the model were true, the evidence would be more likely than is predicted by the current state of belief' — belief increases. If < 1, belief decreases. If = 1, 'the evidence is independent of the model.'\n\nPer Wikipedia: 'posterior is proportional to likelihood times prior, or sometimes as posterior = likelihood times prior, over evidence.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Applying Bayes' theorem requires systematic computation: marginal likelihood P(E) as normalizing constant, then P(H|E) for each hypothesis — per Wikipedia, 'posterior is proportional to likelihood times prior'",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Marginal likelihood P(E) computed as sum (or integral) of P(E|Hₘ)·P(Hₘ) over all hypotheses",
+          "Posterior P(H|E) computed for each hypothesis via Bayes' theorem",
+          "Posterior probabilities sum to 1 across all hypotheses (verified)",
+          "Update factor P(E|H)/P(E) interpreted for each hypothesis — whether evidence increased, decreased, or left belief unchanged",
+          "If P(H) = 0 then P(H|E) = 0 confirmed — per Wikipedia, 'hard convictions are insensitive to counter-evidence'"
+        ],
+        "next_actions": [
+          "Proceed to interpreting the posterior and making predictions"
+        ]
+      }
+    },
+    {
+      "id": "interpret-posterior",
+      "name": "Interpret Posterior and Predict — Analyze posterior distribution and derive predictions",
+      "description": "Interpret the posterior distribution and use it for inference and prediction.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Bayesian inference, several estimation methods can be applied to the posterior:\n• Posterior mean: E[θ] = ∫ θ·p(θ|X,α)dθ — if a finite mean exists\n• Maximum a posteriori (MAP): θ_MAP = arg max p(θ|X,α) — 'taking a value with the greatest probability'\n• Posterior median — 'attractive as a robust estimator'\n\nPer Wikipedia on Bayesian prediction: 'Bayesian theory calls for the use of the posterior predictive distribution to do predictive inference, i.e., to predict the distribution of a new, unobserved data point. That is, instead of a fixed point as a prediction, a distribution over possible points is returned. Only this way is the entire posterior distribution of the parameter(s) used.'\n\nPer Wikipedia on model comparison: 'In Bayesian model comparison, the model with the highest posterior probability given the data is selected.' When competing models are a priori equiprobable, 'the ratio of their posterior probabilities corresponds to the Bayes factor.'\n\nAssess sensitivity: per Wikipedia on the asymptotic behaviour, 'for sufficiently nice prior probabilities, the Bernstein-von Mises theorem gives that in the limit of infinite trials, the posterior converges to a Gaussian distribution independent of the initial prior.' But 'there may be insufficient trials to suppress the effects of the initial choice.' Evaluate whether the posterior is dominated by the prior (insufficient data) or by the likelihood (sufficient data).",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Interpreting the posterior requires systematic analysis: point estimates (MAP, mean, median), predictive distribution, model comparison via Bayes factor, and sensitivity assessment — per Wikipedia, the posterior predictive distribution uses 'the entire posterior distribution of the parameter(s)'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find relevant base rates, comparison models, and decision thresholds in the knowledge graph to contextualize the posterior results",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Posterior distribution interpreted with appropriate point estimates (MAP, mean, or median) and uncertainty quantification",
+          "Posterior predictive distribution derived for new unobserved data — distribution over possible outcomes, not just a point prediction",
+          "If multiple models compared: Bayes factor computed as ratio of marginal likelihoods — model with highest posterior probability identified",
+          "Sensitivity assessed: whether posterior is dominated by prior (insufficient data) or likelihood (sufficient data)",
+          "Practical implications of the posterior stated — what does the updated belief imply for decisions or actions"
+        ],
+        "next_actions": [
+          "Proceed to sequential belief update if new evidence is available or anticipated"
+        ]
+      }
+    },
+    {
+      "id": "sequential-update",
+      "name": "Sequential Belief Update — Iterate as the posterior becomes the new prior",
+      "description": "Apply sequential Bayesian updating — the posterior from the current inference becomes the prior for the next round as new evidence arrives.\n\nPer Wikipedia on Bayesian inference: 'Bayesian updating is particularly important in the dynamic analysis of a sequence of data.' Per Wikipedia on prior probability: 'the posterior from one problem becomes the prior for another problem; pre-existing evidence which has already been taken into account is part of the prior and, as more evidence accumulates, the posterior is determined largely by the evidence rather than any original assumption, provided that the original assumption admitted the possibility of what the evidence is suggesting.'\n\nPer Wikipedia's general formulation for multiple observations: for a sequence of independent and identically distributed observations E = (e₁, ..., eₙ), repeated application of Bayes' theorem yields P(M|E) = P(E|M)·P(M) / Σₘ P(E|Mₘ)·P(Mₘ), where P(E|M) = Π P(eₖ|M).\n\nPer Wikipedia on asymptotic convergence: the Bernstein-von Mises theorem asserts that for sufficiently nice priors, the posterior converges to a Gaussian distribution independent of the initial prior as the number of observations grows. However, per Freedman (1963, 1965): for infinite countable probability spaces, 'for a dense subset of priors the Bernstein-von Mises theorem is not applicable' — convergence is not guaranteed.\n\nPer Wikipedia on alternatives: 'Bayesian updating is widely used and computationally convenient. However, it is not the only updating rule that might be considered rational.' Jeffrey's rule applies Bayes' rule 'to the case where the evidence itself is assigned a probability.' Consider whether standard Bayesian updating is appropriate or whether probability kinematics is needed.\n\nDocument the complete chain of belief revision: initial prior → evidence₁ → posterior₁ = prior₂ → evidence₂ → posterior₂ → ...",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the complete Bayesian inference chain — prior, evidence, posterior, and sequential updates — as institutional memory for future belief revision on this topic",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Search for previous Bayesian analyses on this topic whose posteriors should serve as informative priors for the current update",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Current posterior explicitly stated as the new prior for future updates on this topic",
+          "Complete belief revision chain documented: initial prior → each evidence item → each posterior update",
+          "Convergence assessed: whether posterior has stabilized or remains sensitive to further evidence",
+          "Assumptions recorded: independence of observations, appropriateness of standard Bayesian updating vs. Jeffrey's rule",
+          "Remaining uncertainty explicitly quantified — what further evidence would most reduce uncertainty",
+          "Posterior documented for institutional memory — enabling future sequential updates as new evidence emerges"
+        ],
+        "next_actions": [
+          "Document final posterior beliefs with complete inference chain and uncertainty quantification"
+        ]
+      }
+    }
+  ]
+}

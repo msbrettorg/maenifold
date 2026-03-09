@@ -1,0 +1,229 @@
+{
+  "id": "communication-iteration",
+  "name": "Communication & Iteration (Scientific Method)",
+  "emoji": "📡",
+  "description": "The communication and iteration phase of the scientific method — the final, cyclical stage in which experimental results are documented, submitted for peer review, published, replicated by independent investigators, and used to refine or reformulate hypotheses. Per Wikipedia on Scientific Method § Communication and iteration: 'The scientific method is iterative. At any stage, it is possible to refine its accuracy and precision, so that some consideration will lead the scientist to repeat an earlier part of the process.' This workflow operationalizes that cycle: from preparing findings for communication through peer evaluation, publication, replication, and the iterative feedback loop that drives scientific progress. Per Wikipedia § Confirmation: 'Scientific work tends to be accepted by the scientific community when it has been confirmed. Crucially, experimental and theoretical results must be reproduced by others within the scientific community.'",
+  "specification": "https://en.wikipedia.org/wiki/Scientific_method#Communication_and_iteration",
+  "triggers": [
+    "scientific communication",
+    "peer review",
+    "iteration",
+    "scientific publication",
+    "replication",
+    "communication and iteration"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "prepare-communication",
+      "name": "Prepare Communication — Document findings, methods, and data for sharing",
+      "description": "Prepare experimental findings, methods, and data for communication to the scientific community.\n\nPer Wikipedia on Scientific Method § Communication and iteration: Watson and Crick 'produced their model, using this information along with the previously known information about DNA's composition, especially Chargaff's rules of base pairing.' After 'considerable fruitless experimentation, being discouraged by their superior from continuing, and numerous false starts,' they were 'able to infer the essential structure of DNA by concrete modeling of the physical shapes of the nucleotides which comprise it.'\n\nPer Wikipedia § Confirmation: 'Scientists typically are careful in recording their data, a requirement promoted by Ludwik Fleck (1896–1961) and others.' Government research-granting agencies and journals 'have a policy that researchers must archive their data and methods so that other researchers can test the data and methods and build on the research that has gone before.'\n\nFor the subject under examination:\n• What are the core findings — the results of experimentation or analysis?\n• What methods were used — can they be described with sufficient precision for replication?\n• What data supports the conclusions — is it archived and accessible?\n• Per Wikipedia: 'Detailed record-keeping is essential, to aid in recording and reporting on the experimental results, and supports the effectiveness and integrity of the procedure.'\n• What are the limitations and boundary conditions of the findings?\n• What prior work is being built upon — how do these results extend existing knowledge?\n\nPer Wikipedia: 'Published papers can be built upon.' Document how this work connects to the existing body of knowledge and what it adds.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior findings, existing published results, and established methods that this communication builds upon — per Wikipedia, science 'can build on previous knowledge, and unify understanding'",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the subject domain to identify what existing work this communication extends and what related findings should be referenced",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Core findings clearly documented with supporting data",
+          "Methods described with sufficient precision for independent replication",
+          "Data archived and accessible for verification by others",
+          "Limitations and boundary conditions of findings explicitly stated",
+          "Connection to prior work established — what this communication adds to existing knowledge"
+        ],
+        "next_actions": [
+          "Proceed to peer review — submit findings for expert evaluation"
+        ]
+      }
+    },
+    {
+      "id": "peer-review",
+      "name": "Peer Review — Submit for anonymous expert evaluation of soundness",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically evaluate the work from the perspective of expert reviewers.\n\nSubmit the documented findings for peer review — the process by which expert evaluators assess experimental soundness, methodological rigor, and validity of conclusions.\n\nPer Wikipedia on Scientific Method § Confirmation: 'Peer review — anonymous expert evaluation of research — assesses experimental soundness rather than certifying correctness.' Some journals 'request that the experimenter provide lists of possible peer reviewers, especially if the field is highly specialized. Specialists review methodology and design; if approved (sometimes requiring additional experiments), the prestige of the journal where the work is published indicates perceived quality.'\n\nConduct peer review by examining:\n• **Methodological soundness** — Are the methods appropriate for the research question? Are there design flaws?\n• **Statistical validity** — Are the analyses correct? Are conclusions supported by the data?\n• **Novelty and significance** — Does this work contribute meaningfully to the field?\n• **Completeness** — Are there gaps in the argument, missing controls, or unaddressed confounds?\n• **Reproducibility** — Could an independent researcher replicate this work from the description provided?\n• **Internal consistency** — Do the conclusions follow logically from the evidence presented?\n\nPer Wikipedia: Peer review is a quality control mechanism. It assesses soundness, not truth — the distinction is critical. A methodologically sound study can still produce results that later fail replication.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic peer review requires evaluating multiple dimensions of soundness — methodology, statistics, novelty, completeness, reproducibility — each requiring focused critical reasoning per Wikipedia's description of expert evaluation",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Are the methods appropriate and free of design flaws?",
+              "Are statistical analyses correct and conclusions data-supported?",
+              "Does this work contribute meaningfully — is it novel and significant?",
+              "Could an independent researcher replicate from the description provided?",
+              "Do the conclusions follow logically from the evidence?"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Search for prior work, established methodological standards, and known pitfalls in the domain to inform the review — peer reviewers bring domain expertise to their evaluation",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Methodological soundness assessed — design flaws identified or absence confirmed",
+          "Statistical validity evaluated — analyses verified or errors flagged",
+          "Novelty and significance judged — contribution to the field characterized",
+          "Reproducibility assessed — whether description is sufficient for independent replication",
+          "Review outcome determined — accept, revise, or reject with specific rationale"
+        ],
+        "next_actions": [
+          "If revisions required, proceed to address review feedback",
+          "If accepted as sound, proceed to publication"
+        ]
+      }
+    },
+    {
+      "id": "address-review-iterate",
+      "name": "Address Review & Iterate — Incorporate feedback and strengthen the work",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically address each point of review feedback.\n\nAddress peer review feedback by revising methods, strengthening arguments, conducting additional experiments, or refining conclusions.\n\nPer Wikipedia on Scientific Method § Communication and iteration: 'At any stage, it is possible to refine its accuracy and precision, so that some consideration will lead the scientist to repeat an earlier part of the process.' This iterative refinement is the core mechanism:\n• 'Failure to develop an interesting hypothesis may lead a scientist to re-define the subject under consideration.'\n• 'Failure of a hypothesis to produce interesting and testable predictions may lead to reconsideration of the hypothesis or of the definition of the subject.'\n• 'Failure of an experiment to produce interesting results may lead a scientist to reconsider the experimental method, the hypothesis, or the definition of the subject.'\n\nFor each piece of review feedback:\n• What specific concern was raised — methodological, statistical, interpretive, or other?\n• Does the concern require additional experiments, reanalysis, or clarification?\n• Does the feedback reveal a fundamental flaw (requiring major revision) or a gap in presentation (minor revision)?\n• Per Wikipedia's iterative principle: should the scientist 'repeat an earlier part of the process' — and if so, which part?\n\nPer Wikipedia § Confirmation: peer review 'sometimes requiring additional experiments' — be prepared to return to experimentation if the review demands it. The iteration is the mechanism by which science self-corrects.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically addressing each review concern requires tracing feedback to specific weaknesses and determining whether revision, additional experimentation, or fundamental reconceptualization is needed — per Wikipedia, the scientist may need to 'repeat an earlier part of the process'",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "What specific concerns were raised and what type of revision does each require?",
+              "Do any concerns require returning to experimentation (additional data collection)?",
+              "Are there fundamental flaws requiring major revision or gaps requiring minor clarification?",
+              "Per the iterative principle: which earlier stage of the process should be revisited?"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Every review concern addressed with specific revision or justified rebuttal",
+          "Additional experiments conducted if required by reviewers",
+          "Revised work demonstrably stronger — each weakness either corrected or convincingly defended",
+          "If fundamental flaws identified, earlier stages of the process revisited per Wikipedia's iterative principle",
+          "Revised communication ready for re-evaluation or publication"
+        ],
+        "next_actions": [
+          "If revisions address all concerns, proceed to publication",
+          "If fundamental issues remain, return to peer review for re-evaluation"
+        ]
+      }
+    },
+    {
+      "id": "publish-results",
+      "name": "Publish Results — Make findings publicly accessible for the scientific community",
+      "description": "Publish the peer-reviewed findings, making them publicly accessible to the scientific community and enabling others to build upon the work.\n\nPer Wikipedia on Scientific Method § Communication and iteration: 'This is why the scientific method is often represented as circular — new information leads to new characterisations, and the cycle of science continues. Measurements collected can be archived, passed onwards and used by others. Other scientists may start their own research and enter the process at any stage. They might adopt the characterization and formulate their own hypothesis, or they might adopt the hypothesis and deduce their own predictions.'\n\nPer Wikipedia: 'Often the experiment is not done by the person who made the prediction, and the characterization is based on experiments done by someone else. Published results of experiments can also serve as a hypothesis predicting their own reproducibility.'\n\nFor publication:\n• Are the findings presented with sufficient detail for independent replication?\n• Is the data archived and accessible per institutional requirements? Per Wikipedia § Confirmation: agencies and journals 'have a policy that researchers must archive their data and methods so that other researchers can test the data and methods and build on the research that has gone before.'\n• Are the conclusions appropriately scoped — do they claim only what the evidence supports?\n• How do these results serve as a starting point for future investigation?\n• Per Wikipedia: published results themselves become 'a hypothesis predicting their own reproducibility' — are the claims stated precisely enough to be tested by others?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist the published findings to the knowledge graph — per Wikipedia, 'measurements collected can be archived, passed onwards and used by others' and science 'can build on previous knowledge'",
+            "priority": "recommended",
+            "output": "memory://publications/[topic]/findings.md"
+          },
+          "SearchMemories": {
+            "reason": "Verify that the publication accurately represents its relationship to prior work stored in the knowledge graph — ensure claims of novelty are justified",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Findings published with sufficient detail for independent replication",
+          "Data and methods archived and accessible for verification",
+          "Conclusions appropriately scoped — claims limited to what evidence supports",
+          "Published results stated precisely enough to serve as testable predictions of their own reproducibility",
+          "Entry points for future investigators clearly identified — how others can build upon this work"
+        ],
+        "next_actions": [
+          "Proceed to replication and verification — test reproducibility of published results"
+        ]
+      }
+    },
+    {
+      "id": "replication-verification",
+      "name": "Replication & Verification — Reproduce results independently to confirm findings",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to design and evaluate the replication attempt.\n\nAttempt to reproduce the published results independently, testing the reliability and reproducibility of the findings.\n\nPer Wikipedia on Scientific Method § Confirmation: 'Crucially, experimental and theoretical results must be reproduced by others within the scientific community.' 'If an experiment cannot be repeated to produce the same results, this implies that the original results might have been in error. As a result, it is common for a single experiment to be performed multiple times, especially when there are uncontrolled variables or other indications of experimental error.'\n\nPer Wikipedia: 'For significant or surprising results, other scientists may also attempt to replicate the results for themselves, especially if those results would be important to their own work.' However, per Ioannidis (2005), 'the method being used has led to many findings that cannot be replicated' — the replication crisis demonstrates that this step is essential, not optional.\n\nPer Wikipedia: 'They will also assist in reproducing the experimental results, likely by others. Traces of this approach can be seen in the work of Hipparchus (190–120 BCE).'\n\nFor replication:\n• Can the experiment be reproduced from the published methods alone — without consulting the original investigators?\n• Do the replicated results match the original findings within expected variation?\n• If results differ, is the discrepancy due to methodological differences, uncontrolled variables, or fundamental non-reproducibility?\n• What does successful (or failed) replication imply for confidence in the original conclusions?\n• Per Wikipedia: 'Published results of experiments can also serve as a hypothesis predicting their own reproducibility' — has this prediction been confirmed or refuted?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Designing a rigorous replication attempt requires systematic comparison of methods, identification of potential confounds, and careful evaluation of whether results match — per Wikipedia, 'experimental and theoretical results must be reproduced by others'",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Can the experiment be reproduced from the published description alone?",
+              "Do replicated results match the original within expected variation?",
+              "If results differ, what explains the discrepancy — method, variables, or non-reproducibility?",
+              "What does the replication outcome imply for confidence in the original conclusions?"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for the original published findings to compare against replication results, and for known replication attempts by others",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Replication attempted using only the published methods — no hidden knowledge from original investigators",
+          "Results compared to original findings — match, partial match, or discrepancy documented",
+          "If discrepancy found, root cause analysis performed — methodological, variable, or fundamental",
+          "Confidence in original conclusions updated based on replication outcome",
+          "Replication results documented for the scientific record"
+        ],
+        "next_actions": [
+          "If replication succeeds, proceed to iterative refinement — what new questions emerge?",
+          "If replication fails, return to earlier stages — reconsider methods, hypothesis, or subject definition"
+        ]
+      }
+    },
+    {
+      "id": "iterative-refinement",
+      "name": "Iterative Refinement — Cycle back with new information to advance understanding",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to determine what the communication-replication cycle has revealed and where to direct the next iteration.\n\nComplete the iterative cycle by determining what new information has emerged from the communication, review, publication, and replication process — and where the cycle should return.\n\nPer Wikipedia on Scientific Method § Communication and iteration: 'This manner of iteration can span decades and sometimes centuries.' The example of Alhazen (1027) deducing that outer space was less dense than air from measurements of refraction, followed by Ibn Mu'adh (1079) inferring the atmosphere was 50 miles thick based on atmospheric refraction, illustrates how 'published papers can be built upon' across generations.\n\nPer Wikipedia: 'This is why the scientific method is often represented as circular — new information leads to new characterisations, and the cycle of science continues.' The iterative loop operates at every level:\n• Failed replication → reconsider experimental method, hypothesis, or definition of subject\n• Successful replication → increased confidence, but also new questions and refinements\n• Peer review feedback → identify gaps that suggest new experiments or hypotheses\n• New related findings by others → re-evaluate conclusions in light of expanded evidence\n\nPer Wikipedia: 'Other scientists may start their own research and enter the process at any stage. They might adopt the characterization and formulate their own hypothesis, or they might adopt the hypothesis and deduce their own predictions.'\n\nFor iterative refinement:\n• What new information has emerged from the full communication cycle?\n• What new questions, hypotheses, or characterizations does this new information suggest?\n• Which earlier stage of the scientific method should be revisited — observation, hypothesis, prediction, or experimentation?\n• How has confidence in the original findings changed based on peer review, publication response, and replication attempts?\n• What is the next most valuable contribution this line of inquiry can make?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Determining the next iteration of the scientific cycle requires synthesizing all feedback from communication, review, replication, and new related work — per Wikipedia, 'new information leads to new characterisations, and the cycle of science continues'",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "What new information emerged from the full communication-replication cycle?",
+              "What new questions, hypotheses, or characterizations does this suggest?",
+              "Which earlier stage should be revisited — and why?",
+              "What is the next most valuable contribution this line of inquiry can make?"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the iterative refinement — what was learned, what questions remain, and where the cycle should return — to the knowledge graph as institutional memory for future iterations",
+            "priority": "recommended",
+            "output": "memory://iterations/[topic]/cycle-[n].md"
+          },
+          "SearchMemories": {
+            "reason": "Search for related work by other investigators that may have entered the process at any stage — per Wikipedia, 'other scientists may start their own research and enter the process at any stage'",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "New information from the communication cycle synthesized and documented",
+          "New questions or hypotheses identified that warrant further investigation",
+          "Specific earlier stage of the scientific method identified for revisiting — with rationale",
+          "Confidence in original findings updated based on all available evidence",
+          "Next iteration of the cycle scoped — what will be investigated and how"
+        ],
+        "next_actions": [
+          "Workflow complete — the communication-iteration cycle has been documented",
+          "If new hypotheses emerged, consider entering a new cycle of the scientific method",
+          "If fundamental questions remain, return to the appropriate earlier stage per Wikipedia's iterative principle"
+        ]
+      }
+    }
+  ]
+}

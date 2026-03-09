@@ -1,0 +1,209 @@
+{
+  "id": "systematic-observation",
+  "name": "Systematic Observation & Characterization",
+  "emoji": "🔬",
+  "description": "The first element of the scientific method — systematic observation, definition, and measurement of the subject of inquiry. Per Wikipedia: 'The scientific method depends upon increasingly sophisticated characterizations of the subjects of investigation.' Characterization is the broad process by which a subject's structure and properties are probed and measured through careful observation, precise definition of terms, selection of appropriate instruments, and systematic collection of qualitative and quantitative data that is tabulated, graphed, and statistically analyzed.",
+  "specification": "https://en.wikipedia.org/wiki/Characterization_(materials_science)",
+  "triggers": [
+    "observation",
+    "characterize",
+    "systematic observation",
+    "empirical observation",
+    "data collection",
+    "characterization",
+    "measure",
+    "probe",
+    "survey",
+    "catalog observations",
+    "observe and measure",
+    "collect data"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "identify-subject-of-inquiry",
+      "name": "Identify the Subject of Inquiry — Define the phenomenon, unsolved problem, or unknown",
+      "description": "Identify what is to be characterized — the phenomenon, unsolved problem, or unknown requiring systematic observation.\n\nPer Wikipedia's Scientific method § Characterizations: 'The subjects can also be called unsolved problems or the unknowns.' A scientific question 'can refer to the explanation of a specific observation, as in \"Why is the sky blue?\" but can also be open-ended, as in \"How can I design a drug to cure this particular disease?\"'\n\nThis stage involves finding and evaluating evidence from previous experiments, personal scientific observations or assertions, as well as the work of other scientists. Per the DNA example: researchers identified that 'the mechanism of storing genetic information in DNA was unclear' and determined 'it should be possible to characterize the physical structure of DNA.'\n\nFormulate the characterization question: What structure, properties, composition, or behavior needs to be probed and measured? What is already known? What specific gaps in understanding does this characterization aim to fill?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find prior observations, existing characterizations, and known properties of the subject in the knowledge graph",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the subject to understand what is already known and what constitutes the 'unsolved problem or unknown'",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Subject of inquiry clearly identified — the phenomenon, unsolved problem, or unknown stated explicitly",
+          "Scientific question formulated — specific or open-ended per the nature of the inquiry",
+          "Prior work evaluated — existing experiments, observations, and assertions from other scientists reviewed",
+          "Gaps in understanding articulated — what the characterization aims to reveal that is currently unclear"
+        ],
+        "next_actions": [
+          "Proceed to defining key terms and quantities"
+        ]
+      }
+    },
+    {
+      "id": "define-terms-and-quantities",
+      "name": "Define Terms and Quantities — Establish precise definitions and units of measure",
+      "description": "Establish precise definitions for the terms and quantities central to the characterization.\n\nPer Wikipedia's Scientific method § Definition: 'The scientific definition of a term sometimes differs substantially from its natural language usage.' For example, mass and weight overlap in common discourse but have distinct meanings in mechanics. Einstein's first paper on relativity begins by defining simultaneity and the means for determining length — terms Newton had skipped over as 'being well known to all,' yet which proved to be approximations.\n\nHowever, heed Francis Crick's caution: 'it can be premature to define something when it remains ill-understood.' Crick found it easier to study awareness in the visual system rather than free will. The gene was poorly understood before Watson and Crick's discovery of DNA structure — premature definition would have been counterproductive.\n\nPer the Observation article: 'Measurement involves comparing the observed phenomenon to a standard unit, which may be defined by an artifact, a process, or a shared convention.' Scientific quantities are 'characterized by their units of measure which can later be described in terms of conventional physical units when communicating the work.'\n\nBalance precision with epistemic humility: define what can be defined, flag what remains ill-understood for iterative refinement.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find existing definitions, standard units, and terminological conventions in the knowledge graph for the subject domain",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Explore how key terms are used across different contexts — natural language vs. scientific definitions may diverge",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Key terms defined with scientific precision — distinguished from natural language usage where they diverge",
+          "Units of measure specified for all quantitative properties to be observed",
+          "Standard units identified — artifacts, processes, or conventions for each measurement",
+          "Ill-understood terms flagged per Crick's caution — not prematurely defined but marked for iterative refinement",
+          "Definitions sufficient to enable reproducible observation and communication of results"
+        ],
+        "next_actions": [
+          "Proceed to selecting characterization techniques"
+        ]
+      }
+    },
+    {
+      "id": "select-characterization-techniques",
+      "name": "Select Characterization Techniques — Choose appropriate instruments and methods for probing and measuring",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSelect the appropriate techniques and instruments for characterizing the subject. Per Wikipedia's Characterization (materials science) article, characterization is 'the broad and general process by which a material's structure and properties are probed and measured' across scales 'from angstroms, such as in the imaging of individual atoms and chemical bonds, up to centimeters, such as in the imaging of coarse grain structures.'\n\nThe article catalogs technique categories:\n• **Microscopy** — probes surface and sub-surface structure using photons, electrons, ions, or physical cantilever probes (optical microscopy, SEM, TEM, AFM, STM, atom-probe tomography)\n• **Spectroscopy** — reveals chemical composition, composition variation, crystal structure, and photoelectric properties (XRD, FTIR, UV-vis, XPS, NMR, Raman)\n• **Macroscopic testing** — characterizes bulk properties (mechanical testing, thermal analysis, density calculation, ultrasound)\n\nPer the Observation article, instruments serve two roles: extending the accuracy of human senses (scales, clocks, microscopes, thermometers) and detecting phenomena imperceptible to senses (voltmeters, spectrometers, infrared cameras, Geiger counters). Wikipedia notes: 'the progress of a scientific field is usually intimately tied to their invention and improvement.'\n\nConsider the observer effect: 'the act of observation can influence the process being observed.' Select methods that minimize perturbation of the subject. Consider using multiple techniques in tandem for cross-confirmation.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Selecting characterization techniques requires systematic analysis across multiple dimensions — scale (angstroms to centimeters), property type (structural, chemical, mechanical, thermal), instrument availability, and observer effect minimization. Per the materials science article, multiple techniques in tandem provide cross-confirmation.",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find prior characterization approaches, known instrument capabilities, and methodology precedents in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Characterization techniques selected with rationale for each — matched to the specific properties, structures, or behaviors to be observed",
+          "Scale of observation justified — from atomic/molecular to macroscopic as appropriate to the subject",
+          "Instruments identified that extend beyond unaided human perception where needed",
+          "Observer effect considered — techniques chosen to minimize perturbation of the subject",
+          "Multiple complementary techniques planned for cross-confirmation of key findings",
+          "Both qualitative and quantitative observation methods included as appropriate"
+        ],
+        "next_actions": [
+          "Proceed to conducting systematic observations and measurements"
+        ]
+      }
+    },
+    {
+      "id": "conduct-systematic-observations",
+      "name": "Conduct Systematic Observations — Perform careful, methodical collection of measurements and counts",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPerform the systematic, careful collection of measurements and observations.\n\nPer Wikipedia's Scientific method § Characterizations: 'The systematic, careful collection of measurements or counts of relevant quantities is often the critical difference between pseudo-sciences, such as alchemy, and science, such as chemistry or biology.' Measurements 'might be made in a controlled setting, such as a laboratory, or made on more or less inaccessible or unmanipulatable objects such as stars or human populations.'\n\nPer the Observation article, observations are categorized as:\n• **Qualitative** — describe characteristics not expressed numerically (color, texture, behavior)\n• **Quantitative** — involve numerical measurements obtained through counting or instruments\n\n'By reducing observations to numerical values, measurement enables consistent documentation and facilitates comparison. Two observations that yield the same measured value are considered equivalent within the resolution or precision of the process.'\n\nMitigate observational bias: per Wikipedia, 'Human observations are biased toward confirming the observer's conscious and unconscious expectations — we see what we expect to see.' In psychology, this is called confirmation bias. Apply rigorous documentation, distinguish raw observations from inferred conclusions, and preserve unprocessed data. Consider blind observation protocols where applicable.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic observation requires disciplined sequential execution — each measurement builds on prior ones, and the distinction between raw observation and interpretation must be maintained throughout. Bias mitigation per the Wikipedia article on confirmation bias in observation demands structured thinking.",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find existing observations, baseline measurements, and comparison data in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All planned observations and measurements collected systematically",
+          "Qualitative observations documented — characteristics described without premature quantification",
+          "Quantitative measurements recorded with units, precision, and resolution noted",
+          "Raw observations clearly separated from inferences and interpretations",
+          "Observational conditions documented — controlled setting, instruments used, environmental factors",
+          "Confirmation bias mitigated — blind protocols applied where possible, unprocessed data preserved",
+          "Measurement reproducibility addressed — procedures documented sufficiently for others to replicate"
+        ],
+        "next_actions": [
+          "Proceed to tabulating, graphing, and analyzing data"
+        ]
+      }
+    },
+    {
+      "id": "tabulate-graph-analyze",
+      "name": "Tabulate, Graph, and Analyze — Organize data and perform statistical manipulations",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nOrganize and analyze the collected data. Per Wikipedia's Scientific method § Characterizations: 'Scientific measurements are usually tabulated, graphed, or mapped, and statistical manipulations, such as correlation and regression, performed on them.'\n\nTabulation: arrange measurements in structured format — tables with clear column headers, units, precision, and conditions. Per the Observation article, 'consistent documentation facilitates comparison' and measurements yielding the same value are 'considered equivalent within the resolution or precision of the process.'\n\nVisualization: graph or map data to reveal patterns, trends, anomalies, and relationships not apparent in raw tabular form. Choose representations appropriate to the data type — scatter plots for correlation, time series for temporal patterns, spatial maps for geographic or structural data.\n\nStatistical analysis: perform correlation, regression, and other statistical manipulations to quantify relationships. Identify outliers and assess measurement uncertainty. Per the materials science article, characterization aims to reveal structure–property relationships — the statistical analysis should illuminate these connections.\n\nDistinguish patterns that are robust (persist across multiple techniques and conditions) from artifacts of individual measurement methods.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Data analysis requires structured progression from tabulation through visualization to statistical manipulation — each stage building on the previous. Correlation and regression analysis per the Wikipedia article demands rigorous sequential examination of relationships.",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document key findings, statistical relationships, and characterized properties in the knowledge graph for institutional memory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Measurements tabulated in structured format with units, precision, and conditions documented",
+          "Data graphed or mapped to reveal patterns, trends, and anomalies",
+          "Statistical manipulations performed — correlation, regression, and other appropriate analyses",
+          "Measurement uncertainty quantified and reported",
+          "Structure–property relationships identified from cross-technique analysis",
+          "Robust patterns distinguished from single-method artifacts",
+          "Outliers identified and assessed — measurement error vs. genuine anomaly"
+        ],
+        "next_actions": [
+          "Proceed to assessing characterization completeness"
+        ]
+      }
+    },
+    {
+      "id": "assess-characterization-completeness",
+      "name": "Assess Characterization Completeness — Evaluate sophistication and identify gaps for iterative refinement",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nEvaluate whether the characterization is sufficiently sophisticated for the inquiry's purposes. Per Wikipedia: 'The scientific method depends upon increasingly sophisticated characterizations of the subjects of investigation.' The scientific method is iterative — 'new information leads to new characterisations, and the cycle of science continues.'\n\nAssess completeness across dimensions:\n• **Scope**: Have all relevant properties, structures, and behaviors been observed? Per the materials science article, comprehensive characterization requires probing across multiple scales and using multiple complementary techniques.\n• **Precision**: Are measurements precise enough to distinguish meaningful differences? Have units and standards been adequate?\n• **Accuracy**: Do cross-confirmed measurements converge? Do results from independent techniques agree?\n• **Reproducibility**: Could another scientist reproduce these observations from the documented procedures?\n\nPer the Scientific method article, failure at this stage can redirect the inquiry: 'Failure to develop an interesting hypothesis may lead a scientist to re-define the subject under consideration.' The characterization feeds forward into hypothesis development, experimental design, and statistical analysis — assess whether the data is sufficient for these downstream steps.\n\nPer the Observation article, 'Observations play a role in both the second and fifth steps of the scientific method' — characterization is not a one-time activity but recurs as the inquiry progresses. Document what has been characterized, what gaps remain, and what additional techniques or observations would increase the sophistication of the characterization.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Meta-evaluation of characterization completeness requires systematic assessment across scope, precision, accuracy, and reproducibility dimensions — and determining whether the characterization supports downstream scientific method steps (hypothesis, experiment, analysis).",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document the completed characterization — what has been observed and measured, what gaps remain, and what the next iteration of characterization should address — for institutional memory and downstream workflow steps",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Scope assessed — all relevant properties, structures, and behaviors accounted for or gaps explicitly identified",
+          "Precision evaluated — measurement resolution adequate for the inquiry's purposes",
+          "Cross-confirmation verified — independent techniques yield convergent results",
+          "Reproducibility confirmed — procedures documented sufficiently for replication by others",
+          "Downstream readiness assessed — characterization sufficient to support hypothesis development, experimental design, and statistical analysis",
+          "Remaining gaps documented with specific recommendations for additional techniques or observations",
+          "Iterative refinement plan articulated — what the next cycle of characterization should address"
+        ],
+        "next_actions": [
+          "Characterization complete — proceed to hypothesis development, experimental design, or statistical analysis as the inquiry demands"
+        ]
+      }
+    }
+  ]
+}

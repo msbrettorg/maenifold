@@ -1,0 +1,242 @@
+{
+  "id": "hypothesis-development",
+  "name": "Hypothesis Development",
+  "emoji": "🔬",
+  "description": "Structured development of a scientific hypothesis — from observing a phenomenon through formulating a testable, falsifiable proposed explanation, operationalizing its terms, evaluating it against Schick and Vaughn's five criteria (testability, parsimony, scope, fruitfulness, conservatism), structuring null and alternative hypotheses for statistical testing, and deriving predictions that enable crucial experiments. Per Wikipedia: 'A scientific hypothesis must be based on observations and make a testable and reproducible prediction about reality, in a process beginning with an educated guess or thought.'",
+  "specification": "https://en.wikipedia.org/wiki/Hypothesis",
+  "triggers": [
+    "hypothesis",
+    "hypothesis development",
+    "testable prediction",
+    "null hypothesis",
+    "alternative hypothesis",
+    "conjecture"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "identify-phenomenon",
+      "name": "Identify the Phenomenon — Observe and articulate what requires explanation",
+      "description": "Identify and clearly articulate the phenomenon that the hypothesis will attempt to explain.\n\nPer the Wikipedia article on Hypothesis: 'A hypothesis is a proposed explanation for a phenomenon.' A scientific hypothesis 'must be based on observations and make a testable and reproducible prediction about reality.' The process begins with observing something that requires explanation — an anomaly, a pattern, an unsolved problem, or an open question.\n\nPer the Scientific Method article: 'The scientific method involves making conjectures (hypothetical explanations), predicting the logical consequences of hypothesis, then carrying out experiments or empirical observations based on those predictions.' The starting point is always observation — per Wikipedia, the method depends on 'increasingly sophisticated characterizations of the subjects of investigation.'\n\nPer the Hypothesis article, scientific questions 'can refer to the explanation of a specific observation, as in \"Why is the sky blue?\" but can also be open-ended, as in \"How can I design a drug to cure this particular disease?\"'\n\nFor the subject under examination:\n• What specific phenomenon, anomaly, or pattern has been observed that requires explanation?\n• What prior observations, experiments, or assertions from other investigators bear on this phenomenon?\n• What is currently unclear, unexplained, or contradictory about the existing understanding?\n• Is this a specific explanatory question or an open-ended design question?\n• What would constitute a satisfactory explanation — what kind of answer are we seeking?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior observations, existing characterizations, and documented phenomena related to the subject — these form the empirical base from which the hypothesis will be constructed",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the phenomenon to understand what is already known, what remains unexplained, and what related phenomena might inform hypothesis construction",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Phenomenon clearly identified and articulated — the specific observation, anomaly, or pattern stated explicitly",
+          "Prior observations and existing evidence reviewed — what is already known about this phenomenon",
+          "The gap in understanding articulated — what specifically remains unexplained or contradictory",
+          "Type of question clarified — specific explanatory question or open-ended inquiry",
+          "Success criteria established — what would constitute a satisfactory explanation"
+        ],
+        "next_actions": [
+          "Proceed to surveying existing knowledge and conceptual frameworks"
+        ]
+      }
+    },
+    {
+      "id": "survey-conceptual-landscape",
+      "name": "Survey the Conceptual Landscape — Review existing theories, explanations, and frameworks",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSurvey the existing conceptual landscape before formulating a new hypothesis. Per Wikipedia on Hypothesis, concepts in Hempel's deductive-nomological model 'play a key role in the development and testing of hypotheses.' When hypotheses are grouped together, 'they become a type of conceptual framework. When a conceptual framework is complex and incorporates causality or explanation, it is generally referred to as a theory.'\n\nPer Hempel's metaphor: 'The whole system floats, as it were, above the plane of observation and is anchored to it by rules of interpretation. These might be viewed as strings which are not part of the network but link certain points of the latter with specific places in the plane of observation.' Understanding which theoretical networks already float above the observation plane — and how they are anchored — is essential before constructing a new hypothesis.\n\nPer Wikipedia: 'In actual scientific practice the process of framing a theoretical structure and of interpreting it are not always sharply separated, since the intended interpretation usually guides the construction of the theoretician.' However, 'it is possible and indeed desirable, for the purposes of logical clarification, to separate the two steps conceptually.'\n\nPer the Working Hypothesis section: 'In recent years, philosophers of science have tried to integrate the various approaches to evaluating hypotheses, and the scientific method in general, to form a more complete system.' Consider approaches from Lakatos and Feyerabend.\n\nFor the subject under examination:\n• What existing theories or conceptual frameworks attempt to explain this phenomenon?\n• What are the strengths and weaknesses of each existing explanation?\n• Where do existing frameworks fail to account for the observed phenomenon?\n• What concepts from adjacent domains might offer explanatory power?\n• Per Hempel: how are existing theoretical networks anchored to the plane of observation?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Surveying the conceptual landscape requires systematic review of existing theories, their evidential anchors, and their explanatory gaps — per Hempel, understanding how theoretical networks connect to the observation plane is essential before constructing new hypotheses",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for existing theories, prior hypotheses, conceptual frameworks, and documented explanations related to the phenomenon under investigation",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around related concepts to discover connections, analogies, and explanatory frameworks from adjacent domains that might inform hypothesis construction",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Existing theories and conceptual frameworks cataloged with their explanatory scope and limitations",
+          "Strengths and weaknesses of each existing explanation assessed against the observed phenomenon",
+          "Explanatory gaps identified — where existing frameworks fail to account for observations",
+          "Hempel's anchor points mapped — how each existing theory connects to observable phenomena",
+          "Adjacent-domain concepts with potential explanatory power identified"
+        ],
+        "next_actions": [
+          "Proceed to formulating the hypothesis as a testable, falsifiable conjecture"
+        ]
+      }
+    },
+    {
+      "id": "formulate-hypothesis",
+      "name": "Formulate the Hypothesis — Construct a testable, falsifiable proposed explanation",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nConstruct the hypothesis as a clear, specific, testable proposed explanation for the identified phenomenon.\n\nPer the Wikipedia article on Hypothesis: 'A hypothesis is a proposed explanation for a phenomenon. A scientific hypothesis must be based on observations and make a testable and reproducible prediction about reality, in a process beginning with an educated guess or thought.' Richard Feynman described the process: 'In general we look for a new law by the following process. First we guess it.'\n\nPer Wikipedia, the hypothesis may take several forms: 'Sometimes, but not always, one can also formulate them as existential statements, stating that some particular instance of the phenomenon under examination has some characteristic and causal explanations, which have the general form of universal statements, stating that every instance of the phenomenon has a particular characteristic.' Normally, 'scientific hypotheses have the form of a mathematical model.'\n\nPer Karl Popper's criterion: 'a hypothesis must be falsifiable, and that one cannot regard a proposition or theory as scientific if it does not admit the possibility of being shown to be false.' Other philosophers supplement falsifiability with verifiability (verificationism) or coherence (confirmation holism).\n\nPer the Working Hypothesis section: 'A working hypothesis is a provisionally-accepted hypothesis used for the purpose of pursuing further progress in research. Working hypotheses are frequently discarded, and often proposed with knowledge (and warning) that they are incomplete and thus false, with the intent of moving research in at least somewhat the right direction.'\n\nFor the subject under examination:\n• State the hypothesis as a clear, specific proposed explanation: 'If P, then Q'\n• Ensure the hypothesis is based on the observations identified in Step 1\n• Specify the form: existential statement, universal statement, or mathematical model\n• Verify falsifiability: what observation or experiment could show this hypothesis to be false?\n• Is this a working hypothesis (provisional, for guiding research) or a fully developed hypothesis?\n• Per formal logic: identify the antecedent (P) and consequent (Q) explicitly",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Formulating a hypothesis requires systematic construction — moving from observations through conjecture to a specific, testable, falsifiable proposition. Per Popper, the hypothesis must admit the possibility of being shown false, which requires careful logical analysis of its structure",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for analogous hypotheses in the knowledge graph — similar structures, successful formulations, and known pitfalls in hypothesis construction for related domains",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Hypothesis stated as a clear, specific proposed explanation — the 'If P, then Q' structure explicit",
+          "Hypothesis grounded in observations from Step 1 — not derived from pure speculation or a priori reasoning alone",
+          "Form specified: existential statement, universal statement, or mathematical model",
+          "Falsifiability verified per Popper — a specific observation or experiment identified that could show the hypothesis false",
+          "Working hypothesis vs. fully developed hypothesis status declared with appropriate caveats per Wikipedia"
+        ],
+        "next_actions": [
+          "Proceed to operationalizing terms and anchoring concepts to observables"
+        ]
+      }
+    },
+    {
+      "id": "operationalize-and-anchor",
+      "name": "Operationalize Terms — Define specifics in operational terms and anchor to observables per Hempel",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nTranslate the hypothesis from theoretical language into operational terms anchored to observable phenomena.\n\nPer the Wikipedia article on Hypothesis: 'For proper evaluation, the framer of a hypothesis needs to define specifics in operational terms. A hypothesis requires more work by the researcher in order to either confirm or disprove it.'\n\nPer Hempel's deductive-nomological model as described in the Wikipedia article: 'An adequate empirical interpretation turns a theoretical system into a testable theory: The hypothesis whose constituent terms have been interpreted become capable of test by reference to observable phenomena. Frequently the interpreted hypothesis will be derivative hypotheses of the theory; but their confirmation or disconfirmation by empirical data will then immediately strengthen or weaken also the primitive hypotheses from which they were derived.'\n\nPer Hempel's anchor metaphor: the theoretical network 'floats above the plane of observation and is anchored to it by rules of interpretation.' These interpretive connections enable 'the network to function as a scientific theory.' Each term in the hypothesis must have an anchor point — a rule of interpretation connecting it to something observable and measurable.\n\nFor each term and concept in the hypothesis:\n• Define it operationally — what specific, observable indicators correspond to this concept?\n• Specify the rules of interpretation that anchor the term to the observation plane\n• Identify the measurement procedures: how will each variable be observed, counted, or measured?\n• Per Hempel: distinguish between primitive hypotheses and derivative hypotheses\n• Ensure that confirmation or disconfirmation of derivative hypotheses will 'immediately strengthen or weaken' the primitive hypotheses\n• Flag any terms that cannot yet be operationalized — these represent vulnerabilities in testability",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Operationalization requires systematically connecting each theoretical term to observable indicators — per Hempel, the interpretive 'strings' anchoring the theoretical network to the observation plane must be made explicit for each concept in the hypothesis",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "SearchMemories": {
+            "reason": "Search for established measurement procedures, operational definitions, and interpretive rules used in related domains within the knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Every key term in the hypothesis defined operationally — specific, observable indicators identified",
+          "Rules of interpretation specified — each concept anchored to the observation plane per Hempel's metaphor",
+          "Measurement procedures identified for each variable — how it will be observed, counted, or measured",
+          "Primitive vs. derivative hypotheses distinguished — confirmation/disconfirmation chains mapped",
+          "Non-operationalizable terms flagged as testability vulnerabilities requiring further development"
+        ],
+        "next_actions": [
+          "Proceed to evaluating the hypothesis against quality criteria"
+        ]
+      }
+    },
+    {
+      "id": "evaluate-hypothesis-quality",
+      "name": "Evaluate Hypothesis Quality — Apply Schick and Vaughn's five criteria",
+      "description": "Evaluate the formulated hypothesis against the five criteria for weighing alternative hypotheses.\n\nPer the Wikipedia article on Hypothesis, researchers Schick and Vaughn identify five criteria for evaluating hypotheses:\n\n1. **Testability** — Can the hypothesis be tested? Per Wikipedia, this relates to falsifiability: 'one cannot regard a proposition or theory as scientific if it does not admit the possibility of being shown to be false.' Can specific predictions be derived and checked against observation or experiment?\n\n2. **Parsimony** — Is the hypothesis as simple as possible? Per Wikipedia, this involves 'the application of Occam's razor, discouraging the postulation of excessive numbers of entities.' Does the hypothesis introduce unnecessary complexity or additional assumptions beyond what the evidence requires?\n\n3. **Scope** — How broadly does the hypothesis apply? Per Wikipedia, this is 'the apparent applicability of the hypothesis to multiple known phenomena.' Does the hypothesis explain only the target phenomenon, or does it account for a wider range of observations?\n\n4. **Fruitfulness** — Does the hypothesis open new avenues of inquiry? Per Wikipedia, this is 'the prospect that the hypothesis may explain further phenomena in the future.' Will the hypothesis generate new predictions, suggest new experiments, or illuminate previously unconnected phenomena?\n\n5. **Conservatism** — Does the hypothesis fit with existing knowledge? Per Wikipedia, this is 'the degree of fit with existing recognized knowledge-systems.' How much established science must be revised to accommodate this hypothesis?\n\nFor the hypothesis under development:\n• Rate each criterion explicitly — does the hypothesis satisfy it, partially satisfy it, or fail it?\n• Identify the strongest and weakest criteria — where does the hypothesis excel and where is it vulnerable?\n• Compare against any alternative hypotheses identified during the conceptual survey\n• Per the entrepreneurial usage: consider whether the hypothesis can be proven 'true or false through a verifiability- or falsifiability-oriented experiment'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for alternative hypotheses, competing explanations, and established knowledge-systems against which conservatism can be assessed",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around related phenomena to assess scope — does the hypothesis apply beyond the target phenomenon?",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All five Schick and Vaughn criteria evaluated explicitly: testability, parsimony, scope, fruitfulness, conservatism",
+          "Strongest and weakest criteria identified — hypothesis strengths and vulnerabilities mapped",
+          "Alternative hypotheses compared on each criterion where alternatives exist",
+          "Overall assessment: does the hypothesis meet the threshold for scientific viability?",
+          "Any criterion failures documented with specific remediation strategies"
+        ],
+        "next_actions": [
+          "Proceed to structuring null and alternative hypotheses for formal testing"
+        ]
+      }
+    },
+    {
+      "id": "structure-for-testing",
+      "name": "Structure for Testing — Formulate null and alternative hypotheses and derive predictions",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nStructure the hypothesis for formal testing by formulating null and alternative hypotheses and deriving testable predictions.\n\nPer the Wikipedia article on Hypothesis § Statistical hypothesis testing: 'In statistical hypothesis testing, two hypotheses are compared. These are called the null hypothesis and the alternative hypothesis. The null hypothesis is the hypothesis that states that there is no relation between the phenomena whose relation is under investigation, or at least not of the form given by the alternative hypothesis. The alternative hypothesis, as the name suggests, is the alternative to the null hypothesis: it states that there is some kind of relation.'\n\nPer Wikipedia: 'The alternative hypothesis may take several forms, depending on the nature of the hypothesized relation; in particular, it can be two-sided (for example: there is some effect, in a yet unknown direction) or one-sided (the direction of the hypothesized relation, positive or negative, is fixed in advance).'\n\nPer Wikipedia on significance levels: 'Conventional significance levels for testing hypotheses (acceptable probabilities of wrongly rejecting a true null hypothesis) are .10, .05, and .01. The significance level for deciding whether the null hypothesis is rejected and the alternative hypothesis is accepted must be determined in advance, before the observations are collected or inspected. If these criteria are determined later, when the data to be tested are already known, the test is invalid.'\n\nPer Wikipedia on sample size: 'to avoid having the sample size be too small to reject a null hypothesis, it is recommended that one specify a sufficient sample size from the beginning. It is advisable to define a small, medium and large effect size for each of a number of important statistical tests.'\n\nPer Wikipedia on predictions: 'Any useful hypothesis will enable predictions by reasoning (including deductive reasoning). It might predict the outcome of an experiment in a laboratory setting or the observation of a phenomenon in nature. The prediction may also invoke statistics and only talk about probabilities.'\n\nFor the hypothesis under development:\n• Formulate the null hypothesis (H₀): the 'no effect' or 'no relation' baseline\n• Formulate the alternative hypothesis (H₁): one-sided or two-sided as appropriate\n• Set the significance level in advance — before any data collection\n• Estimate required sample size and effect sizes (small, medium, large)\n• Derive specific, testable predictions from the hypothesis using deductive reasoning\n• Identify what would constitute a crucial experiment — per Wikipedia, 'the formulation of a crucial experiment to test the hypothesis'\n• Per Wikipedia: 'In framing a hypothesis, the investigator must not currently know the outcome of a test' — verify this condition holds",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Structuring for testing requires systematic derivation of null and alternative hypotheses, pre-specification of significance levels and sample sizes, and deductive derivation of testable predictions — per Wikipedia, criteria determined after data inspection invalidate the test",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "WriteMemory": {
+            "reason": "Document the complete hypothesis structure — phenomenon, proposed explanation, operational definitions, null/alternative formulations, significance levels, predictions, and crucial experiment design — for institutional memory and future testing",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Search for relevant statistical methods, testing paradigms, and experimental designs in the knowledge graph that could inform the testing structure",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Null hypothesis (H₀) clearly formulated — the 'no effect' or 'no relation' baseline stated explicitly",
+          "Alternative hypothesis (H₁) formulated — one-sided or two-sided with direction specified and justified",
+          "Significance level set in advance per Wikipedia — .10, .05, or .01 with rationale for the chosen threshold",
+          "Sample size and effect sizes estimated — small, medium, and large effects defined for the relevant statistical tests",
+          "Specific testable predictions derived by deductive reasoning from the hypothesis",
+          "Crucial experiment or observation identified — per Wikipedia, a test whose outcome would decisively confirm or disconfirm",
+          "Investigator-outcome independence verified — the outcome of the proposed test is not already known"
+        ],
+        "next_actions": [
+          "Proceed to final synthesis and documentation of the developed hypothesis"
+        ]
+      }
+    },
+    {
+      "id": "synthesize-hypothesis",
+      "name": "Synthesize the Developed Hypothesis — Document the complete hypothesis with its epistemic status",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSynthesize and document the fully developed hypothesis with its complete epistemic provenance.\n\nPer the Wikipedia article on Hypothesis: 'In due course, a confirmed hypothesis may become part of a theory or occasionally may grow to become a theory itself.' But this is the end state — at this stage, the hypothesis remains a conjecture requiring testing. Per Wikipedia: 'If a hypothesis is repeatedly independently demonstrated by experiment to be true, it becomes a scientific theory.'\n\nPer the Working Hypothesis section: 'A working hypothesis is a provisionally-accepted hypothesis used for the purpose of pursuing further progress in research.' The provisional nature 'makes them useful as an organizing device in applied research. Here they act like a useful guide to address problems that are still in a formative phase.'\n\nPer Hempel on the relationship between theory and observation: the hypothesis and its conceptual framework form a network that 'floats above the plane of observation and is anchored to it by rules of interpretation. By virtue of those interpretative connections, the network can function as a scientific theory.'\n\nSynthesize the complete hypothesis:\n• State the final hypothesis with its full logical structure (antecedent → consequent)\n• Document the epistemic status: working hypothesis (provisional) or fully developed hypothesis\n• Summarize the complete provenance: phenomenon → conceptual survey → formulation → operationalization → quality evaluation → testing structure\n• Per Wikipedia, specify the trajectory: what path leads from confirmed hypothesis to theory?\n• Identify what further investigations, replications, or extensions are needed\n• Per Hempel: verify the complete network is anchored — every theoretical term connected to observables\n• Note per Wikipedia that 'Working hypotheses are frequently discarded, and often proposed with knowledge that they are incomplete and thus false, with the intent of moving research in at least somewhat the right direction' — state this epistemic humility explicitly",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Final synthesis requires systematically reviewing the complete hypothesis development — from phenomenon through formulation, operationalization, evaluation, and testing structure — to produce a coherent, well-documented hypothesis with explicit epistemic status and provenance",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document the fully developed hypothesis with its complete epistemic provenance, operational definitions, testing structure, and trajectory toward theory — this constitutes institutional knowledge for future inquiry and replication",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Final search for any related hypotheses, theories, or findings in the knowledge graph that should be cross-referenced with the developed hypothesis",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Final hypothesis stated with full logical structure — antecedent, consequent, and scope conditions explicit",
+          "Epistemic status declared: working hypothesis (provisional) or fully developed hypothesis with appropriate caveats",
+          "Complete provenance documented: observation → conceptual survey → formulation → operationalization → quality evaluation → testing structure",
+          "Trajectory from hypothesis to theory specified — what confirmation pathway leads to theoretical status",
+          "Hempel's anchor verification complete — every theoretical term in the network connected to an observable via rules of interpretation",
+          "Epistemic humility stated explicitly per Wikipedia — acknowledging provisional nature and conditions for revision or discard"
+        ],
+        "next_actions": [
+          "Document the developed hypothesis for institutional memory and proceed to experimental testing"
+        ]
+      }
+    }
+  ]
+}

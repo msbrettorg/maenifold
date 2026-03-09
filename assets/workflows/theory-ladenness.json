@@ -1,0 +1,190 @@
+{
+  "id": "theory-ladenness",
+  "name": "Theory-Ladenness of Observation",
+  "emoji": "🔬",
+  "description": "Structured examination of how theoretical presuppositions shape observation — surfacing semantic and perceptual theory-ladenness (Hanson 1958, Kuhn 1962, Feyerabend), testing for confirmation circularity, and evaluating observations through alternative theoretical frameworks to expose hidden bias",
+  "specification": "https://en.wikipedia.org/wiki/Theory-ladenness",
+  "triggers": [
+    "theory-laden",
+    "theory ladenness",
+    "observation bias",
+    "theoretical presuppositions",
+    "Hanson",
+    "Kuhn"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "surface-theoretical-presuppositions",
+      "name": "Surface Theoretical Presuppositions — Identify the theoretical framework shaping observation",
+      "description": "Identify the theoretical presuppositions that shape how the subject is being observed and interpreted.\n\nPer the Wikipedia article on theory-ladenness: 'an observation is said to be \"theory-laden\" when shaped by the investigator's theoretical presuppositions. According to this perspective, observers may have a perspective that presupposes a theory, in which case they may make unnecessary judgments about information observed at the moment of observation.'\n\nThe thesis is chiefly associated with Hanson (Patterns of Discovery, 1958), Kuhn (The Structure of Scientific Revolutions, 1962), and Feyerabend, though Duhem raised it implicitly some 50 years earlier. Per Hanson, 'what we see and perceive is not what our senses receive, but is instead filtered sensory information, where the filter is our existing preconceptions — a concept later called a thematic framework.'\n\nFor the subject under examination:\n• What theories, models, or frameworks are being assumed?\n• What conceptual vocabulary is being used, and what does it presuppose?\n• What 'thematic framework' (Hanson) filters the observations?\n• Are the presuppositions explicit or implicit?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for existing theoretical frameworks, assumptions, and prior analyses that may constitute presuppositions shaping observation of the subject",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the subject to surface the conceptual neighborhood and implicit theoretical commitments",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All theoretical presuppositions shaping observation explicitly identified",
+          "The 'thematic framework' (Hanson) filtering observations articulated",
+          "Presuppositions classified as explicit or implicit",
+          "Conceptual vocabulary cataloged with its theoretical commitments noted"
+        ],
+        "next_actions": [
+          "Proceed to distinguishing semantic and perceptual theory-ladenness"
+        ]
+      }
+    },
+    {
+      "id": "distinguish-semantic-and-perceptual",
+      "name": "Distinguish Semantic and Perceptual Theory-Ladenness — Separate meaning-level from experience-level effects",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia article, two forms of theory-ladenness must be kept separate:\n\n(a) **Semantic theory-ladenness**: 'the meaning of observational terms is partially determined by theoretical presuppositions.' The impact of theoretical assumptions on the meaning of observational terms.\n\n(b) **Perceptual theory-ladenness**: 'the theories held by the investigator, at a very basic cognitive level, impinge on the perceptions of the investigator.' The impact of theoretical assumptions on the perceptual experience itself.\n\nFollowing Hanson's distinction (after Wittgenstein) between 'seeing as' and 'seeing that': 'seeing as' concerns perceptual experience — what gestalt the observer sees — while 'seeing that' concerns propositional knowledge applied to what is seen.\n\nFor each observation under examination:\n• How do theoretical terms shape the meaning of what is described? (semantic)\n• How do theories shape what is actually perceived or noticed? (perceptual)\n• Would an observer with different theoretical commitments describe the same phenomena differently? (semantic test)\n• Would they literally perceive something different? (perceptual test — Hanson's duck-rabbit)",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Distinguishing semantic from perceptual theory-ladenness requires careful, step-by-step analysis of each observation — separating how theory shapes meaning of terms from how it shapes perceptual experience itself, per Hanson's seeing-as vs seeing-that distinction",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find related conceptual analyses where semantic or perceptual biases have been previously identified",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each observation classified by whether it exhibits semantic theory-ladenness, perceptual theory-ladenness, or both",
+          "Semantic effects identified: how theoretical terms shape the meaning of descriptions",
+          "Perceptual effects identified: how theories shape what is actually perceived or noticed",
+          "Hanson's seeing-as vs seeing-that distinction applied to each key observation",
+          "Alternative observer test applied: would different theoretical commitments yield different descriptions or different perceptions?"
+        ],
+        "next_actions": [
+          "Proceed to examining measurement theory-ladenness"
+        ]
+      }
+    },
+    {
+      "id": "examine-measurement-theory-ladenness",
+      "name": "Examine Measurement Theory-Ladenness — Assess how measurement processes embed theoretical assumptions",
+      "description": "Assess how measurement outcomes are themselves theory-laden.\n\nPer the Wikipedia article, citing Van Fraassen's distinction between observations, phenomena (observed entities), and appearances (the contents of measurement outcomes): 'An example of an appearance is the temperature of 38°C of a patient as measured using a thermometer. The number \"38\" is meaningless by itself unless we interpret it as the outcome of a measurement process. Such an interpretation implicitly assumes various other theses about how the thermometer was used, how thermometers work etc.'\n\nThe article states: 'All appearances are theory-laden in this sense. But in many cases this does not pose serious practical problems as long as the presumed theses are either correct or only contain mistakes irrelevant to the intended application.'\n\nFor the data and measurements under examination:\n• What measurement processes produced the data?\n• What theoretical assumptions does interpreting this data require?\n• Are those assumptions well-established or contested?\n• Could errors in the assumed measurement theory produce misleading results relevant to the current application?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search for prior measurement methodology assessments, data provenance notes, and known limitations of measurement instruments or processes in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All measurement processes producing the data identified",
+          "Theoretical assumptions required to interpret each measurement cataloged",
+          "Each assumption assessed as well-established or contested",
+          "Practical significance evaluated: whether assumption errors could mislead in the current application (per Van Fraassen's 'irrelevant to the intended application' criterion)"
+        ],
+        "next_actions": [
+          "Proceed to testing for confirmation circularity"
+        ]
+      }
+    },
+    {
+      "id": "test-confirmation-circularity",
+      "name": "Test Confirmation Circularity — Check whether evidence presupposes the thesis it supports",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia article on the problem of confirmation: 'Theory-ladenness is particularly relevant for the problem of confirmation of scientific theories. According to the scientific method, observational evidence is needed to develop scientific theories and to test their predictions. But if an observation is theory-laden then it already implicitly presumes various theses and therefore cannot act as neutral arbitrator between theories which affirm (or deny) the presumed theses.'\n\nThe article notes this is 'akin to the informal fallacy of begging the question' — the observational evidence already implicitly presupposes the thesis it is supposed to justify.\n\nThis connects to the Duhem-Quine thesis: no scientific hypothesis is by itself capable of making predictions — deriving predictions requires background assumptions that several other hypotheses are correct.\n\nFor each claim-evidence pair:\n• Does the evidence presuppose the very thesis it is meant to support?\n• Could the evidence be interpreted differently under a rival theoretical framework?\n• Is there circularity: theory → shapes observation → observation 'confirms' theory?\n• Per Duhem-Quine: what auxiliary hypotheses are required, and do they smuggle in the conclusion?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Testing for confirmation circularity requires tracing the logical chain from theoretical presupposition through observation back to confirmation — detecting the begging-the-question fallacy per the Wikipedia article requires rigorous sequential examination of each claim-evidence pair",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find prior confirmatory evidence and check whether it was generated under the same theoretical framework it purports to confirm",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each claim-evidence pair examined for presupposition circularity",
+          "Begging-the-question fallacy tested: does the evidence already implicitly presuppose the thesis?",
+          "Duhem-Quine auxiliary hypotheses identified: what background assumptions are required to derive the prediction?",
+          "Any circular confirmation paths explicitly mapped: theory → shaped observation → 'confirmation'",
+          "Evidence that genuinely constrains theory (non-circular) distinguished from evidence that merely recapitulates it"
+        ],
+        "next_actions": [
+          "Proceed to evaluating consensus barriers"
+        ]
+      }
+    },
+    {
+      "id": "evaluate-consensus-barriers",
+      "name": "Evaluate Consensus Barriers — Assess whether rival frameworks yield divergent observations",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia article on the problem of scientific consensus: 'Different researchers may initially hold different background beliefs. Ideally, the observations they make in the course of their research would enable each of them to discern which of these beliefs are false. So they would eventually reach an agreement on the central issues.'\n\nHowever: 'their different background beliefs may cause them to make different observations despite the fact that both observe the same phenomena. In such a case the disagreement happens not just on the level of the supported theories but also on the level of the supporting observational evidence that is supposed to arbitrate between the theories. Under those circumstances, gathering more theory-laden evidence would only deepen the problem instead of solving it.'\n\nPer Aragona's three forms of theory-ladenness strength:\n• **Weak form** (Popper): theory-laden observations still allow theoretical progress directed to truth\n• **Strong form** (Kuhn, Feyerabend): incommensurability — rival paradigms may lack shared observational ground\n• **Extra-strong form** (Feyerabend): the relationship between observations and theories is completely reversed — 'anything goes'\n\nAssess: which strength of theory-ladenness applies to the current situation? Are there genuine consensus barriers?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Evaluating consensus barriers requires systematically identifying rival theoretical frameworks, determining whether they yield genuinely different observations from the same phenomena, and classifying the severity per Aragona's weak/strong/extra-strong taxonomy",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for competing perspectives, rival interpretations, and unresolved disagreements in the knowledge graph that may constitute consensus barriers",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Rival theoretical frameworks identified with their differing background beliefs",
+          "Tested whether rivals would make different observations of the same phenomena",
+          "Theory-ladenness strength classified per Aragona: weak (Popper), strong (Kuhn/Feyerabend incommensurability), or extra-strong (Feyerabend reversal)",
+          "Assessed whether gathering more evidence would resolve or deepen the disagreement",
+          "Consensus barriers explicitly mapped — where disagreement occurs at the observational level, not just the theoretical level"
+        ],
+        "next_actions": [
+          "Proceed to applying alternative theoretical frameworks"
+        ]
+      }
+    },
+    {
+      "id": "apply-alternative-frameworks",
+      "name": "Apply Alternative Frameworks — Re-examine observations through competing theoretical lenses",
+      "description": "Re-examine the observations through alternative theoretical frameworks to expose theory-laden distortions and identify what is robust across frameworks.\n\nPer Kuhn (as moderated by his Kantian view): 'although reality is not directly knowable, it manifests itself \"resisting\" to our interpretations.' This means some observations will prove robust across competing frameworks — they constitute the 'resistance' of reality to interpretation. Others will prove framework-dependent.\n\nFor each key observation or finding:\n• Deliberately adopt an alternative theoretical framework and re-examine the same phenomena\n• Note what changes (theory-laden aspects) and what remains constant (framework-independent aspects)\n• Identify observations that 'resist' reinterpretation — these are strongest candidates for genuine constraints from reality\n• Document which conclusions are framework-dependent and which survive framework switching\n\nThis step operationalizes Hanson's insight: if two observers with different 'thematic frameworks' would see different things in the same data, the theory-laden components are isolated. If they converge, the observation is more robustly grounded.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the theory-ladenness analysis results — which observations are framework-dependent, which survive framework switching, and what genuine constraints from reality were identified",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Find alternative theoretical frameworks, competing paradigms, and contrasting perspectives in the knowledge graph to use as alternative lenses",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "At least one alternative theoretical framework applied to the same phenomena",
+          "Theory-laden aspects isolated: what changes under framework switching",
+          "Framework-independent aspects identified: what 'resists' reinterpretation (Kuhn's Kantian criterion)",
+          "Each conclusion labeled as framework-dependent or framework-robust",
+          "Practical implications documented: which findings can be trusted across theoretical commitments and which require explicit framework qualification"
+        ],
+        "next_actions": [
+          "Document findings with explicit theory-ladenness qualifications on each conclusion"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,376 @@
+{
+  "id": "peer-review",
+  "name": "Peer Review (Multi-Agent Scholarly Evaluation)",
+  "emoji": "📝",
+  "description": "Models the scholarly peer review process from academic publishing: an editor-in-chief receives a submission, selects independent expert reviewers, dispatches parallel evaluation from distinct disciplinary perspectives (methodology, novelty, reproducibility, clarity), synthesizes reviewer reports, and renders an editorial decision. Per Wikipedia, peer review is 'the evaluation of work by one or more people with similar competencies as the producers of the work (peers)' and 'functions as a form of self-regulation by qualified members of a profession within the relevant field.' The multi-agent architecture ensures each reviewer evaluates independently — mimicking blind review — while the editor synthesizes potentially conflicting assessments into a coherent accept/revise/reject decision with Bayesian confidence weighting.",
+  "specification": "https://en.wikipedia.org/wiki/Peer_review",
+  "triggers": [
+    "peer review",
+    "referee",
+    "scholarly review",
+    "blind review",
+    "open review",
+    "editorial process"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": true,
+  "steps": [
+    {
+      "id": "submission-framing",
+      "name": "📝 Submission Framing & Editorial Triage",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe Editor-in-Chief receives the submission and performs initial triage. Per Wikipedia, scholarly peer review begins when 'a draft version of a researcher's methods and findings' is submitted for evaluation. The editor determines scope fit and assembles the review panel.\n\n1. **Identify the Submission**:\n   - What claim, argument, design, or body of work is being submitted for review?\n   - What is the stated contribution — new theory, empirical finding, methodology, replication, or application?\n   - What field or domain does this submission belong to?\n\n2. **Editorial Triage**:\n   - Does the submission fall within scope? Is the question meaningful and well-posed?\n   - Is there sufficient substance to warrant full review, or should it be desk-rejected?\n   - Per Wikipedia: 'the editor-in-chief or editorial board decides whether the work should be accepted, considered acceptable with revisions, or rejected'\n   - Identify the submission's key claims and the evidence supporting them\n\n3. **Establish Review Criteria**:\n   - **Methodological rigor**: Are methods appropriate, well-described, and robust?\n   - **Novelty and significance**: Does it advance the field with original contributions?\n   - **Reproducibility**: Can results be independently verified or replicated?\n   - **Clarity and ethics**: Is the work clearly presented and ethically conducted?\n\n4. **Assign Reviewer Perspectives**:\n   - Methodology Reviewer: evaluates methods, experimental design, analytical validity\n   - Novelty Reviewer: evaluates originality, significance, contribution to field\n   - Reproducibility Reviewer: evaluates data integrity, computational reproducibility, replication potential\n   - Clarity Reviewer: evaluates presentation, logical structure, ethical compliance\n\n5. **Memory Architecture**:\n```\nmemory://peer-review/[topic]/\n├── submission-summary.md (claims, evidence, scope assessment)\n├── reviews/\n│   ├── methodology-review.md\n│   ├── novelty-review.md\n│   ├── reproducibility-review.md\n│   └── clarity-review.md\n├── editorial-synthesis.md\n├── editorial-decision.md\n└── peer-review-report.md\n```\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Editorial triage requires systematic assessment of submission scope, quality threshold, and reviewer assignment — the editor must determine whether to proceed to full review or desk-reject",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Submission identification and claim extraction",
+              "Scope fit and desk-reject assessment",
+              "Review criteria establishment",
+              "Reviewer perspective assignment and mandate definition"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the submission summary with [[WikiLinks]] to relevant domain concepts for reviewer consumption",
+            "priority": "mandatory",
+            "output": "memory://peer-review/[topic]/submission-summary.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Submission's key claims and evidence clearly identified",
+          "Scope fit confirmed — desk-reject or proceed decision made",
+          "Four review criteria established with specific evaluation questions",
+          "Reviewer perspectives assigned with clear mandates"
+        ],
+        "next_actions": [
+          "Dispatch all four Reviewer agents for parallel independent evaluation"
+        ]
+      }
+    },
+    {
+      "id": "reviewer-methodology",
+      "name": "🔬 Reviewer 1: Methodological Rigor",
+      "description": "🚫 BLOCKING: Dispatch ALL Reviewer agents in ONE message for parallel execution\n\n⚠️ CRITICAL: This step and the next three (novelty, reproducibility, clarity) represent the review panel. ALL FOUR agents must be dispatched simultaneously in a single message. Per Wikipedia, peer review is conducted by 'experts in the topic at hand' who 'have no connection to the author' — each reviewer works independently, mimicking blind review.\n\n```\nTask 1: Methodological Rigor Review\nAgent: researcher\nInstruction: You are Reviewer 1 — an expert in research methodology assigned to evaluate this submission's methodological rigor. Read memory://peer-review/[topic]/submission-summary.md. Conduct your review INDEPENDENTLY — do not coordinate with other reviewers.\n\nPer the scholarly peer review process, evaluate:\n\n1. **Research Design**: Is the methodology appropriate for the research question? Are there design flaws (confounds, selection bias, inadequate controls)? Would alternative methods be more suitable?\n2. **Analytical Validity**: Are the analytical methods correctly applied? Are statistical tests appropriate for the data type and distribution? Are effect sizes reported alongside significance?\n3. **Internal Validity**: Are causal claims warranted by the design? Are there threats to internal validity (history, maturation, instrumentation, regression to mean)?\n4. **External Validity**: How generalizable are the findings? Are the sample, context, and conditions representative of the broader population of interest?\n5. **Methodological Transparency**: Are methods described in sufficient detail for replication? Are assumptions stated? Are limitations acknowledged?\n\nFor each dimension, assign:\n- STRONG / ADEQUATE / WEAK / FATAL FLAW\n\nProvide an overall methodological verdict: SOUND / NEEDS REVISION / FUNDAMENTALLY FLAWED\n\nInclude 10+ [[WikiLinks]] (e.g., [[internal validity]], [[statistical power]], [[confounding variable]], [[research design]])\nOutput: memory://peer-review/[topic]/reviews/methodology-review.md\n\nTask 2: Novelty & Significance Review\nAgent: researcher\nInstruction: You are Reviewer 2 — an expert in the field assigned to evaluate this submission's novelty and significance. Read memory://peer-review/[topic]/submission-summary.md. Conduct your review INDEPENDENTLY.\n\nEvaluate:\n\n1. **Originality**: Does this work present genuinely new findings, methods, or theoretical contributions? Or does it largely replicate known results without meaningful extension?\n2. **Significance**: If the claims are correct, how important are they to the field? Would they change practice, theory, or understanding substantially?\n3. **Prior Art**: Has the existing literature been adequately surveyed? Are there critical references missing? Does the submission fairly represent how it advances beyond prior work?\n4. **Theoretical Contribution**: Does the work contribute to theoretical understanding, or is it purely descriptive/empirical? Does it generate testable predictions?\n5. **Practical Impact**: Are there actionable implications for practitioners, policymakers, or other stakeholders?\n\nFor each dimension, assign:\n- STRONG / ADEQUATE / WEAK / FATAL FLAW\n\nProvide an overall novelty verdict: SIGNIFICANT CONTRIBUTION / INCREMENTAL / INSUFFICIENT NOVELTY\n\nInclude 10+ [[WikiLinks]]\nOutput: memory://peer-review/[topic]/reviews/novelty-review.md\n\nTask 3: Reproducibility & Data Integrity Review\nAgent: researcher\nInstruction: You are Reviewer 3 — a reproducibility specialist assigned to evaluate whether this submission's findings can be independently verified. Read memory://peer-review/[topic]/submission-summary.md. Conduct your review INDEPENDENTLY.\n\nPer Wikipedia on reproducibility: 'scientific work tends to be accepted by the scientific community when it has been confirmed.' Evaluate:\n\n1. **Data Availability**: Are the data, code, and materials provided or accessible? Are there barriers to accessing the evidence base?\n2. **Computational Reproducibility**: Can the reported analyses be re-run from the provided materials to obtain the same results? Are software versions, parameters, and random seeds documented?\n3. **Direct Replication Potential**: Could an independent team replicate the study using the described methods? What information would they need that is not provided?\n4. **Replication Risk Factors**: Are there signs of p-hacking, HARKing (Hypothesizing After Results are Known), selective reporting, or underpowered analyses? Does the effect size seem plausible given the sample?\n5. **Robustness**: How sensitive are the conclusions to reasonable changes in analytical choices (different statistical tests, different inclusion criteria, different operationalizations)?\n\nFor each dimension, assign:\n- STRONG / ADEQUATE / WEAK / FATAL FLAW\n\nProvide an overall reproducibility verdict: REPRODUCIBLE / PARTIALLY REPRODUCIBLE / NOT REPRODUCIBLE\n\nInclude 10+ [[WikiLinks]] (e.g., [[reproducibility]], [[p-hacking]], [[replication crisis]], [[open data]])\nOutput: memory://peer-review/[topic]/reviews/reproducibility-review.md\n\nTask 4: Clarity, Presentation & Ethics Review\nAgent: researcher\nInstruction: You are Reviewer 4 — assigned to evaluate the submission's clarity, logical structure, and ethical compliance. Read memory://peer-review/[topic]/submission-summary.md. Conduct your review INDEPENDENTLY.\n\nEvaluate:\n\n1. **Logical Structure**: Is the argument presented in a clear, logical sequence? Do conclusions follow from the evidence? Are there non-sequiturs or logical gaps?\n2. **Writing Quality**: Is the work clearly written and accessible to its target audience? Are technical terms defined? Are figures and tables informative and well-labeled?\n3. **Completeness**: Are all necessary components present (introduction, methods, results, discussion, limitations)? Are there gaps in the argument that leave the reader unable to evaluate claims?\n4. **Ethical Compliance**: Were appropriate ethical standards followed (informed consent, IRB/ethics approval, conflict of interest disclosure, data privacy)? Are there ethical concerns?\n5. **Citation Integrity**: Are claims properly attributed? Is there evidence of plagiarism, self-plagiarism, or citation manipulation?\n\nFor each dimension, assign:\n- STRONG / ADEQUATE / WEAK / FATAL FLAW\n\nProvide an overall presentation verdict: PUBLICATION-READY / NEEDS REVISION / MAJOR RESTRUCTURING REQUIRED\n\nInclude 10+ [[WikiLinks]] (e.g., [[research ethics]], [[informed consent]], [[scientific misconduct]], [[citation]])\nOutput: memory://peer-review/[topic]/reviews/clarity-review.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each reviewer MUST evaluate independently — no coordination between reviewers\n- Each reviewer reads ONLY the submission summary, not other reviews\n- Dimensional ratings (STRONG/ADEQUATE/WEAK/FATAL FLAW) are mandatory per criterion\n- Overall verdict is mandatory for each review\n- Reviewers should be constructive but unsparing — flag genuine problems\n\n⏱️ Duration: 20-30 minutes per reviewer (all run in parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Critical parallel dispatch — ALL FOUR reviewer agents must launch in ONE message to ensure independent blind review",
+            "priority": "mandatory",
+            "required_operations": [
+              "researcher: methodology-review",
+              "researcher: novelty-review",
+              "researcher: reproducibility-review",
+              "researcher: clarity-review"
+            ],
+            "parallel_execution": true,
+            "agent_instructions": {
+              "independence": "Each reviewer works in isolation — blind review emulation",
+              "wikilink_requirement": "10+ [[WikiLinks]] per review output",
+              "output_format": "Structured review with dimensional ratings and overall verdict"
+            }
+          },
+          "ReadMemory": {
+            "reason": "Each reviewer reads the submission summary before evaluating",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://peer-review/[topic]/submission-summary.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each reviewer persists their independent review report",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://peer-review/[topic]/reviews/methodology-review.md",
+              "memory://peer-review/[topic]/reviews/novelty-review.md",
+              "memory://peer-review/[topic]/reviews/reproducibility-review.md",
+              "memory://peer-review/[topic]/reviews/clarity-review.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All four Reviewer agents dispatched in a single message",
+          "Research design and analytical validity assessed",
+          "Internal and external validity threats identified",
+          "Dimensional ratings assigned for all five methodology criteria",
+          "Overall methodological verdict stated: SOUND / NEEDS REVISION / FUNDAMENTALLY FLAWED"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Reviewer agents",
+          "Proceed to Editorial Synthesis once all four reviews received"
+        ],
+        "escape_hatches": {
+          "insufficient_information": "If the submission summary lacks detail for thorough methodology evaluation, flag specific information gaps that the editor must request from the author",
+          "interdisciplinary_submission": "If the methodology spans multiple fields, note which aspects fall outside your domain expertise and recommend additional specialist review"
+        }
+      }
+    },
+    {
+      "id": "reviewer-novelty",
+      "name": "🌟 Reviewer 2: Novelty & Significance",
+      "description": "Dispatched in parallel with all other reviewers (see reviewer-methodology for dispatch block).\n\nThe Novelty Reviewer evaluates originality and field significance. Per Wikipedia, peer review helps determine 'an academic paper's suitability for publication' — a core criterion is whether the work makes a genuine contribution that advances knowledge beyond the existing literature.\n\nThis reviewer assesses whether the submission offers genuinely new insights, builds meaningfully on prior art, and would change how the field thinks or operates if the claims hold. The verdict distinguishes between a significant contribution, an incremental advance, and insufficient novelty for the venue.\n\nSee Task 2 in the reviewer-methodology dispatch block for full instructions.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Launched as part of parallel reviewer dispatch in reviewer-methodology step",
+            "priority": "mandatory",
+            "parallel_execution": true
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Originality assessed against existing literature",
+          "Significance evaluated — would findings change practice or theory?",
+          "Prior art coverage verified — critical references identified or flagged as missing",
+          "Dimensional ratings assigned for all five novelty criteria",
+          "Overall novelty verdict stated: SIGNIFICANT CONTRIBUTION / INCREMENTAL / INSUFFICIENT NOVELTY"
+        ],
+        "next_actions": [
+          "Output persisted to memory for editorial synthesis"
+        ]
+      }
+    },
+    {
+      "id": "reviewer-reproducibility",
+      "name": "🔁 Reviewer 3: Reproducibility & Data Integrity",
+      "description": "Dispatched in parallel with all other reviewers (see reviewer-methodology for dispatch block).\n\nThe Reproducibility Reviewer evaluates whether findings can be independently confirmed. Per Wikipedia on reproducibility: 'Crucially, experimental and theoretical results must be reproduced by others within the scientific community.' This reviewer applies the confirmation and replication principles — assessing data availability, computational reproducibility, direct replication potential, and robustness to analytical choices.\n\nThe review identifies replication risk factors including p-hacking, HARKing, selective reporting, and underpowered analyses. The verdict distinguishes between reproducible, partially reproducible, and not reproducible submissions.\n\nSee Task 3 in the reviewer-methodology dispatch block for full instructions.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Launched as part of parallel reviewer dispatch in reviewer-methodology step",
+            "priority": "mandatory",
+            "parallel_execution": true
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Data availability and accessibility assessed",
+          "Computational reproducibility evaluated",
+          "Direct replication potential documented with gap analysis",
+          "Replication risk factors screened (p-hacking, HARKing, selective reporting)",
+          "Overall reproducibility verdict stated: REPRODUCIBLE / PARTIALLY REPRODUCIBLE / NOT REPRODUCIBLE"
+        ],
+        "next_actions": [
+          "Output persisted to memory for editorial synthesis"
+        ]
+      }
+    },
+    {
+      "id": "reviewer-clarity",
+      "name": "📖 Reviewer 4: Clarity, Presentation & Ethics",
+      "description": "Dispatched in parallel with all other reviewers (see reviewer-methodology for dispatch block).\n\nThe Clarity Reviewer evaluates logical structure, writing quality, and ethical compliance. Per Wikipedia, peer review 'functions as a form of self-regulation by qualified members of a profession' — this includes ensuring ethical standards are met, arguments are logically sound, and the work is presented clearly enough for the community to evaluate.\n\nThis reviewer assesses whether conclusions follow from evidence, whether the work is accessible to its audience, and whether ethical obligations (informed consent, conflict disclosure, citation integrity) have been fulfilled.\n\nSee Task 4 in the reviewer-methodology dispatch block for full instructions.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Launched as part of parallel reviewer dispatch in reviewer-methodology step",
+            "priority": "mandatory",
+            "parallel_execution": true
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Logical structure and argument coherence assessed",
+          "Writing quality and accessibility evaluated",
+          "Completeness verified — all necessary components present",
+          "Ethical compliance checked (consent, disclosure, citation integrity)",
+          "Overall presentation verdict stated: PUBLICATION-READY / NEEDS REVISION / MAJOR RESTRUCTURING REQUIRED"
+        ],
+        "next_actions": [
+          "Output persisted to memory for editorial synthesis"
+        ]
+      }
+    },
+    {
+      "id": "editorial-synthesis",
+      "name": "⚖️ Editorial Synthesis & Conflict Resolution",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe Editor-in-Chief reads all four independent reviews and synthesizes them into a coherent assessment. Per Wikipedia, the editor 'decides whether the work should be accepted, considered acceptable with revisions, or rejected' — weighing reviewer agreement and disagreement.\n\n1. **Read All Reviews**:\n   - Methodology review: Was the research design sound?\n   - Novelty review: Does the work make a significant contribution?\n   - Reproducibility review: Can findings be independently verified?\n   - Clarity review: Is the work clearly presented and ethically conducted?\n\n2. **Identify Consensus and Conflict**:\n   - Where do all reviewers agree? These points carry highest editorial weight.\n   - Where do reviewers disagree? Analyze the basis for disagreement.\n   - Are there FATAL FLAW ratings from any reviewer? These require immediate attention.\n   - Apply Bayesian reasoning: weight each reviewer's confidence by their domain expertise relative to the specific claim being evaluated.\n\n3. **Cross-Review Integration**:\n   - Do methodology concerns undermine novelty claims? (e.g., a 'significant' finding built on flawed methods)\n   - Do reproducibility gaps affect the reliability of all other assessments?\n   - Does clarity obscure whether the methodology or findings are actually sound?\n   - Map dependencies between review dimensions — a fatal flaw in one may cascade.\n\n4. **Construct the Editorial Assessment**:\n   - Aggregate dimensional ratings into an overall assessment matrix\n   - Identify the submission's greatest strengths and most critical weaknesses\n   - Determine whether weaknesses are addressable through revision or are fundamental\n   - Formulate specific, actionable feedback for the author\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Synthesizing four independent reviews requires systematic comparison, conflict resolution, and Bayesian weighting of reviewer confidence — the editor must integrate potentially contradictory assessments into a coherent judgment",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Read and compare all four review verdicts and dimensional ratings",
+              "Identify consensus points (high editorial weight) and conflict points (need resolution)",
+              "Detect cross-review dependencies — fatal flaws that cascade across dimensions",
+              "Apply Bayesian weighting — reviewer expertise vs. claim domain",
+              "Construct integrated assessment matrix with actionable feedback"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all four independent review reports for synthesis",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://peer-review/[topic]/reviews/methodology-review.md",
+              "memory://peer-review/[topic]/reviews/novelty-review.md",
+              "memory://peer-review/[topic]/reviews/reproducibility-review.md",
+              "memory://peer-review/[topic]/reviews/clarity-review.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the editorial synthesis with integrated assessment matrix",
+            "priority": "mandatory",
+            "output": "memory://peer-review/[topic]/editorial-synthesis.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All four reviews read and compared systematically",
+          "Consensus and conflict points explicitly identified",
+          "Cross-review dependencies mapped — cascading impacts documented",
+          "Integrated assessment matrix constructed",
+          "Actionable feedback formulated for each weakness identified"
+        ],
+        "next_actions": [
+          "Proceed to editorial decision — accept, revise, or reject"
+        ]
+      }
+    },
+    {
+      "id": "editorial-decision",
+      "name": "🏛️ Editorial Decision & Author Guidance",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe Editor-in-Chief renders the formal editorial decision. Per Wikipedia, the outcome of peer review is a decision to 'accept, consider acceptable with revisions, or reject.' This step also generates constructive guidance for the author.\n\n1. **Render Decision**:\n   Based on the editorial synthesis, select one of:\n   - **ACCEPT**: No fatal flaws, all dimensions STRONG or ADEQUATE, contribution is significant. Rare — even strong submissions typically need minor revision.\n   - **MINOR REVISION**: Sound methodology and significant contribution, but addressable weaknesses in reproducibility, clarity, or presentation. Author can fix without re-review.\n   - **MAJOR REVISION**: Core contribution has merit, but substantial methodological, analytical, or reproducibility issues require significant rework. Must be re-reviewed after revision.\n   - **REJECT**: Fatal flaws in methodology or reproducibility, insufficient novelty, or ethical concerns that cannot be addressed through revision.\n\n2. **Decision Rationale**:\n   - Which reviewer assessments were most decisive and why?\n   - If reviewers disagreed, how was the conflict resolved?\n   - What is the Bayesian posterior confidence that the submission's claims are valid, given the review evidence?\n\n3. **Author Guidance**:\n   - For ACCEPT: Note minor items for camera-ready preparation\n   - For MINOR REVISION: Provide a numbered list of required changes\n   - For MAJOR REVISION: Identify the fundamental issues that must be addressed, with specific suggestions for how to strengthen the work\n   - For REJECT: Explain the decision constructively — what would need to change for a successful resubmission?\n\n4. **Revision Protocol** (if applicable):\n   - Which reviewers should re-review the revised submission?\n   - What specific evidence should the author provide that concerns have been addressed?\n   - What is the expected timeline for revision?\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "The editorial decision requires weighing multiple assessment dimensions, resolving reviewer conflicts, and formulating constructive guidance — the most consequential judgment in the workflow",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Decision selection with explicit threshold criteria",
+              "Rationale construction — which assessments were decisive",
+              "Bayesian posterior on claim validity given review evidence",
+              "Author guidance — specific, actionable, constructive"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read editorial synthesis to inform decision",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://peer-review/[topic]/editorial-synthesis.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the formal editorial decision with rationale and author guidance",
+            "priority": "mandatory",
+            "output": "memory://peer-review/[topic]/editorial-decision.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Formal decision rendered: ACCEPT / MINOR REVISION / MAJOR REVISION / REJECT",
+          "Decision rationale documents which reviews were decisive",
+          "Bayesian posterior confidence stated for core claims",
+          "Specific, actionable author guidance provided",
+          "Revision protocol defined if applicable (re-review scope, timeline)"
+        ],
+        "next_actions": [
+          "Proceed to knowledge integration and graph construction"
+        ],
+        "quality_gates": {
+          "decision_consistency": "Decision must be consistent with the editorial synthesis — an ACCEPT requires no unresolved FATAL FLAW ratings; a REJECT requires documented fatal or unaddressable flaws",
+          "constructive_feedback": "Even REJECT decisions must include constructive guidance for potential resubmission — peer review aims to improve work, not merely gatekeep"
+        }
+      }
+    },
+    {
+      "id": "knowledge-integration",
+      "name": "🧠 Knowledge Integration & Graph Construction",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPersist the peer review findings, editorial decision, and methodological insights to the knowledge graph. This step ensures the review process generates durable institutional memory.\n\n1. **Key Findings as Knowledge Nodes**:\n   - What substantive claims survived scrutiny? Persist as validated concepts with [[WikiLinks]].\n   - What methodological standards were applied? Link to relevant methodological concepts.\n   - What replication barriers were identified? Document for future reference.\n\n2. **Review Process Insights**:\n   - Where did reviewers agree vs. disagree? Document the epistemic landscape.\n   - What Bayesian updates resulted from the review evidence?\n   - What new questions emerged from the review process?\n\n3. **Cross-Link to Dependencies**:\n   - Link reproducibility findings to [[confirmation and replication]] concepts\n   - Link Bayesian confidence assessments to [[Bayesian inference]] framework\n   - Connect methodology assessments to relevant [[research design]] and [[statistical analysis]] nodes\n\n4. **Persist Durable Artifacts**:\n   - Summary of reviewed claims with confidence levels\n   - Methodology assessment template for future reviews\n   - Editorial decision rationale as precedent for similar future submissions\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Knowledge integration requires selecting which review findings warrant durable graph persistence vs. ephemeral session artifacts",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Identify claims that survived review — these become validated knowledge nodes",
+              "Document review process insights and epistemic landscape",
+              "Cross-link to confirmation-replication and Bayesian reasoning frameworks"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read editorial decision and synthesis for knowledge extraction",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://peer-review/[topic]/editorial-synthesis.md",
+              "memory://peer-review/[topic]/editorial-decision.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist validated findings, review insights, and cross-links to knowledge graph",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://peer-review/[topic]/validated-findings.md",
+              "memory://peer-review/[topic]/review-insights.md"
+            ]
+          },
+          "BuildContext": {
+            "reason": "Connect review findings to existing knowledge graph concepts",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Validated claims persisted with confidence levels and [[WikiLinks]]",
+          "Review process insights documented (consensus, conflicts, Bayesian updates)",
+          "Cross-links established to confirmation-replication and Bayesian reasoning nodes",
+          "Durable artifacts persisted for future review reference"
+        ],
+        "next_actions": [
+          "Proceed to final peer review report"
+        ]
+      }
+    },
+    {
+      "id": "peer-review-report",
+      "name": "📋 Peer Review Report",
+      "description": "Produce the final deliverable: a structured peer review report summarizing the complete editorial process.\n\n**Report Structure**:\n\n1. **Submission Summary**: The work under review — claims, methods, stated contribution\n\n2. **Review Panel**:\n   - Reviewer 1 (Methodology): Verdict and key findings\n   - Reviewer 2 (Novelty): Verdict and key findings\n   - Reviewer 3 (Reproducibility): Verdict and key findings\n   - Reviewer 4 (Clarity & Ethics): Verdict and key findings\n\n3. **Assessment Matrix**:\n   | Dimension | R1 | R2 | R3 | R4 | Consensus |\n   For each criterion, show reviewer ratings and identify consensus/conflict\n\n4. **Editorial Synthesis**:\n   - Points of reviewer agreement (high confidence)\n   - Points of reviewer disagreement (resolution rationale)\n   - Cross-dimensional dependencies and cascading impacts\n\n5. **Editorial Decision**: ACCEPT / MINOR REVISION / MAJOR REVISION / REJECT\n   - Decision rationale with Bayesian confidence\n   - Specific author guidance and revision protocol\n\n6. **Validated Findings**: Claims that survived review with confidence levels\n\n7. **Open Questions**: Issues requiring further investigation, replication, or future review cycles\n\n8. **Epistemological Reflection**:\n   - Per Wikipedia: 'Peer review methods are used to maintain quality standards, improve performance, and provide credibility'\n   - What was learned about the review process itself?\n   - What biases or limitations affected this review?\n\nPersist final report with [[WikiLinks]] throughout.\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "ReadMemory": {
+            "reason": "Read all review outputs for final report compilation",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://peer-review/[topic]/submission-summary.md",
+              "memory://peer-review/[topic]/editorial-synthesis.md",
+              "memory://peer-review/[topic]/editorial-decision.md",
+              "memory://peer-review/[topic]/validated-findings.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the final peer review report as a durable knowledge artifact",
+            "priority": "mandatory",
+            "output": "memory://peer-review/[topic]/peer-review-report.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Final report covers all eight sections",
+          "Assessment matrix shows all four reviewers' ratings per dimension",
+          "Editorial decision stated with rationale and Bayesian confidence",
+          "Validated findings listed with confidence levels",
+          "Open questions identified for future investigation",
+          "Key findings persisted to knowledge graph with [[WikiLinks]]"
+        ],
+        "next_actions": [
+          "Deliver final report to user",
+          "If decision is MAJOR REVISION, consider scheduling a second review cycle"
+        ]
+      }
+    }
+  ]
+}

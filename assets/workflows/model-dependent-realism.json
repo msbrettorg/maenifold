@@ -1,0 +1,213 @@
+{
+  "id": "model-dependent-realism",
+  "name": "Model-Dependent Realism",
+  "emoji": "🌐",
+  "description": "Hawking and Mlodinow's model-dependent realism (The Grand Design, 2010) — a view of inquiry that evaluates competing models by their usefulness rather than their correspondence to 'true reality.' Where several models overlap in describing a subject, multiple equally valid world pictures exist. The only meaningful question is whether a model is useful: elegant, parsimonious, consistent with observations, and falsifiable. This workflow constructs competing world pictures for a phenomenon, evaluates each against the Hawking-Mlodinow desiderata, maps model overlaps like a Mercator projection, and synthesizes a network of world pictures that collectively cover the observational landscape.",
+  "specification": "https://en.wikipedia.org/wiki/Model-dependent_realism",
+  "triggers": [
+    "model-dependent realism",
+    "Hawking",
+    "Mlodinow",
+    "grand design",
+    "model reality",
+    "multiple models",
+    "world pictures",
+    "model evaluation",
+    "competing models",
+    "model usefulness"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "identify-phenomenon-and-observations",
+      "name": "Identify the Phenomenon — Define observations and existing models",
+      "description": "Identify the phenomenon under investigation and catalog the observations that any model must account for.\n\nPer Hawking and Mlodinow, model-dependent realism asserts that 'all we can know about \"reality\" consists of networks of world pictures that explain observations by connecting them by rules to concepts defined in models.' Before constructing or evaluating models, the observations themselves must be precisely identified.\n\nA 'world picture' consists of three components:\n• A set of **observations** — the empirical data, measurements, or phenomena to be explained\n• A **conceptual model** — the theoretical framework that organizes and interprets the observations\n• **Rules** connecting model concepts to the observations\n\nFor the subject under examination:\n1. **Define the Phenomenon**: What specific problem, system, or question is under investigation? State it in observational terms — what do we actually see, measure, or experience?\n2. **Catalog Observations**: List the key observations, data points, or empirical facts that any viable model must explain. Be precise about what is observed versus what is inferred.\n3. **Survey Existing Models**: What models or frameworks currently exist to explain this phenomenon? Identify at least 2-3 competing or complementary approaches.\n4. **Note Observational Gaps**: Are there observations we lack that would help discriminate between models? What remains unmeasured or unobserved?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior analyses, existing models, and observations related to the phenomenon — existing world pictures in the knowledge graph may already cover parts of the observational landscape",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the phenomenon to surface the conceptual neighborhood and identify which models, frameworks, or world pictures already exist",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "The phenomenon is defined in clear observational terms",
+          "Key observations that any model must explain are cataloged",
+          "At least 2-3 existing or candidate models identified",
+          "Observational gaps noted — what data would help discriminate between models"
+        ],
+        "next_actions": [
+          "Proceed to constructing competing world pictures for the phenomenon"
+        ]
+      }
+    },
+    {
+      "id": "construct-competing-world-pictures",
+      "name": "Construct World Pictures — Build competing models with explicit rules",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to construct each world picture systematically.\n\nConstruct 2-3 competing world pictures, each a complete triad of observations, conceptual model, and connecting rules.\n\nPer Wikipedia on model-dependent realism: 'Different world pictures that describe particular data equally well all have equal claims to be valid. There is no requirement that a world picture be unique, or even that the data selected include all available observations.'\n\nFor each candidate world picture:\n1. **Conceptual Model**: What are the core concepts, entities, and relationships this model posits? What is its ontology — what does it claim exists?\n2. **Connecting Rules**: How does the model connect its concepts to the observations cataloged in Step 1? What mapping rules translate between model-language and observation-language?\n3. **Observational Coverage**: Which observations from Step 1 does this world picture account for? Which does it leave unaddressed?\n4. **Predictions**: What novel predictions does this model make that go beyond the current observations?\n5. **Assumptions**: What must be assumed for this model to work? What are its axioms or premises?\n\nPer Hawking and Mlodinow's Mercator analogy: 'Just as there is no flat map that is a good representation of the earth's entire surface, there is no single theory that is a good representation of observations in all situations.' Each world picture may cover only part of the observational landscape — this is expected, not a failure.\n\nConstruct each world picture charitably — present each as its proponents would, not as a straw man.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Constructing each world picture requires systematic articulation of its conceptual model, connecting rules, observational coverage, and predictions — each must be built charitably as a complete triad per Hawking and Mlodinow's formulation",
+            "priority": "mandatory",
+            "estimated_thoughts": 6,
+            "focus_areas": [
+              "Articulate the core ontology and concepts of each model",
+              "Define the rules connecting model concepts to observations",
+              "Map which observations each model covers and which it leaves unaddressed",
+              "Identify novel predictions each model makes",
+              "State the assumptions required for each model to work",
+              "Ensure each world picture is constructed charitably, not as a straw man"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Search for existing analyses, competing frameworks, or prior world pictures in the knowledge graph that could serve as candidates or inform construction",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "At least 2-3 complete world pictures constructed, each with conceptual model, connecting rules, and observational coverage",
+          "Each world picture's assumptions explicitly stated",
+          "Each world picture's novel predictions identified",
+          "Each world picture presented charitably as its proponents would frame it"
+        ],
+        "next_actions": [
+          "Proceed to evaluating each model against the Hawking-Mlodinow desiderata"
+        ]
+      }
+    },
+    {
+      "id": "apply-hawking-mlodinow-desiderata",
+      "name": "Apply the Desiderata — Evaluate models on elegance, parsimony, fit, and falsifiability",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to evaluate each model against all four criteria.\n\nApply Hawking and Mlodinow's four desiderata for model quality to each world picture constructed in the previous step.\n\nPer The Grand Design (p. 51), a model is a good model if it:\n1. **Is elegant** — 'Elegance is not something easily measured, but it is highly prized among scientists.' Does the model have a pleasing simplicity and internal coherence? Per Einstein (as paraphrased by Hawking): 'a theory should be as simple as possible, but not simpler.'\n2. **Contains few arbitrary or adjustable elements** — Is the model parsimonious, or is it 'jammed with fudge factors'? How many free parameters must be tuned? The fewer the better.\n3. **Agrees with and explains all existing observations** — Does the model account for the observations cataloged in Step 1? Where does it succeed and where does it strain?\n4. **Makes detailed predictions about future observations that can disprove or falsify the model if they are not borne out** — What specific, testable predictions does the model make? Could future evidence refute it?\n\nHawking and Mlodinow note these criteria are 'aspirational in nature' and 'obviously subjective' — even very successful models in use today do not satisfy all of them. Additionally: 'If the modifications needed to accommodate new observations become too baroque, it signals the need for a new model.'\n\nRate each world picture on each criterion. Be honest about subjectivity — elegance judgments are theory-laden themselves.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Evaluating each model against all four Hawking-Mlodinow desiderata requires systematic comparison — elegance, parsimony, observational fit, and falsifiability must each be assessed for every world picture, with honest acknowledgment of subjectivity per Hawking's own caveat",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Assess elegance: internal coherence, simplicity, aesthetic quality of each model",
+              "Count arbitrary elements: free parameters, fudge factors, ad hoc adjustments",
+              "Test observational fit: which observations are explained, which strain the model",
+              "Identify falsifiable predictions: specific, testable claims that could disprove each model",
+              "Flag baroque modifications: has any model been over-patched to accommodate anomalies?"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each world picture evaluated against all four Hawking-Mlodinow desiderata",
+          "Elegance assessments include honest acknowledgment of subjectivity",
+          "Arbitrary elements and free parameters counted for each model",
+          "Observational fit gaps identified — where each model strains",
+          "Falsifiable predictions cataloged for each model",
+          "Any baroque modification patterns flagged as signals for model replacement"
+        ],
+        "next_actions": [
+          "Proceed to mapping model overlaps using the Mercator analogy"
+        ]
+      }
+    },
+    {
+      "id": "map-mercator-overlap",
+      "name": "Map the Mercator Overlap — Identify where models converge and diverge",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to map overlaps and divergences.\n\nDetermine where the competing world pictures overlap (predict the same phenomena) and where they diverge — following Hawking and Mlodinow's Mercator projection analogy.\n\nPer The Grand Design (p. 9): 'Like the overlapping maps in a Mercator projection, where the ranges of different versions overlap, they predict the same phenomena. But just as there is no flat map that is a good representation of the earth's entire surface, there is no single theory that is a good representation of observations in all situations.'\n\nPer the Wikipedia article: 'The universe of all observations at present is covered by a network of overlapping world pictures and, where overlap occurs, multiple, equally valid, world pictures exist.' And crucially: 'Where several models are found for the same phenomena, no single model is preferable to the others within that domain of overlap.'\n\nMap the overlaps:\n1. **Convergence Zones**: Where do the models predict the same phenomena? In these regions, all are equally valid — no model is preferable.\n2. **Divergence Zones**: Where do models make different predictions? These are the frontiers where observations could discriminate between them.\n3. **Unique Coverage**: Does any model cover observational territory that no other model reaches? These regions represent the unique value of that world picture.\n4. **Discriminating Observations**: What specific observations or experiments could be performed that would favor one model over another in the divergence zones?\n5. **Gaps in Coverage**: Is there any observational territory that NO current model covers? This represents the unknown frontier.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Mapping model overlaps requires careful comparison of predictions across all world pictures — identifying convergence zones (equal validity), divergence zones (frontiers for discrimination), and coverage gaps (unknown territory) per the Mercator analogy",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Identify convergence zones where all models predict the same phenomena",
+              "Identify divergence zones where models make different predictions",
+              "Map unique coverage regions for each world picture",
+              "Propose discriminating observations that could favor one model over another",
+              "Identify gaps where no current model provides coverage"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Convergence zones mapped — where models are equally valid and interchangeable",
+          "Divergence zones mapped — where models make different predictions",
+          "Unique coverage regions identified for each world picture",
+          "At least one discriminating observation proposed for each divergence zone",
+          "Gaps in total model coverage identified"
+        ],
+        "next_actions": [
+          "Proceed to assessing model utility in the specific context"
+        ]
+      }
+    },
+    {
+      "id": "assess-model-utility",
+      "name": "Assess Model Utility — Determine which model is most useful in this context",
+      "description": "Determine which model or combination of models is most useful for the specific context at hand.\n\nPer model-dependent realism, it is 'meaningless to talk about the \"true reality\" of a model as we can never be absolutely certain of anything. The only meaningful thing is the usefulness of the model.' This step applies that principle: rather than asking which model is 'true,' ask which is most useful given the specific question, context, and goals.\n\nModel-dependent realism is related to the instrumentalist approach: 'a concept or theory should be evaluated by how effectively it explains and predicts phenomena, as opposed to how accurately it describes objective reality (a matter possibly impossible to establish).'\n\nFor the specific context:\n1. **Contextual Requirements**: What does the current problem, decision, or question actually require? Explanation? Prediction? Design guidance? Communication?\n2. **Model Selection**: Given those requirements and the Mercator overlap map, which model(s) are most useful? In convergence zones, the simplest model wins. In divergence zones, the model with best predictions for this domain wins.\n3. **Pragmatic Assessment**: Which model is most actionable? Most communicable to stakeholders? Most amenable to refinement?\n4. **Honest Limitations**: What can the selected model NOT do? Where does it fail the desiderata? What observations fall outside its coverage?\n5. **Model Humility**: Per Hawking and Mlodinow, 'while not rejecting the idea of \"reality-as-it-is-in-itself,\" model-dependent realism suggests that we cannot know reality-as-it-is-in-itself, but only an approximation of it provided by the intermediary of models.' Acknowledge that the chosen model is a useful approximation, not the truth.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior model selections, contextual constraints, and stakeholder requirements that inform which model is most useful for the current context",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Contextual requirements clearly defined — what the situation actually demands from a model",
+          "Model(s) selected for use with explicit rationale tied to the Mercator overlap map",
+          "Pragmatic utility assessed: actionability, communicability, refinability",
+          "Limitations of selected model honestly stated",
+          "Model humility expressed: acknowledgment that the chosen model is a useful approximation, not 'true reality'"
+        ],
+        "next_actions": [
+          "Proceed to synthesizing the network of world pictures"
+        ]
+      }
+    },
+    {
+      "id": "synthesize-network-of-world-pictures",
+      "name": "Synthesize the Network — Document the complete model landscape and its implications",
+      "description": "Synthesize the full network of world pictures: document which models cover which domains, where they overlap, where they diverge, and what the implications are for understanding and action.\n\nPer Hawking and Mlodinow: 'In the history of science we have discovered a sequence of better and better theories or models, from Plato to the classical theory of Newton to modern quantum theories. It is natural to ask: Will this sequence eventually reach an end point, an ultimate theory of the universe, that will include all forces and predict every observation we can make, or will we continue forever finding better theories, but never one that cannot be improved upon? We do not yet have a definitive answer to this question...'\n\nThe synthesis should:\n1. **Document the Model Network**: Present the complete landscape — all world pictures, their coverage, overlaps, and divergences — as a coherent map of current understanding.\n2. **Accept Pluralism Where Warranted**: Per model-dependent realism, where models overlap and perform equally well, accept their equal validity rather than forcing premature unification.\n3. **Identify the Frontier**: Where do we need new models? Where are existing models becoming 'too baroque'? What observations would prompt model replacement?\n4. **Practical Recommendations**: Given the model network, what actions, decisions, or next steps follow? Which model should be used for which purpose?\n5. **Open Questions**: What remains genuinely uncertain? Where is the 'ultimate theory' question still open? What further observations or model construction would advance understanding?\n\nPersist the network of world pictures to the knowledge graph with [[WikiLinks]] to related concepts for future reference.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist the network of world pictures — the complete model landscape including coverage, overlaps, divergences, and practical recommendations — as institutional memory for future model-dependent reasoning about this phenomenon",
+            "priority": "recommended",
+            "output": "memory://model-dependent-realism/[topic]/network-of-world-pictures.md"
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for related model networks, prior analyses of the same phenomenon, and connected concepts that should be WikiLinked in the synthesis",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Complete model network documented: all world pictures, coverage, overlaps, divergences",
+          "Pluralism accepted where models are equally valid — no premature forced unification",
+          "Frontier identified: where new models are needed or existing ones are becoming baroque",
+          "Practical recommendations stated: which model for which purpose",
+          "Open questions articulated: what remains genuinely uncertain",
+          "Results persisted to knowledge graph with [[WikiLinks]] to related concepts"
+        ],
+        "next_actions": [
+          "Workflow complete — the phenomenon has been analyzed through the lens of model-dependent realism",
+          "If a model is becoming baroque under new observations, consider constructing a replacement world picture",
+          "If discriminating observations were identified, pursue them to advance the model network"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,422 @@
+{
+  "id": "falsification",
+  "name": "Falsification (Multi-Agent Popperian Demarcation & Testing)",
+  "emoji": "🔬",
+  "description": "Orchestrates parallel agents to apply Karl Popper's falsifiability criterion from 'The Logic of Scientific Discovery' (1934): one set of agents proposes falsifiable theories, another designs falsification tests grounded in basic statements, and a third attempts to falsify via modus tollens. Per Wikipedia, falsifiability is 'a standard of evaluation of scientific statements' — a theory is scientific if and only if it divides basic statements into potential falsifiers (those it prohibits) and those it permits. Unlike verification (which is logically impossible for universal laws), falsification exploits the valid inference of modus tollens: if law L implies prediction P, but ¬P is observed, then L is false. The multi-agent dialectic ensures the Theorist has no incentive to weaken claims, the Test Designer calibrates severity independently, and the Falsifier applies ruthless modus tollens without mercy — separating science from pseudoscience through the demarcation criterion.",
+  "triggers": [
+    "falsification",
+    "falsifiability",
+    "Popper",
+    "modus tollens",
+    "demarcation",
+    "critical rationalism",
+    "demarcation criterion",
+    "basic statements",
+    "potential falsifier",
+    "degrees of falsifiability"
+  ],
+  "specification": "https://en.wikipedia.org/wiki/Falsifiability",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": true,
+  "steps": [
+    {
+      "id": "demarcation-framing",
+      "name": "🔍 Demarcation Problem & Inquiry Framing",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Popper, the fundamental question of epistemology is not 'How do we know?' but 'How do we distinguish science from non-science?' This is the **demarcation problem**. This step frames the inquiry by establishing what counts as a scientific claim, what constitutes a basic statement, and what the logical structure of falsification requires.\n\n1. **Articulate the Domain**:\n   - What claim, theory, or hypothesis needs to be evaluated for scientific status?\n   - What is the domain's current state — are existing claims falsifiable or unfalsifiable?\n   - Per Popper's encounter with psychoanalysis: does the domain 'explain everything' (and therefore predict nothing)?\n\n2. **Establish the Empirical Basis — Basic Statements**:\n   - Per Wikipedia: 'basic statements are singular (existential) statements' — concrete claims about observable, specific instances\n   - What observations are **inter-subjectively verifiable** in this domain? (Popper's material requirement)\n   - What measurement technologies, instruments, or procedures exist to produce basic statements?\n   - Distinguish basic statements (e.g., 'this swan here is black') from non-basic statements (e.g., 'there exists a black swan')\n\n3. **Map the Logical Structure**:\n   - Identify the universal law form: 'For all x, if C(x) then P(x)'\n   - Identify the modus tollens structure: L → (C → P); C ∧ ¬P; therefore ¬L\n   - Per Popper: a falsifier must have two parts — the initial condition C and the contradicting observation ¬P\n\n4. **Demarcation Pre-Check**:\n   - Are there claims in the domain that are **unfalsifiable** by construction? (tautologies, ad hoc immunizations)\n   - Per Popper on Marxism: have practitioners 'given a conventionalist twist to the theory' to avoid refutation?\n   - Flag any claims that are metaphysical but potentially useful (per Popper: metaphysical statements can still be useful)\n\n5. **Memory Architecture**:\n```\nmemory://falsification/[topic]/\n├── demarcation-framing.md\n├── theories/\n│   ├── theory-1.md\n│   ├── theory-2.md\n│   └── theory-3.md\n├── test-designs/\n│   ├── test-design-1.md\n│   ├── test-design-2.md\n│   └── test-design-3.md\n├── falsification-attempts/\n│   ├── attempt-1.md\n│   ├── attempt-2.md\n│   └── attempt-3.md\n├── duhem-quine-analysis.md\n├── corroboration-verdict.md\n└── refined-position.md\n```\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Demarcation framing determines whether the entire falsification exercise is well-posed — poor framing yields unfalsifiable theories that waste all downstream agents",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Domain articulation — what claims need demarcation?",
+              "Basic statement identification — what is inter-subjectively verifiable?",
+              "Logical structure mapping — modus tollens form L → (C → P)",
+              "Demarcation pre-check — flag unfalsifiable claims",
+              "Memory architecture planning"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist demarcation framing as the anchor for all downstream Theorist, Test Designer, and Falsifier agents",
+            "priority": "mandatory",
+            "output": "memory://falsification/[topic]/demarcation-framing.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Domain articulated with specific claims requiring demarcation",
+          "Basic statements identified with inter-subjective verifiability established",
+          "Modus tollens logical structure mapped for the domain",
+          "Unfalsifiable claims flagged and separated from falsifiable candidates",
+          "Memory architecture created"
+        ],
+        "next_actions": [
+          "Dispatch parallel Theorist agents to propose competing falsifiable theories"
+        ]
+      }
+    },
+    {
+      "id": "theory-proposal-wave",
+      "name": "💡 Theory Proposal Wave (Parallel Theorists)",
+      "description": "🚫 BLOCKING: Dispatch ALL Theorist agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE THEORIST AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer Popper, scientific theories are 'nets cast to catch what we call the world' — they must be bold, informative, and maximally falsifiable. Each Theorist agent formulates a **competing falsifiable theory** that makes risky predictions the other theories do not. Per Wikipedia: 'if a hypothesis makes risky predictions and these are corroborated, that was a reason to prefer this hypothesis over others that make less risky predictions or no predictions at all.'\n\n```\nTask 1: Theory — Maximum Empirical Content\nAgent: researcher\nInstruction: You are a Popperian Theorist. Read memory://falsification/[topic]/demarcation-framing.md. Formulate a falsifiable theory that MAXIMIZES empirical content — it should prohibit the largest possible class of basic statements. Per Popper, a theory with greater empirical content is more falsifiable and therefore more scientifically valuable.\n\nYour theory MUST satisfy Popper's criteria:\n1. **Falsifiable**: It must divide basic statements into two non-empty classes — those it prohibits (potential falsifiers) and those it permits\n2. **Predictive**: State the modus tollens form explicitly: 'If [theory], then given [initial condition C], we predict [P]. Observation of C ∧ ¬P refutes the theory.'\n3. **Bold**: Make risky predictions — predictions that would be surprising if they hold and that competing theories do not make\n4. **Non-immunized**: Include NO ad hoc escape clauses, unfalsifiable qualifiers, or 'conventionalist twists'\n\nStructure:\n- State the theory as a clear universal law: 'For all x, if C(x) then P(x)'\n- List 3-5 specific basic statements that are POTENTIAL FALSIFIERS (observations that would refute it)\n- List 3-5 specific predictions (risky, not trivial)\n- Rate the degree of falsifiability: low → moderate → high → maximal\n- Include 10+ [[WikiLinks]] (e.g., [[falsifiability]], [[basic-statement]], [[empirical-content]], [[modus-tollens]])\n\nOutput: memory://falsification/[topic]/theories/theory-1.md\n\nTask 2: Theory — Mechanistic/Structural Explanation\nAgent: researcher\nInstruction: You are a Popperian Theorist. Read memory://falsification/[topic]/demarcation-framing.md. Formulate a falsifiable theory that proposes a novel MECHANISM or STRUCTURE underlying the domain. Per Popper, laws must 'allow us to deduce more empirical singular statements than we can deduce from the initial conditions alone.' Your mechanistic theory should explain WHY the observed regularities hold.\n\nYour theory MUST satisfy:\n1. **Falsifiable**: Explicit potential falsifiers stated as basic statements\n2. **Predictive**: Modus tollens form with initial conditions and predictions\n3. **Mechanistic**: Proposes specific causal mechanisms that could be independently tested\n4. **Strengthened**: Per Popper on Maxwell's critique — if the theory is too vague to falsify, STRENGTHEN it by specifying bounds, methods, or detection procedures\n\nStructure:\n- State the theory as a universal law with mechanistic content\n- List 3-5 potential falsifiers as basic statements\n- List 3-5 mechanistic predictions\n- Specify what detection technology or measurement procedure makes each prediction inter-subjectively verifiable\n- Rate degree of falsifiability: low → moderate → high → maximal\n- Include 10+ [[WikiLinks]]\n\nOutput: memory://falsification/[topic]/theories/theory-2.md\n\nTask 3: Theory — Contrarian/Paradigm-Challenging\nAgent: researcher\nInstruction: You are a Popperian Theorist. Read memory://falsification/[topic]/demarcation-framing.md. Formulate a falsifiable theory that CHALLENGES the dominant paradigm or most widely held assumption in the domain. Per Popper: 'Whenever a theory appears to you as the only possible one, take this as a sign that you have neither understood the theory nor the problem which it was intended to solve.'\n\nYour theory MUST satisfy:\n1. **Falsifiable**: Explicit potential falsifiers — and the theory must be MORE falsifiable than the paradigm it challenges\n2. **Predictive**: Modus tollens form with novel predictions the dominant paradigm does not make\n3. **Contrarian**: Directly contradicts a widely accepted claim — but does so in a TESTABLE way\n4. **Scientifically progressive**: Per Lakatos — if corroborated, it would predict novel facts not anticipated by the existing paradigm\n\nStructure:\n- State which dominant claim is being challenged and why it may be unfalsifiable or under-tested\n- State the contrarian theory as a falsifiable universal law\n- List 3-5 potential falsifiers as basic statements\n- List 3-5 novel predictions that distinguish this theory from the paradigm\n- Rate degree of falsifiability: low → moderate → high → maximal\n- Include 10+ [[WikiLinks]]\n\nOutput: memory://falsification/[topic]/theories/theory-3.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each Theorist MUST read the demarcation framing before proposing\n- Every theory MUST include explicit modus tollens form: L → (C → P); potential falsifier = C ∧ ¬P\n- Theories must be GENUINELY FALSIFIABLE — penalize unfalsifiable theories or ad hoc immunizations\n- Each agent writes independently — no coordination between Theorists\n\n⏱️ Duration: 20-30 minutes per agent (all run in parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Theorist agents, each formulating an independent falsifiable theory",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each Theorist reads the demarcation framing before formulating their theory",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://falsification/[topic]/demarcation-framing.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each Theorist persists its falsifiable theory independently",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://falsification/[topic]/theories/theory-1.md",
+              "memory://falsification/[topic]/theories/theory-2.md",
+              "memory://falsification/[topic]/theories/theory-3.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Theorist agents dispatched in a single message",
+          "Each theory stated in explicit modus tollens form",
+          "Each theory includes 3-5 potential falsifiers as basic statements",
+          "Each theory includes 3-5 risky predictions",
+          "Degree of falsifiability self-rated for each theory",
+          "No ad hoc immunizations present"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Theorist agents",
+          "Proceed to Falsifiability Assessment & Degree Analysis"
+        ]
+      }
+    },
+    {
+      "id": "falsifiability-assessment",
+      "name": "📐 Falsifiability Assessment & Degree Analysis",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nReview all three proposed theories and assess their **degree of falsifiability** — a core concept from Popper. Per Wikipedia: 'Scientific theories differ in their degrees of falsifiability. A theory is more scientific if it makes bold predictions that are easily testable and potentially refutable. The more ways a theory could be proven wrong by observation, the higher its degree of falsifiability.'\n\n1. **Verify Falsifiability of Each Theory**:\n   - Does the theory divide basic statements into two non-empty classes (potential falsifiers vs. permitted statements)?\n   - Is the modus tollens form valid? L → (C → P); does C ∧ ¬P genuinely contradict L?\n   - Per Popper on Maxwell: is the theory strong enough to be falsifiable, or does it need strengthening?\n   - Flag any theory that is **unfalsifiable by construction** (tautological, too vague, immunized)\n\n2. **Compare Degrees of Falsifiability**:\n   - Which theory prohibits the MOST basic statements? (highest empirical content = most falsifiable)\n   - Which theory makes the most RISKY predictions? (predictions surprising under background knowledge)\n   - Per Popper: 'the class of its potential falsifiers' determines scientific value — larger class = more scientific\n   - Rank theories: Theory X > Theory Y in degree of falsifiability if X prohibits a proper superset of what Y prohibits\n\n3. **Check for Pseudo-Scientific Features**:\n   - Per Popper on psychoanalysis: can the theory 'explain everything'? If so, it predicts nothing and is unfalsifiable\n   - Per Popper on Marxism: has the theory been immunized against refutation through 'conventionalist twists'?\n   - Are there unfalsifiable 'core' claims hidden behind falsifiable 'peripheral' predictions?\n   - Apply the Omphalos test: could the theory absorb ANY observation without modification?\n\n4. **Assign Falsification Mandates**:\n   - For each theory, identify the MOST DECISIVE potential falsifier — the basic statement whose truth would most clearly refute the theory\n   - Prepare mandate briefs for Test Designer agents: which predictions to target, what basic statements to construct\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Degree-of-falsifiability comparison requires systematic logical analysis — comparing potential falsifier classes across three theories",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Verify falsifiability of Theory 1 — modus tollens validity check",
+              "Verify falsifiability of Theory 2 — modus tollens validity check",
+              "Verify falsifiability of Theory 3 — modus tollens validity check",
+              "Rank theories by degree of falsifiability (empirical content comparison)",
+              "Assign falsification mandates with decisive potential falsifiers"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all three theory proposals for falsifiability assessment",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://falsification/[topic]/theories/theory-1.md",
+              "memory://falsification/[topic]/theories/theory-2.md",
+              "memory://falsification/[topic]/theories/theory-3.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist falsifiability rankings and test mandates for downstream agents",
+            "priority": "mandatory",
+            "output": "memory://falsification/[topic]/falsifiability-assessment.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three theories verified for genuine falsifiability",
+          "Modus tollens form validated for each theory",
+          "Theories ranked by degree of falsifiability with justification",
+          "Pseudo-scientific features flagged if detected",
+          "Falsification mandates assigned with decisive potential falsifiers"
+        ],
+        "next_actions": [
+          "Dispatch parallel Test Designer agents to design falsification experiments"
+        ]
+      }
+    },
+    {
+      "id": "test-design-wave",
+      "name": "🧪 Falsification Test Design Wave (Parallel Test Designers)",
+      "description": "🚫 BLOCKING: Dispatch ALL Test Designer agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE TEST DESIGNER AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer Popper, the value of a scientific theory lies in its capacity to be TESTED — not confirmed, but potentially refuted. Each Test Designer agent constructs a rigorous falsification test targeting a specific theory. Per Wikipedia on the four lines of testing: (1) logical consistency, (2) empirical character (non-tautological), (3) comparison with other theories, and (4) empirical application of deduced conclusions.\n\n```\nTask 1: Test Designer — Crucial Experiment for Theory 1\nAgent: researcher\nInstruction: You are a Popperian Test Designer. Read:\n- memory://falsification/[topic]/theories/theory-1.md\n- memory://falsification/[topic]/falsifiability-assessment.md\n\nDesign a CRUCIAL FALSIFICATION TEST for Theory 1. Per Popper, a test is valuable only if it targets the theory's boldest prediction — one that would be 'very improbable on our background knowledge alone.'\n\n1. **Construct the Basic Statement**: Define the specific, singular, inter-subjectively verifiable observation that would serve as the potential falsifier. It must have the form: C ∧ ¬P (initial condition holds, but prediction fails).\n2. **Specify the Modus Tollens Chain**: L → (C → P); observed: C ∧ ¬P; conclude: ¬L. Write this out explicitly.\n3. **Design the Empirical Procedure**: What observation, measurement, experiment, or data analysis would produce or refute the basic statement? Specify the technology, methodology, or data source.\n4. **Calibrate Severity**: A test is severe only if the theory is unlikely to pass it by luck, ad hoc adjustment, or auxiliary hypothesis manipulation. Rate severity: trivial → moderate → severe → crucial.\n5. **Identify Auxiliary Hypotheses**: Per Duhem-Quine — what background assumptions must hold for the test to work? What if an auxiliary hypothesis fails instead of the theory?\n\nInclude 10+ [[WikiLinks]] (e.g., [[falsifiability]], [[basic-statement]], [[modus-tollens]], [[crucial-experiment]], [[duhem-quine-thesis]])\nOutput: memory://falsification/[topic]/test-designs/test-design-1.md\n\nTask 2: Test Designer — Crucial Experiment for Theory 2\nAgent: researcher\nInstruction: You are a Popperian Test Designer. Read:\n- memory://falsification/[topic]/theories/theory-2.md\n- memory://falsification/[topic]/falsifiability-assessment.md\n\nDesign a CRUCIAL FALSIFICATION TEST for Theory 2 following the same structure:\n\n1. **Construct the Basic Statement**: C ∧ ¬P form targeting the mechanistic predictions.\n2. **Specify the Modus Tollens Chain**: Explicit logical structure.\n3. **Design the Empirical Procedure**: Target the proposed mechanism — can the causal claims be independently verified or refuted?\n4. **Calibrate Severity**: Rate severity with justification.\n5. **Identify Auxiliary Hypotheses**: What detection technology or measurement procedure assumptions could fail?\n\nInclude 10+ [[WikiLinks]]\nOutput: memory://falsification/[topic]/test-designs/test-design-2.md\n\nTask 3: Test Designer — Crucial Experiment for Theory 3\nAgent: researcher\nInstruction: You are a Popperian Test Designer. Read:\n- memory://falsification/[topic]/theories/theory-3.md\n- memory://falsification/[topic]/falsifiability-assessment.md\n\nDesign a CRUCIAL FALSIFICATION TEST for Theory 3 following the same structure:\n\n1. **Construct the Basic Statement**: C ∧ ¬P form targeting the contrarian predictions.\n2. **Specify the Modus Tollens Chain**: Explicit logical structure.\n3. **Design the Empirical Procedure**: Can the dominant paradigm and the contrarian theory be distinguished by a single observation?\n4. **Calibrate Severity**: Rate severity — this test should discriminate between the contrarian theory and the paradigm it challenges.\n5. **Identify Auxiliary Hypotheses**: What assumptions about the paradigm's validity could confound the test?\n\nInclude 10+ [[WikiLinks]]\nOutput: memory://falsification/[topic]/test-designs/test-design-3.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each Test Designer MUST read both the target theory AND the falsifiability assessment\n- Every test must include an explicit modus tollens chain\n- Tests must be SEVERE — not trivially passable\n- Auxiliary hypotheses must be explicitly identified (Duhem-Quine awareness)\n- Each Test Designer works independently — no coordination\n\n⏱️ Duration: 20-30 minutes per agent (all run in parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Test Designer agents, each constructing a falsification test for a specific theory",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each Test Designer reads its target theory and the falsifiability assessment",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://falsification/[topic]/theories/theory-1.md",
+              "memory://falsification/[topic]/theories/theory-2.md",
+              "memory://falsification/[topic]/theories/theory-3.md",
+              "memory://falsification/[topic]/falsifiability-assessment.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each Test Designer persists its falsification test design",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://falsification/[topic]/test-designs/test-design-1.md",
+              "memory://falsification/[topic]/test-designs/test-design-2.md",
+              "memory://falsification/[topic]/test-designs/test-design-3.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Test Designer agents dispatched in a single message",
+          "Each test includes an explicit modus tollens chain",
+          "Each test specifies a concrete basic statement as potential falsifier",
+          "Each test's severity rated and justified",
+          "Auxiliary hypotheses identified for each test (Duhem-Quine awareness)"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Test Designer agents",
+          "Dispatch Falsifier agents to execute modus tollens"
+        ]
+      }
+    },
+    {
+      "id": "falsification-attempt-wave",
+      "name": "⚡ Falsification Attempt Wave (Parallel Falsifiers)",
+      "description": "🚫 BLOCKING: Dispatch ALL Falsifier agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE FALSIFIER AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer Popper and Wikipedia: 'Popper's idea to solve this problem was that while it is impossible to verify that every swan is white, finding a single black swan shows that not every swan is white. Such falsification uses the valid inference modus tollens.' Each Falsifier agent's sole mission is to APPLY MODUS TOLLENS to destroy its assigned theory using the designed test.\n\n```\nTask 1: Falsifier — Apply Modus Tollens to Theory 1\nAgent: researcher\nInstruction: You are a Popperian Falsifier — a ruthless logician wielding modus tollens. Your SOLE MISSION is to FALSIFY Theory 1. Read:\n- memory://falsification/[topic]/theories/theory-1.md\n- memory://falsification/[topic]/test-designs/test-design-1.md\n\nExecute the falsification test:\n\n1. **Apply Modus Tollens**: Execute the chain: L → (C → P); determine whether C ∧ ¬P obtains. Is there evidence, data, reasoning, or analysis that produces the basic statement contradicting the theory's prediction?\n2. **Empirical Falsification**: Identify concrete observations, data points, cases, or evidence that instantiate the potential falsifier C ∧ ¬P.\n3. **Logical Falsification**: Check for internal contradictions, non-sequiturs, or circular reasoning within the theory itself.\n4. **Comparative Falsification**: Does a competing theory explain the same phenomena with greater empirical content or fewer auxiliary hypotheses?\n5. **Ad Hoc Immunization Detection**: Per Popper — 'the policy of immunizing our theories against refutation' is the cardinal sin. If the theory can only survive by adding ad hoc qualifications, flag this as an immunizing stratagem.\n\nVERDICT: State clearly:\n- FALSIFIED (modus tollens successfully applied — basic statement C ∧ ¬P demonstrated)\n- DAMAGED (serious weaknesses but modus tollens not decisively applicable)\n- CORROBORATED (survived falsification attempt — not verified, but provisionally acceptable per Popper)\n\nInclude 10+ [[WikiLinks]] (e.g., [[falsifiability]], [[modus-tollens]], [[basic-statement]], [[corroboration]], [[ad-hoc-hypothesis]])\nOutput: memory://falsification/[topic]/falsification-attempts/attempt-1.md\n\nTask 2: Falsifier — Apply Modus Tollens to Theory 2\nAgent: researcher\nInstruction: You are a Popperian Falsifier. Your SOLE MISSION is to FALSIFY Theory 2. Read:\n- memory://falsification/[topic]/theories/theory-2.md\n- memory://falsification/[topic]/test-designs/test-design-2.md\n\nExecute the falsification test:\n\n1. **Apply Modus Tollens**: L → (C → P); determine whether C ∧ ¬P obtains for the mechanistic predictions.\n2. **Empirical Falsification**: Find evidence contradicting the proposed mechanism — can the claimed causal chain be broken?\n3. **Logical Falsification**: Does the mechanistic account contain hidden assumptions or underdetermined causal links?\n4. **Comparative Falsification**: Is there a simpler mechanism that explains the same phenomena (Occam's razor applied to mechanisms)?\n5. **Ad Hoc Immunization Detection**: Flag any post-hoc adjustments to the mechanism that weaken its falsifiability.\n\nVERDICT: FALSIFIED / DAMAGED / CORROBORATED\n\nInclude 10+ [[WikiLinks]]\nOutput: memory://falsification/[topic]/falsification-attempts/attempt-2.md\n\nTask 3: Falsifier — Apply Modus Tollens to Theory 3\nAgent: researcher\nInstruction: You are a Popperian Falsifier. Your SOLE MISSION is to FALSIFY Theory 3. Read:\n- memory://falsification/[topic]/theories/theory-3.md\n- memory://falsification/[topic]/test-designs/test-design-3.md\n\nExecute the falsification test:\n\n1. **Apply Modus Tollens**: L → (C → P); determine whether C ∧ ¬P obtains for the contrarian predictions.\n2. **Empirical Falsification**: Find evidence that the challenged assumption is actually well-supported by basic statements.\n3. **Logical Falsification**: Does the contrarian position lead to absurd, contradictory, or self-refuting consequences?\n4. **Comparative Falsification**: Does the dominant paradigm actually have GREATER empirical content than the contrarian theory?\n5. **Ad Hoc Immunization Detection**: Flag any 'conventionalist twists' used to protect the contrarian theory.\n\nVERDICT: FALSIFIED / DAMAGED / CORROBORATED\n\nInclude 10+ [[WikiLinks]]\nOutput: memory://falsification/[topic]/falsification-attempts/attempt-3.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each Falsifier MUST genuinely attempt to destroy its target theory — no softball application of modus tollens\n- If falsification fails, the theory is CORROBORATED (not confirmed — per Popper, corroboration ≠ verification)\n- Falsifiers must cite specific basic statements: concrete, singular, inter-subjectively verifiable observations\n- Each Falsifier works independently — no coordination between Falsifiers\n\n⏱️ Duration: 20-30 minutes per agent (all run in parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Falsifier agents, each applying modus tollens to a specific theory",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each Falsifier reads its target theory and the corresponding test design",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://falsification/[topic]/theories/theory-1.md",
+              "memory://falsification/[topic]/theories/theory-2.md",
+              "memory://falsification/[topic]/theories/theory-3.md",
+              "memory://falsification/[topic]/test-designs/test-design-1.md",
+              "memory://falsification/[topic]/test-designs/test-design-2.md",
+              "memory://falsification/[topic]/test-designs/test-design-3.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each Falsifier persists its falsification attempt with verdict",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://falsification/[topic]/falsification-attempts/attempt-1.md",
+              "memory://falsification/[topic]/falsification-attempts/attempt-2.md",
+              "memory://falsification/[topic]/falsification-attempts/attempt-3.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Falsifier agents dispatched in a single message",
+          "Each falsification attempt includes explicit modus tollens application",
+          "Each attempt cites specific basic statements as evidence",
+          "Each attempt states a clear verdict: FALSIFIED / DAMAGED / CORROBORATED",
+          "Ad hoc immunizations flagged where detected"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Falsifier agents",
+          "Proceed to Duhem-Quine Analysis & Sophisticated Falsificationism"
+        ]
+      }
+    },
+    {
+      "id": "duhem-quine-analysis",
+      "name": "🔗 Duhem-Quine Analysis & Sophisticated Falsificationism",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Wikipedia: 'the Duhem–Quine thesis says that definitive experimental falsifications are impossible and that no scientific hypothesis is by itself capable of making predictions, because an empirical test of the hypothesis requires background assumptions.' This step applies Lakatos's distinction between naïve and sophisticated falsificationism to the results.\n\n1. **Auxiliary Hypothesis Audit**:\n   - For each falsification attempt, identify ALL auxiliary hypotheses that were assumed\n   - Per Duhem-Quine: when C ∧ ¬P is observed, is it THEORY L that is false, or an auxiliary hypothesis H?\n   - The modus tollens is actually: (L ∧ H₁ ∧ H₂ ∧ ... ∧ Hₙ) → (C → P); C ∧ ¬P; therefore ¬(L ∧ H₁ ∧ ... ∧ Hₙ)\n   - Which component is actually refuted? The theory, or an auxiliary?\n\n2. **Naïve vs. Sophisticated Falsificationism**:\n   Per Lakatos's four categories:\n   - **Dogmatic**: Are any falsification verdicts 'dogmatic' — ignoring that observations are theory-laden?\n   - **Naïve methodological**: Do any verdicts accept decisions about basic statements but ignore the problem of auxiliary hypotheses?\n   - **Sophisticated methodological**: Can any DAMAGED theory be replaced by a theory with greater empirical content that predicts novel facts?\n   - Upgrade or downgrade verdicts based on this analysis\n\n3. **Immunization Stratagem Detection**:\n   - Per Popper: 'refusing to go along with falsifications is equivalent to retiring from science'\n   - Have any theories been immunized through conventionalist twists?\n   - Has any theory's defenders moved the goalposts by adding ad hoc auxiliary hypotheses?\n   - Is any 'refutation' actually just a failure of test methodology, not a genuine falsification?\n\n4. **Popper's Response to Duhem-Quine**:\n   - Per Wikipedia: 'Popper's response was that falsifiability is a logical criterion' — the Duhem problem is methodological, not logical\n   - At the logical level, is each theory STILL falsifiable regardless of auxiliary hypothesis complications?\n   - Distinguish logical falsifiability (preserved) from methodological falsification (may be complicated by Duhem-Quine)\n\n5. **Revised Verdicts**:\n   - After Duhem-Quine analysis, revise verdicts if needed:\n     - FALSIFIED → DAMAGED (if an auxiliary hypothesis might be at fault)\n     - DAMAGED → CORROBORATED (if the 'damage' was actually to an auxiliary hypothesis)\n     - CORROBORATED → DAMAGED (if the corroboration depended on questionable auxiliary assumptions)\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Duhem-Quine analysis requires careful logical decomposition of each falsification result into theory vs. auxiliary hypothesis components",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Auxiliary hypothesis audit for each falsification attempt",
+              "Naïve vs. sophisticated falsificationism classification per Lakatos",
+              "Immunization stratagem detection across all three theories",
+              "Popper's logical vs. methodological distinction applied",
+              "Revised verdicts after Duhem-Quine analysis"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all theories, test designs, and falsification attempts for Duhem-Quine analysis",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://falsification/[topic]/theories/theory-1.md",
+              "memory://falsification/[topic]/theories/theory-2.md",
+              "memory://falsification/[topic]/theories/theory-3.md",
+              "memory://falsification/[topic]/test-designs/test-design-1.md",
+              "memory://falsification/[topic]/test-designs/test-design-2.md",
+              "memory://falsification/[topic]/test-designs/test-design-3.md",
+              "memory://falsification/[topic]/falsification-attempts/attempt-1.md",
+              "memory://falsification/[topic]/falsification-attempts/attempt-2.md",
+              "memory://falsification/[topic]/falsification-attempts/attempt-3.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist Duhem-Quine analysis with revised verdicts",
+            "priority": "mandatory",
+            "output": "memory://falsification/[topic]/duhem-quine-analysis.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Auxiliary hypotheses identified for each falsification attempt",
+          "Each verdict classified as dogmatic/naïve/sophisticated per Lakatos",
+          "Immunization stratagems flagged where detected",
+          "Logical vs. methodological falsifiability distinguished per Popper",
+          "Verdicts revised after Duhem-Quine analysis"
+        ],
+        "next_actions": [
+          "Proceed to Corroboration & Demarcation Verdict"
+        ]
+      }
+    },
+    {
+      "id": "corroboration-verdict",
+      "name": "🎯 Corroboration Assessment & Demarcation Verdict",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Popper, the endpoint of the falsification process is NOT 'proof of truth' but **degree of corroboration** — the extent to which a theory has survived severe testing. Per Wikipedia: 'the degree of corroboration reflects how well a theory has withstood severe tests, NOT how probable it is.' This step also renders the final **demarcation verdict**: which theories qualify as genuinely scientific?\n\n1. **Degree of Corroboration Assessment**:\n   For each surviving theory:\n   - How many severe tests has it survived? (test count)\n   - How severe were these tests? (severity rating from Test Designers)\n   - Did it survive despite genuine falsification attempts? (Falsifier effort quality)\n   - Per Popper: high corroboration does NOT imply high probability of truth — only that the theory has resisted genuine refutation\n   - Rate: weakly corroborated → moderately corroborated → highly corroborated\n\n2. **Demarcation Verdict**:\n   For each theory, render the final demarcation classification:\n   - **SCIENTIFIC**: Falsifiable, tested, survived (corroborated) or failed (falsified) — either way, it participated in science\n   - **PSEUDO-SCIENTIFIC**: Presented as scientific but structured to avoid falsification — unfalsifiable by construction or immunized against refutation\n   - **METAPHYSICAL**: Not falsifiable, but potentially useful as a framework or research program (per Popper: metaphysics is not valueless)\n   - **PRE-SCIENTIFIC**: Potentially falsifiable but not yet formalized enough to be tested\n\n3. **Theory Selection**:\n   Per Popper: 'we can never rationally justify a theory, but we can sometimes justify our preference for one theory over competing theories.'\n   - Among corroborated theories, which has the highest degree of corroboration?\n   - Among falsified theories, which produced the most informative falsification? (what did we learn?)\n   - Which theory should be provisionally accepted as the best current approximation?\n\n4. **Remaining Potential Falsifiers**:\n   - What severe tests remain UNPERFORMED?\n   - What basic statements could still falsify the best-corroborated theory?\n   - Per Popper's anti-inductivism: past corroboration does NOT predict future survival\n   - Identify the surviving theory's **Achilles' heel** — its most vulnerable, untested prediction\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Corroboration assessment requires integrating all falsification results with Duhem-Quine revisions to produce a final ranking",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Degree of corroboration rating for each surviving theory",
+              "Demarcation classification (scientific/pseudo-scientific/metaphysical/pre-scientific)",
+              "Theory selection with justification per Popper's preference criteria",
+              "Remaining potential falsifiers and Achilles' heel identification"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read demarcation framing and all analysis outputs for final verdict",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://falsification/[topic]/demarcation-framing.md",
+              "memory://falsification/[topic]/falsifiability-assessment.md",
+              "memory://falsification/[topic]/duhem-quine-analysis.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist corroboration assessment and demarcation verdict",
+            "priority": "mandatory",
+            "output": "memory://falsification/[topic]/corroboration-verdict.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each theory rated for degree of corroboration with justification",
+          "Demarcation verdict rendered for each theory",
+          "Best-corroborated theory identified with preference justification",
+          "Lessons extracted from falsified theories",
+          "Achilles' heel identified for surviving theory — most vulnerable untested prediction"
+        ],
+        "next_actions": [
+          "Proceed to knowledge integration"
+        ]
+      }
+    },
+    {
+      "id": "knowledge-integration",
+      "name": "🧠 Knowledge Integration & Graph Construction",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nIntegrate all falsification results into the maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\nTool: Sync\nScope: memory://falsification/[topic]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[WikiLinks]]: [[falsifiability]], [[modus-tollens]], [[basic-statement]], [[demarcation-problem]], [[potential-falsifier]], [[degree-of-falsifiability]], [[corroboration]], [[duhem-quine-thesis]], [[critical-rationalism]], [[empirical-content]]\n   - Map relationships between theories, test designs, falsification attempts, and verdicts\n   - Connect to existing knowledge graph concepts, especially [[conjectures-and-refutations]], [[scientific-method]], [[hypothetico-deductive-model]]\n\n3. **Epistemological Metrics**:\n   - Theories proposed vs. theories surviving falsification\n   - Average degree of falsifiability across theories\n   - Test severity distribution\n   - Duhem-Quine complications encountered\n   - [[WikiLink]] density across all outputs\n\n4. **Cross-Workflow Connections**:\n   - Link to conjecture-refutation workflow outputs if they exist for the same topic\n   - Link to experimental-design or thought-experiment workflow outputs if applicable\n   - Identify whether a second falsification cycle is warranted\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "Sync": {
+            "reason": "Synchronize all falsification memories to graph database",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Analyze concept networks for Popperian falsification terms",
+            "priority": "mandatory"
+          },
+          "SequentialThinking": {
+            "reason": "Integration requires systematic mapping of falsification relationships to knowledge graph",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Graph synchronized with all falsification outputs",
+          "Concept relationships mapped across Popperian terms",
+          "Epistemological metrics calculated",
+          "Cross-workflow connections identified"
+        ],
+        "next_actions": [
+          "Produce final deliverable"
+        ]
+      }
+    },
+    {
+      "id": "final-deliverable",
+      "name": "📋 Falsification Analysis Report",
+      "description": "Produce the final deliverable: a structured report of the complete falsification process, organized around Popper's methodology.\n\n**Report Structure**:\n\n1. **Demarcation Problem**: What domain was evaluated? What claims required demarcation between science and non-science?\n\n2. **Empirical Basis**: What basic statements are available in this domain? What is inter-subjectively verifiable?\n\n3. **Competing Theories**:\n   - Theory 1 (Maximum Empirical Content): [summary with modus tollens form]\n   - Theory 2 (Mechanistic/Structural): [summary with modus tollens form]\n   - Theory 3 (Contrarian/Paradigm-Challenging): [summary with modus tollens form]\n\n4. **Degrees of Falsifiability**: Ranking of theories by empirical content — which prohibits the most basic statements?\n\n5. **Falsification Test Results**:\n   - For each theory: verdict (FALSIFIED / DAMAGED / CORROBORATED) with modus tollens chain shown\n   - Most decisive application of modus tollens identified\n   - Most surprising survival (corroboration despite severe testing) identified\n\n6. **Duhem-Quine Complications**: Auxiliary hypothesis analysis — which verdicts were revised?\n\n7. **Demarcation Verdict**: Final classification of each theory: SCIENTIFIC / PSEUDO-SCIENTIFIC / METAPHYSICAL / PRE-SCIENTIFIC\n\n8. **Corroboration & Theory Selection**:\n   - Best-corroborated theory with degree of corroboration\n   - Remaining potential falsifiers — what could still refute it\n   - Achilles' heel — the theory's most vulnerable prediction\n\n9. **Epistemological Reflection**:\n   - Per Popper: corroboration ≠ verification — the best theory is not 'proven true' but 'not yet proven false'\n   - Per Wikipedia on Daubert: 'Scientific methodology today is based on generating hypotheses and testing them to see if they can be falsified; this methodology is what distinguishes science from other fields of human inquiry'\n   - What would make us update our position? What severe test would be decisive?\n\nPersist findings to knowledge graph with [[WikiLinks]] throughout.\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "ReadMemory": {
+            "reason": "Read all cycle outputs for final report compilation",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://falsification/[topic]/demarcation-framing.md",
+              "memory://falsification/[topic]/falsifiability-assessment.md",
+              "memory://falsification/[topic]/duhem-quine-analysis.md",
+              "memory://falsification/[topic]/corroboration-verdict.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the final refined position as a durable knowledge artifact",
+            "priority": "mandatory",
+            "output": "memory://falsification/[topic]/refined-position.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Final report covers all nine sections",
+          "Each theory's fate clearly stated with modus tollens evidence",
+          "Demarcation verdict rendered for each theory",
+          "Degree of corroboration stated for surviving theories",
+          "Remaining potential falsifiers and Achilles' heel documented",
+          "Key findings persisted to knowledge graph with [[WikiLinks]]"
+        ],
+        "next_actions": [
+          "Deliver final report to user",
+          "Identify whether a second falsification cycle is warranted for untested predictions"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,227 @@
+{
+  "id": "double-blind-study",
+  "name": "Double-Blind Study",
+  "emoji": "🔒",
+  "description": "Blinded experiment design — withholding information from participants and investigators to reduce or eliminate potential sources of bias, including participants' expectations, the observer-expectancy effect, observer bias, confirmation bias, and other cognitive or procedural influences. Per Wikipedia on Blinded experiment: 'When multiple groups are blinded simultaneously (for example, both participants and researchers), the design is referred to as a double-blind study.' The workflow guides systematic design and execution of single-blind, double-blind, and triple-blind protocols with CONSORT-compliant reporting of who was blinded to what information and how well each blind succeeded.",
+  "triggers": [
+    "double blind",
+    "blinded experiment",
+    "single blind",
+    "triple blind",
+    "placebo control",
+    "unblinding"
+  ],
+  "specification": "https://en.wikipedia.org/wiki/Blinded_experiment",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "identify-biases-to-eliminate",
+      "name": "Identify Biases to Eliminate — Catalog the cognitive and procedural biases that blinding must address",
+      "description": "Identify which specific biases threaten the study's validity and determine what information must be withheld to eliminate them.\n\nPer Wikipedia on Blinded experiment: 'In a blind or blinded experiment, information that could influence participants or investigators is withheld until the experiment is completed. Blinding is used to reduce or eliminate potential sources of bias, such as participants' expectations, the observer-expectancy effect, observer bias, confirmation bias, and other cognitive or procedural influences.'\n\nPer Wikipedia, several specific biases arise when a study is insufficiently blinded:\n\n• **Patient-reported outcome bias** — 'Patient-reported outcomes may differ when patients are not blinded to their treatment'\n• **Observer bias** — 'failure to blind researchers results in observer bias'\n• **Confirmation bias in analysis** — 'Unblinded data analysts may favor an analysis that supports their existing beliefs (confirmation bias)'\n• **Subconscious influence** — 'These biases are typically the result of subconscious influences, and are present even when study participants believe they do not influence them'\n\nPer Wikipedia on the consequences of poor blinding: 'Bias due to poor blinding tends to favor the experimental group, resulting in inflated effect size and risk of false positives.' Furthermore, 'even a small error in blinding can produce a statistically significant result in the absence of any real difference between test groups when a study is sufficiently powered (i.e. statistical significance is not robust to bias).'\n\nFor the study under consideration:\n1. What is the hypothesis being tested? What treatment or intervention is being evaluated?\n2. Which participants could introduce bias if unblinded — subjects, researchers, technicians, data analysts, outcome assessors?\n3. What specific information, if known, would alter each participant's behavior or judgment?\n4. Per Wikipedia: 'Blinding is an important tool of the scientific method, and is used in many fields of research. In some fields, such as medicine, it is considered essential.' — Is blinding essential, desirable, or optional for this domain?\n5. Are there ethical or practical constraints? Per Wikipedia: 'it is not possible to blind a participant receiving a physical therapy intervention, or a surgeon performing an operative procedure.'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior studies on this topic, known biases in the domain, and historical examples of blinding failures that inflated effect sizes",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the experimental subject to identify all stakeholder roles (subjects, researchers, analysts, assessors) whose knowledge could introduce bias",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Hypothesis and intervention clearly stated — what is being tested and what treatment is being evaluated",
+          "All participant roles cataloged — subjects, researchers, technicians, data analysts, outcome assessors — with bias risk per role",
+          "Specific information that must be withheld from each role identified — what knowledge would alter behavior or judgment",
+          "Ethical and practical constraints on blinding documented — per Wikipedia, blinding may be 'impractical or unethical' for some interventions",
+          "Domain assessment: whether blinding is essential, desirable, or optional for this field of research"
+        ],
+        "next_actions": [
+          "Proceed to designing the blinding protocol"
+        ]
+      }
+    },
+    {
+      "id": "design-blinding-protocol",
+      "name": "Design the Blinding Protocol — Determine who is blinded to what information per CONSORT",
+      "description": "Design the blinding protocol specifying exactly who is blinded to what information.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Blinded experiment: 'In medical research, the terms single-blind, double-blind and triple-blind are commonly used to describe blinding. These terms describe experiments in which (respectively) one, two, or three parties are blinded to some information. Most often, single-blind studies blind patients to their treatment allocation, double-blind studies blind both patients and researchers to treatment allocations, and triple-blinded studies blind patients, researcher, and some other third party (such as a monitoring committee) to treatment allocations.'\n\nHowever, per CONSORT guidelines cited by Wikipedia: 'these terms should no longer be used because they are ambiguous. For instance, \"double-blind\" may mean that the data analysts and patients were blinded; the patients and outcome assessors were blinded; or the patients and those administering the intervention were blinded.' The terms 'also fail to convey the information that was masked and the extent of unblinding.'\n\nPer CONSORT: 'It is not sufficient to specify the number of parties that have been blinded. To describe an experiment's blinding, it is necessary to report who has been blinded to what information, and how well each blind succeeded.'\n\nFor each stakeholder role identified in the previous step:\n1. What specific information is withheld from this role?\n2. What mechanism enforces the blind — coding, physical separation, identical-appearing treatments, sealed envelopes?\n3. What are the likely failure modes for this blind — side effects, observable differences, social media, guessing?\n4. Per Wikipedia: 'Well-designed clinical protocols therefore aim to maximize the effectiveness of blinding within ethical and practical constraints.' — What is the maximum achievable blinding given constraints?\n5. How will blinding success be measured and reported for this role?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Designing a blinding protocol requires systematic evaluation of each stakeholder role against each type of information — per CONSORT, 'it is necessary to report who has been blinded to what information, and how well each blind succeeded.' Each thought addresses one role-information pair with mechanism and failure mode analysis.",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find established blinding mechanisms, prior protocol designs, and known failure modes from similar studies in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each stakeholder role explicitly listed with the specific information withheld from them — per CONSORT, not just 'double-blind' but who is blinded to what",
+          "Blinding mechanism specified for each role — how the blind is enforced (coding, physical separation, identical treatments, etc.)",
+          "Likely failure modes identified for each blind — side effects, observable differences, social media research, guessing",
+          "Maximum achievable blinding assessed given ethical and practical constraints",
+          "Blinding success measurement plan defined — how and when each blind's integrity will be assessed"
+        ],
+        "next_actions": [
+          "Proceed to designing control conditions that preserve blinding"
+        ]
+      }
+    },
+    {
+      "id": "design-control-conditions",
+      "name": "Design Control Conditions — Construct placebo or sham interventions that preserve blinding",
+      "description": "Design the control condition to be perceptually indistinguishable from the treatment, preserving blinding integrity.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Blinded experiment: 'A common cause for unblinding is the presence of side effects (or effects) in the treatment group.' The control must be designed to prevent participants from deducing their allocation through perceptible differences.\n\nPer Wikipedia on active placebos: 'premature unblinding can be reduced with the use of an active placebo, which conceals treatment allocation by ensuring the presence of side effects in both groups.' An active placebo produces side effects that mimic the treatment without the therapeutic mechanism, thereby preventing participants from inferring their group from the presence or absence of side effects.\n\nPer Wikipedia on non-pharmacological studies: in acupuncture research, at least four methods of sham control have been used — '1) superficial needling of true acupuncture points, 2) use of acupuncture points which are not indicated for the condition being treated, 3) insertion of needles outside of true acupuncture points, and 4) the use of placebo needles which are designed not to penetrate the skin.' In surgical studies, sham surgery may be necessary to blind the study.\n\nPer Wikipedia: 'any perceptible difference between the treatment and control groups can contribute to premature unblinding.' The control condition must match the treatment in all perceivable aspects — appearance, administration route, timing, side effect profile, sensory characteristics — differing only in the hypothesized active mechanism.\n\nConsider: What sensory, temporal, or experiential cues could distinguish treatment from control? Would an active placebo be more appropriate than an inert one? What sham procedures are ethical and practical?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Designing perceptually indistinguishable control conditions requires systematic comparison of treatment and control across all perceivable dimensions — appearance, timing, side effects, sensory characteristics — per Wikipedia, 'any perceptible difference between the treatment and control groups can contribute to premature unblinding'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find established placebo designs, active placebo precedents, and sham procedure examples from the knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Control condition specified — placebo, active placebo, or sham procedure with rationale for choice",
+          "Perceptual equivalence assessed across all dimensions — appearance, timing, administration route, sensory characteristics, side effect profile",
+          "Active placebo considered — whether mimicking side effects is necessary to prevent unblinding through presence/absence of effects",
+          "Ethical assessment completed — sham procedures or active placebos evaluated for participant safety and informed consent",
+          "Residual perceptible differences documented — any remaining cues that could compromise blinding, with mitigation strategies"
+        ],
+        "next_actions": [
+          "Proceed to establishing the code-break procedure"
+        ]
+      }
+    },
+    {
+      "id": "establish-code-break-procedure",
+      "name": "Establish Code-Break Procedure — Define emergency unblinding protocol",
+      "description": "Define the code-break procedure that governs when and how a participant may be prematurely unblinded.\n\nPer Wikipedia on Blinded experiment: 'A code-break procedure dictates when a subject should be unblinded prematurely. A code-break procedure should allow unblinding only in cases of emergency. Unblinding that occurs in compliance with the code-break procedure is strictly documented and reported.'\n\nPer Wikipedia: 'Premature unblinding is any unblinding that occurs before the conclusion of a study. In contrast with post-study unblinding, premature unblinding is a source of bias.' Therefore the code-break procedure must balance participant safety against study integrity.\n\nPer CONSORT standards and good clinical practice guidelines cited by Wikipedia: these 'recommend the reporting of all premature unblinding. In practice, unintentional unblinding is rarely reported.'\n\nThe code-break procedure must specify:\n1. What constitutes an emergency warranting premature unblinding — adverse events, safety signals, medical necessity?\n2. Who has authority to initiate a code-break — the investigator, an independent safety monitor, the participant?\n3. What is the physical mechanism — sealed envelopes, electronic randomization system, pharmacy records?\n4. What documentation is required when a code-break occurs — timestamp, reason, who was unblinded, who authorized it?\n5. How will code-break events be reported in the final study results?\n6. What is the threshold for stopping the study entirely due to excessive unblinding?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find established code-break procedure templates, regulatory requirements, and institutional review board guidelines in the knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Emergency criteria defined — specific conditions that warrant premature unblinding",
+          "Authority chain specified — who can initiate, authorize, and execute a code-break",
+          "Physical mechanism documented — how allocation codes are stored and accessed (sealed envelopes, electronic system, pharmacy)",
+          "Documentation requirements established — what must be recorded for each code-break event",
+          "Reporting protocol defined — how premature unblinding events will be disclosed in study results per CONSORT",
+          "Study stopping rules established — threshold of unblinding events that would compromise the study"
+        ],
+        "next_actions": [
+          "Proceed to conducting the blinded experiment"
+        ]
+      }
+    },
+    {
+      "id": "conduct-blinded-experiment",
+      "name": "Conduct the Blinded Experiment — Execute with active monitoring for premature unblinding",
+      "description": "Execute the study with the blinding protocol active, monitoring for premature unblinding throughout.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Blinded experiment: 'During the course of an experiment, a participant becomes unblinded if they deduce or otherwise obtain information that has been masked to them. For example, a patient who experiences a side effect may correctly guess their treatment, becoming unblinded.'\n\nPer Wikipedia: 'Unblinding is common in blinded experiments, particularly in pharmacological trials. In particular, trials on pain medication and antidepressants are poorly blinded.' Evidence from the literature:\n• 'at least three-quarters of patients [in antidepressant trials] were able to guess their treatment assignment correctly' — 'researchers concluded that unblinding inflates the effect size in antidepressant trials'\n• A 2018 meta-analysis found 'assessment of blinding was reported in only 23 out of 408 randomized controlled trials for chronic pain (5.6%)'\n\nPer Wikipedia on social media as an unblinding source: 'some subjects of clinical trials attempt to determine if they have received an active treatment by gathering information on social media and message boards. While researchers counsel patients not to use social media to discuss clinical trials, their accounts are not monitored. This behavior is believed to be a source of unblinding.'\n\nPer Wikipedia, asking about blinding may itself cause unblinding: 'a problem arises in assessing blinding because asking subjects to guess masked information may prompt them to infer it. Researchers speculate that this may contribute to premature unblinding.'\n\nMonitoring protocol:\n1. Track adverse events and side effects — the primary driver of unblinding\n2. Document any participant statements suggesting awareness of allocation\n3. Monitor compliance with social media and communication restrictions\n4. Execute code-break procedure when triggered, with full documentation\n5. Maintain the blind for all other participants when one is unblinded",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Monitoring for premature unblinding during experiment execution requires systematic tracking of multiple unblinding channels — side effects, participant behavior, social media, code-breaks — per Wikipedia, unblinding is 'common in blinded experiments' and each channel requires distinct monitoring",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find known unblinding rates, monitoring best practices, and domain-specific unblinding patterns from the knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Experiment executed per protocol with blinding maintained for all possible participants",
+          "Adverse events and side effects tracked with assessment of unblinding risk for each",
+          "Code-break events documented per the established procedure — reason, authorization, timestamp",
+          "All instances of suspected premature unblinding logged — including participant statements suggesting awareness",
+          "Data collection completed for all endpoints before any post-study unblinding"
+        ],
+        "next_actions": [
+          "Proceed to assessing blinding efficacy"
+        ]
+      }
+    },
+    {
+      "id": "assess-blinding-efficacy",
+      "name": "Assess Blinding Efficacy — Measure the success of blinding per CONSORT",
+      "description": "Systematically assess whether the blinding protocol succeeded for each stakeholder role.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Blinded experiment: 'The success of blinding is assessed by asking study participants about information that has been masked from them (e.g., whether the participant received the drug or placebo?). In a perfectly blinded experiment, the responses should be consistent with no knowledge of the masked information. However, if unblinding has occurred, the responses will indicate the degree of unblinding.'\n\nPer Wikipedia on measurement limitations: 'Since unblinding cannot be measured directly, but must be inferred from participants' responses, its measured value will depend on the nature of the questions asked. As a result, it is not possible to objectively measure unblinding. Nonetheless, it is still possible to make informed judgments about the quality of a blinding.'\n\nPer Wikipedia on the spectrum of blinding: 'When a blind is imperfect, its success is judged on a spectrum with no blind (or complete failure of blinding) on one end, perfect blinding on the other, and poor or good blinding between. Thus, the common view of studies as blinded or unblinded exemplifies a false dichotomy.'\n\nPer Wikipedia on the hierarchy of evidence: 'Poorly blinded studies rank above unblinded studies and below well-blinded studies in the hierarchy of evidence.'\n\nPer CONSORT: 'The CONSORT reporting guidelines recommend that all studies assess and report unblinding. In practice, very few studies do so.' This step ensures compliance with this recommendation.\n\nAssessment protocol:\n1. For each blinded role, ask about masked information without prompting inference\n2. Compare guessing accuracy to chance — better-than-chance accuracy indicates unblinding\n3. Assess the direction of bias — per Wikipedia, 'bias due to poor blinding tends to favor the experimental group, resulting in inflated effect size and risk of false positives'\n4. Place the study on the blinding spectrum: open trial → poor blinding → good blinding → perfect blinding\n5. Document all premature unblinding events and their causes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Assessing blinding efficacy across multiple stakeholder roles requires systematic evaluation — per Wikipedia, blinding success 'is judged on a spectrum' and 'cannot be measured directly, but must be inferred from participants' responses.' Each thought evaluates one role's blinding success.",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Blinding assessed for each stakeholder role — per CONSORT, not just overall but who was blinded to what and how well",
+          "Guessing accuracy compared to chance for each blinded group — better-than-chance indicates unblinding",
+          "Study placed on the blinding spectrum: open trial → poor → good → perfect blinding — not treated as binary",
+          "Direction of bias assessed — whether poor blinding favored the experimental group per Wikipedia's pattern",
+          "All premature unblinding events tabulated with causes — side effects, code-breaks, social media, inference from questions",
+          "CONSORT-compliant blinding report prepared — who was blinded, to what, how well the blind succeeded"
+        ],
+        "next_actions": [
+          "Proceed to post-study unblinding and bias-corrected analysis"
+        ]
+      }
+    },
+    {
+      "id": "unblind-and-analyze",
+      "name": "Unblind and Analyze — Post-study unblinding with bias-corrected interpretation",
+      "description": "Perform post-study unblinding and analyze results with explicit correction for any detected blinding failures.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Blinded experiment: 'Post-study unblinding is the release of masked data upon completion of a study. In clinical studies, post-study unblinding informs subjects of their treatment allocation. Removing a blind upon completion of a study is never mandatory, but is typically performed as a courtesy to study participants. Unblinding that occurs after the conclusion of a study is not a source of bias, because data collection and analysis are both complete at this time.'\n\nPer Wikipedia on the consequences of poor blinding: 'Bias due to poor blinding tends to favor the experimental group, resulting in inflated effect size and risk of false positives.' The analysis must account for any detected unblinding:\n\n• Per antidepressant trial research cited by Wikipedia: 'Better blinding of patients and clinicians reduces effect size. Researchers concluded that unblinding inflates the effect size in antidepressant trials.'\n• Per Wikipedia: 'many statistically significant results in randomized controlled trials may be caused by error in blinding' — 'Some researchers have called for the mandatory assessment of blinding efficacy in clinical trials.'\n\nAnalysis protocol:\n1. Release allocation codes — document the unblinding event\n2. Compare primary outcomes between treatment and control groups\n3. Perform sensitivity analysis: re-analyze excluding prematurely unblinded participants\n4. Assess whether the blinding efficacy assessment (previous step) suggests inflated effect sizes\n5. Report results with blinding quality context — per the hierarchy of evidence, a poorly blinded study's results carry less weight than a well-blinded study's\n6. If publishing, agree in advance to publish regardless of results — per Wikipedia on physics: 'A prior agreement to publish the data regardless of the results of the study may be made to prevent publication bias'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Post-study analysis with bias correction requires systematic comparison of primary results against sensitivity analyses excluding unblinded participants — per Wikipedia, 'bias due to poor blinding tends to favor the experimental group, resulting in inflated effect size and risk of false positives'",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "WriteMemory": {
+            "reason": "Document the complete blinded study — protocol design, blinding efficacy assessment, bias-corrected results, and lessons learned — as institutional memory for future experimental designs",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Find prior blinded study results on this topic to contextualize the current findings and assess consistency across studies",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Allocation codes released and post-study unblinding documented",
+          "Primary outcomes compared between treatment and control groups",
+          "Sensitivity analysis performed — results re-analyzed excluding prematurely unblinded participants",
+          "Effect size assessed in context of blinding efficacy — explicitly acknowledging if poor blinding may have inflated results",
+          "Results reported with blinding quality context per the hierarchy of evidence — study ranked by blinding success",
+          "Publication bias mitigated — commitment to report results regardless of outcome",
+          "Complete blinded study protocol and results documented for institutional memory"
+        ],
+        "next_actions": [
+          "Document the blinded experiment: protocol, blinding efficacy, bias-corrected results, and recommendations for future blinding protocols"
+        ]
+      }
+    }
+  ]
+}

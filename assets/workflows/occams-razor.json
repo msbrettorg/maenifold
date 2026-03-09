@@ -1,0 +1,197 @@
+{
+  "id": "occams-razor",
+  "name": "Occam's Razor / Parsimony",
+  "emoji": "🪒",
+  "description": "Lex parsimoniae — the problem-solving principle that recommends searching for explanations constructed with the smallest possible set of elements, preferring the hypothesis that requires the fewest assumptions when competing explanations have equal explanatory power",
+  "triggers": [
+    "occam's razor",
+    "parsimony",
+    "simplicity",
+    "lex parsimoniae",
+    "simplest explanation",
+    "unnecessary assumptions"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "articulate-phenomenon",
+      "name": "Articulate the Phenomenon — State the observation or problem requiring explanation",
+      "description": "Clearly state the phenomenon, observation, or problem that requires explanation.\n\nPer Wikipedia, Occam's razor is a 'problem-solving principle that recommends searching for explanations constructed with the smallest possible set of elements.' Before the razor can be applied, the target of explanation must be precisely defined. Identify what specific observations, data, or phenomena need to be accounted for.\n\nPer Ptolemy's formulation: 'We consider it a good principle to explain the phenomena by the simplest hypothesis possible.' The phenomena must be stated before hypotheses can be compared.\n\nDocument the scope: what must any successful explanation account for? What are the boundary conditions? What data or observations constrain acceptable explanations?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior observations, existing explanations, and known context surrounding the phenomenon under investigation",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around related concepts to understand what background knowledge constrains possible explanations",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Phenomenon clearly articulated — what specific observations or data require explanation",
+          "Scope defined — boundary conditions and constraints on acceptable explanations established",
+          "Background expectations stated — what would be 'unsurprising' and why this phenomenon deviates",
+          "Observable data distinguished from prior interpretations or assumptions"
+        ],
+        "next_actions": [
+          "Proceed to enumerating competing hypotheses"
+        ]
+      }
+    },
+    {
+      "id": "enumerate-competing-hypotheses",
+      "name": "Enumerate Competing Hypotheses — Catalog all candidate explanations",
+      "description": "Systematically enumerate all competing hypotheses that could explain the phenomenon.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia, Occam's razor applies 'when presented with competing hypotheses about the same prediction.' The razor is a method for adjudicating between theories — it requires multiple candidates. Per the article: the razor 'is not meant to be a way of choosing between hypotheses that make different predictions' but rather between those that explain the same observations.\n\nFor each hypothesis, state:\n1. The explanatory mechanism — how it accounts for the phenomenon\n2. What it predicts — ensuring all candidates address the same observations\n3. Its provenance — where the explanation originates (prior theory, analogy, novel proposal)\n\nPer Bertrand Russell's version: 'Whenever possible, substitute constructions out of known entities for inferences to unknown entities.' Ensure known-entity explanations are included alongside those positing novel entities.\n\nBe comprehensive: per the article, 'for each accepted explanation of a phenomenon, there is always an infinite number of possible, more complex, and ultimately incorrect, alternatives.' The goal is to capture the plausible candidates, not to pre-filter by simplicity.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic enumeration of competing hypotheses requires structured exploration — ensuring no plausible candidate is overlooked and all address the same predictions",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for existing hypotheses, known explanatory frameworks, and prior analyses relevant to this phenomenon",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Explore concept connections to discover non-obvious candidate explanations from adjacent domains",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All plausible competing hypotheses enumerated — each explains the same set of observations",
+          "Each hypothesis states its explanatory mechanism clearly",
+          "Known-entity explanations included per Russell's version — constructions from known entities preferred over inferences to unknown ones",
+          "Hypotheses confirmed to address the same predictions — not making fundamentally different claims about different data",
+          "No obvious candidate explanations omitted"
+        ],
+        "next_actions": [
+          "Proceed to decomposing assumptions per hypothesis"
+        ]
+      }
+    },
+    {
+      "id": "decompose-assumptions",
+      "name": "Decompose Assumptions — Identify every entity and assumption each hypothesis posits",
+      "description": "For each competing hypothesis, explicitly identify every entity, assumption, and mechanism it posits.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia's statement of the principle: 'Entia non sunt multiplicanda praeter necessitatem' — 'Entities must not be multiplied beyond necessity.' To apply this, one must first know what entities each hypothesis multiplies.\n\nPer William of Ockham's own formulation: 'Plurality must never be posited without necessity' (Numquam ponenda est pluralitas sine necessitate). And from his Summa Totius Logicae: 'It is futile to do with more things that which can be done with fewer' (Frustra fit per plura quod potest fieri per pauciora).\n\nFor each hypothesis, catalog:\n1. **Entities posited** — what things, forces, mechanisms, or agents does it assume to exist?\n2. **Assumptions required** — what must be true for the explanation to hold?\n3. **Free parameters** — how many adjustable variables does it introduce?\n4. **Ad hoc elements** — are any components introduced solely to save the hypothesis from falsification?\n\nPer the probabilistic justification from Wikipedia: 'By definition, all assumptions introduce possibilities for error; if an assumption does not improve the accuracy of a theory, its only effect is to increase the probability that the overall theory is wrong.'\n\nPer Jefferys and Berger (1991): 'A hypothesis with fewer adjustable parameters will automatically have an enhanced posterior probability, due to the fact that the predictions it makes are sharp.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Rigorous per-hypothesis decomposition of entities, assumptions, free parameters, and ad hoc elements — the analytical core that enables parsimony comparison",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Search for known assumptions, hidden premises, and previously identified ad hoc elements in similar explanatory frameworks",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Every hypothesis has its entities, assumptions, free parameters, and ad hoc elements explicitly cataloged",
+          "Hidden assumptions surfaced — implicit premises made explicit",
+          "Ad hoc hypotheses identified — components introduced solely to prevent falsification flagged per Wikipedia's 'saving hypotheses' concept",
+          "Each assumption assessed for whether it improves explanatory accuracy or merely increases error probability",
+          "Assumption counts comparable across hypotheses"
+        ],
+        "next_actions": [
+          "Proceed to applying the parsimony principle"
+        ]
+      }
+    },
+    {
+      "id": "apply-parsimony-principle",
+      "name": "Apply Lex Parsimoniae — Rank hypotheses by parsimony and select the simplest adequate explanation",
+      "description": "Apply the parsimony principle to rank competing hypotheses and identify the one requiring the fewest assumptions.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia: 'one should prefer the hypothesis that requires the fewest assumptions.' Apply this across the assumption inventories from the previous step.\n\nPer Aristotle (Posterior Analytics): 'We may assume the superiority ceteris paribus [all other things being equal] of the demonstration which derives from fewer postulates or hypotheses.'\n\nPer Newton's formulation: 'We are to admit no more causes of natural things than such as are both true and sufficient to explain their appearances. Therefore, to the same natural effects we must, as far as possible, assign the same causes.'\n\nPer the bias-variance tradeoff: 'excessively complex models are affected by statistical noise, whereas simpler models may capture the underlying structure better and may thus have better predictive performance.'\n\nRank by:\n1. **Entity count** — fewer posited entities preferred (ontological parsimony)\n2. **Assumption count** — fewer required assumptions preferred\n3. **Free parameter count** — fewer adjustable parameters preferred per Jefferys and Berger\n4. **Ad hoc component count** — zero ad hoc elements preferred; 'saving hypotheses' are a red flag\n5. **Falsifiability** — per Popper, simpler theories are preferred 'because their empirical content is greater; and because they are better testable'\n\nPer Swinburne's argument: 'the simplest hypothesis proposed as an explanation of phenomena is more likely to be the true one than is any other available hypothesis.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Multi-dimensional parsimony comparison across entity count, assumption count, free parameters, ad hoc elements, and falsifiability — ranking hypotheses per lex parsimoniae",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Hypotheses ranked by parsimony across all dimensions — entity count, assumptions, parameters, ad hoc elements",
+          "The most parsimonious hypothesis clearly identified with explicit justification",
+          "Falsifiability assessed per Popper — simpler theory confirmed as more testable",
+          "Any ties in parsimony noted with rationale for breaking them",
+          "Ranking justified by reference to the principle: 'Entities must not be multiplied beyond necessity'"
+        ],
+        "next_actions": [
+          "Proceed to verifying equal explanatory power"
+        ]
+      }
+    },
+    {
+      "id": "verify-explanatory-power",
+      "name": "Verify Equal Explanatory Power — Confirm the simpler hypothesis adequately explains all observations",
+      "description": "Verify that the preferred (simplest) hypothesis has equal explanatory power to the more complex alternatives.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThis is the critical safeguard. Per Wikipedia, Occam's razor applies only when 'both hypotheses have equal explanatory power.' The razor 'is not an embargo against the positing of any kind of entity, or a recommendation of the simplest theory come what may.' It is 'used to adjudicate between theories that have already passed theoretical scrutiny tests and are equally well-supported by evidence.'\n\nPer Einstein's Constraint: 'the supreme goal of all theory is to make the irreducible basic elements as simple and as few as possible without having to surrender the adequate representation of a single datum of experience.' Or more popularly: 'Everything should be kept as simple as possible, but not simpler.'\n\nPer Karl Menger's Law Against Miserliness (an anti-razor): 'Entities must not be reduced to the point of inadequacy' and 'It is vain to do with fewer what requires more.'\n\nVerify:\n1. Does the simplest hypothesis account for ALL the observations, not just most of them?\n2. Does it make the same predictions as the more complex alternatives for all known data?\n3. Would adopting the simpler explanation require ignoring or dismissing any evidence?\n4. Is the simpler hypothesis genuinely explanatory, or merely descriptive?\n5. Per the scientific method: 'science prefers the simplest explanation that is consistent with the data available at a given time, but the simplest explanation may be ruled out as new data become available'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic verification that the simplest hypothesis meets Einstein's Constraint — as simple as possible but not simpler — checking every datum of experience against the preferred explanation",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for additional evidence, edge cases, or counterexamples that might challenge the simpler hypothesis's explanatory adequacy",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Simplest hypothesis confirmed to account for ALL observations — no data left unexplained",
+          "Einstein's Constraint satisfied: as simple as possible, but not simpler",
+          "Equal explanatory power verified — simpler hypothesis makes the same predictions as complex alternatives for all known data",
+          "No evidence dismissed or ignored to maintain the simpler explanation",
+          "If explanatory power is NOT equal, the more complex but adequate hypothesis is promoted per Menger's anti-razor"
+        ],
+        "next_actions": [
+          "Proceed to documenting conclusion with limitations"
+        ]
+      }
+    },
+    {
+      "id": "document-conclusion-and-limitations",
+      "name": "Document Conclusion — State the selected explanation with caveats and anti-razor awareness",
+      "description": "Document the selected explanation with full awareness of Occam's razor's limitations, controversial aspects, and anti-razors.\n\nPer Wikipedia's 'Controversial aspects' section: the razor is 'not an irrefutable principle of logic or a scientific result' but a heuristic. Record:\n\n1. **Selected explanation**: The hypothesis chosen via parsimony with explicit justification\n2. **What was shaved away**: Which entities, assumptions, or mechanisms were eliminated and why\n3. **Falsifiability plan**: Per Popper, the simpler theory is preferred because it is more testable — what test would falsify it?\n4. **New data sensitivity**: Per Wikipedia, 'future data often support more complex theories than do existing data' — what new evidence would trigger reconsideration?\n5. **Domain-specific caveats**: Per Francis Crick, 'While Ockham's razor is a useful tool in the physical sciences, it can be a very dangerous implement in biology' — is the domain one where parsimony reliably tracks truth?\n6. **Anti-razor awareness**: Per Chatton's anti-razor, 'If three things are not enough to verify an affirmative proposition about things, a fourth must be added.' Per Kant: 'The variety of beings should not rashly be diminished.' Is there any risk that the simplest explanation is too simple?\n7. **Historical misapplication**: Per Wikipedia, 'Appeals to simplicity were used to argue against the phenomena of meteorites, ball lightning, continental drift, and reverse transcriptase' — all of which turned out to be real. Acknowledge that the razor has historically led to incorrect rejections.\n\nRecord the conclusion in the knowledge graph for future reference.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the selected explanation with its parsimony justification, falsifiability plan, anti-razor caveats, and conditions for reconsideration — preserving institutional memory of the reasoning",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Search for prior applications of Occam's razor in the knowledge graph to check for consistency and learn from past parsimony judgments",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Selected explanation documented with explicit parsimony justification",
+          "Eliminated entities and assumptions recorded — what was 'shaved away' and why",
+          "Falsifiability plan stated — what test would disprove the selected explanation",
+          "New data trigger conditions specified — what evidence would require revisiting the conclusion",
+          "Domain-specific caveats acknowledged per Crick's warning",
+          "Anti-razor considerations addressed — Chatton, Kant, Menger's perspectives weighed",
+          "Historical misapplication risk acknowledged"
+        ],
+        "next_actions": [
+          "Conclusion documented: simplest adequate explanation selected with full awareness of limitations and conditions for revision"
+        ]
+      }
+    }
+  ]
+}

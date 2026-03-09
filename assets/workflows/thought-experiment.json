@@ -1,0 +1,151 @@
+{
+  "id": "thought-experiment",
+  "name": "Thought Experiment",
+  "emoji": "🧪",
+  "description": "Imaginary scenario reasoning — constructing well-structured hypothetical questions using subjunctive reasoning (irrealis moods) to elucidate or test arguments and theories, especially those hard, impossible, or unethical to physically perform, gaining new information by rearranging empirical data and drawing new inferences from an unusual perspective",
+  "triggers": [
+    "thought experiment",
+    "gedankenexperiment",
+    "mental experiment",
+    "hypothetical scenario",
+    "what if",
+    "counterfactual",
+    "imaginary scenario",
+    "what would happen if",
+    "suppose that",
+    "imagine a scenario"
+  ],
+  "specification": "https://en.wikipedia.org/wiki/Thought_experiment",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "construct-imaginary-scenario",
+      "name": "Construct Imaginary Scenario — Frame the hypothetical using subjunctive reasoning",
+      "description": "Design a well-structured, well-defined hypothetical question employing subjunctive reasoning.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia, a thought experiment is 'an imaginary scenario that is meant to elucidate or test an argument or theory. It is often an experiment that would be hard, impossible, or unethical to actually perform. It can also be an abstract hypothetical that is meant to test our intuitions about morality or other fundamental philosophical questions.'\n\nThought experiments are 'well-structured, well-defined hypothetical questions that employ subjunctive reasoning (irrealis moods) — What might happen (or, what might have happened) if...' Frame the scenario using this subjunctive mode.\n\nClassify the scenario's possibility status per Wikipedia's categories:\n• Nomologically possible — possible according to the laws of nature (e.g. Searle's Chinese room)\n• Metaphysically possible — not nomologically possible but conceivable in some other sense (e.g. Putnam's Twin Earth)\n• Impossible — deliberately violating known constraints to test implications (e.g. Chalmers' philosophical zombies)\n\nEstablish the temporal orientation per Wikipedia's characteristic patterns:\n• Antefactual speculation — what might have happened prior to a specific event\n• Postfactual speculation — what may happen subsequent to a specific event\n• Temporal direction — past-oriented or future-oriented\n• Temporal sense — present→past, past→present, present→future, or future→present\n\nIdentify the target: which theory, argument, or intuition is this experiment designed to elucidate or test? As Wikipedia notes, 'the scenario will typically be designed to target a particular philosophical notion, such as morality, or the nature of the mind or linguistic reference.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Constructing a well-structured hypothetical requires systematically framing the scenario's subjunctive question, classifying its possibility status, establishing temporal orientation, and identifying the target theory — per Wikipedia's characteristic patterns of thought experiments",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for the target theory, existing thought experiments in the domain, and established principles that will constrain the scenario design",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the target theory or argument to ensure the imaginary scenario is well-structured to test it",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Imaginary scenario stated as a well-defined subjunctive question: 'What might happen (or might have happened) if...'",
+          "Possibility status classified: nomologically possible, metaphysically possible, or deliberately impossible",
+          "Temporal orientation established: antefactual or postfactual, past-oriented or future-oriented",
+          "Target theory, argument, or intuition explicitly identified — what is being elucidated or tested",
+          "Scenario is well-structured: all relevant conditions specified, no ambiguity in the hypothetical setup"
+        ],
+        "next_actions": [
+          "Proceed to applying existing principles and laws to the scenario"
+        ]
+      }
+    },
+    {
+      "id": "apply-existing-principles",
+      "name": "Apply Existing Principles — Map known laws, theories, and empirical knowledge onto the scenario",
+      "description": "Identify and apply the existing principles, laws, and empirical knowledge relevant to the imaginary scenario.\n\nPer Wikipedia, scientists use thought experiments as 'imaginary, proxy experiments prior to a real, physical experiment.' Ernst Mach 'always argued that these gedankenexperiments were a necessary precondition for physical experiment.' Mach 'asked his students to provide him with explanations whenever the results from their subsequent, real, physical experiment differed from those of their prior, imaginary experiment.' The thought experiment applies known rules to the hypothetical conditions.\n\nPer Wikipedia, 'in thought experiments, we gain new information by rearranging or reorganizing empirical data in a new way and drawing new inferences from them, or by looking at these data from a different and unusual perspective.' The key is not inventing new principles but applying established ones to the novel arrangement — as in Galileo's thought experiment, where 'the rearrangement of empirical experience consists of the original idea of combining bodies of different weights.'\n\nCatalog all principles that apply: physical laws, logical axioms, ethical frameworks, definitional constraints, or any established rules that govern behavior within the scenario. Map each principle to how it operates under the hypothetical conditions. Note any tensions or contradictions between principles when applied to this unusual arrangement.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find established principles, laws, theories, and empirical data in the knowledge graph that apply to the scenario's domain — these are the raw material that will be rearranged",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the relevant principles to understand their scope of applicability and constraints when mapped onto the hypothetical scenario",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All relevant principles, laws, and theories identified and cataloged",
+          "Each principle mapped to how it operates under the hypothetical conditions",
+          "Empirical data identified that will be rearranged or viewed from an unusual perspective",
+          "Tensions or contradictions between principles under the hypothetical conditions noted",
+          "No major applicable principle overlooked — domain coverage is comprehensive"
+        ],
+        "next_actions": [
+          "Proceed to tracing consequences through reasoning"
+        ]
+      }
+    },
+    {
+      "id": "trace-consequences",
+      "name": "Trace Consequences Through Reasoning — Derive new inferences from the rearranged data",
+      "description": "Systematically trace the logical consequences of applying the established principles to the imaginary scenario.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThis is the core reasoning step of the thought experiment. Per Wikipedia, 'we gain new information by rearranging or reorganizing empirical data in a new way and drawing new inferences from them, or by looking at these data from a different and unusual perspective.' Follow the chain of reasoning step by step.\n\nPer Galileo's canonical example: Salviati reasons that if heavier objects fall faster, then attaching a lighter stone to a heavier stone would create a system where 'the more rapid one will be partly retarded by the slower, and the slower will be somewhat hastened by the swifter' — yet the combined system is heavier than either alone and should therefore fall faster. This traces the consequence to a contradiction, demonstrating reductio ad absurdum.\n\nApply the reasoning patterns Wikipedia identifies:\n• Direct consequence tracing — follow each principle's implications within the scenario\n• Reductio ad absurdum — trace consequences to a contradiction, thereby refuting the assumption (as in Galileo's argument, 'a proof by contradiction')\n• Intuition elicitation — per philosophical usage, trace consequences to determine 'an intuitive or reasoned response about the way things are'\n• Proxy experimentation — per scientific usage, trace consequences until 'the result of the proxy experiment will often be so clear that there will be no need to conduct a physical experiment at all'\n\nDocument each inferential step explicitly. Identify where the reasoning produces surprising, counterintuitive, or contradictory results. Per Wikipedia's description of Mach's method, note any points where the imaginary result might differ from what a real experiment would reveal.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Tracing consequences through a thought experiment requires rigorous step-by-step logical reasoning — each thought traces one inferential link in the chain, documenting how principles applied to the imaginary scenario produce new inferences, contradictions, or surprising results",
+            "priority": "mandatory",
+            "estimated_thoughts": 8
+          },
+          "SearchMemories": {
+            "reason": "Search for known results, analogous thought experiments, or counterexamples that could inform or challenge the reasoning chain",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each inferential step explicitly documented with the principle applied and consequence derived",
+          "Reasoning pattern identified: direct consequence, reductio ad absurdum, intuition elicitation, or proxy experiment",
+          "All surprising, counterintuitive, or contradictory results identified and documented",
+          "Chain of reasoning traced to its natural terminus — either a clear conclusion, a contradiction, or an intuitive verdict",
+          "No logical gaps in the inference chain — each step follows from the previous"
+        ],
+        "next_actions": [
+          "Proceed to evaluating implications"
+        ]
+      }
+    },
+    {
+      "id": "evaluate-implications",
+      "name": "Evaluate Implications — Assess theoretical consequences and practical applications",
+      "description": "Assess the theoretical consequences and practical applications of the thought experiment's results.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia, thought experiments produce four types of theoretical consequence:\n• Challenge or refute a prevailing theory — 'often involving the device known as reductio ad absurdum' (as in Galileo's argument)\n• Confirm a prevailing theory — the scenario's consequences align with and strengthen the theory\n• Establish a new theory — the reasoning opens a new theoretical framework\n• Simultaneously refute a prevailing theory and establish a new one — 'through a process of mutual exclusion'\n\nClassify which consequence this thought experiment produces and justify the classification.\n\nPer Wikipedia, thought experiments are practically created to:\n• Challenge the prevailing status quo — 'correcting misinformation, identifying flaws in arguments, preserving objectively established fact, refuting assertions about what is permissible, forbidden, known, believed, possible, or necessary'\n• Extrapolate beyond or interpolate within the boundaries of already established fact\n• Predict and forecast the otherwise indefinite and unknowable future\n• Explain the past or facilitate retrodiction, postdiction, and hindcasting\n• Facilitate decision making, choice, and strategy selection\n• Solve problems and generate ideas\n• Move unsolved problems into a more productive problem space\n• Attribute causation, preventability, blame, and responsibility\n• Ensure the repeat of past success or future avoidance of past failures\n\nAssess the relation to real experiments per Wikipedia: Is the result 'so clear that there will be no need to conduct a physical experiment at all'? Or are there Carl Gustav Hempel's 'theoretical experiments-in-imagination' where physical experiment is impossible? Or should the thought experiment serve as Mach's 'necessary precondition for physical experiment' — a proxy to be validated?\n\nFinally, per Wikipedia: 'regardless of their intended goal, all thought experiments display a patterned way of thinking that is designed to allow us to explain, predict, and control events in a better and more productive way.' Articulate how this thought experiment improves our ability to explain, predict, or control.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Evaluating the full spectrum of theoretical consequences (refute, confirm, establish, mutual exclusion) and practical applications requires systematic assessment — each thought evaluates one dimension of the thought experiment's implications",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "WriteMemory": {
+            "reason": "Document the thought experiment, its reasoning chain, and its theoretical and practical conclusions as institutional memory for future reference",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Find related thought experiments and their historical outcomes to contextualize this experiment's implications",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Theoretical consequence classified: challenge/refute, confirm, establish new theory, or mutual exclusion — with justification",
+          "Practical applications assessed against Wikipedia's taxonomy: status quo challenge, extrapolation, prediction, explanation, decision-making, problem-solving",
+          "Relation to real experiments determined: no experiment needed, impossible to perform, or proxy for future experiment",
+          "How the thought experiment improves our ability to explain, predict, or control is articulated",
+          "Limitations acknowledged: whether scenario's possibility status (nomological, metaphysical, impossible) affects the strength of conclusions",
+          "Results documented with complete reasoning chain for institutional memory"
+        ],
+        "next_actions": [
+          "Document conclusion: the thought experiment's verdict on the target theory with its theoretical and practical implications"
+        ]
+      }
+    }
+  ]
+}

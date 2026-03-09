@@ -1,0 +1,186 @@
+{
+  "id": "rationalism",
+  "name": "Rationalist Inquiry",
+  "emoji": "🧿",
+  "description": "Reason-first epistemological inquiry — applying the rationalist method where 'reason is the chief source and test of knowledge' and 'the criterion of truth is not sensory but intellectual and deductive', deriving knowledge a priori through rational intuition and deductive reasoning from self-evident first principles, independently of sensory experience",
+  "triggers": [
+    "rationalism",
+    "rationalist",
+    "a priori",
+    "innate ideas",
+    "reason-based",
+    "deductive knowledge",
+    "first principles reasoning",
+    "pure reason",
+    "intellectual intuition",
+    "self-evident truths"
+  ],
+  "specification": "https://en.wikipedia.org/wiki/Rationalism",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "methodological-doubt",
+      "name": "Methodological Doubt — Apply Cartesian skepticism to strip away uncertain beliefs",
+      "description": "Apply Descartes' method of radical doubt to clear away everything that can be doubted, seeking what cannot be doubted.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia, Descartes argued that 'a rational pursuit of truth should doubt every belief about sensory reality.' He held that 'since conscious sense experience can be the cause of illusions, then sense experience itself can be doubtable,' and that 'although dreams appear as real as sense experience, these dreams cannot provide persons with knowledge.'\n\nDescartes 'developed a method to attain truths according to which nothing that cannot be recognised by the intellect (or reason) can be classified as knowledge.' The method begins by doubting:\n\n• Sensory evidence — perceptions can be illusory or dreamlike\n• Authority and tradition — inherited beliefs may be unfounded\n• Common opinion — consensus does not guarantee truth\n• Previous reasoning — prior conclusions may rest on hidden assumptions\n\nThe goal is NOT permanent skepticism but methodological clearing. Per Descartes' famous result, the process terminates when it reaches something indubitable: 'cogito ergo sum' — 'I think, therefore I am' — 'a conclusion reached a priori, prior to any kind of experience on the matter. The simple meaning is that doubting one's existence, in and of itself, proves that an \"I\" exists to do the thinking.'\n\nApply this to the problem at hand: What beliefs, assumptions, or received knowledge are you operating under? Which of these survive radical doubt? What remains when sensory evidence, authority, and convention are stripped away?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Cartesian methodological doubt requires systematically examining each belief category — sensory evidence, authority, tradition, prior reasoning — to determine what survives radical skepticism and can serve as an indubitable foundation for further inquiry",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for existing beliefs, assumptions, and prior conclusions about the subject that should be submitted to methodological doubt",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the subject to surface hidden assumptions and inherited beliefs that need to be examined",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All beliefs about the subject categorized: sensory evidence, authority, tradition, prior reasoning",
+          "Each belief category submitted to radical doubt with explicit reasoning for what survives and what does not",
+          "At least one indubitable foundation identified — something that cannot be coherently doubted",
+          "The distinction between what is merely believed and what is known by reason alone is made explicit",
+          "Methodological doubt has been applied honestly, not selectively — no sacred cows preserved without justification"
+        ],
+        "next_actions": [
+          "Proceed to identifying self-evident first principles through rational intuition"
+        ]
+      }
+    },
+    {
+      "id": "identify-first-principles",
+      "name": "Identify Self-Evident First Principles — Establish a priori truths through rational intuition",
+      "description": "Through rational intuition, identify propositions that are self-evidently true — knowable a priori, independently of sensory experience.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Intuition/Deduction thesis from Wikipedia: 'Some propositions in a particular subject area, S, are knowable by us by intuition alone; still others are knowable by being deduced from intuited propositions.' Intuition is 'a priori knowledge or experiential belief characterized by its immediacy; a form of rational insight. We simply \"see\" something in such a way as to give us a warranted belief.'\n\nPer Leibniz: 'necessary truths, such as we find in pure mathematics, and particularly in arithmetic and geometry, must have principles whose proof does not depend on instances, nor consequently on the testimony of the senses.' And: 'all the instances which confirm a general truth, however numerous they may be, are not sufficient to establish the universal necessity of this same truth.'\n\nRationalists 'asserted that certain principles exist in logic, mathematics, ethics, and metaphysics that are so fundamentally true that denying them causes one to fall into contradiction.'\n\nFor the problem at hand, identify:\n• What propositions are self-evidently true in this domain — knowable by rational insight alone?\n• What logical, mathematical, or definitional truths constrain the problem space?\n• What principles are so fundamental that denying them produces contradiction?\n• Per foundationalism: what truths do 'we know without basing our belief in them on any others'?\n\nEstablish the epistemic status of each principle: is it a logical axiom, a mathematical truth, a definitional truth, or a principle whose denial leads to contradiction?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Identifying genuine self-evident first principles requires careful step-by-step examination of candidate truths — testing whether each is truly a priori (knowable independently of experience), whether denial produces contradiction, and whether it can serve as a foundation for deductive reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for established axioms, definitions, and foundational principles in the relevant domain that may qualify as self-evident first principles",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around candidate first principles to verify their self-evidence and check whether they are genuinely independent of sensory experience",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "At least two self-evident first principles identified with explicit justification for their a priori status",
+          "Each principle's epistemic status classified: logical axiom, mathematical truth, definitional truth, or denial-produces-contradiction",
+          "Candidate principles tested: denying each one to verify it leads to contradiction or incoherence",
+          "Principles confirmed as genuinely independent of sensory experience — per Galen Strawson's test, 'you can see that it is true just lying on your couch'",
+          "The foundational base is sufficient to support deductive derivation in subsequent steps"
+        ],
+        "next_actions": [
+          "Proceed to examining innate concepts that structure the inquiry"
+        ]
+      }
+    },
+    {
+      "id": "examine-innate-concepts",
+      "name": "Examine Innate Concepts — Distinguish innate, adventitious, and invented ideas",
+      "description": "Examine which concepts structure the inquiry, classifying them per Descartes' three categories of ideas.\n\nPer Wikipedia, Descartes postulated three classifications: 'Among my ideas, some appear to be innate, some to be adventitious, and others to have been invented by me. My understanding of what a thing is, what truth is, and what thought is, seems to derive simply from my own nature. But my hearing a noise, as I do now, or seeing the sun, or feeling the fire, comes from things which are located outside me. Lastly, sirens, hippogriffs and the like are my own invention.'\n\nPer the Innate Concept thesis: 'some concepts are simply part of our rational nature. These concepts are a priori in nature and sense experience is irrelevant to determining the nature of these concepts (though, sense experience can help bring the concepts to our conscious mind).'\n\nPer Leibniz's veined marble metaphor: the mind is not a blank tablet (tabula rasa) but like 'a block of veined marble' where 'ideas and truths are innate in us, like natural inclinations and dispositions, natural habits or potentialities, and not like activities, although these potentialities are always accompanied by some activities which correspond to them, though they are often imperceptible.'\n\nFor the problem at hand, classify the concepts you are working with:\n• Innate concepts — those deriving from rational nature itself: identity, truth, existence, causation, number, substance. Per Descartes, 'our ideas of perfection' belong here.\n• Adventitious concepts — those gained through sensory experience: empirical observations, measured data, perceived patterns.\n• Invented concepts — those constructed by combining other ideas: models, abstractions, theoretical constructs.\n\nThis classification reveals which elements of your understanding are a priori (and thus candidates for certain knowledge) vs. dependent on experience (and thus fallible).",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for the key concepts in play — their definitions, origins, and prior usage — to determine whether they are innate, adventitious, or invented",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the domain's core concepts to trace whether they derive from rational nature, sensory experience, or human construction",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All key concepts in the problem domain identified and listed",
+          "Each concept classified as innate (a priori, part of rational nature), adventitious (from sensory experience), or invented (human construction)",
+          "The classification justified for each concept — not merely asserted but reasoned through",
+          "Implications of the classification noted: which conclusions rest on innate vs. adventitious vs. invented concepts",
+          "Per Leibniz's metaphor: the 'veins in the marble' — the natural conceptual structure — have been identified"
+        ],
+        "next_actions": [
+          "Proceed to constructing the deductive chain from first principles through innate concepts"
+        ]
+      }
+    },
+    {
+      "id": "construct-deductive-chain",
+      "name": "Construct Deductive Chain — Derive knowledge through purely deductive reasoning",
+      "description": "From the self-evident first principles and through the innate concepts, derive further knowledge by purely deductive reasoning.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia, Descartes held that 'truths that are attained by reason are broken down into elements that intuition can grasp, which, through a purely deductive process, will result in clear truths about reality.' This is the core rationalist method: from foundations that survive doubt, through concepts that are part of rational nature, derive necessary conclusions.\n\nPer Spinoza's 'geometrical method': construct knowledge as a systematic, logical structure 'developed upon basic building blocks with an internal consistency' — modeled on Euclid's geometry, where axioms and definitions yield theorems through rigorous proof.\n\nPer the Intuition/Deduction thesis: 'we can intuit that the number three is prime and that it is greater than two. We then deduce from this knowledge that there is a prime number greater than two. Thus, it can be said that intuition and deduction combined to provide us with a priori knowledge — we gained this knowledge independently of sense experience.'\n\nPer Leibniz: 'the senses, although they are necessary for all our actual knowledge, are not sufficient to give us the whole of it, since the senses never give anything but instances, that is to say particular or individual truths' — deduction is required to reach universal and necessary truths.\n\nFor each deductive step:\n• State the premise(s) being applied (from Step 2's first principles or prior derived conclusions)\n• Name the rule of inference (modus ponens, modus tollens, hypothetical syllogism, etc.)\n• Derive the intermediate or final conclusion\n• Verify the step is truth-preserving: the conclusion necessarily follows\n\nBuild the chain until you reach the target conclusion or exhaust what deduction alone can establish.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Constructing a valid deductive chain from first principles requires rigorous step-by-step logical progression — per Spinoza's geometrical method, each thought documents one inference step with its premises, rule of inference, and derived conclusion, building systematically toward the target",
+            "priority": "mandatory",
+            "estimated_thoughts": 8
+          },
+          "SearchMemories": {
+            "reason": "Search for established logical relationships, known proofs, and prior deductive arguments in the domain that could inform or shortcut the chain",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each deductive step names the premises consumed and the rule of inference applied",
+          "Each conclusion is shown to follow necessarily from its premises — truth-preserving, not merely probable",
+          "The chain connects first principles (Step 2) through innate concepts (Step 3) to the target conclusion",
+          "No logical gaps in the chain — each step follows from the previous via a named rule",
+          "The boundary between what deduction has established and what remains undetermined is clearly marked",
+          "Internal consistency verified: no derived conclusion contradicts any other derived conclusion or first principle"
+        ],
+        "next_actions": [
+          "Proceed to testing necessity and assessing the limits of pure reason"
+        ]
+      }
+    },
+    {
+      "id": "test-necessity-and-limits",
+      "name": "Test Necessity and Assess Limits — Verify conclusions and determine where reason alone suffices",
+      "description": "Verify that derived conclusions are necessarily true, then honestly assess the limits of what pure reason has established.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\n**Test Necessity**: Per Wikipedia, rationalists asserted that truly foundational principles are 'so fundamentally true that denying them causes one to fall into contradiction.' For each key conclusion in the deductive chain, attempt denial: does denying it produce a contradiction with the accepted first principles? If so, the conclusion is necessarily true. If not, it may be contingent rather than necessary.\n\nPer the Indispensability of Reason thesis: 'The knowledge we gain in subject area S by intuition and deduction, as well as the ideas and instances of knowledge in S that are innate to us, could not have been gained by us through sense experience.' For each conclusion, verify: could this knowledge have been gained through sensory experience alone, or does it genuinely require reason?\n\n**Assess Limits**: Per Kant's critique of pure rationalism: 'pure reason is flawed when it goes beyond its limits and claims to know those things that are necessarily beyond the realm of every possible experience.' He concluded that 'both reason and experience are necessary for human knowledge' and that 'a priori concepts, if they are to lead to the amplification of knowledge, must be brought into relation with empirical data.'\n\nPer Leibniz's honest admission: 'we are all mere Empirics in three fourths of our actions.' Determine where in this inquiry reason alone suffices and where empirical input would be needed.\n\nClassify the conclusions:\n• Necessarily true a priori — denial produces contradiction; no empirical check needed\n• Rationally established but empirically verifiable — the deduction is valid but the conclusion could also be tested against experience\n• Beyond reason alone — the inquiry has reached a boundary where sensory experience, empirical data, or pragmatic judgment is required\n\nThis honest self-assessment is what distinguishes mature rationalism from dogmatic rationalism.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Testing necessity by attempting denial of each conclusion and honestly assessing the limits of pure reason requires systematic evaluation — per Kant, determining where reason legitimately operates and where it overreaches is itself a rational exercise requiring careful step-by-step analysis",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "WriteMemory": {
+            "reason": "Document the rationalist inquiry's results — first principles, deductive chain, necessary conclusions, and assessed limits — as institutional memory for future reference and building upon",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Search for empirical evidence, counterexamples, or prior findings that could test the derived conclusions and help assess the boundary between what reason establishes and what requires experience",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each key conclusion tested by denial: either produces contradiction (necessarily true) or does not (contingent)",
+          "Indispensability check: for each conclusion, determined whether it could have been gained through sense experience alone",
+          "Conclusions classified: necessarily true a priori, rationally established but empirically verifiable, or beyond reason alone",
+          "Per Kant's critique: any overreach of pure reason identified — conclusions claimed as certain that go beyond the legitimate scope of a priori reasoning",
+          "Per Leibniz's honesty: the boundary between what reason establishes and what requires empirical input is explicitly drawn",
+          "Results documented with complete derivation chain and scope assessment for institutional memory"
+        ],
+        "next_actions": [
+          "Document the rationalist inquiry: first principles, deductive chain, necessary conclusions, and honest assessment of what reason alone has and has not established"
+        ]
+      }
+    }
+  ]
+}

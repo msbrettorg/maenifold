@@ -1,0 +1,253 @@
+{
+  "id": "statistical-analysis",
+  "name": "Statistical Analysis",
+  "emoji": "📈",
+  "description": "Statistical analysis — the systematic collection, organization, analysis, interpretation, and presentation of data using descriptive and inferential methods, hypothesis testing, confidence intervals, and regression to extract meaningful conclusions from empirical observations",
+  "triggers": [
+    "statistical analysis",
+    "statistics",
+    "hypothesis testing",
+    "p-value",
+    "confidence interval",
+    "regression",
+    "descriptive statistics"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "define-statistical-problem",
+      "name": "Define Statistical Problem — Identify population, variables, and measurement levels",
+      "description": "Frame the statistical question precisely by identifying the population, variables of interest, and appropriate measurement levels.\n\nPer Wikipedia on Statistics: 'In applying statistics to a scientific, industrial, or social problem, it is conventional to begin with a statistical population or a statistical model to be studied. Populations can be diverse groups of people or objects such as \"all people living in a country\" or \"every atom composing a crystal\". Statistics deals with every aspect of data, including the planning of data collection in terms of the design of surveys and experiments.'\n\nPer Wikipedia on levels of measurement (Stevens' taxonomy):\n• Nominal — no meaningful rank order, permits any one-to-one transformation\n• Ordinal — meaningful order but imprecise differences, permits order-preserving transformations\n• Interval — meaningful distances but arbitrary zero (e.g., temperature in Celsius), permits linear transformations\n• Ratio — meaningful zero and distances (e.g., mass, length), permits rescaling transformations\n\nPer Wikipedia: 'Variables conforming only to nominal or ordinal measurements cannot be reasonably measured numerically, sometimes they are grouped together as categorical variables, whereas ratio and interval measurements are grouped together as quantitative variables, which can be either discrete or continuous.'\n\nSpecify whether the study is experimental (manipulating independent variables and measuring effects on dependent variables) or observational (gathering data and investigating correlations without manipulation). Per Wikipedia: 'An experimental study involves taking measurements of the system under study, manipulating the system, and then taking additional measurements... In contrast, an observational study does not involve experimental manipulation.'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior statistical analyses, known populations, established variables, and existing datasets relevant to the research question",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the domain and related statistical concepts to understand what measurement approaches and study designs have been used previously",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Target population or statistical model explicitly identified",
+          "Variables of interest enumerated with measurement level classified (nominal, ordinal, interval, or ratio)",
+          "Study type determined: experimental (with manipulation) or observational (without manipulation)",
+          "Statistical questions the analysis must answer clearly stated",
+          "Distinction between dependent and independent variables established where applicable"
+        ],
+        "next_actions": [
+          "Proceed to computing descriptive statistics"
+        ]
+      }
+    },
+    {
+      "id": "descriptive-statistics",
+      "name": "Descriptive Statistics — Summarize central tendency, dispersion, and distribution shape",
+      "description": "Compute descriptive statistics to summarize the data, characterizing its central tendency, variability, and distributional shape.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Descriptive Statistics: 'A descriptive statistic is a summary statistic that quantitatively describes or summarizes features from a collection of information. Descriptive statistics is distinguished from inferential statistics by its aim to summarize a sample, rather than use the data to learn about the population that the sample of data is thought to represent.'\n\nMeasures of central tendency:\n• Mean — the arithmetic average\n• Median — the middle value when ordered\n• Mode — the most frequently occurring value\n\nMeasures of dispersion / variability:\n• Standard deviation and variance — spread around the mean\n• Range — difference between maximum and minimum\n• Interquartile range (IQR) — spread of the middle 50%\n• Skewness — asymmetry of the distribution\n• Kurtosis — 'tailedness' of the distribution\n\nPer Wikipedia on Descriptive Statistics: 'Univariate analysis involves describing the distribution of a single variable, including its central tendency (including the mean, median, and mode) and dispersion (including the range and quartiles of the data-set, and measures of spread such as the variance and standard deviation). The shape of the distribution may also be described via indices such as skewness and kurtosis.'\n\nFor bivariate/multivariate analysis, per Wikipedia: descriptive statistics include 'cross-tabulations and contingency tables, graphical representation via scatterplots, quantitative measures of dependence, and descriptions of conditional distributions.' Compute correlation coefficients (Pearson's r for continuous, Spearman's rho for ordinal).",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic computation of central tendency, dispersion, and distributional shape across multiple variables requires structured sequential analysis — per Wikipedia, descriptive statistics 'quantitatively describes or summarizes features from a collection of information'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find known benchmarks, reference distributions, and comparable summary statistics for contextualizing the descriptive results",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Central tendency computed for each variable: mean, median, and mode as appropriate for measurement level",
+          "Dispersion quantified: standard deviation, variance, range, and IQR for quantitative variables",
+          "Distribution shape characterized: skewness and kurtosis assessed, normality evaluated",
+          "Bivariate relationships summarized with correlation coefficients where applicable",
+          "Summary table or visualization of descriptive statistics produced"
+        ],
+        "next_actions": [
+          "Proceed to exploratory data analysis for visual pattern discovery"
+        ]
+      }
+    },
+    {
+      "id": "exploratory-data-analysis",
+      "name": "Exploratory Data Analysis — Discover patterns, detect anomalies, check assumptions",
+      "description": "Conduct exploratory data analysis (EDA) to visually and quantitatively discover patterns, detect anomalies, and assess whether statistical assumptions hold.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Statistics: 'Two main statistical methods are used in data analysis: descriptive statistics, which summarize data from a sample using indexes such as the mean or standard deviation, and inferential statistics, which draw conclusions from data that are subject to random variation (e.g., observational errors, sampling variation).'\n\nKey EDA activities:\n• Histograms and box plots for distribution visualization\n• Scatter plots for bivariate relationships — per Wikipedia on Descriptive Statistics: 'The unstandardised slope indicates the unit change in the criterion variable for a one unit change in the predictor'\n• Outlier detection using quantitative methods (e.g., IQR method, z-scores)\n• Assessment of normality (visual Q-Q plots, Shapiro-Wilk test)\n• Identification of missing data patterns\n• Checking for heteroscedasticity (unequal variance)\n\nPer Wikipedia on Statistics: 'Statistical measurement processes are also prone to error with regard to the data they generate. Many of these errors are classified as random (noise) or systematic (bias), but other types of errors (e.g., blunder, such as when an analyst reports incorrect units) can also occur. The presence of missing data or censoring may result in biased estimates.'\n\nPer Wikipedia on Descriptive Statistics: 'Highly skewed data are often transformed by taking logarithms. The use of logarithms makes graphs more symmetrical and look more similar to the normal distribution, making them easier to interpret intuitively.' Determine whether data transformations (log, square root, inverse) are needed before inferential analysis.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic visual and quantitative exploration across distributions, outliers, missing data patterns, and assumption checks requires iterative structured reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find known data quality issues, domain-specific outlier thresholds, and prior EDA patterns for comparable datasets",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Distributions of all key variables visualized and characterized",
+          "Outliers identified and assessed — whether to retain, transform, or exclude with justification",
+          "Missing data patterns documented and addressed (listwise deletion, imputation, or other strategy)",
+          "Normality and homoscedasticity assumptions assessed for planned inferential methods",
+          "Data transformations applied where needed (log, square root) with rationale documented",
+          "No remaining data quality issues that would invalidate subsequent statistical tests"
+        ],
+        "next_actions": [
+          "Proceed to hypothesis formulation for inferential analysis"
+        ]
+      }
+    },
+    {
+      "id": "hypothesis-formulation",
+      "name": "Hypothesis Formulation — State null and alternative hypotheses with significance level",
+      "description": "Formulate the statistical hypotheses to be tested, specifying the null hypothesis, alternative hypothesis, and significance level.\n\nPer Wikipedia on Statistics: 'A hypothesis is proposed for the statistical relationship between the two data sets, an alternative to an idealized null hypothesis of no relationship between two data sets.'\n\nPer Wikipedia on Statistical Hypothesis Testing: 'A statistical hypothesis test is a method of statistical inference used to decide whether the data provide sufficient evidence to reject a particular hypothesis.' The modern framework (NHST) combines Fisher's significance testing with Neyman-Pearson decision theory.\n\nNull hypothesis (H₀): The default position — typically 'no effect' or 'no difference.' Per Wikipedia: Paul Meehl argued that 'the epistemological importance of the choice of null hypothesis has gone largely unacknowledged. When the null hypothesis is predicted by theory, a more precise experiment will be a more severe test of the underlying theory. When the null hypothesis defaults to \"no difference\" or \"no effect\", a more precise experiment is a less severe test of the theory.'\n\nAlternative hypothesis (H₁ or Hₐ): The research hypothesis — what you expect to find if H₀ is false. Specify whether it is one-tailed (directional) or two-tailed (non-directional).\n\nSignificance level (α): The threshold for rejecting H₀, conventionally 0.05. Per Wikipedia: 'Two basic forms of error are recognized: Type I errors (null hypothesis is rejected when it is in fact true, giving a \"false positive\") and Type II errors (null hypothesis fails to be rejected when it is in fact false, giving a \"false negative\").' Balance α (Type I error rate) against β (Type II error rate) and consider the statistical power (1 − β).",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior hypotheses tested on this topic, established effect sizes, and conventional significance thresholds in the domain",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Null hypothesis H₀ precisely stated — specifying the parameter value or relationship under the null",
+          "Alternative hypothesis H₁ stated as one-tailed (directional) or two-tailed with justification",
+          "Significance level α set (typically 0.05) with rationale for the chosen threshold",
+          "Type I and Type II error consequences identified for the specific research context",
+          "Statistical power considerations addressed — sample size adequate to detect the expected effect size"
+        ],
+        "next_actions": [
+          "Proceed to selecting and applying the appropriate statistical test"
+        ]
+      }
+    },
+    {
+      "id": "statistical-testing",
+      "name": "Statistical Testing — Apply tests, compute test statistics and p-values",
+      "description": "Select and apply the appropriate statistical test, compute the test statistic and p-value, and make the reject/fail-to-reject decision.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Statistical Hypothesis Testing: 'A statistical hypothesis test typically involves a calculation of a test statistic. Then a decision is made, either by comparing the test statistic to a critical value or equivalently by evaluating a p-value computed from the test statistic. Roughly 100 specialized statistical tests are in use.'\n\nCommon test statistics and their tests (per Wikipedia):\n• t-statistic → t-test (comparing means), regression test\n• F-statistic → ANOVA (analysis of variance), MANOVA, ANCOVA\n• z-statistic → z-test (large-sample means)\n• χ²-statistic → Chi-square test (categorical independence, goodness-of-fit)\n\nPer Wikipedia on p-values: 'The p-value was devised as an informal, but objective, index meant to help a researcher determine (based on other knowledge) whether to modify future experiments or strengthen one's faith in the null hypothesis.' Fisher's approach reports the exact significance level (e.g., p = 0.051), while Neyman-Pearson uses a pre-specified rejection region.\n\nPer Wikipedia: 'Rejecting or disproving the null hypothesis is done using statistical tests that quantify the sense in which the null can be proven false, given the data that are used in the test.' If testing multiple hypotheses simultaneously, apply corrections (e.g., Bonferroni) to control the family-wise error rate.\n\nVerify that all assumptions of the chosen test are met (normality, independence, homogeneity of variance). If assumptions are violated, consider non-parametric alternatives.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Selecting the correct test from ~100 specialized tests, verifying assumptions, computing the test statistic, and interpreting the p-value requires systematic step-by-step reasoning — per Wikipedia, 'roughly 100 specialized statistical tests are in use'",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find prior test results, known effect sizes, and established statistical procedures for comparable analyses in the knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Appropriate statistical test selected with justification based on data type, sample size, and assumptions",
+          "All test assumptions verified (normality, independence, homoscedasticity) or non-parametric alternative applied",
+          "Test statistic computed and reported with degrees of freedom",
+          "P-value calculated and compared against the pre-specified significance level α",
+          "Decision stated: reject H₀ or fail to reject H₀ — with the exact p-value reported (not just 'significant' or 'not significant')",
+          "Multiple comparison corrections applied if testing more than one hypothesis"
+        ],
+        "next_actions": [
+          "Proceed to constructing confidence intervals for parameter estimates"
+        ]
+      }
+    },
+    {
+      "id": "confidence-interval-estimation",
+      "name": "Confidence Interval Estimation — Construct intervals and assess estimation precision",
+      "description": "Construct confidence intervals for the parameter estimates to quantify estimation uncertainty and assess practical significance.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Confidence Intervals: 'A confidence interval (CI) is a range of values which is likely to contain (in repeated sampling) the true value of an unknown statistical parameter, such as a population mean. Rather than reporting a single point estimate (e.g. \"the average screen time is 3 hours per day\"), a confidence interval provides a range, such as 2 to 4 hours, along with a specified confidence level, typically 95%.'\n\nPer Wikipedia: 'A 95% confidence level does not imply a 95% probability that the true parameter lies within a particular calculated interval... The confidence level instead reflects the long-run reliability of the method used to generate the interval. In other words, if the same sampling procedure were repeated 100 times from the same population, approximately 95 of the resulting intervals would be expected to contain the true population mean.'\n\nMethods of construction (per Wikipedia):\n• Central limit theorem approach — using sample mean, sample standard deviation, and the quantity (X̄ − μ)/(S/√n)\n• Student's t-distribution — for small samples with unknown population variance\n• Bootstrapping — resampling-based approach applicable in broader settings\n\nPer Wikipedia: 'When it is known that the coverage probability can be strictly larger than γ for some parameter values, the confidence interval is called conservative.' Report both statistical significance and practical significance — a statistically significant result may have a trivially small effect size, while a practically important effect may not reach statistical significance with insufficient sample size.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Constructing and interpreting confidence intervals requires systematic computation of standard errors, selection of critical values, and careful distinction between statistical and practical significance — per Wikipedia, the CI 'provides a range... along with a specified confidence level'",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Confidence intervals constructed for all key parameter estimates at the specified confidence level (typically 95%)",
+          "Interval width assessed — narrow intervals indicate precise estimates, wide intervals indicate uncertainty",
+          "Correct interpretation stated: the confidence level reflects long-run reliability of the method, not the probability that this specific interval contains the parameter",
+          "Effect sizes computed alongside confidence intervals to assess practical significance",
+          "Distinction between statistical significance (p-value) and practical significance (effect size, CI width) explicitly addressed"
+        ],
+        "next_actions": [
+          "Proceed to regression analysis if modeling variable relationships, or skip to interpretation"
+        ]
+      }
+    },
+    {
+      "id": "regression-analysis",
+      "name": "Regression Analysis — Model relationships between variables",
+      "description": "Apply regression analysis to model the relationship between dependent and independent variables, assess model fit, and check regression assumptions.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on Regression Analysis: 'Regression analysis is a statistical method for estimating the relationship between a dependent variable (often called the outcome or response variable) and one or more independent variables (often called regressors, predictors, covariates, explanatory variables or features).'\n\nThe standard regression model: Yᵢ = f(Xᵢ, β) + eᵢ where eᵢ is the additive error term.\n\nPer Wikipedia: 'The most common form of regression analysis is linear regression, in which one finds the line (or a more complex linear combination) that most closely fits the data according to a specific mathematical criterion. For example, the method of ordinary least squares computes the unique line (or hyperplane) that minimizes the sum of squared differences between the true data and that line.'\n\nTwo primary purposes (per Wikipedia): 'First, regression analysis is widely used for prediction and forecasting, where its use has substantial overlap with the field of machine learning. Second, in some situations regression analysis can be used to infer causal relationships between the independent and dependent variables. Importantly, regressions by themselves only reveal relationships between a dependent variable and a collection of independent variables in a fixed dataset.'\n\nPer Wikipedia: 'To use regressions for prediction or to infer causal relationships, respectively, a researcher must carefully justify why existing relationships have predictive power for a new context or why a relationship between two variables has a causal interpretation.' Distinguish correlation from causation rigorously. Check residuals for normality, homoscedasticity, and independence. Assess model fit with R², adjusted R², and F-test for overall significance.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Selecting the regression model, fitting parameters via OLS or alternatives, checking assumptions on residuals, and distinguishing correlation from causation requires systematic multi-step analysis — per Wikipedia, 'a researcher must carefully justify why existing relationships have predictive power'",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find prior regression models, known predictor-outcome relationships, and established effect sizes in the knowledge graph for comparison and validation",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Regression model specified: dependent variable, independent variable(s), and functional form (linear, polynomial, logistic, etc.)",
+          "Model parameters estimated with standard errors and significance tests for each coefficient",
+          "Model fit assessed: R², adjusted R², and overall F-test for significance",
+          "Residual diagnostics performed: normality, homoscedasticity, independence, and influential observations checked",
+          "Correlation versus causation explicitly addressed — causal claims justified only with appropriate study design",
+          "Prediction intervals or confidence bands computed for forecasting applications if applicable"
+        ],
+        "next_actions": [
+          "Proceed to interpreting results and communicating findings"
+        ]
+      }
+    },
+    {
+      "id": "interpret-and-communicate",
+      "name": "Interpret and Communicate — Draw conclusions, report findings, document limitations",
+      "description": "Interpret the statistical results in context, draw substantive conclusions, and communicate findings with appropriate caveats and limitations.\n\nPer Wikipedia on Statistics: 'Statistics is both the science of uncertainty and the technology of extracting information from data.' The interpretation phase must honor this dual nature — extracting actionable conclusions while honestly representing uncertainty.\n\nPer Wikipedia on the basic steps of a statistical experiment, the final steps are: 'Further examining the data set in secondary analyses, to suggest new hypotheses for future study' and 'Documenting and presenting the results of the study.'\n\nPer Wikipedia on Statistical Hypothesis Testing, report findings using both frameworks:\n• Fisher's approach: Report the exact p-value (e.g., p = 0.032) — 'Do not refer to \"accepting\" or \"rejecting\" hypotheses. If the result is \"not significant\", draw no conclusions and make no decisions, but suspend judgement until further data is available.'\n• Neyman-Pearson: State the decision relative to the rejection region — 'Accepting a hypothesis does not mean that you believe in it, but only that you act as if it were true.'\n\nPer Wikipedia on errors and bias: 'Many of these errors are classified as random (noise) or systematic (bias).' Report all sources of uncertainty including sampling error, measurement error, and potential confounding variables. Discuss generalizability — whether findings extend beyond the specific sample to the target population.\n\nPer Wikipedia on Statistics: 'Multiple problems have come to be associated with this framework, ranging from obtaining a sufficient sample size to specifying an adequate null hypothesis.' Acknowledge these limitations explicitly.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the statistical analysis conclusions, effect sizes, confidence intervals, and limitations as institutional memory for future analyses and sequential knowledge building",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Find comparable statistical results in the knowledge graph to contextualize findings — are these effect sizes typical, surprising, or contradictory to prior evidence?",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Key findings summarized with exact p-values, effect sizes, and confidence intervals — not just 'significant' or 'not significant'",
+          "Substantive interpretation provided: what the statistical results mean in the domain context",
+          "All sources of uncertainty documented: sampling error, measurement error, potential confounders, and missing data impact",
+          "Generalizability assessed: whether conclusions extend from the sample to the target population",
+          "Limitations explicitly stated including sample size adequacy, assumption violations, and multiple testing concerns",
+          "Suggestions for future study articulated — what additional data or analyses would strengthen the conclusions",
+          "Results documented for institutional memory to support future sequential analyses on this topic"
+        ],
+        "next_actions": [
+          "Document final statistical conclusions with complete analysis chain for institutional memory"
+        ]
+      }
+    }
+  ]
+}

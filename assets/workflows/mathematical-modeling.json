@@ -1,0 +1,207 @@
+{
+  "id": "mathematical-modeling",
+  "name": "Mathematical Modeling",
+  "emoji": "📐",
+  "description": "Structured construction of a mathematical model — an abstract, mathematical description of a concrete system using mathematical concepts and language, proceeding from system identification through model classification, variable and assumption specification, governing equation formulation, parameter fitting, and empirical validation with iterative refinement. Per Wikipedia on mathematical model: 'A model may help to characterize a system by studying the effects of different components, which may be used to make predictions about behavior or solve specific problems.'",
+  "specification": "https://en.wikipedia.org/wiki/Mathematical_model",
+  "triggers": [
+    "mathematical model",
+    "mathematical modeling",
+    "formal model",
+    "equations",
+    "simulation",
+    "dynamical system"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "define-system-and-purpose",
+      "name": "Define the System and Purpose — Identify the real-world system and what the model should explain or predict",
+      "description": "Identify the concrete system to be modeled and articulate the purpose of the model.\n\nPer Wikipedia on mathematical model: 'A mathematical model is an abstract description of a concrete system using mathematical concepts and language.' The model serves to 'characterize a system by studying the effects of different components, which may be used to make predictions about behavior or solve specific problems.'\n\nPer Wikipedia, mathematical models are used across 'applied mathematics, natural sciences, social sciences, and engineering.' In particular, 'the field of operations research studies the use of mathematical modelling and related tools to solve problems in business or military operations.'\n\nPer Wikipedia: 'In the physical sciences, a traditional mathematical model contains most of the following elements: (1) Governing equations, (2) Supplementary sub-models (defining equations, constitutive equations), (3) Assumptions and constraints (initial and boundary conditions, classical constraints and kinematic equations).'\n\nIn business and engineering contexts, per Wikipedia: 'mathematical models may be used to maximize a certain output. The system under consideration will require certain inputs.' Define what the model should achieve: explanation of mechanism, prediction of behavior, optimization of outcomes, or control of a process.\n\nPer Wikipedia on significance: 'In analysis, engineers can build a descriptive model of the system as a hypothesis of how the system could work, or try to estimate how an unforeseeable event could affect the system. Similarly, in control of a system, engineers can try out different control approaches in simulations.' Determine whether the model is descriptive (explaining what is), predictive (forecasting what will be), or prescriptive (optimizing what should be).",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for existing models, theories, and prior analyses of the system under consideration — these constitute a priori information that should inform model construction",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the system and related concepts to understand what is already known and what gaps the model needs to fill",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "The concrete system to be modeled is explicitly identified and bounded",
+          "The purpose of the model is stated: explanation, prediction, optimization, or control",
+          "The target outputs of the model are specified — what quantities or behaviors the model should produce",
+          "The required inputs are enumerated — what data, observations, or parameters are available",
+          "The scope is bounded — what the model needs to capture vs. what can be excluded"
+        ],
+        "next_actions": [
+          "Proceed to classifying the model type along key dimensions"
+        ]
+      }
+    },
+    {
+      "id": "classify-model-type",
+      "name": "Classify the Model — Select model type along Wikipedia's classification dimensions",
+      "description": "Classify the mathematical model along the key dimensions identified by Wikipedia, choosing the appropriate type for the system and purpose.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically evaluate each classification dimension.\n\nPer Wikipedia on mathematical model, models are classified along these axes:\n\n1. **Linear vs. Nonlinear**: Per Wikipedia: 'If all the operators in a mathematical model exhibit linearity, the resulting mathematical model is defined as linear.' Linear structure 'implies that a problem can be decomposed into simpler parts that can be treated independently.' Nonlinearity 'even in fairly simple systems, is often associated with phenomena such as chaos and irreversibility.' Consider linearization as an approach to nonlinear problems, but note per Wikipedia: 'this can be problematic if one is trying to study aspects such as irreversibility, which are strongly tied to nonlinearity.'\n\n2. **Static vs. Dynamic**: Per Wikipedia: 'A dynamic model accounts for time-dependent changes in the state of the system, while a static (or steady-state) model calculates the system in equilibrium, and thus is time-invariant.' Dynamic models are 'typically represented by differential equations or difference equations.'\n\n3. **Discrete vs. Continuous**: Per Wikipedia: 'A discrete model treats objects as discrete, such as the particles in a molecular model or the states in a statistical model; while a continuous model represents the objects in a continuous manner, such as the velocity field of fluid in pipe flows.'\n\n4. **Deterministic vs. Stochastic**: Per Wikipedia: 'A deterministic model is one in which every set of variable states is uniquely determined by parameters in the model and by sets of previous states of these variables.' In a stochastic model, 'randomness is present, and variable states are not described by unique values, but rather by probability distributions.'\n\n5. **Explicit vs. Implicit**: Per Wikipedia: explicit models allow output to 'be calculated by a finite series of computations,' while implicit models require 'corresponding inputs must be solved for by an iterative procedure, such as Newton's method or Broyden's method.'\n\n6. **Deductive vs. Inductive vs. Floating**: Per Wikipedia: 'A deductive model is a logical structure based on a theory. An inductive model arises from empirical findings and generalization from them.' A floating model 'rests on neither theory nor observation.'\n\n7. **Strategic vs. Non-strategic**: Per Wikipedia, strategic models 'model agents with incompatible incentives, such as competing species or bidders in an auction. Strategic models assume that players are autonomous decision makers who rationally choose actions that maximize their objective function.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically evaluate each of Wikipedia's seven classification dimensions — linear/nonlinear, static/dynamic, discrete/continuous, deterministic/stochastic, explicit/implicit, deductive/inductive/floating, strategic/non-strategic — to determine the appropriate model type",
+            "priority": "mandatory",
+            "estimated_thoughts": 7
+          },
+          "SearchMemories": {
+            "reason": "Search for similar systems that have been modeled previously to learn which model classifications were effective",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each of Wikipedia's seven classification dimensions evaluated with explicit choice and justification",
+          "Linear vs. nonlinear determined — if nonlinear, whether linearization is appropriate or would lose essential behavior",
+          "Static vs. dynamic determined — if dynamic, whether differential equations or difference equations are appropriate",
+          "Discrete vs. continuous determined based on the nature of the system's variables and state space",
+          "Deterministic vs. stochastic determined — if stochastic, probability distributions identified for random variables",
+          "Explicit vs. implicit determined based on whether inputs or outputs are known quantities",
+          "Deductive vs. inductive vs. floating determined — the theoretical or empirical basis of the model stated",
+          "Strategic vs. non-strategic determined — if strategic, agents and their objective functions identified"
+        ],
+        "next_actions": [
+          "Proceed to establishing assumptions and identifying variables"
+        ]
+      }
+    },
+    {
+      "id": "establish-assumptions-and-variables",
+      "name": "Establish Assumptions and Identify Variables — Determine parameters, constraints, and a priori information",
+      "description": "Specify the simplifying assumptions, identify all variables and parameters, and assess the available a priori information.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on mathematical model, the system involves several types of variables: 'decision variables, state variables, exogenous variables, and random variables. Decision variables are sometimes known as independent variables. Exogenous variables are sometimes known as parameters or constants.' Furthermore, 'the state variables are dependent on the decision, input, random, and exogenous variables. Furthermore, the output variables are dependent on the state of the system (represented by the state variables).'\n\nPer Wikipedia on a priori information, models range from black box to white box: 'A black-box model is a system of which there is no a priori information available. A white-box model (also called glass box or clear box) is a system where all necessary information is available.' In practice, 'usually, it is preferable to use as much a priori information as possible to make the model more accurate.'\n\nPer Wikipedia on subjective information: 'Sometimes it is useful to incorporate subjective information into a mathematical model. This can be done based on intuition, experience, or expert opinion, or based on convenience of mathematical form. Bayesian statistics provides a theoretical framework for incorporating such subjectivity into a rigorous analysis.'\n\nPer Wikipedia on the complexity trade-off (Occam's razor): 'among models with roughly equal predictive power, the simplest one is the most desirable. While added complexity usually improves the realism of a model, it can make the model difficult to understand and analyze, and can also pose computational problems, including numerical instability.' Also: 'the uncertainty would increase due to an overly complex system, because each separate part induces some amount of variance into the model. It is therefore usually appropriate to make some approximations to reduce the model to a sensible size.'\n\nPer Wikipedia, Thomas Kuhn noted: 'as science progresses, explanations tend to become more complex before a paradigm shift offers radical simplification.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically categorize all variables (decision, state, exogenous, random, output), assess a priori information on the black-box-to-white-box spectrum, and evaluate simplifying assumptions against the Occam's razor complexity trade-off",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for known parameters, established constants, and prior empirical data that constitute a priori information for this system",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All variables explicitly categorized: decision variables, state variables, exogenous variables (parameters/constants), random variables, and output variables",
+          "A priori information assessed on the black-box to white-box spectrum — what is known vs. unknown about the system",
+          "Simplifying assumptions enumerated with justification — each approximation reduces complexity at an acceptable accuracy cost",
+          "Occam's razor applied: model is as simple as possible while retaining adequate predictive power for the stated purpose",
+          "Constraints identified: initial conditions, boundary conditions, conservation laws, or physical limits",
+          "Subjective information acknowledged — if incorporated, the Bayesian framework or other justification for inclusion stated"
+        ],
+        "next_actions": [
+          "Proceed to formulating the governing equations"
+        ]
+      }
+    },
+    {
+      "id": "formulate-governing-equations",
+      "name": "Formulate Governing Equations — Build the mathematical structure of the model",
+      "description": "Construct the mathematical relationships that define the model: governing equations, supplementary sub-models, constitutive equations, and objective functions.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on mathematical model, a model in the physical sciences contains: '(1) Governing equations, (2) Supplementary sub-models: defining equations, constitutive equations, (3) Assumptions and constraints: initial and boundary conditions, classical constraints and kinematic equations.'\n\nPer Wikipedia: 'A mathematical model usually describes a system by a set of variables and a set of equations that establish relationships between the variables.' The 'actual model is the set of functions that describe the relations between the different variables.' Variables 'represent some properties of the system, for example, the measured system outputs often in the form of signals, timing data, counters, and event occurrence.'\n\nPer Wikipedia on objective functions: 'Objectives and constraints of the system and its users can be represented as functions of the output variables or state variables. The objective functions will depend on the perspective of the model's user.' Also: 'there is no limit to the number of objective functions and constraints a model can have, using or optimizing the model becomes more involved (computationally) as the number increases.'\n\nPer Wikipedia: 'Complicated mathematical models that have many variables may be consolidated by use of vectors where one symbol represents several variables.' Reference established mathematical frameworks: 'Newton's classical mechanics is an approximated model of the real world. Still, Newton's model is quite sufficient for most ordinary-life situations, that is, as long as particle speeds are well below the speed of light, and we study macro-particles only.'\n\nIf the model is a black-box or grey-box model, per Wikipedia, approaches include: 'neural networks which usually do not make assumptions about incoming data' or 'NARMAX (Nonlinear AutoRegressive Moving Average model with eXogenous inputs) algorithms.' The advantage of NARMAX over neural networks is that 'NARMAX produces models that can be written down and related to the underlying process, whereas neural networks produce an approximation that is opaque.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Constructing the mathematical structure requires systematic derivation: governing equations, constitutive relations, boundary/initial conditions, and objective functions — per Wikipedia, the 'actual model is the set of functions that describe the relations between the different variables'",
+            "priority": "mandatory",
+            "estimated_thoughts": 8
+          },
+          "SearchMemories": {
+            "reason": "Search for established mathematical frameworks, known equations, and prior models that can serve as building blocks or analogies for the current formulation",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Governing equations explicitly stated — the primary mathematical relationships defining the model",
+          "Supplementary sub-models specified if needed: defining equations, constitutive equations",
+          "Initial conditions and boundary conditions specified for dynamic models",
+          "Objective function(s) defined if the model serves optimization or control purposes",
+          "Constraints formally expressed as mathematical inequalities or equalities",
+          "Mathematical form is consistent with the model classification chosen in step 2 — e.g., differential equations for dynamic continuous models, difference equations for discrete models",
+          "The model is complete: the number of independent equations matches the number of unknown variables"
+        ],
+        "next_actions": [
+          "Proceed to analyzing the model and fitting parameters"
+        ]
+      }
+    },
+    {
+      "id": "analyze-and-fit",
+      "name": "Analyze, Solve, and Fit Parameters — Apply mathematical and computational methods to obtain solutions",
+      "description": "Apply appropriate mathematical and computational methods to analyze the model, solve its equations, and estimate any unknown parameters from data.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia on training, tuning, and fitting: 'Any model which is not pure white-box contains some parameters that can be used to fit the model to the system it is intended to describe.' For machine learning approaches, 'the optimization of parameters is called training, while the optimization of model hyperparameters is called tuning and often uses cross-validation.' For conventional mathematical models, 'parameters are often determined by curve fitting.'\n\nPer Wikipedia, the quality of a scientific field 'depends on how well the mathematical models developed on the theoretical side agree with results of repeatable experiments. Lack of agreement between theoretical mathematical models and experimental measurements often leads to important advances as better theories are developed.'\n\nPer Wikipedia on a priori information: for white-box models where type of functions is known but parameters unknown, 'these parameters have to be estimated through some means before one can use the model.' For black-box models, 'one tries to estimate both the functional form of relations between variables and the numerical parameters in those functions.'\n\nPer Wikipedia on computational approaches: common methods include 'finite element analysis' in engineering, 'molecular orbital models that are approximate solutions to the Schrödinger equation' in chemistry. For linear systems, 'economists often apply linear algebra when using input-output models.'\n\nNote per Wikipedia on linearity: 'Linear structure implies that a problem can be decomposed into simpler parts that can be treated independently or analyzed at a different scale.' Exploit linearity where present; for nonlinear systems, consider linearization, numerical methods, or simulation.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Solving the model and fitting parameters requires systematic application of mathematical methods appropriate to the model class — per Wikipedia, parameter estimation ranges from curve fitting to neural network training depending on the model type",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Search for available empirical data, experimental measurements, and known parameter values that can be used for fitting and calibrating the model",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Solution method appropriate to the model class is identified and applied — analytical for tractable models, numerical/computational for complex ones",
+          "All unknown parameters estimated from available data — method stated (curve fitting, maximum likelihood, Bayesian estimation, or machine learning training)",
+          "If parameters fitted, training data and verification data split identified for cross-validation",
+          "Solution(s) obtained — either closed-form analytical solutions or numerical simulation results",
+          "Linearity exploited where present — decomposition or superposition applied for linear sub-problems",
+          "Computational feasibility confirmed — the model can be solved within acceptable time and resource constraints"
+        ],
+        "next_actions": [
+          "Proceed to validation, scope assessment, and iterative refinement"
+        ]
+      }
+    },
+    {
+      "id": "validate-and-refine",
+      "name": "Validate, Assess Scope, and Refine — Test predictions against empirical data and iterate",
+      "description": "Evaluate whether the mathematical model accurately describes the system, assess its scope, and iteratively refine.\n\nPer Wikipedia on evaluation and assessment: 'A crucial part of the modeling process is the evaluation of whether or not a given mathematical model describes a system accurately.' The 'easiest part of model evaluation is checking whether a model predicts experimental measurements or other empirical data not used in the model development.' Per Wikipedia on cross-validation: 'The training data are used to estimate the model parameters. An accurate model will closely match the verification data even though these data were not used to set the model's parameters.'\n\nPer Wikipedia on metrics: 'Defining a metric to measure distances between observed and predicted data is a useful tool for assessing model fit. In statistics, decision theory, and some economic models, a loss function plays a similar role.'\n\nPer Wikipedia on scope: 'Assessing the scope of a model, that is, determining what situations the model is applicable to, can be less straightforward.' The distinction between interpolation ('whether the model describes well the properties of the system between data points') and extrapolation ('the same question for events or data points outside the observed data') is critical. As an example, 'Newton made his measurements without advanced equipment, so he could not measure properties of particles traveling at speeds close to the speed of light... It is then not surprising that his model does not extrapolate well into these domains.'\n\nPer Wikipedia on overfitting: 'Statistical models are prone to overfitting which means that a model is fitted to data too much and it has lost its ability to generalize to new events that were not observed before.'\n\nPer Wikipedia on philosophical considerations: 'the validity of a model rests not only on its fit to empirical observations, but also on its ability to extrapolate to situations or data beyond those originally described in the model.' Also: 'a model is worthless unless it provides some insight which goes beyond what is already known from direct investigation of the phenomenon being studied.'\n\nPer Wikipedia: 'Note that better accuracy does not necessarily mean a better model.' Revisit the Occam's razor trade-off: if the model can be simplified without significant loss of predictive power, simplify it.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the validated mathematical model — its equations, parameters, scope, and limitations — as institutional memory for future modeling efforts on this system or analogous systems",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Search for additional empirical data, alternative models of the same system, and known limitations that can inform validation and scope assessment",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Model predictions compared against empirical data not used in parameter fitting — cross-validation results documented",
+          "Fit metric or loss function computed — quantitative measure of agreement between model predictions and observations",
+          "Model scope explicitly assessed: valid interpolation domain identified, extrapolation limitations stated",
+          "Overfitting risk evaluated — model generalization to unseen data confirmed or flagged",
+          "Insight criterion satisfied: the model provides understanding beyond what is already known from direct investigation",
+          "Occam's razor re-evaluated: model is no more complex than necessary for its predictive requirements",
+          "Limitations and failure modes documented — conditions under which the model is expected to break down",
+          "If validation fails: specific refinements identified (revised assumptions, additional variables, different model class) and iterative cycle restarted"
+        ],
+        "next_actions": [
+          "Document the validated model with its governing equations, parameter values, scope boundaries, and known limitations"
+        ]
+      }
+    }
+  ]
+}

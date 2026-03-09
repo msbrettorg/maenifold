@@ -1,0 +1,362 @@
+{
+  "id": "conjecture-refutation",
+  "name": "Conjectures & Refutations (Multi-Agent Popperian Epistemology)",
+  "emoji": "⚔️",
+  "description": "Models Karl Popper's epistemological cycle from 'Conjectures and Refutations' (1963): one set of agents formulates bold, testable conjectures while another set subjects them to severe refutation attempts. Per Wikipedia, Popper held that 'the growth of knowledge proceeds from old problems to new problems, by means of conjectures and refutations.' The multi-agent dialectic ensures conjectures are genuinely stress-tested — the Conjecturer agent has no incentive to soften claims, and the Refuter agent has every incentive to find fatal flaws. Error elimination, not verification, drives progress toward verisimilitude.",
+  "triggers": [
+    "conjecture",
+    "refutation",
+    "Popper",
+    "bold conjectures",
+    "severe tests",
+    "conjectures and refutations",
+    "critical rationalism",
+    "falsification cycle",
+    "error elimination",
+    "verisimilitude"
+  ],
+  "specification": "https://en.wikipedia.org/wiki/Conjectures_and_Refutations",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": true,
+  "steps": [
+    {
+      "id": "problem-situation",
+      "name": "🔍 Problem Situation Identification",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Popper, all inquiry begins with a **problem situation** — an anomaly, puzzle, or contradiction between existing theories and observations. 'Science begins not with observations but with problems.' This step frames the problem situation with precision.\n\n1. **Articulate the Problem**:\n   - What specific question, anomaly, or contradiction needs resolution?\n   - What existing theories, approaches, or assumptions currently address this domain?\n   - Where do these existing approaches fail, contradict each other, or leave explanatory gaps?\n\n2. **Map the Background Knowledge**:\n   - What is the current state of knowledge (P₀ — the initial problem)?\n   - What prior conjectures or solutions have been attempted?\n   - What empirical evidence or observations create tension with existing theories?\n\n3. **Establish Demarcation Criteria**:\n   - Per Popper's demarcation criterion: what would count as a genuine solution vs. a pseudo-solution?\n   - What types of claims would be **unfalsifiable** (and therefore unscientific)?\n   - Define what a **severe test** would look like for this domain\n\n4. **Memory Architecture**:\n```\nmemory://conjecture-refutation/[topic]/\n├── problem-situation.md\n├── conjectures/\n│   ├── conjecture-1.md\n│   ├── conjecture-2.md\n│   └── conjecture-3.md\n├── severe-tests/\n│   ├── refutation-1.md\n│   ├── refutation-2.md\n│   └── refutation-3.md\n├── error-elimination.md\n├── verisimilitude-assessment.md\n└── refined-theory.md\n```\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Problem framing determines the entire trajectory of the conjecture-refutation cycle — poor framing yields trivial conjectures",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Problem articulation with specific anomaly or contradiction",
+              "Background knowledge mapping (P₀)",
+              "Demarcation criteria for falsifiable vs. unfalsifiable claims",
+              "Severe test design parameters"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the problem situation as the anchor for all subsequent conjecture-refutation cycles",
+            "priority": "mandatory",
+            "output": "memory://conjecture-refutation/[topic]/problem-situation.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Problem situation articulated with specific anomaly or contradiction",
+          "Background knowledge and prior approaches mapped",
+          "Demarcation criteria established — falsifiable vs. unfalsifiable claims distinguished",
+          "Severe test parameters defined for this domain"
+        ],
+        "next_actions": [
+          "Dispatch Bold Conjecture agents for parallel hypothesis generation"
+        ]
+      }
+    },
+    {
+      "id": "bold-conjecture-generation",
+      "name": "💡 Bold Conjecture Generation (Parallel Conjecturers)",
+      "description": "🚫 BLOCKING: Dispatch ALL Conjecturer agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer Popper, bold conjectures are 'unjustifiable, we can never justify them... but we can sometimes justify our preference for one of the competing conjectures.' Each agent formulates a **maximally bold** conjecture — one that makes strong, specific, falsifiable predictions and goes well beyond safe reformulations of existing views.\n\n```\nTask 1: Bold Conjecture — Radical Explanation\nAgent: researcher\nInstruction: You are a Popperian Conjecturer. Read memory://conjecture-refutation/[topic]/problem-situation.md. Formulate a BOLD conjecture that offers a radical explanation for the problem situation. Per Popper's criteria, your conjecture MUST be:\n\n1. **Bold**: Goes substantially beyond existing knowledge — not a timid reformulation\n2. **Falsifiable**: Makes specific, testable predictions that could be proven wrong\n3. **Informative**: Has high empirical content — rules out many possible states of affairs\n4. **Surprising**: Predicts phenomena that would be unexpected under rival theories\n\nStructure:\n- State the conjecture as a clear, testable proposition\n- Identify 3-5 specific, falsifiable predictions it makes\n- Explain what observations would REFUTE it (not just what would support it)\n- Rate its boldness on a scale: timid → moderate → bold → revolutionary\n- Include 10+ [[WikiLinks]] (e.g., [[falsifiability]], [[bold-conjecture]], [[empirical-content]])\n\nOutput: memory://conjecture-refutation/[topic]/conjectures/conjecture-1.md\n\nTask 2: Bold Conjecture — Structural/Mechanistic Alternative\nAgent: researcher\nInstruction: You are a Popperian Conjecturer. Read memory://conjecture-refutation/[topic]/problem-situation.md. Formulate a BOLD conjecture that proposes a novel structural or mechanistic explanation — one that identifies hidden causal mechanisms, structural relationships, or generative processes underlying the problem. Your conjecture MUST differ substantively from any obvious first-guess explanation.\n\n1. **Bold**: Proposes a mechanism or structure not currently recognized\n2. **Falsifiable**: Predicts specific structural/causal signatures that could be tested\n3. **Informative**: Explains not just the original anomaly but makes novel predictions\n4. **Unifying**: Ideally connects previously unrelated phenomena\n\nStructure:\n- State the conjecture as a clear, testable proposition about mechanisms/structure\n- Identify 3-5 specific, falsifiable predictions\n- Specify what would REFUTE this mechanistic account\n- Rate boldness: timid → moderate → bold → revolutionary\n- Include 10+ [[WikiLinks]]\n\nOutput: memory://conjecture-refutation/[topic]/conjectures/conjecture-2.md\n\nTask 3: Bold Conjecture — Contrarian/Counterintuitive\nAgent: researcher\nInstruction: You are a Popperian Conjecturer. Read memory://conjecture-refutation/[topic]/problem-situation.md. Formulate a BOLD conjecture that is deliberately contrarian or counterintuitive — one that challenges the most widely held assumption in the problem domain. Per Popper: 'Whenever a theory appears to you as the only possible one, take this as a sign that you have neither understood the theory nor the problem which it was intended to solve.'\n\n1. **Bold**: Directly challenges a widely held assumption\n2. **Falsifiable**: Despite being contrarian, makes specific testable predictions\n3. **Informative**: If true, would force substantial revision of accepted knowledge\n4. **Provocative**: Designed to provoke the strongest possible refutation attempts\n\nStructure:\n- State which widely held assumption is being challenged\n- State the contrarian conjecture as a clear, testable proposition\n- Identify 3-5 specific, falsifiable predictions\n- Specify what would REFUTE this contrarian view\n- Rate boldness: timid → moderate → bold → revolutionary\n- Include 10+ [[WikiLinks]]\n\nOutput: memory://conjecture-refutation/[topic]/conjectures/conjecture-3.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each agent MUST read the problem situation before conjecturing\n- Conjectures must be GENUINELY BOLD — penalize timid reformulations\n- Every conjecture must include explicit falsification conditions\n- Each agent writes independently — no coordination between conjecturers\n\n⏱️ Duration: 20-30 minutes per agent (all run in parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Conjecturer agents, each formulating an independent bold conjecture",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each agent reads the problem situation before conjecturing",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://conjecture-refutation/[topic]/problem-situation.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each agent persists its bold conjecture independently",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-1.md",
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-2.md",
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-3.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Conjecturer agents dispatched in a single message",
+          "Each conjecture is genuinely bold — not a timid reformulation",
+          "Each conjecture includes explicit falsification conditions",
+          "Each conjecture makes 3-5 specific testable predictions",
+          "Boldness self-rating provided for each conjecture"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Conjecturer agents",
+          "Proceed to Severe Test Design once all conjectures received"
+        ]
+      }
+    },
+    {
+      "id": "severe-test-design",
+      "name": "🧪 Severe Test Design",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nReview all three bold conjectures and design **severe tests** for each. Per Popper, a test is severe if 'the theory to be tested predicts something which, on our background knowledge alone, would be very improbable.' A severe test is one the theory is unlikely to pass unless it is true.\n\n1. **Read All Conjectures**:\n   - Review each conjecture's claims, predictions, and self-identified falsification conditions\n   - Assess whether each conjecture is genuinely bold or merely timid\n   - If any conjecture is insufficiently bold, note this as a weakness\n\n2. **Design Severe Tests for Each Conjecture**:\n   For each of the three conjectures, design 2-3 severe tests:\n   - **Empirical test**: What observation or data would decisively refute this conjecture?\n   - **Logical test**: Does the conjecture contain internal contradictions or logical flaws?\n   - **Comparative test**: Does a rival conjecture explain the same phenomena more simply (Occam's razor) or more precisely?\n\n3. **Calibrate Severity**:\n   - A test is severe only if the conjecture is unlikely to pass it by luck or ad hoc adjustment\n   - Avoid tests the conjecture can trivially pass (these prove nothing)\n   - Avoid tests that are impossible to apply (these are useless)\n\n4. **Assign Refuter Mandates**:\n   - Assign each Refuter agent a specific conjecture to attack\n   - Provide each Refuter with the designed severe tests as ammunition\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Test design requires careful calibration — tests that are too easy prove nothing, tests that are impossible are useless",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Review conjecture 1 — assess boldness and falsifiability",
+              "Review conjecture 2 — assess boldness and falsifiability",
+              "Review conjecture 3 — assess boldness and falsifiability",
+              "Design severe tests with appropriate severity calibration",
+              "Assign Refuter mandates with test ammunition"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all three conjecture memos for severe test design",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-1.md",
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-2.md",
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-3.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist severe test designs for Refuter agents",
+            "priority": "mandatory",
+            "output": "memory://conjecture-refutation/[topic]/severe-tests/test-design.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three conjectures reviewed for genuine boldness",
+          "2-3 severe tests designed for each conjecture (empirical, logical, comparative)",
+          "Test severity calibrated — neither trivially passable nor impossible",
+          "Refuter mandates assigned with specific test ammunition"
+        ],
+        "next_actions": [
+          "Dispatch Critical Refutation agents for parallel severe testing"
+        ]
+      }
+    },
+    {
+      "id": "critical-refutation-wave",
+      "name": "🔨 Critical Refutation Wave (Parallel Refuters)",
+      "description": "🚫 BLOCKING: Dispatch ALL Refuter agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE REFUTER AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nPer Popper, 'our attempts to see and to find the truth are not final, but open to improvement; our knowledge, our doctrine, is conjectural; it consists of guesses, of hypotheses, rather than of final and certain truths.' Each Refuter agent's sole mission is to **destroy** its assigned conjecture through the most rigorous criticism possible.\n\n```\nTask 1: Refuter — Attack Conjecture 1 (Radical Explanation)\nAgent: researcher\nInstruction: You are a Popperian Refuter — a relentless critical rationalist. Your SOLE MISSION is to REFUTE Conjecture 1. Read:\n- memory://conjecture-refutation/[topic]/conjectures/conjecture-1.md\n- memory://conjecture-refutation/[topic]/severe-tests/test-design.md\n\nApply the severe tests designed for this conjecture, plus any additional attacks you can devise:\n\n1. **Empirical Refutation**: Identify observations, data, or evidence that directly contradicts the conjecture's predictions. If no empirical data exists, construct the strongest possible thought experiment.\n2. **Logical Refutation**: Find internal contradictions, non-sequiturs, or hidden assumptions that undermine the argument.\n3. **Comparative Refutation**: Show that a rival explanation accounts for the same phenomena more parsimoniously or with greater empirical content.\n4. **Ad Hoc Detection**: If the conjecture can only survive by adding ad hoc auxiliary hypotheses, flag this as a Popperian 'immunizing stratagem.'\n\nVERDICT: State clearly whether the conjecture is:\n- REFUTED (fatal flaw found)\n- DAMAGED (serious weaknesses but not decisively refuted)\n- CORROBORATED (survived severe testing — not confirmed, but not yet refuted)\n\nInclude 10+ [[WikiLinks]] (e.g., [[falsifiability]], [[ad-hoc-hypothesis]], [[corroboration]], [[severe-test]])\nOutput: memory://conjecture-refutation/[topic]/severe-tests/refutation-1.md\n\nTask 2: Refuter — Attack Conjecture 2 (Structural/Mechanistic)\nAgent: researcher\nInstruction: You are a Popperian Refuter. Your SOLE MISSION is to REFUTE Conjecture 2. Read:\n- memory://conjecture-refutation/[topic]/conjectures/conjecture-2.md\n- memory://conjecture-refutation/[topic]/severe-tests/test-design.md\n\nApply severe tests plus your own attacks:\n\n1. **Empirical Refutation**: Find evidence contradicting the proposed mechanism or structure.\n2. **Logical Refutation**: Attack the causal logic — does the proposed mechanism actually produce the claimed effects? Are there confounds?\n3. **Comparative Refutation**: Is there a simpler mechanistic explanation that accounts for the same phenomena?\n4. **Ad Hoc Detection**: Flag any immunizing stratagems.\n\nVERDICT: REFUTED / DAMAGED / CORROBORATED\n\nInclude 10+ [[WikiLinks]]\nOutput: memory://conjecture-refutation/[topic]/severe-tests/refutation-2.md\n\nTask 3: Refuter — Attack Conjecture 3 (Contrarian/Counterintuitive)\nAgent: researcher\nInstruction: You are a Popperian Refuter. Your SOLE MISSION is to REFUTE Conjecture 3. Read:\n- memory://conjecture-refutation/[topic]/conjectures/conjecture-3.md\n- memory://conjecture-refutation/[topic]/severe-tests/test-design.md\n\nApply severe tests plus your own attacks:\n\n1. **Empirical Refutation**: Find evidence that the challenged assumption is actually well-supported.\n2. **Logical Refutation**: Show that the contrarian position leads to absurd or contradictory consequences.\n3. **Comparative Refutation**: Demonstrate that the mainstream view being challenged has better explanatory power.\n4. **Ad Hoc Detection**: Flag any immunizing stratagems.\n\nVERDICT: REFUTED / DAMAGED / CORROBORATED\n\nInclude 10+ [[WikiLinks]]\nOutput: memory://conjecture-refutation/[topic]/severe-tests/refutation-3.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each Refuter MUST genuinely attempt to destroy its target conjecture — no softball criticism\n- If refutation fails, the conjecture is CORROBORATED (not confirmed — per Popper, corroboration ≠ verification)\n- Refuters must be specific: cite exact predictions that fail, exact logical flaws found\n- Each Refuter works independently — no coordination between refuters\n\n⏱️ Duration: 20-30 minutes per agent (all run in parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Refuter agents, each attacking a specific conjecture with severe tests",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each Refuter reads its target conjecture and the test design",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-1.md",
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-2.md",
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-3.md",
+              "memory://conjecture-refutation/[topic]/severe-tests/test-design.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each Refuter persists its refutation attempt with verdict",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://conjecture-refutation/[topic]/severe-tests/refutation-1.md",
+              "memory://conjecture-refutation/[topic]/severe-tests/refutation-2.md",
+              "memory://conjecture-refutation/[topic]/severe-tests/refutation-3.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Refuter agents dispatched in a single message",
+          "Each refutation includes empirical, logical, and comparative attacks",
+          "Each refutation states a clear verdict: REFUTED / DAMAGED / CORROBORATED",
+          "Ad hoc immunizing stratagems flagged where detected",
+          "Specific evidence cited — no vague handwaving"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Refuter agents",
+          "Proceed to Error Elimination synthesis"
+        ]
+      }
+    },
+    {
+      "id": "error-elimination",
+      "name": "🗑️ Error Elimination & Critical Discussion",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Popper's schema: P₁ → TT → EE → P₂ (Problem → Tentative Theory → Error Elimination → New Problem). This step performs the crucial Error Elimination phase and the **critical discussion** that determines which conjectures survive.\n\n1. **Read All Refutation Reports**:\n   - Review each Refuter's verdict and supporting arguments\n   - Assess whether each refutation is itself valid — refutations can also contain errors\n\n2. **Triage Conjectures**:\n   - **REFUTED**: Identify conjectures with fatal flaws. These are eliminated — but per Popper, 'we can learn from our mistakes.' Document what was learned from each failed conjecture.\n   - **DAMAGED**: Identify conjectures with serious weaknesses. Can they be repaired without ad hoc adjustments? If repair requires immunizing stratagems, the conjecture should be treated as effectively refuted.\n   - **CORROBORATED**: Identify conjectures that survived severe testing. These are not 'proven true' but have earned provisional acceptance through their resistance to refutation.\n\n3. **Critical Discussion Synthesis**:\n   - Where do the Conjecturers and Refuters disagree about the evidence?\n   - Are there refutation arguments that are themselves flawed?\n   - Can elements from multiple conjectures be combined into a stronger synthesis?\n   - Per Popper: 'The game of science is, in principle, without end. He who decides one day that scientific statements do not call for any further test... retires from the game.'\n\n4. **Identify P₂ — The New Problem**:\n   - What new questions arise from the error elimination process?\n   - What gaps remain even in the corroborated conjectures?\n   - What would the NEXT cycle of conjectures and refutations need to address?\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Error elimination requires systematic comparison of three conjecture-refutation pairs and meta-level assessment of refutation quality",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Validate refutation quality — are the refutations themselves sound?",
+              "Triage: classify each conjecture as REFUTED / DAMAGED / CORROBORATED",
+              "Assess repairability of DAMAGED conjectures without ad hoc stratagems",
+              "Synthesize across conjectures — can surviving elements be combined?",
+              "Identify P₂ — the new problem situation emerging from this cycle"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all conjectures and all refutation reports for synthesis",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-1.md",
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-2.md",
+              "memory://conjecture-refutation/[topic]/conjectures/conjecture-3.md",
+              "memory://conjecture-refutation/[topic]/severe-tests/refutation-1.md",
+              "memory://conjecture-refutation/[topic]/severe-tests/refutation-2.md",
+              "memory://conjecture-refutation/[topic]/severe-tests/refutation-3.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist error elimination results and P₂ identification",
+            "priority": "mandatory",
+            "output": "memory://conjecture-refutation/[topic]/error-elimination.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three refutation reports reviewed and validated",
+          "Each conjecture classified: REFUTED / DAMAGED / CORROBORATED",
+          "Lessons extracted from each refuted conjecture",
+          "Cross-conjecture synthesis attempted for surviving elements",
+          "P₂ (new problem situation) clearly identified"
+        ],
+        "next_actions": [
+          "Proceed to verisimilitude assessment and refined theory formulation"
+        ]
+      }
+    },
+    {
+      "id": "verisimilitude-assessment",
+      "name": "🎯 Verisimilitude Assessment & Refined Theory",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Popper's concept of **verisimilitude** (truthlikeness): we cannot know whether we have reached the truth, but we can assess whether our current theory is *closer to the truth* than its predecessors. 'We can never rationally justify a theory... but we can sometimes justify our preference for one theory over competing theories.'\n\n1. **Assess Verisimilitude Progress**:\n   - Compare the surviving conjecture(s) against the initial problem situation (P₀)\n   - Has **truth content** increased? (Do the surviving conjectures explain more genuine phenomena?)\n   - Has **falsity content** decreased? (Have false predictions been eliminated?)\n   - Net verisimilitude: Vs(T₂) > Vs(T₁) if T₂ has greater truth content and lesser falsity content\n\n2. **Formulate the Refined Theory**:\n   - Synthesize surviving and corroborated elements into a refined theoretical position\n   - This is NOT the final truth — it is the best current approximation, open to future refutation\n   - Explicitly state what the refined theory predicts and what would refute it\n   - Identify the theory's remaining **Achilles' heel** — its most vulnerable prediction\n\n3. **Degree of Corroboration**:\n   - Per Popper, the degree of corroboration reflects how well a theory has withstood severe tests, NOT how probable it is\n   - Rate overall corroboration: weakly corroborated → moderately corroborated → highly corroborated\n   - Note: high corroboration does not imply high probability of truth — it implies the theory has survived genuine attempts at refutation\n\n4. **Open Questions for Future Inquiry**:\n   - What severe tests remain unperformed?\n   - What new bold conjectures does the refined theory suggest?\n   - Per Popper's anti-inductivism: do NOT extrapolate from past corroboration to future reliability\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Verisimilitude assessment requires careful comparative analysis of truth content vs. falsity content across theory iterations",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Truth content and falsity content comparison (T₁ vs. T₂)",
+              "Refined theory formulation with explicit falsification conditions",
+              "Degree of corroboration rating with justification",
+              "Open questions and Achilles' heel identification"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read problem situation and error elimination results for verisimilitude comparison",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://conjecture-refutation/[topic]/problem-situation.md",
+              "memory://conjecture-refutation/[topic]/error-elimination.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist verisimilitude assessment and refined theory",
+            "priority": "mandatory",
+            "output": "memory://conjecture-refutation/[topic]/verisimilitude-assessment.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Verisimilitude comparison completed (truth content vs. falsity content)",
+          "Refined theory formulated with explicit falsification conditions",
+          "Degree of corroboration rated with justification",
+          "Achilles' heel identified — the refined theory's most vulnerable prediction",
+          "Open questions for future conjecture-refutation cycles documented"
+        ],
+        "next_actions": [
+          "Proceed to knowledge integration"
+        ]
+      }
+    },
+    {
+      "id": "knowledge-integration",
+      "name": "🧠 Knowledge Integration & Graph Construction",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nIntegrate all conjecture-refutation results into the maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\nTool: Sync\nScope: memory://conjecture-refutation/[topic]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[WikiLinks]]: [[conjectures-and-refutations]], [[falsifiability]], [[critical-rationalism]], [[verisimilitude]], [[bold-conjecture]], [[severe-test]], [[error-elimination]], [[corroboration]]\n   - Map relationships between the problem situation, conjectures, refutations, and refined theory\n   - Connect to existing knowledge graph concepts\n\n3. **Epistemological Metrics**:\n   - Conjectures generated vs. conjectures surviving\n   - Refutation success rate\n   - Net verisimilitude progress\n   - [[WikiLink]] density across all outputs\n\n4. **Create Integration Report**:\n   - Document in memory://conjecture-refutation/[topic]/integration-report.md\n   - Include concept network and epistemological metrics\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "Sync": {
+            "reason": "Synchronize all conjecture-refutation memories to graph database",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Analyze concept networks for Popperian epistemological terms",
+            "priority": "mandatory"
+          },
+          "SequentialThinking": {
+            "reason": "Integration requires systematic mapping of conjecture-refutation relationships to knowledge graph",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Graph synchronized with all conjecture-refutation outputs",
+          "Concept relationships mapped across Popperian terms",
+          "Epistemological metrics calculated",
+          "Integration report written"
+        ],
+        "next_actions": [
+          "Produce final deliverable"
+        ]
+      }
+    },
+    {
+      "id": "final-deliverable",
+      "name": "📋 Conjecture-Refutation Analysis Report",
+      "description": "Produce the final deliverable: a structured report of the complete conjecture-refutation cycle.\n\n**Report Structure**:\n\n1. **Problem Situation (P₁)**: The anomaly, contradiction, or question that motivated inquiry\n\n2. **Bold Conjectures**: Summary of the three bold conjectures with their key predictions\n   - Conjecture 1 (Radical Explanation): [summary]\n   - Conjecture 2 (Structural/Mechanistic): [summary]\n   - Conjecture 3 (Contrarian/Counterintuitive): [summary]\n\n3. **Severe Tests & Refutation Results**:\n   - For each conjecture: verdict (REFUTED / DAMAGED / CORROBORATED) with key evidence\n   - Most decisive refutation argument identified\n   - Most surprising survival identified\n\n4. **Error Elimination**: What was learned from refuted conjectures\n\n5. **Refined Theory**: The synthesized position that survived severe testing\n   - Key claims and predictions\n   - Remaining vulnerabilities (Achilles' heel)\n   - Degree of corroboration\n\n6. **Verisimilitude Progress**: How the refined theory improves on the initial problem situation\n\n7. **New Problem Situation (P₂)**: Questions for the next conjecture-refutation cycle\n\n8. **Epistemological Reflection**:\n   - Per Popper: 'True ignorance is not the absence of knowledge, but the refusal to acquire it'\n   - What assumptions remain untested?\n   - What would make the user update their beliefs?\n\nPersist findings to knowledge graph with [[WikiLinks]] throughout.\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "ReadMemory": {
+            "reason": "Read all cycle outputs for final report compilation",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://conjecture-refutation/[topic]/problem-situation.md",
+              "memory://conjecture-refutation/[topic]/error-elimination.md",
+              "memory://conjecture-refutation/[topic]/verisimilitude-assessment.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the final refined theory as a durable knowledge artifact",
+            "priority": "mandatory",
+            "output": "memory://conjecture-refutation/[topic]/refined-theory.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Final report covers all seven sections",
+          "Each conjecture's fate clearly stated with supporting evidence",
+          "Refined theory stated with explicit falsification conditions",
+          "P₂ (new problem) identified for future cycles",
+          "Key findings persisted to knowledge graph with [[WikiLinks]]"
+        ],
+        "next_actions": [
+          "Deliver final report to user",
+          "Identify whether a second conjecture-refutation cycle is warranted for P₂"
+        ]
+      }
+    }
+  ]
+}

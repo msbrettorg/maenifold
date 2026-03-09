@@ -1,0 +1,241 @@
+{
+  "id": "confirmation-replication",
+  "name": "Confirmation & Replication",
+  "emoji": "🔁",
+  "description": "A structured methodology for confirming scientific findings through replication, grounded in the Wikipedia articles on Scientific method § Confirmation and Reproducibility. Per Wikipedia: 'Science is a social enterprise, and scientific work tends to be accepted by the scientific community when it has been confirmed. Crucially, experimental and theoretical results must be reproduced by others within the scientific community.' The workflow operationalizes Karl Popper's principle that 'non-reproducible single occurrences are of no significance to science' (The Logic of Scientific Discovery, 1934) and Ronald Fisher's criterion that 'a phenomenon is experimentally demonstrable when we know how to conduct an experiment which will rarely fail to give us statistically significant results' (The Design of Experiments, 1935). It guides practitioners through assessing confirmation readiness, designing direct and conceptual replications, verifying computational reproducibility, diagnosing replication barriers (p-hacking, low power, publication bias), executing the replication protocol, and synthesizing the confirmation status of findings. The methodology draws on Robert Boyle's foundational insight that 'the foundations of knowledge should be constituted by experimentally produced facts, which can be made believable to a scientific community by their reproducibility.'",
+  "specification": "https://en.wikipedia.org/wiki/Reproducibility",
+  "triggers": [
+    "confirmation",
+    "replication",
+    "scientific confirmation",
+    "replication crisis",
+    "direct replication",
+    "conceptual replication"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "assess-confirmation-readiness",
+      "name": "Assess Confirmation Readiness — Evaluate whether findings are ready for replication",
+      "description": "Evaluate whether the findings under examination have sufficient documentation, methodological clarity, and evidential basis to support a meaningful replication attempt.\n\nPer the Wikipedia article on Reproducibility: 'For the findings of a study to be reproducible means that results obtained by an experiment or an observational study or in a statistical analysis of a data set should be achieved again with a high degree of reliability when the study is replicated. There are different kinds of replication but typically replication studies involve different researchers using the same methodology. Only after one or several such successful replications should a result be recognized as scientific knowledge.'\n\nPer the Wikipedia article on Scientific method § Confirmation: 'If an experiment cannot be repeated to produce the same results, this implies that the original results might have been in error. As a result, it is common for a single experiment to be performed multiple times, especially when there are uncontrolled variables or other indications of experimental error.'\n\nPer Shapin and Schaffer on Boyle's air pump: 'the accomplishment of replication was dependent on contingent acts of judgment. One cannot write down a formula saying when replication was or was not achieved.' — the inherent difficulty of specifying replication success criteria must be acknowledged upfront.\n\nFor the findings under examination:\n• What specific claims, results, or effects are to be confirmed?\n• Is the original methodology documented in sufficient detail to permit replication?\n• Per Wikipedia: are data, code, and materials accessible for independent verification?\n• What was the original sample size, effect size, and statistical power?\n• Per the Replication Crisis article: were questionable research practices (p-hacking, HARKing, selective reporting) possible in the original study?\n• Are there prior replication attempts — successful or failed — to review?\n• What is the importance of these findings — per Wikipedia § Confirmation: 'For significant or surprising results, other scientists may also attempt to replicate the results for themselves, especially if those results would be important to their own work'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for the original findings, any prior replication attempts, and documented methodology — these form the evidential base for assessing confirmation readiness",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the findings and their methodological provenance to assess whether sufficient documentation exists for replication",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Specific claims, results, or effects to be confirmed clearly enumerated",
+          "Original methodology assessed for documentation completeness — methods, data, code, materials",
+          "Original statistical parameters reviewed — sample size, effect size, power, significance level",
+          "Potential questionable research practices in original study identified or ruled out",
+          "Prior replication attempts (if any) cataloged with their outcomes",
+          "Importance and impact of findings assessed — justification for replication effort established"
+        ],
+        "next_actions": [
+          "Proceed to designing the direct replication protocol"
+        ]
+      }
+    },
+    {
+      "id": "design-direct-replication",
+      "name": "Design Direct Replication — Plan an exact replication following the original methodology",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nDesign a direct (exact) replication that follows the original methodology as closely as possible.\n\nPer the Wikipedia article on Replication crisis, direct replication is defined as 'repeating procedures as closely as possible' and is one of three replication types alongside systematic and conceptual replication.\n\nPer the Reproducibility article, Stefan Schmidt describes replication as: 'A replication experiment to demonstrate that the same findings can be obtained in any other place by any other researcher is conceived as an operationalization of objectivity. It is the proof that the experiment reflects knowledge that can be separated from the specific circumstances (such as time, place, or persons) under which it was gained.'\n\nPer the Reproducibility article on Boyle's historical precedent: Huygens built his own air pump in Amsterdam and reported 'anomalous suspension,' but Boyle and Hooke could not replicate this in their own pumps. 'It became clear that unless the phenomenon could be produced in England with one of the two pumps available, then no one in England would accept the claims Huygens had made.' — direct replication requires faithful reproduction of apparatus, conditions, and procedures.\n\nDesign the direct replication:\n• Enumerate every procedural step from the original study that must be reproduced exactly\n• Identify the independent, dependent, and control variables and their operational definitions\n• Per Wikipedia on reproducible research: document the complete data acquisition, processing, and analysis pipeline\n• Determine the required sample size — per the Replication Crisis article, 'replication samples were approximately 40% the size of the originals' in the Reproducibility Project, which contributed to inconclusive results\n• Plan for adequate statistical power — per Wikipedia, low power is a structural and persistent problem\n• Per the Reproducible Research method: 'all operations should be fully documented and automated as much as practicable, avoiding manual intervention where feasible'\n• Specify the pre-registered analysis plan — what statistical tests, what significance threshold, what constitutes replication success\n• Identify unavoidable deviations from the original (different lab, different population, different time) and assess their impact",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Designing a faithful direct replication requires systematic decomposition of every procedural element of the original study — each deviation from the original must be identified and its impact assessed, per the Boyle-Huygens precedent where replication depended on 'contingent acts of judgment'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for the original study's methodology, any published protocols, and known replication challenges in the subject domain",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Every procedural step from the original study enumerated and mapped to replication protocol",
+          "All variables (independent, dependent, control) identified with operational definitions matching the original",
+          "Sample size determined with adequate statistical power — not repeating the Reproducibility Project's underpowering",
+          "Pre-registered analysis plan specified — statistical tests, significance threshold, replication success criteria",
+          "Unavoidable deviations from original explicitly documented with impact assessment",
+          "Data acquisition, processing, and analysis pipeline fully documented per reproducible research standards"
+        ],
+        "next_actions": [
+          "Proceed to designing a conceptual replication for generalizability"
+        ]
+      }
+    },
+    {
+      "id": "design-conceptual-replication",
+      "name": "Design Conceptual Replication — Test the same hypothesis using different methods",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nDesign a conceptual replication that tests the same underlying hypothesis or theory using different methods, populations, or operationalizations.\n\nPer the Wikipedia article on Replication crisis, conceptual replication involves 'testing hypotheses using different procedures to assess generalizability.' This is distinct from direct replication, which reproduces the original methods exactly.\n\nPer the Replication Crisis article's findings from Many Labs 2: 'The study's focus was not only whether the original papers' findings replicated but also the extent to which findings varied as a function of variations in samples and contexts. When findings did replicate, they consistently replicated across most samples. When they failed, they consistently failed across contexts, suggesting contextual sensitivity was not the primary driver of replication failures.' — conceptual replication reveals whether findings reflect a robust underlying phenomenon or an artifact of specific methods.\n\nPer the Replication Crisis article: 'This evidence is inconsistent with a proposed explanation that failures to replicate in psychology are likely due to changes in the sample between the original and replication study.' — conceptual replications test this directly.\n\nDesign the conceptual replication:\n• Identify the core hypothesis or theoretical claim to be tested — abstract from the original operationalization\n• Select alternative methods, measures, or procedures that test the same underlying claim\n• Choose a different population or context to assess generalizability\n• Per Wikipedia's distinction: success in conceptual replication 'shows a finding's generalizability, not just its reproducibility with the original setup'\n• Determine what pattern of results would confirm vs. disconfirm the hypothesis under the new operationalization\n• Plan for the same rigor as the direct replication — adequate power, pre-registration, documented pipeline\n• Consider what a divergence between direct and conceptual replication results would mean — same hypothesis, different operationalizations yielding different results reveals boundary conditions",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Conceptual replication requires abstracting the core hypothesis from the original operationalization and then re-operationalizing it in a genuinely different way — this demands careful reasoning to ensure the new design tests the same theoretical claim without being a trivial variation",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "SearchMemories": {
+            "reason": "Search for alternative methodologies, different populations or contexts, and existing conceptual replications of the findings in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Core hypothesis or theoretical claim explicitly abstracted from the original operationalization",
+          "Alternative methods, measures, or procedures selected that test the same underlying claim via a different path",
+          "Different population or context chosen with rationale for why it tests generalizability",
+          "Pattern of results specified — what confirms, what disconfirms, under the new operationalization",
+          "Divergence scenario analyzed — what it means if direct replication succeeds but conceptual fails (or vice versa)",
+          "Design meets same rigor standards as direct replication — power, pre-registration, documentation"
+        ],
+        "next_actions": [
+          "Proceed to assessing computational reproducibility of the original analysis"
+        ]
+      }
+    },
+    {
+      "id": "assess-computational-reproducibility",
+      "name": "Assess Computational Reproducibility — Verify the data, code, and analysis chain",
+      "description": "Verify that the original study's results can be reproduced computationally — same data, same code, same results.\n\nPer the Wikipedia article on Reproducibility, the distinction between reproducibility and replication is critical: 'Two major steps are naturally distinguished: when new data are obtained in the attempt to achieve it, the term replicability is often used. Obtaining the same results when analyzing the data set of the original study again with the same procedures, many authors use the term reproducibility in a narrow, technical sense coming from its use in computational research.'\n\nPer the Reproducible Research section of Wikipedia: 'The term reproducible research refers to the idea that scientific results should be documented in such a way that their deduction is fully transparent. This requires a detailed description of the methods used to obtain the data and making the full dataset and the code to calculate the results easily accessible.'\n\nPer Wikipedia's reproducible research workflow:\n• 'All data and files being clearly separated, labelled, and documented'\n• 'All operations should be fully documented and automated as much as practicable'\n• 'The workflow should be designed as a sequence of smaller steps that are combined so that the intermediate outputs from one step directly feed as inputs into the next step'\n• 'Version control should be used as it lets the history of the project be easily reviewed'\n\nPer Wikipedia on the state of practice: a 2018 PLOS ONE study 'found that 14.4% of a sample of public health statistics researchers had shared their data or code or both.' A study of 599 articles found 'the average compliance rate was 47.5%' for data and code disclosure.\n\nAssess computational reproducibility:\n• Can the original data set be obtained or accessed?\n• Is the analysis code available, documented, and executable?\n• Do the intermediate and final outputs match when the analysis is re-run?\n• Are there undocumented manual steps, subjective judgments, or ambiguous procedures?\n• If computational reproducibility fails, diagnose the cause — missing data, software version differences, undocumented steps, or errors in the original analysis",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search for the original study's data, code, analysis scripts, and any documented computational pipeline in the knowledge graph",
+            "priority": "recommended"
+          },
+          "ReadMemory": {
+            "reason": "Read any existing computational artifacts, data files, or analysis documentation associated with the original study",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Data availability assessed — original data set obtained or documented as unavailable",
+          "Code availability assessed — analysis code obtained, documented, and executability verified",
+          "Computational reproduction attempted — intermediate and final outputs compared to original",
+          "Discrepancies (if any) diagnosed — missing data, software versions, undocumented steps, or genuine errors",
+          "Reproducible research standards evaluated — data labeling, documentation, automation, version control"
+        ],
+        "next_actions": [
+          "Proceed to diagnosing replication barriers"
+        ]
+      }
+    },
+    {
+      "id": "diagnose-replication-barriers",
+      "name": "Diagnose Replication Barriers — Identify threats to successful replication",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSystematically diagnose the barriers, threats, and risks that could prevent successful replication of the findings.\n\nPer the Wikipedia article on the Replication Crisis, four categories of precursors were identified by Felipe Romero:\n1. Social priming failures — effects that looked robust in conceptual replications but failed in direct replications\n2. ESP experiments — 'what the community found particularly upsetting was that many of the flawed procedures and statistical tools used in Bem's studies were part of common research practice'\n3. Biomedical replication failures — Amgen and Bayer found 11–20% replication rates for landmark preclinical oncological findings\n4. P-hacking and questionable research practices — 'exploiting the flexibility of the process of data collection and reporting could greatly increase the probability of false positive results'\n\nPer the Replication Crisis article: 'It had been repeatedly pointed out since 1962 that most psychological studies have low power (true positive rate), but low power persisted for 50 years, indicating a structural and persistent problem.'\n\nPer the Reproducibility Project: Psychology (2015, Brian Nosek): 'Of 97 original studies with significant effects, 36% replicated successfully (p < 0.05), with effect sizes averaging half the original magnitude.' Replication samples were approximately 40% the size of the originals.\n\nPer Barbara Spellman: technological improvements facilitated conducting replications, but 'increasingly limited resources and misaligned incentives for doing scientific work led to a crisis in psychology and other fields.'\n\nDiagnose barriers for the specific findings under examination:\n• **Statistical barriers**: Was the original adequately powered? Was the p-value near the threshold? Were multiple comparisons corrected for?\n• **Methodological barriers**: Were there flexible data analysis choices (researcher degrees of freedom)? Was the analysis plan pre-registered?\n• **Publication bias**: Were null results from the same research program suppressed? Is there a file-drawer problem?\n• **Practical barriers**: Are specialized materials, equipment, or expertise required? Per the Boyle-Huygens precedent, complex apparatus can make replication difficult\n• **Contextual barriers**: Are the findings tied to a specific population, culture, or time period?\n• **Incentive barriers**: Per Spellman — are there misaligned incentives discouraging replication attempts?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Diagnosing replication barriers requires systematically working through each threat category — statistical, methodological, publication bias, practical, contextual, and incentive barriers — to build a comprehensive risk profile for the replication attempt",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for known replication failures, methodological critiques, and documented barriers in the subject domain",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Statistical barriers assessed — power, p-value proximity to threshold, multiple comparisons, effect size inflation",
+          "Methodological barriers assessed — researcher degrees of freedom, pre-registration status, flexible analysis choices",
+          "Publication bias evaluated — file-drawer problem, selective reporting, null result suppression",
+          "Practical barriers cataloged — specialized equipment, expertise, materials, cost",
+          "Contextual barriers identified — population specificity, cultural or temporal dependencies",
+          "Incentive barriers acknowledged — structural disincentives for replication in the field",
+          "Overall replication risk profile compiled — likelihood of successful replication estimated"
+        ],
+        "next_actions": [
+          "Proceed to executing the replication protocol"
+        ]
+      }
+    },
+    {
+      "id": "execute-replication-protocol",
+      "name": "Execute Replication Protocol — Carry out the replication and collect data",
+      "description": "Execute the replication study according to the pre-registered protocol, collecting data with full transparency and documentation.\n\nPer the Wikipedia article on Scientific method § Confirmation: 'it is common for a single experiment to be performed multiple times, especially when there are uncontrolled variables or other indications of experimental error. For significant or surprising results, other scientists may also attempt to replicate the results for themselves.'\n\nPer Robert Boyle's foundational principle (Wikipedia, Reproducibility): 'the foundations of knowledge should be constituted by experimentally produced facts, which can be made believable to a scientific community by their reproducibility. By repeating the same experiment over and over again, Boyle argued, the certainty of fact will emerge.'\n\nPer the Reproducible Research workflow (Wikipedia): the basic workflow involves 'data acquisition, data processing and data analysis. Data acquisition primarily consists of obtaining primary data from a primary source. Data processing involves the processing and review of the raw data. The data should be digitized and prepared for data analysis.'\n\nPer Wikipedia on execution integrity:\n• Follow the pre-registered protocol exactly — deviations must be documented and justified\n• Per reproducible research standards: 'The use of software and automation enhances the reproducibility of research methods'\n• Document all procedures as they are performed — not reconstructed after the fact\n• If the direct replication protocol is being executed: match original procedures as closely as possible\n• If the conceptual replication protocol is being executed: follow the alternative design faithfully\n• Record any anomalies, unexpected observations, or procedural difficulties encountered\n• Per the Boyle-Huygens precedent: if initial attempts fail, document exactly what was tried and what went wrong before making adjustments",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the execution record — procedures followed, data collected, anomalies observed, and any deviations from protocol — as institutional memory for the confirmation assessment",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Reference the pre-registered protocol and any relevant procedural documentation during execution",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Replication protocol executed according to pre-registered plan",
+          "Data collected with full documentation of procedures as performed",
+          "Any deviations from protocol documented and justified",
+          "Anomalies and unexpected observations recorded",
+          "Data processed and prepared for analysis per the pre-registered pipeline",
+          "Execution record complete — ready for comparison with original results"
+        ],
+        "next_actions": [
+          "Proceed to evaluating and synthesizing the confirmation status"
+        ]
+      }
+    },
+    {
+      "id": "synthesize-confirmation-status",
+      "name": "Synthesize Confirmation Status — Declare whether findings are confirmed, contested, or refuted",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nCompare replication results to the original findings and synthesize the overall confirmation status.\n\nPer the Wikipedia article on Scientific method § Confirmation: 'Science is a social enterprise, and scientific work tends to be accepted by the scientific community when it has been confirmed.' The question is whether the evidence now warrants acceptance.\n\nPer the Wikipedia article on Reproducibility, Karl Popper stated: 'non-reproducible single occurrences are of no significance to science.' And Ronald Fisher set the bar: 'a phenomenon is experimentally demonstrable when we know how to conduct an experiment which will rarely fail to give us statistically significant results.'\n\nPer the Reproducibility Project: Psychology findings: 'Of 97 original studies with significant effects, 36% replicated successfully (p < 0.05), with effect sizes averaging half the original magnitude. Among non-replications, 25% directly contradicted the original while 49% were inconclusive due to underpowered designs.' — the categories of replication outcome are: successful replication, direct contradiction, inconclusive, and partial replication (reduced effect size).\n\nPer Wikipedia's examples of noteworthy irreproducible results: cold fusion (Pons and Fleischmann, 1989), N-rays, Polywater, STAP cells — 'Other examples where contrary evidence has refuted the original claim.' These illustrate that failed replication is a normal and essential part of science.\n\nPer the Replication Crisis article: 'Replication failures do not indicate that affected fields lack scientific rigor. Rather, they reflect the normal operation of science — a mechanism by which unsupported hypotheses are eliminated, but which often functions slowly and inconsistently.'\n\nSynthesize the confirmation status:\n• Compare direct replication results to original — effect direction, magnitude, statistical significance\n• Compare conceptual replication results — does the same pattern hold under different operationalizations?\n• Assess computational reproducibility outcome — were original analyses faithfully reproduced?\n• Classify the overall status: CONFIRMED (both replications succeed), PARTIALLY CONFIRMED (effect present but smaller), CONTESTED (mixed results across replication types), INCONCLUSIVE (insufficient power or ambiguous results), or REFUTED (consistent failure across all replication attempts)\n• Per Wikipedia § Confirmation: 'Peer review — anonymous expert evaluation of research — assesses experimental soundness rather than certifying correctness' — even confirmed findings remain provisional\n• Document what further replications, extensions, or investigations are needed\n• Per Shapin and Schaffer: acknowledge that 'the accomplishment of replication was dependent on contingent acts of judgment' — state the epistemic status with appropriate humility",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Final synthesis requires systematically comparing direct replication, conceptual replication, and computational reproducibility results against the original findings — integrating multiple evidence streams to reach a justified confirmation status with appropriate epistemic humility",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document the complete confirmation assessment — original claims, replication results, confirmation status, and remaining questions — as institutional knowledge for future inquiry and scientific record",
+            "priority": "mandatory"
+          },
+          "SearchMemories": {
+            "reason": "Final search for any related findings, prior replications, or contextual information that should inform the confirmation assessment",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Direct replication results compared to original — effect direction, magnitude, and significance evaluated",
+          "Conceptual replication results compared — generalizability across operationalizations assessed",
+          "Computational reproducibility outcome integrated into the assessment",
+          "Overall confirmation status classified: CONFIRMED, PARTIALLY CONFIRMED, CONTESTED, INCONCLUSIVE, or REFUTED",
+          "Epistemic status declared with appropriate humility per Shapin and Schaffer — replication involves contingent acts of judgment",
+          "Further replications, extensions, or investigations needed identified and documented",
+          "Complete confirmation assessment documented for institutional memory and scientific record"
+        ],
+        "next_actions": [
+          "Communicate confirmation status to relevant stakeholders",
+          "If CONFIRMED: integrate findings into the accepted knowledge base",
+          "If CONTESTED or INCONCLUSIVE: plan further targeted replication studies",
+          "If REFUTED: document the refutation and its implications for dependent theories"
+        ]
+      }
+    }
+  ]
+}

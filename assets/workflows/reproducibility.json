@@ -1,0 +1,259 @@
+{
+  "id": "reproducibility",
+  "name": "Reproducibility",
+  "emoji": "🔄",
+  "description": "A structured methodology for ensuring the reproducibility of research findings — from clarifying terminology (reproducibility, replicability, repeatability) through pre-registering hypotheses and methods, designing transparent research workflows with version-controlled data pipelines, preparing open-access datasets and code, conducting independent replication studies, and quantitatively measuring reproducibility using inter-laboratory variance components. Per Wikipedia: 'Reproducibility, closely related to replicability and repeatability, is a major principle underpinning the scientific method. For the findings of a study to be reproducible means that results obtained by an experiment or an observational study or in a statistical analysis of a data set should be achieved again with a high degree of reliability when the study is replicated.' Robert Boyle pioneered this principle: 'the foundations of knowledge should be constituted by experimentally produced facts, which can be made believable to a scientific community by their reproducibility.' Karl Popper stated that 'non-reproducible single occurrences are of no significance to science.'",
+  "specification": "https://en.wikipedia.org/wiki/Reproducibility",
+  "triggers": [
+    "reproducibility",
+    "reproducible research",
+    "replication crisis",
+    "open science",
+    "pre-registration",
+    "computational reproducibility"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "clarify-reproducibility-scope",
+      "name": "Clarify Reproducibility Scope — Distinguish between reproducibility, replicability, and repeatability",
+      "description": "Clarify the type and scope of reproducibility being pursued for the research under examination.\n\nPer the Wikipedia article on Reproducibility: 'Reproducibility, closely related to replicability and repeatability, is a major principle underpinning the scientific method.' These terms are 'often usefully differentiated in more precise senses':\n\n• **Reproducibility** (narrow, technical sense): 'Obtaining the same results when analyzing the data set of the original study again with the same procedures, many authors use the term reproducibility in a narrow, technical sense coming from its use in computational research.' This is sometimes called computational reproducibility.\n\n• **Replicability**: 'When new data are obtained in the attempt to achieve it, the term replicability is often used, and the new study is a replication or replicate of the original one.' Per the Replication Crisis article, replication types include: (1) direct — repeating procedures as closely as possible, (2) systematic — repeating with intentional changes, and (3) conceptual — testing hypotheses using different procedures to assess generalizability.\n\n• **Repeatability**: 'Related to the repetition of the experiment within the same study by the same researchers.'\n\nPer Wikipedia: 'Reproducibility in the original, wide sense is only acknowledged if a replication performed by an independent researcher team is successful.' Note the important caveat: 'The terms reproducibility and replicability sometimes appear even in the scientific literature with reversed meaning, as different research fields settled on their own definitions for the same terms.'\n\nFor the subject under examination:\n• What specific research finding, result, or claim is the reproducibility effort targeting?\n• Which type of reproducibility is being pursued — computational (same data + same code), direct replication (new data + same methods), or conceptual replication (new data + different methods)?\n• What is the original study or finding that provides the baseline?\n• What constitutes 'a high degree of reliability' for this domain?\n• Per the Replication Crisis article: are there known domain-specific challenges to reproducibility in this field?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior work related to the finding under examination — existing replications, known reproducibility challenges, and documented results that establish the baseline for this reproducibility effort",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the research domain to understand field-specific norms for reproducibility, existing replication efforts, and known methodological challenges",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Target finding or claim explicitly identified — the specific result whose reproducibility is being assessed",
+          "Reproducibility type selected and justified — computational, direct replication, systematic replication, or conceptual replication",
+          "Original study or baseline result documented with sufficient detail to guide replication",
+          "Domain-specific reproducibility norms clarified — what counts as successful replication in this field",
+          "Known challenges and prior replication attempts for this finding or domain reviewed"
+        ],
+        "next_actions": [
+          "Proceed to pre-registering the reproducibility study protocol"
+        ]
+      }
+    },
+    {
+      "id": "pre-register-study-protocol",
+      "name": "Pre-register Study Protocol — Publicly register hypotheses, methods, and analysis plan before data collection",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPre-register the reproducibility study protocol to prevent post-hoc rationalization and selective reporting.\n\nPer the Wikipedia article on Pre-registration (science): 'Preregistration is the practice of registering the hypotheses, methods, or analyses of a scientific study before it is conducted.' The goal is 'to transparently evaluate the severity of hypothesis tests.' Secondary goals include: '(a) facilitating and documenting research plans, (b) identifying and reducing questionable research practices and researcher biases, (c) distinguishing between confirmatory and exploratory analyses, and, in the case of Registered Reports, (d) facilitating results-blind peer review, and (e) reducing publication bias.'\n\nPer the Wikipedia article on Pre-registration, the standard format requires: 'research hypotheses, sampling procedure, sample size, research design, testing conditions, stimuli, measures, data coding and aggregation method, criteria for data exclusions, and statistical analyses, including potential variations on those analyses. This preregistration document is then posted on a publicly available website such as the Open Science Framework or AsPredicted.'\n\nPer the Wikipedia article on the Replication Crisis, pre-registration addresses key threats: 'publication bias' (journals preferring significant results), 'p-hacking' (manipulating statistical analyses), and 'HARKing' (Hypothesizing After Results are Known). These 'questionable research practices' are central contributors to the replication crisis.\n\nPer Wikipedia: 'Deviations from the preregistration are possible and common in practice, but they should be transparently reported, and the consequences for the severity of the test should be evaluated.'\n\nFor the reproducibility study:\n• What specific hypotheses will be tested — including the replication hypothesis (the original finding will be reproduced)?\n• What sampling procedure and sample size will be used? Per the Replication Crisis article, underpowered studies with small sample sizes are a major contributor to irreproducibility\n• What statistical analyses will be applied, and what constitutes a successful replication?\n• What are the criteria for data exclusions?\n• What is the decision rule: under what conditions will the original finding be considered reproduced vs. not reproduced?\n• Where will the pre-registration be publicly posted?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Pre-registration requires systematic specification of every element of the study protocol before data collection begins — per Wikipedia, this prevents p-hacking, HARKing, and selective reporting that contribute to the replication crisis",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Persist the pre-registered study protocol as an institutional record — this serves as the baseline against which the actual study execution will be compared, fulfilling pre-registration's transparency function",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All hypotheses stated explicitly — including the replication hypothesis and any secondary hypotheses",
+          "Sampling procedure and sample size specified and justified — addressing statistical power concerns from the Replication Crisis literature",
+          "Statistical analysis plan complete — including test statistics, significance thresholds, and decision rules for replication success/failure",
+          "Data exclusion criteria pre-specified — preventing post-hoc exclusions that inflate significance",
+          "Confirmatory analyses distinguished from exploratory analyses per Wikipedia",
+          "Pre-registration document prepared for public posting"
+        ],
+        "next_actions": [
+          "Proceed to designing the transparent research workflow"
+        ]
+      }
+    },
+    {
+      "id": "design-reproducible-workflow",
+      "name": "Design Transparent Research Workflow — Structure data acquisition, processing, and analysis as reproducible pipeline",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nDesign the research workflow as a fully transparent, reproducible pipeline following Wikipedia's reproducible research method.\n\nPer the Wikipedia article on Reproducibility, section 'Reproducible research method': 'The term reproducible research refers to the idea that scientific results should be documented in such a way that their deduction is fully transparent. This requires a detailed description of the methods used to obtain the data and making the full dataset and the code to calculate the results easily accessible. This is the essential part of open science.'\n\nPer Wikipedia, the basic workflow structure: 'A basic workflow for reproducible research involves data acquisition, data processing and data analysis.'\n\n• **Data acquisition**: 'primarily consists of obtaining primary data from a primary source such as surveys, field observations, experimental research, or obtaining data from an existing source.'\n\n• **Data processing**: 'involves the processing and review of the raw data collected in the first stage, and includes data entry, data manipulation and filtering and may be done using software. The data should be digitized and prepared for data analysis.'\n\n• **Data analysis**: 'Data may be analysed with the use of software to interpret or visualise statistics or data to produce the desired results of the research such as quantitative results including figures and tables.'\n\nPer Wikipedia, critical design principles: 'To make any research project computationally reproducible, general practice involves all data and files being clearly separated, labelled, and documented. All operations should be fully documented and automated as much as practicable, avoiding manual intervention where feasible. The workflow should be designed as a sequence of smaller steps that are combined so that the intermediate outputs from one step directly feed as inputs into the next step. Version control should be used as it lets the history of the project be easily reviewed and allows for the documenting and tracking of changes in a transparent manner.'\n\nPer Wikipedia: 'The use of software and automation enhances the reproducibility of research methods.' Systems like 'the R Markdown language or the Jupyter notebook' and 'The Open Science Framework provides a platform and useful tools to support reproducible research.'\n\nFor the research workflow design:\n• How will data acquisition be structured — what are the primary sources and collection procedures?\n• How will data processing be automated — what software, scripts, and transformation steps?\n• How will data analysis be conducted — what statistical or computational methods?\n• How is the workflow decomposed into discrete, chained steps where intermediate outputs feed as inputs to the next step?\n• What version control strategy will track all changes transparently?\n• Where is manual intervention unavoidable, and how will it be documented?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Designing a reproducible pipeline requires systematically structuring data acquisition, processing, and analysis as a sequence of smaller steps with automated handoffs — per Wikipedia, 'the workflow should be designed as a sequence of smaller steps that are combined so that the intermediate outputs from one step directly feed as inputs into the next step'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for existing workflow patterns, automation scripts, and data pipeline designs in the knowledge graph that could serve as templates for the reproducible research workflow",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Data acquisition procedures specified — sources, collection methods, and raw data format documented",
+          "Data processing pipeline designed — transformation steps automated with software, manual interventions minimized and documented",
+          "Data analysis methods specified — statistical or computational procedures fully defined",
+          "Workflow decomposed into discrete chained steps — intermediate outputs explicitly feed as inputs to subsequent steps per Wikipedia",
+          "Version control strategy established — per Wikipedia, 'lets the history of the project be easily reviewed and allows for the documenting and tracking of changes'",
+          "All files separated, labelled, and documented per Wikipedia's reproducible research method"
+        ],
+        "next_actions": [
+          "Proceed to documenting all methods with full transparency"
+        ]
+      }
+    },
+    {
+      "id": "document-methods-transparently",
+      "name": "Document Methods with Full Transparency — Make the deduction of results fully transparent",
+      "description": "Document every aspect of the research methodology so that the deduction of results is fully transparent and independently verifiable.\n\nPer the Wikipedia article on Reproducibility: 'The term reproducible research refers to the idea that scientific results should be documented in such a way that their deduction is fully transparent. This requires a detailed description of the methods used to obtain the data.'\n\nPer Ronald Fisher, quoted in the Wikipedia article: 'we may say that a phenomenon is experimentally demonstrable when we know how to conduct an experiment which will rarely fail to give us statistically significant results.' Documentation must be sufficient that anyone 'knows how to conduct' the experiment.\n\nPer Robert Boyle's founding principle as described in Wikipedia: 'the foundations of knowledge should be constituted by experimentally produced facts, which can be made believable to a scientific community by their reproducibility. By repeating the same experiment over and over again, Boyle argued, the certainty of fact will emerge.' Documentation must enable this repetition.\n\nPer the Wikipedia article on reproducibility in practice, the critical challenge: 'of 141 authors of a publication from the American Psychological Association empirical articles, 103 (73%) did not respond with their data over a six-month period.' And 'A 2018 study published in PLOS ONE found that 14.4% of a sample of public health statistics researchers had shared their data or code or both.' This demonstrates that transparency is not the norm — active effort is required.\n\nPer Wikipedia on CONSORT and EQUATOR Network: 'There have been initiatives to improve reporting and hence reproducibility in the medical literature for many years, beginning with the CONSORT initiative, which is now part of a wider initiative, the EQUATOR Network.'\n\nFor the documentation effort:\n• Are methods described in sufficient detail that an independent researcher could reproduce the study without contacting the original authors?\n• Are all parameter choices, software versions, and configuration decisions recorded?\n• Per Wikipedia: are 'all operations fully documented and automated as much as practicable'?\n• Are deviations from the pre-registered protocol transparently reported?\n• Is the documentation using a recognized reporting standard (e.g., CONSORT, EQUATOR) if applicable?\n• Per Shapin and Schaffer, quoted in Wikipedia: 'the accomplishment of replication was dependent on contingent acts of judgment' — are tacit knowledge and judgment calls made explicit?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist the complete method documentation as institutional memory — per Wikipedia, transparent documentation is 'the essential part of open science' and enables future replication by independent researchers",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Search for relevant reporting standards, documentation templates, and best practices in the knowledge graph for the specific research domain",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Methods documented in sufficient detail for independent reproduction — no consultation with original authors required",
+          "All parameter choices, software versions, and configurations recorded explicitly",
+          "Deviations from pre-registered protocol transparently reported with rationale per Wikipedia's pre-registration guidance",
+          "Tacit knowledge and judgment calls made explicit — per Shapin and Schaffer, replication depends on 'contingent acts of judgment' that must be documented",
+          "Applicable reporting standards (CONSORT, EQUATOR, or domain-specific) followed",
+          "Documentation review complete — a colleague unfamiliar with the work can follow the deduction from data to results"
+        ],
+        "next_actions": [
+          "Proceed to preparing data and code for open access"
+        ]
+      }
+    },
+    {
+      "id": "prepare-open-access-artifacts",
+      "name": "Prepare Open-Access Artifacts — Make datasets, code, and materials publicly accessible",
+      "description": "Prepare and share all research artifacts — datasets, analysis code, materials, and protocols — for public access as the practical fulfillment of open science.\n\nPer the Wikipedia article on Reproducibility: 'making the full dataset and the code to calculate the results easily accessible' is a core requirement. The article cites Buckheit and Donoho (1995) and others who established that computational reproducibility requires code sharing.\n\nPer Wikipedia, the 2017 Scientific Data article 'suggested that this may not be sufficient and that the whole analysis context should be disclosed.' This means not just data and code but the entire computational environment.\n\nPer Wikipedia: 'There are systems that facilitate such documentation, like the R Markdown language or the Jupyter notebook. The Open Science Framework provides a platform and useful tools to support reproducible research.'\n\nPer the Wikipedia article on the Replication Crisis: 'Reproducibility of this type is why many researchers make their data available to others for testing.' Data sharing enables computational reproducibility — reanalyzing the same data with the same procedures.\n\nPer Wikipedia on economics research: 'Most peer-reviewed economic journals do not take any substantive measures to ensure that published results are reproducible, however, the top economics journals have been moving to adopt mandatory data and code archives.' A study of 599 articles found 'the average compliance rate was 47.5%; and on a journal level, the average compliance rate was 38%, ranging from 13% to 99%.'\n\nFor the open-access preparation:\n• Is the full dataset available in an accessible, documented format?\n• Is all analysis code shared with sufficient documentation to execute independently?\n• Per the 2017 Scientific Data finding: is the 'whole analysis context' disclosed — including computational environment, software dependencies, and platform specifications?\n• Are materials hosted on a recognized platform (Open Science Framework, institutional repository, data journal)?\n• Per Wikipedia: is version control used so 'the history of the project can be easily reviewed'?\n• Are there legal, ethical, or privacy constraints on data sharing, and how are they addressed?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the locations and access methods for all shared research artifacts — datasets, code repositories, supplementary materials — as persistent institutional references",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Full dataset shared in documented, accessible format — or data access restrictions clearly stated with justification",
+          "All analysis code shared with execution documentation — another researcher can run the pipeline end-to-end",
+          "Whole analysis context disclosed per 2017 Scientific Data standard — computational environment, software dependencies, platform specifications",
+          "Artifacts hosted on recognized open science platform with persistent identifiers",
+          "Version control history available — per Wikipedia, enables transparent tracking of all changes",
+          "Legal, ethical, and privacy constraints on data sharing explicitly addressed"
+        ],
+        "next_actions": [
+          "Proceed to conducting independent replication"
+        ]
+      }
+    },
+    {
+      "id": "conduct-independent-replication",
+      "name": "Conduct Independent Replication — Replicate the study following the documented protocol",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nConduct the replication study following the pre-registered protocol, documenting all observations, deviations, and results.\n\nPer the Wikipedia article on Reproducibility: 'Only after one or several such successful replications should a result be recognized as scientific knowledge.' This is the core principle — the study must be replicated to achieve scientific status.\n\nPer the Wikipedia article, quoting Boyle's founding argument: 'By repeating the same experiment over and over again, Boyle argued, the certainty of fact will emerge.' The replication is the test of this certainty.\n\nPer Stefan Schmidt (2009), quoted in the Replication Crisis article: 'A replication experiment to demonstrate that the same findings can be obtained in any other place by any other researcher is conceived as an operationalization of objectivity. It is the proof that the experiment reflects knowledge that can be separated from the specific circumstances (such as time, place, or persons) under which it was gained.'\n\nPer Wikipedia on the Huygens-Boyle episode: Huygens reported 'anomalous suspension' of water in his air pump, 'but Boyle and Hooke could not replicate this phenomenon in their own pumps.' It was only after Huygens personally guided the replication in England that the result was accepted. Per Shapin and Schaffer: 'it became clear that unless the phenomenon could be produced in England with one of the two pumps available, then no one in England would accept the claims Huygens had made.'\n\nPer the Replication Crisis article, replication types:\n• **Direct replication**: 'repeating procedures as closely as possible'\n• **Systematic replication**: 'repeating with intentional changes'\n• **Conceptual replication**: 'testing hypotheses using different procedures to assess generalizability'\n\nFor the replication effort:\n• Execute the pre-registered protocol step by step — following the documented methods exactly (direct replication) or with specified modifications (systematic/conceptual replication)\n• Record all intermediate results at each pipeline stage\n• Document any deviations from the pre-registered protocol — per Wikipedia on pre-registration, 'deviations should be transparently reported'\n• Note any difficulties, ambiguities, or tacit knowledge gaps encountered during replication\n• Per Shapin and Schaffer: 'the accomplishment of replication was dependent on contingent acts of judgment. One cannot write down a formula saying when replication was or was not achieved' — document these judgment calls",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Independent replication requires systematic execution of each pipeline stage, recording intermediate results and documenting deviations — per Wikipedia, 'the accomplishment of replication was dependent on contingent acts of judgment' that must be made explicit through structured reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Search for the pre-registered protocol, documented methods, and original results to guide the replication — faithfulness to the protocol is essential for direct replication",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Pre-registered protocol executed step by step — all data acquisition, processing, and analysis stages completed",
+          "All intermediate results recorded at each pipeline stage for comparison with original study",
+          "Deviations from pre-registered protocol documented transparently with rationale per Wikipedia",
+          "Difficulties, ambiguities, and tacit knowledge gaps encountered during replication explicitly noted",
+          "Judgment calls documented per Shapin and Schaffer — where replication required interpretive decisions, these are made explicit",
+          "Final results produced and ready for comparison with original findings"
+        ],
+        "next_actions": [
+          "Proceed to measuring reproducibility quantitatively"
+        ]
+      }
+    },
+    {
+      "id": "measure-reproducibility",
+      "name": "Measure Reproducibility — Quantitatively assess whether results were reproduced with high reliability",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nQuantitatively evaluate whether the replication results achieve the standard of reproducibility — that results 'should be achieved again with a high degree of reliability.'\n\nPer the Wikipedia article on Reproducibility, section 'Measures of reproducibility and repeatability': 'In inter-laboratory experiments, a concentration or other quantity of a chemical substance is measured repeatedly in different laboratories to assess the variability of the measurements. Then, the standard deviation of the difference between two values obtained within the same laboratory is called repeatability. The standard deviation for the difference between two measurement from different laboratories is called reproducibility.' Per Wikipedia: 'These measures are related to the more general concept of variance components in metrology.'\n\nPer the Wikipedia article on the Replication Crisis, statistical evaluation requires understanding:\n• **Effect size**: the magnitude of the observed phenomenon\n• **Statistical power**: 'the probability of finding the alternative to be true when the alternative hypothesis is true' — underpowered studies are a key contributor to irreproducibility\n• **Significance level**: 'the probability of finding the alternative to be true when the null hypothesis is true'\n• Whether the replication result falls within the confidence interval of the original finding\n\nPer Ronald Fisher, quoted in Wikipedia: 'we may say that a phenomenon is experimentally demonstrable when we know how to conduct an experiment which will rarely fail to give us statistically significant results.'\n\nPer Karl Popper, quoted in Wikipedia: 'non-reproducible single occurrences are of no significance to science.'\n\nFor the reproducibility assessment:\n• Compare replication results to original results — are effect sizes consistent?\n• Assess per Wikipedia's metrology framework — what are the repeatability and reproducibility standard deviations?\n• Is the replication result statistically significant in the same direction as the original?\n• Does the replication fall within the confidence interval of the original effect estimate?\n• Per the replication crisis literature: was the study adequately powered to detect the original effect size?\n• Apply the pre-registered decision rule for replication success or failure",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Quantitative assessment of reproducibility requires systematic comparison across multiple statistical dimensions — effect sizes, confidence intervals, power analysis, and metrology-based variance components per Wikipedia's measures of reproducibility framework",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Persist the quantitative reproducibility assessment — effect size comparisons, statistical measures, and replication verdict — as institutional knowledge for future meta-scientific analysis",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Effect sizes compared between original and replication — magnitude and direction assessed",
+          "Repeatability and reproducibility standard deviations computed per Wikipedia's metrology framework where applicable",
+          "Statistical significance of replication evaluated — same direction, comparable magnitude",
+          "Confidence interval overlap assessed — replication estimate within original confidence interval or vice versa",
+          "Statistical power of replication study verified — adequate to detect the original effect size per Replication Crisis literature",
+          "Pre-registered decision rule applied — replication classified as successful, partially successful, or failed"
+        ],
+        "next_actions": [
+          "Proceed to synthesizing findings and communicating reproducibility verdict"
+        ]
+      }
+    },
+    {
+      "id": "synthesize-and-communicate",
+      "name": "Synthesize and Communicate — Report reproducibility verdict with full provenance and lessons learned",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSynthesize the complete reproducibility assessment and communicate the verdict with full epistemic provenance.\n\nPer the Wikipedia article on Reproducibility: 'For the findings of a study to be reproducible means that results obtained by an experiment or an observational study or in a statistical analysis of a data set should be achieved again with a high degree of reliability when the study is replicated. There are different kinds of replication but typically replication studies involve different researchers using the same methodology.'\n\nIf the result was reproduced, per Wikipedia: 'Only after one or several such successful replications should a result be recognized as scientific knowledge.' The finding advances toward established knowledge.\n\nIf the result was not reproduced, consider the causes documented in the Replication Crisis literature per Wikipedia:\n• **Publication bias**: 'Journals tend to publish significant or novel results, not replications or negative findings'\n• **Questionable research practices**: 'p-hacking (manipulating statistical analyses to get significant results) or HARKing (Hypothesizing After Results are Known)'\n• **Small sample sizes**: 'Leading to underpowered studies'\n• **Lack of data and code sharing**: 'Preventing others from validating or reproducing analyses'\n• **Publish or perish pressure**: 'Encourages rapid, sometimes less robust research'\n\nPer the Wikipedia article on the Replication Crisis: 'Replication failures do not indicate that affected fields lack scientific rigor. Rather, they reflect the normal operation of science — a mechanism by which unsupported hypotheses are eliminated, but which often functions slowly and inconsistently.'\n\nPer the Wikipedia article on Reproducibility regarding pharmacology: 'A Phase I discovery will be followed by Phase II reproductions as a drug develops towards commercial production. In recent decades Phase II success has fallen from 28% to 18%. A 2011 study found that 65% of medical studies were inconsistent when re-tested, and only 6% were completely reproducible.'\n\nFor the synthesis:\n• State the reproducibility verdict clearly — was the finding reproduced, partially reproduced, or not reproduced?\n• Document the complete provenance: scope definition → pre-registration → workflow design → methods documentation → open-access artifacts → replication → measurement\n• If not reproduced, analyze potential causes per the Replication Crisis framework\n• What lessons were learned about the reproducibility of this type of finding?\n• What recommendations follow for improving reproducibility in this domain?\n• Per the Open Science movement: how do these findings contribute to 'making scientific research processes more transparent, accessible, and robust'?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Final synthesis requires reviewing the entire reproducibility pipeline — from scope through measurement — to produce a coherent verdict with causal analysis of any reproducibility failures, grounded in the Replication Crisis literature per Wikipedia",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Persist the complete reproducibility assessment with verdict, provenance, causal analysis, and recommendations as institutional knowledge — this compounds the organization's meta-scientific understanding and informs future replication efforts",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Reproducibility verdict clearly stated — reproduced, partially reproduced, or not reproduced — with quantitative justification",
+          "Complete provenance documented — every stage from scope clarification through measurement linked to this final synthesis",
+          "If not reproduced: causes analyzed using Replication Crisis framework — publication bias, questionable research practices, underpowered design, or other factors assessed",
+          "Lessons learned documented — what this reproducibility effort reveals about the robustness of the finding and the domain",
+          "Recommendations articulated — specific actions to improve reproducibility in this domain going forward",
+          "Open science contribution assessed — how this work advances transparency, accessibility, and robustness per Wikipedia's Open Science framework"
+        ],
+        "next_actions": [
+          "Archive the complete reproducibility record and apply lessons to future research methodology"
+        ]
+      }
+    }
+  ]
+}

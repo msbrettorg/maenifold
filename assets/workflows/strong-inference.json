@@ -1,0 +1,411 @@
+{
+  "id": "strong-inference",
+  "name": "Strong Inference (Multi-Agent Systematic Hypothesis Elimination)",
+  "emoji": "🧬",
+  "description": "Implements John R. Platt's 'Strong Inference' method (Science, 1964) — the cyclic, multi-agent process that drives rapid scientific progress through systematic elimination of competing hypotheses. Per Wikipedia, strong inference emphasizes alternative hypotheses rather than a single hypothesis to avoid confirmation bias. Parallel agents independently devise alternative hypotheses (Step 1), a dedicated Experiment Designer crafts crucial experiments whose outcomes discriminate between them (Step 2), parallel agents execute those experiments to get clean results (Step 3), and the procedure recycles — forming a logical decision tree of elimination that converges on the strongest surviving explanation (Step 4). Platt observed that fields adhering to this method (molecular biology, high-energy physics) show order-of-magnitude acceleration in progress. Incorporates Jewett's 'Strong Inference Plus' exploratory and pilot phases.",
+  "triggers": [
+    "strong inference",
+    "Platt",
+    "multiple hypotheses",
+    "crucial experiment",
+    "systematic elimination",
+    "alternative hypotheses",
+    "hypothesis elimination",
+    "logical decision tree",
+    "Platt method",
+    "strong inference plus"
+  ],
+  "specification": "https://en.wikipedia.org/wiki/Strong_inference",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": true,
+  "steps": [
+    {
+      "id": "exploratory-framing",
+      "name": "🔭 Exploratory Framing & Problem Characterization",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nPer Jewett's 'Strong Inference Plus' extension, begin with an exploratory phase when information is inadequate. Frame the phenomenon to be explained, gather initial observations, and establish the problem situation that will seed hypothesis generation.\n\n1. **Characterize the Phenomenon**:\n   - What is the observed phenomenon, anomaly, or question?\n   - What is already known? What is unknown or contested?\n   - What are the boundary conditions and relevant context?\n   - What prior explanations (if any) have been offered?\n\n2. **Identify the Single-Hypothesis Trap**:\n   - Per Chamberlin (1897): 'The moment one has offered an original explanation... affection for one's intellectual child springs into existence... The temptation to misinterpret results that contradict the desired hypothesis is probably irresistible.'\n   - Explicitly flag any 'default' or 'obvious' hypothesis that might attract confirmation bias\n   - Commit to devising MULTIPLE alternative explanations, not just testing one\n\n3. **Exploratory Observations** (per Strong Inference Plus):\n   - Gather preliminary observations — random, intuitive, or creativity-based\n   - Identify what kinds of evidence would be informative\n   - Establish baseline measurements or known constraints\n\n4. **Scope the Elimination Tree**:\n   - How many independent alternative hypotheses are plausible? (minimum 3)\n   - What classes of explanation exist? (mechanistic, structural, functional, historical)\n   - What kinds of crucial experiments could discriminate between classes?\n\n5. **Memory Architecture**:\n```\nmemory://strong-inference/[topic]/\n├── problem-characterization.md\n├── wave-1-hypotheses/\n│   ├── hypothesis-1.md\n│   ├── hypothesis-2.md\n│   └── hypothesis-3.md\n├── crucial-experiment-design.md\n├── wave-2-experiments/\n│   ├── experiment-result-1.md\n│   ├── experiment-result-2.md\n│   └── experiment-result-3.md\n├── elimination-round-1/\n├── wave-3-refinement/\n└── final-analysis/\n```\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic problem characterization prevents premature commitment to a single hypothesis",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Phenomenon characterization",
+              "Single-hypothesis trap identification",
+              "Exploratory observations",
+              "Elimination tree scoping"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist problem characterization with [[WikiLinks]] for all hypothesis agents to read",
+            "priority": "mandatory",
+            "output": "memory://strong-inference/[topic]/problem-characterization.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Phenomenon clearly characterized with boundary conditions",
+          "Single-hypothesis trap explicitly flagged",
+          "At least 3 classes of alternative explanation identified",
+          "Exploratory observations documented",
+          "Memory architecture established"
+        ],
+        "next_actions": [
+          "Dispatch Wave 1: Parallel Hypothesis Generation agents"
+        ]
+      }
+    },
+    {
+      "id": "wave-1-hypothesis-generation",
+      "name": "🌊 Wave 1: Alternative Hypothesis Generation (Parallel Hypothesizers)",
+      "description": "🚫 BLOCKING: Dispatch ALL Hypothesis agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nThis is Step 1 of Platt's Strong Inference: 'Devising alternative hypotheses.' Per Wikipedia, strong inference requires multiple alternative hypotheses rather than a single hypothesis to avoid confirmation bias. Each agent independently proposes a plausible, testable explanation — they must be genuinely ALTERNATIVE (mutually exclusive or at least distinguishable by crucial experiment).\n\n```\nTask 1: Alternative Hypothesis — Mechanism A\nAgent: researcher\nInstruction: You are a Hypothesis Generator in Platt's Strong Inference method. Read memory://strong-inference/[topic]/problem-characterization.md. Formulate an ALTERNATIVE HYPOTHESIS that proposes a specific causal mechanism or explanatory model for the phenomenon.\n\nYour hypothesis MUST satisfy Platt's criteria:\n1. **Testable**: Makes specific, falsifiable predictions that could be tested by crucial experiment\n2. **Alternative**: Genuinely different from obvious first-guess explanations\n3. **Discriminable**: An experiment could distinguish this from other plausible hypotheses\n4. **Precise**: Specific enough that experimental outcomes can cleanly confirm or exclude it\n\nStructure:\n- State the hypothesis as a clear, testable proposition\n- Identify 3-5 specific predictions it makes\n- Specify what experimental outcomes would EXCLUDE this hypothesis\n- Specify what outcomes would SUPPORT this hypothesis over alternatives\n- Identify the key assumption(s) on which this hypothesis rests\n- Include 10+ [[WikiLinks]] (e.g., [[strong-inference]], [[alternative-hypothesis]], [[crucial-experiment]], [[confirmation-bias]])\n\nOutput: memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-1.md\n\nTask 2: Alternative Hypothesis — Mechanism B\nAgent: researcher\nInstruction: You are a Hypothesis Generator in Platt's Strong Inference method. Read memory://strong-inference/[topic]/problem-characterization.md. Formulate an ALTERNATIVE HYPOTHESIS that proposes a DIFFERENT causal mechanism or explanatory model — one that is genuinely distinguishable from Mechanism A by crucial experiment.\n\nYour hypothesis MUST satisfy Platt's criteria:\n1. **Testable**: Makes specific, falsifiable predictions\n2. **Alternative**: Substantively different from Mechanism A\n3. **Discriminable**: A crucial experiment could tell this apart from Mechanism A\n4. **Precise**: Clean experimental exclusion is possible\n\nStructure:\n- State the hypothesis as a clear, testable proposition\n- Identify 3-5 specific predictions (at least 2 must differ from Mechanism A's predictions)\n- Specify exclusion conditions and support conditions\n- Identify key assumptions\n- Include 10+ [[WikiLinks]]\n\nOutput: memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-2.md\n\nTask 3: Alternative Hypothesis — Mechanism C (Contrarian/Null)\nAgent: researcher\nInstruction: You are a Hypothesis Generator in Platt's Strong Inference method. Read memory://strong-inference/[topic]/problem-characterization.md. Formulate an ALTERNATIVE HYPOTHESIS that is either:\n(a) A contrarian explanation that challenges the most obvious assumption, OR\n(b) A null/baseline hypothesis that the phenomenon is explained by simpler processes than assumed\n\nPer Chamberlin, this prevents the 'parental affection' that leads to confirmation bias. This hypothesis serves as the crucial foil against which the others are tested.\n\n1. **Testable**: Makes specific, falsifiable predictions\n2. **Alternative**: Challenges assumptions shared by obvious explanations\n3. **Discriminable**: Crucial experiment can separate this from Mechanisms A and B\n4. **Parsimonious**: Invokes fewer entities or simpler processes where possible (per Occam's razor)\n\nStructure:\n- State which assumption is being challenged or why a simpler explanation may suffice\n- State the hypothesis as a clear, testable proposition\n- Identify 3-5 specific predictions\n- Specify exclusion conditions and support conditions\n- Include 10+ [[WikiLinks]]\n\nOutput: memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-3.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each agent MUST read the problem characterization before hypothesizing\n- Hypotheses must be genuinely ALTERNATIVE — not minor variations of the same idea\n- Every hypothesis must specify what experimental outcome would EXCLUDE it\n- Each agent works independently — no coordination between hypothesizers\n- Focus on DISCRIMINABILITY: the goal is to enable crucial experiments\n\n⏱️ Duration: 20-30 minutes per agent (all run in parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Hypothesis Generator agents, each formulating an independent alternative hypothesis",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each agent reads the problem characterization before hypothesizing",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://strong-inference/[topic]/problem-characterization.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each agent persists its alternative hypothesis independently",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-1.md",
+              "memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-2.md",
+              "memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-3.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Hypothesis Generator agents dispatched in a single message",
+          "Each hypothesis is genuinely alternative — not a minor variation",
+          "Each hypothesis includes explicit exclusion conditions for crucial experiments",
+          "Each hypothesis makes 3-5 specific testable predictions",
+          "Predictions differ across hypotheses — enabling discrimination"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Hypothesis Generator agents",
+          "Proceed to Crucial Experiment Design"
+        ]
+      }
+    },
+    {
+      "id": "crucial-experiment-design",
+      "name": "🧪 Crucial Experiment Design",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThis is Step 2 of Platt's Strong Inference: 'Devising a crucial experiment (or several of them), with alternative possible outcomes, each of which will, as nearly as possible, exclude one or more of the hypotheses.'\n\nThe Experiment Designer reads ALL hypotheses and designs experiments specifically to DISCRIMINATE between them — not merely to test each one in isolation.\n\n1. **Read All Hypotheses**:\n   - memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-1.md\n   - memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-2.md\n   - memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-3.md\n\n2. **Identify Discriminating Predictions**:\n   - For each pair of hypotheses, find predictions where they DIVERGE\n   - Map: {Hypothesis A predicts X, Hypothesis B predicts NOT-X} → crucial experiment tests X\n   - Prioritize experiments that discriminate among the MOST hypotheses simultaneously\n\n3. **Design Crucial Experiments** (per Platt):\n   - Each experiment must have alternative possible outcomes\n   - Each outcome must exclude at least one hypothesis\n   - Specify for each experiment:\n     * What is being tested (the discriminating prediction)\n     * What outcome would be observed under each hypothesis\n     * Which hypotheses are excluded by each possible outcome\n     * What constitutes a 'clean result' vs. an ambiguous one\n\n4. **Construct the Elimination Table**:\n```\n| Experiment | Outcome A      | Outcome B      | Outcome C      |\n|------------|----------------|----------------|----------------|\n| Exp 1      | Excludes H2,H3 | Excludes H1,H3 | Excludes H1,H2 |\n| Exp 2      | Excludes H1    | Excludes H2    | Ambiguous      |\n| Exp 3      | Excludes H3    | Excludes H1    | Excludes H2    |\n```\n\n5. **Pilot Phase Assessment** (per Strong Inference Plus):\n   - Can these experiments yield clean results with available methods?\n   - What sample size / precision is needed?\n   - Are there confounds that could produce ambiguous results?\n   - Design controls for each experiment\n\n6. **Assign Experiments to Wave 2 Agents**:\n   - Each agent receives a specific crucial experiment (or set) to execute\n   - Agents must be blind to which hypothesis they are 'supposed' to support\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Designing crucial experiments that discriminate between multiple hypotheses requires careful logical analysis of divergent predictions",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Discriminating prediction identification",
+              "Crucial experiment design",
+              "Elimination table construction",
+              "Confound identification"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Must read all three hypotheses to find discriminating predictions",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-1.md",
+              "memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-2.md",
+              "memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-3.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist crucial experiment designs with elimination table for experiment agents",
+            "priority": "mandatory",
+            "output": "memory://strong-inference/[topic]/crucial-experiment-design.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three hypotheses read and compared",
+          "Discriminating predictions identified for each hypothesis pair",
+          "At least 3 crucial experiments designed",
+          "Elimination table constructed showing which hypotheses each outcome excludes",
+          "Confounds and controls documented"
+        ],
+        "next_actions": [
+          "Dispatch Wave 2: Parallel Crucial Experiment Execution agents"
+        ],
+        "quality_gates": {
+          "discrimination_coverage": "Every hypothesis pair must have at least one experiment that discriminates between them",
+          "outcome_completeness": "Every experiment must specify outcomes for all hypotheses",
+          "clean_result_criteria": "Each experiment must define what constitutes a clean vs. ambiguous result"
+        }
+      }
+    },
+    {
+      "id": "wave-2-crucial-experiments",
+      "name": "🌊 Wave 2: Crucial Experiment Execution (Parallel Experimenters)",
+      "description": "🚫 BLOCKING: Dispatch ALL Experimenter agents in ONE message for parallel execution\n\n⚠️ CRITICAL: ALL THREE AGENTS MUST BE DISPATCHED SIMULTANEOUSLY IN A SINGLE MESSAGE.\n\nThis is Step 3 of Platt's Strong Inference: 'Carrying out the experiment(s) so as to get a clean result.' Each agent executes a specific crucial experiment designed to discriminate between hypotheses. Agents are 'blinded' — they execute the experiment objectively without advocating for any hypothesis.\n\n```\nTask 1: Execute Crucial Experiment 1\nAgent: researcher\nInstruction: You are an Experimenter in Platt's Strong Inference method. Your mission is to execute a crucial experiment with maximum objectivity. Read:\n- memory://strong-inference/[topic]/crucial-experiment-design.md (your assigned experiment)\n- memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-1.md\n- memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-2.md\n- memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-3.md\n\nExecute Crucial Experiment 1 as specified in the experiment design:\n\n1. **State the Experiment**: What discriminating prediction is being tested?\n2. **Execute with Rigor**: Apply the experimental protocol. For analytical/thought experiments: systematically evaluate the evidence, construct the logical argument, or apply the analytical method.\n3. **Report the Result**: What outcome was observed? Be specific and quantitative where possible.\n4. **Assess Cleanness**: Is the result clean (unambiguous) or noisy? Rate: CLEAN / MOSTLY CLEAN / AMBIGUOUS\n5. **Apply Elimination**: Based on the result, which hypothesis or hypotheses are EXCLUDED?\n6. **Document Surprises**: Did anything unexpected emerge that suggests a hypothesis not yet considered?\n\nINCLUDE 10+ [[WikiLinks]] (e.g., [[crucial-experiment]], [[strong-inference]], [[experimentum-crucis]], [[falsifiability]])\nOutput: memory://strong-inference/[topic]/wave-2-experiments/experiment-result-1.md\n\nTask 2: Execute Crucial Experiment 2\nAgent: researcher\nInstruction: You are an Experimenter in Platt's Strong Inference method. Execute Crucial Experiment 2 with maximum objectivity. Read:\n- memory://strong-inference/[topic]/crucial-experiment-design.md\n- All three hypotheses from memory://strong-inference/[topic]/wave-1-hypotheses/\n\nFollow the same protocol as Experiment 1:\n1. State the discriminating prediction being tested\n2. Execute the experiment rigorously\n3. Report the result with specificity\n4. Assess cleanness: CLEAN / MOSTLY CLEAN / AMBIGUOUS\n5. Apply elimination: which hypotheses are excluded?\n6. Document surprises or unexpected findings\n\nINCLUDE 10+ [[WikiLinks]]\nOutput: memory://strong-inference/[topic]/wave-2-experiments/experiment-result-2.md\n\nTask 3: Execute Crucial Experiment 3\nAgent: researcher\nInstruction: You are an Experimenter in Platt's Strong Inference method. Execute Crucial Experiment 3 with maximum objectivity. Read:\n- memory://strong-inference/[topic]/crucial-experiment-design.md\n- All three hypotheses from memory://strong-inference/[topic]/wave-1-hypotheses/\n\nFollow the same protocol:\n1. State the discriminating prediction being tested\n2. Execute the experiment rigorously\n3. Report the result with specificity\n4. Assess cleanness: CLEAN / MOSTLY CLEAN / AMBIGUOUS\n5. Apply elimination: which hypotheses are excluded?\n6. Document surprises or unexpected findings\n\nINCLUDE 10+ [[WikiLinks]]\nOutput: memory://strong-inference/[topic]/wave-2-experiments/experiment-result-3.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each Experimenter must be OBJECTIVE — no advocacy for any hypothesis\n- Results must be specific enough to cleanly exclude or support hypotheses\n- If results are ambiguous, say so explicitly — do not force a clean interpretation\n- Unexpected findings may suggest new hypotheses for the recycling step\n\n⏱️ Duration: 20-30 minutes per agent (all run in parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel Experimenter agents, each executing a crucial experiment objectively",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each agent reads experiment design and all hypotheses",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://strong-inference/[topic]/crucial-experiment-design.md",
+              "memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-1.md",
+              "memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-2.md",
+              "memory://strong-inference/[topic]/wave-1-hypotheses/hypothesis-3.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each agent persists its experiment results independently",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://strong-inference/[topic]/wave-2-experiments/experiment-result-1.md",
+              "memory://strong-inference/[topic]/wave-2-experiments/experiment-result-2.md",
+              "memory://strong-inference/[topic]/wave-2-experiments/experiment-result-3.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All three Experimenter agents dispatched in a single message",
+          "Each experiment result states a clear outcome",
+          "Cleanness assessment provided for each result (CLEAN / MOSTLY CLEAN / AMBIGUOUS)",
+          "Elimination verdict stated for each experiment",
+          "Unexpected findings documented where applicable"
+        ],
+        "next_actions": [
+          "Await completion of all parallel Experimenter agents",
+          "Proceed to Elimination & Recycling synthesis"
+        ]
+      }
+    },
+    {
+      "id": "elimination-and-recycling",
+      "name": "🗑️ Elimination, Subhypothesis Refinement & Recycling",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThis is Step 4 of Platt's Strong Inference: 'Recycling the procedure, making subhypotheses or sequential hypotheses to refine the possibilities that remain, and so on.' This is the critical synthesis step where the logical decision tree takes shape.\n\n1. **Read All Experiment Results**:\n   - memory://strong-inference/[topic]/wave-2-experiments/experiment-result-1.md\n   - memory://strong-inference/[topic]/wave-2-experiments/experiment-result-2.md\n   - memory://strong-inference/[topic]/wave-2-experiments/experiment-result-3.md\n\n2. **Construct the Elimination Ledger**:\n```\n| Hypothesis | Exp 1 Result | Exp 2 Result | Exp 3 Result | Status           |\n|------------|-------------|-------------|-------------|------------------|\n| H1         | Survived    | Excluded    | Survived    | ELIMINATED       |\n| H2         | Survived    | Survived    | Survived    | SURVIVING        |\n| H3         | Excluded    | Survived    | Excluded    | ELIMINATED       |\n```\n\n3. **Assess Elimination Quality**:\n   - Were all eliminations based on CLEAN results? Flag any based on ambiguous results.\n   - Is there strong convergence (one clear survivor) or residual ambiguity?\n   - Could any 'eliminated' hypothesis be rescued by modifying auxiliary assumptions?\n   - Apply [[Occams Razor]]: among surviving hypotheses, prefer the most parsimonious\n\n4. **Recycling Decision** (per Platt):\n   - If ONE hypothesis survives cleanly → proceed to final analysis\n   - If MULTIPLE hypotheses survive → form SUBHYPOTHESES:\n     * Break surviving hypotheses into more specific, discriminable variants\n     * Design new crucial experiments for the refined set\n     * This creates the next branch of the logical decision tree\n   - If NO hypotheses survive → the phenomenon may require a fundamentally new explanation\n     * Revisit assumptions in the problem characterization\n     * Consider whether the elimination criteria were too strict\n\n5. **Build the Logical Decision Tree**:\n   - Document the full elimination path: which hypotheses were proposed, which experiments were run, which were eliminated at each step\n   - This decision tree IS the knowledge product of strong inference\n   - The tree structure shows not just WHAT survived but WHY alternatives were eliminated\n\n6. **Subhypothesis Generation** (if recycling):\n   - For each surviving hypothesis, identify 2-3 more specific variants\n   - These become the hypotheses for a potential next cycle\n   - Design preliminary crucial experiments for the next cycle\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Synthesizing experiment results into an elimination ledger and deciding whether to recycle requires careful logical integration",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Elimination ledger construction",
+              "Result quality assessment",
+              "Recycling decision",
+              "Logical decision tree construction",
+              "Subhypothesis generation"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Must read all experiment results plus original hypotheses",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://strong-inference/[topic]/wave-2-experiments/experiment-result-1.md",
+              "memory://strong-inference/[topic]/wave-2-experiments/experiment-result-2.md",
+              "memory://strong-inference/[topic]/wave-2-experiments/experiment-result-3.md",
+              "memory://strong-inference/[topic]/crucial-experiment-design.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist elimination ledger, decision tree, and recycling decision",
+            "priority": "mandatory",
+            "output": "memory://strong-inference/[topic]/elimination-round-1/elimination-synthesis.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All experiment results read and integrated",
+          "Elimination ledger constructed with clear status for each hypothesis",
+          "Result quality assessed — ambiguous eliminations flagged",
+          "Recycling decision made and justified",
+          "Logical decision tree documented",
+          "Subhypotheses generated if recycling is needed"
+        ],
+        "next_actions": [
+          "If recycling: Dispatch Wave 3 refined hypothesis testing",
+          "If converged: Proceed to Knowledge Integration"
+        ],
+        "escape_hatches": {
+          "all_eliminated": "If all hypotheses eliminated, revisit problem characterization and consider whether framing was too narrow",
+          "all_survived": "If all hypotheses survived, experiments may not have been sufficiently crucial — redesign with sharper discriminating predictions",
+          "ambiguous_results": "If most results are ambiguous, consider whether clean results are achievable or if the problem requires probabilistic rather than eliminative reasoning"
+        }
+      }
+    },
+    {
+      "id": "wave-3-refinement",
+      "name": "🌊 Wave 3: Subhypothesis Refinement & Second-Order Elimination",
+      "description": "🚫 BLOCKING: Dispatch ALL agents for parallel refinement\n\n⚠️ CRITICAL: ALL AGENTS IN ONE MESSAGE FOR PARALLEL EXECUTION!\n\nPlatt's recycling step generates the fractal depth of strong inference — each elimination round spawns more specific subhypotheses and more targeted crucial experiments. This wave applies the method recursively to surviving hypotheses.\n\nAdapt agent dispatch based on elimination results:\n\n**If multiple hypotheses survived:**\n```\nTask 1: Subhypothesis Testing — Refined Variant A\nAgent: researcher\nInstruction: Read memory://strong-inference/[topic]/elimination-round-1/elimination-synthesis.md. Take the first surviving hypothesis and test its most specific, discriminable subvariant. Design and execute a targeted crucial experiment that distinguishes between subvariants of this hypothesis. Apply the same rigor: state predictions, execute experiment, assess cleanness, apply elimination.\nOutput: memory://strong-inference/[topic]/wave-3-refinement/subtest-1.md\n\nTask 2: Subhypothesis Testing — Refined Variant B\nAgent: researcher\nInstruction: Read the elimination synthesis. Take the second surviving hypothesis (or second subvariant) and test it with a targeted crucial experiment. Focus on the specific prediction that most sharply discriminates this variant from others.\nOutput: memory://strong-inference/[topic]/wave-3-refinement/subtest-2.md\n\nTask 3: Cross-Hypothesis Integration & Parsimony Check\nAgent: researcher\nInstruction: Read the elimination synthesis plus all original hypotheses and experiment results. Assess whether the surviving hypotheses might be complementary (each explaining part of the phenomenon) rather than mutually exclusive. Apply Occam's razor: could a single, simpler hypothesis subsume the survivors? Is there a more parsimonious unified explanation? Check for hidden assumptions shared across all hypotheses.\nOutput: memory://strong-inference/[topic]/wave-3-refinement/parsimony-check.md\n```\n\n**If one hypothesis survived cleanly:**\n```\nTask 1: Robustness Test — Boundary Conditions\nAgent: researcher\nInstruction: Read all outputs. The surviving hypothesis has passed initial crucial experiments. Now test its BOUNDARY CONDITIONS — under what circumstances does it break down? What edge cases or extreme scenarios would challenge it? This prevents premature confidence in the survivor.\nOutput: memory://strong-inference/[topic]/wave-3-refinement/robustness-test.md\n\nTask 2: Novel Predictions — Extending the Survivor\nAgent: researcher\nInstruction: Read all outputs. If the surviving hypothesis is correct, what NOVEL PREDICTIONS does it make beyond the original phenomenon? Identify 3-5 previously unconsidered implications. These become testable predictions for future investigation and increase the hypothesis's empirical content.\nOutput: memory://strong-inference/[topic]/wave-3-refinement/novel-predictions.md\n\nTask 3: Devil's Advocate — Final Challenge\nAgent: researcher\nInstruction: Read all outputs. Act as a Devil's Advocate: construct the STRONGEST POSSIBLE CASE against the surviving hypothesis. Is there any overlooked alternative? Any hidden assumption that, if wrong, would invalidate the elimination? Any experiment whose result was ambiguous enough to question the elimination of a rival? This is the final stress test before accepting the survivor.\nOutput: memory://strong-inference/[topic]/wave-3-refinement/devils-advocate.md\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Adapt dispatch based on elimination results (multiple survivors vs. single survivor)\n- Maintain the same rigor as earlier waves\n- Include 10+ [[WikiLinks]] per output\n\n⏱️ Duration: 20-30 minutes per agent (all run in parallel)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch three parallel agents for recursive refinement — adapted to elimination outcome",
+            "priority": "mandatory",
+            "dispatch": "parallel",
+            "agent_count": 3,
+            "agent_type": "researcher"
+          },
+          "ReadMemory": {
+            "reason": "Each agent reads the elimination synthesis and relevant prior outputs",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://strong-inference/[topic]/elimination-round-1/elimination-synthesis.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Each agent persists its refinement results",
+            "priority": "mandatory",
+            "outputs": [
+              "memory://strong-inference/[topic]/wave-3-refinement/subtest-1.md",
+              "memory://strong-inference/[topic]/wave-3-refinement/subtest-2.md",
+              "memory://strong-inference/[topic]/wave-3-refinement/parsimony-check.md"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All agents dispatched in single message",
+          "Refinement adapted to actual elimination outcome",
+          "Each agent applies full strong inference rigor",
+          "Surviving hypotheses stress-tested or subhypotheses discriminated"
+        ],
+        "next_actions": [
+          "Proceed to Knowledge Integration"
+        ]
+      }
+    },
+    {
+      "id": "knowledge-integration",
+      "name": "🧠 Knowledge Integration & Graph Construction",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nIntegrate all strong inference analysis into the maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\nTool: Sync\nScope: memory://strong-inference/[topic]/\n```\n\n2. **Concept Network Construction**:\n   - Core concept: the phenomenon under investigation\n   - Hypothesis nodes: each alternative hypothesis as a concept\n   - Experiment nodes: each crucial experiment as a concept\n   - Elimination edges: directed relationships showing which experiments eliminated which hypotheses\n   - Decision tree: the full elimination path as a concept hierarchy\n\n3. **Cross-Reference with Related Workflows**:\n   - Link to [[hypothetico-deductive]] model concepts if applicable\n   - Link to [[falsifiability]] concepts used in experiment design\n   - Link to [[occams-razor]] if parsimony was a factor in selection\n   - Link to [[confirmation-bias]] as the problem strong inference solves\n\n4. **Validate Knowledge Coherence**:\n   - Are all [[WikiLinks]] resolvable?\n   - Do concept relationships form a coherent graph?\n   - Is the decision tree fully traceable from problem to conclusion?\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "Sync": {
+            "reason": "Synchronize all strong inference outputs into the knowledge graph",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Verify concept connectivity and identify gaps in the knowledge graph",
+            "priority": "recommended"
+          },
+          "SequentialThinking": {
+            "reason": "Systematic integration of hypothesis elimination tree into graph structure",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Graph synchronized with all wave outputs",
+          "Concept relationships mapped",
+          "Cross-references to related workflows established",
+          "Knowledge coherence validated"
+        ],
+        "next_actions": [
+          "Director's meta-synthesis"
+        ]
+      }
+    },
+    {
+      "id": "meta-synthesis",
+      "name": "🎭 Director's Meta-Synthesis",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nAs Strong Inference Director, synthesize all agent findings into a coherent elimination narrative. This is where the logical decision tree becomes a unified knowledge product.\n\n1. **Read All Outputs**:\n   - Problem characterization\n   - Wave 1: All three alternative hypotheses\n   - Crucial experiment design and elimination table\n   - Wave 2: All three experiment results\n   - Elimination synthesis and recycling decision\n   - Wave 3: All refinement/robustness outputs\n\n2. **Construct the Complete Decision Tree**:\n```\nPhenomenon: [description]\n├── H1: [hypothesis] → Exp 1: [outcome] → ELIMINATED (Round 1)\n├── H2: [hypothesis] → Exp 2: [outcome] → SURVIVED\n│   ├── H2a: [subhypothesis] → Subtest: [outcome] → ELIMINATED (Round 2)\n│   └── H2b: [subhypothesis] → Subtest: [outcome] → SURVIVING ✓\n└── H3: [hypothesis] → Exp 3: [outcome] → ELIMINATED (Round 1)\n```\n\n3. **Assess the Strength of Inference**:\n   - How many hypotheses were systematically eliminated?\n   - Were eliminations based on clean results or ambiguous ones?\n   - How specific is the surviving explanation?\n   - What is the confidence level? (High: clean elimination of all rivals / Medium: some ambiguity / Low: multiple survivors)\n\n4. **Identify Remaining Uncertainty**:\n   - What would Platt's NEXT cycle look like?\n   - What subhypotheses remain untested?\n   - What new crucial experiments could further sharpen the conclusion?\n\n5. **Rate Against Strong Inference Criteria**:\n   - Were MULTIPLE alternative hypotheses genuinely considered? (not just a straw man + favored explanation)\n   - Were crucial experiments designed to DISCRIMINATE (not just confirm)?\n   - Were results clean enough for decisive elimination?\n   - Was the procedure recycled to refine surviving hypotheses?\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Synthesizing multi-wave elimination into a coherent decision tree and assessment requires deep integration",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Decision tree construction",
+              "Elimination quality assessment",
+              "Confidence calibration",
+              "Next-cycle identification"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all outputs from all waves for comprehensive synthesis",
+            "priority": "mandatory"
+          },
+          "WriteMemory": {
+            "reason": "Persist the meta-synthesis with complete decision tree",
+            "priority": "mandatory",
+            "output": "memory://strong-inference/[topic]/final-analysis/meta-synthesis.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Complete decision tree constructed",
+          "All eliminations traced with evidence",
+          "Inference strength assessed",
+          "Remaining uncertainty documented",
+          "Strong inference criteria self-assessment completed"
+        ],
+        "next_actions": [
+          "Create final Strong Inference Analysis Report"
+        ]
+      }
+    },
+    {
+      "id": "final-deliverable",
+      "name": "📋 Strong Inference Analysis Report",
+      "description": "Create the comprehensive Strong Inference analysis deliverable.\n\n1. **Report Structure**:\n```markdown\n# [Topic] — Strong Inference Analysis\n\n## Executive Summary\n- Phenomenon investigated\n- Number of alternative hypotheses considered\n- Elimination results (2-3 bullets)\n- Surviving explanation and confidence level\n\n## Problem Characterization\n- Phenomenon description and boundary conditions\n- Prior explanations and their limitations\n- The single-hypothesis trap identified and avoided\n\n## Alternative Hypotheses (Step 1)\n- H1: [hypothesis] — key predictions and exclusion conditions\n- H2: [hypothesis] — key predictions and exclusion conditions\n- H3: [hypothesis] — key predictions and exclusion conditions\n- Discriminability assessment: how each pair differs\n\n## Crucial Experiment Design (Step 2)\n- Experiment 1: [design] — discriminates between [hypotheses]\n- Experiment 2: [design] — discriminates between [hypotheses]\n- Experiment 3: [design] — discriminates between [hypotheses]\n- Elimination table showing all outcomes\n\n## Experimental Results (Step 3)\n- Experiment 1: [result] — Cleanness: [rating]\n- Experiment 2: [result] — Cleanness: [rating]\n- Experiment 3: [result] — Cleanness: [rating]\n\n## Elimination & Decision Tree (Step 4)\n- Complete logical decision tree\n- Elimination ledger with status per hypothesis\n- Recycling results (if applicable)\n\n## Surviving Explanation\n- What survived and why\n- Robustness assessment\n- Novel predictions of the survivor\n- Devil's advocate assessment\n\n## Confidence & Limitations\n- Inference strength rating\n- Ambiguous results flagged\n- Remaining uncertainty\n- Recommended next cycle of strong inference\n\n## Knowledge Graph\n- Concept network with [[WikiLinks]]\n- Key relationships between hypotheses, experiments, and outcomes\n```\n\n2. **Quality Checklist**:\n   ✓ Multiple GENUINELY alternative hypotheses were considered (not straw men)\n   ✓ Crucial experiments were designed to DISCRIMINATE (not merely confirm)\n   ✓ Results assessed for cleanness — ambiguity acknowledged\n   ✓ Elimination was SYSTEMATIC — logical decision tree fully documented\n   ✓ Procedure was recycled (subhypotheses or robustness testing)\n   ✓ 50+ [[WikiLinks]] total across all outputs\n   ✓ Every claim traceable to specific experiment results\n   ✓ Confidence level calibrated to elimination quality\n\n3. **Save Report**:\n   - memory://strong-inference/[topic]/final-analysis/strong-inference-report.md\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Create final Strong Inference analysis report with complete decision tree and [[WikiLinks]]",
+            "priority": "mandatory",
+            "output": "memory://strong-inference/[topic]/final-analysis/strong-inference-report.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Report complete with all sections populated",
+          "Quality checklist passed",
+          "Complete logical decision tree documented",
+          "All eliminations traced to specific experiment results",
+          "Confidence level calibrated"
+        ],
+        "next_actions": [
+          "Analysis complete",
+          "Knowledge graph enriched with strong inference concepts",
+          "Decision tree available for future reference"
+        ],
+        "success_criteria": {
+          "wikilink_density": "50+ total [[WikiLinks]] across all outputs (e.g., [[strong-inference]], [[crucial-experiment]], [[confirmation-bias]], [[falsifiability]], [[occams-razor]], [[alternative-hypothesis]])",
+          "hypothesis_count": "At least 3 genuinely alternative hypotheses considered",
+          "elimination_coverage": "Every hypothesis has a clear status: ELIMINATED or SURVIVING with evidence",
+          "grounding_score": "Every concept traceable to Platt (1964), Chamberlin (1897), or Wikipedia strong inference article",
+          "decision_tree_completeness": "Full elimination path documented from problem to conclusion"
+        }
+      }
+    }
+  ]
+}

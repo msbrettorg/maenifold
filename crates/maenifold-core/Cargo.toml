@@ -25,6 +25,9 @@ rmcp.workspace = true
 uuid.workspace = true
 walkdir.workspace = true
 urlencoding.workspace = true
+ort.workspace = true
+tokenizers.workspace = true
+ndarray = "0.16"
 
 [dev-dependencies]
 assert_cmd.workspace = true

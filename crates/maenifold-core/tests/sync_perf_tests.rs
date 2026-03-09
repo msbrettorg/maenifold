@@ -867,9 +867,8 @@ fn build_graph_edges_resync_does_not_duplicate_edges_co_occurrence_count_correct
     );
 }
 
-// T-0.1: RTM NFR-3
+// T-8.4: RTM FR-25.2 / FR-33.3 — sync persists real ONNX-backed file embeddings into vec_memory_files.
 #[test]
-#[ignore = "requires ONNX/sqlite-vec runtime"]
 fn generate_file_embedding_populates_vec_table_insert_or_replace_runs_to_completion() {
     let env = TestEnv::new();
     let relative_path = format!("perf-bt-001/embed-guard-{}.md", unique_suffix());
@@ -970,20 +969,20 @@ fn try_acquire_lock_atomic_behavior_held_returns_false_released_returns_true() {
     if !election.try_acquire("holder-a", 10).expect("normalize").0 {
         panic!("lock was unexpectedly held at test start");
     }
-    election.release("holder-a").expect("normalize release");
+    assert!(election.release("holder-a", 1).expect("normalize release"));
 
     let first = election.try_acquire("holder-a", 10).expect("first acquire");
-    assert_eq!(first, (true, "acquired"));
+    assert_eq!(first, (true, "acquired", 2));
 
     let second = election
         .try_acquire("holder-b", 10)
         .expect("second acquire");
-    assert_eq!(second, (false, "held_by_other"));
+    assert_eq!(second, (false, "held_by_other", 2));
 
-    election.release("holder-a").expect("release held lock");
+    assert!(election.release("holder-a", 2).expect("release held lock"));
     let third = election.try_acquire("holder-c", 10).expect("third acquire");
-    assert_eq!(third, (true, "acquired"));
-    election.release("holder-c").expect("cleanup release");
+    assert_eq!(third, (true, "acquired", 3));
+    assert!(election.release("holder-c", 3).expect("cleanup release"));
 }
 
 // T-0.1: RTM NFR-3

@@ -10,11 +10,12 @@ use crate::markdown::{
 use crate::memory::compute_decay_weight;
 use crate::sessions;
 use crate::tools::ToolContext;
+use crate::vector;
 use chrono::{DateTime, Utc};
 use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 use regex::Regex;
 use rusqlite::{
-    Connection, OptionalExtension, params,
+    Connection, OptionalExtension, params, params_from_iter,
     types::{Type, ValueRef},
 };
 use serde_json::{Value, json};
@@ -294,7 +295,7 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
     // T-4.6: RTM FR-30.1
     let holder_id = generate_sync_holder_id();
     let leader_election = LeaderElection::new(&context.config.database_path);
-    let (lease_owned, _reason_code) = if configured_role == "leader" {
+    let (lease_owned, _reason_code, epoch) = if configured_role == "leader" {
         // T-4.6: RTM FR-30.4
         leader_election.force_acquire(&holder_id, 60)?
     } else {
@@ -421,7 +422,8 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
     })();
 
     if lease_owned {
-        let _ = leader_election.release(&holder_id);
+        // T-8.1: RTM FR-30.7
+        let _ = leader_election.release(&holder_id, epoch);
     }
 
     sync_result
@@ -505,6 +507,14 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
     prune_orphaned_concepts(&tx, &affected_concepts)?;
     purge_unreferenced_concepts(&tx)?;
     record_incremental_graph_change(&tx, &sync_started_at)?;
+    let mut vector_diagnostics = VectorSyncDiagnostics::default();
+    let concept_list = new_concepts.iter().cloned().collect::<Vec<_>>();
+    // T-8.3: RTM FR-33.2 / FR-33.3 — incremental [[sync]] persists both concept and file
+    // embeddings in the same transaction as graph updates.
+    let _generated_concepts =
+        generate_concept_embeddings(&tx, &concept_list, true, &mut vector_diagnostics);
+    let _generated_file_embedding =
+        generate_file_embedding(&tx, &file_uri, &content, true, &mut vector_diagnostics);
     let mention_count = load_total_mentions_for_file(&tx, &file_uri)?;
     tx.commit()?;
 
@@ -1440,8 +1450,11 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
             .iter()
             .map(|relation| {
                 let content_preview = if include_content {
-                    match load_content_preview_map(&connection, &concept_name, &relation.source_files)
-                    {
+                    match load_content_preview_map(
+                        &connection,
+                        &concept_name,
+                        &relation.source_files,
+                    ) {
                         Ok(preview) => preview,
                         Err(error) => {
                             emit_graph_tools_diagnostic(
@@ -1482,8 +1495,11 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
             .iter()
             .map(|relation| {
                 let content_preview = if include_content {
-                    match load_content_preview_map(&connection, &relation.name, &relation.source_files)
-                    {
+                    match load_content_preview_map(
+                        &connection,
+                        &relation.name,
+                        &relation.source_files,
+                    ) {
                         Ok(preview) => preview,
                         Err(error) => {
                             emit_graph_tools_diagnostic(
@@ -3399,23 +3415,22 @@ fn query_vec_similar_concepts(
         connection.load_extension_disable()?;
     }
 
-    let exists = connection
-        .query_row(
-            "SELECT EXISTS(SELECT 1 FROM vec_concepts WHERE concept_name = ?1)",
-            [concept_name],
-            |row| row.get::<_, i64>(0),
-        )
-        .unwrap_or(0);
-    if exists == 0 {
-        return Ok(None);
-    }
+    // T-8.3: RTM FR-33.2 — FindSimilarConcepts can probe [[embedding]] similarity even when
+    // the query concept is not yet persisted in vec_concepts.
+    let query_blob = match load_concept_embedding(connection, concept_name) {
+        Ok(Some(embedding)) if !embedding.is_empty() => vector::to_sqlite_vector_blob(&embedding),
+        Ok(_) => vector::to_sqlite_vector_blob(&vector::generate_embedding(concept_name)?),
+        Err(error) if is_vec_embedding_unavailable(&error) => return Ok(None),
+        Err(error) => return Err(error),
+    };
 
     let mut statement = connection.prepare(
-        "SELECT other.concept_name, vec_distance_cosine(other.embedding, target.embedding) as distance          FROM vec_concepts other          JOIN vec_concepts target ON target.concept_name = ?1          WHERE other.concept_name != ?1            AND other.concept_name != ''            AND instr(other.concept_name, '[') = 0            AND instr(other.concept_name, ']') = 0          ORDER BY distance          LIMIT ?2",
+        "SELECT concept_name, vec_distance_cosine(embedding, ?1) as distance          FROM vec_concepts          WHERE concept_name != ?2            AND concept_name != ''            AND instr(concept_name, '[') = 0            AND instr(concept_name, ']') = 0          ORDER BY distance          LIMIT ?3",
     )?;
-    let rows = statement.query_map(params![concept_name, max_results as i64], |row| {
-        Ok((row.get::<_, String>(0)?, row.get::<_, f64>(1)?))
-    })?;
+    let rows = statement.query_map(
+        params![query_blob, concept_name, max_results as i64],
+        |row| Ok((row.get::<_, String>(0)?, row.get::<_, f64>(1)?)),
+    )?;
 
     let mut results = Vec::new();
     for row in rows {
@@ -3492,6 +3507,8 @@ impl VectorFailureReasonCodes {
     pub const CONCEPT_LOOKUP_FAILED: &'static str = "CONCEPT_LOOKUP_FAILED";
     pub const FILE_EMBEDDING_FAILED: &'static str = "FILE_EMBEDDING_FAILED";
     pub const CONCEPT_EMBEDDING_FAILED: &'static str = "CONCEPT_EMBEDDING_FAILED";
+    pub const CONCEPT_BLOB_SIZE_MISMATCH: &'static str = "CONCEPT_BLOB_SIZE_MISMATCH";
+    pub const FILE_BLOB_SIZE_MISMATCH: &'static str = "FILE_BLOB_SIZE_MISMATCH";
 }
 
 // T-QUAL-002.6b: RTM FR-25.2
@@ -3723,6 +3740,24 @@ fn collect_vector_skip_diagnostics_for_paths(
     Ok(diagnostics)
 }
 
+fn record_concept_failures(diagnostics: &mut VectorSyncDiagnostics, reason: &str, count: usize) {
+    let effective = count.max(1);
+    for _ in 0..effective {
+        diagnostics.record_concept_failure(reason);
+    }
+}
+
+fn truncate_for_file_embedding(content: &str, max_chars: usize) -> &str {
+    if content.chars().count() <= max_chars {
+        return content;
+    }
+
+    match content.char_indices().nth(max_chars) {
+        Some((index, _)) => &content[..index],
+        None => content,
+    }
+}
+
 // T-QUAL-002.6b: RTM FR-25.2
 pub fn generate_concept_embeddings(
     connection: &Connection,
@@ -3735,15 +3770,190 @@ pub fn generate_concept_embeddings(
         return 0;
     }
 
-    let table_check = connection.query_row("SELECT COUNT(*) FROM vec_concepts", [], |row| {
-        row.get::<_, i64>(0)
-    });
-    if table_check.is_err() {
-        diagnostics.record_concept_failure(VectorFailureReasonCodes::CONCEPT_LOOKUP_FAILED);
+    let expected_bytes = vector::EMBEDDING_DIMENSIONS * std::mem::size_of::<f32>();
+    let unique_concepts = concepts
+        .iter()
+        .map(|concept| normalize_concept(concept))
+        .filter(|concept| !concept.is_empty())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    if unique_concepts.is_empty() {
         return 0;
     }
 
-    0
+    let mut existing_concepts = HashSet::new();
+    for chunk in unique_concepts.chunks(900) {
+        let placeholders = std::iter::repeat_n("?", chunk.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            "SELECT concept_name FROM vec_concepts WHERE concept_name IN ({placeholders}) AND typeof(embedding) = 'blob' AND length(embedding) = {expected_bytes}"
+        );
+        let mut statement = match connection.prepare(&sql) {
+            Ok(statement) => statement,
+            Err(_) => {
+                // T-8.3: RTM FR-33.2 — scoped vec_concepts lookup failures are surfaced
+                // as concept lookup diagnostics instead of silently disabling [[embedding]] sync.
+                record_concept_failures(
+                    diagnostics,
+                    VectorFailureReasonCodes::CONCEPT_LOOKUP_FAILED,
+                    chunk.len(),
+                );
+                return 0;
+            }
+        };
+        let rows = match statement.query_map(params_from_iter(chunk.iter()), |row| {
+            row.get::<_, String>(0)
+        }) {
+            Ok(rows) => rows,
+            Err(_) => {
+                record_concept_failures(
+                    diagnostics,
+                    VectorFailureReasonCodes::CONCEPT_LOOKUP_FAILED,
+                    chunk.len(),
+                );
+                return 0;
+            }
+        };
+
+        for row in rows {
+            match row {
+                Ok(concept_name) => {
+                    existing_concepts.insert(concept_name);
+                }
+                Err(_) => {
+                    record_concept_failures(
+                        diagnostics,
+                        VectorFailureReasonCodes::CONCEPT_LOOKUP_FAILED,
+                        chunk.len(),
+                    );
+                    return 0;
+                }
+            }
+        }
+    }
+
+    let missing_concepts = unique_concepts
+        .into_iter()
+        .filter(|concept| !existing_concepts.contains(concept))
+        .collect::<Vec<_>>();
+    if missing_concepts.is_empty() {
+        return 0;
+    }
+
+    let missing_refs = missing_concepts
+        .iter()
+        .map(std::string::String::as_str)
+        .collect::<Vec<_>>();
+    let embeddings = match vector::generate_embeddings(&missing_refs, 32) {
+        Ok(embeddings) => embeddings,
+        Err(_) => {
+            record_concept_failures(
+                diagnostics,
+                VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED,
+                missing_concepts.len(),
+            );
+            return 0;
+        }
+    };
+
+    let mut generated = 0usize;
+    let mut insert_statement = match connection
+        .prepare("INSERT OR REPLACE INTO vec_concepts (concept_name, embedding) VALUES (?1, ?2)")
+    {
+        Ok(statement) => statement,
+        Err(_) => {
+            record_concept_failures(
+                diagnostics,
+                VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED,
+                missing_concepts.len(),
+            );
+            return 0;
+        }
+    };
+
+    for (concept_name, embedding) in missing_concepts.iter().zip(embeddings.iter()) {
+        let blob = vector::to_sqlite_vector_blob(embedding);
+        if blob.len() != expected_bytes {
+            diagnostics
+                .record_concept_failure(VectorFailureReasonCodes::CONCEPT_BLOB_SIZE_MISMATCH);
+            continue;
+        }
+
+        match insert_statement.execute(params![concept_name, blob]) {
+            Ok(_) => generated += 1,
+            Err(_) => diagnostics
+                .record_concept_failure(VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED),
+        }
+    }
+
+    if embeddings.len() < missing_concepts.len() {
+        record_concept_failures(
+            diagnostics,
+            VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED,
+            missing_concepts.len() - embeddings.len(),
+        );
+    }
+
+    generated
+}
+
+// T-8.3: RTM FR-33.3 — sync writes per-file [[embedding]] rows into vec_memory_files so
+// standalone Rust [[sync]] updates semantic state without relying on C#-seeded vectors.
+pub fn generate_file_embedding(
+    connection: &Connection,
+    file_path: &str,
+    content: &str,
+    vector_ready: bool,
+    diagnostics: &mut VectorSyncDiagnostics,
+) -> bool {
+    if !vector_ready || vector_sync_disabled_by_config() {
+        diagnostics.record_file_skipped();
+        return false;
+    }
+
+    // T-8.4: RTM FR-25.2 — standalone Rust sync must provision vec_memory_files even when
+    // sqlite-vec virtual tables were unavailable during initial database bootstrap.
+    if connection
+        .execute(
+            "CREATE TABLE IF NOT EXISTS vec_memory_files (
+                file_path TEXT PRIMARY KEY,
+                embedding BLOB NOT NULL
+            )",
+            [],
+        )
+        .is_err()
+    {
+        diagnostics.record_file_failure(VectorFailureReasonCodes::FILE_EMBEDDING_FAILED);
+        return false;
+    }
+
+    let expected_bytes = vector::EMBEDDING_DIMENSIONS * std::mem::size_of::<f32>();
+    let text_to_embed = truncate_for_file_embedding(content, 1000);
+    let embedding = match vector::generate_embedding(text_to_embed) {
+        Ok(embedding) => embedding,
+        Err(_) => {
+            diagnostics.record_file_failure(VectorFailureReasonCodes::FILE_EMBEDDING_FAILED);
+            return false;
+        }
+    };
+    let blob = vector::to_sqlite_vector_blob(&embedding);
+    if blob.len() != expected_bytes {
+        diagnostics.record_file_failure(VectorFailureReasonCodes::FILE_BLOB_SIZE_MISMATCH);
+        return false;
+    }
+
+    match connection.execute(
+        "INSERT OR REPLACE INTO vec_memory_files (file_path, embedding) VALUES (?1, ?2)",
+        params![file_path, blob],
+    ) {
+        Ok(_) => true,
+        Err(_) => {
+            diagnostics.record_file_failure(VectorFailureReasonCodes::FILE_EMBEDDING_FAILED);
+            false
+        }
+    }
 }
 
 // T-QUAL-002.6b: RTM FR-25.2

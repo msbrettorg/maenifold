@@ -194,7 +194,11 @@ fn spawn_worker(
                         // events from the same write burst still collapse into a single debounced batch.
                         match event_rx.recv_timeout(flush_grace_window) {
                             Ok(WatcherSignal::Event(event)) => {
-                                collect_pending_paths(&config.memory_path, &event, &mut pending_paths);
+                                collect_pending_paths(
+                                    &config.memory_path,
+                                    &event,
+                                    &mut pending_paths,
+                                );
                             }
                             Ok(WatcherSignal::Stop) => {
                                 flush_pending_paths(&config, &holder_id, &mut pending_paths);
@@ -254,7 +258,7 @@ fn process_pending_paths(config: &Config, holder_id: &str, paths: &[PathBuf]) ->
 
     let leader_election = LeaderElection::new(&config.database_path);
     // T-5.4: RTM FR-30.4 / FR-30.9
-    let (lease_owned, reason) = if role == "leader" {
+    let (lease_owned, reason, epoch) = if role == "leader" {
         leader_election.force_acquire(holder_id, 60)?
     } else {
         // T-5.4: RTM FR-30.1
@@ -271,7 +275,8 @@ fn process_pending_paths(config: &Config, holder_id: &str, paths: &[PathBuf]) ->
 
     GraphDatabase::initialize_database(config)?;
     let result = process_incremental_batch(config, paths);
-    let _ = leader_election.release(holder_id);
+    // T-8.1: RTM FR-30.7
+    let _ = leader_election.release(holder_id, epoch);
     result
 }
 

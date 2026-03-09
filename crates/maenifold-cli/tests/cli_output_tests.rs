@@ -415,9 +415,18 @@ fn search_memories_without_json_flag_returns_markdown() {
         0,
     );
 
-    assert!(text.contains("# Hybrid Search"), "unexpected output: {text}");
-    assert!(text.contains("Query: markdown-search"), "unexpected output: {text}");
-    assert!(text.contains("Found 1 result(s)"), "unexpected output: {text}");
+    assert!(
+        text.contains("# Hybrid Search"),
+        "unexpected output: {text}"
+    );
+    assert!(
+        text.contains("Query: markdown-search"),
+        "unexpected output: {text}"
+    );
+    assert!(
+        text.contains("Found 1 result(s)"),
+        "unexpected output: {text}"
+    );
     assert!(
         text.contains("- Markdown Search (memory://cli-json-tests/markdown-search)"),
         "unexpected output: {text}"

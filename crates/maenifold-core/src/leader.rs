@@ -25,16 +25,16 @@ impl LeaderElection {
         }
     }
 
-    // T-4.1: RTM FR-30.1 / FR-30.2 / FR-30.3 / FR-30.4
+    // T-8.1: RTM FR-30.1 / FR-30.2 / FR-30.3 / FR-30.4
     pub fn try_acquire(
         &self,
         holder_id: &str,
         lease_duration_secs: u64,
-    ) -> Result<(bool, &'static str)> {
+    ) -> Result<(bool, &'static str, i64)> {
         let mut connection = db::open_connection(&self.db_path)?;
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let now_ms = current_time_ms();
-        // T-4.6: RTM FR-4.2
+        // T-8.1: RTM FR-30.3 / FR-30.4
         let expires_at_ms = now_ms.saturating_add(lease_duration_ms(lease_duration_secs));
         let current = load_current_lease(&tx)?;
 
@@ -50,12 +50,13 @@ impl LeaderElection {
                      ) VALUES (?1, ?2, 1, ?3, ?4)",
                     params![SYNC_LEASE_LOCK_NAME, holder_id, expires_at_ms, now_ms],
                 )?;
-                (true, "acquired")
+                (true, "acquired", 1)
             }
             Some(current) if current.expires_at_ms <= now_ms => {
+                let next_epoch = current.epoch.saturating_add(1);
                 tx.execute(
                     "UPDATE sync_leader_lease
-                    SET holder_id = ?2,
+                     SET holder_id = ?2,
                          epoch = ?3,
                          lease_expires_at_ms = ?4,
                          updated_at_ms = ?5
@@ -63,12 +64,12 @@ impl LeaderElection {
                     params![
                         SYNC_LEASE_LOCK_NAME,
                         holder_id,
-                        current.epoch.saturating_add(1),
+                        next_epoch,
                         expires_at_ms,
                         now_ms
                     ],
                 )?;
-                (true, "acquired")
+                (true, "acquired", next_epoch)
             }
             Some(current) if current.holder_id == holder_id => {
                 tx.execute(
@@ -79,21 +80,21 @@ impl LeaderElection {
                        AND holder_id = ?2",
                     params![SYNC_LEASE_LOCK_NAME, holder_id, expires_at_ms, now_ms],
                 )?;
-                (true, "renewed")
+                (true, "renewed", current.epoch)
             }
-            Some(_) => (false, "held_by_other"),
+            Some(current) => (false, "held_by_other", current.epoch),
         };
 
         tx.commit()?;
         Ok(outcome)
     }
 
-    // T-4.6: RTM FR-4.2
+    // T-8.1: RTM FR-30.4
     pub fn force_acquire(
         &self,
         holder_id: &str,
         lease_duration_secs: u64,
-    ) -> Result<(bool, &'static str)> {
+    ) -> Result<(bool, &'static str, i64)> {
         let mut connection = db::open_connection(&self.db_path)?;
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let now_ms = current_time_ms();
@@ -110,7 +111,7 @@ impl LeaderElection {
                      ) VALUES (?1, ?2, 1, ?3, ?4)",
                     params![SYNC_LEASE_LOCK_NAME, holder_id, expires_at_ms, now_ms],
                 )?;
-                (true, "acquired")
+                (true, "acquired", 1)
             }
             Some(current) if current.holder_id == holder_id => {
                 tx.execute(
@@ -121,9 +122,10 @@ impl LeaderElection {
                        AND holder_id = ?2",
                     params![SYNC_LEASE_LOCK_NAME, holder_id, expires_at_ms, now_ms],
                 )?;
-                (true, "renewed")
+                (true, "renewed", current.epoch)
             }
             Some(current) => {
+                let next_epoch = current.epoch.saturating_add(1);
                 tx.execute(
                     "UPDATE sync_leader_lease
                      SET holder_id = ?2,
@@ -134,33 +136,44 @@ impl LeaderElection {
                     params![
                         SYNC_LEASE_LOCK_NAME,
                         holder_id,
-                        current.epoch.saturating_add(1),
+                        next_epoch,
                         expires_at_ms,
                         now_ms
                     ],
                 )?;
-                (true, "force_acquired")
+                (true, "force_acquired", next_epoch)
             }
         };
         tx.commit()?;
         Ok(outcome)
     }
 
-    // T-4.1: RTM FR-30.5 / FR-30.6
-    pub fn try_renew(&self, holder_id: &str, lease_duration_secs: u64) -> Result<bool> {
+    // T-8.1: RTM FR-30.5 / FR-30.6
+    pub fn try_renew(&self, holder_id: &str, epoch: i64, lease_duration_secs: u64) -> Result<bool> {
         let mut connection = db::open_connection(&self.db_path)?;
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let now_ms = current_time_ms();
         let expires_at_ms = now_ms.saturating_add(lease_duration_ms(lease_duration_secs));
         let renewed = match load_current_lease(&tx)? {
-            Some(current) if current.holder_id == holder_id && current.expires_at_ms > now_ms => {
+            Some(current)
+                if current.holder_id == holder_id
+                    && current.epoch == epoch
+                    && current.expires_at_ms > now_ms =>
+            {
                 tx.execute(
                     "UPDATE sync_leader_lease
-                     SET lease_expires_at_ms = ?3,
-                         updated_at_ms = ?4
+                     SET lease_expires_at_ms = ?4,
+                         updated_at_ms = ?5
                      WHERE lock_name = ?1
-                       AND holder_id = ?2",
-                    params![SYNC_LEASE_LOCK_NAME, holder_id, expires_at_ms, now_ms],
+                       AND holder_id = ?2
+                       AND epoch = ?3",
+                    params![
+                        SYNC_LEASE_LOCK_NAME,
+                        holder_id,
+                        epoch,
+                        expires_at_ms,
+                        now_ms
+                    ],
                 )?;
                 true
             }
@@ -170,19 +183,24 @@ impl LeaderElection {
         Ok(renewed)
     }
 
-    // T-4.1: RTM FR-30.7
-    pub fn release(&self, holder_id: &str) -> Result<()> {
+    // T-8.1: RTM FR-30.7
+    pub fn release(&self, holder_id: &str, epoch: i64) -> Result<bool> {
         let mut connection = db::open_connection(&self.db_path)?;
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        tx.execute(
-            // T-4.6: RTM FR-30.7
-            "DELETE FROM sync_leader_lease
-              WHERE lock_name = ?1
-                AND holder_id = ?2",
-            params![SYNC_LEASE_LOCK_NAME, holder_id],
-        )?;
+        let now_ms = current_time_ms();
+        let released = tx.execute(
+            // T-8.1: RTM FR-30.7
+            "UPDATE sync_leader_lease
+              SET holder_id = '',
+                  lease_expires_at_ms = 0,
+                  updated_at_ms = ?4
+               WHERE lock_name = ?1
+                 AND holder_id = ?2
+                 AND epoch = ?3",
+            params![SYNC_LEASE_LOCK_NAME, holder_id, epoch, now_ms],
+        )? > 0;
         tx.commit()?;
-        Ok(())
+        Ok(released)
     }
 
     // T-4.1: RTM FR-30.8

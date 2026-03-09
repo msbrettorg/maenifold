@@ -1,3 +1,4 @@
+use maenifold_core::vector;
 use maenifold_core::{Config, GraphDatabase};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
@@ -31,9 +32,8 @@ fn isolated_env() -> TestEnv {
     TestEnv { _tmp: tmp, cfg }
 }
 
-// T-0.1: RTM NFR-3 — Port of C# T-QUAL-FSC2.4 / FR-7.4 hard-measurement diagnostics.
+// T-8.4: RTM FR-7.4 — hard-measurement diagnostics now run against the real ONNX embedding pipeline.
 #[test]
-#[ignore = "ONNX-dependent"]
 fn capture_embedding_plateau_diagnostics() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
@@ -194,18 +194,12 @@ fn compute_sha256_hex(data: &[u8]) -> String {
 }
 
 fn to_sqlite_vector_blob(embedding: &[f32]) -> Vec<u8> {
-    let mut blob = Vec::with_capacity(std::mem::size_of_val(embedding));
-    for value in embedding {
-        blob.extend_from_slice(&value.to_le_bytes());
-    }
-    blob
+    vector::to_sqlite_vector_blob(embedding)
 }
 
-fn generate_embedding(_text: &str) -> Result<Vec<f32>, String> {
-    Err(
-        "ONNX embedding generation is not available in maenifold-rs yet; keep this port #[ignore] until the Rust embedding pipeline lands."
-            .to_string(),
-    )
+fn generate_embedding(text: &str) -> Result<Vec<f32>, String> {
+    // T-8.4: RTM FR-7.4 — diagnostics must exercise the real ONNX-backed [[embedding]] generator.
+    vector::generate_embedding(text).map_err(|error| error.to_string())
 }
 
 fn load_vec_extension(connection: &Connection, extension_path: &Path) -> rusqlite::Result<()> {

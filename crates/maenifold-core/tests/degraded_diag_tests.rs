@@ -116,7 +116,11 @@ fn open_connection(env: &TestEnv) -> rusqlite::Connection {
 fn load_last_accessed_timestamps_emits_degraded_on_db_failure() {
     let _guard = TEST_MUTEX.lock();
     let env = TestEnv::setup();
-    fs::write(&env.cfg.database_path, "THIS IS NOT A VALID SQLITE DATABASE FILE").expect("corrupt db");
+    fs::write(
+        &env.cfg.database_path,
+        "THIS IS NOT A VALID SQLITE DATABASE FILE",
+    )
+    .expect("corrupt db");
 
     let (result, stderr) = capture_stderr(|| list_memories(&env.markdown_context(), &json!({})));
 
@@ -166,7 +170,11 @@ fn find_asset_file_by_id_emits_degraded_on_malformed_json() {
     let env = TestEnv::setup();
     let dir = env.cfg.assets_path.join("workflows");
     fs::create_dir_all(&dir).expect("asset dir");
-    fs::write(dir.join("broken.json"), r#"{"id": BROKEN_VALUE_NOT_QUOTED}"#).expect("write broken");
+    fs::write(
+        dir.join("broken.json"),
+        r#"{"id": BROKEN_VALUE_NOT_QUOTED}"#,
+    )
+    .expect("write broken");
 
     let manager = AssetManager::new(&env.cfg);
     let (result, stderr) = capture_stderr(|| manager.read_asset(AssetKind::Workflow, "missing-id"));
@@ -196,15 +204,22 @@ fn get_asset_metadata_emits_degraded_on_malformed_json() {
         r#"{"id":"valid-1","name":"Valid Asset","description":"A valid asset"}"#,
     )
     .expect("write valid");
-    fs::write(dir.join("broken.json"), r#"{ THIS IS NOT VALID JSON AT ALL }}}"#)
-        .expect("write broken");
+    fs::write(
+        dir.join("broken.json"),
+        r#"{ THIS IS NOT VALID JSON AT ALL }}}"#,
+    )
+    .expect("write broken");
 
     let manager = AssetManager::new(&env.cfg);
     let (result, stderr) = capture_stderr(|| manager.list_assets(Some(AssetKind::Workflow)));
 
     let value = result.expect("ListAssets must degrade gracefully");
     let items = value.as_array().expect("array");
-    assert_eq!(items.len(), 1, "expected only valid asset metadata: {value}");
+    assert_eq!(
+        items.len(),
+        1,
+        "expected only valid asset metadata: {value}"
+    );
     assert_eq!(items[0]["id"], Value::String("valid-1".to_string()));
     assert!(
         stderr.contains("[DEGRADED][AssetResources][GetAssetMetadata]"),
@@ -318,7 +333,10 @@ fn payload_reader_emits_degraded_on_malformed_json_string() {
 
     let (result, stderr) = capture_stderr(|| get_string_array(&payload, "items"));
 
-    assert!(result.is_none(), "expected malformed string array to degrade to None");
+    assert!(
+        result.is_none(),
+        "expected malformed string array to degrade to None"
+    );
     assert!(
         stderr.contains("[DEGRADED][PayloadReader][GetStringArray]"),
         "expected degraded diagnostic, got: {stderr}"

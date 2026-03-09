@@ -540,7 +540,10 @@ fn abandon_session_candidate(
 
 // T-0.3: RTM NFR-4 - keep session cleanup deterministic across fresh fixture writes and
 // explicit filesystem mtime touches.
-fn should_preserve_recent_filesystem_edit(metadata: &fs::Metadata, abandonment_minutes: i64) -> bool {
+fn should_preserve_recent_filesystem_edit(
+    metadata: &fs::Metadata,
+    abandonment_minutes: i64,
+) -> bool {
     let Ok(modified_at) = metadata.modified() else {
         return false;
     };
@@ -560,8 +563,7 @@ fn metadata_change_lags_mtime(metadata: &fs::Metadata, modified_at: DateTime<Utc
     if metadata.ctime().is_negative() {
         return false;
     }
-    let changed_duration =
-        Duration::new(metadata.ctime() as u64, metadata.ctime_nsec() as u32);
+    let changed_duration = Duration::new(metadata.ctime() as u64, metadata.ctime_nsec() as u32);
     let changed_at: DateTime<Utc> = (UNIX_EPOCH + changed_duration).into();
     changed_at - modified_at > chrono::Duration::milliseconds(1)
 }

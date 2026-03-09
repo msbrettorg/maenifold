@@ -4,6 +4,7 @@ use maenifold_core::json::OutputFormat;
 use maenifold_core::memory;
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
+use maenifold_core::vector;
 use maenifold_core::{Config, GraphDatabase};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
@@ -310,11 +311,13 @@ fn search_memories_does_not_update_last_accessed() {
 
 // T-GRAPH-DECAY-002.1-3: RTM NFR-7.6.2
 #[test]
-#[ignore = "Semantic search parity is ONNX-dependent"]
 fn search_memories_semantic_mode_does_not_update_last_accessed() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     let title = "Semantic Search Test";
+    // T-8.4: RTM FR-33.1 — ensure the semantic-path regression test exercises the real ONNX runtime.
+    let probe = vector::generate_embedding("semantic search vector").expect("probe embedding");
+    assert_eq!(probe.len(), vector::EMBEDDING_DIMENSIONS);
     let uri = create_and_sync_test_file(
         &env,
         title,

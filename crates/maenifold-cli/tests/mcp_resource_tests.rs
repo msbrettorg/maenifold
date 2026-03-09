@@ -72,7 +72,10 @@ fn invoke_ok(tmp: &TempDir, tool: &str, payload: &str) -> Value {
 /// Invoke a tool in `--json` mode and assert failure. Return the error object.
 fn invoke_err(tmp: &TempDir, tool: &str, payload: &str) -> Value {
     let (envelope, code) = invoke_json(tmp, tool, payload);
-    assert_ne!(code, 0, "expected non-zero exit code; envelope = {envelope}");
+    assert_ne!(
+        code, 0,
+        "expected non-zero exit code; envelope = {envelope}"
+    );
     assert_eq!(
         envelope["success"], false,
         "expected success=false; envelope = {envelope}"
@@ -171,14 +174,15 @@ fn get_catalog_asset_metadata_is_complete() {
     let id = first["id"].as_str().expect("workflow should have 'id'");
     assert!(!id.is_empty(), "Asset id should not be empty");
 
-    let name = first["name"]
-        .as_str()
-        .expect("workflow should have 'name'");
+    let name = first["name"].as_str().expect("workflow should have 'name'");
     assert!(!name.is_empty(), "Asset name should not be empty");
 
     // emoji and description are optional but if present should be non-empty
     if let Some(emoji) = first.get("emoji").and_then(Value::as_str) {
-        assert!(!emoji.is_empty(), "If asset has emoji, it should not be empty");
+        assert!(
+            !emoji.is_empty(),
+            "If asset has emoji, it should not be empty"
+        );
     }
     if let Some(desc) = first.get("description").and_then(Value::as_str) {
         assert!(
@@ -649,7 +653,10 @@ fn read_mcp_resource_catalog_uri_returns_catalog_json() {
         result.get("multiAgentWorkflows").is_some(),
         "Catalog should contain 'multiAgentWorkflows'"
     );
-    assert!(result.get("roles").is_some(), "Catalog should contain 'roles'");
+    assert!(
+        result.get("roles").is_some(),
+        "Catalog should contain 'roles'"
+    );
     assert!(
         result.get("colors").is_some(),
         "Catalog should contain 'colors'"

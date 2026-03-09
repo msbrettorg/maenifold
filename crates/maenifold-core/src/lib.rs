@@ -15,6 +15,7 @@ pub mod registry;
 pub mod search;
 pub mod sessions;
 pub mod tools;
+pub mod vector;
 pub mod watchers;
 
 pub use assets::{AssetCatalog, AssetKind, AssetManager};

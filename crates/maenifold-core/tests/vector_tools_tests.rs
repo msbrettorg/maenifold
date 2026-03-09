@@ -2,6 +2,7 @@ use maenifold_core::db;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
+use maenifold_core::vector;
 use maenifold_core::{AssetManager, Config, GraphDatabase};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
@@ -14,8 +15,6 @@ use tempfile::TempDir;
 static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 const TEST_FOLDER: &str = "vector-tools-tests";
-const ONNX_GAP_REASON: &str =
-    "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7";
 
 struct TestEnv {
     _tmp: TempDir,
@@ -107,7 +106,10 @@ fn insert_null_embedding(env: &TestEnv, concept_name: &str) {
         .expect("insert null embedding");
 }
 
-fn invoke_repair_concepts(env: &TestEnv, payload: serde_json::Value) -> maenifold_core::Result<String> {
+fn invoke_repair_concepts(
+    env: &TestEnv,
+    payload: serde_json::Value,
+) -> maenifold_core::Result<String> {
     search::repair_concepts(&env.ctx_markdown(), &payload)
 }
 
@@ -138,8 +140,14 @@ fn encode_blob_embedding(embedding: &[f32]) -> Vec<u8> {
         .collect()
 }
 
-fn ignored_onnx_gap(test_name: &str) -> ! {
-    unimplemented!("{test_name}: {ONNX_GAP_REASON}")
+fn assert_embeddings_match(left: &[f32], right: &[f32]) {
+    assert_eq!(left.len(), right.len(), "embedding dimensions must match");
+    for (index, (left_value, right_value)) in left.iter().zip(right.iter()).enumerate() {
+        assert!(
+            (left_value - right_value).abs() <= f32::EPSILON,
+            "embeddings diverged at dimension {index}: {left_value} vs {right_value}"
+        );
+    }
 }
 
 // T-0.1: RTM NFR-3 — Ports the C# VectorToolsTests file into the Rust oracle.
@@ -172,15 +180,17 @@ fn generate_embedding_produces_consistent_384_dimensional_vectors() {
     let first = invoke_repair_concepts(&env, payload.clone()).expect("first validation run");
     let second = invoke_repair_concepts(&env, payload).expect("second validation run");
 
-    assert_eq!(first, second, "semantic validation output should be deterministic");
+    assert_eq!(
+        first, second,
+        "semantic validation output should be deterministic"
+    );
     assert!(
         first.contains("SEMANTIC VALIDATION")
             && first.contains("All variants pass semantic similarity check"),
         "expected successful semantic validation output: {first}"
     );
     assert!(
-        first.contains("Would modify:")
-            && first.contains("Total replacements: 1"),
+        first.contains("Would modify:") && first.contains("Total replacements: 1"),
         "expected dry-run replacement summary: {first}"
     );
 }
@@ -339,102 +349,223 @@ fn thread_safe_initialization_works() {
     }
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust wires native model loading.
+// T-8.4: RTM FR-33.1 — model loading succeeds against packaged ONNX assets on case-sensitive filesystems.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn vector_tools_load_model_handles_case_sensitive_file_systems() {
-    ignored_onnx_gap("VectorToolsLoadModelHandlesCaseSensitiveFileSystems");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    vector::load_model().expect("model should load from packaged assets");
+    assert!(
+        vector::is_initialized(),
+        "model should be initialized after load"
+    );
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust wires native token truncation.
+// T-8.4: RTM FR-33.1 — long inputs are truncated by the tokenizer/model pipeline and still emit 384-d embeddings.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn very_long_inputs_are_truncated_to_max_tokens() {
-    ignored_onnx_gap("VeryLongInputsAreTruncatedToMaxTokens");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    let text = "a".repeat(10_000);
+    let embedding = vector::generate_embedding(&text).expect("long embedding");
+    assert_eq!(embedding.len(), vector::EMBEDDING_DIMENSIONS);
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust exposes native model path loading.
+// T-8.4: RTM FR-33.1 — Unix path resolution finds model assets from the packaged asset root.
 #[test]
 #[cfg(unix)]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn path_resolution_works_on_unix_systems() {
-    ignored_onnx_gap("PathResolutionWorksOnUnixSystems");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    vector::load_model().expect("unix asset path resolution should load model");
+    assert!(vector::is_initialized(), "model should remain initialized");
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust exposes embedding diagnostics.
+// T-8.4: RTM FR-33.1 — runtime initialization state provides actionable diagnostics after model load.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn diagnostic_logging_provides_useful_information() {
-    ignored_onnx_gap("DiagnosticLoggingProvidesUsefulInformation");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    vector::load_model().expect("model load");
+    assert!(
+        vector::is_initialized(),
+        "diagnostic state should report initialized"
+    );
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust exposes ONNX inference reuse.
+// T-8.4: RTM FR-33.1 — repeated inferences reuse the ONNX session and return full-size embeddings.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn onnx_session_handles_multiple_inferences() {
-    ignored_onnx_gap("OnnxSessionHandlesMultipleInferences");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    let texts = [
+        "alpha concept",
+        "beta concept",
+        "gamma concept",
+        "delta concept",
+        "epsilon concept",
+    ];
+    let embeddings = vector::generate_embeddings(&texts, 5).expect("batch embeddings");
+    assert_eq!(embeddings.len(), texts.len());
+    for embedding in embeddings {
+        assert_eq!(embedding.len(), vector::EMBEDDING_DIMENSIONS);
+    }
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust exposes model cleanup/reload hooks.
+// T-8.4: RTM FR-33.1 — cleanup drops model resources and a later load reinitializes them safely.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn cleanup_properly_disposes_resources() {
-    ignored_onnx_gap("CleanupProperlyDisposesResources");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    vector::load_model().expect("initial model load");
+    assert!(
+        vector::is_initialized(),
+        "model should be initialized before cleanup"
+    );
+    vector::cleanup();
+    assert!(
+        !vector::is_initialized(),
+        "cleanup should dispose initialized resources"
+    );
+    vector::load_model().expect("reload after cleanup");
+    assert!(
+        vector::is_initialized(),
+        "model should reinitialize after cleanup"
+    );
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust wires tokenizer vocabulary loading.
+// T-8.4: RTM FR-33.1 — the packaged vocabulary/tokenizer assets resolve correctly during load.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn vocabulary_loading_handles_missing_file() {
-    ignored_onnx_gap("VocabularyLoadingHandlesMissingFile");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    vector::load_model().expect("real vocab file should load with model");
+    let embedding = vector::generate_embedding("tokenizer vocabulary check").expect("embedding");
+    assert_eq!(embedding.len(), vector::EMBEDDING_DIMENSIONS);
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust can compare ONNX vs fallback quality.
+// T-8.4: RTM FR-33.1 — real ONNX embeddings contain signal rather than fallback-like zero or uniform vectors.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn embedding_quality_differs_between_onnx_and_fallback() {
-    ignored_onnx_gap("EmbeddingQualityDiffersBetweenOnnxAndFallback");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    let embedding = vector::generate_embedding("graph semantic search quality").expect("embedding");
+    assert!(
+        embedding.iter().any(|value| value.abs() > f32::EPSILON),
+        "real embedding should not be all zeros"
+    );
+    let first = embedding[0];
+    assert!(
+        embedding
+            .iter()
+            .any(|value| (value - first).abs() > f32::EPSILON),
+        "real embedding should not be uniform"
+    );
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust exposes batch embedding generation.
+// T-8.4: RTM FR-33.1 — a single-item batch must match the individual embedding exactly.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn fr33_1_ac1_batch_produces_identical_output() {
-    ignored_onnx_gap("FR33_1_AC1_BatchProducesIdenticalOutput");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    let text = "batch parity example";
+    let individual = vector::generate_embedding(text).expect("individual embedding");
+    let batched = vector::generate_embeddings(&[text], 1).expect("single-item batch");
+    assert_eq!(batched.len(), 1);
+    assert_embeddings_match(&individual, &batched[0]);
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust exposes batch chunking controls.
+// T-8.4: RTM FR-33.1 — chunked batch execution with max_batch=2 still embeds every requested text.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn fr33_1_ac2_batch_chunking_respects_max_batch_five_texts_with_max_batch_two_all_five_embedded() {
-    ignored_onnx_gap("FR33_1_AC2_BatchChunkingRespectsMaxBatch_FiveTextsWithMaxBatchTwo_AllFiveEmbedded");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    let texts = ["one", "two", "three", "four", "five"];
+    let embeddings = vector::generate_embeddings(&texts, 2).expect("chunked embeddings");
+    assert_eq!(embeddings.len(), texts.len());
+    for embedding in embeddings {
+        assert_eq!(embedding.len(), vector::EMBEDDING_DIMENSIONS);
+    }
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust exposes batch empty/null generation.
+// T-8.4: RTM FR-33.1 — empty/blank inputs preserve the zero-vector behavior in both individual and batched APIs.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn fr33_1_ac3_batch_empty_null_inputs_produce_zero_vectors_matching_individual_behavior() {
-    ignored_onnx_gap("FR33_1_AC3_BatchEmptyNullInputsProduceZeroVectors_MatchingIndividualBehavior");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    let individual_empty = vector::generate_embedding("").expect("empty individual");
+    let individual_blank = vector::generate_embedding("   ").expect("blank individual");
+    let batched = vector::generate_embeddings(&["", "   "], 2).expect("empty batch");
+    let expected_zero = vec![0.0; vector::EMBEDDING_DIMENSIONS];
+    assert_eq!(batched.len(), 2);
+    assert_eq!(individual_empty, expected_zero);
+    assert_eq!(individual_blank, expected_zero);
+    assert_eq!(batched[0], expected_zero);
+    assert_eq!(batched[1], expected_zero);
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust exposes bit-for-bit batch inference parity.
+// T-8.4: RTM FR-33.1 — batch and individual single-text embeddings are bit-for-bit identical.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn nfr33_1_ac1_batch_and_individual_embeddings_are_bit_for_bit_identical_single_text() {
-    ignored_onnx_gap("NFR33_1_AC1_BatchAndIndividualEmbeddingsAreBitForBitIdentical_SingleText");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    let text = "bit-for-bit parity check";
+    let individual = vector::generate_embedding(text).expect("individual embedding");
+    let batched = vector::generate_embeddings(&[text], 32).expect("batched embedding");
+    assert_eq!(batched.len(), 1);
+    assert_embeddings_match(&individual, &batched[0]);
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust exposes the default maxBatch=32 contract.
+// T-8.4: RTM FR-33.2 — the default max batch size of 32 still processes inputs larger than a single chunk.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn nfr33_2_ac2_default_max_batch_is_32_larger_input_set_still_produces_all_embeddings() {
-    ignored_onnx_gap("NFR33_2_AC2_DefaultMaxBatchIs32_LargerInputSetStillProducesAllEmbeddings");
+    let _guard = TEST_MUTEX.lock();
+    vector::cleanup();
+    let texts = (0..40)
+        .map(|index| format!("concept sample {index}"))
+        .collect::<Vec<_>>();
+    let refs = texts.iter().map(String::as_str).collect::<Vec<_>>();
+    let embeddings = vector::generate_embeddings(&refs, 0).expect("default-batch embeddings");
+    assert_eq!(embeddings.len(), texts.len());
+    for embedding in embeddings {
+        assert_eq!(embedding.len(), vector::EMBEDDING_DIMENSIONS);
+    }
 }
 
-// T-7.1: RTM NFR-3 — C# parity port placeholder until Rust sync generates/scopes concept vectors.
+// T-8.4: RTM FR-25.2 / FR-33.2 — vec_concepts existence checks are scoped to requested concepts so unrelated rows do not skip new embeddings.
 #[test]
-#[ignore = "ONNX embedding generation is not implemented in Rust yet; tracked by T-7.1..T-7.7"]
 fn fr33_2_ac4_scoped_vec_concepts_lookup_unrelated_existing_concepts_do_not_cause_new_concepts_to_be_skipped()
-{
-    ignored_onnx_gap("FR33_2_AC4_ScopedVecConceptsLookup_UnrelatedExistingConceptsDoNotCauseNewConceptsToBeSkipped");
+ {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    ensure_regular_vec_concepts_table(&env);
+    let connection = db::open_connection(&env.cfg.database_path).expect("open db");
+    let existing = vector::generate_embedding("existing concept").expect("existing embedding");
+    connection
+        .execute(
+            "INSERT INTO vec_concepts (concept_name, embedding) VALUES (?1, ?2)",
+            params!["existing-concept", vector::to_sqlite_vector_blob(&existing)],
+        )
+        .expect("insert unrelated concept");
+
+    let mut diagnostics = search::VectorSyncDiagnostics::default();
+    let generated = search::generate_concept_embeddings(
+        &connection,
+        &[String::from("new-concept")],
+        true,
+        &mut diagnostics,
+    );
+    assert_eq!(generated, 1, "new concept should still be embedded");
+
+    let blob = connection
+        .query_row(
+            "SELECT embedding FROM vec_concepts WHERE concept_name = ?1",
+            params!["new-concept"],
+            |row| row.get::<_, Vec<u8>>(0),
+        )
+        .expect("embedded concept row");
+    assert_eq!(
+        blob.len(),
+        vector::EMBEDDING_DIMENSIONS * std::mem::size_of::<f32>()
+    );
 }

@@ -1,6 +1,7 @@
 use maenifold_core::json::OutputFormat;
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
+use maenifold_core::vector;
 use maenifold_core::{AssetManager, Config, GraphDatabase};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
@@ -49,20 +50,18 @@ fn find_similar_concepts(env: &TestEnv, concept_name: &str, max_results: u64) ->
     .expect("find similar concepts")
 }
 
-fn deterministic_embedding_blob(concept: &str) -> Vec<u8> {
-    let mut embedding = [0.0_f32; 384];
-    for (index, byte) in concept.bytes().enumerate() {
-        embedding[index % embedding.len()] += f32::from(byte) / 255.0;
-    }
-
-    embedding
-        .into_iter()
-        .flat_map(f32::to_le_bytes)
-        .collect::<Vec<_>>()
-}
-
 fn seed_vec_concept(connection: &Connection, concept: &str) {
-    let blob = deterministic_embedding_blob(concept);
+    let embedding = vector::generate_embedding(concept).expect("concept embedding");
+    let blob = vector::to_sqlite_vector_blob(&embedding);
+    connection
+        .execute(
+            "CREATE TABLE IF NOT EXISTS vec_concepts (
+                concept_name TEXT PRIMARY KEY,
+                embedding BLOB NOT NULL
+            )",
+            [],
+        )
+        .expect("create vec_concepts");
     connection
         .execute(
             "DELETE FROM vec_concepts WHERE concept_name = ?1",
@@ -184,7 +183,6 @@ fn find_similar_concepts_when_max_results_out_of_range_returns_validation_error(
 }
 
 #[test]
-#[ignore = "ONNX/vector-extension dependent"]
 fn find_similar_concepts_when_it_returns_results_never_emits_similarity_greater_than_one() {
     // T-QUAL-FSC2: RTM FR-7.4
     let _guard = TEST_MUTEX.lock();

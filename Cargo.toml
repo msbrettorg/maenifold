@@ -31,7 +31,7 @@ pulldown-cmark = "0.13.0"
 sha2 = "0.10.9"
 base64 = "0.22.1"
 uuid = { version = "1.18.1", features = ["v4", "serde"] }
-ort = { version = "2.0.0-rc.12", default-features = false, features = ["std", "ndarray", "download-binaries", "copy-dylibs", "api-24"] }
+ort = { version = "2.0.0-rc.12", default-features = false, features = ["std", "ndarray", "download-binaries", "copy-dylibs", "tls-rustls"] }
 tokenizers = "0.22.2"
 tempfile = "3.23.0"
 assert_cmd = "2.1.1"

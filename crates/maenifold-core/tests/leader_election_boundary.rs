@@ -60,10 +60,11 @@ fn first_acquire_succeeds_when_no_existing_leader() {
     let (_tmp, cfg) = isolated_env();
     let election = leader_election(&cfg);
 
-    let (acquired, reason) = election.try_acquire("holder-a", 5).expect("acquire");
+    let (acquired, reason, epoch) = election.try_acquire("holder-a", 5).expect("acquire");
 
     assert!(acquired);
     assert_eq!(reason, "acquired");
+    assert_eq!(epoch, 1);
     assert!(election.is_leader("holder-a").expect("is leader"));
 
     let lease = current_lease(&cfg).expect("lease row");
@@ -84,16 +85,16 @@ fn same_holder_reacquire_renews_existing_lease() {
     let election = leader_election(&cfg);
 
     let first = election.try_acquire("holder-a", 1).expect("first acquire");
-    assert_eq!(first, (true, "acquired"));
+    assert_eq!(first, (true, "acquired", 1));
     let initial = current_lease(&cfg).expect("initial lease");
 
     thread::sleep(Duration::from_millis(25));
 
     let second = election.try_acquire("holder-a", 5).expect("second acquire");
-    let renewed = election.try_renew("holder-a", 5).expect("renew");
+    let renewed = election.try_renew("holder-a", initial.1, 5).expect("renew");
     let current = current_lease(&cfg).expect("renewed lease");
 
-    assert_eq!(second, (true, "renewed"));
+    assert_eq!(second, (true, "renewed", initial.1));
     assert!(renewed, "active leader should renew successfully");
     assert_eq!(current.0, "holder-a");
     assert_eq!(current.1, initial.1, "re-acquire must not bump epoch");
@@ -111,14 +112,14 @@ fn different_holder_is_blocked_while_lease_is_active() {
 
     assert_eq!(
         election.try_acquire("holder-a", 5).expect("acquire"),
-        (true, "acquired")
+        (true, "acquired", 1)
     );
 
     let outcome = election
         .try_acquire("holder-b", 5)
         .expect("blocked acquire");
 
-    assert_eq!(outcome, (false, "held_by_other"));
+    assert_eq!(outcome, (false, "held_by_other", 1));
     assert!(election.is_leader("holder-a").expect("leader a"));
     assert!(!election.is_leader("holder-b").expect("leader b"));
 
@@ -139,7 +140,7 @@ fn expired_lease_allows_new_holder_to_acquire() {
         election
             .try_acquire("holder-a", 1)
             .expect("initial acquire"),
-        (true, "acquired")
+        (true, "acquired", 1)
     );
     sleep_for_expiry();
 
@@ -147,7 +148,7 @@ fn expired_lease_allows_new_holder_to_acquire() {
         .try_acquire("holder-b", 1)
         .expect("takeover acquire");
 
-    assert_eq!(outcome, (true, "acquired"));
+    assert_eq!(outcome, (true, "acquired", 2));
     assert!(!election.is_leader("holder-a").expect("old leader expired"));
     assert!(election.is_leader("holder-b").expect("new leader active"));
 
@@ -163,14 +164,14 @@ fn release_clears_leadership() {
     let (_tmp, cfg) = isolated_env();
     let election = leader_election(&cfg);
 
-    election.try_acquire("holder-a", 5).expect("acquire");
-    election.release("holder-a").expect("release");
+    let (_, _, epoch) = election.try_acquire("holder-a", 5).expect("acquire");
+    assert!(election.release("holder-a", epoch).expect("release"));
 
     assert!(!election.is_leader("holder-a").expect("released leader"));
     let remaining = current_lease(&cfg);
     assert!(
-        remaining.is_none(),
-        "release should delete lease row, found {remaining:?}"
+        matches!(remaining, Some((ref holder_id, released_epoch, 0, _)) if holder_id.is_empty() && released_epoch == epoch),
+        "release should preserve row with empty holder and zero expiry, found {remaining:?}"
     );
 }
 
@@ -189,7 +190,7 @@ fn is_leader_returns_correct_status() {
     );
     assert_eq!(
         election.try_acquire("holder-a", 1).expect("acquire"),
-        (true, "acquired")
+        (true, "acquired", 1)
     );
     assert!(election.is_leader("holder-a").expect("leader active"));
     assert!(
@@ -200,7 +201,7 @@ fn is_leader_returns_correct_status() {
 
     assert!(
         election
-            .try_renew("holder-a", 1)
+            .try_renew("holder-a", 1, 1)
             .expect("renew active lease")
     );
     sleep_for_expiry();
@@ -208,7 +209,7 @@ fn is_leader_returns_correct_status() {
     assert!(!election.is_leader("holder-a").expect("lease expired"));
     assert!(
         !election
-            .try_renew("holder-a", 1)
+            .try_renew("holder-a", 1, 1)
             .expect("cannot renew expired lease")
     );
 }

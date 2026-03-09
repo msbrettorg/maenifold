@@ -41,7 +41,7 @@ fn current_lease(cfg: &Config) -> Option<(String, i64, i64, i64)> {
     conn.query_row(
         "SELECT holder_id, epoch, lease_expires_at_ms, updated_at_ms
          FROM sync_leader_lease
-         WHERE lock_name = 'sync'",
+         WHERE lock_name = 'sync_leader'",
         [],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
     )

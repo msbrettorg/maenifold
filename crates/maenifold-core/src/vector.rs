@@ -107,7 +107,9 @@ pub fn generate_embeddings(texts: &[&str], max_batch: usize) -> Result<Vec<Vec<f
             if text.trim().is_empty() {
                 None
             } else {
-                Some((index, *text))
+                // T-8.5a: RTM FR-33.1 / FR-33.2 / FR-33.3 — cap raw input before
+                // tokenization so huge documents do not pay unnecessary tokenizer cost.
+                Some((index, text.chars().take(10_000).collect::<String>()))
             }
         })
         .collect::<Vec<_>>();
@@ -144,7 +146,7 @@ pub fn generate_embeddings(texts: &[&str], max_batch: usize) -> Result<Vec<Vec<f
             let encoding = state
                 .tokenizer
                 .tokenizer
-                .encode(*text, true)
+                .encode(text.as_str(), true)
                 .map_err(|error| {
                     MaenifoldError::Message(format!("tokenizer encode failed: {error}"))
                 })?;

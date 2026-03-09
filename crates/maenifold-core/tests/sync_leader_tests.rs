@@ -49,7 +49,7 @@ fn current_lease(cfg: &Config) -> Option<LeaseRow> {
     conn.query_row(
         "SELECT holder_id, epoch, lease_expires_at_ms, updated_at_ms
          FROM sync_leader_lease
-         WHERE lock_name = 'sync'",
+         WHERE lock_name = 'sync_leader'",
         [],
         |row| {
             Ok(LeaseRow {
@@ -68,7 +68,7 @@ fn expire_lease(cfg: &Config) {
         .execute(
             "UPDATE sync_leader_lease
              SET lease_expires_at_ms = 1
-             WHERE lock_name = 'sync'",
+             WHERE lock_name = 'sync_leader'",
             params![],
         )
         .expect("expire lease");

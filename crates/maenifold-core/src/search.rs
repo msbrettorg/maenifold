@@ -306,11 +306,17 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
     }
 
     let sync_result = (|| -> Result<String> {
+        let mut connection = db::open_connection(&context.config.database_path)?;
+        // T-8.5a: RTM FR-25.2 / FR-33.2 / FR-33.3 — full [[sync]] only emits vector work
+        // when sqlite-vec is actually available on the current platform/runtime.
+        let vector_disabled = vector_sync_disabled_by_config();
+        let vector_ready =
+            !vector_disabled && vec0_extension_available(&connection, &context.config.assets_path);
         let file_uris = get_memory_files(&context.config, None)?;
         let file_uri_set = file_uris.iter().cloned().collect::<HashSet<_>>();
-        let mut connection = db::open_connection(&context.config.database_path)?;
         let tx = connection.transaction()?;
         let sync_started_at = current_iso_timestamp();
+        let mut processed_files = Vec::new();
 
         delete_missing_files(&tx, &file_uri_set)?;
 
@@ -353,9 +359,25 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
                 metadata.len() as i64,
                 &indexed_at,
             )?;
+            processed_files.push((uri.clone(), content));
         }
 
         let total_mentions = rebuild_graph_from_mentions(&tx, &sync_started_at)?;
+        let concept_list = load_all_concept_names(&tx)?;
+        let mut vector_diagnostics = VectorSyncDiagnostics::default();
+        // T-8.5a: RTM FR-25.2 / FR-33.2 / FR-33.3 — full [[sync]] rebuilds concept and
+        // file embeddings after graph state converges so semantic tooling stays aligned.
+        let _generated_concepts =
+            generate_concept_embeddings(&tx, &concept_list, vector_ready, &mut vector_diagnostics);
+        for (file_uri, content) in &processed_files {
+            let _generated_file_embedding = generate_file_embedding(
+                &tx,
+                file_uri,
+                content,
+                vector_ready,
+                &mut vector_diagnostics,
+            );
+        }
 
         tx.commit()?;
 
@@ -389,16 +411,25 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
             community::detect_and_persist(&context.config.database_path, gamma)? as i64;
         reset_incremental_community_state(&connection, &sync_started_at)?;
 
-        let vector_section = if vector_sync_disabled_by_config() {
-            let diagnostics =
-                collect_vector_skip_diagnostics_for_uris(&context.config, &file_uris)?;
+        let vector_section = if vector_disabled {
             Some(
                 build_vector_unavailable_report(
-                    &diagnostics,
+                    &vector_diagnostics,
                     VectorUnavailableReasonCodes::DISABLED_BY_CONFIG,
                 )
                 .join("\n"),
             )
+        } else if !vector_ready {
+            Some(
+                build_vector_unavailable_report(
+                    &vector_diagnostics,
+                    VectorUnavailableReasonCodes::UNKNOWN,
+                )
+                .join("\n"),
+            )
+        } else if vector_diagnostics.total_failures() > 0 || vector_diagnostics.total_skipped() > 0
+        {
+            Some(build_vector_failure_report(&vector_diagnostics).join("\n"))
         } else {
             None
         };
@@ -3419,7 +3450,12 @@ fn query_vec_similar_concepts(
     // the query concept is not yet persisted in vec_concepts.
     let query_blob = match load_concept_embedding(connection, concept_name) {
         Ok(Some(embedding)) if !embedding.is_empty() => vector::to_sqlite_vector_blob(&embedding),
-        Ok(_) => vector::to_sqlite_vector_blob(&vector::generate_embedding(concept_name)?),
+        // T-8.5a: RTM FR-7.4 / FR-33.2 — on-the-fly query embedding failures must degrade
+        // to graph-based fallback instead of crashing FindSimilarConcepts.
+        Ok(_) => match vector::generate_embedding(concept_name) {
+            Ok(embedding) => vector::to_sqlite_vector_blob(&embedding),
+            Err(_) => return Ok(None),
+        },
         Err(error) if is_vec_embedding_unavailable(&error) => return Ok(None),
         Err(error) => return Err(error),
     };
@@ -3487,6 +3523,23 @@ fn vec0_extension_path(assets_path: &Path) -> Option<PathBuf> {
     };
     let path = assets_path.join("native").join(platform_dir).join(filename);
     path.exists().then_some(path)
+}
+
+// T-8.5a: RTM FR-25.2 / FR-33.2 / FR-33.3 — full [[sync]] gates vector work on an
+// actual sqlite-vec load check so diagnostics degrade cleanly when vec0 is absent.
+fn vec0_extension_available(connection: &Connection, assets_path: &Path) -> bool {
+    let Some(extension_path) = vec0_extension_path(assets_path) else {
+        return false;
+    };
+
+    unsafe {
+        if connection.load_extension_enable().is_err() {
+            return false;
+        }
+        let load_result = connection.load_extension(&extension_path, None::<&str>);
+        let disable_result = connection.load_extension_disable();
+        load_result.is_ok() && disable_result.is_ok()
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -3705,22 +3758,19 @@ pub fn build_vector_unavailable_report(
     ]
 }
 
-// T-QUAL-002.6b: RTM FR-25.2
-fn collect_vector_skip_diagnostics_for_uris(
-    config: &crate::Config,
-    file_uris: &[String],
-) -> Result<VectorSyncDiagnostics> {
-    let mut diagnostics = VectorSyncDiagnostics::default();
-    let mut concepts = BTreeSet::new();
+// T-8.5a: RTM FR-25.2 / FR-33.2 — full [[sync]] embedding refreshes need the deduplicated
+// concept set from the rebuilt graph before generating vec_concepts rows.
+fn load_all_concept_names(connection: &Connection) -> Result<Vec<String>> {
+    let mut statement =
+        connection.prepare("SELECT concept_name FROM concepts WHERE concept_name != ''")?;
+    let rows = statement.query_map([], |row| row.get::<_, String>(0))?;
 
-    for uri in file_uris {
-        let (_, content, _) = read_markdown(uri, config)?;
-        diagnostics.record_file_skipped();
-        concepts.extend(extract_wikilinks(&content));
+    let mut concepts = BTreeSet::new();
+    for row in rows {
+        concepts.insert(row?);
     }
 
-    diagnostics.record_concept_skipped(concepts.len());
-    Ok(diagnostics)
+    Ok(concepts.into_iter().collect())
 }
 
 // T-QUAL-002.6b: RTM FR-25.2

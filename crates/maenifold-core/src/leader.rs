@@ -3,7 +3,8 @@ use crate::db;
 use rusqlite::{OptionalExtension, TransactionBehavior, params};
 use std::path::{Path, PathBuf};
 
-const SYNC_LEASE_LOCK_NAME: &str = "sync";
+// T-8.5a: RTM FR-30.1 — Rust sync leader lease names must match C# production callers.
+const SYNC_LEASE_LOCK_NAME: &str = "sync_leader";
 const MAX_LEASE_DURATION_SECS: u64 = 300;
 
 #[derive(Debug, Clone)]

@@ -76,3 +76,29 @@
 - Git diff exceeds RTM scope → STOP immediately
 - Parity test timing values → structure-only comparison (not exact values)
 - C# oracle assumptions filter bug → document divergence, use correct path
+
+---
+
+## Sprint 9 — Dynamic Model Loading + CI/CD
+
+### FR-7: Dynamic Model Loading (`vector.rs`)
+- □ RTM-050: System discovers *.onnx files in assets/models/ and selects largest | TC-7.1 | Boundary
+- □ RTM-051: Embedding dimensions are read from model output tensor, not hardcoded | TC-7.2 | Boundary
+- □ RTM-052: Tokenizer loads from tokenizer.json when present (HuggingFace standard) | TC-7.3 | Boundary
+- □ RTM-053: Tokenizer falls back to vocab.txt + tokenizer_config.json when tokenizer.json absent | TC-7.4 | Boundary
+- □ RTM-054: Max tokens read from tokenizer config, defaults to 512 | TC-7.5 | Boundary
+- □ RTM-055: No model present → graceful degradation, generate_embedding returns Err | TC-7.6 | Boundary
+- □ RTM-056: Multiple *.onnx files → largest by file size is selected | TC-7.7 | Boundary
+
+### FR-8: Dynamic Vec0 Schema (`db.rs`)
+- □ RTM-057: model_metadata table stores model filename + embedding dimensions | TC-8.1 | Boundary
+- □ RTM-058: Vec0 tables created with dimensions matching loaded model | TC-8.2 | Boundary
+- □ RTM-059: Model change (different dimensions) triggers vec0 table recreation | TC-8.3 | Boundary
+- □ RTM-060: No model loaded → vec0 tables not created, no crash | TC-8.4 | Boundary
+
+### FR-9: CI/CD Pipeline (`.github/workflows/`)
+- □ RTM-061: build.yml runs fmt+clippy+test on push/PR | TC-9.1 | Infrastructure
+- □ RTM-062: release.yml produces osx-arm64 binary on v* tag | TC-9.2 | Infrastructure
+- □ RTM-063: release.yml produces linux-x64 binary on v* tag | TC-9.3 | Infrastructure
+- □ RTM-064: release.yml produces win-x64 binary on v* tag | TC-9.4 | Infrastructure
+- □ RTM-065: Release ZIPs include binary + assets/ but exclude *.onnx | TC-9.5 | Infrastructure

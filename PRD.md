@@ -41,6 +41,27 @@ The system SHALL provide a `RepairConcepts` tool that replaces concept variants 
 - **Behavior Mode A (replacement)**: Regex-find `[[variant]]` WikiLinks, replace with `[[canonical]]`. **Mode B (creation)**: AST-walk markdown paragraphs/headings/lists, find plain-text variant mentions, wrap in `[[canonical]]`, skip code blocks/existing links. **Safety**: If `minSemanticSimilarity > 0`, query vec0 embeddings for cosine similarity; block if any variant below threshold.
 - **Parity**: Output SHALL match C# `ConceptRepairTool.cs` (~639 lines)
 
+### FR-7: Dynamic Model Loading
+The system SHALL discover ONNX embedding models at runtime by scanning `assets/models/*.onnx`, selecting the largest file when multiple models are present.
+- **Discovery**: Glob `*.onnx` in assets/models, sort by file size descending, load first match
+- **Dimensions**: Read output tensor shape from loaded ONNX session — last dimension = embedding size (no hardcoded constant)
+- **Tokenizer**: Prefer `tokenizer.json` (HuggingFace standard) in same directory; fall back to `vocab.txt` + `tokenizer_config.json` (BERT WordPiece manual construction)
+- **Max tokens**: Read `model_max_length` from tokenizer config; default 512 if absent
+- **No model**: Graceful degradation — all non-semantic features work, embedding calls return `Err`
+- **Cross-compat**: Must work with models placed by C# runtime sharing same `~/maenifold/assets/models/` directory
+
+### FR-8: Dynamic Vec0 Schema
+The system SHALL adapt vec0 virtual table dimensions to match the loaded model's embedding size.
+- **Metadata**: Store `(model_filename, embedding_dimensions)` in a `model_metadata` table
+- **Change detection**: On model load, compare current model against stored metadata
+- **Migration**: If dimensions changed, drop and recreate `vec_concepts` and `vec_memory_files` tables with new `FLOAT[N]` dimension, then trigger full embedding re-sync
+- **No model**: Skip vec0 table creation entirely
+
+### FR-9: CI/CD Pipeline
+The system SHALL have GitHub Actions workflows for continuous integration and multi-platform releases.
+- **build.yml**: Trigger on push/PR to `dev` and `main`. Run `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test` on ubuntu-latest
+- **release.yml**: Trigger on `v*` tags. Matrix build for `osx-arm64`, `linux-x64`, `win-x64`. Produce ZIP artifacts with binary + assets (excluding ONNX model). Upload to GitHub Releases
+
 ## Non-Functional Requirements
 
 ### NFR-1: C# Oracle Parity

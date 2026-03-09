@@ -87,3 +87,45 @@ Fix 23 pre-existing clippy errors found under `cargo clippy --workspace --all-ta
 Remove "still placeholder" section from readme.md. Verify all 28 registry entries point to real handlers.
 - **Status**: pending
 - **Depends on**: T-1.6, T-2.4, T-3.2
+
+---
+
+## Sprint 9 — Dynamic Model Loading + On-Demand Download + CI/CD
+
+### T-9.1: Dynamic ONNX model discovery in vector.rs | RTM: FR-7
+Replace hardcoded `MODEL_FILENAME`, `EMBEDDING_DIMENSIONS`, and `MAX_TOKENS` constants with runtime discovery. Scan `assets/models/*.onnx`, sort by file size DESC, load largest. Read output tensor shape from ONNX session to determine embedding dimensions. Read `model_max_length` from tokenizer config for max tokens. Store dimensions in `ModelState`. Prefer `tokenizer.json` (HuggingFace standard) over manual `vocab.txt`+`tokenizer_config.json` construction. Export a `fn embedding_dimensions() -> Option<usize>` for other modules.
+- **Files**: `crates/maenifold-core/src/vector.rs`
+- **Status**: pending
+
+### T-9.2: Dynamic vec0 schema in db.rs | RTM: FR-8
+Add `model_metadata` table: `CREATE TABLE IF NOT EXISTS model_metadata(key TEXT PRIMARY KEY, value TEXT)`. On model load, store `model_filename` and `embedding_dimensions`. On subsequent loads, compare stored dimensions vs current model. If changed, DROP and recreate `vec_concepts` and `vec_memory_files` with new `FLOAT[N]`. Use `vector::embedding_dimensions()` to get current dimensions instead of hardcoded 384. If no model loaded, skip vec0 table creation.
+- **Files**: `crates/maenifold-core/src/db.rs`
+- **Status**: pending
+- **Depends on**: T-9.1
+
+### T-9.3: Update search.rs for runtime dimensions | RTM: FR-7, FR-8
+Replace all references to `vector::EMBEDDING_DIMENSIONS` constant with calls to `vector::embedding_dimensions()`. Update byte-length validation in `generate_concept_embeddings` and `generate_file_embedding`. Update the hardcoded `384` in degraded diagnostics output string. Ensure graceful degradation when no model is loaded.
+- **Files**: `crates/maenifold-core/src/search.rs`
+- **Status**: pending
+- **Depends on**: T-9.1
+
+### T-9.4: CI workflow — build.yml | RTM: FR-9
+Create `.github/workflows/build.yml`. Trigger: push/PR to `dev` and `main`. Runner: `ubuntu-latest`. Steps: checkout, install Rust stable, `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test`. Cache cargo registry + target.
+- **Files**: `.github/workflows/build.yml`
+- **Status**: pending
+
+### T-9.5: Release workflow — release.yml | RTM: FR-9
+Create `.github/workflows/release.yml`. Trigger: push tag `v*`. Matrix: `[{os: macos-latest, target: aarch64-apple-darwin}, {os: ubuntu-latest, target: x86_64-unknown-linux-gnu}, {os: windows-latest, target: x86_64-pc-windows-msvc}]`. Steps: checkout, install Rust + target, `cargo build --release --target $TARGET`, package binary + assets/ (excluding *.onnx) into ZIP, create GitHub Release with all ZIPs. Match C# release.yml structure.
+- **Files**: `.github/workflows/release.yml`
+- **Status**: pending
+
+### T-9.6: Tests for dynamic model loading | RTM: FR-7, FR-8
+Boundary tests: model discovery picks largest *.onnx, dimensions read from model, tokenizer.json preferred, fallback to vocab.txt, no model = graceful degradation, vec0 recreation on dimension change.
+- **Files**: `crates/maenifold-core/tests/`
+- **Status**: pending
+- **Depends on**: T-9.1, T-9.2, T-9.3
+
+### T-9.7: Red-team audit Sprint 9 | RTM: all Sprint 9
+Audit all Sprint 9 changes for: correctness (dimension mismatch handling, vec0 recreation atomicity), cross-compat (C# runtime sharing same model directory), model discovery edge cases (empty dir, corrupt onnx, zero-byte files).
+- **Status**: pending
+- **Depends on**: T-9.6

@@ -1,8 +1,8 @@
 {
   "id": "world-cafe",
-  "name": "World Café",
+  "name": "World Café (Multi-Agent Collaborative Dialogue)",
   "emoji": "☕",
-  "description": "Collaborative dialogue process leveraging diverse role perspectives across conversation rounds",
+  "description": "Structured conversational process modeled on the World Café method: small themed tables with table hosts, multiple rounds of participant rotation for cross-pollination, and plenary harvest of collective insights. Faithful to the Wikipedia-documented process: set up small tables, pose an open question, discuss in rounds (~20 min), rotate participants (hosts stay), cross-pollinate across rounds, harvest collective discoveries.",
   "triggers": [
     "world cafe",
     "world café",
@@ -15,163 +15,354 @@
     "role rotation",
     "perspective synthesis"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": true,
   "steps": [
     {
-      "id": "setup",
-      "name": "Setup - Define the central question",
-      "description": "Establish the core inquiry question that will guide all table conversations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about the central question from multiple angles. What makes this question compelling and worth exploring from diverse perspectives?",
-      "requiresEnhancedThinking": true
+      "id": "cafe-setup",
+      "name": "☕ Café Setup & Question Crafting",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nAs Café Facilitator, set up the World Café environment and craft the central question.\n\nPer World Café principles (Wikipedia): outcomes are NOT predetermined. The question must be open-ended and invite diverse perspectives.\n\n1. **Central Question Crafting**:\n   - Frame an open-ended question that matters to the topic\n   - Ensure the question invites multiple angles of exploration\n   - Avoid questions with predetermined or convergent answers\n   - Test: Does this question spark genuine curiosity?\n\n2. **Table Theme Design** (4 tables):\n   - Define 4 complementary thematic angles on the central question\n   - Each table explores the SAME central question through a DIFFERENT lens\n   - Example lenses: systemic/structural, human/experiential, creative/emergent, practical/applied\n   - Themes should be broad enough for rich dialogue, specific enough for focus\n\n3. **Café Etiquette** (Seven Principles):\n   - Set context and intention clearly\n   - Create hospitable, safe space for ideas\n   - Explore questions that matter\n   - Encourage everyone's contribution\n   - Connect diverse perspectives\n   - Listen together for patterns and deeper insights\n   - Share collective discoveries\n\n4. **Memory Architecture Setup**:\n```\nmemory://world-cafe/[topic]/\n├── setup.md (central question, table themes, etiquette)\n├── round-1/\n│   ├── table-1.md ... table-4.md\n│   └── harvest.md\n├── round-2/\n│   ├── table-1.md ... table-4.md\n│   └── harvest.md\n├── round-3/\n│   ├── table-1.md ... table-4.md\n│   └── harvest.md\n├── plenary-harvest.md\n└── cafe-report.md\n```\n\n5. **Round Question Progression**:\n   - Round 1: Opening question (broad exploration)\n   - Round 2: Deepened question (building on Round 1 themes)\n   - Round 3: Convergent question (toward collective insight)\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Complex facilitation design — craft central question, define table themes, plan round progression",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Central question framing",
+              "Table theme design (4 complementary lenses)",
+              "Round question progression (broad → deep → convergent)",
+              "Memory architecture setup"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Document café setup: central question, table themes, etiquette, round plan",
+            "priority": "mandatory",
+            "output": "memory://world-cafe/[topic]/setup.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Central open-ended question crafted and compelling",
+          "Four table themes defined (complementary lenses on the question)",
+          "Round question progression planned (broad → deep → convergent)",
+          "Café setup documented in memory"
+        ],
+        "next_actions": [
+          "Dispatch Round 1 table conversations"
+        ]
+      }
     },
     {
-      "id": "architect",
-      "name": "Table 1 - Architect perspective",
-      "description": "Technical Architecture Table: Architect explores system design and architectural considerations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as an architect. What system design, scalability, and architectural patterns are relevant to this question?",
-      "requiresEnhancedThinking": true
+      "id": "round-1-tables",
+      "name": "🌊 Round 1: Opening Table Conversations",
+      "description": "🚫 BLOCKING: Dispatch ALL 4 table agents for parallel conversation\n\n⚠️ CRITICAL: ALL FOUR TABLE AGENTS IN ONE MESSAGE FOR PARALLEL EXECUTION!\n\nThis is the opening round. Each table explores the central question through its assigned thematic lens. Table hosts facilitate and record key insights.\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Table 1 — [Theme 1] perspective\nAgent: knowledge-agent\nInstruction: You are the Table 1 host and participants. Discuss the central question through the [Theme 1] lens. Explore openly — outcomes are not predetermined. Record key insights, surprising ideas, and emerging patterns. Include at least 3 distinct viewpoints that emerged in discussion. End with the 2-3 most interesting threads worth carrying to other tables.\nOutput: memory://world-cafe/[topic]/round-1/table-1\n\nTask 2: Table 2 — [Theme 2] perspective\nAgent: knowledge-agent\nInstruction: You are the Table 2 host and participants. Discuss the central question through the [Theme 2] lens. Explore openly — outcomes are not predetermined. Record key insights, surprising ideas, and emerging patterns. Include at least 3 distinct viewpoints that emerged in discussion. End with the 2-3 most interesting threads worth carrying to other tables.\nOutput: memory://world-cafe/[topic]/round-1/table-2\n\nTask 3: Table 3 — [Theme 3] perspective\nAgent: knowledge-agent\nInstruction: You are the Table 3 host and participants. Discuss the central question through the [Theme 3] lens. Explore openly — outcomes are not predetermined. Record key insights, surprising ideas, and emerging patterns. Include at least 3 distinct viewpoints that emerged in discussion. End with the 2-3 most interesting threads worth carrying to other tables.\nOutput: memory://world-cafe/[topic]/round-1/table-3\n\nTask 4: Table 4 — [Theme 4] perspective\nAgent: knowledge-agent\nInstruction: You are the Table 4 host and participants. Discuss the central question through the [Theme 4] lens. Explore openly — outcomes are not predetermined. Record key insights, surprising ideas, and emerging patterns. Include at least 3 distinct viewpoints that emerged in discussion. End with the 2-3 most interesting threads worth carrying to other tables.\nOutput: memory://world-cafe/[topic]/round-1/table-4\n```\n\n🎯 TABLE INSTRUCTIONS:\n- Each table MUST include 5+ [[WikiLinks]] in outputs\n- Record the TABLE HOST'S summary prominently (this carries forward)\n- Capture at least 3 distinct perspectives per table\n- End each table output with \"Threads to Carry\" — the 2-3 most interesting ideas to bring to the next table\n- Do NOT try to reach conclusions — this is exploratory dialogue\n\n⏱️ Round duration: 20 minutes per table",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Critical parallel dispatch — ALL 4 table conversations must launch in ONE message",
+            "priority": "mandatory",
+            "required_operations": [
+              "Table 1 conversation (Theme 1 lens)",
+              "Table 2 conversation (Theme 2 lens)",
+              "Table 3 conversation (Theme 3 lens)",
+              "Table 4 conversation (Theme 4 lens)"
+            ],
+            "parallel_execution": true,
+            "agent_instructions": {
+              "wikilink_requirement": "5+ [[WikiLinks]] per table output",
+              "output_format": "Markdown with discussion summary, key insights, and Threads to Carry section",
+              "tone": "Exploratory dialogue — no predetermined outcomes"
+            }
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All 4 table agents dispatched in single message",
+          "Each table produced discussion summary with key insights",
+          "Each table identified 2-3 threads worth carrying to other tables"
+        ],
+        "next_actions": [
+          "Harvest Round 1 insights and plan rotation"
+        ],
+        "escape_hatches": {
+          "shallow_discussion": "If a table's output lacks depth, re-dispatch with more specific prompts about the theme",
+          "off_topic_drift": "If a table drifts from the central question, remind of café etiquette and re-focus"
+        }
+      }
     },
     {
-      "id": "engineer",
-      "name": "Table 1 - Engineer perspective",
-      "description": "Technical Architecture Table: Engineer explores implementation and technical feasibility\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as an engineer. What implementation challenges, technical constraints, and coding considerations emerge?",
-      "requiresEnhancedThinking": true
+      "id": "round-1-harvest",
+      "name": "📋 Round 1 Harvest & Rotation Planning",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nAs Café Facilitator, harvest Round 1 insights and plan the rotation for Round 2.\n\nPer World Café method: between rounds, identify what's emerging across tables and deepen the question.\n\n1. **Read All Round 1 Table Outputs**:\n   - Read memory://world-cafe/[topic]/round-1/table-{1,2,3,4}\n   - Identify key themes from each table\n   - Note the \"Threads to Carry\" from each table\n\n2. **Cross-Table Pattern Recognition**:\n   - What themes appeared across multiple tables?\n   - What surprising insights emerged?\n   - Where do tables complement or tension with each other?\n   - What's missing that needs to be explored?\n\n3. **Rotation Design** (Cross-Pollination Plan):\n   - Each table in Round 2 MUST receive insights from at least 2 other tables\n   - Plan which \"traveling ideas\" go to which tables\n   - Table hosts stay — they will welcome new perspectives and summarize Round 1\n   - The rotation ensures maximum idea mixing\n\n4. **Deepened Question for Round 2**:\n   - Based on Round 1 themes, craft a deeper question\n   - This question should build on what emerged, not repeat the opening\n   - Focus: What patterns are we seeing? What connections surprise us?\n\n5. **Document Harvest**:\n   - Save to memory://world-cafe/[topic]/round-1/harvest.md\n   - Include cross-table theme map and rotation plan\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Synthesize 4 tables of insights, identify cross-cutting patterns, plan rotation",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Cross-table pattern recognition",
+              "Theme mapping across tables",
+              "Rotation design for maximum cross-pollination",
+              "Deepened question crafting"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all Round 1 table outputs for synthesis",
+            "priority": "mandatory"
+          },
+          "WriteMemory": {
+            "reason": "Document Round 1 harvest and rotation plan",
+            "priority": "mandatory",
+            "output": "memory://world-cafe/[topic]/round-1/harvest.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All 4 table outputs read and synthesized",
+          "Cross-table themes and patterns identified",
+          "Rotation plan designed (which insights travel where)",
+          "Deepened Round 2 question crafted",
+          "Harvest documented in memory"
+        ],
+        "next_actions": [
+          "Dispatch Round 2 rotated table conversations"
+        ]
+      }
     },
     {
-      "id": "devops",
-      "name": "Table 1 - DevOps Engineer perspective",
-      "description": "Technical Architecture Table: DevOps Engineer explores deployment, infrastructure, and operational concerns\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a DevOps engineer. What infrastructure, deployment, and operational considerations are critical here?",
-      "requiresEnhancedThinking": true
+      "id": "round-2-tables",
+      "name": "🌊 Round 2: Rotated Table Conversations",
+      "description": "🚫 BLOCKING: Dispatch ALL 4 table agents for Round 2 with cross-pollinated insights\n\n⚠️ CRITICAL: ALL FOUR TABLE AGENTS IN ONE MESSAGE FOR PARALLEL EXECUTION!\n\nThis is the rotation round — the defining mechanism of World Café. Participants have moved to new tables, carrying insights from their Round 1 conversations. Table hosts welcome newcomers and summarize what happened in Round 1 at this table.\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Table 1 — Host welcomes rotated participants\nAgent: knowledge-agent\nInstruction: You are Table 1's host continuing from Round 1. New participants arrive carrying insights from Tables [X] and [Y] (per rotation plan). FIRST: summarize your Round 1 discussion for newcomers. THEN: integrate the traveling insights with your table's existing threads. Discuss the DEEPENED Round 2 question. Note how ideas evolve when cross-pollinated. Record what new connections and tensions emerge.\nInput: Read memory://world-cafe/[topic]/round-1/table-1 (your table) AND the designated cross-pollination tables from the rotation plan\nOutput: memory://world-cafe/[topic]/round-2/table-1\n\nTask 2: Table 2 — Host welcomes rotated participants\nAgent: knowledge-agent\nInstruction: You are Table 2's host continuing from Round 1. New participants arrive carrying insights from Tables [X] and [Y] (per rotation plan). FIRST: summarize your Round 1 discussion for newcomers. THEN: integrate the traveling insights with your table's existing threads. Discuss the DEEPENED Round 2 question. Note how ideas evolve when cross-pollinated. Record what new connections and tensions emerge.\nInput: Read memory://world-cafe/[topic]/round-1/table-2 AND the designated cross-pollination tables\nOutput: memory://world-cafe/[topic]/round-2/table-2\n\nTask 3: Table 3 — Host welcomes rotated participants\nAgent: knowledge-agent\nInstruction: You are Table 3's host continuing from Round 1. New participants arrive carrying insights from Tables [X] and [Y] (per rotation plan). FIRST: summarize your Round 1 discussion for newcomers. THEN: integrate the traveling insights with your table's existing threads. Discuss the DEEPENED Round 2 question. Note how ideas evolve when cross-pollinated. Record what new connections and tensions emerge.\nInput: Read memory://world-cafe/[topic]/round-1/table-3 AND the designated cross-pollination tables\nOutput: memory://world-cafe/[topic]/round-2/table-3\n\nTask 4: Table 4 — Host welcomes rotated participants\nAgent: knowledge-agent\nInstruction: You are Table 4's host continuing from Round 1. New participants arrive carrying insights from Tables [X] and [Y] (per rotation plan). FIRST: summarize your Round 1 discussion for newcomers. THEN: integrate the traveling insights with your table's existing threads. Discuss the DEEPENED Round 2 question. Note how ideas evolve when cross-pollinated. Record what new connections and tensions emerge.\nInput: Read memory://world-cafe/[topic]/round-1/table-4 AND the designated cross-pollination tables\nOutput: memory://world-cafe/[topic]/round-2/table-4\n```\n\n🎯 ROUND 2 INSTRUCTIONS:\n- Table hosts MUST summarize Round 1 for newcomers (host continuity)\n- Each table MUST explicitly integrate insights from 2+ other tables (cross-pollination)\n- Track how ideas EVOLVE through rotation — this is the core World Café mechanism\n- Include 5+ [[WikiLinks]] per table\n- End with updated \"Threads to Carry\" reflecting cross-pollinated insights\n\n⏱️ Round duration: 20 minutes per table",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Critical parallel dispatch — ALL 4 rotated table conversations in ONE message",
+            "priority": "mandatory",
+            "required_operations": [
+              "Table 1 Round 2 (host + rotated participants with cross-table insights)",
+              "Table 2 Round 2 (host + rotated participants with cross-table insights)",
+              "Table 3 Round 2 (host + rotated participants with cross-table insights)",
+              "Table 4 Round 2 (host + rotated participants with cross-table insights)"
+            ],
+            "parallel_execution": true,
+            "agent_instructions": {
+              "cross_pollination": "MUST read and integrate insights from other tables per rotation plan",
+              "host_continuity": "Table host summarizes Round 1 before new discussion begins",
+              "wikilink_requirement": "5+ [[WikiLinks]] per table output",
+              "output_format": "Markdown with host summary, cross-pollinated discussion, evolved insights, updated Threads to Carry"
+            }
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All 4 table agents dispatched with cross-pollination inputs",
+          "Each table integrated insights from at least 2 other tables",
+          "Each table tracked how ideas evolved through rotation",
+          "Updated Threads to Carry reflect cross-pollinated insights"
+        ],
+        "next_actions": [
+          "Harvest Round 2 and plan final convergent round"
+        ],
+        "escape_hatches": {
+          "failed_cross_pollination": "If a table ignores traveling insights, re-dispatch with explicit instruction to address them",
+          "premature_convergence": "If tables converge too early, inject a provocation or creative tension"
+        }
+      }
     },
     {
-      "id": "dataengineer",
-      "name": "Table 1 - Data Engineer perspective",
-      "description": "Technical Architecture Table: Data Engineer explores data pipeline, storage, and processing aspects\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a data engineer. What data architecture, pipeline, and processing considerations are involved?",
-      "requiresEnhancedThinking": true
+      "id": "round-2-harvest",
+      "name": "📋 Round 2 Harvest & Convergence Planning",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nAs Café Facilitator, harvest Round 2 insights and plan the convergent final round.\n\n1. **Read All Round 2 Table Outputs**:\n   - Read memory://world-cafe/[topic]/round-2/table-{1,2,3,4}\n   - Compare with Round 1 outputs — how have ideas evolved?\n\n2. **Cross-Pollination Tracking**:\n   - Which ideas traveled successfully between tables?\n   - How did ideas transform through rotation?\n   - What new connections emerged from mixing perspectives?\n   - What creative tensions or productive disagreements surfaced?\n\n3. **Convergent Themes Identification**:\n   - What themes are appearing across ALL tables now?\n   - Where is consensus forming organically?\n   - Where do productive tensions remain?\n   - What collective intelligence is emerging?\n\n4. **Convergent Question for Round 3**:\n   - Craft a question that moves toward collective sense-making\n   - Focus: What do we now know together that none of us knew alone?\n   - This round should harvest actionable collective wisdom\n\n5. **Document Harvest**:\n   - Save to memory://world-cafe/[topic]/round-2/harvest.md\n   - Include idea evolution tracking and convergent themes\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Track idea evolution across rounds, identify convergent themes for final round",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Idea evolution tracking (Round 1 → Round 2)",
+              "Cross-pollination effectiveness assessment",
+              "Convergent themes identification",
+              "Final round question crafting"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all Round 2 table outputs and compare with Round 1",
+            "priority": "mandatory"
+          },
+          "WriteMemory": {
+            "reason": "Document Round 2 harvest with evolution tracking",
+            "priority": "mandatory",
+            "output": "memory://world-cafe/[topic]/round-2/harvest.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All Round 2 outputs read and compared with Round 1",
+          "Idea evolution tracked across rounds",
+          "Convergent themes identified across all tables",
+          "Final convergent question crafted",
+          "Round 2 harvest documented"
+        ],
+        "next_actions": [
+          "Dispatch Round 3 convergent table conversations"
+        ]
+      }
     },
     {
-      "id": "solutionsarchitect",
-      "name": "Table 1 - Solutions Architect perspective",
-      "description": "Technical Architecture Table: Solutions Architect explores end-to-end solution design and integration\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a solutions architect. How do all technical components integrate into a cohesive solution?",
-      "requiresEnhancedThinking": true
+      "id": "round-3-tables",
+      "name": "🌊 Round 3: Convergent Table Conversations",
+      "description": "🚫 BLOCKING: Dispatch ALL 4 table agents for the final convergent round\n\n⚠️ CRITICAL: ALL FOUR TABLE AGENTS IN ONE MESSAGE FOR PARALLEL EXECUTION!\n\nThis is the final round. Ideas have now traveled through all tables via two rounds of rotation. Each table has the full picture. Discussion focuses on collective sense-making and actionable insights.\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Table 1 — Final convergent discussion\nAgent: knowledge-agent\nInstruction: You are Table 1's host for the final round. Participants now carry insights from ALL tables across both rounds. Read ALL Round 2 table outputs. Discuss the CONVERGENT question: What do we now collectively understand that no single perspective could see alone? Focus on: (1) strongest convergent themes, (2) most valuable creative tensions, (3) actionable collective insights. Prepare your table's contribution to the plenary harvest.\nInput: Read memory://world-cafe/[topic]/round-2/table-{1,2,3,4} and round-2/harvest.md\nOutput: memory://world-cafe/[topic]/round-3/table-1\n\nTask 2: Table 2 — Final convergent discussion\nAgent: knowledge-agent\nInstruction: You are Table 2's host for the final round. Participants now carry insights from ALL tables across both rounds. Read ALL Round 2 table outputs. Discuss the CONVERGENT question: What do we now collectively understand that no single perspective could see alone? Focus on: (1) strongest convergent themes, (2) most valuable creative tensions, (3) actionable collective insights. Prepare your table's contribution to the plenary harvest.\nInput: Read memory://world-cafe/[topic]/round-2/table-{1,2,3,4} and round-2/harvest.md\nOutput: memory://world-cafe/[topic]/round-3/table-2\n\nTask 3: Table 3 — Final convergent discussion\nAgent: knowledge-agent\nInstruction: You are Table 3's host for the final round. Participants now carry insights from ALL tables across both rounds. Read ALL Round 2 table outputs. Discuss the CONVERGENT question: What do we now collectively understand that no single perspective could see alone? Focus on: (1) strongest convergent themes, (2) most valuable creative tensions, (3) actionable collective insights. Prepare your table's contribution to the plenary harvest.\nInput: Read memory://world-cafe/[topic]/round-2/table-{1,2,3,4} and round-2/harvest.md\nOutput: memory://world-cafe/[topic]/round-3/table-3\n\nTask 4: Table 4 — Final convergent discussion\nAgent: knowledge-agent\nInstruction: You are Table 4's host for the final round. Participants now carry insights from ALL tables across both rounds. Read ALL Round 2 table outputs. Discuss the CONVERGENT question: What do we now collectively understand that no single perspective could see alone? Focus on: (1) strongest convergent themes, (2) most valuable creative tensions, (3) actionable collective insights. Prepare your table's contribution to the plenary harvest.\nInput: Read memory://world-cafe/[topic]/round-2/table-{1,2,3,4} and round-2/harvest.md\nOutput: memory://world-cafe/[topic]/round-3/table-4\n```\n\n🎯 ROUND 3 INSTRUCTIONS:\n- Each table MUST read ALL other tables' Round 2 outputs (maximum cross-pollination)\n- Focus on COLLECTIVE sense-making — what emerges from the whole?\n- Identify actionable insights, not just themes\n- Each table prepares a \"Plenary Contribution\" — their strongest collective insight\n- Include 5+ [[WikiLinks]] per table\n\n⏱️ Round duration: 20 minutes per table",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Critical parallel dispatch — ALL 4 convergent table conversations in ONE message",
+            "priority": "mandatory",
+            "required_operations": [
+              "Table 1 Round 3 (convergent discussion with all cross-table insights)",
+              "Table 2 Round 3 (convergent discussion with all cross-table insights)",
+              "Table 3 Round 3 (convergent discussion with all cross-table insights)",
+              "Table 4 Round 3 (convergent discussion with all cross-table insights)"
+            ],
+            "parallel_execution": true,
+            "agent_instructions": {
+              "cross_pollination": "MUST read ALL other tables' Round 2 outputs — maximum cross-pollination",
+              "convergence_focus": "Shift from exploration to collective sense-making",
+              "wikilink_requirement": "5+ [[WikiLinks]] per table output",
+              "output_format": "Markdown with convergent themes, creative tensions, actionable insights, and Plenary Contribution"
+            }
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All 4 table agents dispatched with all Round 2 inputs",
+          "Each table produced convergent insights from full cross-pollination",
+          "Each table prepared a Plenary Contribution",
+          "Actionable collective insights identified"
+        ],
+        "next_actions": [
+          "Conduct plenary harvest of collective discoveries"
+        ],
+        "escape_hatches": {
+          "no_convergence": "If tables cannot find convergent themes, harvest the productive tensions instead — divergence is also a valid World Café outcome",
+          "groupthink_risk": "If all tables converge on the same narrow view, challenge with devil's advocate perspective"
+        }
+      }
     },
     {
-      "id": "aisolutions",
-      "name": "Table 1 - AI Solutions Engineer perspective",
-      "description": "Technical Architecture Table: AI Solutions Engineer explores AI/ML integration and intelligent features\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as an AI solutions engineer. What AI/ML capabilities and intelligent features could enhance this solution?",
-      "requiresEnhancedThinking": true
+      "id": "plenary-harvest",
+      "name": "🌾 Plenary Harvest: Collective Discoveries",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nAs Café Facilitator, conduct the plenary harvest — the culminating moment of the World Café where collective intelligence is surfaced.\n\nPer Wikipedia: \"An individual from each group is invited to share insights from the discussion.\" This is where the whole group comes together to share collective discoveries.\n\n1. **Gather All Plenary Contributions**:\n   - Read memory://world-cafe/[topic]/round-3/table-{1,2,3,4}\n   - Extract each table's Plenary Contribution\n   - Also review Round 1 and Round 2 harvests for full journey context\n\n2. **Collective Pattern Recognition**:\n   - What themes appeared across ALL tables in ALL rounds?\n   - What ideas grew strongest through cross-pollination?\n   - What surprising connections emerged that nobody anticipated?\n   - What creative tensions remain productively unresolved?\n\n3. **Idea Evolution Map**:\n   - Trace how key ideas traveled: Table → Table → Table\n   - Which ideas transformed most through rotation?\n   - Which ideas proved most resilient across perspectives?\n   - Create a visual map of idea journeys\n\n4. **Collective Intelligence Synthesis**:\n   - What do we now understand collectively that no single perspective could see?\n   - What are the strongest actionable insights?\n   - What questions remain open for future exploration?\n   - What calls to action emerge?\n\n5. **Harvest Documentation**:\n   - Save to memory://world-cafe/[topic]/plenary-harvest.md\n   - Include: collective themes, idea evolution map, actionable insights, open questions\n\n⏱️ Duration: 20-30 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Complex synthesis of all 3 rounds across 4 tables — the culminating collective sense-making",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Plenary contribution synthesis from all tables",
+              "Cross-round pattern recognition",
+              "Idea evolution mapping (how insights traveled and transformed)",
+              "Collective intelligence distillation",
+              "Actionable insight identification"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all round outputs and harvests for complete picture",
+            "priority": "mandatory"
+          },
+          "WriteMemory": {
+            "reason": "Document plenary harvest — the collective intelligence output",
+            "priority": "mandatory",
+            "output": "memory://world-cafe/[topic]/plenary-harvest.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All table contributions from all 3 rounds synthesized",
+          "Collective themes and patterns documented",
+          "Idea evolution mapped across rounds and tables",
+          "Actionable collective insights identified",
+          "Plenary harvest documented in memory"
+        ],
+        "next_actions": [
+          "Integrate into knowledge graph"
+        ]
+      }
     },
     {
-      "id": "productmanager",
-      "name": "Table 2 - Product Manager perspective",
-      "description": "Business & Strategy Table: Product Manager explores user needs, features, and product strategy\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a product manager. What user needs, feature priorities, and product strategy considerations are key?",
-      "requiresEnhancedThinking": true
+      "id": "knowledge-integration",
+      "name": "🧠 Knowledge Integration & Graph Construction",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nIntegrate all World Café outputs into the maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\nTool: Sync\nScope: memory://world-cafe/[topic]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[WikiLinks]] from the café conversations\n   - Map relationships between table themes, traveling ideas, and convergent insights\n   - Identify how café discoveries connect to existing knowledge graph concepts\n\n3. **Knowledge Metrics**:\n   - Total concepts created across all café rounds\n   - Cross-pollination density (connections between table themes)\n   - Idea evolution chains (how many ideas traveled 2+ tables)\n   - Convergence score (themes appearing in 3+ tables)\n\n4. **Create Integration Report**:\n   - Document in memory://world-cafe/[topic]/integration-report.md\n   - Include concept network and cross-pollination metrics\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "Sync": {
+            "reason": "Synchronize all World Café memories to graph database",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Analyze concept networks and relationships from café conversations",
+            "priority": "mandatory"
+          },
+          "SequentialThinking": {
+            "reason": "Integration of multi-round, multi-table outputs requires systematic analysis",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Graph synchronized with all café memories",
+          "Concept relationships mapped across tables and rounds",
+          "Cross-pollination metrics calculated",
+          "Integration report documented"
+        ],
+        "next_actions": [
+          "Create final Café Report"
+        ]
+      }
     },
     {
-      "id": "businessanalyst",
-      "name": "Table 2 - Business Analyst perspective",
-      "description": "Business & Strategy Table: Business Analyst explores requirements, processes, and business impact\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a business analyst. What business requirements, process flows, and stakeholder needs must be addressed?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "strategist",
-      "name": "Table 2 - Strategist perspective",
-      "description": "Business & Strategy Table: Strategist explores competitive positioning, market dynamics, and strategic implications\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a strategist. What competitive advantages, market positioning, and strategic opportunities exist?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "marketingstrategist",
-      "name": "Table 2 - Marketing Strategist perspective",
-      "description": "Business & Strategy Table: Marketing Strategist explores go-to-market, messaging, and customer acquisition\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a marketing strategist. What go-to-market strategy, messaging, and customer acquisition approaches are needed?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "customersuccess",
-      "name": "Table 2 - Customer Success perspective",
-      "description": "Business & Strategy Table: Customer Success explores customer value, retention, and satisfaction\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as customer success. How does this create customer value, drive retention, and ensure satisfaction?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "uxdesigner",
-      "name": "Table 3 - UX Designer perspective",
-      "description": "Experience & Operations Table: UX Designer explores user experience, interface design, and usability\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a UX designer. What user experience, interface design, and usability considerations are critical?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "writer",
-      "name": "Table 3 - Writer perspective",
-      "description": "Experience & Operations Table: Writer explores communication, documentation, and content strategy\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a writer. What communication, documentation, and content needs must be addressed?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "qa",
-      "name": "Table 3 - Quality Assurance perspective",
-      "description": "Experience & Operations Table: QA explores testing strategy, quality metrics, and reliability\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as QA. What testing strategies, quality standards, and reliability measures are essential?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "tpm",
-      "name": "Table 3 - Technical Program Manager perspective",
-      "description": "Experience & Operations Table: TPM explores project coordination, delivery, and cross-functional alignment\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a technical program manager. What coordination, delivery timelines, and cross-team dependencies exist?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "salesengineer",
-      "name": "Table 3 - Sales Engineer perspective",
-      "description": "Experience & Operations Table: Sales Engineer explores customer technical needs and solution positioning\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a sales engineer. What customer technical requirements and solution positioning strategies are needed?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "securityanalyst",
-      "name": "Table 4 - Security Analyst perspective",
-      "description": "Security & Governance Table: Security Analyst explores security requirements, vulnerabilities, and compliance\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a security analyst. What security risks, requirements, and compliance considerations must be addressed?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "blueteam",
-      "name": "Table 4 - Blue Team perspective",
-      "description": "Security & Governance Table: Blue Team explores defensive security, monitoring, and incident response\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as blue team. What defensive measures, monitoring capabilities, and incident response plans are needed?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "redteam",
-      "name": "Table 4 - Red Team perspective",
-      "description": "Security & Governance Table: Red Team explores attack vectors, vulnerabilities, and security testing\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as red team. What attack vectors, security weaknesses, and penetration testing approaches should be considered?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "legal",
-      "name": "Table 4 - Legal Compliance perspective",
-      "description": "Security & Governance Table: Legal Compliance explores regulatory requirements, legal risks, and governance\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as legal compliance. What regulatory requirements, legal risks, and governance frameworks apply?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "finops",
-      "name": "Table 4 - FinOps perspective",
-      "description": "Security & Governance Table: FinOps explores cost optimization, financial governance, and resource efficiency\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as FinOps. What cost implications, resource optimization, and financial governance considerations exist?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "datascientist",
-      "name": "Cross-pollination - Data Scientist connector",
-      "description": "Data Scientist moves between tables to identify patterns and analytical insights across conversations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a data scientist connecting insights across tables. What data patterns, analytical opportunities, and measurable outcomes emerge?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "facilitator",
-      "name": "Cross-pollination - Facilitator connector",
-      "description": "Facilitator synthesizes conversations and facilitates connections between table insights\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply as a facilitator. What common themes, tensions, and synergies exist across all table conversations?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "synthesis",
-      "name": "Synthesis - Breakthrough solutions",
-      "description": "Generate breakthrough ideas by combining insights from all 21 role perspectives across 4 tables\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply beyond conventional approaches. What breakthrough solutions emerge from integrating all role perspectives across technical, business, experience, and governance domains?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "harvest",
-      "name": "Harvest - Collective wisdom",
-      "description": "Harvest collective intelligence and distill key insights, patterns, and actionable next steps\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about the meta-patterns across all 23 perspectives. What collective wisdom has emerged that no single role or table could have generated?",
-      "requiresEnhancedThinking": true
+      "id": "cafe-report",
+      "name": "📋 World Café Report",
+      "description": "Create the comprehensive World Café deliverable.\n\n1. **Report Structure**:\n```markdown\n# [Topic] — World Café Report\n\n## Executive Summary\n- Central question explored\n- 3-5 key collective insights\n- Most transformative idea journeys\n\n## Café Design\n- Central question and rationale\n- Table themes (4 lenses)\n- Round question progression\n\n## Round-by-Round Findings\n\n### Round 1: Opening Exploration\n- Table summaries and key threads\n- Emerging themes\n\n### Round 2: Cross-Pollination\n- How ideas evolved through rotation\n- New connections from mixed perspectives\n- Creative tensions surfaced\n\n### Round 3: Convergence\n- Collective sense-making results\n- Strongest convergent themes\n- Productive unresolved tensions\n\n## Plenary Harvest\n- Collective discoveries\n- Idea evolution map\n- Patterns and surprises\n\n## Collective Intelligence\n- What we now understand together\n- Actionable insights and recommendations\n- Open questions for future exploration\n\n## Cross-Pollination Analysis\n- Which ideas traveled furthest\n- How rotation transformed perspectives\n- Convergence vs. generative divergence\n\n## Appendices\n- Full table outputs per round\n- Knowledge graph metrics\n- Café etiquette and process notes\n```\n\n2. **Quality Checklist**:\n   ✓ All 3 rounds × 4 tables represented\n   ✓ Cross-pollination tracked across rounds\n   ✓ Idea evolution mapped\n   ✓ 30+ [[WikiLinks]] total\n   ✓ Actionable collective insights documented\n   ✓ Both convergent themes AND productive tensions captured\n\n3. **Save Report**:\n   - memory://world-cafe/[topic]/cafe-report.md\n   - Cross-reference all round outputs and harvests\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Create final comprehensive World Café report",
+            "priority": "mandatory",
+            "output": "memory://world-cafe/[topic]/cafe-report.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Report complete with all sections populated",
+          "All 3 rounds and 4 tables represented",
+          "Cross-pollination and idea evolution documented",
+          "Quality checklist passed"
+        ],
+        "next_actions": [
+          "World Café complete",
+          "Knowledge graph enriched with collective intelligence"
+        ],
+        "success_criteria": {
+          "wikilink_density": "30+ total [[WikiLinks]] (e.g., [[collective-intelligence]], [[cross-pollination]], [[convergent-themes]])",
+          "structural_fidelity": "All World Café elements present: tables, hosts, rounds, rotation, cross-pollination, plenary harvest",
+          "actionable_insights": "5+ collective insights with clear recommendations",
+          "idea_evolution": "At least 3 ideas tracked across multiple rounds showing transformation through rotation"
+        }
+      }
     }
   ]
 }

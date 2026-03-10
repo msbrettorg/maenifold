@@ -2,7 +2,7 @@
   "id": "deductive-reasoning",
   "name": "Deductive Reasoning",
   "emoji": "💭",
-  "description": "Top-down logical inference from general principles to specific conclusions",
+  "description": "Drawing valid inferences where the truth of the premises guarantees the truth of the conclusion — applying rules of inference such as modus ponens, modus tollens, and hypothetical syllogism to produce necessarily truth-preserving arguments",
   "triggers": [
     "deductive reasoning",
     "logical deduction",
@@ -12,31 +12,148 @@
     "formal logic",
     "logical proof"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "principles",
-      "name": "Identify General Principles - Establish universal premises",
-      "description": "Identify the general rules, laws, or principles that apply to this domain",
-      "requiresEnhancedThinking": false
+      "id": "establish-premises",
+      "name": "Establish Premises — Identify and state all propositions accepted as true",
+      "description": "Identify and clearly state every premise of the argument. Per Wikipedia, deductive reasoning 'starts from the premises and reasons to a conclusion based on and supported by these premises.' Premises may be universal generalizations (all A are B), conditional statements (if P then Q), or established facts. Distinguish between premises that are self-evident axioms, empirically verified truths, and assumed propositions. Each premise must be stated unambiguously so its logical form can be analyzed in the next step.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find established principles, axioms, and known truths in the relevant domain that can serve as premises",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Understand relationships between candidate premises and their domain of applicability",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All premises identified and stated as clear propositions",
+          "Each premise classified by epistemic status: axiom, empirical truth, or assumption",
+          "Premises stated unambiguously with identifiable logical connectives (if-then, all-are, etc.)",
+          "Domain and scope of applicability established for each premise"
+        ],
+        "next_actions": [
+          "Proceed to logical form analysis"
+        ]
+      }
     },
     {
-      "id": "apply",
-      "name": "Apply Logical Rules - Construct valid inference chains",
-      "description": "Apply logical rules to derive conclusions from the general principles\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nApply logical rules systematically. If the general principle is true, what must logically follow? Construct valid syllogisms: Major premise + Minor premise → Conclusion. Ensure each step follows logically from the previous.",
-      "requiresEnhancedThinking": true
+      "id": "analyze-logical-form",
+      "name": "Analyze Logical Form — Determine the syntactic structure of the argument",
+      "description": "Determine the logical form of the argument. Per Wikipedia's syntactic approach, 'whether an argument is deductively valid depends only on its form, syntax, or structure.' Two arguments have the same form if they use the same logical vocabulary in the same arrangement, even if their contents differ. Classify the argument structure: Is it a conditional (P→Q)? A categorical syllogism (All A are B, all B are C)? A disjunction (P∨Q)? Express the argument abstractly to make the common syntax explicit — e.g., 'if A then B; A; therefore B.' Identify which rule of inference the argument follows or should follow.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nMap each premise to its formal structure. Identify the logical connectives (→, ∧, ∨, ¬, ∀, ∃). Determine whether the argument pattern matches a known valid form (modus ponens, modus tollens, hypothetical syllogism, disjunction elimination) or might be a formal fallacy (affirming the consequent, denying the antecedent).",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Translating natural-language premises into formal logical structure requires careful step-by-step analysis of connectives, quantifiers, and argument patterns — per Wikipedia, 'it is usually necessary to express the argument in a formal language in order to assess whether it is valid'",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "BuildContext": {
+            "reason": "Check for known argument forms and logical patterns in the knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each premise expressed in formal logical notation with identified connectives",
+          "Argument pattern classified (conditional, syllogistic, disjunctive, etc.)",
+          "Candidate rule of inference identified (modus ponens, modus tollens, hypothetical syllogism, etc.)",
+          "Potential formal fallacy patterns flagged for screening in later steps"
+        ],
+        "next_actions": [
+          "Proceed to applying rules of inference"
+        ]
+      }
     },
     {
-      "id": "conclude",
-      "name": "Draw Specific Conclusions - Derive particular results",
-      "description": "Reach specific conclusions that logically follow from the general principles",
-      "requiresEnhancedThinking": false
+      "id": "apply-rules-of-inference",
+      "name": "Apply Rules of Inference — Construct the deductive inference chain",
+      "description": "Apply valid rules of inference to derive conclusions from premises. Per Wikipedia, this is the core deductive operation. The primary rules are:\n\n• Modus ponens (affirming the antecedent): P→Q, P ∴ Q — 'the primary deductive rule of inference'\n• Modus tollens (law of contrapositive): P→Q, ¬Q ∴ ¬P — reasoning goes opposite direction to conditional\n• Hypothetical syllogism: P→Q, Q→R ∴ P→R — chains conditional statements\n• Disjunction elimination: P∨Q, ¬P ∴ Q\n\nPer Wikipedia's distinction between definitory and strategic rules: definitory rules determine validity, while strategic rules guide which inferences to draw to reach the intended conclusion. Master both — select the right rule of inference and apply it correctly.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nFor each inference step: state the rule being applied, show the premises consumed, and derive the intermediate or final conclusion. Ensure each step follows logically from the previous via a named rule of inference. Chain multiple inferences if needed to reach the target conclusion.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Constructing valid inference chains via modus ponens, modus tollens, hypothetical syllogism, and other rules requires rigorous step-by-step logical progression — each thought documents one inference step with its rule, premises, and derived conclusion",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "BuildContext": {
+            "reason": "Verify logical relationships and check for known counterexamples to intermediate conclusions",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each inference step names the rule of inference applied (modus ponens, modus tollens, hypothetical syllogism, etc.)",
+          "Each step shows which premises or intermediate conclusions are consumed",
+          "The inference chain connects premises to conclusion without gaps",
+          "Both definitory correctness (valid rule applied) and strategic appropriateness (right rule chosen) confirmed"
+        ],
+        "next_actions": [
+          "Proceed to deriving the conclusion"
+        ]
+      }
     },
     {
-      "id": "validate",
-      "name": "Validate Reasoning Chain - Check logical validity",
-      "description": "Verify that each step in the reasoning chain is logically valid and sound\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nCheck the logical validity: Are the premises true? Does the conclusion follow necessarily? Are there any logical fallacies? Is the reasoning chain complete and valid?",
-      "requiresEnhancedThinking": true
+      "id": "derive-conclusion",
+      "name": "Derive Conclusion — State what necessarily follows from the premises",
+      "description": "State the conclusion that necessarily follows from the premises through the inference chain. Per Wikipedia, logical consequence has three essential features (Tarski): it is (1) necessary — the premises necessitate the conclusion, (2) formal — it depends only on form, not content, and (3) knowable a priori — no empirical investigation needed to determine validity. The conclusion must be stated with logical necessity, not mere probability — this is what distinguishes deductive from ampliative (inductive/abductive) reasoning. Per Wikipedia: 'the conclusion only repeats information already found in the premises' at the depth level, but may present it 'in a new and sometimes surprising way' at the surface level.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document derived conclusions with their complete logical derivation chain for institutional memory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Conclusion stated as a necessary consequence of premises — not merely probable",
+          "Scope of conclusion matches scope of premises (no overreach beyond what premises support)",
+          "Conclusion distinguished from ampliative inference — it is truth-preserving, not merely likely",
+          "Surface-level new information made explicit even though depth-level content was in premises"
+        ],
+        "next_actions": [
+          "Proceed to validity and soundness assessment"
+        ]
+      }
+    },
+    {
+      "id": "assess-validity-and-soundness",
+      "name": "Assess Validity and Soundness — Verify the argument is both valid and sound",
+      "description": "Verify the argument's validity and soundness. Per Wikipedia, these are distinct properties: 'An argument is valid if it is impossible for its premises to be true while its conclusion is false. An argument is sound if it is valid and the premises are true.' Check validity via both approaches:\n\n• Syntactic: Does each step follow a valid rule of inference? Are there any formal fallacies?\n• Semantic: Is there any possible interpretation where premises are true and conclusion is false?\n\nScreen explicitly for formal fallacies that Wikipedia identifies as commonly confused with valid forms:\n• Affirming the consequent (P→Q, Q ∴ P) — resembles modus ponens\n• Denying the antecedent (P→Q, ¬P ∴ ¬Q) — resembles modus tollens\n• Affirming a disjunct, Denying a conjunct, Fallacy of the undistributed middle\n\nThen check soundness: are all premises actually true? Per Wikipedia, 'it is possible to have a deductive argument that is logically valid but is not sound.'\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nFor each step in the inference chain: (1) verify formal validity, (2) screen for fallacy patterns, (3) check premise truth. Conclude with overall assessment: valid? sound? If unsound, identify which premises are questionable.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Assessing both validity (formal structure) and soundness (premise truth) requires systematic checking of each inference step for formal fallacies and each premise for truth — per Wikipedia, 'even arguments with wrong premises can be deductively valid'",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for known counterexamples, edge cases, or contradicting evidence that might challenge premise truth or reveal hidden formal fallacies",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Validity confirmed: each inference step follows a named valid rule of inference (syntactic check)",
+          "No formal fallacies detected: affirming the consequent, denying the antecedent, undistributed middle, etc. all screened",
+          "Semantic check: no possible interpretation found where premises are true and conclusion is false",
+          "Soundness assessed: each premise evaluated for truth — argument classified as valid-and-sound or valid-but-unsound",
+          "If unsound, specific questionable premises identified with justification"
+        ],
+        "next_actions": [
+          "Document validated argument with proof chain and soundness assessment"
+        ]
+      }
     }
   ]
 }

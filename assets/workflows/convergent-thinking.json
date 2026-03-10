@@ -1,8 +1,8 @@
 {
   "id": "convergent-thinking",
   "name": "Convergent Thinking",
-  "emoji": "💭",
-  "description": "Systematic analysis and selection of the single best solution from alternatives",
+  "emoji": "🎯",
+  "description": "Deriving the single best answer through speed, accuracy, logic, and systematic application of stored knowledge and standard decision-making procedures (Guilford; Cropley, 2006)",
   "triggers": [
     "convergent thinking",
     "solution selection",
@@ -12,37 +12,136 @@
     "narrow down",
     "systematic selection"
   ],
-  "enhancedThinkingEnabled": true,
+  "specification": "https://en.wikipedia.org/wiki/Convergent_thinking",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "criteria",
-      "name": "Establish Evaluation Criteria - Define success metrics",
-      "description": "Define clear criteria for evaluating and comparing alternative solutions",
-      "requiresEnhancedThinking": false
+      "id": "accumulate-stored-information",
+      "name": "Accumulate Stored Information - Recognize the familiar and gather existing knowledge",
+      "description": "Recall and accumulate all relevant existing knowledge, familiar patterns, and established techniques that apply to the problem domain.\n\nPer Cropley (2006), convergent thinking 'focuses on recognizing the familiar, reapplying techniques, and accumulating stored information.' It is 'most effective in situations where an answer readily exists and simply needs to be either recalled or worked out through decision making strategies.' This step gathers the knowledge base from which the single best answer will be derived.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Accumulate stored information by searching the knowledge graph for relevant prior knowledge, established patterns, and applicable techniques",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Recognize the familiar by building context around the problem domain to surface related concepts and existing solutions",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All relevant existing knowledge accumulated and cataloged",
+          "Familiar patterns and reapplicable techniques identified",
+          "Problem domain recognized as one where a definite answer exists or can be worked out"
+        ],
+        "next_actions": [
+          "Proceed to organize and structure the accumulated information"
+        ]
+      }
     },
     {
-      "id": "analyze",
-      "name": "Analyze Each Alternative - Systematic evaluation",
-      "description": "Systematically evaluate each alternative against the established criteria\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nEvaluate each alternative systematically. How does each option perform against your criteria? What are the strengths and weaknesses? Use logical analysis to assess feasibility, effectiveness, and fit.",
-      "requiresEnhancedThinking": true
+      "id": "organize-and-structure",
+      "name": "Organize and Structure Information - Create analytical framework",
+      "description": "Organize the accumulated ideas and information into a structured framework suitable for systematic evaluation.\n\nPer Lundsteen, after divergent idea generation, 'ideas and information are organized and structured using convergent thinking.' Convergent thinking also 'involves manipulating existing knowledge by means of standard procedures' (Cropley, 2006). This step creates the structured scaffold for applying decision-making strategies.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find existing organizational frameworks and standard procedures that may apply to structuring the information",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Information organized into clear categories or evaluation dimensions",
+          "Candidate solutions identified and enumerated from the accumulated knowledge",
+          "Standard procedures for evaluation identified and ready to apply"
+        ],
+        "next_actions": [
+          "Proceed to apply decision-making strategies"
+        ]
+      }
     },
     {
-      "id": "filter",
-      "name": "Apply Logical Filters - Eliminate weak options",
-      "description": "Use logical reasoning to eliminate options that don't meet minimum requirements\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nApply logical filters systematically. Which options fail to meet minimum requirements? Which have fatal flaws? Use logical reasoning to eliminate options that cannot work, are too risky, or don't fit constraints.",
-      "requiresEnhancedThinking": true
+      "id": "apply-decision-strategies",
+      "name": "Apply Decision-Making Strategies - Use knowledge, logic, and probabilities",
+      "description": "Consciously apply standards, knowledge, logic, probabilities, and established decision-making strategies to evaluate the structured candidate solutions.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Lundsteen, when using convergent/critical thinking to solve a problem, one 'consciously uses standards or probabilities to make judgments.' Apply 'knowledge, logic, probabilities and other decision-making strategies' systematically to each candidate. Convergent thinking emphasizes speed, accuracy, and logic (Cropley, 2006).",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic application of decision-making strategies (knowledge, logic, probabilities, standards) to each candidate requires structured step-by-step reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find precedents, standards, and probabilistic evidence to apply as decision-making criteria",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All candidates evaluated using knowledge, logic, and probabilities",
+          "Standards or probabilities applied consistently as judgment criteria",
+          "Decision-making strategies explicitly documented for each assessment",
+          "Minority viewpoints considered before dismissal to guard against convergent thinking bias (Wikipedia critique: convergent thinkers may 'fail to appropriately evaluate minority opinion')"
+        ],
+        "next_actions": [
+          "Proceed to evaluate each solution individually"
+        ]
+      }
     },
     {
-      "id": "compare",
-      "name": "Compare Top Candidates - Detailed comparison",
-      "description": "Perform detailed comparison of the remaining top candidate solutions",
-      "requiresEnhancedThinking": false
+      "id": "evaluate-individually",
+      "name": "Evaluate Solutions Individually - Assess each candidate in focused search",
+      "description": "Evaluate each remaining candidate solution individually, searching for the single best answer with emphasis on speed, accuracy, and logic.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Lundsteen, 'solutions are evaluated individually in a search for a single best answer.' For each candidate: Is this answer correct? Is it accurate? Does it satisfy all constraints? Convergent thinking demands that 'answers are either right or wrong' — assess each solution on that basis.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Individual evaluation of each solution for correctness and constraint satisfaction requires focused serial reasoning — the core convergent thinking operation",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Every candidate solution evaluated individually for correctness",
+          "Speed, accuracy, and logic applied as evaluation criteria per Cropley (2006)",
+          "Solutions ranked by how well they meet all constraints",
+          "Weak or incorrect solutions eliminated with documented rationale"
+        ],
+        "next_actions": [
+          "Proceed to derive the single best answer"
+        ]
+      }
     },
     {
-      "id": "select",
-      "name": "Select Optimal Solution - Make final decision",
-      "description": "Choose the single best solution based on systematic analysis",
-      "requiresEnhancedThinking": false
+      "id": "derive-single-best-answer",
+      "name": "Derive Single Best Answer - Select the unambiguous correct solution",
+      "description": "Select the single best answer from the evaluation, leaving no room for ambiguity.\n\nPer Wikipedia, 'a critical aspect of convergent thinking is that it leads to a single best answer, leaving no room for ambiguity. In this view, answers are either right or wrong. The solution that is derived at the end of the convergent thinking process is the best possible answer the majority of the time.'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the single best answer with complete decision rationale traceable through the full evaluation chain",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Single best answer selected — unambiguous, right-or-wrong determination made",
+          "Decision rationale traceable through the full evaluation chain",
+          "Answer verified as best possible solution given accumulated knowledge and applied standards"
+        ],
+        "next_actions": [
+          "Document final answer and proceed to implementation"
+        ]
+      }
     }
   ]
 }

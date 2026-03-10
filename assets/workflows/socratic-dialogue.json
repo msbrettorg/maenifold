@@ -2,7 +2,7 @@
   "id": "socratic-dialogue",
   "name": "Socratic Dialogue",
   "emoji": "🤔",
-  "description": "Expose broken assumptions and flawed reasoning by running a real dialogue with a skeptical partner agent",
+  "description": "The Socratic method (elenchus) as formalized by Plato — a form of argumentative dialogue that probes beliefs through questioning and cross-examination, exposing contradictions until the interlocutor reaches aporia (recognition of ignorance) or births a more refined understanding through maieutic reflection",
   "triggers": [
     "debug reasoning",
     "challenge assumptions",
@@ -15,61 +15,174 @@
     "reasoning error",
     "bad thinking"
   ],
-  "enhancedThinkingEnabled": true,
+  "specification": "https://en.wikipedia.org/wiki/Socratic_method",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "state-problem",
-      "name": "What problem are you actually trying to solve?",
-      "description": "State the specific problem you're stuck on. Not what you think the solution should be - what's the actual problem?\n\nExample: 'My tests are flaky' not 'I need to add delays to my tests'",
-      "requiresEnhancedThinking": false
+      "id": "assert-thesis",
+      "name": "Assert the Thesis — State the belief to be examined",
+      "description": "The interlocutor asserts a thesis — a belief, assumption, or definition to be examined.\n\nPer Vlastos's formalization of elenchus (step 1): 'Socrates' interlocutor asserts a thesis.' For example: 'Courage is endurance of the soul,' or in a software context: 'This flaky test needs retry logic.'\n\nState your position plainly:\n• What do you believe to be true about this problem or situation?\n• What definition or assumption are you operating under?\n• What approach have you committed to, and why?\n\nThe thesis must be specific enough to be examined. Vague positions ('something is wrong') cannot be cross-examined. Restate until the thesis is a clear, examinable claim.\n\nNote: You are both questioner and respondent in this dialogue. The goal is honest self-examination, not defending a position.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior beliefs, assumptions, or decisions related to this thesis — existing context may reveal premises already accepted",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around the key concepts in the thesis to surface related beliefs that may become further premises during elenctic questioning",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "A specific, examinable thesis has been clearly stated",
+          "The thesis is a concrete claim or definition, not a vague complaint",
+          "The reasoning behind the thesis has been made explicit"
+        ],
+        "next_actions": [
+          "Proceed to elenctic questioning — cross-examine the thesis by identifying further premises"
+        ]
+      }
     },
     {
-      "id": "current-approach",
-      "name": "What's your current approach and why?",
-      "description": "Describe what you're doing now and your reasoning. This is where we'll find the broken assumptions.\n\nBe honest about shortcuts, hacks, or 'temporary' solutions you're using.",
-      "requiresEnhancedThinking": false
+      "id": "elenctic-questioning",
+      "name": "Elenctic Questioning — Cross-examine the thesis through further premises",
+      "description": "Apply elenchus: the central technique of the Socratic method. Cross-examine the thesis by identifying further premises the thesis-holder accepts as true.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to generate and evaluate premises.\n\nPer Vlastos's formalization (steps 2–3):\n• Socrates decides whether the thesis is false and targets it for refutation\n• Socrates secures his interlocutor's agreement to further premises\n\nFor example, if the thesis is 'Courage is endurance of the soul,' Socrates secures agreement to: 'Courage is a fine thing' and 'Ignorant endurance is not a fine thing.'\n\nIn practice:\n• What other beliefs do you hold that relate to this thesis?\n• What would need to be true for your thesis to hold?\n• Are there cases, examples, or principles you accept that bear on this claim?\n• What assumptions are you making that you haven't examined?\n\nGenerate 3–5 further premises that the thesis-holder would accept as true. These premises need not obviously conflict with the thesis — the contradiction emerges in the next step.\n\nPer Guthrie: 'The essence of the Socratic method is to convince the interlocutor that whereas he thought he knew something, in fact he does not.' The questioning is not hostile — it is a cooperative search for truth.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically generate and evaluate further premises that the thesis-holder accepts as true — per Vlastos's steps 2–3, these premises will be tested for consistency with the original thesis",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "What related beliefs does the thesis-holder accept as true?",
+              "What would need to be true for the thesis to hold?",
+              "Are there principles, cases, or examples that bear on this claim?",
+              "What unstated assumptions underlie the thesis?",
+              "Which premises, if shown to conflict with the thesis, would be most revealing?"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for evidence, counterexamples, or prior decisions that could serve as further premises or reveal unstated assumptions",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "3–5 further premises identified that the thesis-holder accepts as true",
+          "Each premise is clearly stated and genuinely accepted (not strawmanned)",
+          "Premises relate to the thesis but are distinct from it",
+          "Unstated assumptions underlying the thesis have been surfaced"
+        ],
+        "next_actions": [
+          "Test consistency — check whether the further premises contradict the original thesis"
+        ]
+      }
     },
     {
-      "id": "spawn-skeptic",
-      "name": "Spawn a Gray Skeptic Partner",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nCreate a REAL dialogue partner (a subagent), and keep it alive across steps.\n\n1) Adopt the skepticism posture:\n- Use the role/color system: `Adopt(type=\"color\", identifier=\"gray\")`\n\n2) Spawn the partner using the Task tool (do NOT pick a specific agent type in this workflow). In the Task prompt tell the partner:\n- Adopt `color=gray` (skeptical inquiry)\n- Your job is to challenge my claims, demand evidence, and independently verify when possible (using tools)\n- Maintain a running ledger: Verified facts / Unverified assumptions / Open questions\n- Always end your reply with ONE next question\n\n3) CRITICAL: Save the returned `task_id` as your handle (e.g., `socraticPartnerTaskId`). You will reuse it to continue the same partner conversation.",
-      "requiresEnhancedThinking": true
+      "id": "test-consistency",
+      "name": "Test Consistency — Check whether further premises contradict the thesis",
+      "description": "Determine whether the premises secured in the previous step imply the contrary of the original thesis.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to trace the logical implications.\n\nPer Vlastos's formalization (step 4): 'Socrates then argues, and the interlocutor agrees, these further premises imply the contrary of the original thesis.' For example, if the thesis is 'Courage is endurance of the soul' but the interlocutor accepts 'Courage is a fine thing' and 'Ignorant endurance is not a fine thing,' then it follows that courage is not mere endurance of the soul.\n\nWork through this carefully:\n• Take each accepted premise and trace its logical implications\n• Do any combinations of premises create a contradiction with the thesis?\n• Is the contradiction genuine, or does it rest on an equivocation?\n• If no contradiction is found, the thesis may be consistent — document why\n• If a contradiction is found, state it precisely: 'You hold X (thesis), but you also accept Y and Z (premises), which together imply not-X'\n\nPer Wikipedia: 'One elenctic examination can lead to a new, more refined, examination of the concept being considered.' If the contradiction points to a refinement rather than a total refutation, note what the refined claim would be.\n\nBe honest: if the premises genuinely support the thesis rather than contradict it, say so. The goal is truth, not refutation for its own sake.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Trace the logical implications of the accepted premises to determine whether they genuinely contradict the original thesis — per Vlastos's step 4, this is where the refutation either succeeds or the thesis stands",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Trace implications of each accepted premise",
+              "Identify whether any combination of premises contradicts the thesis",
+              "Verify the contradiction is genuine and not based on equivocation",
+              "If contradiction found, state it precisely in the form: thesis + premises → contrary of thesis"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Either a genuine contradiction has been identified and precisely stated, or the thesis has been shown to be consistent with the accepted premises",
+          "The logical chain from premises to contradiction (or consistency) is explicit and traceable",
+          "Any equivocations or ambiguities in the reasoning have been identified",
+          "If a refinement is suggested (e.g., 'Courage is wise endurance'), it has been noted"
+        ],
+        "next_actions": [
+          "Proceed to aporia — confront the state of puzzlement that the contradiction reveals"
+        ]
+      }
     },
     {
-      "id": "dialogue-loop",
-      "name": "Run the Dialogue (Resume via task_id)",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nHave a real back-and-forth. Do NOT restart the partner; resume it.\n\nLoop for 3-10 rounds:\n1) Answer the partner's question plainly.\n2) Provide evidence (or explicitly admit you don't have it).\n3) Resume the same partner using: `Task(task_id=socraticPartnerTaskId, prompt=...)`\n\nPartner requirements each round:\n- If you make a claim: either verify it independently, or say exactly what would verify it\n- Update the ledger (Verified / Unverified / Open)\n- Ask the next single question\n\nYou are NOT trying to win. You are trying to locate the broken assumption.",
-      "requiresEnhancedThinking": true
+      "id": "aporia",
+      "name": "Aporia — Confront the state of puzzlement",
+      "description": "Reach aporia: the state of puzzlement where you recognize that you do not truly understand the subject as you thought.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to honestly confront what the elenchus revealed.\n\nPer Wikipedia: 'Most Socratic inquiries consist of a series of elenchi and typically end in puzzlement known as aporia.' Per Michael Frede's correction of Vlastos: 'Having shown a proposed thesis is false is insufficient to conclude some other competing thesis must be true. Rather, the interlocutors have reached aporia, an improved state of still not knowing what to say about the subject under discussion.'\n\nThis is the critical moment. Aporia is NOT failure — it is progress. Per Guthrie, Socrates 'believed that knowledge was possible, but believed that the first step to knowledge was recognition of one's ignorance.'\n\nConfront honestly:\n• What did you think you knew that you now realize you do not?\n• Which of your assumptions was the thesis resting on?\n• What is the specific gap in your understanding that the elenchus exposed?\n• What question can you now articulate that you could not have articulated before the examination?\n\nDo not rush to a new answer. Sit with the not-knowing. Per Socrates: 'The only way in which he was wiser than other men was that he was conscious of his own ignorance, while they were not.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Honestly confront the state of aporia — identify what was not understood, what assumption failed, and what new question has emerged from the elenchus",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "What did you think you knew that you now realize you do not?",
+              "Which specific assumption was the thesis resting on that the elenchus exposed?",
+              "What new question can you now articulate that you could not before?"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "The specific gap in understanding has been identified and stated",
+          "The broken assumption underlying the original thesis has been named",
+          "A new question has been articulated that could not have been articulated before the examination",
+          "The interlocutor has genuinely confronted their ignorance rather than rushing to a replacement thesis"
+        ],
+        "next_actions": [
+          "Proceed to maieutic reflection — attempt to birth a more refined understanding from the aporia"
+        ]
+      }
     },
     {
-      "id": "contradiction",
-      "name": "Find the Contradiction",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nResume the partner and ask it to do ONE job: identify where your story breaks.\n\nPrompt the partner (via `Task(task_id=...)`) to:\n- Point to the specific assumption that, if false, collapses your approach\n- Show the contradiction or missing link\n- State the smallest test/experiment/check that would discriminate between two competing explanations\n\nThen do that check (or explicitly decide why you can't) and report the result back to the partner.",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "reframe-problem",
-      "name": "Reframe the Real Problem",
-      "description": "Based on what the dialogue exposed, rewrite the problem statement as a falsifiable claim.\n\nFormat:\n- Original problem:\n- Broken assumption:\n- New problem statement (falsifiable):\n- What would make this statement false?",
-      "requiresEnhancedThinking": false
-    },
-    {
-      "id": "test-reframe",
-      "name": "Attack the Reframe (Partner Verification)",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nResume the same partner (`Task(task_id=socraticPartnerTaskId, ...)`) and present your reframed problem statement.\n\nPartner must:\n- Try to falsify it\n- Identify any remaining assumptions\n- Independently verify at least one key claim (or explain why verification is blocked)\n\nIterate until the partner agrees the reframe is coherent OR you identify the remaining uncertainty explicitly.",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "solution-direction",
-      "name": "What does this suggest for solutions?",
-      "description": "With the real problem identified and your assumptions corrected, what approaches make sense now?\n\nDon't implement yet - just identify directions that address the actual problem.",
-      "requiresEnhancedThinking": false
-    },
-    {
-      "id": "final-validation",
-      "name": "Final Reality Check",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nResume the partner one last time and ask for a final audit.\n\nPartner output MUST include:\n- Verified facts (with how verified)\n- Unverified assumptions (and how to verify)\n- Remaining open questions\n- Biggest remaining risk in your proposed solution directions\n\nThen you record your key insights: what assumption was wrong, what the real problem is, and what checks you'll run earlier next time.\n\nFinally, you may end the partner conversation.",
-      "requiresEnhancedThinking": true
+      "id": "maieutic-reflection",
+      "name": "Maieutic Reflection — Birth a more refined understanding",
+      "description": "Engage in maieutic reflection: Socrates' 'midwifery' (maieutikós) — helping birth a more refined understanding from the state of aporia.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through the re-examination.\n\nPer Wikipedia: Socrates described his method as 'midwifery' because 'it is employed to help his interlocutors develop their understanding and lead it out of them.' The method 'begins with commonly held beliefs and scrutinizes them by way of questioning to determine their internal consistency and their coherence with other beliefs and so to bring everyone closer to the truth.'\n\nFrom the aporia, attempt a new understanding:\n• Given what the elenchus exposed, can you form a more refined thesis?\n• Per Wikipedia's example: refuting 'Courage is endurance of the soul' invites examination of 'Courage is *wise* endurance of the soul' — what is your refined version?\n• Does this new understanding account for the contradiction that was found?\n• What remains uncertain even after this reflection?\n\nImportant: Per Socrates, the method 'rarely used to actually develop consistent theories.' The honest outcome may be:\n1. A refined thesis that accounts for the exposed contradiction\n2. A recognition that the question requires further examination (another round of elenchus)\n3. An acceptance of ignorance — knowing what you don't know, which is itself wisdom\n\nDocument what was learned: the original thesis, the exposed assumption, the state of aporia reached, and whatever refined understanding (if any) emerged through maieutic reflection.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Attempt to birth a refined understanding from aporia through maieutic reflection — re-examine the concept with awareness of the exposed contradiction, forming a more robust thesis or accepting the limits of current understanding",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Given the exposed contradiction, what refined thesis can be formed?",
+              "Does the refined understanding account for the contradiction found in the elenchus?",
+              "What remains uncertain even after reflection?",
+              "Is the honest outcome a refined thesis, a need for further elenchus, or acceptance of ignorance?"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the results of the Socratic examination: the original thesis, the exposed assumption, the aporia reached, and the refined understanding — this is institutional memory of the examined belief",
+            "priority": "recommended",
+            "output": "memory://examined-beliefs/[topic]/socratic-examination.md"
+          },
+          "SearchMemories": {
+            "reason": "Search for related examined beliefs in the knowledge graph to check whether this refined understanding is consistent with prior Socratic examinations of related concepts",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Either a refined thesis has been articulated that accounts for the exposed contradiction, or ignorance has been honestly accepted",
+          "The relationship between the original thesis, the exposed assumption, and the new understanding has been documented",
+          "Remaining uncertainties have been explicitly stated",
+          "If further elenchus is needed, the next thesis to examine has been identified"
+        ],
+        "next_actions": [
+          "Workflow complete — the examined belief and its refinement have been documented",
+          "If a new thesis emerged that warrants further examination, consider another round of elenchus"
+        ]
+      }
     }
   ]
 }

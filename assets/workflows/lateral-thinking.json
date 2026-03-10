@@ -2,7 +2,8 @@
   "id": "lateral-thinking",
   "name": "Lateral Thinking",
   "emoji": "💭",
-  "description": "Creative problem-solving through indirect and non-linear approaches",
+  "description": "Solving problems using an indirect and creative approach via reasoning that is not immediately obvious — restructuring existing patterns rather than developing them, tolerating uncertainty, and rewarding breadth over depth (de Bono, 1967). Distinguished from vertical thinking (linear, stepwise, restricted to relevant information) and from critical thinking (which judges truth value): lateral thinking focuses on the 'movement value' of statements and ideas, moving from one known idea to new ideas.",
+  "specification": "https://en.wikipedia.org/wiki/Lateral_thinking",
   "triggers": [
     "lateral thinking",
     "creative breakthrough",
@@ -12,37 +13,220 @@
     "break conventional thinking",
     "escape mental models"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
+      "id": "define-creative-focus",
+      "name": "Define Creative Focus — Broaden where to search for new ideas",
+      "description": "Establish the creative focus area before generating ideas. Per de Bono's four types of thinking tools, focus tools are 'intended to broaden where to search for new ideas' — shifting attention away from the habitual problem zone to adjacent or unexpected areas.\n\nState the problem, challenge, or opportunity. Then deliberately broaden the focus: What adjacent areas might contain solutions? What would happen if you reframed this as a completely different kind of problem? Identify the dominant idea or 'polarizing tendency' that currently channels all thinking about this topic — lateral thinking aims to escape this channel.\n\nPer de Bono: lateral thinking 'deliberately distances itself from vertical thinking, the traditional method for problem solving.' Where vertical thinking develops an existing pattern, lateral thinking restructures it. Where vertical thinking is stepwise and methodical, lateral thinking is multidirectional and creative.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find existing knowledge, prior analyses, and concept relationships that reveal the dominant thinking pattern to be escaped",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Map the conceptual neighborhood — understanding the current pattern is prerequisite to restructuring it",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Problem, challenge, or opportunity clearly stated",
+          "Dominant idea or polarizing tendency identified — the pattern that currently channels all thinking",
+          "Focus broadened beyond the habitual problem zone to adjacent and unexpected areas",
+          "Reframing attempted — problem stated as a different kind of challenge"
+        ],
+        "next_actions": [
+          "Proceed to challenging assumptions"
+        ]
+      }
+    },
+    {
       "id": "challenge",
-      "name": "Challenge - Question fundamental assumptions",
-      "description": "Systematically challenge existing assumptions and conventional approaches\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSystematically question the fundamental assumptions behind this problem. Ask 'Why?' about every aspect of the current approach. What if the opposite were true? What assumptions are we taking for granted that might be wrong?",
-      "requiresEnhancedThinking": true
+      "name": "Challenge — Question why things exist or are done this way",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nApply de Bono's Challenge technique: 'a tool which is designed to ask the question \"Why?\" in a non-threatening way: why something exists or why it is done the way it is.' Per Wikipedia: 'The result is a very clear understanding of \"Why?\", which naturally leads to new ideas. The goal is to be able to challenge anything at all, not just those things that are problematic.'\n\nFor every aspect of the current approach, ask: Why does this exist? Why is it done this way? What if it were done differently? Challenge things that work well, not just what seems broken — de Bono's example: challenge the handles on coffee cups. The reason for the handle seems to be that the cup is often too hot to hold directly; perhaps coffee cups could be made with insulated finger grips, or there could be separate coffee-cup holders similar to beer holders, or coffee should not be so hot in the first place.\n\nAlso apply Disproving: per Wikipedia, 'take anything that is obvious and generally accepted as goes without saying, question it, take an opposite view, and try to convincingly disprove it.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic 'Why?' questioning of every aspect — including things that work — per de Bono's Challenge technique, plus Disproving: questioning the obvious and trying to argue against accepted truths",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "'Why?' asked about every aspect of the current approach in a non-threatening way (de Bono Challenge)",
+          "Things that work well challenged, not only things that are problematic",
+          "At least one 'obvious and generally accepted' assumption questioned and opposite view argued (Disproving)",
+          "Clear understanding of 'Why?' achieved — which naturally leads to new ideas",
+          "Assumptions taken for granted surfaced and examined"
+        ],
+        "next_actions": [
+          "Proceed to expanding alternatives via the concept fan"
+        ]
+      }
     },
     {
-      "id": "random",
-      "name": "Random Entry - Connect unexpected stimuli",
-      "description": "Use random words or concepts to spark new connections and perspectives\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nGenerate a random word or concept completely unrelated to this problem. Now force connections between this random element and your challenge. How could [random element] inspire a solution? What properties, functions, or characteristics could transfer?",
-      "requiresEnhancedThinking": true
+      "id": "alternatives",
+      "name": "Alternatives (Concept Fan) — Systematically expand the range of concepts",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nApply the Alternatives / Concept Fan technique. Per Wikipedia: 'Ideas carry out concepts. This tool systematically expands the range and number of concepts in order to end up with a very broad range of ideas to consider.'\n\nSeek multiple ways of achieving the same result, not just the obvious or conventional approach. For each concept identified in the challenge step, fan out: What are three entirely different ways to achieve this? What concepts from other domains could apply here? What would happen if we pursued the second-best approach instead of the obvious one?\n\nThe goal is not to find the one right answer but to generate a concept landscape — a broad range of ideas to consider before narrowing.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic concept expansion — fanning out from each concept to generate a broad range of ideas to consider, seeking multiple non-obvious routes (de Bono Alternatives / Concept Fan)",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "BuildContext": {
+            "reason": "Explore concept graph for cross-domain connections that may suggest non-obvious alternatives",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Multiple ways of achieving the same result generated — not just the obvious approach",
+          "Concepts systematically expanded to a very broad range of ideas (de Bono Concept Fan)",
+          "Cross-domain concepts explored — what approaches from other fields could apply",
+          "Second-best and third-best approaches explicitly considered alongside the dominant one"
+        ],
+        "next_actions": [
+          "Proceed to random entry idea generation"
+        ]
+      }
     },
     {
-      "id": "provoke",
-      "name": "Provocation - Use deliberate incorrectness to spark ideas",
-      "description": "Create deliberately wrong or impossible statements to escape conventional thinking\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nCreate deliberately provocative and seemingly wrong statements about this problem. What if we did the exact opposite of the conventional approach? What if we had infinite resources? What if we had zero resources? Use these provocations to spark new thinking directions.",
-      "requiresEnhancedThinking": true
+      "id": "random-entry",
+      "name": "Random Entry — Choose an object at random and associate it with the problem",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nApply de Bono's Random Entry Idea Generation technique. Per Wikipedia: 'The thinker chooses an object at random, or a noun from a dictionary and associates it with the area they are thinking about.'\n\nDe Bono's canonical example: the randomly chosen word 'nose' applied to an office photocopier led to the idea that the copier could produce a lavender smell when it was low on paper.\n\nChoose a random, unrelated word or object. Force associations between it and the problem area. Explore its properties, functions, structure, behavior, and context. Ask: What would happen if this problem had the properties of [random object]? How does [random object] solve its own challenges? What can be transferred?\n\nThe value is in breaking the patterned thinking that keeps returning to the same solution space. Random entry forces the brain into unfamiliar territory.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Force associations between a random, unrelated stimulus and the problem — exploring properties, functions, and transferable characteristics per de Bono's Random Entry technique (Serious Creativity, 2015, p. 263)",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Random object or noun chosen — genuinely unrelated to the problem area",
+          "Forced associations made between the random element and the problem (de Bono Random Entry)",
+          "Properties, functions, structure, and behavior of the random object explored for transferable ideas",
+          "At least one new perspective or idea generated that would not have emerged from conventional thinking"
+        ],
+        "next_actions": [
+          "Proceed to provocation idea generation"
+        ]
+      }
     },
     {
-      "id": "fractionate",
-      "name": "Fractionation - Break down conventional views",
-      "description": "Decompose the problem and examine each component from multiple unconventional angles\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBreak this problem into its smallest components. For each component, examine it from completely different perspectives - physical, emotional, temporal, functional, metaphorical. What happens if you recombine these components in unexpected ways?",
-      "requiresEnhancedThinking": true
+      "id": "provocation",
+      "name": "Provocation (Po) — Create deliberately wrong statements to escape patterns",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nApply de Bono's Provocation Idea Generation technique using the signal word 'Po' (Provocative Operation). Per Wikipedia: 'A provocation is a statement that we know is wrong or impossible but used to create new ideas.'\n\nDe Bono's canonical example: considering river pollution, the provocation 'Po: the factory is downstream of itself' forced thinking about a factory taking its water input from a point downstream of its output — an idea which later became law in some countries.\n\nPer Po (lateral thinking) on Wikipedia: 'Po is a word that precedes and signals a provocation. A provocation is an idea which moves thinking forward to a new place from where new ideas or solutions may be found.' Create provocations using de Bono's six provocation techniques:\n\n• **Wishful thinking**: 'Wouldn't it be nice if...'\n• **Exaggeration**: Take a quantity to extremes (zero or infinity)\n• **Reversal**: Do the opposite of what is normally done\n• **Escape**: Drop something taken for granted — negate a feature that is assumed essential\n• **Distortion**: Change the normal sequence or relationships\n• **Arising**: Assert something arising from the current situation that isn't normally expected\n\nCreate a list of provocations, then use the most outlandish ones to move thinking forward. The purpose is not truth but movement.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Create deliberately wrong or impossible provocations using all six techniques (wishful thinking, exaggeration, reversal, escape, distortion, arising) per de Bono's Po/Provocation — the purpose is movement, not truth",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Provocations created using Po signal word — each deliberately wrong or impossible",
+          "Multiple provocation techniques applied: wishful thinking, exaggeration, reversal, escape, distortion, arising",
+          "The most outlandish provocations identified for use in movement",
+          "Provocations move thinking forward to new places — the purpose is movement not truth (de Bono)"
+        ],
+        "next_actions": [
+          "Proceed to movement techniques — extract value from provocations"
+        ]
+      }
     },
     {
-      "id": "synthesize",
-      "name": "Concept Formation - Synthesize breakthrough insights",
-      "description": "Integrate lateral thinking insights into actionable creative solutions",
-      "requiresEnhancedThinking": false
+      "id": "movement",
+      "name": "Movement Techniques — Extract principles, differences, and positive aspects from provocations",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nApply de Bono's Movement Techniques — the critical bridge from provocation to practical idea. Per Wikipedia: 'The purpose of movement techniques is to produce as many alternatives as possible in order to encourage new ways of thinking about both problems and solutions. The production of alternatives tends to produce many possible solutions to problems that seemed to only have one possible solution.'\n\nFor each provocation generated, apply the five named movement methods:\n\n• **Extract a principle**: What underlying principle does this provocation embody, even if the provocation itself is absurd? Separate the mechanism from the surface absurdity.\n• **Focus on the difference**: How does the world implied by this provocation differ from the current situation? What is interesting about that difference?\n• **Moment to moment**: Imagine the provocation actually implemented. Walk through what happens step by step. Where does something interesting or useful emerge?\n• **Positive aspects**: What are the positive aspects of this provocation, however impractical? What value would it deliver if it could somehow work?\n• **Special circumstances**: Under what special circumstances might this provocation actually make sense or be feasible?\n\nPer de Bono, focus on the 'movement value' of ideas — how they shift your thinking forward — rather than judging their truth or utility immediately. The intermediate silly idea is a necessary step to find the good idea.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Apply all five named movement methods (extract a principle, focus on the difference, moment to moment, positive aspects, special circumstances) to each provocation — this is the critical bridge from absurd provocation to practical breakthrough per de Bono's movement techniques",
+            "priority": "mandatory",
+            "estimated_thoughts": 7
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each provocation processed through at least one movement method",
+          "Principles extracted from provocations — mechanism separated from surface absurdity",
+          "Differences between provocation-world and current situation identified and explored",
+          "Moment-to-moment walkthrough performed — where something interesting emerges identified",
+          "Positive aspects cataloged for even the most impractical provocations",
+          "Special circumstances identified where provocations might actually be feasible",
+          "Movement value assessed — ideas judged by how they shift thinking forward, not by truth (de Bono)"
+        ],
+        "next_actions": [
+          "Proceed to fractionation — breaking down fixed views"
+        ]
+      }
+    },
+    {
+      "id": "fractionation",
+      "name": "Fractionation — Break the commonplace view into alternative perceptions",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nApply de Bono's Fractionation technique. Per Wikipedia: 'The purpose of fractionation is to create alternative perceptions of problems and solutions by taking the commonplace view of the situation and breaking it into multiple alternative situations in order to break away from the fixed view and see the situation from different angles. This allows the generation of multiple possible solutions that can be synthesized into more comprehensive answers.'\n\nTake the current dominant view of the situation — the way most people would describe or frame it. Break it into its component parts. For each component, ask: What is the smallest indivisible element here? How might this component be perceived differently? What if this component were absent? What if it were the most important part instead of the least?\n\nRecombine the components in unexpected configurations. The goal is to escape the 'fixed view' — the single coherent narrative that prevents seeing alternatives.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Breaking the commonplace view into components and recombining them in unexpected configurations — de Bono's Fractionation creates alternative perceptions by escaping the fixed view",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Commonplace view of the situation identified and explicitly stated (de Bono Fractionation)",
+          "Situation broken into component parts — smallest indivisible elements identified",
+          "Each component examined from different angles — alternative perceptions created",
+          "Components recombined in unexpected configurations",
+          "Fixed view escaped — multiple possible solutions visible that were invisible before"
+        ],
+        "next_actions": [
+          "Proceed to harvest and treatment"
+        ]
+      }
+    },
+    {
+      "id": "harvest-and-treatment",
+      "name": "Harvest & Treatment — Extract maximum value and apply real-world constraints",
+      "description": "Apply de Bono's harvest tools and treatment tools to consolidate the lateral thinking session.\n\nPer de Bono's four types of thinking tools:\n• **Harvest tools**: 'intended to ensure more value is received from idea generating output.' Systematically catalog every idea, concept, principle, and perspective generated across all previous steps. Do not discard ideas prematurely — even weak ideas may contain extractable value.\n• **Treatment tools**: 'promote consideration of real-world constraints, resources, and support.' Take each harvested idea and assess feasibility, required resources, potential obstacles, and stakeholder considerations.\n\nPer Wikipedia, lateral thinking often produces solutions that appear 'obvious in hindsight.' It can highlight problems people never knew they had, or solve simple problems that have huge impacts. Look for these hindsight-obvious solutions among the harvested ideas.\n\nFinally, assess which solutions represent genuine pattern restructuring (lateral thinking) versus incremental improvements (vertical thinking). The best lateral solutions are those where the new pattern, once seen, seems natural and inevitable.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist lateral thinking results — harvested ideas, extracted principles, and practical solutions — with [[WikiLinks]] to ensure the creative insights compound in institutional memory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All ideas from every step systematically harvested — no premature discarding (de Bono harvest tools)",
+          "Real-world constraints, resources, and support assessed for each idea (de Bono treatment tools)",
+          "Solutions that appear 'obvious in hindsight' identified — the hallmark of successful lateral thinking",
+          "Pattern restructuring solutions distinguished from incremental improvements",
+          "Results documented with complete provenance: which technique generated which insight"
+        ],
+        "next_actions": [
+          "Apply selected lateral solutions to the original problem"
+        ]
+      }
     }
   ]
 }

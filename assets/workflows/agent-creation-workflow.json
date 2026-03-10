@@ -16,139 +16,562 @@
     "10/10 agent creation",
     "plugin agent"
   ],
-  "enhancedThinkingEnabled": true,
   "steps": [
     {
       "id": "assume-prompt-engineer-role",
       "name": "🧩 Assume Prompt Engineer Role",
       "description": "Activate constitutional prompt architecture expertise.\n\nUse Adopt tool with roleId 'prompt-engineer' to activate The Prompt Architect cognitive framework with 10/10 constitutional AI capabilities.\n\n⚠️ CRITICAL: This role provides systematic methodology, evidence-based optimization, and meta-cognitive scaffolding for perfect agent creation.",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Adopt": {
+            "reason": "Activate prompt-engineer role for constitutional AI expertise",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Prompt engineer role activated",
+          "Constitutional AI framework loaded"
+        ],
+        "next_actions": [
+          "Define agent specifications"
+        ]
+      }
     },
     {
       "id": "define-agent-specifications",
       "name": "📋 Define Agent Specifications",
-      "description": "Establish clear constitutional architecture requirements for the target agent.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to systematically analyze agent requirements.\n\nDefine: domain expertise, autonomous capabilities, constitutional principles, evaluation criteria, performance targets, tool requirements, and integration patterns. What specific intelligence amplification should this agent provide as an autonomous subprocess?\n\nFor agents that interact with the knowledge graph (memory://, WikiLinks, BuildContext), search memory for the six-layer constitutional agent architecture pattern and use it as the structural foundation. The layers (identity → pre-response protocol → write protocol → reasoning → research → hygiene) should be adapted to the agent's domain, not reinvented.\n\nOutput target: ~/.claude/agents/<agent-name>.md (globally auto-discovered, no registration needed).",
-      "requiresEnhancedThinking": true
+      "description": "Establish clear constitutional architecture requirements for the target agent.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to systematically analyze agent requirements.\n\nDefine: domain expertise, autonomous capabilities, constitutional principles, evaluation criteria, performance targets, tool requirements, and integration patterns. What specific intelligence amplification should this agent provide as an autonomous subprocess?\n\nFor agents that interact with the knowledge graph (memory://, WikiLinks, BuildContext), search memory for the six-layer constitutional agent architecture pattern and use it as the structural foundation. The layers (identity → pre-response protocol → write protocol → reasoning → research → hygiene) should be adapted to the agent's domain, not reinvented.\n\nOutput target: ~/.claude/agents/<agent-name>.md (globally auto-discovered, no registration needed).",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic analysis of agent requirements, capabilities, and constitutional principles",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find six-layer constitutional agent architecture pattern in memory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Domain expertise defined",
+          "Constitutional principles established",
+          "Performance targets set",
+          "Tool requirements identified"
+        ],
+        "next_actions": [
+          "Check for existing agent"
+        ]
+      }
     },
     {
       "id": "check-existing-agent",
       "name": "🔍 Check Existing Agent",
       "description": "Determine if agent already exists and assess current implementation.\n\nList all existing agent files in ~/.claude/agents/ to check for name conflicts. If the proposed agent name conflicts with an existing agent, choose a different name that avoids collision.\n\nAlso load the plugin-dev:plugin-structure skill and check installed plugins' agents/ directories for conflicts, since plugin-scoped agents share the namespace at runtime.\n\nIf the agent already exists in ~/.claude/agents/, read and analyze current implementation against 10/10 constitutional architecture standards.\n\n⚠️ CRITICAL: Document gaps and enhancement opportunities for systematic improvement.",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "ListAssets": {
+            "reason": "Check for name conflicts in existing agent files",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Agent namespace checked",
+          "Name conflicts resolved or confirmed absent"
+        ],
+        "next_actions": [
+          "Review existing agent architecture if found",
+          "Skip to access checklists if new agent"
+        ]
+      }
     },
     {
       "id": "review-existing-agent-architecture",
       "name": "🔬 Review Existing Agent Architecture",
-      "description": "If agent exists, conduct comprehensive constitutional architecture analysis.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for systematic evaluation.\n\nEvaluate against: constitutional coherence, architectural clarity, meta-cognitive scaffolding, context efficiency, failure resilience, dynamic adaptability. Apply 10/10 framework assessment.\n\nReview: YAML frontmatter completeness (name, description with examples, model, color, tools), system prompt quality, triggering precision.",
-      "requiresEnhancedThinking": true
+      "description": "If agent exists, conduct comprehensive constitutional architecture analysis.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool for systematic evaluation.\n\nEvaluate against: constitutional coherence, architectural clarity, meta-cognitive scaffolding, context efficiency, failure resilience, dynamic adaptability. Apply 10/10 framework assessment.\n\nReview: YAML frontmatter completeness (name, description with examples, model, color, tools), system prompt quality, triggering precision.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic constitutional architecture evaluation against 10/10 framework",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "ReadMemory": {
+            "reason": "Load existing agent implementation for gap analysis",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Constitutional coherence evaluated",
+          "Architecture gaps documented",
+          "Enhancement opportunities identified"
+        ],
+        "next_actions": [
+          "Access prompt engineering checklists"
+        ]
+      }
     },
     {
       "id": "access-prompt-engineering-checklists",
       "name": "📚 Access Prompt Engineering Checklists",
       "description": "Load comprehensive evaluation frameworks from memory.\n\nSearch memory://prompt-engineering for all implementation checklists: GPT-4.1 System Prompt Patterns, Agentic Workflows, Instruction Following Framework, Chain of Thought Patterns, Error Handling Strategies, Performance Optimization.\n\n⚠️ CRITICAL: These checklists provide 10/10 validation criteria.",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Load GPT-4.1 prompt patterns, agentic workflows, and evaluation checklists from memory",
+            "priority": "mandatory"
+          },
+          "ReadMemory": {
+            "reason": "Read specific checklist files for 10/10 validation criteria",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All evaluation checklists loaded",
+          "Validation criteria established"
+        ],
+        "next_actions": [
+          "Research domain knowledge"
+        ]
+      }
     },
     {
       "id": "research-domain-knowledge",
       "name": "🔎 Research Domain Knowledge",
-      "description": "Systematic research for agent domain expertise and patterns.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to coordinate comprehensive research.\n\nResearch sequence:\n1. Search memory:// for existing domain knowledge using SearchMemories tool\n2. Search codebase for relevant implementation patterns\n3. Use context7 for current industry standards and best practices\n4. Document all findings in memory:// using WriteMemory with proper [[Wiki Links]] and tags",
-      "requiresEnhancedThinking": true
+      "description": "Systematic research for agent domain expertise and patterns.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to coordinate comprehensive research.\n\nResearch sequence:\n1. Search memory:// for existing domain knowledge using SearchMemories tool\n2. Search codebase for relevant implementation patterns\n3. Use context7 for current industry standards and best practices\n4. Document all findings in memory:// using WriteMemory with proper [[Wiki Links]] and tags",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Coordinate comprehensive multi-source research sequence",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "SearchMemories": {
+            "reason": "Find existing domain knowledge in memory system",
+            "priority": "mandatory"
+          },
+          "WriteMemory": {
+            "reason": "Document research findings with [[WikiLinks]] and tags",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Memory search completed",
+          "Codebase patterns identified",
+          "Industry standards reviewed",
+          "Findings documented in memory"
+        ],
+        "next_actions": [
+          "Analyze constitutional requirements"
+        ]
+      }
     },
     {
       "id": "analyze-constitutional-requirements",
       "name": "⚖️ Analyze Constitutional Requirements",
-      "description": "Define constitutional AI principles and frameworks for the agent.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for constitutional analysis.\n\nDesign: core principles, anti-pattern recognition, value alignment mechanisms, evaluation criteria, and performance monitoring frameworks. How will this agent embed persistent constitutional thinking in its autonomous operation?",
-      "requiresEnhancedThinking": true
+      "description": "Define constitutional AI principles and frameworks for the agent.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool for constitutional analysis.\n\nDesign: core principles, anti-pattern recognition, value alignment mechanisms, evaluation criteria, and performance monitoring frameworks. How will this agent embed persistent constitutional thinking in its autonomous operation?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Design constitutional AI principles and value alignment mechanisms",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Core principles defined",
+          "Anti-pattern recognition designed",
+          "Value alignment mechanisms established",
+          "Evaluation criteria documented"
+        ],
+        "next_actions": [
+          "Design cognitive architecture"
+        ]
+      }
     },
     {
       "id": "design-cognitive-architecture",
       "name": "🏗️ Design Cognitive Architecture",
-      "description": "Create systematic cognitive scaffolding and meta-cognitive frameworks for the agent's system prompt.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for architectural design.\n\nDesign: system prompt structure (role, responsibilities, process, output format, edge cases), tool selection strategy (least-privilege principle), triggering conditions and example blocks, context loading strategies, and quality frameworks.",
-      "requiresEnhancedThinking": true
+      "description": "Create systematic cognitive scaffolding and meta-cognitive frameworks for the agent's system prompt.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool for architectural design.\n\nDesign: system prompt structure (role, responsibilities, process, output format, edge cases), tool selection strategy (least-privilege principle), triggering conditions and example blocks, context loading strategies, and quality frameworks.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Design system prompt structure, tool strategy, and cognitive scaffolding",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "System prompt structure designed",
+          "Tool selection strategy defined",
+          "Triggering conditions specified",
+          "Quality frameworks established"
+        ],
+        "next_actions": [
+          "Implement agent structure"
+        ]
+      }
     },
     {
       "id": "implement-agent-structure",
       "name": "🔨 Implement Agent Structure",
       "description": "Create complete agent markdown file with YAML frontmatter and constitutional system prompt.\n\nLoad the plugin-dev:agent-development skill as the canonical schema reference for agent file structure, frontmatter validation rules, tool options, color semantics, and system prompt patterns.\n\nImplement YAML frontmatter: name (lowercase-hyphens, 3-50 chars), description (triggering conditions with 2-4 <example> blocks including context/user/assistant/commentary), model (inherit|sonnet|opus|haiku), color (blue|cyan|green|yellow|magenta|red), tools (array, least-privilege).\n\nImplement system prompt body: role description (second person), core responsibilities, analysis process, quality standards, output format, edge cases.\n\n⚠️ CRITICAL: Follow exact Claude Code agent markdown schema with 10/10 constitutional integration.",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Create agent markdown file with YAML frontmatter and system prompt",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "YAML frontmatter complete",
+          "System prompt body written",
+          "Agent file created at target path"
+        ],
+        "next_actions": [
+          "Integrate performance monitoring"
+        ]
+      }
     },
     {
       "id": "integrate-performance-monitoring",
       "name": "📊 Integrate Performance Monitoring",
-      "description": "Add systematic performance measurement and optimization frameworks to the agent's system prompt.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for monitoring design.\n\nImplement: specific KPI targets (>95% accuracy baselines), quality standards within the system prompt, self-validation protocols, and output format constraints. How will agent performance be measured and optimized?",
-      "requiresEnhancedThinking": true
+      "description": "Add systematic performance measurement and optimization frameworks to the agent's system prompt.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool for monitoring design.\n\nImplement: specific KPI targets (>95% accuracy baselines), quality standards within the system prompt, self-validation protocols, and output format constraints. How will agent performance be measured and optimized?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Design KPI targets, self-validation protocols, and output constraints",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "KPI targets defined (>95% accuracy)",
+          "Self-validation protocols added",
+          "Output format constraints specified"
+        ],
+        "next_actions": [
+          "Add documentation framework"
+        ]
+      }
     },
     {
       "id": "add-documentation-framework",
       "name": "📖 Add Documentation Framework",
       "description": "Implement comprehensive documentation and knowledge transfer systems within the agent's system prompt.\n\nAdd: output format templates, troubleshooting guidance with decision trees, edge case handling protocols, and maintenance specifications.\n\n⚠️ CRITICAL: Enable systematic deployment and continuous improvement.",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find documentation templates and troubleshooting patterns",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Output format templates added",
+          "Troubleshooting guidance included",
+          "Edge case handling documented"
+        ],
+        "next_actions": [
+          "Implement example protocols"
+        ]
+      }
     },
     {
       "id": "implement-example-protocols",
       "name": "💡 Implement Example Protocols",
-      "description": "Create concrete triggering examples and demonstration frameworks with progressive complexity.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for example design.\n\nDevelop: 2-4 <example> blocks in the description field showing context/user/assistant/commentary, progressive complexity models, anti-pattern illustrations, and edge case protocols. How will Claude know precisely when to trigger this agent?",
-      "requiresEnhancedThinking": true
+      "description": "Create concrete triggering examples and demonstration frameworks with progressive complexity.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool for example design.\n\nDevelop: 2-4 <example> blocks in the description field showing context/user/assistant/commentary, progressive complexity models, anti-pattern illustrations, and edge case protocols. How will Claude know precisely when to trigger this agent?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Design progressive-complexity example blocks with context/user/assistant/commentary",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "2-4 example blocks created",
+          "Progressive complexity demonstrated",
+          "Anti-patterns illustrated",
+          "Triggering precision validated"
+        ],
+        "next_actions": [
+          "Validate against system prompt patterns"
+        ]
+      }
     },
     {
       "id": "validate-against-system-prompt-patterns",
       "name": "🎯 Validate Against System Prompt Patterns",
       "description": "Systematic evaluation against GPT-4.1 System Prompt Patterns checklist.\n\nValidate: three-pillar architecture, context management, tool integration, chain of thought integration, instruction following, error handling patterns. Document compliance score and enhancement opportunities.\n\n⚠️ CRITICAL: Target 10/10 constitutional architecture score.",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Load GPT-4.1 System Prompt Patterns checklist for validation",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Three-pillar architecture validated",
+          "Context management checked",
+          "Compliance score documented"
+        ],
+        "next_actions": [
+          "Validate against agentic workflows"
+        ]
+      }
     },
     {
       "id": "validate-against-agentic-workflows",
       "name": "🤖 Validate Against Agentic Workflows",
-      "description": "Systematic evaluation against GPT-4.1 Agentic Workflows checklist.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for systematic validation.\n\nValidate: three-pillar architecture, problem-solving workflows, meta-cognitive patterns, state management, tool integration, performance optimization. Does this agent enable autonomous intelligent behavior?",
-      "requiresEnhancedThinking": true
+      "description": "Systematic evaluation against GPT-4.1 Agentic Workflows checklist.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool for systematic validation.\n\nValidate: three-pillar architecture, problem-solving workflows, meta-cognitive patterns, state management, tool integration, performance optimization. Does this agent enable autonomous intelligent behavior?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic evaluation against agentic workflows checklist",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          },
+          "SearchMemories": {
+            "reason": "Load agentic workflows checklist from memory",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Problem-solving workflows validated",
+          "Meta-cognitive patterns checked",
+          "Autonomous behavior capability confirmed"
+        ],
+        "next_actions": [
+          "Validate against instruction following"
+        ]
+      }
     },
     {
       "id": "validate-against-instruction-following",
       "name": "📋 Validate Against Instruction Following Framework",
       "description": "Systematic evaluation against Instruction Following Framework checklist.\n\nValidate: structured instructions, example-driven guidance, conditional logic, meta-instruction framework, hierarchical architecture, behavioral consistency. Does this agent's system prompt provide clear, systematic guidance for autonomous operation?",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Load Instruction Following Framework checklist",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Structured instructions validated",
+          "Conditional logic checked",
+          "Behavioral consistency confirmed"
+        ],
+        "next_actions": [
+          "Validate against fundamentals"
+        ]
+      }
     },
     {
       "id": "validate-against-fundamentals",
       "name": "🔧 Validate Against Prompt Engineering Fundamentals",
-      "description": "Systematic evaluation against Fundamentals Implementation checklist.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for comprehensive validation.\n\nValidate: prompt structure architecture, template systems, variable frameworks, quality assurance, delimiter strategies, documentation standards. Does this agent demonstrate foundational excellence?",
-      "requiresEnhancedThinking": true
+      "description": "Systematic evaluation against Fundamentals Implementation checklist.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool for comprehensive validation.\n\nValidate: prompt structure architecture, template systems, variable frameworks, quality assurance, delimiter strategies, documentation standards. Does this agent demonstrate foundational excellence?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Comprehensive validation against prompt engineering fundamentals",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          },
+          "SearchMemories": {
+            "reason": "Load fundamentals checklist from memory",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Prompt structure validated",
+          "Template systems checked",
+          "Quality assurance verified"
+        ],
+        "next_actions": [
+          "Validate against error handling"
+        ]
+      }
     },
     {
       "id": "validate-against-error-handling",
       "name": "🛡️ Validate Against Error Handling Strategies",
       "description": "Systematic evaluation against Error Handling Strategies checklist.\n\nValidate: failure mode detection, validation patterns, recovery procedures, preventive design, monitoring integration, graceful degradation. Does this agent prevent and handle systematic failures in its autonomous operation?",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Load Error Handling Strategies checklist",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Failure mode detection validated",
+          "Recovery procedures checked",
+          "Graceful degradation confirmed"
+        ],
+        "next_actions": [
+          "Validate against chain of thought"
+        ]
+      }
     },
     {
       "id": "validate-against-chain-of-thought",
       "name": "🔗 Validate Against Chain of Thought Patterns",
-      "description": "Systematic evaluation against Chain of Thought Patterns checklist.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for reasoning validation.\n\nValidate: basic CoT templates, advanced reasoning, error analysis, quality enhancement, integration patterns, performance tracking. Does this agent enable systematic reasoning and meta-cognitive enhancement?",
-      "requiresEnhancedThinking": true
+      "description": "Systematic evaluation against Chain of Thought Patterns checklist.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool for reasoning validation.\n\nValidate: basic CoT templates, advanced reasoning, error analysis, quality enhancement, integration patterns, performance tracking. Does this agent enable systematic reasoning and meta-cognitive enhancement?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Validate reasoning patterns and meta-cognitive enhancement",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          },
+          "SearchMemories": {
+            "reason": "Load Chain of Thought Patterns checklist",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "CoT templates validated",
+          "Advanced reasoning patterns checked",
+          "Performance tracking confirmed"
+        ],
+        "next_actions": [
+          "Calculate overall constitutional score"
+        ]
+      }
     },
     {
       "id": "calculate-overall-constitutional-score",
       "name": "📈 Calculate Overall Constitutional Score",
-      "description": "Compute comprehensive constitutional architecture score across all frameworks.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for systematic scoring.\n\nCalculate scores for: constitutional coherence, architectural clarity, meta-cognitive scaffolding, context efficiency, failure resilience, dynamic adaptability. Target: 10/10 overall constitutional excellence.",
-      "requiresEnhancedThinking": true
+      "description": "Compute comprehensive constitutional architecture score across all frameworks.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool for systematic scoring.\n\nCalculate scores for: constitutional coherence, architectural clarity, meta-cognitive scaffolding, context efficiency, failure resilience, dynamic adaptability. Target: 10/10 overall constitutional excellence.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic scoring across all six constitutional architecture dimensions",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All six dimensions scored",
+          "Overall score calculated",
+          "Enhancement gaps identified"
+        ],
+        "next_actions": [
+          "Implement enhancement recommendations"
+        ]
+      }
     },
     {
       "id": "implement-enhancement-recommendations",
       "name": "⚡ Implement Enhancement Recommendations",
       "description": "Apply systematic improvements to achieve 10/10 constitutional architecture.\n\nImplement all identified enhancements: missing frameworks, performance targets, system prompt refinements, example protocols, tool scope adjustments, validation mechanisms. Continue until 10/10 score achieved across all evaluation criteria.\n\n⚠️ CRITICAL: No compromises on constitutional excellence.",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Reference checklist gaps and enhancement patterns",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All identified gaps addressed",
+          "10/10 score achieved across all criteria",
+          "No remaining enhancement opportunities"
+        ],
+        "next_actions": [
+          "Final validation and deployment"
+        ]
+      }
     },
     {
       "id": "final-validation-and-deployment",
       "name": "✅ Final Validation and Deployment",
-      "description": "Comprehensive validation and agent deployment to the target plugin's agents/ directory.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool for final validation.\n\nValidate: all checklists score 10/10, constitutional architecture complete, performance monitoring integrated, documentation comprehensive, examples clear, deployment ready.\n\nValidate agent file structure: YAML frontmatter (name, description, model, color, tools), system prompt body (second person, responsibilities, process, output format, edge cases). Save to ~/.claude/agents/<agent-name>.md with proper markdown formatting. Create the directory if it does not exist.\n\nInvoke the plugin-dev:plugin-validator agent to perform structural validation of the generated agent file within its target plugin context. This catches malformed frontmatter, missing required fields, and bad identifier patterns before deployment.",
-      "requiresEnhancedThinking": true
+      "description": "Comprehensive validation and agent deployment to the target plugin's agents/ directory.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool for final validation.\n\nValidate: all checklists score 10/10, constitutional architecture complete, performance monitoring integrated, documentation comprehensive, examples clear, deployment ready.\n\nValidate agent file structure: YAML frontmatter (name, description, model, color, tools), system prompt body (second person, responsibilities, process, output format, edge cases). Save to ~/.claude/agents/<agent-name>.md with proper markdown formatting. Create the directory if it does not exist.\n\nInvoke the plugin-dev:plugin-validator agent to perform structural validation of the generated agent file within its target plugin context. This catches malformed frontmatter, missing required fields, and bad identifier patterns before deployment.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Final comprehensive validation before deployment",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All checklists score 10/10",
+          "Agent file structure validated",
+          "Plugin validator passed",
+          "Agent deployed to target path"
+        ],
+        "next_actions": [
+          "Document creation methodology"
+        ]
+      }
     },
     {
       "id": "document-creation-methodology",
       "name": "📝 Document Creation Methodology",
       "description": "Document the complete agent creation process and lessons learned.\n\nSave to memory:// using WriteMemory: constitutional design patterns used, evaluation methodologies applied, enhancement techniques implemented, performance achievements, and process improvements for future agent creation.\n\n⚠️ CRITICAL: Build institutional knowledge for systematic agent excellence.",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist creation patterns, methodologies, and lessons learned to memory",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Design patterns documented",
+          "Evaluation methodologies recorded",
+          "Process improvements captured"
+        ],
+        "next_actions": [
+          "Workflow complete"
+        ]
+      }
     }
-  ]
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false
 }

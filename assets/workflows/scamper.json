@@ -2,7 +2,7 @@
   "id": "scamper",
   "name": "SCAMPER Method",
   "emoji": "🎨",
-  "description": "Creative problem-solving technique using 7 prompts",
+  "description": "Activity-based creative thinking process using seven prompted operations: Substitute, Combine, Adjust, Modify, Put to other uses, Eliminate, Reverse. Developed by Bob Eberle (1971), inspired by Alex Osborn's checklist in Applied Imagination.",
   "triggers": [
     "scamper",
     "substitute",
@@ -14,49 +14,192 @@
     "creative problem solving",
     "innovation techniques"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
       "id": "substitute",
-      "name": "Substitute - What can be substituted?",
-      "description": "Replace components, materials, or processes with alternatives",
-      "requiresEnhancedThinking": false
+      "name": "Substitute (analogy) — What can be substituted?",
+      "description": "Come up with another topic that is equivalent to the present topic.\n\nSubstitution uses analogy to find equivalent replacements for components, materials, processes, or people. Per Osborn's original checklist: What other material? What other process? What other approach? What other ingredient? What other power source?\n\nIdentify elements that can be replaced with alternatives serving the same function, drawn from the same or different domains.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find analogous components, materials, or processes in the knowledge graph that could serve as substitution candidates",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "At least 3 substitution candidates identified for key components",
+          "Each substitution assessed for equivalence to the original",
+          "Analogies from other domains considered per Osborn's checklist"
+        ],
+        "next_actions": [
+          "Add information through convergence in the Combine step"
+        ]
+      }
     },
     {
       "id": "combine",
-      "name": "Combine - What can be combined?",
-      "description": "Explore creative ways to merge different elements, ideas, or approaches\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about unexpected combinations and synergies. What happens when we merge seemingly unrelated elements?\n\nExamples:\n• Merge features: Can we combine two separate features into one unified experience?\n• Blend approaches: What if we used multiple methods simultaneously?\n• Unite teams or resources: What synergies emerge from combining different groups or assets?",
-      "requiresEnhancedThinking": true
+      "name": "Combine (convergence) — What can be combined?",
+      "description": "Add information to the original topic through convergence.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nCombination uses convergence — merging separate elements, ideas, or approaches to add new information to the original topic. What ideas, materials, features, processes, or people can be merged? What synergies emerge from combining unlike elements?\n\nExplore both obvious and non-obvious pairings. What happens when you blend approaches, unite resources, or merge features into a single unified whole?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically explore convergent combinations between disparate elements to add new information to the original topic",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "What separate features or ideas can be merged into one unified whole?",
+              "What approaches can be blended or used simultaneously?",
+              "What unlike elements converge to create new value when combined?"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "At least 3 combination ideas generated through convergence",
+          "Both obvious and non-obvious pairings explored",
+          "Synergies and conflicts between combined elements assessed"
+        ],
+        "next_actions": [
+          "Identify ways to construct more flexibly in the Adjust step"
+        ]
+      }
     },
     {
-      "id": "adapt",
-      "name": "Adapt - What can be adapted?",
-      "description": "Consider how ideas from other contexts can be applied here\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about how solutions from different domains, industries, or natural systems could be adapted to this context.\n\nExamples:\n• Natural world analogy: How might nature solve this problem?\n• Different industry perspective: How would another field approach this?\n• Historical precedent: What similar challenges have been solved before?",
-      "requiresEnhancedThinking": true
+      "id": "adjust",
+      "name": "Adjust — What can be adjusted?",
+      "description": "Identify ways to construct the topic in a more flexible and adjusted material.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nAdjustment seeks flexibility — finding ways to make the construction of the topic more adaptable, more responsive to different conditions, or better fitted to its context. What can be fine-tuned, calibrated, or made more elastic?\n\nHow can the fit between the idea and its environment be improved? What constraints can be loosened to allow adjustment?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically explore ways to construct the topic in a more flexible and adjusted form, per Eberle's Adjust operation",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "What aspects can be made more flexible or adjustable?",
+              "How can the topic be constructed for better fit to its context?",
+              "What constraints can be loosened to allow flexible adjustment?"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Find prior solutions or patterns in the knowledge graph that demonstrate flexible construction or adjustment techniques",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "At least 2 adjustment opportunities identified for flexibility or fit",
+          "Each adjustment assessed for how it improves adaptability of the material",
+          "Trade-offs between flexibility and stability considered"
+        ],
+        "next_actions": [
+          "Explore creative changes to scale and emphasis in the Modify step"
+        ]
+      }
     },
     {
       "id": "modify",
-      "name": "Modify - What can be modified or magnified?",
-      "description": "Change attributes, scale, or emphasis to improve functionality",
-      "requiresEnhancedThinking": false
+      "name": "Modify, Magnify, Minify — What can be changed in scale or emphasis?",
+      "description": "Creatively change the topic or make a feature or idea bigger or smaller.\n\nModification operates on scale and emphasis. Magnify: what can be made larger, stronger, higher, longer, thicker, more frequent, or more valuable? Minify: what can be made smaller, lighter, shorter, thinner, less frequent, or more streamlined?\n\nWhat attributes can be altered? What happens when you change the proportions, dimensions, or emphasis of the topic?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "BuildContext": {
+            "reason": "Explore the conceptual neighborhood to identify attributes that could be magnified, minified, or otherwise modified",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Key attributes identified for modification through magnification or minification",
+          "At least 2 modifications explored: scale change, emphasis shift, or attribute alteration",
+          "Impact of each modification on overall function assessed"
+        ],
+        "next_actions": [
+          "Identify new scenarios and situations for use in the Put to Other Uses step"
+        ]
+      }
     },
     {
-      "id": "repurpose",
-      "name": "Put to other uses - How can this be used differently?",
-      "description": "Find new applications or purposes beyond the original intent",
-      "requiresEnhancedThinking": false
+      "id": "put-to-other-uses",
+      "name": "Put to Other Uses (generate/divergence/connect) — How else can this be used?",
+      "description": "Identify the possible scenarios and situations where this topic can be used.\n\nPut to other uses applies generative, divergent, and connective thinking to find new applications, contexts, or purposes beyond the original intent. As-is, where else could this be used? Modified, what new purposes does it serve?\n\nWhat other markets, audiences, problem spaces, or contexts could benefit? What connections to other domains reveal new use cases?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search for alternative contexts, use cases, or domains in the knowledge graph where the topic could generate divergent value",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "At least 2 alternative use cases identified beyond the original intent",
+          "New user segments, application domains, or problem spaces explored",
+          "Divergent and generative thinking applied to connect the topic to new scenarios"
+        ],
+        "next_actions": [
+          "Remove non-valuable elements in the Eliminate step"
+        ]
+      }
     },
     {
       "id": "eliminate",
-      "name": "Eliminate - What can be removed or simplified?",
-      "description": "Remove unnecessary elements to improve efficiency or clarity",
-      "requiresEnhancedThinking": false
+      "name": "Eliminate — What can be removed?",
+      "description": "Remove ideas or elements from the topic that are not valuable.\n\nElimination strips away the non-essential to improve efficiency or clarity. What components, features, steps, or rules can be removed without losing core value? What would happen if you simplified radically?\n\nWhat is not necessary? What adds complexity without adding value? What can be omitted entirely?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "BuildContext": {
+            "reason": "Map element dependencies to identify which components can be safely removed without breaking core function",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Non-essential elements identified and assessed for removal",
+          "Impact of each elimination on core value evaluated",
+          "Simplified version articulated with clear rationale"
+        ],
+        "next_actions": [
+          "Evolve new concepts through reversal in the Reverse step"
+        ]
+      }
     },
     {
       "id": "reverse",
-      "name": "Reverse - What can be rearranged or reversed?",
-      "description": "Think about inverting, flipping, or completely reversing the typical approach\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about challenging conventional approaches by exploring opposites, inversions, and alternative sequences. What if we did the complete opposite of what's expected?\n\nExamples:\n• What if we inverted the typical approach to this problem?\n• How might the opposite perspective reveal new opportunities?\n• What assumptions are we making that could be reversed?",
-      "requiresEnhancedThinking": true
+      "name": "Reverse, Rearrange — What can be reversed or rearranged?",
+      "description": "Evolve a new concept from the original concept through reversal or rearrangement.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nReversal challenges the assumed order, direction, or structure. What if the sequence were reversed? What if roles were swapped? What if cause and effect were inverted? Rearrangement explores alternative configurations of the same elements.\n\nWhat new concept emerges when you turn the idea inside out, upside down, or back to front?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically invert, flip, or rearrange conventional assumptions, sequences, and structures to evolve new concepts from the original",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "What if the typical process order were reversed?",
+              "What assumptions about sequence, hierarchy, or direction can be inverted?",
+              "What new concept evolves from rearranging the original elements?"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "At least 2 reversals or rearrangements explored",
+          "Conventional assumptions explicitly identified and challenged",
+          "At least one reversal yields a new concept evolved from the original"
+        ],
+        "next_actions": [
+          "SCAMPER cycle complete — synthesize best ideas across all 7 operations",
+          "Optionally repeat cycle with refined focus on most promising directions"
+        ]
+      }
     }
   ]
 }

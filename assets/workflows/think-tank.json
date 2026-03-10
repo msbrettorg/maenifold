@@ -1,246 +1,380 @@
 {
   "id": "think-tank",
-  "name": "Research Think Tank (Multi-Agent Knowledge Construction)",
+  "name": "Think Tank (Multi-Agent Policy Research Institution)",
   "emoji": "🏛️",
-  "description": "Orchestrated research institution with parallel agent waves building rich knowledge graphs through collaborative investigation",
+  "description": "Models how a think tank operates: convene diverse expert fellows, research and analyze a policy question from multiple disciplinary angles, synthesize findings, draft a white paper or policy brief, conduct internal peer review, and publish actionable recommendations. Per Wikipedia, a think tank is an organization that performs research and advocacy — this workflow replicates that institutional process with parallel expert agents.",
   "triggers": [
     "think tank",
-    "research institution",
-    "parallel research",
-    "knowledge synthesis",
+    "policy research",
+    "policy analysis",
+    "white paper",
+    "policy brief",
+    "policy recommendations",
+    "expert panel",
     "multi agent research",
-    "research orchestration",
-    "collaborative research",
-    "knowledge construction",
-    "research waves",
-    "academic investigation"
+    "research institution",
+    "position paper"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": true,
   "steps": [
     {
-      "id": "research-charter",
-      "name": "📜 Research Charter & Orchestration Planning",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nAs Research Director, establish the research charter and orchestration strategy.\n\n1. **Topic Analysis**:\n   - Decompose research question into core domains\n   - Identify knowledge boundaries and scope\n   - Define success criteria and deliverables\n\n2. **Coverage Vector Creation**:\n   - Map required knowledge domains (5-10 areas)\n   - Set information gain thresholds (min 20% per wave)\n   - Define completeness targets (80% coverage)\n\n3. **Agent Resource Planning**:\n   - Determine agent count based on complexity\n   - Simple topic: 8-10 agents total\n   - Complex topic: 15-20 agents total\n   - Assign specialized roles per wave\n\n4. **Memory Architecture Setup**:\n```\nmemory://research/[topic]/\n├── charter.md (this planning document)\n├── wave-1-scoping/\n├── wave-2-deep-dive/\n├── wave-3-synthesis/\n├── wave-4-validation/\n└── final-report/\n```\n\n5. **Quality Gates Definition**:\n   - Concept density: 5+ [[WikiLinks]] per file\n   - Information gain: 20%+ new knowledge per wave\n   - Peer review score: 7/10 minimum\n\n⏱️ Duration: 15-20 minutes",
-      "requiresEnhancedThinking": true,
+      "id": "research-agenda",
+      "name": "🏛️ Research Agenda & Problem Scoping",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe think tank's leadership identifies the strategic policy question to investigate. Per Wikipedia, think tanks begin by 'identifying urgent problems or strategic questions.' This step frames the research charter.\n\n1. **Define the Policy Question**:\n   - What is the specific problem or policy area under investigation?\n   - Why is this question urgent or strategically important now?\n   - What is the scope — geographic, temporal, sectoral?\n\n2. **Establish Research Parameters**:\n   - What existing literature and evidence base exists?\n   - What methodologies are appropriate (case studies, modeling, surveys, comparative analysis)?\n   - What are the key stakeholder groups affected?\n\n3. **Assemble the Expert Panel**:\n   - Assign domain-specific Senior Fellows for parallel investigation\n   - Identify which disciplinary lenses apply (policy, economic, legal, implementation, comparative)\n   - Define output expectations: each fellow produces a research memo\n\n4. **Memory Architecture**:\n```\nmemory://think-tank/[topic]/\n├── charter.md (research question, scope, parameters)\n├── fellows/\n│   ├── policy-analysis.md\n│   ├── economic-analysis.md\n│   ├── legal-analysis.md\n│   ├── implementation-analysis.md\n│   └── comparative-analysis.md\n├── synthesis.md\n├── draft-paper.md\n├── peer-review.md\n└── final-publication.md\n```\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
       "metadata": {
         "toolHints": {
           "SequentialThinking": {
-            "reason": "Complex orchestration planning requires systematic thinking",
+            "reason": "Scoping a policy research agenda requires systematic identification of the question, stakeholders, methods, and expert assignments",
             "priority": "mandatory",
             "estimated_thoughts": 4,
-            "focus_areas": ["Topic decomposition", "Coverage vector", "Agent planning", "Quality criteria"]
+            "focus_areas": [
+              "Policy question framing and urgency",
+              "Scope boundaries (geographic, temporal, sectoral)",
+              "Methodology selection",
+              "Expert panel composition and assignments"
+            ]
           },
           "WriteMemory": {
-            "reason": "Create research charter with [[WikiLinks]] for knowledge graph",
+            "reason": "Persist the research charter with [[WikiLinks]] to relevant policy concepts",
             "priority": "mandatory",
-            "output": "memory://research/[topic]/charter.md"
+            "output": "memory://think-tank/[topic]/charter.md"
           }
         },
         "reasoning_effort": "high",
-        "stop_conditions": ["Charter documented", "Coverage vector defined", "Agent roles assigned", "Quality gates set"],
-        "next_actions": ["Dispatch Wave 1 agents"]
+        "stop_conditions": [
+          "Policy question clearly defined with rationale for urgency",
+          "Research scope and boundaries established",
+          "Methodologies selected for each expert stream",
+          "Expert panel roles assigned with clear mandates"
+        ],
+        "next_actions": [
+          "Dispatch all Senior Fellow agents for parallel investigation"
+        ]
       }
     },
     {
-      "id": "wave-1-domain-scoping",
-      "name": "🌊 Wave 1: Domain Scoping & Landscape Mapping",
-      "description": "🚫 BLOCKING: Dispatch ALL agents for parallel domain analysis\n\n⚠️ CRITICAL: ALL FOUR AGENTS IN ONE MESSAGE FOR PARALLEL EXECUTION!\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Map knowledge landscape and identify key domains\nAgent: knowledge-agent\nInstruction: Use agentic-research workflow to map the complete knowledge landscape for [topic]. Identify 5-10 core domains, key concepts, and knowledge hierarchies.\nOutput: memory://research/[topic]/wave-1-scoping/domain-map\n\nTask 2: Scan academic sources and identify seminal works\nAgent: knowledge-agent\nInstruction: Use agentic-research workflow focusing on academic literature. Find seminal papers, key researchers, and foundational theories.\nOutput: memory://research/[topic]/wave-1-scoping/literature-review\n\nTask 3: Identify emerging patterns and cutting-edge research\nAgent: knowledge-agent\nInstruction: Use sequential thinking to analyze current trends, emerging technologies, and future directions in [topic].\nOutput: memory://research/[topic]/wave-1-scoping/trends\n\nTask 4: Find knowledge gaps and unexplored territories\nAgent: knowledge-agent\nInstruction: Use sequential thinking to identify gaps in current knowledge, unanswered questions, and research opportunities.\nOutput: memory://research/[topic]/wave-1-scoping/gaps\n```\n\n🎯 AGENT INSTRUCTIONS:\n- Each agent MUST include 10+ [[WikiLinks]] in outputs\n- Use HyDE query expansion for semantic depth\n- Create topic coverage vectors for assigned area\n- Read other agents' outputs if available (non-blocking)\n\n⏱️ Wave duration: 45-60 minutes",
-      "requiresEnhancedThinking": false,
+      "id": "fellow-policy-analysis",
+      "name": "📋 Senior Fellow: Policy Research & Analysis",
+      "description": "🚫 BLOCKING: Dispatch ALL fellow agents in ONE message for parallel execution\n\n⚠️ CRITICAL: This step and the next four (economic, legal, implementation, comparative) represent the think tank's expert panel. ALL FIVE agents must be dispatched simultaneously in a single message.\n\nThe Policy Analysis fellow conducts core policy research. Per Wikipedia, think tanks 'employ specialists — researchers, academics, policy analysts' who investigate key societal issues using evidence-based methods.\n\n```\nTask 1: Core Policy Research & Analysis\nAgent: researcher\nInstruction: You are a Senior Fellow at a policy research institute. Analyze the policy question defined in the research charter. Your mandate:\n\n1. **Current Policy Landscape**: Map the existing policy framework — what rules, regulations, programs currently exist? What are their stated objectives and actual outcomes?\n2. **Problem Diagnosis**: What specific failures, gaps, or unintended consequences does the current policy create? Use evidence from the charter's background.\n3. **Policy Options**: Identify 3-5 distinct policy alternatives. For each, describe the mechanism of action, expected outcomes, and key assumptions.\n4. **Stakeholder Mapping**: Who benefits and who bears costs under each option? Identify political feasibility constraints.\n5. **Recommendation Sketch**: Which option(s) best address the diagnosed problems given feasibility constraints?\n\nInclude 10+ [[WikiLinks]] to relevant policy concepts.\nOutput: memory://think-tank/[topic]/fellows/policy-analysis.md\n```\n\n⏱️ Duration: 20-30 minutes per fellow (all run in parallel)",
+      "requiresSequentialThinking": false,
       "metadata": {
         "toolHints": {
           "Task": {
-            "reason": "Critical parallel dispatch - ALL agents must launch in ONE message",
+            "reason": "Critical parallel dispatch — ALL FIVE fellow agents must launch in ONE message",
             "priority": "mandatory",
-            "required_operations": ["knowledge-agent domain mapping", "knowledge-agent literature", "knowledge-agent trends", "knowledge-agent gaps"],
+            "required_operations": [
+              "researcher: policy-analysis",
+              "researcher: economic-analysis",
+              "researcher: legal-analysis",
+              "researcher: implementation-analysis",
+              "researcher: comparative-analysis"
+            ],
             "parallel_execution": true,
             "agent_instructions": {
-              "workflow_choice": "Agents choose agentic-research OR SequentialThinking based on task complexity",
-              "wikilink_requirement": "10+ [[WikiLinks]] per output file (e.g., [[domain-knowledge]], [[literature-review]], [[research-trends]])",
-              "output_format": "Markdown with rich WikiLinks"
+              "workflow_choice": "Each fellow uses SequentialThinking for systematic policy analysis",
+              "wikilink_requirement": "10+ [[WikiLinks]] per output",
+              "output_format": "Structured research memo with evidence, analysis, and preliminary recommendations"
             }
           }
         },
         "reasoning_effort": "medium",
-        "stop_conditions": ["All four agents dispatched", "Domain landscape mapped", "Literature identified", "Gaps documented"],
-        "next_actions": ["Review Wave 1 outputs", "Plan Wave 2 deep dives"],
+        "stop_conditions": [
+          "All five fellow agents dispatched in single message",
+          "Current policy landscape mapped",
+          "3-5 policy options identified with mechanisms",
+          "Stakeholder analysis completed"
+        ],
+        "next_actions": [
+          "Await completion of all parallel fellow agents",
+          "Proceed to evidence synthesis once all memos received"
+        ],
         "escape_hatches": {
-          "scope_explosion": "If domains > 10, trigger focus narrowing",
-          "insufficient_coverage": "If coverage < 50%, add specialized agents"
+          "insufficient_evidence": "If evidence base is thin, flag gaps explicitly and note where further empirical research would be needed",
+          "scope_too_broad": "If the policy area is too large, narrow to the most impactful sub-question identified in the charter"
         }
       }
     },
     {
-      "id": "wave-1-review",
-      "name": "📊 Wave 1 Review & Deep Dive Planning",
-      "description": "Review scoping results and plan deep dive agent dispatch.\n\n1. **Read Wave 1 Outputs**:\n   - memory://research/[topic]/wave-1-scoping/domain-map\n   - memory://research/[topic]/wave-1-scoping/literature-review\n   - memory://research/[topic]/wave-1-scoping/trends\n   - memory://research/[topic]/wave-1-scoping/gaps\n\n2. **Coverage Analysis**:\n   - Calculate initial coverage percentage\n   - Identify high-priority domains for deep dive\n   - Determine agent allocation (3-5 agents)\n\n3. **Deep Dive Assignment**:\n   - Assign specific domains to specialized agents\n   - Define research depth per domain\n   - Set information gain targets\n\n4. **Create Deep Dive Plan**:\n   - Document in memory://research/[topic]/wave-2-plan.md\n   - Include agent assignments and focus areas\n\n⏱️ Duration: 10-15 minutes",
-      "requiresEnhancedThinking": false,
-      "metadata": {
-        "toolHints": {
-          "ReadMemory": {
-            "reason": "Read all Wave 1 outputs for synthesis",
-            "priority": "mandatory"
-          },
-          "WriteMemory": {
-            "reason": "Document deep dive plan",
-            "priority": "mandatory",
-            "output": "memory://research/[topic]/wave-2-plan.md"
-          }
-        },
-        "reasoning_effort": "medium",
-        "stop_conditions": ["Wave 1 reviewed", "Deep dive domains selected", "Agent assignments planned"],
-        "next_actions": ["Dispatch Wave 2 deep dive agents"]
-      }
-    },
-    {
-      "id": "wave-2-deep-research",
-      "name": "🌊 Wave 2: Deep Dive Research",
-      "description": "🚫 BLOCKING: Dispatch specialized agents for deep domain research\n\n⚠️ DYNAMIC DISPATCH: 3-5 agents based on Wave 1 findings\n\n```\n# EXAMPLE DISPATCH (ADJUST BASED ON DOMAINS):\n\nTask 1: Deep dive into [Domain 1]\nAgent: knowledge-agent\nInstruction: Use FULL agentic-research workflow for comprehensive investigation of [Domain 1]. Include HyDE expansion, multi-perspective analysis, and reflexion loops.\nFocus: [Specific aspects from gaps analysis]\nOutput: memory://research/[topic]/wave-2-deep-dive/domain-1/\n\nTask 2: Deep dive into [Domain 2]\nAgent: knowledge-agent\nInstruction: Use FULL agentic-research workflow for [Domain 2]. Focus on [specific gaps identified].\nOutput: memory://research/[topic]/wave-2-deep-dive/domain-2/\n\nTask 3: Deep dive into [Domain 3]\nAgent: knowledge-agent\nInstruction: Use FULL agentic-research workflow for [Domain 3]. Emphasize [emerging patterns].\nOutput: memory://research/[topic]/wave-2-deep-dive/domain-3/\n\n[Add more agents as needed based on complexity]\n```\n\n🎯 DEEP DIVE REQUIREMENTS:\n- MUST use complete agentic-research workflow\n- Include HyDE query expansion\n- Create topic coverage vectors\n- Generate 20+ [[WikiLinks]] per domain\n- Achieve 30%+ information gain\n\n⏱️ Wave duration: 90-120 minutes",
-      "requiresEnhancedThinking": false,
+      "id": "fellow-economic-analysis",
+      "name": "💰 Senior Fellow: Economic & Fiscal Impact",
+      "description": "Dispatched in parallel with all other fellows (see fellow-policy-analysis for dispatch block).\n\nThe Economic Analysis fellow evaluates fiscal and economic dimensions. Per Wikipedia, think tanks research 'economics' and analyze 'policy impacts' using 'modeling' and 'simulations.'\n\n```\nTask 2: Economic & Fiscal Impact Analysis\nAgent: researcher\nInstruction: You are a Senior Fellow specializing in economic analysis at a policy research institute. Analyze the economic dimensions of the policy question:\n\n1. **Economic Context**: What are the relevant economic conditions, trends, and constraints? What market dynamics or macroeconomic factors are at play?\n2. **Cost-Benefit Analysis**: For each policy option from the charter, estimate costs (direct, indirect, opportunity) and benefits (quantifiable and qualitative). Identify who bears costs vs. who captures benefits.\n3. **Fiscal Impact**: What are the government revenue and expenditure implications? Model budget impact over 5-10 year horizon where applicable.\n4. **Economic Incentives & Behavioral Effects**: How would each option alter incentives for key actors? Predict behavioral responses and potential unintended economic consequences.\n5. **Distributional Analysis**: How do costs and benefits distribute across income groups, regions, or sectors? Identify equity implications.\n\nInclude 10+ [[WikiLinks]] to economic concepts.\nOutput: memory://think-tank/[topic]/fellows/economic-analysis.md\n```",
+      "requiresSequentialThinking": false,
       "metadata": {
         "toolHints": {
           "Task": {
-            "reason": "Dynamic parallel dispatch based on identified domains",
+            "reason": "Launched as part of parallel fellow dispatch in fellow-policy-analysis step",
             "priority": "mandatory",
-            "dynamic_scaling": "3-5 agents based on domain count",
-            "workflow_mandate": "FULL agentic-research workflow required",
             "parallel_execution": true
           }
         },
-        "reasoning_effort": "high",
-        "stop_conditions": ["All domains researched", "Information gain > 30%", "Coverage vectors complete"],
-        "next_actions": ["Review deep dive findings", "Dispatch synthesis wave"],
-        "escape_hatches": {
-          "information_saturation": "If gain < 10%, skip to synthesis",
-          "time_boundary": "If > 2 hours, force completion"
-        }
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Cost-benefit analysis completed for each policy option",
+          "Fiscal impact modeled with time horizon",
+          "Distributional effects identified",
+          "Incentive and behavioral effects analyzed"
+        ],
+        "next_actions": [
+          "Output persisted to memory for synthesis step"
+        ]
       }
     },
     {
-      "id": "wave-3-synthesis",
-      "name": "🌊 Wave 3: Cross-Domain Synthesis & Pattern Recognition",
-      "description": "🚫 BLOCKING: Dispatch synthesis agents for knowledge integration\n\n⚠️ ALL FOUR SYNTHESIS AGENTS IN ONE MESSAGE!\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Find interdisciplinary connections\nAgent: knowledge-agent\nInstruction: Read ALL Wave 2 outputs. Use sequential thinking to identify connections between domains, shared principles, and interdisciplinary insights. Create knowledge bridges.\nOutput: memory://research/[topic]/wave-3-synthesis/connections\n\nTask 2: Identify emergent patterns and themes\nAgent: knowledge-agent\nInstruction: Analyze all research findings for emergent patterns, recurring themes, and unexpected discoveries. Use pattern recognition and clustering.\nOutput: memory://research/[topic]/wave-3-synthesis/patterns\n\nTask 3: Reconcile contradictions and conflicts\nAgent: knowledge-agent\nInstruction: Identify and resolve contradictory findings across domains. Analyze evidence quality, source reliability, and create coherent synthesis.\nOutput: memory://research/[topic]/wave-3-synthesis/resolution\n\nTask 4: Generate novel insights and innovations\nAgent: knowledge-agent\nInstruction: Use creative synthesis to generate novel insights, innovative applications, and breakthrough ideas from the combined research.\nOutput: memory://research/[topic]/wave-3-synthesis/innovations\n```\n\n🎯 SYNTHESIS REQUIREMENTS:\n- MUST read all Wave 2 outputs first\n- Create cross-domain [[WikiLinks]]\n- Build connection graphs\n- Generate actionable insights\n\n⏱️ Wave duration: 60-75 minutes",
-      "requiresEnhancedThinking": false,
+      "id": "fellow-legal-analysis",
+      "name": "⚖️ Senior Fellow: Legal & Regulatory Framework",
+      "description": "Dispatched in parallel with all other fellows (see fellow-policy-analysis for dispatch block).\n\nThe Legal Analysis fellow examines legal and regulatory dimensions. Per Wikipedia, think tanks 'sometimes draft legislation' and address regulatory frameworks as part of their policy research.\n\n```\nTask 3: Legal & Regulatory Analysis\nAgent: researcher\nInstruction: You are a Senior Fellow specializing in legal and regulatory analysis at a policy research institute. Examine the legal dimensions of the policy question:\n\n1. **Legal Authority & Framework**: What existing laws, regulations, and legal precedents govern this area? What authority does the relevant governing body have to act?\n2. **Constitutional/Structural Constraints**: Are there constitutional, jurisdictional, or structural barriers to any proposed options? What legal challenges might arise?\n3. **Regulatory Impact**: For each policy option, what new regulations would be needed? What existing regulations would need modification or repeal?\n4. **Compliance & Enforcement**: How would each option be enforced? What compliance mechanisms exist or would need to be created? What are the enforcement costs?\n5. **Legal Risk Assessment**: What litigation risks do the options carry? Are there precedents from similar policy changes in other jurisdictions?\n\nInclude 10+ [[WikiLinks]] to legal and regulatory concepts.\nOutput: memory://think-tank/[topic]/fellows/legal-analysis.md\n```",
+      "requiresSequentialThinking": false,
       "metadata": {
         "toolHints": {
           "Task": {
-            "reason": "Parallel synthesis requiring cross-domain analysis",
+            "reason": "Launched as part of parallel fellow dispatch in fellow-policy-analysis step",
             "priority": "mandatory",
-            "required_operations": ["connection finding", "pattern recognition", "contradiction resolution", "innovation generation"],
-            "parallel_execution": true,
-            "cross_reading": "All agents MUST read Wave 2 outputs"
-          }
-        },
-        "reasoning_effort": "high",
-        "stop_conditions": ["Connections mapped", "Patterns identified", "Contradictions resolved", "Innovations generated"],
-        "next_actions": ["Dispatch validation wave"],
-        "escape_hatches": {
-          "contradiction_deadlock": "If 3+ unresolvable conflicts, escalate"
-        }
-      }
-    },
-    {
-      "id": "wave-4-validation",
-      "name": "🌊 Wave 4: Peer Review & Quality Validation",
-      "description": "🚫 BLOCKING: Dispatch validation agents for quality assurance\n\n⚠️ ALL FOUR VALIDATORS IN ONE MESSAGE!\n\n```\n# DISPATCH ALL IN ONE MESSAGE:\n\nTask 1: Validate research methodology and rigor\nAgent: knowledge-agent\nInstruction: Review entire research process for methodological soundness, source quality, and research rigor. Score each domain 1-10.\nOutput: memory://research/[topic]/wave-4-validation/methodology\n\nTask 2: Evaluate evidence quality and bias\nAgent: knowledge-agent\nInstruction: Assess evidence strength, identify potential biases, and evaluate source diversity. Create evidence quality matrix.\nOutput: memory://research/[topic]/wave-4-validation/evidence\n\nTask 3: Verify logic and reasoning chains\nAgent: knowledge-agent\nInstruction: Validate all reasoning chains, check for logical fallacies, and ensure conclusions follow from evidence.\nOutput: memory://research/[topic]/wave-4-validation/logic\n\nTask 4: Assess completeness and coverage\nAgent: knowledge-agent\nInstruction: Evaluate coverage against initial targets, identify remaining gaps, and assess overall completeness.\nOutput: memory://research/[topic]/wave-4-validation/completeness\n```\n\n🎯 VALIDATION CRITERIA:\n- Methodology score: 7/10 minimum\n- Evidence quality: Diverse sources required\n- Logic validation: No critical fallacies\n- Coverage: 80%+ of target domains\n\n⏱️ Wave duration: 45-60 minutes",
-      "requiresEnhancedThinking": false,
-      "metadata": {
-        "toolHints": {
-          "Task": {
-            "reason": "Parallel peer review for comprehensive validation",
-            "priority": "mandatory",
-            "required_operations": ["methodology review", "evidence evaluation", "logic validation", "completeness audit"],
-            "parallel_execution": true,
-            "scoring_required": true
-          }
-        },
-        "reasoning_effort": "high",
-        "stop_conditions": ["All validations complete", "Quality scores calculated", "Gaps identified"],
-        "next_actions": ["Knowledge integration", "Graph construction"],
-        "quality_gates": {
-          "minimum_score": 7,
-          "coverage_target": 0.8,
-          "evidence_diversity": "required"
-        }
-      }
-    },
-    {
-      "id": "knowledge-integration",
-      "name": "🧠 Knowledge Integration & Graph Construction",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nIntegrate all research into maenifold knowledge graph.\n\n1. **Graph Synchronization**:\n```bash\n# Sync all research memory to graph\nTool: Sync\nScope: memory://research/[topic]/\n```\n\n2. **Concept Network Analysis**:\n   - Use BuildContext on key [[WikiLinks]] like [[research-topic]], [[methodology]], [[findings]]\n   - Identify central nodes and connections\n   - Map knowledge architecture\n\n3. **Visualization Creation**:\n   - Generate Mermaid diagram of concept network\n   - Show domain relationships\n   - Highlight novel connections\n\n4. **Knowledge Metrics**:\n   - Total concepts created\n   - Connection density\n   - Information gain achieved\n   - Coverage percentage\n\n5. **Create Integration Report**:\n   - Document in memory://research/[topic]/integration-report.md\n   - Include metrics and visualizations\n   - Map to original research questions\n\n⏱️ Duration: 20-30 minutes",
-      "requiresEnhancedThinking": true,
-      "metadata": {
-        "toolHints": {
-          "Sync": {
-            "reason": "Synchronize all research memories to graph database",
-            "priority": "mandatory"
-          },
-          "BuildContext": {
-            "reason": "Analyze concept networks and relationships",
-            "priority": "mandatory"
-          },
-          "Visualize": {
-            "reason": "Create knowledge graph visualization",
-            "priority": "mandatory"
-          },
-          "SequentialThinking": {
-            "reason": "Complex integration requires systematic analysis",
-            "priority": "mandatory",
-            "estimated_thoughts": 3
-          }
-        },
-        "reasoning_effort": "high",
-        "stop_conditions": ["Graph synchronized", "Concepts mapped", "Visualization created", "Metrics calculated"],
-        "next_actions": ["Meta-synthesis", "Final report creation"]
-      }
-    },
-    {
-      "id": "meta-synthesis",
-      "name": "🎭 Director's Meta-Synthesis",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nAs Research Director, synthesize all agent findings into coherent knowledge.\n\n1. **Read All Wave Outputs**:\n   - Wave 1: Scoping findings\n   - Wave 2: Deep dive research\n   - Wave 3: Synthesis insights\n   - Wave 4: Validation results\n\n2. **Meta-Analysis**:\n   - Identify breakthrough insights\n   - Map innovation opportunities\n   - Synthesize actionable recommendations\n   - Document confidence levels\n\n3. **Knowledge Architecture**:\n   - Define core knowledge structure\n   - Map concept hierarchies\n   - Identify leverage points\n   - Document decision frameworks\n\n4. **Strategic Implications**:\n   - Practical applications\n   - Future research directions\n   - Risk assessments\n   - Opportunity analysis\n\n5. **Create Meta-Synthesis**:\n   - memory://research/[topic]/meta-synthesis.md\n   - Executive summary\n   - Key findings\n   - Strategic recommendations\n\n⏱️ Duration: 30-40 minutes",
-      "requiresEnhancedThinking": true,
-      "metadata": {
-        "toolHints": {
-          "SequentialThinking": {
-            "reason": "Meta-synthesis requires deep systematic thinking",
-            "priority": "mandatory",
-            "estimated_thoughts": 5,
-            "focus_areas": ["Pattern synthesis", "Strategic implications", "Knowledge architecture", "Actionable insights"]
-          },
-          "ReadMemory": {
-            "reason": "Read all wave outputs for comprehensive synthesis",
-            "priority": "mandatory"
-          },
-          "WriteMemory": {
-            "reason": "Document meta-synthesis with rich [[WikiLinks]]",
-            "priority": "mandatory"
-          }
-        },
-        "reasoning_effort": "high",
-        "stop_conditions": ["All findings synthesized", "Recommendations documented", "Knowledge architecture defined"],
-        "next_actions": ["Create final deliverable"]
-      }
-    },
-    {
-      "id": "final-deliverable",
-      "name": "📋 Research Institute Report",
-      "description": "Create comprehensive research deliverable.\n\n1. **Report Structure**:\n```markdown\n# [Topic] Research Institute Report\n\n## Executive Summary\n- Key findings (3-5 bullets)\n- Breakthrough insights\n- Strategic recommendations\n\n## Research Methodology\n- Multi-agent orchestration approach\n- Wave-based investigation\n- Coverage and validation metrics\n\n## Domain Findings\n- [For each domain: key discoveries]\n\n## Synthesis & Innovations\n- Cross-domain connections\n- Emergent patterns\n- Novel insights\n\n## Knowledge Graph\n- Concept network visualization\n- Relationship mappings\n- Graph metrics\n\n## Validation & Quality\n- Peer review scores\n- Evidence quality assessment\n- Confidence levels\n\n## Strategic Implications\n- Practical applications\n- Future directions\n- Risk considerations\n\n## Appendices\n- Detailed findings per wave\n- Agent contributions\n- Source bibliography\n```\n\n2. **Quality Checklist**:\n   ✓ All waves represented\n   ✓ 50+ [[WikiLinks]] total\n   ✓ Actionable insights included\n   ✓ Validation scores documented\n   ✓ Knowledge graph integrated\n\n3. **Save Report**:\n   - memory://research/[topic]/final-report/institute-report.md\n   - Include all visualizations\n   - Cross-reference all findings\n\n⏱️ Duration: 20-30 minutes",
-      "requiresEnhancedThinking": false,
-      "metadata": {
-        "toolHints": {
-          "WriteMemory": {
-            "reason": "Create final comprehensive report",
-            "priority": "mandatory",
-            "output": "memory://research/[topic]/final-report/institute-report.md"
+            "parallel_execution": true
           }
         },
         "reasoning_effort": "medium",
-        "stop_conditions": ["Report complete", "All sections populated", "Quality checklist passed"],
-        "next_actions": ["Research complete", "Knowledge graph enriched"],
+        "stop_conditions": [
+          "Legal authority and framework mapped",
+          "Constitutional/structural constraints identified",
+          "Regulatory requirements for each option documented",
+          "Legal risks assessed with precedent analysis"
+        ],
+        "next_actions": [
+          "Output persisted to memory for synthesis step"
+        ]
+      }
+    },
+    {
+      "id": "fellow-implementation",
+      "name": "🔧 Senior Fellow: Stakeholder & Implementation Analysis",
+      "description": "Dispatched in parallel with all other fellows (see fellow-policy-analysis for dispatch block).\n\nThe Implementation Analysis fellow evaluates practical feasibility and stakeholder impact. Per Wikipedia, think tanks develop 'practical implementation roadmaps' and 'consult experts or stakeholders.'\n\n```\nTask 4: Stakeholder & Implementation Analysis\nAgent: researcher\nInstruction: You are a Senior Fellow specializing in implementation and stakeholder analysis at a policy research institute. Assess practical feasibility:\n\n1. **Stakeholder Analysis**: Identify all affected parties — who supports, who opposes, and why? Map power, interest, and influence of key stakeholders.\n2. **Implementation Requirements**: For each policy option, what institutional capacity, infrastructure, personnel, and timeline is needed? What existing systems can be leveraged?\n3. **Operational Feasibility**: Are there administrative, technical, or logistical barriers? What is the realistic implementation timeline?\n4. **Risk Assessment**: What are the top implementation risks? What could go wrong during rollout? Identify mitigation strategies.\n5. **Change Management**: What political, organizational, or public communication strategy would support successful adoption? How should transition from current state be managed?\n\nInclude 10+ [[WikiLinks]] to implementation and stakeholder concepts.\nOutput: memory://think-tank/[topic]/fellows/implementation-analysis.md\n```",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Launched as part of parallel fellow dispatch in fellow-policy-analysis step",
+            "priority": "mandatory",
+            "parallel_execution": true
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Stakeholder map completed with power/interest analysis",
+          "Implementation requirements documented per option",
+          "Top risks identified with mitigation strategies",
+          "Realistic timeline and change management plan outlined"
+        ],
+        "next_actions": [
+          "Output persisted to memory for synthesis step"
+        ]
+      }
+    },
+    {
+      "id": "visiting-scholar",
+      "name": "🌍 Visiting Scholar: Comparative & Historical Analysis",
+      "description": "Dispatched in parallel with all other fellows (see fellow-policy-analysis for dispatch block).\n\nThe Visiting Scholar provides cross-jurisdictional and historical perspective. Per Wikipedia, think tanks use 'case studies' and 'field research' to analyze policy across contexts.\n\n```\nTask 5: Comparative & Historical Analysis\nAgent: researcher\nInstruction: You are a Visiting Scholar brought in for comparative expertise at a policy research institute. Provide cross-case perspective:\n\n1. **Comparative Cases**: Identify 3-5 jurisdictions, organizations, or contexts that have addressed a similar policy question. What approaches did they take?\n2. **Outcomes Assessment**: For each case, what were the results? What worked, what failed, and why? Distinguish between context-dependent and generalizable lessons.\n3. **Historical Trajectory**: How has this policy area evolved over time? What historical precedents inform current options? What trends are emerging?\n4. **Transferability Analysis**: Which lessons from comparative cases are transferable to the current context? What contextual differences limit direct application?\n5. **Best Practices & Cautionary Tales**: Synthesize the strongest evidence for what works and the clearest warnings about what does not.\n\nInclude 10+ [[WikiLinks]] to comparative policy concepts.\nOutput: memory://think-tank/[topic]/fellows/comparative-analysis.md\n```",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Launched as part of parallel fellow dispatch in fellow-policy-analysis step",
+            "priority": "mandatory",
+            "parallel_execution": true
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "3-5 comparative cases identified and analyzed",
+          "Outcomes assessed with success/failure factors",
+          "Historical trajectory documented",
+          "Transferability analysis completed with caveats"
+        ],
+        "next_actions": [
+          "Output persisted to memory for synthesis step"
+        ]
+      }
+    },
+    {
+      "id": "evidence-synthesis",
+      "name": "🔬 Research Director: Evidence Synthesis",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe Research Director synthesizes findings from all five expert fellows into a coherent evidence base. Per Wikipedia, think tanks 'bridge the gap between academic research and practical policymaking' by translating complex research into actionable ideas.\n\n1. **Read All Fellow Memos**: Review each expert's research output from memory.\n\n2. **Cross-Cutting Themes**: Identify findings that appear across multiple expert streams. Where do the policy, economic, legal, implementation, and comparative analyses converge?\n\n3. **Contradictions & Tensions**: Where do expert analyses disagree? Flag trade-offs between economic efficiency and equity, legal feasibility and policy ambition, implementation simplicity and comprehensiveness.\n\n4. **Evidence Quality Assessment**: Rate the strength of evidence for each key finding. Distinguish between well-established facts, reasonable inferences, and speculative projections.\n\n5. **Integrated Findings Matrix**: Produce a structured comparison of policy options across all dimensions (policy effectiveness, economic impact, legal feasibility, implementation risk, comparative evidence).\n\n6. **Emerging Recommendation Direction**: Based on the integrated evidence, which 1-2 options have the strongest cross-dimensional support?\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Integrating five independent expert analyses requires systematic cross-referencing and conflict resolution",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Cross-cutting theme identification across fellow outputs",
+              "Contradiction and tension mapping",
+              "Evidence quality rating",
+              "Integrated comparison matrix construction",
+              "Emerging recommendation direction"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read all five fellow research memos for synthesis",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://think-tank/[topic]/fellows/policy-analysis.md",
+              "memory://think-tank/[topic]/fellows/economic-analysis.md",
+              "memory://think-tank/[topic]/fellows/legal-analysis.md",
+              "memory://think-tank/[topic]/fellows/implementation-analysis.md",
+              "memory://think-tank/[topic]/fellows/comparative-analysis.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the integrated synthesis with [[WikiLinks]]",
+            "priority": "mandatory",
+            "output": "memory://think-tank/[topic]/synthesis.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All five fellow memos read and cross-referenced",
+          "Cross-cutting themes identified",
+          "Contradictions and trade-offs documented",
+          "Integrated findings matrix produced",
+          "1-2 leading options identified with evidence strength ratings"
+        ],
+        "next_actions": [
+          "Draft the position paper based on synthesized evidence"
+        ]
+      }
+    },
+    {
+      "id": "draft-position-paper",
+      "name": "📝 Draft Position Paper & Recommendations",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nDraft the think tank's position paper — the primary deliverable. Per Wikipedia, think tanks 'publish articles and studies' as 'white papers, policy briefs, books, journal articles' and 'develop policy recommendations.'\n\nThe position paper follows standard think tank publication format:\n\n1. **Executive Summary**: The policy question, key findings, and headline recommendations in 1-2 paragraphs.\n\n2. **Background & Context**: Why this issue matters now. Historical context and current state of affairs.\n\n3. **Analysis**: Integrated findings from the expert panel — policy landscape, economic impact, legal framework, implementation considerations, and comparative evidence. Present the findings matrix.\n\n4. **Recommendations**: 2-4 specific, actionable policy recommendations. For each:\n   - What should be done (mechanism)\n   - Who should act (responsible parties)\n   - Expected outcomes and timeline\n   - Key risks and mitigations\n\n5. **Implementation Roadmap**: Phased implementation plan with milestones, resource requirements, and success metrics.\n\n6. **Limitations & Further Research**: What the analysis could not resolve. What additional research or data would strengthen the conclusions.\n\n⏱️ Duration: 15-20 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Drafting a coherent position paper from synthesized evidence requires careful argumentation and recommendation formulation",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Executive summary that captures key findings",
+              "Evidence-based argumentation structure",
+              "Specific and actionable recommendation formulation",
+              "Implementation roadmap with milestones",
+              "Honest limitations and further research needs"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read the synthesis memo as the primary input for drafting",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://think-tank/[topic]/synthesis.md",
+              "memory://think-tank/[topic]/charter.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the draft position paper for peer review",
+            "priority": "mandatory",
+            "output": "memory://think-tank/[topic]/draft-paper.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Executive summary written with clear headline recommendations",
+          "Analysis section integrates findings from all five expert domains",
+          "2-4 specific recommendations with mechanisms, actors, timelines, and risks",
+          "Implementation roadmap includes phased milestones",
+          "Limitations section honestly acknowledges evidence gaps"
+        ],
+        "next_actions": [
+          "Submit draft to internal peer review panel"
+        ]
+      }
+    },
+    {
+      "id": "peer-review-panel",
+      "name": "🔍 Internal Peer Review Panel",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nConduct rigorous internal peer review of the draft position paper. Per Wikipedia, think tanks range from 'highly academic or scholarly' to ideological, with the 'quality of their research' being a key differentiator. Rigorous think tanks maintain internal review standards.\n\nThe review panel evaluates the draft on these criteria:\n\n1. **Evidentiary Rigor**: Are claims supported by the evidence gathered? Are there logical gaps, unsupported assertions, or cherry-picked data? Does the analysis distinguish correlation from causation?\n\n2. **Analytical Completeness**: Does the paper adequately address all relevant dimensions (policy, economic, legal, implementation, comparative)? Are there blind spots or missing perspectives?\n\n3. **Recommendation Quality**: Are recommendations specific enough to be actionable? Are they feasible given the legal and implementation analysis? Do they follow from the evidence presented?\n\n4. **Counterargument Stress-Test**: What would critics say? Does the paper anticipate and address the strongest objections? Are there alternative interpretations of the same evidence?\n\n5. **Intellectual Honesty**: Does the paper acknowledge uncertainty appropriately? Are limitations genuine or superficial? Does it avoid overstating conclusions?\n\n6. **Clarity & Accessibility**: Is the paper written for its intended audience (policymakers, public)? Does it translate complex analysis into clear language without oversimplifying?\n\nIf significant issues are found, revise the draft before proceeding to publication.\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Peer review requires systematic evaluation across multiple quality dimensions and honest self-critique",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Evidence quality and logical rigor",
+              "Counterargument stress-testing",
+              "Recommendation feasibility check",
+              "Intellectual honesty and uncertainty acknowledgment"
+            ]
+          },
+          "ReadMemory": {
+            "reason": "Read the draft position paper and original charter for review",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://think-tank/[topic]/draft-paper.md",
+              "memory://think-tank/[topic]/charter.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist peer review findings and any revisions",
+            "priority": "mandatory",
+            "output": "memory://think-tank/[topic]/peer-review.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All six review criteria evaluated",
+          "Significant issues identified and addressed in revision",
+          "Counterarguments anticipated and rebutted or acknowledged",
+          "Draft approved for publication or revised and re-approved"
+        ],
+        "next_actions": [
+          "Finalize the position paper for publication"
+        ],
+        "quality_gates": {
+          "minimum_review_criteria": "All six dimensions must be evaluated — no skipping",
+          "revision_threshold": "Any finding rated 'significant issue' must be addressed before proceeding"
+        }
+      }
+    },
+    {
+      "id": "publish-and-advocate",
+      "name": "📰 Publication & Policy Recommendations",
+      "description": "Finalize and publish the think tank's policy brief or white paper. Per Wikipedia, think tanks disseminate findings 'through white papers, policy briefs, books, journal articles, press releases, public events, and presentations to policymakers.' Their core mission is to 'influence public discourse, shape legislative agendas, or provide expert testimony.'\n\nDeliver the final output:\n\n1. **Finalized Position Paper**: Incorporate all peer review revisions into a polished final document.\n\n2. **Policy Brief** (condensed version): A 1-2 page summary with:\n   - The problem in one paragraph\n   - Key findings in bullet points\n   - Headline recommendations with expected impact\n   - Call to action for decision-makers\n\n3. **Dissemination Strategy**: Per Wikipedia, think tanks use multiple channels:\n   - Which policymakers or decision-makers should receive this?\n   - What public forums or media could amplify the findings?\n   - What follow-up research agenda does this open?\n\n4. **Knowledge Graph Integration**: Persist key concepts, findings, and recommendations as reusable institutional knowledge with [[WikiLinks]].\n\n⏱️ Duration: 10-15 minutes",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "ReadMemory": {
+            "reason": "Read the peer-reviewed draft and review notes for final revision",
+            "priority": "mandatory",
+            "inputs": [
+              "memory://think-tank/[topic]/draft-paper.md",
+              "memory://think-tank/[topic]/peer-review.md"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the final publication and key concepts to knowledge graph",
+            "priority": "mandatory",
+            "output": "memory://think-tank/[topic]/final-publication.md"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Final position paper incorporates all peer review revisions",
+          "Policy brief summary produced (problem, findings, recommendations, call to action)",
+          "Dissemination strategy outlined",
+          "Key findings persisted to knowledge graph with [[WikiLinks]]"
+        ],
+        "next_actions": [
+          "Deliver final policy brief and white paper to user",
+          "Identify follow-up research questions for future investigation"
+        ],
         "success_criteria": {
-          "wikilink_density": "50+ total [[WikiLinks]] (e.g., [[collaborative-research]], [[knowledge-synthesis]], [[peer-review]])",
-          "coverage_achievement": "80%+",
-          "validation_score": "7/10+",
-          "actionable_insights": "5+ minimum"
+          "deliverable": "Polished white paper or policy brief with specific, actionable recommendations grounded in multi-disciplinary evidence",
+          "grounding": "Every recommendation traces back to expert fellow analysis and evidence synthesis",
+          "honesty": "Limitations and uncertainties are transparently acknowledged"
         }
       }
     }

@@ -2,7 +2,8 @@
   "id": "lean-startup",
   "name": "Lean Startup",
   "emoji": "🚀",
-  "description": "Build-measure-learn approach to product development",
+  "description": "A methodology for developing businesses and products that shortens development cycles and rapidly discovers if a proposed business model is viable — achieved by combining business-hypothesis-driven experimentation, iterative product releases via minimum viable products, and validated learning within the Build-Measure-Learn feedback loop (Ries, The Lean Startup, 2011), grounded in Steve Blank's customer development framework (Blank, The Four Steps to the Epiphany, 2005)",
+  "specification": "https://en.wikipedia.org/wiki/Lean_startup",
   "triggers": [
     "lean startup",
     "mvp",
@@ -10,33 +11,225 @@
     "build-measure-learn",
     "pivot",
     "validate",
-    "startup methodology"
+    "startup methodology",
+    "customer development",
+    "validated learning",
+    "innovation accounting",
+    "pivot or persevere"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "build",
-      "name": "Build - Create minimum viable product (MVP)",
-      "description": "Build the simplest version that tests core hypotheses with real users\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what we're assuming customers want. What's the minimum we can build to test our riskiest assumptions?",
-      "requiresEnhancedThinking": true
+      "id": "customer-discovery",
+      "name": "Customer Discovery — Formulate & Test Business Model Hypotheses",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe lean startup methodology is grounded in Steve Blank's customer development framework. Blank observed that startups are not simply smaller versions of large companies — they must search for new business models rather than execute known ones (Blank, The Four Steps to the Epiphany, 2005). The Customer Development Manifesto begins: 'There are no facts inside your building, so get outside.'\n\nCustomer discovery captures the founders' vision and turns it into a series of business model hypotheses, then develops a plan to test customer reactions to those hypotheses and turn them into facts. The hypotheses testing emulates the scientific method: pose a business model hypothesis, design an experiment, get out of the building and test it. From the data, either (1) validate the hypothesis, (2) invalidate the hypothesis, or (3) modify the hypothesis.\n\nIdentify the riskiest 'leap-of-faith assumptions' — the assumptions whose failure would doom the venture. Use a Business Model Canvas (Osterwalder, 2008; 9 blocks: activities, partners, resources, value proposition, customers, channels, relationships, costs, revenue) or Lean Canvas (Maurya, Running Lean, 2010; replaces key partners/activities with problem/solution, key resources/relationships with key metrics/unfair advantage) to map the full business model as testable hypotheses.\n\n• Capture the founding vision as explicit, testable business model hypotheses\n• Identify leap-of-faith assumptions — the riskiest unknowns\n• Get out of the building: test hypotheses with real potential customers\n• Map the business model using Canvas methodology\n• Emulate the scientific method: hypothesize, experiment, learn",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Decomposing a founding vision into testable business model hypotheses and identifying the riskiest leap-of-faith assumptions requires structured reasoning through each Canvas block and customer segment",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find existing market research, customer insights, competitor analysis, and prior hypothesis testing results in the knowledge graph",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Understand the broader market ecosystem and customer landscape before formulating hypotheses",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Founding vision decomposed into explicit, testable business model hypotheses",
+          "Leap-of-faith assumptions identified and ranked by risk",
+          "Business Model Canvas or Lean Canvas populated with hypotheses across all relevant blocks",
+          "Plan for getting out of the building — customer interview or experiment design ready"
+        ],
+        "next_actions": [
+          "Proceed to Build — construct a minimum viable product to test the riskiest hypotheses"
+        ]
+      }
+    },
+    {
+      "id": "build-mvp",
+      "name": "Build — Construct Minimum Viable Product",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe Build phase of the Build-Measure-Learn loop emphasizes speed as a critical ingredient to customer development. A minimum viable product (MVP) is 'the version of a new product which allows a team to collect the maximum amount of validated learning about customers with the least effort' (Ries, The Lean Startup). The term was coined by Frank Robinson (2001) and popularized by Steve Blank and Eric Ries. The goal is to test fundamental business hypotheses — the leap-of-faith assumptions identified during Customer Discovery — and begin the learning process as quickly as possible.\n\nThe MVP is NOT the smallest product imaginable; it is the smallest experiment that tests your riskiest assumption. Ries cites the Zappos example: founder Nick Swinmurn tested the hypothesis that customers would buy shoes online by photographing local shoe store inventory and posting pictures online, buying shoes at full price only after making a sale. No warehouse, no inventory system — just a direct test of the core hypothesis.\n\nMVP types include Landing Page MVP (web page gathering early followers), Wizard of Oz MVP (appears functional but manually operated behind the scenes), Concierge MVP (service delivered manually for personalized feedback), and Single-Feature MVP (one core feature delivered exceptionally well). Deploy to early adopters — they are more forgiving, more likely to give feedback, and better able to grasp product vision from an early prototype.\n\nApply continuous deployment where applicable: deploy code into production rapidly — Ries reports some companies deploy 50 times per day (term coined by Timothy Fitz, early IMVU engineer). Use split/A/B testing to compare different product versions offered simultaneously.\n\n• Define the MVP as the minimum experiment testing the riskiest leap-of-faith assumption\n• Maximize validated learning per unit of effort — resist feature creep\n• Build for learning, not for scaling\n• Consider Concierge, Wizard of Oz, Landing Page, or Single-Feature MVP approaches\n• Plan for continuous deployment and A/B testing infrastructure",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Determining the true minimum viable experiment requires disciplined reasoning through what to include and exclude — resisting the temptation to build more than needed to test the riskiest assumption",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "WriteMemory": {
+            "reason": "Document the MVP specification, the hypothesis it tests, and the success/failure criteria for later comparison during Measure and Learn phases",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "MVP defined as the smallest experiment testing the riskiest leap-of-faith assumption",
+          "Clear hypothesis stated: what the MVP will prove or disprove",
+          "Success and failure criteria defined before building — not after",
+          "MVP scoped for maximum validated learning with least effort"
+        ],
+        "next_actions": [
+          "Proceed to Measure — establish innovation accounting framework and collect actionable metrics"
+        ]
+      }
     },
     {
       "id": "measure",
-      "name": "Measure - Collect data and metrics",
-      "description": "Gather quantitative and qualitative data about user behavior and outcomes",
-      "requiresEnhancedThinking": false
+      "name": "Measure — Innovation Accounting & Actionable Metrics",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nInnovation accounting focuses on how entrepreneurs can maintain accountability and maximize outcomes by measuring progress, planning milestones, and prioritizing (Ries). Ries describes three levels of innovation accounting related to the types of assumptions being validated.\n\nThe critical distinction is between actionable metrics and vanity metrics. Actionable metrics lead to informed business decisions and subsequent action. Vanity metrics give 'the rosiest picture possible' but do not accurately reflect the key drivers of a business. A metric that is vanity for one company may be actionable for another — context determines the distinction. Example: 'number of new users gained per day' is a vanity metric if the cost of acquiring each user through expensive advertising is significantly higher than the revenue gained per user.\n\nUse split/A/B testing — 'different versions of a product offered to customers at the same time' (Ries) — to compare versions simultaneously. Never test serially, which undermines statistical validity by conflating external events with product differences (e.g., testing ice cream flavors in summer vs. winter conflates seasonal demand with flavor preference). Ensure proper randomization in group assignment.\n\nEstablish innovation accounting milestones: (1) Establish the baseline — use MVP data to determine where the company stands now. (2) Tune the engine — make incremental improvements from baseline toward the ideal. (3) Pivot or persevere — determine whether progress toward the ideal is sufficient or a fundamental change is needed.\n\n• Establish innovation accounting: baseline → tune the engine → pivot-or-persevere decision\n• Define actionable metrics tied to specific business model hypotheses — reject vanity metrics\n• Deploy A/B tests with proper randomization and concurrent (not serial) testing\n• Measure customer behavior, not just customer opinions\n• Use key performance indicators and continuous deployment for rapid feedback cycles",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Distinguishing actionable metrics from vanity metrics and designing a rigorous innovation accounting framework with proper A/B testing methodology requires careful analytical reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find prior measurement frameworks, baseline data, and metrics definitions from earlier iterations in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Innovation accounting framework established with baseline metrics from MVP data",
+          "Actionable metrics defined and distinguished from vanity metrics with explicit rationale",
+          "A/B tests designed with proper randomization and concurrent testing methodology",
+          "Learning milestones planned: baseline established, engine tuning targets defined",
+          "Sufficient quantitative and qualitative data collected for hypothesis evaluation"
+        ],
+        "next_actions": [
+          "Proceed to Learn — extract validated learning from collected data"
+        ]
+      }
     },
     {
       "id": "learn",
-      "name": "Learn - Validate or pivot based on feedback",
-      "description": "Analyze data to validate or invalidate hypotheses and decide next steps\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what the data is really telling us. Are we seeing what we want to see, or what's actually happening?",
-      "requiresEnhancedThinking": true
+      "name": "Learn — Extract Validated Learning",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nValidated learning is the unit of progress for lean startups (Ries, 2011). It is the process of demonstrating empirically that a team has discovered valuable truths about the startup's present and future business prospects. It is more concrete, more accurate, and faster than market forecasting or classical business planning. Each test of an idea is a single iteration in a larger process whereby something is learned and then applied to succeeding tests.\n\nThe Build-Measure-Learn loop completes its cycle here: Ideas → Build → Product → Measure → Data → Learn. The Learn phase transforms raw data into validated learning — scientifically validated insights about customer behavior, product viability, and business model assumptions. This is a learning cycle of turning ideas into products, measuring customers' reactions and behaviors against built products, and then deciding whether to persevere or pivot.\n\nValidated learning steps: (1) Specify a goal, (2) Specify a metric that represents the goal, (3) Act to achieve the goal, (4) Analyze the metric — did you get closer to the goal?, (5) Improve and try again. Rigorously evaluate each hypothesis against the innovation accounting data. Compare results to the success/failure criteria defined before the experiment — not criteria invented after seeing results.\n\n• Extract validated learning: what valuable truths has this experiment revealed empirically?\n• Evaluate each hypothesis: validated, invalidated, or requires modification?\n• Guard against confirmation bias — interpret data honestly, not hopefully\n• Compare results to pre-defined success/failure criteria from the Build phase\n• Document learnings as institutional knowledge for future iterations",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Extracting validated learning requires rigorous, honest analysis of experimental data against pre-defined hypotheses while guarding against confirmation bias — the most intellectually demanding phase of the loop",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document validated learnings, invalidated hypotheses, and modified assumptions as institutional memory for future Build-Measure-Learn iterations",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each tested hypothesis evaluated: validated, invalidated, or modified with evidence",
+          "Validated learnings extracted and documented as concrete empirical insights",
+          "Confirmation bias explicitly checked — data interpreted honestly against pre-defined criteria",
+          "Learnings connected to specific Business Model Canvas blocks affected"
+        ],
+        "next_actions": [
+          "Proceed to Pivot or Persevere — make the structured course correction decision"
+        ]
+      }
+    },
+    {
+      "id": "pivot-or-persevere",
+      "name": "Pivot or Persevere — Structured Course Correction Decision",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nA pivot is 'a structured course correction designed to test a new fundamental hypothesis about the product, strategy, and engine of growth' (Ries, The Lean Startup). Steve Blank defines a pivot as 'changing (or even firing) the plan instead of the executive.' The pivot is not a synonym for 'change' — it is a specific, structured decision to test a fundamentally new hypothesis while preserving validated learnings.\n\nWhile iterating involves small changes like adjusting a product's price, pivoting involves substantial changes like identifying a better target market. The pivot decision process: (1) Observe that the current business model isn't working, (2) Orient to the new facts, (3) Decide what to change in the business model, (4) Act decisively to make the change.\n\nNotable pivot examples: Groupon pivoted from an online activism platform (The Point) to a group coupon site — with only 20 initial coupon redemptions, founders recognized they had empowered group coordination, and grew into a billion-dollar business. Instagram pivoted from a mobile microblogging platform (Burbn) to a photo application.\n\nThe persevere decision means validated learning confirms the current direction is correct. Continue optimizing through the engine of growth. The decision must be grounded in innovation accounting data — not intuition, hope, or sunk-cost reasoning. Avoid the 'land of the living dead' — ventures that neither pivot nor grow.\n\n• Evaluate validated learnings against innovation accounting milestones\n• If pivoting: identify which business model block to change fundamentally\n• If persevering: confirm with data — what specific metrics support continuing?\n• Apply the Observe-Orient-Decide-Act framework for pivot decisions\n• Document the decision, rationale, and updated hypotheses for the next iteration",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "The pivot-or-persevere decision is the highest-stakes judgment in lean startup — it must be grounded in validated learning data and innovation accounting, not intuition or sunk-cost reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Review prior pivot decisions, validated learnings from past iterations, and innovation accounting baselines to inform the current decision with full historical context",
+            "priority": "recommended"
+          },
+          "WriteMemory": {
+            "reason": "Document the pivot-or-persevere decision with full rationale, evidence, and updated business model hypotheses as a permanent institutional record",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Pivot-or-persevere decision made based on validated learning and innovation accounting data",
+          "If pivot: specific business model block identified for fundamental change with new hypothesis",
+          "If persevere: specific metrics and milestones cited as evidence for continuing",
+          "Decision rationale documented with explicit reference to innovation accounting framework",
+          "Updated business model hypotheses ready for the next iteration"
+        ],
+        "next_actions": [
+          "If persevering: proceed to Customer Validation — confirm the model is repeatable and scalable",
+          "If pivoting: return to Customer Discovery with the fundamentally new hypothesis"
+        ]
+      }
+    },
+    {
+      "id": "customer-validation",
+      "name": "Customer Validation — Confirm Repeatable & Scalable Business Model",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nCustomer validation is Steve Blank's second step in the customer development process. It 'tests the business viability through customer purchases and in the process creates a sales road map — a proven and repeatable sales process' (Blank, The Four Steps to the Epiphany). If the business model is not validated as repeatable and scalable, founders should return to customer discovery.\n\nTogether, customer discovery and customer validation corroborate the business model. This phase transitions from searching for a business model to confirming one exists. The key question is not 'do customers like our product?' but 'will customers repeatedly pay for it, and can we scale the acquisition channel?'\n\nCustomer validation pressure-tests whether the business model can be executed at scale after the Build-Measure-Learn loop has produced validated learning and a persevere decision. The Business Model Canvas or Lean Canvas should now be updated with validated entries — replacing hypotheses with facts confirmed through actual customer purchases. Blank's remaining customer development steps follow: Customer Creation (execute by scaling through customer acquisition, creating user demand) and Company Building (formalize and standardize departments and operations).\n\n• Test business viability through actual customer purchases — not just expressed interest\n• Create a sales road map: a proven, repeatable sales process\n• Validate that customer acquisition cost is sustainable at projected scale\n• Update the Business Model Canvas with validated entries replacing hypotheses\n• If validation fails: return to Customer Discovery — do not proceed to scaling",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Evaluating whether a business model is genuinely repeatable and scalable requires systematic assessment of each Canvas block against actual customer purchase data — not surveys or expressed interest",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "WriteMemory": {
+            "reason": "Document the validated business model with evidence from customer purchases, the sales road map, and the updated Canvas as institutional knowledge",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Business model tested through actual customer purchases — not just interest signals",
+          "Sales road map created: proven, repeatable sales process documented",
+          "Business Model Canvas updated with validated entries replacing prior hypotheses",
+          "Scalability assessment complete: acquisition economics viable at projected scale"
+        ],
+        "next_actions": [
+          "If validated: proceed to Iterate — re-enter Build-Measure-Learn with refined hypotheses",
+          "If not validated: return to Customer Discovery with updated hypotheses"
+        ]
+      }
     },
     {
       "id": "iterate",
-      "name": "Iterate - Refine and improve the solution",
-      "description": "Apply learnings to improve the product or pivot to new approach",
-      "requiresEnhancedThinking": false
+      "name": "Iterate — Re-enter Build-Measure-Learn Loop with Refined Hypotheses",
+      "description": "Apply all validated learnings from the completed cycle to refine the business model and re-enter the Build-Measure-Learn loop. The loop repeats as many times as necessary — a team's effectiveness is determined by its ability to ideate, quickly build an MVP, measure its effectiveness in the market, and learn from the experiment (Ries).\n\nIf the previous cycle resulted in a pivot, the new iteration begins with fundamentally revised hypotheses targeting a different business model block. If the cycle confirmed a persevere decision, the new iteration optimizes the validated model — tuning the engine of growth toward scalability.\n\nUpdate the Business Model Canvas or Lean Canvas to reflect the current state of validated versus hypothesized knowledge. Carry forward all institutional learnings from previous iterations. Identify the next riskiest assumption that needs testing. Speed and cycle time are the competitive advantage — compress the Build-Measure-Learn loop. The lean startup methodology seeks to eliminate wasteful practices and increase value-producing practices, following the principles of lean manufacturing applied to entrepreneurship.\n\n• Synthesize all validated learnings into updated business model hypotheses\n• Update Business Model Canvas / Lean Canvas with current validated state\n• Identify the next riskiest leap-of-faith assumption for the next cycle\n• Compress cycle time — speed through the loop is the competitive advantage\n• Return to Build phase with clear hypotheses and a plan for the next MVP experiment",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the updated business model state, accumulated validated learnings, and the next hypothesis to test as a checkpoint between Build-Measure-Learn iterations",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Business model hypotheses updated to reflect all validated learnings from the current cycle",
+          "Canvas updated: validated blocks marked as confirmed, revised blocks as new hypotheses",
+          "Next riskiest leap-of-faith assumption identified for the next Build-Measure-Learn cycle",
+          "Cycle time reviewed: specific improvements to compress the next iteration identified"
+        ],
+        "next_actions": [
+          "Return to Build — construct the next MVP to test the updated riskiest hypothesis",
+          "If business model fully validated: transition from search mode to execution mode (Customer Creation and Company Building)"
+        ]
+      }
     }
   ]
 }

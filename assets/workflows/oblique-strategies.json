@@ -2,7 +2,7 @@
   "id": "oblique-strategies",
   "name": "Oblique Strategies",
   "emoji": "🎲",
-  "description": "Random creative prompts to break mental blocks and spark breakthrough thinking",
+  "description": "Over One Hundred Worthwhile Dilemmas — Eno and Schmidt's card-based method for promoting creativity (1975), drawing a single gnomic suggestion from a shuffled pack when a dilemma occurs in a working situation, trusting the card even if its appropriateness is quite unclear",
   "triggers": [
     "oblique strategies",
     "creative block",
@@ -13,31 +13,84 @@
     "unconventional approach",
     "shift perspective"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "prompt",
-      "name": "Draw Random Prompt - Generate unexpected creative stimulus",
-      "description": "Select a random, unrelated prompt to shift perspective and break conventional thinking patterns\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nGenerate a completely random word, phrase, or concept unrelated to this problem. Examples: 'Use an old idea', 'What would your enemy do?', 'Honor thy error as a hidden intention', 'Look closely at the most embarrassing details and amplify them'. Apply this oblique stimulus to your challenge.",
-      "requiresEnhancedThinking": true
+      "id": "state-the-dilemma",
+      "name": "State the Dilemma — Identify the deadlock or block in the working situation",
+      "description": "Identify and articulate the dilemma or deadlock that has stalled progress.\n\nPer the Oblique Strategies introduction (2001 edition), the cards are drawn 'when a dilemma occurs in a working situation.' Clearly state the problem — as one of the cards itself instructs: 'State the problem in words as clearly as possible.' Name what is blocked, what has been tried, and why conventional approaches are failing.\n\nOblique Strategies was created by Brian Eno and Peter Schmidt, first published in 1975, as a deck of printed cards in a black box — each offering 'a challenging constraint intended to help artists (particularly musicians) break writer's block by encouraging lateral thinking.' The cards 'evolved from separate observations of the principles underlying what we were doing. Sometimes they were recognised in retrospect (intellect catching up with intuition), sometimes they were identified as they were happening, sometimes they were formulated.'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for context about the working situation and the dilemma — understanding what has been tried and what is blocked",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "The dilemma or deadlock is stated in words as clearly as possible",
+          "What has been tried and why it is failing is articulated",
+          "The working situation is sufficiently described for a constraint to be applied"
+        ],
+        "next_actions": [
+          "Draw a card from the Oblique Strategies deck"
+        ]
+      }
     },
     {
-      "id": "connect",
-      "name": "Apply Obliquely - Connect random prompt to your challenge",
-      "description": "Force unexpected connections between the random prompt and your specific problem\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nTake the random prompt and force connections to your challenge. How could this seemingly unrelated concept apply? What properties, functions, or characteristics could transfer? What if you took this prompt literally? What if you applied it metaphorically?",
-      "requiresEnhancedThinking": true
+      "id": "draw-a-card",
+      "name": "Draw a Card — Select a single gnomic suggestion from the shuffled pack",
+      "description": "Draw a single card from the shuffled Oblique Strategies deck.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia, each card contains 'a gnomic suggestion, aphorism or remark which can be used to break a deadlock or dilemma situation. A few are specific to music composition; others are more general.' Select one card — a single terse constraint, aphorism, or question. Examples from the published editions:\n\n• Use an old idea\n• Only one element of each kind\n• What would your closest friend do?\n• What to increase? What to reduce?\n• Are there sections? Consider transitions\n• Try faking it!\n• Honour thy error as a hidden intention\n• Ask your body\n• Work at a different speed\n• Look closely at the most embarrassing details and amplify\n• Not building a wall; making a brick\n• Repetition is a form of change\n\nThe card should be oblique — its connection to the stated dilemma should not be immediately obvious. That is the point. Generate a gnomic suggestion in the spirit of the Eno/Schmidt canon: terse, laterally disconnected from the problem, and capable of operating as a constraint.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Generate a genuinely oblique gnomic suggestion — a single card draw from the shuffled Eno/Schmidt deck, terse and laterally disconnected from the stated dilemma",
+            "priority": "mandatory",
+            "estimated_thoughts": 2
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "A single gnomic suggestion, aphorism, or remark has been selected",
+          "The card is terse — a sentence or phrase, not a paragraph",
+          "The card is oblique — its connection to the dilemma is not immediately obvious"
+        ],
+        "next_actions": [
+          "Trust the card and apply it to the dilemma"
+        ]
+      }
     },
     {
-      "id": "explore",
-      "name": "Explore Tangents - Follow unexpected connections",
-      "description": "Pursue the tangential thinking paths opened by the oblique prompt",
-      "requiresEnhancedThinking": false
-    },
-    {
-      "id": "synthesize",
-      "name": "Synthesize Insights - Integrate breakthrough perspectives",
-      "description": "Combine oblique insights with practical implementation approaches",
-      "requiresEnhancedThinking": false
+      "id": "trust-the-card",
+      "name": "Trust the Card — Apply the constraint even if its appropriateness is unclear",
+      "description": "Apply the drawn card to the dilemma. Trust it.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the 2001 edition introduction: 'the card is trusted even if its appropriateness is quite unclear.' This is the core principle of Oblique Strategies. Do not reject the card because it seems irrelevant. Do not draw another. The obliqueness is the point — the lateral constraint is what breaks the deadlock.\n\nApply the card to the working situation: literally, metaphorically, or as a reframing of the problem. Let the constraint redirect your process. Per Wikipedia, the cards are 'a challenging constraint intended to help artists break writer's block by encouraging lateral thinking.'\n\nIf the dilemma is resolved or a new direction has emerged, the strategy has worked. If further disruption is needed, draw another card.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Apply the drawn card to the dilemma — trust the constraint and let it redirect the working process, per the Eno/Schmidt principle that the card is trusted even if its appropriateness is quite unclear",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          },
+          "WriteMemory": {
+            "reason": "Persist the oblique insight and how it redirected the working process for future retrieval",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "The card has been applied to the dilemma — literally, metaphorically, or as a reframing",
+          "The card was trusted and not rejected for seeming irrelevant",
+          "A new direction, reframing, or resolution has emerged from applying the constraint"
+        ],
+        "next_actions": [
+          "Act on the new direction opened by the oblique strategy",
+          "Optionally draw another card if further disruption is needed"
+        ]
+      }
     }
   ]
 }

@@ -2,7 +2,8 @@
   "id": "divergent-thinking",
   "name": "Divergent Thinking",
   "emoji": "💭",
-  "description": "Systematic generation of multiple creative alternatives and novel solutions",
+  "description": "Generate creative ideas by exploring many possible solutions in a spontaneous, free-flowing, non-linear manner, drawing unexpected connections (Guilford, 1956). This workflow operationalizes Wikipedia's discussion of divergent thinking into a practical sequence; the steps are a synthesized framework, not a canonical process from the literature.",
+  "specification": "https://en.wikipedia.org/wiki/Divergent_thinking",
   "triggers": [
     "divergent thinking",
     "brainstorming",
@@ -12,37 +13,134 @@
     "creative generation",
     "many possibilities"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "define",
-      "name": "Define the Challenge - Clarify the problem space",
-      "description": "Clearly define the problem or challenge that requires creative solutions",
-      "requiresEnhancedThinking": false
-    },
-    {
       "id": "generate",
-      "name": "Generate Fluent Ideas - Produce many alternatives",
-      "description": "Generate as many different ideas as possible without judgment or evaluation\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nGenerate as many different ideas as possible. Don't judge or evaluate - just produce volume. Think of obvious solutions, then stretch beyond them. What are all the different ways this could be approached?",
-      "requiresEnhancedThinking": true
+      "name": "Explore Many Possible Solutions - Spontaneous emergent generation",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nDerived from Wikipedia's description of divergent thinking as spontaneous, free-flowing, non-linear cognition: generate creative ideas by exploring many possible solutions. Work in a spontaneous, free-flowing, non-linear manner so that many ideas are generated in an emergent cognitive fashion. Explore many possible solutions in a short amount of time. Use activities that promote divergent thinking: brainstorming, creating lists of questions, free writing, subject mapping, and bubble mapping.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic exploration of many possible solutions in emergent cognitive fashion — the core divergent thinking operation (Guilford, 1956)",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find prior creative work and concept relationships to seed divergent exploration",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Many possible solutions explored in a short amount of time",
+          "Ideas generated in spontaneous, free-flowing, non-linear manner",
+          "Both obvious and non-obvious solutions included"
+        ],
+        "next_actions": [
+          "Proceed to drawing unexpected connections"
+        ]
+      }
     },
     {
-      "id": "explore",
-      "name": "Explore Flexible Approaches - Vary categories and types",
-      "description": "Deliberately explore different categories, types, and approaches to the problem\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nDeliberately shift between different categories of solutions. If you've been thinking technically, try social solutions. If you've been thinking about tools, try processes. What completely different types of approaches exist?",
-      "requiresEnhancedThinking": true
+      "id": "connect",
+      "name": "Draw Unexpected Connections - Remote association across ideas",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nDerived from Wikipedia's discussion of Remote Associates Test (RAT) modeling: draw unexpected connections between the generated ideas. Track down distant associates and explore how remote associative concepts relate to each other. Look for co-occurrence patterns and non-obvious linkages between ideas from different domains. Use subject mapping and bubble mapping to visualize connection patterns.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Drawing unexpected connections between remote associative concepts — per Remote Associates Test modeling (Olteţeanu & Falomir, 2015; Klein & Badia, 2015)",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "BuildContext": {
+            "reason": "Explore concept graph connections that may reveal non-obvious remote associations",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Unexpected connections drawn between generated ideas",
+          "Distant associates tracked down and explored",
+          "Remote associative concepts linked across domains"
+        ],
+        "next_actions": [
+          "Proceed to exercising cognitive flexibility"
+        ]
+      }
     },
     {
-      "id": "elaborate",
-      "name": "Elaborate Creative Details - Add original elements",
-      "description": "Develop ideas with original, creative, and unexpected details\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nAdd creative, original details to your ideas. What would make each idea unique, unexpected, or novel? How could you combine ideas in original ways? What creative twists could you add?",
-      "requiresEnhancedThinking": true
+      "id": "flex",
+      "name": "Exercise Cognitive Flexibility - See relations and distinguish differences",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nDerived from Wikipedia's discussion of cognitive flexibility as a component of divergent thinking: exercise cognitive flexibility by deliberately shifting perspectives. See relations between concepts, then distinguish the differences between concepts. Explore multiple perspectives to discover new opportunities and allow creativity to flow. Positive mood facilitates divergent thinking performance — approach with openness rather than critical evaluation.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Exercising cognitive flexibility — seeing relations between concepts and distinguishing differences (Murray, Sujan, Hirt & Sujan, 1990; Isen & Daubman, 1984)",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Relations between concepts identified across the idea space",
+          "Differences between concepts distinguished",
+          "Multiple perspectives explored — new opportunities surfaced"
+        ],
+        "next_actions": [
+          "Proceed to generating alternative uses through object transformation"
+        ]
+      }
     },
     {
-      "id": "capture",
-      "name": "Capture All Possibilities - Document the idea space",
-      "description": "Document the full range of generated possibilities for later evaluation",
-      "requiresEnhancedThinking": false
+      "id": "transform",
+      "name": "Generate Alternative Uses - Object replacement and composition",
+      "description": "Derived from Wikipedia's discussion of the Alternative Uses Task: apply object replacement and object composition to the ideas generated so far. For each promising idea, explore alternative uses — how else could it be applied or repurposed? What components could be replaced with alternatives? How could ideas be composed together in new configurations? This synthesized step extends the idea space through systematic transformation.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find analogous transformations and alternative applications in knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Alternative uses explored for key ideas per Alternative Uses Task (Olteţeanu & Falomir, 2016; Klein & Badia, 2022)",
+          "Object replacement applied — existing components substituted with alternatives",
+          "Object composition applied — ideas combined in new configurations"
+        ],
+        "next_actions": [
+          "Proceed to applying satisficing strategy for maximum breadth"
+        ]
+      }
+    },
+    {
+      "id": "satisfice",
+      "name": "Apply Satisficing Strategy - Breadth over premature optimization",
+      "description": "Derived from Wikipedia's discussion of satisficing strategies in divergent thinking: apply a satisficing strategy to prefer a higher number of proposed solutions over premature quality optimization. Being too concerned with the quality of ideas is detrimental to divergent thinking performance. Keep focus on new opportunities and allowing creativity to flow, with less focus on immediate practicality. Document the full divergent idea space for subsequent convergent evaluation.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist the full divergent idea space — satisficing strategy yields higher number of proposed solutions (Vosburg, 1998)",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Satisficing strategy applied — quantity of solutions preferred over premature quality filtering (Vosburg, 1998)",
+          "Full idea space documented without convergent evaluation",
+          "Ideas ready for subsequent convergent thinking process"
+        ],
+        "next_actions": [
+          "Apply convergent thinking to evaluate and select from generated ideas"
+        ]
+      }
     }
   ]
 }

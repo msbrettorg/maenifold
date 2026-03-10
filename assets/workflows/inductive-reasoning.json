@@ -2,7 +2,8 @@
   "id": "inductive-reasoning",
   "name": "Inductive Reasoning",
   "emoji": "💭",
-  "description": "Bottom-up inference from specific observations to general patterns and theories",
+  "description": "A variety of methods of reasoning in which the conclusion of an argument is supported not with deductive certainty, but at best with some degree of probability — including inductive generalization, prediction, statistical syllogism, argument from analogy, and causal inference (Wikipedia: Inductive reasoning)",
+  "specification": "https://en.wikipedia.org/wiki/Inductive_reasoning",
   "triggers": [
     "inductive reasoning",
     "pattern recognition",
@@ -12,37 +13,169 @@
     "data to theory",
     "observational reasoning"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "collect",
-      "name": "Collect Specific Observations - Gather empirical data",
-      "description": "Systematically collect specific observations, data points, or empirical evidence",
-      "requiresEnhancedThinking": false
+      "id": "assemble-observations",
+      "name": "Assemble Specific Observations — Gather and characterize the evidential sample",
+      "description": "Gather the specific observations, instances, data points, or empirical evidence that will form the evidential base for inductive inference. Per the Wikipedia article, inductive reasoning moves from premises about a sample toward conclusions about a population or future instances, supported 'not with deductive certainty, but at best with some degree of probability.'\n\nCharacterize the sample along the dimensions the article identifies as determining inductive strength:\n• **Sample size** relative to the population — the greater the sample size relative to the population, the stronger the generalization\n• **Representativeness** — is the sample random or non-random? Statistical generalizations require genuinely random selection; anecdotal generalizations use non-statistical, non-random samples and are 'less reliable'\n• **Observation reliability** — 'the reliability of the procedure used for individual observations, which is not always as simple as taking a random element from a static population'\n\nDocument each observation with its source, context, and conditions of production. Catalog what is observed fact versus what is interpretation.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Gather existing observations, empirical data, and prior instances from the knowledge graph that form the evidential base",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Map the conceptual neighborhood around the subject to identify related observations and prior inductive conclusions",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Specific observations gathered and individually documented with source attribution",
+          "Sample characterized: size relative to population, random vs non-random selection, representative vs anecdotal",
+          "Observation reliability assessed per the procedure used for individual observations",
+          "Facts distinguished from interpretations in the evidential base"
+        ],
+        "next_actions": [
+          "Proceed to identifying which type of inductive argument applies"
+        ]
+      }
     },
     {
-      "id": "patterns",
-      "name": "Identify Patterns - Recognize recurring themes",
-      "description": "Search for patterns, regularities, and recurring themes in the observations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nAnalyze the observations systematically. What patterns emerge? What regularities do you see? What themes recur across different data points? Group similar observations and identify commonalities.",
-      "requiresEnhancedThinking": true
+      "id": "identify-inductive-type",
+      "name": "Identify Inductive Argument Type — Classify which form of inductive reasoning applies",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia article, inductive reasoning is not a single method but 'a variety of methods of reasoning.' Classify which type(s) of inductive argument the evidence supports. The article identifies five distinct types, each with a specific logical form:\n\n**1. Inductive Generalization** (sample → population): 'The proportion Q of the sample has attribute A. Therefore, the proportion Q of the population has attribute A.' Two subtypes:\n• *Statistical generalization*: uses statistically representative sample; 'highly reliable within a well-defined margin of error provided that the selection process was genuinely random'\n• *Anecdotal generalization*: uses non-statistical sample; 'less reliable... because the sample events are non-random, and it is not reducible to a mathematical expression'\n\n**2. Prediction** (sample → specific future instance): 'Proportion Q of observed members of group G have had attribute A. Therefore, there is a probability corresponding to Q that other members of group G will have attribute A when next observed.'\n\n**3. Statistical Syllogism** (group generalization → individual): 'Proportion Q of known instances of population P has attribute A. Individual I is another member of P. Therefore, there is a probability corresponding to Q that I has A.'\n\n**4. Argument from Analogy** (shared properties → further shared property): 'P and Q are similar with respect to properties a, b, and c. Object P has been observed to have further property x. Therefore, Q probably has property x also.' Per John Stuart Mill: 'every resemblance [not known to be irrelevant] affords some degree of probability.'\n\n**5. Causal Inference** (correlation → causation): 'Draws a conclusion about a possible or probable causal connection based on the conditions of the occurrence of an effect.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Classifying the inductive argument type requires systematically matching the evidence structure against five distinct logical forms — each thought should evaluate one type's fit to the current problem",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Inductive argument type identified from the five Wikipedia categories (generalization, prediction, statistical syllogism, analogy, causal inference)",
+          "If generalization: subtype classified as statistical or anecdotal",
+          "The specific logical form of the chosen type stated explicitly using the article's notation",
+          "Rationale documented for why this type fits the evidence structure better than alternatives"
+        ],
+        "next_actions": [
+          "Proceed to constructing the inductive argument using the appropriate method"
+        ]
+      }
     },
     {
-      "id": "generalize",
-      "name": "Form Generalizations - Develop broader theories",
-      "description": "Develop general principles or theories that explain the observed patterns\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBased on the patterns, what general principles emerge? What broader theory could explain these observations? How confident can you be in this generalization? What would this theory predict about new cases?",
-      "requiresEnhancedThinking": true
+      "id": "construct-inductive-argument",
+      "name": "Construct the Inductive Argument — Apply enumerative or eliminative induction",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia article, 'the two principal methods used to reach inductive generalizations are enumerative induction and eliminative induction.' Apply the appropriate method to construct the inductive argument:\n\n**Enumerative Induction**: 'A generalization is constructed based on the NUMBER of instances that support it. The more supporting instances, the stronger the conclusion.'\n• *Strong form*: From all observed instances → universal claim (e.g., 'All observed swans are white → All swans are white'). Per article: 'premises, even if true, do not entail the conclusion's truth'\n• *Weak form*: From all observed instances → next single instance (e.g., 'All observed swans are white → The next swan will be white'). 'Truncates \"all\" to a mere single instance and, by making a far weaker claim, considerably strengthens the probability'\n\n**Eliminative Induction** (Francis Bacon): 'A generalization is constructed based on the VARIETY of instances that support it... As the variety of instances increases, the more possible conclusions can be identified as incompatible and eliminated.'\n• Uses three defeaters from defeasible reasoning: **rebutting** (offering a counterexample), **undermining** (questioning the validity of evidence), **undercutting** (pointing out conditions where conclusion is not true when the inference is)\n• Confidence expressed as Baconian probability: i out of n (where n reasons for finding claim incompatible have been identified and i have been eliminated)\n• 'Crucial to the scientific method and is used to eliminate hypotheses that are inconsistent with observations and experiments'\n\nConstruct the argument in its proper logical form as identified in the previous step. Map premises explicitly to the conclusion.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Constructing the inductive argument requires methodically mapping premises to conclusion via either enumerative induction (counting instances) or eliminative induction (eliminating rivals via defeaters) — each thought documents one inference step or one defeater evaluation",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find additional supporting instances (for enumerative induction) or rival hypotheses to eliminate (for eliminative induction) in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Inductive method chosen and justified: enumerative (strength from number of instances) or eliminative (strength from variety of instances)",
+          "If enumerative: form classified as strong (universal claim) or weak (next-instance claim) with explicit acknowledgment of probability implications",
+          "If eliminative: rival hypotheses enumerated and defeaters applied (rebutting, undermining, undercutting) with Baconian probability stated",
+          "Argument constructed in proper logical form with premises explicitly mapped to conclusion"
+        ],
+        "next_actions": [
+          "Proceed to screening for inductive fallacies"
+        ]
+      }
     },
     {
-      "id": "test",
-      "name": "Test and Refine - Validate generalizations",
-      "description": "Test the generalizations against new evidence and refine as needed",
-      "requiresEnhancedThinking": false
+      "id": "screen-for-fallacies",
+      "name": "Screen for Inductive Fallacies — Check for hasty generalization, biased sample, and the problem of induction",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSystematically screen the constructed argument for the fallacies and weaknesses the Wikipedia article identifies as endemic to inductive reasoning:\n\n**Generalization fallacies**:\n• **Hasty generalization**: sample too small to support the conclusion. Per article: 'The hasty generalization and the biased sample are generalization fallacies.'\n• **Biased sample**: sample not representative of the population. E.g., the article's example: 'Six of the ten people in my book club are Libertarians. Therefore, about 60% of people are Libertarians. The argument is weak because the sample is non-random and the sample size is very small.'\n\n**Analogy fallacies**:\n• **Cherry-picking**: 'features can be cherry-picked: while objects may show striking similarities, two things juxtaposed may respectively possess other characteristics not identified in the analogy that are sharply dissimilar.' Requires 'auxiliary examination of the relevancy of the characteristics cited as common.'\n\n**Statistical syllogism fallacies**:\n• **Accident and converse accident**: dicto simpliciter fallacies — applying a general rule to a specific case where it doesn't apply, or vice versa.\n\n**Causal inference fallacies**:\n• Confusing correlation with causation: 'additional factors must be confirmed to establish the exact form of the causal relationship.'\n\n**The Problem of Induction** (Hume): 'Our mind often draws conclusions from relatively limited experiences that appear correct but which are actually far from certain.' Induction assumes the uniformity of nature — 'an unproven principle that cannot be derived from the empirical data itself.' Per Hume: induction cannot be justified deductively (it's not deductive) or inductively (circular). Acknowledge this fundamental limitation.\n\n**Eliminative induction limitations** (Salmon): The requirement to identify all plausible rival hypotheses is 'rarely achievable in scientific practice, since new explanations may emerge even after existing alternatives have been discarded.'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic fallacy screening requires evaluating the argument against each category of inductive fallacy the Wikipedia article identifies — each thought addresses one fallacy category with explicit pass/flag determination",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find counterexamples, contradicting evidence, or known edge cases in the knowledge graph that might expose fallacies in the argument",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Hasty generalization checked: sample size adequate relative to population and conclusion scope",
+          "Biased sample checked: sample representativeness and randomness evaluated",
+          "Type-specific fallacies screened: cherry-picking (analogy), dicto simpliciter (statistical syllogism), correlation-causation confusion (causal inference)",
+          "Problem of induction acknowledged: uniformity-of-nature assumption made explicit",
+          "If eliminative induction: rival-hypothesis completeness assessed per Salmon's critique"
+        ],
+        "next_actions": [
+          "Proceed to assessing inductive strength"
+        ]
+      }
     },
     {
-      "id": "conclude",
-      "name": "Draw Probable Conclusions - Establish likelihood",
-      "description": "Reach conclusions about the probability and scope of the generalized theory",
-      "requiresEnhancedThinking": false
+      "id": "assess-inductive-strength",
+      "name": "Assess Inductive Strength — Evaluate whether the argument is strong and cogent",
+      "description": "Evaluate the inductive strength of the argument using the assessment terminology the Wikipedia article distinguishes from deductive reasoning:\n\n• An inductive argument is **strong** 'when, assuming the argument's premises are true, the conclusion is probably true'\n• An inductive argument is **cogent** when 'it is strong and the premises are thought to be true'\n• This is explicitly distinct from deductive assessment: deductive arguments are valid/sound; inductive arguments are strong/cogent\n\nPer the article, inductive conclusions 'can be called \"probable\", \"plausible\", \"likely\", \"reasonable\", or \"justified\", but never \"certain\" or \"necessary\". Logic affords no bridge from the probable to the certain.'\n\nAssess the argument on the factors the article identifies:\n• How many supporting instances (for enumerative induction) — 'the more supporting instances, the stronger the conclusion'\n• How varied the supporting instances (for eliminative induction) — strength from variety\n• Sample size relative to population\n• Degree to which sample represents population\n• Whether surviving fallacy screening strengthens or weakens the conclusion\n• Assign a probability qualifier: probable, plausible, likely, reasonable, or justified — never certain",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "BuildContext": {
+            "reason": "Check for related inductive conclusions in the knowledge graph that might corroborate or challenge this argument's strength assessment",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Argument classified as strong or weak using the article's terminology (not deductive valid/invalid)",
+          "Cogency assessed: is the argument both strong AND are premises believed true",
+          "Probability qualifier assigned from the article's approved set: probable, plausible, likely, reasonable, or justified — never certain or necessary",
+          "Strength factors documented: instance count/variety, sample-to-population ratio, representativeness, fallacy screening results"
+        ],
+        "next_actions": [
+          "Proceed to stating probable conclusions"
+        ]
+      }
+    },
+    {
+      "id": "state-probable-conclusions",
+      "name": "State Probable Conclusions — Formulate findings with explicit probability qualifiers and scope limitations",
+      "description": "Formulate the inductive conclusion with explicit probability qualifiers and scope limitations. Per the Wikipedia article: 'deduction is about certainty/necessity; induction is about probability.' The conclusion must reflect this fundamental character.\n\nPer the article's key philosophical nuance: 'The philosophical definition of inductive reasoning is more nuanced than a simple progression from particular/individual instances to broader generalizations. Rather, the premises of an inductive logical argument indicate some degree of support (inductive probability) for the conclusion but do not entail it; that is, they suggest truth but do not ensure it.'\n\nState the conclusion in the proper form for its inductive type:\n• Generalization: what proportion of the population probably has the attribute, with confidence bounds\n• Prediction: probability that the next observed instance will have the attribute\n• Statistical syllogism: probability that the specific individual has the attribute\n• Analogy: probability that the analogous object shares the further property, with relevancy assessment\n• Causal inference: probable causal connection with alternative explanations noted\n\nExplicitly acknowledge:\n• The uniformity-of-nature assumption underlying the conclusion\n• Conditions under which the conclusion would need revision (new evidence, counterexamples)\n• The scope of the conclusion relative to the sample — do not overreach beyond what the evidence supports\n• Per Russell's parable: even a long-running pattern can break — the chicken was fed every morning until its throat was cut",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist inductive conclusions with their probability assessments, scope limitations, uniformity-of-nature caveats, and revision conditions as institutional knowledge",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Conclusion stated with explicit probability qualifier — never claiming certainty or necessity",
+          "Conclusion formatted in the proper logical form for its inductive type",
+          "Uniformity-of-nature assumption acknowledged as per Hume's critique",
+          "Scope limitations stated: conclusion does not overreach beyond what the sample evidence supports",
+          "Revision conditions identified: what new evidence would weaken or overturn the conclusion"
+        ],
+        "next_actions": [
+          "Apply probable conclusions or design further empirical observations to strengthen the inductive base"
+        ]
+      }
     }
   ]
 }

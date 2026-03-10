@@ -2,7 +2,7 @@
   "id": "parallel-thinking",
   "name": "Parallel Thinking",
   "emoji": "💭",
-  "description": "Simultaneous exploration of multiple perspectives and approaches in parallel",
+  "description": "Disciplined same-direction thinking where all attention focuses on one thinking direction at a time, cycling through a configurable hat sequence — Edward de Bono's constructive alternative to adversarial debate",
   "triggers": [
     "parallel thinking",
     "multiple perspectives",
@@ -11,37 +11,111 @@
     "concurrent approaches",
     "multi-track thinking"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "identify",
-      "name": "Identify Parallel Tracks - Define multiple approaches",
-      "description": "Identify multiple independent approaches or perspectives to explore simultaneously",
-      "requiresEnhancedThinking": false
+      "id": "blue-hat-framing",
+      "name": "Blue Hat Opening — Frame Topic & Select Hat Sequence",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nAll parallel thinking sequences begin with Blue Hat: agree HOW we will think before we think.\n\n1. **Define the Topic**: State the problem, decision, or subject under exploration.\n\n2. **Anti-Adversarial Ground Rule**: This is NOT debate. There are no opposing sides. Everyone (all thinking) focuses on ONE direction at a time. No mixing directions — when we think about facts (White), we ONLY think about facts; when we think about risks (Black), we ONLY think about risks.\n\n3. **Classify the Thinking Task** and select the appropriate hat sequence program:\n   - **Initial Ideas**: Blue → White → Green → Blue\n   - **Choosing between alternatives**: Blue → White → (Green) → Yellow → Black → Red → Blue\n   - **Identifying Solutions**: Blue → White → Black → Green → Blue\n   - **Quick Feedback**: Blue → Black → Green → Blue\n   - **Strategic Planning**: Blue → Yellow → Black → White → Blue → Green → Blue\n   - **Process Improvement**: Blue → White → White (others' views) → Yellow → Black → Green → Red → Blue\n   - **Solving Problems**: Blue → White → Green → Red → Yellow → Black → Green → Blue\n   - **Performance Review**: Blue → Red → White → Yellow → Black → Green → Blue\n\n4. **Announce the Selected Sequence** explicitly so the discipline is clear before exploration begins.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Classify the thinking task type and select the correct hat sequence from de Bono's established programs — the Blue Hat managing function",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          },
+          "SearchMemories": {
+            "reason": "Search knowledge graph for prior context on the topic before framing the thinking task",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Topic clearly defined for exploration",
+          "Thinking task classified (initial ideas, choosing alternatives, solving problems, etc.)",
+          "Hat sequence selected from de Bono's established programs",
+          "Anti-adversarial discipline established: one direction at a time, no mixing"
+        ],
+        "next_actions": [
+          "Proceed to execute the selected hat sequence one direction at a time"
+        ]
+      }
     },
     {
-      "id": "explore",
-      "name": "Explore Multiple Tracks - Simultaneous analysis",
-      "description": "Explore different approaches simultaneously without forcing convergence\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nExplore multiple tracks simultaneously: Track 1 (analytical), Track 2 (creative), Track 3 (practical), Track 4 (user-focused). Don't try to reconcile yet - let each track develop independently. What does each perspective reveal?",
-      "requiresEnhancedThinking": true
+      "id": "same-direction-pass",
+      "name": "Disciplined Same-Direction Exploration — Execute Hat Sequence",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nExecute the selected hat sequence. The core discipline: focus ALL thinking on ONE direction at a time, then move to the next hat.\n\nFor each hat in the selected sequence:\n\n- ⚪ **White Hat** (~2 min): ONLY facts, data, and information. What do we know? What do we need to find out? No interpretation, no opinions.\n- 🔴 **Red Hat** (~30 sec): ONLY gut feelings, emotions, and intuitions. No justification required — just state the feeling. Fast visceral reactions.\n- ⚫ **Black Hat** (~2 min): ONLY risks, problems, and difficulties. What could go wrong? Why it might not work. Cautious, critical.\n- 🟡 **Yellow Hat** (~2 min): ONLY benefits, value, and optimism. Why it might work. Positive logical assessment.\n- 🟢 **Green Hat** (~2 min): ONLY new ideas, alternatives, and creative possibilities. Provocations (Po). No judgement of ideas here.\n- 🔵 **Blue Hat** (mid-sequence if present): Process check — are we on track? Adjust remaining sequence if needed.\n\n**THE DISCIPLINE**: When wearing the Black Hat, do NOT also argue the Yellow side. When wearing the Green Hat, do NOT criticise ideas. Each direction gets its own dedicated, uncontaminated time. This is what makes parallel thinking anti-adversarial — no one is simultaneously attacking and defending.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Work through each hat in the selected sequence one at a time — dedicate separate thoughts to separate thinking directions, maintaining the same-direction discipline",
+            "priority": "mandatory",
+            "estimated_thoughts": 8
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Every hat in the selected sequence executed with dedicated focused time",
+          "Same-direction discipline maintained — no mixing of hat directions within a single pass",
+          "Red Hat kept to ~30 seconds of visceral gut reaction, not extended analysis",
+          "Each direction given uncontaminated exploration without adversarial counter-argument"
+        ],
+        "next_actions": [
+          "Proceed to mid-process adaptation check"
+        ]
+      }
     },
     {
-      "id": "pollinate",
-      "name": "Cross-Pollinate Insights - Find connections",
-      "description": "Look for unexpected connections and insights between the parallel tracks\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nLook for connections between parallel tracks: How do insights from one track inform another? What unexpected combinations emerge? Where do tracks complement or contradict each other? What new insights arise from the intersections?",
-      "requiresEnhancedThinking": true
+      "id": "emergent-adaptation",
+      "name": "Emergent Adaptation — Mid-Process Blue Hat Review",
+      "description": "Per de Bono: 'Programs are often emergent — the group might plan the first few hats then the facilitator will see what seems to be the right way to go.'\n\nBlue Hat facilitator check:\n\n1. **Assess Completeness**: Did the hat sequence adequately explore the topic? Were any directions under-explored?\n2. **Identify Gaps**: Does any hat direction need a second pass? Common: an additional Green Hat pass after Black Hat reveals problems, or a White Hat pass when facts were insufficient.\n3. **Adapt the Sequence**: Insert additional hats, repeat a direction, or declare the exploration sufficient.\n4. **Check the Discipline**: Was same-direction thinking maintained? If directions got mixed during the pass, note which hat needs a cleaner re-run.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "If additional hat passes are needed, use sequential thinking for the additional same-direction exploration",
+            "priority": "optional",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Facilitator assessment: all hat directions in the sequence adequately explored",
+          "Any gaps identified and additional hat passes executed if needed",
+          "Same-direction discipline verified — no contamination between directions",
+          "Exploration declared sufficient or additional sequence executed"
+        ],
+        "next_actions": [
+          "Proceed to Blue Hat closing synthesis"
+        ]
+      }
     },
     {
-      "id": "maintain",
-      "name": "Maintain Multiple Options - Preserve diversity",
-      "description": "Keep multiple viable options open rather than forcing premature convergence",
-      "requiresEnhancedThinking": false
-    },
-    {
-      "id": "synthesize",
-      "name": "Synthesize When Ready - Integrate insights",
-      "description": "Synthesize the parallel tracks when natural integration points emerge",
-      "requiresEnhancedThinking": false
+      "id": "blue-hat-closing",
+      "name": "Blue Hat Closing — Evaluate Outcomes & Synthesize",
+      "description": "All parallel thinking sequences close with Blue Hat: evaluate outcomes and determine next steps.\n\n1. **Summarize Each Direction**: What did each hat reveal?\n   - White: key facts established\n   - Red: emotional reactions and gut feelings\n   - Black: risks and concerns identified\n   - Yellow: benefits and value found\n   - Green: creative alternatives generated\n\n2. **Consider All Factors (CAF)**: Integrate findings from all directions into a comprehensive view — this is where the parallel explorations come together.\n\n3. **First Important Priorities (FIP)**: Rank what matters most based on the combined parallel exploration.\n\n4. **Define Next Steps**: What action follows from this disciplined exploration? Does the topic need a different hat sequence program (e.g., move from 'Initial Ideas' to 'Choosing between alternatives')?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist the synthesized parallel thinking output with [[WikiLinks]] — document what each direction revealed and the integrated conclusion",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Findings from each hat direction summarized",
+          "Consider All Factors (CAF) integration completed across all explored directions",
+          "First Important Priorities (FIP) ranked",
+          "Next steps defined — including whether a follow-on hat sequence is needed"
+        ],
+        "next_actions": [
+          "Deliver integrated analysis or select a follow-on hat sequence program for deeper exploration"
+        ]
+      }
     }
   ]
 }

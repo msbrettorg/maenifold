@@ -2,7 +2,7 @@
   "id": "abductive-reasoning",
   "name": "Abductive Reasoning",
   "emoji": "💭",
-  "description": "Systematic hypothesis formation through inference to best explanation",
+  "description": "Inference to the best explanation — Peirce's method of forming explanatory hypotheses from surprising observations, selecting by simplicity and explanatory power, and validating through successive approximation",
   "triggers": [
     "abductive reasoning",
     "hypothesis",
@@ -14,37 +14,160 @@
     "root cause",
     "systematic investigation"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "observe",
-      "name": "Observe Surprising Facts - Identify puzzling observations",
-      "description": "Systematically catalog unexpected, anomalous, or puzzling observations that need explanation",
-      "requiresEnhancedThinking": false
+      "id": "observe-surprising-facts",
+      "name": "Observe Surprising Facts — Identify anomalous phenomena requiring explanation",
+      "description": "Identify the surprising, anomalous, or puzzling observations that trigger the abductive process.\n\nPer Peirce's 1903 canonical form, abduction begins: 'The surprising fact, C, is observed.' Catalog all observations that are unexpected, anomalous, or that constitute a 'very curious circumstance.' Distinguish observations (what is perceived) from interpretations (what is inferred). As Peirce wrote: 'what I perceive is not proposition, sentence, fact, but only an image, which I make intelligible in part by means of a statement of fact.'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for prior observations, known anomalies, and existing context around the surprising phenomena",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around related concepts to understand what makes these observations surprising relative to existing knowledge",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All surprising or anomalous observations explicitly cataloged as Peirce's 'surprising fact C'",
+          "Observations clearly separated from interpretations — raw phenomena vs. propositional statements",
+          "What makes each observation surprising is articulated against background expectations",
+          "No known existing explanation already accounts for the observations"
+        ],
+        "next_actions": [
+          "Proceed to generating explanatory hypotheses"
+        ]
+      }
     },
     {
-      "id": "generate",
-      "name": "Generate Hypotheses - Form potential explanations",
-      "description": "Create multiple plausible explanations that could account for the observed facts\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nFor each surprising fact, generate multiple potential explanations. Think systematically: What could cause this? What conditions would make this outcome likely? Consider obvious explanations, but also think about underlying systemic causes, external factors, and less obvious mechanisms.",
-      "requiresEnhancedThinking": true
+      "id": "generate-explanatory-hypotheses",
+      "name": "Generate Explanatory Hypotheses — Derive candidate explanations via abductive inference",
+      "description": "Generate candidate explanations that would render the surprising observations unsurprising.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Peirce's 1903 form: 'But if A were true, C would be a matter of course.' For each surprising fact, generate hypotheses such that if the hypothesis were true, the observation would follow naturally. Peirce characterized this as 'guessing' that is 'very little hampered by rules of logic' — but whose success 'far exceeds that of random luck and seems born of attunement to nature by instinct.'\n\nPer the logic-based formalization: given background theory T and observations O, derive candidate explanations E where T∪E⊨O (the explanation entails the observations) and T∪E is consistent (no contradictions). Per the set-cover formalization: find hypotheses H' whose effects e(H') cover all observed manifestations M.\n\nConsider: newly hypothesized rules, known rules applied to peculiar states of facts, and combinations of both — as Peirce allowed in 1903.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic hypothesis generation requires exploring multiple explanatory mechanisms per observation — Peirce's 'guessing' through structured creative inference, deriving E such that T∪E⊨O",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find analogous explanations, known causal mechanisms, and related hypotheses in the knowledge graph that could serve as candidate explanations",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Explore concept connections that may suggest non-obvious causal mechanisms or known rules applicable to these observations",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Multiple candidate hypotheses generated — each satisfying Peirce's form: 'if A were true, C would be a matter of course'",
+          "Each hypothesis specifies an explanatory mechanism (how it renders the surprising fact unsurprising)",
+          "Consistency verified: no hypothesis contradicts background theory (T∪E is consistent)",
+          "Both newly hypothesized rules and known-rule-plus-peculiar-facts combinations explored",
+          "No obvious explanatory candidates overlooked"
+        ],
+        "next_actions": [
+          "Proceed to evaluating hypotheses by selection criteria"
+        ]
+      }
     },
     {
-      "id": "evaluate",
-      "name": "Evaluate Plausibility - Assess which explanations fit best",
-      "description": "Systematically evaluate each hypothesis against available evidence and logical consistency\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nFor each hypothesis, evaluate: Does it explain all the observed facts? Is it consistent with known constraints? What would we expect to see if this hypothesis were true? Which hypothesis is simplest while still explaining the phenomena? Which has the most supporting evidence?",
-      "requiresEnhancedThinking": true
+      "id": "evaluate-selection-criteria",
+      "name": "Evaluate by Selection Criteria — Apply simplicity, explanatory power, and plausibility",
+      "description": "Evaluate and rank candidate hypotheses using Peirce's selection criteria and the formal criteria from logic-based abduction.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia, criteria for selecting 'the best' explanation include: simplicity, prior probability, and explanatory power. Apply a minimality condition to exclude irrelevant facts not contributing to entailment of observations.\n\nPer Peirce's maxim: 'Facts cannot be explained by a hypothesis more extraordinary than these facts themselves; and of various hypotheses the least extraordinary must be adopted.' Evaluate plausibility as Peirce defined it: 'the degree to which a theory ought to recommend itself to our belief independently of any kind of evidence other than our instinct urging us to regard it favorably' — the 'facile and natural' (Galileo's natural light of reason), distinct from mere logical simplicity.\n\nApply Peirce's 1910 three-way distinction: probability (frequency-based), verisimilitude (truth-likeness), and plausibility (instinctive appeal).",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Rigorous multi-criteria evaluation of hypotheses — applying Peirce's simplicity, explanatory power, plausibility, and the formal minimality and consistency conditions from logic-based abduction",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find supporting or contradicting evidence for each hypothesis, and prior probability assessments from the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each hypothesis evaluated against simplicity (least extraordinary), prior probability, and explanatory power",
+          "Minimality condition applied — no hypothesis includes irrelevant facts beyond what entails the observations",
+          "Peirce's plausibility assessed: instinctive naturalness, not just logical simplicity",
+          "Probability vs. verisimilitude vs. plausibility distinguished per Peirce's 1910 framework",
+          "Hypotheses ranked with clear justification for ordering"
+        ],
+        "next_actions": [
+          "Proceed to abductive validation"
+        ]
+      }
     },
     {
-      "id": "test",
-      "name": "Design Tests - Plan validation approaches",
-      "description": "Develop specific ways to test and validate the most promising hypotheses",
-      "requiresEnhancedThinking": false
+      "id": "abductive-validation",
+      "name": "Abductive Validation — Validate through successive approximation and the pragmatic maxim",
+      "description": "Validate the leading hypothesis through abductive validation — reasoning through successive approximation.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Wikipedia: 'Abductive validation is the process of validating a given hypothesis through abductive reasoning. This can also be called reasoning through successive approximation. Under this principle, an explanation is valid if it is the best possible explanation of a set of known data. The best possible explanation is often defined in terms of simplicity and elegance (see Occam's razor).'\n\nApply the pragmatic maxim: 'Consider what effects, that might conceivably have practical bearings, we conceive the object of our conception to have. Then, our conception of these effects is the whole of our conception of the object.' The hypothesis must have conceivable implications for informed practice so as to be testable.\n\nPer Gould's testability criterion: only hypotheses that can be proved incorrect lie within the domain of useful explanation.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Successive approximation requires iterative refinement of the hypothesis against known data — testing whether it truly constitutes the best possible explanation per Occam's razor and the pragmatic maxim",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for additional data that could refine, strengthen, or invalidate the hypothesis through successive approximation",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Hypothesis validated as the best possible explanation of all known data via successive approximation",
+          "Pragmatic maxim applied: conceivable practical implications articulated",
+          "Testability confirmed per Gould: the hypothesis can in principle be proved incorrect",
+          "Occam's razor applied: explanation uses minimal assumptions while covering all observations",
+          "Remaining uncertainty explicitly acknowledged — abduction yields plausible not certain conclusions"
+        ],
+        "next_actions": [
+          "Proceed to economy of research assessment"
+        ]
+      }
     },
     {
-      "id": "select",
-      "name": "Select Best Explanation - Choose most likely hypothesis",
-      "description": "Choose the hypothesis that best explains all observations with minimal assumptions",
-      "requiresEnhancedThinking": false
+      "id": "economy-of-research",
+      "name": "Economy of Research — Assess cost, value, uberty, and testability for inquiry",
+      "description": "Assess the hypothesis at Peirce's methodeutical level — the economy of research.\n\nPer Peirce's three-level logic framework, abduction must be judged not only at the critical level (validity of inference) but at the methodeutical level (methodology of inquiry). Per Wikipedia: 'the conduct of abduction is governed by considerations of economy, belonging in particular to the economics of research.'\n\nEvaluate along Peirce's dimensions:\n- **Cost**: 'A simple but low-odds guess, if low in cost to test for falsity, may belong first in line for testing, to get it out of the way.'\n- **Value**: 'A guess is intrinsically worth testing if it has instinctual plausibility or reasoned objective probability.'\n- **Interrelationships**: Caution (Peirce's Twenty Questions strategy), breadth of applicability to explain various phenomena, and incomplexity ('a hypothesis that seems too simple but whose trial may give a good leave').\n- **Uberty**: The expected fertility and pragmatic value of the reasoning — 'the expected fact-based productivity of hypotheses.'\n\nFinally, outline the deductive-inductive verification loop: 'To increase the assurance of a hypothetical conclusion, one needs to deduce implications about evidence to be found, predictions which induction can test through observation so as to evaluate the hypothesis.'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document the selected explanation with its full abductive justification chain, economy assessment, and testable predictions for institutional memory",
+            "priority": "recommended"
+          },
+          "SearchMemories": {
+            "reason": "Find related hypotheses and their testing histories to inform the economy-of-research assessment",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Cost of testing assessed — which hypotheses can be cheaply tested for falsity first",
+          "Value assessed — instinctual plausibility and reasoned objective probability weighed",
+          "Interrelationships mapped — caution, breadth, and incomplexity evaluated per Peirce",
+          "Uberty estimated — expected fertility and pragmatic value of the hypothesis",
+          "Testable predictions derived — deductive implications specified for inductive verification",
+          "Selected explanation documented with complete abductive justification chain"
+        ],
+        "next_actions": [
+          "Document conclusion: selected best explanation with testable predictions and remaining uncertainty"
+        ]
+      }
     }
   ]
 }

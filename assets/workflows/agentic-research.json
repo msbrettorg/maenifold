@@ -12,20 +12,23 @@
     "academic research",
     "research analysis"
   ],
-  "enhancedThinkingEnabled": true,
   "steps": [
     {
       "id": "research-initiation",
       "name": "🎯 Research Initiation & Topic Analysis",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nSystematic research planning and topic analysis.\n\n1. Analyze research query and identify core concepts, knowledge domains, and research objectives\n2. Create initial topic coverage vector mapping key research areas, knowledge gaps, and information requirements\n3. Develop research strategy with information seeking priorities, source types, and quality criteria\n4. Establish stopping criteria based on information gain thresholds and coverage completeness\n5. Generate initial research questions and hypothesis framework\n\nOutput: memory://research/[topic]/research-plan.md\nInclude: Coverage vector, research questions, stopping criteria, 10+ [[WikiLinks]]",
-      "requiresEnhancedThinking": true,
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nSystematic research planning and topic analysis.\n\n1. Analyze research query and identify core concepts, knowledge domains, and research objectives\n2. Create initial topic coverage vector mapping key research areas, knowledge gaps, and information requirements\n3. Develop research strategy with information seeking priorities, source types, and quality criteria\n4. Establish stopping criteria based on information gain thresholds and coverage completeness\n5. Generate initial research questions and hypothesis framework\n\nOutput: memory://research/[topic]/research-plan.md\nInclude: Coverage vector, research questions, stopping criteria, 10+ [[WikiLinks]]",
       "metadata": {
         "toolHints": {
           "SequentialThinking": {
             "reason": "Complex research planning requires systematic thinking",
             "priority": "mandatory",
             "estimated_thoughts": 5,
-            "focus_areas": ["Topic decomposition", "Coverage vector creation", "Research strategy", "Stopping criteria"]
+            "focus_areas": [
+              "Topic decomposition",
+              "Coverage vector creation",
+              "Research strategy",
+              "Stopping criteria"
+            ]
           },
           "WriteMemory": {
             "reason": "Document research plan with rich [[WikiLinks]]",
@@ -33,20 +36,27 @@
           }
         },
         "reasoning_effort": "high",
-        "stop_conditions": ["Research plan documented", "Coverage vector created", "Stopping criteria defined", "Research questions formulated"],
-        "next_actions": ["Assess knowledge baseline"],
+        "stop_conditions": [
+          "Research plan documented",
+          "Coverage vector created",
+          "Stopping criteria defined",
+          "Research questions formulated"
+        ],
+        "next_actions": [
+          "Assess knowledge baseline"
+        ],
         "guardrails": {
           "wikilink_density": "Minimum 10 [[WikiLinks]] in research plan (e.g., [[research-methodology]], [[information-gain]], [[hypothesis]])",
           "scope_definition": "Clear boundaries must be established",
           "time_budget": "Define maximum research duration"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     },
     {
       "id": "knowledge-baseline",
       "name": "📚 Knowledge Baseline Assessment",
       "description": "Establish baseline knowledge and identify gaps.\n\n1. Search memory system for existing knowledge related to research topic using semantic search\n2. Identify knowledge gaps, outdated information, and areas requiring deeper investigation\n3. Map existing knowledge to topic coverage vector and calculate baseline information coverage\n4. Document current understanding limitations and research priorities\n5. Establish knowledge baseline for measuring information gain during research process\n\nOutput: memory://research/[topic]/knowledge-baseline.md\nInclude: Coverage assessment, gap analysis, baseline metrics",
-      "requiresEnhancedThinking": true,
       "metadata": {
         "toolHints": {
           "SearchMemories": {
@@ -62,26 +72,36 @@
           }
         },
         "reasoning_effort": "medium",
-        "stop_conditions": ["Baseline coverage calculated", "Knowledge gaps identified", "Priorities documented"],
-        "next_actions": ["Generate HyDE queries"],
+        "stop_conditions": [
+          "Baseline coverage calculated",
+          "Knowledge gaps identified",
+          "Priorities documented"
+        ],
+        "next_actions": [
+          "Generate HyDE queries"
+        ],
         "escape_hatches": {
           "high_baseline_coverage": "If coverage > 80%, consider skipping to synthesis",
           "no_relevant_knowledge": "If no baseline found, proceed with full research"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     },
     {
       "id": "hyde-query-expansion",
       "name": "🔍 HyDE Query Expansion & Research Planning",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nGenerate hypothetical documents for enhanced search.\n\n1. For each research question, generate hypothetical documents that would answer the question completely\n2. Extract key concepts, technical terms, and semantic contexts from hypothetical documents\n3. Create expanded search queries with semantic richness, alternative phrasings, and domain-specific terminology\n4. Develop search strategy prioritizing academic sources, technical documentation, and expert analysis\n5. Plan multi-stage information gathering with progressive refinement\n\nOutput: memory://research/[topic]/hyde-queries.md\nInclude: Hypothetical documents, expanded queries, search strategy",
-      "requiresEnhancedThinking": true,
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nGenerate hypothetical documents for enhanced search.\n\n1. For each research question, generate hypothetical documents that would answer the question completely\n2. Extract key concepts, technical terms, and semantic contexts from hypothetical documents\n3. Create expanded search queries with semantic richness, alternative phrasings, and domain-specific terminology\n4. Develop search strategy prioritizing academic sources, technical documentation, and expert analysis\n5. Plan multi-stage information gathering with progressive refinement\n\nOutput: memory://research/[topic]/hyde-queries.md\nInclude: Hypothetical documents, expanded queries, search strategy",
       "metadata": {
         "toolHints": {
           "SequentialThinking": {
             "reason": "HyDE query generation requires creative hypothesis",
             "priority": "mandatory",
             "estimated_thoughts": 4,
-            "focus_areas": ["Hypothetical document creation", "Query expansion", "Semantic enrichment"]
+            "focus_areas": [
+              "Hypothetical document creation",
+              "Query expansion",
+              "Semantic enrichment"
+            ]
           },
           "WriteMemory": {
             "reason": "Store HyDE queries for execution",
@@ -89,19 +109,25 @@
           }
         },
         "reasoning_effort": "high",
-        "stop_conditions": ["HyDE documents generated", "Queries expanded", "Search strategy defined"],
-        "next_actions": ["Execute information gathering"],
+        "stop_conditions": [
+          "HyDE documents generated",
+          "Queries expanded",
+          "Search strategy defined"
+        ],
+        "next_actions": [
+          "Execute information gathering"
+        ],
         "guardrails": {
           "query_diversity": "Generate 3-5 variations per research question",
           "semantic_richness": "Include technical terms and synonyms"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     },
     {
       "id": "information-gathering",
       "name": "🌐 Enhanced Information Gathering",
       "description": "Execute HyDE-enhanced queries and gather information.\n\n1. Execute expanded queries using web research tools\n2. Gather information from diverse sources: academic papers, technical documentation, expert blogs, industry reports\n3. Apply relevance scoring based on topic coverage vector alignment and information novelty\n4. Extract key findings, evidence, and insights with source attribution\n5. Update topic coverage vector with new information and calculate information gain metrics\n6. Continue until information gain falls below threshold or coverage targets met\n\nOutput: memory://research/[topic]/research-data.md\nInclude: Findings with sources, relevance scores, information gain metrics",
-      "requiresEnhancedThinking": true,
       "metadata": {
         "toolHints": {
           "WebSearch": {
@@ -119,8 +145,14 @@
           }
         },
         "reasoning_effort": "medium",
-        "stop_conditions": ["Information gain < 5%", "Coverage target reached", "Time limit exceeded"],
-        "next_actions": ["Discover emergent topics"],
+        "stop_conditions": [
+          "Information gain < 5%",
+          "Coverage target reached",
+          "Time limit exceeded"
+        ],
+        "next_actions": [
+          "Discover emergent topics"
+        ],
         "escape_hatches": {
           "information_saturation": "Stop if gain < 5% for 3 consecutive queries",
           "time_limit": "Maximum 60 minutes for gathering phase"
@@ -129,20 +161,24 @@
           "source_diversity": "Minimum 5 different source types",
           "evidence_quality": "Prioritize peer-reviewed and authoritative sources"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     },
     {
       "id": "topic-discovery",
       "name": "🧬 Unsupervised Topic Discovery",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nAnalyze for emergent themes and latent topics.\n\n1. Analyze collected research data for latent topics and emergent themes not covered in initial research plan\n2. Identify conceptual clusters, relationship patterns, and knowledge connections using semantic analysis\n3. Discover unexpected research directions, contradictory evidence, and knowledge synthesis opportunities\n4. Update topic coverage vector with discovered themes and assess coverage completeness\n5. Generate additional research questions for newly discovered topics if information gain potential is high\n\nOutput: memory://research/[topic]/topic-discovery.md\nInclude: Emergent themes, conceptual clusters, updated coverage vector",
-      "requiresEnhancedThinking": true,
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nAnalyze for emergent themes and latent topics.\n\n1. Analyze collected research data for latent topics and emergent themes not covered in initial research plan\n2. Identify conceptual clusters, relationship patterns, and knowledge connections using semantic analysis\n3. Discover unexpected research directions, contradictory evidence, and knowledge synthesis opportunities\n4. Update topic coverage vector with discovered themes and assess coverage completeness\n5. Generate additional research questions for newly discovered topics if information gain potential is high\n\nOutput: memory://research/[topic]/topic-discovery.md\nInclude: Emergent themes, conceptual clusters, updated coverage vector",
       "metadata": {
         "toolHints": {
           "SequentialThinking": {
             "reason": "Pattern recognition and theme emergence requires deep analysis",
             "priority": "mandatory",
             "estimated_thoughts": 4,
-            "focus_areas": ["Pattern identification", "Cluster analysis", "Theme emergence"]
+            "focus_areas": [
+              "Pattern identification",
+              "Cluster analysis",
+              "Theme emergence"
+            ]
           },
           "BuildContext": {
             "reason": "Analyze concept relationships in gathered data",
@@ -150,67 +186,93 @@
           }
         },
         "reasoning_effort": "high",
-        "stop_conditions": ["Emergent themes identified", "Coverage vector updated", "Contradictions documented"],
-        "next_actions": ["Multi-perspective analysis"],
+        "stop_conditions": [
+          "Emergent themes identified",
+          "Coverage vector updated",
+          "Contradictions documented"
+        ],
+        "next_actions": [
+          "Multi-perspective analysis"
+        ],
         "guardrails": {
           "theme_threshold": "Only add themes with 3+ supporting sources",
           "scope_control": "Limit to top 5 emergent themes"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     },
     {
       "id": "multi-perspective-analysis",
       "name": "🎭 Multi-Perspective Research Analysis",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nAnalyze findings from multiple expert perspectives.\n\n1. Adopt specialized research perspectives: critical analyst (evidence evaluation), creative synthesizer (pattern recognition), methodological reviewer (research quality)\n2. Each perspective analyzes research findings with domain expertise and specialized focus\n3. Identify contradictions, gaps, biases, and synthesis opportunities through perspective analysis\n4. Generate research insights through collaborative analysis and cross-perspective validation\n5. Document perspective consensus and areas requiring additional investigation\n\nOutput: memory://research/[topic]/perspective-analysis.md\nInclude: Multi-perspective insights, contradictions, consensus findings",
-      "requiresEnhancedThinking": true,
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nAnalyze findings from multiple expert perspectives.\n\n1. Adopt specialized research perspectives: critical analyst (evidence evaluation), creative synthesizer (pattern recognition), methodological reviewer (research quality)\n2. Each perspective analyzes research findings with domain expertise and specialized focus\n3. Identify contradictions, gaps, biases, and synthesis opportunities through perspective analysis\n4. Generate research insights through collaborative analysis and cross-perspective validation\n5. Document perspective consensus and areas requiring additional investigation\n\nOutput: memory://research/[topic]/perspective-analysis.md\nInclude: Multi-perspective insights, contradictions, consensus findings",
       "metadata": {
         "toolHints": {
           "SequentialThinking": {
             "reason": "Role-based perspective analysis requires systematic thinking",
             "priority": "mandatory",
             "estimated_thoughts": 5,
-            "focus_areas": ["Critical analysis", "Creative synthesis", "Methodological review"],
+            "focus_areas": [
+              "Critical analysis",
+              "Creative synthesis",
+              "Methodological review"
+            ],
             "thinking_mode": "roleplay"
           }
         },
         "reasoning_effort": "high",
-        "stop_conditions": ["All perspectives analyzed", "Contradictions identified", "Consensus documented"],
-        "next_actions": ["Synthesis and reflexion"],
+        "stop_conditions": [
+          "All perspectives analyzed",
+          "Contradictions identified",
+          "Consensus documented"
+        ],
+        "next_actions": [
+          "Synthesis and reflexion"
+        ],
         "guardrails": {
           "perspective_balance": "Equal weight to each perspective",
           "bias_mitigation": "Document potential biases explicitly"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     },
     {
       "id": "synthesis-reflexion",
       "name": "🔄 Research Synthesis & Reflexion",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nSynthesize findings and apply quality review.\n\n1. Synthesize research findings into coherent knowledge framework with key insights, evidence patterns, and conceptual relationships\n2. Apply six thinking hats review: WHITE (facts/data), RED (intuition/gaps), BLACK (critical flaws), YELLOW (opportunities), GREEN (creative connections), BLUE (process assessment)\n3. Identify synthesis weaknesses, logical gaps, insufficient evidence, and areas requiring refinement\n4. Trigger additional research cycles if critical gaps identified\n5. Refine synthesis until quality thresholds met\n\nOutput: memory://research/[topic]/research-synthesis.md\nInclude: Synthesized framework, thinking hats assessment, quality scores",
-      "requiresEnhancedThinking": true,
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nSynthesize findings and apply quality review.\n\n1. Synthesize research findings into coherent knowledge framework with key insights, evidence patterns, and conceptual relationships\n2. Apply six thinking hats review: WHITE (facts/data), RED (intuition/gaps), BLACK (critical flaws), YELLOW (opportunities), GREEN (creative connections), BLUE (process assessment)\n3. Identify synthesis weaknesses, logical gaps, insufficient evidence, and areas requiring refinement\n4. Trigger additional research cycles if critical gaps identified\n5. Refine synthesis until quality thresholds met\n\nOutput: memory://research/[topic]/research-synthesis.md\nInclude: Synthesized framework, thinking hats assessment, quality scores",
       "metadata": {
         "toolHints": {
           "SequentialThinking": {
             "reason": "Complex synthesis and reflexion requires systematic review",
             "priority": "mandatory",
             "estimated_thoughts": 6,
-            "focus_areas": ["Knowledge synthesis", "Six hats review", "Gap identification"],
+            "focus_areas": [
+              "Knowledge synthesis",
+              "Six hats review",
+              "Gap identification"
+            ],
             "thinking_mode": "roleplay"
           }
         },
         "reasoning_effort": "high",
-        "stop_conditions": ["Synthesis complete", "Quality thresholds met", "Gaps documented"],
-        "next_actions": ["Knowledge integration or additional research cycle"],
+        "stop_conditions": [
+          "Synthesis complete",
+          "Quality thresholds met",
+          "Gaps documented"
+        ],
+        "next_actions": [
+          "Knowledge integration or additional research cycle"
+        ],
         "escape_hatches": {
           "critical_gaps": "If major gaps found, return to information gathering",
           "quality_threshold": "Require 7/10 quality score to proceed"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     },
     {
       "id": "knowledge-integration",
       "name": "🧠 Knowledge Integration & Memory Creation",
       "description": "Integrate research into maenifold knowledge graph.\n\n1. Create comprehensive memory entities for key research findings with [[WikiLink]] connections to related concepts\n2. Establish knowledge relationships between new findings and existing memory system\n3. Document research methodology, evidence quality, and confidence levels for future reference\n4. Create research context preservation for long-term knowledge building\n5. Update knowledge base with integrated insights and research outcomes\n\nOutput: Multiple memory files with rich [[WikiLinks]]\nInclude: All key findings, methodology, confidence levels",
-      "requiresEnhancedThinking": true,
       "metadata": {
         "toolHints": {
           "WriteMemory": {
@@ -223,49 +285,69 @@
           }
         },
         "reasoning_effort": "medium",
-        "stop_conditions": ["Knowledge integrated", "Graph synchronized", "Relationships established"],
-        "next_actions": ["Information gain assessment"],
+        "stop_conditions": [
+          "Knowledge integrated",
+          "Graph synchronized",
+          "Relationships established"
+        ],
+        "next_actions": [
+          "Information gain assessment"
+        ],
         "guardrails": {
           "wikilink_minimum": "15+ [[WikiLinks]] per memory file (e.g., [[semantic-search]], [[knowledge-graph]], [[synthesis]])",
           "relationship_density": "Cross-link to existing knowledge"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     },
     {
       "id": "information-gain-assessment",
       "name": "📈 Information Gain & Completion Assessment",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nQuantitative assessment of research outcomes.\n\n1. Calculate final information gain using topic coverage vector comparison (baseline vs current)\n2. Assess research completeness against initial objectives and stopping criteria\n3. Evaluate research quality metrics: source diversity, evidence strength, synthesis coherence, knowledge integration\n4. Document confidence levels for research conclusions and areas of uncertainty\n5. Determine if additional research cycles needed based on information gain thresholds\n\nOutput: memory://research/[topic]/information-gain-report.md\nInclude: Metrics, coverage percentages, quality scores",
-      "requiresEnhancedThinking": true,
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nQuantitative assessment of research outcomes.\n\n1. Calculate final information gain using topic coverage vector comparison (baseline vs current)\n2. Assess research completeness against initial objectives and stopping criteria\n3. Evaluate research quality metrics: source diversity, evidence strength, synthesis coherence, knowledge integration\n4. Document confidence levels for research conclusions and areas of uncertainty\n5. Determine if additional research cycles needed based on information gain thresholds\n\nOutput: memory://research/[topic]/information-gain-report.md\nInclude: Metrics, coverage percentages, quality scores",
       "metadata": {
         "toolHints": {
           "SequentialThinking": {
             "reason": "Quantitative analysis requires systematic evaluation",
             "priority": "mandatory",
             "estimated_thoughts": 3,
-            "focus_areas": ["Metric calculation", "Coverage assessment", "Quality evaluation"]
+            "focus_areas": [
+              "Metric calculation",
+              "Coverage assessment",
+              "Quality evaluation"
+            ]
           }
         },
         "reasoning_effort": "medium",
-        "stop_conditions": ["Metrics calculated", "Assessment complete", "Decision made on additional cycles"],
-        "next_actions": ["Create deliverable or trigger additional cycle"],
+        "stop_conditions": [
+          "Metrics calculated",
+          "Assessment complete",
+          "Decision made on additional cycles"
+        ],
+        "next_actions": [
+          "Create deliverable or trigger additional cycle"
+        ],
         "guardrails": {
           "minimum_gain": "Require 20% information gain for success",
           "coverage_target": "80% domain coverage for completion"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     },
     {
       "id": "research-deliverable",
       "name": "📋 Research Deliverable Creation",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nCreate comprehensive research report.\n\n1. Create comprehensive research report with executive summary, methodology, key findings, evidence analysis, and conclusions\n2. Include research journey documentation with information gain progression and topic discovery insights\n3. Document research limitations, confidence levels, and areas for future investigation\n4. Provide actionable insights and practical applications of research findings\n5. Format for target audience with appropriate technical depth and visual clarity\n\nOutput: memory://research/[topic]/research-report.md\nInclude: Executive summary, findings, methodology, actionable insights",
-      "requiresEnhancedThinking": true,
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nCreate comprehensive research report.\n\n1. Create comprehensive research report with executive summary, methodology, key findings, evidence analysis, and conclusions\n2. Include research journey documentation with information gain progression and topic discovery insights\n3. Document research limitations, confidence levels, and areas for future investigation\n4. Provide actionable insights and practical applications of research findings\n5. Format for target audience with appropriate technical depth and visual clarity\n\nOutput: memory://research/[topic]/research-report.md\nInclude: Executive summary, findings, methodology, actionable insights",
       "metadata": {
         "toolHints": {
           "SequentialThinking": {
             "reason": "Report synthesis requires structured thinking",
             "priority": "mandatory",
             "estimated_thoughts": 4,
-            "focus_areas": ["Executive summary", "Key findings", "Actionable insights"]
+            "focus_areas": [
+              "Executive summary",
+              "Key findings",
+              "Actionable insights"
+            ]
           },
           "WriteMemory": {
             "reason": "Create final deliverable with [[WikiLinks]]",
@@ -273,37 +355,56 @@
           }
         },
         "reasoning_effort": "high",
-        "stop_conditions": ["Report complete", "All sections populated", "Insights documented"],
-        "next_actions": ["Quality validation"],
+        "stop_conditions": [
+          "Report complete",
+          "All sections populated",
+          "Insights documented"
+        ],
+        "next_actions": [
+          "Quality validation"
+        ],
         "guardrails": {
           "completeness": "All sections must be populated",
           "actionability": "Minimum 5 actionable insights",
           "wikilink_density": "20+ [[WikiLinks]] in report (e.g., [[research-findings]], [[evidence-analysis]], [[actionable-insights]])"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     },
     {
       "id": "quality-validation",
       "name": "✅ Research Quality Validation",
-      "description": "🧠 ENHANCED THINKING REQUIRED\n\nFinal quality validation and scoring.\n\n1. Verify research objectives achieved with documented evidence and clear conclusions\n2. Validate methodology rigor including source quality, bias mitigation, and evidence evaluation\n3. Assess synthesis quality with logical coherence, knowledge integration, and insight generation\n4. Confirm knowledge preservation with proper memory entity creation and [[WikiLink]] connections\n5. Document research confidence metrics and limitation acknowledgments\n6. Generate final research validation score and readiness assessment\n\nOutput: memory://research/[topic]/research-validation.md\nInclude: Quality scores, confidence metrics, validation checklist",
-      "requiresEnhancedThinking": true,
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED\n\nFinal quality validation and scoring.\n\n1. Verify research objectives achieved with documented evidence and clear conclusions\n2. Validate methodology rigor including source quality, bias mitigation, and evidence evaluation\n3. Assess synthesis quality with logical coherence, knowledge integration, and insight generation\n4. Confirm knowledge preservation with proper memory entity creation and [[WikiLink]] connections\n5. Document research confidence metrics and limitation acknowledgments\n6. Generate final research validation score and readiness assessment\n\nOutput: memory://research/[topic]/research-validation.md\nInclude: Quality scores, confidence metrics, validation checklist",
       "metadata": {
         "toolHints": {
           "SequentialThinking": {
             "reason": "Quality validation requires systematic assessment",
             "priority": "mandatory",
             "estimated_thoughts": 3,
-            "focus_areas": ["Objective verification", "Methodology validation", "Quality scoring"]
+            "focus_areas": [
+              "Objective verification",
+              "Methodology validation",
+              "Quality scoring"
+            ]
           }
         },
         "reasoning_effort": "medium",
-        "stop_conditions": ["Validation complete", "Scores calculated", "Research marked complete"],
-        "next_actions": ["Research workflow complete"],
+        "stop_conditions": [
+          "Validation complete",
+          "Scores calculated",
+          "Research marked complete"
+        ],
+        "next_actions": [
+          "Research workflow complete"
+        ],
         "guardrails": {
           "minimum_score": "7/10 overall quality required",
           "mandatory_checks": "All validation criteria must be assessed"
         }
-      }
+      },
+      "requiresSequentialThinking": true
     }
-  ]
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false
 }

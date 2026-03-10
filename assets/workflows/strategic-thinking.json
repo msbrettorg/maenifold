@@ -2,7 +2,8 @@
   "id": "strategic-thinking",
   "name": "Strategic Thinking",
   "emoji": "💭",
-  "description": "Long-term competitive positioning and systematic strategic analysis",
+  "description": "Mental process applied to achieving goals through generation and application of unique business insights and opportunities — characterized by five competencies: systems perspective, intent focus, thinking in time, hypothesis-driven reasoning, and intelligent opportunism (Liedtka 1998). Strategic thinking is synthesis ('connecting the dots'), not analysis ('finding the dots') (Mintzberg 1994).",
+  "specification": "https://en.wikipedia.org/wiki/Strategic_thinking",
   "triggers": [
     "strategic thinking",
     "strategy",
@@ -12,37 +13,179 @@
     "competitive advantage",
     "strategic planning"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "analyze",
-      "name": "Analyze Current Position - Assess present state",
-      "description": "Systematically analyze current competitive position, strengths, and weaknesses",
-      "requiresEnhancedThinking": false
+      "id": "systems-perspective",
+      "name": "Systems Perspective — Map the complete end-to-end system of value creation",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nLiedtka's first competency: 'A strategic thinker has a mental model of the complete end-to-end system of value creation, their role within it, and an understanding of the competencies it contains.'\n\nBuild a holistic mental model of the system you are operating in. This is NOT competitive analysis (that is strategic planning). Systems perspective means understanding the complete value creation system and the interdependencies within it — how actions in one area produce implications elsewhere.\n\nPer the Wikipedia article, all managers in strategic thinking 'understand the larger system, the connection between their roles and the functioning of that system, as well as the interdependence between the various roles that comprise the system.' This contrasts with strategic planning where managers 'need only know their own role well.'\n\nMap:\n• The end-to-end value creation system — what are the components and how do they interrelate?\n• Your role within the system and what competencies the system contains\n• Interdependencies — how does changing one element ripple through the system?\n• Per Terra & Passador: reconnect phenomena across levels and disciplines holistically; address recursive causality, not linear cause-and-effect",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Building a mental model of a complete end-to-end value creation system requires disciplined sequential mapping of components, roles, interdependencies, and recursive causal relationships — Liedtka's foundational competency",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find existing system maps, value chain analyses, and organizational knowledge in the graph",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Understand the conceptual neighborhood of the system being analyzed — what related concepts and prior analyses exist",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Complete end-to-end value creation system mapped with components and flows",
+          "Own role within the system identified with understanding of competencies it contains",
+          "Interdependencies between system components explicitly documented",
+          "Recursive causal relationships identified — not just linear cause-effect (Terra & Passador)"
+        ],
+        "next_actions": [
+          "Proceed to articulating strategic intent"
+        ]
+      }
     },
     {
-      "id": "map",
-      "name": "Map Competitive Landscape - Understand the environment",
-      "description": "Analyze competitors, market forces, and environmental factors\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nMap the competitive landscape systematically. Who are the key players? What are their strategies? What market forces are shaping the environment? What threats and opportunities exist? Think about Porter's Five Forces: competition, suppliers, buyers, substitutes, new entrants.",
-      "requiresEnhancedThinking": true
+      "id": "intent-focus",
+      "name": "Intent Focus — Articulate and anchor strategic intent to guide daily choices",
+      "description": "Liedtka's second competency: 'The focus that allows individuals within an organization to marshal and leverage their energy, to focus attention, to resist distraction, and to concentrate for as long as it takes to achieve a goal.' Liedtka credits Hamel & Prahalad with popularizing the concept of strategic intent.\n\nStrategic intent is NOT a detailed plan or prediction of the future. Per Liedtka's distinction, strategic thinking sees the future as unpredictable — 'only the shape of the future can be predicted.' Strategic intent provides direction without requiring detailed specification.\n\nPer the Wikipedia article, control in strategic thinking 'relies on self-reference — a sense of strategic intent and purpose embedded in the minds of managers throughout the organisation that guides their choices on a daily basis in a process that is often difficult to measure and monitor from above.' This contrasts with strategic planning which 'asserts control through measurement systems.'\n\nArticulate:\n• The strategic intent — the overarching goal that marshals energy and resists distraction\n• How this intent guides daily choices through self-reference, not measurement\n• What 'the shape of the future' looks like — without pretending to predict details\n• How to embed intent so it becomes a shared mental frame, not a top-down directive",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find existing strategic intent articulations, organizational purpose statements, and prior goal-setting in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Strategic intent articulated — overarching goal that marshals energy and resists distraction (Hamel & Prahalad)",
+          "Intent framed as self-reference guide for daily choices, not measurement-based control",
+          "Shape of the future described without pretending to predict details (Liedtka: 'only the shape of the future can be predicted')",
+          "Intent embedded as shared mental frame across roles, not top-down directive"
+        ],
+        "next_actions": [
+          "Proceed to connecting past, present, and future"
+        ]
+      }
     },
     {
-      "id": "options",
-      "name": "Identify Strategic Options - Develop alternatives",
-      "description": "Generate and evaluate potential strategic moves and positioning options\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nWhat strategic options are available? Consider different competitive strategies: cost leadership, differentiation, focus. What moves could change your position? Think about timing, resources required, and competitive responses.",
-      "requiresEnhancedThinking": true
+      "id": "thinking-in-time",
+      "name": "Thinking in Time — Hold past, present, and future simultaneously for better decisions",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nLiedtka's third competency: 'Strategy is not driven by future intent alone. It is the gap between today's reality and intent for the future that is critical.'\n\nThinking in time means holding past, present, and future in mind simultaneously to create better decision making and speed implementation. This is not forecasting — it is understanding the dynamic relationship between temporal frames.\n\nPer the Wikipedia article, scenario planning is a practical application for incorporating 'thinking in time' into strategy making.\n\nPer Mintzberg, strategic thinking captures 'what the manager learns from all sources (both the soft insights from their personal experiences and the experiences of others throughout the organization and the hard data from market research and the like).' Both soft and hard data from all three time frames matter.\n\nExamine:\n• **Past**: What patterns, lessons, and trajectories emerge from history? What soft insights from personal and organizational experience?\n• **Present**: What is the current reality? What is the gap between where we are and the strategic intent?\n• **Future**: What scenarios are plausible? What is the gap between today's reality and intent for the future?\n• **Gaps**: The critical strategic question is the gap between present reality and future intent — what must change?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Holding past, present, and future simultaneously requires disciplined temporal reasoning — examining each time frame and then synthesizing across them to identify the critical gap between today's reality and future intent (Liedtka's 'thinking in time')",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Search for historical patterns, past decisions, and prior strategic analyses — the 'past' frame of thinking in time",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Past examined — historical patterns, lessons, trajectories, and soft insights from experience documented",
+          "Present reality assessed — current state and capabilities clearly understood",
+          "Future scenarios developed — plausible futures imagined without pretending to predict details",
+          "Critical gap between today's reality and strategic intent explicitly identified (Liedtka: 'the gap is critical')",
+          "Both soft insights and hard data integrated across all three time frames (Mintzberg)"
+        ],
+        "next_actions": [
+          "Proceed to formulating and testing strategic hypotheses"
+        ]
+      }
     },
     {
-      "id": "assess",
-      "name": "Assess Long-term Implications - Think ahead",
-      "description": "Evaluate the long-term consequences and sustainability of strategic choices\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink long-term: What are the implications of each strategic option? How will competitors respond? What does this mean 3-5 years out? What capabilities do you need to build? What are the risks and dependencies?",
-      "requiresEnhancedThinking": true
+      "id": "hypothesis-driven",
+      "name": "Hypothesis-Driven — Formulate and test strategic hypotheses using the scientific method",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nLiedtka's fourth competency: 'Ensuring that both creative and critical thinking are incorporated into strategy making. This competency explicitly incorporates the scientific method into strategic thinking.'\n\nThis is a dual-process competency — it requires BOTH creative generation of strategic hypotheses AND critical evaluation of them. Per the Wikipedia article, strategic thinking 'sees strategy and change as inescapably linked and assumes that finding new strategic options and implementing them successfully is harder and more important than evaluating them.' Discovery matters more than evaluation.\n\nPer Beaufre (1963): 'The strategist must have a great capacity for both analysis and synthesis; analysis is necessary to assemble the data on which he makes his diagnosis, synthesis in order to produce from these data the diagnosis itself.'\n\nFormulation and implementation are 'interactive rather than sequential and discrete' (Liedtka) — hypotheses should be tested through action, not just analysis.\n\nWork through:\n• **Generate** strategic hypotheses creatively — what novel strategies could re-write the rules? (Graetz: 'seek innovation and imagine new and very different futures')\n• **Test** each hypothesis critically — what evidence supports or refutes it? What would we need to observe?\n• **Iterate** — formulation and implementation are interactive, not sequential. Test through action, refine through learning.\n• The critical strategic question is not 'What?' but 'Why?' or 'How?' (per the Wikipedia article)",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "The scientific method applied to strategy requires disciplined sequential hypothesis generation, testing, and iteration — Liedtka's fourth competency explicitly incorporates both creative and critical thinking in sequence",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find evidence to test strategic hypotheses against — prior outcomes, analogous situations, relevant data in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Strategic hypotheses generated creatively — novel strategies that could rewrite rules considered (Graetz)",
+          "Each hypothesis tested critically with evidence — scientific method applied (Liedtka)",
+          "Both creative generation and critical evaluation engaged — dual-process competency exercised",
+          "Interactive formulation-implementation considered — hypotheses refined through action, not just analysis",
+          "Strategic question framed as 'Why?' or 'How?', not just 'What?'"
+        ],
+        "next_actions": [
+          "Proceed to scanning for emergent opportunities"
+        ]
+      }
     },
     {
-      "id": "plan",
-      "name": "Develop Strategic Plan - Create roadmap",
-      "description": "Create a coherent strategic plan with clear positioning and action steps",
-      "requiresEnhancedThinking": false
+      "id": "intelligent-opportunism",
+      "name": "Intelligent Opportunism — Balance strategic focus with responsiveness to emergent opportunities",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nLiedtka's fifth competency: 'The dilemma involved in using a well-articulated strategy to channel organisational efforts effectively and efficiently must always be balanced against the risks of losing sight of alternative strategies better suited to a changing environment.'\n\nIntelligent opportunism is about being responsive to good opportunities while maintaining strategic intent. Per the Wikipedia article, in strategic thinking 'lower-level managers have a voice in strategy-making, as well as greater latitude to respond opportunistically to developing conditions.' This openness to emergent possibilities is what distinguishes strategic thinking from rigid planning.\n\nPer Graetz: strategic thinking seeks 'innovation and new and very different futures that may lead the company to redefine its core strategies and even its industry.' The willingness to redefine — not just optimize — is key.\n\nExamine:\n• What opportunities have emerged that were not anticipated when strategic intent was formed?\n• Does any emergent opportunity warrant redefining the strategy itself, not just adjusting tactics?\n• How to balance disciplined strategic focus with openness to the unexpected — neither rigid nor scattered?\n• Per the Wikipedia article: 'finding new strategic options and implementing them successfully is harder and more important than evaluating them' — are we investing enough in discovery?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Balancing the tension between strategic focus and opportunistic responsiveness requires disciplined reasoning about the dilemma Liedtka identifies — channeling effort vs. losing sight of better alternatives",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "SearchMemories": {
+            "reason": "Scan the knowledge graph for emergent signals, environmental changes, and opportunities that may not have been anticipated",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Emergent opportunities identified that were not anticipated in original intent",
+          "Each opportunity assessed — does it warrant redefining strategy or adjusting tactics? (Graetz: 'redefine core strategies and even industry')",
+          "Liedtka's dilemma explicitly balanced — focus vs. openness to alternatives in changing environment",
+          "Discovery investment assessed — are we finding new options, not just evaluating known ones?"
+        ],
+        "next_actions": [
+          "Proceed to strategic synthesis"
+        ]
+      }
+    },
+    {
+      "id": "strategic-synthesis",
+      "name": "Strategic Synthesis — Connect the dots into a vision of direction",
+      "description": "Per Mintzberg (1994): strategic thinking 'is more about synthesis (i.e., connecting the dots) than analysis (i.e., finding the dots). It is about capturing what the manager learns from all sources (both the soft insights from their personal experiences and the experiences of others throughout the organization and the hard data from market research and the like) and then synthesizing that learning into a vision of the direction that the business should pursue.'\n\nPer Beaufre (1963): 'synthesis in order to produce from these data the diagnosis itself — and the diagnosis in fact amounts to a choice between alternative courses of action.'\n\nThis final step integrates all five competencies into strategic direction:\n• Systems perspective provided the holistic map\n• Intent focus provided the overarching purpose\n• Thinking in time connected past, present, and future\n• Hypothesis-driven reasoning tested strategic options\n• Intelligent opportunism surfaced emergent possibilities\n\nSynthesize these into a coherent vision of direction. Per Graetz, the result should 'seek innovation and imagine new and very different futures.' Per the Wikipedia article, 'the planning process itself is a critical value-adding element' — the thinking that produced this synthesis is as valuable as the output.\n\nRemember: strategic thinking cannot be systematized (Mintzberg). The output is a vision of direction, not a detailed plan. The detailed plan is the work of strategic planning — a complementary but distinct process.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist the strategic synthesis — vision of direction, key insights from each competency, and conditions for strategic revision — as institutional knowledge with [[WikiLinks]]",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All five Liedtka competencies integrated into coherent strategic direction",
+          "Mintzberg synthesis achieved — dots connected from soft insights and hard data into vision of direction",
+          "Beaufre's diagnosis produced — choice between alternative courses of action made",
+          "Output is a vision of direction, not a detailed plan (detailed planning is a distinct process)",
+          "Conditions documented under which this strategic direction should be revisited"
+        ],
+        "next_actions": [
+          "Execute through strategic planning (complementary but distinct process) or iterate on competencies"
+        ]
+      }
     }
   ]
 }

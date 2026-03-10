@@ -2,7 +2,7 @@
   "id": "polya-problem-solving",
   "name": "Pólya Problem Solving",
   "emoji": "📐",
-  "description": "George Pólya's systematic four-step approach to mathematical and general problem-solving",
+  "description": "George Pólya's four-principle method from How to Solve It (1945) — understand the problem, devise a plan, carry out the plan, look back — with a dictionary of heuristics for generating more accessible related problems",
   "triggers": [
     "polya",
     "how to solve it",
@@ -12,31 +12,166 @@
     "four step method",
     "heuristic approach"
   ],
-  "enhancedThinkingEnabled": true,
+  "specification": "https://en.wikipedia.org/wiki/How_to_Solve_It",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
       "id": "understand",
-      "name": "Understand the Problem - Clarify what you're solving",
-      "description": "Deeply understand what the problem is asking before attempting to solve it\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSystematically explore the problem:\n• What is the unknown? What are we trying to find or prove?\n• What are the data? What information is given?\n• What is the condition? What constraints or requirements must be satisfied?\n• Can you restate the problem in your own words?\n• Can you think of a picture or diagram that might help?\n• Is there enough information to enable you to find a solution?\n• Is there redundant or contradictory information?\n• Have you seen a problem similar to this before?",
-      "requiresEnhancedThinking": true
+      "name": "Understand the Problem — Clarify what is asked before attempting to solve",
+      "description": "Deeply understand what the problem is asking before attempting any solution.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Pólya's first principle, 'understand the problem' is often neglected as being obvious and is not even mentioned in many mathematics classes. Yet students are often stymied simply because they don't understand it fully, or even in part. Pólya taught teachers how to prompt each student with appropriate questions depending on the situation:\n\n• What are you asked to find or show?\n• Can you restate the problem in your own words?\n• Can you think of a picture or a diagram that might help you understand the problem?\n• Is there enough information to enable you to find a solution?\n• Do you understand all the words used in stating the problem?\n• Do you need to ask a question to get the answer?\n\nSelect the question with the appropriate level of difficulty, moving up or down the list until you can respond with something constructive.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically work through Pólya's first-principle questions to ensure the problem is fully understood before any solution attempt — identify what is asked, restate in own words, visualize, and assess information sufficiency",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "What are you asked to find or show?",
+              "Restate the problem in your own words",
+              "Can a picture or diagram help understand the problem?",
+              "Is there enough information to find a solution? Do you understand all the words?"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Search the knowledge graph for previously solved problems that may share structure with this one, informing whether sufficient information is present",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Build context around key concepts in the problem statement to ensure all terms and relationships are fully understood",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "What is asked to find or show has been clearly identified",
+          "Problem restated in solver's own words",
+          "Visual representation considered (picture or diagram)",
+          "Information sufficiency assessed — enough to find a solution?",
+          "All words in the problem statement understood",
+          "Any necessary clarifying questions identified"
+        ],
+        "next_actions": [
+          "Proceed to devising a plan — choose an appropriate strategy from Pólya's heuristic repertoire"
+        ]
+      }
     },
     {
       "id": "devise",
-      "name": "Devise a Plan - Find the connection between data and unknown",
-      "description": "Develop a strategy for solving the problem using various heuristics\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nExplore solution strategies:\n• Have you seen this problem before in a slightly different form?\n• Do you know a related problem? A similar theorem or principle?\n• Look at the unknown! Think of a familiar problem with the same or similar unknown\n• Could you restate the problem differently? More general? More special? Analogous?\n• Could you solve a part of the problem? Keep only part of the condition?\n• Could you derive something useful from the data?\n• Could you change the unknown or data to get closer to a solution?\n• Did you use all the data? The whole condition?\n\nConsider these strategies:\n• Work backward from the desired result\n• Look for a pattern\n• Solve a simpler analogous problem\n• Use symmetry or special cases\n• Consider extreme cases\n• Make a systematic list\n• Draw a picture or diagram\n• Use a formula or known result",
-      "requiresEnhancedThinking": true
+      "name": "Devise a Plan — Choose a strategy from Pólya's heuristic repertoire",
+      "description": "Develop a strategy for solving the problem by choosing from Pólya's repertoire of heuristics.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Pólya's second principle, there are many reasonable ways to solve problems. The skill at choosing an appropriate strategy is best learned by solving many problems. Consider these strategies:\n\n• Guess and check\n• Make an orderly list\n• Eliminate possibilities\n• Use symmetry\n• Consider special cases\n• Use direct reasoning\n• Solve an equation\n• Look for a pattern\n• Draw a picture\n• Solve a simpler problem\n• Use a model\n• Work backward\n• Use a formula\n• Be creative\n\nAlso consult Pólya's heuristics dictionary for generating more accessible related problems:\n\n• Analogy — Can you find an analogous problem and solve that?\n• Auxiliary Elements — Can you add a new element to get closer to a solution?\n• Generalization — Can you find a more general problem?\n• Induction — Can you derive a generalization from examples?\n• Variation of the Problem — Can you vary or change the problem to create a new one whose solution helps?\n• Auxiliary Problem — Can you find a subproblem or side problem that helps?\n• Related Problem Solved Before — Can you find a related problem already solved and use that?\n• Specialization — Can you find a more specialized problem?\n• Decomposing and Recombining — Can you decompose the problem and recombine its elements in some new manner?\n• Working Backward — Can you start with the goal and work backwards to something you already know?\n• Draw a Figure — Can you draw a picture of the problem?\n\nPólya emphasizes: support devising a plan with a question method going from the most general questions to more particular questions, with the goal that the last step to having a plan is made by the solver. 'Just showing a plan, no matter how good it is, does not help.'\n\nIf you cannot solve the proposed problem: 'try to solve first some related problem. Could you imagine a more accessible related problem?'",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically explore Pólya's strategy list and heuristics dictionary to select the most appropriate plan — moving from general strategies to specific application, ensuring the solver makes the final step to having a plan",
+            "priority": "mandatory",
+            "estimated_thoughts": 6,
+            "focus_areas": [
+              "Which strategies from Pólya's list apply to this problem?",
+              "Can you find a related, analogous, more general, or more specialized problem?",
+              "Can you decompose and recombine, or work backward from the goal?",
+              "If the problem resists direct solution, can you imagine a more accessible related problem?",
+              "Have all relevant heuristics from the dictionary been considered?",
+              "Articulate the chosen plan clearly before execution"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Search for previously solved related problems in the knowledge graph that may provide a reusable strategy or pattern — Pólya's 'related problem solved before' heuristic",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Explore concept graph for analogous structures, auxiliary problems, and related domains that could yield a more accessible formulation",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "A concrete solution strategy selected from Pólya's repertoire and clearly articulated",
+          "Relevant heuristics from the dictionary considered — analogy, generalization, specialization, decomposition, working backward",
+          "If direct solution fails, a more accessible related problem identified per Pólya's advice",
+          "The solver has made the final step to having a plan (not just been shown one)",
+          "Connection between given information and what is asked has been established"
+        ],
+        "next_actions": [
+          "Carry out the plan with care and patience"
+        ]
+      }
     },
     {
       "id": "execute",
-      "name": "Carry Out the Plan - Implement your strategy with patience",
-      "description": "Execute your chosen strategy step by step\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nImplement the solution:\n• Execute each step of your plan carefully\n• Check each step - can you see clearly that it's correct?\n• Can you prove that each step is correct?\n• If the plan isn't working, be patient but willing to try another approach\n• Don't give up too quickly, but don't persist with a failing strategy\n• Keep track of what you've tried and why it didn't work\n• Look for computational errors or logical gaps\n• Maintain clear notation and organization",
-      "requiresEnhancedThinking": true
+      "name": "Carry Out the Plan — Execute with care, patience, and willingness to adapt",
+      "description": "Execute the chosen strategy step by step.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Pólya's third principle, this step is usually easier than devising the plan. 'In general, all you need is care and patience, given that you have the necessary skills.'\n\nImplement the plan:\n• Execute each step of the chosen strategy carefully\n• Check each step — can you see clearly that it is correct?\n• Persist with the plan that you have chosen\n• If it continues not to work, discard it and choose another\n• Don't be misled — 'this is how mathematics is done, even by professionals'\n\nPólya's key insight for this phase: the difficulty of carrying out the plan is significantly lower than devising it, provided the solver has done the work of truly understanding the problem and carefully selecting a strategy. The primary virtues here are care in execution and patience when progress is slow.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Execute the plan step by step with Pólya's third-principle emphasis on care and patience — verify each step for correctness, and be willing to discard and restart if the plan continues not to work",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Execute each step of the plan carefully and in order",
+              "Check each step: can you see clearly that it is correct?",
+              "If progress stalls, persist with patience before abandoning",
+              "If the plan continues not to work, discard it and choose another",
+              "Track what has been tried and why — professionals do this too"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Plan executed to completion with each step verified for correctness",
+          "A solution candidate has been produced",
+          "If the plan failed: strategy discarded and alternative approach attempted per Pólya's advice",
+          "Execution documented with clear notation and step-by-step reasoning"
+        ],
+        "next_actions": [
+          "Look back — review the solution, reflect on what worked, and consider generalizations"
+        ]
+      }
     },
     {
       "id": "review",
-      "name": "Look Back - Review and extend your solution",
-      "description": "Examine the solution and consider improvements or generalizations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nReflect on the solution:\n• Can you check the result? Can you verify it's correct?\n• Can you check the argument? Are all steps valid?\n• Can you derive the result differently? Can you see it at a glance?\n• Can you use the result or method for other problems?\n• What made this problem difficult? What was the key insight?\n• Could you have solved it more elegantly or efficiently?\n• What did you learn that could help with future problems?\n• Can you generalize the solution to a broader class of problems?\n• Are there related problems you could now solve?",
-      "requiresEnhancedThinking": true
+      "name": "Look Back — Review, reflect, and extend to future problems",
+      "description": "Examine the solution, reflect on the process, and consider how it applies to future problems.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer Pólya's fourth principle: 'Much can be gained by taking the time to reflect and look back at what you have done, what worked and what did not, and with thinking about other problems where this could be useful.' Doing this will enable you to predict what strategy to use to solve future problems, if these relate to the original problem.\n\nReflect systematically:\n• Can you check the result? Is it correct?\n• Can you check the argument? Are all steps valid?\n• Can you derive the result differently? Can you see it at a glance?\n• Can you use the result or method for other problems?\n• What made this problem difficult? What was the key insight?\n• Could you have solved it more elegantly or efficiently?\n• What strategy would you predict for related future problems?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic reflection following Pólya's fourth principle — verify correctness, seek alternative derivations, identify the key insight, and assess transferability to future problems",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Verify the result is correct — can you check it independently?",
+              "Can you derive the result differently or see it at a glance?",
+              "What worked and what did not? What was the key insight?",
+              "Can you use the result or method for other problems? What strategy would you predict for related future problems?"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the solution method, key insight, and strategy prediction for future related problems — this is the institutional realization of Pólya's fourth principle: enabling prediction of strategy for future problems",
+            "priority": "recommended",
+            "output": "memory://polya/[problem-domain]/solution-review.md"
+          },
+          "SearchMemories": {
+            "reason": "Find related problems in the knowledge graph to assess transferability of the solution method and identify the broader class of problems this strategy addresses",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Solution verified for correctness via independent check or alternative derivation",
+          "What worked and what did not has been articulated",
+          "Key insight and source of difficulty identified",
+          "Transferability assessed — can the method be used for other problems?",
+          "Strategy prediction documented for related future problems per Pólya's fourth principle"
+        ],
+        "next_actions": [
+          "Problem solved — persist reusable heuristics and strategy predictions to knowledge graph",
+          "Apply lessons learned to related problems if identified during review"
+        ]
+      }
     }
   ]
 }

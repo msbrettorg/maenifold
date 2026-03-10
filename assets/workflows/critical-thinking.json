@@ -2,7 +2,8 @@
   "id": "critical-thinking",
   "name": "Critical Thinking",
   "emoji": "💭",
-  "description": "Systematic evaluation, analysis, and logical assessment of information and arguments",
+  "description": "Intellectually disciplined process of actively and skillfully conceptualizing, applying, analyzing, synthesizing, and evaluating information gathered from observation, experience, reflection, reasoning, or communication, as a guide to belief and action (Scriven & Paul 1987)",
+  "specification": "https://en.wikipedia.org/wiki/Critical_thinking",
   "triggers": [
     "critical thinking",
     "logical analysis",
@@ -12,37 +13,205 @@
     "analytical thinking",
     "critical analysis"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "identify",
-      "name": "Identify Claims and Evidence - Clarify the argument",
-      "description": "Clearly identify the claims being made and the evidence presented to support them",
-      "requiresEnhancedThinking": false
+      "id": "conceptualize",
+      "name": "Conceptualize — Identify and clarify the problem, question, or claim",
+      "description": "Identify the problem, question, or claim to be examined. Recognize what is being asserted, what question is being asked, and what assumptions underlie the framing. Per Dewey's reflective thinking, critical thinking begins with a felt difficulty or perplexity that provokes inquiry. Per Facione's Delphi consensus, interpretation is the first cognitive skill: comprehending and expressing the meaning of experiences, situations, data, judgments, conventions, beliefs, and criteria.\n\nClarify the purpose: Is this an argument to evaluate, a decision to make, a problem to solve, or a belief to examine? State the central question in precise language (Paul & Elder: clarity is the gateway intellectual standard).",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find prior analyses, related claims, and existing conceptual context in the knowledge graph",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Understand the conceptual neighborhood around the subject being examined",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Central question or claim stated in precise, unambiguous language",
+          "Purpose of inquiry identified (evaluate argument, make decision, solve problem, examine belief)",
+          "Underlying assumptions in the framing surfaced and made explicit",
+          "Key terms defined with accuracy and clarity (Paul & Elder intellectual standards)"
+        ],
+        "next_actions": [
+          "Proceed to gathering and marshalling pertinent information"
+        ]
+      }
     },
     {
-      "id": "evaluate",
-      "name": "Evaluate Evidence Quality - Assess credibility",
-      "description": "Systematically evaluate the quality, credibility, and relevance of the evidence\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nEvaluate the evidence systematically: Is it credible? What's the source? Is it relevant to the claim? Is there sufficient quantity? Are there biases? Is the evidence current and applicable? What evidence is missing?",
-      "requiresEnhancedThinking": true
+      "id": "gather-information",
+      "name": "Gather Information — Collect observations, evidence, and data from multiple sources",
+      "description": "Gather and marshal pertinent information relevant to the question. Per Glaser (1941), critical thinking requires knowledge of the methods of logical inquiry — and that begins with careful acquisition of information.\n\nCollect observations, evidence, data, and arguments from multiple sources. Distinguish between facts, opinions, and interpretations. Catalog claims and their supporting evidence separately. Note the source, context, and conditions under which each piece of evidence was produced.\n\nPer Reynolds (2011), establish evidence through reality and identify relevant criteria for making the judgment well.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find existing evidence, prior observations, and related data in the knowledge graph",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Map the evidential landscape — what concepts, sources, and relationships are already known",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All pertinent information gathered and cataloged",
+          "Facts distinguished from opinions and interpretations",
+          "Sources documented with provenance and context",
+          "Evidence mapped to the specific claims it supports or challenges"
+        ],
+        "next_actions": [
+          "Proceed to analyzing logical structure"
+        ]
+      }
     },
     {
-      "id": "analyze",
-      "name": "Analyze Logical Structure - Check reasoning",
-      "description": "Examine the logical structure of arguments for validity and soundness\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nAnalyze the logical structure: Do the conclusions follow from the premises? Are there logical fallacies? Are assumptions stated or hidden? Is the reasoning valid? Are there alternative explanations?",
-      "requiresEnhancedThinking": true
+      "id": "analyze-logical-structure",
+      "name": "Analyze — Examine logical structure, detect assumptions, identify reasoning patterns",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nExamine the logical structure of the arguments. Per the Wikipedia article, there are three forms of logical reasoning to identify:\n\n• **Deduction**: Conclusions drawn from the structure of premises via rules of inference (propositional calculus). If premises are true and form is valid, conclusion is necessarily true.\n• **Induction**: Generalizing from specific observations to broader conclusions. Probable but not certain.\n• **Abduction**: Inference to best explanation using heuristics. Likely but not inevitable.\n\nFor each argument, identify: What are the premises? What is the conclusion? What form of reasoning connects them? Are the premises stated or unstated? Per Glaser, recognize the existence or non-existence of logical relationships between propositions.\n\nDetect hidden assumptions. Per the article, critical thinking requires recognizing unstated assumptions and values. Socratic questioning analyzes beliefs, assumptions, and presumptions by relying upon evidence and sound rationale.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Mapping argument structure — premises, conclusions, inference forms (deduction/induction/abduction) — requires disciplined sequential examination per Glaser's third element: skill in applying logical methods",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "BuildContext": {
+            "reason": "Explore related logical patterns, fallacy types, and reasoning structures in the knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Premises and conclusions identified for each argument",
+          "Form of reasoning classified (deductive, inductive, or abductive)",
+          "Unstated assumptions and hidden premises surfaced",
+          "Logical relationships between propositions mapped",
+          "Argument validity assessed (do conclusions follow from premises)"
+        ],
+        "next_actions": [
+          "Proceed to evaluating evidence and source credibility"
+        ]
+      }
     },
     {
-      "id": "challenge",
-      "name": "Consider Alternative Perspectives - Challenge assumptions",
-      "description": "Actively seek and evaluate alternative viewpoints and explanations\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nChallenge the argument systematically: What alternative explanations exist? What assumptions are being made? How might someone with a different perspective view this? What counterarguments are possible?",
-      "requiresEnhancedThinking": true
+      "id": "evaluate-evidence",
+      "name": "Evaluate — Assess evidence credibility, source reliability, and argument soundness",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSystematically evaluate the quality of evidence and arguments using Paul & Elder's intellectual standards: clarity, credibility, accuracy, precision, relevance, depth, breadth, significance, and fairness.\n\nPer the article, within the framework of scientific skepticism, critical thinking involves careful interpretation of information and use of it to reach well-justified conclusions. Socrates established the unreliability of authority figures as possessors of knowledge — assess whether arguments rely on authority rather than evidence.\n\nApply Reynolds' (2011) criteria:\n• Context skills to isolate the problem from context\n• Relevant criteria for making the judgment well\n• Applicable methods or techniques for forming the judgment\n• Applicable theoretical constructs for understanding the problem\n\nIdentify logical fallacies. Check argument soundness (valid form + true premises). Assess whether evidence is sufficient in both quality and quantity.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic credibility assessment applying Paul & Elder's nine intellectual standards (clarity, accuracy, precision, relevance, depth, breadth, significance, logic, fairness) requires rigorous sequential evaluation — a core critical thinking competency per Scriven & Paul",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find corroborating or contradicting evidence to cross-reference source claims",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Each evidence source assessed against Paul & Elder intellectual standards",
+          "Source credibility evaluated — authority claims checked per Socratic principle",
+          "Logical fallacies identified and cataloged",
+          "Argument soundness assessed (valid form + true premises)",
+          "Evidence sufficiency in quality and quantity determined",
+          "Missing evidence gaps explicitly noted"
+        ],
+        "next_actions": [
+          "Proceed to synthesizing perspectives and overcoming bias"
+        ]
+      }
     },
     {
-      "id": "conclude",
-      "name": "Draw Reasoned Conclusions - Synthesize assessment",
-      "description": "Reach well-reasoned conclusions based on the critical analysis",
-      "requiresEnhancedThinking": false
+      "id": "synthesize-perspectives",
+      "name": "Synthesize — Integrate findings, consider alternatives, overcome egocentrism and sociocentrism",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the article, critical thinking presupposes a rigorous commitment to overcome egocentrism (self-centered thinking) and sociocentrism (group-centered thinking). Actively seek and evaluate alternative viewpoints.\n\nThis step embodies Walters' 'second wave' of critical thinking: engage both the linear and non-sequential mind. Consider not only logical analysis but also imagination, conceptual creativity, intuition, and insight. Per Walters (1994), the ability to be flexible and consider non-traditional alternatives and perspectives is as essential as analytical ability.\n\nFor each major claim or conclusion:\n• What alternative explanations exist?\n• How would someone with a different perspective view this?\n• What counterarguments can be constructed?\n• Which of your own biases (prejudice, self-deception, distortion) might be influencing your assessment?\n• Are you giving due weight to perspectives outside your own experience?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Overcoming egocentrism and sociocentrism requires self-directed, self-disciplined examination of one's own reasoning — the self-corrective habit of mind that Paul & Elder identify as essential to critical thinking",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find alternative perspectives, counterarguments, and contrasting viewpoints in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Alternative viewpoints systematically identified and evaluated",
+          "Egocentrism check applied — own biases and self-deception examined",
+          "Sociocentrism check applied — group-think and cultural assumptions examined",
+          "Counterarguments constructed and assessed on their merits",
+          "Both analytical (first wave) and creative/intuitive (second wave) thinking engaged"
+        ],
+        "next_actions": [
+          "Proceed to drawing warranted inferences"
+        ]
+      }
+    },
+    {
+      "id": "infer",
+      "name": "Infer — Draw warranted conclusions proportional to evidence strength",
+      "description": "Per Facione's Delphi consensus, inference is the cognitive skill of identifying and securing elements needed to draw reasonable conclusions. Per Glaser, draw warranted conclusions and generalizations, then put them to test.\n\nFormulate conclusions that are proportional to the strength of the evidence. Per the article's summary of Glaser: 'A persistent effort to examine any belief or supposed form of knowledge in the light of the evidence that supports or refutes it and the further conclusions to which it tends.'\n\nDistinguish between:\n• What the evidence conclusively establishes\n• What the evidence makes probable\n• What remains uncertain or underdetermined\n\nAssign confidence levels based on evidence quality and logical strength. Document the chain of reasoning from premises through analysis to conclusions.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document warranted conclusions with complete justification chain and confidence levels for institutional memory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Conclusions follow logically from the critical analysis performed",
+          "Confidence levels assigned proportional to evidence strength",
+          "Clear distinction between established, probable, and uncertain findings",
+          "Chain of reasoning from premises to conclusions documented",
+          "Conclusions tested against Glaser's criterion: warranted by the evidence"
+        ],
+        "next_actions": [
+          "Proceed to metacognitive self-regulation"
+        ]
+      }
+    },
+    {
+      "id": "self-regulate",
+      "name": "Self-Regulate — Apply metacognition, monitor reasoning, correct errors",
+      "description": "Per Facione's Delphi consensus, self-regulation is the final cognitive skill: self-consciously monitoring one's cognitive activities, the elements used in those activities, and the results educed, particularly by applying skills in analysis and evaluation to one's own inferential judgments.\n\nPer the article, critical thinking is 'thinking about one's thinking in a manner designed to organize and clarify, raise the efficiency of, and recognize errors and biases in one's own thinking.' It is 'inward-directed with the intent of maximizing the rationality of the thinker.'\n\nApply the self-directed, self-disciplined, self-monitored, and self-corrective habits of mind:\n• Review the entire analysis for internal consistency\n• Check whether conclusions would change if any single piece of evidence were removed\n• Identify what new evidence would cause revision of conclusions\n• Note limitations, remaining uncertainties, and areas requiring further inquiry",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document self-regulation findings, limitations, and conditions for conclusion revision as institutional knowledge",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Entire analysis reviewed for internal consistency",
+          "Sensitivity analysis performed — would conclusions change if key evidence removed",
+          "Revision conditions identified — what new evidence would change the conclusion",
+          "Limitations and remaining uncertainties explicitly documented",
+          "Metacognitive review complete — own reasoning process examined for errors and biases"
+        ],
+        "next_actions": [
+          "Document findings with confidence assessments and revision conditions"
+        ]
+      }
     }
   ]
 }

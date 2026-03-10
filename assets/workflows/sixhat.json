@@ -2,7 +2,7 @@
   "id": "sixhat",
   "name": "Six Thinking Hats",
   "emoji": "🎩",
-  "description": "Structured thinking using six different perspectives",
+  "description": "Edward de Bono's parallel thinking method (1985) for structured group and individual deliberation. Six colored hats represent six directions of thought: Blue (managing), White (facts), Red (emotions), Black (caution), Yellow (optimism), Green (creativity). All participants 'wear' the same hat simultaneously — parallel thinking replaces adversarial debate by having everyone explore the same direction together before moving to the next. Hat sequences always begin and end with Blue (the facilitator hat). Programs are often 'emergent': the facilitator plans the first few hats, then adjusts based on what the discussion needs. Example sequences from de Bono: Initial Ideas (Blue→White→Green→Blue), Choosing Between Alternatives (Blue→White→Green→Yellow→Black→Red→Blue), Solving Problems (Blue→White→Green→Red→Yellow→Black→Green→Blue). Each hat lasts ~2 minutes; Red is ~30 seconds (visceral gut reaction). This default program uses: Blue (opening) → White → Red → Yellow → Black → Green → Blue (closing).",
   "triggers": [
     "six thinking hats",
     "thinking hats",
@@ -13,45 +13,212 @@
     "green hat",
     "blue hat",
     "de bono",
-    "perspective analysis"
+    "perspective analysis",
+    "parallel thinking"
   ],
-  "enhancedThinkingEnabled": true,
+  "specification": "https://en.wikipedia.org/wiki/Six_Thinking_Hats",
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
+      "id": "blue-opening",
+      "name": "🔵 Blue Hat (Opening) — The Big Picture & Managing",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe Blue Hat opens every Six Thinking Hats session. It is the facilitator's hat — 'The Big Picture' — responsible for managing the thinking process itself, not the subject.\n\nUsing the CAF (Consider All Factors) technique, define:\n• What is the subject or problem under discussion?\n• What are the goals of this thinking session?\n• Which hat sequence will be used? (Default: White → Red → Yellow → Black → Green → Blue closing. Adjust if the problem suggests a different program — e.g., 'Identifying Solutions' uses Blue→White→Black→Green→Blue.)\n• What time constraints apply?\n\nPer de Bono: 'The key to a successful use of the Six Thinking Hats methodology was the deliberate focusing of the discussion on a particular approach as needed.' The Blue Hat sets this focus.\n\nNote: Programs are often 'emergent' — plan the first few hats, then the facilitator sees what seems to be the right way to go.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Frame the problem using CAF (Consider All Factors) and determine the hat sequence program",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Define the subject, scope, and goals of this thinking session",
+              "Choose the hat sequence program (or confirm the default)",
+              "Identify any constraints: time, information gaps, stakeholders"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Gather prior context, decisions, and related thinking sessions to frame the problem accurately",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Subject and goals of the thinking session clearly defined",
+          "Hat sequence program chosen (default or adapted for the problem type)",
+          "Constraints and success criteria stated",
+          "All participants aligned on the process"
+        ],
+        "next_actions": [
+          "Proceed to White Hat for objective facts and information gathering"
+        ]
+      }
+    },
+    {
       "id": "white",
-      "name": "White Hat - Facts and information",
-      "description": "Focus on objective facts, data, and information without interpretation",
-      "requiresEnhancedThinking": false
+      "name": "⚪ White Hat — Facts & Information",
+      "description": "The White Hat focuses exclusively on objective facts, data, and information. No interpretation, no opinions, no argument.\n\nPer de Bono, the White Hat direction is 'Facts & Information' using the technique of information gathering. Ask:\n• What data do we have? What data do we need?\n• What are the known facts relevant to this subject?\n• What information is missing? Where can we find it?\n• What are the trends in the data?\n\nCritical discipline: separate facts from inferences. 'Believed facts' and 'checked facts' should be distinguished. When a participant offers an opinion disguised as a fact, the facilitator redirects: 'That's a Red Hat or Black Hat contribution — we're wearing White Hat right now.'\n\nThis hat typically runs ~2 minutes.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Retrieve objective facts, prior data, and documented knowledge from the knowledge graph",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Map the factual landscape — concepts, relationships, and data points relevant to the subject",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Known facts catalogued without interpretation or opinion",
+          "Data sources identified and credibility noted (checked vs. believed facts)",
+          "Information gaps explicitly stated — what we need but don't have",
+          "No Black/Red/Yellow contributions mixed in — pure information"
+        ],
+        "next_actions": [
+          "Proceed to Red Hat for emotional reactions and gut feelings"
+        ]
+      }
     },
     {
       "id": "red",
-      "name": "Red Hat - Emotions and feelings",
-      "description": "Express emotions, feelings, hunches, and intuitions without justification\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about the emotional responses and gut feelings this situation evokes. What do your instincts tell you?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "black",
-      "name": "Black Hat - Critical thinking and caution",
-      "description": "Identify problems, risks, and what could go wrong\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about potential problems, risks, and failure modes. What could go wrong and why?",
-      "requiresEnhancedThinking": true
+      "name": "🔴 Red Hat — Feelings & Emotions",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe Red Hat permits the expression of emotions, feelings, hunches, and intuitions — without any need for justification or logical explanation. De Bono's technique here is 'Emotions and Ego' with a recommended duration of ~30 seconds of visceral gut reaction.\n\nRules:\n• No justification required — 'I just don't like it' is a valid Red Hat statement.\n• Capture immediate emotional response before rationalisation sets in.\n• In group settings, this is often done via anonymous dot-voting to surface honest reactions.\n• The Red Hat legitimises emotions in a thinking process that might otherwise suppress them.\n\nAsk:\n• What is your gut feeling about this?\n• What emotional reactions does this subject provoke?\n• What hunches or intuitions arise — even if you can't explain them?\n\nKeep this step brief and visceral. Lengthy justification belongs under Black or Yellow Hat, not Red.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Surface instinctive gut reactions — de Bono recommends ~30 seconds of visceral response with no justification",
+            "priority": "mandatory",
+            "estimated_thoughts": 2,
+            "focus_areas": [
+              "Immediate emotional response — what does your gut say?",
+              "Hunches and intuitions — even unexplainable ones"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Gut reactions recorded without rational justification",
+          "Emotional responses from relevant stakeholder perspectives captured",
+          "Hunches and intuitions explicitly stated, even if unexplainable",
+          "Step kept brief (~30 seconds equivalent) — no extended rationalisation"
+        ],
+        "next_actions": [
+          "Proceed to Yellow Hat for benefits and optimistic assessment"
+        ]
+      }
     },
     {
       "id": "yellow",
-      "name": "Yellow Hat - Positive thinking and optimism",
-      "description": "Focus on benefits, value, and optimistic possibilities",
-      "requiresEnhancedThinking": false
+      "name": "🟡 Yellow Hat — Positive & Optimistic",
+      "description": "The Yellow Hat explores benefits, value, and optimistic possibilities. It uses the PMI technique (focusing on the Plus dimension) to systematically identify what is good about an idea.\n\nPer de Bono, the Yellow Hat direction is 'Positive' — not naive optimism, but a deliberate effort to find value and merit even in ideas that seem weak. Ask:\n• What are the benefits?\n• What is the best-case outcome?\n• What value does this create and for whom?\n• Why might this work? What supporting evidence exists?\n• What are the long-term positive consequences?\n\nThe Yellow Hat requires effort — it is often harder to be constructive than critical. Unlike Black Hat thinking (which comes naturally to many people), Yellow Hat thinking must be deliberate and disciplined.\n\nThis hat typically runs ~2 minutes.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find supporting evidence, precedents, and positive outcomes from the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Benefits and value propositions documented with supporting logic",
+          "Best-case outcomes identified and articulated",
+          "PMI Plus dimension explored — deliberate effort to find merit",
+          "Long-term positive consequences considered"
+        ],
+        "next_actions": [
+          "Proceed to Black Hat for critical evaluation and risk assessment"
+        ]
+      }
+    },
+    {
+      "id": "black",
+      "name": "⚫ Black Hat — Caution & Critical Judgment",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe Black Hat is for critical judgment and caution. It uses PMI (focusing on the Minus and Interesting dimensions) and systematic evaluation to identify risks, problems, and weaknesses.\n\nPer de Bono, the Black Hat direction is 'Negative / Critical' — it is the hat of logical caution. This is NOT adversarial attack or ego-driven criticism. It is disciplined, objective risk assessment:\n• What could go wrong?\n• What are the logical weaknesses in this proposal?\n• Does this fit the facts (from White Hat)?\n• What are the risks and their likelihood?\n• What are the costs, obstacles, and difficulties?\n• Where does this not fit experience or established principles?\n\nDe Bono notes that Black Hat thinking is the most used and arguably the most valuable hat — but it must be kept in its place. When criticism dominates, it kills creative ideas (Green Hat) before they can be developed.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic risk analysis using PMI (Minus and Interesting dimensions) and logical evaluation",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Risks, failure modes, and their likelihood",
+              "Logical weaknesses and flaws in the proposal",
+              "Costs, obstacles, and difficulties — does this fit the facts from White Hat?"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All significant risks and problems identified with likelihood assessment",
+          "Logical weaknesses and flaws in proposals exposed",
+          "Costs and obstacles documented",
+          "Criticism is logical and objective — not adversarial or ego-driven"
+        ],
+        "next_actions": [
+          "Proceed to Green Hat for creative thinking and new ideas"
+        ]
+      }
     },
     {
       "id": "green",
-      "name": "Green Hat - Creative thinking and alternatives",
-      "description": "Generate new ideas, alternatives, and creative solutions\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply beyond conventional solutions. What creative, unconventional, or innovative approaches might work?",
-      "requiresEnhancedThinking": true
+      "name": "🟢 Green Hat — New Ideas & Creative Thinking",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nThe Green Hat is for creativity, new ideas, and alternatives. It uses de Bono's Concept Challenge technique and the lateral thinking provocation 'Po' (Yes, No, Po) to escape established patterns.\n\nPer de Bono, the Green Hat direction is 'New Ideas' — it is not about judging ideas (that's Black/Yellow) but about generating them. Rules:\n• Suspend judgment — all ideas are welcome, even absurd ones.\n• Use 'Po' provocations: deliberately unreasonable statements that force new thinking directions (e.g., 'Po: what if we did the exact opposite?').\n• Apply Concept Challenge: question why things are done this way — not because they're wrong, but to open up alternatives.\n• Seek movement value, not truth value — where does an idea lead, not whether it's correct?\n\nAsk:\n• What alternatives exist beyond what we've discussed?\n• What creative or unconventional approaches might work?\n• What would a completely different perspective suggest?\n• What new ideas emerge from combining or modifying existing ones?\n\nThis hat typically runs ~2 minutes.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Divergent idea generation using Concept Challenge and lateral thinking provocations (de Bono's 'Po')",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Generate novel alternatives beyond conventional thinking",
+              "Apply at least one 'Po' provocation to escape established patterns",
+              "Concept Challenge: question why current approaches exist — seek movement value"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Novel alternatives generated beyond conventional thinking",
+          "At least one 'Po' provocation explored for movement value",
+          "Concept Challenge applied — assumptions about current approach questioned",
+          "Creative ideas documented without premature judgment (no Black Hat here)"
+        ],
+        "next_actions": [
+          "Proceed to Blue Hat (closing) for synthesis and action planning"
+        ]
+      }
     },
     {
-      "id": "blue",
-      "name": "Blue Hat - Process control and meta-thinking",
-      "description": "Manage thinking process, set goals, and orchestrate other perspectives",
-      "requiresEnhancedThinking": false
+      "id": "blue-closing",
+      "name": "🔵 Blue Hat (Closing) — Synthesis & Next Steps",
+      "description": "The Blue Hat closes every Six Thinking Hats session, just as it opened it. The closing Blue Hat synthesizes all perspectives into a coherent outcome using FIP (First Important Priorities).\n\nResponsibilities:\n• Summarise what was learned from each hat:\n  — White: key facts and information gaps\n  — Red: dominant emotional responses and intuitions\n  — Yellow: main benefits and opportunities\n  — Black: critical risks and weaknesses\n  — Green: most promising creative ideas and alternatives\n• Apply FIP (First Important Priorities) to rank findings by importance.\n• Identify decisions that can be made now vs. those needing more information.\n• Define concrete next steps and action items.\n• Note whether the session achieved its goals (set in the opening Blue Hat).\n• If unresolved tensions remain, recommend a follow-up session with a tailored hat sequence.\n\nPer de Bono: 'Six Thinking Hats and the associated idea of parallel thinking provide a means for groups to plan thinking processes in a detailed and cohesive way, and in doing so to think together more effectively.'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document synthesized findings, FIP-ranked priorities, and action items as institutional memory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "All hat perspectives synthesized into a coherent summary",
+          "Priorities ranked using FIP (First Important Priorities)",
+          "Concrete next steps and action items defined",
+          "Session goals (from opening Blue Hat) assessed — achieved or unresolved",
+          "Follow-up session recommended if tensions remain unresolved"
+        ],
+        "next_actions": [
+          "Workflow complete — deliver synthesized analysis with FIP-ranked priorities"
+        ]
+      }
     }
   ]
 }

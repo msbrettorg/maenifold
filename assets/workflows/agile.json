@@ -1,8 +1,9 @@
 {
   "id": "agile",
-  "name": "Agile Methodology",
+  "name": "Agile Software Development",
   "emoji": "🔄",
-  "description": "Iterative and incremental approach to project management",
+  "description": "Umbrella approach to developing software reflecting the Agile Manifesto's 4 values and 12 principles — favoring individuals and interactions, working software, customer collaboration, and responding to change through iterative, incremental, and evolutionary delivery with short feedback loops and adaptive planning (Agile Alliance, 2001)",
+  "specification": "https://en.wikipedia.org/wiki/Agile_software_development",
   "triggers": [
     "agile",
     "sprint planning",
@@ -13,37 +14,162 @@
     "iterative development",
     "agile methodology"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "plan",
-      "name": "Sprint Planning - Define sprint goals and tasks",
-      "description": "Collaborate to define clear sprint objectives and break work into manageable tasks\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what assumptions we're making about scope, capacity, and priorities. What could derail this sprint?\n\nExamples:\n• What assumptions are we making that might not be true?\n• What if our constraints were different?\n• What evidence do we have for our current approach?",
-      "requiresEnhancedThinking": true
+      "id": "collaborate-to-understand",
+      "name": "Collaborate to Understand — Discover needs through customer collaboration, not contract negotiation",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nManifesto Value: 'Customer collaboration over contract negotiation.' A contract is important but is not a substitute for working closely with customers to discover what they need (Ambler). Every team should include a customer representative who makes a personal commitment to being available for developers to answer questions throughout the iteration.\n\nPrinciple 1: Customer satisfaction by early and continuous delivery of valuable software.\nPrinciple 4: Close, daily cooperation between business people and developers.\nPrinciple 6: Face-to-face conversation is the best form of communication.\n\nDiscover what the customer actually needs — not what a specification document says they should need. Understand the problem domain through direct interaction, not through intermediary documentation. Per Wikipedia, agile targets complex systems with dynamic, indeterministic, and non-linear properties where accurate estimates and stable plans are hard to get in early stages.\n\n• Who are the stakeholders, users, and customer representatives?\n• What needs are they expressing — and what needs are they not yet articulating?\n• What is the current understanding of the problem domain?\n• What constraints, risks, and unknowns should be surfaced now?\n• What would make the customer's life measurably better in the near term?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Discovering genuine customer needs (not assumed requirements) requires stepping into the customer's context and uncovering unarticulated needs — the Manifesto values collaboration over contract precisely because needs emerge through interaction, not specification",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find existing domain knowledge, prior user insights, and known constraints in the knowledge graph",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Map the stakeholder landscape and identify related concepts and requirements already known",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Customer needs discovered through direct collaboration — not just extracted from a specification",
+          "Problem domain complexity acknowledged — dynamic, indeterministic, non-linear properties identified",
+          "Key stakeholders and customer representatives identified",
+          "Constraints, risks, and unknowns surfaced and documented",
+          "Near-term value opportunities identified for early delivery (Principle 1)"
+        ],
+        "next_actions": [
+          "Proceed to adaptive planning — plan just enough for the next iteration"
+        ]
+      }
     },
     {
-      "id": "sync",
-      "name": "Daily Standups - Sync progress and blockers",
-      "description": "Brief daily synchronization on progress, impediments, and plans",
-      "requiresEnhancedThinking": false
+      "id": "plan-adaptively",
+      "name": "Plan Adaptively — Embrace change through rolling-wave planning with just enough detail",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nManifesto Value: 'Responding to change over following a plan.' A project plan is important, but it must not be too rigid to accommodate changes in technology or the environment, stakeholders' priorities, and people's understanding of the problem and its solution (Ambler).\n\nPrinciple 2: Welcome changing requirements, even in late development.\nPrinciple 10: Simplicity — the art of maximizing the amount of work not done — is essential.\nPrinciple 3: Deliver working software frequently (weeks rather than months).\n\nAgile lies on the ADAPTIVE side of the development continuum. Use a rolling-wave approach to schedule planning: identify milestones but leave flexibility in the path to reach them, and allow for the milestones themselves to change. An adaptive team cannot report exactly what tasks they will do next week, but can describe what features they plan for next month. Requirements and design are held to be EMERGENT — big up-front specifications cause waste.\n\nPer Wikipedia, this is a product mindset rather than a project mindset: software evolves in response to changes in business environment or market requirements.\n\n• What is the smallest valuable increment that can be delivered in 1–4 weeks?\n• What assumptions are we making that we should validate through working software?\n• What can be deferred without losing value? (Simplicity: maximize work NOT done)\n• What milestones provide direction without constraining adaptation?\n• Where should we plan in detail vs. leave deliberate flexibility?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Adaptive planning requires deliberate judgment about what to plan in detail vs. where to leave flexibility — the rolling-wave approach demands structured reasoning about milestones, assumptions, and the emergent nature of requirements",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find prior iteration plans, velocity data, and known risk patterns to inform adaptive planning",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Smallest valuable increment identified for delivery within a short timebox (1–4 weeks)",
+          "Rolling-wave plan created — milestones identified with deliberate flexibility in path",
+          "Assumptions explicitly listed for validation through working software",
+          "Simplicity applied — work that can be deferred has been deferred (Principle 10)",
+          "Product mindset adopted — plan accommodates change in environment and understanding"
+        ],
+        "next_actions": [
+          "Proceed to incremental delivery — build working software as the primary measure of progress"
+        ]
+      }
     },
     {
-      "id": "develop",
-      "name": "Development - Build features incrementally",
-      "description": "Implement features in small, testable increments with continuous integration",
-      "requiresEnhancedThinking": false
+      "id": "deliver-incrementally",
+      "name": "Deliver Working Software — Build incrementally with technical excellence and sustainable pace",
+      "description": "Manifesto Value: 'Working software over comprehensive documentation.' Good documentation is useful, but the main point of development is to create software, not documentation (Ambler). Documentation should be 'just barely good enough' — what would you want to know if you joined the team tomorrow (Cockburn).\n\nManifesto Value: 'Individuals and interactions over processes and tools.' Tools and processes are important, but it is more important to have competent people working together effectively (Ambler).\n\nPrinciple 7: Working software is the primary measure of progress.\nPrinciple 9: Continuous attention to technical excellence and good design.\nPrinciple 8: Sustainable development, able to maintain a constant pace.\nPrinciple 3: Deliver working software frequently (weeks rather than months).\nPrinciple 5: Projects are built around motivated individuals, who should be trusted.\n\nBreak work into small increments that minimize up-front planning and design. Each iteration involves cross-functional work: planning, analysis, design, coding, unit testing, and acceptance testing. Testing is completed in the same iteration as programming — not in a separate phase. Design and build quality in from the beginning. Per Wikipedia, products have room to 'fail often and early' throughout each iterative phase instead of drastically on a final release date.\n\nPractices like continuous integration, automated testing, TDD, pair programming, refactoring, and domain-driven design improve quality and enhance agility.\n\n• Build the smallest working increment that delivers customer value\n• Test within the same iteration — never defer testing to a later phase\n• Maintain technical excellence — refactor, keep design clean, attend to quality\n• Produce 'just barely good enough' documentation (Cockburn/Ambler JBGE)\n• Trust motivated individuals — self-organizing teams produce the best results (Principle 11)",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find relevant technical patterns, design decisions, and architecture context to build upon",
+            "priority": "recommended"
+          },
+          "WriteMemory": {
+            "reason": "Document design decisions and technical context as 'just barely good enough' documentation for the next person to join",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Working software increment produced — demonstrable to stakeholders at any point",
+          "Testing completed within the iteration — not deferred to a separate phase",
+          "Technical excellence maintained — clean design, refactored code, quality built in from the start",
+          "Documentation is JBGE — just barely good enough for the next person (Cockburn)",
+          "Sustainable pace maintained — no heroics that compromise long-term capacity (Principle 8)"
+        ],
+        "next_actions": [
+          "Proceed to inspect — demonstrate working software and gather feedback through short loops"
+        ]
+      }
     },
     {
-      "id": "review",
-      "name": "Sprint Review - Demonstrate completed work",
-      "description": "Show stakeholders what was accomplished and gather feedback",
-      "requiresEnhancedThinking": false
+      "id": "inspect-with-feedback",
+      "name": "Inspect Through Feedback — Demonstrate working software and re-evaluate priorities",
+      "description": "Manifesto Value: 'Customer collaboration over contract negotiation.' At the end of each iteration, project stakeholders together with the customer representative review progress and re-evaluate priorities with a view to optimizing return on investment and ensuring alignment with customer needs and company goals.\n\nPrinciple 1: Customer satisfaction by early and continuous delivery of valuable software.\nPrinciple 4: Close, daily cooperation between business people and developers.\nPrinciple 7: Working software is the primary measure of progress.\n\nPer Wikipedia, the importance of stakeholder satisfaction — detailed by frequent interaction and review at the end of each phase — is why the approach is often denoted as a customer-centered methodology. Users frequently use new pieces of software and validate the value. After users know the real value of the updated software, they can make better decisions about its future.\n\nThis follows the Plan-Do-Check-Act (PDCA) pattern: work is planned, done, checked (in review), and any changes agreed are acted upon. Use information radiators — visible displays of current product development status — to keep everyone aligned.\n\n• Demonstrate working software to stakeholders and customer representatives\n• Gather feedback on whether the increment delivers real value\n• Re-evaluate priorities — do they still reflect customer needs and business goals?\n• Identify what was learned that changes the understanding of needs or constraints\n• Decide: Is the current direction right, or does understanding need to shift?",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find prior feedback, stakeholder expectations, and value criteria for comparison with current increment",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Map how this increment relates to broader goals, prior iterations, and stakeholder priorities",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Working software demonstrated to stakeholders and customer representatives",
+          "Feedback gathered on real value delivered — not just feature completion",
+          "Priorities re-evaluated against customer needs and business goals (ROI optimization)",
+          "New learning documented — changes to understanding of needs or constraints captured",
+          "PDCA check complete — direction confirmed or adjustment identified"
+        ],
+        "next_actions": [
+          "Proceed to adapt — reflect on process and product, adjust for next iteration"
+        ]
+      }
     },
     {
-      "id": "retrospective",
-      "name": "Sprint Retrospective - Reflect and improve process",
-      "description": "Team reflection on what worked well and what can be improved\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what patterns are emerging in our process. What underlying issues are we not addressing?\n\nExamples:\n• What assumptions are we making that might not be true?\n• What if our constraints were different?\n• What evidence do we have for our current approach?",
-      "requiresEnhancedThinking": true
+      "id": "adapt-process-and-product",
+      "name": "Adapt — Reflect on how to become more effective, and adjust accordingly",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nManifesto Value: 'Responding to change over following a plan.' Agile favors adaptive, iterative, and evolutionary development over predictive planning.\n\nManifesto Value: 'Individuals and interactions over processes and tools.' Competent people working together effectively matters more than any process.\n\nPrinciple 12: Regularly, the team reflects on how to become more effective, and adjusts accordingly.\nPrinciple 2: Welcome changing requirements, even in late development.\nPrinciple 11: Best architectures, requirements, and designs emerge from self-organizing teams.\nPrinciple 5: Projects are built around motivated individuals, who should be trusted.\nPrinciple 8: Sustainable development, able to maintain a constant pace.\n\nPer Wikipedia, an adaptive team changes when project needs change. Requirements and design are held to be emergent. The further away a date is, the more vague an adaptive method is about what will happen. This is a feature, not a bug — it reflects the reality that understanding evolves.\n\nThis is the heart of agile's self-organizing principle. Per Highsmith: 'We plan, but recognize the limits of planning in a turbulent environment.' Inspect the process itself — not just the product. What is working? What is impeding flow? How can the team become more effective?\n\n• What did this iteration reveal about our understanding of the problem?\n• How has the landscape changed — technology, environment, stakeholder priorities, or team understanding?\n• Is the team maintaining a sustainable pace, or are there signs of burnout?\n• What process improvements would help the team become more effective?\n• What should the next iteration focus on, given everything learned?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Reflecting on how to become more effective (Principle 12) requires honest self-assessment of both product direction and process health — the self-organizing team must evaluate its own assumptions, recognize emergent understanding, and make deliberate adjustments",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document process improvements, lessons learned, and emergent understanding as institutional memory for future iterations",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Process reflection complete — what is working and what impedes flow identified",
+          "Emergent understanding captured — how has the problem/solution landscape changed",
+          "Sustainable pace assessed — team health and capacity honestly evaluated (Principle 8)",
+          "Concrete process adjustments identified for the team to become more effective (Principle 12)",
+          "Next iteration direction set — informed by feedback, learning, and adapted priorities"
+        ],
+        "next_actions": [
+          "Return to Collaborate to Understand — begin the next iteration with updated understanding",
+          "If needs are well-understood: return directly to Plan Adaptively with refined priorities",
+          "If product is complete: document final learnings and close"
+        ]
+      }
     }
   ]
 }

@@ -2,7 +2,7 @@
   "id": "higher-order-thinking",
   "name": "Higher-Order Thinking",
   "emoji": "💭",
-  "description": "Meta-cognitive reflection and complex reasoning about thinking processes",
+  "description": "Bloom's taxonomy cognitive domain: scaffolded progression through six levels — Remember, Understand, Apply, Analyze, Evaluate, Create — from lower-order recall to higher-order synthesis",
   "triggers": [
     "higher order thinking",
     "metacognition",
@@ -12,37 +12,168 @@
     "cognitive reflection",
     "advanced reasoning"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "examine",
-      "name": "Examine Thinking Processes - Analyze how you think",
-      "description": "Reflect on and analyze the thinking processes being used to approach the problem\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nStep back and examine your thinking process: What approaches are you using? What assumptions are you making about how to think about this? What cognitive biases might be affecting your analysis? How is your thinking process itself shaping your conclusions?",
-      "requiresEnhancedThinking": true
+      "id": "remember",
+      "name": "Remember - Recall facts and basic concepts",
+      "description": "Recognize or recall relevant facts, terms, basic concepts, and answers from the knowledge graph and prior context\n\nBloom's taxonomy Level 1 (lower-order): retrieve knowledge from long-term memory. Identify the key terminology, facts, dates, definitions, and established concepts relevant to the problem at hand. Catalog what is already known before attempting to interpret or apply it.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Retrieve established facts, definitions, and prior knowledge from the knowledge graph — the cognitive recall operation",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Identify relevant concepts and their relationships as stored knowledge",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Key facts, terms, and definitions recalled and cataloged",
+          "Prior knowledge relevant to the problem retrieved from memory",
+          "Factual foundation established before interpretation begins"
+        ],
+        "next_actions": [
+          "Proceed to Understand — organize and interpret recalled information"
+        ]
+      }
+    },
+    {
+      "id": "understand",
+      "name": "Understand - Organize and explain meaning",
+      "description": "Demonstrate understanding of recalled facts and ideas by organizing, summarizing, and explaining their meaning\n\nBloom's taxonomy Level 2 (lower-order): construct meaning from recalled information. Classify, describe, discuss, explain, and summarize the facts gathered in the Remember step. Translate raw facts into coherent explanations. Identify the relationships between concepts and express them in your own formulation.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "BuildContext": {
+            "reason": "Map relationships between recalled concepts to construct coherent understanding",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Recalled facts organized into coherent categories or themes",
+          "Key relationships between concepts explained in own formulation",
+          "Information summarized — demonstrating comprehension beyond rote recall"
+        ],
+        "next_actions": [
+          "Proceed to Apply — use understood knowledge in context"
+        ]
+      }
+    },
+    {
+      "id": "apply",
+      "name": "Apply - Use knowledge in new situations",
+      "description": "Use acquired and understood knowledge to solve problems in new or unfamiliar situations\n\nBloom's taxonomy Level 3 (lower-order): carry out or use a procedure in a given situation. Execute known methods, implement established procedures, or transfer understood concepts to novel contexts. This is the bridge between comprehension and the higher-order cognitive operations.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find analogous solved problems, established procedures, and applicable frameworks in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Understood knowledge applied to the specific problem at hand",
+          "Known methods or procedures executed in the new context",
+          "Transfer of learning from familiar to novel situation demonstrated"
+        ],
+        "next_actions": [
+          "Proceed to Analyze — break down and examine component relationships"
+        ]
+      }
+    },
+    {
+      "id": "analyze",
+      "name": "Analyze - Break down and examine relationships",
+      "description": "Break down information into constituent parts and determine how parts relate to one another and to an overall structure or purpose\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBloom's taxonomy Level 4 (higher-order): differentiate, organize, and attribute. Decompose the problem into component elements. Identify the relationships, motives, and causes between parts. Distinguish relevant from irrelevant information. Determine how elements fit together into a structure.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic decomposition into parts and relationship mapping requires structured analytical reasoning — the first higher-order cognitive level in Bloom's revised taxonomy (Anderson & Krathwohl, 2001)",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "BuildContext": {
+            "reason": "Explore structural relationships and hidden connections between components",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Information decomposed into constituent parts",
+          "Relationships, motives, and causes between parts identified",
+          "Relevant distinguished from irrelevant elements",
+          "Overall structure or organizing principle articulated"
+        ],
+        "next_actions": [
+          "Proceed to Evaluate — judge quality and make criterion-based assessments"
+        ]
+      }
     },
     {
       "id": "evaluate",
-      "name": "Evaluate Thinking Quality - Assess cognitive approach",
-      "description": "Critically evaluate the quality and appropriateness of the thinking strategies\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nEvaluate your thinking strategies: Are you using the most appropriate cognitive approaches? What are the strengths and limitations of your current thinking? Could different thinking strategies yield better insights? What thinking patterns should you change?",
-      "requiresEnhancedThinking": true
+      "name": "Evaluate - Make criterion-based judgments",
+      "description": "Make judgments about the value of ideas, materials, or methods based on criteria and standards\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBloom's taxonomy Level 5 (higher-order): check and critique. Assess the quality, credibility, and significance of analytical findings against explicit criteria. Judge whether conclusions are supported by evidence. Detect inconsistencies, fallacies, and gaps. Appraise which elements are most important and why.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Criterion-based judgment requires weighing evidence against standards, checking internal consistency, and detecting fallacies — complex evaluative cognition per Bloom's revised taxonomy",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Retrieve evaluation criteria, quality standards, and comparable assessments from knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Explicit evaluation criteria established and applied",
+          "Quality and credibility of analytical findings judged",
+          "Inconsistencies, fallacies, and gaps detected",
+          "Evaluative conclusions supported by evidence and reasoning"
+        ],
+        "next_actions": [
+          "Proceed to Create — synthesize a new whole from evaluated elements"
+        ]
+      }
     },
     {
-      "id": "synthesize",
-      "name": "Synthesize Multiple Perspectives - Integrate complex viewpoints",
-      "description": "Integrate insights from multiple thinking approaches and perspectives\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSynthesize multiple levels of analysis: How do different thinking approaches complement each other? What emerges when you combine analytical, creative, and intuitive perspectives? What higher-level patterns become visible?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "design",
-      "name": "Design Thinking Strategies - Plan cognitive approach",
-      "description": "Deliberately design thinking strategies for complex problems",
-      "requiresEnhancedThinking": false
-    },
-    {
-      "id": "monitor",
-      "name": "Monitor and Adjust - Regulate thinking process",
-      "description": "Continuously monitor and adjust thinking processes for optimal results",
-      "requiresEnhancedThinking": false
+      "id": "create",
+      "name": "Create - Synthesize new understanding",
+      "description": "Combine elements to form a coherent, functional, or novel whole — reorganize into a new pattern or structure\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBloom's taxonomy Level 6 (higher-order): generate, plan, and produce. Synthesize the analyzed and evaluated elements into an original product, plan, or proposal. Combine ideas to create new meaning that did not exist before. This is the highest cognitive level — producing something that is more than the sum of its parts.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Generative synthesis requires combining evaluated elements into novel structures — the highest cognitive operation in Bloom's revised taxonomy, demanding creative integration",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Persist the novel synthesis as institutional memory with full derivation chain",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "New coherent whole synthesized from analyzed and evaluated elements",
+          "Product, plan, or proposal represents genuine creative integration",
+          "Synthesis grounded in the prior five cognitive levels",
+          "Novel insight or structure documented that transcends individual components"
+        ],
+        "next_actions": [
+          "Document synthesized output with full cognitive derivation chain"
+        ]
+      }
     }
   ]
 }

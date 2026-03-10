@@ -10,31 +10,121 @@
     "workflow selection",
     "thinking architecture"
   ],
-  "enhancedThinkingEnabled": true,
   "steps": [
     {
       "id": "analyze",
       "name": "Analyze Problem Characteristics - Understand the challenge type",
-      "description": "Systematically analyze the problem's fundamental characteristics, complexity, and domain\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nAnalyze this problem systematically: What type of problem is this? Is it logical, creative, analytical, strategic, or complex/multi-faceted? What domain knowledge is required? What are the key constraints and success criteria? What makes this problem challenging?",
-      "requiresEnhancedThinking": true
+      "description": "Systematically analyze the problem's fundamental characteristics, complexity, and domain\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nAnalyze this problem systematically: What type of problem is this? Is it logical, creative, analytical, strategic, or complex/multi-faceted? What domain knowledge is required? What are the key constraints and success criteria? What makes this problem challenging?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic analysis of problem type, complexity, domain, constraints, and success criteria",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Problem type classified",
+          "Domain knowledge requirements identified",
+          "Key constraints and success criteria defined"
+        ],
+        "next_actions": [
+          "Research historical context"
+        ]
+      }
     },
     {
       "id": "research",
       "name": "Research Historical Context & Current Knowledge - Learn from past analyses and fresh insights",
-      "description": "Search both memory and online sources for similar problems, successful approaches, and relevant insights. Use SearchMemories for keyword matches, RecentActivity for temporal patterns, BuildContext for deep relationships, BuildContext for connected knowledge, and WebSearch for current external perspectives.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSearch both memory and online: What similar problems have been analyzed in our memory system? What approaches worked well previously? What patterns or insights are relevant from past experiences? Then search online for current perspectives, recent developments, and external approaches to similar challenges. Use SearchMemories to find relevant content, RecentActivity to see latest work, BuildContext to explore relationships, BuildContext for connected knowledge, and WebSearch for fresh external insights. Focus on extracting actionable intelligence from both internal wisdom and external innovation.",
-      "requiresEnhancedThinking": true
+      "description": "Search both memory and online sources for similar problems, successful approaches, and relevant insights. Use SearchMemories for keyword matches, RecentActivity for temporal patterns, BuildContext for deep relationships, BuildContext for connected knowledge, and WebSearch for current external perspectives.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nSearch both memory and online: What similar problems have been analyzed in our memory system? What approaches worked well previously? What patterns or insights are relevant from past experiences? Then search online for current perspectives, recent developments, and external approaches to similar challenges. Use SearchMemories to find relevant content, RecentActivity to see latest work, BuildContext to explore relationships, BuildContext for connected knowledge, and WebSearch for fresh external insights. Focus on extracting actionable intelligence from both internal wisdom and external innovation.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Coordinate multi-source research across memory, activity, and web",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "SearchMemories": {
+            "reason": "Find similar problems and successful approaches in memory",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Explore concept relationships and connected knowledge",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Memory search completed",
+          "Historical patterns identified",
+          "External perspectives gathered",
+          "Actionable intelligence extracted"
+        ],
+        "next_actions": [
+          "Assess cognitive requirements"
+        ]
+      }
     },
     {
       "id": "assess",
       "name": "Assess Cognitive Requirements - Identify thinking needs",
-      "description": "Determine what types of cognitive processes and thinking approaches this problem requires\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nWhat cognitive approaches does this problem need? Does it require: Logical reasoning (deductive/inductive/abductive)? Creative thinking (divergent/lateral/oblique)? Analytical evaluation (critical/convergent)? Strategic analysis? Meta-cognitive reflection? Data-driven analysis? Multiple perspectives? Systematic progression?",
-      "requiresEnhancedThinking": true
+      "description": "Determine what types of cognitive processes and thinking approaches this problem requires\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nWhat cognitive approaches does this problem need? Does it require: Logical reasoning (deductive/inductive/abductive)? Creative thinking (divergent/lateral/oblique)? Analytical evaluation (critical/convergent)? Strategic analysis? Meta-cognitive reflection? Data-driven analysis? Multiple perspectives? Systematic progression?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Determine required cognitive processes: logical, creative, analytical, strategic, meta-cognitive",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Cognitive approach types identified",
+          "Thinking requirements mapped",
+          "Workflow selection criteria established"
+        ],
+        "next_actions": [
+          "Select and execute workflows"
+        ]
+      }
     },
     {
       "id": "recommend",
       "name": "Select and Execute Workflows - Choose and run complementary workflows",
-      "description": "Select complementary workflows for this problem based on the problem characteristics and cognitive requirements.\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBased on the problem characteristics and cognitive requirements, which workflows would be most effective? Select complementary workflows that build on each other. Consider how they work together and in what sequence.\n\nWhen you've selected the workflows, immediately execute them using the Workflow tool with an array of workflow IDs.\n\nExample: Workflow([\"workflow-1\", \"workflow-2\", \"workflow-4\"])",
-      "requiresEnhancedThinking": true
+      "description": "Select complementary workflows for this problem based on the problem characteristics and cognitive requirements.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nBased on the problem characteristics and cognitive requirements, which workflows would be most effective? Select complementary workflows that build on each other. Consider how they work together and in what sequence.\n\nWhen you've selected the workflows, immediately execute them using the Workflow tool with an array of workflow IDs.\n\nExample: Workflow([\"workflow-1\", \"workflow-2\", \"workflow-4\"])",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Select and sequence complementary workflows based on analysis",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          },
+          "Workflow": {
+            "reason": "Execute selected workflow array via Workflow tool",
+            "priority": "mandatory"
+          },
+          "ListAssets": {
+            "reason": "Browse available workflows for selection",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Complementary workflows selected",
+          "Execution sequence determined",
+          "Workflows dispatched via Workflow tool"
+        ],
+        "next_actions": [
+          "Execute selected workflows"
+        ]
+      }
     }
-  ]
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false
 }

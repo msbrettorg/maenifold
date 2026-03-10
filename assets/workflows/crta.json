@@ -15,61 +15,277 @@
     "opportunity cost",
     "scarcity"
   ],
-  "enhancedThinkingEnabled": true,
   "steps": [
     {
       "id": "current",
       "name": "Identify Current State - Assess the present situation",
-      "description": "Clearly define the current status, challenges, and existing constraints without action\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what assumptions we're making about the current state. What hidden problems or opportunities might we be missing?\n\nExamples:\n• What assumptions are we making about the status quo?\n• What evidence do we have that this is actually the real situation?\n• What if the current state is actually worse/better than we think?",
-      "requiresEnhancedThinking": true
+      "description": "Clearly define the current status, challenges, and existing constraints without action\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what assumptions we're making about the current state. What hidden problems or opportunities might we be missing?\n\nExamples:\n• What assumptions are we making about the status quo?\n• What evidence do we have that this is actually the real situation?\n• What if the current state is actually worse/better than we think?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic assessment of current state and hidden assumptions",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Status quo analysis",
+              "Hidden assumptions",
+              "Evidence verification",
+              "Gap identification"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Find prior analyses or context about the situation",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Current state clearly defined with evidence",
+          "Assumptions explicitly documented",
+          "Constraints and challenges identified"
+        ],
+        "next_actions": [
+          "Map consequences of inaction",
+          "Identify cascade effects"
+        ]
+      }
     },
     {
       "id": "consequences",
       "name": "Define Consequences - Map negative outcomes of inaction",
-      "description": "Identify specific negative consequences that will occur if no action is taken by a certain date\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about the cascade of negative effects. What are the second and third-order consequences of not acting?\n\nExamples:\n• What would happen if we deliberately did nothing?\n• How would this failure cascade through the organization?\n• What opportunities would we permanently lose?",
-      "requiresEnhancedThinking": true
+      "description": "Identify specific negative consequences that will occur if no action is taken by a certain date\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about the cascade of negative effects. What are the second and third-order consequences of not acting?\n\nExamples:\n• What would happen if we deliberately did nothing?\n• How would this failure cascade through the organization?\n• What opportunities would we permanently lose?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Mapping cascading negative outcomes requires deep causal reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "First-order consequences",
+              "Second-order cascades",
+              "Permanent losses",
+              "Organizational impact"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Negative outcomes mapped with specifics",
+          "Cascade effects identified to second and third order",
+          "Permanence of consequences assessed"
+        ],
+        "next_actions": [
+          "Establish critical deadlines",
+          "Identify time-dependent thresholds"
+        ]
+      }
     },
     {
       "id": "timing",
       "name": "Establish Time Constraints - Identify critical deadlines",
       "description": "Determine specific dates by which action must be taken to avoid consequences or capture opportunities",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Record critical deadlines and time constraints for reference",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Critical dates identified with rationale",
+          "Time dependencies mapped",
+          "Point-of-no-return dates established"
+        ],
+        "next_actions": [
+          "Quantify cost of inaction",
+          "Calculate value of prompt action"
+        ]
+      }
     },
     {
       "id": "quantify",
       "name": "Quantify Impact - Calculate costs and benefits",
-      "description": "Put numbers on both the cost of inaction and the value of taking action promptly\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what we're assuming in our calculations. What hidden costs or benefits might we be overlooking?\n\nExamples:\n• What assumptions are we making about value and cost?\n• What if our estimates are wrong by 50%?\n• What indirect impacts haven't we considered?",
-      "requiresEnhancedThinking": true
+      "description": "Put numbers on both the cost of inaction and the value of taking action promptly\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what we're assuming in our calculations. What hidden costs or benefits might we be overlooking?\n\nExamples:\n• What assumptions are we making about value and cost?\n• What if our estimates are wrong by 50%?\n• What indirect impacts haven't we considered?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Rigorous cost-benefit calculation with sensitivity analysis",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Cost of inaction",
+              "Value of prompt action",
+              "Estimate validation",
+              "Hidden costs and benefits"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Costs of inaction quantified",
+          "Benefits of action estimated",
+          "Sensitivity to estimate errors analyzed"
+        ],
+        "next_actions": [
+          "Identify time-sensitive opportunities",
+          "Document competitive advantages"
+        ]
+      }
     },
     {
       "id": "opportunities",
       "name": "Identify Opportunities - Highlight time-sensitive gains",
-      "description": "Define positive outcomes, competitive advantages, or limited opportunities that can only be captured through immediate action\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about ideal outcomes and breakthrough possibilities. What amazing results could happen if we act quickly?\n\nExamples:\n• What would be the absolute best case scenario?\n• What opportunities exist that no one else has noticed?\n• What could we achieve that would be impossible later?",
-      "requiresEnhancedThinking": true
+      "description": "Define positive outcomes, competitive advantages, or limited opportunities that can only be captured through immediate action\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about ideal outcomes and breakthrough possibilities. What amazing results could happen if we act quickly?\n\nExamples:\n• What would be the absolute best case scenario?\n• What opportunities exist that no one else has noticed?\n• What could we achieve that would be impossible later?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Creative identification of time-sensitive gains and breakthrough possibilities",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Best-case scenarios",
+              "Unnoticed opportunities",
+              "Competitive advantages",
+              "Time-limited windows"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Check for similar opportunities or precedents in knowledge base",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Time-sensitive gains identified",
+          "Competitive advantages documented",
+          "Window of opportunity defined with expiration"
+        ],
+        "next_actions": [
+          "Establish scarcity factors",
+          "Define what makes opportunity unique"
+        ]
+      }
     },
     {
       "id": "scarcity",
       "name": "Create Scarcity - Establish limited availability",
       "description": "Identify what makes this opportunity unique, limited, or unlikely to be available again",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document scarcity factors for stakeholder communication",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Uniqueness of opportunity established",
+          "Limited availability documented",
+          "Non-repeatability argued"
+        ],
+        "next_actions": [
+          "Align stakeholders on urgency",
+          "Build consensus across decision-makers"
+        ]
+      }
     },
     {
       "id": "consensus",
       "name": "Build Consensus - Align stakeholders on urgency",
-      "description": "Ensure all decision-makers understand and agree on the critical nature of immediate action\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply from each stakeholder's perspective. What would convince them that action is urgent and necessary?\n\nExamples:\n• From the CEO's perspective: What would get their immediate attention?\n• From the budget owner's view: What would justify immediate spending?\n• From the end user's perspective: What would make this feel urgent to them?",
-      "requiresEnhancedThinking": true
+      "description": "Ensure all decision-makers understand and agree on the critical nature of immediate action\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply from each stakeholder's perspective. What would convince them that action is urgent and necessary?\n\nExamples:\n• From the CEO's perspective: What would get their immediate attention?\n• From the budget owner's view: What would justify immediate spending?\n• From the end user's perspective: What would make this feel urgent to them?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Multi-stakeholder perspective analysis requires structured reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Executive perspective",
+              "Budget owner perspective",
+              "End-user perspective",
+              "Objection handling"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All stakeholder perspectives analyzed",
+          "Urgency agreement path identified",
+          "Key objections addressed with evidence"
+        ],
+        "next_actions": [
+          "Define specific action plan",
+          "Assign owners and deadlines"
+        ]
+      }
     },
     {
       "id": "action",
       "name": "Present Clear Action - Define specific next steps",
       "description": "Articulate exactly what needs to be done, by when, and by whom to address the compelling reason",
-      "requiresEnhancedThinking": false
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Persist action plan for accountability tracking",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Actions specific and assignable",
+          "Deadlines attached to each action",
+          "Owners identified for every item"
+        ],
+        "next_actions": [
+          "Establish tracking mechanisms",
+          "Set up accountability framework"
+        ]
+      }
     },
     {
       "id": "accountability",
       "name": "Create Accountability - Establish tracking and follow-up",
-      "description": "Set up mechanisms to ensure the urgency is maintained and action is taken within the critical timeframe\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what assumptions we're making about accountability. How might people avoid or delay action despite our efforts?\n\nExamples:\n• What assumptions are we making about people's motivation?\n• What if the urgency fades over time?\n• What barriers to action haven't we anticipated?",
-      "requiresEnhancedThinking": true
+      "description": "Set up mechanisms to ensure the urgency is maintained and action is taken within the critical timeframe\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what assumptions we're making about accountability. How might people avoid or delay action despite our efforts?\n\nExamples:\n• What assumptions are we making about people's motivation?\n• What if the urgency fades over time?\n• What barriers to action haven't we anticipated?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Anticipating avoidance patterns and designing robust tracking",
+            "priority": "mandatory",
+            "estimated_thoughts": 3,
+            "focus_areas": [
+              "Motivation assumptions",
+              "Urgency decay prevention",
+              "Barrier anticipation"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist accountability framework and follow-up schedule",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Tracking mechanisms established",
+          "Follow-up schedule defined",
+          "Escalation paths documented"
+        ],
+        "next_actions": [
+          "Execute action plan",
+          "Begin first follow-up cycle"
+        ]
+      }
     }
-  ]
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false
 }

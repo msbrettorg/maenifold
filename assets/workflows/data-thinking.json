@@ -1,8 +1,9 @@
 {
   "id": "data-thinking",
   "name": "Data Thinking",
-  "emoji": "💭",
-  "description": "User-centric systematic approach to data strategy and analytics",
+  "emoji": "📊",
+  "description": "The process of inspecting, cleansing, transforming, and modeling data with the goal of discovering useful information, informing conclusions, and supporting decision-making. Per Tukey (1961): procedures for analyzing data, techniques for interpreting results, ways of planning data gathering to make analysis easier, more precise, or more accurate, and all the machinery and results of statistics which apply to analyzing data.",
+  "specification": "https://en.wikipedia.org/wiki/Data_analysis",
   "triggers": [
     "data thinking",
     "data strategy",
@@ -13,37 +14,199 @@
     "data mvp",
     "systematic data analysis"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "context",
-      "name": "Understand Business Context - Map processes and data relevance",
-      "description": "Systematically map business processes and assess their data potential and strategic importance",
-      "requiresEnhancedThinking": false
+      "id": "specify-data-requirements",
+      "name": "Data Requirements Specification — Identify entities, variables, and analytical questions",
+      "description": "The data necessary as inputs to the analysis are specified based upon the requirements of those directing the analytics. Identify the general type of entity (experimental unit) upon which data will be collected. Specify the variables of interest — both numerical and categorical.\n\nPer Tukey (1961), plan the gathering of data to make its analysis easier, more precise, or more accurate. Define what questions the analysis must answer and what decisions it must support. Ensure that requirements are communicated clearly to data custodians and sources.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find existing domain knowledge, prior analytical work, and known data sources relevant to the requirements",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Map relationships between the analytical domain, known variables, and available data sources in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Experimental units (entities for data collection) identified",
+          "Specific variables of interest enumerated as numerical or categorical",
+          "Analytical questions the data must answer clearly stated",
+          "Requirements communicated to data custodians or sources"
+        ],
+        "next_actions": [
+          "Proceed to data collection"
+        ]
+      }
     },
     {
-      "id": "ideate",
-      "name": "Ideate with Data Canvas - Design data-driven solutions",
-      "description": "Use structured canvas approach to design data solutions that create user value\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink systematically about the data ecosystem: What user needs could data address? What data sources exist or could be created? How would users interact with data insights? What business model emerges from data value? Map the relationships between data creation, management, and operation.",
-      "requiresEnhancedThinking": true
+      "id": "collect-data",
+      "name": "Data Collection — Gather and measure information on targeted variables",
+      "description": "Data collection is the process of gathering and measuring information on targeted variables in an established system, which then enables one to answer relevant questions and evaluate outcomes.\n\nData may be collected from sensors, traffic cameras, satellites, recording devices, interviews, downloads from online sources, or reading documentation. Document the provenance, method, and conditions of each data collection. Identify potential biases introduced by the collection method.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Locate existing datasets, prior collections, and known data sources in the knowledge graph",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Data gathered for all specified variables from identified sources",
+          "Data source provenance and collection method documented",
+          "Potential collection biases identified",
+          "Raw data available for processing"
+        ],
+        "next_actions": [
+          "Proceed to data processing"
+        ]
+      }
     },
     {
-      "id": "prioritize",
-      "name": "Prioritize KPIs - Select actionable metrics",
-      "description": "Identify the most impactful and actionable key performance indicators\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nEvaluate potential metrics: Which KPIs directly connect to user value? Which are actionable vs. just informational? What leading indicators predict success? How will each metric drive decisions? Prioritize based on impact, feasibility, and strategic alignment.",
-      "requiresEnhancedThinking": true
+      "id": "process-data",
+      "name": "Data Processing — Organize and integrate raw data for analysis",
+      "description": "Data integration is a precursor to data analysis. Data, when initially obtained, must be processed or organized for analysis. This involves placing data into rows and columns in a table format (structured data) for further analysis, typically through spreadsheet or statistical software.\n\nAlign data from multiple sources, resolve schema differences, and establish a consistent representation. Ensure variables are correctly typed and formatted for the analytical tools to be used.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find existing data schemas, format conventions, and integration patterns for structuring the data",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Raw data organized into structured tabular format (rows and columns)",
+          "Data from multiple sources integrated with consistent schema",
+          "Variables correctly typed as numerical or categorical",
+          "Data ready for cleaning phase"
+        ],
+        "next_actions": [
+          "Proceed to data cleaning"
+        ]
+      }
     },
     {
-      "id": "design",
-      "name": "Design Data MVP - Plan minimal viable data product",
-      "description": "Create the simplest data solution that validates core hypotheses and delivers user value",
-      "requiresEnhancedThinking": false
+      "id": "clean-data",
+      "name": "Data Cleaning — Prevent and correct errors in the dataset",
+      "description": "Data cleaning is the process of preventing and correcting errors. Common tasks include record matching, identifying inaccuracy of data, assessing overall quality of existing data, deduplication, and column segmentation.\n\nUse quantitative data methods for outlier detection to identify values with a higher likelihood of being input errors. Check text data for misspellings. Compare totals against separately published reliable numbers. Flag unusual amounts above or below predetermined thresholds for review.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find known data quality issues, validation rules, and benchmark numbers for cross-referencing totals",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Duplicate records identified and resolved (deduplication complete)",
+          "Outliers detected using quantitative methods and assessed for likely input error",
+          "Totals validated against separately published reliable reference numbers",
+          "Record matching and column segmentation completed",
+          "Cleaned dataset ready for exploratory analysis"
+        ],
+        "next_actions": [
+          "Proceed to exploratory data analysis"
+        ]
+      }
     },
     {
-      "id": "validate",
-      "name": "Validate and Iterate - Test and refine approach",
-      "description": "Implement learning cycles to test assumptions and improve the data strategy",
-      "requiresEnhancedThinking": false
+      "id": "exploratory-data-analysis",
+      "name": "Exploratory Data Analysis — Discover patterns using descriptive statistics and visualization",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nOnce cleaned, datasets are analyzed using EDA. Descriptive statistics — mean (average), median, standard deviation — are used to broadly characterize the data. Data visualization examines data in graphical format to obtain additional insights not available from statistics alone.\n\nThis phase is iterative: exploration may result in additional data cleaning or additional requests for data, cycling back to earlier phases.\n\nIn statistical applications, EDA focuses on discovering new features in the data. This is distinct from confirmatory data analysis (CDA), which focuses on confirming or falsifying existing hypotheses. Exploratory and confirmatory analysis should never be performed on the same dataset.\n\nAssess measurement quality and determine if initial transformations (square root, log, inverse) are needed. Characterize distributions. Examine skewness and kurtosis.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic exploration across multiple statistical dimensions — descriptive statistics, distributions, visualizations, anomalies, measurement quality, and transformation needs — requires structured iterative reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find comparable analytical patterns, known distributions, and domain-specific statistical benchmarks",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Descriptive statistics (mean, median, standard deviation) computed for key variables",
+          "Data examined in graphical format — visualizations produced for additional insights",
+          "Distributions characterized including skewness and kurtosis",
+          "Measurement quality assessed and initial transformations (sqrt, log, inverse) applied if needed",
+          "Determination made whether additional cleaning or data collection is needed (iterative check)",
+          "EDA and CDA concerns kept separate — no hypothesis confirmation on exploratory data"
+        ],
+        "next_actions": [
+          "Iterate back to data cleaning or data collection if issues found",
+          "Proceed to modeling and algorithms if data is sufficient"
+        ]
+      }
+    },
+    {
+      "id": "modeling-and-algorithms",
+      "name": "Modeling and Algorithms — Apply mathematical models to identify variable relationships",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nMathematical formulas or models (algorithms) are applied to identify relationships among variables, specifically to check for correlation and determine causality. Models evaluate specific variables based on others, following the general form: Data = Model + Error.\n\nInferential statistics measures relationships between variables. Use regression analysis to model whether changes in independent variable X explain observed variation in dependent variable Y. Apply necessary condition analysis (NCA) to determine the extent to which X allows Y — necessity logic rather than additive logic.\n\nWhen testing multiple models, apply the Bonferroni correction to adjust significance levels. Consider both Type I errors (rejecting a true null hypothesis) and Type II errors (failing to reject a false null hypothesis) in all hypothesis testing.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic model selection, hypothesis testing, and evaluation of variable relationships — including regression analysis, NCA, correlation-vs-causation assessment, and Bonferroni correction — requires structured sequential reasoning",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find prior models, known variable relationships, and analytical frameworks applicable to these variables",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Relationships among variables identified using appropriate statistical models",
+          "Correlation clearly distinguished from causation for each finding",
+          "Regression analysis applied where appropriate (Y = aX + b + error)",
+          "Necessary condition analysis applied where appropriate (necessity vs additive logic)",
+          "Hypothesis tests conducted with Type I and Type II error rates considered",
+          "Bonferroni correction applied when testing multiple models",
+          "Model accuracy and residual error evaluated"
+        ],
+        "next_actions": [
+          "Proceed to data product and communication of results"
+        ]
+      }
+    },
+    {
+      "id": "data-product-communication",
+      "name": "Data Product and Communication — Report results using appropriate visualizations",
+      "description": "A data product is a computer application that takes data inputs and generates outputs, feeding them back into the environment. Analysis results are reported to users in many formats to support their requirements.\n\nApply data visualization techniques to communicate messages clearly and efficiently. Per Stephen Few, select the appropriate display based on the quantitative message type: time-series (line charts), ranking (bar charts), part-to-whole (pie charts), deviation (comparison charts), frequency distribution (histograms), correlation (scatter plots), nominal comparison (bar charts), geographic (cartograms).\n\nNormalize numbers to support meaningful comparison. Be aware of barriers to effective communication: confusing fact and opinion, cognitive biases, and innumeracy in the audience.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Document analytical conclusions, key findings, visualization decisions, and data product specifications for institutional memory",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Key findings reported with appropriate data visualizations",
+          "Visualization types matched to Stephen Few's quantitative message types",
+          "Numbers normalized for meaningful comparison",
+          "Barriers to effective communication addressed (fact vs opinion, cognitive biases, innumeracy)",
+          "Data product outputs generated and fed back into the environment"
+        ],
+        "next_actions": [
+          "Iterate on earlier phases based on new requirements or feedback",
+          "Finalize analysis and archive findings"
+        ]
+      }
     }
   ]
 }

@@ -2,7 +2,7 @@
   "id": "provocative-operation",
   "name": "Provocative Operation",
   "emoji": "💥",
-  "description": "Systematic use of deliberate provocations to escape conventional thinking patterns",
+  "description": "De Bono's Po technique: use deliberately wrong or impossible statements to move thinking from entrenched patterns to new ideas",
   "triggers": [
     "provocative operation",
     "deliberate provocation",
@@ -11,37 +11,97 @@
     "challenging assumptions",
     "provocative statements"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "create",
-      "name": "Create Provocations - Generate challenging statements",
-      "description": "Deliberately create provocative, challenging, or seemingly impossible statements\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nCreate deliberate provocations: 'What if we had zero budget?', 'What if this problem didn't exist?', 'What if we did the exact opposite?', 'What if we had unlimited resources?', 'What if we started from scratch?'. Make statements that challenge fundamental assumptions.",
-      "requiresEnhancedThinking": true
+      "id": "po-provoke",
+      "name": "Po: Generate Provocations — state deliberately wrong or impossible ideas",
+      "description": "Create provocations preceded by the word \"po:\" — statements we know are wrong or impossible, used to create new ideas.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nDe Bono defines six provocation techniques (Serious Creativity, 1992):\n\n1. **Wishful thinking** — \"po: wouldn't it be nice if...\"\n2. **Exaggeration** — amplify a dimension to absurdity\n3. **Reversal** — do the opposite of what is normally done\n4. **Escape** — drop a feature normally taken for granted\n5. **Distortion** — alter a normal relationship or sequence\n6. **Arising** — let one provocation trigger another\n\nExample: considering river pollution, de Bono sets up \"po: the factory is downstream of itself\" — forcing a factory to take water input from downstream of its output, an idea which later became law in some countries (Serious Creativity, 1992, p. 145).\n\nState each provocation with the \"po:\" prefix to signal it is a provocation, not a proposal. Create a list of provocations and use the most outlandish ones to move thinking forward to new ideas.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically apply de Bono's six provocation techniques (wishful thinking, exaggeration, reversal, escape, distortion, arising) to generate po: statements that challenge entrenched thinking patterns",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Identify the entrenched thinking pattern or assumption to provoke against",
+              "Apply the six provocation techniques to generate po: statements",
+              "Signal each provocation with the 'po:' prefix per de Bono's convention",
+              "Select the most outlandish provocations for forward movement"
+            ]
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Provocations generated using the six techniques (wishful thinking, exaggeration, reversal, escape, distortion, arising)",
+          "Each provocation preceded by the 'po:' prefix per de Bono's convention",
+          "Provocations are deliberately wrong or impossible — not cautious proposals"
+        ],
+        "next_actions": [
+          "Suspend judgment on all provocations in the Po: Suspend Judgment step"
+        ]
+      }
     },
     {
-      "id": "suspend",
-      "name": "Suspend Judgment - Accept the provocations",
-      "description": "Temporarily accept the provocative statements without immediate judgment or dismissal",
-      "requiresEnhancedThinking": false
+      "id": "po-suspend",
+      "name": "Po: Suspend Judgment — accept provocations without agreeing or disagreeing",
+      "description": "De Bono defines Po as an interjection aimed at obtaining further clarifications without agreeing or disagreeing. In this step, accept all provocations without evaluation.\n\nThe value of provocations is not their truth but their movement value — they move thinking from a place where it is entrenched to a place where it can move. Lateral thinking focuses on \"movement value\" rather than \"truth value\" of statements.\n\nSome provocations may be impractical, not sensible, or not business-minded — that is by design. Do not dismiss any provocation. The intermediate silly idea is a necessary step to find the good idea.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Optionally search for prior provocative sessions to identify which entrenched patterns have already been disrupted",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "All provocations accepted without evaluation for truth or practicality",
+          "No provocation dismissed as silly, impractical, or impossible",
+          "Focus shifted from truth value to movement value of each provocation"
+        ],
+        "next_actions": [
+          "Apply movement techniques to develop provocations into new ideas"
+        ]
+      }
     },
     {
-      "id": "extract",
-      "name": "Extract Movement - Find useful directions",
-      "description": "Extract useful concepts, directions, or insights from the provocative statements\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nExtract movement from the provocations: What useful concepts emerge? What new directions become visible? Even if the provocation is impossible, what aspects could be adapted? What principles or approaches does it suggest?",
-      "requiresEnhancedThinking": true
-    },
-    {
-      "id": "develop",
-      "name": "Develop Practical Ideas - Transform insights",
-      "description": "Transform the provocative insights into practical, implementable ideas",
-      "requiresEnhancedThinking": false
-    },
-    {
-      "id": "iterate",
-      "name": "Iterate with New Provocations - Continue the process",
-      "description": "Create new provocations based on emerging insights and continue the process",
-      "requiresEnhancedThinking": false
+      "id": "po-movement",
+      "name": "Po: Movement — develop provocations into new ideas",
+      "description": "Apply de Bono's movement techniques to develop each provocation into practical ideas. The purpose of movement is to produce as many alternatives as possible to encourage new ways of thinking about both problems and solutions.\n\n🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nFive movement techniques (Lateral Thinking: The Power of Provocation, 2006):\n\n1. **Extract a principle** — what underlying mechanism does the provocation embody?\n2. **Focus on the difference** — how does the provocation-world differ from current reality?\n3. **Moment to moment** — imagine actually implementing the provocation step by step\n4. **Positive aspects** — what value would the provocation deliver if it worked?\n5. **Special circumstances** — under what conditions might the provocation actually be feasible?\n\nExample: \"po: Open a museum dedicated to it\" develops into: exhibit competitor products, sell the product in the museum, make the experience educational, open a café, accept group bookings, add a theme park.\n\nAn initial po may seem silly, but further development may yield very good ideas. The intermediate silly idea is a necessary step to find the good idea.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematically apply the five movement techniques (extract a principle, focus on the difference, moment to moment, positive aspects, special circumstances) to develop each provocation into practical ideas",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Extract a principle — what underlying mechanism does each provocation embody?",
+              "Focus on the difference — how does the provocation-world differ from reality?",
+              "Moment to moment — imagine implementing the provocation step by step",
+              "Positive aspects — what value would the provocation deliver?",
+              "Special circumstances — under what conditions might this be feasible?"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Persist the practical ideas developed from provocations for future retrieval",
+            "priority": "recommended",
+            "output": "memory://provocative-operation/[session]/movement-ideas.md"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Movement techniques applied to develop each provocation",
+          "Provocations developed from intermediate silly ideas into practical directions",
+          "New ideas or solutions identified that were not visible from the entrenched position"
+        ],
+        "next_actions": [
+          "Implement the most promising ideas developed through movement"
+        ]
+      }
     }
   ]
 }

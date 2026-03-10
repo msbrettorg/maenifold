@@ -2,7 +2,8 @@
   "id": "design-thinking",
   "name": "Design Thinking",
   "emoji": "💭",
-  "description": "Human-centered approach to innovation and problem-solving",
+  "description": "An iterative, non-linear process of cognitive, strategic and practical procedures for human-centered innovation — rooted in empathic design, abductive reasoning, solution-focused strategies, and the co-evolution of problem and solution (d.school/IDEO five-phase model)",
+  "specification": "https://en.wikipedia.org/wiki/Design_thinking",
   "triggers": [
     "design thinking",
     "empathize",
@@ -14,35 +15,159 @@
     "human-centered",
     "design process"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
       "id": "empathize",
-      "name": "Empathize - Understand the user and their needs",
-      "description": "Deeply understand user perspectives, emotions, and needs\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply by stepping into the shoes of different user personas. What are their hidden needs, fears, and motivations?\n\n• From the user's perspective: What would they really want here?\n• From the stakeholder's view: What concerns might they have?\n• From an outsider's perspective: What would they notice first?",
-      "requiresEnhancedThinking": true
+      "name": "Empathize — Observe how people work and understand their needs",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nBegin with the inspiration phase: observe how things and people work in the real world and notice problems or opportunities. Empathic design transcends physical ergonomics to include understanding the psychological and emotional needs of people — the way they do things, why and how they think and feel about the world, and what is meaningful to them (Kelley & Kelley, Creative Confidence).\n\nDesigners approach user research with the goal of understanding wants and needs, what might make life easier and more enjoyable, and how technology can be useful. Document problem formulations in a brief that includes constraints giving the team a framework from which to begin, benchmarks by which to measure progress, and a set of objectives to be realized.\n\n• Who are the users, stakeholders, and affected communities?\n• What are their psychological and emotional needs — not just functional ones?\n• What do they actually do versus what they say they do?\n• What problems or opportunities emerge from direct observation?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Deep empathic exploration requires stepping into multiple user perspectives to understand psychological and emotional needs, going beyond physical ergonomics per Wikipedia's description of empathic design",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find existing user research, persona definitions, and prior empathy insights in the knowledge graph",
+            "priority": "recommended"
+          },
+          "BuildContext": {
+            "reason": "Understand the broader ecosystem of stakeholder relationships and user contexts",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "User wants, needs, and motivations documented from direct observation",
+          "Psychological and emotional needs understood — not just functional ergonomics",
+          "Problem formulations captured in a brief with constraints, benchmarks, and objectives",
+          "Multiple user perspectives explored with distinct viewpoints"
+        ],
+        "next_actions": [
+          "Proceed to Define — frame the problem from empathy insights"
+        ]
+      }
     },
     {
       "id": "define",
-      "name": "Define - Frame the problem statement",
-      "description": "Synthesize empathy insights into a clear, actionable problem statement that guides ideation\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nFrame the problem from the user's perspective. Create a problem statement that:\n• Focuses on the user (not the solution or technology)\n• Is broad enough to allow creativity\n• Is narrow enough to be manageable\n• Captures the core need or challenge discovered during empathy\n\nFormat: '[User] needs a way to [user's need] because [insight]'",
-      "requiresEnhancedThinking": true
+      "name": "Define — Frame and reinterpret the problem",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nDesigners explore the given problem and its context and may reinterpret or restructure the given problem in order to reach a particular framing that suggests a route to a solution (Schön, The Reflective Practitioner; Dorst, 2011). This is especially critical because design thinking deals with ill-defined and 'wicked' problems — problems with no definitive formulation, no true/false solution, and wide discrepancy between differing perspectives (Rittel & Webber, 1973).\n\nPlattner, Meinel, and Leifer describe this phase as '(re)defining the problem, needfinding and benchmarking.' Synthesize empathy findings into a problem statement. Be aware that the design process exhibits co-evolution of problem and solution: new solution ideas can lead to a deeper or alternative understanding of the problematic context, which in turn triggers more solution ideas (Dorst & Cross, 2001).\n\n• Reinterpret or restructure the problem — don't accept it as given\n• Frame the problem so it suggests a route to a solution\n• Document constraints, benchmarks, and objectives\n• Acknowledge wicked-problem characteristics: no definitive formulation, no true/false answer",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Problem framing requires reinterpreting ill-defined or wicked problems — co-evolution of problem and solution means framing and solution ideas must develop together (Dorst & Cross, 2001)",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document the problem statement as a referenceable artifact with constraints and benchmarks",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Problem reinterpreted and reframed — not just accepted as given",
+          "Wicked-problem characteristics acknowledged if applicable",
+          "Problem framing suggests a route toward solution space",
+          "Constraints, benchmarks, and measurable objectives documented"
+        ],
+        "next_actions": [
+          "Proceed to Ideate — generate creative solutions via divergent and convergent thinking"
+        ]
+      }
     },
     {
       "id": "ideate",
-      "name": "Ideate - Generate creative solutions",
-      "description": "Generate multiple creative and diverse solution approaches\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply beyond obvious solutions. What wild, creative, or unconventional approaches might work?\n\n• Alternative approach: Consider breaking the problem into smaller, interconnected pieces\n• Unconventional solution: What if we approached this from the end result backwards?\n• Cross-domain inspiration: How might gaming, art, or storytelling principles apply here?",
-      "requiresEnhancedThinking": true
+      "name": "Ideate — Generate ideas through divergent and convergent thinking",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nIdeation is idea generation. The process is characterized by the alternation of divergent and convergent thinking, typical of the design thinking process (Wikipedia: Ideation section).\n\nBegin with divergent thinking: a structured brainstorming process of 'thinking outside the box.' It may be important to have diverse perspectives involved. Then apply convergent thinking, which aims for zooming and focusing on the different proposals to select the best choice.\n\nAfter collecting and sorting many ideas, go through a process of pattern finding and synthesis — translating ideas into insights that can lead to solutions or opportunities for change. These might be either visions of new product offerings, or choices among various ways of creating new experiences (Brown & Wyatt, 2010). Employ abductive and productive reasoning: infer possible solutions from available problem information, experience, and use of analogies — a form of innovative abduction (Kolko, 2010).\n\n• Diverge first: brainstorm without judgment, explore unconventional approaches\n• Converge: zoom and focus on proposals to select the best candidates\n• Find patterns: translate ideas into actionable insights\n• Use abductive reasoning: infer from analogies and cross-domain experience",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Ideation requires alternating divergent and convergent thinking — brainstorming widely then zooming to focus, followed by pattern finding and synthesis into actionable insights",
+            "priority": "mandatory",
+            "estimated_thoughts": 6
+          },
+          "SearchMemories": {
+            "reason": "Find cross-domain analogies and prior solution patterns for innovative abduction",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Divergent phase complete — multiple diverse ideas generated via brainstorming",
+          "Convergent phase complete — proposals zoomed and focused to select best candidates",
+          "Pattern finding and synthesis performed — ideas translated into insights",
+          "Promising ideas selected for prototyping with clear rationale"
+        ],
+        "next_actions": [
+          "Proceed to Prototype — turn best ideas into concrete, testable representations"
+        ]
+      }
     },
     {
       "id": "prototype",
-      "name": "Prototype - Build quick, testable versions",
-      "requiresEnhancedThinking": false
+      "name": "Prototype — Build concrete representations to explore solutions",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nAt the core of the implementation process is prototyping: turning ideas into actual products and services that are then tested, evaluated, iterated, and refined. A prototype, or even a rough mock-up, helps to gather feedback and improve the idea. Prototypes can speed up the process of innovation because they allow quick identification of strengths and weaknesses of proposed solutions, and can prompt new ideas (Brown & Wyatt, 2010).\n\nDesigners communicate mostly in visual or object languages to translate abstract requirements into concrete objects (Cross, 1982). The use of representations and models is closely associated with the generation and exploration of tentative solution concepts, the identification of what needs to be known about the developing concept, and the recognition of emergent features and properties within the representations (Cross, 1999; Suwa, Gero & Purcell, 2000).\n\n• Build quick, low-fidelity prototypes — a rough mock-up is enough to gather feedback\n• Translate abstract requirements into concrete, tangible objects\n• Identify what needs to be known about the developing concept\n• Watch for emergent features and properties that appear in the representation",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Prototype design requires translating abstract requirements into concrete objects, identifying unknowns, and recognizing emergent features within representations (Cross, 1999)",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          },
+          "WriteMemory": {
+            "reason": "Document prototype specifications, identified unknowns, and emergent features discovered during prototyping",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Low-fidelity prototypes created that translate abstract ideas into concrete form",
+          "Strengths and weaknesses of proposed solutions quickly identified",
+          "Unknowns about the developing concept identified and documented",
+          "Emergent features recognized and captured for further exploration"
+        ],
+        "next_actions": [
+          "Proceed to Test — evaluate prototypes and iterate or loop back to earlier phases"
+        ]
+      }
     },
     {
       "id": "test",
-      "name": "Test - Validate with users and iterate",
-      "requiresEnhancedThinking": false
+      "name": "Test — Evaluate, iterate, and loop back through earlier phases",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nProjects may loop back through inspiration, ideation, and implementation more than once as the team refines its ideas and explores new directions (Brown & Wyatt, 2010). The adaptive expertise required to choose the right inflection points and appropriate next stage is a high order intellectual activity that requires practice and is learnable (Plattner, Meinel & Leifer, 2011).\n\nDesign thinking is an iterative, non-linear process. Evaluate prototypes against user needs discovered during empathy. Test whether the problem framing from the Define phase still holds. Determine whether to refine the current prototype, return to Ideation for alternative solutions, or loop back to Empathize for deeper understanding.\n\n• Evaluate prototypes against the user needs discovered during Empathize\n• Identify strengths and weaknesses — where do solutions fall short?\n• Choose the right inflection point: refine, re-ideate, or re-empathize\n• Iterate relentlessly — the process is non-linear by design",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Choosing the right inflection points and appropriate next stage is a high order intellectual activity (Plattner et al.) — deciding whether to iterate, loop back, or converge requires structured evaluation",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "WriteMemory": {
+            "reason": "Document test results, validated/invalidated assumptions, and the iteration decision with rationale",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Prototypes evaluated against user needs from Empathize phase",
+          "Strengths and weaknesses of proposed solutions identified",
+          "Inflection-point decision made: refine prototype, re-ideate, or loop back to earlier phase",
+          "If looping back: specific phase and rationale documented"
+        ],
+        "next_actions": [
+          "If solution validated: document final design and rationale",
+          "If refinement needed: return to Prototype with specific improvements",
+          "If reframing needed: return to Define or Empathize with new understanding"
+        ]
+      }
     }
   ]
 }

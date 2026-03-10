@@ -1,11 +1,13 @@
 {
   "id": "sdlc",
-  "name": "Software Development Lifecycle",
+  "name": "Systems Development Life Cycle",
   "emoji": "🔧",
-  "description": "Systematic approach to software development phases",
+  "description": "The systems development life cycle (SDLC) describes the typical phases and progression during the development of a computer-based system, from inception to retirement. It is analogous to the life cycle of a living organism from birth to death. The SDLC does not prescribe how engineers should work — it describes the natural sequence of phases that a system passes through.",
+  "specification": "https://en.wikipedia.org/wiki/Systems_development_life_cycle",
   "triggers": [
     "sdlc",
     "software development lifecycle",
+    "systems development life cycle",
     "planning",
     "analysis",
     "design",
@@ -13,51 +15,279 @@
     "testing",
     "deployment",
     "maintenance",
-    "waterfall"
+    "waterfall",
+    "feasibility study",
+    "decommission",
+    "end of life"
   ],
-  "enhancedThinkingEnabled": true,
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
   "steps": [
     {
-      "id": "planning",
-      "name": "Planning - Define requirements and scope",
-      "description": "Establish project objectives, scope, timeline, and resource requirements\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what we're assuming about user needs, technical constraints, and project scope. What could we be missing?",
-      "requiresEnhancedThinking": true
+      "id": "conceptualize",
+      "name": "Conceptualize — Investigate feasibility and determine whether to proceed",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia SDLC article, during conceptualization (a.k.a. conceptual design, system investigation, feasibility), options and priorities are considered. A feasibility study determines whether the development effort is worthwhile.\n\nActivities include: understanding user need, cost estimation, benefit analysis, and resource analysis. The study should address operational, financial, technical, human factors, and legal/political concerns.\n\nThis phase establishes the functional baseline. The central question is not what to build, but whether to build at all — and if so, which option among alternatives offers the best balance of cost, benefit, and risk.\n\nThink deeply about what assumptions underlie the perceived need. What alternatives to building a new system exist? What would happen if we did nothing?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Feasibility assessment requires disciplined evaluation of operational, financial, technical, human factors, and legal/political dimensions — the go/no-go decision is the highest-stakes judgment in the entire lifecycle",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "User need validation",
+              "Cost-benefit analysis",
+              "Technical feasibility",
+              "Resource availability",
+              "Risk assessment"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Find prior feasibility analyses, related system histories, and lessons learned from similar projects",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "User need articulated and validated",
+          "Feasibility study completed covering operational, financial, technical, human factors, and legal concerns",
+          "Cost estimates and benefit analysis documented",
+          "Resource requirements identified and availability confirmed",
+          "Go/no-go decision made with documented rationale",
+          "Functional baseline established"
+        ],
+        "next_actions": [
+          "Proceed to requirements analysis"
+        ]
+      }
     },
     {
-      "id": "analysis",
-      "name": "Analysis - Analyze requirements and feasibility",
-      "description": "Detailed analysis of functional and non-functional requirements",
-      "requiresEnhancedThinking": false
+      "id": "requirements-analysis",
+      "name": "Requirements Analysis — Understand the problem and determine what is needed",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia SDLC article, requirements analysis (a.k.a. preliminary design) involves understanding the problem and determining what is needed. This often involves engaging users to define requirements and recording them in a requirements specification document.\n\nThis phase establishes the allocated baseline. The central question shifts from whether to build to what to build. Distinguish between functional requirements (what the system must do) and non-functional requirements (quality attributes the system must exhibit).\n\nThink deeply about what stakeholders say they want versus what they actually need. What requirements are implicit but unstated? What constraints exist that stakeholders haven't mentioned?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Eliciting requirements demands systematic exploration of stated and unstated needs, distinguishing wants from needs, and resolving conflicting stakeholder priorities",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "Stakeholder engagement",
+              "Functional requirements",
+              "Non-functional requirements",
+              "Constraint identification",
+              "Requirements prioritization"
+            ]
+          },
+          "BuildContext": {
+            "reason": "Map the problem domain to understand existing knowledge, related systems, and domain constraints",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Problem clearly understood and articulated",
+          "Users and stakeholders engaged for requirements elicitation",
+          "Functional requirements captured and documented",
+          "Non-functional requirements defined (performance, security, usability, etc.)",
+          "Requirements specification document produced",
+          "Allocated baseline established",
+          "Requirements traceable to the user needs identified during conceptualization"
+        ],
+        "next_actions": [
+          "Proceed to system design"
+        ]
+      }
     },
     {
       "id": "design",
-      "name": "Design - Create system architecture and design",
-      "description": "Design system architecture, database schema, and user interfaces\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about how similar systems solve these problems. What design patterns and architectural approaches could work here?",
-      "requiresEnhancedThinking": true
+      "name": "Design — Plan the solution architecture and detailed design",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia SDLC article, during the design phase (a.k.a. detail design), a solution is planned. The plan can include high-level information such as describing major system components, and low-level information such as functions, screen layout, business rules, and process flow.\n\nThe design is informed by the requirements — the design must satisfy each requirement. It may be recorded as textual documents, functional hierarchy diagrams, example screen images, business rules, process diagrams, pseudo-code, and data models.\n\nThis phase produces the product baseline. Think deeply about architectural trade-offs. What design patterns fit the requirements? What are the implications of each design choice for future maintainability and evolution?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Architectural decisions involve evaluating trade-offs across multiple dimensions (performance, maintainability, cost, complexity) — systematic reasoning prevents premature commitment to suboptimal designs",
+            "priority": "mandatory",
+            "estimated_thoughts": 5,
+            "focus_areas": [
+              "System architecture",
+              "Component decomposition",
+              "Data modeling",
+              "Interface design",
+              "Design trade-offs"
+            ]
+          },
+          "SearchMemories": {
+            "reason": "Find proven design patterns, architectural precedents, and lessons from similar systems",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "High-level architecture documented (major components and their relationships)",
+          "Detailed design completed (functions, screen layouts, business rules, process flows)",
+          "Data model defined",
+          "Every requirement traceable to a design element",
+          "Design reviewed and approved",
+          "Product baseline established"
+        ],
+        "next_actions": [
+          "Begin construction"
+        ]
+      }
     },
     {
-      "id": "implement",
-      "name": "Implementation - Code and build the solution",
-      "description": "Write code, implement features, and integrate system components",
-      "requiresEnhancedThinking": false
+      "id": "construct",
+      "name": "Construct — Realize the system through coding and integration",
+      "description": "Per the Wikipedia SDLC article, during construction (a.k.a. implementation, production), the system is realized. Based on the design, hardware and software components are created and integrated.\n\nThis phase includes testing sub-components and components and the integration of some components, but typically does not include testing at the complete system level. It may also include the development of training materials such as user manuals and help files.\n\nThis phase produces the updated product baseline. Focus on building what was designed — deviations from design should trigger a return to the design phase rather than ad hoc changes during construction.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Reference design documents, coding standards, and integration patterns from the knowledge graph",
+            "priority": "optional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Software and hardware components created per design specification",
+          "Sub-component and component testing completed",
+          "Component integration tested",
+          "Training materials developed (user manuals, help files)",
+          "Updated product baseline established",
+          "Code and build artifacts ready for system-level acceptance testing"
+        ],
+        "next_actions": [
+          "Proceed to acceptance testing"
+        ]
+      }
     },
     {
-      "id": "testing",
-      "name": "Testing - Verify functionality and quality",
-      "description": "Execute test plans to verify system meets requirements and quality standards",
-      "requiresEnhancedThinking": false
+      "id": "acceptance",
+      "name": "Acceptance — Test the complete system against customer expectations",
+      "description": "Per the Wikipedia SDLC article, the acceptance phase (a.k.a. system testing) is about testing the complete system to ensure that it meets customer expectations (requirements). This is distinct from the component-level and integration testing performed during construction.\n\nUser acceptance testing (UAT) validates that the system as a whole satisfies the requirements specification produced during requirements analysis. Every requirement should be verified. Defects found here may require returning to construction or even design for resolution.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Reference requirements specification and acceptance criteria from earlier phases",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Complete system tested end-to-end",
+          "Every requirement in the requirements specification verified",
+          "User acceptance testing (UAT) completed with customer participation",
+          "Critical defects resolved or documented with remediation plan",
+          "Acceptance decision recorded — system meets customer expectations",
+          "System approved for deployment"
+        ],
+        "next_actions": [
+          "Proceed to deployment"
+        ]
+      }
     },
     {
       "id": "deploy",
-      "name": "Deployment - Release to production",
-      "description": "Deploy system to production environment and configure for live use",
-      "requiresEnhancedThinking": false
+      "name": "Deploy — Deliver the system to users and transition to operational use",
+      "description": "Per the Wikipedia SDLC article, the deployment phase (a.k.a. implementation) involves the logistics of delivery to the customer. Some systems are deployed as a single instance (e.g. in the cloud) where deployment may be ad hoc and manual. Some systems are built in quantity and are associated with manufacturing processes and commissioning.\n\nThis phase may include training users to use the system and transitioning future development to support staff. The system moves from a development context to an operational context.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {},
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "System delivered to customer environment",
+          "Deployment logistics completed (installation, configuration, commissioning)",
+          "Users trained on system operation",
+          "Support staff transitioned for future development and maintenance",
+          "Monitoring and operational procedures established",
+          "System operational in production environment"
+        ],
+        "next_actions": [
+          "Transition to maintenance"
+        ]
+      }
     },
     {
       "id": "maintain",
-      "name": "Maintenance - Monitor and maintain the system",
-      "description": "Ongoing monitoring, bug fixes, updates, and system improvements\n\n🧠 ENHANCED THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nThink deeply about what long-term issues and evolution needs we might face. What maintenance patterns are we establishing?",
-      "requiresEnhancedThinking": true
+      "name": "Maintain — Support operations, resolve issues, and manage evolution",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia SDLC article, during the maintenance phase (a.k.a. operation, utilization, support), development is largely inactive although this phase does include customer support for resolving user issues and recording suggestions for improvement.\n\nFixes and enhancements are handled by returning to the first phase (conceptualization). For minor changes, the cycle may be significantly abbreviated compared to initial development.\n\nThink deeply about what patterns are emerging in support requests. What systemic issues indicate design limitations? When does a maintenance fix warrant a full cycle return to conceptualization versus an abbreviated cycle?",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Distinguishing between minor fixes (abbreviated cycle) and systemic issues (full return to conceptualization) requires judgment about root causes, technical debt accumulation, and system evolution trajectory",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Issue triage and root cause analysis",
+              "Enhancement request evaluation",
+              "Technical debt assessment",
+              "Evolution planning"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Document recurring issues, enhancement patterns, and evolution decisions as institutional knowledge for future lifecycle iterations",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "User issues resolved or escalated with documented resolution",
+          "Suggestions for improvement recorded and prioritized",
+          "Recurring issue patterns identified and analyzed",
+          "Decision made for each issue: abbreviated fix cycle vs. full return to conceptualization",
+          "System performance and health metrics reviewed",
+          "Evolution roadmap updated based on operational experience"
+        ],
+        "next_actions": [
+          "Return to conceptualization for enhancements requiring a full cycle",
+          "Continue maintenance for minor fixes",
+          "Proceed to decommission when system reaches end-of-life"
+        ]
+      }
+    },
+    {
+      "id": "decommission",
+      "name": "Decommission — Retire the system and manage end-of-life transition",
+      "description": "🧠 SEQUENTIAL THINKING REQUIRED: Use the SequentialThinking tool to work through this systematically.\n\nPer the Wikipedia SDLC article, decommission (a.k.a. disposition, retirement, phase-out) is when the system is removed from use, i.e. when it reaches end-of-life.\n\nThis phase requires careful planning to ensure data preservation, user migration, and orderly shutdown. Think deeply about what dependencies exist on this system. What data must be archived? What users or downstream systems need to be migrated? What is the transition plan to replacement systems or manual processes?\n\nDecommission is the natural terminus of every system's lifecycle. Planning for it early (even during conceptualization) leads to systems that are easier to retire gracefully.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "End-of-life decisions involve complex dependency analysis, data preservation requirements, migration planning, and stakeholder impact assessment — premature or poorly planned decommission can cause downstream failures",
+            "priority": "mandatory",
+            "estimated_thoughts": 4,
+            "focus_areas": [
+              "Dependency identification",
+              "Data preservation and archival",
+              "User and system migration",
+              "Transition planning"
+            ]
+          },
+          "WriteMemory": {
+            "reason": "Document decommission decisions, lessons learned, and archival locations as institutional memory for future reference",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "End-of-life decision documented with rationale",
+          "All system dependencies identified and addressed",
+          "Data preservation and archival completed",
+          "Users migrated to replacement systems or alternative processes",
+          "Downstream systems transitioned away from dependencies",
+          "System removed from operational use",
+          "Lessons learned documented for future system lifecycles"
+        ],
+        "next_actions": [
+          "Archive project documentation",
+          "Apply lessons learned to future conceptualization phases"
+        ]
+      }
     }
   ]
 }

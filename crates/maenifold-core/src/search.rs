@@ -4120,8 +4120,10 @@ fn build_snippet(content: &str, query_terms: &[String], query_slug: &str) -> Str
         .find_map(|term| lower.find(term))
         .or_else(|| lower.find(query_slug))
         .unwrap_or(0);
-    let start = index.saturating_sub(25);
-    let end = (index + 48).min(content.len());
+    // T-11.5: RTM FR-25.2 matches the C# snippet window with 20 characters of leading context
+    // and a 200-character total slice.
+    let start = index.saturating_sub(20);
+    let end = (start + 200).min(content.len());
     content.get(start..end).unwrap_or(content).to_string()
 }
 

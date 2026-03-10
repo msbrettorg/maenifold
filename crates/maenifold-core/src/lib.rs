@@ -18,6 +18,7 @@ pub mod paths;
 pub mod registry;
 pub mod search;
 pub mod sessions;
+pub mod thinking;
 pub mod tools;
 pub mod vector;
 pub mod watchers;

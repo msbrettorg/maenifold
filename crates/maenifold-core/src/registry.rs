@@ -7,6 +7,7 @@ use crate::json::OutputFormat;
 use crate::memory;
 use crate::search;
 use crate::sessions;
+use crate::thinking;
 use crate::tools::{self, ToolContext};
 use crate::watchers;
 use crate::workflow;
@@ -132,7 +133,8 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
     ToolDescriptor {
         name: "SequentialThinking",
         aliases: &["sequentialthinking"],
-        invoke: sessions::sequential_thinking,
+        // T-11.8: RTM FR-11 - route SequentialThinking through the extracted thinking module.
+        invoke: thinking::sequential_thinking,
     },
     ToolDescriptor {
         name: "Workflow",

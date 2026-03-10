@@ -144,14 +144,28 @@ impl Drop for PackagedAssetGuard {
 }
 
 #[test]
-fn list_memories_json_mode_still_returns_markdown_directory_listing() {
+// T-11.9: RTM FR-11.9 - JSON mode wraps output in envelope; markdown content lives in `data`
+fn list_memories_json_mode_returns_envelope_with_markdown_data() {
     let tmp = isolated_root();
 
-    maenifold_cmd(&tmp)
+    let output = maenifold_cmd(&tmp)
         .args(["--tool", "ListMemories", "--payload", "{}", "--json"])
         .assert()
         .code(0)
-        .stdout(predicate::str::starts_with("# Directory: /"));
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: Value = serde_json::from_slice(&output).expect("valid JSON envelope");
+    assert_eq!(json["success"], true, "success should be true");
+    assert!(
+        json["data"]
+            .as_str()
+            .expect("data is a string")
+            .starts_with("# Directory: /"),
+        "data should start with '# Directory: /'"
+    );
+    assert_eq!(json["error"], Value::Null, "error should be null");
 }
 
 #[test]

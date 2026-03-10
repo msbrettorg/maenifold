@@ -2,18 +2,15 @@ use crate::config::Config;
 use crate::db;
 use crate::error::{MaenifoldError, Result};
 use crate::json::{OutputFormat, success};
-use crate::markdown::{
-    Frontmatter, append_h2_section, extract_wikilinks, file_exists, read_markdown, uri_to_path,
-    write_markdown,
-};
+use crate::markdown::{Frontmatter, file_exists, read_markdown, uri_to_path, write_markdown};
 use crate::tools::ToolContext;
 use chrono::{DateTime, Datelike, TimeZone, Utc};
-use serde_json::{Value, json};
+use serde_json::Value;
 use serde_yaml::Value as YamlValue;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, UNIX_EPOCH};
 
 pub fn assumption_ledger(context: &ToolContext, payload: &Value) -> Result<String> {
     if payload

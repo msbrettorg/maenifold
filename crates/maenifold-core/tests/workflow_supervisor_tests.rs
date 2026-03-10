@@ -8,6 +8,7 @@ use maenifold_core::markdown::{
 use maenifold_core::search;
 use maenifold_core::sessions;
 use maenifold_core::tools::ToolContext;
+use maenifold_core::workflow;
 use maenifold_core::{AssetManager, Config, GraphDatabase};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
@@ -110,7 +111,7 @@ fn create_test_workflow(cfg: &Config, name: &str, step_count: usize) {
 }
 
 fn invoke_workflow(cfg: &Config, payload: serde_json::Value) -> String {
-    sessions::workflow(&tool_context(cfg), &payload).expect("workflow")
+    workflow::workflow(&tool_context(cfg), &payload).expect("workflow") // T-11.8: RTM FR-11.8
 }
 
 fn invoke_sync(cfg: &Config) -> String {

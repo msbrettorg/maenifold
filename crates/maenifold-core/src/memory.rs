@@ -19,6 +19,11 @@ const ABSOLUTE_PATH_ERROR: &str = "Absolute paths are not allowed. Use relative 
 const DOT_SEQUENCE_ERROR: &str = "Path traversal components (dot sequences) are not allowed.";
 
 pub fn write_memory(context: &ToolContext, payload: &Value) -> Result<String> {
+    if learn_requested(payload) {
+        // T-11.5: RTM FR-25.2 / NFR-1 short-circuits WriteMemory I/O with inline learn content.
+        return Ok(render_learn_help(context, memory_tool_help("WriteMemory")));
+    }
+
     let title = payload
         .get("title")
         .and_then(Value::as_str)
@@ -121,6 +126,11 @@ This ensures your note is connected to the knowledge graph and not orphaned.".to
 }
 
 pub fn read_memory(context: &ToolContext, payload: &Value) -> Result<String> {
+    if learn_requested(payload) {
+        // T-11.5: RTM FR-25.2 / NFR-1 short-circuits ReadMemory I/O with inline learn content.
+        return Ok(render_learn_help(context, memory_tool_help("ReadMemory")));
+    }
+
     let identifier = payload
         .get("identifier")
         .and_then(Value::as_str)
@@ -198,6 +208,11 @@ pub fn read_memory(context: &ToolContext, payload: &Value) -> Result<String> {
 }
 
 pub fn edit_memory(context: &ToolContext, payload: &Value) -> Result<String> {
+    if learn_requested(payload) {
+        // T-11.5: RTM FR-25.2 / NFR-1 short-circuits EditMemory I/O with inline learn content.
+        return Ok(render_learn_help(context, memory_tool_help("EditMemory")));
+    }
+
     let identifier = payload
         .get("identifier")
         .and_then(Value::as_str)
@@ -316,6 +331,11 @@ pub fn edit_memory(context: &ToolContext, payload: &Value) -> Result<String> {
 }
 
 pub fn delete_memory(context: &ToolContext, payload: &Value) -> Result<String> {
+    if learn_requested(payload) {
+        // T-11.5: RTM FR-25.2 / NFR-1 short-circuits DeleteMemory I/O with inline learn content.
+        return Ok(render_learn_help(context, memory_tool_help("DeleteMemory")));
+    }
+
     let identifier = payload
         .get("identifier")
         .and_then(Value::as_str)
@@ -372,6 +392,11 @@ pub fn delete_memory(context: &ToolContext, payload: &Value) -> Result<String> {
 }
 
 pub fn move_memory(context: &ToolContext, payload: &Value) -> Result<String> {
+    if learn_requested(payload) {
+        // T-11.5: RTM FR-25.2 / NFR-1 short-circuits MoveMemory I/O with inline learn content.
+        return Ok(render_learn_help(context, memory_tool_help("MoveMemory")));
+    }
+
     let source = payload
         .get("source")
         .and_then(Value::as_str)
@@ -582,6 +607,41 @@ struct DecayMetadata {
     decay_weight: f64,
 }
 
+fn learn_requested(payload: &Value) -> bool {
+    payload
+        .get("learn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+}
+
+fn render_learn_help(context: &ToolContext, help: &str) -> String {
+    match context.output_format {
+        OutputFormat::Json => success(help),
+        OutputFormat::Markdown => help.to_string(),
+    }
+}
+
+fn memory_tool_help(tool_name: &str) -> &'static str {
+    match tool_name {
+        "WriteMemory" => {
+            "WriteMemory creates a new memory note and indexes it into the knowledge graph.\n\nParameters:\n- title (string, required): title for the memory file\n- content (string, required): markdown body that must include at least one [[WikiLink]]\n- folder (string, optional): relative folder under the memory root\n- tags (string[], optional): tags stored in frontmatter\n- learn (bool, optional): when true, returns this help text instead of writing a file\n\nUsage examples:\n- {\"title\":\"Azure Savings Plans\",\"content\":\"Learning about [[Azure Savings Plans]] and [[Commitment Discounts]]\"}\n- {\"title\":\"Team Notes\",\"content\":\"# Team Notes\\n\\nCaptured [[Decisions]]\",\"folder\":\"projects/cloud\",\"tags\":[\"finops\",\"research\"]}"
+        }
+        "ReadMemory" => {
+            "ReadMemory loads a memory note by URI or exact title and optionally returns its checksum.\n\nParameters:\n- identifier (string, required): memory URI or exact title\n- includeChecksum (bool, optional, default true): include checksum for safe edits\n- learn (bool, optional): when true, returns this help text instead of reading a file\n\nUsage examples:\n- {\"identifier\":\"memory://projects/cloud/azure-savings-plans\"}\n- {\"identifier\":\"Azure Savings Plans\",\"includeChecksum\":false}"
+        }
+        "EditMemory" => {
+            "EditMemory updates an existing memory note while preserving WikiLink connectivity.\n\nParameters:\n- identifier (string, required): memory URI or exact title\n- operation (string, required): append | prepend | find_replace | replace_section\n- content (string, required): new content; append/prepend/replace_section content must include at least one [[WikiLink]]\n- checksum (string, optional): optimistic concurrency checksum from ReadMemory\n- findText (string, required for find_replace): literal text to replace\n- expectedCount (integer, optional): expected match count for find_replace\n- sectionName (string, required for replace_section): heading text to replace\n- learn (bool, optional): when true, returns this help text instead of editing a file\n\nUsage examples:\n- {\"identifier\":\"memory://projects/cloud/azure-savings-plans\",\"operation\":\"append\",\"content\":\"\\n\\nAdded note about [[Reservations]].\"}\n- {\"identifier\":\"Azure Savings Plans\",\"operation\":\"find_replace\",\"findText\":\"old text\",\"content\":\"new text\",\"expectedCount\":1}"
+        }
+        "DeleteMemory" => {
+            "DeleteMemory removes an existing memory note after explicit confirmation.\n\nParameters:\n- identifier (string, required): memory URI or exact title\n- confirm (bool, required to delete): must be true to proceed\n- learn (bool, optional): when true, returns this help text instead of deleting a file\n\nUsage examples:\n- {\"identifier\":\"memory://archive/obsolete-note\",\"confirm\":true}\n- {\"identifier\":\"Obsolete Note\",\"confirm\":true}"
+        }
+        "MoveMemory" => {
+            "MoveMemory renames or relocates a memory note while preserving its memory:// destination format.\n\nParameters:\n- source (string, required): source memory URI or exact title\n- destination (string, required): destination URI or relative path/name\n- learn (bool, optional): when true, returns this help text instead of moving a file\n\nUsage examples:\n- {\"source\":\"memory://notes/tmp-note\",\"destination\":\"memory://projects/cloud/final-note\"}\n- {\"source\":\"Temporary Note\",\"destination\":\"projects/cloud/final-note.md\"}"
+        }
+        _ => "No help available for this memory tool.",
+    }
+}
+
 fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<String> {
     let path = assets_path
         .join("usage")
@@ -788,8 +848,9 @@ pub fn compute_decay_weight(
     let mut grace_period_days = grace_period_for_path(file_path, config);
     let mut half_life_days = config.decay_half_life_days();
     let normalized_path = normalize_decay_path(file_path, config);
+    let is_assumption_path = normalized_path.contains("/assumptions/");
     // T-7.8: RTM FR-7.8
-    if (normalized_path.contains("/assumptions/") || normalized_path.contains("/chat/"))
+    if (is_assumption_path || normalized_path.contains("/chat/"))
         && let Some(status) = status
     {
         match status.trim().to_ascii_lowercase().as_str() {
@@ -805,7 +866,14 @@ pub fn compute_decay_weight(
             _ => {}
         }
     }
-    let decay_function = config.decay_function();
+    // T-11.5: RTM FR-25.2 keeps assumption decay on the C# exponential path even when the
+    // global decay function is configured to power-law.
+    // T-11.4: RTM FR-17.9 - keep assumption-path decay overrides type-consistent for release builds.
+    let decay_function = if is_assumption_path {
+        "exponential".to_string()
+    } else {
+        config.decay_function()
+    };
 
     let Some(reference_date) = last_accessed.and_then(parse_datetime) else {
         return 1.0;
@@ -888,43 +956,53 @@ fn get_decay_weight_for_file_with_connection(
 
                 emit_degraded_decay_diagnostic(
                     "GetDecayWeightForFile(reuse-conn)",
-                    "Malformed file_content.created timestamp; using current UTC as degraded fallback",
+                    "Malformed file_content.created timestamp; trying frontmatter created date from disk",
                     file_identifier,
                     config,
                 );
-                let now = Utc::now().to_rfc3339();
-                return compute_decay_weight(
+                return get_decay_weight_from_disk_with_status(
                     file_identifier,
-                    Some(&now),
                     config,
                     status.as_deref(),
                 );
             }
 
-            let now = Utc::now().to_rfc3339();
-            compute_decay_weight(file_identifier, Some(&now), config, status.as_deref())
+            // T-11.5: RTM FR-25.2 falls back to frontmatter `created` metadata when DB timestamps
+            // are absent, matching the C# decay calculator.
+            get_decay_weight_from_disk_with_status(file_identifier, config, status.as_deref())
         }
         Ok(None) | Err(_) => get_decay_weight_from_disk(file_identifier, config),
     }
 }
 
-// T-QUAL-002.6a: RTM FR-25.2
-fn get_decay_weight_from_disk(file_identifier: &str, config: &crate::config::Config) -> f64 {
-    let path = if file_identifier.starts_with("memory://") {
+fn resolve_decay_file_path(
+    file_identifier: &str,
+    config: &crate::config::Config,
+) -> Result<PathBuf> {
+    if file_identifier.starts_with("memory://") {
         crate::markdown::uri_to_path(file_identifier, &config.memory_path)
     } else {
         Ok(PathBuf::from(file_identifier))
-    };
+    }
+}
 
-    match path.and_then(|path| {
-        read_created_date(&path).map(|created| {
-            (
-                path,
-                compute_decay_weight(file_identifier, Some(&created.to_rfc3339()), config, None),
-            )
-        })
-    }) {
-        Ok((_, decay_weight)) => decay_weight,
+fn read_created_date_for_identifier(
+    file_identifier: &str,
+    config: &crate::config::Config,
+) -> Result<DateTime<Utc>> {
+    let path = resolve_decay_file_path(file_identifier, config)?;
+    read_created_date(&path)
+}
+
+fn get_decay_weight_from_disk_with_status(
+    file_identifier: &str,
+    config: &crate::config::Config,
+    status: Option<&str>,
+) -> f64 {
+    match read_created_date_for_identifier(file_identifier, config) {
+        Ok(created) => {
+            compute_decay_weight(file_identifier, Some(&created.to_rfc3339()), config, status)
+        }
         Err(_) => {
             emit_degraded_decay_diagnostic(
                 "GetDecayWeightFromDisk",
@@ -935,6 +1013,11 @@ fn get_decay_weight_from_disk(file_identifier: &str, config: &crate::config::Con
             1.0
         }
     }
+}
+
+// T-QUAL-002.6a: RTM FR-25.2
+fn get_decay_weight_from_disk(file_identifier: &str, config: &crate::config::Config) -> f64 {
+    get_decay_weight_from_disk_with_status(file_identifier, config, None)
 }
 
 fn emit_degraded_decay_diagnostic(
@@ -1007,7 +1090,13 @@ fn emit_stderr_line(message: &str) {
 
 fn grace_period_for_path(file_path: &str, config: &crate::config::Config) -> i64 {
     let normalized = normalize_decay_path(file_path, config);
-    if normalized.contains("/thinking/sequential/") {
+    // T-11.5: RTM FR-25.2 aligns sequential-style grace periods with the C# compaction and
+    // standalone /sequential/ path checks.
+    if normalized.contains("/thinking/sequential/")
+        || normalized.contains("/sequential/")
+        || normalized.contains("/thinking/compaction/")
+        || normalized.contains("/compaction/")
+    {
         return config.decay_grace_days_sequential();
     }
     if normalized.contains("/thinking/workflow/") || normalized.contains("/thinking/workflows/") {

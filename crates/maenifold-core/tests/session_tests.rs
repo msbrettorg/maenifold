@@ -2,7 +2,7 @@
 
 use chrono::{Datelike, TimeZone, Utc};
 use maenifold_core::json::OutputFormat;
-use maenifold_core::markdown::{Frontmatter, read_markdown};
+use maenifold_core::markdown::{Frontmatter, read_markdown, write_markdown};
 use maenifold_core::sessions::{
     validate_assumption_append_input, validate_assumption_read_input, validate_assumption_status,
     validate_assumption_update_input,
@@ -47,6 +47,10 @@ impl TestHarness {
     fn read(&self, uri: &str) -> (Frontmatter, String) {
         let (frontmatter, content, _) = read_markdown(uri, &self.config).expect("read markdown");
         (frontmatter.expect("frontmatter"), content)
+    }
+
+    fn write(&self, uri: &str, frontmatter: &Frontmatter, content: &str) {
+        write_markdown(uri, Some(frontmatter), content, &self.config).expect("write markdown");
     }
 
     fn create_workflow_session(&self) -> String {
@@ -261,6 +265,33 @@ fn new_session_with_parent_workflow_id_creates_bidirectional_links() {
             .iter()
             .any(|value| value.contains(&session_id))
     );
+}
+
+#[test]
+fn new_session_with_closed_parent_workflow_returns_error() {
+    let harness = TestHarness::new();
+    let parent_session_id = harness.create_workflow_session();
+    let parent_uri = session_uri("workflow", &parent_session_id);
+    let (mut parent_frontmatter, parent_content) = harness.read(&parent_uri);
+    parent_frontmatter.insert(
+        "status".to_string(),
+        YamlValue::String("completed".to_string()),
+    );
+    harness.write(&parent_uri, &parent_frontmatter, &parent_content);
+
+    let result = harness.invoke_markdown(
+        "SequentialThinking",
+        json!({
+            "response": "Thinking within closed [[workflow-state]].",
+            "nextThoughtNeeded": true,
+            "thoughtNumber": 0,
+            "totalThoughts": 2,
+            "parentWorkflowId": parent_session_id
+        }),
+    );
+
+    assert!(result.starts_with("ERROR:"));
+    assert!(result.contains("is completed"));
 }
 
 #[test]
@@ -618,12 +649,30 @@ fn continue_session_with_nonexistent_session_id_returns_error() {
             "nextThoughtNeeded": true,
             "thoughtNumber": 1,
             "totalThoughts": 3,
-            "sessionId": "session-9999999999999"
+            "sessionId": "session-9999999999999-12345"
         }),
     );
 
     assert!(result.starts_with("ERROR:"));
     assert!(result.contains("missing"));
+}
+
+#[test]
+fn continue_session_with_invalid_session_id_returns_error() {
+    let harness = TestHarness::new();
+    let result = harness.invoke_markdown(
+        "SequentialThinking",
+        json!({
+            "response": "Thought with [[session-validation]].",
+            "nextThoughtNeeded": true,
+            "thoughtNumber": 1,
+            "totalThoughts": 3,
+            "sessionId": "session-9999999999999"
+        }),
+    );
+
+    assert!(result.starts_with("ERROR:"));
+    assert!(result.contains("Invalid sessionId format"));
 }
 
 #[test]
@@ -750,6 +799,7 @@ fn read_assumption_returns_correct_content() {
         json!({
             "action": "append",
             "assumption": "Test assumption for reading",
+            "validationPlan": "Verify with [[test-concept]] follow-up",
             "concepts": ["test-concept"]
         }),
     );
@@ -763,8 +813,12 @@ fn read_assumption_returns_correct_content() {
         }),
     );
 
-    assert!(result.starts_with("📋 **Assumption**:"));
+    assert!(result.starts_with(&format!("📋 **Assumption**: {uri}")));
     assert!(result.contains("**Status**: active"));
+    assert!(result.contains("**Created**:"));
+    assert!(result.contains("**Modified**:"));
+    assert!(result.contains("**Validation Plan**: Verify with [[test-concept]] follow-up"));
+    assert!(result.contains("## Content"));
     assert!(result.contains("Test assumption for reading"));
     assert!(result.contains("[[test-concept]]"));
 }
@@ -805,6 +859,41 @@ fn update_assumption_changes_status() {
 
     assert!(read_result.contains("**Status**: validated"));
     assert!(read_result.contains("Test validation complete"));
+}
+
+#[test]
+fn update_assumption_persists_validation_plan() {
+    let harness = TestHarness::new();
+    let create_result = harness.invoke_markdown(
+        "AssumptionLedger",
+        json!({
+            "action": "append",
+            "assumption": "Test assumption for validation plan updates",
+            "concepts": ["test-update"]
+        }),
+    );
+    let uri = extract_memory_uri(&create_result);
+
+    let update_result = harness.invoke_markdown(
+        "AssumptionLedger",
+        json!({
+            "action": "update",
+            "uri": uri,
+            "validationPlan": "Confirm via [[test-update]] review"
+        }),
+    );
+
+    assert!(update_result.starts_with("✅ Assumption updated at"));
+
+    let read_result = harness.invoke_markdown(
+        "AssumptionLedger",
+        json!({
+            "action": "read",
+            "uri": uri
+        }),
+    );
+
+    assert!(read_result.contains("**Validation Plan**: Confirm via [[test-update]] review"));
 }
 
 #[test]

@@ -4,7 +4,8 @@ use crate::db;
 use crate::error::{MaenifoldError, Result};
 use crate::json::{OutputFormat, failure, success};
 use crate::markdown::{
-    Frontmatter, append_h2_section, extract_wikilinks, file_exists, read_markdown, write_markdown,
+    Frontmatter, append_h2_section, extract_wikilinks, file_exists, read_markdown, uri_to_path,
+    write_markdown,
 };
 use crate::tools::ToolContext;
 use chrono::{DateTime, Datelike, TimeZone, Utc};
@@ -68,6 +69,15 @@ pub fn sequential_thinking(context: &ToolContext, payload: &Value) -> Result<Str
         .map(str::to_string)
         .unwrap_or_else(generate_sequential_session_id);
 
+    // T-11.4: RTM FR-17.9 - validate provided sequential session IDs before deriving storage paths.
+    if session_id_provided && !is_valid_session_id(&session_id) {
+        let message = format!("Invalid sessionId format: {session_id}");
+        return Ok(match context.output_format {
+            OutputFormat::Json => failure("INVALID_SESSION_ID", &message),
+            OutputFormat::Markdown => format!("ERROR: {message}"),
+        });
+    }
+
     if !cancel && thought_number > 0 && payload.get("sessionId").is_none() {
         // T-1.6: RTM NFR-1 - follow-on thoughts require an existing session.
         let message = format!("Session {session_id} missing. Start with thoughtNumber=0.");
@@ -117,6 +127,23 @@ pub fn sequential_thinking(context: &ToolContext, payload: &Value) -> Result<Str
             let message = format!("Parent workflow '{parent_workflow_id}' not found");
             return Ok(match context.output_format {
                 OutputFormat::Json => failure("PARENT_WORKFLOW_NOT_FOUND", &message),
+                OutputFormat::Markdown => format!("ERROR: {message}"),
+            });
+        }
+
+        // T-11.4: RTM FR-17.9 - reject closed parent workflows before linking sequential thoughts.
+        let (parent_frontmatter, _, _) = read_markdown(&parent_uri, &context.config)?;
+        let parent_frontmatter = parent_frontmatter.unwrap_or_default();
+        let parent_status = frontmatter_string(&parent_frontmatter, "status");
+        let normalized_parent_status = parent_status.trim().to_ascii_lowercase();
+        if ["completed", "cancelled", "abandoned"]
+            .iter()
+            .any(|closed| *closed == normalized_parent_status)
+        {
+            let message =
+                format!("Parent workflow {parent_workflow_id} is {normalized_parent_status}");
+            return Ok(match context.output_format {
+                OutputFormat::Json => failure("PARENT_WORKFLOW_CLOSED", &message),
                 OutputFormat::Markdown => format!("ERROR: {message}"),
             });
         }
@@ -423,12 +450,12 @@ pub fn assumption_ledger(context: &ToolContext, payload: &Value) -> Result<Strin
 }
 
 pub fn cleanup_abandoned_sessions(config: &Config) -> Result<usize> {
-    // T-10.9: RTM FR-15
+    // T-11.2: RTM FR-15
     let abandonment_minutes = std::env::var("MAENIFOLD_SESSION_ABANDON_MINUTES")
         .ok()
         .and_then(|value| value.trim().parse::<i64>().ok())
         .filter(|value| *value > 0)
-        .unwrap_or(120);
+        .unwrap_or(30);
     let cleanup_started_at = now_iso8601_roundtrip();
     let cleanup_display_time = Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
     let connection = db::open_connection(&config.database_path)?;
@@ -621,6 +648,15 @@ fn append_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
         "confidence".to_string(),
         YamlValue::String(confidence.to_string()),
     );
+    // T-11.4: RTM FR-17.9 - persist lifecycle timestamps for assumption ledger parity reads.
+    frontmatter.insert(
+        "created".to_string(),
+        YamlValue::String(now.to_rfc3339_opts(chrono::SecondsFormat::Nanos, true)),
+    );
+    frontmatter.insert(
+        "modified".to_string(),
+        YamlValue::String(now.to_rfc3339_opts(chrono::SecondsFormat::Nanos, true)),
+    );
     if let Some(context_text) = context_text.filter(|value| !value.trim().is_empty()) {
         frontmatter.insert(
             "context".to_string(),
@@ -661,6 +697,10 @@ fn update_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
     let status = payload.get("status").and_then(Value::as_str);
     let notes = payload.get("notes").and_then(Value::as_str);
     let confidence = payload.get("confidence").and_then(Value::as_str);
+    let validation_plan = payload
+        .get("validationPlan")
+        .and_then(Value::as_str)
+        .or_else(|| payload.get("validation_plan").and_then(Value::as_str));
 
     if let Some(message) = validate_assumption_update_input(uri, status) {
         return Ok(message);
@@ -687,6 +727,17 @@ fn update_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
             YamlValue::String(confidence.trim().to_string()),
         );
     }
+    // T-11.4: RTM FR-17.9 - preserve validation_plan updates from either casing variant.
+    if let Some(validation_plan) = validation_plan.filter(|value| !value.trim().is_empty()) {
+        frontmatter.insert(
+            "validation_plan".to_string(),
+            YamlValue::String(validation_plan.trim().to_string()),
+        );
+    }
+    frontmatter.insert(
+        "modified".to_string(),
+        YamlValue::String(now_iso8601_roundtrip()),
+    );
 
     if let Some(notes) = notes.filter(|value| !value.trim().is_empty()) {
         if !updated_content.ends_with('\n') {
@@ -725,21 +776,24 @@ fn read_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
 
     let (frontmatter, content, _) = read_markdown(uri, &context.config)?;
     let frontmatter = frontmatter.unwrap_or_default();
-    let statement = content
-        .lines()
-        .find_map(|line| line.strip_prefix("# Assumption: "))
-        .unwrap_or("Unknown assumption");
+    let path = uri_to_path(uri, &context.config.memory_path)?;
     let status = frontmatter_string(&frontmatter, "status");
     let confidence = frontmatter_string(&frontmatter, "confidence");
     let context_text = frontmatter_string(&frontmatter, "context");
+    let created = frontmatter_timestamp_or_mtime(&frontmatter, "created", &path);
+    let modified = frontmatter_timestamp_or_mtime(&frontmatter, "modified", &path);
+    let validation_plan = frontmatter_string(&frontmatter, "validation_plan");
 
     let mut output = format!(
-        "📋 **Assumption**: {statement}\n\n**Status**: {status}\n**Confidence**: {confidence}"
+        "📋 **Assumption**: {uri}\n\n**Status**: {status}\n**Confidence**: {confidence}\n**Created**: {created}\n**Modified**: {modified}"
     );
     if !context_text.is_empty() {
         output.push_str(&format!("\n**Context**: {context_text}"));
     }
-    output.push_str("\n\n");
+    if !validation_plan.is_empty() {
+        output.push_str(&format!("\n**Validation Plan**: {validation_plan}"));
+    }
+    output.push_str("\n\n## Content\n\n");
     output.push_str(&content);
     Ok(output)
 }
@@ -1695,14 +1749,28 @@ fn display_utc_now() -> String {
 }
 
 fn date_parts_from_session_id(session_id: &str) -> (i32, u32, u32) {
-    let millis = session_id
-        .split('-')
-        .nth(1)
-        .and_then(|part| part.parse::<i64>().ok());
+    let millis = extract_session_timestamp_millis(session_id);
     let timestamp = millis
         .and_then(|value| Utc.timestamp_millis_opt(value).single())
         .unwrap_or_else(Utc::now);
     (timestamp.year(), timestamp.month(), timestamp.day())
+}
+
+fn extract_session_timestamp_millis(session_id: &str) -> Option<i64> {
+    let mut parts = session_id.splitn(3, '-');
+    let prefix = parts.next()?;
+    let timestamp = parts.next()?;
+    let suffix = parts.next()?;
+    if prefix.trim().is_empty() || suffix.trim().is_empty() {
+        return None;
+    }
+    let millis = timestamp.parse::<i64>().ok()?;
+    Utc.timestamp_millis_opt(millis).single()?;
+    Some(millis)
+}
+
+fn is_valid_session_id(session_id: &str) -> bool {
+    extract_session_timestamp_millis(session_id).is_some()
 }
 
 fn generate_sequential_session_id() -> String {
@@ -1721,6 +1789,22 @@ fn generate_workflow_session_id() -> String {
 
 fn now_iso8601_roundtrip() -> String {
     Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Nanos, true)
+}
+
+fn frontmatter_timestamp_or_mtime(frontmatter: &Frontmatter, key: &str, path: &Path) -> String {
+    let value = frontmatter_string(frontmatter, key);
+    if !value.is_empty() {
+        return value;
+    }
+
+    fs::metadata(path)
+        .ok()
+        .and_then(|metadata| metadata.modified().ok())
+        .map(|modified| {
+            let modified: DateTime<Utc> = modified.into();
+            modified.to_rfc3339_opts(chrono::SecondsFormat::Nanos, true)
+        })
+        .unwrap_or_default()
 }
 
 fn parse_indexed_timestamp(value: &str) -> Option<DateTime<Utc>> {

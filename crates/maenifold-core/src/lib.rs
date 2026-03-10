@@ -1,3 +1,6 @@
+#![warn(clippy::too_many_lines)]
+#![warn(clippy::cognitive_complexity)]
+
 pub mod assets;
 pub mod benchmark;
 pub mod cli;

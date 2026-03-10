@@ -103,14 +103,8 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
 
     let query_slug = slugify_query(query);
     let query_terms = tokenize_query(query);
-    let mut text_results: Vec<(
-        String,
-        f64,
-        String,
-        String,
-        Option<String>,
-        Option<String>,
-    )> = Vec::new();
+    let mut text_results: Vec<(String, f64, String, String, Option<String>, Option<String>)> =
+        Vec::new();
 
     // T-11.18: RTM FR-13 — SearchMemories now runs the text pipeline independently from vector
     // search so Reciprocal Rank Fusion can match the C# oracle architecture.
@@ -1344,7 +1338,6 @@ fn flush_relation_counts(
     }
 }
 
-
 pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Result<String> {
     let identifier = payload
         .get("identifier")
@@ -1371,7 +1364,6 @@ pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Res
     }
     Ok(output.trim_end().to_string())
 }
-
 
 #[derive(Debug)]
 struct RepairEdit {
@@ -2810,7 +2802,8 @@ fn query_vec_memory_files(
          WHERE embedding IS NOT NULL",
     );
     if folder_prefix.is_some() {
-        sql.push_str(" AND file_path LIKE ?2 || '%'");
+        // T-11.18-folder: RTM FR-13 — constrain vector folder filtering to exact prefix or children.
+        sql.push_str(" AND (file_path = ?2 OR file_path LIKE ?2 || '/%')");
     }
     sql.push_str(" ORDER BY distance LIMIT ?");
     sql.push_str(if folder_prefix.is_some() { "3" } else { "2" });
@@ -2833,8 +2826,9 @@ fn query_vec_memory_files(
         }
     };
 
-    let mut rows = match statement.query(params_from_iter(params_vec.iter().map(|param| param.as_ref())))
-    {
+    let mut rows = match statement.query(params_from_iter(
+        params_vec.iter().map(|param| param.as_ref()),
+    )) {
         Ok(rows) => rows,
         Err(error) => {
             let error = MaenifoldError::from(error);

@@ -64,6 +64,20 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
         .map(str::trim)
         .filter(|folder| !folder.is_empty())
         .map(|folder| format!("memory://{}", folder.trim_matches('/')));
+    // T-11.6: RTM FR-13 preserves [[search]] parity by honoring SearchMemories tag filters.
+    let requested_tags = payload
+        .get("tags")
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|tag| !tag.is_empty())
+                .map(|tag| tag.to_ascii_lowercase())
+                .collect::<Vec<_>>()
+        })
+        .filter(|tags| !tags.is_empty());
 
     GraphDatabase::initialize_database(&context.config)?;
     let connection = db::open_connection(&context.config.database_path)?;
@@ -209,6 +223,21 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
     } else {
         "fusedScore"
     };
+
+    let mut results = results;
+    if let Some(tags) = requested_tags.as_deref() {
+        let mut filtered_results = Vec::with_capacity(results.len());
+        for result in results {
+            let Some(path) = result.get("path").and_then(Value::as_str) else {
+                continue;
+            };
+            // T-11.6: RTM FR-13 matches the C# tag filter by excluding unreadable or mismatched files.
+            if file_matches_all_tags(context, path, tags)? {
+                filtered_results.push(result);
+            }
+        }
+        results = filtered_results;
+    }
 
     let results = results
         .into_iter()
@@ -2394,6 +2423,13 @@ fn with_similarity_next_steps(message: impl Into<String>) -> String {
     )
 }
 
+#[derive(Debug, Clone)]
+struct SimilarConceptMatch {
+    concept: String,
+    distance: f64,
+    similarity: f64,
+}
+
 fn normalize_find_similar_validation_input(input: &str) -> String {
     input
         .chars()
@@ -2486,6 +2522,8 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
     if concept_name.len() > 256 {
         return Ok("ERROR: conceptName must be 256 characters or fewer".to_string());
     }
+    let original_concept_name = concept_name.to_string();
+    let low_info_query = concept_name.chars().count() < 2;
     let validation_input = normalize_find_similar_validation_input(concept_name);
     if validation_input.contains('[') || validation_input.contains(']') {
         return Ok(with_similarity_next_steps(format!(
@@ -2537,11 +2575,14 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
                 concept_name
             )));
         }
+        let plateau_warning = similarity_plateau_warning(&original_concept_name, &vector_results);
 
         // T-GRAPH-DECAY-001.1: RTM FR-7.5
         let mut ranked_results = vector_results
             .into_iter()
-            .map(|(neighbor, similarity)| {
+            .map(|result| {
+                let neighbor = result.concept;
+                let similarity = result.similarity;
                 let decay_weight =
                     concept_decay_weight(&connection, &context.config, &neighbor).unwrap_or(1.0);
                 let weighted_similarity = similarity * decay_weight;
@@ -2567,6 +2608,16 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
                 "  • {} (similarity: {:.3})
 ",
                 neighbor, similarity
+            ));
+        }
+        if let Some(warning) = plateau_warning {
+            // T-11.6: RTM FR-13 surfaces collapsed vec0 distance plateaus without hiding results.
+            output.push_str(&format!("\n⚠️ {warning}\n"));
+        }
+        if low_info_query {
+            output.push_str(&format!(
+                "\n⚠️ conceptName '{}' is very short; similarity results may be noisy.\n",
+                original_concept_name
             ));
         }
         output.push_str(
@@ -2644,6 +2695,13 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
             "  • {} (similarity: {:.3})
 ",
             neighbor, similarity
+        ));
+    }
+    if low_info_query {
+        // T-11.6: RTM FR-13 warns when fallback similarity is driven by a very short query.
+        output.push_str(&format!(
+            "\n⚠️ conceptName '{}' is very short; similarity results may be noisy.\n",
+            original_concept_name
         ));
     }
     output.push_str(
@@ -3431,7 +3489,7 @@ fn query_vec_similar_concepts(
     assets_path: &Path,
     concept_name: &str,
     max_results: usize,
-) -> Result<Option<Vec<(String, f64)>>> {
+) -> Result<Option<Vec<SimilarConceptMatch>>> {
     let Some(extension_path) = vec0_extension_path(assets_path) else {
         return Ok(None);
     };
@@ -3451,11 +3509,28 @@ fn query_vec_similar_concepts(
     // T-8.3: RTM FR-33.2 — FindSimilarConcepts can probe [[embedding]] similarity even when
     // the query concept is not yet persisted in vec_concepts.
     let query_blob = match load_concept_embedding(connection, concept_name) {
-        Ok(Some(embedding)) if !embedding.is_empty() => vector::to_sqlite_vector_blob(&embedding),
+        Ok(Some(embedding))
+            if !embedding.is_empty() && embedding_is_valid_for_similarity_search(&embedding) =>
+        {
+            vector::to_sqlite_vector_blob(&embedding)
+        }
+        Ok(Some(_)) => {
+            return Err(MaenifoldError::InvalidArgument(
+                "unable to generate a valid embedding for conceptName".to_string(),
+            ));
+        }
         // T-8.5a: RTM FR-7.4 / FR-33.2 — on-the-fly query embedding failures must degrade
         // to graph-based fallback instead of crashing FindSimilarConcepts.
         Ok(_) => match vector::generate_embedding(concept_name) {
-            Ok(embedding) => vector::to_sqlite_vector_blob(&embedding),
+            // T-11.6: RTM FR-13 rejects near-zero embeddings before vec0 distance queries.
+            Ok(embedding) if embedding_is_valid_for_similarity_search(&embedding) => {
+                vector::to_sqlite_vector_blob(&embedding)
+            }
+            Ok(_) => {
+                return Err(MaenifoldError::InvalidArgument(
+                    "unable to generate a valid embedding for conceptName".to_string(),
+                ));
+            }
             Err(_) => return Ok(None),
         },
         Err(error) if is_vec_embedding_unavailable(&error) => return Ok(None),
@@ -3480,9 +3555,55 @@ fn query_vec_similar_concepts(
         // T-QUAL-FSC2: RTM FR-7.4
         // Clamp negative-distance drift so semantic similarity never exceeds 1.000.
         let similarity = (1.0 / (1.0 + distance.max(0.0))).clamp(0.0, 1.0);
-        results.push((neighbor, similarity));
+        results.push(SimilarConceptMatch {
+            concept: neighbor,
+            distance,
+            similarity,
+        });
     }
     Ok(Some(results))
+}
+
+fn embedding_is_valid_for_similarity_search(embedding: &[f32]) -> bool {
+    let expected_dims =
+        vector::embedding_dimensions().unwrap_or(vector::DEFAULT_EMBEDDING_DIMENSIONS);
+    if embedding.len() != expected_dims {
+        return false;
+    }
+
+    let mut sum_sq = 0.0_f64;
+    for value in embedding {
+        if !value.is_finite() {
+            return false;
+        }
+        let value = f64::from(*value);
+        sum_sq += value * value;
+    }
+
+    sum_sq >= 1e-12
+}
+
+fn similarity_plateau_warning(query: &str, results: &[SimilarConceptMatch]) -> Option<String> {
+    if results.len() < 2 {
+        return None;
+    }
+
+    let mean = results.iter().map(|result| result.distance).sum::<f64>() / results.len() as f64;
+    let variance = results
+        .iter()
+        .map(|result| {
+            let delta = result.distance - mean;
+            delta * delta
+        })
+        .sum::<f64>()
+        / results.len() as f64;
+
+    (variance <= 1e-9).then(|| {
+        format!(
+            "similarity plateau detected for '{}'; results may be degraded by collapsed embedding distances.",
+            query
+        )
+    })
 }
 
 fn classify_corruption_variant(concept: &str) -> &'static str {
@@ -4167,6 +4288,37 @@ fn frontmatter_title(frontmatter: &crate::markdown::Frontmatter) -> Option<Strin
         YamlValue::String(title) if !title.trim().is_empty() => Some(title.clone()),
         _ => None,
     })
+}
+
+fn frontmatter_tags(frontmatter: &crate::markdown::Frontmatter) -> BTreeSet<String> {
+    match frontmatter.get("tags") {
+        Some(YamlValue::Sequence(values)) => values
+            .iter()
+            .filter_map(YamlValue::as_str)
+            .map(str::trim)
+            .filter(|tag| !tag.is_empty())
+            .map(|tag| tag.to_ascii_lowercase())
+            .collect(),
+        Some(YamlValue::String(value)) if !value.trim().is_empty() => {
+            BTreeSet::from([value.trim().to_ascii_lowercase()])
+        }
+        _ => BTreeSet::new(),
+    }
+}
+
+fn file_matches_all_tags(
+    context: &ToolContext,
+    file_uri: &str,
+    required_tags: &[String],
+) -> Result<bool> {
+    let Ok((frontmatter, _, _)) = read_markdown(file_uri, &context.config) else {
+        return Ok(false);
+    };
+    let file_tags = frontmatter
+        .as_ref()
+        .map(frontmatter_tags)
+        .unwrap_or_default();
+    Ok(required_tags.iter().all(|tag| file_tags.contains(tag)))
 }
 
 fn fallback_display_title(file_identifier: &str) -> String {

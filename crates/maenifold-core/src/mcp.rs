@@ -80,9 +80,10 @@ impl ServerHandler for MaenifoldHandler {
         std::future::ready(
             match ToolRegistry::global().try_invoke(&tool_name, &arguments, OutputFormat::Json) {
                 Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
-                Err(err) => Ok(CallToolResult::error(vec![Content::text(format!(
-                    "Error invoking {tool_name}: {err}"
-                ))])),
+                // T-11.6: RTM FR-11 preserves raw validation diagnostics while prefixing internal failures.
+                Err(err) => Ok(CallToolResult::error(vec![Content::text(
+                    format_tool_error(&tool_name, &err),
+                )])),
             },
         )
     }
@@ -141,6 +142,28 @@ pub fn list_mcp_tools(registry: &ToolRegistry) -> Result<Vec<McpToolDefinition>>
         .into_iter()
         .map(mcp_tool_from_registry_name)
         .collect()
+}
+
+fn format_tool_error(tool_name: &str, err: &MaenifoldError) -> String {
+    if is_validation_error(err) {
+        err.to_string()
+    } else {
+        format!("Error invoking {tool_name}: {err}")
+    }
+}
+
+fn is_validation_error(err: &MaenifoldError) -> bool {
+    matches!(
+        err,
+        MaenifoldError::UnknownTool(_)
+            | MaenifoldError::InvalidPayload(_)
+            | MaenifoldError::InvalidArgument(_)
+            | MaenifoldError::InvalidResourceUri(_)
+            | MaenifoldError::AssetNotFound(_, _)
+            | MaenifoldError::PathTraversal(_)
+            | MaenifoldError::MissingProperty(_)
+            | MaenifoldError::Message(_)
+    )
 }
 
 fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpToolDefinition> {

@@ -2137,10 +2137,12 @@ fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
 
 pub(crate) fn is_vec_embedding_unavailable(error: &MaenifoldError) -> bool {
     // T-3.1c: RTM FR-6 / RTM-043
+    // T-11.18: RTM FR-13 — gracefully degrade when vec_memory_files has not been created yet.
     matches!(
         error,
         MaenifoldError::Sqlite(sqlite_error)
             if sqlite_error.to_string().contains("no such table: vec_concepts")
+                || sqlite_error.to_string().contains("no such table: vec_memory_files")
                 || sqlite_error.to_string().contains("no such module: vec0")
                 || sqlite_error.to_string().contains("unknown module: vec0")
                 || sqlite_error

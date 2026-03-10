@@ -122,7 +122,7 @@ Create `.github/workflows/release.yml`. Trigger: push tag `v*`. Matrix: `[{os: m
 ### T-9.6: Tests for dynamic model loading | RTM: FR-7, FR-8
 Boundary tests: model discovery picks largest *.onnx, dimensions read from model, tokenizer.json preferred, fallback to vocab.txt, no model = graceful degradation, vec0 recreation on dimension change.
 - **Files**: `crates/maenifold-core/tests/`
-- **Status**: pending
+- **Status**: done
 - **Depends on**: T-9.1, T-9.2, T-9.3
 
 ### T-9.7: Red-team audit Sprint 9 | RTM: all Sprint 9
@@ -179,17 +179,17 @@ Update `.github/workflows/build.yml` to run `cargo test` at workspace root inste
 ### T-10.9: Rename config env vars to match C# | RTM: FR-15
 Rename `MAENIFOLD_SESSION_ABANDONMENT_MINUTES` → `MAENIFOLD_SESSION_ABANDON_MINUTES` and `MAENIFOLD_ENABLE_INCREMENTAL_SYNC` → `MAENIFOLD_AUTO_SYNC`. Add reads for missing vars: `MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY` (default 40), `MAENIFOLD_INCREMENTAL_VACUUM_MINUTES` (default 720), `MAENIFOLD_SESSION_CLEANUP` (default true), `MAENIFOLD_SYNC_LOGGING` (default true), `MAENIFOLD_WATCHER_BUFFER` (default 65536), `MAENIFOLD_SQLITE_BUSY_TIMEOUT` (as env var, default 5000), `MAENIFOLD_EMBEDDING_LOGS` (default false), `MAENIFOLD_VECTOR_LOGS` (default false).
 - **Files**: `crates/maenifold-core/src/config.rs`, `crates/maenifold-core/src/sessions.rs`, `crates/maenifold-core/src/watchers.rs`, `crates/maenifold-core/src/db.rs`, `crates/maenifold-core/src/search.rs`, `crates/maenifold-core/src/vector.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-10.10: Fix RepairConcepts Mode B stub-acceptance | RTM: FR-17
 Remove all `if output.contains("not yet implemented")` bail-out paths from `repair_concepts_boundary.rs`. Replace with real assertions. If Mode B is not implemented, implement it.
 - **Files**: `crates/maenifold-core/tests/repair_concepts_boundary.rs`, `crates/maenifold-core/src/search.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-10.11: Add missing Sprint 9 RTM test coverage | RTM: FR-18
 Add boundary tests for: RTM-052 (tokenizer.json preferred), RTM-054 (max tokens default 512), RTM-058 (vec0 runtime dimensions), RTM-059 (vec0 recreation on dimension change).
 - **Files**: `crates/maenifold-core/tests/dynamic_model_tests.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-10.12: Update stale readme.md | RTM: FR-16
 Remove "still placeholder" section. Update tool surface to show 28/28. Update remaining gaps.
@@ -214,7 +214,7 @@ Copy `src/assets/integrations/claude-code/` directory from C# reference repo to 
 ### T-10.16: Fix WikiLink filter format to match C# | RTM: FR-19
 Change `WikiLinkFilter` in `markdown.rs` to read `.wikilink-filter.json` (JSON object format) instead of `.wikilink-filter` (line-based text). C# `WikiLinkFilter.cs` reads JSON where keys are concept names and values are block reasons. The Rust filter must match this format for shared-root compatibility. Update file path from `memory_path.join(".wikilink-filter")` to `memory_path.join(".wikilink-filter.json")`. Parse as JSON object. Keep mtime cache, symlink rejection, and normalize_concept logic. Update all tests that create `.wikilink-filter` fixtures to use JSON format.
 - **Files**: `crates/maenifold-core/src/markdown.rs`, `crates/maenifold-core/tests/wikilink_filter_unit_tests.rs`, `crates/maenifold-core/tests/wikilink_filter_integration_tests.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-10.17: Remove asset catalog cross-repo masking | RTM: FR-20
 Remove or gate `preferred_catalog_assets_root()` in `assets.rs` so it never falls through to a sibling C# repo's `src/assets/`. The function at line 578 hardcodes `../maenifold/src/assets` — this masks missing Rust assets during testing. Either remove the function entirely and always use the Rust repo's own `assets/` path, or gate it behind an explicit env var like `MAENIFOLD_CATALOG_OVERRIDE`. Update any callers.
@@ -226,9 +226,9 @@ Remove or gate `preferred_catalog_assets_root()` in `assets.rs` so it never fall
 ### T-10.18: Fix pre-existing MCP stdio test failures | RTM: NFR-3
 6 tests in `crates/maenifold-cli/tests/mcp_tests.rs` fail with `connection closed: initialized request`. Verified pre-existing via git bisect to before Sprint 10. Root cause: MCP stdio handshake protocol mismatch between test harness and rmcp-based server.
 - **Files**: `crates/maenifold-cli/tests/mcp_tests.rs`, `crates/maenifold-core/src/mcp.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-10.19: Fix pre-existing oracle parity test failures | RTM: NFR-1
 12 tests across `tests/compat/` fail against C# oracle. Verified pre-existing. Failures: read_memory_not_found, write_memory_validation_error, write_memory_path_security_error, read_catalog_json, build_context_json, search_memories_json, sequential_thinking_requires_zero, assumption_ledger_append, workflow_json, extract_concepts, find_similar_concepts, sync_json.
 - **Files**: `tests/compat/*.rs`
-- **Status**: pending
+- **Status**: done

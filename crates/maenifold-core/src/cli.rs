@@ -3,7 +3,9 @@ use crate::error::MaenifoldError;
 use crate::json::{OutputFormat, failure, from_str_safe, success};
 use crate::mcp::{self, MaenifoldMcpServer};
 use crate::registry::ToolRegistry;
-use serde_json::Value;
+use crate::tools::ToolContext;
+use crate::watchers;
+use serde_json::{Value, json};
 
 pub struct CliApp;
 
@@ -29,6 +31,10 @@ impl CliApp {
         let config = Config::current();
         if let Err(err) = mcp::initialize_runtime(&config) {
             eprintln!("Error initializing storage: {err}");
+            return 1;
+        }
+        if let Err(err) = start_mcp_watchers(&config) {
+            eprintln!("Error starting MCP watchers: {err}");
             return 1;
         }
 
@@ -119,6 +125,18 @@ impl CliApp {
             }
         }
     }
+}
+
+fn start_mcp_watchers(config: &Config) -> Result<(), MaenifoldError> {
+    // T-10.4: RTM FR-12 — mirror C# Program.cs by auto-starting incremental sync
+    // before entering MCP stdio mode when auto sync is enabled.
+    if config.enable_auto_sync() {
+        let context = ToolContext::new(config.clone(), OutputFormat::Markdown);
+        let payload = json!({ "debounceMs": 150 });
+        watchers::start_watcher(&context, &payload)?;
+    }
+
+    Ok(())
 }
 
 fn render_error(output_format: OutputFormat, tool_name: &str, err: MaenifoldError) -> String {

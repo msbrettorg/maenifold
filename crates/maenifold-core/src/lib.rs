@@ -8,6 +8,7 @@ pub mod community;
 pub mod config;
 pub mod db;
 pub mod error;
+pub mod graph;
 pub mod json;
 pub mod leader;
 pub mod markdown;
@@ -20,6 +21,7 @@ pub mod sessions;
 pub mod tools;
 pub mod vector;
 pub mod watchers;
+pub mod workflow;
 
 pub use assets::{AssetCatalog, AssetKind, AssetManager};
 pub use cli::CliApp;

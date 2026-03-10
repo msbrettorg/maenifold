@@ -2,12 +2,14 @@ use crate::assets;
 use crate::benchmark;
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
+use crate::graph;
 use crate::json::OutputFormat;
 use crate::memory;
 use crate::search;
 use crate::sessions;
 use crate::tools::{self, ToolContext};
 use crate::watchers;
+use crate::workflow;
 use once_cell::sync::Lazy;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -118,12 +120,14 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
     ToolDescriptor {
         name: "BuildContext",
         aliases: &["buildcontext"],
-        invoke: search::build_context,
+        // T-11.7: RTM FR-13 preserves graph tool routing after extracting handlers from search.rs.
+        invoke: graph::build_context,
     },
     ToolDescriptor {
         name: "Visualize",
         aliases: &["visualize"],
-        invoke: search::visualize,
+        // T-11.7: RTM FR-13 preserves graph tool routing after extracting handlers from search.rs.
+        invoke: graph::visualize,
     },
     ToolDescriptor {
         name: "SequentialThinking",
@@ -133,7 +137,7 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
     ToolDescriptor {
         name: "Workflow",
         aliases: &["workflow"],
-        invoke: sessions::workflow,
+        invoke: workflow::workflow,
     },
     ToolDescriptor {
         name: "RecentActivity",
@@ -181,7 +185,8 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
     ToolDescriptor {
         name: "FindSimilarConcepts",
         aliases: &["findsimilarconcepts"],
-        invoke: search::find_similar_concepts,
+        // T-11.7: RTM FR-13 preserves graph tool routing after extracting handlers from search.rs.
+        invoke: graph::find_similar_concepts,
     },
     ToolDescriptor {
         name: "StartWatcher",

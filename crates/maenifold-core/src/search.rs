@@ -172,9 +172,8 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
     // T-11.18: RTM FR-21 - filter tagged vector candidates before [[RRF]] fusion.
     if let Some(ref mut vec_results) = vector_results {
         if let Some(tags) = requested_tags.as_deref() {
-            vec_results.retain(|(path, _)| {
-                file_matches_all_tags(context, path, tags).unwrap_or(false)
-            });
+            vec_results
+                .retain(|(path, _)| file_matches_all_tags(context, path, tags).unwrap_or(false));
         }
     }
 

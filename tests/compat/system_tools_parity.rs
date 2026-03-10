@@ -5,7 +5,7 @@ mod compat_env;
 #[path = "../support/json_semantic.rs"]
 mod json_semantic;
 
-use cli_runner::{csharp_assets_dir, run_csharp_cli, run_rust_cli};
+use cli_runner::{run_csharp_cli, run_rust_cli};
 use compat_env::IsolatedRoot;
 use serde_json::Value;
 use std::env;
@@ -13,16 +13,9 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 const DEFAULT_CSHARP_PROJECT: &str =
     "/Users/brett/src/ma-collective/maenifold/src/Maenifold.csproj";
-
-fn write_memory_file(sandbox: &IsolatedRoot, relative: &str, content: &str) {
-    let path = sandbox.root_dir().join("memory").join(relative);
-    fs::create_dir_all(path.parent().expect("fixture parent")).expect("create fixture directories");
-    fs::write(path, content).expect("write fixture markdown");
-}
 
 fn require_csharp_oracle(test_name: &str) -> bool {
     match csharp_oracle_unavailable_reason() {
@@ -52,70 +45,11 @@ fn csharp_oracle_unavailable_reason() -> Option<String> {
     }
 }
 
-fn workspace_assets_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("assets")
-        .canonicalize()
-        .expect("workspace assets dir")
-}
-
 fn write_file(path: &Path, content: &str) -> io::Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
     fs::write(path, content)
-}
-
-fn unique_name(prefix: &str) -> String {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("clock")
-        .as_nanos();
-    format!("{prefix}-{nanos}-{}", std::process::id())
-}
-
-fn remove_file_if_present(path: &Path) {
-    if path.exists() {
-        let _ = fs::remove_file(path);
-    }
-}
-
-struct MirroredPackagedAssetGuard {
-    rust_path: PathBuf,
-    csharp_path: PathBuf,
-    file_name: String,
-}
-
-impl MirroredPackagedAssetGuard {
-    fn create(relative: &str, content: &str) -> io::Result<Self> {
-        let rust_path = workspace_assets_dir().join(relative);
-        let csharp_path = csharp_assets_dir().join(relative);
-        write_file(&rust_path, content)?;
-        write_file(&csharp_path, content)?;
-
-        let file_name = Path::new(relative)
-            .file_name()
-            .expect("fixture file name")
-            .to_string_lossy()
-            .into_owned();
-
-        Ok(Self {
-            rust_path,
-            csharp_path,
-            file_name,
-        })
-    }
-
-    fn file_name(&self) -> &str {
-        &self.file_name
-    }
-}
-
-impl Drop for MirroredPackagedAssetGuard {
-    fn drop(&mut self) {
-        remove_file_if_present(&self.rust_path);
-        remove_file_if_present(&self.csharp_path);
-    }
 }
 
 fn parse_json_envelope(stdout: &str) -> Value {
@@ -283,26 +217,36 @@ fn update_assets_dry_run_json_matches_csharp_oracle() {
         return;
     }
 
-    let sandbox = IsolatedRoot::new("update-assets-parity").expect("sandbox");
-    let relative = format!("roles/{}.json", unique_name("system-tools-parity-update-assets"));
-    let _fixture = MirroredPackagedAssetGuard::create(
-        &relative,
-        r#"{"id":"system-tools-parity-update-assets","name":"Parity Update Asset","version":2}"#,
-    )
-    .expect("create packaged fixture");
+    let csharp_sandbox = IsolatedRoot::new("update-assets-parity-csharp").expect("csharp sandbox");
+    let rust_sandbox = IsolatedRoot::new("update-assets-parity-rust").expect("rust sandbox");
+    let warm_args = ["--tool", "UpdateAssets", "--payload", r#"{"dryRun":true}"#, "--json"];
 
-    let args = [
-        "--tool",
-        "UpdateAssets",
-        "--payload",
-        r#"{"dryRun":true}"#,
-        "--json",
-    ];
+    let csharp_warm = run_csharp_cli(&warm_args, &csharp_sandbox).expect("warm csharp update-assets");
+    assert!(
+        csharp_warm.success(),
+        "C# warm UpdateAssets failed: {}",
+        csharp_warm.stderr
+    );
+    let rust_warm = run_rust_cli(&warm_args, &rust_sandbox).expect("warm rust update-assets");
+    assert!(
+        rust_warm.success(),
+        "Rust warm UpdateAssets failed: {}",
+        rust_warm.stderr
+    );
 
-    let csharp = run_csharp_cli(&args, &sandbox).expect("csharp update-assets");
+    // T-10.5: RTM FR-13 / RTM-076 — mutate the initialized runtime copy so both runtimes
+    // must detect the same packaged-vs-runtime drift for [[UpdateAssets]].
+    let relative = "colors/blue.json";
+    let mutated = r#"{"id":"blue","name":"Blue","mutated":true}"#;
+    write_file(&csharp_sandbox.root_dir().join("assets").join(relative), mutated)
+        .expect("mutate csharp runtime asset");
+    write_file(&rust_sandbox.root_dir().join("assets").join(relative), mutated)
+        .expect("mutate rust runtime asset");
+
+    let csharp = run_csharp_cli(&warm_args, &csharp_sandbox).expect("csharp update-assets");
     assert!(csharp.success(), "C# UpdateAssets failed: {}", csharp.stderr);
 
-    let rust = run_rust_cli(&args, &sandbox).expect("rust update-assets");
+    let rust = run_rust_cli(&warm_args, &rust_sandbox).expect("rust update-assets");
     assert!(rust.success(), "Rust UpdateAssets failed: {}", rust.stderr);
 
     let csharp_json = parse_json_envelope(&csharp.stdout);
@@ -339,6 +283,10 @@ fn update_assets_dry_run_json_matches_csharp_oracle() {
     assert!(
         summary.contains("This was a DRY RUN"),
         "expected dry-run summary text: {summary}"
+    );
+    assert!(
+        summary.contains(relative),
+        "expected mutated runtime asset in Rust summary: {summary}"
     );
     assert!(
         csharp_summary.contains("# Asset Update Summary"),

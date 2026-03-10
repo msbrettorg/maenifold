@@ -60,7 +60,8 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
         .get("debounceMs")
         .and_then(Value::as_u64)
         .or_else(read_debounce_ms_from_env)
-        .unwrap_or(500);
+        // T-11.2: RTM FR-15
+        .unwrap_or(150);
     let config = context.config.clone();
     let holder_id = generate_sync_holder_id();
 
@@ -259,10 +260,12 @@ fn process_pending_paths(config: &Config, holder_id: &str, paths: &[PathBuf]) ->
     let leader_election = LeaderElection::new(&config.database_path);
     // T-5.4: RTM FR-30.4 / FR-30.9
     let (lease_owned, reason, epoch) = if role == "leader" {
-        leader_election.force_acquire(holder_id, 60)?
+        // T-11.2: RTM FR-15
+        leader_election.force_acquire(holder_id, config.sync_lease_ms())?
     } else {
         // T-5.4: RTM FR-30.1
-        leader_election.try_acquire(holder_id, 60)?
+        // T-11.2: RTM FR-15
+        leader_election.try_acquire(holder_id, config.sync_lease_ms())?
     };
     // T-4.1: RTM FR-30.6
     if !lease_owned {

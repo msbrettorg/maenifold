@@ -230,7 +230,8 @@ fn maybe_warn_on_community_drift(
         .zip(communities.iter().copied())
         .collect::<BTreeMap<_, _>>();
     let nmi = compute_nmi(previous_assignments, &current_assignments);
-    let threshold = std::env::var("MAENIFOLD_COMMUNITY_NMI_DRIFT_THRESHOLD")
+    // T-11.2: RTM FR-15
+    let threshold = std::env::var("MAENIFOLD_NMI_THRESHOLD")
         .ok()
         .and_then(|value| value.parse::<f64>().ok())
         .unwrap_or(0.8);

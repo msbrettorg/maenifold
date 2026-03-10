@@ -1,11 +1,12 @@
 use crate::Result;
+use crate::config::Config;
 use crate::db;
 use rusqlite::{OptionalExtension, TransactionBehavior, params};
 use std::path::{Path, PathBuf};
 
 // T-8.5a: RTM FR-30.1 — Rust sync leader lease names must match C# production callers.
 const SYNC_LEASE_LOCK_NAME: &str = "sync_leader";
-const MAX_LEASE_DURATION_SECS: u64 = 300;
+const MIN_LEASE_DURATION_MS: u64 = 1_000;
 
 #[derive(Debug, Clone)]
 pub struct LeaderElection {
@@ -30,13 +31,13 @@ impl LeaderElection {
     pub fn try_acquire(
         &self,
         holder_id: &str,
-        lease_duration_secs: u64,
+        lease_duration_ms: u64,
     ) -> Result<(bool, &'static str, i64)> {
         let mut connection = db::open_connection(&self.db_path)?;
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let now_ms = current_time_ms();
         // T-8.1: RTM FR-30.3 / FR-30.4
-        let expires_at_ms = now_ms.saturating_add(lease_duration_ms(lease_duration_secs));
+        let expires_at_ms = now_ms.saturating_add(clamp_lease_duration_ms_i64(lease_duration_ms));
         let current = load_current_lease(&tx)?;
 
         let outcome = match current {
@@ -94,12 +95,12 @@ impl LeaderElection {
     pub fn force_acquire(
         &self,
         holder_id: &str,
-        lease_duration_secs: u64,
+        lease_duration_ms: u64,
     ) -> Result<(bool, &'static str, i64)> {
         let mut connection = db::open_connection(&self.db_path)?;
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let now_ms = current_time_ms();
-        let expires_at_ms = now_ms.saturating_add(lease_duration_ms(lease_duration_secs));
+        let expires_at_ms = now_ms.saturating_add(clamp_lease_duration_ms_i64(lease_duration_ms));
         let outcome = match load_current_lease(&tx)? {
             None => {
                 tx.execute(
@@ -150,11 +151,11 @@ impl LeaderElection {
     }
 
     // T-8.1: RTM FR-30.5 / FR-30.6
-    pub fn try_renew(&self, holder_id: &str, epoch: i64, lease_duration_secs: u64) -> Result<bool> {
+    pub fn try_renew(&self, holder_id: &str, epoch: i64, lease_duration_ms: u64) -> Result<bool> {
         let mut connection = db::open_connection(&self.db_path)?;
         let tx = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let now_ms = current_time_ms();
-        let expires_at_ms = now_ms.saturating_add(lease_duration_ms(lease_duration_secs));
+        let expires_at_ms = now_ms.saturating_add(clamp_lease_duration_ms_i64(lease_duration_ms));
         let renewed = match load_current_lease(&tx)? {
             Some(current)
                 if current.holder_id == holder_id
@@ -245,12 +246,13 @@ fn current_time_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
 }
 
-fn lease_duration_ms(lease_duration_secs: u64) -> i64 {
-    i64::try_from(clamp_lease_duration_secs(lease_duration_secs))
-        .unwrap_or(i64::MAX / 1000)
-        .saturating_mul(1000)
+// T-11.2: RTM FR-15
+fn clamp_lease_duration_ms_i64(lease_duration_ms: u64) -> i64 {
+    i64::try_from(clamp_lease_duration_ms(lease_duration_ms)).unwrap_or(i64::MAX)
 }
 
-fn clamp_lease_duration_secs(lease_duration_secs: u64) -> u64 {
-    lease_duration_secs.min(MAX_LEASE_DURATION_SECS)
+// T-11.2: RTM FR-15
+fn clamp_lease_duration_ms(lease_duration_ms: u64) -> u64 {
+    let configured_max = Config::current().sync_lease_ms();
+    lease_duration_ms.clamp(MIN_LEASE_DURATION_MS, configured_max)
 }

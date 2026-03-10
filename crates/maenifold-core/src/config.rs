@@ -147,6 +147,11 @@ impl Config {
     pub fn enable_vector_logs(&self) -> bool {
         env_bool("MAENIFOLD_VECTOR_LOGS", false)
     }
+
+    // T-11.2: RTM FR-15
+    pub fn sync_lease_ms(&self) -> u64 {
+        env_u64("MAENIFOLD_SYNC_LEASE_MS", 10_000).clamp(1_000, 60_000)
+    }
 }
 
 fn env_i64(name: &str, default: i64) -> i64 {
@@ -185,9 +190,14 @@ fn env_usize(name: &str, default: usize) -> usize {
         .unwrap_or(default)
 }
 
-fn env_bool(name: &str, default: bool) -> bool {
+// T-11.2: RTM FR-15
+pub(crate) fn env_bool(name: &str, default: bool) -> bool {
     env::var(name)
         .ok()
-        .map(|value| value.trim().eq_ignore_ascii_case("true") || value.trim() == "1")
+        .map(|value| match value.trim().to_ascii_lowercase().as_str() {
+            "1" | "true" | "yes" | "on" => true,
+            "0" | "false" | "no" | "off" => false,
+            _ => default,
+        })
         .unwrap_or(default)
 }

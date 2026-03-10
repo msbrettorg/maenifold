@@ -1,4 +1,5 @@
 use crate::community;
+use crate::config::env_bool;
 use crate::db::{self, GraphDatabase};
 use crate::error::{MaenifoldError, Result};
 use crate::json::{OutputFormat, success};
@@ -296,10 +297,11 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
     let holder_id = generate_sync_holder_id();
     let leader_election = LeaderElection::new(&context.config.database_path);
     let (lease_owned, _reason_code, epoch) = if configured_role == "leader" {
-        // T-4.6: RTM FR-30.4
-        leader_election.force_acquire(&holder_id, 60)?
+        // T-11.2: RTM FR-15
+        leader_election.force_acquire(&holder_id, context.config.sync_lease_ms())?
     } else {
-        leader_election.try_acquire(&holder_id, 60)?
+        // T-11.2: RTM FR-15
+        leader_election.try_acquire(&holder_id, context.config.sync_lease_ms())?
     };
     if !lease_owned && configured_role == "auto" {
         return Ok("Skipped: another process is leader".to_string());
@@ -3684,14 +3686,8 @@ Vector index verification:
 
 // T-QUAL-002.6b: RTM FR-25.2
 fn vector_sync_disabled_by_config() -> bool {
-    std::env::var("MAENIFOLD_DISABLE_VECTOR")
-        .map(|value| {
-            matches!(
-                value.trim().to_ascii_lowercase().as_str(),
-                "1" | "true" | "yes"
-            )
-        })
-        .unwrap_or(false)
+    // T-11.2: RTM FR-15
+    env_bool("MAENIFOLD_DISABLE_VECTOR", false)
 }
 
 // T-QUAL-002.6b: RTM FR-25.2

@@ -776,7 +776,7 @@ fn compute_nmi_returns_value_below_one_for_different_clusterings() {
 #[cfg(unix)]
 fn detect_and_persist_logs_warning_when_community_drift_exceeds_threshold() {
     let _guard = TEST_MUTEX.lock();
-    let _threshold = EnvVarGuard::set("MAENIFOLD_COMMUNITY_NMI_DRIFT_THRESHOLD", "0.95");
+    let _threshold = EnvVarGuard::set("MAENIFOLD_NMI_THRESHOLD", "0.95");
     let env = TestEnv::isolated();
     let conn = open_db(&env.cfg);
 

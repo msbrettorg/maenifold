@@ -655,7 +655,8 @@ fn render_config_markdown(context: &ToolContext) -> String {
             .and_then(|value| value.parse::<i64>().ok())
             .filter(|value| *value > 0)
             .unwrap_or(2_000),
-        std::env::var("MAENIFOLD_COMMUNITY_NMI_DRIFT_THRESHOLD")
+        // T-11.2: RTM FR-15
+        std::env::var("MAENIFOLD_NMI_THRESHOLD")
             .ok()
             .and_then(|value| value.parse::<f64>().ok())
             .filter(|value| value.is_finite())

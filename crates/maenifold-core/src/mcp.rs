@@ -762,7 +762,7 @@ fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpToolDefinition>
             object_schema(
                 vec![(
                     "debounceMs",
-                    integer_property_with_default("Debounce interval in milliseconds", json!(500)),
+                    integer_property_with_default("Debounce interval in milliseconds", json!(150)),
                 )],
                 &[],
             ),

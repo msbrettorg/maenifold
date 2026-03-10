@@ -1,12 +1,13 @@
-use crate::assets::AssetManager;
+use crate::assets::{AssetKind, AssetManager};
 use crate::config::Config;
 use crate::db::GraphDatabase;
 use crate::error::{MaenifoldError, Result};
 use crate::json::OutputFormat;
 use crate::registry::ToolRegistry;
 use rmcp::model::{
-    CallToolRequestParams, CallToolResult, Content, Implementation, ListToolsResult,
-    ServerCapabilities, ServerInfo, Tool,
+    AnnotateAble, CallToolRequestParams, CallToolResult, Content, Implementation,
+    ListResourcesResult, ListToolsResult, RawResource, ReadResourceRequestParams,
+    ReadResourceResult, Resource, ResourceContents, ServerCapabilities, ServerInfo, Tool,
 };
 use rmcp::{ServerHandler, ServiceExt};
 use serde::Serialize;
@@ -39,15 +40,21 @@ impl MaenifoldHandler {
 
 impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
+        // T-10.2: RTM FR-11 / RTM-068 — MCP initialize advertises native resources support.
         // T-5.1: RTM FR-22.1 — server info returned during MCP initialize handshake.
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-            .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
-            .with_instructions(
-                "Use maenifold tools to read, write, search, and organize memory files, \
+        ServerInfo::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .build(),
+        )
+        .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
+        .with_instructions(
+            "Use maenifold tools to read, write, search, and organize memory files, \
                  inspect graph relationships, and run workflow or thinking sessions. \
                  Prefer exact tool names from tools/list and pass JSON arguments that \
                  match each tool schema.",
-            )
+        )
     }
 
     // T-5.2: RTM FR-22.4 — tools/list returns all 28 tool schemas.
@@ -62,6 +69,46 @@ impl ServerHandler for MaenifoldHandler {
             next_cursor: None,
             meta: None,
         }))
+    }
+
+    // T-10.2: RTM FR-11 / RTM-069 — resources/list exposes discoverable asset URIs across all 4 types.
+    fn list_resources(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<ListResourcesResult, rmcp::ErrorData>> + Send + '_
+    {
+        std::future::ready(
+            current_asset_manager()
+                .and_then(list_asset_resources)
+                .map(|resources| ListResourcesResult {
+                    resources,
+                    next_cursor: None,
+                    meta: None,
+                })
+                .map_err(map_resource_error),
+        )
+    }
+
+    // T-10.2: RTM FR-11 / RTM-070 — resources/read resolves asset://{type}/{id} URIs to JSON payloads.
+    fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<ReadResourceResult, rmcp::ErrorData>> + Send + '_
+    {
+        std::future::ready(
+            current_asset_manager()
+                .and_then(|assets| assets.read_resource(&request.uri))
+                .and_then(|value| serde_json::to_string_pretty(&value).map_err(Into::into))
+                .map(|text| {
+                    ReadResourceResult::new(vec![
+                        ResourceContents::text(text, request.uri)
+                            .with_mime_type("application/json"),
+                    ])
+                })
+                .map_err(map_resource_error),
+        )
     }
 
     // T-5.1: RTM FR-22.1 — tools/call dispatches through ToolRegistry.
@@ -142,6 +189,71 @@ pub fn list_mcp_tools(registry: &ToolRegistry) -> Result<Vec<McpToolDefinition>>
         .into_iter()
         .map(mcp_tool_from_registry_name)
         .collect()
+}
+
+fn current_asset_manager() -> Result<AssetManager> {
+    let config = Config::current();
+    initialize_runtime(&config)?;
+    Ok(AssetManager::new(&config))
+}
+
+fn list_asset_resources(asset_manager: AssetManager) -> Result<Vec<Resource>> {
+    let mut resources = Vec::new();
+    for kind in AssetKind::all() {
+        let metadata = asset_manager.list_assets(Some(kind))?;
+        let Value::Array(items) = metadata else {
+            continue;
+        };
+        for item in items {
+            if let Some(resource) = resource_from_metadata(kind, item) {
+                resources.push(resource);
+            }
+        }
+    }
+    Ok(resources)
+}
+
+fn resource_from_metadata(kind: AssetKind, metadata: Value) -> Option<Resource> {
+    let object = metadata.as_object()?;
+    let id = object.get("id")?.as_str()?;
+    let name = object
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or(id)
+        .to_string();
+    let uri = asset_uri(kind, id);
+    let mut resource = RawResource::new(uri, name)
+        .with_mime_type("application/json")
+        .optional_annotate(None);
+    if let Some(title) = object.get("name").and_then(Value::as_str) {
+        resource.title = Some(title.to_string());
+    }
+    if let Some(description) = object.get("description").and_then(Value::as_str) {
+        resource.description = Some(description.to_string());
+    }
+    Some(resource)
+}
+
+fn asset_uri(kind: AssetKind, id: &str) -> String {
+    format!("asset://{}/{id}", kind.dir_name())
+}
+
+fn map_resource_error(err: MaenifoldError) -> rmcp::ErrorData {
+    match err {
+        // T-10.2: RTM FR-11 / RTM-070 — missing assets map to MCP resource-not-found.
+        MaenifoldError::AssetNotFound(kind, id) => {
+            rmcp::ErrorData::resource_not_found(format!("Asset not found: {kind}/{id}"), None)
+        }
+        // T-10.2: RTM FR-11 / RTM-069 / RTM-070 — malformed URIs stay invalid-params errors.
+        MaenifoldError::UnknownTool(_)
+        | MaenifoldError::InvalidPayload(_)
+        | MaenifoldError::InvalidArgument(_)
+        | MaenifoldError::InvalidResourceUri(_)
+        | MaenifoldError::PathTraversal(_)
+        | MaenifoldError::MissingProperty(_)
+        | MaenifoldError::Message(_) => rmcp::ErrorData::invalid_params(err.to_string(), None),
+        _ => rmcp::ErrorData::internal_error(err.to_string(), None),
+    }
 }
 
 fn format_tool_error(tool_name: &str, err: &MaenifoldError) -> String {
@@ -1048,7 +1160,36 @@ impl From<SchemaProperty> for Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use once_cell::sync::Lazy;
     use std::collections::BTreeSet;
+    use std::sync::Mutex;
+    use tempfile::TempDir;
+
+    static TEST_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+
+    struct TestRoot {
+        _guard: std::sync::MutexGuard<'static, ()>,
+        _tmp: TempDir,
+    }
+
+    impl TestRoot {
+        fn new() -> Self {
+            let guard = TEST_LOCK.lock().expect("test lock");
+            let tmp = TempDir::new().expect("temp dir");
+            Config::override_root(tmp.path());
+            initialize_runtime(&Config::current()).expect("runtime init should succeed");
+            Self {
+                _guard: guard,
+                _tmp: tmp,
+            }
+        }
+    }
+
+    impl Drop for TestRoot {
+        fn drop(&mut self) {
+            Config::reset_overrides();
+        }
+    }
 
     // T-5.2: RTM FR-22.4 — all 28 tools are represented in the MCP schema mapping.
     #[test]
@@ -1107,6 +1248,7 @@ mod tests {
         assert_eq!(info.server_info.name, "maenifold");
         assert!(!info.server_info.version.is_empty());
         assert!(info.capabilities.tools.is_some());
+        assert!(info.capabilities.resources.is_some());
         assert!(info.instructions.is_some());
         assert!(
             info.instructions
@@ -1126,5 +1268,51 @@ mod tests {
         assert!(names.contains("WriteMemory"));
         assert!(names.contains("SequentialThinking"));
         assert!(names.contains("ReadMcpResource"));
+    }
+
+    // T-10.2: RTM FR-11 / RTM-069 — resources/list enumerates URIs for all supported asset families.
+    #[test]
+    fn t_10_2_list_asset_resources_covers_all_asset_types() {
+        let _root = TestRoot::new();
+
+        let resources = list_asset_resources(current_asset_manager().expect("asset manager"))
+            .expect("resources should list");
+
+        assert!(
+            resources
+                .iter()
+                .any(|r| r.uri.starts_with("asset://workflows/"))
+        );
+        assert!(
+            resources
+                .iter()
+                .any(|r| r.uri.starts_with("asset://roles/"))
+        );
+        assert!(
+            resources
+                .iter()
+                .any(|r| r.uri.starts_with("asset://colors/"))
+        );
+        assert!(
+            resources
+                .iter()
+                .any(|r| r.uri.starts_with("asset://perspectives/"))
+        );
+    }
+
+    // T-10.2: RTM FR-11 / RTM-070 — resources/read returns the JSON body for a valid asset URI.
+    #[test]
+    fn t_10_2_current_asset_manager_reads_asset_uri() {
+        let _root = TestRoot::new();
+
+        let resource = current_asset_manager()
+            .expect("asset manager")
+            .read_resource("asset://workflows/deductive-reasoning")
+            .expect("resource should read");
+
+        assert_eq!(
+            resource.get("id").and_then(Value::as_str),
+            Some("deductive-reasoning")
+        );
     }
 }

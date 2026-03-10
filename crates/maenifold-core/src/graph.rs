@@ -5,8 +5,8 @@ use crate::json::{OutputFormat, success};
 use crate::markdown::normalize_concept;
 use crate::memory::compute_decay_weight;
 use crate::search::{
-    embedding_is_valid_for_similarity_search, is_vec_embedding_unavailable,
-    load_concept_embedding, split_frontmatter_for_repair, vec0_extension_path,
+    embedding_is_valid_for_similarity_search, is_vec_embedding_unavailable, load_concept_embedding,
+    split_frontmatter_for_repair, vec0_extension_path,
 };
 use crate::tools::ToolContext;
 use crate::vector;
@@ -710,7 +710,9 @@ fn concept_decay_weight(
         let mentions = mention_count.max(1) as f64;
         let file_weight = file_path
             .as_deref()
-            .map(|path| compute_decay_weight(path, last_accessed.as_deref(), config, status.as_deref()))
+            .map(|path| {
+                compute_decay_weight(path, last_accessed.as_deref(), config, status.as_deref())
+            })
             .unwrap_or(1.0);
         total_mentions += mentions;
         total_weight += mentions * file_weight;

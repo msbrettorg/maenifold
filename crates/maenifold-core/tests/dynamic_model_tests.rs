@@ -1,5 +1,6 @@
 use maenifold_core::{Config, GraphDatabase, db, vector};
 use once_cell::sync::Lazy;
+use ort::session::Session;
 use parking_lot::Mutex;
 use rusqlite::{Connection, params};
 use std::env;
@@ -98,6 +99,68 @@ fn load_vec_extension(connection: &Connection, extension_path: &Path) -> rusqlit
         disable_result?;
     }
     Ok(())
+}
+
+fn model_output_dimensions(model_path: &Path) -> usize {
+    let session = Session::builder()
+        .expect("session builder")
+        .commit_from_file(model_path)
+        .expect("load model session");
+    let mut candidates = session
+        .outputs()
+        .iter()
+        .filter_map(|output| {
+            let dims = output
+                .dtype()
+                .tensor_shape()?
+                .iter()
+                .copied()
+                .collect::<Vec<_>>();
+            Some((output.name().to_string(), dims))
+        })
+        .collect::<Vec<_>>();
+
+    let preferred_names = [
+        "sentence_embedding",
+        "embedding",
+        "pooled_output",
+        "last_hidden_state",
+    ];
+    let chosen_dims = preferred_names
+        .iter()
+        .find_map(|preferred_name| {
+            candidates
+                .iter()
+                .find(|(name, _)| name.to_ascii_lowercase().contains(preferred_name))
+                .map(|(_, dims)| dims.clone())
+        })
+        .or_else(|| {
+            candidates
+                .iter()
+                .find(|(_, dims)| dims.len() == 2)
+                .map(|(_, dims)| dims.clone())
+        })
+        .or_else(|| {
+            candidates
+                .iter()
+                .find(|(_, dims)| dims.len() == 1)
+                .map(|(_, dims)| dims.clone())
+        })
+        .or_else(|| {
+            candidates
+                .iter()
+                .find(|(_, dims)| dims.len() == 3)
+                .map(|(_, dims)| dims.clone())
+        })
+        .or_else(|| candidates.pop().map(|(_, dims)| dims))
+        .expect("model exposes tensor outputs");
+
+    chosen_dims
+        .last()
+        .copied()
+        .and_then(|dim| usize::try_from(dim).ok())
+        .filter(|dim| *dim > 0)
+        .expect("model output exposes concrete embedding dimension")
 }
 
 fn write_valid_tokenizer_json(model_dir: &Path) {
@@ -273,6 +336,26 @@ fn t9_6_model_discovery_finds_shadow_onnx_file() {
     assert_eq!(embedding.len(), 384);
 }
 
+// T-9.6: RTM FR-7 / RTM-051 — runtime embedding dimensions must match the loaded
+// ONNX output tensor metadata instead of a hardcoded constant.
+#[test]
+fn t9_6_embedding_dimensions_match_model_output_tensor() {
+    let _guard = TEST_MUTEX.lock();
+    let ctx = TestContext::new();
+    ctx.install_valid_shadow_model_with_fallback_assets("output-dims.onnx");
+    let expected_dims = model_output_dimensions(&ctx.shadow_models_dir().join("output-dims.onnx"));
+
+    vector::load_model().expect("load model for output dimension check");
+
+    assert_eq!(vector::embedding_dimensions(), Some(expected_dims));
+    assert_eq!(
+        vector::generate_embedding("runtime dimensions")
+            .expect("embedding with runtime dimensions")
+            .len(),
+        expected_dims
+    );
+}
+
 // T-9.6: RTM FR-7 / RTM-055 — when no *.onnx file exists anywhere in assets/models,
 // embedding APIs should degrade gracefully without panicking or reporting stale dimensions.
 #[test]
@@ -417,8 +500,8 @@ fn t10_11_max_tokens_reads_config_and_defaults_to_512() {
     }
 }
 
-// T-10.11: RTM FR-18 / RTM-100 — vec0 virtual tables must use the runtime-discovered
-// embedding dimension from the currently loaded ONNX model.
+// T-10.11: RTM FR-18 / RTM-100 / T-9.6: RTM FR-8 / RTM-057 — vec0 virtual tables must use
+// the runtime-discovered embedding dimension and persist both model filename + dimensions.
 #[test]
 fn t10_11_vec0_tables_use_runtime_embedding_dimensions() {
     let _guard = TEST_MUTEX.lock();
@@ -457,6 +540,10 @@ fn t10_11_vec0_tables_use_runtime_embedding_dimensions() {
     assert_eq!(
         db::get_model_metadata(&conn, "embedding_dimensions").as_deref(),
         Some(runtime_dims_str.as_str())
+    );
+    assert_eq!(
+        db::get_model_metadata(&conn, "model_filename").as_deref(),
+        Some("vec0-runtime-dims.onnx")
     );
 }
 

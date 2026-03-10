@@ -151,16 +151,32 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
             .then_with(|| a.0.cmp(&b.0))
     });
 
+    // T-11.18: RTM FR-21 - filter tagged text candidates before [[RRF]] fusion.
+    if let Some(tags) = requested_tags.as_deref() {
+        text_results.retain(|(path, _, _, _, _, _)| {
+            file_matches_all_tags(context, path, tags).unwrap_or(false)
+        });
+    }
+
     let max_candidates = (page_size * 5).min(200);
     // T-11.18: RTM FR-13 — vector SearchMemories results come from vec_memory_files cosine
     // distance queries and gracefully degrade to text-only mode when vec0 is unavailable.
-    let vector_results = query_vec_memory_files(
+    let mut vector_results = query_vec_memory_files(
         &connection,
         &context.config.assets_path,
         query,
         folder_prefix.as_deref(),
         max_candidates,
     )?;
+
+    // T-11.18: RTM FR-21 - filter tagged vector candidates before [[RRF]] fusion.
+    if let Some(ref mut vec_results) = vector_results {
+        if let Some(tags) = requested_tags.as_deref() {
+            vec_results.retain(|(path, _)| {
+                file_matches_all_tags(context, path, tags).unwrap_or(false)
+            });
+        }
+    }
 
     let k = 60.0f64;
     let mut rrf_scores: BTreeMap<String, f64> = BTreeMap::new();
@@ -254,21 +270,6 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
     } else {
         "fusedScore"
     };
-
-    let mut results = results;
-    if let Some(tags) = requested_tags.as_deref() {
-        let mut filtered_results = Vec::with_capacity(results.len());
-        for result in results {
-            let Some(path) = result.get("path").and_then(Value::as_str) else {
-                continue;
-            };
-            // T-11.6: RTM FR-13 matches the C# tag filter by excluding unreadable or mismatched files.
-            if file_matches_all_tags(context, path, tags)? {
-                filtered_results.push(result);
-            }
-        }
-        results = filtered_results;
-    }
 
     let results = results
         .into_iter()

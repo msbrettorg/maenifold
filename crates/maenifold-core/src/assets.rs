@@ -74,6 +74,18 @@ pub struct AssetManager {
     root: PathBuf,
 }
 
+// T-10.3: RTM FR-11 / RTM-071 — MCP resource-change notifications only track JSON
+// asset files under the 4 published asset catalogs.
+pub fn is_watchable_asset_json_path(assets_root: &Path, path: &Path) -> bool {
+    path.starts_with(assets_root)
+        && path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("json"))
+        && watched_asset_kind_for_path(assets_root, path).is_some()
+        && !is_hidden_asset_relative_path(assets_root, path)
+}
+
 impl AssetManager {
     pub fn new(config: &Config) -> Self {
         Self {
@@ -561,6 +573,25 @@ fn asset_is_multi_agent(value: &Value) -> bool {
         .get("multiAgent")
         .and_then(Value::as_bool)
         .unwrap_or(false)
+}
+
+fn watched_asset_kind_for_path(assets_root: &Path, path: &Path) -> Option<AssetKind> {
+    let relative = path.strip_prefix(assets_root).ok()?;
+    let first = relative.components().next()?.as_os_str().to_str()?;
+    AssetKind::all()
+        .into_iter()
+        .find(|kind| kind.dir_name() == first)
+}
+
+fn is_hidden_asset_relative_path(assets_root: &Path, path: &Path) -> bool {
+    let Ok(relative) = path.strip_prefix(assets_root) else {
+        return true;
+    };
+
+    relative.components().any(|component| {
+        let text = component.as_os_str().to_string_lossy();
+        text.starts_with('.') && text.len() > 1
+    })
 }
 
 fn asset_files_in_root(root: &Path, kind: AssetKind) -> Result<Vec<PathBuf>> {

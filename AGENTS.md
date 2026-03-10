@@ -14,3 +14,5 @@ Only the product-manager may run the full test suite. If you're not the product 
 ## Code Standards
 
 Keep files < 300 LOC where possible. If a file exceeds 300 LOC, consider breaking it up into smaller modules or test files for better maintainability and readability.
+
+We're writing rust for a reason - ensure you use the compiler and language features to their fullest extent to provide you maximum feedback and support.

@@ -1,24 +1,50 @@
-use crate::assets::{AssetKind, AssetManager};
+use crate::assets::{AssetKind, AssetManager, is_watchable_asset_json_path};
 use crate::config::Config;
 use crate::db::GraphDatabase;
 use crate::error::{MaenifoldError, Result};
 use crate::json::OutputFormat;
 use crate::registry::ToolRegistry;
+use notify::{Config as NotifyConfig, Event, EventKind, RecursiveMode, Watcher};
 use rmcp::model::{
     AnnotateAble, CallToolRequestParams, CallToolResult, Content, Implementation,
     ListResourcesResult, ListToolsResult, RawResource, ReadResourceRequestParams,
     ReadResourceResult, Resource, ResourceContents, ServerCapabilities, ServerInfo, Tool,
 };
-use rmcp::{ServerHandler, ServiceExt};
+use rmcp::{Peer, RoleServer, ServerHandler, ServiceExt};
 use serde::Serialize;
 use serde_json::{Map, Value, json};
+use std::collections::HashSet;
 use std::sync::Arc;
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 pub struct MaenifoldMcpServer;
 
 // T-5.1: RTM FR-22.1 — rmcp-based async MCP handler.
 struct MaenifoldHandler {
     tools: Vec<Tool>,
+}
+
+struct AssetWatcherState {
+    watcher: notify::RecommendedWatcher,
+    control_tx: Sender<AssetWatcherSignal>,
+    worker: Option<JoinHandle<()>>,
+}
+
+impl AssetWatcherState {
+    fn stop(mut self) {
+        let _ = self.control_tx.send(AssetWatcherSignal::Stop);
+        drop(self.watcher);
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+    }
+}
+
+enum AssetWatcherSignal {
+    Event(Event),
+    Stop,
 }
 
 impl MaenifoldHandler {
@@ -46,6 +72,9 @@ impl ServerHandler for MaenifoldHandler {
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
+                // T-10.3: RTM FR-11 / RTM-071 — advertise MCP resource list change
+                // notifications so clients know to expect notifications/resources/list_changed.
+                .enable_resources_list_changed()
                 .build(),
         )
         .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
@@ -143,16 +172,23 @@ impl MaenifoldMcpServer {
 
     // T-5.1: RTM FR-22.1 — serve MCP over stdio using rmcp transport.
     pub async fn serve_stdio() -> Result<()> {
+        let config = Config::current();
+        initialize_runtime(&config)?;
         let handler = MaenifoldHandler::new()?;
         let transport = rmcp::transport::io::stdio();
         let service = handler
             .serve(transport)
             .await
             .map_err(|e| MaenifoldError::Message(format!("MCP server init failed: {e}")))?;
-        service
+        // T-10.3: RTM FR-11 / RTM-071 — start the asset watcher after the MCP handshake
+        // so changed asset files emit notifications/resources/list_changed to the client.
+        let asset_watcher = start_asset_watcher(&config, service.peer().clone())?;
+        let wait_result = service
             .waiting()
             .await
-            .map_err(|e| MaenifoldError::Message(format!("MCP server error: {e}")))?;
+            .map_err(|e| MaenifoldError::Message(format!("MCP server error: {e}")));
+        asset_watcher.stop();
+        wait_result?;
         Ok(())
     }
 }
@@ -195,6 +231,145 @@ fn current_asset_manager() -> Result<AssetManager> {
     let config = Config::current();
     initialize_runtime(&config)?;
     Ok(AssetManager::new(&config))
+}
+
+fn start_asset_watcher(config: &Config, peer: Peer<RoleServer>) -> Result<AssetWatcherState> {
+    let assets_path = config.assets_path.clone();
+    let debounce_ms = 150_u64;
+    let runtime = tokio::runtime::Handle::current();
+    let (event_tx, event_rx) = mpsc::channel();
+    let worker =
+        spawn_asset_watcher_worker(assets_path.clone(), debounce_ms, peer, runtime, event_rx);
+    let callback_tx = event_tx.clone();
+
+    let mut watcher = notify::recommended_watcher(move |event: notify::Result<Event>| {
+        let Ok(event) = event else {
+            return;
+        };
+        if !is_relevant_asset_event_kind(&event.kind) {
+            return;
+        }
+        let _ = callback_tx.send(AssetWatcherSignal::Event(event));
+    })
+    .map_err(map_notify_error)?;
+
+    let _ = watcher.configure(
+        NotifyConfig::default()
+            .with_poll_interval(Duration::from_millis(50))
+            .with_compare_contents(true),
+    );
+
+    if let Err(error) = watcher.watch(&assets_path, RecursiveMode::Recursive) {
+        let _ = event_tx.send(AssetWatcherSignal::Stop);
+        let _ = worker.join();
+        return Err(map_notify_error(error));
+    }
+
+    Ok(AssetWatcherState {
+        watcher,
+        control_tx: event_tx,
+        worker: Some(worker),
+    })
+}
+
+fn spawn_asset_watcher_worker(
+    assets_path: std::path::PathBuf,
+    debounce_ms: u64,
+    peer: Peer<RoleServer>,
+    runtime: tokio::runtime::Handle,
+    event_rx: Receiver<AssetWatcherSignal>,
+) -> JoinHandle<()> {
+    thread::spawn(move || {
+        let debounce_window = Duration::from_millis(debounce_ms.max(1));
+        let flush_grace_window = debounce_grace_window(debounce_window);
+        let mut pending_paths = HashSet::new();
+
+        loop {
+            match event_rx.recv() {
+                Ok(AssetWatcherSignal::Event(event)) => {
+                    collect_pending_asset_paths(&assets_path, &event, &mut pending_paths);
+                }
+                Ok(AssetWatcherSignal::Stop) | Err(_) => {
+                    flush_asset_notifications(&runtime, &peer, &mut pending_paths);
+                    break;
+                }
+            }
+
+            loop {
+                match event_rx.recv_timeout(debounce_window) {
+                    Ok(AssetWatcherSignal::Event(event)) => {
+                        collect_pending_asset_paths(&assets_path, &event, &mut pending_paths);
+                    }
+                    Ok(AssetWatcherSignal::Stop) => {
+                        flush_asset_notifications(&runtime, &peer, &mut pending_paths);
+                        return;
+                    }
+                    Err(RecvTimeoutError::Timeout) => match event_rx
+                        .recv_timeout(flush_grace_window)
+                    {
+                        Ok(AssetWatcherSignal::Event(event)) => {
+                            collect_pending_asset_paths(&assets_path, &event, &mut pending_paths);
+                        }
+                        Ok(AssetWatcherSignal::Stop) => {
+                            flush_asset_notifications(&runtime, &peer, &mut pending_paths);
+                            return;
+                        }
+                        Err(RecvTimeoutError::Timeout) => {
+                            flush_asset_notifications(&runtime, &peer, &mut pending_paths);
+                            break;
+                        }
+                        Err(RecvTimeoutError::Disconnected) => {
+                            flush_asset_notifications(&runtime, &peer, &mut pending_paths);
+                            return;
+                        }
+                    },
+                    Err(RecvTimeoutError::Disconnected) => {
+                        flush_asset_notifications(&runtime, &peer, &mut pending_paths);
+                        return;
+                    }
+                }
+            }
+        }
+    })
+}
+
+fn debounce_grace_window(debounce_window: Duration) -> Duration {
+    debounce_window.min(Duration::from_millis(50))
+}
+
+fn collect_pending_asset_paths(
+    assets_path: &std::path::Path,
+    event: &Event,
+    pending_paths: &mut HashSet<std::path::PathBuf>,
+) {
+    for path in &event.paths {
+        if is_watchable_asset_json_path(assets_path, path) {
+            pending_paths.insert(path.clone());
+        }
+    }
+}
+
+fn flush_asset_notifications(
+    runtime: &tokio::runtime::Handle,
+    peer: &Peer<RoleServer>,
+    pending_paths: &mut HashSet<std::path::PathBuf>,
+) {
+    if pending_paths.is_empty() {
+        return;
+    }
+
+    pending_paths.clear();
+    let notification_peer = peer.clone();
+    let _ = runtime.block_on(async move {
+        let _ = notification_peer.notify_resource_list_changed().await;
+    });
+}
+
+fn is_relevant_asset_event_kind(kind: &EventKind) -> bool {
+    matches!(
+        kind,
+        EventKind::Any | EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+    )
 }
 
 fn list_asset_resources(asset_manager: AssetManager) -> Result<Vec<Resource>> {
@@ -254,6 +429,10 @@ fn map_resource_error(err: MaenifoldError) -> rmcp::ErrorData {
         | MaenifoldError::Message(_) => rmcp::ErrorData::invalid_params(err.to_string(), None),
         _ => rmcp::ErrorData::internal_error(err.to_string(), None),
     }
+}
+
+fn map_notify_error(error: notify::Error) -> MaenifoldError {
+    MaenifoldError::Message(format!("Asset watcher failed: {error}"))
 }
 
 fn format_tool_error(tool_name: &str, err: &MaenifoldError) -> String {

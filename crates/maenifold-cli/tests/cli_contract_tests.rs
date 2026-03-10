@@ -75,7 +75,8 @@ fn usage_is_printed_without_tool_args() {
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
         .assert()
-        .code(0)
+        // T-11.3: RTM FR-13 - bare CLI invocation must fail like the C# oracle.
+        .code(1)
         .stdout(contains("maenifold CLI"));
 }
 

@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::error::MaenifoldError;
-use crate::json::{OutputFormat, failure, from_str_safe};
+use crate::json::{OutputFormat, failure, from_str_safe, success};
 use crate::mcp::{self, MaenifoldMcpServer};
 use crate::registry::ToolRegistry;
 use serde_json::Value;
@@ -57,10 +57,12 @@ impl CliApp {
         }
 
         let Some(tool_index) = args.iter().position(|arg| arg == "--tool") else {
-            return Ok(usage());
+            // T-11.3: RTM FR-13 - invalid direct CLI invocations must fail with the C# parity exit code.
+            return Err(usage_error());
         };
         let Some(tool_name) = args.get(tool_index + 1) else {
-            return Ok(usage());
+            // T-11.3: RTM FR-13 - invalid direct CLI invocations must fail with the C# parity exit code.
+            return Err(usage_error());
         };
         // T-0.2: RTM NFR-3 - allow side-effect-free direct invocations like
         // `--tool GetConfig --json` by defaulting the payload to `{}` when
@@ -68,7 +70,8 @@ impl CliApp {
         let payload_json = match args.iter().position(|arg| arg == "--payload") {
             Some(payload_index) => match args.get(payload_index + 1) {
                 Some(payload_json) => payload_json.as_str(),
-                None => return Ok(usage()),
+                // T-11.3: RTM FR-13 - invalid direct CLI invocations must fail with the C# parity exit code.
+                None => return Err(usage_error()),
             },
             None => "{}",
         };
@@ -96,10 +99,16 @@ impl CliApp {
 
         match ToolRegistry::global().try_invoke(tool_name, &payload, output_format) {
             Ok(output) => {
-                // T-1.6: RTM NFR-1 - JSON failure envelopes must propagate a non-zero
-                // process status while preserving the tool-authored payload body verbatim.
-                if output_format == OutputFormat::Json && is_json_failure_envelope(&output) {
-                    Err((output, 1))
+                if output_format == OutputFormat::Json {
+                    // T-11.3: RTM FR-13 - pass through existing JSON envelopes only when
+                    // the tool already returned the full {success,data,error} contract;
+                    // otherwise wrap the tool output in the C#-compatible success envelope.
+                    let (output, exit_code) = normalize_json_output(output);
+                    if exit_code == 0 {
+                        Ok(output)
+                    } else {
+                        Err((output, exit_code))
+                    }
                 } else {
                     Ok(output)
                 }
@@ -145,11 +154,27 @@ fn render_error(output_format: OutputFormat, tool_name: &str, err: MaenifoldErro
     }
 }
 
-fn is_json_failure_envelope(output: &str) -> bool {
-    serde_json::from_str::<Value>(output)
-        .ok()
-        .and_then(|value| value.get("success").and_then(Value::as_bool))
-        == Some(false)
+fn usage_error() -> (String, i32) {
+    (usage(), 1)
+}
+
+fn normalize_json_output(output: String) -> (String, i32) {
+    match serde_json::from_str::<Value>(&output) {
+        Ok(Value::Object(object))
+            if object.contains_key("success")
+                && object.contains_key("data")
+                && object.contains_key("error") =>
+        {
+            let exit_code = if object.get("success").and_then(Value::as_bool) == Some(false) {
+                1
+            } else {
+                0
+            };
+            (output, exit_code)
+        }
+        Ok(value) => (success(value), 0),
+        Err(_) => (success(output), 0),
+    }
 }
 
 fn usage() -> String {

@@ -101,18 +101,26 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
         ))
     })?;
 
-    let query_lower = query.to_ascii_lowercase();
     let query_slug = slugify_query(query);
     let query_terms = tokenize_query(query);
-    let mut results = Vec::new();
+    let mut text_results: Vec<(
+        String,
+        f64,
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+    )> = Vec::new();
 
+    // T-11.18: RTM FR-13 — SearchMemories now runs the text pipeline independently from vector
+    // search so Reciprocal Rank Fusion can match the C# oracle architecture.
     for row in rows {
         let (path, title, content, last_accessed, status) = row?;
-        if let Some(prefix) = folder_prefix.as_deref()
-            && path != prefix
-            && !path.starts_with(&format!("{prefix}/"))
-        {
-            continue;
+        if let Some(prefix) = folder_prefix.as_deref() {
+            let scoped_prefix = format!("{prefix}/");
+            if path != prefix && !path.starts_with(&scoped_prefix) {
+                continue;
+            }
         }
         let title_lower = title.to_ascii_lowercase();
         let content_lower = content.to_ascii_lowercase();
@@ -138,97 +146,110 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
             score
         };
 
-        let semantic_score = if content_lower.contains(&query_slug)
-            || title_lower.contains(&query_slug)
-            || content_lower.contains(&query_lower)
-            || title_lower.contains(&query_lower)
-        {
-            1.0
-        } else {
-            0.0
-        };
-
-        if text_score <= 0.0 && semantic_score <= 0.0 {
-            continue;
+        if text_score > 0.0 {
+            text_results.push((path, text_score, title, content, last_accessed, status));
         }
-        let fused_score = text_score + semantic_score;
-        results.push(json!({
-            "title": title,
-            "path": path,
-            "fusedScore": fused_score,
-            "textScore": text_score,
-            "semanticScore": semantic_score,
+    }
+
+    text_results.sort_by(|a, b| {
+        b.1.partial_cmp(&a.1)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.0.cmp(&b.0))
+    });
+
+    let max_candidates = (page_size * 5).min(200);
+    // T-11.18: RTM FR-13 — vector SearchMemories results come from vec_memory_files cosine
+    // distance queries and gracefully degrade to text-only mode when vec0 is unavailable.
+    let vector_results = query_vec_memory_files(
+        &connection,
+        &context.config.assets_path,
+        query,
+        folder_prefix.as_deref(),
+        max_candidates,
+    )?;
+
+    let k = 60.0f64;
+    let mut rrf_scores: BTreeMap<String, f64> = BTreeMap::new();
+    let mut original_scores: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+    let mut file_metadata: BTreeMap<String, (String, String, Option<String>, Option<String>)> =
+        BTreeMap::new();
+
+    for (index, (path, text_score, title, content, last_accessed, status)) in
+        text_results.iter().enumerate()
+    {
+        let rrf = 1.0 / (k + index as f64 + 1.0);
+        *rrf_scores.entry(path.clone()).or_insert(0.0) += rrf;
+        let entry = original_scores.entry(path.clone()).or_insert((0.0, 0.0));
+        // T-11.18: RTM FR-13 — normalize text scores before fusion to mirror the C# pipeline.
+        entry.0 = (text_score / 100.0).min(1.0);
+        file_metadata.entry(path.clone()).or_insert_with(|| {
+            (
+                title.clone(),
+                content.clone(),
+                last_accessed.clone(),
+                status.clone(),
+            )
+        });
+    }
+
+    if let Some(ref vec_results) = vector_results {
+        for (index, (path, vec_score)) in vec_results.iter().enumerate() {
+            let rrf = 1.0 / (k + index as f64 + 1.0);
+            *rrf_scores.entry(path.clone()).or_insert(0.0) += rrf;
+            let entry = original_scores.entry(path.clone()).or_insert((0.0, 0.0));
+            entry.1 = *vec_score;
+
+            if !file_metadata.contains_key(path)
+                && let Some(metadata) = connection
+                    .query_row(
+                        "SELECT COALESCE(title, ''), COALESCE(content, ''), last_accessed, status FROM file_content WHERE file_path = ?1",
+                        params![path],
+                        |row| {
+                            Ok((
+                                row.get::<_, String>(0)?,
+                                row.get::<_, String>(1)?,
+                                row.get::<_, Option<String>>(2)?,
+                                row.get::<_, Option<String>>(3)?,
+                            ))
+                        },
+                    )
+                    .optional()?
+            {
+                file_metadata.insert(path.clone(), metadata);
+            }
+        }
+    }
+
+    let mut results: Vec<Value> = rrf_scores
+        .iter()
+        .filter_map(|(path, rrf_score)| {
+            let (text_score, semantic_score) = original_scores.get(path)?;
+            let (title, content, last_accessed, status) = file_metadata.get(path)?;
             // T-4.4: RTM FR-4.4
-            "decayWeight": compute_decay_weight(
-                &path,
+            let decay_weight = compute_decay_weight(
+                path,
                 last_accessed.as_deref(),
                 &context.config,
                 status.as_deref(),
-            ),
-            "snippet": build_snippet(&content, &query_terms, &query_slug),
-        }));
-    }
+            );
+            Some(json!({
+                "title": title,
+                "path": path,
+                "fusedScore": rrf_score * decay_weight,
+                "textScore": *text_score,
+                "semanticScore": *semantic_score,
+                "decayWeight": decay_weight,
+                "snippet": build_snippet(content, &query_terms, &query_slug),
+            }))
+        })
+        .collect();
 
-    let mut text_ranks = BTreeMap::new();
-    let mut semantic_ranks = BTreeMap::new();
-
-    let mut text_order = results
-        .iter()
-        .enumerate()
-        .filter(|(_, value)| value["textScore"].as_f64().unwrap_or(0.0) > 0.0)
-        .collect::<Vec<_>>();
-    text_order.sort_by(|left, right| {
-        right.1["textScore"]
+    results.sort_by(|a, b| {
+        b["fusedScore"]
             .as_f64()
-            .partial_cmp(&left.1["textScore"].as_f64())
+            .partial_cmp(&a["fusedScore"].as_f64())
             .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| left.1["path"].as_str().cmp(&right.1["path"].as_str()))
-    });
-    for (rank, (index, _)) in text_order.into_iter().enumerate() {
-        text_ranks.insert(index, rank + 1);
-    }
-
-    let mut semantic_order = results
-        .iter()
-        .enumerate()
-        .filter(|(_, value)| value["semanticScore"].as_f64().unwrap_or(0.0) > 0.0)
-        .collect::<Vec<_>>();
-    semantic_order.sort_by(|left, right| {
-        right.1["semanticScore"]
-            .as_f64()
-            .partial_cmp(&left.1["semanticScore"].as_f64())
-            .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| left.1["path"].as_str().cmp(&right.1["path"].as_str()))
-    });
-    for (rank, (index, _)) in semantic_order.into_iter().enumerate() {
-        semantic_ranks.insert(index, rank + 1);
-    }
-
-    for (index, value) in results.iter_mut().enumerate() {
-        let fused = text_ranks
-            .get(&index)
-            .map(|rank| 1.0 / (60.0 + *rank as f64))
-            .unwrap_or(0.0)
-            + semantic_ranks
-                .get(&index)
-                .map(|rank| 1.0 / (60.0 + *rank as f64))
-                .unwrap_or(0.0);
-        if let Some(object) = value.as_object_mut() {
-            let decay_weight = object
-                .get("decayWeight")
-                .and_then(Value::as_f64)
-                .unwrap_or(1.0);
-            // T-4.4: RTM FR-4.4
-            object.insert("fusedScore".to_string(), json!(fused * decay_weight));
-        }
-    }
-
-    results.sort_by(|left, right| {
-        right["fusedScore"]
-            .as_f64()
-            .partial_cmp(&left["fusedScore"].as_f64())
-            .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| left["path"].as_str().cmp(&right["path"].as_str()))
+            .then_with(|| a["path"].as_str().cmp(&b["path"].as_str()))
     });
 
     // T-0.1: RTM NFR-3 - apply SearchMemories thresholding and folder scoping so parity coverage can guard regressions.
@@ -2747,6 +2768,116 @@ fn tokenize_query(query: &str) -> Vec<String> {
         .filter(|part| !part.is_empty())
         .map(|part| part.to_ascii_lowercase())
         .collect()
+}
+
+/// T-11.18: RTM FR-13 — vector search pipeline for SearchMemories.
+/// Returns Vec<(file_path, normalized_score)> or None if vec0 is unavailable.
+fn query_vec_memory_files(
+    connection: &Connection,
+    assets_path: &Path,
+    query: &str,
+    folder_prefix: Option<&str>,
+    max_candidates: usize,
+) -> Result<Option<Vec<(String, f64)>>> {
+    let Some(extension_path) = vec0_extension_path(assets_path) else {
+        return Ok(None);
+    };
+
+    unsafe {
+        connection.load_extension_enable()?;
+        if connection
+            .load_extension(&extension_path, None::<&str>)
+            .is_err()
+        {
+            let _ = connection.load_extension_disable();
+            return Ok(None);
+        }
+        connection.load_extension_disable()?;
+    }
+
+    let query_embedding = match crate::vector::generate_embedding(query) {
+        Ok(embedding) if embedding_is_valid_for_similarity_search(&embedding) => embedding,
+        Ok(_) => return Ok(Some(Vec::new())),
+        Err(_) => return Ok(None),
+    };
+    let query_blob = crate::vector::to_sqlite_vector_blob(&query_embedding);
+
+    let mut sql = String::from(
+        "SELECT file_path, vec_distance_cosine(embedding, ?1) as distance \
+         FROM vec_memory_files \
+         WHERE embedding IS NOT NULL",
+    );
+    if folder_prefix.is_some() {
+        sql.push_str(" AND file_path LIKE ?2 || '%'");
+    }
+    sql.push_str(" ORDER BY distance LIMIT ?");
+    sql.push_str(if folder_prefix.is_some() { "3" } else { "2" });
+
+    // T-11.18: RTM FR-13 — unify vec query params to avoid branch-specific closure types.
+    let mut params_vec: Vec<Box<dyn rusqlite::types::ToSql>> = vec![Box::new(query_blob)];
+    if let Some(prefix) = folder_prefix {
+        params_vec.push(Box::new(prefix.to_string()));
+    }
+    params_vec.push(Box::new(max_candidates as i64));
+
+    let mut statement = match connection.prepare(&sql) {
+        Ok(statement) => statement,
+        Err(error) => {
+            let error = MaenifoldError::from(error);
+            if is_vec_embedding_unavailable(&error) {
+                return Ok(None);
+            }
+            return Err(error);
+        }
+    };
+
+    let mut rows = match statement.query(params_from_iter(params_vec.iter().map(|param| param.as_ref())))
+    {
+        Ok(rows) => rows,
+        Err(error) => {
+            let error = MaenifoldError::from(error);
+            if is_vec_embedding_unavailable(&error) {
+                return Ok(None);
+            }
+            return Err(error);
+        }
+    };
+
+    let mut db_results: Vec<(String, f64)> = Vec::new();
+    while let Some(row) = rows.next()? {
+        let path: String = row.get(0)?;
+        let distance: f64 = row.get(1)?;
+        if distance.is_finite() {
+            db_results.push((path, distance));
+        }
+    }
+
+    if db_results.is_empty() {
+        return Ok(Some(Vec::new()));
+    }
+
+    let min_distance = db_results
+        .iter()
+        .map(|(_, distance)| *distance)
+        .fold(f64::INFINITY, f64::min);
+    let max_distance = db_results
+        .iter()
+        .map(|(_, distance)| *distance)
+        .fold(f64::NEG_INFINITY, f64::max);
+
+    let normalized = db_results
+        .into_iter()
+        .map(|(path, distance)| {
+            let score = if (max_distance - min_distance).abs() < 1e-12 {
+                1.0
+            } else {
+                1.0 - ((distance - min_distance) / (max_distance - min_distance))
+            };
+            (path, score)
+        })
+        .collect();
+
+    Ok(Some(normalized))
 }
 
 fn build_snippet(content: &str, query_terms: &[String], query_slug: &str) -> String {

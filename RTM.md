@@ -169,3 +169,13 @@
 ### FR-20: Asset Catalog Isolation (`assets.rs`)
 - □ RTM-105: preferred_catalog_assets_root() does not return sibling C# repo path | TC-20.1 | Boundary
 - □ RTM-106: Missing Rust assets surface as errors, not masked by C# fallback | TC-20.2 | Boundary
+
+### FR-21: SearchMemories Scoring Parity (`search.rs`)
+- □ RTM-107: Text scoring uses occurrence counting matching C# CalculateSearchScore | TC-21.1 | Boundary
+- □ RTM-108: Text scoring adds +5 title bonus per term found | TC-21.2 | Boundary
+- □ RTM-109: Vector search queries vec_memory_files with vec_distance_cosine | TC-21.3 | Boundary
+- □ RTM-110: Vector search applies min-max score normalization with epsilon 1e-12 | TC-21.4 | Boundary
+- □ RTM-111: RRF fusion merges text and vector pipelines with k=60 | TC-21.5 | Boundary
+- □ RTM-112: SearchMemories degrades gracefully when vec0 unavailable | TC-21.6 | Boundary
+- □ RTM-113: Snippet extraction uses 20-char leading context and 200-char total | TC-21.7 | Boundary
+- □ RTM-114: Snippet whitespace normalized (\\r\\n and \\n to space) | TC-21.8 | Boundary

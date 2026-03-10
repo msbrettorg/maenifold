@@ -221,6 +221,19 @@ Remove or gate `preferred_catalog_assets_root()` in `assets.rs` so it never fall
 - **Files**: `crates/maenifold-core/src/assets.rs`
 - **Status**: done
 
+## Sprint 11 — Search Core Fix
+
+### T-11.17: Fix SearchMemories text scoring formula | RTM: NFR-1
+Replace binary term matching with C#-parity occurrence counting (+5 title bonus per term). Fix snippet whitespace normalization.
+- **Files**: `crates/maenifold-core/src/search.rs`
+- **Status**: done
+
+### T-11.18: Wire real vector search into SearchMemories | RTM: NFR-1
+Replace content.contains() heuristic with two-pipeline architecture: text pipeline (occurrence counting) + vector pipeline (vec_distance_cosine on vec_memory_files) + RRF fusion (k=60). Graceful degradation when vec0 unavailable.
+- **Files**: `crates/maenifold-core/src/search.rs`
+- **Status**: done
+- **Depends on**: T-11.17
+
 ### Pre-existing failures (not Sprint 10 regressions)
 
 ### T-10.18: Fix pre-existing MCP stdio test failures | RTM: NFR-3

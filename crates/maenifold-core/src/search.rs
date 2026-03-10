@@ -117,16 +117,25 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
         let title_lower = title.to_ascii_lowercase();
         let content_lower = content.to_ascii_lowercase();
 
-        let text_matches = query_terms
-            .iter()
-            .filter(|term| {
-                title_lower.contains(term.as_str()) || content_lower.contains(term.as_str())
-            })
-            .count();
+        // T-11.17: RTM FR-13 preserve C# oracle parity for SearchMemories text scoring.
         let text_score = if query_terms.is_empty() {
             0.0
         } else {
-            text_matches as f64 / (query_terms.len() as f64 * 50.0)
+            let mut score = 0.0f64;
+            for term in &query_terms {
+                // Count all occurrences of term in content (matches C# Split(term).Length - 1).
+                let term_str = term.as_str();
+                let mut search_start = 0;
+                while let Some(pos) = content_lower[search_start..].find(term_str) {
+                    score += 1.0;
+                    search_start += pos + term_str.len();
+                }
+                // +5 title bonus per term found (matches C# titleLower.Contains(term)).
+                if !title_lower.is_empty() && title_lower.contains(term_str) {
+                    score += 5.0;
+                }
+            }
+            score
         };
 
         let semantic_score = if content_lower.contains(&query_slug)
@@ -2751,7 +2760,12 @@ fn build_snippet(content: &str, query_terms: &[String], query_slug: &str) -> Str
     // and a 200-character total slice.
     let start = index.saturating_sub(20);
     let end = (start + 200).min(content.len());
-    content.get(start..end).unwrap_or(content).to_string()
+    // T-11.17: RTM FR-13 normalize snippet whitespace to match the C# oracle output.
+    content
+        .get(start..end)
+        .unwrap_or(content)
+        .replace("\r\n", " ")
+        .replace('\n', " ")
 }
 
 // T-QUAL-002.6a: RTM FR-25.2

@@ -92,31 +92,31 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
         &concept_name,
         max_results as usize,
     )? {
-        if vector_results.is_empty() {
-            return Ok(with_similarity_next_steps(format!(
-                "No similar concepts found for '{}'. Run Sync to ensure concept embeddings are generated.",
-                concept_name
-            )));
+        // T-9.2 / T-3.1: RTM FR-8, FR-6 — when vec0 tables exist but are empty
+        // (e.g. after ensure_vec0_tables creates them but before sync populates
+        // embeddings), fall through to graph-based search rather than returning
+        // "no results". Non-empty results still take the fast vector path.
+        if !vector_results.is_empty() {
+            let plateau_warning =
+                similarity_plateau_warning(&original_concept_name, &vector_results);
+            let mut output = format_ranked_results(
+                &connection,
+                &context.config,
+                &concept_name,
+                vector_results
+                    .into_iter()
+                    .map(|result| (result.concept, result.similarity))
+                    .collect(),
+            );
+            if let Some(warning) = plateau_warning {
+                // T-12.3: RTM NFR-1 keeps the vec0 plateau warning explicit without altering result output.
+                output.push_str(&format!("\n⚠️ {warning}\n"));
+            }
+            append_short_query_warning(&mut output, &original_concept_name, low_info_query);
+            // T-13.5: RTM FR-8 — use centralized with_next_steps helper
+            output = with_next_steps(&output, &["BuildContext", "SearchMemories"]);
+            return Ok(output);
         }
-
-        let plateau_warning = similarity_plateau_warning(&original_concept_name, &vector_results);
-        let mut output = format_ranked_results(
-            &connection,
-            &context.config,
-            &concept_name,
-            vector_results
-                .into_iter()
-                .map(|result| (result.concept, result.similarity))
-                .collect(),
-        );
-        if let Some(warning) = plateau_warning {
-            // T-12.3: RTM NFR-1 keeps the vec0 plateau warning explicit without altering result output.
-            output.push_str(&format!("\n⚠️ {warning}\n"));
-        }
-        append_short_query_warning(&mut output, &original_concept_name, low_info_query);
-        // T-13.5: RTM FR-8 — use centralized with_next_steps helper
-        output = with_next_steps(&output, &["BuildContext", "SearchMemories"]);
-        return Ok(output);
     }
 
     let mut statement = connection.prepare(

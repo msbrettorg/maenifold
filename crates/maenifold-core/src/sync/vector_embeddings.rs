@@ -59,8 +59,7 @@ pub fn generate_concept_embeddings(
         );
         let mut statement = match connection.prepare(&sql) {
             Ok(statement) => statement,
-            Err(e) => {
-                eprintln!("[DEBUG] generate_concept_embeddings: prepare SELECT failed: {e}");
+            Err(_) => {
                 record_concept_failures(
                     diagnostics,
                     VectorFailureReasonCodes::CONCEPT_LOOKUP_FAILED,

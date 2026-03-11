@@ -2,6 +2,7 @@ use super::support::{
     load_help_doc, normalize_relative_path, resolve_packaged_assets_path, sha256_digest,
     target_metadata,
 };
+use super::types::AssetKind;
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
@@ -87,37 +88,48 @@ impl AssetComparison {
     }
 }
 
+// PARITY-U01: RTM NFR-1 — Only compare the 4 published asset catalogs
+// (workflows/, roles/, colors/, perspectives/), matching C# scope.
+// Directories like integrations/, models/, agents/, native/, usage/ are
+// NOT updateable assets and must be excluded from the comparison.
 fn compare_asset_directories(source_path: &Path, target_path: &Path) -> Result<AssetComparison> {
     let mut comparison = AssetComparison::default();
 
-    for entry in walkdir::WalkDir::new(source_path)
-        .into_iter()
-        .filter_map(|entry| entry.ok())
-        .filter(|entry| entry.file_type().is_file())
-    {
-        let source_file = entry.path();
-        let relative_path = source_file
-            .strip_prefix(source_path)
-            .expect("walkdir entry must be under source root");
-        let target_file = target_path.join(relative_path);
-        let relative_display = normalize_relative_path(relative_path);
-
-        // T-1.5: RTM FR-3 - inspect target paths without following symlinks.
-        let Some(target_metadata) = target_metadata(&target_file)? else {
-            comparison.added_files.push(relative_display);
-            continue;
-        };
-
-        if target_metadata.file_type().is_symlink() {
-            record_skipped_symlink(&mut comparison, &relative_display);
+    // T-1.3: RTM FR-3 — walk only the published catalog directories.
+    for kind in AssetKind::all() {
+        let source_dir = source_path.join(kind.dir_name());
+        if !source_dir.is_dir() {
             continue;
         }
-
-        let source_metadata = fs::metadata(source_file)?;
-        if source_metadata.len() != target_metadata.len()
-            || sha256_digest(source_file)? != sha256_digest(&target_file)?
+        for entry in walkdir::WalkDir::new(&source_dir)
+            .into_iter()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().is_file())
         {
-            comparison.updated_files.push(relative_display);
+            let source_file = entry.path();
+            let relative_path = source_file
+                .strip_prefix(source_path)
+                .expect("walkdir entry must be under source root");
+            let target_file = target_path.join(relative_path);
+            let relative_display = normalize_relative_path(relative_path);
+
+            // T-1.5: RTM FR-3 - inspect target paths without following symlinks.
+            let Some(target_metadata) = target_metadata(&target_file)? else {
+                comparison.added_files.push(relative_display);
+                continue;
+            };
+
+            if target_metadata.file_type().is_symlink() {
+                record_skipped_symlink(&mut comparison, &relative_display);
+                continue;
+            }
+
+            let source_metadata = fs::metadata(source_file)?;
+            if source_metadata.len() != target_metadata.len()
+                || sha256_digest(source_file)? != sha256_digest(&target_file)?
+            {
+                comparison.updated_files.push(relative_display);
+            }
         }
     }
 
@@ -168,7 +180,10 @@ fn apply_asset_updates(
     Ok(())
 }
 
-fn render_update_summary(comparison: &AssetComparison, dry_run: bool) -> String {
+// T-1.3: RTM FR-3 — render markdown summary matching C# AssetUpdateResult.ToString() format.
+// PARITY-U01: No Status/DRY RUN line, no Skipped symlinks count, omit empty sections,
+// no trailing DRY RUN message.
+fn render_update_summary(comparison: &AssetComparison, _dry_run: bool) -> String {
     if comparison.added_files.is_empty()
         && comparison.updated_files.is_empty()
         && comparison.skipped_symlinks.is_empty()
@@ -178,53 +193,31 @@ fn render_update_summary(comparison: &AssetComparison, dry_run: bool) -> String 
             .to_string();
     }
 
-    let mut output = String::from("# Asset Update Summary\n\n## Results\n");
-    let _ = writeln!(
-        output,
-        "- Status: {}",
-        if comparison.has_errors() {
-            "PARTIAL FAILURE"
-        } else if dry_run {
-            "DRY RUN"
-        } else {
-            "SUCCESS"
-        }
-    );
+    let mut output = String::from("# Asset Update Summary\n\n");
+    // T-1.3: RTM FR-3 — Results section: counts only, matching C# format.
+    let _ = writeln!(output, "## Results");
     let _ = writeln!(output, "- Added files: {}", comparison.added_files.len());
     let _ = writeln!(
         output,
         "- Updated files: {}",
         comparison.updated_files.len()
     );
-    let _ = writeln!(
-        output,
-        "- Skipped symlinks: {}",
-        comparison.skipped_symlinks.len()
-    );
     let _ = writeln!(output, "- Errors: {}", comparison.errors.len());
 
-    append_section(&mut output, "Added Files", &comparison.added_files);
-    append_section(&mut output, "Updated Files", &comparison.updated_files);
-    append_section(
-        &mut output,
-        "Skipped Symlink Targets",
-        &comparison.skipped_symlinks,
-    );
-    append_section(&mut output, "Errors", &comparison.errors);
-
-    if dry_run {
-        output.push_str("\nThis was a DRY RUN. To apply changes, run with dryRun=false");
-    }
+    // T-1.3: RTM FR-3 — only emit sections that have content (C# parity).
+    append_section_if_nonempty(&mut output, "Added Files", &comparison.added_files);
+    append_section_if_nonempty(&mut output, "Updated Files", &comparison.updated_files);
+    append_section_if_nonempty(&mut output, "Errors", &comparison.errors);
 
     output
 }
 
-fn append_section(output: &mut String, heading: &str, items: &[String]) {
-    let _ = writeln!(output, "\n### {heading}");
+// T-1.3: RTM FR-3 — C# only emits sections with content; empty sections are omitted.
+fn append_section_if_nonempty(output: &mut String, heading: &str, items: &[String]) {
     if items.is_empty() {
-        output.push_str("- None\n");
         return;
     }
+    let _ = writeln!(output, "\n### {heading}");
     for item in items {
         let _ = writeln!(output, "- {item}");
     }

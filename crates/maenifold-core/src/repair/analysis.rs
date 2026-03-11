@@ -7,7 +7,7 @@ use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use regex::Regex;
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
@@ -35,12 +35,18 @@ pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Res
     }
 
     let (_, content, _) = read_markdown(&uri, &context.config)?;
-    let concepts = extract_wikilinks(&content)
+    // PARITY-E01: RTM NFR-1 — preserve document order (C# parity).
+    // extract_wikilinks already returns concepts in document order with
+    // deduplication on the normalized form.  We only need to deduplicate
+    // again after lowercasing, using a HashSet to track seen values while
+    // a Vec preserves insertion (document) order.  BTreeSet was previously
+    // used here which silently re-sorted alphabetically.
+    let mut seen = HashSet::new();
+    let concepts: Vec<String> = extract_wikilinks(&content)
         .into_iter()
         .map(|concept| concept.to_ascii_lowercase())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>();
+        .filter(|concept| seen.insert(concept.clone()))
+        .collect();
 
     // PARITY-E02-ZERO: RTM NFR-1 — C# outputs different message when no concepts found
     if concepts.is_empty() {

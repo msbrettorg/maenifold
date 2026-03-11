@@ -86,10 +86,10 @@ pub fn ensure_vec0_tables(conn: &Connection, assets_path: &Path) -> Result<()> {
     let schema_matches =
         vec_concepts_dims == Some(current_dims) && vec_memory_files_dims == Some(current_dims);
 
-    if stored_dims != Some(current_dims) || !schema_matches {
-        if recreate_vec0_tables(conn, current_dims).is_err() {
-            return Ok(());
-        }
+    if (stored_dims != Some(current_dims) || !schema_matches)
+        && recreate_vec0_tables(conn, current_dims).is_err()
+    {
+        return Ok(());
     }
 
     upsert_model_metadata(conn, "embedding_dimensions", &current_dims.to_string())?;

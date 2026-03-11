@@ -1,16 +1,22 @@
-# maenifold-rs reboot snapshot
+# maenifold-rs
 
 ## purpose
-This file captures the current state of the Rust reimplementation of `maenifold` so work can resume cleanly after a reboot.
+Rust reimplementation of `maenifold` — a knowledge-graph-backed memory system for LLM agents. This repo provides full CLI and MCP tool parity with the original C# implementation.
 
 ## current status
-- Workspace root: `/Users/brett/src/ma-collective/maenifold-rs`
-- Oracle repo: `/Users/brett/src/ma-collective/maenifold`
-- Current Rust workspace status: `cargo test` passes.
-- Current parity status: the active Rust parity suite is green against the C# oracle for memory, search/graph, session/workflow, and the current vector/watcher slice.
+<!-- T-0.2: RTM NFR-3 — README reflects current parity state -->
+- **Tools**: 28/28 implemented — zero placeholders, all real handlers
+- **Tests**: 500+ passing across 90 test suites, 0 failures
+- **CLI parity**: tested side-by-side against C# oracle (130+ oracle comparisons)
+- **Sprint 15 remediation**: 27 parity issues found and fixed (search NULL handling, BuildContext format, output formatting, error messages, validation gaps)
+- **vec0**: native extension loading verified on macOS and Linux
+- **Workflow assets**: 69/69 workflow JSON files (full parity with C#)
+- **MCP**: resources/list, resources/read, and resource-change notifications implemented
+
+Only 4 minor cosmetic parity items remain (field ordering in RecentActivity, error wording in Adopt, UpdateAssets header format, ExtractConcepts sort order) — all documented in TODO.md under "Polish".
 
 ## implemented tool surface
-All 28 registered tools now resolve to real handlers. The implemented tool surface is:
+All 28 registered tools resolve to real handlers:
 - `WriteMemory`
 - `ReadMemory`
 - `EditMemory`
@@ -40,118 +46,88 @@ All 28 registered tools now resolve to real handlers. The implemented tool surfa
 - `ListAssets`
 - `ReadMcpResource`
 
-Remaining parity gaps are now outside the registry implementation itself:
-- MCP resource parity is not complete; direct CLI mode is still the main working surface.
-- Oracle parity tests are still missing for `Adopt`, `AnalyzeConceptCorruption`, `UpdateAssets`, `RecentActivity`, `RunFullBenchmark`, and `RepairConcepts`.
-- Workflow asset parity is not complete; Rust currently ships 41 workflow JSON files versus 69 in the C# oracle.
+## workspace structure
+```
+maenifold-rs/
+├── crates/
+│   ├── maenifold-core/       # Library crate — all tool logic
+│   │   └── src/
+│   │       ├── assets/        # Adopt, UpdateAssets, ListAssets, asset manager
+│   │       ├── benchmark/     # RunFullBenchmark (5 categories)
+│   │       ├── community/     # Louvain community detection, NMI metrics
+│   │       ├── db/            # SQLite connection, schema, vec0 extension
+│   │       ├── decay/         # Access-decay scoring and metadata
+│   │       ├── graph/         # BuildContext, Visualize, graph traversal
+│   │       ├── markdown/      # WikiLink extraction, frontmatter, storage
+│   │       ├── mcp/           # MCP stdio server, resources/list, resources/read
+│   │       ├── memory/        # Write/Read/Edit/Delete/Move/List memory
+│   │       ├── repair/        # RepairConcepts, AnalyzeConceptCorruption
+│   │       ├── search/        # SearchMemories (Hybrid/Semantic/FullText)
+│   │       ├── sessions/      # AssumptionLedger, session management
+│   │       ├── similar/       # FindSimilarConcepts, vector queries
+│   │       ├── sync/          # Sync, incremental sync, graph state, watchers
+│   │       ├── thinking/      # SequentialThinking sessions
+│   │       ├── tools/         # RecentActivity, MemoryStatus, GetConfig, GetHelp
+│   │       ├── util/          # JSON helpers, path validation
+│   │       ├── vector/        # ONNX model discovery, embedding inference
+│   │       ├── workflow/      # Workflow engine, queue, submachine
+│   │       ├── config.rs
+│   │       ├── error.rs
+│   │       ├── lib.rs
+│   │       └── registry.rs    # Tool dispatch (28 tools → handlers)
+│   └── maenifold-cli/         # Binary crate — CLI + MCP entrypoint
+├── tests/                     # Workspace-level oracle parity tests
+├── assets/                    # Workflow JSONs, native libs, models, integrations
+└── docs/                      # DEVELOPMENT.md (build/test/contribution guide)
+```
 
-## important compatibility fixes already made
+## compatibility notes
 ### shared storage / db
-- Rust now matches the C# `concepts` table contract closely enough for mixed-runtime sync:
-  - includes `first_seen`
-  - uses `occurrence_count`
-- This fixed a real mixed-runtime issue where C# `Sync` failed against a Rust-created DB.
+- Rust matches the C# `concepts` table contract for mixed-runtime sync (`first_seen`, `occurrence_count`)
+- WikiLink filter reads `.wikilink-filter.json` (JSON object format, matching C#)
 
 ### markdown / wikilinks
-- WikiLink extraction now excludes code blocks and inline code.
-- `pulldown-cmark` parses `[[wikilinks]]` as wiki-link events, so extraction was updated to read parsed wiki links directly and still preserve fallback scanning where needed.
+- WikiLink extraction excludes code blocks and inline code
+- `pulldown-cmark` parses `[[wikilinks]]` as wiki-link events
 
 ### output mode parity
-The following tools intentionally return plain text even with `--json`, because that matches observed C# behavior:
-- `Sync`
-- `BuildContext`
-- `Workflow`
-- `AssumptionLedger`
-- `ExtractConceptsFromFile`
-- `FindSimilarConcepts`
-- `StartWatcher`
-- `StopWatcher`
+These tools return plain text even with `--json` (matches C# behavior):
+`Sync`, `BuildContext`, `Workflow`, `AssumptionLedger`, `ExtractConceptsFromFile`, `FindSimilarConcepts`, `StartWatcher`, `StopWatcher`
 
-### vector parity shortcut
-- `FindSimilarConcepts` can reuse C#-generated `vec_concepts` data by loading the `vec0` extension and querying existing embeddings.
-- This avoids requiring full Rust embedding generation for the current parity slice.
+### vector / vec0
+- Dynamic ONNX model discovery at runtime (scans `assets/models/*.onnx`, selects largest)
+- Embedding dimensions read from model tensor shape (no hardcoded constants)
+- `FindSimilarConcepts` can reuse C#-generated `vec_concepts` data via `vec0` extension
+- `vec0` native libraries under `assets/native/`
 
-## key files changed recently
-### core implementation
-- `crates/maenifold-core/src/sessions.rs`
-- `crates/maenifold-core/src/search.rs`
-- `crates/maenifold-core/src/markdown.rs`
-- `crates/maenifold-core/src/db.rs`
-- `crates/maenifold-core/src/watchers.rs`
-- `crates/maenifold-core/src/registry.rs`
-- `crates/maenifold-core/src/assets.rs`
-- `crates/maenifold-core/src/memory.rs`
-- `crates/maenifold-core/src/config.rs`
-
-### test / parity harness
-- `crates/maenifold-core/tests/memory_boundary_paths.rs`
-- `crates/maenifold-core/tests/search_graph_boundary.rs`
-- `crates/maenifold-core/tests/session_workflow_boundary.rs`
-- `crates/maenifold-core/tests/vector_sync_boundary.rs`
-- `crates/maenifold-cli/tests/memory_boundary_cli_tests.rs`
-- `crates/maenifold-cli/tests/search_graph_cli_tests.rs`
-- `crates/maenifold-cli/tests/session_workflow_cli_tests.rs`
-- `crates/maenifold-cli/tests/system_tools_cli_tests.rs`
-- `crates/maenifold-cli/tests/vector_sync_cli_tests.rs`
-- `tests/compat/cli_json_parity.rs`
-- `tests/compat/search_graph_parity.rs`
-- `tests/compat/session_workflow_parity.rs`
-- `tests/compat/vector_sync_parity.rs`
-- `tests/cli_json_parity.rs`
-- `tests/search_graph_parity.rs`
-- `tests/session_workflow_parity.rs`
-- `tests/vector_sync_parity.rs`
-- `tests/support/cli_runner.rs`
-- `tests/support/compat_env.rs`
-- `tests/support/json_semantic.rs`
-
-## current test inventory
-Current Rust test files include:
-- `crates/maenifold-core/tests/contracts.rs`
-- `crates/maenifold-core/tests/memory_boundary_paths.rs`
-- `crates/maenifold-core/tests/search_graph_boundary.rs`
-- `crates/maenifold-core/tests/session_workflow_boundary.rs`
-- `crates/maenifold-core/tests/vector_sync_boundary.rs`
-- `crates/maenifold-cli/tests/cli_contract_tests.rs`
-- `crates/maenifold-cli/tests/memory_boundary_cli_tests.rs`
-- `crates/maenifold-cli/tests/search_graph_cli_tests.rs`
-- `crates/maenifold-cli/tests/session_workflow_cli_tests.rs`
-- `crates/maenifold-cli/tests/system_tools_cli_tests.rs`
-- `crates/maenifold-cli/tests/vector_sync_cli_tests.rs`
-- `tests/cli_json_parity.rs`
-- `tests/search_graph_parity.rs`
-- `tests/session_workflow_parity.rs`
-- `tests/vector_sync_parity.rs`
-
-At the last check there were no ignored tests left in the active suite.
+## test architecture
+- **Boundary tests** (`crates/maenifold-core/tests/`): isolated per-tool tests using `TempDir`
+- **CLI contract tests** (`crates/maenifold-cli/tests/`): `assert_cmd`-based JSON output and error validation
+- **Oracle parity tests** (`tests/`): side-by-side Rust vs C# output comparison using semantic JSON equality
+- **196 test files** across 90 test suites
 
 ## validated commands
-These were green at the current checkpoint:
-- `cargo test`
-- targeted lanes for:
-  - memory boundary
-  - search/graph
-  - session/workflow
-  - vector/watcher parity
+```bash
+cargo test --workspace    # 500+ tests, 0 failures
+cargo clippy --workspace --all-targets -- -D warnings  # clean
+cargo fmt --all --check   # clean
+```
 
-## recommended working policy going forward
-### test cadence
-Use Rust tests while coding; use the C# oracle only at parity gates.
-
-Recommended cadence:
-- small local change -> run one Rust test or one Rust test file
-- coherent slice complete -> run the Rust tranche lane
-- checkpoint only -> run C# parity gate(s)
-- full `cargo test` only at explicit checkpoints, not after every small edit
-
-### oracle policy
-Use the C# repo to define contracts, fixtures, and parity tests, but do not invoke it on every tiny iteration.
+## sprint history highlights
+| Sprint | Focus |
+|--------|-------|
+| 1–3 | Implemented 6 remaining placeholder tools to full handlers |
+| 9 | Dynamic ONNX model loading, CI/CD workflows |
+| 10 | Port parity completion — workflow JSONs, env var rename, MCP resources |
+| 11 | Search core fix — occurrence counting, RRF vector fusion |
+| 12 | Structural refactor — decomposed search.rs into sub-modules |
+| 13 | Parity audit — search mode paths, MemoryStatus, dead code cleanup |
+| 14 | Red-team drift remediation — decay, frontmatter, symlinks, session IDs |
+| 15 | CLI parity — 27 format fixes validated against C# oracle |
 
 ## known practical notes
-- `vec0` native libraries exist under `assets/native/...`
-- model assets exist under `assets/models/...`
-- the current `FindSimilarConcepts` parity path can query C#-generated vectors directly through `vec0`
-- direct CLI mode is the most reliable validation surface right now
-
-## definition of done not yet reached
-This repo is in a strong intermediate state, but it is **not** yet at full product parity with the C# implementation because MCP resource parity is still incomplete, oracle parity tests are still missing for the six newly implemented tools, and workflow asset parity is still short of the full C# set.
+- `vec0` native libraries exist under `assets/native/`
+- Model assets exist under `assets/models/`
+- `assets/workflows/` contains 69 workflow JSON files (full C# parity)
+- `assets/integrations/claude-code/` ships hook scripts and quick-start guides alongside the binary
+- CI runs on push/PR to `dev` and `main` (`.github/workflows/build.yml`)

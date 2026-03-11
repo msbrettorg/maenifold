@@ -272,9 +272,10 @@ fn update_assets_dry_run_json_matches_csharp_oracle() {
     let summary = rust_json["data"]["summary"]
         .as_str()
         .expect("dry-run summary");
+    // PARITY-U01: "This was a DRY RUN" message removed for C# parity.
     assert!(
-        summary.contains("This was a DRY RUN"),
-        "expected dry-run summary text: {summary}"
+        !summary.contains("This was a DRY RUN"),
+        "DRY RUN trailing message should not appear (C# parity): {summary}"
     );
     assert!(
         summary.contains(relative),

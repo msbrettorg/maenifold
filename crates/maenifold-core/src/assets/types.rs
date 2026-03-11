@@ -39,8 +39,9 @@ impl AssetKind {
             "role" | "roles" => Ok(Self::Role),
             "color" | "colors" => Ok(Self::Color),
             "perspective" | "perspectives" => Ok(Self::Perspective),
+            // T-10.5: RTM FR-1, RTM-004 — match C# wording "Must be one of:"
             _ => Err(MaenifoldError::InvalidArgument(format!(
-                "Unknown asset type '{value}'. Valid types: workflow, role, color, perspective"
+                "Unknown asset type '{value}'. Must be one of: workflow, role, color, perspective"
             ))),
         }
     }

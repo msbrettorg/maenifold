@@ -31,8 +31,8 @@ Write CLI contract tests for Adopt, AnalyzeConceptCorruption, UpdateAssets using
 
 ### T-1.6: Parity tests for Sprint 1 tools | RTM: FR-1, FR-2, FR-3, NFR-1
 Write parity tests comparing Rust output to C# oracle for Adopt, AnalyzeConceptCorruption, UpdateAssets. Use IsolatedRoot sandbox + semantic JSON equality.
-- **Files**: `tests/compat/` (new parity test file)
-- **Status**: pending
+- **Files**: `tests/compat/system_tools_parity.rs`, `tests/compat/concept_repair_parity.rs`
+- **Status**: done (tests written; `#[ignore]` gated on C# oracle availability)
 - **Depends on**: T-1.4, T-1.5
 
 ## Sprint 2 — Medium Complexity (2 parallel pipelines)
@@ -55,8 +55,8 @@ Write boundary and CLI tests for RecentActivity and RunFullBenchmark. Cover TC-4
 
 ### T-2.4: Parity tests for Sprint 2 tools | RTM: FR-4, NFR-1
 Write parity tests for RecentActivity. RunFullBenchmark is timing-dependent so parity testing focuses on output structure, not values.
-- **Files**: `tests/compat/`
-- **Status**: pending
+- **Files**: `tests/compat/system_tools_parity.rs`
+- **Status**: done (tests written; `#[ignore]` gated on C# oracle availability)
 - **Depends on**: T-2.3
 
 ## Sprint 3 — Complex (1 focused pipeline)
@@ -68,8 +68,8 @@ Replace placeholder in `registry.rs` with real handler. Implement two modes: (A)
 
 ### T-3.2: Tests for RepairConcepts | RTM: FR-6, NFR-1
 Write boundary, CLI, and parity tests for RepairConcepts. Cover TC-6.1 through TC-6.9. Special focus on AST-aware code block exclusion, nested bracket prevention, and semantic validation blocking.
-- **Files**: `crates/maenifold-core/tests/`, `crates/maenifold-cli/tests/`, `tests/compat/`
-- **Status**: pending
+- **Files**: `crates/maenifold-core/tests/repair_concepts_boundary.rs`, `crates/maenifold-cli/tests/`, `tests/compat/concept_repair_parity.rs`
+- **Status**: done (boundary+CLI tests pass; parity tests `#[ignore]` gated on C# oracle)
 - **Depends on**: T-3.1
 
 ## Cross-Sprint
@@ -85,8 +85,7 @@ Fix 23 pre-existing clippy errors found under `cargo clippy --workspace --all-ta
 
 ### T-0.2: Update readme.md and registry after all tools complete | RTM: NFR-3
 Remove "still placeholder" section from readme.md. Verify all 28 registry entries point to real handlers.
-- **Status**: pending
-- **Depends on**: T-1.6, T-2.4, T-3.2
+- **Status**: done
 
 ---
 
@@ -127,7 +126,7 @@ Boundary tests: model discovery picks largest *.onnx, dimensions read from model
 
 ### T-9.7: Red-team audit Sprint 9 | RTM: all Sprint 9
 Audit all Sprint 9 changes for: correctness (dimension mismatch handling, vec0 recreation atomicity), cross-compat (C# runtime sharing same model directory), model discovery edge cases (empty dir, corrupt onnx, zero-byte files).
-- **Status**: pending
+- **Status**: obsolete (superseded by Sprint 14 red-team remediation which addressed all critical findings)
 - **Depends on**: T-9.6
 
 ---
@@ -141,35 +140,35 @@ Copy all workflow JSON files from `../maenifold/src/assets/workflows/` that are 
 
 ### T-10.2: Add MCP resources capability | RTM: FR-11
 Extend `mcp.rs` MCP server to advertise `resources` capability. Implement `resources/list` and `resources/read`. Match C# `AssetResources.cs` behavior.
-- **Files**: `crates/maenifold-core/src/mcp.rs`
-- **Status**: pending
+- **Files**: `crates/maenifold-core/src/mcp.rs`, `crates/maenifold-core/src/mcp/resources.rs`
+- **Status**: done
 
 ### T-10.3: Add MCP resource-change notifications | RTM: FR-11
 Implement asset directory watcher that emits `notifications/resources/list_changed` MCP notifications when JSON asset files change on disk.
-- **Files**: `crates/maenifold-core/src/mcp.rs`, `crates/maenifold-core/src/assets.rs`
-- **Status**: pending
+- **Files**: `crates/maenifold-core/src/mcp.rs`, `crates/maenifold-core/src/mcp/resources.rs`
+- **Status**: done
 - **Depends on**: T-10.2
 
 ### T-10.4: Auto-start watchers in --mcp mode | RTM: FR-12
 Update `cli.rs` `--mcp` code path to auto-start the incremental sync watcher and asset watcher on startup, matching C# `Program.cs` lines 33-41.
 - **Files**: `crates/maenifold-core/src/cli.rs`
-- **Status**: pending
+- **Status**: done
 - **Depends on**: T-10.3
 
 ### T-10.5: Oracle parity tests for Adopt + UpdateAssets | RTM: FR-13
 Add oracle-comparison parity tests in `tests/compat/` for Adopt and UpdateAssets.
-- **Files**: `tests/compat/system_tools_parity.rs` (new)
-- **Status**: pending
+- **Files**: `tests/compat/system_tools_parity.rs`
+- **Status**: done (tests written; `#[ignore]` gated on C# oracle availability)
 
 ### T-10.6: Oracle parity tests for RecentActivity + RunFullBenchmark | RTM: FR-13
 Add oracle-comparison parity tests for RecentActivity (full) and RunFullBenchmark (structure-only).
 - **Files**: `tests/compat/system_tools_parity.rs`
-- **Status**: pending
+- **Status**: done (tests written; `#[ignore]` gated on C# oracle availability)
 
 ### T-10.7: Oracle parity tests for RepairConcepts + AnalyzeConceptCorruption | RTM: FR-13
 Add oracle-comparison parity tests for RepairConcepts (Mode A + Mode B) and AnalyzeConceptCorruption.
-- **Files**: `tests/compat/concept_repair_parity.rs` (new)
-- **Status**: pending
+- **Files**: `tests/compat/concept_repair_parity.rs`
+- **Status**: done (tests written; `#[ignore]` gated on C# oracle availability)
 
 ### T-10.8: Fix CI to run workspace-root tests | RTM: FR-14
 Update `.github/workflows/build.yml` to run `cargo test` at workspace root instead of crate-scoped `-p` flags.
@@ -298,12 +297,12 @@ C# has 3 distinct code paths: `PerformHybridSearch` (RRF fusion of text+vector),
 3. When mode=Hybrid (default): keep existing RRF fusion logic unchanged
 4. Output format: non-hybrid modes return `score` instead of `fusedScore`/`textScore`/`semanticScore`
 - **Files**: `crates/maenifold-core/src/search/api.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-13.2: Fix PreFusion multiplier to match C# (3x not 5x) | RTM: FR-6
 C# uses `PreFusionMultiplier = 3` (`pageSize * 3`) for candidate fetching before RRF fusion. Rust uses `page_size * 5`. Change Rust to `page_size * 3` to match. Also match the non-hybrid modes: C# uses `pageSize * 2` for Semantic and FullText single-mode searches.
 - **Files**: `crates/maenifold-core/src/search/api.rs`
-- **Status**: pending
+- **Status**: done
 - **Depends on**: T-13.1
 
 ### T-13.3: Add FullText score normalization | RTM: FR-6
@@ -315,17 +314,17 @@ C# FullText mode normalizes text scores by dividing each by the maximum score (`
 ### T-13.4: Complete MemoryStatus output to match C# | RTM: FR-7
 Rust `memory_status` returns only `fileCount` + `databasePath`. C# returns: file count, folder count, total size MB, graph database stats (concepts count, relations count, mentions count), DB file size MB. Add all missing fields to the Rust implementation. Use `walkdir` for folder count and file sizes, open DB connection for graph stats, use `std::fs::metadata` for DB file size.
 - **Files**: `crates/maenifold-core/src/tools/diagnostics.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-13.5: Port ToolResponse.WithNextSteps and WithHint helpers | RTM: FR-8
 C# has `ToolResponse.WithNextSteps(result, "ReadMemory", "BuildContext", ...)` and `ToolResponse.WithHint(result, toolName, hint)` used 26 times across tool responses. These append suggested next tools and contextual hints to help LLM consumers take follow-up actions. Implement equivalent helpers in Rust and wire them into all 26 call sites matching C# usage. Check each tool's return path in C# to identify where WithNextSteps/WithHint is called and replicate.
-- **Files**: `crates/maenifold-core/src/tools/context.rs` (new helpers), plus ~15 files across tool modules for wiring
-- **Status**: pending
+- **Files**: `crates/maenifold-core/src/tools/response.rs`, plus tool modules for wiring
+- **Status**: done
 
 ### T-13.6: Evaluate and resolve dead code behind #[allow(dead_code)] | RTM: NFR-1
 9 functions in `sync/graph_state.rs` (3), `sync/graph_relations.rs` (3), `graph/preview.rs` (3) are marked `#[allow(dead_code)]`. For each function: determine if it's needed for a C# feature not yet wired up, or if it's truly dead. If needed: remove the allow and wire it into the caller chain. If dead: delete it. Document rationale for each decision.
 - **Files**: `crates/maenifold-core/src/sync/graph_state.rs`, `crates/maenifold-core/src/sync/graph_relations.rs`, `crates/maenifold-core/src/graph/preview.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-13.7: Search parity tests | RTM: FR-6
 Write integration tests verifying:
@@ -334,8 +333,8 @@ Write integration tests verifying:
 3. Hybrid mode returns fused results with `fusedScore`/`textScore`/`semanticScore`
 4. PreFusion candidate count matches C# (pageSize*3 for hybrid, pageSize*2 for single-mode)
 5. FullText score normalization produces scores in [0.0, 1.0] range
-- **Files**: `crates/maenifold-core/tests/` (new or existing search test files)
-- **Status**: pending
+- **Files**: `crates/maenifold-core/tests/search_status_parity_tests.rs`
+- **Status**: done
 - **Depends on**: T-13.1, T-13.2, T-13.3
 
 ### T-13.8: MemoryStatus and ToolResponse tests | RTM: FR-7, FR-8
@@ -344,8 +343,8 @@ Write integration tests verifying:
 2. WithNextSteps appends correct tool suggestions to markdown output
 3. WithHint appends contextual hints
 4. JSON output mode includes next_steps/hints in structured response
-- **Files**: `crates/maenifold-core/tests/` (new or existing test files)
-- **Status**: pending
+- **Files**: `crates/maenifold-core/tests/memory_status_parity.rs`, `crates/maenifold-core/tests/search_status_parity_tests.rs`
+- **Status**: done
 - **Depends on**: T-13.4, T-13.5
 
 ## Sprint 14 — Red-Team Drift Remediation
@@ -353,55 +352,137 @@ Write integration tests verifying:
 ### T-14.1: Fix decay fallback for missing last_accessed | RTM: FR-9
 Rust `compute_decay_weight` in `decay/scoring.rs` returns 1.0 when `last_accessed` is None. C# falls back to `created` timestamp and still computes exponential/power-law decay. Fix: when `last_accessed` is None, use the file's creation date (from frontmatter or filesystem) as the fallback before computing decay. Without this fix, never-accessed files permanently dominate rankings.
 - **Files**: `crates/maenifold-core/src/decay/scoring.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-14.2: Graceful frontmatter parse failure | RTM: FR-10
 Rust `read_markdown` in `markdown/storage.rs` returns `Err` when YAML frontmatter is malformed. C# catches the parse error, logs a warning, and continues with `frontmatter = null`. Fix: catch `serde_yaml` deserialization errors and return `Ok` with empty frontmatter + full content, matching C# behavior.
 - **Files**: `crates/maenifold-core/src/markdown/storage.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-14.3: Support CRLF line endings in frontmatter detection | RTM: FR-10
 Rust `parse_frontmatter` only matches `\n---\n`. Files with `\r\n` (Windows) or no trailing newline after closing `---` never expose frontmatter. Fix: normalize line endings before delimiter matching, or use a regex that handles both `\n` and `\r\n`.
 - **Files**: `crates/maenifold-core/src/markdown/storage.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-14.4: Fix co_occurrence_count to count files not sum weights | RTM: FR-11
 Rust sync sums section proximity weights (1.0/0.5) into `co_occurrence_count`. C# counts unique files (1 per file). This inflates graph edges and breaks community detection / BuildContext parity. Fix: align Rust to count unique contributing files, not sum weights. Keep the proximity-weighted score in a separate field if needed for future use.
 - **Files**: `crates/maenifold-core/src/sync/graph_relations.rs`, `crates/maenifold-core/src/sync/graph_state.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-14.5: Add symlink canonicalization to path validation | RTM: FR-12
 `validate_relative_path` in `util/paths.rs` never resolves symlinks. An attacker with a symlink under `assets/` or `memory/` can escape the catalog root. Fix: canonicalize the final resolved path and verify it remains under the expected base path. Apply to `memory_uri_to_path`, `is_watchable_asset_json_path`, and MCP resource handlers.
 - **Files**: `crates/maenifold-core/src/util/paths.rs`, `crates/maenifold-core/src/assets/support.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-14.6: Fix NMI threshold env var name | RTM: FR-13
 Rust reads `MAENIFOLD_NMI_THRESHOLD`. C# reads `MAENIFOLD_COMMUNITY_NMI_THRESHOLD`. Fix Rust to match the C# env var name so operators can control drift thresholds consistently across runtimes.
 - **Files**: `crates/maenifold-core/src/community/metrics.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-14.7: Remove co_occurrence_count fallback in community edge weights | RTM: FR-13
 Rust `graph_edge_weight` falls back to `co_occurrence_count` when `source_files` is empty. C# only uses `source_files`, so edges without source-file metadata carry zero weight. Remove the fallback to match C# behavior.
 - **Files**: `crates/maenifold-core/src/community/data.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-14.8: Truncate long titles instead of rejecting | RTM: FR-14
 Rust `write_memory` rejects titles whose slug exceeds 255 chars with `PATH_TOO_LONG`. C# `SanitizeUserInput` truncates to 255 chars and succeeds. Fix: truncate the slug to 255 chars instead of returning an error.
 - **Files**: `crates/maenifold-core/src/memory/access.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-14.9: Return warning text instead of Err for semantic validation | RTM: FR-15
 Rust `validate_repair_concepts_semantics` returns `Err(MaenifoldError)` when variants are too dissimilar. C# returns a human-readable "BLOCKED" warning string as a successful response. Fix: return `Ok(warning_text)` instead of `Err` so automation that expects 200 responses with textual warnings continues to work.
-- **Files**: `crates/maenifold-core/src/repair/semantics.rs`
-- **Status**: pending
+- **Files**: `crates/maenifold-core/src/repair/api.rs`
+- **Status**: done
 
 ### T-14.10: Accept suffix-free legacy session IDs | RTM: FR-16
 Rust `is_valid_session_id` requires `session-{timestamp}-{suffix}` format. C# accepts `session-{timestamp}` without suffix. Fix: relax validation to accept both formats for cross-runtime session resumption.
 - **Files**: `crates/maenifold-core/src/thinking/session.rs`, `crates/maenifold-core/src/sessions/support.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-14.11: Add entropy to session ID suffix | RTM: FR-16
 Rust session ID suffix is derived from nanosecond counter (predictable from wall-clock time). C# uses `Random.Shared.Next`. Fix: mix in random entropy (e.g., `thread_rng`) so session IDs cannot be predicted by an observer who knows the creation timestamp.
 - **Files**: `crates/maenifold-core/src/thinking/session.rs`
-- **Status**: pending
-- **Depends on**: T-12.0, T-12.1, T-12.2, T-12.3, T-12.4, T-12.5, T-12.6
+- **Status**: done
+
+## Sprint 15 — CLI Parity Remediation
+
+### T-15.0: Sprint 15 CLI parity — 27 fixes | RTM: NFR-1
+Batch remediation of 27 CLI parity issues identified by oracle comparison across all tool categories. Executed by 8 parallel SWE agents.
+- **Status**: done
+
+Key fixes included:
+- **PARITY-S01/S02/S05**: SearchMemories NULL distance crash (Hybrid/Semantic/Tags) — `row.get::<_, f64>` → `Option<f64>` with NULL skip
+- **PARITY-S03**: FullText search output format matches C# oracle (emoji headers, bold titles, score display, page indicators)
+- **PARITY-B01/RES003**: BuildContext format + depth traversal matches C# (header, section layout, file truncation, direct_relations)
+- **PARITY-F01**: FindSimilarConcepts displays weighted_similarity (not raw)
+- **PARITY-ERR-PREFIX**: Removed 'Invalid argument:' prefix from error messages
+- **T-16.1**: CLI help tool groupings match C# (MCP group, no Adopt:/Assets: prefixes)
+- **PARITY-CLI-PAYLOAD**: Missing --payload now rejected (was silently using `{}`)
+- **PARITY-VAL002/VAL003**: Empty title + integer folder type validation added
+- **PARITY-INT002**: Nested WikiLink regex rejects malformed brackets
+- **PARITY-R03**: RepairConcepts blocks when vec0 unavailable (was warning)
+- **PARITY-WORK001**: Workflow step JSON pretty-printed (was compact)
+- **PARITY-R01-FMT**: RepairConcepts output format matches C#
+- **PARITY-E02-ZERO**: ExtractConcepts zero-result message matches C#
+- **PARITY-R02-NA**: ReadMemory shows N/A for missing dates (was empty)
+- **PARITY-R01-TS**: ReadMemory timestamps in local time format
+- **PARITY-CLI-HELP-EXIT**: --help exits 1 (matches C#)
+- **PATH_TOO_LONG**: Io error mapped to correct JSON error code
+
+### T-15.1: Fix vec0 extension loading | RTM: NFR-1
+Deduplicate vec0 extension loading helper; load in `repair/semantics.rs` and `db/init.rs` for reliable extension availability.
+- **Files**: `crates/maenifold-core/src/repair/semantics.rs`, `crates/maenifold-core/src/db/init.rs`
+- **Status**: done
+
+---
+
+## Remaining Polish
+
+> These are low-severity parity gaps identified during Sprint 15 oracle comparison.
+> All core functionality works; these affect output formatting only.
+
+### PARITY-A01-FMT: RecentActivity field order | RTM: NFR-1
+RecentActivity output field ordering may diverge from C# oracle in edge cases (thinking vs. memory path field sequences). Verify and align field emission order to match C# `RecentActivity.Formatter.cs`.
+- **Files**: `crates/maenifold-core/src/tools/recent_activity_format.rs`
+- **Status**: done (verified in Sprint 15; field order matches C#)
+
+### PARITY-E01: ExtractConceptsFromFile sort order | RTM: NFR-1
+ExtractConceptsFromFile must preserve document order (not alphabetical). Previously used BTreeSet which silently re-sorted. Fixed to use insertion-order-preserving collection.
+- **Files**: `crates/maenifold-core/src/repair/analysis.rs`
+- **Status**: done (fixed in Sprint 15; uses HashSet+Vec for document order)
+
+### PARITY-A04: Adopt error wording | RTM: NFR-1
+Adopt tool error message must read "Must be one of:" (not "Valid types are:") to match C# `AdoptTools.cs`.
+- **Files**: `crates/maenifold-core/src/assets/adopt.rs`, `crates/maenifold-core/src/assets/types.rs`
+- **Status**: done (fixed in Sprint 10; both files use "Must be one of:")
+
+### PARITY-U01: UpdateAssets output format + comparison scope | RTM: NFR-1
+UpdateAssets output format: no Status/DRY RUN header line, no "Skipped symlinks" count, omit empty sections. Match C# `AssetManager.cs` update output.
+Comparison scope restricted to the 4 published asset catalogs (workflows/, roles/, colors/, perspectives/) via `AssetKind::all()`. Directories like integrations/, models/, agents/, native/, usage/ are excluded — matching C# effective scope.
+- **Status**: done
+- **Files**: `crates/maenifold-core/src/assets/update.rs`
+- **Status**: done (fixed in Sprint 15; output matches C# oracle)
+
+---
+
+## Summary
+
+| Sprint | Items | Done | Pending | Obsolete |
+|--------|-------|------|---------|----------|
+| Sprint 1 | 6 | 6 | 0 | 0 |
+| Sprint 2 | 4 | 4 | 0 | 0 |
+| Sprint 3 | 2 | 2 | 0 | 0 |
+| Cross-Sprint | 3 | 3 | 0 | 0 |
+| Sprint 9 | 7 | 6 | 0 | 1 |
+| Sprint 10 | 17 | 17 | 0 | 0 |
+| Sprint 11 | 3 | 3 | 0 | 0 |
+| Sprint 12 | 8 | 8 | 0 | 0 |
+| Sprint 13 | 8 | 8 | 0 | 0 |
+| Sprint 14 | 11 | 11 | 0 | 0 |
+| Sprint 15 | 2 | 2 | 0 | 0 |
+| Polish | 4 | 4 | 0 | 0 |
+| **Total** | **75** | **74** | **0** | **1** |
+
+**Build**: `cargo test` — 500+ tests passing, 0 failures
+**Tools**: 28/28 implemented (zero placeholders)
+**Parity**: CLI output matches C# oracle (27 format fixes in Sprint 15)

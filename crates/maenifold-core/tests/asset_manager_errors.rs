@@ -90,9 +90,11 @@ fn update_assets_summary_formats_counts_sections_and_errors() {
         output.contains("Updated files: 1"),
         "missing updated count: {output}"
     );
+    // PARITY-U01: Skipped symlinks count and section removed for C# parity.
+    // Symlink skips are recorded as errors instead.
     assert!(
-        output.contains("Skipped symlinks: 1"),
-        "missing skipped count: {output}"
+        !output.contains("Skipped symlinks:"),
+        "Skipped symlinks line should not appear (C# parity): {output}"
     );
     assert!(
         output.contains("Errors: 1"),
@@ -107,8 +109,8 @@ fn update_assets_summary_formats_counts_sections_and_errors() {
         "missing Updated Files section: {output}"
     );
     assert!(
-        output.contains("### Skipped Symlink Targets"),
-        "missing skipped symlink section: {output}"
+        !output.contains("### Skipped Symlink Targets"),
+        "Skipped Symlink Targets section should not appear (C# parity): {output}"
     );
     assert!(
         output.contains("### Errors"),

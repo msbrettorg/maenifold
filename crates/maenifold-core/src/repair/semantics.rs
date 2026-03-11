@@ -28,7 +28,7 @@ pub(super) fn validate_repair_concepts_semantics(
     // that touches vec_concepts or vec_distance_cosine(). Without this, the "no such
     // module: vec0" error would always trigger the BLOCKED path, even when the extension
     // binary is available and embeddings exist.
-    if let Err(_) = db::load_vec0_extension(&connection, &context.config.assets_path) {
+    if db::load_vec0_extension(&connection, &context.config.assets_path).is_err() {
         return Ok(format!(
             "{header}\n⚠️ BLOCKED: Semantic validation cannot proceed because vec0 embeddings are unavailable (vec0 extension not found).\n\nOperation blocked. Either:\n- Load an embedding model to enable vec0\n- Set minSemanticSimilarity=0 to skip semantic validation"
         ));

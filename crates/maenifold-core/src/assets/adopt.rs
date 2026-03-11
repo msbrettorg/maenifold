@@ -55,8 +55,9 @@ fn parse_adopt_kind(value: &str) -> Result<AssetKind> {
         "role" => Ok(AssetKind::Role),
         "color" => Ok(AssetKind::Color),
         "perspective" => Ok(AssetKind::Perspective),
+        // T-10.5: RTM FR-1, RTM-004 — match C# wording "Must be one of:"
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "Invalid type '{value}'. Valid types: role, color, perspective"
+            "Invalid type '{value}'. Must be one of: role, color, perspective"
         ))),
     }
 }

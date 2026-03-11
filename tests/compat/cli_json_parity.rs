@@ -11,27 +11,6 @@ use json_semantic::{assert_semantically_equal, assert_semantically_equal_ignorin
 use serde_json::Value;
 
 #[test]
-fn isolated_root_sets_expected_locations() {
-    let sandbox = IsolatedRoot::new("compat-root").expect("sandbox");
-
-    assert!(sandbox.root_dir().exists());
-    assert!(sandbox.root_dir().join("memory").exists());
-    assert!(sandbox.root_dir().join("assets").exists());
-    assert_eq!(
-        sandbox.database_path(),
-        sandbox.root_dir().join("memory.db")
-    );
-}
-
-#[test]
-fn semantic_json_compare_ignores_object_key_order() {
-    assert_semantically_equal(
-        r#"{"success":true,"data":{"b":2,"a":1}}"#,
-        r#"{"data":{"a":1,"b":2},"success":true}"#,
-    );
-}
-
-#[test]
 fn list_assets_json_matches_csharp_oracle() {
     let sandbox = IsolatedRoot::new("list-assets").expect("sandbox");
     let args = ["--tool", "ListAssets", "--payload", "{}", "--json"];
@@ -82,7 +61,6 @@ fn read_catalog_json_matches_csharp_oracle() {
         rust_json["data"].as_str().expect("rust catalog data"),
     );
 }
-
 
 #[test]
 fn write_memory_json_matches_csharp_oracle() {

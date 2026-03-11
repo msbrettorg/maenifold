@@ -3,7 +3,11 @@
 This was supposed to be a port of /Users/brett/src/ma-collective/maenifold, but the product team failed.
 - Assume there a bugs in this code.
 - Assume the tests are worthless.
-- Assume the 'oracle' is too
+- Assume the 'oracle' is too.
+
+This is not your typical MCP server. Do not underestimate the complexity of this project. 
+Your starting assumption should be you've missed something and need to figure out what.
+Your task is to finish the conversion to rust. 100% feature parity. 100% test parity. All tests must pass.
 
 ## Notes for the Product Manager
 

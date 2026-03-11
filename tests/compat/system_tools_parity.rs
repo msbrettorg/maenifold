@@ -148,11 +148,10 @@ fn assert_success_envelope(json: &Value, label: &str) {
 }
 
 // T-10.5: RTM FR-13 / RTM-074 — full oracle parity for [[Adopt]] JSON envelope + instruction text.
+// T-10.5: RTM FR-13 — keep C#-oracle-dependent parity tests honestly reported as ignored.
+#[ignore = "requires C# oracle"]
 #[test]
 fn adopt_json_matches_csharp_oracle() {
-    if !require_csharp_oracle("adopt_json_matches_csharp_oracle") {
-        return;
-    }
 
     let sandbox = IsolatedRoot::new("adopt-parity").expect("sandbox");
     write_file(
@@ -186,36 +185,29 @@ fn adopt_json_matches_csharp_oracle() {
     assert_success_envelope(&rust_json, "Rust Adopt");
 
     let csharp_instruction = data_string(&csharp_json, "C# Adopt").trim_end();
-    let instruction = rust_json["data"]["instruction"]
-        .as_str()
-        .expect("adopt instruction");
+    // T-15.15: RTM FR-1 — Rust now returns a plain string in data, matching C#.
+    let rust_instruction = data_string(&rust_json, "Rust Adopt").trim_end();
     assert!(
-        instruction.contains("You are now adopting the role: test-role"),
-        "expected adoption instruction in output: {instruction}"
+        rust_instruction.contains("You are now adopting the role: test-role"),
+        "expected adoption instruction in output: {rust_instruction}"
     );
     assert_eq!(
         csharp_instruction,
-        instruction.trim_end(),
+        rust_instruction,
         "Adopt instruction drifted from C# oracle"
     );
     assert_eq!(
         extract_json_configuration(csharp_instruction),
-        serde_json::from_str::<Value>(
-            rust_json["data"]["jsonConfiguration"]
-                .as_str()
-                .expect("rust jsonConfiguration"),
-        )
-        .expect("rust embedded adopt json"),
+        extract_json_configuration(rust_instruction),
         "Adopt embedded JSON drifted from C# oracle"
     );
 }
 
 // T-10.5: RTM FR-13 / RTM-076 — full oracle parity for [[UpdateAssets]] dry-run JSON summary.
+// T-10.5: RTM FR-13 — keep C#-oracle-dependent parity tests honestly reported as ignored.
+#[ignore = "requires C# oracle"]
 #[test]
 fn update_assets_dry_run_json_matches_csharp_oracle() {
-    if !require_csharp_oracle("update_assets_dry_run_json_matches_csharp_oracle") {
-        return;
-    }
 
     let csharp_sandbox = IsolatedRoot::new("update-assets-parity-csharp").expect("csharp sandbox");
     let rust_sandbox = IsolatedRoot::new("update-assets-parity-rust").expect("rust sandbox");

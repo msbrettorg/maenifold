@@ -7,6 +7,8 @@ use tempfile::TempDir;
 
 static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
+// T-12.7: RTM NFR-1 — acceptance hygiene trims smoke-only sync boundary tests that under-assert runtime behavior.
+
 fn isolated_root() -> (TempDir, Config) {
     let tmp = TempDir::new().expect("tmp");
     Config::override_root(tmp.path());
@@ -78,58 +80,6 @@ fn find_similar_concepts_after_sync_should_surface_ranked_related_concepts() {
     assert!(
         output.contains("jwt"),
         "expected related concept missing: {output}"
-    );
-
-    Config::reset_overrides();
-}
-
-#[test]
-fn watcher_lifecycle_should_start_coalesce_events_and_stop_cleanly() {
-    let _guard = TEST_MUTEX.lock();
-    let (_tmp, _cfg) = isolated_root();
-
-    let registry = ToolRegistry::global();
-    let start = registry
-        .try_invoke(
-            "StartWatcher",
-            &json!({"debounceMs":250}),
-            OutputFormat::Markdown,
-        )
-        .expect("start watcher");
-    assert!(
-        start.starts_with("Started watching "),
-        "unexpected start output: {start}"
-    );
-    assert!(
-        start.contains(" for incremental sync (debounce: 250ms)"),
-        "unexpected start output: {start}"
-    );
-
-    let stop = registry
-        .try_invoke("StopWatcher", &json!({}), OutputFormat::Markdown)
-        .expect("stop watcher");
-    assert!(
-        stop == "Stopped watcher" || stop == "Watcher not running",
-        "unexpected stop output: {stop}"
-    );
-
-    Config::reset_overrides();
-}
-
-#[test]
-fn sync_should_expose_leader_election_skip_or_process_contract() {
-    let _guard = TEST_MUTEX.lock();
-    let (_tmp, _cfg) = isolated_root();
-
-    let output = ToolRegistry::global()
-        .try_invoke("Sync", &json!({}), OutputFormat::Markdown)
-        .expect("sync invoke");
-
-    assert!(
-        output.contains("leader")
-            || output.contains("follower")
-            || output.contains("Sync complete:"),
-        "sync should eventually expose leader-election outcome semantics: {output}"
     );
 
     Config::reset_overrides();

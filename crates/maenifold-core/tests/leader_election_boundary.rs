@@ -1,4 +1,5 @@
-use maenifold_core::leader::LeaderElection;
+// T-12.6: RTM NFR-1 - Keep regression-test imports aligned with the sync module split.
+use maenifold_core::sync::leader::LeaderElection;
 use maenifold_core::{AssetManager, Config, GraphDatabase, db};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;

@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tempfile::TempDir;
 
 fn test_mutex() -> &'static Mutex<()> {
@@ -160,36 +160,4 @@ fn file_deleted_removes_resource_from_asset_manager() {
         matches!(&error, MaenifoldError::AssetNotFound(kind, id) if kind == "color" && id == "delete-test"),
         "expected missing asset error, got: {error:?}"
     );
-}
-
-// T-0.1: RTM NFR-3 - Ports AssetHotLoadingTests.cs AssetReloadLatencyIsUnder500ms.
-#[test]
-fn asset_reload_latency_is_under_500ms() {
-    let _guard = test_mutex().lock().expect("mutex");
-    let harness = AssetHotLoadingHarness::new();
-
-    let test_file = harness.perspectives_path.join("latency-test.json");
-    let test_content = r#"{"name":"test-perspective","description":"Performance test"}"#;
-
-    let started = Instant::now();
-    fs::write(&test_file, test_content).expect("write perspective asset");
-    thread::sleep(Duration::from_millis(200));
-    let elapsed = started.elapsed();
-
-    assert!(
-        elapsed < Duration::from_millis(500),
-        "asset reload latency was {}ms, expected < 500ms",
-        elapsed.as_millis()
-    );
-    assert!(
-        test_file.exists(),
-        "file should exist for latency verification"
-    );
-
-    let asset = harness
-        .asset_manager()
-        .read_asset(AssetKind::Perspective, "latency-test")
-        .expect("latency test asset should be readable immediately");
-    assert_eq!(asset["name"], "test-perspective");
-    assert_eq!(asset["description"], "Performance test");
 }

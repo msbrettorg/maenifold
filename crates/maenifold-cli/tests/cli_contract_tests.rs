@@ -75,38 +75,21 @@ fn usage_is_printed_without_tool_args() {
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
         .assert()
-        // T-11.3: RTM FR-13 - bare CLI invocation must fail like the C# oracle.
+        // T-12.7: RTM NFR-1 - bare CLI invocation must keep the established C#-parity failure contract.
         .code(1)
         .stdout(contains("maenifold CLI"));
 }
 
-// T-0.2: RTM NFR-3 — final gate smoke contract for direct tool invocation
-// without an explicit payload.
+// PARITY-CLI-PAYLOAD: RTM NFR-1 — when --tool is present but --payload is
+// missing, the CLI prints usage and exits 1 (C# parity).
 #[test]
-fn get_config_defaults_missing_payload_to_empty_json() {
+fn missing_payload_prints_usage_and_exits_1() {
     let tmp = isolated_root();
-    let mut cmd = maenifold_cmd();
-    let output = cmd
+    maenifold_cmd()
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
         .args(["--tool", "GetConfig", "--json"])
         .assert()
-        .code(0)
-        .get_output()
-        .stdout
-        .clone();
-    let value: Value = serde_json::from_slice(&output).expect("json");
-    assert_eq!(value["success"], true);
-    let rendered = value["data"].as_str().expect("string data");
-    assert!(
-        rendered.contains("Maenifold Configuration:"),
-        "unexpected output: {rendered}"
-    );
-    assert!(
-        rendered.contains(&format!(
-            "Database: {}",
-            tmp.path().join("memory.db").display()
-        )),
-        "unexpected output: {rendered}"
-    );
+        .code(1)
+        .stdout(contains("maenifold CLI"));
 }

@@ -1,0 +1,189 @@
+use super::file_index::parse_indexed_timestamp;
+use crate::error::Result;
+use crate::vector;
+use chrono::{DateTime, Utc};
+use rusqlite::{Connection, OptionalExtension, params};
+use std::fs;
+use std::path::Path;
+use uuid::Uuid;
+
+pub(crate) const COMMUNITY_PENDING_COUNT_KEY: &str = "pending_change_count";
+pub(crate) const COMMUNITY_LAST_CHANGE_KEY: &str = "last_change_at";
+pub(crate) const COMMUNITY_LAST_RECOMPUTE_KEY: &str = "last_community_recompute_at";
+
+#[derive(Clone, Copy)]
+pub(crate) struct SyncSummary {
+    pub(crate) status: &'static str,
+    pub(crate) files_processed: i64,
+    pub(crate) concept_mentions: i64,
+    pub(crate) concept_relations: i64,
+    pub(crate) abandoned_sessions: i64,
+    pub(crate) communities_detected: i64,
+    pub(crate) vector_warning_code: Option<&'static str>,
+}
+
+pub(crate) fn ensure_incremental_sync_state_table(connection: &Connection) -> Result<()> {
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS incremental_sync_state (
+             key TEXT PRIMARY KEY,
+             value TEXT NOT NULL
+         )",
+        [],
+    )?;
+    Ok(())
+}
+
+pub(crate) fn record_incremental_graph_change(
+    connection: &Connection,
+    changed_at: &str,
+) -> Result<()> {
+    let next_count = load_incremental_state_i64(connection, COMMUNITY_PENDING_COUNT_KEY)? + 1;
+    set_incremental_state(
+        connection,
+        COMMUNITY_PENDING_COUNT_KEY,
+        &next_count.to_string(),
+    )?;
+    set_incremental_state(connection, COMMUNITY_LAST_CHANGE_KEY, changed_at)?;
+    Ok(())
+}
+
+pub(crate) fn reset_incremental_community_state(
+    connection: &Connection,
+    recomputed_at: &str,
+) -> Result<()> {
+    ensure_incremental_sync_state_table(connection)?;
+    set_incremental_state(connection, COMMUNITY_PENDING_COUNT_KEY, "0")?;
+    set_incremental_state(connection, COMMUNITY_LAST_CHANGE_KEY, recomputed_at)?;
+    set_incremental_state(connection, COMMUNITY_LAST_RECOMPUTE_KEY, recomputed_at)?;
+    Ok(())
+}
+
+pub(crate) fn load_incremental_state_i64(connection: &Connection, key: &str) -> Result<i64> {
+    let value = connection
+        .query_row(
+            "SELECT value FROM incremental_sync_state WHERE key = ?1",
+            params![key],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+    Ok(value.and_then(|raw| raw.parse::<i64>().ok()).unwrap_or(0))
+}
+
+pub(crate) fn load_incremental_state_timestamp(
+    connection: &Connection,
+    key: &str,
+) -> Option<DateTime<Utc>> {
+    let value = connection
+        .query_row(
+            "SELECT value FROM incremental_sync_state WHERE key = ?1",
+            params![key],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .ok()
+        .flatten()?;
+    parse_indexed_timestamp(&value)
+}
+
+pub(crate) fn community_recompute_file_threshold() -> usize {
+    std::env::var("MAENIFOLD_COMMUNITY_RECOMPUTE_FILE_THRESHOLD")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(10)
+}
+
+pub(crate) fn community_recompute_time_threshold() -> chrono::Duration {
+    let threshold_ms = std::env::var("MAENIFOLD_COMMUNITY_DEBOUNCE_MS")
+        .ok()
+        .and_then(|value| value.parse::<i64>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(2_000);
+    chrono::Duration::milliseconds(threshold_ms)
+}
+
+pub(crate) fn community_gamma() -> f64 {
+    // T-12.4: RTM NFR-1 keeps community recompute config local to [[sync]] after the module split.
+    std::env::var("MAENIFOLD_LOUVAIN_GAMMA")
+        .ok()
+        .and_then(|value| value.parse::<f64>().ok())
+        .filter(|value| value.is_finite())
+        .unwrap_or(1.0)
+}
+
+pub(crate) fn sync_role() -> String {
+    match std::env::var("MAENIFOLD_SYNC_ROLE") {
+        Ok(value) => match value.trim().to_ascii_lowercase().as_str() {
+            "leader" => "leader".to_string(),
+            "follower" => "follower".to_string(),
+            _ => "auto".to_string(),
+        },
+        Err(_) => "auto".to_string(),
+    }
+}
+
+pub(crate) fn generate_sync_holder_id() -> String {
+    format!("rust-{}-{}", std::process::id(), Uuid::new_v4())
+}
+
+pub(crate) fn render_sync_markdown(summary: SyncSummary, vector_section: Option<&str>) -> String {
+    let mut output = format!(
+        "Sync complete:
+- STATUS: {}
+- {} FILES processed
+- {} CONCEPT mentions found
+- {} CONCEPT relations created
+- {} ABANDONED sessions cleaned up
+- {} COMMUNITIES detected (modularity 0.000)",
+        summary.status,
+        summary.files_processed,
+        summary.concept_mentions,
+        summary.concept_relations,
+        summary.abandoned_sessions,
+        summary.communities_detected,
+    );
+    if let Some(section) = vector_section {
+        output.push('\n');
+        output.push_str(section);
+    } else if let Some(warning_code) = summary.vector_warning_code {
+        output.push_str(&format!("\n- WARNING_CODE {warning_code}"));
+    } else {
+        // T-9.3: RTM FR-7, FR-8 — runtime embedding dimensions must match the loaded model.
+        let dims = vector::embedding_dimensions().unwrap_or(vector::DEFAULT_EMBEDDING_DIMENSIONS);
+        output.push_str(&format!(
+            "
+Vector index verification:
+- CONCEPT embeddings: 0 rows ({dims} dims, self-distance n/a)
+- MEMORY embeddings: 0 rows ({dims} dims, self-distance n/a)"
+        ));
+    }
+    output
+}
+
+pub(crate) fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<String> {
+    fs::read_to_string(
+        assets_path
+            .join("usage")
+            .join("tools")
+            .join(format!("{}.md", tool_name.to_ascii_lowercase())),
+    )
+    .ok()
+}
+
+fn set_incremental_state(connection: &Connection, key: &str, value: &str) -> Result<()> {
+    connection.execute(
+        "INSERT INTO incremental_sync_state (key, value) VALUES (?1, ?2)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![key, value],
+    )?;
+    Ok(())
+}
+
+pub(crate) fn current_iso_timestamp() -> String {
+    let now = chrono::Utc::now();
+    format!(
+        "{}.{:07}+00:00",
+        now.format("%Y-%m-%dT%H:%M:%S"),
+        now.timestamp_subsec_nanos() / 100,
+    )
+}

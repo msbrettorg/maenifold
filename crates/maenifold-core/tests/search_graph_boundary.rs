@@ -135,6 +135,82 @@ fn build_context_surfaces_related_concepts_after_sync() {
     Config::reset_overrides();
 }
 
+// T-15.6: RTM FR-15 — ExpandedRelations must be a flat string array (C# parity)
+#[test]
+fn build_context_expanded_relations_is_flat_string_array() {
+    let _guard = TEST_MUTEX.lock();
+    let (_tmp, _cfg) = isolated_root();
+
+    let registry = ToolRegistry::global();
+
+    // Seed three notes creating a two-hop chain: auth -> oauth2 -> token-refresh
+    for (title, content) in [
+        (
+            "Auth Note",
+            "This links [[authentication]] and [[oauth2]].",
+        ),
+        (
+            "OAuth Detail",
+            "Details on [[oauth2]] and [[token-refresh]].",
+        ),
+    ] {
+        let write = registry
+            .try_invoke(
+                "WriteMemory",
+                &json!({ "title": title, "content": content }),
+                OutputFormat::Json,
+            )
+            .expect("write");
+        let v: serde_json::Value = serde_json::from_str(&write).expect("json");
+        assert_eq!(v["success"], true, "seed write should succeed: {write}");
+    }
+
+    registry
+        .try_invoke("Sync", &json!({}), OutputFormat::Markdown)
+        .expect("sync");
+
+    // Request JSON output with depth 2 so ExpandedRelations is populated
+    let context = registry
+        .try_invoke(
+            "BuildContext",
+            &json!({ "conceptName": "authentication", "depth": 2 }),
+            OutputFormat::Json,
+        )
+        .expect("build context");
+
+    let payload: serde_json::Value = serde_json::from_str(&context).expect("json parse");
+    let data = &payload["data"];
+
+    // T-15.6: ExpandedRelations must exist and be an array
+    let expanded = data["ExpandedRelations"]
+        .as_array()
+        .expect("ExpandedRelations should be a JSON array");
+
+    // T-15.6: Every element must be a string (not a rich object)
+    for (i, element) in expanded.iter().enumerate() {
+        assert!(
+            element.is_string(),
+            "ExpandedRelations[{i}] should be a string, got: {element}"
+        );
+    }
+
+    // DirectRelations should still be rich objects (not affected by this fix)
+    if let Some(direct) = data["DirectRelations"].as_array() {
+        for (i, element) in direct.iter().enumerate() {
+            assert!(
+                element.is_object(),
+                "DirectRelations[{i}] should be an object, got: {element}"
+            );
+            assert!(
+                element.get("Name").is_some(),
+                "DirectRelations[{i}] should have a Name field"
+            );
+        }
+    }
+
+    Config::reset_overrides();
+}
+
 #[test]
 fn search_memories_applies_decay_weight_to_ranking_only() {
     let _guard = TEST_MUTEX.lock();

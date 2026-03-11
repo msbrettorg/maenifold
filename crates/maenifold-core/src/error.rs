@@ -6,7 +6,8 @@ pub enum MaenifoldError {
     UnknownTool(String),
     #[error("Invalid payload: {0}")]
     InvalidPayload(String),
-    #[error("Invalid argument: {0}")]
+    // PARITY-ERR-PREFIX: RTM FR-1 — pass through message without prefix (C# parity).
+    #[error("{0}")]
     InvalidArgument(String),
     #[error("Invalid resource URI format: {0}")]
     InvalidResourceUri(String),

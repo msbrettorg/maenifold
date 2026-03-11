@@ -1,16 +1,22 @@
 use crate::config::Config;
 use crate::error::MaenifoldError;
-use crate::json::{OutputFormat, failure, from_str_safe, success};
 use crate::mcp::{self, MaenifoldMcpServer};
 use crate::registry::ToolRegistry;
+use crate::sync::watchers;
 use crate::tools::ToolContext;
-use crate::watchers;
+use crate::util::json::{OutputFormat, failure, from_str_safe, success};
 use serde_json::{Value, json};
 
 pub struct CliApp;
 
 impl CliApp {
     pub fn run(args: &[String]) -> i32 {
+        // T-16.1 + PARITY-CLI-HELP-EXIT: RTM FR-8.1 — explicit --help prints full usage and exits 1 (C# parity).
+        if args.iter().any(|arg| arg == "--help") {
+            println!("{}", usage());
+            return 1;
+        }
+
         if args.iter().any(|arg| arg == "--mcp") {
             return Self::run_mcp();
         }
@@ -63,23 +69,22 @@ impl CliApp {
         }
 
         let Some(tool_index) = args.iter().position(|arg| arg == "--tool") else {
-            // T-11.3: RTM FR-13 - invalid direct CLI invocations must fail with the C# parity exit code.
+            // T-12.7: RTM NFR-1 - invalid direct CLI invocations must keep the established C#-parity exit code.
             return Err(usage_error());
         };
         let Some(tool_name) = args.get(tool_index + 1) else {
-            // T-11.3: RTM FR-13 - invalid direct CLI invocations must fail with the C# parity exit code.
+            // T-12.7: RTM NFR-1 - invalid direct CLI invocations must keep the established C#-parity exit code.
             return Err(usage_error());
         };
-        // T-0.2: RTM NFR-3 - allow side-effect-free direct invocations like
-        // `--tool GetConfig --json` by defaulting the payload to `{}` when
-        // `--payload` is omitted.
+        // PARITY-CLI-PAYLOAD: RTM NFR-1 — when --tool is present but --payload
+        // is missing, print usage and exit 1 (C# parity).
         let payload_json = match args.iter().position(|arg| arg == "--payload") {
             Some(payload_index) => match args.get(payload_index + 1) {
                 Some(payload_json) => payload_json.as_str(),
-                // T-11.3: RTM FR-13 - invalid direct CLI invocations must fail with the C# parity exit code.
+                // T-12.7: RTM NFR-1 - invalid direct CLI invocations must keep the established C#-parity exit code.
                 None => return Err(usage_error()),
             },
-            None => "{}",
+            None => return Err(usage_error()),
         };
 
         let output_format = if args.iter().any(|arg| arg == "--json") {
@@ -106,7 +111,7 @@ impl CliApp {
         match ToolRegistry::global().try_invoke(tool_name, &payload, output_format) {
             Ok(output) => {
                 if output_format == OutputFormat::Json {
-                    // T-11.3: RTM FR-13 - pass through existing JSON envelopes only when
+                    // T-12.7: RTM NFR-1 - pass through existing JSON envelopes only when
                     // the tool already returned the full {success,data,error} contract;
                     // otherwise wrap the tool output in the C#-compatible success envelope.
                     let (output, exit_code) = normalize_json_output(output);
@@ -160,6 +165,15 @@ fn render_error(output_format: OutputFormat, tool_name: &str, err: MaenifoldErro
                 "INVALID_PAYLOAD",
                 format!("Error invoking {tool_name}: {msg}"),
             ),
+            MaenifoldError::Io(ref io_err)
+                if io_err.raw_os_error() == Some(63)
+                    || io_err.to_string().contains("name too long") =>
+            {
+                failure(
+                    "PATH_TOO_LONG",
+                    format!("Error invoking {tool_name}: File name too long"),
+                )
+            }
             other => failure(
                 "INTERNAL_ERROR",
                 format!("Error invoking {tool_name}: {other}"),
@@ -195,6 +209,8 @@ fn normalize_json_output(output: String) -> (String, i32) {
     }
 }
 
+// T-16.1: RTM FR-8.1 — Full help text matching C# parity with dev-from-source note,
+// examples, and categorised tool listing.
 fn usage() -> String {
     [
         "maenifold CLI",
@@ -203,8 +219,30 @@ fn usage() -> String {
         "  MCP Server mode:   maenifold --mcp",
         "  Direct tool mode:  maenifold --tool <name> --payload '<json>' [--json]",
         "",
+        "  (For development from source: cargo run -p maenifold-cli -- --tool <name> --payload '<json>')",
+        "",
         "Options:",
         "  --json             Output structured JSON instead of markdown (FR-8.1)",
+        "",
+        "Examples:",
+        "  maenifold --tool WriteMemory --payload '{\"title\":\"Test\",\"content\":\"Content with [[WikiLink]]\"}'",
+        "  maenifold --tool SearchMemories --payload '{\"query\":\"authentication\",\"mode\":\"Hybrid\"}'",
+        "  maenifold --tool BuildContext --payload '{\"conceptName\":\"Machine Learning\",\"depth\":2}'",
+        "",
+        "Available tools:",
+        "  Memory: WriteMemory, ReadMemory, EditMemory, DeleteMemory, MoveMemory",
+        "          SearchMemories, ExtractConceptsFromFile, RecentActivity",
+        "  Vector: FindSimilarConcepts",
+        "  Graph:  Sync, BuildContext, Visualize",
+        "  Think:  SequentialThinking",
+        // T-16.1: RTM FR-8.1 — C# help lists only Workflow under Flow.
+        "  Flow:   Workflow",
+        "  System: MemoryStatus, ListMemories, GetConfig, GetHelp",
+        "  Sync:   StartWatcher, StopWatcher",
+        "  Repair: RepairConcepts, AnalyzeConceptCorruption",
+        // T-16.1: RTM FR-8.1 — C# groups ListAssets + ReadMcpResource under MCP, not Adopt.
+        "  MCP:    ListAssets, ReadMcpResource",
+        "  Bench:  RunFullBenchmark",
     ]
     .join("\n")
 }

@@ -245,3 +245,163 @@ Replace content.contains() heuristic with two-pipeline architecture: text pipeli
 12 tests across `tests/compat/` fail against C# oracle. Verified pre-existing. Failures: read_memory_not_found, write_memory_validation_error, write_memory_path_security_error, read_catalog_json, build_context_json, search_memories_json, sequential_thinking_requires_zero, assumption_ledger_append, workflow_json, extract_concepts, find_similar_concepts, sync_json.
 - **Files**: `tests/compat/*.rs`
 - **Status**: done
+
+
+## Sprint 12 — Structural Refactor / Facade Preservation
+
+### T-12.0: Split workflow, MCP resource, and graph helper modules while preserving public entrypoints | RTM: NFR-1
+Extract `workflow_ops.rs`, `mcp_resources.rs`, `graph_preview.rs`, `graph_analyzer.rs`, and `similar.rs`; keep `workflow.rs`, `mcp.rs`, `graph.rs`, and the `search.rs` facade behaviorally stable while delegating to the split modules.
+- **Files**: `crates/maenifold-core/src/workflow.rs`, `crates/maenifold-core/src/workflow_ops.rs`, `crates/maenifold-core/src/mcp.rs`, `crates/maenifold-core/src/mcp_resources.rs`, `crates/maenifold-core/src/graph.rs`, `crates/maenifold-core/src/graph_preview.rs`, `crates/maenifold-core/src/graph_analyzer.rs`, `crates/maenifold-core/src/similar.rs`, `crates/maenifold-core/src/search.rs`
+- **Status**: done
+
+### T-12.1: Extract sync runtime from `search.rs` while preserving the existing tool surface | RTM: NFR-1
+Move sync / incremental-sync logic into `sync.rs` and rewire callers without changing observed tool behavior.
+- **Files**: `crates/maenifold-core/src/search.rs`, `crates/maenifold-core/src/sync.rs`, `crates/maenifold-core/src/watchers.rs`, `crates/maenifold-core/src/benchmark.rs`
+- **Status**: done
+
+### T-12.2: Extract concept repair / concept analysis handlers from `search.rs` | RTM: NFR-1
+Move `RepairConcepts`, `AnalyzeConceptCorruption`, and concept-extraction helpers into `repair.rs` while preserving the public tool surface.
+- **Files**: `crates/maenifold-core/src/repair.rs`, `crates/maenifold-core/src/search.rs`, `crates/maenifold-core/src/registry.rs`, `crates/maenifold-core/tests/frontmatter_tests.rs`, `crates/maenifold-core/tests/memory_path_tests.rs`, `crates/maenifold-core/tests/vector_tools_tests.rs`
+- **Status**: done
+
+### T-12.3: Extract `FindSimilarConcepts` runtime helpers from `search.rs` | RTM: NFR-1
+Move similarity-search implementation into `similar.rs` while preserving the caller-facing `search` facade and registry dispatch.
+- **Files**: `crates/maenifold-core/src/similar.rs`, `crates/maenifold-core/src/search.rs`, `crates/maenifold-core/src/registry.rs`, `crates/maenifold-core/src/lib.rs`
+- **Status**: done
+
+### T-12.4: Finish sync-module extraction cleanup inside `sync.rs` | RTM: NFR-1
+Own extracted helper lookups and remove reverse dependencies on `search.rs` so `sync.rs` is self-contained.
+- **Files**: `crates/maenifold-core/src/sync.rs`
+- **Status**: done
+
+### T-12.5: Extract shared decay logic into `decay.rs` while keeping `memory.rs` backward-compatible | RTM: NFR-1
+Move shared decay/date/path helpers into `decay.rs` and keep `memory.rs` as the stable public facade for existing callers.
+- **Files**: `crates/maenifold-core/src/decay.rs`, `crates/maenifold-core/src/memory.rs`
+- **Status**: done
+
+### T-12.6: Reconcile exports, registry wiring, benchmark routing, and regression-test imports after the split | RTM: NFR-1
+Update `lib.rs`, `registry.rs`, benchmark routing, and affected tests so the extracted modules compile against the existing public API surface.
+- **Files**: `crates/maenifold-core/src/lib.rs`, `crates/maenifold-core/src/registry.rs`, `crates/maenifold-core/src/benchmark.rs`, `crates/maenifold-core/tests/frontmatter_tests.rs`, `crates/maenifold-core/tests/memory_path_tests.rs`, `crates/maenifold-core/tests/vector_tools_tests.rs`
+- **Status**: done
+
+### T-12.7: Sprint 12 acceptance / landing hygiene | RTM: NFR-1
+Run focused acceptance gates, keep traceability comments honest for the Sprint 12 structural refactor, and stage the extracted runtime modules with their tracked importers before landing.
+- **Files**: `crates/maenifold-core/src/*.rs`, `crates/maenifold-core/tests/*.rs`, `crates/maenifold-cli/tests/*.rs`
+- **Status**: done
+
+## Sprint 13 — Parity Audit Remediation
+
+### T-13.1: Implement separate search mode paths (Semantic / FullText / Hybrid) | RTM: FR-6
+C# has 3 distinct code paths: `PerformHybridSearch` (RRF fusion of text+vector), `PerformSemanticSearch` (vector-only, filter by semantic score, decay-weighted), `PerformFullTextSearch` (text-only, max-normalized scores, decay-weighted). Rust currently runs ALL modes through the hybrid RRF path and just filters by different score key afterward. Must implement:
+1. When mode=Semantic: skip text search, run vector-only, apply decay weighting to raw semantic scores, return single `score` field
+2. When mode=FullText: skip vector search, run text-only, normalize by max score, apply decay weighting, return single `score` field
+3. When mode=Hybrid (default): keep existing RRF fusion logic unchanged
+4. Output format: non-hybrid modes return `score` instead of `fusedScore`/`textScore`/`semanticScore`
+- **Files**: `crates/maenifold-core/src/search/api.rs`
+- **Status**: pending
+
+### T-13.2: Fix PreFusion multiplier to match C# (3x not 5x) | RTM: FR-6
+C# uses `PreFusionMultiplier = 3` (`pageSize * 3`) for candidate fetching before RRF fusion. Rust uses `page_size * 5`. Change Rust to `page_size * 3` to match. Also match the non-hybrid modes: C# uses `pageSize * 2` for Semantic and FullText single-mode searches.
+- **Files**: `crates/maenifold-core/src/search/api.rs`
+- **Status**: pending
+- **Depends on**: T-13.1
+
+### T-13.3: Add FullText score normalization | RTM: FR-6
+C# FullText mode normalizes text scores by dividing each by the maximum score (`score / maxScore`). Rust does not normalize text scores. Add max-normalization to the FullText search path created in T-13.1.
+- **Files**: `crates/maenifold-core/src/search/api.rs`
+- **Status**: done
+- **Depends on**: T-13.1
+
+### T-13.4: Complete MemoryStatus output to match C# | RTM: FR-7
+Rust `memory_status` returns only `fileCount` + `databasePath`. C# returns: file count, folder count, total size MB, graph database stats (concepts count, relations count, mentions count), DB file size MB. Add all missing fields to the Rust implementation. Use `walkdir` for folder count and file sizes, open DB connection for graph stats, use `std::fs::metadata` for DB file size.
+- **Files**: `crates/maenifold-core/src/tools/diagnostics.rs`
+- **Status**: pending
+
+### T-13.5: Port ToolResponse.WithNextSteps and WithHint helpers | RTM: FR-8
+C# has `ToolResponse.WithNextSteps(result, "ReadMemory", "BuildContext", ...)` and `ToolResponse.WithHint(result, toolName, hint)` used 26 times across tool responses. These append suggested next tools and contextual hints to help LLM consumers take follow-up actions. Implement equivalent helpers in Rust and wire them into all 26 call sites matching C# usage. Check each tool's return path in C# to identify where WithNextSteps/WithHint is called and replicate.
+- **Files**: `crates/maenifold-core/src/tools/context.rs` (new helpers), plus ~15 files across tool modules for wiring
+- **Status**: pending
+
+### T-13.6: Evaluate and resolve dead code behind #[allow(dead_code)] | RTM: NFR-1
+9 functions in `sync/graph_state.rs` (3), `sync/graph_relations.rs` (3), `graph/preview.rs` (3) are marked `#[allow(dead_code)]`. For each function: determine if it's needed for a C# feature not yet wired up, or if it's truly dead. If needed: remove the allow and wire it into the caller chain. If dead: delete it. Document rationale for each decision.
+- **Files**: `crates/maenifold-core/src/sync/graph_state.rs`, `crates/maenifold-core/src/sync/graph_relations.rs`, `crates/maenifold-core/src/graph/preview.rs`
+- **Status**: pending
+
+### T-13.7: Search parity tests | RTM: FR-6
+Write integration tests verifying:
+1. Semantic mode returns vector-only results with single `score` field, no text search executed
+2. FullText mode returns text-only results with normalized scores, no vector search executed
+3. Hybrid mode returns fused results with `fusedScore`/`textScore`/`semanticScore`
+4. PreFusion candidate count matches C# (pageSize*3 for hybrid, pageSize*2 for single-mode)
+5. FullText score normalization produces scores in [0.0, 1.0] range
+- **Files**: `crates/maenifold-core/tests/` (new or existing search test files)
+- **Status**: pending
+- **Depends on**: T-13.1, T-13.2, T-13.3
+
+### T-13.8: MemoryStatus and ToolResponse tests | RTM: FR-7, FR-8
+Write integration tests verifying:
+1. MemoryStatus returns folder count, file count, total size, concept/relation/mention counts, DB size
+2. WithNextSteps appends correct tool suggestions to markdown output
+3. WithHint appends contextual hints
+4. JSON output mode includes next_steps/hints in structured response
+- **Files**: `crates/maenifold-core/tests/` (new or existing test files)
+- **Status**: pending
+- **Depends on**: T-13.4, T-13.5
+
+## Sprint 14 — Red-Team Drift Remediation
+
+### T-14.1: Fix decay fallback for missing last_accessed | RTM: FR-9
+Rust `compute_decay_weight` in `decay/scoring.rs` returns 1.0 when `last_accessed` is None. C# falls back to `created` timestamp and still computes exponential/power-law decay. Fix: when `last_accessed` is None, use the file's creation date (from frontmatter or filesystem) as the fallback before computing decay. Without this fix, never-accessed files permanently dominate rankings.
+- **Files**: `crates/maenifold-core/src/decay/scoring.rs`
+- **Status**: pending
+
+### T-14.2: Graceful frontmatter parse failure | RTM: FR-10
+Rust `read_markdown` in `markdown/storage.rs` returns `Err` when YAML frontmatter is malformed. C# catches the parse error, logs a warning, and continues with `frontmatter = null`. Fix: catch `serde_yaml` deserialization errors and return `Ok` with empty frontmatter + full content, matching C# behavior.
+- **Files**: `crates/maenifold-core/src/markdown/storage.rs`
+- **Status**: pending
+
+### T-14.3: Support CRLF line endings in frontmatter detection | RTM: FR-10
+Rust `parse_frontmatter` only matches `\n---\n`. Files with `\r\n` (Windows) or no trailing newline after closing `---` never expose frontmatter. Fix: normalize line endings before delimiter matching, or use a regex that handles both `\n` and `\r\n`.
+- **Files**: `crates/maenifold-core/src/markdown/storage.rs`
+- **Status**: pending
+
+### T-14.4: Fix co_occurrence_count to count files not sum weights | RTM: FR-11
+Rust sync sums section proximity weights (1.0/0.5) into `co_occurrence_count`. C# counts unique files (1 per file). This inflates graph edges and breaks community detection / BuildContext parity. Fix: align Rust to count unique contributing files, not sum weights. Keep the proximity-weighted score in a separate field if needed for future use.
+- **Files**: `crates/maenifold-core/src/sync/graph_relations.rs`, `crates/maenifold-core/src/sync/graph_state.rs`
+- **Status**: pending
+
+### T-14.5: Add symlink canonicalization to path validation | RTM: FR-12
+`validate_relative_path` in `util/paths.rs` never resolves symlinks. An attacker with a symlink under `assets/` or `memory/` can escape the catalog root. Fix: canonicalize the final resolved path and verify it remains under the expected base path. Apply to `memory_uri_to_path`, `is_watchable_asset_json_path`, and MCP resource handlers.
+- **Files**: `crates/maenifold-core/src/util/paths.rs`, `crates/maenifold-core/src/assets/support.rs`
+- **Status**: pending
+
+### T-14.6: Fix NMI threshold env var name | RTM: FR-13
+Rust reads `MAENIFOLD_NMI_THRESHOLD`. C# reads `MAENIFOLD_COMMUNITY_NMI_THRESHOLD`. Fix Rust to match the C# env var name so operators can control drift thresholds consistently across runtimes.
+- **Files**: `crates/maenifold-core/src/community/metrics.rs`
+- **Status**: pending
+
+### T-14.7: Remove co_occurrence_count fallback in community edge weights | RTM: FR-13
+Rust `graph_edge_weight` falls back to `co_occurrence_count` when `source_files` is empty. C# only uses `source_files`, so edges without source-file metadata carry zero weight. Remove the fallback to match C# behavior.
+- **Files**: `crates/maenifold-core/src/community/data.rs`
+- **Status**: pending
+
+### T-14.8: Truncate long titles instead of rejecting | RTM: FR-14
+Rust `write_memory` rejects titles whose slug exceeds 255 chars with `PATH_TOO_LONG`. C# `SanitizeUserInput` truncates to 255 chars and succeeds. Fix: truncate the slug to 255 chars instead of returning an error.
+- **Files**: `crates/maenifold-core/src/memory/access.rs`
+- **Status**: pending
+
+### T-14.9: Return warning text instead of Err for semantic validation | RTM: FR-15
+Rust `validate_repair_concepts_semantics` returns `Err(MaenifoldError)` when variants are too dissimilar. C# returns a human-readable "BLOCKED" warning string as a successful response. Fix: return `Ok(warning_text)` instead of `Err` so automation that expects 200 responses with textual warnings continues to work.
+- **Files**: `crates/maenifold-core/src/repair/semantics.rs`
+- **Status**: pending
+
+### T-14.10: Accept suffix-free legacy session IDs | RTM: FR-16
+Rust `is_valid_session_id` requires `session-{timestamp}-{suffix}` format. C# accepts `session-{timestamp}` without suffix. Fix: relax validation to accept both formats for cross-runtime session resumption.
+- **Files**: `crates/maenifold-core/src/thinking/session.rs`, `crates/maenifold-core/src/sessions/support.rs`
+- **Status**: pending
+
+### T-14.11: Add entropy to session ID suffix | RTM: FR-16
+Rust session ID suffix is derived from nanosecond counter (predictable from wall-clock time). C# uses `Random.Shared.Next`. Fix: mix in random entropy (e.g., `thread_rng`) so session IDs cannot be predicted by an observer who knows the creation timestamp.
+- **Files**: `crates/maenifold-core/src/thinking/session.rs`
+- **Status**: pending
+- **Depends on**: T-12.0, T-12.1, T-12.2, T-12.3, T-12.4, T-12.5, T-12.6

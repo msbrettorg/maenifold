@@ -3,13 +3,17 @@ use crate::benchmark;
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::graph;
-use crate::json::OutputFormat;
+use crate::graph::analyzer;
 use crate::memory;
+use crate::repair;
 use crate::search;
 use crate::sessions;
+use crate::similar;
+use crate::sync;
+use crate::sync::watchers;
 use crate::thinking;
 use crate::tools::{self, ToolContext};
-use crate::watchers;
+use crate::util::json::OutputFormat;
 use crate::workflow;
 use once_cell::sync::Lazy;
 use serde_json::Value;
@@ -116,19 +120,19 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
     ToolDescriptor {
         name: "Sync",
         aliases: &["sync"],
-        invoke: search::sync,
+        invoke: sync::sync,
     },
     ToolDescriptor {
         name: "BuildContext",
         aliases: &["buildcontext"],
-        // T-11.7: RTM FR-13 preserves graph tool routing after extracting handlers from search.rs.
+        // T-12.7 structural refactor: keep BuildContext routed through graph.rs.
         invoke: graph::build_context,
     },
     ToolDescriptor {
         name: "Visualize",
         aliases: &["visualize"],
-        // T-11.7: RTM FR-13 preserves graph tool routing after extracting handlers from search.rs.
-        invoke: graph::visualize,
+        // T-12.0: RTM NFR-1 keeps Visualize routed through graph/analyzer.rs after the module reorg.
+        invoke: analyzer::visualize,
     },
     ToolDescriptor {
         name: "SequentialThinking",
@@ -176,19 +180,20 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         name: "RepairConcepts",
         aliases: &["repairconcepts"],
         // T-3.1a: RTM FR-6
-        invoke: search::repair_concepts,
+        // T-12.2: RTM FR-6 - route RepairConcepts through [[repair.rs]].
+        invoke: repair::repair_concepts,
     },
     ToolDescriptor {
         name: "AnalyzeConceptCorruption",
         aliases: &["analyzeconceptcorruption"],
         // T-1.2: RTM FR-2
-        invoke: search::analyze_concept_corruption,
+        // T-12.2: RTM FR-2 - route AnalyzeConceptCorruption through [[repair.rs]].
+        invoke: repair::analyze_concept_corruption,
     },
     ToolDescriptor {
         name: "FindSimilarConcepts",
         aliases: &["findsimilarconcepts"],
-        // T-11.7: RTM FR-13 preserves graph tool routing after extracting handlers from search.rs.
-        invoke: graph::find_similar_concepts,
+        invoke: similar::find_similar_concepts,
     },
     ToolDescriptor {
         name: "StartWatcher",
@@ -198,7 +203,7 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
     ToolDescriptor {
         name: "StopWatcher",
         aliases: &["stopwatcher"],
-        // T-0.1: RTM NFR-3 — preserve legacy registry contract while direct helper callers keep detailed stop text.
+        // T-0.1: RTM NFR-3 - preserve legacy registry contract while direct helper callers keep detailed stop text.
         invoke: watchers::stop_watcher_tool,
     },
     ToolDescriptor {

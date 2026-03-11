@@ -195,11 +195,10 @@ fn present_benchmark_sections(report: &str) -> Vec<&'static str> {
 }
 
 // T-10.6: RTM FR-13 / RTM-077 — parity harness for [[RecentActivity]] JSON envelopes and item coverage.
+// T-10.6: RTM FR-13 — keep C#-oracle-dependent parity tests honestly reported as ignored.
+#[ignore = "requires C# oracle"]
 #[test]
 fn recent_activity_json_has_oracle_aligned_activity_items() {
-    if !require_csharp_oracle("recent_activity_json_has_oracle_aligned_activity_items") {
-        return;
-    }
 
     let sandbox = IsolatedRoot::new("recent-activity-parity").expect("sandbox");
     recent_activity_fixture(&sandbox);
@@ -246,11 +245,10 @@ fn recent_activity_json_has_oracle_aligned_activity_items() {
 }
 
 // T-10.6: RTM FR-13 / RTM-078 — structure-only parity for [[RunFullBenchmark]] JSON envelope category headings.
+// T-10.6: RTM FR-13 — keep C#-oracle-dependent parity tests honestly reported as ignored.
+#[ignore = "requires C# oracle"]
 #[test]
 fn run_full_benchmark_json_has_expected_structure() {
-    if !require_csharp_oracle("run_full_benchmark_json_has_expected_structure") {
-        return;
-    }
 
     let sandbox = IsolatedRoot::new("run-full-benchmark-parity").expect("sandbox");
     benchmark_fixture(&sandbox);

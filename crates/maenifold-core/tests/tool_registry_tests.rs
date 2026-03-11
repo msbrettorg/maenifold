@@ -194,17 +194,30 @@ fn try_invoke_get_config_returns_non_null_result() {
 #[test]
 fn try_invoke_memory_status_returns_non_null_result() {
     let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
+    let _env = isolated_env();
 
     let result = invoke_markdown("MemoryStatus", json!({})).expect("MemoryStatus should succeed");
 
+    // T-13.4: RTM FR-7 — MemoryStatus now returns C#-parity markdown with file/folder/size stats.
     assert!(
-        result.contains("\"fileCount\""),
-        "unexpected result: {result}"
+        result.contains("# Memory System Status"),
+        "should contain header: {result}"
     );
     assert!(
-        result.contains(env.config.database_path.to_string_lossy().as_ref()),
-        "memory status should include database path: {result}"
+        result.contains("Total files:"),
+        "should contain file count: {result}"
+    );
+    assert!(
+        result.contains("Total folders:"),
+        "should contain folder count: {result}"
+    );
+    assert!(
+        result.contains("Total size:"),
+        "should contain total size: {result}"
+    );
+    assert!(
+        result.contains("### Graph Database"),
+        "should contain graph database section: {result}"
     );
 }
 
@@ -258,8 +271,9 @@ fn global_registry_invocation_works_without_explicit_setup_call() {
         ToolRegistry::global().try_invoke("MemoryStatus", &json!({}), OutputFormat::Markdown);
 
     let output = result.expect("global registry should lazily initialize");
+    // T-13.4: RTM FR-7 — MemoryStatus returns markdown, not JSON.
     assert!(
-        output.contains("\"fileCount\""),
+        output.contains("# Memory System Status"),
         "unexpected output: {output}"
     );
 }

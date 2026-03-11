@@ -7,21 +7,27 @@ pub mod cli;
 pub mod community;
 pub mod config;
 pub mod db;
+pub mod decay;
 pub mod error;
 pub mod graph;
-pub mod json;
-pub mod leader;
 pub mod markdown;
+// T-12.0: RTM NFR-1 — preserve the crate::mcp facade while the implementation lives in src/mcp/.
 pub mod mcp;
 pub mod memory;
-pub mod paths;
+// T-12.6: RTM NFR-1 - preserve the public utility surface while moving helper modules under util/.
+pub mod util;
+pub use util::json;
+pub use util::paths;
 pub mod registry;
+// T-12.2: RTM FR-6 / FR-2 - expose extracted repair/analysis module.
+pub mod repair;
 pub mod search;
 pub mod sessions;
+pub mod similar;
+pub mod sync;
 pub mod thinking;
 pub mod tools;
 pub mod vector;
-pub mod watchers;
 pub mod workflow;
 
 pub use assets::{AssetCatalog, AssetKind, AssetManager};

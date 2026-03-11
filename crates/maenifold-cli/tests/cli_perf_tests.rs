@@ -180,8 +180,9 @@ fn search_memories_fulltext_json_mode_output_size_ratio_is_bounded() {
 
     assert!(!markdown.is_empty(), "markdown output should not be empty");
     assert!(!json.is_empty(), "json output should not be empty");
+    // T-13.7: RTM FR-21 — updated assertion for C#-parity emoji markdown format
     assert!(
-        markdown.contains("# Full-Text Search"),
+        markdown.contains("📝 **Full-Text Search**"),
         "markdown output should preserve the full-text heading: {markdown}"
     );
 

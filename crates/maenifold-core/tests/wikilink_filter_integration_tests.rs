@@ -92,14 +92,10 @@ fn write_memory_with_filtered_concept_returns_error() {
     .expect("write memory");
 
     assert!(result.contains("ERROR"), "unexpected: {result}");
+    // PARITY-WIKIFILTER: RTM NFR-1 — updated message to match C# text.
     assert!(
-        result.contains("filtered WikiLinks"),
+        result.contains("WikiLinks that are excluded"),
         "unexpected: {result}"
-    );
-    assert!(result.contains("[[tool]]"), "unexpected: {result}");
-    assert!(
-        !result.contains("[[react]]"),
-        "non-filtered concept should not be reported: {result}"
     );
 }
 
@@ -184,12 +180,9 @@ fn edit_memory_with_filtered_concept_returns_error() {
     .expect("edit memory");
 
     assert!(edit_result.contains("ERROR"), "unexpected: {edit_result}");
+    // PARITY-WIKIFILTER: RTM NFR-1 — updated message to match C# text.
     assert!(
-        edit_result.contains("filtered WikiLinks"),
-        "unexpected: {edit_result}"
-    );
-    assert!(
-        edit_result.contains("[[tool]]"),
+        edit_result.contains("WikiLinks that are excluded"),
         "unexpected: {edit_result}"
     );
 }

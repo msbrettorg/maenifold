@@ -5,7 +5,7 @@ use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
-use serde_json::json;
+use serde_json::{Value, json};
 use tempfile::TempDir;
 
 static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
@@ -20,6 +20,10 @@ struct TestEnv {
 impl TestEnv {
     fn ctx_markdown(&self) -> ToolContext {
         ToolContext::new(self.cfg.clone(), OutputFormat::Markdown)
+    }
+
+    fn ctx_json(&self) -> ToolContext {
+        ToolContext::new(self.cfg.clone(), OutputFormat::Json)
     }
 }
 
@@ -216,5 +220,293 @@ fn all_search_modes_respect_min_score() {
     assert!(
         !hybrid_result.contains("Cooking Recipes"),
         "hybrid search should filter out unrelated content with moderate minScore: {hybrid_result}"
+    );
+}
+
+// ---- T-13.1: RTM FR-6 — Search mode path tests ----
+
+fn search_json(env: &TestEnv, mode: &str, min_score: f64) -> Value {
+    let raw = search::search_memories(
+        &env.ctx_json(),
+        &json!({
+            "query": "machine learning",
+            "mode": mode,
+            "pageSize": 10,
+            "page": 1,
+            "folder": TEST_FOLDER,
+            "tags": Value::Null,
+            "minScore": min_score,
+        }),
+    )
+    .expect("search memories");
+    serde_json::from_str::<Value>(&raw).expect("parse JSON output")
+}
+
+// T-13.1: RTM FR-6 — Hybrid mode returns fusedScore, textScore, semanticScore.
+#[test]
+fn hybrid_mode_returns_fused_text_semantic_scores() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    create_test_data_with_known_scores(&env);
+
+    let json = search_json(&env, "Hybrid", 0.0);
+    let data = &json["data"];
+    assert_eq!(data["mode"].as_str(), Some("Hybrid"));
+
+    let results = data["results"].as_array().expect("results should be an array");
+    assert!(!results.is_empty(), "hybrid search should return results");
+
+    let first = &results[0];
+    assert!(
+        first.get("fusedScore").is_some(),
+        "hybrid results should contain fusedScore: {first}"
+    );
+    assert!(
+        first.get("textScore").is_some(),
+        "hybrid results should contain textScore: {first}"
+    );
+    assert!(
+        first.get("semanticScore").is_some(),
+        "hybrid results should contain semanticScore: {first}"
+    );
+    // Hybrid should NOT have a plain "score" field
+    assert!(
+        first.get("score").is_none(),
+        "hybrid results should NOT contain plain score field: {first}"
+    );
+    // Should have metadata envelope fields
+    assert!(
+        data.get("textResultCount").is_some(),
+        "hybrid envelope should contain textResultCount"
+    );
+    assert!(
+        data.get("semanticResultCount").is_some(),
+        "hybrid envelope should contain semanticResultCount"
+    );
+}
+
+// T-13.1: RTM FR-6 — Semantic mode returns only score field (no fusedScore/textScore).
+#[test]
+fn semantic_mode_returns_only_score_field() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    create_test_data_with_known_scores(&env);
+
+    let json = search_json(&env, "Semantic", 0.0);
+    let data = &json["data"];
+    assert_eq!(data["mode"].as_str(), Some("Semantic"));
+
+    // Semantic mode with no ONNX model returns zero results (graceful degradation).
+    // But the JSON structure must still be correct.
+    let results = data["results"].as_array().expect("results should be an array");
+
+    for result in results {
+        assert!(
+            result.get("score").is_some(),
+            "semantic results should contain score field: {result}"
+        );
+        assert!(
+            result.get("fusedScore").is_none(),
+            "semantic results should NOT contain fusedScore: {result}"
+        );
+        assert!(
+            result.get("textScore").is_none(),
+            "semantic results should NOT contain textScore: {result}"
+        );
+        assert!(
+            result.get("semanticScore").is_none(),
+            "semantic results should NOT contain semanticScore: {result}"
+        );
+    }
+
+    // Semantic envelope should NOT have textResultCount/semanticResultCount
+    assert!(
+        data.get("textResultCount").is_none(),
+        "semantic envelope should NOT contain textResultCount"
+    );
+    assert!(
+        data.get("semanticResultCount").is_none(),
+        "semantic envelope should NOT contain semanticResultCount"
+    );
+}
+
+// T-13.1: RTM FR-6 — FullText mode returns only score field, top result score ≈ 1.0.
+#[test]
+fn fulltext_mode_returns_only_score_field_with_normalized_top() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    create_test_data_with_known_scores(&env);
+
+    let json = search_json(&env, "FullText", 0.0);
+    let data = &json["data"];
+    assert_eq!(data["mode"].as_str(), Some("FullText"));
+
+    let results = data["results"].as_array().expect("results should be an array");
+    assert!(
+        !results.is_empty(),
+        "fulltext search should return results for 'machine learning'"
+    );
+
+    for result in results {
+        assert!(
+            result.get("score").is_some(),
+            "fulltext results should contain score field: {result}"
+        );
+        assert!(
+            result.get("fusedScore").is_none(),
+            "fulltext results should NOT contain fusedScore: {result}"
+        );
+        assert!(
+            result.get("textScore").is_none(),
+            "fulltext results should NOT contain textScore: {result}"
+        );
+        assert!(
+            result.get("semanticScore").is_none(),
+            "fulltext results should NOT contain semanticScore: {result}"
+        );
+    }
+
+    // Top result should have score ≈ 1.0 (max-normalized, with fresh decay ≈ 1.0)
+    let top_score = results[0]["score"].as_f64().expect("top result should have score");
+    assert!(
+        top_score > 0.95,
+        "top fulltext result should have score close to 1.0 (got {top_score})"
+    );
+
+    // FullText envelope should NOT have textResultCount/semanticResultCount
+    assert!(
+        data.get("textResultCount").is_none(),
+        "fulltext envelope should NOT contain textResultCount"
+    );
+    assert!(
+        data.get("semanticResultCount").is_none(),
+        "fulltext envelope should NOT contain semanticResultCount"
+    );
+}
+
+// T-13.1/T-13.3: RTM FR-6 — FullText scores are normalized to [0.0, 1.0] range.
+#[test]
+fn fulltext_scores_are_max_normalized() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    create_test_data_with_known_scores(&env);
+
+    let json = search_json(&env, "FullText", 0.0);
+    let data = &json["data"];
+    let results = data["results"].as_array().expect("results should be an array");
+    assert!(
+        results.len() >= 2,
+        "need at least 2 results to verify normalization"
+    );
+
+    let scores: Vec<f64> = results
+        .iter()
+        .filter_map(|r| r["score"].as_f64())
+        .collect();
+
+    // All scores should be in [0.0, 1.0] range
+    for (i, score) in scores.iter().enumerate() {
+        assert!(
+            *score >= 0.0 && *score <= 1.0,
+            "score at index {i} should be in [0.0, 1.0] but got {score}"
+        );
+    }
+
+    // Scores should be sorted descending (results are ordered by score)
+    for window in scores.windows(2) {
+        assert!(
+            window[0] >= window[1],
+            "scores should be sorted descending: {} >= {}",
+            window[0],
+            window[1]
+        );
+    }
+
+    // Second result should have a lower score than the first (different relevance)
+    assert!(
+        scores[0] > scores[1],
+        "top result score ({}) should be strictly greater than second result score ({})",
+        scores[0],
+        scores[1]
+    );
+}
+
+// T-13.2: RTM FR-6 — PreFusion multiplier parity: Hybrid uses pageSize*3, Semantic uses pageSize*2.
+// Verifies that small pageSize values are respected and that each mode returns at most
+// pageSize results (the candidate pool is larger, but final output is bounded by pageSize).
+#[test]
+fn prefusion_multiplier_respects_page_size_bounds() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    create_test_data_with_known_scores(&env);
+
+    // Use a small pageSize=1 to verify the search pipeline respects pagination
+    // even though the pre-fusion candidate pool is larger (1*3=3 for hybrid, 1*2=2 for semantic).
+    for mode in &["Hybrid", "Semantic", "FullText"] {
+        let raw = search::search_memories(
+            &env.ctx_json(),
+            &json!({
+                "query": "machine learning",
+                "mode": mode,
+                "pageSize": 1,
+                "page": 1,
+                "folder": TEST_FOLDER,
+                "tags": Value::Null,
+                "minScore": 0.0,
+            }),
+        )
+        .expect(&format!("{mode} search should not error"));
+
+        let json: Value = serde_json::from_str(&raw).expect("parse JSON");
+        let data = &json["data"];
+        let results = data["results"].as_array().expect("results array");
+
+        // T-13.2: RTM FR-6 — each mode should return at most pageSize results
+        assert!(
+            results.len() <= 1,
+            "{mode} mode with pageSize=1 should return at most 1 result, got {}",
+            results.len()
+        );
+
+        // The pageSize in the envelope should reflect the requested value
+        assert_eq!(
+            data["pageSize"].as_u64(),
+            Some(1),
+            "{mode} mode envelope should reflect pageSize=1"
+        );
+    }
+
+    // T-13.2: RTM FR-6 — with pageSize=2, totalCount may exceed pageSize (pre-fusion fetches more candidates)
+    // but the paged results slice is bounded.
+    let raw = search::search_memories(
+        &env.ctx_json(),
+        &json!({
+            "query": "machine learning",
+            "mode": "Hybrid",
+            "pageSize": 2,
+            "page": 1,
+            "folder": TEST_FOLDER,
+            "tags": Value::Null,
+            "minScore": 0.0,
+        }),
+    )
+    .expect("hybrid search page 2");
+
+    let json: Value = serde_json::from_str(&raw).expect("parse JSON");
+    let data = &json["data"];
+    let results = data["results"].as_array().expect("results array");
+    let total_count = data["totalCount"].as_u64().unwrap_or(0);
+
+    assert!(
+        results.len() <= 2,
+        "hybrid with pageSize=2 should return at most 2 results, got {}",
+        results.len()
+    );
+
+    // totalCount can be larger than pageSize (it's the full candidate count after fusion)
+    assert!(
+        total_count >= results.len() as u64,
+        "totalCount ({total_count}) should be >= paged results ({})",
+        results.len()
     );
 }

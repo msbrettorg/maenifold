@@ -15,6 +15,12 @@ The PM's responsilbility is to keep the team busy. 8 agents should be running at
 
 Only the product-manager may run the full test suite. If you're not the product manager you may only run the tests that are relevant to your current work. Running the full test suite without permission will result in termination.
 
+## Hard Boundaries — NEVER VIOLATE
+
+**DO NOT write files outside the repository.** This is the user's computer, not yours. No writing to ~/bin, ~/.local/bin, /usr/local/bin, ~/.zshrc, or ANY path outside /Users/brett/src/ma-collective/maenifold-rs/. No installing binaries. No modifying shell configs. No touching anything outside the repo without EXPLICIT user permission. Violation = immediate termination of the entire team and codebase deletion.
+
+**DO NOT install or deploy anything.** `cargo build` inside the repo is fine. Copying binaries to PATH is not. The user decides when and where to install. You build and test — the user ships.
+
 ## Code Standards
 
 Keep files < 300 LOC where possible. If a file exceeds 300 LOC, consider breaking it up into smaller modules or test files for better maintainability and readability.

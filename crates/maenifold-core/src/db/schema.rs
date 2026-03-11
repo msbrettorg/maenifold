@@ -15,7 +15,9 @@ impl GraphDatabase {
         Self::create_file_tables(&conn)?;
         Self::create_graph_tables(&conn)?;
         Self::create_community_tables(&conn)?;
-        Self::create_vector_tables(&conn);
+        // T-9.2: RTM FR-8 — pass assets_path so ensure_vec0_tables can load the
+        // vec0 extension before issuing CREATE VIRTUAL TABLE DDL.
+        Self::create_vector_tables(&conn, config);
         Self::create_lease_table(&conn)?;
         Self::add_missing_columns(&conn)?;
         Ok(())
@@ -112,8 +114,8 @@ impl GraphDatabase {
         Ok(())
     }
 
-    fn create_vector_tables(conn: &Connection) {
-        let _ = ensure_vec0_tables(conn);
+    fn create_vector_tables(conn: &Connection, config: &Config) {
+        let _ = ensure_vec0_tables(conn, &config.assets_path);
     }
 
     fn create_lease_table(conn: &Connection) -> Result<()> {

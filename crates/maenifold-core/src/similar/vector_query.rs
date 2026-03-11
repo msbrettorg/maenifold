@@ -1,8 +1,8 @@
+use crate::db;
 use crate::error::{MaenifoldError, Result};
 use crate::repair::{
     embedding_is_valid_for_similarity_search, is_vec_embedding_unavailable, load_concept_embedding,
 };
-use crate::search::vec0_extension_path;
 use crate::vector;
 use rusqlite::Connection;
 use rusqlite::params;
@@ -21,20 +21,10 @@ pub(crate) fn query_vec_similar_concepts(
     concept_name: &str,
     max_results: usize,
 ) -> Result<Option<Vec<SimilarConceptMatch>>> {
-    let Some(extension_path) = vec0_extension_path(assets_path) else {
+    // T-9.2 / T-3.1: RTM FR-8, FR-6 — use shared load_vec0_extension helper
+    // instead of inline unsafe block, eliminating duplication.
+    if db::load_vec0_extension(connection, assets_path).is_err() {
         return Ok(None);
-    };
-
-    unsafe {
-        connection.load_extension_enable()?;
-        if connection
-            .load_extension(&extension_path, None::<&str>)
-            .is_err()
-        {
-            let _ = connection.load_extension_disable();
-            return Ok(None);
-        }
-        connection.load_extension_disable()?;
     }
 
     // T-8.3: RTM FR-33.2 — FindSimilarConcepts can probe [[embedding]] similarity even when
@@ -43,28 +33,41 @@ pub(crate) fn query_vec_similar_concepts(
         Ok(Some(embedding))
             if !embedding.is_empty() && embedding_is_valid_for_similarity_search(&embedding) =>
         {
+            eprintln!("[DEBUG] query_vec_similar_concepts: loaded embedding for '{concept_name}' from vec_concepts, len={}", embedding.len());
             vector::to_sqlite_vector_blob(&embedding)
         }
         Ok(Some(_)) => {
+            eprintln!("[DEBUG] query_vec_similar_concepts: got invalid embedding for '{concept_name}'");
             return Err(MaenifoldError::InvalidArgument(
                 "unable to generate a valid embedding for conceptName".to_string(),
             ));
         }
         // T-8.5a: RTM FR-7.4 / FR-33.2 — on-the-fly query embedding failures must degrade
         // to graph-based fallback instead of crashing FindSimilarConcepts.
-        Ok(_) => match vector::generate_embedding(concept_name) {
+        Ok(_) => {
+            eprintln!("[DEBUG] query_vec_similar_concepts: no embedding found for '{concept_name}', trying on-the-fly generation");
+            match vector::generate_embedding(concept_name) {
             // T-12.3: RTM NFR-1 keeps invalid query embeddings out of vec0 distance queries.
             Ok(embedding) if embedding_is_valid_for_similarity_search(&embedding) => {
+                eprintln!("[DEBUG] query_vec_similar_concepts: generated on-the-fly embedding for '{concept_name}', len={}", embedding.len());
                 vector::to_sqlite_vector_blob(&embedding)
             }
             Ok(_) => {
+                eprintln!("[DEBUG] query_vec_similar_concepts: on-the-fly embedding invalid for '{concept_name}'");
                 return Err(MaenifoldError::InvalidArgument(
                     "unable to generate a valid embedding for conceptName".to_string(),
                 ));
             }
-            Err(_) => return Ok(None),
+            Err(e) => {
+                eprintln!("[DEBUG] query_vec_similar_concepts: on-the-fly embedding FAILED for '{concept_name}': {e}");
+                return Ok(None);
+            }
+        }
         },
-        Err(error) if is_vec_embedding_unavailable(&error) => return Ok(None),
+        Err(error) if is_vec_embedding_unavailable(&error) => {
+            eprintln!("[DEBUG] query_vec_similar_concepts: vec embedding unavailable: {error}");
+            return Ok(None);
+        }
         Err(error) => return Err(error),
     };
 

@@ -11,7 +11,6 @@ pub use crate::graph::{
     build_context, create_smart_preview, extract_section_with_concept, random_walk, visualize,
 };
 pub use crate::repair::extract_concepts_from_file;
-pub(crate) use crate::search::vector::vec0_extension_path;
 pub use crate::similar::find_similar_concepts;
 pub use crate::sync::{
     VectorFailureReasonCodes, VectorSyncDiagnostics, VectorUnavailableReasonCodes,

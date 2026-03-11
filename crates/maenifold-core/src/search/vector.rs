@@ -1,7 +1,8 @@
+use crate::db;
 use crate::error::{MaenifoldError, Result};
 use rusqlite::{Connection, params_from_iter};
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub(crate) type FileMetadata = (
     String,
@@ -16,19 +17,6 @@ pub(crate) struct VectorMetadataHydration {
     pub(crate) orphan_paths: BTreeSet<String>,
 }
 
-pub(crate) fn vec0_extension_path(assets_path: &Path) -> Option<PathBuf> {
-    let (platform_dir, filename) = match (std::env::consts::OS, std::env::consts::ARCH) {
-        ("macos", "aarch64") => ("osx-arm64", "vec0.dylib"),
-        ("macos", "x86_64") => ("osx-x64", "vec0.dylib"),
-        ("linux", "x86_64") => ("linux-x64", "vec0.so"),
-        ("linux", "aarch64") => ("linux-arm64", "vec0.so"),
-        ("windows", "x86_64") => ("win-x64", "vec0.dll"),
-        _ => return None,
-    };
-    let path = assets_path.join("native").join(platform_dir).join(filename);
-    path.exists().then_some(path)
-}
-
 pub(crate) fn query_vec_memory_files(
     connection: &Connection,
     assets_path: &Path,
@@ -36,20 +24,10 @@ pub(crate) fn query_vec_memory_files(
     folder_prefix: Option<&str>,
     max_candidates: usize,
 ) -> Result<Option<Vec<(String, f64)>>> {
-    let Some(extension_path) = vec0_extension_path(assets_path) else {
+    // T-9.2 / T-3.1: RTM FR-8, FR-6 — use shared load_vec0_extension helper
+    // instead of inline unsafe block, eliminating duplication.
+    if db::load_vec0_extension(connection, assets_path).is_err() {
         return Ok(None);
-    };
-
-    unsafe {
-        connection.load_extension_enable()?;
-        if connection
-            .load_extension(&extension_path, None::<&str>)
-            .is_err()
-        {
-            let _ = connection.load_extension_disable();
-            return Ok(None);
-        }
-        connection.load_extension_disable()?;
     }
 
     let query_embedding = match crate::vector::generate_embedding(query) {

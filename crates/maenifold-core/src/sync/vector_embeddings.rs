@@ -6,7 +6,7 @@ use crate::markdown::normalize_concept;
 use crate::vector;
 use rusqlite::{Connection, params, params_from_iter};
 use std::collections::{BTreeSet, HashSet};
-use std::path::{Path, PathBuf};
+
 
 // T-8.5a: RTM FR-25.2 / FR-33.2 — full [[sync]] embedding refreshes need the deduplicated
 // concept set from the rebuilt graph before generating vec_concepts rows.
@@ -59,7 +59,8 @@ pub fn generate_concept_embeddings(
         );
         let mut statement = match connection.prepare(&sql) {
             Ok(statement) => statement,
-            Err(_) => {
+            Err(e) => {
+                eprintln!("[DEBUG] generate_concept_embeddings: prepare SELECT failed: {e}");
                 record_concept_failures(
                     diagnostics,
                     VectorFailureReasonCodes::CONCEPT_LOOKUP_FAILED,
@@ -223,33 +224,10 @@ pub fn generate_file_embedding(
     }
 }
 
-pub(crate) fn vec0_extension_path(assets_path: &Path) -> Option<PathBuf> {
-    let (platform_dir, filename) = match (std::env::consts::OS, std::env::consts::ARCH) {
-        ("macos", "aarch64") => ("osx-arm64", "vec0.dylib"),
-        ("macos", "x86_64") => ("osx-x64", "vec0.dylib"),
-        ("linux", "x86_64") => ("linux-x64", "vec0.so"),
-        ("linux", "aarch64") => ("linux-arm64", "vec0.so"),
-        ("windows", "x86_64") => ("win-x64", "vec0.dll"),
-        _ => return None,
-    };
-    let path = assets_path.join("native").join(platform_dir).join(filename);
-    path.exists().then_some(path)
-}
-
-pub(crate) fn vec0_extension_available(connection: &Connection, assets_path: &Path) -> bool {
-    let Some(extension_path) = vec0_extension_path(assets_path) else {
-        return false;
-    };
-
-    unsafe {
-        if connection.load_extension_enable().is_err() {
-            return false;
-        }
-        let load_result = connection.load_extension(&extension_path, None::<&str>);
-        let disable_result = connection.load_extension_disable();
-        load_result.is_ok() && disable_result.is_ok()
-    }
-}
+// T-9.2 / T-3.1: RTM FR-8, FR-6 — re-export from the shared `db::vec0` module so
+// existing `crate::sync::vector_embeddings::vec0_extension_available` import paths
+// continue to compile.
+pub(crate) use crate::db::vec0_extension_available;
 
 fn record_concept_failures(diagnostics: &mut VectorSyncDiagnostics, reason: &str, count: usize) {
     let effective = count.max(1);

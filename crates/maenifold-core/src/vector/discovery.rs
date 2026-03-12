@@ -80,12 +80,9 @@ fn find_model_path() -> Result<PathBuf> {
         }
     }
 
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let fallback_models_dir = manifest_dir.join("../../assets/models");
-    if let Some(model_path) = discover_model(&fallback_models_dir) {
-        return Ok(model_path);
-    }
-
+    // T-9.1: RTM FR-7 — removed compile-time CARGO_MANIFEST_DIR fallback that baked
+    // the build-machine path into the binary. The two strategies above (exe-adjacent +
+    // Cargo.toml walk-up) already cover release installs and dev-mode builds.
     Err(MaenifoldError::Message(
         "embedding model not found: expected a non-empty *.onnx file under assets/models"
             .to_string(),

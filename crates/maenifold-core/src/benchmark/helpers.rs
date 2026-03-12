@@ -18,9 +18,27 @@ pub(crate) fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<Strin
     None
 }
 
+// T-9.5: RTM FR-9 / RTM-065 — resolve assets at runtime so release binaries
+// work without the build-machine path baked in by env!("CARGO_MANIFEST_DIR").
 fn packaged_assets_path() -> Option<PathBuf> {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .map(|root| root.join("assets"))
+    // 1. exe-adjacent (release installs)
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            let candidate = exe_dir.join("assets");
+            if candidate.is_dir() {
+                return Some(candidate);
+            }
+        }
+    }
+    // 2. dev mode: walk up from exe to workspace root
+    if let Ok(exe) = std::env::current_exe() {
+        let mut dir = exe.parent();
+        while let Some(d) = dir {
+            if d.join("Cargo.toml").exists() && d.join("assets").is_dir() {
+                return Some(d.join("assets"));
+            }
+            dir = d.parent();
+        }
+    }
+    None
 }

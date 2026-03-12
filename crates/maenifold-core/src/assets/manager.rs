@@ -1,4 +1,7 @@
-use super::support::{asset_files_in_root, asset_is_multi_agent, emit_asset_degraded_diagnostic};
+use super::support::{
+    asset_files_in_root, asset_is_multi_agent, emit_asset_degraded_diagnostic,
+    resolve_packaged_assets_root,
+};
 use super::types::{AssetCatalog, AssetKind};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
@@ -18,16 +21,14 @@ impl AssetManager {
         }
     }
 
+    // T-ASSET-PATH: RTM FR-3, FR-20 — use runtime asset resolution instead
+    // of compile-time CARGO_MANIFEST_DIR so the binary works on any machine.
     pub fn initialize_assets(config: &Config) -> Result<()> {
         config.ensure_directories()?;
-        let packaged_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .ancestors()
-            .nth(2)
-            .expect("workspace root")
-            .join("assets");
-        if !packaged_root.is_dir() {
-            return Ok(());
-        }
+        let packaged_root = match resolve_packaged_assets_root() {
+            Some(p) => p,
+            None => return Ok(()), // No packaged assets found — graceful
+        };
 
         for entry in walkdir::WalkDir::new(&packaged_root)
             .into_iter()

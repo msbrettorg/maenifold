@@ -22,23 +22,38 @@ pub fn is_watchable_asset_json_path(assets_root: &Path, path: &Path) -> bool {
         && !is_hidden_asset_relative_path(assets_root, path)
 }
 
-pub(crate) fn resolve_packaged_assets_path() -> Result<PathBuf> {
-    let workspace_assets = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .expect("workspace root")
-        .join("assets");
-    if workspace_assets.is_dir() {
-        return Ok(workspace_assets);
-    }
-
-    if let Some(parent) = std::env::current_exe()?.parent() {
-        let candidate = parent.join("assets");
-        if candidate.is_dir() {
-            return Ok(candidate);
+/// Resolve the packaged assets directory.
+///
+/// 1. Check next to the running executable (release installs where assets ZIP
+///    is extracted alongside the binary).
+/// 2. Walk up from the executable looking for a Cargo workspace root (dev mode).
+///
+/// Returns `None` when no assets directory can be located.
+// T-ASSET-PATH: RTM FR-3, FR-20 — runtime resolution replaces compile-time
+// `CARGO_MANIFEST_DIR` so the binary works on any machine.
+pub(crate) fn resolve_packaged_assets_root() -> Option<PathBuf> {
+    // 1. exe-adjacent (release/installed binary)
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            let candidate = exe_dir.join("assets");
+            if candidate.is_dir() {
+                return Some(candidate);
+            }
         }
     }
-    Ok(workspace_assets)
+
+    // 2. dev mode: walk up from exe looking for Cargo.toml with assets/ sibling
+    if let Ok(exe) = std::env::current_exe() {
+        let mut dir = exe.parent();
+        while let Some(d) = dir {
+            if d.join("Cargo.toml").exists() && d.join("assets").is_dir() {
+                return Some(d.join("assets"));
+            }
+            dir = d.parent();
+        }
+    }
+
+    None
 }
 
 pub(crate) fn sha256_digest(path: &Path) -> Result<[u8; 32]> {

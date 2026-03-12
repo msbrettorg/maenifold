@@ -1,5 +1,5 @@
 use super::support::{
-    load_help_doc, normalize_relative_path, resolve_packaged_assets_path, sha256_digest,
+    load_help_doc, normalize_relative_path, resolve_packaged_assets_root, sha256_digest,
     target_metadata,
 };
 use super::types::AssetKind;
@@ -29,7 +29,10 @@ pub fn update_assets(context: &ToolContext, payload: &Value) -> Result<String> {
         .get("dryRun")
         .and_then(Value::as_bool)
         .unwrap_or(true);
-    let source_path = resolve_packaged_assets_path()?;
+    // T-ASSET-PATH: RTM FR-3 — resolve packaged assets at runtime, not compile-time.
+    let source_path = resolve_packaged_assets_root().ok_or_else(|| {
+        MaenifoldError::Message("Source assets directory not found".to_string())
+    })?;
     if !source_path.is_dir() {
         return Err(MaenifoldError::Message(
             "Source assets directory not found".to_string(),

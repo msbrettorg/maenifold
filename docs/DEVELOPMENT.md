@@ -12,7 +12,7 @@ Rust-specific build, test, and contribution notes for `maenifold-rs`.
 
 Notes:
 - The workspace builds without an ONNX model, but semantic features degrade cleanly when no model is present.
-- vec0 is only needed for vector-backed features and parity paths that rely on SQLite vector tables.
+- vec0 is only needed for vector-backed features that rely on SQLite vector tables.
 
 ## Build
 
@@ -47,10 +47,10 @@ cargo test -p maenifold-core
 cargo test -p maenifold-cli
 ```
 
-### Oracle parity
+### Workspace integration
 
 ```bash
-cargo test --test cli_json_parity
+cargo test --test workspace_cli_smoke
 ```
 
 ### Full suite
@@ -62,14 +62,14 @@ cargo test
 ### Single exact test
 
 ```bash
-cargo test --test cli_json_parity write_memory_json_matches_csharp_oracle -- --exact
+cargo test --test workspace_cli_smoke workspace_cli_smoke_is_rust_only -- --exact
 ```
 
 ## Workspace structure
 
 - `crates/maenifold-core/` — core library: tool handlers, registry, MCP server, storage, search, vector integration
 - `crates/maenifold-cli/` — binary entrypoint wrapping `maenifold_core::CliApp`
-- `tests/compat/` — C# oracle parity tests
+- `tests/` — Rust-native workspace integration tests
 - `assets/` — workflows, tool docs, models, and native dependencies
 
 ## Adding a new tool
@@ -78,7 +78,7 @@ cargo test --test cli_json_parity write_memory_json_matches_csharp_oracle -- --e
 2. Implement the handler in the appropriate core module.
 3. Add a boundary test under `crates/maenifold-core/tests/`.
 4. Add a CLI test under `crates/maenifold-cli/tests/`.
-5. Add an oracle parity test under `tests/compat/`.
+5. Add a workspace integration test under `tests/` when the change crosses crate boundaries.
 6. Run the narrowest relevant test commands first, then rerun broader suites as a checkpoint.
 
 If the tool has usage/help text, keep the tool contract, JSON envelope behavior, and error wording aligned with existing registry patterns.

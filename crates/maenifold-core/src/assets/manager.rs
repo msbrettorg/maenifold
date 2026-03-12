@@ -70,22 +70,17 @@ impl AssetManager {
     }
 
     pub fn catalog(&self) -> Result<AssetCatalog> {
-        // T-10.17: RTM FR-20 - default catalog reads from the Rust repo assets path and only
-        // honors a cross-repo oracle root when explicitly opted in for parity testing.
-        let catalog_root = std::env::var_os("MAENIFOLD_CATALOG_ASSETS_OVERRIDE")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| Config::current().assets_path);
-        let workflows = self.load_kind_metadata_from_root(&catalog_root, AssetKind::Workflow)?;
+        let workflows = self.load_kind_metadata_from_root(&self.root, AssetKind::Workflow)?;
         // T-0.2: RTM NFR-3 - catalog shape mirrors the C# oracle by splitting workflows on `multiAgent`.
         let (multi_agent_workflows, single_agent_workflows): (Vec<_>, Vec<_>) =
             workflows.into_iter().partition(asset_is_multi_agent);
         Ok(AssetCatalog {
             single_agent_workflows,
             multi_agent_workflows,
-            roles: self.load_kind_metadata_from_root(&catalog_root, AssetKind::Role)?,
-            colors: self.load_kind_metadata_from_root(&catalog_root, AssetKind::Color)?,
+            roles: self.load_kind_metadata_from_root(&self.root, AssetKind::Role)?,
+            colors: self.load_kind_metadata_from_root(&self.root, AssetKind::Color)?,
             perspectives: self
-                .load_kind_metadata_from_root(&catalog_root, AssetKind::Perspective)?,
+                .load_kind_metadata_from_root(&self.root, AssetKind::Perspective)?,
         })
     }
 

@@ -7,41 +7,6 @@ use tempfile::TempDir;
 
 static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
-struct EnvVarReset {
-    key: &'static str,
-    previous: Option<String>,
-}
-
-impl EnvVarReset {
-    fn set(key: &'static str, value: &str) -> Self {
-        let previous = std::env::var(key).ok();
-        // T-10.17: RTM FR-20 - contract tests serialize process env mutation with TEST_MUTEX.
-        unsafe {
-            std::env::set_var(key, value);
-        }
-        Self { key, previous }
-    }
-}
-
-impl Drop for EnvVarReset {
-    fn drop(&mut self) {
-        match self.previous.as_deref() {
-            Some(value) => {
-                // T-10.17: RTM FR-20 - restore prior env state after serialized contract tests.
-                unsafe {
-                    std::env::set_var(self.key, value);
-                }
-            }
-            None => {
-                // T-10.17: RTM FR-20 - restore prior env state after serialized contract tests.
-                unsafe {
-                    std::env::remove_var(self.key);
-                }
-            }
-        }
-    }
-}
-
 fn isolated_config() -> (TempDir, Config) {
     let tmp = TempDir::new().expect("tmp");
     Config::override_root(tmp.path());
@@ -150,45 +115,6 @@ fn catalog_uses_current_config_assets_path_by_default() {
             .iter()
             .any(|role| { role.get("id").and_then(|value| value.as_str()) == Some(sentinel_id) }),
         "catalog should read roles from Config::current().assets_path by default"
-    );
-
-    Config::reset_overrides();
-}
-
-#[test]
-fn catalog_honors_explicit_assets_override_env_var() {
-    let _guard = TEST_MUTEX.lock();
-    let (_tmp, cfg) = isolated_config();
-    let override_root = cfg.maenifold_root.join("catalog-override");
-    for dir in ["workflows", "roles", "colors", "perspectives"] {
-        fs::create_dir_all(override_root.join(dir)).expect("create override dir");
-    }
-
-    let sentinel_id = "t-10-17-override-role";
-    fs::write(
-        override_root
-            .join("roles")
-            .join(format!("{sentinel_id}.json")),
-        format!(r#"{{"id":"{sentinel_id}","name":"Override Role","prompt":"override"}}"#),
-    )
-    .expect("write override role");
-
-    let _override_env = EnvVarReset::set(
-        "MAENIFOLD_CATALOG_ASSETS_OVERRIDE",
-        override_root.to_str().expect("override path utf-8"),
-    );
-
-    let manager = AssetManager::new(&cfg);
-    let catalog = manager.catalog().expect("catalog");
-
-    assert_eq!(
-        catalog.roles.len(),
-        1,
-        "override should replace default role catalog"
-    );
-    assert_eq!(
-        catalog.roles[0].get("id").and_then(|value| value.as_str()),
-        Some(sentinel_id)
     );
 
     Config::reset_overrides();

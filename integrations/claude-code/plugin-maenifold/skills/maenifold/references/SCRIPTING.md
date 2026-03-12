@@ -387,7 +387,7 @@ Happy path:
   - Shows both memories with timestamps.
 
 Notes:
-- All commands executed without build since an existing binary was used; root cleanliness check was avoided by not invoking `dotnet run`.
+- All commands executed without build since an existing binary was used; root cleanliness check was avoided by not invoking an ad-hoc development launcher.
 - Errors to expect in this flow if misused:
   - Missing [[WikiLinks]] in WriteMemory/SequentialThinking → concept validation error.
   - Missing conclusion when nextThoughtNeeded=false in SequentialThinking → conclusion required.

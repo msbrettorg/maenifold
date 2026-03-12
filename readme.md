@@ -1,131 +1,193 @@
-# maenifold-rs
+<p align="center">
+  <img src="docs/branding/maenifold-logo.svg" alt="maenifold">
+</p>
 
-## purpose
-Rust implementation of `maenifold` — a knowledge-graph-backed memory system for LLM agents. This repo is self-contained and validated with Rust-native tests.
+<p align="center">
+  Domain expertise that compounds. Open. Local. Yours.
+</p>
 
-## current status
-<!-- T-0.2: RTM NFR-3 — README reflects current parity state -->
-- **Tools**: 28/28 implemented — zero placeholders, all real handlers
-- **Tests**: extensive Rust-native boundary, CLI, and workspace integration coverage
-- **Validation**: no external oracle or sibling repository required
-- **Sprint 15 remediation**: 27 parity issues found and fixed (search NULL handling, BuildContext format, output formatting, error messages, validation gaps)
-- **vec0**: native extension loading verified on macOS and Linux
-- **Workflow assets**: 69 bundled workflow JSON files
-- **MCP**: resources/list, resources/read, and resource-change notifications implemented
+<p align="center">
+  <a href="https://github.com/msbrettorg/maenifold/releases/latest"><img src="https://img.shields.io/github/v/release/msbrettorg/maenifold?style=flat-square" alt="Latest Release"></a>
+  <a href="https://github.com/msbrettorg/maenifold/blob/main/LICENSE"><img src="https://img.shields.io/github/license/msbrettorg/maenifold?style=flat-square" alt="MIT License"></a>
+</p>
 
-Current follow-up work is tracked directly in `TODO.md`.
+---
 
-## implemented tool surface
-All 28 registered tools resolve to real handlers:
-- `WriteMemory`
-- `ReadMemory`
-- `EditMemory`
-- `DeleteMemory`
-- `MoveMemory`
-- `SearchMemories`
-- `ExtractConceptsFromFile`
-- `Sync`
-- `BuildContext`
-- `Visualize`
-- `SequentialThinking`
-- `Workflow`
-- `RecentActivity`
-- `MemoryStatus`
-- `GetConfig`
-- `GetHelp`
-- `ListMemories`
-- `UpdateAssets`
-- `RepairConcepts`
-- `AnalyzeConceptCorruption`
-- `FindSimilarConcepts`
-- `StartWatcher`
-- `StopWatcher`
-- `RunFullBenchmark`
-- `Adopt`
-- `AssumptionLedger`
-- `ListAssets`
-- `ReadMcpResource`
+**Persistent hierarchical state machines executing across ephemeral agents on a shared cognitive manifold, where each HSM transition produces graph artifacts that reshape the manifold for all future transitions by all threads — human and agent alike.**
 
-## workspace structure
+Agents think in chains of thought — maenifold captures the important bits as `[[WikiLinks]]`, builds a graph of just those concepts and how they relate, and feeds it back into the context window. The filler is stripped. The signal compounds. You see the same graph in Obsidian. Every agent on your machine is a thread in the same mind.
+
+## Quick Start
+
+```bash
+# Build from source
+cargo build --release -p maenifold-cli
+
+# Or download from GitHub Releases
+# https://github.com/msbrettorg/maenifold/releases/latest
+```
+
+**CLI**
+
+```bash
+maenifold --tool WriteMemory --payload '{"title":"Auth Decision","content":"Using [[OAuth2]] for [[authentication]]"}'
+maenifold --tool SearchMemories --payload '{"query":"authentication","mode":"Hybrid"}'
+maenifold --tool BuildContext --payload '{"conceptName":"authentication","depth":2}'
+```
+
+**MCP** (Claude Code, Claude Desktop, Codex, etc.)
+
+```json
+{
+  "mcpServers": {
+    "maenifold": { "command": "maenifold", "args": ["--mcp"], "type": "stdio" }
+  }
+}
+```
+
+Both interfaces have full feature parity. CLI filters intermediate results and preserves context ([why this matters](https://www.anthropic.com/engineering/code-execution-with-mcp)). MCP auto-syncs the graph during interactive sessions.
+
+## How It Works
+
+**`[[WikiLinks]]` are the primitive.** Each one is a compressed semantic unit — `[[authentication]]`, `[[commitment-discounts]]`, `[[null-reference-exception]]` — carrying meaning in its name alone. When agents tag concepts in their reasoning, those tags become graph nodes. Co-occurring WikiLinks become edges. Structure emerges from use.
+
+**Memory is for humans.** Readable markdown with full prose, citations, and context. Open a file, read it, audit what your agents know.
+
+**The graph is for navigation.** A navigable structure of concept names and relationships — the semantic skeleton of everything agents and humans have learned together, stripped of filler. Community detection clusters reasoning domains. Decay weights surface what's fresh. At session start, the graph is injected into the context window as a concept map — the attentional gate between persistent memory and ephemeral working memory.
+
+**The graph IS the mind's persistent memory.** Not a database the agent queries and hopes for the best. The compressed, clustered, decay-weighted concept map *is* what primes every session. The context window is ephemeral working memory — the graph is what survives. Agents traverse deeper only when they need the full document.
+
+**One graph. Every thread.** You in Obsidian, Claude Code, VS Code, Codex, cron jobs — every interface is a thread of attention in the same mind. What one thread learns, every thread knows. Knowledge compounds across clients, sessions, domains, and time.
+
+### Capabilities
+
+- **Hybrid search** — semantic vectors + full-text with RRF fusion
+- **Sequential thinking** — persistent hierarchical state machines with revision, branching; any agent can resume any thought
+- **69 workflows** — composable HSMs from deductive reasoning to multi-agent sprints
+- **Memory lifecycle** — decay, consolidation, repair modeled on cognitive neuroscience
+- **16 roles, 7 thinking colors, 12 perspectives** — composable cognitive assets
+- **Community detection** — Louvain algorithm identifies reasoning domains during sync
+- **Decay weighting** — ACT-R power-law recency bias across search, context, and similarity
+
+Six layers: WikiLinks → Graph → Search → Session State → Reasoning → Orchestration.
+
+## Platforms
+
+| Platform | Binary | Notes |
+|----------|--------|-------|
+| macOS | osx-arm64, osx-x64 | Apple Silicon or Intel |
+| Linux | linux-x64, linux-arm64 | x64 or ARM64 |
+| Windows | win-x64 | x64 only |
+
+Native Rust binary. Vector embeddings via ONNX Runtime. vec0 SQLite extension bundled per platform. No external dependencies.
+
+## Tools
+
+All 28 tools are registered in `registry.rs` and resolve to real handlers.
+
+| Category | Tool | Description |
+|----------|------|-------------|
+| **Memory** | `WriteMemory` | Create a new memory file with `[[WikiLinks]]` |
+| | `ReadMemory` | Read a memory file by URI or title |
+| | `EditMemory` | Append, prepend, find-replace, or replace section |
+| | `DeleteMemory` | Delete a memory file (requires confirmation) |
+| | `MoveMemory` | Rename or relocate a memory file |
+| | `ListMemories` | List files and folders under the memory root |
+| | `GetHelp` | Retrieve detailed help for a specific tool |
+| **Search** | `SearchMemories` | Hybrid/semantic/full-text search across memory files |
+| | `ExtractConceptsFromFile` | Extract `[[WikiLink]]` concepts from a file |
+| | `FindSimilarConcepts` | Find semantically similar concepts via vector embeddings |
+| **Graph** | `BuildContext` | Traverse the concept graph around a node |
+| | `Visualize` | Generate a Mermaid diagram of concept relationships |
+| | `Sync` | Synchronize WikiLink concepts into the graph database |
+| **Repair** | `RepairConcepts` | Replace concept variants with a canonical form |
+| | `AnalyzeConceptCorruption` | Find duplicate/corrupted WikiLink variants |
+| **Reasoning** | `SequentialThinking` | Structured thinking with branching and persistence |
+| | `Workflow` | Run structured workflows with submachine support |
+| | `AssumptionLedger` | Track assumptions linked to workflow context |
+| **Assets** | `Adopt` | Load a role, color, or perspective as an adoption instruction |
+| | `UpdateAssets` | Compare and sync packaged assets to runtime |
+| | `ListAssets` | List available asset catalogs |
+| | `ReadMcpResource` | Read an MCP resource by URI |
+| **System** | `RecentActivity` | Query recently indexed files with optional content |
+| | `MemoryStatus` | High-level memory system statistics |
+| | `GetConfig` | Display configuration settings and resolved paths |
+| | `RunFullBenchmark` | Performance benchmarks across 5 categories |
+| | `StartWatcher` | Start background file-system watcher for incremental sync |
+| | `StopWatcher` | Stop the background watcher |
+
+## Skills
+
+| Skill | What You Get |
+|-------|--------------|
+| **[Maenifold](integrations/claude-code/plugin-maenifold/skills/maenifold/)** | 28 tools, 6 composable layers, sequential thinking, 69 workflows |
+| **[Product Manager](integrations/claude-code/plugin-product-team/skills/product-manager/)** | Multi-agent orchestration, graph context injection, quality gates, sprint traceability |
+
+## Integrations
+
+| Integration | Purpose |
+|-------------|---------|
+| **[Claude Code](integrations/claude-code/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
+
+## Documentation
+
+- **[Complete Guide](docs/README.md)** — Architecture, philosophy, detailed examples
+- **[Bootstrap Guide](docs/BOOTSTRAP.md)** — From empty graph to domain expertise
+- **[Scripting Guide](docs/SCRIPTING.md)** — CLI patterns, Graph-RAG, HYDE, FLARE
+- **[Context Engineering](docs/research/context-engineering.md)** — Theoretical foundations
+- **[Security Model](docs/SECURITY_MODEL.md)** — STRIDE analysis and data flow
+- **[Testing Philosophy](docs/TESTING_PHILOSOPHY.md)** — No mocks, real systems, real behavior
+- **[Development Guide](docs/DEVELOPMENT.md)** — Build, test, and contribution guide
+
+## Configuration
+
+All settings are read from environment variables with sensible defaults.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MAENIFOLD_ROOT` | `~/maenifold` | Root directory for all data |
+| `MAENIFOLD_DATABASE_PATH` | `$ROOT/memory.db` | SQLite database location |
+| `MAENIFOLD_AUTO_SYNC` | `true` | Enable incremental sync watcher on MCP start |
+| `MAENIFOLD_SQLITE_BUSY_TIMEOUT` | `5000` | SQLite busy timeout in milliseconds |
+| `MAENIFOLD_SYNC_LEASE_MS` | `10000` | Sync lease duration (1000–60000 ms) |
+| `MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY` | `40` | Run OPTIMIZE after N sync cycles |
+| `MAENIFOLD_INCREMENTAL_VACUUM_MINUTES` | `720` | Auto-vacuum interval |
+| `MAENIFOLD_SESSION_CLEANUP` | `true` | Enable abandoned session cleanup |
+| `MAENIFOLD_SESSION_ABANDON_MINUTES` | — | Minutes before a session is considered abandoned |
+| `MAENIFOLD_WATCHER_BUFFER` | `65536` | File-system watcher buffer size |
+| `MAENIFOLD_DECAY_FUNCTION` | `power-law` | Access-decay scoring function |
+| `MAENIFOLD_DECAY_HALF_LIFE_DAYS` | `30` | Half-life for decay scoring |
+| `MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT` | `28` | Grace period before decay applies |
+| `MAENIFOLD_SYNC_LOGGING` | `true` | Log sync operations |
+| `MAENIFOLD_EMBEDDING_LOGS` | `false` | Log embedding inference |
+| `MAENIFOLD_VECTOR_LOGS` | `false` | Log vector search queries |
+
+## Development
+
+See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the full guide.
+
+```bash
+cargo build --workspace                                  # build
+cargo fmt --all --check                                  # format check
+cargo clippy --workspace --all-targets -- -D warnings    # lint
+cargo test                                               # full test suite
+```
+
+### Workspace Structure
+
 ```
 maenifold-rs/
 ├── crates/
-│   ├── maenifold-core/       # Library crate — all tool logic
-│   │   └── src/
-│   │       ├── assets/        # Adopt, UpdateAssets, ListAssets, asset manager
-│   │       ├── benchmark/     # RunFullBenchmark (5 categories)
-│   │       ├── community/     # Louvain community detection, NMI metrics
-│   │       ├── db/            # SQLite connection, schema, vec0 extension
-│   │       ├── decay/         # Access-decay scoring and metadata
-│   │       ├── graph/         # BuildContext, Visualize, graph traversal
-│   │       ├── markdown/      # WikiLink extraction, frontmatter, storage
-│   │       ├── mcp/           # MCP stdio server, resources/list, resources/read
-│   │       ├── memory/        # Write/Read/Edit/Delete/Move/List memory
-│   │       ├── repair/        # RepairConcepts, AnalyzeConceptCorruption
-│   │       ├── search/        # SearchMemories (Hybrid/Semantic/FullText)
-│   │       ├── sessions/      # AssumptionLedger, session management
-│   │       ├── similar/       # FindSimilarConcepts, vector queries
-│   │       ├── sync/          # Sync, incremental sync, graph state, watchers
-│   │       ├── thinking/      # SequentialThinking sessions
-│   │       ├── tools/         # RecentActivity, MemoryStatus, GetConfig, GetHelp
-│   │       ├── util/          # JSON helpers, path validation
-│   │       ├── vector/        # ONNX model discovery, embedding inference
-│   │       ├── workflow/      # Workflow engine, queue, submachine
-│   │       ├── config.rs
-│   │       ├── error.rs
-│   │       ├── lib.rs
-│   │       └── registry.rs    # Tool dispatch (28 tools → handlers)
-│   └── maenifold-cli/         # Binary crate — CLI + MCP entrypoint
-├── tests/                     # Workspace-level Rust integration tests
-├── assets/                    # Workflow JSONs, native libs, models, integrations
-└── docs/                      # DEVELOPMENT.md (build/test/contribution guide)
+│   ├── maenifold-core/       # Library crate — all tool logic (20 modules, ~17.6K LOC)
+│   └── maenifold-cli/        # Binary crate — CLI + MCP entrypoint
+├── integrations/claude-code/  # Claude Code plugin packages
+├── tests/                     # Workspace-level integration tests
+├── assets/                    # Workflows, roles, colors, perspectives, models, native libs
+└── docs/                      # Development guide
 ```
 
-## compatibility notes
-### shared storage / db
-- `concepts` persists `first_seen` and `occurrence_count`
-- WikiLink filter reads `.wikilink-filter.json`
+CI runs `fmt` → `clippy` → `build` → `test` on every push/PR to `dev` and `main`. Releases are built for macOS ARM64, Linux x64, and Windows x64 on `v*` tags.
 
-### markdown / wikilinks
-- WikiLink extraction excludes code blocks and inline code
-- `pulldown-cmark` parses `[[wikilinks]]` as wiki-link events
+## License
 
-### output mode notes
-These tools return plain text even with `--json`:
-`Sync`, `BuildContext`, `Workflow`, `AssumptionLedger`, `ExtractConceptsFromFile`, `FindSimilarConcepts`, `StartWatcher`, `StopWatcher`
-
-### vector / vec0
-- Dynamic ONNX model discovery at runtime (scans `assets/models/*.onnx`, selects largest)
-- Embedding dimensions read from model tensor shape (no hardcoded constants)
-- `vec0` native libraries under `assets/native/`
-
-## test architecture
-- **Boundary tests** (`crates/maenifold-core/tests/`): isolated per-tool tests using `TempDir`
-- **CLI contract tests** (`crates/maenifold-cli/tests/`): `assert_cmd`-based JSON output and error validation
-- **Workspace integration tests** (`tests/`): Rust-native end-to-end coverage across crate boundaries
-
-## validated commands
-```bash
-cargo test --workspace    # Rust-native workspace validation
-cargo clippy --workspace --all-targets -- -D warnings  # clean
-cargo fmt --all --check   # clean
-```
-
-## sprint history highlights
-| Sprint | Focus |
-|--------|-------|
-| 1–3 | Implemented 6 remaining placeholder tools to full handlers |
-| 9 | Dynamic ONNX model loading, CI/CD workflows |
-| 10 | Workflow assets, env var cleanup, MCP resources |
-| 11 | Search core fix — occurrence counting, RRF vector fusion |
-| 12 | Structural refactor — decomposed search.rs into sub-modules |
-| 13 | Search mode paths, MemoryStatus, dead code cleanup |
-| 14 | Red-team drift remediation — decay, frontmatter, symlinks, session IDs |
-| 15 | CLI behavior remediation — 27 format and validation fixes |
-
-## known practical notes
-- `vec0` native libraries exist under `assets/native/`
-- Model assets exist under `assets/models/`
-- `assets/workflows/` contains 69 workflow JSON files
-- `assets/integrations/claude-code/` ships hook scripts and quick-start guides alongside the binary
-- CI runs on push/PR to `dev` and `main` (`.github/workflows/build.yml`)
+MIT. Contributions welcome at [github.com/msbrettorg/maenifold](https://github.com/msbrettorg/maenifold).

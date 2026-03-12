@@ -2,7 +2,7 @@
 // while splitting the implementation into focused submodules below 300 LOC each.
 mod adopt;
 mod manager;
-mod support;
+pub(crate) mod support;
 mod types;
 mod update;
 

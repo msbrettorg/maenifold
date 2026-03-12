@@ -67,6 +67,8 @@ The agent's accumulated understanding built through three pillars:
 |-------------|---------|
 | Azure subscription | Contributor role (Owner/UAA for RBAC in managed resource groups) |
 | Network access | `*.azuresre.ai` reachable from browser |
+| Region | **East US 2**, **Sweden Central**, or **Australia East** ONLY |
+| Resource provider | `Microsoft.App` registered on subscription |
 
 ### Deploy via Portal
 
@@ -75,16 +77,72 @@ The agent's accumulated understanding built through three pillars:
 3. Review → **Create** (deploys in 2-5 minutes)
 4. **Set up**: Connect code repos → Add Azure resource access → Done
 
+### Deploy via Bicep (Infrastructure as Code)
+
+The SRE Agent resource type is `Microsoft.App/agents@2025-05-01-preview`.
+
+See [sample_codes/getting-started/deploy-sre-agent.bicep](sample_codes/getting-started/deploy-sre-agent.bicep) for the complete template.
+
+```bash
+az deployment group create \
+  --resource-group rg-sre-agent \
+  --template-file deploy-sre-agent.bicep \
+  --parameters agentName='my-sre-agent' \
+               appInsightsAppId='<app-id>' \
+               appInsightsConnectionString='<conn-string>'
+```
+
+**Key Bicep properties:**
+
+```bicep
+#disable-next-line BCP081
+resource sreAgent 'Microsoft.App/agents@2025-05-01-preview' = {
+  name: agentName
+  location: location   // eastus2, swedencentral, or australiaeast
+  identity: {
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: { '${managedIdentity.id}': {} }
+  }
+  properties: {
+    knowledgeGraphConfiguration: {
+      managedResources: [ resourceGroupId ]
+      identity: managedIdentity.id
+    }
+    actionConfiguration: {
+      mode: 'Review'      // or 'autonomous'
+      identity: managedIdentity.id
+      accessLevel: 'High' // or 'Low'
+    }
+    mcpServers: []
+    logConfiguration: {
+      applicationInsightsConfiguration: {
+        appId: appInsightsAppId
+        connectionString: appInsightsConnectionString
+      }
+    }
+  }
+}
+```
+
+**SRE Agent Administrator role ID:** `e79298df-d852-4c6d-84f9-5d13249d1e55` — assign to deploying user for portal access.
+
+### Deploy via Azure Developer CLI (azd)
+
+For a full lab environment (agent + sample app + monitoring + subagents):
+
+```bash
+git clone https://github.com/dm-chelupati/sre-agent-lab.git
+cd sre-agent-lab
+azd auth login && azd up
+```
+
+Deploys in ~8-12 minutes. Includes pre-configured subagents, knowledge base, and incident response plans.
+
 ### Deploy Teams Bot via Bicep
 
 See [sample_codes/getting-started/deploy-teams-bot.bicep](sample_codes/getting-started/deploy-teams-bot.bicep)
 
 Required values: Bot App Client ID (managed identity), Bot App Domain (container app FQDN), Tenant ID.
-
-After deploying, set three environment variables on your container app:
-- `Teams Bot App ID` = Managed identity Client ID
-- `Teams Bot App Type` = `UserAssignedMsi`
-- `Teams Bot Tenant ID` = Your Entra tenant ID
 
 ## Skills Authoring
 
@@ -119,28 +177,67 @@ See [sample_codes/common-patterns/skill-yaml.md](sample_codes/common-patterns/sk
 
 ### YAML Definition
 
+The `azuresre.ai/v1` API format is used for subagent configs deployable via REST API:
+
 ```yaml
-name: database_expert
-system_prompt: |
-  You are a database specialist. Analyze query performance,
-  diagnose connection issues, and recommend optimizations.
-handoff_description: Handles SQL and database troubleshooting
-tools:
-  - execute_kusto_query
-  - azure_cli
-connectors:
-  - azure_sql
-allowed_skills:
-  - postgres-troubleshooting
-  - connection-pool-guide
+api_version: azuresre.ai/v1
+kind: AgentConfiguration
+spec:
+  name: incident-handler
+  system_prompt: |
+    You are an expert in triaging and diagnosing incidents. When triggered,
+    search the knowledge base for the relevant runbook, execute the diagnostic
+    steps, collect evidence, and provide a summary with your findings.
+    Always search memory for similar past incidents first.
+    Use ExecutePythonCode to plot metrics charts when presenting evidence.
+  handoff_description: Investigates incidents using runbooks and provides findings
+  agent_type: Autonomous
+  tools:
+    - SearchMemory
+    - RunAzCliReadCommands
+    - RunAzCliWriteCommands
+    - GetAzCliHelp
+    - QueryLogAnalyticsByWorkspaceId
+    - QueryAppInsightsByResourceId
+    - ExecutePythonCode
 ```
+
+For portal-based creation, the equivalent fields map to the UI form.
 
 **Key properties:**
 - `system_prompt` — Expert persona and instructions
 - `handoff_description` — What orchestrator sees when delegating
-- `tools` — Available capabilities
-- `allowed_skills` — Automatically enables skills on this agent
+- `tools` — Available capabilities (see [Built-in Tools](#built-in-tools-no-setup-required))
+- `agent_type` — `Autonomous` or `Review`
 - `mcp_tools` — MCP tool assignments (supports `connection-id/*` wildcards)
+
+### Subagent with MCP Tools (Code Analyzer)
+
+```yaml
+api_version: azuresre.ai/v1
+kind: AgentConfiguration
+spec:
+  name: code-analyzer
+  system_prompt: |
+    You are an expert in diagnosing and finding root cause in applications.
+    1. Search the knowledge base for the relevant runbook and execute ALL
+       diagnostic steps — query logs, check metrics, collect evidence.
+    2. Use source code to correlate log errors to specific code paths.
+       Provide file:line references to the root cause.
+    3. Create a GitHub issue with detailed findings including log evidence,
+       metrics, code snippets, suggested fixes, and remediation actions.
+    Always search memory for similar past incidents first.
+  handoff_description: Deep root cause analysis using runbooks + source code
+  agent_type: Autonomous
+  tools:
+    - SearchMemory
+    - RunAzCliReadCommands
+    - QueryLogAnalyticsByWorkspaceId
+    - QueryAppInsightsByResourceId
+    - ExecutePythonCode
+  mcp_tools:
+    - github-mcp/*
+```
 
 ### MCP Tool Assignment
 
@@ -148,6 +245,20 @@ allowed_skills:
 mcp_tools:
   - datadog-mcp/*           # All tools from Datadog connection
   - github_search_code      # One specific GitHub tool
+```
+
+### Connector YAML (for REST API deployment)
+
+```yaml
+api_version: azuresre.ai/v1
+kind: DataConnector
+spec:
+  name: github-mcp
+  type: Mcp
+  endpoint: https://api.githubcopilot.com/mcp/
+  auth:
+    type: BearerToken
+    token: <GITHUB_PAT>
 ```
 
 See [sample_codes/common-patterns/subagent-yaml.md](sample_codes/common-patterns/subagent-yaml.md) for patterns.
@@ -280,13 +391,22 @@ Create a subagent → Link to scheduled task → Define schedule → Set custom 
 
 Upload runbooks → Create skill with step-by-step procedures → Attach Azure CLI tools → Agent auto-applies during relevant incidents
 
+## Community & Ecosystem
+
+See [references/community-and-ecosystem.md](references/community-and-ecosystem.md) for the full catalog of:
+- **Official repos**: microsoft/sre-agent (community hub), Azure/sre-agent-plugins (plugin marketplace)
+- **Sandbox labs**: 10+ breakable AKS scenarios (matthansen0), azd-based lab with subagents (dm-chelupati)
+- **Demo environments**: Proactive + reactive demos with Terraform (jiratouchmhp)
+- **Cost estimates** and **deployment pattern comparison**
+- **Plugin development** templates and marketplace
+
 ## Learn More
 
 | Topic | How to Find |
 |-------|-------------|
+| Bicep resource type | `microsoft_docs_search(query="Microsoft.App agents Bicep template 2025-05-01-preview")` |
 | Detailed connector setup | `microsoft_docs_search(query="Azure SRE Agent connectors setup MCP")` |
 | Incident platform integration | `microsoft_docs_search(query="Azure SRE Agent incident response PagerDuty ServiceNow")` |
-| Bicep templates | `microsoft_docs_search(query="Azure SRE Agent Bicep deploy Teams bot")` |
 | Permission management | `microsoft_docs_search(query="Azure SRE Agent permissions RBAC managed identity")` |
 | Run modes (Review/Autonomous) | `microsoft_docs_fetch(url="https://sre.azure.com/docs/concepts/run-modes")` |
 | Agent hooks (safety controls) | `microsoft_docs_fetch(url="https://sre.azure.com/docs/capabilities/agent-hooks")` |
@@ -295,4 +415,7 @@ Upload runbooks → Create skill with step-by-step procedures → Attach Azure C
 | Deep investigation | `microsoft_docs_fetch(url="https://sre.azure.com/docs/capabilities/deep-investigation")` |
 | Workflow automation | `microsoft_docs_fetch(url="https://sre.azure.com/docs/capabilities/workflow-automation")` |
 | Full SRE Agent docs hub | `microsoft_docs_fetch(url="https://sre.azure.com/docs/")` |
+| Sandbox lab (AKS) | Browse [github.com/matthansen0/azure-sre-agent-sandbox](https://github.com/matthansen0/azure-sre-agent-sandbox) |
+| azd lab (Container Apps) | Browse [github.com/dm-chelupati/sre-agent-lab](https://github.com/dm-chelupati/sre-agent-lab) |
+| Plugin development | Browse [github.com/Azure/sre-agent-plugins](https://github.com/Azure/sre-agent-plugins) |
 | Code samples | `microsoft_code_sample_search(query="Azure SRE Agent", language="python")` |

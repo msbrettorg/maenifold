@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "subagentStop": [
+      {
+        "type": "command",
+        "bash": "./scripts/hooks.sh subagent_stop",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

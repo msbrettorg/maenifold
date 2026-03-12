@@ -2,31 +2,103 @@
 
 Common patterns for authoring Azure SRE Agent custom agents.
 
-## Domain Expert Pattern
+## API Format
 
-Focused expertise in one technology area:
+SRE Agent configs use the `azuresre.ai/v1` API format, deployable via REST API or the portal UI:
 
 ```yaml
-name: database_expert
-system_prompt: |
-  You are a database specialist for our Azure SQL and Cosmos DB infrastructure.
-  
-  When investigating database issues:
-  1. Check connection pool health and active sessions
-  2. Identify slow queries using Query Performance Insight
-  3. Check DTU/vCore utilization trends
-  4. Review recent schema changes or index modifications
-  5. Correlate with application-side connection errors
-  
-  Always provide specific query plans and index recommendations.
-handoff_description: Handles SQL and NoSQL database troubleshooting, query optimization, and connection issues
-tools:
-  - RunAzCliReadCommands
-  - execute_kusto_query
-allowed_skills:
-  - database-runbook
-  - connection-pool-guide
+api_version: azuresre.ai/v1
+kind: AgentConfiguration
+spec:
+  name: <agent-name>
+  system_prompt: |
+    <instructions>
+  handoff_description: <one-line summary for orchestrator>
+  agent_type: Autonomous | Review
+  tools:
+    - <tool-name>
+  mcp_tools:
+    - <connection-id>/*
+  allowed_skills:
+    - <skill-name>
 ```
+
+## Real-World Example: Incident Handler (from dm-chelupati/sre-agent-lab)
+
+```yaml
+api_version: azuresre.ai/v1
+kind: AgentConfiguration
+spec:
+  name: incident-handler
+  system_prompt: |
+    You are an expert in triaging and diagnosing incidents. When triggered,
+    search the knowledge base for the relevant runbook, execute the diagnostic
+    steps, collect evidence, and provide a summary with your findings.
+
+    Always search memory for similar past incidents first.
+    Use ExecutePythonCode to plot metrics charts when presenting evidence.
+  handoff_description: Investigates incidents using runbooks and provides findings
+  agent_type: Autonomous
+  tools:
+    - SearchMemory
+    - RunAzCliReadCommands
+    - RunAzCliWriteCommands
+    - GetAzCliHelp
+    - QueryLogAnalyticsByWorkspaceId
+    - QueryAppInsightsByResourceId
+    - ExecutePythonCode
+```
+
+## Real-World Example: Code Analyzer with GitHub MCP
+
+```yaml
+api_version: azuresre.ai/v1
+kind: AgentConfiguration
+spec:
+  name: code-analyzer
+  system_prompt: |
+    You are an expert in diagnosing, finding root cause, and mitigating issues
+    in applications. When triggered:
+
+    1. Search the knowledge base for the relevant runbook and execute ALL
+       diagnostic steps — query logs, check metrics, collect evidence.
+    2. Use source code from the connected GitHub repo to correlate log errors
+       to specific code paths. Provide file:line references to the root cause.
+    3. Combine both log/metric evidence AND source code analysis into a full
+       root cause analysis.
+
+    Create a GitHub issue with detailed findings including log evidence,
+    metrics, code snippets, suggested fixes, and remediation actions.
+
+    Always search memory for similar past incidents first.
+    Use ExecutePythonCode to plot metrics charts when presenting evidence.
+  handoff_description: Deep root cause analysis using runbooks + source code, creates GitHub issues
+  agent_type: Autonomous
+  tools:
+    - SearchMemory
+    - RunAzCliReadCommands
+    - RunAzCliWriteCommands
+    - GetAzCliHelp
+    - QueryLogAnalyticsByWorkspaceId
+    - QueryAppInsightsByResourceId
+    - ExecutePythonCode
+  mcp_tools:
+    - github-mcp/*
+```
+
+## Available Built-in Tool Names
+
+| Tool | Purpose |
+|------|---------|
+| `SearchMemory` | Search knowledge base and past incidents |
+| `RunAzCliReadCommands` | Execute read-only Azure CLI commands |
+| `RunAzCliWriteCommands` | Execute write Azure CLI commands (requires approval in Review mode) |
+| `GetAzCliHelp` | Get Azure CLI help text |
+| `QueryLogAnalyticsByWorkspaceId` | Run KQL queries against Log Analytics |
+| `QueryAppInsightsByResourceId` | Query Application Insights |
+| `ExecutePythonCode` | Run Python in sandboxed interpreter |
+| `SendNotificationToTeams` | Post to Teams (requires Teams connector) |
+| `SendEmailViaOutlook` | Send email (requires Outlook connector) |
 
 ## Task Specialist Pattern
 
@@ -151,6 +223,22 @@ Each custom agent operates in a mode set per response plan or scheduled task:
 | **Autonomous** | Acts without human approval | Well-tested automation, read-only operations |
 
 Modes are configured per response plan or scheduled task, NOT in the YAML.
+
+## Connector YAML Format
+
+MCP connectors also use the `azuresre.ai/v1` API format:
+
+```yaml
+api_version: azuresre.ai/v1
+kind: DataConnector
+spec:
+  name: github-mcp
+  type: Mcp
+  endpoint: https://api.githubcopilot.com/mcp/
+  auth:
+    type: BearerToken
+    token: <GITHUB_PAT>
+```
 
 ## Creating via Portal
 

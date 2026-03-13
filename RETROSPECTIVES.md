@@ -1,5 +1,43 @@
 # Sprint Retrospectives — maenifold-rs
 
+## Sprint 22 — WikiLink Filter in Sync — 2026-03-13
+
+### What we delivered
+- **T-22.1**: `is_concept_blocked()` API on WikiLinkFilter — single-concept filter check
+- **T-22.2**: Filter wired into `upsert_processed_file` for full sync (run_sync)
+- **T-22.3**: Filter wired into `sync_single_file` for incremental sync
+- **T-22.4**: 9 boundary tests covering RTM-151 through RTM-156
+- **T-22.5-fix**: Fixed CRITICAL prefix normalization bug (F-01)
+- **T-22.5-med**: Incremental sync reports filtered count; sync_files traceability comment
+- Production runtime: 41 concept mentions filtered from 4 changed files
+
+### Test results
+- `sync_wikilink_filter`: **9 passed, 0 failed**
+- Sync regression tests (unification + incremental): **all passed**
+- WikiLink filter unit/integration: **all passed**
+- Full maenifold-core suite: 377 passed, 1 failed (pre-existing graph_decay_search)
+
+### What worked
+- TDD pipeline: blue-team wrote 6 failing tests → SWE implemented → all green
+- Red-team (Sonnet 4.6) caught CRITICAL prefix normalization bug that all tests missed
+- False-positive prefix test (F-02) added as regression guard — confirmed the fix
+- Parallel 3-agent dispatch for remediation (F-01 fix + F-04/F-07 fix + test additions)
+- Filter-at-insertion-point architecture: one change cascades to graph + embeddings naturally
+
+### What didn't work
+- Blue-team (agent-17) took 450s — full test suite runs are slow, should target specific tests
+- Red-team (agent-16) took 456s — exceeded 3-minute ceiling; audit scope was too broad
+- Initial test suite missed the false-positive case (no test had an "allowed" concept starting with a blocked prefix letter)
+- F-01 is a pre-existing bug in the write path too (`check_against` uses `check_against` which works on extracted content, but the prefix storage in cache has the same bug) — not caught until sync path made it destructive
+
+### Action items
+1. Audit `check_against` in WriteMemory/EditMemory path for same prefix normalization issue
+2. Consider caching parse failures in `load_blocked_concepts` to avoid O(N) re-reads on malformed JSON (F-03)
+3. Full nuke+resync to clean up pre-existing noise concepts from prior unfiltered syncs
+4. Keep red-team audit scope to ≤3 files per batch to stay under 3-minute ceiling
+
+---
+
 ## Sprint 11 — Search Core Fix + MCP Resources — 2026-03-10
 
 ### What we delivered

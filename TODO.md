@@ -715,3 +715,42 @@ Rebuild release binary, nuke DBs, run sync via symlink, verify non-zero embeddin
 Instrument `run_sync()` with `std::time::Instant` checkpoints for each phase (file processing, graph rebuild, embeddings, community detection) and render a `Timing:` section in the sync output showing elapsed seconds per phase and total. Include count of changed files (vs skipped).
 - **Files**: `crates/maenifold-core/src/sync/mod.rs`, `crates/maenifold-core/src/sync/sync_state.rs`
 - **Status**: pending
+
+## Sprint 22 — WikiLink Filter in Sync (TDD)
+
+### T-22.1: Add `is_concept_blocked` API to WikiLinkFilter | RTM: FR-19 (RTM-151, RTM-152, RTM-155)
+Add `is_concept_blocked(&self, concept: &str) -> bool` method to `WikiLinkFilter` that checks a pre-normalized concept name against the loaded filter (exact match + prefix patterns). Reuse existing `load_blocked_concepts()` cache. Gracefully returns `false` if filter file is missing.
+- **Files**: `crates/maenifold-core/src/markdown/filter.rs`
+- **Status**: pending
+
+### T-22.2: Apply filter in `upsert_processed_file` (full sync path) | RTM: FR-19 (RTM-151, RTM-152, RTM-153)
+Modify `upsert_processed_file()` in `file_index.rs` to accept an `Option<&WikiLinkFilter>` parameter. Filter extracted concepts before inserting into `concept_mentions`. Return count of filtered concepts. Thread the filter from `run_sync()` in `mod.rs`. Add `concepts_filtered` field to `SyncSummary` and render in sync output.
+- **Files**: `crates/maenifold-core/src/sync/file_index.rs`, `crates/maenifold-core/src/sync/mod.rs`, `crates/maenifold-core/src/sync/sync_state.rs`
+- **Status**: pending
+- **Depends on**: T-22.1
+
+### T-22.3: Apply filter in `sync_single_file` (incremental sync path) | RTM: FR-19 (RTM-154)
+Modify `sync_single_file()` in `mod.rs` to construct a `WikiLinkFilter` and pass it to `upsert_processed_file()`. Ensures incremental sync (watcher-triggered) also honors the filter.
+- **Files**: `crates/maenifold-core/src/sync/mod.rs`
+- **Status**: pending
+- **Depends on**: T-22.1
+
+### T-22.4: Blue-team writes tests (TDD red phase) | RTM: FR-19 (RTM-151 through RTM-156)
+Write boundary tests covering: (1) sync with filter blocks exact concepts, (2) sync with filter blocks prefix-pattern concepts, (3) sync output includes filtered count, (4) incremental sync also filters, (5) missing filter file is a no-op, (6) filter reduces embedding concept count. Tests should fail before implementation.
+- **Files**: `crates/maenifold-core/tests/` (new test file)
+- **Status**: pending
+
+### T-22.5: Red-team audit — Sprint 22 traceability + correctness | RTM: all Sprint 22
+Audit all Sprint 22 code changes for T-* traceability, filter correctness, edge cases (empty filter, malformed JSON, concurrent access), and regression risk.
+- **Status**: pending
+- **Depends on**: T-22.1, T-22.2, T-22.3
+
+### T-22.6: Blue-team validation — all tests green + runtime verification | RTM: FR-19, NFR-3
+Run all existing tests (ensure no regressions), run new Sprint 22 tests, then runtime sync with filter to verify reduced concept counts.
+- **Status**: pending
+- **Depends on**: T-22.1, T-22.2, T-22.3, T-22.5
+
+### T-22.7: Release build + runtime verification | RTM: FR-19, NFR-3
+Build release binary, run sync via symlink, verify: (1) filtered count > 0, (2) total concept count < pre-filter count, (3) all existing features work.
+- **Status**: pending
+- **Depends on**: T-22.6

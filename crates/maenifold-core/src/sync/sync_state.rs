@@ -15,6 +15,7 @@ pub(crate) struct SyncSummary {
     pub(crate) status: &'static str,
     pub(crate) files_processed: i64,
     pub(crate) concept_mentions: i64,
+    pub(crate) concepts_filtered: i64,
     pub(crate) concept_relations: i64,
     pub(crate) abandoned_sessions: i64,
     pub(crate) communities_detected: i64,
@@ -138,12 +139,14 @@ pub(crate) fn render_sync_markdown(summary: SyncSummary, vector_section: Option<
 - STATUS: {}
 - {} FILES processed
 - {} CONCEPT mentions found
+- {} CONCEPT mentions filtered
 - {} CONCEPT relations created
 - {} ABANDONED sessions cleaned up
 - {} COMMUNITIES detected (modularity 0.000)",
         summary.status,
         summary.files_processed,
         summary.concept_mentions,
+        summary.concepts_filtered,
         summary.concept_relations,
         summary.abandoned_sessions,
         summary.communities_detected,

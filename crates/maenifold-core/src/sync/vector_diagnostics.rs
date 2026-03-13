@@ -197,7 +197,9 @@ pub fn build_vector_verification_report(connection: &Connection) -> Vec<String> 
         )?;
 
         if concept_count == 0 && file_count == 0 {
-            return Ok(vec!["- WARNING_CODE VECTOR_TABLES_EMPTY_AFTER_SYNC".to_string()]);
+            return Ok(vec![
+                "- WARNING_CODE VECTOR_TABLES_EMPTY_AFTER_SYNC".to_string(),
+            ]);
         }
 
         let mut lines = vec!["Vector index verification:".to_string()];

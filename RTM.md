@@ -169,6 +169,12 @@
 - □ RTM-102: Rust reads `.wikilink-filter.json` (JSON format) matching C# WikiLinkFilter.cs | TC-19.1 | Boundary
 - □ RTM-103: JSON filter with concept→reason mapping blocks matching WikiLinks | TC-19.2 | Boundary
 - □ RTM-104: Shared root with C#-written .wikilink-filter.json works identically | TC-19.3 | Boundary+Parity
+- □ RTM-151: Sync filters blocked exact concepts from concept_mentions | TC-19.4 | Boundary
+- □ RTM-152: Sync filters blocked prefix-pattern concepts from concept_mentions | TC-19.5 | Boundary
+- □ RTM-153: Sync output reports count of filtered concepts | TC-19.6 | Boundary+CLI
+- □ RTM-154: Incremental sync (sync_single_file) also applies the wikilink filter | TC-19.7 | Boundary
+- □ RTM-155: Missing filter file does not break sync (graceful no-op) | TC-19.8 | Boundary
+- □ RTM-156: Sync with filter produces fewer concept embeddings than without | TC-19.9 | Boundary
 
 ### FR-20: Asset Catalog Isolation (`assets.rs`)
 - □ RTM-105: preferred_catalog_assets_root() does not return sibling C# repo path | TC-20.1 | Boundary

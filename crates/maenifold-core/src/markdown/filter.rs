@@ -48,6 +48,28 @@ impl WikiLinkFilter {
         Ok(self.check_against(content, &cached))
     }
 
+    /// Returns true if the given pre-normalized concept name is blocked by the filter.
+    /// Gracefully returns false if the filter file is missing or unreadable.
+    /// Supports exact and prefix-pattern matches per RTM-151, RTM-152, and RTM-155.
+    // T-22.1: RTM FR-19 (RTM-151, RTM-152, RTM-155) exposes single-concept filter checks.
+    pub fn is_concept_blocked(&self, concept: &str) -> bool {
+        self.load_blocked_concepts()
+            .map(|cached| {
+                // Exact match first
+                if cached.blocked_exact.contains_key(concept) {
+                    return true;
+                }
+                // Prefix scan
+                for (prefix, _reason) in &cached.blocked_prefixes {
+                    if concept.starts_with(prefix.as_str()) {
+                        return true;
+                    }
+                }
+                false
+            })
+            .unwrap_or(false)
+    }
+
     // T-15.24: RTM FR-19 check_against supports both exact and prefix matching.
     fn check_against(
         &self,
@@ -118,8 +140,9 @@ impl WikiLinkFilter {
             &fs::read_to_string(&self.filter_path)?,
         )? {
             if let Some(prefix_raw) = concept.strip_suffix('*') {
-                // T-15.24: prefix pattern — normalize the part before `*`.
-                let normalized = normalize_concept(prefix_raw);
+                // T-22.5-fix: RTM FR-19 (RTM-152) normalize prefix without
+                // trim_matches('-'), preserving trailing separators like `t-`.
+                let normalized = prefix_raw.trim().to_lowercase();
                 if normalized.is_empty() {
                     eprintln!(
                         "Warning: skipping empty prefix in .wikilink-filter.json entry: {concept}"

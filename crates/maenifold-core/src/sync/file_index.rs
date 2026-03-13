@@ -1,6 +1,6 @@
 use super::sync_state::current_iso_timestamp;
 use crate::error::Result;
-use crate::markdown::{Frontmatter, extract_wikilinks};
+use crate::markdown::{Frontmatter, WikiLinkFilter, extract_wikilinks};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -137,7 +137,8 @@ pub(crate) fn upsert_processed_file(
     checksum: &str,
     file_size: i64,
     indexed_at: &str,
-) -> Result<()> {
+    filter: Option<&WikiLinkFilter>,
+) -> Result<i64> {
     let title = frontmatter
         .as_ref()
         .and_then(|frontmatter| frontmatter.get("title"))
@@ -174,9 +175,18 @@ pub(crate) fn upsert_processed_file(
         params![uri],
     )?;
 
+    // T-22.2: RTM-151, RTM-152, RTM-155 — apply [[WikiLink Filter]] during sync concept extraction.
     let mut per_file = BTreeMap::<String, usize>::new();
+    let mut filtered_count = 0i64;
     for concept in extract_wikilinks(content) {
-        *per_file.entry(concept.to_ascii_lowercase()).or_default() += 1;
+        let normalized = concept.to_ascii_lowercase();
+        if let Some(f) = filter {
+            if f.is_concept_blocked(&normalized) {
+                filtered_count += 1;
+                continue;
+            }
+        }
+        *per_file.entry(normalized).or_default() += 1;
     }
 
     for (concept, mention_count) in per_file {
@@ -191,5 +201,5 @@ pub(crate) fn upsert_processed_file(
         )?;
     }
 
-    Ok(())
+    Ok(filtered_count)
 }

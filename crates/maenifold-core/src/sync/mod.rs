@@ -12,7 +12,7 @@ use crate::community;
 use crate::db::{self, GraphDatabase};
 use crate::error::Result;
 use crate::graph;
-use crate::markdown::{get_memory_files, path_to_uri, read_markdown};
+use crate::markdown::{WikiLinkFilter, get_memory_files, path_to_uri, read_markdown};
 use crate::sessions;
 use crate::sync::leader::LeaderElection;
 use crate::tools::ToolContext;
@@ -93,6 +93,7 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
                 status: "skipped",
                 files_processed: 0,
                 concept_mentions: 0,
+                concepts_filtered: 0,
                 concept_relations: 0,
                 abandoned_sessions: 0,
                 communities_detected: 0,
@@ -134,6 +135,8 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
     let sync_started_at = current_iso_timestamp();
     let mut connection = db::open_connection(&context.config.database_path)?;
     let tx = connection.transaction()?;
+    // T-22.3: RTM-154, RTM-155 — incremental [[sync]] must honor [[WikiLink Filter]] and degrade to no-op if absent.
+    let wikilink_filter = WikiLinkFilter::new(&context.config.memory_path);
     ensure_incremental_sync_state_table(&tx)?;
 
     let indexed_state = load_indexed_file_state(&tx, &file_uri)?;
@@ -178,7 +181,7 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
         return Ok(format!("Skipped {file_uri}: hash guard"));
     }
 
-    upsert_processed_file(
+    let file_filtered = upsert_processed_file(
         &tx,
         &file_uri,
         &frontmatter,
@@ -186,6 +189,7 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
         &checksum,
         metadata.len() as i64,
         &indexed_at,
+        Some(&wikilink_filter),
     )?;
     let new_concepts = load_file_concepts(&tx, &file_uri)?;
     let affected_concepts = previous_concepts.union(&new_concepts).cloned().collect();
@@ -212,7 +216,8 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
     let mention_count = load_total_mentions_for_file(&tx, &file_uri)?;
     tx.commit()?;
     Ok(format!(
-        "Synced {file_uri}: {mention_count} concept mentions updated, {relation_count} affected relations rebuilt"
+        // T-22.5: RTM FR-19 — report incremental [[WikiLink Filter]] exclusions in sync output.
+        "Synced {file_uri}: {mention_count} concept mentions updated, {file_filtered} filtered, {relation_count} affected relations rebuilt"
     ))
 }
 
@@ -245,6 +250,7 @@ pub fn recompute_communities_if_needed(context: &ToolContext) -> Result<Option<u
 }
 
 pub fn sync_files(context: &ToolContext, file_paths: &[PathBuf]) -> Result<String> {
+    // T-22.3: delegates to sync_single_file which applies [[WikiLink Filter]] per RTM-154.
     for file_path in file_paths {
         sync_single_file(context, file_path)?;
     }
@@ -281,6 +287,9 @@ fn run_sync(context: &ToolContext) -> Result<String> {
     let tx = connection.transaction()?;
     let sync_started_at = current_iso_timestamp();
     let mut processed_files = Vec::new();
+    // T-22.2: RTM-151, RTM-152, RTM-153, RTM-155 — full [[sync]] must filter blocked concepts before mention insertion.
+    let wikilink_filter = WikiLinkFilter::new(&context.config.memory_path);
+    let mut total_filtered = 0i64;
 
     delete_missing_files(&tx, &file_uri_set)?;
     for uri in &file_uris {
@@ -307,7 +316,7 @@ fn run_sync(context: &ToolContext) -> Result<String> {
             continue;
         }
 
-        upsert_processed_file(
+        let file_filtered = upsert_processed_file(
             &tx,
             uri,
             &frontmatter,
@@ -315,7 +324,9 @@ fn run_sync(context: &ToolContext) -> Result<String> {
             &checksum,
             metadata.len() as i64,
             &indexed_at,
+            Some(&wikilink_filter),
         )?;
+        total_filtered += file_filtered;
         processed_files.push((uri.clone(), content));
     }
 
@@ -393,6 +404,7 @@ fn run_sync(context: &ToolContext) -> Result<String> {
             },
             files_processed: file_uris.len() as i64,
             concept_mentions: total_mentions as i64,
+            concepts_filtered: total_filtered,
             concept_relations: relation_count,
             abandoned_sessions,
             communities_detected,

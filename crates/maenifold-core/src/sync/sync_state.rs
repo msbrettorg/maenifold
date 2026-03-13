@@ -19,6 +19,13 @@ pub(crate) struct SyncSummary {
     pub(crate) abandoned_sessions: i64,
     pub(crate) communities_detected: i64,
     pub(crate) vector_warning_code: Option<&'static str>,
+    // T-21.7: RTM FR-21.7 phase timing telemetry for [[sync]] markdown output.
+    pub(crate) files_changed: i64,
+    pub(crate) file_processing_secs: f64,
+    pub(crate) graph_rebuild_secs: f64,
+    pub(crate) embeddings_secs: f64,
+    pub(crate) community_secs: f64,
+    pub(crate) total_secs: f64,
 }
 
 pub(crate) fn ensure_incremental_sync_state_table(connection: &Connection) -> Result<()> {
@@ -149,6 +156,16 @@ pub(crate) fn render_sync_markdown(summary: SyncSummary, vector_section: Option<
         // after querying live vec0 tables, so only explicit warning codes fall back here.
         output.push_str(&format!("\n- WARNING_CODE {warning_code}"));
     }
+    // T-21.7: RTM FR-21.7 append phase timing telemetry after the vector section.
+    output.push_str(&format!(
+        "\nTiming:\n- File processing: {:.3}s ({} changed)\n- Graph rebuild: {:.3}s\n- Embeddings: {:.3}s\n- Community detection: {:.3}s\n- Total: {:.3}s",
+        summary.file_processing_secs,
+        summary.files_changed,
+        summary.graph_rebuild_secs,
+        summary.embeddings_secs,
+        summary.community_secs,
+        summary.total_secs,
+    ));
     output
 }
 

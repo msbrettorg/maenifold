@@ -21,6 +21,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use self::{
     file_index::{
@@ -96,6 +97,13 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
                 abandoned_sessions: 0,
                 communities_detected: 0,
                 vector_warning_code: None,
+                // T-21.7: RTM FR-21.7 follower path does not execute sync phases.
+                files_changed: 0,
+                file_processing_secs: 0.0,
+                graph_rebuild_secs: 0.0,
+                embeddings_secs: 0.0,
+                community_secs: 0.0,
+                total_secs: 0.0,
             },
             None,
         ));
@@ -260,12 +268,16 @@ pub fn sync_files(context: &ToolContext, file_paths: &[PathBuf]) -> Result<Strin
 }
 
 fn run_sync(context: &ToolContext) -> Result<String> {
+    // T-21.7: RTM FR-21.7 capture total [[sync]] runtime from the first instruction in run_sync.
+    let sync_start = Instant::now();
     let mut connection = db::open_connection(&context.config.database_path)?;
     let vector_disabled = vector_sync_disabled_by_config();
     let vector_ready =
         !vector_disabled && vec0_extension_available(&connection, &context.config.assets_path);
     let file_uris = get_memory_files(&context.config, None)?;
     let file_uri_set = file_uris.iter().cloned().collect::<HashSet<_>>();
+    // T-21.7: RTM FR-21.7 measure file processing separately from graph/vector/community phases.
+    let file_processing_start = Instant::now();
     let tx = connection.transaction()?;
     let sync_started_at = current_iso_timestamp();
     let mut processed_files = Vec::new();
@@ -307,7 +319,15 @@ fn run_sync(context: &ToolContext) -> Result<String> {
         processed_files.push((uri.clone(), content));
     }
 
+    // T-21.7: RTM FR-21.7 include changed-file count in the sync timing output.
+    let files_changed = processed_files.len() as i64;
+    let file_processing_elapsed = file_processing_start.elapsed();
+    // T-21.7: RTM FR-21.7 graph rebuild timing.
+    let graph_start = Instant::now();
     let total_mentions = rebuild_graph_from_mentions(&tx, &sync_started_at)?;
+    let graph_elapsed = graph_start.elapsed();
+    // T-21.7: RTM FR-21.7 embedding generation timing for concepts and files.
+    let embeddings_start = Instant::now();
     let concept_list = load_all_concept_names(&tx)?;
     let mut vector_diagnostics = VectorSyncDiagnostics::default();
     let _generated_concepts =
@@ -321,8 +341,11 @@ fn run_sync(context: &ToolContext) -> Result<String> {
             &mut vector_diagnostics,
         );
     }
+    let embeddings_elapsed = embeddings_start.elapsed();
 
     tx.commit()?;
+    // T-21.7: RTM FR-21.7 community detection timing includes cleanup and incremental-state reset.
+    let community_start = Instant::now();
     let abandoned_sessions = sessions::cleanup_abandoned_sessions(&context.config)? as i64;
     let relation_count: i64 =
         connection.query_row("SELECT COUNT(*) FROM concept_graph", [], |row| row.get(0))?;
@@ -330,6 +353,8 @@ fn run_sync(context: &ToolContext) -> Result<String> {
         community::detect_and_persist(&context.config.database_path, community_gamma(), None)?
             as i64;
     reset_incremental_community_state(&connection, &sync_started_at)?;
+    let community_elapsed = community_start.elapsed();
+    let total_elapsed = sync_start.elapsed();
 
     let vector_section = if vector_disabled {
         Some(
@@ -376,6 +401,13 @@ fn run_sync(context: &ToolContext) -> Result<String> {
             } else {
                 None
             },
+            // T-21.7: RTM FR-21.7 phase timing telemetry for [[sync]] markdown output.
+            files_changed,
+            file_processing_secs: file_processing_elapsed.as_secs_f64(),
+            graph_rebuild_secs: graph_elapsed.as_secs_f64(),
+            embeddings_secs: embeddings_elapsed.as_secs_f64(),
+            community_secs: community_elapsed.as_secs_f64(),
+            total_secs: total_elapsed.as_secs_f64(),
         },
         vector_section.as_deref(),
     ))

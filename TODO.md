@@ -708,5 +708,10 @@ Run existing vec0 tests, then runtime sync to verify embeddings are generated (n
 
 ### T-21.6: Release build + final runtime verification | RTM: FR-8, NFR-3
 Rebuild release binary, nuke DBs, run sync via symlink, verify non-zero embedding counts.
-- **Status**: pending
+- **Status**: done
 - **Depends on**: T-21.4, T-21.5
+
+### T-21.7: Add phase timing telemetry to sync output | RTM: FR-7
+Instrument `run_sync()` with `std::time::Instant` checkpoints for each phase (file processing, graph rebuild, embeddings, community detection) and render a `Timing:` section in the sync output showing elapsed seconds per phase and total. Include count of changed files (vs skipped).
+- **Files**: `crates/maenifold-core/src/sync/mod.rs`, `crates/maenifold-core/src/sync/sync_state.rs`
+- **Status**: pending

@@ -176,6 +176,56 @@
 - □ RTM-155: Missing filter file does not break sync (graceful no-op) | TC-19.8 | Boundary
 - □ RTM-156: Sync with filter produces fewer concept embeddings than without | TC-19.9 | Boundary
 
+## ACP Client Orchestration
+
+### FR-27: ACP Client Core (`acp/`)
+- □ RTM-157: `maenifold --orchestrate --agent copilot` spawns agent subprocess with `--acp --stdio` | TC-27.1 | Integration
+- □ RTM-158: ClientSideConnection performs initialize + new_session handshake | TC-27.2 | Integration
+- □ RTM-159: `conn.prompt()` sends content blocks and receives streaming `session_update` | TC-27.3 | Integration
+- □ RTM-160: WikiLinks in agent responses are validated before persistence | TC-27.4 | Boundary
+- □ RTM-161: Agent process is killed on orchestrator shutdown/cancel | TC-27.5 | Boundary
+- □ RTM-162: `cargo build` without `acp` feature produces unchanged binary; `agent-client-protocol` gated behind feature | TC-27.6 | Build
+- □ RTM-163: Spawned agent does NOT receive maenifold as MCP server (no recursive loop) | TC-27.7 | Architecture
+
+### FR-28: Workflow-Driven Agent Execution (`acp/orchestrator.rs`)
+- □ RTM-164: Workflow step assembles prompt with graph context (FindSimilarConcepts + BuildContext + SearchMemories) | TC-28.1 | Integration
+- □ RTM-165: Agent response persisted to workflow session markdown on turn completion | TC-28.2 | Integration
+- □ RTM-166: Workflow advances to next step on StopReason::EndTurn | TC-28.3 | Boundary
+- □ RTM-167: Workflow pauses on agent failure/cancellation for human review | TC-28.4 | Fault
+- □ RTM-168: SequentialThinking submachine receives agent response for thinking steps | TC-28.5 | Integration
+- □ RTM-169: Fresh context assembled per step (includes prior step outputs enriching graph) | TC-28.6 | Integration
+- □ RTM-181: Prompt envelope contains step definition + graph context + prior outputs + WikiLink requirements | TC-28.7 | Boundary
+
+### FR-29: Permission Policy Engine (`acp/permissions.rs`)
+- □ RTM-170: `request_permission` evaluates against step-scoped allowlist with 3 outcomes: auto-approve, prompt-user, deny | TC-29.1 | Boundary
+- □ RTM-171: `fs/read_text_file` auto-approves within workspace + memory root, denies outside | TC-29.2 | Security
+- □ RTM-172: `fs/write_text_file` blocks writes to memory root (must use WriteMemory); captures pre/post diff | TC-29.3 | Security
+- □ RTM-173: `terminal/create` allows only allowlisted commands, denies arbitrary shell | TC-29.4 | Security
+- □ RTM-174: All permission decisions, file reads/writes, and terminal executions logged to audit trail | TC-29.5 | Audit
+- □ RTM-182: Symlink paths canonicalized before allowlist evaluation | TC-29.6 | Security
+- □ RTM-183: Path traversal attempts (../) in agent file requests are denied | TC-29.7 | Security
+
+### FR-30: Response Capture Pipeline (`acp/capture.rs`)
+- □ RTM-175: Raw ACP events (message chunks, tool calls, permissions, terminal output) written to JSONL event log per session | TC-30.1 | Integration
+- □ RTM-176: Workflow step status, tool call lifecycle, permission outcomes, and terminal exit statuses tracked in real-time | TC-30.2 | Integration
+- □ RTM-177: Semantic compaction produces markdown with WikiLinks on turn completion | TC-30.3 | Integration
+- □ RTM-178: High-value responses written as `memory://` notes trigger incremental sync | TC-30.4 | Integration
+
+### NFR-7: Agent Isolation
+- □ RTM-179: Agent crash does not corrupt workflow state (pauses for human) | TC-NFR7.1 | Fault
+- □ RTM-180: Permission policy defaults to deny-all without explicit allowlist | TC-NFR7.2 | Security
+- □ RTM-184: Agent prompt timeout prevents infinite hangs (configurable, default 5 min) | TC-NFR7.3 | Fault
+- □ RTM-185: Agent output size bounded to prevent memory exhaustion (10MB/turn, 100MB/log, 1MB/terminal) | TC-NFR7.4 | Fault
+- □ RTM-186: Agent binary not found or handshake timeout aborts with error, no session created | TC-27.8 | Fault
+- □ RTM-187: Post-EndTurn chunks discarded with warning logged | TC-27.9 | Boundary
+- □ RTM-188: Terminal commands tokenized; shell metacharacters denied before allowlist eval | TC-29.8 | Security
+- □ RTM-189: Concurrent orchestrators on same workflow session prevented via file lock | TC-NFR7.5 | Fault
+- □ RTM-190: Watcher started after agent handshake; sync does not block active turns | TC-27.10 | Integration
+- □ RTM-191: SequentialThinking submachine registered programmatically with parentWorkflowId | TC-28.8 | Integration
+- □ RTM-192: WikiLink validation failure prevents persistence; workflow pauses | TC-28.9 | Boundary
+- □ RTM-193: JSONL logs stored outside memory_root at {maenifold_root}/sessions/ with 0600 permissions | TC-30.5 | Security
+- □ RTM-194: Workspace root resolved from CLI/env/cwd, frozen for session lifetime, not parent of maenifold_root | TC-29.9 | Boundary
+
 ### FR-20: Asset Catalog Isolation (`assets.rs`)
 - □ RTM-105: preferred_catalog_assets_root() does not return sibling C# repo path | TC-20.1 | Boundary
 - □ RTM-106: Missing Rust assets surface as errors, not masked by C# fallback | TC-20.2 | Boundary

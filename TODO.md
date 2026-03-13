@@ -754,3 +754,52 @@ Run all existing tests (ensure no regressions), run new Sprint 22 tests, then ru
 Build release binary, run sync via symlink, verify: (1) filtered count > 0, (2) total concept count < pre-filter count, (3) all existing features work.
 - **Status**: pending
 - **Depends on**: T-22.6
+
+---
+
+## Sprint TBD — ACP Client Orchestration
+
+### T-23.1: Add `agent-client-protocol` crate dependency behind `acp` feature flag | RTM: FR-27 (RTM-162)
+Add `agent-client-protocol` to `Cargo.toml` behind `--features acp`. Verify `cargo build` without the feature produces unchanged binary. Wire tokio async runtime (already present).
+- **Status**: pending
+- **Depends on**: none
+
+### T-23.2: Implement `MaenifoldClient` struct + ACP Client trait | RTM: FR-27 (RTM-159, RTM-160)
+Create `crates/maenifold-core/src/acp/client.rs`. Implement `Client` trait: `request_permission` (deny-all default), `session_update` (buffer + validate WikiLinks). Struct carries Config, session reference, permission policy.
+- **Status**: pending
+- **Depends on**: T-23.1
+
+### T-23.3: Agent subprocess spawner + connection lifecycle | RTM: FR-27 (RTM-157, RTM-158, RTM-161, RTM-163)
+Create `crates/maenifold-core/src/acp/process.rs`. Spawn agent as child process with `--acp --stdio`. Wire stdin/stdout to `ClientSideConnection`. Implement `initialize()` + `new_session()` handshake. Kill on shutdown. Verify no MCP server passed in `mcpServers`.
+- **Status**: pending
+- **Depends on**: T-23.2
+
+### T-23.4: CLI `--orchestrate` mode entry point | RTM: FR-27 (RTM-157, RTM-163)
+Add `--orchestrate --agent <program>` to `cli.rs`. Parse args, spawn agent, enter orchestration loop. Single prompt + response for Phase 0 spike.
+- **Status**: pending
+- **Depends on**: T-23.3
+
+### T-23.5: Permission policy engine | RTM: FR-29 (RTM-170 through RTM-174), NFR-7 (RTM-180)
+Create `crates/maenifold-core/src/acp/permissions.rs`. Step-scoped allowlists for fs/read, fs/write, terminal. Memory root writes blocked. All decisions logged. Default deny-all.
+- **Status**: pending
+- **Depends on**: T-23.2
+
+### T-23.6: Response capture pipeline (3-layer) | RTM: FR-30 (RTM-175 through RTM-178)
+Create `crates/maenifold-core/src/acp/capture.rs`. Layer 1: JSONL event log. Layer 2: workflow state updates. Layer 3: semantic compaction with WikiLinks → memory:// notes → incremental sync.
+- **Status**: pending
+- **Depends on**: T-23.2
+
+### T-23.7: Workflow-driven agent execution loop | RTM: FR-27 (RTM-160), FR-28 (RTM-164 through RTM-169, RTM-181, RTM-191, RTM-192), NFR-7 (RTM-179, RTM-189)
+Create `crates/maenifold-core/src/acp/orchestrator.rs`. For each workflow step: assemble graph context, build prompt envelope, send via `conn.prompt()`, capture response, validate WikiLinks, persist, advance state machine. Pause on failure.
+- **Status**: pending
+- **Depends on**: T-23.3, T-23.5, T-23.6
+
+### T-23.8: Red-team audit — ACP Client traceability + security | RTM: all FR-27 through FR-30, NFR-7
+Audit all ACP Client code for: T-* traceability, permission bypass vectors, recursive MCP loop prevention, agent crash isolation, memory root write blocking.
+- **Status**: pending
+- **Depends on**: T-23.4, T-23.5, T-23.6, T-23.7
+
+### T-23.9: Blue-team validation — integration tests + end-to-end | RTM: FR-27 through FR-30, NFR-7
+Write and run integration tests for all RTM-157 through RTM-180. End-to-end test: workflow with 3 steps, mock ACP agent, verify complete capture pipeline.
+- **Status**: pending
+- **Depends on**: T-23.4, T-23.7

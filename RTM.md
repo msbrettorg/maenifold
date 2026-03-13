@@ -96,7 +96,9 @@
 - □ RTM-057: model_metadata table stores model filename + embedding dimensions | TC-8.1 | Boundary
 - □ RTM-058: Vec0 tables created with dimensions matching loaded model | TC-8.2 | Boundary
 - □ RTM-059: Model change (different dimensions) triggers vec0 table recreation | TC-8.3 | Boundary
-- □ RTM-060: No model loaded → vec0 tables not created, no crash | TC-8.4 | Boundary
+- □ RTM-060: No model loaded → vec0 tables created with DEFAULT_EMBEDDING_DIMENSIONS (384), no crash | TC-8.4 | Boundary
+- □ RTM-149: vec0_extension_available verifies table accessibility (not just extension load) | TC-21.2 | Boundary
+- □ RTM-150: Sync verification report queries actual vec_concepts/vec_memory_files row counts | TC-21.3 | Parity
 
 ### FR-9: CI/CD Pipeline (`.github/workflows/`)
 - □ RTM-061: build.yml runs fmt+clippy+test on push/PR | TC-9.1 | Infrastructure

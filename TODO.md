@@ -656,16 +656,57 @@ Build release artifacts after T-20.1 validation completes.
 ### T-20.5: Fix model discovery for symlinked binary invocation | RTM: FR-7
 When running `maenifold` via a symlinked install path (e.g., `/usr/local/bin/maenifold`), model discovery SHALL still resolve ONNX models from the real executable location and supported runtime asset roots.
 - **Files**: `crates/maenifold-core/src/vector/discovery.rs`
-- **Status**: pending
+- **Status**: done
 
 ### T-20.6: Red-team audit for model discovery fix | RTM: FR-7
 Audit T-20.5 for parity, control-flow safety, and path-resolution security.
 - **Files**: `crates/maenifold-core/src/vector/discovery.rs`, related tests
-- **Status**: pending
+- **Status**: done
 - **Depends on**: T-20.5
 
 ### T-20.7: Blue-team validation for symlink discovery fix | RTM: FR-7
 Run targeted tests and command-level verification that `maenifold --tool sync --payload '{}'` resolves models correctly via symlinked and real binary paths.
 - **Files**: `crates/maenifold-core/tests/` (targeted), runtime command verification
-- **Status**: pending
+- **Status**: done
 - **Depends on**: T-20.5
+
+### T-20.8: Release artifact rebuild + deterministic runtime verification | RTM: FR-7, NFR-3
+Rebuild `maenifold-cli` in release mode and re-run symlinked/direct sync commands multiple times to confirm model discovery behavior is stable and not stale-binary dependent.
+- **Files**: release build artifact + runtime verification logs
+- **Status**: done
+- **Depends on**: T-20.5
+
+## Sprint 21 — Vec0 Table Creation + Verification Parity (C# reference alignment)
+
+### T-21.1: Fix ensure_vec0_tables to create tables without model pre-loading | RTM: FR-8 (RTM-058, RTM-060)
+C# `CreateVectorTables` hardcodes `FLOAT[384]`. Rust `ensure_vec0_tables` calls `vector::embedding_dimensions()` which returns `None` if model not yet loaded → skips table creation. Fix: use `DEFAULT_EMBEDDING_DIMENSIONS` (384) as fallback when `embedding_dimensions()` returns `None`, so tables are always created when vec0 extension is available.
+- **Files**: `crates/maenifold-core/src/db/vec0.rs`
+- **Status**: pending
+- **C# ref**: `GraphDatabase.CreateVectorTables()` — hardcodes `FLOAT[384]`
+
+### T-21.2: Fix vec0_extension_available to verify table accessibility | RTM: FR-8 (RTM-149)
+C# `TryEnsureVectorSupport` loads extension AND runs `SELECT COUNT(*) FROM vec_concepts` to verify tables work. Rust only loads extension. Fix: after loading extension, run a verification query against `vec_concepts`. Return false with `TABLE_VERIFICATION_FAILED` if query fails.
+- **Files**: `crates/maenifold-core/src/db/vec0.rs`
+- **Status**: pending
+- **C# ref**: `ConceptSyncVectorSupport.TryEnsureVectorSupport()`
+
+### T-21.3: Fix sync verification report to query actual embedding counts | RTM: FR-8 (RTM-150)
+C# `BuildVectorVerificationReport(conn)` queries `SELECT COUNT(*) FROM vec_concepts WHERE embedding IS NOT NULL` and reports real counts, dims, self-distance. Rust hardcodes `"0 rows"` in `render_sync_markdown`. Fix: create `build_vector_verification_report()` that takes a connection and queries real counts, wire into `run_sync()` in `mod.rs`, remove hardcoded template from `sync_state.rs`.
+- **Files**: `crates/maenifold-core/src/sync/vector_diagnostics.rs`, `crates/maenifold-core/src/sync/mod.rs`, `crates/maenifold-core/src/sync/sync_state.rs`
+- **Status**: pending
+- **C# ref**: `ConceptSyncVectorSupport.BuildVectorVerificationReport()`
+
+### T-21.4: Red-team audit — Sprint 21 traceability + correctness | RTM: all Sprint 21
+Audit all Sprint 21 code changes for T-* traceability, C# parity, and correctness.
+- **Status**: pending
+- **Depends on**: T-21.1, T-21.2, T-21.3
+
+### T-21.5: Blue-team validation — targeted tests + runtime sync verification | RTM: FR-8
+Run existing vec0 tests, then runtime sync to verify embeddings are generated (non-zero counts in verification report).
+- **Status**: pending
+- **Depends on**: T-21.1, T-21.2, T-21.3
+
+### T-21.6: Release build + final runtime verification | RTM: FR-8, NFR-3
+Rebuild release binary, nuke DBs, run sync via symlink, verify non-zero embedding counts.
+- **Status**: pending
+- **Depends on**: T-21.4, T-21.5

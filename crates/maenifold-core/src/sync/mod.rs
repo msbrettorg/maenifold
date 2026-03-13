@@ -41,7 +41,8 @@ use self::{
         sync_role,
     },
     vector_diagnostics::{
-        collect_vector_skip_diagnostics_for_paths, vector_sync_disabled_by_config,
+        build_vector_verification_report, collect_vector_skip_diagnostics_for_paths,
+        vector_sync_disabled_by_config,
     },
     vector_embeddings::{load_all_concept_names, vec0_extension_available},
 };
@@ -349,7 +350,13 @@ fn run_sync(context: &ToolContext) -> Result<String> {
     } else if vector_diagnostics.total_failures() > 0 || vector_diagnostics.total_skipped() > 0 {
         Some(build_vector_failure_report(&vector_diagnostics).join("\n"))
     } else {
-        None
+        // T-21.3: RTM-150 — render post-commit vec0 verification from live table contents.
+        let verification = build_vector_verification_report(&connection);
+        if verification.is_empty() {
+            None
+        } else {
+            Some(verification.join("\n"))
+        }
     };
 
     Ok(render_sync_markdown(

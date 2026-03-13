@@ -1,6 +1,7 @@
 use crate::config::env_bool;
 use crate::error::Result;
 use crate::markdown::extract_wikilinks;
+use rusqlite::Connection;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::PathBuf;
@@ -180,6 +181,47 @@ pub fn build_vector_unavailable_report(
     ]
 }
 
+// T-21.3: RTM-150 — query actual vec0 embedding counts after [[sync]] commit so the
+// verification report matches the C# parity behavior instead of rendering hardcoded zero rows.
+pub fn build_vector_verification_report(connection: &Connection) -> Vec<String> {
+    let report = (|| -> rusqlite::Result<Vec<String>> {
+        let concept_count = connection.query_row(
+            "SELECT COUNT(*) FROM vec_concepts WHERE embedding IS NOT NULL",
+            [],
+            |row| row.get::<_, i64>(0),
+        )?;
+        let file_count = connection.query_row(
+            "SELECT COUNT(*) FROM vec_memory_files WHERE embedding IS NOT NULL",
+            [],
+            |row| row.get::<_, i64>(0),
+        )?;
+
+        if concept_count == 0 && file_count == 0 {
+            return Ok(vec!["- WARNING_CODE VECTOR_TABLES_EMPTY_AFTER_SYNC".to_string()]);
+        }
+
+        let mut lines = vec!["Vector index verification:".to_string()];
+        lines.push(format_embedding_verification_line(
+            connection,
+            "vec_concepts",
+            "CONCEPT",
+            concept_count,
+        )?);
+        lines.push(format_embedding_verification_line(
+            connection,
+            "vec_memory_files",
+            "MEMORY",
+            file_count,
+        )?);
+        Ok(lines)
+    })();
+
+    match report {
+        Ok(lines) => lines,
+        Err(_) => vec!["- WARNING_CODE VECTOR_VERIFICATION_SKIPPED".to_string()],
+    }
+}
+
 pub(crate) fn vector_sync_disabled_by_config() -> bool {
     // T-11.2: RTM FR-15
     env_bool("MAENIFOLD_DISABLE_VECTOR", false)
@@ -212,6 +254,40 @@ fn normalize_vector_unavailable_reason(reason: &str) -> &'static str {
 
 const MAX_CONCEPT_FAILURE_DETAILS: usize = 3;
 const MAX_FAILURE_DETAIL_CHARS: usize = 240;
+
+fn format_embedding_verification_line(
+    connection: &Connection,
+    table_name: &str,
+    label: &str,
+    count: i64,
+) -> rusqlite::Result<String> {
+    if count == 0 {
+        return Ok(format!("- {label} embeddings: none"));
+    }
+
+    // T-21.3: RTM-150 — derive dimensions and self-distance from stored vec0 blobs so
+    // verification reflects the actual persisted embeddings for each table.
+    let embedding_bytes: i64 = connection.query_row(
+        &format!("SELECT length(embedding) FROM {table_name} WHERE embedding IS NOT NULL LIMIT 1"),
+        [],
+        |row| row.get(0),
+    )?;
+    let self_distance: Option<f64> = connection.query_row(
+        &format!(
+            "SELECT vec_distance_cosine(embedding, embedding) FROM {table_name} WHERE embedding IS NOT NULL LIMIT 1"
+        ),
+        [],
+        |row| row.get(0),
+    )?;
+    let dims = embedding_bytes / std::mem::size_of::<f32>() as i64;
+
+    Ok(format!(
+        "- {label} embeddings: {count} rows ({dims} dims, self-distance {})",
+        self_distance
+            .map(|distance| format!("{distance:.6}"))
+            .unwrap_or_else(|| "n/a".to_string())
+    ))
+}
 
 fn sanitize_failure_detail(detail: &str) -> String {
     let compact = detail.split_whitespace().collect::<Vec<_>>().join(" ");

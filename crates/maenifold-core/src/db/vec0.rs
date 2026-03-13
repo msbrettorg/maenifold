@@ -47,7 +47,15 @@ pub(crate) fn load_vec0_extension(conn: &Connection, assets_path: &Path) -> Resu
 // T-9.2 / T-3.1: RTM FR-8, FR-6 — convenience wrapper that returns a bool for callers
 // that need a simple available/unavailable check (e.g. sync's `vector_ready` flag).
 pub(crate) fn vec0_extension_available(conn: &Connection, assets_path: &Path) -> bool {
-    load_vec0_extension(conn, assets_path).is_ok()
+    if load_vec0_extension(conn, assets_path).is_err() {
+        return false;
+    }
+
+    // T-21.2: RTM FR-8 (RTM-149) — verify vec0 table accessibility, not just extension load.
+    conn.query_row("SELECT COUNT(*) FROM vec_concepts", [], |row| {
+        row.get::<_, i64>(0)
+    })
+    .is_ok()
 }
 
 // T-9.2: RTM FR-8 — expose persisted [[model metadata]] so schema refresh callers can
@@ -68,9 +76,16 @@ pub fn get_model_metadata(conn: &Connection, key: &str) -> Option<String> {
 pub fn ensure_vec0_tables(conn: &Connection, assets_path: &Path) -> Result<()> {
     conn.execute_batch(MODEL_METADATA_TABLE_SQL)?;
 
-    let Some(current_dims) = vector::embedding_dimensions() else {
-        return Ok(());
-    };
+    // T-21.1: RTM FR-8 (RTM-058, RTM-059, RTM-060) — when the ONNX model is not yet
+    // lazily loaded, prefer dimensions from a prior run (stored metadata or existing
+    // table schema) over the hardcoded default. This prevents destructive recreation
+    // of non-384 vec0 tables on cold start while still creating fresh databases.
+    let current_dims = vector::embedding_dimensions().unwrap_or_else(|| {
+        get_model_metadata(conn, "embedding_dimensions")
+            .and_then(|v| v.parse::<usize>().ok())
+            .or_else(|| vec0_table_dimensions(conn, "vec_concepts"))
+            .unwrap_or(vector::DEFAULT_EMBEDDING_DIMENSIONS)
+    });
 
     // T-9.2: RTM FR-8 — load the vec0 extension before any DDL that references
     // `USING vec0(...)`, otherwise CREATE VIRTUAL TABLE fails with "no such module: vec0".

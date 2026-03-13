@@ -1,6 +1,5 @@
 use super::file_index::parse_indexed_timestamp;
 use crate::error::Result;
-use crate::vector;
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
 use std::fs;
@@ -146,16 +145,9 @@ pub(crate) fn render_sync_markdown(summary: SyncSummary, vector_section: Option<
         output.push('\n');
         output.push_str(section);
     } else if let Some(warning_code) = summary.vector_warning_code {
+        // T-21.3: RTM-150 — [[sync]] verification content is now supplied by [[sync/mod.rs]]
+        // after querying live vec0 tables, so only explicit warning codes fall back here.
         output.push_str(&format!("\n- WARNING_CODE {warning_code}"));
-    } else {
-        // T-9.3: RTM FR-7, FR-8 — runtime embedding dimensions must match the loaded model.
-        let dims = vector::embedding_dimensions().unwrap_or(vector::DEFAULT_EMBEDDING_DIMENSIONS);
-        output.push_str(&format!(
-            "
-Vector index verification:
-- CONCEPT embeddings: 0 rows ({dims} dims, self-distance n/a)
-- MEMORY embeddings: 0 rows ({dims} dims, self-distance n/a)"
-        ));
     }
     output
 }

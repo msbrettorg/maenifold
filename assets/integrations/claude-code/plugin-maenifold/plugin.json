@@ -5,5 +5,9 @@
   "author": {
     "name": "msbrettorg",
     "url": "https://github.com/msbrettorg/maenifold"
-  }
+  },
+  "agents": "agents/",
+  "skills": "skills/",
+  "hooks": "hooks/hooks.json",
+  "mcpServers": ".mcp.json"
 }

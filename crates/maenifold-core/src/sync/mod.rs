@@ -187,14 +187,19 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
     record_incremental_graph_change(&tx, &sync_started_at)?;
     // T-15.20: RTM FR-8 — check vec0 extension availability before generating embeddings,
     // matching the pattern in run_sync and C# TryEnsureVectorSupport.
-    let vector_ready =
-        !vector_sync_disabled_by_config() && vec0_extension_available(&tx, &context.config.assets_path);
+    let vector_ready = !vector_sync_disabled_by_config()
+        && vec0_extension_available(&tx, &context.config.assets_path);
     let mut vector_diagnostics = VectorSyncDiagnostics::default();
     let concept_list = new_concepts.iter().cloned().collect::<Vec<_>>();
     let _generated_concepts =
         generate_concept_embeddings(&tx, &concept_list, vector_ready, &mut vector_diagnostics);
-    let _generated_file_embedding =
-        generate_file_embedding(&tx, &file_uri, &content, vector_ready, &mut vector_diagnostics);
+    let _generated_file_embedding = generate_file_embedding(
+        &tx,
+        &file_uri,
+        &content,
+        vector_ready,
+        &mut vector_diagnostics,
+    );
     let mention_count = load_total_mentions_for_file(&tx, &file_uri)?;
     tx.commit()?;
     Ok(format!(
@@ -321,7 +326,8 @@ fn run_sync(context: &ToolContext) -> Result<String> {
     let relation_count: i64 =
         connection.query_row("SELECT COUNT(*) FROM concept_graph", [], |row| row.get(0))?;
     let communities_detected =
-        community::detect_and_persist(&context.config.database_path, community_gamma(), None)? as i64;
+        community::detect_and_persist(&context.config.database_path, community_gamma(), None)?
+            as i64;
     reset_incremental_community_state(&connection, &sync_started_at)?;
 
     let vector_section = if vector_disabled {

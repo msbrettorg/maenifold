@@ -253,7 +253,9 @@ fn hybrid_mode_returns_fused_text_semantic_scores() {
     let data = &json["data"];
     assert_eq!(data["mode"].as_str(), Some("Hybrid"));
 
-    let results = data["results"].as_array().expect("results should be an array");
+    let results = data["results"]
+        .as_array()
+        .expect("results should be an array");
     assert!(!results.is_empty(), "hybrid search should return results");
 
     let first = &results[0];
@@ -298,7 +300,9 @@ fn semantic_mode_returns_only_score_field() {
 
     // Semantic mode with no ONNX model returns zero results (graceful degradation).
     // But the JSON structure must still be correct.
-    let results = data["results"].as_array().expect("results should be an array");
+    let results = data["results"]
+        .as_array()
+        .expect("results should be an array");
 
     for result in results {
         assert!(
@@ -341,7 +345,9 @@ fn fulltext_mode_returns_only_score_field_with_normalized_top() {
     let data = &json["data"];
     assert_eq!(data["mode"].as_str(), Some("FullText"));
 
-    let results = data["results"].as_array().expect("results should be an array");
+    let results = data["results"]
+        .as_array()
+        .expect("results should be an array");
     assert!(
         !results.is_empty(),
         "fulltext search should return results for 'machine learning'"
@@ -367,7 +373,9 @@ fn fulltext_mode_returns_only_score_field_with_normalized_top() {
     }
 
     // Top result should have score ≈ 1.0 (max-normalized, with fresh decay ≈ 1.0)
-    let top_score = results[0]["score"].as_f64().expect("top result should have score");
+    let top_score = results[0]["score"]
+        .as_f64()
+        .expect("top result should have score");
     assert!(
         top_score > 0.95,
         "top fulltext result should have score close to 1.0 (got {top_score})"
@@ -393,16 +401,15 @@ fn fulltext_scores_are_max_normalized() {
 
     let json = search_json(&env, "FullText", 0.0);
     let data = &json["data"];
-    let results = data["results"].as_array().expect("results should be an array");
+    let results = data["results"]
+        .as_array()
+        .expect("results should be an array");
     assert!(
         results.len() >= 2,
         "need at least 2 results to verify normalization"
     );
 
-    let scores: Vec<f64> = results
-        .iter()
-        .filter_map(|r| r["score"].as_f64())
-        .collect();
+    let scores: Vec<f64> = results.iter().filter_map(|r| r["score"].as_f64()).collect();
 
     // All scores should be in [0.0, 1.0] range
     for (i, score) in scores.iter().enumerate() {

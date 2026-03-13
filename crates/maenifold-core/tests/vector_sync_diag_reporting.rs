@@ -130,3 +130,55 @@ fn fr25_2_ac6_vector_diagnostics_clearly_separate_skipped_and_failed_counters() 
             .any(|line| line == "- COUNTERS_SKIPPED: concepts=3, memory=1, total=4")
     );
 }
+
+#[test]
+fn fr7_t20_1_concept_embedding_failure_details_are_sampled_and_rendered() {
+    let mut diagnostics = VectorSyncDiagnostics::default();
+
+    // T-20.1: RTM FR-7 — sync diagnostics should expose capped actionable detail for
+    // [[CONCEPT_EMBEDDING_FAILED]] without disturbing existing counters or reason codes.
+    diagnostics.record_concept_failure_with_detail(
+        VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED,
+        "tokenizer encode failed:\nmissing [UNK] token in tokenizer.json",
+    );
+    diagnostics.record_concept_failure_with_detail(
+        VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED,
+        "onnx runtime error: invalid input_ids tensor shape",
+    );
+    diagnostics.record_concept_failure_with_detail(
+        VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED,
+        "embedding model not found: expected a non-empty *.onnx file under assets/models",
+    );
+    diagnostics.record_concept_failure_with_detail(
+        VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED,
+        "onnx runtime error: this extra sampled detail should be dropped by the cap",
+    );
+    diagnostics.record_concept_failure_with_detail(
+        VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED,
+        "onnx runtime error: invalid input_ids tensor shape",
+    );
+
+    let lines = build_vector_failure_report(&diagnostics);
+    let output = lines.join("\n");
+
+    assert_eq!(diagnostics.concept_embedding_failures(), 5);
+    assert!(
+        lines
+            .iter()
+            .any(|line| line == "- REASON CONCEPT_EMBEDDING_FAILED: 5")
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|line| line == "- FAILURE_DETAILS CONCEPT_EMBEDDING_FAILED:")
+    );
+    assert!(output.contains("tokenizer encode failed: missing [UNK] token in tokenizer.json"));
+    assert!(output.contains("onnx runtime error: invalid input_ids tensor shape"));
+    assert!(output.contains(
+        "embedding model not found: expected a non-empty *.onnx file under assets/models"
+    ));
+    assert!(
+        !output.contains("extra sampled detail should be dropped by the cap"),
+        "detail sampling should cap noisy reports: {output}"
+    );
+}

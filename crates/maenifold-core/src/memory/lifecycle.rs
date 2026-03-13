@@ -87,9 +87,7 @@ pub fn move_memory(context: &ToolContext, payload: &Value) -> Result<String> {
     // T-15.5: RTM FR-25.2 — reject empty/whitespace-only destination early
     // to prevent silent URI construction bugs (matches C# MoveMemory validation).
     if destination.trim().is_empty() {
-        return Ok(
-            "ERROR: Destination parameter is required and cannot be empty.".to_string(),
-        );
+        return Ok("ERROR: Destination parameter is required and cannot be empty.".to_string());
     }
 
     // T-16.3: RTM FR-25.2 — resolve identifier to URI, then check existence.

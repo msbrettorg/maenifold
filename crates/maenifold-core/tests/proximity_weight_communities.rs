@@ -6,8 +6,8 @@ use maenifold_core::community::{compute_nmi, detect_and_persist};
 use serde_json::json;
 use std::collections::BTreeMap;
 use support::{
-    acquire_test_lock, assert_approx_eq, community_id, insert_concept,
-    insert_edge_raw_source_files, insert_edge_with_proximity, open_db, EnvVarGuard, TestEnv,
+    EnvVarGuard, TestEnv, acquire_test_lock, assert_approx_eq, community_id, insert_concept,
+    insert_edge_raw_source_files, insert_edge_with_proximity, open_db,
 };
 
 // T-4.3: RTM FR-23.6

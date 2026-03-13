@@ -1,7 +1,7 @@
-use super::context::{load_help_doc, ToolContext};
+use super::context::{ToolContext, load_help_doc};
 use crate::db;
 use crate::error::Result;
-use crate::util::json::{success, OutputFormat};
+use crate::util::json::{OutputFormat, success};
 use serde_json::Value;
 use std::fmt::Write;
 use std::path::Path;
@@ -113,7 +113,9 @@ fn render_memory_status_markdown(context: &ToolContext) -> String {
                     .query_row("SELECT COUNT(*) FROM concept_graph", [], |row| row.get(0))
                     .unwrap_or(0);
                 let mention_count: i64 = conn
-                    .query_row("SELECT COUNT(*) FROM concept_mentions", [], |row| row.get(0))
+                    .query_row("SELECT COUNT(*) FROM concept_mentions", [], |row| {
+                        row.get(0)
+                    })
                     .unwrap_or(0);
 
                 let _ = writeln!(stats, "\n### Graph Database");

@@ -62,7 +62,10 @@ fn sibling_candidates_restricted_to_same_community() {
 
     // Run community detection — two distinct clusters should get different community IDs.
     let comm_count = detect_and_persist(&env.db_path, 1.0, None).expect("detect communities");
-    assert!(comm_count >= 2, "expected ≥ 2 communities, got {comm_count}");
+    assert!(
+        comm_count >= 2,
+        "expected ≥ 2 communities, got {comm_count}"
+    );
 
     let conn = open_conn(&env.db_path);
     let query_comm = get_community_id(&conn, "query-a").expect("query-a community");
@@ -159,14 +162,7 @@ fn different_community_concepts_not_siblings() {
 
     // Create two concepts that share 4 strong neighbors (would qualify as siblings
     // by overlap metrics) but place them in different communities manually.
-    for name in [
-        "cross-query",
-        "cross-alien",
-        "cn1",
-        "cn2",
-        "cn3",
-        "cn4",
-    ] {
+    for name in ["cross-query", "cross-alien", "cn1", "cn2", "cn3", "cn4"] {
         insert_concept(&conn, name);
     }
     insert_edge(&conn, "cross-query", "cn1", 10);

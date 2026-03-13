@@ -194,9 +194,7 @@ fn fulltext_mode_returns_nonempty_results() {
     seed_search_data(&env);
 
     let json = search_json(&env, "FullText");
-    let results = json["data"]["results"]
-        .as_array()
-        .expect("results array");
+    let results = json["data"]["results"].as_array().expect("results array");
 
     assert!(
         !results.is_empty(),
@@ -212,9 +210,7 @@ fn hybrid_mode_returns_nonempty_results() {
     seed_search_data(&env);
 
     let json = search_json(&env, "Hybrid");
-    let results = json["data"]["results"]
-        .as_array()
-        .expect("results array");
+    let results = json["data"]["results"].as_array().expect("results array");
 
     assert!(
         !results.is_empty(),

@@ -112,10 +112,7 @@ pub(crate) fn render_search_markdown(data: &Value) -> String {
 
             // T-13.7: RTM FR-21 — per-mode score lines with appropriate precision
             if is_fulltext {
-                let score = result
-                    .get("score")
-                    .and_then(Value::as_f64)
-                    .unwrap_or(0.0);
+                let score = result.get("score").and_then(Value::as_f64).unwrap_or(0.0);
                 output.push_str(&format!("   📊 Text relevance: {score:.2}\n"));
             } else if is_hybrid {
                 let fused = result
@@ -134,10 +131,7 @@ pub(crate) fn render_search_markdown(data: &Value) -> String {
                     "   📊 Scores - Fused: {fused:.3} | Text: {text:.3} | Semantic: {semantic:.3}\n"
                 ));
             } else if is_semantic {
-                let score = result
-                    .get("score")
-                    .and_then(Value::as_f64)
-                    .unwrap_or(0.0);
+                let score = result.get("score").and_then(Value::as_f64).unwrap_or(0.0);
                 output.push_str(&format!("   🎯 Semantic similarity: {score:.3}\n"));
             }
 

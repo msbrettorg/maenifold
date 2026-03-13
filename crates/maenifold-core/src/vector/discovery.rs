@@ -1,6 +1,7 @@
 use super::output::{map_ort_error, select_best_session_output};
 use super::tokenizer::load_tokenizer_assets;
 use super::{ModelState, model_state};
+use crate::Config;
 use crate::error::{MaenifoldError, Result};
 use ort::session::Session;
 use std::env;
@@ -60,7 +61,10 @@ pub fn is_initialized() -> bool {
 }
 
 fn find_model_path() -> Result<PathBuf> {
-    let executable = env::current_exe()?;
+    // T-20.5: RTM FR-7 / RTM-147 — canonicalize the executable path first so
+    // symlinked installs (for example `/usr/local/bin/maenifold`) still resolve
+    // executable-adjacent assets from the real binary location.
+    let executable = env::current_exe()?.canonicalize()?;
     let base_dir = executable
         .parent()
         .ok_or(MaenifoldError::MissingExecutableParent)?;
@@ -78,6 +82,14 @@ fn find_model_path() -> Result<PathBuf> {
                 return Ok(model_path);
             }
         }
+    }
+
+    // T-20.5: RTM FR-7 / RTM-148 — after the existing exe-adjacent and Cargo
+    // walk-up probes, also check the shared runtime root used by the C# runtime:
+    // `~/maenifold/assets/models`.
+    let shared_models_dir = Config::current().assets_path.join("models");
+    if let Some(model_path) = discover_model(&shared_models_dir) {
+        return Ok(model_path);
     }
 
     // T-9.1: RTM FR-7 — removed compile-time CARGO_MANIFEST_DIR fallback that baked

@@ -7,7 +7,6 @@ use crate::vector;
 use rusqlite::{Connection, params, params_from_iter};
 use std::collections::{BTreeSet, HashSet};
 
-
 // T-8.5a: RTM FR-25.2 / FR-33.2 — full [[sync]] embedding refreshes need the deduplicated
 // concept set from the rebuilt graph before generating vec_concepts rows.
 pub(crate) fn load_all_concept_names(connection: &Connection) -> Result<Vec<String>> {
@@ -113,11 +112,14 @@ pub fn generate_concept_embeddings(
         .collect::<Vec<_>>();
     let embeddings = match vector::generate_embeddings(&missing_refs, 32) {
         Ok(embeddings) => embeddings,
-        Err(_) => {
-            record_concept_failures(
+        Err(error) => {
+            // T-20.1: RTM FR-7 — preserve existing [[CONCEPT_EMBEDDING_FAILED]] counters while
+            // sampling a small amount of actionable runtime detail for sync diagnostics.
+            record_concept_failures_with_detail(
                 diagnostics,
                 VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED,
                 missing_concepts.len(),
+                &error.to_string(),
             );
             return 0;
         }
@@ -231,6 +233,19 @@ pub(crate) use crate::db::vec0_extension_available;
 fn record_concept_failures(diagnostics: &mut VectorSyncDiagnostics, reason: &str, count: usize) {
     let effective = count.max(1);
     for _ in 0..effective {
+        diagnostics.record_concept_failure(reason);
+    }
+}
+
+fn record_concept_failures_with_detail(
+    diagnostics: &mut VectorSyncDiagnostics,
+    reason: &str,
+    count: usize,
+    detail: &str,
+) {
+    let effective = count.max(1);
+    diagnostics.record_concept_failure_with_detail(reason, detail);
+    for _ in 1..effective {
         diagnostics.record_concept_failure(reason);
     }
 }

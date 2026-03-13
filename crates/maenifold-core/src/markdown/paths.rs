@@ -51,10 +51,7 @@ pub fn uri_to_path(uri: &str, base_path: &Path) -> Result<PathBuf> {
     let mut path = join_validated_relative_path(base_path, uri.trim_start_matches("memory://"))?;
     // T-15.19: RTM NFR-1 - append .md unless already ends with .md (case-insensitive), matching C# UriToPath.
     if !has_md_extension(&path) {
-        let mut name = path
-            .file_name()
-            .unwrap_or_default()
-            .to_os_string();
+        let mut name = path.file_name().unwrap_or_default().to_os_string();
         name.push(".md");
         path.set_file_name(name);
     }
@@ -172,10 +169,7 @@ pub fn markdown_path_from_relative(relative: &str, config: &Config) -> Result<Pa
     let mut path = join_validated_relative_path(&config.memory_path, relative)?;
     // T-15.19: RTM NFR-1 - append .md unless already ends with .md (case-insensitive), matching C# UriToPath.
     if !has_md_extension(&path) {
-        let mut name = path
-            .file_name()
-            .unwrap_or_default()
-            .to_os_string();
+        let mut name = path.file_name().unwrap_or_default().to_os_string();
         name.push(".md");
         path.set_file_name(name);
     }

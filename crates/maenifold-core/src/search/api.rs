@@ -336,9 +336,10 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
     Ok(match context.output_format {
         OutputFormat::Json => success(data),
         // T-13.5: RTM FR-8 — C# Hybrid search appends WithNextSteps("ReadMemory", "BuildContext")
-        OutputFormat::Markdown => {
-            with_next_steps(&render_search_markdown(&data), &["ReadMemory", "BuildContext"])
-        }
+        OutputFormat::Markdown => with_next_steps(
+            &render_search_markdown(&data),
+            &["ReadMemory", "BuildContext"],
+        ),
     })
 }
 
@@ -370,8 +371,7 @@ fn perform_semantic_search(
     if let Some(ref mut vec_results) = vector_results
         && let Some(tags) = requested_tags
     {
-        vec_results
-            .retain(|(path, _)| file_matches_all_tags(context, path, tags).unwrap_or(false));
+        vec_results.retain(|(path, _)| file_matches_all_tags(context, path, tags).unwrap_or(false));
     }
 
     let mut vec_results = vector_results.unwrap_or_default();
@@ -437,9 +437,10 @@ fn perform_semantic_search(
     Ok(match context.output_format {
         OutputFormat::Json => success(data),
         // T-13.5: RTM FR-8 — C# Semantic search appends WithNextSteps("ReadMemory", "BuildContext", "FindSimilarConcepts")
-        OutputFormat::Markdown => {
-            with_next_steps(&render_search_markdown(&data), &["ReadMemory", "BuildContext", "FindSimilarConcepts"])
-        }
+        OutputFormat::Markdown => with_next_steps(
+            &render_search_markdown(&data),
+            &["ReadMemory", "BuildContext", "FindSimilarConcepts"],
+        ),
     })
 }
 
@@ -504,7 +505,15 @@ fn perform_fulltext_search(
         };
 
         if text_score > 0.0 {
-            text_results.push((path, text_score, title, content, created, last_accessed, status));
+            text_results.push((
+                path,
+                text_score,
+                title,
+                content,
+                created,
+                last_accessed,
+                status,
+            ));
         }
     }
 
@@ -585,8 +594,9 @@ fn perform_fulltext_search(
     Ok(match context.output_format {
         OutputFormat::Json => success(data),
         // T-13.5: RTM FR-8 — C# FullText search appends WithNextSteps("ReadMemory", "BuildContext")
-        OutputFormat::Markdown => {
-            with_next_steps(&render_search_markdown(&data), &["ReadMemory", "BuildContext"])
-        }
+        OutputFormat::Markdown => with_next_steps(
+            &render_search_markdown(&data),
+            &["ReadMemory", "BuildContext"],
+        ),
     })
 }

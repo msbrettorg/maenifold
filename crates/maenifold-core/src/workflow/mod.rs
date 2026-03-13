@@ -211,7 +211,10 @@ mod tests {
 
         // Closing brace should be at 4 spaces indent
         let last_line = output.lines().last().unwrap();
-        assert_eq!(last_line, "    }", "closing brace at 4-space indent: {output:?}");
+        assert_eq!(
+            last_line, "    }",
+            "closing brace at 4-space indent: {output:?}"
+        );
     }
 
     #[test]

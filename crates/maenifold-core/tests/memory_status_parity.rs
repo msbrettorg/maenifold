@@ -127,10 +127,7 @@ fn memory_status_contains_db_size() {
         result.contains("Database size:"),
         "output should contain DB size field: {result}"
     );
-    assert!(
-        result.contains("MB"),
-        "DB size should be in MB: {result}"
-    );
+    assert!(result.contains("MB"), "DB size should be in MB: {result}");
 }
 
 // T-13.4: RTM FR-7 — MemoryStatus with no DB shows "Not initialized" message.

@@ -97,9 +97,9 @@ pub fn update_markdown(
         let (_, _, actual_checksum) = read_markdown(uri, config)?;
         if actual_checksum != expected_checksum {
             // PARITY-VAL005-ORDER: RTM NFR-1 — include both checksums in error message
-            return Err(MaenifoldError::Message(
-                format!("Checksum mismatch. Expected: {expected_checksum}, Actual: {actual_checksum}"),
-            ));
+            return Err(MaenifoldError::Message(format!(
+                "Checksum mismatch. Expected: {expected_checksum}, Actual: {actual_checksum}"
+            )));
         }
     }
 
@@ -135,9 +135,7 @@ fn parse_frontmatter(full_text: &str, uri: &str) -> (Option<Frontmatter>, String
             Ok(frontmatter) => return (Some(frontmatter), content),
             Err(error) => {
                 // T-14.2: RTM FR-10 — Match C# oracle: warn and continue with null frontmatter.
-                eprintln!(
-                    "[YAML WARNING] Failed to parse frontmatter in '{uri}': {error}"
-                );
+                eprintln!("[YAML WARNING] Failed to parse frontmatter in '{uri}': {error}");
                 return (None, content);
             }
         }

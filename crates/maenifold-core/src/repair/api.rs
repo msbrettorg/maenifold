@@ -147,7 +147,10 @@ pub fn repair_concepts(context: &ToolContext, payload: &Value) -> Result<String>
 
         // PARITY-R01-FMT: RTM NFR-1 — Wrap source in [[]] and add (normalized: ...) suffix
         for variant in matched_variants {
-            output.push_str(&format!("  [[{}]] → [[{}]] (normalized: {})\n", variant, canonical_concept, canonical_concept));
+            output.push_str(&format!(
+                "  [[{}]] → [[{}]] (normalized: {})\n",
+                variant, canonical_concept, canonical_concept
+            ));
         }
         output.push('\n');
     }

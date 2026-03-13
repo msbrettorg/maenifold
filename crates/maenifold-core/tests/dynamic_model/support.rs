@@ -201,6 +201,18 @@ fn write_valid_tokenizer_json(model_dir: &Path) {
         .expect("save tokenizer.json");
 }
 
+fn install_valid_model_with_fallback_assets(models_dir: &Path, model_name: &str) {
+    link_or_copy(&packaged_model_path(), &models_dir.join(model_name));
+    link_or_copy(
+        &packaged_models_dir().join("tokenizer_config.json"),
+        &models_dir.join("tokenizer_config.json"),
+    );
+    link_or_copy(
+        &packaged_models_dir().join("vocab.txt"),
+        &models_dir.join("vocab.txt"),
+    );
+}
+
 pub(crate) struct TestContext {
     _tmp: TempDir,
     cfg: Config,
@@ -251,16 +263,14 @@ impl TestContext {
     }
 
     pub(crate) fn install_valid_shadow_model_with_fallback_assets(&self, model_name: &str) {
-        let models_dir = self.shadow_models_dir();
-        link_or_copy(&packaged_model_path(), &models_dir.join(model_name));
-        link_or_copy(
-            &packaged_models_dir().join("tokenizer_config.json"),
-            &models_dir.join("tokenizer_config.json"),
-        );
-        link_or_copy(
-            &packaged_models_dir().join("vocab.txt"),
-            &models_dir.join("vocab.txt"),
-        );
+        install_valid_model_with_fallback_assets(&self.shadow_models_dir(), model_name);
+    }
+
+    // T-20.5: RTM FR-7 / RTM-148 — install a valid model only under the shared
+    // runtime root (`Config::current().assets_path/models`) so discovery can
+    // verify the C#-compatible fallback path.
+    pub(crate) fn install_valid_shared_model_with_fallback_assets(&self, model_name: &str) {
+        install_valid_model_with_fallback_assets(&self.cfg.assets_path.join("models"), model_name);
     }
 
     pub(crate) fn write_dummy_onnx(&self, model_name: &str, bytes: usize) {

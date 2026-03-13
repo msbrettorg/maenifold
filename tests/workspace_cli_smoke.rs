@@ -129,11 +129,8 @@ fn workspace_cli_smoke_is_rust_only() {
         .expect("write uri")
         .to_string();
 
-    let sync = run_rust_cli(
-        &["--tool", "Sync", "--payload", "{}", "--json"],
-        &sandbox,
-    )
-    .expect("sync command");
+    let sync = run_rust_cli(&["--tool", "Sync", "--payload", "{}", "--json"], &sandbox)
+        .expect("sync command");
     assert!(sync.success(), "sync failed: {}", sync.stderr);
     let sync_json = parse_envelope(&sync.stdout);
     assert_eq!(sync_json["success"], Value::Bool(true));
@@ -147,10 +144,7 @@ fn workspace_cli_smoke_is_rust_only() {
     assert!(read.success(), "read failed: {}", read.stderr);
     let read_json = parse_envelope(&read.stdout);
     assert_eq!(read_json["success"], Value::Bool(true));
-    assert_eq!(
-        read_json["data"]["title"].as_str(),
-        Some("Workspace Smoke")
-    );
+    assert_eq!(read_json["data"]["title"].as_str(), Some("Workspace Smoke"));
 
     let search = run_rust_cli(
         &[
@@ -184,7 +178,11 @@ fn workspace_cli_smoke_is_rust_only() {
         &sandbox,
     )
     .expect("build context command");
-    assert!(context.success(), "build context failed: {}", context.stderr);
+    assert!(
+        context.success(),
+        "build context failed: {}",
+        context.stderr
+    );
     let context_json = parse_envelope(&context.stdout);
     assert_eq!(context_json["success"], Value::Bool(true));
 }

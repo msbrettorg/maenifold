@@ -30,9 +30,8 @@ pub fn update_assets(context: &ToolContext, payload: &Value) -> Result<String> {
         .and_then(Value::as_bool)
         .unwrap_or(true);
     // T-ASSET-PATH: RTM FR-3 — resolve packaged assets at runtime, not compile-time.
-    let source_path = resolve_packaged_assets_root().ok_or_else(|| {
-        MaenifoldError::Message("Source assets directory not found".to_string())
-    })?;
+    let source_path = resolve_packaged_assets_root()
+        .ok_or_else(|| MaenifoldError::Message("Source assets directory not found".to_string()))?;
     if !source_path.is_dir() {
         return Err(MaenifoldError::Message(
             "Source assets directory not found".to_string(),

@@ -89,6 +89,8 @@
 - □ RTM-054: Max tokens read from tokenizer config, defaults to 512 | TC-7.5 | Boundary
 - □ RTM-055: No model present → graceful degradation, generate_embedding returns Err | TC-7.6 | Boundary
 - □ RTM-056: Multiple *.onnx files → largest by file size is selected | TC-7.7 | Boundary
+- □ RTM-147: Symlink-invoked binary resolves model discovery using canonicalized executable path | TC-20.5.1 | Boundary
+- □ RTM-148: Model discovery checks shared runtime root `~/maenifold/assets/models/` for C# cross-compat | TC-20.5.2 | Boundary
 
 ### FR-8: Dynamic Vec0 Schema (`db.rs`)
 - □ RTM-057: model_metadata table stores model filename + embedding dimensions | TC-8.1 | Boundary
@@ -169,6 +171,56 @@
 ### FR-20: Asset Catalog Isolation (`assets.rs`)
 - □ RTM-105: preferred_catalog_assets_root() does not return sibling C# repo path | TC-20.1 | Boundary
 - □ RTM-106: Missing Rust assets surface as errors, not masked by C# fallback | TC-20.2 | Boundary
+
+---
+
+## Hosted Deployment — Dual-Transport, Dual-Backend
+
+### FR-22: Storage Abstraction Layer (`db/backend.rs`)
+- □ RTM-115: `trait DbBackend` exists with operation-oriented domain methods (not connection handles) | TC-22.1 | Boundary
+- □ RTM-116: `SqliteBackend` wraps existing rusqlite code internally with zero behavioral change | TC-22.2 | Boundary
+- □ RTM-117: `PgBackend` connects via `PgPool` with configurable pool size | TC-22.3 | Boundary
+- □ RTM-118: `ToolContext` carries `Arc<dyn DbBackend>` instead of `database_path` | TC-22.4 | Boundary
+- □ RTM-119: All 27 `open_connection()` call sites migrated to trait domain methods | TC-22.5 | Boundary
+- □ RTM-120: PG schema creates equivalent tables: file_content, concepts, concept_mentions, concept_graph, concept_communities, model_metadata, sync_leader_lease | TC-22.6 | Boundary
+- □ RTM-121: PG schema uses `pgvector` VECTOR(N) columns replacing vec0 virtual tables | TC-22.7 | Boundary
+- □ RTM-122: PG schema uses HNSW index on vector columns | TC-22.8 | Boundary
+- □ RTM-123: `vec_distance_cosine()` queries rewritten to pgvector `<=>` operator | TC-22.9 | Boundary
+- □ RTM-124: `cargo build` (no features) produces binary identical in behavior to current | TC-22.10 | Boundary+CLI
+- □ RTM-125: `cargo build --features postgres` compiles and links sqlx + pgvector | TC-22.11 | Build
+
+### FR-23: Streamable HTTP Transport (`mcp/http.rs`)
+- □ RTM-126: `maenifold --http --port 8080` starts axum HTTP server | TC-23.1 | CLI
+- □ RTM-127: HTTP server exposes MCP Streamable HTTP endpoints (POST /mcp, GET /mcp, DELETE /mcp) | TC-23.2 | Integration
+- □ RTM-128: `maenifold --mcp` continues to start stdio server (unchanged) | TC-23.3 | CLI
+- □ RTM-129: HTTP sessions tracked via `Mcp-Session-Id` header | TC-23.4 | Integration
+- □ RTM-130: All 28 tools invokable via HTTP transport | TC-23.5 | Integration
+
+### FR-24: Entra ID Authentication (`auth/`)
+- □ RTM-131: `GET /.well-known/oauth-protected-resource` returns RFC 9728 metadata | TC-24.1 | Integration
+- □ RTM-132: Bearer token in Authorization header validated against Entra ID JWKS | TC-24.2 | Integration
+- □ RTM-133: Requests without valid token receive 401 with WWW-Authenticate header | TC-24.3 | Integration
+- □ RTM-134: Token audience validated against configured server URL | TC-24.4 | Integration
+- □ RTM-135: `--no-auth` flag bypasses authentication for local development | TC-24.5 | CLI
+- □ RTM-136: PG connection uses managed identity token (no stored password) | TC-24.6 | Integration
+
+### FR-25: Azure Deployment Manifests (`deploy/`)
+- □ RTM-137: Dockerfile produces runnable container image | TC-25.1 | Infrastructure
+- □ RTM-138: Bicep/azd templates deploy ACA + PG Flex + Azure Files + managed identity | TC-25.2 | Infrastructure
+- □ RTM-139: SRE Agent connector YAML provided with correct endpoint and auth config | TC-25.3 | Infrastructure
+- □ RTM-140: CI workflow builds and pushes container image on v* tags | TC-25.4 | Infrastructure
+
+### FR-26: Polling-Based Watcher Fallback (`sync/watchers.rs`)
+- □ RTM-141: `MAENIFOLD_WATCHER_POLL_SECONDS` env var configures polling interval (default 30) | TC-26.1 | Boundary
+- □ RTM-142: Polling watcher detects new/changed/deleted .md files | TC-26.2 | Boundary
+- □ RTM-143: Polling watcher triggers same incremental sync logic as native watcher | TC-26.3 | Boundary
+
+### NFR-5: Local Mode Preservation
+- □ RTM-144: `cargo build` (no postgres/http features) produces identical binary behavior | TC-NFR5.1 | Boundary+CLI
+
+### NFR-6: Concurrent Access
+- □ RTM-145: 5+ simultaneous PG connections succeed without contention timeout | TC-NFR6.1 | Load
+- □ RTM-146: Concurrent WriteMemory + SearchMemories do not corrupt data | TC-NFR6.2 | Load
 
 ### FR-21: SearchMemories Scoring Parity (`search.rs`)
 - □ RTM-107: Text scoring uses occurrence counting matching C# CalculateSearchScore | TC-21.1 | Boundary

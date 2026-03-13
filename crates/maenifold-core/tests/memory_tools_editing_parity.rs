@@ -39,7 +39,8 @@ fn append_adds_double_newline_separator() {
     let read_result = read_memory_output(&env, &uri);
     // The two pieces must be separated by a blank line (\n\n)
     assert!(
-        read_result.contains("Original content with [[test]].\n\nAppended content with [[concepts]]."),
+        read_result
+            .contains("Original content with [[test]].\n\nAppended content with [[concepts]]."),
         "expected \\n\\n separator between existing and appended content, got:\n{read_result}"
     );
 }
@@ -71,7 +72,8 @@ fn prepend_adds_double_newline_separator() {
     let read_result = read_memory_output(&env, &uri);
     // Prepended content → \n\n → original content
     assert!(
-        read_result.contains("Prepended content with [[concepts]].\n\nOriginal content with [[test]]."),
+        read_result
+            .contains("Prepended content with [[concepts]].\n\nOriginal content with [[test]]."),
         "expected \\n\\n separator between prepended and existing content, got:\n{read_result}"
     );
 }

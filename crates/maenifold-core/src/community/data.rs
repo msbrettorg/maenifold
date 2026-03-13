@@ -76,7 +76,11 @@ pub(crate) fn load_graph(connection: &Connection, config: &Config) -> Result<Gra
 
 // T-15.8: RTM FR-13 — edge weight = sum(proximity × decay) matching C# RunLouvain.
 // Each source file's proximity is multiplied by its temporal decay weight before summing.
-pub(crate) fn graph_edge_weight(source_files: &str, connection: &Connection, config: &Config) -> f64 {
+pub(crate) fn graph_edge_weight(
+    source_files: &str,
+    connection: &Connection,
+    config: &Config,
+) -> f64 {
     let Ok(weights) = parse_source_file_weights(source_files) else {
         return 0.0;
     };
@@ -137,10 +141,14 @@ mod tests {
             let cfg = Config::current();
             cfg.ensure_directories().expect("dirs");
             GraphDatabase::initialize_database(&cfg).expect("db init");
-            let conn =
-                Connection::open(cfg.database_path.as_path()).expect("open db");
-            conn.execute_batch("PRAGMA busy_timeout=5000;").expect("pragmas");
-            Self { _tmp: tmp, conn, cfg }
+            let conn = Connection::open(cfg.database_path.as_path()).expect("open db");
+            conn.execute_batch("PRAGMA busy_timeout=5000;")
+                .expect("pragmas");
+            Self {
+                _tmp: tmp,
+                conn,
+                cfg,
+            }
         }
 
         fn insert_file_content(&self, uri: &str, created: &str, last_accessed: Option<&str>) {
@@ -188,8 +196,7 @@ mod tests {
         db.insert_file_content("memory://recent_a.md", &now, Some(&now));
         db.insert_file_content("memory://recent_b.md", &now, Some(&now));
 
-        let source_files =
-            r#"{"memory://recent_a.md":1.25,"memory://recent_b.md":0.75}"#;
+        let source_files = r#"{"memory://recent_a.md":1.25,"memory://recent_b.md":0.75}"#;
         let weight = graph_edge_weight(source_files, &db.conn, &db.cfg);
 
         // Decay weight for recently accessed files should be ~1.0 (within grace period).
@@ -208,8 +215,7 @@ mod tests {
         db.insert_file_content("memory://old_a.md", &old, Some(&old));
         db.insert_file_content("memory://old_b.md", &old, Some(&old));
 
-        let source_files =
-            r#"{"memory://old_a.md":1.25,"memory://old_b.md":0.75}"#;
+        let source_files = r#"{"memory://old_a.md":1.25,"memory://old_b.md":0.75}"#;
         let weight = graph_edge_weight(source_files, &db.conn, &db.cfg);
 
         // Decay weight for 365-day-old files should be well below 1.0.
@@ -233,8 +239,7 @@ mod tests {
         db.insert_file_content("memory://fresh.md", &now, Some(&now));
         db.insert_file_content("memory://stale.md", &old, Some(&old));
 
-        let source_files =
-            r#"{"memory://fresh.md":1.0,"memory://stale.md":1.0}"#;
+        let source_files = r#"{"memory://fresh.md":1.0,"memory://stale.md":1.0}"#;
         let weight = graph_edge_weight(source_files, &db.conn, &db.cfg);
 
         // Raw sum would be 2.0. With one fresh (decay ~1.0) and one stale (decay < 1.0),

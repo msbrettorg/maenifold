@@ -390,7 +390,10 @@ mod tests {
         assert_eq!(order1, order2, "same seed must produce same shuffle");
         // Verify it actually shuffled (not identity)
         let identity: Vec<usize> = (0..10).collect();
-        assert_ne!(order1, identity, "shuffle with seed 42 should differ from identity");
+        assert_ne!(
+            order1, identity,
+            "shuffle with seed 42 should differ from identity"
+        );
     }
 
     // T-15.10: RTM FR-23.7 — Different seeds produce different orders.
@@ -402,7 +405,10 @@ mod tests {
         let mut rng2 = SplitMix64::new(99);
         fisher_yates_shuffle(&mut order1, &mut rng1);
         fisher_yates_shuffle(&mut order2, &mut rng2);
-        assert_ne!(order1, order2, "different seeds should produce different shuffles");
+        assert_ne!(
+            order1, order2,
+            "different seeds should produce different shuffles"
+        );
     }
 
     // T-15.10: RTM FR-23.7 — run_louvain with same seed is deterministic.
@@ -410,15 +416,13 @@ mod tests {
     fn run_louvain_same_seed_deterministic() {
         // Build a small graph: triangle (0-1-2) + pair (3-4)
         let graph = GraphData {
-            concepts: vec![
-                "a".into(), "b".into(), "c".into(), "d".into(), "e".into(),
-            ],
+            concepts: vec!["a".into(), "b".into(), "c".into(), "d".into(), "e".into()],
             adjacency: vec![
-                vec![(1, 5.0), (2, 5.0)],       // a -> b, c
-                vec![(0, 5.0), (2, 5.0)],       // b -> a, c
-                vec![(0, 5.0), (1, 5.0)],       // c -> a, b
-                vec![(4, 5.0)],                  // d -> e
-                vec![(3, 5.0)],                  // e -> d
+                vec![(1, 5.0), (2, 5.0)], // a -> b, c
+                vec![(0, 5.0), (2, 5.0)], // b -> a, c
+                vec![(0, 5.0), (1, 5.0)], // c -> a, b
+                vec![(4, 5.0)],           // d -> e
+                vec![(3, 5.0)],           // e -> d
             ],
             total_edge_weight: 20.0, // 4 edges * 5.0 weight
         };

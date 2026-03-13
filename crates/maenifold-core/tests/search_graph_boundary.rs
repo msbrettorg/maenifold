@@ -145,10 +145,7 @@ fn build_context_expanded_relations_is_flat_string_array() {
 
     // Seed three notes creating a two-hop chain: auth -> oauth2 -> token-refresh
     for (title, content) in [
-        (
-            "Auth Note",
-            "This links [[authentication]] and [[oauth2]].",
-        ),
+        ("Auth Note", "This links [[authentication]] and [[oauth2]]."),
         (
             "OAuth Detail",
             "Details on [[oauth2]] and [[token-refresh]].",

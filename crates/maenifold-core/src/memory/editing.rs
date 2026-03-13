@@ -48,7 +48,8 @@ pub fn edit_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         return Ok(format!("ERROR: Memory file not found: {identifier}"));
     }
 
-    let (mut frontmatter, existing_content, actual_checksum) = read_markdown(&uri, &context.config)?;
+    let (mut frontmatter, existing_content, actual_checksum) =
+        read_markdown(&uri, &context.config)?;
 
     // PARITY-VAL005-ORDER: RTM NFR-1 — checksum validation BEFORE WikiLink checks,
     // matching C# order.  Error includes both expected and actual checksums.
@@ -299,7 +300,10 @@ mod editing_parity_tests {
         let existing = "Intro\n\n## Alpha\n\nOld alpha body.\n\n## Beta\n\nBeta body.";
         let result = replace_section(existing, "Alpha", "New alpha with [[concepts]].").unwrap();
         assert!(result.contains("## Alpha\n"), "heading preserved");
-        assert!(result.contains("New alpha with [[concepts]]."), "new body present");
+        assert!(
+            result.contains("New alpha with [[concepts]]."),
+            "new body present"
+        );
         assert!(!result.contains("Old alpha body"), "old body replaced");
         assert!(result.contains("## Beta\n"), "other section untouched");
     }

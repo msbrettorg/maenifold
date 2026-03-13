@@ -247,8 +247,8 @@ mod tests {
         )
         .expect("write filter");
 
-        let result = WikiLinkFilter::new(tmp.path())
-            .try_check("Referencing [[T-14.1]] in this note");
+        let result =
+            WikiLinkFilter::new(tmp.path()).try_check("Referencing [[T-14.1]] in this note");
 
         assert_eq!(
             result.expect("filter read"),
@@ -268,8 +268,7 @@ mod tests {
         )
         .expect("write filter");
 
-        let result = WikiLinkFilter::new(tmp.path())
-            .try_check("See [[RTM-042]] for details");
+        let result = WikiLinkFilter::new(tmp.path()).try_check("See [[RTM-042]] for details");
 
         assert_eq!(
             result.expect("filter read"),
@@ -308,8 +307,8 @@ mod tests {
         )
         .expect("write filter");
 
-        let result = WikiLinkFilter::new(tmp.path())
-            .try_check("Note about [[test]] and [[testing]]");
+        let result =
+            WikiLinkFilter::new(tmp.path()).try_check("Note about [[test]] and [[testing]]");
 
         // Only "test" should be blocked, not "testing"
         assert_eq!(
@@ -327,8 +326,7 @@ mod tests {
         )
         .expect("write filter");
 
-        let result = WikiLinkFilter::new(tmp.path())
-            .try_check("Testing [[agent]] in one note");
+        let result = WikiLinkFilter::new(tmp.path()).try_check("Testing [[agent]] in one note");
 
         // The whitespace-only prefix is skipped; only "agent" exact match fires.
         assert_eq!(

@@ -20,7 +20,10 @@ pub fn validate_assumption_append_input(
         .any(|concept| concept.contains("[[") || concept.contains("]]"))
     {
         // PARITY-LED-ERR: RTM NFR-1 — include usage hint matching C# parity
-        return Some("ERROR: Concept tags should not include brackets. Use 'dialogue' not '[[dialogue]]'.".to_string());
+        return Some(
+            "ERROR: Concept tags should not include brackets. Use 'dialogue' not '[[dialogue]]'."
+                .to_string(),
+        );
     }
     None
 }

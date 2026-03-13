@@ -126,3 +126,52 @@ The system SHALL read `.wikilink-filter.json` (JSON format) matching C# `WikiLin
 
 ### FR-20: Asset Catalog Isolation
 `preferred_catalog_assets_root()` in `assets.rs` SHALL NOT fall through to a sibling C# repo's assets. The function either returns the Rust repo's own assets or `None`. Cross-repo masking during development/testing must be eliminated so missing Rust assets surface as real errors.
+
+---
+
+## Hosted Deployment — Dual-Transport, Dual-Backend
+
+### Overview
+Enable maenifold-rs to run as a hosted Streamable HTTP MCP server on Azure Container Apps, backed by Azure Database for PostgreSQL, accessible to multiple Azure SRE Agents and local clients simultaneously. The existing stdio + SQLite mode is preserved unchanged behind feature flags.
+
+### FR-22: Storage Abstraction Layer
+The system SHALL provide a `trait DbBackend` that abstracts database operations using an **operation-oriented** design, with implementations selectable via Cargo feature flags.
+- **Trait design**: Methods map to logical domain operations (e.g., `upsert_file_content()`, `query_concepts()`, `vector_search()`, `graph_traverse()`), NOT to connection handles. Callers never see a `Connection` or `Pool`. A third backend (e.g., Cosmos DB, in-memory, remote API) SHALL be addable as a clean trait impl, not a rewrite.
+- **`SqliteBackend`** (default): Wraps existing `rusqlite` code internally, exposing only domain operations. Zero behavioral change from current implementation.
+- **`PgBackend`** (`--features postgres`): Uses `sqlx` 0.8 with PostgreSQL internally. Connection pooling via `PgPool`. Async calls wrapped with `tokio::task::block_in_place` to preserve sync `ToolFn` signature.
+- **`ToolContext`**: SHALL carry `Arc<dyn DbBackend>` instead of `database_path: PathBuf`. All 27 `open_connection()` call sites SHALL migrate to trait method calls.
+- **Schema**: PostgreSQL schema SHALL be semantically equivalent to SQLite schema. `vec0` virtual tables → `pgvector` `VECTOR(N)` columns with HNSW indexes. FTS5 virtual table → not migrated (current fulltext search bypasses FTS5; Rust-side scoring replicated against PG `file_content` table).
+
+### FR-23: Streamable HTTP Transport
+The system SHALL support MCP Streamable HTTP transport alongside existing stdio transport, selectable via CLI flags.
+- **CLI**: `maenifold --http --port <PORT>` starts HTTP server. `maenifold --mcp` continues to start stdio server.
+- **Implementation**: Uses `rmcp` crate `transport-streamable-http-server` feature with `axum` web framework.
+- **Dual transport**: Both transports can be compiled into the same binary. Only one is active at runtime based on CLI flags.
+- **Session management**: HTTP sessions managed per MCP spec with `Mcp-Session-Id` headers.
+
+### FR-24: Entra ID Authentication
+The system SHALL support OAuth 2.1 authentication via Microsoft Entra ID when running in HTTP mode.
+- **RFC 9728**: SHALL serve `/.well-known/oauth-protected-resource` metadata endpoint with `authorization_servers`, `scopes_supported`, and `resource` fields.
+- **JWT Validation**: SHALL validate Bearer tokens in `Authorization` header using Entra ID JWKS endpoint. Validate issuer, audience, expiration, and scopes.
+- **Scopes**: SHALL enforce `maenifold:tools` scope for tool invocation.
+- **PG Auth**: SHALL authenticate to Azure Database for PostgreSQL using managed identity (token-as-password pattern via `azure-identity` crate).
+- **Bypass**: Authentication SHALL be skippable via `--no-auth` flag for local development.
+
+### FR-25: Azure Deployment Manifests
+The system SHALL include deployment artifacts for Azure Container Apps + Azure Database for PostgreSQL + Azure Files.
+- **Dockerfile**: Multi-stage build (Rust builder → minimal runtime image). ONNX model baked into image.
+- **Infrastructure**: Bicep or azd templates for: Azure Container Apps environment + app, Azure Database for PostgreSQL Flexible Server (B1ms), Azure Files share, managed identity with PG role assignment.
+- **SRE Agent**: Sample connector configuration and subagent YAML for Azure SRE Agent integration.
+- **CI**: GitHub Actions workflow for container image build + push to ACR on release tags.
+
+### FR-26: Polling-Based Watcher Fallback
+The system SHALL support a polling-based file watcher as fallback when OS-native filesystem events are unavailable (e.g., Azure Files SMB mounts).
+- **Detection**: Auto-detect when `notify` watcher events are not delivered (configurable timeout).
+- **Polling**: Scan memory directory on configurable interval (`MAENIFOLD_WATCHER_POLL_SECONDS`, default 30).
+- **Behavior**: Same incremental sync logic as the native watcher — mtime comparison, hash check, selective re-index.
+
+### NFR-5: Local Mode Preservation
+The existing stdio + SQLite mode SHALL be completely unaffected by hosted deployment changes. `cargo build` (without `postgres` or `http` features) SHALL produce a binary identical in behavior to the current release. No new runtime dependencies introduced for the default build.
+
+### NFR-6: Concurrent Access
+The PostgreSQL backend SHALL support 5+ simultaneous clients performing concurrent reads and writes without data corruption, lock contention timeouts, or lost updates. Connection pool size SHALL be configurable via `MAENIFOLD_PG_POOL_SIZE` (default 10).

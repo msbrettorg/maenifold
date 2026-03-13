@@ -139,7 +139,11 @@ fn format_thinking_entry(
         ("Steps", step_count, "Current")
     };
 
-    let type_label = if is_sequential { "sequential" } else { "workflow" };
+    let type_label = if is_sequential {
+        "sequential"
+    } else {
+        "workflow"
+    };
 
     let mut lines = vec![format!("**{session_id}** ({type_label})")];
     lines.push(format!("  Modified: {modified}"));

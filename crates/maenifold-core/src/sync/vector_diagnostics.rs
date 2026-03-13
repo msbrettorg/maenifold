@@ -32,12 +32,18 @@ pub struct VectorSyncDiagnostics {
     concept_embedding_skipped: usize,
     file_embedding_skipped: usize,
     failure_reasons: BTreeMap<String, usize>,
+    concept_failure_details: BTreeMap<String, Vec<String>>,
 }
 
 impl VectorSyncDiagnostics {
     pub fn record_concept_failure(&mut self, reason: &str) {
         self.concept_embedding_failures += 1;
         *self.failure_reasons.entry(reason.to_string()).or_default() += 1;
+    }
+
+    pub fn record_concept_failure_with_detail(&mut self, reason: &str, detail: &str) {
+        self.record_concept_failure(reason);
+        self.record_concept_failure_detail(reason, detail);
     }
 
     pub fn record_file_failure(&mut self, reason: &str) {
@@ -80,6 +86,31 @@ impl VectorSyncDiagnostics {
     pub fn failure_reasons(&self) -> &BTreeMap<String, usize> {
         &self.failure_reasons
     }
+
+    pub fn concept_failure_details(&self) -> &BTreeMap<String, Vec<String>> {
+        &self.concept_failure_details
+    }
+
+    fn record_concept_failure_detail(&mut self, reason: &str, detail: &str) {
+        // T-20.1: RTM FR-7 — capture compact sampled [[embedding]] error detail so
+        // [[sync]] surfaces actionable tokenizer / ONNX runtime failures without changing control flow.
+        let sanitized = sanitize_failure_detail(detail);
+        if sanitized.is_empty() {
+            return;
+        }
+
+        let entry = self
+            .concept_failure_details
+            .entry(reason.to_string())
+            .or_default();
+        if entry.iter().any(|existing| existing == &sanitized)
+            || entry.len() >= MAX_CONCEPT_FAILURE_DETAILS
+        {
+            return;
+        }
+
+        entry.push(sanitized);
+    }
 }
 
 // T-QUAL-002.6b: RTM FR-25.2
@@ -105,6 +136,17 @@ pub fn build_vector_failure_report(diagnostics: &VectorSyncDiagnostics) -> Vec<S
         lines.push("- FAILURES:".to_string());
         for (reason, count) in diagnostics.failure_reasons() {
             lines.push(format!("- REASON {reason}: {count}"));
+        }
+    }
+
+    for (reason, details) in diagnostics.concept_failure_details() {
+        if details.is_empty() {
+            continue;
+        }
+
+        lines.push(format!("- FAILURE_DETAILS {reason}:"));
+        for detail in details {
+            lines.push(format!("- DETAIL {detail}"));
         }
     }
 
@@ -166,4 +208,20 @@ fn normalize_vector_unavailable_reason(reason: &str) -> &'static str {
     } else {
         VectorUnavailableReasonCodes::UNKNOWN
     }
+}
+
+const MAX_CONCEPT_FAILURE_DETAILS: usize = 3;
+const MAX_FAILURE_DETAIL_CHARS: usize = 240;
+
+fn sanitize_failure_detail(detail: &str) -> String {
+    let compact = detail.split_whitespace().collect::<Vec<_>>().join(" ");
+    if compact.chars().count() <= MAX_FAILURE_DETAIL_CHARS {
+        return compact;
+    }
+
+    let truncated = compact
+        .chars()
+        .take(MAX_FAILURE_DETAIL_CHARS.saturating_sub(3))
+        .collect::<String>();
+    format!("{truncated}...")
 }

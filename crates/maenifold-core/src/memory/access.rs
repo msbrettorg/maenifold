@@ -232,8 +232,14 @@ pub fn read_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         OutputFormat::Markdown => {
             // PARITY-R02-NA: show "N/A" when dates are missing (C# parity)
             // PARITY-R01-TS: format timestamps as local time, space-separated, second precision
-            let created_display = created.as_deref().map(format_timestamp_local).unwrap_or_else(|| "N/A".to_string());
-            let modified_display = modified.as_deref().map(format_timestamp_local).unwrap_or_else(|| "N/A".to_string());
+            let created_display = created
+                .as_deref()
+                .map(format_timestamp_local)
+                .unwrap_or_else(|| "N/A".to_string());
+            let modified_display = modified
+                .as_deref()
+                .map(format_timestamp_local)
+                .unwrap_or_else(|| "N/A".to_string());
             let mut output = format!(
                 "# {title}\nURI: {uri}\nLocation: {location}\nCreated: {created_display}\nModified: {modified_display}\n",
             );

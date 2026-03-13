@@ -79,8 +79,7 @@ impl AssetManager {
             multi_agent_workflows,
             roles: self.load_kind_metadata_from_root(&self.root, AssetKind::Role)?,
             colors: self.load_kind_metadata_from_root(&self.root, AssetKind::Color)?,
-            perspectives: self
-                .load_kind_metadata_from_root(&self.root, AssetKind::Perspective)?,
+            perspectives: self.load_kind_metadata_from_root(&self.root, AssetKind::Perspective)?,
         })
     }
 

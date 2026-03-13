@@ -174,7 +174,7 @@ impl Drop for EnvVarGuard {
 
 #[cfg(test)]
 mod tests {
-    use super::{community_nmi_threshold, env_lock, EnvVarGuard, COMMUNITY_NMI_THRESHOLD_ENV};
+    use super::{COMMUNITY_NMI_THRESHOLD_ENV, EnvVarGuard, community_nmi_threshold, env_lock};
 
     // T-14.6: RTM FR-15
     #[test]

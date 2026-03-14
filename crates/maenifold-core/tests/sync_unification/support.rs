@@ -9,11 +9,16 @@ use maenifold_core::{Config, GraphDatabase};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use rusqlite::{Connection, OptionalExtension, params};
-use serde_json::json;
+use serde_json::{from_str, json};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
+// Guards Config::override_root() process-global state, not DB or filesystem contention.
+// Each test has its own TempDir and DB path, but override_root() mutates a process-global
+// config object. Without this mutex, concurrent test threads would clobber each other's
+// config even though their TempDirs are isolated.
 pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 pub(crate) struct ConfigOverrideReset;
@@ -129,4 +134,35 @@ pub(crate) fn file_mtime_rfc3339(path: &Path) -> String {
         .expect("modified")
         .into();
     modified.to_rfc3339()
+}
+
+/// Queries the `concept_graph` table for a co-occurrence edge between two concepts.
+/// Returns `Some(map)` where keys are source-file URIs and values are weights,
+/// or `None` if no edge exists.
+pub(crate) fn get_edge_source_files(
+    cfg: &Config,
+    concept_a: &str,
+    concept_b: &str,
+) -> Option<BTreeMap<String, f64>> {
+    let (left, right) = if concept_a <= concept_b {
+        (concept_a, concept_b)
+    } else {
+        (concept_b, concept_a)
+    };
+
+    db_connection(cfg)
+        .query_row(
+            "SELECT source_files FROM concept_graph WHERE concept_a = ?1 AND concept_b = ?2",
+            params![left, right],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .expect("query concept_graph")
+        .and_then(|raw| {
+            if raw.trim().is_empty() {
+                None
+            } else {
+                Some(from_str::<BTreeMap<String, f64>>(&raw).expect("parse source_files"))
+            }
+        })
 }

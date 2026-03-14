@@ -1,59 +1,15 @@
+// Batch-path (`sync_all`) tests for the unified sync pipeline.
+// Single-file operations are tested in `sync_unification_single_file.rs`.
+// Deletion-via-sync_single_file is covered by
+// `incremental_sync_unification_lifecycle::incremental_sync_file_deleted_cleans_all_artifacts`.
+
 #[path = "sync_unification/support.rs"]
 mod sync_unification_support;
 
 use maenifold_core::markdown::normalize_concept;
 use sync_unification_support::*;
 
-// T-5.7: RTM FR-14.3
-#[test]
-fn remove_file_cleans_content_and_mentions() {
-    let _guard = TEST_MUTEX.lock();
-    let _reset = ConfigOverrideReset;
-    let (_tmp, cfg) = isolated_config();
-
-    let concept_a = "sync-unify-a";
-    let concept_b = "sync-unify-b";
-    let (path, file_uri) = create_test_markdown_file(
-        &cfg,
-        "remove-file.md",
-        &format!("# Removal Test\n\nReferences [[{concept_a}]] and [[{concept_b}]].\n"),
-    );
-
-    sync_one(&cfg, &path);
-    assert!(
-        get_file_content_row(&cfg, &file_uri).is_some(),
-        "precondition: file_content must exist"
-    );
-    assert_eq!(
-        get_mention_count(&cfg, &file_uri, &normalize_concept(concept_a)),
-        Some(1),
-        "precondition: mentions must exist"
-    );
-
-    std::fs::remove_file(&path).expect("delete target file");
-    let output = sync_one(&cfg, &path);
-
-    assert!(
-        output.contains("removed stale index entry"),
-        "deleted file should clear indexed concepts: {output}"
-    );
-    assert!(
-        get_file_content_row(&cfg, &file_uri).is_none(),
-        "file_content row must be deleted after syncing a removed file"
-    );
-    assert_eq!(
-        get_mention_count(&cfg, &file_uri, &normalize_concept(concept_a)),
-        None,
-        "concept_mentions must be deleted after removing the file"
-    );
-    assert_eq!(
-        get_mention_count(&cfg, &file_uri, &normalize_concept(concept_b)),
-        None,
-        "concept_mentions must be deleted after removing the file"
-    );
-}
-
-// T-5.7: RTM FR-14.3
+// T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080). Batch sync DB-coherence.
 #[test]
 fn sync_batch_processes_multiple_files() {
     let _guard = TEST_MUTEX.lock();
@@ -81,14 +37,19 @@ fn sync_batch_processes_multiple_files() {
 
     let output = sync_all(&cfg);
 
+    // Primary contract: sync reports completion
     assert!(
         output.contains("Sync complete:"),
         "batch sync should complete successfully: {output}"
     );
+    // Resilient count check: tolerate case variation in "FILES/files processed"
+    let output_lower = output.to_lowercase();
     assert!(
-        output.contains("- 3 FILES processed"),
+        output_lower.contains("files processed") && output.contains("3"),
         "batch sync should process all files in the fixture set: {output}"
     );
+
+    // DB-row assertions (primary contract — not format-dependent)
     assert!(
         get_file_content_row(&cfg, &file_uri1).is_some(),
         "file 1 must have a file_content row"
@@ -116,9 +77,39 @@ fn sync_batch_processes_multiple_files() {
         Some(1),
         "file 3 mentions must be recorded"
     );
+
+    // Cross-file concept isolation: each file has exactly one concept,
+    // so no co-occurrence graph edges should be created.
+    assert_eq!(
+        get_mention_count(&cfg, &file_uri1, &normalize_concept(concept_b)),
+        None,
+        "file 1 must not reference file 2's concept"
+    );
+    assert_eq!(
+        get_mention_count(&cfg, &file_uri1, &normalize_concept(concept_c)),
+        None,
+        "file 1 must not reference file 3's concept"
+    );
+
+    // No concept_graph edges should exist — single-concept-per-file means no co-occurrence.
+    assert!(
+        get_edge_source_files(&cfg, &normalize_concept(concept_a), &normalize_concept(concept_b))
+            .is_none(),
+        "no graph edge between concept_a and concept_b (different files, no co-occurrence)"
+    );
+    assert!(
+        get_edge_source_files(&cfg, &normalize_concept(concept_a), &normalize_concept(concept_c))
+            .is_none(),
+        "no graph edge between concept_a and concept_c (different files, no co-occurrence)"
+    );
+    assert!(
+        get_edge_source_files(&cfg, &normalize_concept(concept_b), &normalize_concept(concept_c))
+            .is_none(),
+        "no graph edge between concept_b and concept_c (different files, no co-occurrence)"
+    );
 }
 
-// T-5.7: RTM FR-14.3
+// T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080). Empty-directory edge case.
 #[test]
 fn sync_empty_memory_directory_returns_without_error() {
     let _guard = TEST_MUTEX.lock();

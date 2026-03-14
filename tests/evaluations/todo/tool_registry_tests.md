@@ -104,3 +104,4 @@ Both invoke `MemoryStatus` and assert `contains("# Memory System Status")`. Test
 - REWRITE `try_invoke_list_memories_returns_non_null_result`: now seeds a sentinel file and asserts it appears in the listing, proving the tool reads from the isolated test environment (ListMemories uses relative paths internally so absolute memory_path assertion was not viable)
 - ADD `registry_contains_resolves_aliases_not_only_canonical_names`: tests `ToolRegistry::contains` with lowercase/uppercase aliases for both GetConfig and WriteMemory, closing gap #3 from eval
 - Test count: 13 → 12 (–2 removed, +1 added). All 12 pass.
+- Commit: f4fd486

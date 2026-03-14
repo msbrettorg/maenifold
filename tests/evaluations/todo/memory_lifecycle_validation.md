@@ -202,3 +202,15 @@ Only test 3 is currently passing and contributes regression value — albeit wea
 already-existing test in a different file. Tests 1 and 2 are broken: they panic before any
 assertions execute and provide zero coverage of the behavior they claim to guard. The validation
 logic in `lifecycle.rs` is correct and load-bearing; these tests are not currently guarding it.
+
+---
+
+## SWE Remediation
+
+- REWRITE+MERGE `move_memory_empty_destination_returns_error` + `move_memory_whitespace_only_destination_returns_error` → single `move_memory_rejects_empty_and_whitespace_destinations`: calls `memory::move_memory()` directly with `.expect_err()`, parameterized loop covers both `""` and `"   "` inputs (R1, P0)
+- REMOVE `move_memory_valid_destination_succeeds`: redundant with `memory_tools_move_read_write.rs::move_memory_with_simple_destination_preserves_existing_behavior` which additionally verifies read-back (R2, P0)
+- Added `move_memory_result()` helper to `support.rs` returning `Result<String>` for future error-path tests; `move_memory_output()` now delegates to it (R5, P2)
+- Updated stale `RTM FR-25.2` → `RTM NFR-1` in test file header and `lifecycle.rs` line 87 validation guard (R4, P1)
+- Added T-15.5 regression note and canonicalize bug reference as comment on `move_memory_with_simple_destination_preserves_existing_behavior` in `memory_tools_move_read_write.rs` (R2/R3, P1)
+- Result: 1 test, 0 failures (was: 3 tests, 2 failures)
+- Commit: 1e7262c

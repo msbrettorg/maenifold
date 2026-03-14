@@ -350,3 +350,18 @@ a bug specific to this file, but worth noting for flakiness investigations.
 Removing any of Tests 1, 2, 4, or 5 would leave a meaningful coverage gap. Test 3 could
 be dropped if the negative stderr assertion were redistributed to the two replacement
 `ac2a`/`ac2b` tests.
+
+---
+
+## SWE Remediation
+
+- MERGE Tests 1+2 → `fr25_2_ac1_fallback_on_missing_file`: eliminated ac1 naming collision, consolidated both degraded paths into one test with shared setup (R1)
+- Tightened snippet assertions from `starts_with` to exact `assert_eq!` in merged ac1 and KEEP ac4 (R2)
+- REWRITE Test 3 → split into `fr25_2_ac2a_display_info_success_path_no_degraded_signal` and `fr25_2_ac2b_decay_weight_success_path_no_degraded_signal`; tightened decay weight bound from `> 0.0` to `> 0.90` (R3)
+- REWRITE Test 4: removed fragile `(reuse-conn)` sub-label from assertion; now asserts `[MemorySearchTools.Fusion]` component tag + message content only (R4 — P0)
+- KEEP Test 5: no logic change, tightened snippet assertion to exact equality
+- ADD `fr25_2_ac4b_decay_diagnostics_redacts_absolute_paths`: new companion test covering `get_decay_weight_for_file` path redaction via `decay/diagnostics.rs::redact_diagnostic_path` (R5)
+- Replaced `capture_stderr` with RAII `StderrGuard` matching `degraded_diag/support.rs` pattern to prevent silent test-binary hangs on panics (R6)
+- Added traceability comment at file top clarifying `fr25_2` references the archived diagnostics requirement, not active FR-25 (R7)
+- All 6 tests pass: `cargo test --test integration_tests -p maenifold-core -- memory_search_diag_tests`
+- Commit: f44b688

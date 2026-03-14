@@ -130,7 +130,13 @@ pub fn edit_memory_output(env: &TestEnv, payload: serde_json::Value) -> String {
     memory::edit_memory(&env.ctx(), &payload).expect("edit memory")
 }
 
-pub fn move_memory_output(env: &TestEnv, source: &str, destination: &str) -> String {
+// T-15.5: RTM NFR-1 — returns Result so error-path tests can inspect Err
+// without panicking. Use this for tests that expect move_memory to fail.
+pub fn move_memory_result(
+    env: &TestEnv,
+    source: &str,
+    destination: &str,
+) -> maenifold_core::error::Result<String> {
     memory::move_memory(
         &env.ctx(),
         &json!({
@@ -138,7 +144,10 @@ pub fn move_memory_output(env: &TestEnv, source: &str, destination: &str) -> Str
             "destination": destination,
         }),
     )
-    .expect("move memory")
+}
+
+pub fn move_memory_output(env: &TestEnv, source: &str, destination: &str) -> String {
+    move_memory_result(env, source, destination).expect("move memory")
 }
 
 pub fn list_memories_output(env: &TestEnv, path: &str) -> String {

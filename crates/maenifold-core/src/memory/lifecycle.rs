@@ -84,7 +84,7 @@ pub fn move_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         .and_then(Value::as_str)
         .ok_or(MaenifoldError::MissingProperty("destination"))?;
 
-    // T-15.5: RTM FR-25.2 — reject empty/whitespace-only destination early
+    // T-15.5: RTM NFR-1 — reject empty/whitespace-only destination early
     // to prevent silent URI construction bugs (matches MoveMemory validation).
     if destination.trim().is_empty() {
         return Err(MaenifoldError::Message(

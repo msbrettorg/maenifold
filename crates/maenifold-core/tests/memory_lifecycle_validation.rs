@@ -1,79 +1,40 @@
-// T-15.5: RTM FR-25.2 — validates MoveMemory rejects empty/whitespace
-// destinations and that valid moves still succeed (regression check).
+// T-15.5: RTM NFR-1 — validates MoveMemory rejects empty/whitespace
+// destinations via the Err path in lifecycle.rs (legacy FR-25.2, renumbered).
+// Valid-destination regression covered by memory_tools_move_read_write.rs.
 
 #[path = "memory_tools/support.rs"]
 mod support;
 
-use support::{TEST_MUTEX, isolated_env, move_memory_output, write_memory_file};
+use maenifold_core::memory;
+use serde_json::json;
+use support::{TEST_MUTEX, isolated_env, write_memory_file};
 
+/// T-15.5: RTM NFR-1 — move_memory() returns Err for empty and whitespace-only
+/// destinations. Covers both "" and "   " in a single parameterized loop.
+/// Previous tests panicked because the `move_memory_output` helper called
+/// `.expect()` on an `Err` variant; this test calls the function directly and
+/// inspects the `Err` with `.expect_err()`.
 #[test]
-fn move_memory_empty_destination_returns_error() {
+fn move_memory_rejects_empty_and_whitespace_destinations() {
     let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Empty Dest Test",
-        "# Empty Dest Test\n\nContent with [[concepts]].",
-        None,
-    );
+    for (label, dest) in [("empty", ""), ("whitespace-only", "   ")] {
+        let env = isolated_env();
+        let uri = write_memory_file(
+            &env,
+            "Dest Validation Test",
+            "# Test\n\nContent with [[concepts]].",
+            None,
+        );
 
-    let result = move_memory_output(&env, &uri, "");
+        let err = memory::move_memory(
+            &env.ctx(),
+            &json!({ "source": uri, "destination": dest }),
+        )
+        .expect_err(&format!("expected error for {label} destination"));
 
-    assert!(
-        result.contains("ERROR"),
-        "expected error for empty destination, got: {result}"
-    );
-    assert!(
-        result.contains("cannot be empty"),
-        "expected 'cannot be empty' message, got: {result}"
-    );
-}
-
-#[test]
-fn move_memory_whitespace_only_destination_returns_error() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Whitespace Dest Test",
-        "# Whitespace Dest Test\n\nContent with [[concepts]].",
-        None,
-    );
-
-    let result = move_memory_output(&env, &uri, "   ");
-
-    assert!(
-        result.contains("ERROR"),
-        "expected error for whitespace-only destination, got: {result}"
-    );
-    assert!(
-        result.contains("cannot be empty"),
-        "expected 'cannot be empty' message, got: {result}"
-    );
-}
-
-#[test]
-fn move_memory_valid_destination_succeeds() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Valid Move Test",
-        "# Valid Move Test\n\nContent with [[concepts]].",
-        None,
-    );
-
-    // T-15.5: Regression check — valid simple destination still works after
-    // adding empty-destination validation. Uses non-nested path to avoid
-    // pre-existing canonicalize bug with nested destination directories.
-    let result = move_memory_output(&env, &uri, "Moved Valid Test");
-
-    assert!(
-        result.starts_with("Moved memory FILE:"),
-        "expected successful move, got: {result}"
-    );
-    assert!(
-        result.contains("memory://moved-valid-test"),
-        "expected destination URI in result, got: {result}"
-    );
+        assert!(
+            err.to_string().contains("cannot be empty"),
+            "{label} destination: expected 'cannot be empty', got: {err}"
+        );
+    }
 }

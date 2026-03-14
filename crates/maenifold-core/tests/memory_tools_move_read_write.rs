@@ -36,6 +36,10 @@ fn move_memory_with_path_based_destination_preserves_markdown_extension() {
     assert!(read_result.contains("Testing [[file-operations]] preserves .md extension."));
 }
 
+// T-15.5: RTM NFR-1 — Also serves as the regression guard that valid simple
+// destinations still succeed after adding the empty-destination validation in
+// lifecycle.rs. Uses a non-nested path; nested destination directories trigger
+// a known canonicalize bug (see memory_lifecycle_validation.rs evaluation notes).
 #[test]
 fn move_memory_with_simple_destination_preserves_existing_behavior() {
     let _guard = TEST_MUTEX.lock();

@@ -265,3 +265,12 @@ the adjacent cleanup test files:
 Score is 3/3 — but Tests 1 and 2 should be considered a single logical test covering two
 parameters (current score: 2 tests, 1 distinct scenario). Post-merge the effective score
 would be **2/2** distinct scenarios, both load-bearing, both worth keeping.
+
+---
+## SWE Remediation
+- MERGE `sync_stale_workflow_session_marked_abandoned_even_when_mtime_guard_would_skip_read` + `sync_stale_sequential_session_marked_abandoned_even_when_mtime_guard_would_skip_read`: consolidated into `sync_stale_session_marked_abandoned_even_when_mtime_guard_would_skip_read` with `workflow`/`sequential` coverage in one loop.
+- REWRITE merged stale-session test: pinned `MAENIFOLD_SESSION_ABANDON_MINUTES` to `60`, removed the intermediate DB scaffolding assertion, and documented the 130-minute staleness margin.
+- KEEP `sync_does_not_rewrite_normal_memory_file_solely_due_to_age_mtime_guard_remains`: added a clarifying comment for the 7-day offset.
+- REWRITE file header traceability: corrected to `T-W1-7: RTM FR-14.6`.
+- Verification: `cd crates/maenifold-core && cargo test --test integration_tests workflow_supervisor_sync_cleanup`
+- Commit: PENDING

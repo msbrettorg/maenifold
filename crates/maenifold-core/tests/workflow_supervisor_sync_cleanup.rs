@@ -1,11 +1,10 @@
-// T-12.7: RTM NFR-1
+// T-W1-7: RTM FR-14.6
 #[path = "workflow_supervisor/support.rs"]
 mod support;
 #[path = "workflow_supervisor/sync_support.rs"]
 mod sync_support;
 
 use chrono::{Duration, Utc};
-use rusqlite::{Connection, params};
 use std::fs;
 
 use support::*;
@@ -16,66 +15,30 @@ use sync_support::{
 
 // T-W1-7: RTM FR-14.6
 #[test]
-fn sync_stale_workflow_session_marked_abandoned_even_when_mtime_guard_would_skip_read() {
+fn sync_stale_session_marked_abandoned_even_when_mtime_guard_would_skip_read() {
     let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let session_id = create_workflow_session_fixture(&env.cfg, "workflow", "active");
-    let file_uri = workflow_uri(&session_id);
-    let path = path_for_uri(&env.cfg, &file_uri);
+    let _env_guard = SessionCleanupEnvGuard::set_abandonment_minutes("60");
 
-    invoke_sync(&env.cfg);
+    for session_type in ["workflow", "sequential"] {
+        let env = isolated_env();
+        let session_id = create_workflow_session_fixture(&env.cfg, session_type, "active");
+        let file_uri = session_uri(session_type, &session_id);
+        let path = path_for_uri(&env.cfg, &file_uri);
 
-    let stale = Utc::now() - Duration::minutes(130);
-    set_file_mtime_utc(&path, stale);
-    let last_indexed = file_mtime_rfc3339(&path);
-    update_last_indexed_and_status(&env.cfg, &file_uri, &last_indexed, Some("active"));
+        invoke_sync(&env.cfg);
 
-    let last_indexed_db = Connection::open(&env.cfg.database_path)
-        .expect("open db")
-        .query_row(
-            "SELECT last_indexed FROM file_content WHERE file_path = ?1",
-            params![&file_uri],
-            |row| row.get::<_, String>(0),
-        )
-        .expect("last indexed");
-    assert_eq!(last_indexed_db, last_indexed);
+        // Keep the file well past the pinned 60-minute abandonment threshold so sync's
+        // mtime guard would skip re-reading it unless cleanup still rewrites the session.
+        let stale = Utc::now() - Duration::minutes(130);
+        set_file_mtime_utc(&path, stale);
+        let last_indexed = file_mtime_rfc3339(&path);
+        update_last_indexed_and_status(&env.cfg, &file_uri, &last_indexed, Some("active"));
 
-    invoke_sync(&env.cfg);
+        invoke_sync(&env.cfg);
 
-    assert_eq!(read_frontmatter_status(&env.cfg, &file_uri), "abandoned");
-    assert!(read_body(&env.cfg, &file_uri).contains("Session Abandoned"));
-}
-
-// T-W1-7: RTM FR-14.6
-#[test]
-fn sync_stale_sequential_session_marked_abandoned_even_when_mtime_guard_would_skip_read() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let session_id = create_workflow_session_fixture(&env.cfg, "sequential", "active");
-    let file_uri = sequential_uri(&session_id);
-    let path = path_for_uri(&env.cfg, &file_uri);
-
-    invoke_sync(&env.cfg);
-
-    let stale = Utc::now() - Duration::minutes(130);
-    set_file_mtime_utc(&path, stale);
-    let last_indexed = file_mtime_rfc3339(&path);
-    update_last_indexed_and_status(&env.cfg, &file_uri, &last_indexed, Some("active"));
-
-    let last_indexed_db = Connection::open(&env.cfg.database_path)
-        .expect("open db")
-        .query_row(
-            "SELECT last_indexed FROM file_content WHERE file_path = ?1",
-            params![&file_uri],
-            |row| row.get::<_, String>(0),
-        )
-        .expect("last indexed");
-    assert_eq!(last_indexed_db, last_indexed);
-
-    invoke_sync(&env.cfg);
-
-    assert_eq!(read_frontmatter_status(&env.cfg, &file_uri), "abandoned");
-    assert!(read_body(&env.cfg, &file_uri).contains("Session Abandoned"));
+        assert_eq!(read_frontmatter_status(&env.cfg, &file_uri), "abandoned");
+        assert!(read_body(&env.cfg, &file_uri).contains("Session Abandoned"));
+    }
 }
 
 // T-W1-7: RTM FR-14.6
@@ -91,6 +54,8 @@ fn sync_does_not_rewrite_normal_memory_file_solely_due_to_age_mtime_guard_remain
 
     invoke_sync(&env.cfg);
 
+    // Use a much larger offset than any abandonment threshold so any accidental rewrite of
+    // a normal memory file is clearly caused by cleanup rather than threshold ambiguity.
     let stale = Utc::now() - Duration::days(7);
     set_file_mtime_utc(&path, stale);
     let last_indexed = file_mtime_rfc3339(&path);

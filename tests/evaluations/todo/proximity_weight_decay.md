@@ -145,6 +145,23 @@ The most consequential gap is the **absence of any test that verifies temporal d
 
 ---
 
+## SWE Remediation
+
+- REWRITE T1 `compute_edge_decay_weight_returns_proximity_for_fresh_file`: Removed all dead disk/file setup, `TestEnv`, `acquire_test_lock`, `chrono::Utc`, `std::fs` imports. Replaced with two focused pure-function tests:
+  - `compute_edge_decay_weight_averages_multiple_proximity_weights`: tests (1.0 + 0.5) / 2 == 0.75 with exact assertion
+  - `compute_edge_decay_weight_single_entry_returns_that_weight`: tests single-entry passthrough == 0.5 with exact assertion
+- REMOVE `acquire_test_lock` from T2: pure function test needs no global lock
+- MERGE T3+T4 into `build_context_decayweight_and_weightedscore_reflect_proximity_ordering`: single test asserts both DecayWeight and WeightedScore ordering, with comment documenting co_occurrence_count=1 equivalence
+- KEEP T2 `rejects_corrupt_source_files_json`: unchanged (error path)
+- KEEP T5 `treats_empty_source_files_as_zero_decay_weight`: unchanged (boundary)
+- ADD `compute_edge_decay_weight_returns_zero_for_json_non_object`: pins silent Ok(0.0) for null/42/true inputs (P1 coverage gap)
+- ADD `build_context_decayweight_reduced_for_old_file`: inserts file_content row with 2024-01-01 timestamps, verifies DecayWeight < 1.0 — exercises temporal decay multiply that was previously untested (P0 coverage gap)
+- ADD `insert_file_content` helper to `proximity_weight/support.rs`
+- 7 tests, all passing
+- Commit: 7bf6f6c
+
+---
+
 ## Recommendations
 
 1. **REWRITE Test 1** — remove all disk/file setup; test `compute_edge_decay_weight` as the pure arithmetic-mean function it is; use exact assertions.

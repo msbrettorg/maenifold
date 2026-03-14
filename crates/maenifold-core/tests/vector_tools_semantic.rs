@@ -14,7 +14,7 @@ use vector_tools_support::*;
 // T-14.9: RTM FR-6 / RTM-042 — below-threshold or zero-vector semantic validation
 // must return a successful BLOCKED warning payload rather than Err(..).
 #[test]
-fn empty_and_null_inputs_produce_safe_embeddings() {
+fn null_and_empty_embeddings_produce_blocked_warning() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     ensure_regular_vec_concepts_table(&env);
@@ -36,11 +36,11 @@ fn empty_and_null_inputs_produce_safe_embeddings() {
             "minSemanticSimilarity": 0.10
         }),
     )
-    .expect("empty vectors should return BLOCKED warning text instead of Err");
+    .expect("degenerate embeddings should return BLOCKED warning text instead of Err");
 
     assert!(
         output.contains("BLOCKED:"),
-        "expected semantic-validation warning output, got: {output}"
+        "expected semantic-validation BLOCKED warning output, got: {output}"
     );
     assert!(
         output.contains("tools: similarity 0.00 (threshold: 0.10)"),
@@ -52,17 +52,18 @@ fn empty_and_null_inputs_produce_safe_embeddings() {
     );
 }
 
-// T-0.1: RTM NFR-3 — Adapted from C# ThreadSafeInitializationWorks to assert concurrent
-// semantic-validation reads over search.rs remain stable for the same vec_concepts rows.
+// T-0.1: RTM NFR-3 — Adapted from C# ThreadSafeInitializationWorks. In Rust this
+// validates concurrent repair_concepts reads over shared SQLite vec_concepts rows
+// produce identical output on every thread — not initialization lifecycle.
 // T-14.9: RTM FR-6 / RTM-043 — above-threshold similarity should still succeed.
 #[test]
-fn thread_safe_initialization_works() {
+fn concurrent_repair_concepts_reads_produce_consistent_output() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     ensure_regular_vec_concepts_table(&env);
     write_memory_fixture(
         &env,
-        &format!("{TEST_FOLDER}/thread-safe.md"),
+        &format!("{TEST_FOLDER}/concurrent.md"),
         "# Test\nUsing [[tools]] in concurrent dry-run repairs.\n",
     );
 
@@ -134,5 +135,51 @@ fn above_threshold_similarity_returns_success_output() {
     assert!(
         output.contains("Scanning 1 markdown files"),
         "successful validation should continue into the repair flow: {output}"
+    );
+}
+
+// T-14.9: RTM FR-6 / RTM-043 — validates that the semantic similarity gate works
+// correctly with genuinely distinct embeddings whose cosine similarity is sub-1.0
+// but above the configured threshold.  Seeds 0.75 and 0.50 produce vectors with
+// cosine similarity ≈ 0.993, which passes a 0.99 threshold.  This closes the
+// mid-range gap where tests 1–3 only exercise similarity 0.00 and 1.0.
+#[test]
+fn above_threshold_with_real_cosine_distance() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    ensure_regular_vec_concepts_table(&env);
+    write_memory_fixture(
+        &env,
+        &format!("{TEST_FOLDER}/cosine-midrange.md"),
+        "# Test\nUsing [[tools]] with distinct but similar embeddings.\n",
+    );
+
+    let canonical_embedding = deterministic_embedding(0.75);
+    let variant_embedding = deterministic_embedding(0.50);
+    insert_blob_embedding(&env, "tool", &canonical_embedding);
+    insert_blob_embedding(&env, "tools", &variant_embedding);
+
+    let output = invoke_repair_concepts(
+        &env,
+        json!({
+            "conceptsToReplace": "tools",
+            "canonicalConcept": "tool",
+            "dryRun": true,
+            "minSemanticSimilarity": 0.99
+        }),
+    )
+    .expect("distinct embeddings above threshold should succeed");
+
+    assert!(
+        output.contains("All variants pass semantic similarity check"),
+        "expected semantic validation success for sub-1.0 cosine above threshold, got: {output}"
+    );
+    assert!(
+        output.contains("Scanning 1 markdown files"),
+        "successful validation should continue into the repair flow: {output}"
+    );
+    assert!(
+        !output.contains("BLOCKED"),
+        "above-threshold similarity should not produce BLOCKED warning: {output}"
     );
 }

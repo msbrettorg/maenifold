@@ -7,6 +7,7 @@ use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use rusqlite::params;
 use std::fs;
+use std::path::Path;
 use tempfile::TempDir;
 
 // T-12.6: RTM NFR-1 — shared support keeps split vector regression tests aligned.
@@ -48,8 +49,35 @@ pub(crate) fn write_memory_fixture(env: &TestEnv, relative_path: &str, content: 
     fs::write(path, content).expect("fixture write");
 }
 
+// T-14.9: RTM FR-6 — Load the vec0 extension on a connection so that virtual
+// tables created by GraphDatabase::initialize_database() can be dropped.  If the
+// dylib is unavailable the virtual table was never created, so DROP is a no-op.
+fn try_load_vec0_extension(conn: &rusqlite::Connection, assets_path: &Path) {
+    let (platform_dir, filename) = match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("macos", "aarch64") => ("osx-arm64", "vec0.dylib"),
+        ("macos", "x86_64") => ("osx-x64", "vec0.dylib"),
+        ("linux", "x86_64") => ("linux-x64", "vec0.so"),
+        ("linux", "aarch64") => ("linux-arm64", "vec0.so"),
+        ("windows", "x86_64") => ("win-x64", "vec0.dll"),
+        _ => return,
+    };
+    let path = assets_path.join("native").join(platform_dir).join(filename);
+    if path.exists() {
+        unsafe {
+            let _ = conn.load_extension_enable();
+            let _ = conn.load_extension(&path, None::<&str>);
+            let _ = conn.load_extension_disable();
+        }
+    }
+}
+
+// T-14.9: RTM FR-6 — Replaces the vec0 virtual table created by initialize_database()
+// with a plain table so tests can insert raw embedding blobs directly.  The vec0
+// extension must be loaded first because SQLite cannot DROP a virtual table whose
+// module is not present.
 pub(crate) fn ensure_regular_vec_concepts_table(env: &TestEnv) {
     let connection = db::open_connection(&env.cfg.database_path).expect("open db");
+    try_load_vec0_extension(&connection, &env.cfg.assets_path);
     connection
         .execute_batch(
             r#"

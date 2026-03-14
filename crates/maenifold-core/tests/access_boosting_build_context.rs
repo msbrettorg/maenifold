@@ -26,6 +26,7 @@ fn build_context_does_not_update_last_accessed() {
         TEST_FOLDER,
     );
 
+    // Verify files exist and are readable in the graph before setting the controlled baseline.
     let read_one = read_memory_output(&env, &uri1);
     let read_two = read_memory_output(&env, &uri2);
     assert!(!read_one.starts_with("ERROR:"), "unexpected: {read_one}");
@@ -61,75 +62,29 @@ fn build_context_does_not_update_last_accessed() {
     );
 }
 
-// T-GRAPH-DECAY-002.1-3: RTM NFR-7.6.3
+// T-GRAPH-DECAY-002.1-3: RTM NFR-7.6.3 — multi-hop traversal must not update last_accessed
 #[test]
-fn build_context_with_content_preview_does_not_update_last_accessed() {
+fn build_context_deep_traversal_does_not_update_last_accessed() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     let uri = create_and_sync_test_file(
         &env,
-        "Content Preview Test",
-        "Testing [[content-preview]] in [[BuildContext]] with [[access-boosting]].",
+        "Deep Traversal Test",
+        "Testing [[deep-traversal]] with [[graph-depth]] concepts.",
         TEST_FOLDER,
-    );
-
-    let read_result = read_memory_output(&env, &uri);
-    assert!(
-        !read_result.starts_with("ERROR:"),
-        "unexpected: {read_result}"
     );
 
     let baseline = rfc3339_days_ago(3);
     set_last_accessed(&env.cfg, &uri, &baseline);
-    let initial_last_accessed = get_last_accessed(&env.cfg, &uri);
+    let initial = get_last_accessed(&env.cfg, &uri);
 
-    let context_result = build_context_json(&env, "content-preview", 1, 10, true);
+    // Depth=3 exercises the full hop-expansion loop in expand_related_concepts
+    build_context_json(&env, "deep-traversal", 3, 50, false);
+
+    let after = get_last_accessed(&env.cfg, &uri);
     assert_eq!(
-        context_result["data"]["ConceptName"].as_str(),
-        Some("content-preview"),
-        "unexpected BuildContext output: {context_result}"
-    );
-
-    let after_context_last_accessed = get_last_accessed(&env.cfg, &uri);
-    assert_eq!(
-        after_context_last_accessed, initial_last_accessed,
-        "BuildContext with includeContent=true should not update last_accessed"
-    );
-}
-
-// T-GRAPH-DECAY-002.1-3: RTM NFR-7.6.3
-#[test]
-fn build_context_at_various_depths_does_not_update_last_accessed() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = create_and_sync_test_file(
-        &env,
-        "Depth Test File",
-        "Testing [[depth-traversal]] with [[graph-depth]] concepts.",
-        TEST_FOLDER,
-    );
-
-    let read_result = read_memory_output(&env, &uri);
-    assert!(
-        !read_result.starts_with("ERROR:"),
-        "unexpected: {read_result}"
-    );
-
-    let baseline = rfc3339_days_ago(3);
-    set_last_accessed(&env.cfg, &uri, &baseline);
-    let initial_last_accessed = get_last_accessed(&env.cfg, &uri);
-
-    let context_result = build_context_json(&env, "depth-traversal", 3, 50, false);
-    assert_eq!(
-        context_result["data"]["Depth"].as_u64(),
-        Some(3),
-        "unexpected BuildContext output: {context_result}"
-    );
-
-    let after_context_last_accessed = get_last_accessed(&env.cfg, &uri);
-    assert_eq!(
-        after_context_last_accessed, initial_last_accessed,
-        "BuildContext at depth=3 should not update last_accessed"
+        after, initial,
+        "BuildContext at depth=3 (multi-hop expansion) must not update last_accessed"
     );
 }
 

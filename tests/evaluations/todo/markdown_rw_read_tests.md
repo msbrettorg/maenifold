@@ -42,3 +42,13 @@ All eight tests are load-bearing, each covering a distinct behavioral case in `r
 ## Load-Bearing Score: 8/8
 
 > All eight tests protect against distinct, real failure modes. No test is ceremonial or testing only labels/format. The regression guards (tests 4 and 8) earn their place by protecting against maintenance-induced over-corrections.
+
+---
+## SWE Remediation
+- All 8 tests: KEEP — no changes required, all load-bearing
+- R1 (parameterize tests 1–4): Skipped — P3+ "Consider" level, medium refactor effort
+- R2 (parameterize tests 7–8): Skipped — P3+ "Consider" + explicitly "Low priority"
+- R3 (non-Unix permission test): Skipped — P3+ "Consider", platform-specific
+- R4 (strengthen EOF delimiter test): Already addressed — `assert_eq!(scalar(&frontmatter, "title").as_deref(), Some("EOF Note"))` is present at line 63
+- Tests verified: `cargo test --test integration_tests -p maenifold-core -- markdown_rw_read_tests` → 8 passed, 0 failed
+- Commit: 43f16a5

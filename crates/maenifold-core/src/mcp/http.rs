@@ -1,5 +1,4 @@
-use super::{MaenifoldHandler, initialize_runtime};
-use crate::config::Config;
+use super::MaenifoldHandler;
 use crate::error::{MaenifoldError, Result};
 use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
@@ -11,9 +10,6 @@ impl super::MaenifoldMcpServer {
     // T-17.2: RTM FR-23 (RTM-127, RTM-129, RTM-130) — expose Streamable HTTP MCP
     // endpoints with rmcp session management and browser-friendly CORS.
     pub async fn serve_http(port: u16) -> Result<()> {
-        let config = Config::current();
-        initialize_runtime(&config)?;
-
         let ct = tokio_util::sync::CancellationToken::new();
 
         let service = StreamableHttpService::new(

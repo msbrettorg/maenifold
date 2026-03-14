@@ -55,3 +55,14 @@ All 10 tests guard the same security invariant — URI validation rejects malfor
 ## Load-Bearing Score: 7/10
 
 Tests ac1, ac2, ac3, ac5, ac8, ac9 are load-bearing against distinct operations or distinct validation branches. Test ac7 tests a test adapter, not production. Tests ac4, ac6, ac10 overlap with each other or with tested callee functions.
+
+---
+## SWE Remediation
+- MERGE ac4+ac6+ac10: collapsed into `fr28_9_traversal_sweep_secondary_operations` — single test covers file_exists, get_memory_files, get_memory_directories traversal rejection (Rec 1)
+- REWRITE ac7: replaced test-adapter call (`write_markdown_boundary(None, ...)`) with production `markdown::write_markdown("", ...)` — now validates empty-URI guard on the real API (Rec 2)
+- ADD `fr28_9_url_encoded_traversal_is_rejected`: confirms `%2e%2e` URL-encoded traversal is caught by path-level dot-sequence validation (Rec 4). Discovered: URL-encoded traversal returns `MaenifoldError::Message` (path-level check) not `InvalidArgument` (URI-level check) — two-layer defense confirmed.
+- ADD comment documenting `uri_to_path` centralized validation gate (Rec 3)
+- KEEP ac1, ac2, ac3, ac5, ac8, ac9: unchanged
+- Test count: 10 → 9 (3 merged into 1, 1 rewritten, 1 new)
+- All 9 pass
+- Commit: e885675

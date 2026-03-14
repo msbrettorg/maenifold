@@ -328,3 +328,15 @@ genuinely adversarial input would bring it up to load-bearing status and raise t
 ---
 
 *Evaluated under [[test-quality]] lens for [[maenifold-rs]] · T-0.1 · RTM NFR-2 · RTM NFR-3*
+
+---
+
+## SWE Remediation
+
+- KEEP T1 `write_memory_creates_nested_directories_automatically`: no changes
+- KEEP T2 `move_memory_creates_nested_destination_directories`: no changes
+- KEEP T3 `extract_concepts_from_file_works_with_nested_paths`: added R4 concept-count assertion (`extract_result.matches("[[").count() == 2`) to catch spurious concepts
+- REWRITE T4 `nested_paths_handle_special_characters` → `nested_paths_handle_adversarial_title_characters`: expanded from slug-safe-only inputs to genuinely adversarial titles (unicode, colons, percent, dots, parentheses); replaced hardcoded `"memory-path-tests/…"` with `format!("{TEST_FOLDER}/…")`; uses `slugify_title()` to compute expected slugs dynamically (R1)
+- REWRITE T5 `deep_nesting_limits_are_respected` → `deep_nesting_succeeds_at_ten_levels`: renamed to accurately describe the invariant; extracted magic `10` as `DEEP_NESTING_PROBE_DEPTH` constant with doc comment (R2)
+- REWRITE T6 `empty_directory_names_are_handled_gracefully` → `empty_directory_segments_are_normalised_on_write`: removed useless `!result.contains("Exception")` assertion; added `starts_with("Created memory FILE:")` success assertion; added round-trip `read_memory` validation; used `format!("{TEST_FOLDER}/…")` and unique titles per case (R3)
+- Commit: 33f7ef9a347a117e0d46ed6012dfa547421711e9

@@ -1,6 +1,7 @@
 #[path = "memory_path_support/mod.rs"]
 mod memory_path_support;
 
+use maenifold_core::util::paths::slugify_title;
 use memory_path_support::{
     TEST_FOLDER, TEST_MUTEX, extract_concepts_output, isolated_env, move_memory_output,
     read_memory_output, write_memory_output,
@@ -128,60 +129,74 @@ fn extract_concepts_from_file_works_with_nested_paths() {
     );
     assert!(extract_result.contains("[[machine-learning]]"));
     assert!(extract_result.contains("[[data-science]]"));
+
+    // R4: verify no spurious concepts are extracted (e.g. from path segments).
+    let concept_count = extract_result.matches("[[").count();
+    assert_eq!(
+        concept_count, 2,
+        "expected exactly 2 concepts, got {concept_count}: {extract_result}"
+    );
 }
 
+// T-0.1: RTM NFR-3 — Verify slug generation handles adversarial title characters.
+// R1: expanded from slug-safe-only inputs to genuinely adversarial titles (unicode,
+// colons, percent signs, dots, parentheses) and uses `slugify_title` to compute
+// expected slugs dynamically rather than hardcoding them.
 #[test]
-fn nested_paths_handle_special_characters() {
+fn nested_paths_handle_adversarial_title_characters() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
-    for (title, folder, uri) in [
-        (
-            "File With Hyphens",
-            "memory-path-tests/special-chars",
-            "file-with-hyphens",
-        ),
-        (
-            "File With Underscores",
-            "memory-path-tests/special_chars",
-            "file-with-underscores",
-        ),
-        (
-            "File With Numbers456",
-            "memory-path-tests/numbers123",
-            "file-with-numbers456",
-        ),
-        (
-            "Final File",
-            "memory-path-tests/mixed-chars_123",
-            "final-file",
-        ),
+    for (title, subfolder) in [
+        ("Café Notes", "unicode-test"),
+        ("Topic: Subtopic", "colon-test"),
+        ("100% Complete", "percent-test"),
+        (".Hidden Title", "dot-test"),
+        ("File (v2.1)", "parens-test"),
     ] {
-        let content = format!("Testing [[special characters]] in path: {folder}");
-        let write_result = write_memory_output(&env, title, &content, Some(folder));
+        let folder = format!("{TEST_FOLDER}/{subfolder}");
+        let content = format!("Testing [[slug generation]] for adversarial title: {title}");
+        let expected_slug = slugify_title(title);
 
+        let write_result = write_memory_output(&env, title, &content, Some(&folder));
         assert!(
             write_result.starts_with("Created memory FILE:"),
-            "special character path should work for {folder}: {write_result}"
+            "adversarial title '{title}' should succeed: {write_result}"
+        );
+        assert!(
+            write_result.contains(&expected_slug),
+            "result should contain dynamically slugified '{expected_slug}' for '{title}': {write_result}"
         );
 
-        let read_result = read_memory_output(&env, &format!("memory://{folder}/{uri}"))
-            .expect("read special character path");
+        let uri = format!("memory://{folder}/{expected_slug}");
+        let read_result =
+            read_memory_output(&env, &uri).expect("read adversarial title path");
         assert!(
             !read_result.starts_with("ERROR:"),
-            "reading special character path should work for {folder}: {read_result}"
+            "reading adversarial title '{title}' should succeed: {read_result}"
         );
-        assert!(read_result.contains(&content));
+        assert!(
+            read_result.contains(&content),
+            "round-trip content mismatch for '{title}': {read_result}"
+        );
     }
 }
 
+// T-0.1: RTM NFR-3 — Verify no OS path-length limit or depth guard is hit at
+// the probe depth. If the system ever imposes a depth limit, a companion test
+// should verify rejection above that limit.
+
+/// Empirically validates that no OS path-length limit or implementation depth
+/// guard prevents writes at this many nested levels on supported platforms.
+const DEEP_NESTING_PROBE_DEPTH: usize = 10;
+
 #[test]
-fn deep_nesting_limits_are_respected() {
+fn deep_nesting_succeeds_at_ten_levels() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
     let mut deep_folder = TEST_FOLDER.to_string();
-    for level in 1..=10 {
+    for level in 1..=DEEP_NESTING_PROBE_DEPTH {
         deep_folder.push_str(&format!("/level{level}"));
     }
 
@@ -206,26 +221,53 @@ fn deep_nesting_limits_are_respected() {
     assert!(read_result.contains("Testing [[very deep]] nesting in directory structures."));
 }
 
+// T-0.1: RTM NFR-3 — Double-slash folder segments are silently normalised by
+// the OS filesystem layer (create_dir_all / write collapse consecutive slashes).
+// The test verifies that write_memory succeeds and the content survives a
+// round-trip read despite the malformed folder path.
 #[test]
-fn empty_directory_names_are_handled_gracefully() {
+fn empty_directory_segments_are_normalised_on_write() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
-    for problematic_folder in [
-        "memory-path-tests//double-slash",
-        "memory-path-tests/normal//double-middle",
-        "memory-path-tests/trailing-slash//",
-    ] {
-        let result = write_memory_output(
-            &env,
-            "Empty Directory Test",
-            "Testing [[empty segments]] in folder paths for validation.",
-            Some(problematic_folder),
-        );
+    let cases = [
+        (
+            "Leading Double Slash",
+            format!("{TEST_FOLDER}//double-slash"),
+            "Testing [[empty segments]] with leading double-slash.",
+        ),
+        (
+            "Mid Path Double Slash",
+            format!("{TEST_FOLDER}/normal//double-middle"),
+            "Testing [[empty segments]] with mid-path double-slash.",
+        ),
+        (
+            "Trailing Double Slash",
+            format!("{TEST_FOLDER}/trailing-slash//"),
+            "Testing [[empty segments]] with trailing double-slash.",
+        ),
+    ];
+
+    for (title, folder, content) in &cases {
+        let result = write_memory_output(&env, title, content, Some(folder));
 
         assert!(
-            !result.contains("Exception"),
-            "empty directory segments should be handled gracefully for {problematic_folder}: {result}"
+            result.starts_with("Created memory FILE:"),
+            "double-slash folder should be normalised and succeed for '{folder}': {result}"
+        );
+
+        // Round-trip: read back using the URI that write_memory produced.
+        let expected_slug = slugify_title(title);
+        let uri = format!("memory://{folder}/{expected_slug}");
+        let read_result =
+            read_memory_output(&env, &uri).expect("read double-slash path");
+        assert!(
+            !read_result.starts_with("ERROR:"),
+            "round-trip read should succeed for '{folder}': {read_result}"
+        );
+        assert!(
+            read_result.contains(content),
+            "round-trip content mismatch for '{folder}': {read_result}"
         );
     }
 }

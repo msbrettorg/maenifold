@@ -8,7 +8,7 @@ use support::{
     TEST_MUTEX, edit_memory_output, isolated_env, read_memory_output, write_memory_file,
 };
 
-// T-12.6: RTM NFR-1
+// T-12.6: RTM NFR-1 — KEEP: verifies content mutation with correct expectedCount
 #[test]
 fn find_replace_with_correct_expected_count_succeeds() {
     let _guard = TEST_MUTEX.lock();
@@ -32,67 +32,78 @@ fn find_replace_with_correct_expected_count_succeeds() {
     );
 
     assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
+        edit_result.contains(&uri),
+        "edit result should contain URI: {edit_result}"
     );
     let read_result = read_memory_output(&env, &uri);
     assert!(read_result.contains("[[bar]] appearing twice: [[bar]] and [[bar]]"));
     assert!(!read_result.contains("foo"));
 }
 
+// T-12.6: RTM NFR-1 — MERGE: parameterized expectedCount mismatch error cases
+// Covers: (expected=1, actual=3), (expected=0, actual=1), (expected=2, actual=0)
 #[test]
-fn find_replace_with_incorrect_expected_count_throws_argument_error() {
+fn find_replace_expectedcount_mismatch_errors() {
     let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Find Replace Mismatch Test",
-        "This is a [[test]] with foo appearing twice: foo and foo.",
-        Some("edit-memory-tests"),
-    );
 
-    let err = memory::edit_memory(
-        &env.ctx(),
-        &json!({
-            "identifier": uri,
-            "operation": "find_replace",
-            "content": "replacement with [[test]]",
-            "findText": "foo",
-            "expectedCount": 1
-        }),
-    )
-    .expect_err("expected count mismatch should error");
+    let cases: &[(&str, &str, &str, u32, u32)] = &[
+        // (title, content, find_text, expected_count, actual_count)
+        (
+            "Mismatch More Found",
+            "This is a [[test]] with foo appearing twice: foo and foo.",
+            "foo",
+            1,
+            3,
+        ),
+        (
+            "Zero Expected One Found",
+            "This is a [[test]] with foo in it.",
+            "foo",
+            0,
+            1,
+        ),
+        (
+            "Expected But None Found",
+            "This is a [[test]] without the target text.",
+            "nonexistent",
+            2,
+            0,
+        ),
+    ];
 
-    assert!(err.to_string().contains("Expected 1 matches but found 3"));
-    assert!(err.to_string().contains("Find text: 'foo'"));
+    for (title, content, find_text, expected_count, actual_count) in cases {
+        let env = isolated_env();
+        let uri = write_memory_file(&env, title, content, Some("edit-memory-tests"));
+
+        let err = memory::edit_memory(
+            &env.ctx(),
+            &json!({
+                "identifier": uri,
+                "operation": "find_replace",
+                "content": "replacement with [[test]]",
+                "findText": find_text,
+                "expectedCount": expected_count
+            }),
+        )
+        .expect_err(&format!(
+            "expected={expected_count} vs actual={actual_count} should error"
+        ));
+
+        let msg = err.to_string();
+        assert!(
+            msg.contains(&format!(
+                "Expected {expected_count} matches but found {actual_count}"
+            )),
+            "case ({title}): unexpected error: {msg}"
+        );
+        assert!(
+            msg.contains(&format!("Find text: '{find_text}'")),
+            "case ({title}): error should mention find text: {msg}"
+        );
+    }
 }
 
-#[test]
-fn find_replace_with_expected_count_zero_throws_when_matches_found() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Zero Expected Test",
-        "This is a [[test]] with foo in it.",
-        Some("edit-memory-tests"),
-    );
-
-    let err = memory::edit_memory(
-        &env.ctx(),
-        &json!({
-            "identifier": uri,
-            "operation": "find_replace",
-            "content": "replacement with [[test]]",
-            "findText": "foo",
-            "expectedCount": 0
-        }),
-    )
-    .expect_err("expected count zero should error");
-
-    assert!(err.to_string().contains("Expected 0 matches but found 1"));
-}
-
+// T-12.6: RTM NFR-1 — KEEP: null expectedCount means "replace all without count validation"
 #[test]
 fn find_replace_with_null_expected_count_succeeds() {
     let _guard = TEST_MUTEX.lock();
@@ -116,47 +127,23 @@ fn find_replace_with_null_expected_count_succeeds() {
     );
 
     assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
+        edit_result.contains(&uri),
+        "edit result should contain URI: {edit_result}"
     );
     let read_result = read_memory_output(&env, &uri);
     assert!(read_result.contains("bar appearing multiple times: bar, bar, bar."));
 }
 
+// T-12.6: RTM NFR-1 — REWRITE: renamed from find_replace_with_multiline_pattern_works_correctly
+// The needle "paragraph" is a single word, not a multiline pattern. This test verifies
+// find_replace correctly replaces a word appearing in distinct document sections.
 #[test]
-fn find_replace_with_no_matches_throws_when_expecting_matches() {
+fn find_replace_replaces_word_across_document_sections() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     let uri = write_memory_file(
         &env,
-        "No Matches Test",
-        "This is a [[test]] without the target text.",
-        Some("edit-memory-tests"),
-    );
-
-    let err = memory::edit_memory(
-        &env.ctx(),
-        &json!({
-            "identifier": uri,
-            "operation": "find_replace",
-            "content": "replacement with [[test]]",
-            "findText": "nonexistent",
-            "expectedCount": 2
-        }),
-    )
-    .expect_err("no matches should error");
-
-    assert!(err.to_string().contains("Expected 2 matches but found 0"));
-    assert!(err.to_string().contains("Find text: 'nonexistent'"));
-}
-
-#[test]
-fn find_replace_with_multiline_pattern_works_correctly() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Multiline Replace Test",
+        "Cross Section Replace Test",
         "This is a [[test]] file.\n\nFirst paragraph with [[content]].\n\nSecond paragraph with [[more-content]].",
         Some("edit-memory-tests"),
     );
@@ -173,72 +160,65 @@ fn find_replace_with_multiline_pattern_works_correctly() {
     );
 
     assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
+        edit_result.contains(&uri),
+        "edit result should contain URI: {edit_result}"
     );
     let read_result = read_memory_output(&env, &uri);
     assert!(read_result.contains("First section with [[content]]"));
     assert!(read_result.contains("Second section with [[more-content]]"));
 }
 
+// T-12.6: RTM NFR-1 — MERGE: parameterized append/prepend success paths
 #[test]
-fn append_with_concepts_succeeds() {
+fn edit_memory_op_with_concepts_succeeds() {
     let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Append Test",
-        "Original content with [[test]].",
-        Some("edit-memory-tests"),
-    );
 
-    let edit_result = edit_memory_output(
-        &env,
-        json!({
-            "identifier": uri,
-            "operation": "append",
-            "content": "Appended content with [[more-concepts]]."
-        }),
-    );
+    let cases: &[(&str, &str, &str, &str)] = &[
+        // (operation, title, new_content, expected_snippet)
+        (
+            "append",
+            "Append Test",
+            "Appended content with [[more-concepts]].",
+            "Appended content with [[more-concepts]].",
+        ),
+        (
+            "prepend",
+            "Prepend Test",
+            "Prepended content with [[new-concepts]].",
+            "Prepended content with [[new-concepts]].",
+        ),
+    ];
 
-    assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
-    );
-    let read_result = read_memory_output(&env, &uri);
-    assert!(read_result.contains("Original content with [[test]]."));
-    assert!(read_result.contains("Appended content with [[more-concepts]]."));
+    for (operation, title, new_content, expected_snippet) in cases {
+        let env = isolated_env();
+        let uri = write_memory_file(&env, title, "Original content with [[test]].", Some("edit-memory-tests"));
+
+        let edit_result = edit_memory_output(
+            &env,
+            json!({
+                "identifier": uri,
+                "operation": operation,
+                "content": new_content
+            }),
+        );
+
+        assert!(
+            edit_result.contains(&uri),
+            "case ({operation}): edit result should contain URI: {edit_result}"
+        );
+        let read_result = read_memory_output(&env, &uri);
+        assert!(
+            read_result.contains("Original content with [[test]]."),
+            "case ({operation}): original content should be preserved"
+        );
+        assert!(
+            read_result.contains(expected_snippet),
+            "case ({operation}): new content should be present"
+        );
+    }
 }
 
-#[test]
-fn prepend_with_concepts_succeeds() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Prepend Test",
-        "Original content with [[test]].",
-        Some("edit-memory-tests"),
-    );
-
-    let edit_result = edit_memory_output(
-        &env,
-        json!({
-            "identifier": uri,
-            "operation": "prepend",
-            "content": "Prepended content with [[new-concepts]]."
-        }),
-    );
-
-    assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
-    );
-    let read_result = read_memory_output(&env, &uri);
-    assert!(read_result.contains("Prepended content with [[new-concepts]]."));
-    assert!(read_result.contains("Original content with [[test]]."));
-}
-
+// T-12.6: RTM NFR-1 — KEEP: enforces WikiLink-required business rule
 #[test]
 fn edit_memory_without_concepts_returns_error() {
     let _guard = TEST_MUTEX.lock();

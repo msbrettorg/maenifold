@@ -3,9 +3,9 @@
 mod support;
 
 use support::{
-    TEST_FOLDER, TEST_MUTEX, build_context_json, create_test_file_with_age, find_result,
-    find_similar_concepts_markdown, isolated_env, read_memory_markdown, search_memories_json,
-    sync_graph,
+    TEST_FOLDER, TEST_MUTEX, build_context_json, concept_index, create_test_file_with_age,
+    find_result, find_similar_concepts_json, isolated_env, read_memory_markdown,
+    search_memories_json, sync_graph,
 };
 
 // T-GRAPH-DECAY-001.1: RTM FR-7.5
@@ -76,23 +76,14 @@ fn find_similar_concepts_newer_concepts_rank_higher() {
 
     sync_graph(&env);
 
-    let similar_result = find_similar_concepts_markdown(&env, "software-architecture");
+    let similar_result = find_similar_concepts_json(&env, "software-architecture");
 
+    let modern_idx = concept_index(&similar_result, "modern-framework");
+    let legacy_idx = concept_index(&similar_result, "legacy-framework");
     assert!(
-        !similar_result.contains("ERROR"),
-        "FindSimilarConcepts should succeed: {similar_result}"
+        modern_idx < legacy_idx,
+        "newer framework concept should rank ahead of legacy concept: {similar_result}"
     );
-
-    let modern_index = similar_result.find("modern-framework");
-    let legacy_index = similar_result.find("legacy-framework");
-    if let (Some(modern_index), Some(legacy_index)) = (modern_index, legacy_index) {
-        assert!(
-            modern_index < legacy_index,
-            "newer framework concept should rank ahead of legacy concept: {similar_result}"
-        );
-    } else {
-        panic!("expected both framework concepts in similar concepts output: {similar_result}");
-    }
 }
 
 // T-GRAPH-DECAY-001.5: RTM NFR-7.5.4

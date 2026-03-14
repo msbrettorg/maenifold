@@ -8,8 +8,9 @@ use crate::error::{MaenifoldError, Result};
 use crate::markdown::normalize_concept;
 use crate::tools::ToolContext;
 use crate::tools::with_next_steps;
+use crate::util::json::{OutputFormat, normalize_whole_floats, success};
 use rusqlite::params;
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::cmp::Ordering;
 
 use self::support::{concept_decay_weight, load_help_doc, with_similarity_next_steps};
@@ -99,23 +100,37 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
         if !vector_results.is_empty() {
             let plateau_warning =
                 similarity_plateau_warning(&original_concept_name, &vector_results);
-            let mut output = format_ranked_results(
-                &connection,
-                &context.config,
-                &concept_name,
-                vector_results
-                    .into_iter()
-                    .map(|result| (result.concept, result.similarity))
-                    .collect(),
-            );
-            if let Some(warning) = plateau_warning {
-                // T-12.3: RTM NFR-1 keeps the vec0 plateau warning explicit without altering result output.
-                output.push_str(&format!("\n⚠️ {warning}\n"));
-            }
-            append_short_query_warning(&mut output, &original_concept_name, low_info_query);
-            // T-13.5: RTM FR-8 — use centralized with_next_steps helper
-            output = with_next_steps(&output, &["BuildContext", "SearchMemories"]);
-            return Ok(output);
+            let candidates: Vec<(String, f64)> = vector_results
+                .into_iter()
+                .map(|result| (result.concept, result.similarity))
+                .collect();
+            return Ok(match context.output_format {
+                OutputFormat::Json => success(format_ranked_results_json(
+                    &connection,
+                    &context.config,
+                    &concept_name,
+                    candidates,
+                )),
+                OutputFormat::Markdown => {
+                    let mut output = format_ranked_results(
+                        &connection,
+                        &context.config,
+                        &concept_name,
+                        candidates,
+                    );
+                    if let Some(warning) = plateau_warning {
+                        // T-12.3: RTM NFR-1 keeps the vec0 plateau warning explicit without altering result output.
+                        output.push_str(&format!("\n⚠️ {warning}\n"));
+                    }
+                    append_short_query_warning(
+                        &mut output,
+                        &original_concept_name,
+                        low_info_query,
+                    );
+                    // T-13.5: RTM FR-8 — use centralized with_next_steps helper
+                    with_next_steps(&output, &["BuildContext", "SearchMemories"])
+                }
+            });
         }
     }
 
@@ -164,16 +179,51 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
             (neighbor, similarity)
         })
         .collect();
-    let mut output = format_ranked_results(
-        &connection,
-        &context.config,
-        &concept_name,
-        scored_neighbors,
-    );
-    append_short_query_warning(&mut output, &original_concept_name, low_info_query);
-    // T-13.5: RTM FR-8 — use centralized with_next_steps helper
-    output = with_next_steps(&output, &["BuildContext", "SearchMemories"]);
-    Ok(output)
+    Ok(match context.output_format {
+        OutputFormat::Json => success(format_ranked_results_json(
+            &connection,
+            &context.config,
+            &concept_name,
+            scored_neighbors,
+        )),
+        OutputFormat::Markdown => {
+            let mut output = format_ranked_results(
+                &connection,
+                &context.config,
+                &concept_name,
+                scored_neighbors,
+            );
+            append_short_query_warning(&mut output, &original_concept_name, low_info_query);
+            // T-13.5: RTM FR-8 — use centralized with_next_steps helper
+            with_next_steps(&output, &["BuildContext", "SearchMemories"])
+        }
+    })
+}
+
+/// Shared ranking logic: scores candidates by decay-weighted similarity and sorts descending.
+/// Returns Vec of (name, raw_similarity, decay_weight, weighted_similarity).
+fn rank_candidates(
+    connection: &rusqlite::Connection,
+    config: &Config,
+    candidates: Vec<(String, f64)>,
+) -> Vec<(String, f64, f64, f64)> {
+    // T-12.3: RTM NFR-1 preserves ranking/output behavior while delegating helpers across the new similar/ module.
+    let mut ranked = candidates
+        .into_iter()
+        .map(|(neighbor, similarity)| {
+            let decay_weight = concept_decay_weight(connection, config, &neighbor).unwrap_or(1.0);
+            let weighted_similarity = similarity * decay_weight;
+            (neighbor, similarity, decay_weight, weighted_similarity)
+        })
+        .collect::<Vec<_>>();
+    ranked.sort_by(|left, right| {
+        right
+            .3
+            .partial_cmp(&left.3)
+            .unwrap_or(Ordering::Equal)
+            .then_with(|| left.0.cmp(&right.0))
+    });
+    ranked
 }
 
 fn format_ranked_results(
@@ -182,36 +232,49 @@ fn format_ranked_results(
     concept_name: &str,
     candidates: Vec<(String, f64)>,
 ) -> String {
-    // T-12.3: RTM NFR-1 preserves ranking/output behavior while delegating helpers across the new similar/ module.
-    let mut ranked_results = candidates
-        .into_iter()
-        .map(|(neighbor, similarity)| {
-            let decay_weight = concept_decay_weight(connection, config, &neighbor).unwrap_or(1.0);
-            let weighted_similarity = similarity * decay_weight;
-            (neighbor, similarity, weighted_similarity)
-        })
-        .collect::<Vec<_>>();
-    ranked_results.sort_by(|left, right| {
-        right
-            .2
-            .partial_cmp(&left.2)
-            .unwrap_or(Ordering::Equal)
-            .then_with(|| left.0.cmp(&right.0))
-    });
-
+    let ranked = rank_candidates(connection, config, candidates);
     let mut output = format!(
         "Similar concepts to '{}' (by semantic similarity):\n\n",
         concept_name
     );
     // PARITY-F01: RTM NFR-1 — display weighted_similarity (similarity * decay_weight)
     // to match C# VectorSearchTools.cs which displays decayedSimilarity, not raw similarity.
-    for (neighbor, _, weighted_similarity) in ranked_results {
+    for (neighbor, _, _, weighted_similarity) in ranked {
         output.push_str(&format!(
             "  • {} (similarity: {:.3})\n",
             neighbor, weighted_similarity
         ));
     }
     output
+}
+
+// T-0.3: RTM FR-7.5 — structured JSON output for FindSimilarConcepts, enabling
+// robust index-based ordering assertions in integration tests.
+fn format_ranked_results_json(
+    connection: &rusqlite::Connection,
+    config: &Config,
+    concept_name: &str,
+    candidates: Vec<(String, f64)>,
+) -> Value {
+    let ranked = rank_candidates(connection, config, candidates);
+    let results: Vec<Value> = ranked
+        .into_iter()
+        .map(|(name, similarity, decay_weight, weighted_similarity)| {
+            json!({
+                "name": name,
+                "similarity": similarity,
+                "decayWeight": decay_weight,
+                "weightedSimilarity": weighted_similarity,
+            })
+        })
+        .collect();
+    let mut data = json!({
+        "conceptName": concept_name,
+        "totalCount": results.len(),
+        "results": results,
+    });
+    normalize_whole_floats(&mut data);
+    data
 }
 
 fn append_short_query_warning(

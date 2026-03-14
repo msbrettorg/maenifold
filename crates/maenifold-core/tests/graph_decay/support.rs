@@ -138,6 +138,27 @@ pub fn find_similar_concepts_markdown(env: &TestEnv, concept_name: &str) -> Stri
     .expect("find similar concepts")
 }
 
+pub fn find_similar_concepts_json(env: &TestEnv, concept_name: &str) -> Value {
+    let raw = search::find_similar_concepts(
+        &env.ctx_json(),
+        &json!({
+            "conceptName": concept_name,
+            "maxResults": 20,
+        }),
+    )
+    .expect("find similar concepts");
+    serde_json::from_str(&raw).expect("find similar concepts json")
+}
+
+pub fn concept_index(response: &Value, concept_name: &str) -> usize {
+    response["data"]["results"]
+        .as_array()
+        .expect("results array")
+        .iter()
+        .position(|entry| entry["name"].as_str() == Some(concept_name))
+        .unwrap_or_else(|| panic!("missing concept for {concept_name:?}: {response}"))
+}
+
 pub fn read_memory_markdown(env: &TestEnv, identifier: &str) -> String {
     memory::read_memory(&env.ctx_markdown(), &json!({ "identifier": identifier })).expect("read")
 }

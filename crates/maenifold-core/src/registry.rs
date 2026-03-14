@@ -203,8 +203,8 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
     ToolDescriptor {
         name: "StopWatcher",
         aliases: &["stopwatcher"],
-        // T-0.1: RTM NFR-3 - preserve legacy registry contract while direct helper callers keep detailed stop text.
-        invoke: watchers::stop_watcher_tool,
+        // T-5.7: RTM FR-5.7 — compat shim removed; registry invokes stop_watcher directly.
+        invoke: watchers::stop_watcher,
     },
     ToolDescriptor {
         name: "RunFullBenchmark",

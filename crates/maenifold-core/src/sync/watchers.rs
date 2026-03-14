@@ -103,15 +103,6 @@ pub fn stop_watcher(_context: &ToolContext, _payload: &Value) -> Result<String> 
     Ok("Watcher not running".to_string())
 }
 
-// T-0.1: RTM NFR-3 — preserve the registry-level StopWatcher contract expected by older boundary tests.
-pub fn stop_watcher_tool(context: &ToolContext, payload: &Value) -> Result<String> {
-    let stop_result = stop_watcher(context, payload)?;
-    if stop_result == "Stopped incremental sync watcher" {
-        return Ok("Stopped watcher".to_string());
-    }
-    Ok(stop_result)
-}
-
 // T-COV-001.3: RTM FR-17.5 — expose watcher state so integration tests can verify lifecycle guards.
 #[doc(hidden)]
 pub fn watcher_is_running() -> bool {

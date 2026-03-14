@@ -2,12 +2,9 @@
 mod support;
 
 // T-12.1: RTM NFR-1
-use maenifold_core::ToolRegistry;
-use maenifold_core::json::OutputFormat;
-use serde_json::json;
 use support::{
     ConfigOverrideReset, acquire_test_lock, baseline_sync, concept_names, fetch_file_md5,
-    fetch_last_indexed, file_uri, isolated_config, set_last_indexed, sync_one,
+    fetch_last_indexed, file_concepts, file_uri, isolated_config, set_last_indexed, sync_one,
     write_memory_fixture,
 };
 
@@ -45,6 +42,14 @@ fn sync_single_file_skips_unchanged_file_with_mtime_guard() {
         before_concepts,
         "mtime guard should leave graph state unchanged"
     );
+    // T-5.7: RTM FR-5.7 — pin exact file-scoped concept set (not just whole-DB snapshot)
+    let expected: std::collections::BTreeSet<String> =
+        ["alpha", "beta"].iter().map(|s| s.to_string()).collect();
+    assert_eq!(
+        file_concepts(&cfg, &target_uri),
+        expected,
+        "mtime guard should preserve the exact file-scoped concept set"
+    );
 }
 
 // T-5.7: RTM FR-5.7
@@ -80,6 +85,11 @@ fn sync_single_file_skips_file_with_same_hash() {
         updated_last_indexed, old_timestamp,
         "hash guard should refresh last_indexed after re-check"
     );
+    // T-5.7: RTM FR-5.7 — verify refreshed timestamp is a plausible current-year RFC-3339 value
+    assert!(
+        updated_last_indexed.starts_with("202"),
+        "hash guard should refresh last_indexed to current time, got: {updated_last_indexed}"
+    );
     assert_eq!(
         fetch_file_md5(&cfg, &target_uri),
         Some(original_hash),
@@ -89,37 +99,5 @@ fn sync_single_file_skips_file_with_same_hash() {
         concept_names(&cfg),
         before_concepts,
         "hash guard should not rebuild unrelated concepts"
-    );
-}
-
-// T-5.7: RTM FR-5.7
-#[test]
-fn watcher_start_stop_lifecycle_contract_still_holds() {
-    let _guard = acquire_test_lock();
-    let _reset = ConfigOverrideReset;
-    let (_tmp, _cfg) = isolated_config();
-
-    let start = ToolRegistry::global()
-        .try_invoke(
-            "StartWatcher",
-            &json!({"debounceMs": 250}),
-            OutputFormat::Markdown,
-        )
-        .expect("start watcher");
-    assert!(
-        start.starts_with("Started watching "),
-        "unexpected start output: {start}"
-    );
-    assert!(
-        start.contains(" for incremental sync (debounce: 250ms)"),
-        "unexpected start output: {start}"
-    );
-
-    let stop = ToolRegistry::global()
-        .try_invoke("StopWatcher", &json!({}), OutputFormat::Markdown)
-        .expect("stop watcher");
-    assert!(
-        stop == "Stopped watcher" || stop == "Watcher not running",
-        "unexpected stop output: {stop}"
     );
 }

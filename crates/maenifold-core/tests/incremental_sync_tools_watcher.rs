@@ -47,6 +47,11 @@ fn start_watcher_then_stop_watcher_lifecycle_returns_expected_messages() {
     let start_result = start_watcher(&ctx, &json!({"debounceMs": 250})).expect("start watcher");
     assert!(start_result.contains("Started watching"));
     assert!(start_result.contains(&cfg.memory_path.display().to_string()));
+    // T-5.7: RTM FR-5.7 — migrated debounce format check from boundary_guards (unique assertion)
+    assert!(
+        start_result.contains(" for incremental sync (debounce: 250ms)"),
+        "start output should include debounce format: {start_result}"
+    );
 
     let second_start_result =
         start_watcher(&ctx, &json!({"debounceMs": 250})).expect("second start watcher");

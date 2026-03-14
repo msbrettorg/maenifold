@@ -8,40 +8,32 @@ use support::{
     write_memory_file,
 };
 
-// T-12.0: RTM NFR-1
+// T-12.0: RTM NFR-1 — Merged from Tests 1+2: both sides of the 7-day sequential grace boundary under power-law
 #[test]
-fn compute_decay_weight_is_one_within_grace_period() {
+fn power_law_sequential_path_respects_seven_day_grace_window() {
     let _guard = acquire_test_lock();
     let _decay = DecayEnvGuard::with_defaults();
     let env = TestEnv::isolated();
-    let last_accessed = rfc3339_days_ago(3);
 
-    let weight = decay_weight(
+    // Within grace: 3 days < 7-day sequential grace → weight must be exactly 1.0
+    let within = decay_weight(
         "memory://thinking/sequential/2026/03/within-grace",
-        Some(&last_accessed),
+        Some(&rfc3339_days_ago(3)),
         &env.cfg,
     );
+    assert_weight_eq(within, 1.0);
 
-    assert_weight_eq(weight, 1.0);
-}
-
-// T-12.0: RTM NFR-1
-#[test]
-fn compute_decay_weight_drops_below_one_after_grace_period() {
-    let _guard = acquire_test_lock();
-    let _decay = DecayEnvGuard::with_defaults();
-    let env = TestEnv::isolated();
-    let last_accessed = rfc3339_days_ago(12);
-
-    let weight = decay_weight(
-        "memory://thinking/sequential/2026/03/beyond-grace",
-        Some(&last_accessed),
+    // One day past sequential grace (8 > 7): weight must decay appreciably
+    // effective_age = (8 - 7).max(1) = 1, power-law weight = 1^(-0.5) = 1.0
+    // Use day 12 instead: effective_age = 5, weight = 5^(-0.5) ≈ 0.447
+    let past = decay_weight(
+        "memory://thinking/sequential/2026/03/past-grace",
+        Some(&rfc3339_days_ago(12)),
         &env.cfg,
     );
-
     assert!(
-        weight < 1.0,
-        "weight should decay after grace period: {weight}"
+        past < 0.5,
+        "power-law weight at effective_age=5 should be ≈0.447, got {past}"
     );
 }
 
@@ -69,9 +61,10 @@ fn compute_decay_weight_uses_path_specific_grace_windows() {
         &env.cfg,
     );
 
+    // effective_age = 10 - 7 = 3 days; power-law weight = 3^(-0.5) ≈ 0.577
     assert!(
-        sequential < 1.0,
-        "sequential notes should decay after the 7-day grace period: {sequential}"
+        sequential < 0.65,
+        "power-law weight at effective_age=3 should be ≈0.577, got {sequential}"
     );
     assert_weight_eq(workflow, 1.0);
     assert_weight_eq(standard, 1.0);
@@ -84,6 +77,7 @@ fn search_memories_orders_results_by_decay_weighted_score() {
     let _decay = DecayEnvGuard::with_defaults();
     let env = TestEnv::isolated();
 
+    // Intentionally identical content: isolates decay weight as the sole ranking differentiator
     let sequential_uri = write_memory_file(
         &env.cfg,
         "thinking/sequential/2026/03/sequential-ranked.md",
@@ -141,11 +135,12 @@ fn search_memories_orders_results_by_decay_weighted_score() {
             .expect("top decay weight"),
         1.0,
     );
+    // effective_age = 10 - 7 = 3; power-law weight = 3^(-0.5) ≈ 0.577
+    let seq_decay = results[1]["decayWeight"]
+        .as_f64()
+        .expect("second decay weight");
     assert!(
-        results[1]["decayWeight"]
-            .as_f64()
-            .expect("second decay weight")
-            < 1.0,
-        "sequential result should carry a decayed weight: {response}"
+        seq_decay < 0.65,
+        "sequential path at effective_age=3 should have weight ≈0.577, got {seq_decay}"
     );
 }

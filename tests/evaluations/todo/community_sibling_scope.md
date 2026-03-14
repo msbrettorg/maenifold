@@ -175,3 +175,11 @@ Both Test 1 and Test 3 assert that a cross-community concept does not appear in 
 | **Total** | **2.5/3** | |
 
 The suite is **load-bearing but not ironclad**. Tests 1 and 2 are solid. Test 3 must be rewritten to remove the ambiguity that makes it passable for the wrong reasons. The absence of unit-level tests and threshold documentation are secondary but compounding concerns.
+
+---
+## SWE Remediation
+
+- KEEP Test 1 (`sibling_candidates_restricted_to_same_community`): added threshold dependency comments documenting `shared_count(4) > MAENIFOLD_COMMUNITY_MIN_SHARED(default 3)` and `normalized_overlap ≈ 1.0 > MAENIFOLD_COMMUNITY_MIN_OVERLAP(default 0.4)` per P1 recommendation.
+- KEEP Test 2 (`no_community_returns_empty_siblings`): no changes — cleanest test in the file.
+- REWRITE Test 3 (`different_community_concepts_not_siblings`): stronger approach — added `cross-peer` concept in same community 100 sharing 4 neighbors with `cross-query` (shared_count=4, normalized_overlap=1.0), producing a non-empty siblings list. Added positive assertion (`cross-peer` must appear) alongside the existing negative assertion (`cross-alien` must not appear). This closes the trivially-empty-list ambiguity identified in the evaluation — cross-alien exclusion is now tested against a populated result set.
+- Commit: 33aa547

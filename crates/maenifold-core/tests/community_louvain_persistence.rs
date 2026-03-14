@@ -46,15 +46,12 @@ fn run_and_persist_fk_constraint_only_persists_existing_concepts() {
 }
 
 // T-W1-8: RTM NFR-2
-// Mirrors: RunLouvain_HigherGamma_TendsToMoreCommunities
-// NOTE: The Rust implementation has a fallback-to-connected-components mechanism that
-// activates when Louvain leaves all nodes as singletons.  When the two cliques are
-// connected by a bridge, high gamma can cause the fallback to merge them into one
-// connected component, inverting the expected count ordering.  We therefore test
-// with *disconnected* cliques (no bridge) so the connected-component structure is
-// stable across gamma values, and verify both calls produce valid non-zero counts.
+// Rewrite of: RunLouvain_HigherGamma_TendsToMoreCommunities
+// At extreme gamma, Louvain leaves all nodes as singletons (no modularity gain).
+// The fallback then assigns communities by connected components.
+// For two disconnected 4-cliques, this must produce exactly 2 communities.
 #[test]
-fn run_louvain_higher_gamma_tends_to_more_communities() {
+fn high_gamma_fallback_produces_connected_components() {
     let _g = TEST_MUTEX.lock();
     let env = TestEnv::setup();
     let conn = open_conn(&env.db_path);
@@ -82,23 +79,35 @@ fn run_louvain_higher_gamma_tends_to_more_communities() {
     // No bridge — two fully disconnected components.
     drop(conn);
 
-    let count_low = detect_and_persist(&env.db_path, 0.5, None).expect("low gamma");
-    let count_high = detect_and_persist(&env.db_path, 2.0, None).expect("high gamma");
+    // At extreme gamma (100.0), Louvain produces all singletons.
+    // Fallback detects two connected components → exactly 2 communities.
+    let count =
+        detect_and_persist(&env.db_path, 100.0, Some(42)).expect("extreme gamma");
+    assert_eq!(
+        count, 2,
+        "at extreme gamma, fallback must produce one community per connected component"
+    );
 
-    // Both gammas must produce at least 1 community.
-    assert!(
-        count_low >= 1,
-        "low gamma must find at least 1 community, got {count_low}"
-    );
-    assert!(
-        count_high >= 1,
-        "high gamma must find at least 1 community, got {count_high}"
-    );
-    // With disconnected cliques, higher gamma must produce >= communities as low gamma.
-    assert!(
-        count_high >= count_low,
-        "higher gamma must produce >= communities with disconnected cliques \
-         ({count_high} >= {count_low})"
+    // Verify each clique's nodes co-cluster after fallback.
+    let conn = open_conn(&env.db_path);
+    let id_1a = get_community_id(&conn, "cluster1-a").expect("cluster1-a");
+    let id_1b = get_community_id(&conn, "cluster1-b").expect("cluster1-b");
+    let id_1c = get_community_id(&conn, "cluster1-c").expect("cluster1-c");
+    let id_1d = get_community_id(&conn, "cluster1-d").expect("cluster1-d");
+    let id_2a = get_community_id(&conn, "cluster2-a").expect("cluster2-a");
+    let id_2b = get_community_id(&conn, "cluster2-b").expect("cluster2-b");
+    let id_2c = get_community_id(&conn, "cluster2-c").expect("cluster2-c");
+    let id_2d = get_community_id(&conn, "cluster2-d").expect("cluster2-d");
+
+    assert_eq!(id_1a, id_1b, "clique-1 members must co-cluster after fallback");
+    assert_eq!(id_1b, id_1c, "clique-1 members must co-cluster after fallback");
+    assert_eq!(id_1c, id_1d, "clique-1 members must co-cluster after fallback");
+    assert_eq!(id_2a, id_2b, "clique-2 members must co-cluster after fallback");
+    assert_eq!(id_2b, id_2c, "clique-2 members must co-cluster after fallback");
+    assert_eq!(id_2c, id_2d, "clique-2 members must co-cluster after fallback");
+    assert_ne!(
+        id_1a, id_2a,
+        "different connected components must get distinct communities"
     );
 }
 
@@ -133,6 +142,23 @@ fn run_and_persist_persists_to_database() {
         (resolution - 1.0).abs() < 1e-10,
         "stored resolution must equal 1.0 (gamma passed to detect_and_persist)"
     );
+
+    // R-2: Verify structural membership — which nodes land in which community.
+    let id_alpha = get_community_id(&conn, "alpha").expect("alpha");
+    let id_beta = get_community_id(&conn, "beta").expect("beta");
+    let id_gamma_node = get_community_id(&conn, "gamma").expect("gamma");
+    let id_delta = get_community_id(&conn, "delta").expect("delta");
+    let id_eps = get_community_id(&conn, "epsilon").expect("epsilon");
+    assert_eq!(id_alpha, id_beta, "triangle members must co-cluster");
+    assert_eq!(
+        id_beta, id_gamma_node,
+        "triangle members must co-cluster"
+    );
+    assert_ne!(
+        id_alpha, id_delta,
+        "triangle and pair must be distinct communities"
+    );
+    assert_eq!(id_delta, id_eps, "pair members must co-cluster");
 }
 
 // T-W1-8: RTM NFR-2
@@ -148,6 +174,11 @@ fn run_and_persist_second_run_replaces_existing() {
     detect_and_persist(&env.db_path, 1.0, None).expect("first run");
     let conn = open_conn(&env.db_path);
     let count_before = community_row_count(&conn);
+    // R-3: Guard against silent first-run persistence failure (0 == 0 false green).
+    assert!(
+        count_before > 0,
+        "first run must have written rows before idempotency check"
+    );
     drop(conn);
 
     detect_and_persist(&env.db_path, 1.0, None).expect("second run");

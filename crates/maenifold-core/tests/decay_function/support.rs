@@ -6,7 +6,7 @@ use tempfile::TempDir;
 
 pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
-pub const DEFAULT_GRACE_PERIOD_DAYS: i64 = 14;
+pub const DEFAULT_GRACE_PERIOD_DAYS: i64 = 28;
 pub const SEQUENTIAL_GRACE_PERIOD_DAYS: i64 = 7;
 pub const WORKFLOWS_GRACE_PERIOD_DAYS: i64 = 14;
 pub const DEFAULT_HALF_LIFE_DAYS: i64 = 30;

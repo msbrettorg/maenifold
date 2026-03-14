@@ -300,3 +300,26 @@ NFR-2 traceability expectation that each test can be linked to a requirement.
 Tests 1 and 4 carry distinct, non-redundant load. Tests 2 and 3 together carry one shared unit of
 load (the 14-day boundary gate), with Test 3 additionally carrying a correctness defect that
 undermines its own contribution.
+
+---
+
+## SWE Remediation
+
+### Changes
+
+- **R-1 (P0)**: Fixed `DEFAULT_GRACE_PERIOD_DAYS` from `14` to `28` in `decay_function/support.rs` to match `Config::decay_grace_days_default()`.
+- **MERGE Tests 1–3 → `grace_period_boundary_gate_per_tier`**: Collapsed three structurally-duplicate boundary-gate tests into one parameterized test using differentiated grace periods (7/14/28). Uses `DecayEnvGuard::set` directly instead of the flat `compute_exponential_decay` helper that masked routing bugs. Includes routing isolation assertion: sequential at age=8 decays while default at age=8 remains in grace.
+- **REMOVE**: `exponential_decay_sequential_thinking_uses_7_day_grace_period` (subsumed by merged test), `exponential_decay_workflows_uses_14_day_grace_period` (structural duplicate), `exponential_decay_default_memory_uses_14_day_grace_period` (wrong constant, structural duplicate).
+- **REWRITE Test 4 → `tiered_grace_periods_sequential_decays_faster_with_post_grace_ordering`**: Replaced weak `assert_approx_eq(workflow, default, 1e-9)` (trivially true — both were 1.0) with exact equality assertions. Added Block 2 at age=30 verifying full tier ordering in active decay: `sequential < workflow < default`.
+- **R-5**: Added `T-12.6: RTM NFR-1, NFR-2` traceability annotations to all tests and file header.
+
+### Test count: 4 → 2
+
+| Old Test | Verdict | New Test |
+|----------|---------|----------|
+| Test 1 `exponential_decay_sequential_thinking_uses_7_day_grace_period` | MERGE | `grace_period_boundary_gate_per_tier` |
+| Test 2 `exponential_decay_workflows_uses_14_day_grace_period` | MERGE | `grace_period_boundary_gate_per_tier` |
+| Test 3 `exponential_decay_default_memory_uses_14_day_grace_period` | MERGE | `grace_period_boundary_gate_per_tier` |
+| Test 4 `exponential_decay_tiered_grace_periods_sequential_decays_faster` | REWRITE | `tiered_grace_periods_sequential_decays_faster_with_post_grace_ordering` |
+
+- Commit: ddafda1

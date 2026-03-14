@@ -305,3 +305,12 @@ recommended rewrites, the score rises to **4/4**.
 | `t9_6_embedding_dimensions_match_model_output_tensor` | RTM-051 dynamic dim extraction | ✅ Yes |
 | `t9_6_no_model_generate_embedding_returns_err_and_dimensions_none` | RTM-055 API state only (discovery failure path missing) | ⚠️ Partial |
 | `t9_6_multiple_onnx_files_select_largest` | RTM-056 size-based selection | ✅ Yes |
+
+---
+## SWE Remediation
+- REWRITE test 1 (`t9_6_model_discovery_finds_shadow_onnx_file`): replaced hardcoded `384` with `model_output_dimensions()` derivation per P1/RTM-051; added `is_initialized()` assertion per P3
+- KEEP test 2 (`t9_6_embedding_dimensions_match_model_output_tensor`): unchanged
+- REWRITE test 3 (`t9_6_no_model_generate_embedding_returns_err_and_dimensions_none`): added explicit `vector::load_model()` call after `hide_packaged_model()` to exercise discovery-failure path per P1/RTM-055; removed redundant `cleanup()` per P3; added `!is_initialized()` assertion per P3
+- KEEP test 4 (`t9_6_multiple_onnx_files_select_largest`): unchanged
+- All 4 tests pass: `cargo test --test integration_tests -p maenifold-core -- dynamic_model_loading`
+- Commit: c5392f8

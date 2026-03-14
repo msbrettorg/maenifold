@@ -54,6 +54,13 @@ fn incremental_sync_mtime_guard_skips_unchanged_files() {
         .is_none(),
         "when mtime is unchanged, sync_single_file must not restore missing graph edges"
     );
+
+    // T-5.7: RTM FR-14.1 — mtime guard must NOT update last_indexed (distinguish from hash guard path)
+    let row_after_recheck = get_file_content_row(&cfg, &memory_uri).expect("row must persist");
+    assert_eq!(
+        row_after_recheck.last_indexed, row_after_create.last_indexed,
+        "mtime guard must NOT update last_indexed (no DB write on this path)"
+    );
 }
 
 // T-5.7: RTM FR-14.2
@@ -88,19 +95,27 @@ fn incremental_sync_hash_guard_updates_last_indexed_only() {
 
     let output = sync_path(&cfg, &file_path);
     let after = get_file_content_row(&cfg, &memory_uri).expect("updated row");
+    let expected_mtime = file_mtime_rfc3339(&file_path);
 
     assert!(
         output.contains("hash guard"),
         "same content should skip on hash guard: {output}"
     );
-    assert_ne!(
-        after.last_indexed, before.last_indexed,
-        "when mtime differs but hash is unchanged, sync_single_file must update last_indexed"
+    // T-5.7: RTM FR-14.2 — hash guard must update last_indexed to the file's current mtime
+    assert_eq!(
+        after.last_indexed.as_deref(),
+        Some(expected_mtime.as_str()),
+        "hash guard must update last_indexed to the current filesystem mtime, not any other value"
     );
     assert_eq!(
         after.file_md5.as_deref(),
         Some(original_hash.as_str()),
         "when content hash is unchanged, sync_single_file must not update file_md5"
+    );
+    // T-5.7: RTM FR-14.2 — hash guard must not alter file_size
+    assert_eq!(
+        after.file_size, before.file_size,
+        "hash guard must not alter file_size when content is identical"
     );
     assert!(
         get_mention_count(&cfg, &memory_uri, &normalized_concept(&concept_a)).is_none(),

@@ -194,3 +194,13 @@ pub fn set_file_timestamp(path: &Path, timestamp: DateTime<Utc>) {
 pub fn normalized_concept(value: &str) -> String {
     normalize_concept(value)
 }
+
+// T-5.7: RTM FR-14.2 — read filesystem mtime as RFC3339 for exact-value assertions
+pub fn file_mtime_rfc3339(path: &Path) -> String {
+    let modified: DateTime<Utc> = fs::metadata(path)
+        .expect("metadata")
+        .modified()
+        .expect("modified")
+        .into();
+    modified.to_rfc3339()
+}

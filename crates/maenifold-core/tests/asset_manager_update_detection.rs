@@ -9,59 +9,11 @@ use std::fs;
 use std::path::Path;
 
 // T-12.7: RTM NFR-1 - split update-detection coverage from legacy asset_manager_tests.rs.
+
+// T-12.7: RTM NFR-1 — REWRITE (absorbed T1). Complete dry-run new-file scenario at the direct-fn
+// layer: section heading, file name, count line, and "not copied" guard.
 #[test]
-fn update_assets_dry_run_reports_new_files_without_copying() {
-    let _guard = test_mutex().lock().expect("mutex");
-    let _reset = ConfigResetGuard;
-    let (_tmp, cfg) = isolated_config();
-    initialize_assets(&cfg);
-
-    let relative = unique_relative_path("workflows", "asset-manager-dryrun-new", "json");
-    let file_name = Path::new(&relative)
-        .file_name()
-        .expect("file name")
-        .to_string_lossy()
-        .into_owned();
-    let _source = PackagedAssetGuard::create(&relative, r#"{"id":"dry-run-source"}"#);
-
-    let output = invoke_update_assets(&cfg, true).expect("dry-run update assets");
-
-    assert!(
-        output.contains(&file_name),
-        "expected missing file in dry-run summary: {output}"
-    );
-    assert!(
-        !cfg.assets_path.join(&relative).exists(),
-        "dry-run should not copy files into runtime assets"
-    );
-}
-
-#[test]
-fn update_assets_apply_copies_new_files_to_target() {
-    let _guard = test_mutex().lock().expect("mutex");
-    let _reset = ConfigResetGuard;
-    let (_tmp, cfg) = isolated_config();
-    initialize_assets(&cfg);
-
-    let relative = unique_relative_path("workflows", "asset-manager-apply-new", "json");
-    let expected = r#"{"id":"apply-source","name":"apply source content"}"#;
-    let _source = PackagedAssetGuard::create(&relative, expected);
-
-    let output = invoke_update_assets(&cfg, false).expect("apply update assets");
-
-    assert!(
-        output.contains("Added files: 1") || output.contains("Updated files: 1"),
-        "expected copy summary: {output}"
-    );
-    assert_eq!(
-        fs::read_to_string(cfg.assets_path.join(&relative)).expect("read copied file"),
-        expected,
-        "applied file content must match source content"
-    );
-}
-
-#[test]
-fn update_assets_new_file_in_source_appears_in_added_files() {
+fn update_assets_dry_run_emits_added_files_section_for_new_source_file() {
     let _guard = test_mutex().lock().expect("mutex");
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
@@ -85,8 +37,46 @@ fn update_assets_new_file_in_source_appears_in_added_files() {
         output.contains(&file_name),
         "expected added file in summary: {output}"
     );
+    assert!(
+        output.contains("Added files: 1"),
+        "expected count line for one added file: {output}"
+    );
+    assert!(
+        !cfg.assets_path.join(&relative).exists(),
+        "dry-run should not copy files into runtime assets"
+    );
 }
 
+// T-12.7: RTM NFR-1 — REWRITE. Strict classification: a new file that never existed in the target
+// is definitionally Added, not Updated. The previous OR disjunction masked a potential
+// classification bug.
+#[test]
+fn update_assets_apply_copies_new_files_to_target() {
+    let _guard = test_mutex().lock().expect("mutex");
+    let _reset = ConfigResetGuard;
+    let (_tmp, cfg) = isolated_config();
+    initialize_assets(&cfg);
+
+    let relative = unique_relative_path("workflows", "asset-manager-apply-new", "json");
+    let expected = r#"{"id":"apply-source","name":"apply source content"}"#;
+    let _source = PackagedAssetGuard::create(&relative, expected);
+
+    let output = invoke_update_assets(&cfg, false).expect("apply update assets");
+
+    assert!(
+        output.contains("Added files: 1"),
+        "new file must be classified as Added, not Updated: {output}"
+    );
+    assert_eq!(
+        fs::read_to_string(cfg.assets_path.join(&relative)).expect("read copied file"),
+        expected,
+        "applied file content must match source content"
+    );
+}
+
+// T-12.7: RTM NFR-1 — REWRITE. Intentionally exercises the size-diff branch (different byte
+// lengths). The SHA-256-only branch (same size, different content) is tested in
+// update_assets_boundary::update_assets_uses_sha256_not_file_size_for_equal_length_content.
 #[test]
 fn update_assets_changed_file_appears_in_updated_files() {
     let _guard = test_mutex().lock().expect("mutex");
@@ -119,17 +109,20 @@ fn update_assets_changed_file_appears_in_updated_files() {
         ),
         "expected updated file in summary: {output}"
     );
+    assert!(
+        output.contains("Updated files: 1"),
+        "expected count line for one updated file: {output}"
+    );
 }
 
+// T-12.7: RTM NFR-1 — REWRITE. Simplified: initialize_assets on an isolated config produces a
+// clean source==target state without a synthetic PackagedAssetGuard. Added negative assertions
+// for Added/Updated categories to verify neither is emitted.
 #[test]
 fn update_assets_identical_file_is_not_reported_as_added_or_updated() {
     let _guard = test_mutex().lock().expect("mutex");
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
-
-    let relative = unique_relative_path("colors", "asset-manager-identical", "json");
-    let content = r#"{"id":"same","value":1}"#;
-    let _source = PackagedAssetGuard::create(&relative, content);
     initialize_assets(&cfg);
 
     let output = invoke_update_assets(&cfg, true).expect("dry-run update assets");
@@ -137,5 +130,13 @@ fn update_assets_identical_file_is_not_reported_as_added_or_updated() {
     assert!(
         output.contains("No changes detected"),
         "identical source and target should produce a no-change summary: {output}"
+    );
+    assert!(
+        !output.contains("Added files:"),
+        "no-change output must not contain Added files category: {output}"
+    );
+    assert!(
+        !output.contains("Updated files:"),
+        "no-change output must not contain Updated files category: {output}"
     );
 }

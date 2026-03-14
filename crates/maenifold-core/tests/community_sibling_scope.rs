@@ -30,6 +30,8 @@ fn sibling_candidates_restricted_to_same_community() {
     }
 
     // Cluster A — tight subgraph: query-a and peer-a share 4 strong neighbors, no direct edge.
+    // Requires: shared_count(4) > MAENIFOLD_COMMUNITY_MIN_SHARED(default 3)
+    // Requires: normalized_overlap ≈ 1.0 > MAENIFOLD_COMMUNITY_MIN_OVERLAP(default 0.4)
     insert_edge(&conn, "query-a", "na1", 10);
     insert_edge(&conn, "query-a", "na2", 10);
     insert_edge(&conn, "query-a", "na3", 10);
@@ -152,45 +154,75 @@ fn no_community_returns_empty_siblings() {
 }
 
 // T-15.7: RTM FR-13.7
-// Test 3: Concepts in different communities → not returned as siblings.
+// Test 3: Concepts in different communities → not returned as siblings,
+// even when they would qualify by overlap metrics alone.
 // Uses manual community assignments to ensure precise community placement.
+// Includes a same-community peer (cross-peer) to produce a non-empty siblings
+// list — proving cross-alien exclusion is not a trivially-empty-list artifact.
 #[test]
 fn different_community_concepts_not_siblings() {
     let _g = TEST_MUTEX.lock();
     let env = TestEnv::setup();
     let conn = open_conn(&env.db_path);
 
-    // Create two concepts that share 4 strong neighbors (would qualify as siblings
-    // by overlap metrics) but place them in different communities manually.
-    for name in ["cross-query", "cross-alien", "cn1", "cn2", "cn3", "cn4"] {
+    // Create three concepts sharing neighbors cn1..cn4:
+    //   cross-query  (community 100) — the query concept
+    //   cross-peer   (community 100) — same community, produces non-empty sibling list
+    //   cross-alien  (community 200) — different community, must be excluded
+    // All three share 4 strong neighbors → shared_count(4) > MIN_SHARED(3),
+    // normalized_overlap = 1.0 > MIN_OVERLAP(0.4). Only the community gate differentiates.
+    for name in [
+        "cross-query",
+        "cross-peer",
+        "cross-alien",
+        "cn1",
+        "cn2",
+        "cn3",
+        "cn4",
+    ] {
         insert_concept(&conn, name);
     }
+
+    // cross-query → cn1..cn4 (weight 10 each)
     insert_edge(&conn, "cross-query", "cn1", 10);
     insert_edge(&conn, "cross-query", "cn2", 10);
     insert_edge(&conn, "cross-query", "cn3", 10);
     insert_edge(&conn, "cross-query", "cn4", 10);
+
+    // cross-peer → cn1..cn4 (weight 10 each, same community as cross-query)
+    // No direct edge to cross-query → not filtered by direct_relation_names.
+    insert_edge(&conn, "cross-peer", "cn1", 10);
+    insert_edge(&conn, "cross-peer", "cn2", 10);
+    insert_edge(&conn, "cross-peer", "cn3", 10);
+    insert_edge(&conn, "cross-peer", "cn4", 10);
+
+    // cross-alien → cn1..cn4 (weight 10 each, different community)
+    // No direct edge to cross-query → not filtered by direct_relation_names.
+    // Would score shared_count=4, normalized_overlap=1.0 if community filter were removed.
     insert_edge(&conn, "cross-alien", "cn1", 10);
     insert_edge(&conn, "cross-alien", "cn2", 10);
     insert_edge(&conn, "cross-alien", "cn3", 10);
     insert_edge(&conn, "cross-alien", "cn4", 10);
 
-    // Manually assign communities: cross-query in community 100, cross-alien in community 200.
+    // Manually assign communities: cross-query and cross-peer in 100, cross-alien in 200.
     let now = chrono::Utc::now().to_rfc3339();
-    conn.execute(
-        "INSERT OR REPLACE INTO concept_communities \
-         (concept_name, community_id, modularity, resolution, detected_at) \
-         VALUES (?1, 100, 0.5, 1.0, ?2)",
-        params!["cross-query", now],
-    )
-    .expect("insert community for cross-query");
+    for concept in ["cross-query", "cross-peer"] {
+        conn.execute(
+            "INSERT OR REPLACE INTO concept_communities \
+             (concept_name, community_id, modularity, resolution, detected_at) \
+             VALUES (?1, 100, 0.5, 1.0, ?2)",
+            params![concept, now],
+        )
+        .expect("insert community 100");
+    }
     conn.execute(
         "INSERT OR REPLACE INTO concept_communities \
          (concept_name, community_id, modularity, resolution, detected_at) \
          VALUES (?1, 200, 0.5, 1.0, ?2)",
         params!["cross-alien", now],
     )
-    .expect("insert community for cross-alien");
-    // Also assign neighbors to query's community so the query concept has a valid community.
+    .expect("insert community 200 for cross-alien");
+    // Assign neighbors to query's community so the candidate pool includes them.
     for n in ["cn1", "cn2", "cn3", "cn4"] {
         conn.execute(
             "INSERT OR REPLACE INTO concept_communities \
@@ -216,7 +248,15 @@ fn different_community_concepts_not_siblings() {
         .expect("CommunitySiblings array");
     let sibling_names: Vec<&str> = siblings.iter().filter_map(|s| s["Name"].as_str()).collect();
 
-    // cross-alien is in community 200, cross-query is in community 100 → must NOT appear.
+    // T-15.7: cross-peer (community 100, shared_count=4, overlap=1.0) must appear —
+    // proves the sibling list is non-empty and the positive path works.
+    assert!(
+        sibling_names.contains(&"cross-peer"),
+        "T-15.7: cross-peer (same community 100, 4 shared neighbors) must appear in CommunitySiblings, got: {sibling_names:?}"
+    );
+
+    // T-15.7: cross-alien (community 200) must NOT appear despite identical overlap topology.
+    // This assertion is meaningful because the siblings list is verified non-empty above.
     assert!(
         !sibling_names.contains(&"cross-alien"),
         "T-15.7: cross-alien (community 200) must NOT appear as sibling of cross-query (community 100), got: {sibling_names:?}"

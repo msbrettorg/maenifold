@@ -43,25 +43,34 @@ fn active_status_past_grace_period_decays_with_thirty_day_half_life() {
 
 // T-7.8: RTM FR-7.8
 #[test]
-fn active_status_is_case_insensitive() {
+fn status_matching_is_case_insensitive() {
     let _guard = TEST_MUTEX.lock();
     let _decay = DecayEnvGuard::exponential_defaults();
     let env = isolated_env();
 
-    let lower = weight_for(
-        &env.cfg,
-        "memory://assumptions/2026/03/active-lower",
-        Some(50),
-        Some("active"),
-    );
-    let upper = weight_for(
-        &env.cfg,
-        "memory://assumptions/2026/03/active-upper",
-        Some(50),
-        Some("ACTIVE"),
-    );
+    let cases: &[(&str, &str)] = &[
+        ("active", "ACTIVE"),
+        ("active", "Active"),
+        ("refined", "REFINED"),
+        ("refined", "Refined"),
+    ];
 
-    assert_approx_eq(upper, lower, 1e-9);
+    for (lower, upper) in cases {
+        let lower_weight = weight_for(
+            &env.cfg,
+            "memory://assumptions/2026/03/case-lower",
+            Some(50),
+            Some(lower),
+        );
+        let upper_weight = weight_for(
+            &env.cfg,
+            "memory://assumptions/2026/03/case-upper",
+            Some(50),
+            Some(upper),
+        );
+
+        assert_approx_eq(upper_weight, lower_weight, 1e-9);
+    }
 }
 
 // T-7.8: RTM FR-7.8
@@ -102,29 +111,6 @@ fn refined_status_uses_same_parameters_as_active() {
     );
 
     assert_approx_eq(refined, active, 1e-9);
-}
-
-// T-7.8: RTM FR-7.8
-#[test]
-fn refined_status_is_case_insensitive() {
-    let _guard = TEST_MUTEX.lock();
-    let _decay = DecayEnvGuard::exponential_defaults();
-    let env = isolated_env();
-
-    let lower = weight_for(
-        &env.cfg,
-        "memory://assumptions/2026/03/refined-lower",
-        Some(50),
-        Some("refined"),
-    );
-    let upper = weight_for(
-        &env.cfg,
-        "memory://assumptions/2026/03/refined-upper",
-        Some(50),
-        Some("REFINED"),
-    );
-
-    assert_approx_eq(upper, lower, 1e-9);
 }
 
 // T-7.8: RTM FR-7.8
@@ -186,14 +172,12 @@ fn absent_status_uses_path_defaults() {
         Some(60),
         None,
     );
-    let explicit_default = weight_for(
-        &env.cfg,
-        "memory://notes/2026/03/default-path",
-        Some(60),
-        None,
-    );
 
-    assert_approx_eq(absent, explicit_default, 1e-9);
+    // T-12.7: RTM NFR-1 — pin to the formula with configured defaults:
+    // grace = 28 (MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT), half_life = 30, age = 60
+    // weight = 0.5^((60 - 28) / 30) ≈ 0.479
+    let expected = 0.5f64.powf((60.0 - 28.0) / 30.0);
+    assert_approx_eq(absent, expected, 0.01);
 }
 
 // T-7.8: RTM FR-7.8

@@ -135,3 +135,16 @@ Two tests for an entire file-deletion cleanup subsystem is thin. The fact that t
 ## Load-Bearing Score: 2/2
 
 Both tests are load-bearing — no test should be removed without a replacement covering the same scenario. However, the file's **coverage breadth** warrants a separate assessment: only 2 of approximately 5 meaningful deletion scenarios are tested. The load-bearing score measures what exists; it does not imply that what exists is sufficient.
+
+---
+
+## SWE Remediation
+
+- **KEEP** `sync_removes_edge_when_last_source_file_is_deleted`: no logic changes; added traceability collision note on FR-23.5 comment
+- **REWRITE** `sync_preserves_remaining_source_file_weights_after_partial_delete`:
+  - Removed vacuous `is_object()` assertion (tested harness invariant, not production code)
+  - Added inline comments documenting: same-section pair → weight 1.0; co_occurrence_count = distinct file count
+  - Improved assertion message ("removed uri must disappear from source_files")
+- **ADD** `sync_preserves_cross_section_weight_after_partial_delete`: new cross-section variant confirms partial deletion preserves actual computed weight (0.5) rather than a fixed constant (1.0), strengthening confidence that cleanup preserves algorithm-derived weights
+- **Traceability collision (Rec #1)**: FR-23.5 does not exist in RTM.md (FR-23 = HTTP Transport). Added NOTE comments on all three test traceability tags flagging the collision for PM RTM reconciliation. SWE cannot resolve without PM updating RTM.md.
+- Commit: b91b56d

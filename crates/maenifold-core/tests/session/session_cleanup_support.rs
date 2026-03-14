@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{Duration, Timelike, Utc};
 use maenifold_core::db;
 use maenifold_core::markdown::{Frontmatter, read_markdown, write_markdown};
 use maenifold_core::sessions;
@@ -71,7 +71,20 @@ fn iso_minutes_ago(minutes_ago: i64) -> String {
     (Utc::now() - Duration::minutes(minutes_ago)).to_rfc3339()
 }
 
-fn write_session_markdown(cfg: &Config, file_uri: &str, status: &str, body: &str) {
+/// Sleep until the next whole-second boundary so that `Utc::now()` calls
+/// made immediately before and after DB seeding share the same truncated
+/// second.  Mirrors `workflow_supervisor/sync_support.rs`.
+pub fn align_to_second_boundary() {
+    let nanos = Utc::now().nanosecond();
+    if nanos > 900_000_000 {
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        return;
+    }
+    let wait = 1_000_000_000u32 - nanos + 20_000_000;
+    std::thread::sleep(std::time::Duration::from_nanos(u64::from(wait)));
+}
+
+pub fn write_session_markdown(cfg: &Config, file_uri: &str, status: &str, body: &str) {
     let mut frontmatter = Frontmatter::new();
     let title = file_uri
         .trim_start_matches("memory://")
@@ -92,7 +105,7 @@ fn write_session_markdown(cfg: &Config, file_uri: &str, status: &str, body: &str
     write_markdown(file_uri, Some(&frontmatter), body, cfg).expect("write markdown");
 }
 
-fn seed_file_content(cfg: &Config, file_uri: &str, status: &str, body: &str, last_indexed: &str) {
+pub fn seed_file_content(cfg: &Config, file_uri: &str, status: &str, body: &str, last_indexed: &str) {
     let conn = db::open_connection(&cfg.database_path).expect("open db");
     let title = file_uri
         .trim_start_matches("memory://")

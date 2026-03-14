@@ -294,4 +294,4 @@ layered approach intentionally.
 - **ADD** `adopt_missing_required_properties_returns_missing_property_error`: tests missing `type`, missing `identifier`, and empty payload all yield `MissingProperty` with correct field name (Rec 6, P2)
 - **SKIP** Rec 7 (P3): production double-validation investigation is out-of-scope for test remediation
 - Test count: 5 → 8 (1 rewritten, 3 added). All 8 pass.
-- Commit: see below
+- Commit: 7ba746f

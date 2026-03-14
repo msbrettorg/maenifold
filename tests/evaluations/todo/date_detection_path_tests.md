@@ -305,3 +305,16 @@ and eliminate the risk of copy-paste errors between test functions.
 The remaining 4 tests leave a significant gap: **zero coverage of the fallback code
 path in `date_parts_from_session_id`** — a silent `Utc::now()` that could mask
 integration bugs indefinitely.
+
+---
+## SWE Remediation
+- REWRITE test 1 (`sequential_session_id_parses_timestamp`): dropped redundant `contains` assertion (subsumed by `ends_with`), added epoch-regression comment consolidating Test 3's intent
+- REWRITE test 2 (`workflow_session_id_parses_timestamp`): dropped redundant `contains` assertion, merged Test 6's negative assertion (`!contains("thinking/sequential")`)
+- REMOVE test 3 (`modern_timestamp_does_not_produce_epoch_date`): logically subsumed by Test 1
+- REMOVE test 4 (`returns_correct_directory_structure`): verbatim duplicate of Test 1
+- KEEP test 5 (`different_timestamps_produce_different_date_directories`): untouched
+- MERGE test 6 (`thinking_type_propagates_correctly`): negative assertion merged into Test 2, original deleted
+- ADD `get_session_path_with_non_numeric_segment_falls_back_to_today_not_epoch`: new test exercising the `Utc::now()` fallback path (P1 coverage gap, Recommendation 4)
+- Test count: 6 → 4 (2 removed, 1 merged into existing, 1 new added)
+- All 4 tests pass: `cargo test --test integration_tests -p maenifold-core -- date_detection_path_tests`
+- Commit: 6cc7712

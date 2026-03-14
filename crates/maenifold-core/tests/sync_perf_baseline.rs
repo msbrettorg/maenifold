@@ -3,11 +3,10 @@
 
 include!("sync_perf_support.rs");
 
-// T-0.1: RTM NFR-3
+// T-0.1: RTM NFR-3 — REWRITE: stripped dead timing instrumentation, renamed as functional test.
 #[test]
-fn baseline_process_file_timing_per_file() {
+fn sync_single_file_indexes_all_files_in_corpus() {
     let env = TestEnv::new();
-    let mut per_file_ms = Vec::new();
 
     for index in 0..10 {
         let unique = unique_suffix();
@@ -20,29 +19,19 @@ fn baseline_process_file_timing_per_file() {
             ),
         );
 
-        let started = Instant::now();
         let output = sync_one(&env, &relative_path);
-        per_file_ms.push(started.elapsed().as_millis() as u64);
         assert!(
             output.contains("Synced memory://perf-baseline/"),
             "single-file sync should succeed: {output}"
         );
     }
 
-    per_file_ms.sort_unstable();
-    let total: u64 = per_file_ms.iter().sum();
-    let median = per_file_ms[per_file_ms.len() / 2];
-    let max = *per_file_ms.last().expect("max sample");
-    eprintln!(
-        "PROCESS-FILE BASELINE files=10 total_ms={total} median_ms={median} max_ms={max} samples={per_file_ms:?}"
-    );
-
     assert_eq!(file_content_row_count(&env.cfg), 10);
 }
 
-// T-0.1: RTM NFR-3
+// T-0.1: RTM NFR-3 — REWRITE: stripped dead timing instrumentation, renamed as functional test.
 #[test]
-fn baseline_full_sync_timing_over_corpus() {
+fn sync_all_completes_over_ten_file_corpus() {
     let env = TestEnv::new();
 
     for index in 0..10 {
@@ -57,10 +46,7 @@ fn baseline_full_sync_timing_over_corpus() {
         );
     }
 
-    let started = Instant::now();
     let output = sync_all(&env);
-    let elapsed_ms = started.elapsed().as_millis();
-    eprintln!("FULL-SYNC BASELINE files=10 elapsed_ms={elapsed_ms}\n{output}");
 
     assert!(
         output.contains("Sync complete:"),
@@ -72,17 +58,25 @@ fn baseline_full_sync_timing_over_corpus() {
     );
 }
 
-// T-0.1: RTM NFR-3
+// T-0.1: RTM NFR-3 — MERGE of tests 3+5: helper_count_visible_wikilinks covers single- and
+// multi-section content in a single test. Tests the local oracle, not production code.
 #[test]
-fn count_concept_occurrences_golden_alpha_two_beta_one() {
-    let content = "[[alpha]] and [[beta]] appear in [[alpha]] again";
-    assert_eq!(count_visible_wikilink_occurrences(content, "alpha"), 2);
-    assert_eq!(count_visible_wikilink_occurrences(content, "beta"), 1);
+fn helper_count_visible_wikilinks_single_and_multi_section() {
+    // Single-section content: alpha appears twice, beta once.
+    let single = "[[alpha]] and [[beta]] appear in [[alpha]] again";
+    assert_eq!(count_visible_wikilink_occurrences(single, "alpha"), 2);
+    assert_eq!(count_visible_wikilink_occurrences(single, "beta"), 1);
+
+    // Multi-section content: gamma appears in preamble + two sections, delta in one section.
+    let multi = "Preamble mentions [[gamma]].\n\n## Section One\n\n[[gamma]] and [[delta]] here.\n\n## Section Two\n\n[[gamma]] appears a third time.\n";
+    assert_eq!(count_visible_wikilink_occurrences(multi, "gamma"), 3);
+    assert_eq!(count_visible_wikilink_occurrences(multi, "delta"), 1);
 }
 
-// T-0.1: RTM NFR-3
+// T-0.1: RTM NFR-3 — KEEP (renamed): documents that extract_wikilinks_with_sections returns one
+// entry per concept per section (deduplicated), unlike the raw occurrence counter.
 #[test]
-fn extract_wikilinks_with_sections_group_by_count_documents_relation_to_count_occurrences() {
+fn extract_wikilinks_with_sections_deduplicates_per_section_unlike_occurrence_count() {
     let content = "[[alpha]] and [[beta]] appear in [[alpha]] again";
     let concepts_with_sections = extract_wikilinks_with_sections(content);
 
@@ -98,14 +92,6 @@ fn extract_wikilinks_with_sections_group_by_count_documents_relation_to_count_oc
     assert_eq!(section_counts.get("beta"), Some(&1));
     assert_eq!(count_visible_wikilink_occurrences(content, "alpha"), 2);
     assert_eq!(count_visible_wikilink_occurrences(content, "beta"), 1);
-}
-
-// T-0.1: RTM NFR-3
-#[test]
-fn count_concept_occurrences_across_sections_counts_all_occurrences() {
-    let content = "Preamble mentions [[gamma]].\n\n## Section One\n\n[[gamma]] and [[delta]] here.\n\n## Section Two\n\n[[gamma]] appears a third time.\n";
-    assert_eq!(count_visible_wikilink_occurrences(content, "gamma"), 3);
-    assert_eq!(count_visible_wikilink_occurrences(content, "delta"), 1);
 }
 
 // T-0.1: RTM NFR-3
@@ -129,9 +115,10 @@ fn extract_wikilinks_with_sections_assigns_section_indices_correctly() {
     assert_eq!(delta_sections, vec![1]);
 }
 
-// T-0.1: RTM NFR-3
+// T-0.1: RTM NFR-3 — REWRITE: renamed with helper_ prefix to signal this tests local oracle,
+// not production code. Assertions unchanged.
 #[test]
-fn count_all_concept_occurrences_matches_per_concept_counts_for_all_concepts() {
+fn helper_count_all_occurrences_matches_per_concept_counts() {
     let content = "# Multi-Count Test\n\n[[alpha]] and [[beta]] start the file.\nThen [[alpha]] again, and [[gamma]].\n\n## Section One\n\n[[alpha]] and [[beta]] in section one.\nInline code `[[alpha]]` should NOT count.\n\n## Section Two\n\n[[gamma]] appears here too.\n[[delta]] only once.\n";
     let concepts = ["alpha", "beta", "gamma", "delta", "epsilon"];
 
@@ -152,6 +139,15 @@ fn count_all_concept_occurrences_matches_per_concept_counts_for_all_concepts() {
     assert_eq!(actual.get("gamma"), Some(&2));
     assert_eq!(actual.get("delta"), Some(&1));
     assert_eq!(actual.get("epsilon"), Some(&0));
+}
+
+// T-0.1: RTM NFR-3 — NEW: explicit inline-code exclusion test (P0 recommendation 3).
+// Makes the code-stripping boundary of visible_text_without_code a red-test-guarded contract.
+#[test]
+fn helper_count_visible_wikilinks_skips_inline_code_spans() {
+    let content = "[[real]] and `[[fake]]`";
+    assert_eq!(count_visible_wikilink_occurrences(content, "real"), 1);
+    assert_eq!(count_visible_wikilink_occurrences(content, "fake"), 0);
 }
 
 // T-0.1: RTM NFR-3

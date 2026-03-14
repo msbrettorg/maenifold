@@ -31,8 +31,8 @@ fn replace_section_when_section_exists_replaces_content() {
     );
 
     assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
+        edit_result.contains(&uri),
+        "expected URI in result: {edit_result}"
     );
     let read_result = read_memory_output(&env, &uri);
     assert!(read_result.contains("NEW methodology content"));
@@ -43,6 +43,7 @@ fn replace_section_when_section_exists_replaces_content() {
     assert!(read_result.contains("results section with [[data]]"));
 }
 
+// T-12.6: RTM NFR-1
 #[test]
 fn replace_section_when_section_does_not_exist_throws_invalid_operation() {
     let _guard = TEST_MUTEX.lock();
@@ -65,9 +66,11 @@ fn replace_section_when_section_does_not_exist_throws_invalid_operation() {
     )
     .expect_err("missing section should error");
 
+    assert!(err.to_string().contains("Section not found"));
     assert!(err.to_string().contains("Methodology"));
 }
 
+// T-12.6: RTM NFR-1
 #[test]
 fn replace_section_with_h1_heading_replaces_correctly() {
     let _guard = TEST_MUTEX.lock();
@@ -90,8 +93,8 @@ fn replace_section_with_h1_heading_replaces_correctly() {
     );
 
     assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
+        edit_result.contains(&uri),
+        "expected URI in result: {edit_result}"
     );
     let read_result = read_memory_output(&env, &uri);
     assert!(read_result.contains("REPLACED content"));
@@ -101,6 +104,7 @@ fn replace_section_with_h1_heading_replaces_correctly() {
     assert!(read_result.contains("[[gamma]]"));
 }
 
+// T-12.6: RTM NFR-1
 #[test]
 fn replace_section_with_h3_heading_replaces_correctly() {
     let _guard = TEST_MUTEX.lock();
@@ -123,8 +127,8 @@ fn replace_section_with_h3_heading_replaces_correctly() {
     );
 
     assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
+        edit_result.contains(&uri),
+        "expected URI in result: {edit_result}"
     );
     let read_result = read_memory_output(&env, &uri);
     assert!(read_result.contains("New subsection A content"));
@@ -134,6 +138,7 @@ fn replace_section_with_h3_heading_replaces_correctly() {
     assert!(read_result.contains("[[secondary]]"));
 }
 
+// T-12.6: RTM NFR-1
 #[test]
 fn replace_section_old_content_completely_removed_not_appended() {
     let _guard = TEST_MUTEX.lock();
@@ -156,8 +161,8 @@ fn replace_section_old_content_completely_removed_not_appended() {
     );
 
     assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
+        edit_result.contains(&uri),
+        "expected URI in result: {edit_result}"
     );
     let read_result = read_memory_output(&env, &uri);
     assert!(read_result.contains("Brand new single paragraph"));
@@ -170,4 +175,40 @@ fn replace_section_old_content_completely_removed_not_appended() {
     assert!(!read_result.contains("[[outdated-pattern]]"));
     assert!(read_result.contains("[[initial-setup]]"));
     assert!(read_result.contains("[[future-work]]"));
+}
+
+// T-12.6: RTM NFR-1 — migrated from memory_tools_edit_sections.rs
+// Load-bearing: only integration test covering the EOF terminus boundary
+// where replace_section targets the last section in a multi-section document.
+#[test]
+fn replace_section_replaces_last_section() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    let uri = write_memory_file(
+        &env,
+        "Replace Last Section Test",
+        "Intro with [[boundary-conditions]].\n\n## First Section\n\nFirst content.\n\n## Last Section\n\nThis is the last section content.",
+        Some("edit-memory-tests"),
+    );
+
+    let edit_result = edit_memory_output(
+        &env,
+        json!({
+            "identifier": uri,
+            "operation": "replace_section",
+            "content": "New last section content with [[document-end]].",
+            "sectionName": "Last Section"
+        }),
+    );
+
+    assert!(
+        edit_result.contains(&uri),
+        "expected URI in result: {edit_result}"
+    );
+    let read_result = read_memory_output(&env, &uri);
+    assert!(read_result.contains("## Last Section"));
+    assert!(read_result.contains("New last section content with [[document-end]]"));
+    assert!(!read_result.contains("This is the last section content."));
+    assert!(read_result.contains("## First Section"));
+    assert!(read_result.contains("First content."));
 }

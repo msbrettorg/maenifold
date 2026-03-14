@@ -90,7 +90,6 @@ mod memory_path_security;
 mod memory_search_diag_tests;
 mod memory_status_parity;
 mod memory_tools_edit_ops;
-mod memory_tools_edit_sections;
 mod memory_tools_editing_parity;
 mod memory_tools_listing;
 mod memory_tools_move_read_write;

@@ -105,3 +105,16 @@ Tests verify that `status=completed` and `status=cancelled` are persisted. But n
 ## Load-Bearing Score: 7/10
 
 Tests 1, 2, 3, 4, 5, 7 (rewritten, minus emoji), and 10 cover genuinely distinct behavioral contracts. Tests 6, 8, and 9 are redundant with existing tests and could be removed without allowing any real bug to ship undetected.
+
+---
+
+## SWE Remediation
+
+- MERGE `conclusion_with_wikilinks_is_stored_in_session_content` → `status_transition_active_to_completed`: enriched conclusion text with 4 WikiLinks (`[[workflow]]`, `[[maenifold]]`, `[[sequential-thinking]]`, `[[session-management]]`), added assertions for all four in the merged test.
+- MERGE `continue_with_cancellation_status_terminates_early` → `status_transition_active_to_cancelled`: duplicate contract (cancel → status + timestamp). Removed emoji `❌` assertion. Original test already covers all behavioral assertions.
+- REWRITE `continue_with_completion_status_finalizes_session` → `completion_after_intermediate_step_persists_state`: renamed per rec 4, removed `✅` emoji assertion, added `!contains("ERROR")` guard. Switched to `workflow_tools_env` (rec 7 env consolidation).
+- REMOVE `continue_without_concepts_returns_error`: exact duplicate of `workflow_response_without_wikilinks_returns_error` against a different fixture env.
+- FIX `continue_with_invalid_session_id_returns_error`: tool returns `Err(Message(...))` not `Ok("ERROR: ...")` for invalid session IDs — updated to handle both `Err` and `Ok` paths while preserving the same semantic assertions (contains session ID + "doesn't exist").
+- Rec 7 (env consolidation): switched all tests to `workflow_tools_env`, removed `workflow_operations_env` import from this file.
+- Final test count: 7 (down from 10). All 7 pass.
+- Commit: (staged)

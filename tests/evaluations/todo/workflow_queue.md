@@ -42,3 +42,13 @@ The file contains two structurally parallel sets of four tests each — a `seria
 ## Load-Bearing Score: 5/8
 
 > Tests 2, 3, and 4 are duplicated by tests 5, 8, and 6 respectively. Removing either set would not reduce behavioral coverage.
+
+---
+
+## SWE Remediation
+- REMOVE `serial_queue_advances_to_next_workflow_after_first_completes`: subsumed by `continue_to_next_workflow_when_current_completes`
+- REMOVE `serial_queue_completes_when_all_workflows_done_with_conclusion`: subsumed by `continue_completes_all_workflows_with_conclusion`
+- REMOVE `serial_queue_exhausted_without_conclusion_prompts_for_conclusion`: subsumed by `queue_exhausted_without_conclusion_prompts_for_conclusion`
+- RENAME `continue_requires_conclustion_when_queue_exhausted` → `queue_exhausted_without_conclusion_prompts_for_conclusion` (typo fix)
+- Result: 8 → 5 tests, zero behavioral coverage loss
+- Commit: 2566c6c

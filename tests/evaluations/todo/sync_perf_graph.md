@@ -146,3 +146,12 @@ Ordered by descending risk.
 All four tests cover scenarios not replicated elsewhere in this file or in the adjacent `sync_perf_baseline.rs` or `concept_sync_edge_*` evaluations. However, **Test 4's weak assertions reduce its effective regression value to near-zero** for the bulk-insertion scenario it claims to guard. It occupies a load-bearing slot in the matrix but delivers load-bearing coverage only for the "does not panic" case — not for "produces correct output."
 
 Adjusted effective coverage: **3.1 / 4.0** (Test 4 contributes ≈ 0.1 for the "no panic" signal only).
+
+---
+## SWE Remediation
+- REWRITE Test 4 (`build_graph_edges_with_over_1000_concepts_creates_edges_without_error`): replaced `edge_count > 0` with `edge_count == 604_450` (C(1100,2)) per Critical P0 recommendation. Retained boundary-pair spot checks.
+- KEEP Test 1: strengthened `co_occurrence_count` assertion from `> 0.0` to `== 1.0` per P1 recommendation; guards T-14.4 invariant (count = distinct source files).
+- KEEP Test 3: renamed to `build_graph_edges_resync_is_true_upsert_rowid_stable_and_weight_not_doubled` per P1 recommendation to surface rowid-stability invariant.
+- KEEP Test 2: added inline comment at `(a, c) == 0.5` assertion explaining preamble cross-section behavior (T-4.3 / FR-23.2) per P2 recommendation.
+- All 4 tests pass: `cargo test --test integration_tests -p maenifold-core -- sync_perf_graph` → 4 passed, 0 failed.
+- Commit: def612f

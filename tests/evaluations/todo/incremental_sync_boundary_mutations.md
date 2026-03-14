@@ -248,3 +248,12 @@ scoped; the issues are in assertion completeness, not in scenario selection.
 | `deleted_files_remove_their_concepts_from_the_graph` | ✅ Shared-concept preservation | ⚠️ Missing survivor `concept_sources` | 3/5 |
 
 **Score: 3 load-bearing / 3 total. No tests are safe to remove.**
+
+---
+## SWE Remediation
+- KEEP test 1 `sync_single_file_processes_a_new_file_correctly`: fixed traceability FR-5.7→FR-14.3, replaced brittle `"2 concept mentions updated"` output string with structural `file_concepts` assertion, added `concept_sources("fresh")` to close orphaned-concept hole, added ConfigOverrideReset comment (P0, P1×2, P3)
+- REWRITE test 2 `sync_single_file_updates_concepts_when_content_changes`: fixed traceability FR-5.7→FR-14.3, added `concept_sources("beta")` assertion verifying source linkage, added clarifying comment for `set_last_indexed` mtime guard setup (P0, P1)
+- KEEP test 3 `deleted_files_remove_their_concepts_from_the_graph`: fixed traceability FR-5.7→FR-14.3, added `concept_sources("shared")` survivor assertion distinguishing live mention from orphaned concept row (P0, P1)
+- SKIP P2 `fetch_file_md5`: not dead — used by `incremental_sync_boundary_guards.rs` via shared support module
+- All 3 tests pass: `cargo test --test integration_tests -p maenifold-core -- incremental_sync_boundary_mutations`
+- Commit: 80a6fec

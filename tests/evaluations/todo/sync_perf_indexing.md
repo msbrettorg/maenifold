@@ -46,3 +46,15 @@ A mixed bag. Three tests are genuinely unique to this file and load-bearing; one
 ## Load-Bearing Score: 4/7
 
 Tests 2 (`persists_created`), 3 (`ctime_fallback`), 6 (`embedding blob`), and 7 (`decay + BuildContext integration`) are load-bearing. Test 1 is marginally load-bearing only if test 7 is removed. Tests 4 and 5 are fully covered by dedicated files and are not load-bearing in isolation.
+
+---
+
+## SWE Remediation
+
+- REWRITE `get_decay_weight_for_file_reads_from_db_matches_decay_calculator_directly` → `sync_decay_weight_for_60_day_file_is_near_fresh`: added `actual > 0.15` assertion unique to 60-day bracket (power-law with grace_days=28 yields ~0.177 at 60d vs ~0.104 at 120d), distinguishing it from test 7
+- REMOVE `process_file_skips_reindexing_when_mtime_unchanged`: duplicated by 4 dedicated guard files
+- REMOVE `process_file_skips_reindexing_when_md5_matches_despite_mtime_change`: duplicated by 3 dedicated guard files
+- RENAME `generate_file_embedding_populates_vec_table_insert_or_replace_runs_to_completion` → `sync_populates_vec_memory_files_with_non_trivial_onnx_embedding`: removed implementation detail naming per P0
+- FIX embedding test: load vec0 extension into verification connection (per-connection requirement); graceful skip when ONNX model unavailable (matching suite pattern from `dynamic_model_db.rs`)
+- Test count: 7 → 5, all passing
+- Commit: 8b07b55

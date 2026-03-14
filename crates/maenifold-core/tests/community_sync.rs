@@ -3,7 +3,6 @@
 mod support;
 
 use maenifold_core::ToolRegistry;
-use maenifold_core::community::detect_and_persist;
 use maenifold_core::json::OutputFormat;
 use serde_json::json;
 use support::*;
@@ -14,6 +13,10 @@ use support::*;
 
 // T-W1-8: RTM NFR-2
 // Mirrors: Sync_ProducesCommunityAssignments (FR-13.4)
+//
+// This is the only test exercising community detection through the live Sync
+// tool via ToolRegistry. All other community tests call detect_and_persist()
+// directly. Assertions verify partition *structure*, not just presence.
 #[test]
 fn sync_produces_community_assignments() {
     let _g = TEST_MUTEX.lock();
@@ -21,6 +24,7 @@ fn sync_produces_community_assignments() {
 
     let registry = ToolRegistry::global();
     // Write memory files with overlapping WikiLinks so Sync builds a graph.
+    // Cluster 1: a–b–c triangle (a–b co-occurs in two files → strong edge).
     registry
         .try_invoke(
             "WriteMemory",
@@ -45,6 +49,7 @@ fn sync_produces_community_assignments() {
         )
         .expect("write ab");
 
+    // Cluster 2: isolated d–e pair.
     registry
         .try_invoke(
             "WriteMemory",
@@ -62,85 +67,44 @@ fn sync_produces_community_assignments() {
         .expect("sync");
 
     let conn = open_conn(&env.db_path);
+
+    // FR-13.4: concept_communities must be populated.
     let rows = community_row_count(&conn);
     assert!(
         rows > 0,
-        "Sync must populate concept_communities (got 0 rows)"
+        "FR-13.4: Sync must populate concept_communities (got 0 rows)"
     );
 
-    let names: Vec<String> = {
-        let mut stmt = conn
-            .prepare("SELECT concept_name FROM concept_communities")
-            .expect("stmt");
-        stmt.query_map([], |r| r.get(0))
-            .expect("map")
-            .collect::<Result<_, _>>()
-            .expect("collect")
-    };
+    // FR-13.4: Louvain must produce at least 2 distinct communities for two
+    // disconnected clusters.
+    let distinct = distinct_community_count(&conn);
     assert!(
-        names.contains(&"sync-comm-a".to_string()),
-        "sync-comm-a must have community assignment after Sync"
-    );
-    assert!(
-        names.contains(&"sync-comm-d".to_string()),
-        "sync-comm-d must have community assignment after Sync"
-    );
-}
-
-// T-W1-8: RTM NFR-2
-// Mirrors: BuildContext_IncludesCommunityIdOnRelatedConcepts (FR-13.6)
-#[test]
-fn build_context_includes_community_id_on_related_concepts() {
-    let _g = TEST_MUTEX.lock();
-    let env = TestEnv::setup();
-    let conn = open_conn(&env.db_path);
-
-    insert_concept(&conn, "ctx-alpha");
-    insert_concept(&conn, "ctx-beta");
-    insert_concept(&conn, "ctx-gamma");
-    insert_edge(&conn, "ctx-alpha", "ctx-beta", 10);
-    insert_edge(&conn, "ctx-beta", "ctx-gamma", 10);
-    insert_edge(&conn, "ctx-alpha", "ctx-gamma", 10);
-    drop(conn);
-
-    detect_and_persist(&env.db_path, 1.0, None).expect("detect");
-
-    let conn = open_conn(&env.db_path);
-    let persisted = community_row_count(&conn);
-    assert!(
-        persisted > 0,
-        "communities must be persisted before BuildContext"
-    );
-    drop(conn);
-
-    let output = ToolRegistry::global()
-        .try_invoke(
-            "BuildContext",
-            &json!({ "conceptName": "ctx-alpha", "depth": 1 }),
-            OutputFormat::Json,
-        )
-        .expect("build context");
-
-    let parsed: serde_json::Value = serde_json::from_str(&output).expect("parse json");
-    let data = &parsed["data"];
-
-    // Query concept must have a CommunityId.
-    let query_community_id = &data["CommunityId"];
-    assert!(
-        !query_community_id.is_null(),
-        "query concept ctx-alpha must have non-null CommunityId when community data exists"
+        distinct >= 2,
+        "FR-13.4: expected >= 2 distinct communities for two disconnected clusters, got {distinct}"
     );
 
-    // Direct relations must have CommunityId populated.
-    let direct = data["DirectRelations"]
-        .as_array()
-        .expect("DirectRelations array");
-    assert!(!direct.is_empty(), "ctx-alpha must have direct relations");
-    for rel in direct {
-        assert!(
-            !rel["CommunityId"].is_null(),
-            "FR-13.6: DirectRelation '{}' must have non-null CommunityId",
-            rel["Name"]
-        );
-    }
+    // FR-13.4: Concepts from the same cluster must share a community ID.
+    let id_a = get_community_id(&conn, "sync-comm-a")
+        .expect("sync-comm-a must have community assignment after Sync");
+    let id_b = get_community_id(&conn, "sync-comm-b")
+        .expect("sync-comm-b must have community assignment after Sync");
+    assert_eq!(
+        id_a, id_b,
+        "FR-13.4: sync-comm-a and sync-comm-b must be in the same community (triangle cluster)"
+    );
+
+    let id_d = get_community_id(&conn, "sync-comm-d")
+        .expect("sync-comm-d must have community assignment after Sync");
+    let id_e = get_community_id(&conn, "sync-comm-e")
+        .expect("sync-comm-e must have community assignment after Sync");
+    assert_eq!(
+        id_d, id_e,
+        "FR-13.4: sync-comm-d and sync-comm-e must be in the same community (isolated pair)"
+    );
+
+    // FR-13.4: Concepts from different clusters must be in different communities.
+    assert_ne!(
+        id_a, id_d,
+        "FR-13.4: sync-comm-a and sync-comm-d must be in different communities (disconnected clusters)"
+    );
 }

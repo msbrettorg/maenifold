@@ -288,3 +288,76 @@ fn build_context_sibling_thresholds_filter() {
         "FR-13.9: thresh-strong NormalizedOverlap expected ~1.0, got {strong_overlap}"
     );
 }
+
+// T-W1-8: RTM NFR-2
+// Mirrors: BuildContext_IncludesCommunityIdOnRelatedConcepts (FR-13.6)
+//
+// Positive-case coverage for FR-13.6: when community data exists, BuildContext
+// must populate CommunityId on the root concept AND on every DirectRelation.
+// The degradation tests cover the inverse (null when no data / orphan).
+//
+// Merged from community_sync.rs — this test uses detect_and_persist directly
+// (not the Sync tool), so it belongs in the build_context suite.
+#[test]
+fn build_context_includes_community_id_on_related_concepts() {
+    let _g = TEST_MUTEX.lock();
+    let env = TestEnv::setup();
+    let conn = open_conn(&env.db_path);
+
+    // Triangle topology: all three concepts share edges → Louvain places all
+    // in the same community deterministically.
+    insert_concept(&conn, "ctx-alpha");
+    insert_concept(&conn, "ctx-beta");
+    insert_concept(&conn, "ctx-gamma");
+    insert_edge(&conn, "ctx-alpha", "ctx-beta", 10);
+    insert_edge(&conn, "ctx-beta", "ctx-gamma", 10);
+    insert_edge(&conn, "ctx-alpha", "ctx-gamma", 10);
+    drop(conn);
+
+    let comm_count = detect_and_persist(&env.db_path, 1.0, None).expect("detect");
+    assert!(comm_count > 0, "communities must be detected");
+
+    let conn = open_conn(&env.db_path);
+    let persisted = community_row_count(&conn);
+    assert!(
+        persisted > 0,
+        "FR-13.6: communities must be persisted before BuildContext"
+    );
+    drop(conn);
+
+    let output = ToolRegistry::global()
+        .try_invoke(
+            "BuildContext",
+            &json!({ "conceptName": "ctx-alpha", "depth": 1 }),
+            OutputFormat::Json,
+        )
+        .expect("build context");
+
+    let parsed: serde_json::Value = serde_json::from_str(&output).expect("parse json");
+    let data = &parsed["data"];
+
+    // Query concept must have a CommunityId.
+    let alpha_community_id = data["CommunityId"]
+        .as_i64()
+        .expect("FR-13.6: query concept ctx-alpha must have non-null CommunityId");
+
+    // Direct relations must have CommunityId populated AND consistent with
+    // the triangle topology: all three concepts must share the same community.
+    let direct = data["DirectRelations"]
+        .as_array()
+        .expect("DirectRelations array");
+    assert!(!direct.is_empty(), "ctx-alpha must have direct relations");
+    for rel in direct {
+        let rel_id = rel["CommunityId"].as_i64().unwrap_or_else(|| {
+            panic!(
+                "FR-13.6: DirectRelation '{}' must have non-null CommunityId",
+                rel["Name"]
+            )
+        });
+        assert_eq!(
+            rel_id, alpha_community_id,
+            "FR-13.6: '{}' must share community with ctx-alpha (triangle topology)",
+            rel["Name"]
+        );
+    }
+}

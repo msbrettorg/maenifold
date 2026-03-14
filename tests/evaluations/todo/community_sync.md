@@ -202,3 +202,13 @@ creating coverage gaps. Both require rewrites to make their assertions commensur
 |------|:---:|:---:|:---:|
 | `sync_produces_community_assignments` | ✅ | ⚠️ Weak | Rewrite assertions |
 | `build_context_includes_community_id_on_related_concepts` | ✅ | ⚠️ Weak | Move + strengthen |
+
+---
+## SWE Remediation
+
+- REWRITE `sync_produces_community_assignments` (FR-13.4): replaced weak sign-of-life assertions (`rows > 0`, `names.contains`) with structural partition assertions — `distinct_community_count >= 2`, same-community checks (`id_a == id_b`, `id_d == id_e`), different-community check (`id_a != id_d`). Removed unused `detect_and_persist` import. Retained the ToolRegistry pipeline path (uniquely valuable).
+- MERGE `build_context_includes_community_id_on_related_concepts` (FR-13.6): moved from `community_sync.rs` to `community_build_context_siblings.rs` — the test exercises `detect_and_persist` + `BuildContext`, not the Sync tool. Strengthened from `!is_null()` checks to community ID consistency assertion: all triangle members must share the same community ID via `assert_eq!(rel_id, alpha_community_id)`.
+- `community_sync.rs`: 1 test (was 2). `community_build_context_siblings.rs`: 3 tests (was 2).
+- `cargo test --test integration_tests -p maenifold-core -- community_sync`: 1 passed, 0 failed
+- `cargo test --test integration_tests -p maenifold-core -- community_build_context_siblings`: 3 passed, 0 failed
+- Commit: a0d6209

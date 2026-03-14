@@ -103,3 +103,11 @@ But if it is removed, verify the sibling `null_type` test in `cleanup_core.rs` a
 Only `handle_session_cleanup_already_abandoned_no_change` would catch a real regression if
 removed. `handle_session_cleanup_memory_type_no_change` is fully covered by a sibling test that
 exercises the identical code path with a simpler, less misleading fixture.
+
+---
+
+## SWE Remediation
+- REMOVE `handle_session_cleanup_memory_type_no_change`: confirmed duplicate of `cleanup_core::handle_session_cleanup_null_type_no_change` (line 114); `type` frontmatter field has no effect on cleanup predicate. Removed unused imports (`std::fs`, `Frontmatter`, `serde_yaml::Value`).
+- KEEP `handle_session_cleanup_already_abandoned_no_change`: untouched per verdict.
+- Verified sibling test `cleanup_core.rs:112` already carries `// T-W1-7: RTM FR-17.7` — traceability preserved (Rec #4).
+- Test result: 1 passed, 0 failed, 882 filtered out.

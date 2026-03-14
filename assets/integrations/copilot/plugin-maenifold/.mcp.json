@@ -1,11 +1,12 @@
 {
 	"mcpServers": {
 		"maenifold": {
+			"type": "stdio",
 			"command": "maenifold",
 			"args": [
 				"--mcp"
 			],
-			"type": "stdio"
+			"tools": ["*"]
 		}
 	}
 }

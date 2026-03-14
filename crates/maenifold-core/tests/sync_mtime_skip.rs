@@ -16,6 +16,8 @@ use std::os::unix::fs::PermissionsExt;
 use sync_mtime_support::PermissionRestore;
 
 // T-2.3: RTM FR-14.1 - Ports SyncMtimeOptimizationTests.Sync_WhenMtimeUnchanged_SkipsWithoutRead_AndDoesNotRestoreMentionsOrEdges_OnUnix.
+// Strategy: chmod(0) serves as a read-impossibility oracle — if the mtime guard fails to skip,
+// sync attempts to read the file and surfaces an I/O error rather than silently passing.
 #[cfg(unix)]
 #[test]
 fn sync_when_mtime_unchanged_skips_without_read_and_does_not_restore_mentions_on_unix() {
@@ -40,9 +42,12 @@ fn sync_when_mtime_unchanged_skips_without_read_and_does_not_restore_mentions_on
     );
 
     let original_mtime = file_mtime(&file_path);
-    let original_last_indexed = get_file_content_row(&env.cfg, &memory_uri)
-        .and_then(|row| row.last_indexed)
+    let before = get_file_content_row(&env.cfg, &memory_uri)
         .expect("indexed row should exist after initial sync");
+    let original_last_indexed = before
+        .last_indexed
+        .clone()
+        .expect("last_indexed should be set after initial sync");
     assert_eq!(get_mention_count(&env.cfg, &memory_uri, concept_a), Some(1));
     assert_eq!(get_mention_count(&env.cfg, &memory_uri, concept_b), Some(1));
 
@@ -68,18 +73,32 @@ fn sync_when_mtime_unchanged_skips_without_read_and_does_not_restore_mentions_on
         "making file unreadable must not change mtime"
     );
 
+    // Guard: if the file is still readable (e.g. running as root in a Docker container),
+    // the chmod oracle is ineffective — skip the test rather than giving a false pass.
+    if std::fs::read(&file_path).is_ok() {
+        eprintln!(
+            "SKIP: chmod(0) did not make the file unreadable (likely running as root); \
+             the read-impossibility oracle cannot function"
+        );
+        return;
+    }
+
     let output = sync_all(&env);
     assert!(
         output.contains("Sync complete:"),
         "unchanged mtime should be skipped without surfacing a read error: {output}"
     );
 
+    let after = get_file_content_row(&env.cfg, &memory_uri)
+        .expect("row should still exist after sync");
     assert_eq!(
-        get_file_content_row(&env.cfg, &memory_uri)
-            .and_then(|row| row.last_indexed)
-            .expect("row should still exist"),
-        original_last_indexed,
+        after.last_indexed,
+        Some(original_last_indexed),
         "unchanged mtime should leave last_indexed untouched"
+    );
+    assert_eq!(
+        after.file_md5, before.file_md5,
+        "unchanged mtime should leave file_md5 untouched"
     );
     assert_eq!(
         get_mention_count(&env.cfg, &memory_uri, concept_a),
@@ -187,6 +206,9 @@ fn sync_when_content_changed_reprocesses_and_restores_mentions_including_new_con
         ),
     )
     .expect("rewrite fixture");
+    // Explicitly advance mtime to ensure the delta exceeds filesystem timestamp resolution
+    // (e.g. HFS+ 1-second granularity). fs::write updates mtime automatically, but the
+    // resulting mtime may land within the same second as the baseline, causing a false skip.
     set_file_mtime_system_time(&file_path, mtime_plus(&file_path, 120));
     let new_mtime = file_mtime_rfc3339(&file_path);
 

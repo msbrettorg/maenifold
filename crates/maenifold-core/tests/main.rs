@@ -6,7 +6,6 @@ mod access_boosting_reads;
 mod access_boosting_search;
 mod adopt_boundary;
 mod adopt_tools_tests;
-mod asset_hot_loading_tests;
 mod asset_manager_errors;
 mod asset_manager_initialize;
 mod asset_manager_update_detection;

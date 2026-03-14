@@ -1,4 +1,5 @@
-// T-5.7: RTM FR-14.1 / RTM FR-14.2 / RTM FR-14.3
+// T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080). Incremental sync DB-coherence
+// test support. Shared by both lifecycle and guards test files.
 use chrono::{DateTime, Utc};
 use filetime::{FileTime, set_file_mtime};
 use maenifold_core::db;
@@ -15,6 +16,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
+// Guards Config::override_root() process-global state, not DB or filesystem contention.
+// Each test has its own TempDir and DB path, but override_root() mutates a process-global
+// config object. Without this mutex, concurrent test threads would clobber each other's
+// config even though their TempDirs are isolated.
 pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 const TEST_SUBFOLDER: &str = "tests/incremental-unify";
@@ -195,7 +200,7 @@ pub fn normalized_concept(value: &str) -> String {
     normalize_concept(value)
 }
 
-// T-5.7: RTM FR-14.2 — read filesystem mtime as RFC3339 for exact-value assertions
+// Read filesystem mtime as RFC3339 for exact-value assertions
 pub fn file_mtime_rfc3339(path: &Path) -> String {
     let modified: DateTime<Utc> = fs::metadata(path)
         .expect("metadata")

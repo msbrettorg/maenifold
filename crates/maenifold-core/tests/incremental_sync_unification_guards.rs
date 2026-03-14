@@ -4,7 +4,7 @@ mod incremental_sync_unification_support;
 use chrono::Duration;
 use incremental_sync_unification_support::*;
 
-// T-5.7: RTM FR-14.1
+// T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080)
 #[test]
 fn incremental_sync_mtime_guard_skips_unchanged_files() {
     let _guard = TEST_MUTEX.lock();
@@ -55,7 +55,7 @@ fn incremental_sync_mtime_guard_skips_unchanged_files() {
         "when mtime is unchanged, sync_single_file must not restore missing graph edges"
     );
 
-    // T-5.7: RTM FR-14.1 — mtime guard must NOT update last_indexed (distinguish from hash guard path)
+    // mtime guard must NOT update last_indexed (distinguish from hash guard path)
     let row_after_recheck = get_file_content_row(&cfg, &memory_uri).expect("row must persist");
     assert_eq!(
         row_after_recheck.last_indexed, row_after_create.last_indexed,
@@ -63,7 +63,7 @@ fn incremental_sync_mtime_guard_skips_unchanged_files() {
     );
 }
 
-// T-5.7: RTM FR-14.2
+// T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080)
 #[test]
 fn incremental_sync_hash_guard_updates_last_indexed_only() {
     let _guard = TEST_MUTEX.lock();
@@ -101,7 +101,7 @@ fn incremental_sync_hash_guard_updates_last_indexed_only() {
         output.contains("hash guard"),
         "same content should skip on hash guard: {output}"
     );
-    // T-5.7: RTM FR-14.2 — hash guard must update last_indexed to the file's current mtime
+    // hash guard must update last_indexed to the file's current mtime
     assert_eq!(
         after.last_indexed.as_deref(),
         Some(expected_mtime.as_str()),
@@ -112,7 +112,7 @@ fn incremental_sync_hash_guard_updates_last_indexed_only() {
         Some(original_hash.as_str()),
         "when content hash is unchanged, sync_single_file must not update file_md5"
     );
-    // T-5.7: RTM FR-14.2 — hash guard must not alter file_size
+    // hash guard must not alter file_size
     assert_eq!(
         after.file_size, before.file_size,
         "hash guard must not alter file_size when content is identical"

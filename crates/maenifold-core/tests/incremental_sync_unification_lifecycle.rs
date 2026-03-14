@@ -82,7 +82,7 @@ fn incremental_sync_new_file_creates_expected_db_artifacts() {
     );
 }
 
-// T-5.7: RTM FR-14.3
+// T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080)
 #[test]
 fn incremental_sync_file_deleted_cleans_all_artifacts() {
     let _guard = TEST_MUTEX.lock();
@@ -142,7 +142,7 @@ fn incremental_sync_file_deleted_cleans_all_artifacts() {
     );
 }
 
-// T-5.7: RTM FR-14.3
+// T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080)
 #[test]
 fn incremental_sync_file_renamed_reindexes_under_new_uri() {
     let _guard = TEST_MUTEX.lock();
@@ -196,5 +196,25 @@ fn incremental_sync_file_renamed_reindexes_under_new_uri() {
     assert!(
         get_mention_count(&cfg, &new_memory_uri, &normalized_concept(&concept_b)).is_some(),
         "new URI must have concept_mentions for concept B after rename"
+    );
+
+    // Verify concept_graph edge is rebuilt with the new URI as a source file.
+    // The delete step cleans the old URI from edges; the re-index must reconstruct
+    // the edge referencing the new URI. Without this, the graph would have orphaned
+    // co-occurrence edges or a missing edge after rename.
+    let edge = get_edge_source_files(
+        &cfg,
+        &normalized_concept(&concept_a),
+        &normalized_concept(&concept_b),
+    );
+    assert!(
+        edge.as_ref()
+            .is_some_and(|files| files.contains_key(&new_memory_uri)),
+        "concept_graph edge must reference the new URI after rename"
+    );
+    assert!(
+        edge.as_ref()
+            .is_some_and(|files| !files.contains_key(&memory_uri)),
+        "concept_graph edge must not reference the old URI after rename"
     );
 }

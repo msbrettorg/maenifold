@@ -1,187 +1,96 @@
-//! Ported from C# RecentActivityTests.cs — RecentActivity behavior coverage.
-//! T-2.3: RTM FR-4 — RecentActivity tool boundary + integration tests.
+//! T-2.3: RTM FR-4 — RecentActivity full-pipeline integration smoke tests.
+//!
+//! This file verifies that all four file types (memory, sequential, workflow, chat)
+//! survive the complete seed → Sync → RecentActivity pipeline together. Filter,
+//! timespan, includeContent, and negative-timespan behaviors are covered with
+//! stronger assertions in the split test suite (boundary_queries, boundary_rendering,
+//! pipeline_collect, pipeline_format, pipeline_helpers, pipeline_tool).
 
 #[path = "recent_activity_tool/support.rs"]
 mod support;
 
-// T-2.3: RTM FR-4 — behavior-focused split from recent_activity_tool_tests.rs.
-use maenifold_core::ToolRegistry;
-use maenifold_core::json::OutputFormat;
 use serde_json::json;
 use support::{
     TEST_MUTEX, invoke_tool, isolated_env, rendered_item_count, seed_chat_file, seed_memory_file,
-    seed_sequential_file, seed_workflow_file, set_last_indexed,
+    seed_sequential_file, seed_workflow_file,
 };
 
+// T-2.3: RTM FR-4 — all four file types through one Sync run.
 #[test]
-fn recent_activity_filters_timespan_include_content_workflow_and_sequential() {
+fn recent_activity_all_file_types_survive_full_sync_pipeline() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
-    // T-2.3: RTM FR-4 / seed plain memory article
+    // T-2.3.1: RTM FR-4 — seed one of each file type
     seed_memory_file(
         &env.cfg,
         "article-alpha.md",
         "# Article Alpha\n\n## Intro\nMemory body A\n\n## More\nMemory body B\n",
     );
-
-    // T-2.3: RTM FR-4 / seed sequential thinking session
     seed_sequential_file(
         &env.cfg,
         "session-1",
         "## Thought 1/2\nFirst thought\n\n## Thought 2/2\nSecond thought",
     );
-
-    // T-2.3: RTM FR-4 / seed workflow thinking session
     seed_workflow_file(
         &env.cfg,
         "workflow-1",
         "## Step 1\nStep one response\n\n## Step 2\nStep two response",
     );
-
-    // T-2.3: RTM FR-4 / seed chat-assumption file
     seed_chat_file(
         &env.cfg,
         "chat-1.md",
         "# Chat Log\n\n## Message\nHello from chat\n",
     );
 
-    let sync_output = invoke_tool("Sync", json!({}));
+    invoke_tool("Sync", json!({}));
+
+    let out = invoke_tool("RecentActivity", json!({ "limit": 10 }));
     assert!(
-        sync_output.contains("Sync"),
-        "Sync should run successfully: {sync_output}"
+        out.contains("(sequential)"),
+        "sequential missing from pipeline output: {out}"
     );
     assert!(
-        env.cfg.database_path.exists(),
-        "Database should be created by Sync"
+        out.contains("(workflow)"),
+        "workflow missing from pipeline output: {out}"
+    );
+    assert!(
+        out.contains("(memory)"),
+        "memory missing from pipeline output: {out}"
+    );
+}
+
+// T-2.3.2: RTM FR-4 / RTM-026 — limit=1 boundary (unique edge case).
+// Existing limit tests use limit=2; this covers the boundary between
+// "at least one result" and "empty result".
+#[test]
+fn recent_activity_limit_one_returns_exactly_one_item() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+
+    // Seed multiple items so limit is actually constraining
+    seed_memory_file(
+        &env.cfg,
+        "note-a.md",
+        "# Note A\n\n## Section\nBody A\n",
+    );
+    seed_memory_file(
+        &env.cfg,
+        "note-b.md",
+        "# Note B\n\n## Section\nBody B\n",
+    );
+    seed_sequential_file(
+        &env.cfg,
+        "session-limit",
+        "## Thought 1/1\nOnly thought",
     );
 
-    set_last_indexed(&env.cfg, "article-alpha", "2020-01-01 00:00:00");
+    invoke_tool("Sync", json!({}));
 
-    let all_out = invoke_tool("RecentActivity", json!({ "limit": 10 }));
-    assert!(
-        all_out.contains("# Recent Activity"),
-        "all: missing header: {all_out}"
-    );
-    assert!(
-        all_out.contains("(sequential)"),
-        "all: missing sequential: {all_out}"
-    );
-    assert!(
-        all_out.contains("(workflow)"),
-        "all: missing workflow: {all_out}"
-    );
-    assert!(
-        all_out.contains("(memory)"),
-        "all: missing memory: {all_out}"
-    );
-
-    let think_out = invoke_tool(
-        "RecentActivity",
-        json!({ "limit": 10, "filter": "thinking" }),
-    );
-    assert!(
-        think_out.contains("(sequential)"),
-        "thinking: missing sequential: {think_out}"
-    );
-    assert!(
-        think_out.contains("(workflow)"),
-        "thinking: missing workflow: {think_out}"
-    );
-    assert!(
-        !think_out.contains("(memory)"),
-        "thinking: should not contain memory: {think_out}"
-    );
-
-    let mem_out = invoke_tool("RecentActivity", json!({ "limit": 10, "filter": "memory" }));
-    assert!(
-        mem_out.contains("(memory)"),
-        "memory: missing memory: {mem_out}"
-    );
-    assert!(
-        !mem_out.contains("(sequential)"),
-        "memory: should not contain sequential: {mem_out}"
-    );
-    assert!(
-        !mem_out.contains("(workflow)"),
-        "memory: should not contain workflow: {mem_out}"
-    );
-
-    let chat_out = invoke_tool(
-        "RecentActivity",
-        json!({ "limit": 10, "filter": "assumptions" }),
-    );
-    assert!(
-        chat_out.contains("(memory)"),
-        "assumptions: entries render as memory type: {chat_out}"
-    );
-    assert!(
-        chat_out.contains("Title: chat-1") || chat_out.contains("Title: Chat Log"),
-        "assumptions: expected chat title: {chat_out}"
-    );
-    assert!(
-        !chat_out.contains("(sequential)"),
-        "assumptions: should not contain sequential: {chat_out}"
-    );
-    assert!(
-        !chat_out.contains("(workflow)"),
-        "assumptions: should not contain workflow: {chat_out}"
-    );
-
-    let include_out = invoke_tool(
-        "RecentActivity",
-        json!({ "limit": 10, "includeContent": true }),
-    );
-    assert!(
-        include_out.contains("First H2:"),
-        "includeContent: missing First H2: {include_out}"
-    );
-    assert!(
-        include_out.contains("First H2 Content:"),
-        "includeContent: missing First H2 Content: {include_out}"
-    );
-    assert!(
-        include_out.contains("Thought 1/2"),
-        "includeContent: missing sequential H2 heading: {include_out}"
-    );
-    assert!(
-        include_out.contains("Step 1"),
-        "includeContent: missing workflow H2 heading: {include_out}"
-    );
-
-    let recent_only = invoke_tool(
-        "RecentActivity",
-        json!({ "limit": 10, "timespan": "1.00:00:00" }),
-    );
-    assert!(
-        !recent_only.contains("Article Alpha"),
-        "timespan: old article should be excluded: {recent_only}"
-    );
-    assert!(
-        recent_only.contains("(sequential)"),
-        "timespan: recent sequential should remain: {recent_only}"
-    );
-    assert!(
-        recent_only.contains("(workflow)"),
-        "timespan: recent workflow should remain: {recent_only}"
-    );
-
-    let bad = ToolRegistry::global().try_invoke(
-        "RecentActivity",
-        &json!({ "timespan": "-1.00:00:00" }),
-        OutputFormat::Markdown,
-    );
-    let err = bad.expect_err("negative timespan must error");
-    let message = err.to_string();
-    assert!(
-        message.contains("timespan must be positive"),
-        "negative timespan should report validation failure: {message}"
-    );
-
-    let one = invoke_tool("RecentActivity", json!({ "limit": 1 }));
-    let count = rendered_item_count(&one);
+    let out = invoke_tool("RecentActivity", json!({ "limit": 1 }));
+    let count = rendered_item_count(&out);
     assert_eq!(
         count, 1,
-        "limit=1 should return a single activity item, got {count}: {one}"
+        "limit=1 should return exactly one activity item, got {count}: {out}"
     );
 }

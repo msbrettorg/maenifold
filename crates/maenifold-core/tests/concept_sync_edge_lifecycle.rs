@@ -39,6 +39,9 @@ fn concept_removed_cleans_stale_edge_contributions() {
             .contains_key(&uri)
     );
 
+    // Force re-sync: the mtime cache skips unchanged files. Backdating last_indexed
+    // makes the engine treat this file as stale on the next sync_one() call.
+    // If the cache strategy changes to content-hash, update this call site.
     set_last_indexed(&cfg, &uri, "2000-01-01T00:00:00+00:00");
     write_memory_fixture(
         &cfg,
@@ -54,17 +57,16 @@ fn concept_removed_cleans_stale_edge_contributions() {
             .contains_key(&uri),
         "alpha-beta should keep the file contribution after gamma is removed"
     );
+    // T-5.7: RTM FR-14.3 — sole-contributor edges must be fully deleted, not just
+    // contribution-pruned. In this isolated single-file config, removing gamma leaves
+    // zero contributors for alpha-gamma and beta-gamma; zombie rows are a real bug.
     assert!(
-        !query_edge(&cfg, "alpha", "gamma")
-            .map(|edge| edge.1.contains_key(&uri))
-            .unwrap_or(false),
-        "alpha-gamma must not retain a stale contribution after gamma is removed"
+        query_edge(&cfg, "alpha", "gamma").is_none(),
+        "alpha-gamma row must be deleted when its only contributor removes the concept"
     );
     assert!(
-        !query_edge(&cfg, "beta", "gamma")
-            .map(|edge| edge.1.contains_key(&uri))
-            .unwrap_or(false),
-        "beta-gamma must not retain a stale contribution after gamma is removed"
+        query_edge(&cfg, "beta", "gamma").is_none(),
+        "beta-gamma row must be deleted when its only contributor removes the concept"
     );
 }
 
@@ -87,6 +89,9 @@ fn new_concept_added_creates_new_edge_rows() {
     assert!(query_edge(&cfg, "alpha", "gamma").is_none());
     assert!(query_edge(&cfg, "beta", "gamma").is_none());
 
+    // Force re-sync: the mtime cache skips unchanged files. Backdating last_indexed
+    // makes the engine treat this file as stale on the next sync_one() call.
+    // If the cache strategy changes to content-hash, update this call site.
     set_last_indexed(&cfg, &uri, "2000-01-01T00:00:00+00:00");
     write_memory_fixture(
         &cfg,
@@ -130,6 +135,9 @@ fn last_contributor_removed_deletes_edge_row() {
     sync_one(&cfg, relative_path);
     assert!(query_edge(&cfg, "alpha", "beta").is_some());
 
+    // Force re-sync: the mtime cache skips unchanged files. Backdating last_indexed
+    // makes the engine treat this file as stale on the next sync_one() call.
+    // If the cache strategy changes to content-hash, update this call site.
     set_last_indexed(&cfg, &uri, "2000-01-01T00:00:00+00:00");
     write_memory_fixture(
         &cfg,

@@ -103,9 +103,10 @@ fn sync_output_reports_filtered_count() {
         .find(|line| line.contains("filtered"))
         .unwrap_or_else(|| panic!("sync output must mention filtered concepts: {output}"));
 
+    // T-22.4: 3 concepts filtered: agent (exact), tool (exact), T-14.1 (prefix T-*)
     assert!(
-        filtered_line.chars().any(|ch| matches!(ch, '1'..='9')),
-        "filtered summary line must report a non-zero filtered count: {filtered_line}"
+        filtered_line.contains("3 concept mentions filtered"),
+        "filtered summary must report exactly 3 filtered concepts: {filtered_line}"
     );
 }
 
@@ -273,18 +274,21 @@ fn sync_filter_excludes_blocked_from_concept_graph() {
     sync_all(&cfg);
 
     let graph_count_blocked = count_concept_graph_entries(&cfg, &blocked);
-    let graph_count_allowed = count_concept_graph_entries(&cfg, &allowed_a);
+    let graph_count_allowed_a = count_concept_graph_entries(&cfg, &allowed_a);
+    let graph_count_allowed_b = count_concept_graph_entries(&cfg, &allowed_b);
 
     assert_eq!(
         graph_count_blocked, 0,
         "blocked concept must have zero rows in concept_graph"
     );
     assert!(
-        graph_count_allowed > 0,
-        "allowed concepts must have relations in concept_graph"
+        graph_count_allowed_a > 0,
+        "allowed_a must have relations in concept_graph"
     );
-
-    let _ = allowed_b;
+    assert!(
+        graph_count_allowed_b > 0,
+        "allowed_b must have relations in concept_graph"
+    );
 }
 
 // T-22.5: RTM-155

@@ -254,3 +254,16 @@ Both tests carry load: one owns the happy-path pipeline (FR-13.7, FR-13.8) with 
 `DirectRelations` negative assertion; the other is the sole guardian of the threshold filter
 (FR-13.9). Neither is safe to remove. Test 2, however, guards only half of the filter
 predicate it claims to represent.
+
+---
+
+## SWE Remediation
+
+- KEEP `build_context_returns_community_siblings`: Strengthened FR-13.8 overlap assertion from `>= 0.4` (trivially satisfied) to `> 0.9` (documents expected computation of 1.0) per P0 recommendation #1.
+- REWRITE `build_context_sibling_thresholds_filter` per P0 recommendation #2:
+  - Added `CommunityEnvGuard` RAII struct that clears `MAENIFOLD_COMMUNITY_MIN_SHARED` and `MAENIFOLD_COMMUNITY_MIN_OVERLAP` env vars at test start, restores on drop (follows existing `sync_perf_support.rs` pattern with `unsafe` + SAFETY comments referencing `TEST_MUTEX`).
+  - Added `thresh-boundary` (exactly 3 shared neighbors) — verifies boundary is inclusive (`< 3` not `<= 3`), fixing Problem 1.
+  - Added `thresh-lowoverlap` (3 shared neighbors but NormalizedOverlap ≈ 0.091 via high-weight private neighbor) — exercises the `normalized_overlap < min_overlap` filter path, fixing Problem 2.
+  - Added `NormalizedOverlap > 0.9` assertion on `thresh-strong` control candidate, fixing Problem 4.
+  - Env var isolation via RAII guard addresses Problem 3.
+- Commit: d4140d3

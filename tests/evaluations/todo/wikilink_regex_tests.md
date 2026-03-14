@@ -334,3 +334,16 @@ failure mode (silent extraction of content from malformed patterns).
 
 *Evaluation performed under 🔘 Gray — Skeptical Inquiry. Every assertion was questioned
 for what it actually verifies vs. what it implies. Traceability: T-W1-3 · NFR-1 · NFR-2.*
+
+---
+## SWE Remediation
+- KEEP test 1 (`extract_wikilinks_rejects_triple_bracket_pattern`): unchanged
+- REWRITE test 2 (`extract_wikilinks_rejects_quadruple_bracket_pattern`): contract clarified to full rejection; `is_empty()` assertion replaces weak bracket-leakage check (P3)
+- REWRITE test 3 (`extract_wikilinks_extracts_only_valid_concepts`): added 5 negative assertions + `assert_eq!(len, 4)` exact-count guard; merged test 4 inputs (P2)
+- MERGE test 4 into test 3: nested/prefixed/suffixed malformed bracket cases folded into merged test 3
+- REMOVE test 5 (`count_concept_occurrences_ignores_malformed_brackets`): deleted circular test + both ghost helpers (`count_concept_occurrences`, `count_regex_wikilinks`) (P1)
+- NEW `extract_wikilinks_counts_only_valid_occurrences_ignoring_malformed`: replacement for test 5 using production `extract_wikilinks` directly; verifies deduplication
+- KEEP test 6 (`extract_wikilinks_allows_hyphens_underscores_in_concepts`): unchanged
+- P4 coverage gaps filled (6 new tests): empty brackets, whitespace trim, deduplication, inline code span, fenced code block, pipe alias syntax
+- Tests: 11 passed, 0 failed (was 6 passed)
+- Commit: ec9f762

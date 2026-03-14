@@ -1,107 +1,8 @@
-use maenifold_core::markdown::{extract_wikilinks, normalize_concept};
-use pulldown_cmark::{Event, LinkType, Options, Parser, Tag, TagEnd};
+use maenifold_core::markdown::extract_wikilinks;
 
 // T-W1-3: RTM NFR-1 / NFR-2 — Ported WikiLinkRegexTests.cs coverage from the C# oracle.
-fn count_concept_occurrences(content: &str, concept: &str) -> usize {
-    let target = normalize_concept(concept);
-    let mut count = 0usize;
-    let mut visible = String::with_capacity(content.len());
-    let mut code_block_depth = 0usize;
-    let bytes = content.as_bytes();
-
-    for (event, range) in Parser::new_ext(content, Options::all()).into_offset_iter() {
-        match event {
-            Event::Start(Tag::CodeBlock(_)) => code_block_depth += 1,
-            Event::End(TagEnd::CodeBlock) => code_block_depth = code_block_depth.saturating_sub(1),
-            Event::Start(Tag::Link {
-                link_type: LinkType::WikiLink { .. },
-                dest_url,
-                ..
-            }) => {
-                let has_clean_open = range.start == 0 || bytes[range.start - 1] != b'[';
-                let has_clean_close = range.end < bytes.len() && bytes[range.end] == b']';
-                let has_extra_close = range.end + 1 < bytes.len() && bytes[range.end + 1] == b']';
-
-                if code_block_depth == 0
-                    && has_clean_open
-                    && has_clean_close
-                    && !has_extra_close
-                    && normalize_concept(dest_url.as_ref()) == target
-                {
-                    count += 1;
-                }
-            }
-            Event::Code(_) => {}
-            Event::Text(text) | Event::InlineMath(text) | Event::DisplayMath(text) => {
-                if code_block_depth == 0 {
-                    visible.push_str(&text);
-                }
-            }
-            Event::SoftBreak | Event::HardBreak => {
-                if code_block_depth == 0 {
-                    visible.push('\n');
-                }
-            }
-            _ => {}
-        }
-    }
-
-    count + count_regex_wikilinks(&visible, &target)
-}
-
-// T-W1-3: RTM NFR-1 / NFR-2 — Mirrors the regex fallback so malformed bracket patterns stay excluded.
-fn count_regex_wikilinks(content: &str, target: &str) -> usize {
-    let bytes = content.as_bytes();
-    let mut count = 0usize;
-    let mut index = 0usize;
-
-    while index + 3 < bytes.len() {
-        if bytes[index] != b'[' || bytes[index + 1] != b'[' {
-            index += 1;
-            continue;
-        }
-
-        if index > 0 && bytes[index - 1] == b'[' {
-            index += 1;
-            continue;
-        }
-
-        let mut cursor = index + 2;
-        let mut closing = None;
-        let mut invalid = false;
-
-        while cursor + 1 < bytes.len() {
-            match (bytes[cursor], bytes[cursor + 1]) {
-                (b']', b']') => {
-                    closing = Some(cursor);
-                    break;
-                }
-                (b'[', _) | (b']', _) => {
-                    invalid = true;
-                    break;
-                }
-                _ => cursor += 1,
-            }
-        }
-
-        let Some(end) = closing else {
-            index += 2;
-            continue;
-        };
-
-        if invalid || (end + 2 < bytes.len() && bytes[end + 2] == b']') {
-            index = end + 2;
-            continue;
-        }
-
-        if normalize_concept(&content[index + 2..end]) == target {
-            count += 1;
-        }
-        index = end + 2;
-    }
-
-    count
-}
+// Ghost infrastructure (count_concept_occurrences, count_regex_wikilinks) removed per eval:
+// test-local reimplementations of production logic provided no real coverage.
 
 #[test]
 fn extract_wikilinks_rejects_triple_bracket_pattern() {
@@ -118,62 +19,110 @@ fn extract_wikilinks_rejects_triple_bracket_pattern() {
 
 #[test]
 fn extract_wikilinks_rejects_quadruple_bracket_pattern() {
-    // T-W1-3: RTM NFR-1 / NFR-2 — Quadruple-bracket patterns must not leak bracket characters.
+    // T-W1-3: RTM NFR-1 / NFR-2 — Quadruple-bracket patterns must produce zero extracted concepts.
+    // Contract: [[[[x]]]] is malformed and must be fully rejected (not just bracket-sanitized).
     let content = "This has [[[[quadruple]]]] brackets.";
 
     let concepts = extract_wikilinks(content);
 
-    assert!(concepts.iter().all(|concept| !concept.contains('[')));
-    assert!(concepts.iter().all(|concept| !concept.contains(']')));
+    assert!(
+        concepts.is_empty(),
+        "Quadruple bracket pattern should not extract any concepts"
+    );
 }
 
 #[test]
 fn extract_wikilinks_extracts_only_valid_concepts() {
     // T-W1-3: RTM NFR-1 / NFR-2 — Mixed valid and malformed patterns should preserve only valid WikiLinks.
+    // Merged: also covers nested/prefixed/suffixed malformed brackets (formerly test 4).
     let content = r#"
 Valid: [[neural-network]] and [[machine-learning]]
-Malformed: [[[invalid]]] and [[[[also-invalid]]]]
+Malformed triple: [[[invalid]]] and [[[[also-invalid]]]]
 More valid: [[data-science]]
+Nested triple: [[[nested]]]
+Prefix triple: text [[[before]]] after
+Suffix quadruple: before [[[[after]]]] text
+Isolated valid: [[algorithm]]
 "#;
 
     let concepts = extract_wikilinks(content);
 
-    assert!(concepts.contains(&"neural-network".to_string()));
-    assert!(concepts.contains(&"machine-learning".to_string()));
-    assert!(concepts.contains(&"data-science".to_string()));
-    assert!(concepts.iter().all(|concept| !concept.contains('[')));
-    assert!(concepts.iter().all(|concept| !concept.contains(']')));
+    // Positive: all valid [[concept]] patterns extracted
+    assert!(
+        concepts.contains(&"neural-network".to_string()),
+        "Valid concept neural-network must be extracted"
+    );
+    assert!(
+        concepts.contains(&"machine-learning".to_string()),
+        "Valid concept machine-learning must be extracted"
+    );
+    assert!(
+        concepts.contains(&"data-science".to_string()),
+        "Valid concept data-science must be extracted"
+    );
+    assert!(
+        concepts.contains(&"algorithm".to_string()),
+        "Valid concept algorithm must be extracted"
+    );
+
+    // Negative: malformed patterns must NOT be extracted
+    assert!(
+        !concepts.contains(&"invalid".to_string()),
+        "Triple-bracket content must not be extracted"
+    );
+    assert!(
+        !concepts.contains(&"also-invalid".to_string()),
+        "Quadruple-bracket content must not be extracted"
+    );
+    assert!(
+        !concepts.contains(&"nested".to_string()),
+        "Triple-bracket nested content must not be extracted"
+    );
+    assert!(
+        !concepts.contains(&"before".to_string()),
+        "Triple-bracket prefixed content must not be extracted"
+    );
+    assert!(
+        !concepts.contains(&"after".to_string()),
+        "Quadruple-bracket suffixed content must not be extracted"
+    );
+
+    // Exact count guard: regression detector for unexpected extractions
+    assert_eq!(
+        concepts.len(),
+        4,
+        "Exactly 4 valid concepts expected; got {:?}",
+        concepts
+    );
+
+    // No bracket leakage in any extracted concept
+    assert!(concepts.iter().all(|c| !c.contains('[')));
+    assert!(concepts.iter().all(|c| !c.contains(']')));
 }
 
 #[test]
-fn extract_wikilinks_handles_nested_brackets_correctly() {
-    // T-W1-3: RTM NFR-1 / NFR-2 — Nested malformed brackets must not interfere with nearby valid links.
-    let content = r#"
-Normal: [[algorithm]]
-Triple: [[[nested]]]
-Prefix: text [[[before]]] after
-Suffix: before [[[[after]]]] text
-"#;
-
-    let concepts = extract_wikilinks(content);
-
-    assert!(concepts.contains(&"algorithm".to_string()));
-    assert!(concepts.iter().all(|concept| !concept.contains('[')));
-    assert!(concepts.iter().all(|concept| !concept.contains(']')));
-}
-
-#[test]
-fn count_concept_occurrences_ignores_malformed_brackets() {
-    // T-W1-3: RTM NFR-1 / NFR-2 — Occurrence counting should align with extraction and ignore malformed links.
+fn extract_wikilinks_counts_only_valid_occurrences_ignoring_malformed() {
+    // T-W1-3: RTM NFR-1 / NFR-2 — Replacement for removed count_concept_occurrences test.
+    // Tests production extract_wikilinks directly: deduplication must hold, malformed rejected.
     let content = r#"
 Valid: [[regex-pattern]]
 Invalid: [[[regex-pattern]]]
 Valid again: [[regex-pattern]]
 "#;
 
-    let count = count_concept_occurrences(content, "regex-pattern");
+    let concepts = extract_wikilinks(content);
 
-    assert_eq!(count, 2, "Should count only valid [[WikiLink]] patterns");
+    assert!(
+        concepts.contains(&"regex-pattern".to_string()),
+        "Valid wikilink must be extracted"
+    );
+    // extract_wikilinks deduplicates, so repeated valid references yield one entry.
+    assert_eq!(
+        concepts.len(),
+        1,
+        "Deduplication must hold; got {:?}",
+        concepts
+    );
 }
 
 #[test]
@@ -192,4 +141,98 @@ Numbers: [[gpt-4]]
     assert!(concepts.contains(&"neural-network".to_string()));
     assert!(concepts.contains(&"deep-learning-model".to_string()));
     assert!(concepts.contains(&"gpt-4".to_string()));
+}
+
+// --- P4 Coverage Gap Tests ---
+
+#[test]
+fn extract_wikilinks_ignores_empty_brackets() {
+    // T-W1-3: RTM NFR-2 — Empty [[]] must not extract a concept.
+    let content = "Nothing here [[]] empty.";
+
+    let concepts = extract_wikilinks(content);
+
+    assert!(
+        concepts.is_empty(),
+        "Empty brackets should not extract any concept; got {:?}",
+        concepts
+    );
+}
+
+#[test]
+fn extract_wikilinks_trims_whitespace_in_concept() {
+    // T-W1-3: RTM NFR-2 — Leading/trailing whitespace inside brackets must be trimmed.
+    let content = "Spaced [[ concept ]] here.";
+
+    let concepts = extract_wikilinks(content);
+
+    assert!(
+        concepts.contains(&"concept".to_string()),
+        "Whitespace-padded concept must be trimmed and extracted; got {:?}",
+        concepts
+    );
+    assert_eq!(concepts.len(), 1);
+}
+
+#[test]
+fn extract_wikilinks_deduplicates_repeated_concept() {
+    // T-W1-3: RTM NFR-2 — Same concept appearing multiple times must yield one entry.
+    let content = "First [[concept]] second [[concept]] done.";
+
+    let concepts = extract_wikilinks(content);
+
+    assert!(concepts.contains(&"concept".to_string()));
+    assert_eq!(
+        concepts.len(),
+        1,
+        "Duplicate concepts must be deduplicated; got {:?}",
+        concepts
+    );
+}
+
+#[test]
+fn extract_wikilinks_ignores_wikilink_in_inline_code() {
+    // T-W1-3: RTM NFR-2 — WikiLinks inside inline code spans must not be extracted.
+    let content = "Inline `[[code-concept]]` not extracted.";
+
+    let concepts = extract_wikilinks(content);
+
+    assert!(
+        concepts.is_empty(),
+        "WikiLink inside inline code must not be extracted; got {:?}",
+        concepts
+    );
+}
+
+#[test]
+fn extract_wikilinks_ignores_wikilink_in_fenced_code() {
+    // T-W1-3: RTM NFR-2 — WikiLinks inside fenced code blocks must not be extracted.
+    let content = "```\n[[fenced-concept]]\n```";
+
+    let concepts = extract_wikilinks(content);
+
+    assert!(
+        concepts.is_empty(),
+        "WikiLink inside fenced code block must not be extracted; got {:?}",
+        concepts
+    );
+}
+
+#[test]
+fn extract_wikilinks_handles_pipe_alias_syntax() {
+    // T-W1-3: RTM NFR-2 — [[concept|alias]] pipe syntax extracts both concept and display text.
+    let content = "Alias [[concept|display]] here.";
+
+    let concepts = extract_wikilinks(content);
+
+    assert!(
+        concepts.contains(&"concept".to_string()),
+        "Pipe-syntax concept (dest) must be extracted; got {:?}",
+        concepts
+    );
+    assert!(
+        concepts.contains(&"display".to_string()),
+        "Pipe-syntax display text must be extracted; got {:?}",
+        concepts
+    );
 }

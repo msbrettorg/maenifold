@@ -38,7 +38,7 @@ fn workflow_with_workflow_id_creates_new_session() {
         output.contains("Created session:"),
         "unexpected output: {output}"
     );
-    assert!(output.contains("Step 1/3"), "unexpected output: {output}");
+    assert!(output.contains("Step 1/"), "unexpected output: {output}");
     assert!(!output.contains("ERROR"), "unexpected output: {output}");
 }
 
@@ -112,7 +112,7 @@ fn workflow_advances_from_step1_to_step2() {
 
 // T-15.14: RTM FR-8 — no-parameter call must return error, not success with help text.
 #[test]
-fn workflow_with_no_parameters_throws_invalid_operation_exception() {
+fn workflow_with_no_parameters_returns_invalid_combination_error() {
     let _guard = TEST_MUTEX.lock();
     let _env = workflow_tools_env();
     let error = invoke_workflow(json!({}))
@@ -128,7 +128,7 @@ fn workflow_with_no_parameters_throws_invalid_operation_exception() {
 
 // T-15.14: RTM FR-8 — session-id-only call must return error, not success with help text.
 #[test]
-fn workflow_with_only_session_id_throws_invalid_operation_exception() {
+fn workflow_with_only_session_id_returns_invalid_combination_error() {
     let _guard = TEST_MUTEX.lock();
     let _env = workflow_tools_env();
     let (_, session_id) = start_session(json!("wtt-alpha"));

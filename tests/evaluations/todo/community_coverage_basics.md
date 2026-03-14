@@ -196,3 +196,14 @@ After implementing R-1, R-2, R-3: delete `community_coverage_basics.rs` and remo
 Only Test 3 carries any partial load-bearing value, and only through its precondition guard — not its core assertions. Tests 1, 2, and 4 could be deleted today without reducing the suite's regression-detection surface by a single bit. The sibling files have this subspace covered more rigorously.
 
 **Interpretation**: A load-bearing score of 0.5/4 (12.5%) indicates this file is largely test padding. It creates a false sense of coverage breadth for the isolated-concept scenario while the resolution parameter, connected-graph persistence semantics, and parameterized N-scaling go untested.
+
+---
+
+## SWE Remediation
+
+- REMOVE `run_louvain_multiple_isolated_concepts_no_edges_each_get_own_community`: subsumed by `community_louvain_basics::run_louvain_isolated_concepts_normalized_contiguous_ids` (sibling has exact-vector assertion)
+- REMOVE `run_louvain_five_isolated_concepts_no_edges_five_distinct_communities`: strictly dominated by test 1 and sibling; name claimed distinctness but body never verified it
+- MERGE `run_and_persist_empty_graph_returns_zero_without_db_writes`: precondition guard (`concepts table must be empty`) absorbed into `community_louvain_basics::run_louvain_empty_graph_returns_empty`
+- REMOVE `run_and_persist_isolated_concepts_persists_each_with_own_community`: sibling's exact-vector `[0,1,2,3]` assertion subsumes the `id_a != id_b` distinctness check
+- DELETE `community_coverage_basics.rs` and removed `mod community_coverage_basics;` from `main.rs`
+- Commit: 31cba3b

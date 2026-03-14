@@ -205,3 +205,17 @@ adversarial coverage in `markdown_adversarial_code.rs`.
 | T5 `sync_no_frontmatter_...` | ✅ Yes | Distinct no-frontmatter path; brittle but functionally load-bearing |
 | T6 `sync_empty_file_...` | ✅ Yes | Important edge case; trivial assertion lowers signal quality |
 | T7 `sync_inline_code_exclusion_...` | ✅ Yes | Distinct from T4; unique inline-code exclusion path |
+
+---
+## SWE Remediation
+- REWRITE T1 (`sync_basic_file_frontmatter_and_content_match_expected_processing`): stripped redundant `extract_wikilinks_with_sections` + `count_all_concept_occurrences` inline assertions (covered by `proximity_weight_sections.rs` and T3). Renamed to `sync_basic_file_db_state_matches_expected_after_sync`. Kept read_markdown + sync_one + DB state verification per P2.
+- REMOVE T2 (`sync_wikilinks_with_sections_section_indices_match_expected_extraction`): confirmed fully covered by `proximity_weight_sections.rs` with stronger exact-match assertions per P3.
+- KEEP T3: no changes.
+- KEEP T4: added `assert_eq!(mention_count(&env.cfg, &uri), 2)` per P4 gap closure.
+- REWRITE T5 (`sync_no_frontmatter_content_only_file_is_processed`): replaced brittle `output.contains("2 concept mentions updated")` with `assert_eq!(mention_count(&env.cfg, &uri), 2)` per P1.
+- REWRITE T6 (`sync_empty_file_is_handled_gracefully`): removed trivially-true `!checksum.is_empty()` and brittle `output.contains("0 concept mentions updated")`, added `assert_eq!(mention_count(&env.cfg, &uri), 0)` per P1.
+- KEEP T7: added `assert_eq!(mention_count(&env.cfg, &uri), 2)` per P4 gap closure.
+- Removed unused `BTreeMap` import and `extract_wikilinks_with_sections` import.
+- Test count: 7 → 6 (T2 removed)
+- All 6 tests pass.
+- Commit: 6fbb3d2

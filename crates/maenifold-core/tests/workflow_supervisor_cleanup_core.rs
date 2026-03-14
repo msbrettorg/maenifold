@@ -9,9 +9,9 @@ use maenifold_core::sessions;
 use serde_yaml::Value as YamlValue;
 use support::*;
 
-// T-W1-7: RTM FR-17.7
+// T-W1-7: RTM FR-17.7 — stale workflow session: count, status mutation, body append
 #[test]
-fn handle_session_cleanup_stale_workflow_session_marks_status_abandoned() {
+fn handle_session_cleanup_stale_workflow_session_is_abandoned() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     let file_uri = "memory://thinking/workflow/2026/03/09/stale-workflow-test";
@@ -27,30 +27,15 @@ fn handle_session_cleanup_stale_workflow_session_marks_status_abandoned() {
 
     assert_eq!(abandoned, 1);
     assert_eq!(read_frontmatter_status(&env.cfg, file_uri), "abandoned");
-}
-
-// T-W1-7: RTM FR-17.7
-#[test]
-fn handle_session_cleanup_stale_workflow_session_appends_abandoned_section() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let file_uri = "memory://thinking/workflow/2026/03/09/stale-workflow-section-test";
-    create_session(
-        &env.cfg,
-        file_uri,
-        "active",
-        130,
-        "# Test Session\n\nContent [[Session Cleanup]]",
+    assert!(
+        read_body(&env.cfg, file_uri).contains("Session Abandoned"),
+        "body should contain abandoned notice"
     );
-
-    sessions::cleanup_abandoned_sessions(&env.cfg).expect("cleanup");
-
-    assert!(read_body(&env.cfg, file_uri).contains("Session Abandoned"));
 }
 
-// T-W1-7: RTM FR-17.7
+// T-W1-7: RTM FR-17.7 — stale sequential session: count, status mutation, body append
 #[test]
-fn handle_session_cleanup_stale_sequential_session_marks_status_abandoned() {
+fn handle_session_cleanup_stale_sequential_session_is_abandoned() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     let file_uri = "memory://thinking/sequential/2026/03/09/stale-sequential-test";
@@ -66,28 +51,13 @@ fn handle_session_cleanup_stale_sequential_session_marks_status_abandoned() {
 
     assert_eq!(abandoned, 1);
     assert_eq!(read_frontmatter_status(&env.cfg, file_uri), "abandoned");
-}
-
-// T-W1-7: RTM FR-17.7
-#[test]
-fn handle_session_cleanup_stale_sequential_session_appends_abandoned_section() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let file_uri = "memory://thinking/sequential/2026/03/09/stale-sequential-section-test";
-    create_session(
-        &env.cfg,
-        file_uri,
-        "active",
-        130,
-        "# Sequential Session\n\nContent [[Session Cleanup]]",
+    assert!(
+        read_body(&env.cfg, file_uri).contains("Session Abandoned"),
+        "body should contain abandoned notice"
     );
-
-    sessions::cleanup_abandoned_sessions(&env.cfg).expect("cleanup");
-
-    assert!(read_body(&env.cfg, file_uri).contains("Session Abandoned"));
 }
 
-// T-W1-7: RTM FR-17.7
+// T-W1-7: RTM FR-17.7 — temporal guard: recent sessions are not abandoned
 #[test]
 fn handle_session_cleanup_recent_active_session_no_change() {
     let _guard = TEST_MUTEX.lock();
@@ -109,9 +79,9 @@ fn handle_session_cleanup_recent_active_session_no_change() {
     assert_eq!(read_body(&env.cfg, file_uri), before_body);
 }
 
-// T-W1-7: RTM FR-17.7
+// T-W1-7: RTM FR-17.7 — URI path exclusion: files outside memory://thinking/ are not touched
 #[test]
-fn handle_session_cleanup_null_type_no_change() {
+fn handle_session_cleanup_non_thinking_path_is_not_touched() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     let file_uri = "memory://notes/null-type-test";
@@ -142,4 +112,38 @@ fn handle_session_cleanup_null_type_no_change() {
         .expect("mtime");
     assert_eq!(abandoned, 0);
     assert_eq!(before_mtime, after_mtime);
+}
+
+// T-W1-7: RTM FR-17.7 — idempotency: re-cleanup of already-abandoned session is a no-op
+#[test]
+fn handle_session_cleanup_already_abandoned_session_is_idempotent() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    let file_uri = "memory://thinking/workflow/2026/03/09/idempotent-cleanup-test";
+    create_session(
+        &env.cfg,
+        file_uri,
+        "active",
+        130,
+        "# Test Session\n\nContent [[Session Cleanup]]",
+    );
+
+    // First cleanup marks the session as abandoned
+    let first_abandoned = sessions::cleanup_abandoned_sessions(&env.cfg).expect("first cleanup");
+    assert_eq!(first_abandoned, 1);
+
+    // Second cleanup should be a no-op
+    let second_abandoned = sessions::cleanup_abandoned_sessions(&env.cfg).expect("second cleanup");
+    assert_eq!(
+        second_abandoned, 0,
+        "already-abandoned session should not be re-abandoned"
+    );
+
+    // Body should contain exactly one "Session Abandoned" section
+    let body = read_body(&env.cfg, file_uri);
+    let notice_count = body.matches("Session Abandoned").count();
+    assert_eq!(
+        notice_count, 1,
+        "expected exactly one abandoned notice, found {notice_count}"
+    );
 }

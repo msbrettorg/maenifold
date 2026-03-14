@@ -273,4 +273,4 @@ would be **2/2** distinct scenarios, both load-bearing, both worth keeping.
 - KEEP `sync_does_not_rewrite_normal_memory_file_solely_due_to_age_mtime_guard_remains`: added a clarifying comment for the 7-day offset.
 - REWRITE file header traceability: corrected to `T-W1-7: RTM FR-14.6`.
 - Verification: `cd crates/maenifold-core && cargo test --test integration_tests workflow_supervisor_sync_cleanup`
-- Commit: 207c79f
+- Commit: 9b5ede2

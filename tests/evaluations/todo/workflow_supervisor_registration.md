@@ -74,3 +74,11 @@ pub(crate) const WIKILINK_ERROR_HINT: &str = "[[WikiLink]]";
 ---
 
 ## Load-Bearing Score: 6/6
+
+---
+## SWE Remediation
+- KEEP `register_nonexistent_submachine_returns_error`: replaced the weak non-waiting check with an exact phase-preservation assertion against the known pre-registration `running` phase.
+- KEEP `register_path_enforces_wikilink_validation_on_response`: replaced the weak non-waiting check with the same exact phase-preservation assertion.
+- KEEP `register_path_enforces_wikilink_validation_on_response`: extracted the WikiLink error hint to `support::WIKILINK_ERROR_HINT`.
+- Verification: `cargo test --test integration_tests workflow_supervisor_registration` (run from `crates/maenifold-core`, because this repo consolidates integration tests into the `integration_tests` binary).
+- Commit: bfbbbf6

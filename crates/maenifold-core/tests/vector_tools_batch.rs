@@ -11,7 +11,15 @@ use vector_tools_support::{
 
 // T-12.6: RTM NFR-1 — batch/vector sync regressions remain isolated after the file split.
 
-// T-8.4: RTM FR-33.1 — a single-item batch must match the individual embedding exactly.
+// T-8.4: RTM FR-33.1 — a single-item batch with max_batch=1 must match the individual
+// embedding exactly.
+//
+// NOTE: `src/vector/tests.rs::vector_batch_matches_individual` tests the same parity claim
+// internally using `DEFAULT_MAX_BATCH` and a 1e-6 tolerance. This integration test adds:
+//   1. `TEST_MUTEX` serialization (prevents inter-test ONNX model contention),
+//   2. `vector::cleanup()` pre-condition (resets model state), and
+//   3. `f32::EPSILON` tolerance via `assert_embeddings_match` (stricter than 1e-6).
+// If the internal test is ever strengthened with mutex serialization, consider removing this test.
 #[test]
 fn fr33_1_ac1_batch_produces_identical_output() {
     let _guard = TEST_MUTEX.lock();
@@ -25,15 +33,26 @@ fn fr33_1_ac1_batch_produces_identical_output() {
 
 // T-8.4: RTM FR-33.1 — chunked batch execution with max_batch=2 still embeds every requested text.
 #[test]
-fn fr33_1_ac2_batch_chunking_respects_max_batch_five_texts_with_max_batch_two_all_five_embedded() {
+fn fr33_1_ac2_batch_chunking_respects_max_batch() {
     let _guard = TEST_MUTEX.lock();
     vector::cleanup();
     let texts = ["one", "two", "three", "four", "five"];
     let embeddings = vector::generate_embeddings(&texts, 2).expect("chunked embeddings");
-    assert_eq!(embeddings.len(), texts.len());
-    for embedding in embeddings {
+    assert_eq!(embeddings.len(), texts.len(), "all 5 texts must produce embeddings");
+    for (index, embedding) in embeddings.iter().enumerate() {
         assert_eq!(embedding.len(), vector::EMBEDDING_DIMENSIONS);
+        // T-8.4: FR-33.1 — guard against silent zero-vector regressions in the chunked path.
+        assert!(
+            embedding.iter().any(|v| v.abs() > f32::EPSILON),
+            "embedding[{index}] for {:?} is a zero-vector",
+            texts[index],
+        );
     }
+    // T-8.4: FR-33.1 — distinct inputs must produce distinct embeddings.
+    assert_ne!(
+        embeddings[0], embeddings[1],
+        "distinct inputs 'one' and 'two' must produce different embeddings",
+    );
 }
 
 // T-8.4: RTM FR-33.1 — empty/blank inputs preserve the zero-vector behavior in both individual and batched APIs.
@@ -52,26 +71,33 @@ fn fr33_1_ac3_batch_empty_null_inputs_produce_zero_vectors_matching_individual_b
     assert_eq!(batched[1], expected_zero);
 }
 
-// T-8.4: RTM FR-33.2 — the default max batch size of 32 still processes inputs larger than a single chunk.
+// T-8.4: RTM FR-33.2 — max_batch=0 triggers the DEFAULT_MAX_BATCH fallback (32, pub(crate) so
+// not directly assertable from integration tests) and all embeddings are returned even when
+// the input count (33) exceeds a single default batch.
 #[test]
-fn nfr33_2_ac2_default_max_batch_is_32_larger_input_set_still_produces_all_embeddings() {
+fn fr33_2_ac2_default_fallback_processes_all_embeddings() {
     let _guard = TEST_MUTEX.lock();
     vector::cleanup();
-    let texts = (0..40)
+    // 33 = DEFAULT_MAX_BATCH (32) + 1, forcing a two-chunk split at the boundary.
+    let texts = (0..33)
         .map(|index| format!("concept sample {index}"))
         .collect::<Vec<_>>();
     let refs = texts.iter().map(String::as_str).collect::<Vec<_>>();
     let embeddings = vector::generate_embeddings(&refs, 0).expect("default-batch embeddings");
-    assert_eq!(embeddings.len(), texts.len());
-    for embedding in embeddings {
+    assert_eq!(embeddings.len(), texts.len(), "all 33 texts must produce embeddings");
+    for (index, embedding) in embeddings.iter().enumerate() {
         assert_eq!(embedding.len(), vector::EMBEDDING_DIMENSIONS);
+        // T-8.4: FR-33.2 — guard against silent zero-vector regressions in the default path.
+        assert!(
+            embedding.iter().any(|v| v.abs() > f32::EPSILON),
+            "embedding[{index}] is a zero-vector",
+        );
     }
 }
 
 // T-8.4: RTM FR-25.2 / FR-33.2 — vec_concepts existence checks are scoped to requested concepts so unrelated rows do not skip new embeddings.
 #[test]
-fn fr33_2_ac4_scoped_vec_concepts_lookup_unrelated_existing_concepts_do_not_cause_new_concepts_to_be_skipped()
- {
+fn fr33_2_ac4_scoped_vec_lookup_skips_only_existing_concepts() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     ensure_regular_vec_concepts_table(&env);

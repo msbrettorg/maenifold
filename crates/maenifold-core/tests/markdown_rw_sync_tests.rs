@@ -177,3 +177,33 @@ And [[another-real]] is also valid.
     // T-12.7.1: P4 gap closure — verify exclusion doesn't silently inflate mention count
     assert_eq!(mention_count(&env.cfg, &uri), 2);
 }
+
+#[test]
+fn sync_extract_excludes_wikilinks_in_all_code_contexts() {
+    // T-12.7: RTM NFR-1 — MERGE from vector_sync_boundary.rs: combined fenced + inline code
+    // exclusion through the Sync+Extract pipeline. Tightened positive assertion to structural
+    // concept-set check instead of substring matching. Original name was
+    // markdown_reader_sync_should_match_single_pass_extraction_contract.
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    let relative_path = "sync/code-exclusion-combined.md";
+    let uri = memory_uri(relative_path);
+    write_fixture(
+        &env.cfg,
+        relative_path,
+        "Alpha [[authentication]] outside code.\n\n```rust\n[[ignored-in-code]]\n```\n\nInline `[[ignored-inline]]` should also be excluded.\n",
+    );
+
+    let output = sync_one(&env.cfg, relative_path);
+    let concepts = file_concepts(&env.cfg, &uri);
+
+    assert!(output.contains("Synced memory://sync/code-exclusion-combined"));
+    assert_eq!(
+        concepts,
+        BTreeSet::from(["authentication".to_string()]),
+        "only non-code wikilinks should appear as concepts: {concepts:?}"
+    );
+    assert!(!concepts.contains("ignored-in-code"));
+    assert!(!concepts.contains("ignored-inline"));
+    assert_eq!(mention_count(&env.cfg, &uri), 1);
+}

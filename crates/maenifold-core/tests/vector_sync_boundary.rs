@@ -18,45 +18,37 @@ fn isolated_root() -> (TempDir, Config) {
     (tmp, cfg)
 }
 
-#[test]
-fn vector_sync_tools_are_registered_case_insensitively() {
-    let registry = ToolRegistry::global();
-    for tool in [
-        "FindSimilarConcepts",
-        "findsimilarconcepts",
-        "StartWatcher",
-        "startwatcher",
-        "StopWatcher",
-        "stopwatcher",
-        "RunFullBenchmark",
-        "runfullbenchmark",
-        "Sync",
-        "sync",
-    ] {
-        assert!(registry.contains(tool), "missing tool registration: {tool}");
-    }
-}
+// T-12.7: REMOVED — vector_sync_tools_are_registered_case_insensitively
+// Zero unique assertions; fully subsumed by tool_registry_tests.rs which exhaustively
+// tests all 28 tools including case-insensitive invocation with arbitrary mixed-case forms.
+
+// T-12.7: MERGED — markdown_reader_sync_should_match_single_pass_extraction_contract
+// Moved to markdown_rw_sync_tests.rs as sync_extract_excludes_wikilinks_in_all_code_contexts.
+// Original was duplicated at unit, sync, and CLI integration layers.
 
 #[test]
-fn find_similar_concepts_after_sync_should_surface_ranked_related_concepts() {
+fn find_similar_concepts_after_sync_surfaces_co_occurring_concepts() {
+    // T-12.7: RTM NFR-1 — REWRITE: renamed from find_similar_concepts_after_sync_should_surface_ranked_related_concepts.
+    // Strengthened: structured JSON assertions on result format, score bounds, rank ordering,
+    // and maxResults enforcement. Added asymmetric seed data to verify ranking.
     let _guard = TEST_MUTEX.lock();
     let (_tmp, _cfg) = isolated_root();
-
     let registry = ToolRegistry::global();
+
+    // Seed: strong double co-occurrence for oauth2, single for jwt
     for payload in [
-        json!({"title":"OAuth Seed","content":"This note links [[authentication]] to [[oauth2]]."}),
-        json!({"title":"JWT Seed","content":"This note links [[authentication]] to [[jwt]]."}),
+        json!({"title":"OAuth A","content":"Links [[authentication]] to [[oauth2]]."}),
+        json!({"title":"OAuth B","content":"Links [[authentication]] to [[oauth2]]."}),
+        json!({"title":"JWT A","content":"Links [[authentication]] to [[jwt]]."}),
     ] {
-        let write = registry
+        let w = registry
             .try_invoke("WriteMemory", &payload, OutputFormat::Json)
             .expect("write seed");
-        let parsed: serde_json::Value = serde_json::from_str(&write).expect("write json");
-        assert_eq!(
-            parsed["success"], true,
-            "seed write should succeed: {write}"
-        );
+        let p: serde_json::Value = serde_json::from_str(&w).expect("write json");
+        assert_eq!(p["success"], true, "seed write should succeed: {w}");
     }
 
+    // Sync returns markdown regardless of output format; check for completion marker
     let sync = registry
         .try_invoke("Sync", &json!({}), OutputFormat::Markdown)
         .expect("sync invoke");
@@ -64,76 +56,66 @@ fn find_similar_concepts_after_sync_should_surface_ranked_related_concepts() {
         sync.contains("Sync complete:"),
         "sync should complete before semantic lookup: {sync}"
     );
+    assert!(
+        !sync.contains("ERROR"),
+        "sync should not contain errors: {sync}"
+    );
 
     let output = registry
         .try_invoke(
             "FindSimilarConcepts",
-            &json!({"conceptName":"authentication","maxResults":5}),
-            OutputFormat::Markdown,
-        )
-        .expect("find similar invoke");
-
-    assert!(
-        output.contains("oauth2"),
-        "expected related concept missing: {output}"
-    );
-    assert!(
-        output.contains("jwt"),
-        "expected related concept missing: {output}"
-    );
-
-    Config::reset_overrides();
-}
-
-#[test]
-fn markdown_reader_sync_should_match_single_pass_extraction_contract() {
-    let _guard = TEST_MUTEX.lock();
-    let (_tmp, _cfg) = isolated_root();
-
-    let registry = ToolRegistry::global();
-    let write = registry
-        .try_invoke(
-            "WriteMemory",
-            &json!({
-                "title":"Markdown Reader Sync Seed",
-                "content":"Alpha [[authentication]] outside code.\n\n```rust\n[[ignored-in-code]]\n```\n\nInline `[[ignored-inline]]` should also be excluded."
-            }),
+            &json!({"conceptName":"authentication","maxResults":3}),
             OutputFormat::Json,
         )
-        .expect("write seed");
-    let parsed: serde_json::Value = serde_json::from_str(&write).expect("write json");
+        .expect("find similar invoke");
+    let parsed: serde_json::Value = serde_json::from_str(&output).expect("json parse");
+
     assert_eq!(
         parsed["success"], true,
-        "seed write should succeed: {write}"
+        "FindSimilarConcepts should succeed: {output}"
     );
 
-    let sync = registry
-        .try_invoke("Sync", &json!({}), OutputFormat::Markdown)
-        .expect("sync invoke");
+    // Results list is present and bounded by maxResults
+    let results = parsed["data"]["results"]
+        .as_array()
+        .expect("results should be an array");
     assert!(
-        sync.contains("Sync complete:"),
-        "sync should complete before extraction assertions: {sync}"
+        results.len() <= 3,
+        "maxResults=3 not respected, got {} results: {output}",
+        results.len()
     );
 
-    let extract = registry
-        .try_invoke(
-            "ExtractConceptsFromFile",
-            &json!({"identifier":"markdown-reader-sync-seed"}),
-            OutputFormat::Markdown,
-        )
-        .expect("extract invoke");
+    // Both co-occurring concepts are surfaced
+    let names: Vec<&str> = results
+        .iter()
+        .filter_map(|r| r["name"].as_str())
+        .collect();
+    assert!(
+        names.contains(&"oauth2"),
+        "expected oauth2 in results: {names:?}"
+    );
+    assert!(
+        names.contains(&"jwt"),
+        "expected jwt in results: {names:?}"
+    );
 
+    // Similarity scores are bounded to (0, 1]
+    for result in results {
+        let similarity = result["similarity"]
+            .as_f64()
+            .expect("similarity should be a number");
+        assert!(
+            similarity > 0.0 && similarity <= 1.0,
+            "similarity must be in (0, 1], got {similarity}: {output}"
+        );
+    }
+
+    // Stronger co-occurrence (oauth2 × 2 edges) ranks above weaker (jwt × 1 edge)
+    let oauth2_pos = names.iter().position(|n| *n == "oauth2").unwrap();
+    let jwt_pos = names.iter().position(|n| *n == "jwt").unwrap();
     assert!(
-        extract.contains("authentication"),
-        "expected non-code wikilink missing: {extract}"
-    );
-    assert!(
-        !extract.contains("ignored-in-code"),
-        "code block wikilinks should be excluded: {extract}"
-    );
-    assert!(
-        !extract.contains("ignored-inline"),
-        "inline-code wikilinks should be excluded: {extract}"
+        oauth2_pos < jwt_pos,
+        "oauth2 (2 co-occurrences) should rank above jwt (1 co-occurrence): {names:?}"
     );
 
     Config::reset_overrides();

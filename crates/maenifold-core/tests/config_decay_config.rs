@@ -13,8 +13,16 @@ fn decay_config_accessor_defaults_match_spec() {
     let _env = clear_decay_env();
     let env = isolated_env();
 
-    assert_eq!(env.cfg.decay_grace_days_sequential(), 7, "sequential grace days");
-    assert_eq!(env.cfg.decay_grace_days_workflows(), 14, "workflow grace days");
+    assert_eq!(
+        env.cfg.decay_grace_days_sequential(),
+        7,
+        "sequential grace days"
+    );
+    assert_eq!(
+        env.cfg.decay_grace_days_workflows(),
+        14,
+        "workflow grace days"
+    );
     assert_eq!(env.cfg.decay_grace_days_default(), 28, "default grace days");
     assert_eq!(env.cfg.decay_half_life_days(), 30, "half-life days");
     assert_eq!(env.cfg.decay_function(), "power-law", "function");
@@ -51,8 +59,16 @@ fn get_config_summary_shows_actual_values() {
     let env = isolated_env();
 
     // Direct accessor assertions close the indirect coverage gap (Rec #3).
-    assert_eq!(env.cfg.decay_grace_days_sequential(), 9, "sequential accessor");
-    assert_eq!(env.cfg.decay_grace_days_workflows(), 18, "workflow accessor");
+    assert_eq!(
+        env.cfg.decay_grace_days_sequential(),
+        9,
+        "sequential accessor"
+    );
+    assert_eq!(
+        env.cfg.decay_grace_days_workflows(),
+        18,
+        "workflow accessor"
+    );
     assert_eq!(env.cfg.decay_grace_days_default(), 33, "default accessor");
     assert_eq!(env.cfg.decay_half_life_days(), 45, "half-life accessor");
     assert_eq!(env.cfg.decay_function(), "exponential", "function accessor");
@@ -79,8 +95,16 @@ fn invalid_integer_decay_env_vars_fall_back_to_defaults() {
     ]);
     let env = isolated_env();
 
-    assert_eq!(env.cfg.decay_grace_days_sequential(), 7, "sequential grace days");
-    assert_eq!(env.cfg.decay_grace_days_workflows(), 14, "workflow grace days");
+    assert_eq!(
+        env.cfg.decay_grace_days_sequential(),
+        7,
+        "sequential grace days"
+    );
+    assert_eq!(
+        env.cfg.decay_grace_days_workflows(),
+        14,
+        "workflow grace days"
+    );
     assert_eq!(env.cfg.decay_grace_days_default(), 28, "default grace days");
     assert_eq!(env.cfg.decay_half_life_days(), 30, "half-life days");
 }

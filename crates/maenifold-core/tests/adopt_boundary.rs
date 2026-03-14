@@ -85,12 +85,7 @@ fn assert_adopt_type_produces_valid_instruction(
     asset_json: Value,
 ) {
     let (config, _tmp) = isolated_config();
-    write_asset(
-        &config,
-        kind_dir,
-        &format!("{identifier}.json"),
-        asset_json,
-    );
+    write_asset(&config, kind_dir, &format!("{identifier}.json"), asset_json);
 
     let output = invoke_adopt(json!({"type": asset_type, "identifier": identifier}));
     let lower = output.to_ascii_lowercase();

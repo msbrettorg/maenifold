@@ -243,3 +243,47 @@ Ordered by impact:
 - FIX dangling `SEC-001` references in `json.rs` and test comments → `NFR-3` only (Rec #6)
 - Final test count: 7 (was 4). Load-bearing score: 7/7.
 - Commit: 2286708
+
+---
+
+## Red-team Audit
+
+**Traceability**: NFR-2, NFR-3 — eval references are valid. `T-0.1` traceability tags in source consistent across all 7 tests.
+
+### Verdict Line Items
+
+- ✅ MERGE `safe_json_with_normal_depth_deserializes` → `safe_json_sub_boundary_depths_deserialize`: depths `[1, 10, 31]` match eval recommendation. Depth 32 correctly excluded (already covered by KEEP test 2, no redundancy). Parameterized via `for` loop as spec allowed.
+- ✅ KEEP `safe_json_with_max_depth_32_deserializes`: code unchanged, confirmed in diff `ee459bd..e1b58c8`. Off-by-one boundary guard preserved.
+- ✅ REWRITE `safe_json_with_depth_over_32_throws_exception` → `safe_json_depth_33_exceeds_limit_returns_err`: name now Rust-idiomatic (`returns_err`). Assertion body unchanged — same `to_ascii_lowercase().contains("depth")` check. Matches eval Rec #5.
+- ✅ REMOVE `safe_json_with_depth_64_throws_exception`: deleted. No unique coverage lost — depth-33 test covers the same `if depth > max_depth` arm. Confirmed eval analysis correct.
+- ✅ ADD `safe_json_array_nesting_at_max_depth_deserializes`: new `create_nested_array` helper produces `[[[...]]]` payloads. Tests `[` nesting at boundary 32 (accept). Addresses eval Gap 1.
+- ✅ ADD `safe_json_array_nesting_at_33_returns_err`: array nesting at 33 rejected. Mirrors object-nesting rejection test. Addresses eval Gap 1.
+- ✅ ADD `safe_json_brackets_inside_strings_are_not_counted`: uses exact JSON payload from eval Gap 2 recommendation. Tests `in_string` + escape tracking logic. Guards against scanner regression where `{`/`[` inside strings inflate depth counter.
+- ✅ ADD `safe_json_mixed_nesting_at_max_depth_deserializes`: alternating `{`/`[` nesting at boundary 32. Addresses mixed-nesting case from eval Gap 1.
+- ✅ FIX `SEC-001`: zero occurrences of `SEC-001` remain in `crates/` source tree. All test comments now reference `NFR-3` only. Matches eval Rec #6.
+
+### Production Code Audit
+
+- Only production change: 2 comment lines in `crates/maenifold-core/src/util/json.rs` removing `/ SEC-001` from traceability tags. No logic, no assertion, no signature changes. No unrelated modifications introduced.
+
+### Test Execution
+
+- All 7 tests pass: `cargo test --package maenifold-core safe_json` → `7 passed; 0 failed`.
+- Final count 7 matches SWE claim (was 4).
+
+### Minor Finding
+
+- ⚠️ Commit reference in SWE Remediation section says `2286708` but that commit is `test(repair_concepts_replacement)`. The actual safe_json_tests remediation commit is `e1b58c8`. This is a metadata error in the eval spec, not a code defect.
+
+### Not Addressed (Accepted)
+
+- Eval Gap 3 (escape sequence edge cases: `"\\"`, `"\\{"`) — not in SWE remediation plan. Lower priority. Acceptable.
+- Eval Gap 4 (`get_string_array` silent-swallow behavior test) — not in SWE remediation plan. Lower priority. Acceptable.
+- Eval Rec #4 (`rstest` parameterization) — SWE used `for` loop instead. Eval explicitly allowed this alternative. Acceptable.
+
+### Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- safe_json_tests`: 7 passed, 0 failed
+- Verdict: PASS

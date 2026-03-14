@@ -97,3 +97,41 @@ If any `MAENIFOLD_DECAY_*` env var is set in the test runner's environment, the 
 ## Load-Bearing Score: 14/15
 
 Test 2 (`memory_uri_to_path_adds_md_extension_for_extensionless_uris`) as currently written is partially subsumed by test 1. The `.md` extension fact is already proven by test 1's full path equality assertion. All other 14 tests cover distinct behavior not exercised elsewhere.
+
+---
+
+## SWE Remediation
+
+- REWRITE test 2 (`memory_uri_to_path_adds_md_extension_for_extensionless_uris`): replaced with `memory_uri_to_path_does_not_double_extend_md_uri` — tests that `memory://note.md` resolves to `note.md` not `note.md.md` (R1/R4, P0)
+- REWRITE test 6 (`slugify_title_matches_memory_tool_contract_for_simple_title`): renamed to `slugify_title_lowercases_and_hyphenates_spaces` (R2, P1)
+- KEEP+HARDEN test 13 (`compute_decay_weight_uses_shorter_sequential_grace_period_than_default`): added guard assertions pinning `decay_grace_days_sequential() == 7` and `decay_grace_days_default() == 28` (R3, P1)
+- KEEP+DOCUMENT test 15 (`compute_decay_weight_decays_invalidated_assumptions_faster_than_active`): added comment documenting that assumption status grace/half-life values are hardcoded in `scoring.rs` and not affected by config env vars (R3, P1)
+- ADD `sanitize_user_input_passes_clean_input_unchanged`: regression test ensuring function is a no-op on safe input (R5, P2)
+- Test count: 15 → 16 (1 added, 1 rewritten, 1 renamed)
+- All 16 tests pass: `cargo test --test integration_tests -p maenifold-core -- memory_boundary_paths`
+- Commit: 2dd6932
+
+---
+
+## Red-team Audit
+
+**Scope:** Commit `2dd6932` — 1 file changed (35 insertions, 5 deletions). Only `memory_boundary_paths.rs` touched. No source code changes. No unrelated modifications.
+
+**Traceability:** T-14.5 / T-15.19 / T-7.8 / T-12.5 / FR-12 / FR-21 / NFR-1
+
+- ✅ **REWRITE test 2** (`memory_uri_to_path_does_not_double_extend_md_uri`): Matches eval R1/R4 (P0). Input changed to `"memory://note.md"`. Asserts `file_name() == Some("note.md")` and `extension() == Some("md")` — covers the exact double-extension gap the eval identified. Traceability comment `T-15.19: RTM FR-12` present.
+- ✅ **REWRITE test 6** (`slugify_title_lowercases_and_hyphenates_spaces`): Matches eval R2 (P1). Rename exact. Assertion body unchanged (eval confirmed it was correct). Traceability comment `T-14.5: RTM FR-12` present.
+- ✅ **KEEP+HARDEN test 13**: Matches eval R3 (P1). Added `assert_eq!(cfg.decay_grace_days_sequential(), 7, ...)` and `assert_eq!(cfg.decay_grace_days_default(), 28, ...)` guard assertions at top of test — fails fast if defaults change, preventing the silent-pass scenario the eval warned about. Traceability comment `T-12.5: RTM FR-21` present.
+- ✅ **KEEP+DOCUMENT test 15**: Matches eval R3 alternative (P1). Added inline documentation explaining that assumption status grace/half-life values are hardcoded in `scoring.rs` (not env-configurable), with exact values (invalidated: grace=7d, hl=14d; active: grace=14d, hl=30d) and worked examples. This is stronger than a guard assertion — it proves the eval's env-var fragility concern does not apply to this specific test's assertion pair.
+- ✅ **ADD `sanitize_user_input_passes_clean_input_unchanged`**: Matches eval R5 (P2). Asserts `sanitize_user_input("hello world") == "hello world"` — exact regression test the eval specified.
+- ✅ **KEEP tests untouched**: All 11 KEEP-verdict tests (1, 3–5, 7–12, 14) are unmodified in the diff.
+- ✅ **Test count**: 15 → 16 confirmed (16 `#[test]` markers, 16 tests run).
+- ✅ **All 16 pass**: Independently verified via `cargo test --test integration_tests -p maenifold-core -- memory_boundary_paths` — `ok. 16 passed; 0 failed`.
+
+**Verdict: PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_boundary_paths`: 16 passed, 0 failed
+- Verdict: PASS

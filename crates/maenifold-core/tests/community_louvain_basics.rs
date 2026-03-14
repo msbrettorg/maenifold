@@ -117,7 +117,10 @@ fn run_louvain_empty_graph_returns_empty() {
     let concept_count: i64 = conn
         .query_row("SELECT COUNT(*) FROM concepts", [], |r| r.get(0))
         .expect("count");
-    assert_eq!(concept_count, 0, "TestEnv must start with empty concepts table");
+    assert_eq!(
+        concept_count, 0,
+        "TestEnv must start with empty concepts table"
+    );
     drop(conn);
 
     let count = detect_and_persist(&env.db_path, 1.0, None).expect("detect");
@@ -185,7 +188,10 @@ fn run_louvain_disconnected_components_separate_communities() {
     drop(conn);
 
     let count = detect_and_persist(&env.db_path, 1.0, None).expect("detect");
-    assert_eq!(count, 2, "two disconnected 3-cliques must produce exactly 2 communities");
+    assert_eq!(
+        count, 2,
+        "two disconnected 3-cliques must produce exactly 2 communities"
+    );
 
     let conn = open_conn(&env.db_path);
     let c1a = get_community_id(&conn, "c1-a").expect("c1-a");

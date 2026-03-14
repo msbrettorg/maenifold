@@ -29,9 +29,15 @@ fn format_activity_report_sequential_entry_includes_expected_fields() {
     assert!(output.contains("# Recent Activity"));
     assert!(output.contains("session-fmt-001"));
     assert!(output.contains("(sequential)"));
-    assert!(output.contains("Thoughts: 2"), "expected 'Thoughts: 2', got:\n{output}");
+    assert!(
+        output.contains("Thoughts: 2"),
+        "expected 'Thoughts: 2', got:\n{output}"
+    );
     assert!(output.contains("Status: active"));
-    assert!(output.contains("Modified: 2026-02-18 10:00"), "expected timestamp 'Modified: 2026-02-18 10:00', got:\n{output}");
+    assert!(
+        output.contains("Modified: 2026-02-18 10:00"),
+        "expected timestamp 'Modified: 2026-02-18 10:00', got:\n{output}"
+    );
 }
 
 // T-2.3: RTM FR-4 / RTM-025
@@ -53,17 +59,17 @@ fn format_activity_report_sequential_entry_include_content_toggle() {
                 "Thoughts: 3",
             ],
             &[
-                "First: \"",  // snippet form should not appear
+                "First: \"", // snippet form should not appear
             ],
         ),
         (
             false,
             &[
-                "First: \"",  // snippet form should appear
+                "First: \"", // snippet form should appear
                 "Thoughts: 3",
             ],
             &[
-                "First H2:",  // content detail form should not appear
+                "First H2:", // content detail form should not appear
                 "First H2 Content:",
             ],
         ),
@@ -114,9 +120,15 @@ fn format_activity_report_workflow_entry_includes_steps_and_status() {
 
     assert!(output.contains("wf-fmt-001"));
     assert!(output.contains("(workflow)"));
-    assert!(output.contains("Steps: 2"), "expected 'Steps: 2', got:\n{output}");
+    assert!(
+        output.contains("Steps: 2"),
+        "expected 'Steps: 2', got:\n{output}"
+    );
     assert!(output.contains("Status: active"));
-    assert!(output.contains("Modified: 2026-02-18 13:00"), "expected timestamp, got:\n{output}");
+    assert!(
+        output.contains("Modified: 2026-02-18 13:00"),
+        "expected timestamp, got:\n{output}"
+    );
 }
 
 // T-2.3: RTM FR-4 / RTM-025
@@ -136,12 +148,9 @@ fn format_activity_report_memory_entry_include_content_toggle() {
                 "(memory)",
                 "Title: Memory Format Test",
                 "Sections: 2",
-                "First: \"",  // snippet form
+                "First: \"", // snippet form
             ],
-            &[
-                "First H2:",
-                "First H2 Content:",
-            ],
+            &["First H2:", "First H2 Content:"],
         ),
         (
             true,
@@ -156,7 +165,7 @@ fn format_activity_report_memory_entry_include_content_toggle() {
                 "Last H2 Content: Detailed content here.",
             ],
             &[
-                "First: \"",  // snippet form should not appear
+                "First: \"", // snippet form should not appear
             ],
         ),
     ];
@@ -218,7 +227,9 @@ fn format_activity_report_multiple_entries_all_entities_present() {
     assert!(output.contains("(memory)"));
 
     // Rec #5: Verify ordering — session-multi-a (later timestamp) appears before note-multi-b
-    let pos_a = output.find("session-multi-a").expect("session-multi-a not found");
+    let pos_a = output
+        .find("session-multi-a")
+        .expect("session-multi-a not found");
     let pos_b = output.find("note-multi-b").expect("note-multi-b not found");
     assert!(
         pos_a < pos_b,
@@ -243,8 +254,17 @@ fn format_activity_report_thinking_entry_classified_as_thinking() {
 
     // Thinking type uses format_memory_entry: emits (thinking) label, Title, Sections
     assert!(output.contains("thought-note-001"));
-    assert!(output.contains("(thinking)"), "expected '(thinking)' type label, got:\n{output}");
+    assert!(
+        output.contains("(thinking)"),
+        "expected '(thinking)' type label, got:\n{output}"
+    );
     assert!(output.contains("Title: Standalone Thinking Note"));
-    assert!(output.contains("Sections: 2"), "expected 'Sections: 2', got:\n{output}");
-    assert!(output.contains("Modified: 2026-02-18 17:00"), "expected timestamp, got:\n{output}");
+    assert!(
+        output.contains("Sections: 2"),
+        "expected 'Sections: 2', got:\n{output}"
+    );
+    assert!(
+        output.contains("Modified: 2026-02-18 17:00"),
+        "expected timestamp, got:\n{output}"
+    );
 }

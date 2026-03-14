@@ -30,10 +30,7 @@ fn concept_graph_smoke_test() {
     );
 
     // T-1.6: RTM NFR-1 — assert both neighbours individually, not via permissive OR.
-    let names: Vec<&str> = direct
-        .iter()
-        .filter_map(|r| r["Name"].as_str())
-        .collect();
+    let names: Vec<&str> = direct.iter().filter_map(|r| r["Name"].as_str()).collect();
     assert!(
         names.contains(&"artificial-intelligence"),
         "expected AI as direct relation of Machine Learning: {context}"
@@ -113,11 +110,7 @@ fn build_context_with_content_test() {
     // using a permissive OR that passes even when most files are missing.
     let total_preview_count: usize = direct
         .iter()
-        .map(|r| {
-            r["ContentPreview"]
-                .as_object()
-                .map_or(0, |map| map.len())
-        })
+        .map(|r| r["ContentPreview"].as_object().map_or(0, |map| map.len()))
         .sum();
 
     assert!(

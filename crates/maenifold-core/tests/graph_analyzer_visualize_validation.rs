@@ -15,10 +15,7 @@ fn visualize_with_empty_or_null_concept_name_returns_error() {
     let (_tmp, cfg) = isolated_config();
     // No seed_graph — validation rejects before any DB access.
 
-    for (label, concept_value) in [
-        ("empty string", json!("")),
-        ("null", json!(null)),
-    ] {
+    for (label, concept_value) in [("empty string", json!("")), ("null", json!(null))] {
         let result = visualize(
             &cfg,
             json!({

@@ -39,10 +39,14 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
         .ok_or(MaenifoldError::MissingProperty("conceptName"))?
         .trim();
     if concept_name.is_empty() {
-        return Err(MaenifoldError::Message("conceptName parameter is required and cannot be empty".to_string()));
+        return Err(MaenifoldError::Message(
+            "conceptName parameter is required and cannot be empty".to_string(),
+        ));
     }
     if concept_name.len() > 256 {
-        return Err(MaenifoldError::Message("conceptName must be 256 characters or fewer".to_string()));
+        return Err(MaenifoldError::Message(
+            "conceptName must be 256 characters or fewer".to_string(),
+        ));
     }
 
     let original_concept_name = concept_name.to_string();
@@ -69,7 +73,9 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
         .and_then(Value::as_u64)
         .unwrap_or(10);
     if !(1..=50).contains(&max_results) {
-        return Err(MaenifoldError::Message("maxResults must be between 1 and 50".to_string()));
+        return Err(MaenifoldError::Message(
+            "maxResults must be between 1 and 50".to_string(),
+        ));
     }
 
     let concept_name = normalize_concept(concept_name);
@@ -122,11 +128,7 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
                         // T-12.3: RTM NFR-1 keeps the vec0 plateau warning explicit without altering result output.
                         output.push_str(&format!("\n⚠️ {warning}\n"));
                     }
-                    append_short_query_warning(
-                        &mut output,
-                        &original_concept_name,
-                        low_info_query,
-                    );
+                    append_short_query_warning(&mut output, &original_concept_name, low_info_query);
                     // T-13.5: RTM FR-8 — use centralized with_next_steps helper
                     with_next_steps(&output, &["BuildContext", "SearchMemories"])
                 }

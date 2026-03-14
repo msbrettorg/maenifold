@@ -56,3 +56,48 @@ The file is named "CRUD" but contains no Delete test — the D is structurally a
 - P5 (rename file for missing D) and P6 (document coverage split) deferred as P3+ scope
 - Test count: 6 → 5 (merged pair)
 - Commit: 9618af6
+
+---
+
+## Red-team Audit
+
+### REWRITE `append_assumption_creates_file_with_correct_structure`
+- ✅ Removed `files_before + 1` file-count side-effect assertion (diff confirms all `date_dir`, `read_dir`, `files_before`, `files_after` code deleted)
+- ✅ Removed verbatim `💡 Next: Consider running Sync()` display-copy assertion
+- ✅ Replaced with `!result.contains("ERROR")` + `uri.starts_with("memory://assumptions/")` — matches eval recommendation exactly
+- ✅ Frontmatter round-trip and WikiLink assertions preserved unchanged
+
+### MERGE `requires_concepts` + `rejects_concepts_with_brackets` → `rejects_invalid_concepts`
+- ✅ Extracted `assert_append_validation_error(concepts: Value, expected_prefix: &str)` helper at module level
+- ✅ Helper called with `json!([])` and `json!(["[[dialogue]]"])` — both original coverage points preserved
+- ✅ Both original error prefixes asserted verbatim — zero coverage loss
+- ✅ Test count correctly reduced 6 → 5
+
+### REWRITE `read_assumption_returns_correct_content`
+- ✅ Removed weak `**Created**:` / `**Modified**:` label-presence assertions
+- ✅ Added `harness.read(&uri)` frontmatter inspection (eval option (a))
+- ✅ Asserts non-empty `created` and `modified` values
+- ✅ Validates RFC 3339 parse via `chrono::DateTime::parse_from_rfc3339`
+- ✅ Asserts `created ≈ modified` within 1s tolerance on fresh assumption (YAML roundtrip-safe)
+
+### REWRITE `update_assumption_persists_validation_plan`
+- ✅ Added `assert!(read_result.contains("**Status**: active"))` with descriptive message — exact match to eval P4 recommendation
+
+### KEEP `update_assumption_changes_status`
+- ✅ Confirmed unchanged via diff (no code changes to test body)
+
+### Cross-checks
+- All 5 tests pass: `cargo test -p maenifold-core 'session_assumption_crud::'` → 5 passed, 0 failed
+- No unrelated changes: commit 9618af6 touches only `session_assumption_crud.rs` (1 file, +66/-43)
+- Traceability: all rewritten tests carry `T-12.7: RTM NFR-1` comments
+- P5/P6 deferred as P3+ scope — acceptable; eval listed these as recommendations, not mandatory verdicts
+- No new production code, no new dependencies (`chrono` already in test dep graph via `support.rs`)
+
+### Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- session_assumption_crud`: 5 passed, 0 failed
+- Test count matches post-merge expectation (6 → 5)
+- Verdict: PASS

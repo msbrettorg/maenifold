@@ -99,3 +99,47 @@ The function maps `' '`, `'_'`, `'/'` but passes **all other characters through 
 - ADD `normalize_concept_digits_and_passthrough_chars_preserved`: pins `"user-123"` → `"user-123"` passthrough behavior (P1)
 - Final count: 11 tests (was 10; -1 REMOVE, +2 ADD), all pass
 - Commit: dbb876d
+
+---
+
+## Red-team Audit
+
+**Traceability:** T-12.7.1 / RTM NFR-1
+
+### REMOVE
+
+- ✅ REMOVE `normalize_concept_many_consecutive_hyphens_compresses_to_single_hyphen`: Confirmed deleted in diff. No unique coverage lost — the implementation is a simple `dedup` over hyphens with no count-sensitive branching; `triple_hyphens` exercises the identical code path. The only assertion that existed (`"test----------concept"` → `"test-concept"`) is structurally identical to the surviving `triple_hyphens` test.
+
+### RENAME (4 tests)
+
+- ✅ RENAME `multiple_slashes` → `slash_and_space_mix_deduplicates_to_single_hyphen`: Exact match to eval spec. Assertion body unchanged (`"auth / / token"` → `"auth-token"`). New name accurately describes the mixed-input class.
+- ✅ RENAME `leading_trailing_separators_trims_hyphens` → `leading_trailing_spaces_produce_trimmed_result`: Exact match. Assertion unchanged (`"  concept  "` → `"concept"`). New name correctly describes the whitespace→hyphen→trim pipeline.
+- ✅ RENAME `single_separators_works_as_expected` → `single_spaces_produce_hyphen_delimited_lowercase`: Exact match. Assertion unchanged (`"REST API Gateway"` → `"rest-api-gateway"`). Non-name eliminated.
+- ✅ RENAME `no_separators_works_as_expected` → `no_separators_returns_lowercased_input`: Exact match. Assertion unchanged (`"Authentication"` → `"authentication"`). Non-name eliminated.
+
+### ADD (2 tests)
+
+- ✅ ADD `normalize_concept_empty_input_returns_empty`: `assert_eq!(normalize_concept(""), "")` — pins the empty-input edge case per eval recommendation 3. Correct assertion.
+- ✅ ADD `normalize_concept_digits_and_passthrough_chars_preserved`: `assert_eq!(normalize_concept("user-123"), "user-123")` — pins passthrough behavior per eval recommendation 4. Correct assertion.
+
+### KEEP (5 tests, verified untouched)
+
+- ✅ `double_space_compresses_to_single_hyphen` — unchanged
+- ✅ `double_underscore_compresses_to_single_hyphen` — unchanged
+- ✅ `mixed_separators_compresses_to_single_hyphen` — unchanged
+- ✅ `only_separators_returns_empty` — unchanged
+- ✅ `triple_hyphens_compresses_to_single_hyphen` — unchanged
+
+### Scope check
+
+- Commit `dbb876d` touches exactly 1 file (`markdown_rw_normalize_tests.rs`). No source code modified. No unrelated changes.
+- All 11 tests pass: `cargo test -p maenifold-core normalize_concept` → 11 passed, 0 failed.
+- P1 recommendations (empty input, passthrough chars) both addressed. P2 (rstest parameterization) was CONSIDER-tier — not required, correctly deferred.
+
+### Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- markdown_rw_normalize`: 11 passed, 0 failed
+- All 11 test names match eval spec post-remediation (4 renames, 1 removal, 2 additions confirmed)
+- Verdict: PASS

@@ -99,13 +99,17 @@ pub fn move_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         match find_file_as_uri(source, &context.config) {
             Some(found) => found,
             None => {
-                return Err(MaenifoldError::Message(format!("Source memory file not found: {source}")));
+                return Err(MaenifoldError::Message(format!(
+                    "Source memory file not found: {source}"
+                )));
             }
         }
     };
 
     if !file_exists(&source_uri, &context.config)? {
-        return Err(MaenifoldError::Message(format!("Source memory file not found: {source}")));
+        return Err(MaenifoldError::Message(format!(
+            "Source memory file not found: {source}"
+        )));
     }
 
     let source_path = crate::markdown::uri_to_path(&source_uri, &context.config.memory_path)?;

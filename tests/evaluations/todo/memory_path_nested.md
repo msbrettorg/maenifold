@@ -340,3 +340,25 @@ genuinely adversarial input would bring it up to load-bearing status and raise t
 - REWRITE T5 `deep_nesting_limits_are_respected` → `deep_nesting_succeeds_at_ten_levels`: renamed to accurately describe the invariant; extracted magic `10` as `DEEP_NESTING_PROBE_DEPTH` constant with doc comment (R2)
 - REWRITE T6 `empty_directory_names_are_handled_gracefully` → `empty_directory_segments_are_normalised_on_write`: removed useless `!result.contains("Exception")` assertion; added `starts_with("Created memory FILE:")` success assertion; added round-trip `read_memory` validation; used `format!("{TEST_FOLDER}/…")` and unique titles per case (R3)
 - Commit: 33f7ef9a347a117e0d46ed6012dfa547421711e9
+
+---
+
+## Red-team Audit
+
+- ✅ KEEP T1 `write_memory_creates_nested_directories_automatically`: untouched, confirmed no diff
+- ✅ KEEP T2 `move_memory_creates_nested_destination_directories`: untouched, confirmed no diff
+- ✅ KEEP+R4 T3 `extract_concepts_from_file_works_with_nested_paths`: concept-count assertion added (`matches("[[").count() == 2`); variant from eval suggestion (`lines().filter(…)`) but equivalent or stronger — catches `[[` anywhere, not just at line start
+- ✅ REWRITE T4 → `nested_paths_handle_adversarial_title_characters`: (a) renamed to match expanded charter, (b) hardcoded `"memory-path-tests/…"` replaced with `format!("{TEST_FOLDER}/…")`, (c) adversarial data set covers unicode, colons, percent, dots, parentheses, (d) `slugify_title()` computes expected slugs dynamically, (e) round-trip read validates content. All three R1 requirements met.
+- ✅ REWRITE T5 → `deep_nesting_succeeds_at_ten_levels`: renamed to accurately describe invariant; `DEEP_NESTING_PROBE_DEPTH` constant extracted with doc comment explaining rationale. Both R2 requirements met.
+- ✅ REWRITE T6 → `empty_directory_segments_are_normalised_on_write`: (a) `!result.contains("Exception")` removed, (b) `starts_with("Created memory FILE:")` success assertion added, (c) round-trip `read_memory` validation added, (d) unique titles per case prevent collision, (e) `format!("{TEST_FOLDER}/…")` used. All core R3 requirements met.
+- ⚠️ NOTE T6: eval R3 recommended asserting "resulting URI contains no double-slash" for the normalise path. SWE omitted this explicit check. Instead, the round-trip read constructs URIs with `//` still present, testing that both write and read tolerate double-slash — arguably broader coverage. Not blocking.
+- ⚠️ NOTE commit scope: commit 33f7ef9 bundles `memory_tools_edit_ops.rs` changes (318-line diff, separate eval spec `memory_tools_edit_ops.md`). Those changes do not affect `memory_path_nested.rs` and are outside this audit's scope, but ideally each eval remediation should be a separate commit for clean traceability.
+- ✅ All 6 tests compile and pass: `nested_paths_handle_adversarial_title_characters`, `deep_nesting_succeeds_at_ten_levels`, `empty_directory_segments_are_normalised_on_write`, `extract_concepts_from_file_works_with_nested_paths`, `write_memory_creates_nested_directories_automatically`, `move_memory_creates_nested_destination_directories`
+- ✅ No unrelated changes to `memory_path_nested.rs` (only eval-specified modifications)
+- Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_path_nested`: 6 passed, 0 failed
+- Verdict: PASS

@@ -1,8 +1,8 @@
 #[path = "benchmark_boundary/support.rs"]
 mod support;
 
-use maenifold_core::json::OutputFormat;
 use maenifold_core::ToolRegistry;
+use maenifold_core::json::OutputFormat;
 use serde_json::json;
 use support::{
     TEST_MUTEX, invoke_benchmark, invoke_benchmark_result, isolated_env, write_memory_file,

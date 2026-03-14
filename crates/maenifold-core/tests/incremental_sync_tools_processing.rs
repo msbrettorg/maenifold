@@ -133,17 +133,18 @@ fn watcher_processing_ignores_non_markdown_files_in_batch() {
     let ignored_json = nested.join("ignored.json");
     let watched_md = nested.join("watched.md");
     std::fs::write(&ignored_txt, "[[ignored-concept-txt]]\n").expect("write txt");
-    std::fs::write(
-        &ignored_json,
-        "{\"note\": \"[[ignored-concept-json]]\"}\n",
-    )
-    .expect("write json");
+    std::fs::write(&ignored_json, "{\"note\": \"[[ignored-concept-json]]\"}\n")
+        .expect("write json");
     std::fs::write(&watched_md, "# Watched\n\n[[watched-concept]]\n").expect("write markdown");
     let watched_uri = path_to_uri(&watched_md, &cfg.memory_path).expect("watched uri");
 
     process_pending_paths_for_test(
         &ctx,
-        &[ignored_txt.clone(), ignored_json.clone(), watched_md.clone()],
+        &[
+            ignored_txt.clone(),
+            ignored_json.clone(),
+            watched_md.clone(),
+        ],
     )
     .expect("process pending paths");
 

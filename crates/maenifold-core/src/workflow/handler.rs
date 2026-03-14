@@ -111,7 +111,9 @@ fn continue_workflow_session(
 
     let uri = workflow_session_uri(session_id);
     if !file_exists(&uri, &context.config)? {
-        return Err(MaenifoldError::Message(format!("Session {session_id} doesn't exist")));
+        return Err(MaenifoldError::Message(format!(
+            "Session {session_id} doesn't exist"
+        )));
     }
 
     let (frontmatter, existing_content, _) = read_markdown(&uri, &context.config)?;

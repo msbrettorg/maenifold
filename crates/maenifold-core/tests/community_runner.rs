@@ -107,7 +107,10 @@ fn runner_seed_produces_deterministic_assignments() {
         .map(|c| get_community_id(&conn, c))
         .collect();
 
-    assert_eq!(count1, count2, "seeded runs must return the same community count");
+    assert_eq!(
+        count1, count2,
+        "seeded runs must return the same community count"
+    );
     assert_eq!(
         ids1, ids2,
         "seeded runs must produce identical community assignments"

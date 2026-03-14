@@ -258,3 +258,111 @@ actionable gap to close after the naming rewrites.
 - **SWE fix needed in `support.rs`**: Either (a) load vec0 extension in the test connection before
   dropping, or (b) use `db::vec0::load_vec0_extension()` + drop, then create the plain table.
 - Verdict: **FAIL**
+
+---
+
+## SWE Remediation
+
+- FIX support.rs `ensure_regular_vec_concepts_table`: added `try_load_vec0_extension` helper that
+  loads the vec0 SQLite extension before `DROP TABLE IF EXISTS vec_concepts`. This resolves the
+  blue-team root cause — SQLite requires the module to be present to drop a virtual table created
+  by `GraphDatabase::initialize_database()`. If vec0 is unavailable, the virtual table was never
+  created and the DROP is a no-op.
+- REWRITE test 1: renamed `empty_and_null_inputs_produce_safe_embeddings` →
+  `null_and_empty_embeddings_produce_blocked_warning` per P0 recommendation (RTM-042 naming clarity)
+- REWRITE test 2: renamed `thread_safe_initialization_works` →
+  `concurrent_repair_concepts_reads_produce_consistent_output` per P0 recommendation (RTM-043).
+  Updated comment to remove stale C# initialization lifecycle framing.
+- KEEP test 3: `above_threshold_similarity_returns_success_output` — unchanged per verdict
+- ADD test 4: `above_threshold_with_real_cosine_distance` — closes the mid-range coverage gap
+  (P0 recommendation #3). Uses `deterministic_embedding(0.75)` vs `deterministic_embedding(0.50)`
+  producing cosine similarity ≈ 0.993, tested against threshold 0.99. Asserts success banner,
+  file scan continuation, and absence of BLOCKED marker.
+- Test results: 4 passed, 0 failed
+- Commit: a697a04
+
+---
+
+## Red-team Audit
+
+**Traceability**: T-14.9, T-0.1, T-12.6, T-12.7 | FR-6 (RTM-042, RTM-043) | NFR-1, NFR-3
+
+### FIX: support.rs blue-team root cause
+
+- ✅ `try_load_vec0_extension` helper added (support.rs:55-72). Correctly loads the vec0
+  native dylib via platform dispatch before `DROP TABLE IF EXISTS`, resolving the
+  `SqliteFailure("no such module: vec0")` root cause identified by blue-team. Gracefully
+  returns early on unsupported platforms and when the dylib is absent. The `unsafe` block
+  is necessary for `load_extension` and follows the same pattern as production code.
+- ✅ `ensure_regular_vec_concepts_table` now calls `try_load_vec0_extension` (support.rs:80).
+
+### REWRITE test 1: `null_and_empty_embeddings_produce_blocked_warning`
+
+- ✅ Renamed from `empty_and_null_inputs_produce_safe_embeddings` per P0 #1 (RTM-042).
+- ✅ Behavioral assertions unchanged: BLOCKED marker, similarity/threshold string,
+  no-Scanning short-circuit. All three assertions match the eval spec exactly.
+- ✅ Minor `.expect()` message update ("degenerate embeddings" → clearer than "empty vectors")
+  and assert message tweak ("BLOCKED warning output"). Both are cosmetic improvements
+  consistent with the rename intent, not functional changes.
+
+### REWRITE test 2: `concurrent_repair_concepts_reads_produce_consistent_output`
+
+- ✅ Renamed from `thread_safe_initialization_works` per P0 #2 (RTM-043).
+- ✅ Comment rewritten to remove stale C# initialization lifecycle framing. Now accurately
+  states "concurrent repair_concepts reads over shared SQLite vec_concepts rows" and
+  explicitly notes "not initialization lifecycle."
+- ✅ Fixture path updated from `thread-safe.md` to `concurrent.md` (consistent with rename).
+- ✅ All behavioral assertions (success banner + replacements count on every thread handle)
+  are unchanged.
+
+### KEEP test 3: `above_threshold_similarity_returns_success_output`
+
+- ✅ Completely unchanged. Diff confirms no lines modified in this test. Matches eval KEEP
+  verdict.
+
+### ADD test 4: `above_threshold_with_real_cosine_distance`
+
+- ✅ Closes the mid-range coverage gap identified as P0 #3 in the eval.
+- ✅ Uses `deterministic_embedding(0.75)` vs `deterministic_embedding(0.50)` — analytically
+  verified cosine similarity = 0.992943, which is above 0.99 threshold and genuinely sub-1.0.
+  This is not a disguised identity test.
+- ✅ Three assertions: success banner, file scan continuation (`"Scanning 1 markdown files"`),
+  and absence of BLOCKED marker. Complete success-path contract for the sub-1.0 case.
+- ✅ Traceability comment references T-14.9, RTM-043, and documents the coverage gap closed.
+
+### Scope check
+
+- ✅ Commit a697a04 touches exactly 2 files: `vector_tools_semantic.rs` (+54/-7) and
+  `support.rs` (+28/-0). No unrelated changes.
+- ✅ No production source code modified — changes are test-only.
+- ✅ Commit message accurately itemizes all changes.
+
+### P1/P2 items (not required, noted for completeness)
+
+- ⏭️ P1 #4 (split NULL vs empty-string into two tests): Not addressed. Acceptable — the
+  eval used "Consider splitting," not mandatory.
+- ⏭️ P1 #5 (boundary test at exact threshold): Not addressed. Acceptable — Medium Priority.
+- ⏭️ P2 #6, #7 (Low Priority): Not addressed. Expected.
+
+### Test execution
+
+- ✅ `cargo test --test integration_tests -p maenifold-core -- vector_tools_semantic`:
+  **4 passed, 0 failed** (confirmed independently by red-team).
+
+### Verdict: **PASS**
+
+All P0 recommendations addressed. Blue-team root cause fixed. Both REWRITEs match eval
+spec exactly. KEEP test unchanged. New test 4 closes the highest-priority coverage gap
+with analytically verified embeddings. No unrelated changes. No unique coverage lost.
+
+---
+
+## Blue-team Verification (Post-Remediation)
+
+- `cargo test --test integration_tests -p maenifold-core -- vector_tools_semantic`: 4 passed, 0 failed
+- Tests confirmed:
+  - `vector_tools_semantic::null_and_empty_embeddings_produce_blocked_warning` — ok
+  - `vector_tools_semantic::concurrent_repair_concepts_reads_produce_consistent_output` — ok
+  - `vector_tools_semantic::above_threshold_similarity_returns_success_output` — ok
+  - `vector_tools_semantic::above_threshold_with_real_cosine_distance` — ok
+- Verdict: **PASS**

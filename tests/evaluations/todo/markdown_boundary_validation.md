@@ -66,3 +66,22 @@ Tests ac1, ac2, ac3, ac5, ac8, ac9 are load-bearing against distinct operations 
 - Test count: 10 → 9 (3 merged into 1, 1 rewritten, 1 new)
 - All 9 pass
 - Commit: e885675
+
+---
+## Red-team Audit
+- ✅ MERGE ac4+ac6+ac10 → `fr28_9_traversal_sweep_secondary_operations`: all three original operations (file_exists, get_memory_files, get_memory_directories) asserted in single test with shared URI; comments trace provenance to ac4/ac6/ac10. No unique coverage lost — all three share `uri_to_path` gate. Matches Rec 1.
+- ✅ REWRITE ac7 → `fr28_9_ac7_write_markdown_empty_uri_throws_invalid_argument`: now calls production `markdown::write_markdown("", ...)` instead of test adapter `write_markdown_boundary(None, ...)`. Asserts `"null or empty"` on `InvalidArgument`. The old adapter still exists in `support.rs` but is dead code in this module (only mentioned in a comment). Matches Rec 2.
+- ✅ ADD `fr28_9_url_encoded_traversal_is_rejected`: tests `memory://%2e%2e/escape` against `read_markdown`. Asserts `MaenifoldError::Message` containing `"dot sequences"` — correctly uses `assert_message_error` (not `assert_invalid_argument`), confirming the eval's discovery of two-layer defense (URI-level vs path-level). Matches Rec 4.
+- ✅ ADD comment (lines 7–10): documents `uri_to_path` centralized validation gate and explains why per-function tests are still valuable (regression canary). Matches Rec 3.
+- ✅ KEEP ac1, ac2, ac3, ac5, ac8, ac9: confirmed unchanged in diff — zero insertions/deletions in these test bodies.
+- ✅ Test count: 10 → 9 confirmed (3 merged into 1, 1 rewritten, 1 added: -3 +1 +1 -1 +1 = net -1).
+- ✅ All 9 tests pass (`cargo test -p maenifold-core fr28_9 -- --test-threads=1`).
+- ✅ Single file changed in commit e885675 — no unrelated modifications.
+- ✅ Rec 5 (naming convention): not addressed, but eval marked it as "consider" not mandatory. No deduction.
+- ✅ Traceability: commit message references T-12.7, T-W1-2, FR-28.9, NFR-1, NFR-2.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- markdown_boundary_validation`: 9 passed, 0 failed
+- Verdict: PASS

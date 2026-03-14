@@ -214,3 +214,26 @@ logic in `lifecycle.rs` is correct and load-bearing; these tests are not current
 - Added T-15.5 regression note and canonicalize bug reference as comment on `move_memory_with_simple_destination_preserves_existing_behavior` in `memory_tools_move_read_write.rs` (R2/R3, P1)
 - Result: 1 test, 0 failures (was: 3 tests, 2 failures)
 - Commit: 1e7262c
+
+---
+
+## Red-team Audit
+
+| Claim | Eval Ref | Verdict | Notes |
+|---|---|---|---|
+| REWRITE+MERGE `move_memory_empty_destination_returns_error` + `move_memory_whitespace_only_destination_returns_error` → `move_memory_rejects_empty_and_whitespace_destinations` | R1, P0 | ✅ | Calls `memory::move_memory()` directly, uses `.expect_err()`, parameterized loop covers both `""` and `"   "`. Matches eval spec code sample exactly. Test passes (verified). |
+| REMOVE `move_memory_valid_destination_succeeds` | R2, P0 | ✅ | Deleted in full. Sibling `move_memory_with_simple_destination_preserves_existing_behavior` confirmed passing and covers same path plus read-back — strictly stronger. No unique coverage lost. |
+| Added `move_memory_result()` helper to `support.rs` | R5, P2 | ✅ | Returns `Result<String>`. `move_memory_output()` now delegates to it. All 6 tests in `memory_tools_move_read_write.rs` pass, confirming no regressions from refactor. |
+| Updated `RTM FR-25.2` → `RTM NFR-1` in test file header and `lifecycle.rs` | R4, P1 | ✅ | Correct re-mapping. FR-25 is Azure Deployment Manifests (RTM-137–140) in the active RTM. NFR-1 (C# Oracle Parity) is the correct evergreen gate for tool behavior contracts. Both sites updated. |
+| Added T-15.5 regression note + canonicalize bug reference on `move_memory_with_simple_destination_preserves_existing_behavior` | R2/R3, P1 | ✅ | 4-line comment added before the test function. References the canonicalize bug and points back to eval notes. Surfaces the known issue per R3 recommendation. |
+
+**No unrelated changes detected.** The commit (1e7262c) touches exactly 5 files — all scoped to this eval's recommendations. The only file outside the direct eval scope (`tests/evaluations/todo/memory_search_diag_tests.md`) is the SWE appending results to a different eval spec, which is expected pipeline behavior.
+
+**Test result verified:** `cargo test -p maenifold-core move_memory_rejects` → 1 passed, 0 failed. `cargo test -p maenifold-core memory_tools_move_read_write` → 6 passed, 0 failed.
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_lifecycle_validation`: 1 passed, 0 failed
+- Verdict: PASS

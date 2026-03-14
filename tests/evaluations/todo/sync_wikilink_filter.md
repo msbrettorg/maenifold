@@ -49,3 +49,17 @@ Tests 3 and 8 have assertion defects that would fail to catch real bugs. Test 3'
 - KEEP: all 7 remaining tests unchanged
 - All 9 tests pass
 - Commit: 33824c6
+
+---
+## Red-team Audit
+- ✅ REWRITE `sync_output_reports_filtered_count`: Weak digit-scan `chars().any(|ch| matches!(ch, '1'..='9'))` replaced with `filtered_line.contains("3 concept mentions filtered")`. This is *stronger* than the eval's suggested `contains('3')` — it matches the full expected substring, eliminating false positives from stray digits. Traceability comment added. Matches P0 spec.
+- ✅ REWRITE `sync_filter_excludes_blocked_from_concept_graph`: Dead `let _ = allowed_b` suppression removed. `count_concept_graph_entries(&cfg, &allowed_b)` now queried and asserted `> 0`. Existing variable renamed `graph_count_allowed` → `graph_count_allowed_a` for clarity. Matches P0 spec exactly.
+- ✅ KEEP (7 tests): Diff confirms zero modifications to any KEEP-verdict test. No regressions.
+- ✅ No unrelated changes: Commit 33824c6 touches only `sync_wikilink_filter.rs` (11 insertions, 7 deletions).
+- ✅ All 9 tests pass: `cargo test --test integration_tests -p maenifold-core -- sync_wikilink_filter` → 9 passed, 0 failed, 0 ignored.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_wikilink_filter`: 9 passed, 0 failed, 0 ignored (880 filtered out)
+- Verdict: PASS

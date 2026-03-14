@@ -91,3 +91,39 @@ Tests 3, 4, and 6 carry coverage that is not replicated elsewhere in the test su
 - Rec 7 applied: added 4 `is_concept_blocked()` gap tests (exact match, prefix match, no match, missing file).
 - Test count: 6 → 8 (−2 removed, +4 new gap coverage). All 8 pass.
 - Commit: fa1ee1b
+
+---
+## Red-team Audit
+
+**Traceability:** T-10.16 (FR-19, RTM-102, RTM-103, RTM-104), T-22.1 (RTM-151, RTM-152, RTM-155)
+
+| Eval Item | Status | Detail |
+|---|---|---|
+| MERGE test 1 → test 4 | ✅ | `check_filter_with_filter_file_blocks_matching_concepts` deleted. RTM-102/103 traceability folded into test 4 header comment. Test 4 retains all original assertions (`len()==2`, both blocked with reasons, both unblocked absent). No coverage lost. |
+| REMOVE test 2 | ✅ | `check_filter_missing_file_returns_empty` deleted. Confirmed exact behavioral dup of inline `wikilink_filter_allows_content_when_filter_file_is_missing` (filter.rs:188). Both exercise `try_check()` with no filter file → `Ok(())`. |
+| KEEP+RENAME test 3 | ✅ | Renamed to `check_filter_json_key_is_normalized_to_lowercase`. Added key-normalization comment matching eval Rec 3. Body unchanged — still tests `"Tool"` JSON key normalizing to `"tool"`. |
+| KEEP test 4 | ✅ | `check_filter_mixed_filtered_and_unfiltered` unchanged body. Header now carries merged RTM-102/103 provenance per eval Rec 2. |
+| REWRITE test 5 | ✅ | Renamed to `check_filter_no_wikilinks_in_content_returns_ok`. Comment updated to: "Populated filter, empty content string — no wikilinks extracted → Ok(())." Matches eval Rec 3 exactly. Body unchanged. |
+| KEEP+ANNOTATE test 6 | ✅ | Full `check()` vs `try_check()` contract annotation added (4-line comment block). Cross-references inline counterpart `wikilink_filter_returns_error_for_invalid_json_in_try_check`. Matches eval Rec 4 verbatim. |
+| Rec 5 (helper scope) | ✅ | Lines 8–10 document `check_filter()` wraps `try_check()` + `.expect()`, warning that fail-open tests must bypass the helper. |
+| Rec 7 (gap coverage) | ✅ | All 4 `is_concept_blocked()` tests added: exact match, prefix match (`"t-*"` pattern), no match, missing file. Each uses `WikiLinkFilter::new()` directly. Traceability: T-22.1, RTM-151/152/155. |
+
+**Test execution:** `cargo test --test integration_tests -p maenifold-core -- wikilink_filter_unit_tests` → **8 passed, 0 failed** (6 original − 2 removed + 4 new gap coverage).
+
+**Unrelated changes:** None in the test file. Commit also renamed `AGENTS.md → DISPATCH.md` which is outside this eval's scope and does not affect correctness.
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- wikilink_filter_unit_tests`: 8 passed, 0 failed
+- All 8 tests confirmed:
+  - `check_filter_json_key_is_normalized_to_lowercase` (kept+renamed from test 3)
+  - `check_filter_mixed_filtered_and_unfiltered` (kept, test 4 with merged RTM-102/103)
+  - `check_filter_no_wikilinks_in_content_returns_ok` (rewritten from test 5)
+  - `check_filter_invalid_json_returns_empty` (kept+annotated, test 6)
+  - `is_concept_blocked_returns_true_for_exact_match` (new gap coverage)
+  - `is_concept_blocked_returns_true_for_prefix_match` (new gap coverage)
+  - `is_concept_blocked_returns_false_when_no_match` (new gap coverage)
+  - `is_concept_blocked_returns_false_when_filter_file_missing` (new gap coverage)
+- Verdict: **PASS**

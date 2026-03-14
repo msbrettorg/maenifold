@@ -65,8 +65,7 @@ fn view_reflects_updated_position_after_step_advancement() {
     // Case 2: multi-workflow queue — step advancement within the first workflow of a queue.
     // Verifies the step counter still reads step 2/3 when the session has multiple queued
     // workflows, ensuring queue size does not interfere with per-workflow step display.
-    let queue_json =
-        serde_json::to_string(&["wtt-alpha", "wtt-beta"]).expect("queue json");
+    let queue_json = serde_json::to_string(&["wtt-alpha", "wtt-beta"]).expect("queue json");
     let (_, queue_id) = start_session(json!(queue_json));
     invoke_workflow(json!({
         "sessionId": queue_id,

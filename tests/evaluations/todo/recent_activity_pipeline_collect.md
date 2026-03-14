@@ -58,3 +58,19 @@ These tests exercise `collect_recent_activity_records()` — the exported public
 - SKIP recommendations 2–3: would modify KEEP tests; improvements are cosmetic
 - Test count: 7 → 8 (all passing)
 - Commit: 28a0c3c
+
+---
+## Red-team Audit
+- ✅ KEEP 7 original tests: diff is pure addition (23 lines appended), zero modifications to existing test bodies — verified via `git show 28a0c3c`
+- ✅ ADD `collect_recent_activity_rejects_invalid_filter_string`: matches eval recommendation 4 exactly — calls `collect_recent_activity_records(&cfg, None, Some("bogus"), 50)`, asserts `MaenifoldError::InvalidArgument`, validates both "Invalid filter" substring and offending value "bogus" echo
+- ✅ SKIP R1 (parameterization): eval explicitly notes "not urgent" — justified
+- ✅ SKIP R2–R3: eval marked these as improvements to KEEP tests, not required changes — SWE correctly avoids modifying KEEP-verdict tests
+- ✅ Traceability: new test carries `T-2.3: RTM FR-4` comment, consistent with file header and eval metadata
+- ✅ No unrelated changes: commit touches only the test file and eval spec (2 files, 31 insertions)
+- ✅ All 8 tests pass: `cargo test -p maenifold-core collect_recent_activity` — 8 passed, 0 failed
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- recent_activity_pipeline_collect`: 8 passed, 0 failed
+- Verdict: PASS

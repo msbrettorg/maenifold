@@ -52,7 +52,9 @@ pub fn list_memories(context: &ToolContext, payload: &serde_json::Value) -> Resu
     let canonical_memory_root = fs::canonicalize(&context.config.memory_path)?;
     let canonical_target_path = fs::canonicalize(&target_path)?;
     if !canonical_target_path.starts_with(&canonical_memory_root) {
-        return Err(MaenifoldError::Message("Resolved path escapes memory root".to_string()));
+        return Err(MaenifoldError::Message(
+            "Resolved path escapes memory root".to_string(),
+        ));
     }
 
     let last_accessed_cache = load_last_accessed_timestamps(&context.config)?;

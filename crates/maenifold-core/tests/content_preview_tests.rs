@@ -65,10 +65,7 @@ fn create_smart_preview_with_wikilinks_preserves_links() {
     // 49 >= 10 → sentence truncation includes both wikilinks, excludes trailing sentence
     let result = create_smart_preview(content, 30, 20);
 
-    assert_eq!(
-        result,
-        "The [[authentication]] system uses [[JWT]] tokens."
-    );
+    assert_eq!(result, "The [[authentication]] system uses [[JWT]] tokens.");
     // Verify wikilinks survived truncation (redundant with assert_eq but documents intent)
     assert!(result.contains("[[authentication]]"));
     assert!(result.contains("[[JWT]]"));

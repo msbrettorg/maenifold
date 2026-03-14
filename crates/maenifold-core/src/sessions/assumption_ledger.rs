@@ -43,7 +43,9 @@ pub fn assumption_ledger(context: &ToolContext, payload: &Value) -> Result<Strin
         return read_assumption(context, payload);
     }
 
-    Err(MaenifoldError::Message("Invalid action. Use 'append', 'update', or 'read'".to_string()))
+    Err(MaenifoldError::Message(
+        "Invalid action. Use 'append', 'update', or 'read'".to_string(),
+    ))
 }
 
 fn append_assumption(context: &ToolContext, payload: &Value) -> Result<String> {

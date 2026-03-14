@@ -24,13 +24,17 @@ pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Res
         match find_file_as_uri(identifier, &context.config) {
             Some(found) => found,
             None => {
-                return Err(MaenifoldError::Message(format!("Memory file not found: {identifier}")));
+                return Err(MaenifoldError::Message(format!(
+                    "Memory file not found: {identifier}"
+                )));
             }
         }
     };
 
     if !file_exists(&uri, &context.config)? {
-        return Err(MaenifoldError::Message(format!("Memory file not found: {identifier}")));
+        return Err(MaenifoldError::Message(format!(
+            "Memory file not found: {identifier}"
+        )));
     }
 
     let (_, content, _) = read_markdown(&uri, &context.config)?;

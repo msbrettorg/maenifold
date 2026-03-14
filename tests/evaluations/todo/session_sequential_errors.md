@@ -88,3 +88,48 @@ Four of five tests cover unique, non-redundant behavior that would leave real ga
 - **Test 5**: Would lose branch-without-branchId validation coverage
 
 Test 2 is the exception: marginal uniqueness, weak assertions, wrong file. The behavior it weakly tests is arguably a subset of what a strengthened lifecycle test should verify explicitly.
+
+---
+
+## SWE Remediation
+
+- MOVE test 1 (`complete_session_lifecycle_create_continue_complete_succeeds`): removed from errors file; already present in `session_sequential_lifecycle.rs` as `session_lifecycle_with_analysis_type_persists_all_frontmatter_fields` (prior eval commit `0ad5145`)
+- REWRITE test 2 (`new_session_extracts_concepts_correctly`): removed from errors file; already present in `session_sequential_lifecycle.rs` as `new_session_renders_thoughts_field_in_session_content` with strengthened WikiLink assertions (prior eval commit `0ad5145`)
+- KEEP test 3: hardened `result.contains("missing")` → `result.contains("missing. Start with thoughtNumber=0")` per R-4
+- KEEP test 4: no changes
+- KEEP test 5: no changes
+- R-5: added file contract comment establishing error-path ownership for `session_sequential_errors.rs`
+- Commit: 2c289b4
+
+---
+
+## Red-team Audit
+
+| # | Eval Verdict | SWE Claim | Audit Result |
+|---|-------------|-----------|--------------|
+| 1 | **MOVE** → lifecycle, rename to `session_lifecycle_with_analysis_type_persists_all_frontmatter_fields` | Removed from errors file; present in lifecycle.rs at prior commit `0ad5145` | ✅ **Confirmed.** Diff at `0ad5145` adds the test verbatim to `session_sequential_lifecycle.rs` with correct new name and `(R-1)` provenance comment. Diff at `2c289b4` removes original from errors. All 13 original assertions preserved. Rename matches R-1 spec exactly. |
+| 2 | **REWRITE** → lifecycle as `new_session_renders_thoughts_field_in_session_content`, strengthen assertions | Removed from errors file; present in lifecycle.rs at prior commit `0ad5145` with strengthened WikiLink assertions | ✅ **Confirmed.** Original had 3 weak assertions: `content.contains("machine-learning")`, `content.contains("Thoughts:")`, `content.contains("AI")`. Rewrite has 7 assertions: verifies `[[machine-learning]]`, `[[neural-networks]]`, `[[deep-learning]]` as WikiLinks in thought section, then `Thoughts:` heading, `[[AI]]`, `[[algorithms]]`, `[[data-science]]` as separate section WikiLinks. This satisfies R-2 bullet points (section heading, WikiLinks from `thoughts`, response/thoughts rendered separately). Rename matches R-2 spec. `(R-2)` provenance comment present. |
+| 3 | **KEEP**, harden assertion per R-4 | Hardened `result.contains("missing")` → `result.contains("missing. Start with thoughtNumber=0")` | ✅ **Confirmed.** Diff shows exactly one line changed: `"missing"` → `"missing. Start with thoughtNumber=0"`. Longer substring pins the error message more tightly, satisfying R-4. |
+| 4 | **KEEP**, no changes | No changes | ✅ **Confirmed.** No diff touches this test. |
+| 5 | **KEEP**, no changes | No changes | ✅ **Confirmed.** No diff touches this test. |
+| R-5 | File contract comment | Added file contract comment | ✅ **Confirmed.** 5-line comment block added at top of file: declares error-path ownership, lists valid test scope, and directs happy-path tests to lifecycle file. |
+
+### Coverage Verification
+
+- **No unique coverage lost**: Test 1's full assertion set (13 assertions covering `analysisType`, `completed` key, `thoughtCount: "3"`, 3-thought flow, conclusion `[[modular-design]]` WikiLink) is present verbatim in lifecycle's `session_lifecycle_with_analysis_type_persists_all_frontmatter_fields`.
+- **Test 2 strictly improved**: Original had `contains("machine-learning")` (bare text match, not WikiLink); rewrite asserts `contains("[[machine-learning]]")` (WikiLink syntax). Original checked `contains("AI")` (2-char substring, could match noise); rewrite checks `contains("[[AI]]")`. New assertions for `[[algorithms]]` and `[[data-science]]` add coverage the original never had.
+- **No unrelated changes**: Commit `2c289b4` touches exactly 1 file (`session_sequential_errors.rs`), and commit `0ad5145` touches exactly 1 file (`session_sequential_lifecycle.rs`). No production code modified.
+- **All 10 tests green**: errors (3/3 pass) + lifecycle (7/7 pass) = 10 passing tests across both files.
+
+### Observations (Informational, non-blocking)
+
+- **R-3 (parameterize tests 3 & 4)**: Not addressed. Eval rated this Low and noted "acceptable as separate tests" until a parameterization pattern exists. No concern.
+- **Two-commit strategy**: The SWE split work across `0ad5145` (lifecycle file: additions + strengthening) and `2c289b4` (errors file: removals + hardening). This is clean — the lifecycle additions were committed *before* the errors removals, ensuring no intermediate state where coverage was lost.
+
+### Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- session_sequential_errors`: 3 passed, 0 failed
+- Verdict: PASS

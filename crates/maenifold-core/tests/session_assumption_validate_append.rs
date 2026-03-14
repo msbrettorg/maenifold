@@ -5,10 +5,8 @@ mod support;
 use support::*;
 
 // T-12.7: RTM NFR-1 — exact error strings for oracle parity assertions
-const ERR_ASSUMPTION_REQUIRED: &str =
-    "ERROR: Assumption text is required for 'append' action.";
-const ERR_CONCEPTS_REQUIRED: &str =
-    "ERROR: At least one [[WikiLink]] tag must be provided. Example: concepts: [\"dialogue\", \"workflow-dispatch\"]";
+const ERR_ASSUMPTION_REQUIRED: &str = "ERROR: Assumption text is required for 'append' action.";
+const ERR_CONCEPTS_REQUIRED: &str = "ERROR: At least one [[WikiLink]] tag must be provided. Example: concepts: [\"dialogue\", \"workflow-dispatch\"]";
 const ERR_BRACKETS_IN_CONCEPTS: &str =
     "ERROR: Concept tags should not include brackets. Use 'dialogue' not '[[dialogue]]'.";
 
@@ -74,8 +72,7 @@ fn bracket_patterns_in_concepts_are_rejected() {
         ("close bracket only", "dialogue]]"),
     ] {
         let concepts = vec![concept.to_string()];
-        let result =
-            validate_assumption_append_input(Some("Valid assumption"), Some(&concepts));
+        let result = validate_assumption_append_input(Some("Valid assumption"), Some(&concepts));
         assert_eq!(
             result.as_deref(),
             Some(ERR_BRACKETS_IN_CONCEPTS),

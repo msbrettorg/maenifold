@@ -54,3 +54,23 @@ Tests 1, 2, 7, 8, 9 are genuinely load-bearing. Tests 3, 4, 5, 6 verify operatio
 - KEEP tests 7+8+9: untouched.
 - 9 tests (1 pre-existing failure) → 5 tests (0 failures), load-bearing score 5/5
 - Commit: 9aaa5ac
+
+---
+## Red-team Audit
+
+| Eval Action | Result | Detail |
+|---|---|---|
+| MERGE tests 1+2 → `append_prepend_add_double_newline_separator` | ✅ | Parameterized loop over append/prepend. Append path preserves exact `\n\n` substring assertion from the original. Prepend path corrects a pre-existing wrong assertion — the original assumed prepended text was directly adjacent to original body, but `write_memory` inserts a `# Title` heading between them. New assertions verify: content presence, ordering via `find()` position comparison, and `\n\n` after prepended block. Correction is legitimate, not a weakening. |
+| REWRITE+MERGE tests 3+4+5+6 → `case_insensitive_operation_names_apply_correctly` | ✅ | P0 addressed: all 4 case variants now include read-back content verification. `starts_with("Updated memory FILE:")` retained only as a precondition guard, not the sole assertion. Specific checks per operation: APPEND — content present + original preserved; PREPEND — content present + ordering; Find_Replace — replacement present + original absent; REPLACE_SECTION — new content present + old absent + heading preserved. |
+| Coverage gap fill (rec #4) | ✅ | PREPEND uppercase variant added with read-back. All 4 operation types (append, prepend, find_replace, replace_section) now have at least one case-insensitive test with content verification. |
+| Find_Replace distinct variant (rec #3) | ✅ | `Find_Replace` (mixed case with underscore) kept as its own block with full content verification — replacement present, original text `"target word"` absent. |
+| KEEP tests 7+8+9 | ✅ | `replace_section_partial_heading_match`, `replace_section_exact_match_still_works`, `replace_section_with_heading_in_new_content_preserves_old_heading` — zero diff, byte-identical to pre-commit. |
+| No unrelated changes | ✅ | Commit touches exactly 1 file. Only non-test change is removal of unused `use maenifold_core::memory;` import. |
+| Test count & pass rate | ✅ | 9 → 5 tests. `cargo test -p maenifold-core --test integration_tests -- memory_tools_editing_parity`: 5 passed, 0 failed. |
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_tools_editing_parity`: 5 passed, 0 failed
+- Verdict: **PASS**

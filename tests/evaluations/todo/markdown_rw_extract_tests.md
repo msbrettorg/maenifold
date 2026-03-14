@@ -51,6 +51,47 @@ Tests 1, 2, 5, 6, 7 are load-bearing for the production `extract_wikilinks` API.
 - **REMOVE** `count_concept_occurrences_skips_code_blocks`: guarded test helper, not production API
 - **REMOVE** `count_concept_occurrences_skips_inline_code`: same; accept implicit coverage (rec #2 option b)
 - **REMOVE** `count_concept_occurrences_handles_normalization`: same
-- Test count: 10 → 7 (3 removed, 2 merged into 1, 1 rewritten, 1 renamed)
+- Test count: 10 → 6 (3 removed, 2 merged into 1, 1 rewritten, 1 renamed)
 - All 6 remaining tests pass
 - Commit: ab8a232
+
+---
+
+## Red-team Audit
+
+**Traceability:** T-12.7.1, NFR-1, NFR-2
+
+### Item-by-Item
+
+- ✅ **KEEP** `extract_wikilinks_skips_code_blocks`: unchanged, present at lines 5–22. Matches eval.
+- ✅ **KEEP** `extract_wikilinks_skips_inline_code`: unchanged, present at lines 24–33. Matches eval.
+- ✅ **MERGE** `extracts_from_headings` + `extracts_from_lists` → `extracts_from_all_structural_contexts`: new fixture covers headings, body text, list items, and block quotes (5 concepts asserted). Satisfies eval rec #4 ("cover headings, list items, and block quotes in one fixture"). Both originals removed; no unique coverage lost — both hit the same extraction loop.
+- ✅ **KEEP** `extract_wikilinks_normalizes_concepts`: unchanged. Matches eval.
+- ✅ **KEEP+RENAME** `skips_fenced_code_block_with_language` → `skips_language_tagged_fenced_code_block`: only the function name changed. Test logic identical. Matches eval-requested name.
+- ✅ **REWRITE** `skips_indented_code_blocks` → `skips_four_space_indented_code_block`: renamed per eval. Added control assertion (lines 107–112) confirming that 4-space indent **without** preceding blank line is NOT treated as a code block — this is the CommonMark context-sensitivity guard the eval demanded (rec #3). Control input `"Paragraph text\n    [[not-actually-code]]"` is more robust than the eval's suggested `"    [[no-code-here]]"` because it explicitly tests the lazy-paragraph-continuation path.
+- ✅ **REMOVE** `count_concept_occurrences_skips_code_blocks`: deleted. Eval offered option (a) promote or (b) remove; SWE chose (b). Helper still used by `wikilink_regex_tests.rs` and `sync_perf_baseline.rs` — support module correctly preserved.
+- ✅ **REMOVE** `count_concept_occurrences_skips_inline_code`: deleted per same rationale. No unique production coverage lost.
+- ✅ **REMOVE** `count_concept_occurrences_handles_normalization`: deleted per same rationale. The eval's specific concern (count assertion without normalized-key assertion) is moot after removal — the normalization invariant is already covered by `extract_wikilinks_normalizes_concepts` which asserts the exact normalized form `"machine-learning"`.
+
+### Scope Check
+
+- Only `crates/maenifold-core/tests/markdown_rw_extract_tests.rs` modified (33 insertions, 44 deletions).
+- No unrelated changes introduced.
+- Support module `markdown_rw_support/mod.rs` correctly left in place (still consumed by 2 other test files).
+- `#[path]` import and `use` of `count_concept_occurrences` removed from this file — consistent with test removal.
+
+### Bookkeeping Fix
+
+- SWE remediation summary claimed "Test count: 10 → 7" but actual `#[test]` count is 6 (3 removed + 1 merge-net = 4 fewer). The same section says "All 6 remaining tests pass" — contradicting the "→ 7" claim. Corrected to "10 → 6" above.
+
+### Test Execution
+
+- All 6 `extract_wikilinks_*` tests pass (33 of 33 `extract_wikilinks` tests passed; 5 unrelated `proximity_weight_sections` failures are pre-existing lock-timeout infrastructure issues, not regressions from this change).
+
+### Verdict: PASS
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- markdown_rw_extract`: 6 passed, 0 failed
+- Verdict: PASS

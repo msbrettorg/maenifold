@@ -191,3 +191,32 @@ The distinction matters: test 3 ensures the feature does not consult decay metad
 - P2/P3 recommendations (grace-period boundary tests, weight assertions, tag clarification) deferred — not required by eval verdicts
 - All 4 tests pass
 - Commit: 861bae0
+
+---
+## Red-team Audit
+**Auditor:** red-team agent | **Date:** 2026-07-16 | **Traceability:** T-0.3 · FR-7.5 · NFR-4
+
+### Verdict Checks
+
+- ✅ **REWRITE `find_similar_concepts_newer_concepts_rank_higher`**: Matches eval spec precisely. Fragile `str::find()` on Markdown replaced with `find_similar_concepts_json()` + `concept_index()` using structured `response["data"]["results"]` array position. The JSON path (`success()` → `{"success":true,"data":{"results":[…]}}`) is consistent with the codebase `success()` envelope and the `concept_index()` helper correctly traverses `["data"]["results"]`. Old `find_similar_concepts_markdown()` preserved in support.rs for other consumers — no collateral breakage.
+- ✅ **KEEP `build_context_newer_related_concepts_rank_higher`**: Zero diff outside the import block (which correctly added `concept_index` and `find_similar_concepts_json` to the import list). Test body unchanged.
+- ✅ **KEEP `read_memory_bypasses_decay_and_returns_full_content_regardless_of_age`**: Zero diff. Test body unchanged.
+- ✅ **KEEP `read_memory_decayed_content_remains_fully_retrievable`**: Zero diff. Test body unchanged.
+- ✅ **P1 addressed**: `format_ranked_results_json()` added to `similar/mod.rs` with `{name, similarity, decayWeight, weightedSimilarity}` per result + `rank_candidates()` extracted as shared logic. Both Markdown and JSON paths call `rank_candidates()` — no ranking divergence possible.
+- ✅ **P2/P3 deferred**: Eval explicitly marks P2/P3 as coverage completeness and assertion strength — deferral is acceptable since eval verdicts only mandate the REWRITE.
+- ✅ **No unrelated changes**: Exactly 3 files changed, all directly required by the REWRITE verdict.
+- ✅ **All 4 tests pass**: Confirmed via `cargo test -p maenifold-core graph_decay_graph` (4/4 ok). 3 failures in `similar_concepts_plateau_tests` are pre-existing (confirmed identical failures at parent commit `861bae0~1`; caused by missing ONNX model in test environment).
+- ✅ **No behavioral regression**: `OutputFormat::Markdown` path preserved via `match context.output_format` branching — existing Markdown callers unaffected. The `format_ranked_results()` function signature unchanged; it simply delegates to `rank_candidates()` internally.
+
+### Security/Quality Observations
+
+- **No new `unsafe` code introduced.**
+- **`concept_index()` panics on missing concept** — correct behavior for a test helper (fail-fast), not a production path.
+- **`normalize_whole_floats()` applied to JSON output** — consistent with other JSON tool outputs; prevents `1` vs `1.0` serialization drift.
+
+### Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- graph_decay_graph`: 4 passed, 0 failed
+- Verdict: PASS

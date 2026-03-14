@@ -23,13 +23,8 @@ fn append_h2_section_preserves_created_timestamp() {
     let env = isolated_env();
     let file_uri = "memory://test-append-preserve-created";
 
-    maenifold_core::markdown::write_markdown(
-        file_uri,
-        None,
-        "# Session\n\n[[concept]]",
-        &env.cfg,
-    )
-    .expect("write markdown");
+    maenifold_core::markdown::write_markdown(file_uri, None, "# Session\n\n[[concept]]", &env.cfg)
+        .expect("write markdown");
     let (before_frontmatter, _, _) = read_markdown(file_uri, &env.cfg).expect("read initial");
     let before_frontmatter = before_frontmatter.expect("frontmatter");
 
@@ -77,7 +72,9 @@ fn append_h2_section_appends_after_existing_content() {
 
     let (_, content, _) = read_markdown(file_uri, &env.cfg).expect("read markdown");
     assert!(
-        content.find("## Appended Section").expect("new section present")
+        content
+            .find("## Appended Section")
+            .expect("new section present")
             > content
                 .find("Original [[content]] here.")
                 .expect("original content present"),
@@ -104,13 +101,11 @@ fn write_memory_produces_created_and_modified_timestamps() {
     let (frontmatter, _, _) = read_markdown(&uri, &env.cfg).expect("read markdown");
     let frontmatter = frontmatter.expect("frontmatter");
     assert!(
-        yaml_string(&frontmatter, "created")
-            .is_some_and(|v| !v.is_empty()),
+        yaml_string(&frontmatter, "created").is_some_and(|v| !v.is_empty()),
         "created must be present and non-empty"
     );
     assert!(
-        yaml_string(&frontmatter, "modified")
-            .is_some_and(|v| !v.is_empty()),
+        yaml_string(&frontmatter, "modified").is_some_and(|v| !v.is_empty()),
         "modified must be present and non-empty"
     );
 }
@@ -192,8 +187,7 @@ fn move_memory_destination_has_nonempty_modified() {
     let (frontmatter, _, _) = read_markdown(dest_uri, &env.cfg).expect("read moved file");
     let frontmatter = frontmatter.expect("frontmatter");
     assert!(
-        yaml_string(&frontmatter, "modified")
-            .is_some_and(|v| !v.is_empty()),
+        yaml_string(&frontmatter, "modified").is_some_and(|v| !v.is_empty()),
         "destination modified must be present and non-empty"
     );
 }

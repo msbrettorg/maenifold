@@ -119,16 +119,15 @@ fn fr24_4_ac2_concept_repair_frontmatter_preserved() {
     );
 
     // Sequence-type field preserved (tags is a YAML sequence, not a scalar)
-    let tags = frontmatter.get("tags").expect("tags should be present after repair");
+    let tags = frontmatter
+        .get("tags")
+        .expect("tags should be present after repair");
     assert!(
         matches!(tags, YamlValue::Sequence(_)),
         "tags should remain a sequence type: {tags:?}"
     );
     if let YamlValue::Sequence(items) = tags {
-        let tag_strings: Vec<&str> = items
-            .iter()
-            .filter_map(|v| v.as_str())
-            .collect();
+        let tag_strings: Vec<&str> = items.iter().filter_map(|v| v.as_str()).collect();
         assert_eq!(
             tag_strings,
             vec!["test", "fr24"],

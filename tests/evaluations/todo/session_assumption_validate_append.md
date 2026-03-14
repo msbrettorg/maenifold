@@ -48,3 +48,55 @@ This file tests a single pure function, `validate_assumption_append_input`, whic
 ## Load-Bearing Score: 7/11
 
 Four tests are either redundant (`validate_append_input_empty_assumption_returns_error`, `validate_append_input_whitespace_assumption_returns_error`, `validate_append_input_concept_with_full_brackets_returns_error` — one of the three bracket variants can be dropped after parameterization, keeping two — `validate_append_input_valid_multiple_concepts_returns_null`). Seven tests cover genuinely distinct code paths or boundary conditions.
+
+---
+## SWE Remediation
+- MERGE validate_append_input_empty_assumption_returns_error + validate_append_input_whitespace_assumption_returns_error → `assumption_text_required_for_empty_variants` (parameterized over `["", "   ", "\t"]`)
+- MERGE validate_append_input_concept_with_full_brackets_returns_error + open_bracket + close_bracket → `bracket_patterns_in_concepts_are_rejected` (parameterized over `["[[foo]]", "[[dialogue", "dialogue]]"]`)
+- REMOVE validate_append_input_valid_multiple_concepts_returns_null: confirmed redundant with bracket_error_on_second_concept
+- KEEP 5 canonical tests: strengthened all assertions from `contains()` keyword match to `assert_eq!` against full parity error strings (P0 Rec 1)
+- Improved happy-path diagnostic: `assert!(result.is_none(), "expected Ok but got error: {result:?}")` (P1 Rec 5)
+- Added shared constants `ERR_ASSUMPTION_REQUIRED`, `ERR_CONCEPTS_REQUIRED`, `ERR_BRACKETS_IN_CONCEPTS` for DRY parity assertions
+- Test count: 11 → 7, all passing, zero coverage loss
+- Commit: 1b049a0
+
+---
+## Red-team Audit
+
+### MERGE verdicts
+
+- ✅ MERGE `empty_assumption` + `whitespace_assumption` → `assumption_text_required_for_empty_variants`: parameterized over `["", "   ", "\t"]` exactly as eval spec requires. All three variants assert `assert_eq!` against `ERR_ASSUMPTION_REQUIRED`. No coverage lost.
+- ✅ MERGE `full_brackets` + `open_bracket` + `close_bracket` → `bracket_patterns_in_concepts_are_rejected`: parameterized over `["[[foo]]", "[[dialogue", "dialogue]]"]` exactly as eval spec requires. All three variants assert `assert_eq!` against `ERR_BRACKETS_IN_CONCEPTS`. Both arms of the `contains("[[") || contains("]]")` OR expression still independently tested. No coverage lost.
+
+### REMOVE verdicts
+
+- ✅ REMOVE `validate_append_input_valid_multiple_concepts_returns_null`: confirmed redundant. `bracket_error_on_second_concept` (KEEP) already forces multi-element iteration via `["good-concept", "[[bad-concept]]"]`. The removed test's only coverage (`iter().any()` with N=3 valid concepts) is already implied — the implementation does not special-case vector length. Tombstone comment present in source.
+
+### KEEP verdicts (5 canonical tests)
+
+- ✅ KEEP `validate_append_input_null_assumption_returns_error`: assertion strengthened from `contains("Assumption text is required")` → `assert_eq!(result.as_deref(), Some(ERR_ASSUMPTION_REQUIRED))`. Verified constant matches implementation line 8 verbatim.
+- ✅ KEEP `validate_append_input_null_concepts_returns_error`: assertion strengthened from `contains("[[WikiLink]]")` → `assert_eq!` against `ERR_CONCEPTS_REQUIRED`. Verified constant matches implementation lines 12/16 verbatim.
+- ✅ KEEP `validate_append_input_empty_concepts_array_returns_error`: same strengthening. Covers the `.is_empty()` branch separate from the `let Some` destructure. Confirmed distinct code path in implementation (line 14 vs line 10).
+- ✅ KEEP `validate_append_input_valid_single_concept_returns_null`: happy-path diagnostic improved to `assert!(result.is_none(), "expected Ok but got error: {result:?}")` — exact match to eval Recommendation 5.
+- ✅ KEEP `validate_append_input_bracket_error_on_second_concept_returns_error`: assertion strengthened from `contains("brackets")` → `assert_eq!` against `ERR_BRACKETS_IN_CONCEPTS`. Still uniquely proves `iter().any()` iterates beyond first element.
+
+### P0/P1/P2 recommendations
+
+- ✅ **P0 Rec 1** (full error string assertions): All 5 error tests now use `assert_eq!` against exact parity strings. Cross-verified all 3 constants against `sessions/validation.rs` — character-for-character match.
+- ✅ **P1 Rec 5** (happy-path diagnostics): Implemented as specified.
+- ℹ️ **P2 Rec 6** (bracket inside a word, e.g. `"con[[cept"`) and **P2 Rec 7** (single bracket `[` or `]`): Not addressed. These are P2/informational gap observations, not required by eval verdict table. Acceptable to defer.
+
+### Cross-checks
+
+- ✅ Test count: 11 → 7 (confirmed: `running 7 tests`, all `ok`)
+- ✅ No source code modified — only test file changed (1 file, `66+/66-`)
+- ✅ No unrelated changes introduced
+- ✅ Shared constants (`ERR_ASSUMPTION_REQUIRED`, `ERR_CONCEPTS_REQUIRED`, `ERR_BRACKETS_IN_CONCEPTS`) match implementation verbatim — no stale/wrong strings
+- ✅ Traceability: T-12.7 / NFR-1 annotations present on every test and constant block
+
+### Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- session_assumption_validate_append`: 7 passed, 0 failed
+- Verdict: PASS

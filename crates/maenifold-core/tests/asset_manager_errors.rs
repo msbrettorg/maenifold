@@ -129,8 +129,7 @@ fn update_assets_parity_u01_omits_skipped_symlinks_count_and_section() {
     let (_tmp, cfg) = isolated_config();
     initialize_assets(&cfg);
 
-    let skipped_relative =
-        unique_relative_path("colors", "asset-manager-parity-skipped", "json");
+    let skipped_relative = unique_relative_path("colors", "asset-manager-parity-skipped", "json");
     let _skipped = PackagedAssetGuard::create(&skipped_relative, r#"{"id":"parity-skipped"}"#);
 
     let skipped_target = cfg.assets_path.join(&skipped_relative);

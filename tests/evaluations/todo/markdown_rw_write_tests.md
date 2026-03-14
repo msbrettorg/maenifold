@@ -97,3 +97,48 @@ Tests 4, 5, 7, 8 are correctly specified and genuinely load-bearing. Tests 1, 2,
 - REWRITE test 9 (`append_h2_section_non_existent_file_creates_file_with_envelope`): RFC 3339 validation + `created <= modified` invariant + section heading/content assertions
 - Added shared `assert_valid_rfc3339` helper: validates key presence, non-empty, and `DateTime::parse_from_rfc3339` parsability
 - Commit: 0bdc57c
+
+---
+
+## Red-team Audit
+
+**Ref:** T-12.7.1 / RTM NFR-1 | Commit 0bdc57c | Audited 2026-07-14
+
+### REWRITE verdicts
+
+- ✅ **REWRITE test 1** (`write_markdown_null_frontmatter_creates_envelope_with_created_and_modified`): `contains_key("created")` and `contains_key("modified")` replaced with `assert_valid_rfc3339` + `created <= modified` invariant. Matches eval spec.
+- ✅ **REWRITE test 2** (`write_markdown_existing_created_preserves_created_and_updates_modified`): `contains_key("modified")` + `assert_ne!(modified, original_created)` replaced with RFC 3339 validation + `modified > original_created` lexicographic assertion. Stronger than eval's "≥ write time" recommendation (uses strict `>` against a 2020 pinned value). Matches eval spec.
+- ✅ **REWRITE test 3** (`write_markdown_missing_created_adds_created_and_sets_modified`): `contains_key` assertions replaced with RFC 3339 validation + `created <= modified` + bonus `title` preservation check not in eval but strengthens coverage. Matches eval spec.
+- ✅ **REWRITE test 6** (`append_h2_section_existing_file_updates_modified`): `thread::sleep(10ms)` → `50ms` per eval recommendation. `before_modified` now validated via `assert_valid_rfc3339`. `assert_ne!(after, before)` → `assert!(after > before)` lexicographic. Matches eval spec exactly.
+- ✅ **REWRITE test 9** (`append_h2_section_non_existent_file_creates_file_with_envelope`): `contains_key` assertions replaced with RFC 3339 validation + `created <= modified`. Added `content.contains("First content")` assertion per eval recommendation. Note: eval observation #4 stated "does not verify `## First Section` appears" — in fact the pre-image already had `assert!(content.contains("## First Section"))`. SWE correctly preserved it and added the genuinely missing body content assertion.
+
+### KEEP verdicts
+
+- ✅ **KEEP test 4** (`write_markdown_completed_and_cancelled_not_overwritten`): Untouched in diff. Confirmed.
+- ✅ **KEEP test 5** (`write_markdown_does_not_mutate_caller_dict`): Untouched in diff. Confirmed.
+- ✅ **KEEP test 7** (`append_h2_section_existing_file_preserves_all_frontmatter_fields`): Untouched in diff. Confirmed.
+- ✅ **KEEP test 8** (`append_h2_section_existing_file_preserves_existing_content`): Untouched in diff. Confirmed.
+
+### Shared helper
+
+- ✅ `assert_valid_rfc3339` helper: Validates key presence via `scalar()`, non-empty assertion, `DateTime::parse_from_rfc3339` parse. Returns the value for downstream comparisons. Matches eval recommendation pattern exactly.
+
+### Scope check
+
+- ✅ Only 1 file changed (`markdown_rw_write_tests.rs`) — no unrelated changes
+- ✅ Test count preserved: 9 → 9 (no spurious additions or deletions)
+- ✅ All 9 tests pass (`cargo test -p maenifold-core markdown_rw_write` → 9 passed, 0 failed)
+- ✅ P0 (assertion shallowness): all 6 `contains_key` sites upgraded to RFC 3339 parse
+- ✅ P1 (timing fragility): sleep 10ms → 50ms + `>` instead of `!=`
+- ✅ P2 (under-specified test 9): section content assertion added
+
+### Minor eval inaccuracy noted
+
+Eval observation #4 stated test 9 "does not verify the section heading `## First Section` appears." The pre-image already contained `assert!(content.contains("## First Section"))`. The eval was correct that `"First content"` body assertion was missing. SWE handled this correctly regardless — no action needed.
+
+### Verdict: PASS
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- markdown_rw_write`: 9 passed, 0 failed
+- Verdict: PASS

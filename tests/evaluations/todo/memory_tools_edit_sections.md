@@ -96,3 +96,41 @@ This is the right pattern and should replace the weaker version.
 ## Load-Bearing Score: 1/4
 
 Only test 4 (`replaces_last_section`) covers a boundary not tested elsewhere in the integration suite. Tests 1, 2, and 3 are duplicates that add maintenance surface without adding coverage. The duplication is especially costly because it creates two competing naming conventions for the same operation, making the test suite harder to navigate and extend.
+
+---
+
+## SWE Remediation
+
+- MERGE test 1 (`edit_memory_replace_section_replaces_existing_section`): removed — duplicate of `replace_section_when_section_exists_replaces_content`
+- MERGE test 2 (`edit_memory_replace_section_throws_when_section_not_found`): removed — stronger `"Section not found"` assertion absorbed into canonical `replace_section_when_section_does_not_exist_throws_invalid_operation`
+- MERGE test 3 (`edit_memory_replace_section_works_with_different_heading_levels`): removed — covered by H1/H3 tests in `replace_sections.rs`
+- KEEP test 4 (`edit_memory_replace_section_replaces_last_section`): migrated to `memory_tools_replace_sections.rs` as `replace_section_replaces_last_section` with `// T-12.6: RTM NFR-1` tag
+- Replaced fragile `starts_with("Updated memory FILE:")` with `contains(&uri)` across all 6 tests in `replace_sections.rs` (P0 format-string fix)
+- Added `// T-12.6: RTM NFR-1` traceability tags to all tests in `replace_sections.rs`
+- Deleted `memory_tools_edit_sections.rs` and removed `mod` from `main.rs`
+- All 6 tests pass: `cargo test --test integration_tests -p maenifold-core -- memory_tools_replace_sections`
+- Commit: b24c547
+
+---
+## Red-team Audit
+
+### Checklist
+
+- ✅ MERGE test 1 (`edit_memory_replace_section_replaces_existing_section`): Deleted. Canonical `replace_section_when_section_exists_replaces_content` in `replace_sections.rs` covers the same middle-section code path. No unique coverage lost.
+- ✅ MERGE test 2 (`edit_memory_replace_section_throws_when_section_not_found`): Deleted. The stronger `"Section not found"` assertion was absorbed into canonical `replace_section_when_section_does_not_exist_throws_invalid_operation` — confirmed in diff: `assert!(err.to_string().contains("Section not found"));` added at line 68 of the new file. Original assertion on section name `"Methodology"` preserved. Both aspects of the eval recommendation satisfied.
+- ✅ MERGE test 3 (`edit_memory_replace_section_works_with_different_heading_levels`): Deleted. Mixed-level fixture exercised no distinct code branch beyond existing H1 and H3 tests. No unique coverage lost.
+- ✅ KEEP test 4 (`edit_memory_replace_section_replaces_last_section`): Migrated to `memory_tools_replace_sections.rs` as `replace_section_replaces_last_section`. Renamed to `replace_section_` prefix per naming convention. EOF terminus boundary coverage preserved. Traceability comment `// T-12.6: RTM NFR-1 — migrated from memory_tools_edit_sections.rs` documents provenance.
+- ✅ P0 format-string fix: All 5 `starts_with("Updated memory FILE:")` assertions replaced with `contains(&uri)` across the 5 applicable tests (test 2 uses `expect_err`, not applicable). Zero instances of the fragile pattern remain in the file (grep confirmed).
+- ✅ Traceability tags: All 6 tests carry `// T-12.6: RTM NFR-1`. The first test already had the tag pre-commit; 5 new tags added in this commit.
+- ✅ File deletion: `memory_tools_edit_sections.rs` removed. `mod memory_tools_edit_sections;` removed from `main.rs`. No dangling references (only the migration provenance comment in the last test, which is informational).
+- ✅ No unrelated changes: Commit touches exactly 3 files — `main.rs` (1-line mod removal), `memory_tools_edit_sections.rs` (141 lines deleted), `memory_tools_replace_sections.rs` (57 lines net change). Scope is clean.
+- ✅ Tests pass: `cargo test --test integration_tests -p maenifold-core -- memory_tools_replace_sections` → 6 passed, 0 failed.
+
+### Verdict: PASS
+
+All eval-specified actions executed correctly. Every MERGE absorbed the right coverage, the KEEP test migrated with proper naming/traceability, the P0 fragile-assertion fix applied to all applicable tests, and no unrelated changes introduced.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_tools_replace_sections`: 6 passed, 0 failed
+- Verdict: PASS

@@ -48,9 +48,7 @@ pub(crate) fn analyze_concept_corruption(payload: serde_json::Value) -> String {
 }
 
 /// Fallible variant for testing error paths (missing/empty params, invalid maxResults).
-pub(crate) fn try_analyze_concept_corruption(
-    payload: serde_json::Value,
-) -> Result<String, String> {
+pub(crate) fn try_analyze_concept_corruption(payload: serde_json::Value) -> Result<String, String> {
     ToolRegistry::global()
         .try_invoke("AnalyzeConceptCorruption", &payload, OutputFormat::Markdown)
         .map_err(|e| e.to_string())

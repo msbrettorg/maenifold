@@ -191,3 +191,39 @@ The most consequential gap is the **absence of any test that verifies temporal d
 **3/5 load-bearing as written. 5/5 after the recommended rewrite, merge, and temporal-decay addition.**
 
 The suite covers the zero-value boundary (T5) and the error path (T2) reliably. It fails to cover the function's core arithmetic (T1 due to dead setup), and the temporal-decay multiply that justifies the file's existence as a "decay" test suite (gap across T3–T4). The highest-leverage action is adding one test that actually makes old-file decay observable.
+
+---
+
+## Red-team Audit
+
+> **Auditor**: 🔴 Red — Adversarial Review  
+> **Commit under review**: `7bf6f6c`  
+> **Traceability**: T-4.3 · FR-23.4 · NFR-1 · NFR-2
+
+### Item-by-item verification
+
+- ✅ **REWRITE T1** → `compute_edge_decay_weight_averages_multiple_proximity_weights` + `compute_edge_decay_weight_single_entry_returns_that_weight`: All dead disk/file setup removed (`TempDir`, `Config::override_root`, `fs::create_dir_all`, `fs::write`, `chrono::Utc`). `acquire_test_lock` removed (pure function). Multi-URI test asserts `0.75 == (1.0 + 0.5) / 2` exactly. Single-entry test asserts `0.5` exactly. Both use `assert_approx_eq`. Matches eval spec recommendation precisely.
+
+- ✅ **KEEP T2** (`rejects_corrupt_source_files_json`): Test body unchanged. `acquire_test_lock` removed as eval Recommendation #4 specified. No behavioral change — pure function test no longer misleads with a global lock.
+
+- ✅ **MERGE T3+T4** → `build_context_decayweight_and_weightedscore_reflect_proximity_ordering`: Single setup, single `invoke_build_context_json` call. Asserts both `DecayWeight` and `WeightedScore` ordering. Comment documents the `co_occurrence_count == 1` equivalence. No unique coverage lost from either original test — both were numerically equivalent as the eval proved (`WeightedScore ≡ DecayWeight` when `co_occurrence_count = 1`).
+
+- ✅ **KEEP T5** (`treats_empty_source_files_as_zero_decay_weight`): Unchanged. Boundary test for `source_files = "{}"` preserved verbatim.
+
+- ✅ **ADD** `compute_edge_decay_weight_returns_zero_for_json_non_object`: Tests `null`, `42`, `true` all returning `Ok(0.0)` via `assert_approx_eq`. Pins the silent non-object behavior the eval flagged as a P1 coverage gap.
+
+- ✅ **ADD** `build_context_decayweight_reduced_for_old_file`: Inserts `file_content` row with `created = "2024-01-01T00:00:00Z"` and `last_accessed = "2024-01-01T00:00:00Z"` (well past 28-day grace period). Asserts `DecayWeight < 1.0` (temporal decay fires) and `DecayWeight > 0.0` (still positive). This closes the P0 gap — the `load_file_decay_weight` → `relation_weighted_score` multiply is now exercised. The `insert_file_content` helper is clean and correctly placed in `proximity_weight/support.rs`.
+
+### Scope check
+
+- **2 files changed** (test file + support module). Zero source code changes. No unrelated modifications.
+- **7 tests, all passing** (confirmed via `cargo test --package maenifold-core proximity_weight_decay`).
+- **Traceability**: Commit message and all test comments reference T-4.3, FR-23.4, NFR-1, NFR-2.
+
+### Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- proximity_weight_decay`: 7 passed, 0 failed
+- Verdict: PASS

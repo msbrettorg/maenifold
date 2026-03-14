@@ -17,6 +17,27 @@ The weakness is **assertion depth**. Three of the five tests have assertions tha
 
 **Cross-layer position:** These tests are the *only* coverage of `memory::write_memory` and `memory::edit_memory` with the filter active. The inline unit tests in `src/memory/support.rs` cover `render_filtered_wikilinks_error` directly, but that is a rendering function, not the full API path. This file is load-bearing at its layer and should not be deleted.
 
+---
+## SWE Remediation
+- REWRITE `write_memory_with_filtered_concept_returns_error`: added `[[tool]]` concept name assertion and `!starts_with("Created memory FILE:")` file-not-created guard per P0
+- REWRITE `write_memory_filtered_concept_json_mode_returns_structured_error`: added `error.details.blocked` array assertions — verifies length=1, concept="tool", reason="Generic hub - too connected" per P0
+- ADD `edit_memory_filtered_concept_json_mode_returns_structured_error`: new companion test covering `edit_memory` JSON output mode through the filter — closes P1 coverage gap in `editing.rs` wiring
+- HARDEN `write_memory_mixed_filtered_and_valid_still_blocked`: added `!result.contains("[[react]]")` to verify unfiltered concepts absent from error per P2
+- Tests: 6 passed, 0 failed (was 5, now 6)
+- Commit: fd95276
+
+---
+## Red-team Audit
+- ✅ REWRITE `write_memory_with_filtered_concept_returns_error`: Lines 100-109 add `result.contains("[[tool]]")` concept-name assertion and `!result.starts_with("Created memory FILE:")` file-not-created guard — matches eval P0 spec exactly. Original assertions (ERROR + "WikiLinks that are excluded") preserved.
+- ✅ REWRITE `write_memory_filtered_concept_json_mode_returns_structured_error`: Lines 226-242 add `blocked` array assertions — verifies `len()==1`, `concept=="tool"`, and `reason=="Generic hub - too connected"`. Exceeds eval spec (which required concept name + non-empty; SWE also asserted reason). Original assertions (success: false, error code) preserved.
+- ✅ ADD `edit_memory_filtered_concept_json_mode_returns_structured_error`: Lines 245-303. New companion test correctly seeds a file with filter removed, re-enables filter, edits with `[[tool]]`, then asserts JSON structure (`success: false`, error code, `blocked` array with concept name). Closes the P1 coverage gap for `edit_memory` JSON mode wiring in `editing.rs`. Properly traced to `T-2.4: RTM FR-11.2 / NFR-11.2.2 / NFR-11.2.3`.
+- ✅ HARDEN `write_memory_mixed_filtered_and_valid_still_blocked`: Lines 130-134 add `!result.contains("[[react]]")` complement assertion per eval P2 recommendation.
+- ✅ KEEP `write_memory_without_filter_file_allows_all`: Unchanged. No unrelated modifications.
+- ✅ KEEP `edit_memory_with_filtered_concept_returns_error`: Unchanged. No unrelated modifications.
+- ✅ No unrelated changes introduced. Helper infrastructure (`TestEnv`, `isolated_env`, `write_filter_file`, `remove_filter_file`) unchanged.
+- ✅ `cargo test --test integration_tests -p maenifold-core -- wikilink_filter_integration_tests` → 6 passed, 0 failed.
+- Verdict: **PASS**
+
 **Assumptions questioned:**
 - *"Testing ERROR and 'WikiLinks that are excluded' is enough."* — No. These string fragments only verify the error code path was entered. They do not verify that the correct *concept names* appear in the error, meaning a regression that swaps concept names would go undetected.
 - *"Five tests is the right number."* — Partially. There is a missing test for `edit_memory` in JSON output mode (test 4 only covers markdown mode), and no test for prefix-pattern filtering through the write/edit API (only exact-match scenarios).
@@ -169,3 +190,8 @@ These scenarios have no test in this file and no integration-layer coverage else
 ## Load-Bearing Score: 4/5
 
 Tests 1 and 5 have assertion weaknesses that would allow specific regressions to pass undetected. Tests 2, 3, and 4 are sufficiently load-bearing. The overall file is correctly positioned in the test hierarchy and should not be deleted.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- wikilink_filter_integration_tests`: 6 passed, 0 failed
+- Verdict: PASS

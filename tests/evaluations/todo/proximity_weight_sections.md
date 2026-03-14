@@ -71,3 +71,32 @@ The implementation only splits on `## ` (H2). What happens with `### SubSection`
 ## Load-Bearing Score: 10/10
 
 All 10 tests are genuinely load-bearing. Each covers a distinct and non-obvious behavioral contract. Removing any single test would leave a real regression path open.
+
+---
+## SWE Remediation
+- KEEP all 10 original tests: unchanged per verdicts
+- ADD `extract_wikilinks_with_sections_ignores_h3_headings` (R1): verifies H3 content is attributed to surrounding H2 section, not its own section
+- ADD `extract_wikilinks_with_sections_empty_content_returns_empty_vec` (R2): pins empty-input and title-only edge cases returning empty vec
+- ADD `sync_same_pair_across_multiple_files_aggregates_source_weights` (R5): verifies same concept pair across two files produces source_files dict with both URIs and correct per-file weights (1.0 same-section, 0.5 cross-section)
+- SKIPPED R3 (serial_test crate): P3+ CONSIDER — would add a dependency for marginal clarity improvement
+- SKIPPED R4 (rstest parameterization): P3+ CONSIDER — would add a dependency; existing tests are clear and load-bearing as-is
+- Test count: 10 → 13 (all passing)
+- Commit: 3a48cf1
+
+---
+## Red-team Audit
+- ✅ KEEP (10 original tests): all 10 byte-identical to pre-commit state (diff of first 210 lines: zero delta). No modifications, no reorders.
+- ✅ ADD `extract_wikilinks_with_sections_ignores_h3_headings` (R1): verifies H3 content absorbed into parent H2 section index, not promoted to its own. Asserts 3 concepts in section 1 and 1 concept in section 2. Matches eval spec exactly.
+- ✅ ADD `extract_wikilinks_with_sections_empty_content_returns_empty_vec` (R2): covers both empty string AND title-only (`# Title\n`) edge cases in a single test. Both were called out in eval Deeper Concern §4.
+- ✅ ADD `sync_same_pair_across_multiple_files_aggregates_source_weights` (R5): creates two files with alpha/beta pair — same-section (1.0) and cross-section (0.5) — asserts `source_files` JSON dict contains both URIs with correct per-file weights. Matches eval recommendation exactly.
+- ✅ SKIP R3 (serial_test crate): correctly classified as P3+ CONSIDER. No dependency added.
+- ✅ SKIP R4 (rstest parameterization): correctly classified as P3+ CONSIDER. No dependency added.
+- ✅ Traceability: all 3 new tests tagged `T-4.3: RTM FR-23.1` (pure-function) or `T-4.3: RTM FR-23.2` (integration), with eval recommendation number (R1/R2/R5).
+- ✅ Commit scope: 3a48cf1 touches exactly 1 file, 99 lines appended. No unrelated changes.
+- ✅ All 13 tests pass (`cargo test -p maenifold-core --test integration_tests proximity_weight_sections -- --test-threads=1`): 13 passed, 0 failed.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- proximity_weight_sections`: 13 passed, 0 failed
+- Verdict: PASS

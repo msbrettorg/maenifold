@@ -191,7 +191,12 @@ fn edit_memory_op_with_concepts_succeeds() {
 
     for (operation, title, new_content, expected_snippet) in cases {
         let env = isolated_env();
-        let uri = write_memory_file(&env, title, "Original content with [[test]].", Some("edit-memory-tests"));
+        let uri = write_memory_file(
+            &env,
+            title,
+            "Original content with [[test]].",
+            Some("edit-memory-tests"),
+        );
 
         let edit_result = edit_memory_output(
             &env,

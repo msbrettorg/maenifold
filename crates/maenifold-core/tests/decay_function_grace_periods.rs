@@ -50,10 +50,7 @@ fn grace_period_boundary_gate_per_tier() {
             "memory://thinking/workflow/2026/03/boundary-test",
             WORKFLOWS_GRACE_PERIOD_DAYS,
         ),
-        (
-            "memory://projects/boundary-test",
-            DEFAULT_GRACE_PERIOD_DAYS,
-        ),
+        ("memory://projects/boundary-test", DEFAULT_GRACE_PERIOD_DAYS),
     ];
 
     for &(path, grace_days) in tiers {

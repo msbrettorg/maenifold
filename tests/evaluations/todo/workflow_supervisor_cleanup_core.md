@@ -68,3 +68,13 @@ A skeptical read surfaces two further concerns:
 | Test 3 + Test 4 (together) | ⚠️ Marginal | Adds sequential-URI path coverage over tests 1+2. Genuinely useful if someone changes the SQL predicate to a more specific pattern. However, body-content check (test 4) adds zero incremental value — `append_abandoned_notice` is path-agnostic. Combined, these are one test worth of coverage for a marginal concern. |
 | Test 5 | ✅ Yes | Only test in this file asserting the temporal guard (recent sessions are not abandoned). The three-assertion structure is clean. |
 | Test 6 | ✅ Yes | Only test in the entire suite asserting that non-thinking-path files are excluded. Without it, a SQL predicate regression (`LIKE 'memory://%'` instead of `LIKE 'memory://thinking/%'`) would not be caught. The mtime check is the correct level of evidence. |
+
+---
+## SWE Remediation
+- MERGE tests 1+2 → `handle_session_cleanup_stale_workflow_session_is_abandoned`: single fixture, 3 assertions (count, frontmatter status, body contains notice)
+- MERGE tests 3+4 → `handle_session_cleanup_stale_sequential_session_is_abandoned`: same triple-assert pattern for sequential URI path; kept because `session_cleanup_ttl.rs::active_session_beyond_default_ttl_is_marked_abandoned` only covers sequential, not both URI types
+- KEEP test 5 (`handle_session_cleanup_recent_active_session_no_change`): unchanged
+- RENAME test 6 → `handle_session_cleanup_non_thinking_path_is_not_touched`: reflects actual URI-path-exclusion invariant, not type-field absence
+- ADD `handle_session_cleanup_already_abandoned_session_is_idempotent`: asserts second cleanup returns 0 and body contains exactly one "Session Abandoned" notice (recommendation 4)
+- Test count: 6 → 5 (net -1 from merges, +1 from idempotency)
+- Commit: c17525b

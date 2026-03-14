@@ -58,3 +58,23 @@ Tests 2 (`persists_created`), 3 (`ctime_fallback`), 6 (`embedding blob`), and 7 
 - FIX embedding test: load vec0 extension into verification connection (per-connection requirement); graceful skip when ONNX model unavailable (matching suite pattern from `dynamic_model_db.rs`)
 - Test count: 7 → 5, all passing
 - Commit: 8b07b55
+
+---
+
+## Red-team Audit
+
+- ✅ REWRITE `get_decay_weight_for_file_reads_from_db_matches_decay_calculator_directly` → `sync_decay_weight_for_60_day_file_is_near_fresh`: renamed correctly, `actual > 0.15` bracket assertion added that distinguishes 60-day from 120-day (test 7), tolerance check retained. Comment explains the power-law boundary. Matches eval spec.
+- ✅ REMOVE `process_file_skips_reindexing_when_mtime_unchanged`: confirmed deleted. Subsumed by 4 dedicated files: `incremental_sync_unification_guards::incremental_sync_mtime_guard_skips_unchanged_files`, `sync_mtime_opt_guards::process_file_changed_when_mtime_unchanged_skips_before_read_and_does_not_restore_state`, `incremental_sync_boundary_guards::sync_single_file_skips_unchanged_file_with_mtime_guard`, `sync_mtime_skip::sync_when_mtime_unchanged_skips_without_read_and_does_not_restore_mentions_on_unix`. No unique coverage lost.
+- ✅ REMOVE `process_file_skips_reindexing_when_md5_matches_despite_mtime_change`: confirmed deleted. Subsumed by 3 dedicated files: `incremental_sync_unification_guards::incremental_sync_hash_guard_updates_last_indexed_only`, `sync_mtime_opt_guards::process_file_changed_when_mtime_differs_but_hash_same_updates_last_indexed_only`, `incremental_sync_boundary_guards::sync_single_file_skips_file_with_same_hash`. No unique coverage lost.
+- ✅ RENAME `generate_file_embedding_populates_vec_table_insert_or_replace_runs_to_completion` → `sync_populates_vec_memory_files_with_non_trivial_onnx_embedding`: old name fully removed, new name matches eval suggestion. Implementation-detail naming eliminated per P0.
+- ✅ FIX embedding test: `db::ensure_vec0_tables` loaded per-connection before vec query; graceful `return` on vec0 load failure and on missing ONNX embedding. Matches suite pattern.
+- ✅ KEEP tests 2, 3, 7 untouched: `process_file_persists_created_from_frontmatter_to_database`, `process_file_falls_back_to_filesystem_ctime_when_frontmatter_has_no_created_key`, `get_decay_weight_for_file_uses_db_row_not_disk_io_matches_decay_calculator` — all present and unmodified.
+- ✅ No unrelated changes: commit touches only the test file and the eval spec. No source code modified.
+- ✅ Test count 7 → 5 confirmed. All 5 pass (`cargo test --test integration_tests -p maenifold-core -- sync_perf_indexing`: 5 passed, 0 failed).
+- Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_perf_indexing`: 5 passed, 0 failed
+- Verdict: **PASS**

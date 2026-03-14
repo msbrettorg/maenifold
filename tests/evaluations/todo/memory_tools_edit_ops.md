@@ -84,3 +84,30 @@ Tests 2, 3, 5 are genuinely load-bearing but redundant with each other — they 
 - Test count: 9 → 6 (3 merges reduced by 3)
 - All 6 tests pass
 - Commit: 4421659
+
+---
+
+## Red-team Audit
+
+| Verdict | Item | Detail |
+|---|---|---|
+| ✅ | KEEP `find_replace_with_correct_expected_count_succeeds` | `starts_with("Updated memory FILE:")` replaced with `contains(&uri)` per R3. Read-back assertions preserved. |
+| ✅ | MERGE tests 2+3+5 → `find_replace_expectedcount_mismatch_errors` | Table-driven with all 3 rows: `(1,3)`, `(0,1)`, `(2,0)`. Each row asserts both "Expected X matches but found Y" and "Find text: '…'" — matching original assertion structure. No coverage lost. |
+| ✅ | KEEP `find_replace_with_null_expected_count_succeeds` | `starts_with` replaced with `contains(&uri)`. Read-back assertion preserved. |
+| ✅ | REWRITE test 6 → `find_replace_replaces_word_across_document_sections` | Renamed per R4. Name matches eval Recommendation §4. `starts_with` replaced with `contains(&uri)`. Content/assertions unchanged. |
+| ✅ | MERGE tests 7+8 → `edit_memory_op_with_concepts_succeeds` | Parameterized over `["append", "prepend"]`. Each iteration asserts URI in result, original content preserved, and new content present — matching both originals. |
+| ✅ | KEEP `edit_memory_without_concepts_returns_error` | Unchanged. `starts_with("ERROR:")` retained correctly — R3 targeted success-path format strings, not error-path assertions. |
+| ✅ | Test count 9 → 6 | 3 MERGE ops each collapsed 2–3 tests into 1. Confirmed 6 `#[test]` fns in file. |
+| ✅ | All 6 tests pass | `cargo test -p maenifold-core --test integration_tests -- edit_ops` — 6 passed, 0 failed. |
+| ✅ | No unrelated changes | Diff only touches test logic specified by eval. No source code modified. No stray files. |
+
+**Observations (non-blocking):**
+- R5 (add `replace_section` coverage) and R6 (add `allow_multiple_occurrences: false` test) were not addressed. These are additive coverage recommendations, not KEEP/MERGE/REWRITE verdicts, so their absence is not grounds for rejection. They remain open for a future sprint.
+- Commit 4421659 bundles this eval's remediation with `memory_path_nested` remediation under the latter's commit message. Minor traceability hygiene issue — separate eval remediations ideally get separate commits. Non-blocking.
+
+- **Verdict: PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_tools_edit_ops`: 6 passed, 0 failed
+- Verdict: PASS

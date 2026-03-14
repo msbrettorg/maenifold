@@ -337,3 +337,56 @@ length validation, range validation, or the similarity clamping formula would go
 - Unit tests of `similarity_plateau_warning` and clamping formula: these are `pub(crate)` and not accessible from integration tests; would require production code changes to expose
 
 - Commit: eef9d64
+
+---
+
+## Red-team Audit
+
+**Auditor:** Red-team agent
+**Date:** 2025-07-17
+**Test run:** 9 passed, 0 failed, 0 ignored (confirmed via `cargo test --package maenifold-core --test integration_tests similar_concepts_plateau`)
+
+### KEEP (Tests 1–3)
+- ✅ Test 1 `find_similar_concepts_when_query_is_punctuation_only_does_not_emit_confident_results`: unchanged, still passes
+- ✅ Test 2 `find_similar_concepts_when_query_contains_unicode_bracket_confusables_rejects_helpfully`: unchanged, still passes
+- ✅ Test 3 `find_similar_concepts_when_query_contains_bracket_like_delimiters_rejects_helpfully`: unchanged, still passes
+
+### REWRITE: Test 4 — concept_name length validation
+- ✅ `try_find_similar_concepts` helper added returning `Result<String, MaenifoldError>` — no longer panics on `Err`
+- ✅ Test now asserts `result.is_err()` and inspects error message via `format!("{}", err)` — matches eval direction
+- ✅ Boundary success test `find_similar_concepts_when_concept_name_at_limit_succeeds` (256 chars) added per eval Rec 6
+
+### REWRITE: Test 5 — maxResults range validation
+- ✅ Single test split into `..._when_max_results_is_zero_returns_validation_error` and `..._when_max_results_above_fifty_returns_validation_error` — matches eval "split into independent tests"
+- ✅ Boundary success test `find_similar_concepts_when_max_results_at_boundaries_succeeds` added (tests both 1 and 50) per eval Rec 6
+- ✅ All error-path tests use `try_find_similar_concepts`
+
+### REWRITE: Test 6 — similarity values bounded
+- ✅ Renamed to `find_similar_concepts_similarity_values_are_bounded_to_one` — matches eval's suggested name
+- ✅ `seed_vec_concept` replaced with `seed_concept_graph` — bypasses unavailable vec0 extension, test now exercises graph-based search path and produces actual ranked results
+- ✅ Assertion widened from `similarity <= 1.0` to `similarity >= 0.0 && similarity <= 1.0` — full [0.0, 1.0] bound check
+- ✅ `parse_similarity_values` helper retained — eval said "migrate with the integration slice or delete"; it migrated with the integration slice
+- ✅ Dead `seed_vec_concept` helper and `use maenifold_core::vector` import removed
+
+### P0 blocking items
+- ✅ Tests 4 and 5 rewritten with correct error-handling contract (Rec 1)
+- ✅ Test 6 rewritten with working data seeding (Rec 2)
+
+### P1/P2 items
+- ⬜ Traceability (`T-QUAL-FSC2: RTM FR-7.4`) not updated — SWE justification valid: determining correct RTM entry is out of scope for code remediation
+- ⬜ File rename/split not performed — SWE justification valid: SWE prompt prohibits file moves
+- ⬜ Unit tests of `similarity_plateau_warning` and clamping formula not added — SWE justification valid: these are `pub(crate)` and inaccessible from integration tests without production code changes
+- ⬜ Parameterization of Tests 2 and 3 — medium-term, not blocking
+
+### Unrelated changes check
+- ✅ No production code modified — diff is test-only
+- ✅ No files created, moved, or deleted outside this test file
+
+### Verdict: **PASS**
+
+All P0 recommendations addressed. Three previously-panicking tests now pass. Test count increased from 6 (3 broken) to 9 (all passing). The SWE's approach to Test 6 (graph-based seeding instead of unit test decomposition) is a pragmatic adaptation that achieves the eval's core goal — verifying similarity values stay bounded — without requiring production code visibility changes. Non-blocking items documented with valid justifications for deferral.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- similar_concepts_plateau`: 9 passed, 0 failed
+- Verdict: PASS

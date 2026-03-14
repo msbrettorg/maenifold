@@ -179,3 +179,49 @@ assert!(
 - KEEP test 4 (`continue_session_with_valid_session_id_appends_thought`): added `content.contains("Final synthesis with [[concept-synthesis]]")` verifying conclusion text persisted
 - KEEP test 5 (`new_session_with_parent_workflow_id_creates_bidirectional_links`): added assertion messages for debugging; kept substring matching (parent/related values are WikiLink-formatted, not raw IDs — exact match would be incorrect)
 - Commit: 0ad5145
+
+---
+## Red-team Audit
+
+**Commit audited**: `0ad5145` (lifecycle.rs) + cross-ref `2c289b4` (errors.rs coordination)
+**Traceability**: T-12.7 · NFR-1 · NFR-2
+
+### Per-test findings
+
+- ✅ **REWRITE test 2** → `single_thought_session_with_conclusion_completes_immediately`: matches eval spec exactly. Renamed correctly. All 5 file-level assertions added (status=completed, thoughtCount=1, completed key present, `[[deep-learning]]` WikiLink, Conclusion section).
+
+- ✅ **KEEP test 1** (`new_session_with_concepts_creates_session_file`): `!contains_key("completed")` and `!contains_key("cancelled")` added per eval. **Deviation**: `thoughtCount == "1"` skipped — SWE documented that implementation does not set `thoughtCount` on creation (only on completion). Verified: test 2's REWRITE asserts `thoughtCount=1` on the completed path, so this field IS tested where it matters. Deviation justified.
+
+- ✅ **KEEP test 3** (`new_session_without_concepts_fails_validation`): side-effect assertion added via `std::fs::read_dir` + count check. Uses `harness.config.sequential_path` (config accessor) rather than eval's manual `.join()` — functionally equivalent and more robust to config changes.
+
+- ✅ **KEEP test 4** (`continue_session_with_valid_session_id_appends_thought`): `content.contains("Final synthesis with [[concept-synthesis]]")` added exactly as specified.
+
+- ✅ **KEEP test 5** (`new_session_with_parent_workflow_id_creates_bidirectional_links`): assertion messages added for debugging. **Deviation**: eval recommended exact-match (`assert_eq!`) but SWE kept substring matching with justification: parent/related values are WikiLink-formatted (e.g., `[[session-id]]`), not raw IDs. Verified by inspecting test 5's frontmatter helpers — substring matching is the correct approach for WikiLink-wrapped values.
+
+- ✅ **Tests 6-7 added** (`session_lifecycle_with_analysis_type_persists_all_frontmatter_fields`, `new_session_renders_thoughts_field_in_session_content`): Not documented in this eval's SWE remediation notes, but fully traceable via the sibling eval (`session_sequential_errors.md`) R-1/R-2 recommendations. The errors.rs eval's SWE section explicitly references commit `0ad5145` as the destination. Enhanced rewrites cover all original code paths plus additional frontmatter and WikiLink assertions. No coverage lost; coverage improved.
+
+### Regression check
+
+- All 7 lifecycle tests pass (single-threaded: `cargo test -p maenifold-core session_sequential_lifecycle -- --test-threads=1` → 7/7 ok).
+- Parallel test failures are **pre-existing** (13 failures before commit vs. 12 after — race condition in TestHarness temp directory isolation, not introduced by this change).
+- Only `session_sequential_lifecycle.rs` modified in commit `0ad5145`. No unrelated changes.
+
+### Minor observations (informational, not blocking)
+
+1. The SWE remediation notes should have documented tests 6-7 in this eval spec for self-contained traceability. Currently requires cross-referencing the sibling eval to understand the full changeset.
+2. The pre-existing parallel test race condition (TestHarness session timestamp collisions under concurrent execution) is a systemic issue worth a future T-item.
+
+- **Verdict: PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- session_sequential_lifecycle`: 7 passed, 0 failed
+- Tests verified:
+  1. `new_session_with_concepts_creates_session_file` — ok
+  2. `single_thought_session_with_conclusion_completes_immediately` — ok (REWRITE from test 2)
+  3. `new_session_without_concepts_fails_validation` — ok
+  4. `continue_session_with_valid_session_id_appends_thought` — ok
+  5. `new_session_with_parent_workflow_id_creates_bidirectional_links` — ok
+  6. `session_lifecycle_with_analysis_type_persists_all_frontmatter_fields` — ok (added per sibling eval)
+  7. `new_session_renders_thoughts_field_in_session_content` — ok (added per sibling eval)
+- Verdict: PASS

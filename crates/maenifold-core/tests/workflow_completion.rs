@@ -3,7 +3,9 @@ mod workflow_support;
 
 use serde_json::json;
 use serde_yaml::Value as YamlValue;
-use workflow_support::{TEST_MUTEX, invoke_workflow, read_workflow_session, start_session, workflow_tools_env};
+use workflow_support::{
+    TEST_MUTEX, invoke_workflow, read_workflow_session, start_session, workflow_tools_env,
+};
 
 // T-12.0: RTM NFR-1 - preserve completion, cancellation, and validation coverage after the split.
 #[test]

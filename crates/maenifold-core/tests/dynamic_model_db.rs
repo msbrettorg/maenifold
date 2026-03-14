@@ -83,7 +83,10 @@ fn t9_6_vec0_tables_created_when_extension_available() {
 
     let assets = packaged_assets_root();
     if vec0_extension_path(&assets).is_none() {
-        eprintln!("Skipping: vec0 extension not available at {}", assets.display());
+        eprintln!(
+            "Skipping: vec0 extension not available at {}",
+            assets.display()
+        );
         return;
     }
 
@@ -115,7 +118,10 @@ fn t9_6_ensure_vec0_tables_writes_embedding_dimensions_metadata() {
 
     let assets = packaged_assets_root();
     if vec0_extension_path(&assets).is_none() {
-        eprintln!("Skipping: vec0 extension not available at {}", assets.display());
+        eprintln!(
+            "Skipping: vec0 extension not available at {}",
+            assets.display()
+        );
         return;
     }
 

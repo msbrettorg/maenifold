@@ -49,3 +49,36 @@ This file tests the `format_recent_activity_report` formatting pipeline — a pu
 ## Load-Bearing Score: 5/8
 
 The empty-result test (1), the multi-entry test (8), and the workflow/memory entry tests (5, 6) are load-bearing for their respective paths. The two `include_content` pairs (tests 3/4 and tests 6/7) are partially redundant and mergeable. Across all eight tests, the systematic absence of **value assertions** (counts, content, timestamps) means a formatter that emits all the right labels with wrong values would achieve a full green suite.
+
+---
+
+## SWE Remediation
+
+- KEEP `format_activity_report_empty_results_returns_no_activity_message`: unchanged
+- STRENGTHEN `format_activity_report_sequential_entry_includes_expected_fields`: assert `"Thoughts: 2"` (not just label), added `"Modified: 2026-02-18 10:00"` timestamp assertion (Rec #1, #4)
+- MERGE `format_activity_report_sequential_entry_include_content_true_shows_h2_content_fields` + `format_activity_report_sequential_entry_include_content_false_shows_snippet` → `format_activity_report_sequential_entry_include_content_toggle`: parameterized with `(include_content, expected_present, expected_absent)` table; asserts actual content values like `"First H2 Content: First prose."` (Rec #2, #3)
+- STRENGTHEN `format_activity_report_workflow_entry_includes_steps_and_status`: assert `"Steps: 2"` (not just label), added timestamp assertion (Rec #1, #4)
+- MERGE `format_activity_report_memory_entry_includes_title_and_sections` + `format_activity_report_memory_entry_include_content_true_shows_h2_fields` → `format_activity_report_memory_entry_include_content_toggle`: parameterized; asserts `"Sections: 2"`, actual H2 content values like `"First H2 Content: Overview content."` (Rec #1, #2, #3)
+- STRENGTHEN `format_activity_report_multiple_entries_all_entities_present`: added positional ordering assertion (`pos_a < pos_b`) (Rec #5)
+- ADD `format_activity_report_thinking_entry_classified_as_thinking`: new test for `memory://thinking/` prefix (without `/sequential/` or `/workflow/`), verifies `(thinking)` label, title, section count, and timestamp (Rec #6)
+- Test count: 8 → 7 (4 merged into 2, 1 added)
+- Commit: 0bd2c27
+
+---
+## Red-team Audit
+- ✅ KEEP `format_activity_report_empty_results_returns_no_activity_message`: unchanged, `assert_eq!` preserved
+- ✅ STRENGTHEN `format_activity_report_sequential_entry_includes_expected_fields`: `"Thoughts: 2"` asserted (not just label), timestamp `"Modified: 2026-02-18 10:00"` added (Rec #1, #4)
+- ✅ MERGE `sequential_entry_include_content_true` + `sequential_entry_include_content_false` → `sequential_entry_include_content_toggle`: parameterized with `(bool, &[&str], &[&str])` table, content values asserted (`"First H2 Content: First prose."`, `"Last H2 Content: Third prose."`), negative assertions preserved, count `"Thoughts: 3"` in both branches (Rec #2, #3)
+- ✅ STRENGTHEN `format_activity_report_workflow_entry_includes_steps_and_status`: `"Steps: 2"` asserted, timestamp added (Rec #1, #4)
+- ✅ MERGE `memory_entry_includes_title_and_sections` + `memory_entry_include_content_true_shows_h2_fields` → `memory_entry_include_content_toggle`: parameterized, `"Sections: 2"` asserted, content values asserted (`"First H2 Content: Overview content."`, `"Last H2 Content: Detailed content here."`) (Rec #1, #2, #3)
+- ✅ STRENGTHEN `format_activity_report_multiple_entries_all_entities_present`: positional ordering assertion via `output.find()` positions, `pos_a < pos_b` (Rec #5)
+- ✅ ADD `format_activity_report_thinking_entry_classified_as_thinking`: `memory://thinking/` prefix (no `/sequential/` or `/workflow/`), asserts `(thinking)` label, Title, `Sections: 2`, timestamp (Rec #6)
+- ✅ Test count verified: 7 `#[test]` functions, 7/7 pass (`cargo test -p maenifold-core recent_activity_pipeline_format`)
+- ✅ No unrelated changes: commit 0bd2c27 touches only the test file (1 file, 163 insertions, 69 deletions)
+- ✅ All 6 recommendations addressed: count assertions (Rec #1), merge pairs (Rec #2), content values (Rec #3), timestamps (Rec #4), ordering (Rec #5), thinking path (Rec #6)
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- recent_activity_pipeline_format`: 7 passed, 0 failed
+- Verdict: PASS

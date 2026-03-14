@@ -12,12 +12,14 @@ fn t9_6_model_discovery_finds_shadow_onnx_file() {
     let ctx = TestContext::new();
     ctx.install_valid_shadow_model_with_fallback_assets("test-model.onnx");
     // T-9.6: RTM-051 — derive expected dims from ONNX tensor metadata, not a hardcoded constant.
-    let expected_dims =
-        model_output_dimensions(&ctx.shadow_models_dir().join("test-model.onnx"));
+    let expected_dims = model_output_dimensions(&ctx.shadow_models_dir().join("test-model.onnx"));
 
     vector::load_model().expect("load discovered shadow model");
 
-    assert!(vector::is_initialized(), "model should be initialized after successful load");
+    assert!(
+        vector::is_initialized(),
+        "model should be initialized after successful load"
+    );
     assert_eq!(vector::model_filename().as_deref(), Some("test-model.onnx"));
     assert_eq!(vector::embedding_dimensions(), Some(expected_dims));
 
@@ -56,8 +58,14 @@ fn t9_6_no_model_generate_embedding_returns_err_and_dimensions_none() {
     // T-9.6: RTM-055 — exercise the discovery-failure path: load_model() must return Err
     // when no *.onnx file is found, not just rely on the already-cleaned None state.
     let load_result = vector::load_model();
-    assert!(load_result.is_err(), "load_model() must return Err when no model exists");
-    assert!(!vector::is_initialized(), "model must not be initialized after failed load");
+    assert!(
+        load_result.is_err(),
+        "load_model() must return Err when no model exists"
+    );
+    assert!(
+        !vector::is_initialized(),
+        "model must not be initialized after failed load"
+    );
     assert_eq!(vector::embedding_dimensions(), None);
     assert_eq!(vector::model_filename(), None);
 

@@ -297,3 +297,58 @@ be deleted outright. All 4 need assertion hardening. Test 1 needs consolidation 
 - Failures:
   - `memory_path_security::move_memory_rejects_path_traversal_in_destination` — panicked at line 96: the `Err` arm assertion checks `contains("Path traversal")` (capital P) but production error message uses lowercase `"path traversal"`. For input `"../outside-memory"`, neither `contains("Invalid")` nor `contains("escape")` match either, so all three disjuncts fail. This confirms red-team Finding 3 (High severity): the assertion is structurally flawed by case-sensitivity mismatch and the `contains("escape")` fallback only accidentally passes for vectors whose input text contains that substring.
 - Verdict: **FAIL**
+
+---
+## SWE Remediation
+- REWRITE test 1 (`write_memory_rejects_path_traversal_attempts`): strengthened assertion from `starts_with("ERROR:")` to pin to traversal-specific `"dot sequences"` / `"Path traversal"` message per Finding 1
+- REWRITE test 2 (`read_memory_rejects_path_traversal_attempts`): removed tautological `contains("escape")` and overly-broad `contains("Invalid URI")` fallbacks; normalized Ok/Err to single message string with `map_or_else`; asserts `to_lowercase().contains("path traversal")` per Finding 2
+- REWRITE test 3 (`move_memory_rejects_path_traversal_in_destination`): **fixed blue-team casing bug** — production returns lowercase `"path traversal"` but old test checked `"Path traversal"` (uppercase P); removed tautological `contains("escape")` and broad `contains("Invalid")`; normalized Ok/Err per Finding 3 (P0)
+- REWRITE test 4: renamed from `uri_to_path_directly_rejects_path_traversal` → `markdown_uri_to_path_rejects_dotdot_segment_traversal`; uses `to_lowercase()` for case-safe assertion; removed tautological fallbacks per Finding 4
+- ADD test 5 (`memory_security_tools_accept_valid_paths`): positive control verifying valid write + read are not falsely rejected per Finding 5
+- All 5 tests pass: `cargo test --test integration_tests -p maenifold-core -- memory_path_security` → 5 passed, 0 failed
+- Commit: ccf7dfa
+
+---
+## Red-team Audit
+
+**Traceability**: T-0.1 (RTM NFR-3), T-W1-4 (RTM NFR-2), FR-29 (RTM-183)
+
+### Line-item audit
+
+- ✅ **REWRITE test 1** (`write_memory_rejects_path_traversal_attempts`): Assertion strengthened from `starts_with("ERROR:")` to `contains("dot sequences") || contains("Path traversal")` — verbatim match with eval spec Finding 1. Case-sensitive matching is correct here because the production code path (`validate_relative_path` in `util/paths.rs:8`) uses capital-P `"Path traversal"`. All 5 traversal vectors retained.
+
+- ✅ **REWRITE test 2** (`read_memory_rejects_path_traversal_attempts`): Tautological `contains("escape")` removed. Overly-broad `contains("Invalid URI")` removed. Ok/Err normalized via `map_or_else` into single string. Assertion pins to `to_lowercase().contains("path traversal")` — addresses eval spec Finding 2A (schizophrenic return shape) and Finding 2B (tautological assertion). The `map_or_else` normalization is an acceptable alternative to the `.expect()` approach the eval spec preferred — the eval spec explicitly offered "or assert `is_err()` as an acceptable variant" which permits handling both arms.
+
+- ✅ **REWRITE test 3** (`move_memory_rejects_path_traversal_in_destination`): **P0 case-sensitivity bug fixed** — `to_lowercase()` resolves the mismatch between production lowercase `"path traversal"` (from `markdown/paths.rs:22`) and the old assertion's `"Path traversal"` (capital P). Tautological `contains("escape")` removed. Overly-broad `contains("Invalid")` removed. Setup write added to create valid source before move. Addresses eval spec Finding 3 (High severity) and blue-team FAIL verdict.
+
+- ✅ **REWRITE test 4** (`markdown_uri_to_path_rejects_dotdot_segment_traversal`): Renamed per eval spec Finding 4. Uses `expect_err()` to enforce `Err` return (matching eval spec recommendation exactly). `to_lowercase().contains("path traversal")` removes tautological fallbacks. This is a **verbatim match** with the eval spec's recommended code.
+
+- ✅ **ADD test 5** (`memory_security_tools_accept_valid_paths`): Positive control verifying valid write + read succeed. Correctly uses slugified URI `memory://{TEST_FOLDER}/valid-path-test` matching title "Valid Path Test". Addresses eval spec Finding 5 (Informational).
+
+- ℹ️ **Finding 6** (harness dedup with `path_security_tests.rs`): Not addressed by SWE. Acceptable — the eval spec rated this Informational with no REWRITE/REMOVE/MERGE action, noting it is "tolerable for now."
+
+### Production code path verification
+
+Confirmed the `to_lowercase()` fix is surgically correct by examining production error strings:
+- `util/paths.rs:8` → `"Path traversal components (dot sequences) are not allowed."` (capital P) — test 1 uses case-sensitive match ✅
+- `markdown/paths.rs:22` → `"path traversal (..) which is not allowed"` (lowercase p) — tests 2, 3, 4 use `to_lowercase()` ✅
+- No casing mismatch remains between any test assertion and its production code path.
+
+### Observations (non-blocking)
+
+1. **Inconsistent case-sensitivity strategy across tests**: Test 1 uses case-sensitive matching while tests 2-4 use `to_lowercase()`. Both are correct for their respective code paths today, but a future refactor of `validate_relative_path` to use lowercase would break test 1. Applying `to_lowercase()` uniformly would be more defensive — but the eval spec's recommended code for test 1 was case-sensitive, so the SWE followed the spec.
+
+2. **`starts_with("ERROR:")` dropped in tests 2-3**: The eval spec's recommended code for Finding 2 included `starts_with("ERROR:") &&` but the SWE omits this. The SWE's approach (check only for "path traversal" signal) is slightly more permissive but still pins to the traversal-specific message. The eval spec's primary concern was removing tautological fallbacks, which is addressed.
+
+### No unrelated changes
+
+All modifications are directly traceable to eval spec Findings 1-5. No code outside the test file was modified. RTM references maintained throughout.
+
+- **Verdict: PASS**
+
+---
+## Blue-team Verification (Re-verify after SWE fix)
+- `cargo test --test integration_tests -p maenifold-core -- memory_path_security`: 5 passed, 0 failed
+- Confirmed SWE fix: `to_lowercase()` resolves case-sensitivity mismatch that caused prior FAIL on test 3
+- All 5 tests exercise distinct security assertions: traversal rejection (tests 1-4) + positive control (test 5)
+- Verdict: **PASS**

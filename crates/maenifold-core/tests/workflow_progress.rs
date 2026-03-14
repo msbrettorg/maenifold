@@ -4,8 +4,8 @@ mod workflow_support;
 use serde_json::json;
 use serde_yaml::Value as YamlValue;
 use workflow_support::{
-    TEST_MUTEX, frontmatter_usize, invoke_workflow, queue_from_frontmatter,
-    read_workflow_session, start_session, workflow_operations_env,
+    TEST_MUTEX, frontmatter_usize, invoke_workflow, queue_from_frontmatter, read_workflow_session,
+    start_session, workflow_operations_env,
 };
 
 // T-12.0: RTM NFR-1 - keep workflow progress and metadata assertions focused and maintainable.
@@ -22,7 +22,10 @@ fn continue_to_next_step_in_same_workflow() {
     let output = invoke_workflow(json!({ "sessionId": session_id, "response": response }))
         .expect("continue workflow");
     // T-12.0: RTM NFR-1 — positive step-advancement assertion replaces fragile negative error scan
-    assert!(output.contains("Step 2/3"), "expected step 2/3 prompt in output: {output}");
+    assert!(
+        output.contains("Step 2/3"),
+        "expected step 2/3 prompt in output: {output}"
+    );
     let (frontmatter, content) = read_workflow_session(&session_id, &env.cfg);
     let frontmatter = frontmatter.expect("frontmatter");
     assert_eq!(frontmatter_usize(&frontmatter, "currentStep"), 1);
@@ -83,7 +86,10 @@ fn continue_preserves_thoughts_in_content() {
     }))
     .expect("continue with thoughts");
     // T-12.0: RTM NFR-1 — absorbed from test 4 (MERGE): thoughts-bearing request still advances step
-    assert!(output.contains("Step 2/3"), "expected step advancement in output: {output}");
+    assert!(
+        output.contains("Step 2/3"),
+        "expected step advancement in output: {output}"
+    );
     let (_, content) = read_workflow_session(&session_id, &env.cfg);
     assert!(content.contains(response), "unexpected content: {content}");
     assert!(content.contains(thoughts), "unexpected content: {content}");

@@ -5,7 +5,9 @@ use maenifold_core::db;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::markdown::{normalize_concept, path_to_uri};
 use maenifold_core::search::sync_single_file;
-pub use maenifold_core::sync::{SKIP_HASH_GUARD_MARKER, SKIP_MTIME_GUARD_MARKER, SYNCED_MENTIONS_MARKER};
+pub use maenifold_core::sync::{
+    SKIP_HASH_GUARD_MARKER, SKIP_MTIME_GUARD_MARKER, SYNCED_MENTIONS_MARKER,
+};
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
 use once_cell::sync::Lazy;

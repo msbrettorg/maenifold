@@ -80,3 +80,43 @@ Three structural problems compound the coverage overlap:
 - REMOVE epoch_increments_when_new_holder_acquires_after_expiry: redundant with fr30_3_ac4_try_acquire_succeeds_on_expired_lease
 - Retired leader_election_boundary.rs entirely; removed mod declaration from main.rs (line 74)
 - All 12 sync_leader_lifecycle tests pass (11 existing + 1 new); 0 failed
+
+---
+## Red-team Audit
+
+**Traceability:** T-4.5a (FR-30.1–FR-30.8)
+
+### REMOVE verdicts (6/6 confirmed)
+- ✅ REMOVE `first_acquire_succeeds_when_no_existing_leader`: file deleted, superseding test `fr30_3_ac1_try_acquire_succeeds_on_empty_table` confirmed present (lifecycle line 12)
+- ✅ REMOVE `same_holder_reacquire_renews_existing_lease`: file deleted, superseding tests `fr30_3_try_acquire_idempotent_for_same_holder` + `fr30_3_ac5_try_renew_succeeds_for_current_holder` confirmed present
+- ✅ REMOVE `different_holder_is_blocked_while_lease_is_active`: file deleted, superseding test `fr30_3_ac3_try_acquire_fails_when_lease_active` confirmed present (lifecycle line 50)
+- ✅ REMOVE `expired_lease_allows_new_holder_to_acquire`: file deleted, superseding test `fr30_3_ac4_try_acquire_succeeds_on_expired_lease` confirmed present (lifecycle line 74)
+- ✅ REMOVE `release_clears_leadership`: file deleted, superseding test `fr30_3_ac6_release_succeeds_for_current_holder` confirmed present (lifecycle line 124)
+- ✅ REMOVE `epoch_increments_when_new_holder_acquires_after_expiry`: file deleted, redundancy with `fr30_3_ac4_try_acquire_succeeds_on_expired_lease` confirmed
+
+### REWRITE verdict (1/1 confirmed)
+- ✅ REWRITE `is_leader_returns_correct_status` → `is_leader_returns_false_when_no_lease_exists`: added to `sync_leader_lifecycle.rs` at line 244. Test body matches eval-recommended code exactly (setup → call → assert, 3-line focused test). Task tag `T-8.1: RTM FR-30.8` matches eval recommendation #3.
+
+### File retirement
+- ✅ `leader_election_boundary.rs` deleted (verified: file does not exist on disk)
+- ✅ `mod leader_election_boundary;` removed from `main.rs` (verified: git diff shows removal at former line 74)
+
+### Test execution
+- ✅ 12/12 `sync_leader_lifecycle` tests pass (`cargo test -p maenifold-core sync_leader_lifecycle`): 11 existing + 1 new, 0 failures
+
+### No unrelated changes
+- ✅ Commit 549f292 bundles this remediation with `markdown_adversarial_structure` (separate eval), but the leader_election_boundary changes are cleanly isolated: 1 file deleted, 1 mod line removed from main.rs, 10 lines added to lifecycle file. No other leader-election-related files modified.
+
+### Observation (non-blocking)
+- `sync_leader_gating.rs` (added in Sprint 15, commit 558d5ff) already contains `fr30_3_is_leader_returns_false_when_no_lease_exists` — the identical empty-table assertion. This predates the eval remediation. The lifecycle file now has its own copy as the eval specified. Coverage overlap exists across two files; the gating file's evaluation is tracked separately per the companion-file note in this eval.
+
+### Verdict: PASS
+
+---
+## Blue-team Verification
+- `leader_election_boundary.rs`: confirmed deleted (file does not exist on disk)
+- `mod leader_election_boundary;`: confirmed absent from `main.rs` (no grep match)
+- `is_leader_returns_false_when_no_lease_exists`: confirmed present in `sync_leader_lifecycle.rs` at line 244
+- `cargo test --test integration_tests -p maenifold-core -- sync_leader_lifecycle`: 12 passed, 0 failed
+- Superseding tests confirmed: all 11 original + 1 new extracted assertion pass
+- Verdict: PASS

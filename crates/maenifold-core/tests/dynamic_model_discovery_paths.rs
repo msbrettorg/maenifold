@@ -45,7 +45,10 @@ fn t20_5_symlinked_model_discovery_uses_canonicalized_executable_path() {
         let expected_dims = model_output_dimensions(&shadow_model);
 
         vector::load_model().expect("load model through symlink helper");
-        assert!(vector::is_initialized(), "model should be initialized after load");
+        assert!(
+            vector::is_initialized(),
+            "model should be initialized after load"
+        );
         assert_eq!(
             vector::model_filename().as_deref(),
             Some("symlinked-shadow.onnx")
@@ -107,11 +110,17 @@ fn t20_5_model_discovery_falls_back_to_shared_runtime_root() {
     // P2: Derive expected dimensions from the installed model instead of hardcoding
     // 384 — keeps the assertion correct when the packaged model is replaced.
     let expected_dims = model_output_dimensions(
-        &ctx.config().assets_path.join("models").join("shared-runtime.onnx"),
+        &ctx.config()
+            .assets_path
+            .join("models")
+            .join("shared-runtime.onnx"),
     );
 
     vector::load_model().expect("load model from shared runtime root");
-    assert!(vector::is_initialized(), "model should be initialized after load");
+    assert!(
+        vector::is_initialized(),
+        "model should be initialized after load"
+    );
 
     assert_eq!(
         vector::model_filename().as_deref(),

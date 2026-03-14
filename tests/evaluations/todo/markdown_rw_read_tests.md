@@ -52,3 +52,34 @@ All eight tests are load-bearing, each covering a distinct behavioral case in `r
 - R4 (strengthen EOF delimiter test): Already addressed — `assert_eq!(scalar(&frontmatter, "title").as_deref(), Some("EOF Note"))` is present at line 63
 - Tests verified: `cargo test --test integration_tests -p maenifold-core -- markdown_rw_read_tests` → 8 passed, 0 failed
 - Commit: 43f16a5
+
+---
+## Red-team Audit
+- ✅ KEEP `read_markdown_malformed_frontmatter_returns_empty_frontmatter`: present, unchanged, passes
+- ✅ KEEP `read_markdown_crlf_frontmatter_parses_correctly`: present, unchanged, passes
+- ✅ KEEP `read_markdown_closing_delimiter_at_eof_parses_frontmatter`: present, unchanged, passes
+- ✅ KEEP `read_markdown_valid_frontmatter_still_parses_correctly`: present, unchanged, passes
+- ✅ KEEP `append_h2_section_propagates_permission_error`: present, unchanged, passes
+- ✅ KEEP `append_h2_section_not_found_defaults_to_empty`: present, unchanged, passes
+- ✅ KEEP `read_markdown_strips_utf8_bom`: present, unchanged, passes
+- ✅ KEEP `read_markdown_without_bom_unchanged`: present, unchanged, passes
+- ✅ R4 "Already addressed": confirmed — line 63 contains `assert_eq!(scalar(&frontmatter, "title").as_deref(), Some("EOF Note"))`, matching the eval recommendation exactly
+- ✅ R1–R3 skipped: appropriate — all are P3+ "Consider"-level recommendations, not mandatory
+- ✅ No unrelated changes: commit 43f16a5 only appended SWE remediation to eval spec; `git diff` on `crates/` is empty
+- ✅ Tests verified independently: 8 passed, 0 failed, 910 filtered out
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- markdown_rw_read`: 8 passed, 0 failed (909 filtered out)
+- All 8 test functions confirmed:
+  - `read_markdown_malformed_frontmatter_returns_empty_frontmatter` — ok
+  - `read_markdown_crlf_frontmatter_parses_correctly` — ok
+  - `read_markdown_closing_delimiter_at_eof_parses_frontmatter` — ok
+  - `read_markdown_valid_frontmatter_still_parses_correctly` — ok
+  - `append_h2_section_propagates_permission_error` — ok
+  - `append_h2_section_not_found_defaults_to_empty` — ok
+  - `read_markdown_strips_utf8_bom` — ok
+  - `read_markdown_without_bom_unchanged` — ok
+- Traceability: T-14.2, T-14.3 (RTM FR-10), T-15.17, T-15.18 (RTM NFR-1)
+- Verdict: **PASS**

@@ -138,7 +138,8 @@ fn validate_status_active_mixed_case_returns_null() {
 fn validate_status_rejects_unknown_value_with_actionable_error_listing_all_valid_values() {
     // T-12.7: RTM FR-17.9 / NFR-1 — error must be actionable: prefixed with
     // "ERROR:" (C# parity), include "Invalid status", and list every valid value.
-    let message = validate_assumption_status("bogus").expect("unknown status must produce an error");
+    let message =
+        validate_assumption_status("bogus").expect("unknown status must produce an error");
     assert!(
         message.starts_with("ERROR:"),
         "error must start with 'ERROR:' for C# parity, got: {message}"

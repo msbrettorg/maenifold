@@ -201,14 +201,16 @@ fn recent_decision_outranks_stale_related_docs_in_hybrid_search() {
         assert!(
             decision_pos < old1_pos,
             "recent decision (rank {}) should outrank 90-day-old Error Handling Research (rank {}): {search_result}",
-            decision_pos, old1_pos
+            decision_pos,
+            old1_pos
         );
     }
     if let Some(old2_pos) = old_related_2_rank {
         assert!(
             decision_pos < old2_pos,
             "recent decision (rank {}) should outrank 85-day-old Old Observability Setup (rank {}): {search_result}",
-            decision_pos, old2_pos
+            decision_pos,
+            old2_pos
         );
     }
 

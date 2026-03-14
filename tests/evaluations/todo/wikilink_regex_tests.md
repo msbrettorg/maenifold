@@ -347,3 +347,37 @@ for what it actually verifies vs. what it implies. Traceability: T-W1-3 · NFR-1
 - P4 coverage gaps filled (6 new tests): empty brackets, whitespace trim, deduplication, inline code span, fenced code block, pipe alias syntax
 - Tests: 11 passed, 0 failed (was 6 passed)
 - Commit: ec9f762
+
+---
+## Red-team Audit
+
+| # | Eval Verdict | SWE Action | Audit |
+|---|---|---|---|
+| 1 | KEEP | Unchanged | ✅ Identical to pre-remediation |
+| 2 | REWRITE (clarify contract) | `is_empty()` replaces bracket-leakage checks; comment documents full-rejection contract | ✅ Matches eval P3 recommendation (option A: full rejection) |
+| 3 | REWRITE (add negatives) + MERGE test 4 | 4 positive, 5 negative, `assert_eq!(len, 4)` count guard; test 4 inputs absorbed | ✅ All eval-specified negatives present; count adjusted from 3→4 to account for merged `algorithm` from test 4 |
+| 4 | MERGE into test 3 | Deleted as standalone; inputs folded into test 3 | ✅ `nested`, `before`, `after`, `algorithm` all present in merged test; negative assertions cover first three |
+| 5 | REMOVE + replace | Deleted circular test + both ghost helpers (`count_concept_occurrences` 68 LOC, `count_regex_wikilinks` 45 LOC); replacement `extract_wikilinks_counts_only_valid_occurrences_ignoring_malformed` uses production API | ✅ P1 addressed; ghost infrastructure fully excised; replacement tests deduplication via production `extract_wikilinks` |
+| 6 | KEEP | Unchanged | ✅ Identical to pre-remediation |
+
+**P4 coverage gaps** (6 new tests):
+
+- ✅ `extract_wikilinks_ignores_empty_brackets`: asserts `is_empty()` on `[[]]`
+- ✅ `extract_wikilinks_trims_whitespace_in_concept`: asserts `[[ concept ]]` → `"concept"` + len=1
+- ✅ `extract_wikilinks_deduplicates_repeated_concept`: asserts `[[concept]] … [[concept]]` → len=1
+- ✅ `extract_wikilinks_ignores_wikilink_in_inline_code`: asserts `` `[[code-concept]]` `` → `is_empty()`
+- ✅ `extract_wikilinks_ignores_wikilink_in_fenced_code`: asserts fenced block → `is_empty()`
+- ✅ `extract_wikilinks_handles_pipe_alias_syntax`: asserts `[[concept|display]]` extracts both parts
+
+**Unrelated changes check**: Only `wikilink_regex_tests.rs` was modified (confirmed via `git diff --stat`). Import line simplified from `{extract_wikilinks, normalize_concept}` + `pulldown_cmark::*` to just `extract_wikilinks` — consistent with ghost helper removal.
+
+**Test run**: `cargo test --test integration_tests -p maenifold-core -- wikilink_regex_tests` → 11 passed, 0 failed, 880 filtered out.
+
+- Verdict: **PASS**
+
+*Traceability: T-W1-3 · NFR-1 · NFR-2*
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- wikilink_regex_tests`: 11 passed, 0 failed (873 filtered out)
+- Verdict: PASS

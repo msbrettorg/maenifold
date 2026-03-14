@@ -296,3 +296,34 @@ remove the timing fragility and assertion gap respectively.
 - Support module: made `write_session_markdown`/`seed_file_content` pub; added `align_to_second_boundary()` per recommendation 2
 - All 5 tests pass: `cargo test --test integration_tests -p maenifold-core -- session_cleanup_ttl`
 - Commit: 2f21186
+
+---
+## Red-team Audit
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| 1 | REWRITE `active_session_within_default_ttl…` → `…at_exact_ttl_boundary…` | ✅ | Renamed correctly; uses `align_to_second_boundary()` + anchor-based `Utc::now().with_nanosecond(0)` seeding to eliminate latent timing fragility; matches supervisor pattern |
+| 2 | ADD `active_session_well_within_ttl_is_not_marked_abandoned` | ✅ | Interior-window companion at 15 min; 4 assertions (count, frontmatter, DB status, body) |
+| 3 | KEEP `active_session_beyond_default_ttl_is_marked_abandoned` | ✅ | Zero diff in commit — test unchanged with all 5 original assertions intact |
+| 4 | REWRITE `custom_ttl_from_env_var_is_respected` | ✅ | Added `read_db_status == "abandoned"` and `db_content.contains("## Session Abandoned")` matching test 2's dual-storage standard |
+| 5 | ADD `invalid_env_var_falls_back_to_default_ttl` (MISSING-2) | ✅ | Iterates `["abc", "0", "-1", ""]`; seeds 31-min-old session; asserts `abandoned == 1` and frontmatter status per recommendation 5 |
+| 6 | Support module changes | ✅ | Only necessary changes: `align_to_second_boundary()` added, `write_session_markdown`/`seed_file_content` made `pub` |
+| 7 | No unrelated changes | ✅ | Commit touches exactly 2 files, both scoped to the eval |
+| 8 | Tests pass | ✅ | `running 5 tests … test result: ok. 5 passed; 0 failed` confirmed |
+
+**Eval recommendation 4** (inactivity-minutes assertion on test 2) was not implemented, but this is consistent with the KEEP verdict for test 2 — the recommendation was an enhancement suggestion, not part of the verdict. No fault.
+
+**Eval recommendation 6** (rstest parameterization) was not implemented. The eval used "consider" language, not a directive. No fault.
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- session_cleanup_ttl`: 5 passed, 0 failed
+- Tests verified:
+  1. `active_session_at_exact_ttl_boundary_is_not_marked_abandoned` — ok
+  2. `active_session_well_within_ttl_is_not_marked_abandoned` — ok
+  3. `active_session_beyond_default_ttl_is_marked_abandoned` — ok
+  4. `custom_ttl_from_env_var_is_respected` — ok
+  5. `invalid_env_var_falls_back_to_default_ttl` — ok
+- Verdict: **PASS**

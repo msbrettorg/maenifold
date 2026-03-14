@@ -43,3 +43,35 @@ The strongest of the three files evaluated. All seven tests are load-bearing and
 ## Load-Bearing Score: 7/7
 
 Every test would allow a real bug to ship if removed. The whitespace-only test gets a conditional asterisk — it drops to 6/7 if the implementation treats `""` and `"   \n"` identically throughout.
+
+---
+
+## SWE Remediation
+
+- **MERGE** `repair_concepts_handles_empty_files_gracefully` + `repair_concepts_handles_whitespace_only_files_gracefully` → `repair_concepts_handles_empty_and_whitespace_only_files_gracefully`: Confirmed both follow same code path (zero regex matches → `edits.is_empty()` early return → `replacement_count == 0` skip). Collapsed into single test iterating over `[("empty", ""), ("whitespace-only", "   \n\n   \t\n")]`.
+- **RENAME** `repair_concepts_can_replace_multiple_variants_in_one_operation` → `repair_concepts_replaces_all_listed_variants_in_single_file` per P3 naming accuracy recommendation.
+- **ADD** `repair_concepts_dry_run_reports_counts_without_modifying_files`: New dry-run batch test per P1 recommendation. Verifies multi-file scenario with `dryRun: true` — files remain unchanged, replacement count reported, output indicates dry-run mode.
+- **SKIP** P2 folder scoping: Already tested in `repair_concepts_replacement.rs` (`repair_concepts_dry_run_with_invalid_folder_returns_error_output`).
+- **SKIP** P3 REPAIR_FIXTURE cleanup: Constant is used by `repair_concepts_replacement.rs`; not dead code at module level.
+- Test count: 7 (was 7 — 2 merged into 1, 1 added)
+- Commit: c370c84
+
+---
+
+## Red-team Audit
+
+- ✅ RENAME `repair_concepts_can_replace_multiple_variants_in_one_operation` → `repair_concepts_replaces_all_listed_variants_in_single_file`: only function name changed, body/assertions untouched, matches eval P3 recommendation #5
+- ✅ MERGE `repair_concepts_handles_empty_files_gracefully` + `repair_concepts_handles_whitespace_only_files_gracefully` → `repair_concepts_handles_empty_and_whitespace_only_files_gracefully`: correctly collapses into parameterized loop `for (label, content) in [("empty", ""), ("whitespace-only", "   \n\n   \t\n")]` with fresh `isolated_config()` per iteration; code-path investigation documented in merge comment; both original assertion categories preserved (content unchanged + "Files modified: 0")
+- ✅ ADD `repair_concepts_dry_run_reports_counts_without_modifying_files`: satisfies P1 recommendation — multi-file scenario (3 files, 2 matching, 1 non-matching), `dryRun: true`, asserts all files unchanged via `assert_eq!`, asserts replacement count reported, asserts `DRY RUN` indicator present
+- ✅ SKIP P2 folder scoping: verified `repair_concepts_replacement.rs:142` already tests `repair_concepts_dry_run_with_invalid_folder_returns_error_output` with nonexistent folder path
+- ✅ SKIP P3 REPAIR_FIXTURE cleanup: verified `REPAIR_FIXTURE` used at 4 call sites in `repair_concepts_replacement.rs` (lines 13, 48, 76, 77) — not dead code at module level
+- ✅ KEEP tests untouched: `modifies_multiple_files_in_a_single_batch`, `replaces_variants_with_special_characters`, `matches_wikilinks_case_insensitively`, `scans_nested_folder_depths` — no assertion changes (appear only as diff hunk context headers)
+- ✅ Test count: 7 → 7 (2 merged into 1, 1 added). Arithmetic confirmed.
+- ✅ No unrelated changes: commit c370c84 touches only `repair_concepts_batch.rs` (1 file, 71 insertions, 45 deletions)
+- Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- repair_concepts_batch`: 7 passed, 0 failed
+- Verdict: PASS

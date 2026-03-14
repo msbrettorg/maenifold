@@ -335,39 +335,57 @@ neither test is independently sufficient to anchor the claim.
 - Commit: b149dc5 (cherry-picked from orphaned 3c618f7)
 
 ---
-## Red-team Audit
+## Red-team Audit (Round 1) — REJECTED
 
-### Critical Finding: Commit Orphaned — Code on `main` Is Unremediated
+> Orphaned commit `3c618f7` was not on `main`. Code quality was approved; git state was not.
+> Remediation path issued: cherry-pick `3c618f7` onto `main`.
 
-Commit `3c618f7` exists in the reflog but is **not an ancestor of HEAD** (`da94b14`).
-Git forensics (reflog) shows the following sequence:
+---
+## Red-team Audit (Round 2)
 
-1. `91fb6bb HEAD@{4}` — committed `memory_tools_move_read_write` remediation
-2. `3c618f7 HEAD@{3}` — committed proximity_decay_search remediation on top
-3. `dc96dd1 HEAD@{2}` — amended (added unrelated file to commit)
-4. `91fb6bb HEAD@{1}` — **`reset HEAD~1`** — dropped the proximity_decay commit
-5. `da94b14 HEAD@{0}` — amended the memory_tools commit (current HEAD)
+**Auditor**: 🔴 Red Team
+**Audit date**: 2025-07-24
+**Commit under review**: `b149dc5` (cherry-pick of orphaned `3c618f7`)
+**HEAD at audit**: `723d4e1`
 
-**Result**: The test file at HEAD still has 4 tests (should be 3), all original weak assertions intact.
-The SWE remediation section claims completion against a dangling commit that is not on any branch.
+### Round 1 REJECT Resolution
 
-### Audit of Orphaned Commit `3c618f7` (Code Quality)
+- ✅ `b149dc5` is a confirmed ancestor of HEAD (`git merge-base --is-ancestor` passes)
+- ✅ File content at `b149dc5` is byte-identical to orphaned `3c618f7` (MD5: `b6817556ba2e955826a0d81aeb290ad6`)
+- ✅ Working tree at HEAD contains the remediated code — 3 tests, 146 lines
 
-If the commit were applied, the changes are **correct and high-quality**:
+The git state defect from Round 1 is fully resolved.
 
-- ✅ **MERGE Tests 1+2** → `power_law_sequential_path_respects_seven_day_grace_window`: Properly merged with both within-grace (3d → `assert_weight_eq(within, 1.0)`) and past-grace (12d → `past < 0.5`, expected ≈ 0.447) sub-assertions. Test name explicitly states path type, decay function, and grace window per eval spec.
-- ✅ **REWRITE Test 2 assertion**: `< 1.0` → `< 0.5` bounding the expected magnitude. Matches eval recommendation ("assert `weight < 0.5` (still loose)").
-- ✅ **KEEP Test 3 strengthened**: `sequential < 1.0` → `sequential < 0.65` with explanatory comment. Matches eval recommendation #2 exactly.
-- ✅ **KEEP Test 4 strengthened**: `< 1.0` → `< 0.65`; added "Intentionally identical content" design comment per eval recommendation #5. `results.len() >= 2` not tightened to `== 2` — eval said "Optionally", so acceptable.
-- ✅ **Test count 4 → 3**: Confirmed in orphaned commit (146 lines vs 151 at HEAD).
-- ✅ **No unrelated changes**: Diff only touches the one test file.
+### Eval Compliance Audit
 
-#### Noteworthy: SWE Correctly Identified Eval Math Error
+- ✅ **MERGE Tests 1+2** → `power_law_sequential_path_respects_seven_day_grace_window`: Single boundary test with within-grace (3d → `assert_weight_eq(within, 1.0)`) and past-grace (12d → `past < 0.5`, expected ≈ 0.447). Test name explicitly encodes path type, decay function, and grace window. Matches eval recommendation #1.
+- ✅ **REWRITE Test 2 assertion**: `< 1.0` → `< 0.5` bounding the expected magnitude. Matches eval finding ("assert `weight < 0.5` (still loose)").
+- ✅ **KEEP Test 3 strengthened**: `sequential < 1.0` → `sequential < 0.65` with math comment (`3^(-0.5) ≈ 0.577`). Matches eval recommendation #2 exactly.
+- ✅ **KEEP Test 4 strengthened**: `< 1.0` → `< 0.65` with math comment; added "Intentionally identical content" design comment. Matches eval recommendations #3 and #5. `results.len() >= 2` not tightened — eval said "Optionally", acceptable.
+- ✅ **Test count 4 → 3**: Confirmed (`grep -c '#\[test\]'` = 3).
+- ✅ **No unrelated changes**: Diff touches only `proximity_decay_search.rs` (1 file changed, 24 insertions, 29 deletions).
 
-The eval recommendation #1 suggested using day 8 as the "one-past-grace" point. The SWE's code comments correctly note that at day 8 with a 7-day sequential grace under power-law: `effective_age = max(8-7, 1) = 1`, and `1^(-0.5) = 1.0` — so day 8 would **not** show observable decay. The SWE kept day 12 and documented the reasoning. This deviation from the eval's literal suggestion is mathematically correct and shows genuine understanding of the decay formula.
+### Noteworthy: SWE Correctly Identified Eval Math Error
 
-### Verdict: **REJECT**
+Eval recommendation #1 suggested day 8 as the "one-past-grace" point. SWE's comments document why this won't work: `effective_age = max(8-7, 1) = 1`, and `1^(-0.5) = 1.0` — no observable decay. Kept day 12 (`effective_age = 5, weight ≈ 0.447`) and added explanatory comments. This deviation is mathematically correct and improves the test.
 
-**Reason**: The code changes exist in an orphaned commit (`3c618f7`) that is not on `main`. The working tree at HEAD (`da94b14`) contains the original unremediated code — 4 tests with all original weak assertions. The SWE did the work correctly but lost it through a git mishap (`reset HEAD~1`).
+### Priority Coverage
 
-**Remediation path**: Cherry-pick or re-apply commit `3c618f7` onto `main`. The commit's content is audit-approved — once applied, no further changes needed.
+| Priority | Item | Status |
+|----------|------|--------|
+| P0 | Strengthen weak `< 1.0` assertions (Tests 2, 3, 4) | ✅ All three tightened |
+| P1 | Merge Tests 1+2 into boundary test | ✅ Single test with both sides |
+| P2 | Add "identical content" design comment (Test 4) | ✅ Comment added |
+
+### Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- proximity_decay_search`: 3 passed, 0 failed
+- Tests verified:
+  - `proximity_decay_search::power_law_sequential_path_respects_seven_day_grace_window` — ok
+  - `proximity_decay_search::compute_decay_weight_uses_path_specific_grace_windows` — ok
+  - `proximity_decay_search::search_memories_orders_results_by_decay_weighted_score` — ok
+- Test count matches expected 3 (post-merge from original 4)
+- Traceability: T-12.0 · RTM NFR-1
+- Verdict: **PASS**

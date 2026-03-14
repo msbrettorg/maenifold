@@ -97,3 +97,35 @@ Tests 19 and 20 are load-bearing in theory but are fully subsumed by tests 18 an
 - ADD `validate_status_rejects_empty_string`: edge case for empty-string status (Rec #5)
 - Test count: 21 → 14, all passing, 0 coverage loss
 - Commit: 314d883
+
+---
+
+## Red-team Audit
+
+| Item | Eval Spec | Code | Status |
+|---|---|---|---|
+| KEEP tests 1–3 (URI boundary) | Unchanged | `validate_update_input_null_uri_returns_error`, `…empty_uri…`, `…whitespace_uri…` present, unmodified | ✅ |
+| KEEP tests 4–5 (happy path absent status) | Unchanged | `validate_update_input_valid_uri_null_status_returns_null`, `…empty_status…` present, unmodified | ✅ |
+| MERGE tests 6–9 → single delegation test (Rec #1) | Collapse to one test using "active" | `validate_update_input_delegates_status_validation_to_status_validator` uses `Some("active")`, asserts `.is_none()` with failure message; original 4 tests deleted | ✅ |
+| MERGE test 10 → delegation error propagation | Reduce to `is_some()` delegation check | `validate_update_input_propagates_status_validation_error` asserts `result.is_some()` only; `contains("Invalid status")` assertion correctly moved to the rewritten test 20+21 | ✅ |
+| KEEP tests 11–13 (read_input) | Unchanged | `validate_read_input_null_uri_returns_error`, `…empty_uri…`, `…valid_uri…` present, unmodified | ✅ |
+| MERGE tests 14–17 → parameterized (Rec #2) | for-loop over 4 enum values with per-value failure message | `validate_status_accepts_all_valid_values` loops `["active", "validated", "invalidated", "refined"]` with `"expected None for '{status}'"` message | ✅ |
+| KEEP test 18 (case-insensitivity) | Unchanged | `validate_status_active_mixed_case_returns_null` present, unmodified | ✅ |
+| REMOVE test 19 (Rec #3) | Delete; subsumed by test 18 | Function deleted; tombstone comment explains subsumption rationale | ✅ |
+| MERGE+REWRITE tests 20+21 (Rec #4) | Chain all assertions: `ERROR:` prefix (C# parity), `"Invalid status"`, all 4 valid values | `validate_status_rejects_unknown_value_with_actionable_error_listing_all_valid_values` checks `starts_with("ERROR:")`, `contains("Invalid status")`, and loops 4 values; all with diagnostic failure messages | ✅ |
+| ADD empty-string edge case (Rec #5) | New test for `validate_assumption_status("")` | `validate_status_rejects_empty_string` asserts `result.is_some()` with failure message | ✅ |
+| Test count | 21 → 14 | 14 `#[test]` annotations, `cargo test` reports 14 passed, 0 failed | ✅ |
+| Traceability | T-12.7, FR-17.9, NFR-1 | File header `T-12.7: RTM NFR-1`; inline comments reference `FR-17.9`, `NFR-1`; commit message references `T-12.7: RTM NFR-1 / FR-17.9` | ✅ |
+| No unrelated changes | Only this test file + eval spec in commit | `git show --stat 314d883` confirms 2 files changed | ✅ |
+
+- P0: REWRITE test 21 — `ERROR:` prefix assertion added for C# parity ✅
+- P1: MERGE clusters collapsed; REMOVE redundant test deleted ✅
+- P2: Empty-string edge case added; naming improved on rewritten tests ✅
+- No unrelated changes introduced ✅
+
+**Verdict: PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- session_assumption_validate_update`: 14 passed, 0 failed
+- Verdict: PASS

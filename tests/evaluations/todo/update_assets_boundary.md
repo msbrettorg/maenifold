@@ -375,3 +375,64 @@ Ordered by priority:
 | T6 | `uses_sha256_not_file_size_for_equal_length_content` | ✅ Yes | Unique explicit SHA-256 regression guard. The setup and intent are unambiguous. Missing one section-heading assertion but otherwise correct. |
 
 **Effective load-bearing count (post-rewrite):** T1, T3, T5, T6 = **4 fully load-bearing**; T2 conditional; T4 promoted to load-bearing only after the rewrite in Recommendation 3.
+
+---
+## SWE Remediation
+- KEEP Test 1 (`dry_run_detects_files_missing_from_target`): added `### Added Files` section heading assertion (Rec 6)
+- REWRITE Test 2 (`dry_run_detects_sha_changes_for_existing_files`): added section heading, file name, no-copy assertions + explanatory comment re: source-modification vs Test 6 (Rec 4, 8)
+- REWRITE Test 3 (`non_dry_run_copies_added_files_into_runtime_assets`): strict `Added files: 1`, removed `||` disjunction (Rec 2)
+- REWRITE Test 4 (`reports_no_changes_when_source_and_target_match`): added negative guards for `Added files:` and `Updated files:` (Rec 3)
+- KEEP Test 5 (`learn_mode_returns_help_instead_of_update_summary`): tightened OR to single `UpdateAssets` string (Rec 7)
+- KEEP Test 6 (`uses_sha256_not_file_size_for_equal_length_content`): added `### Updated Files` section heading assertion (Rec 6)
+- Migrated all private helpers to shared `asset_manager_support/mod.rs` — eliminated ~80 lines of duplication (Rec 1)
+- Fixed traceability tags: `T-1.4c` → `T-12.7: RTM NFR-1` matching sibling files (Rec 5)
+- All 6 tests pass: `cargo test --test integration_tests -p maenifold-core -- update_assets_boundary`
+- Commit: 07fd5ab
+
+---
+## Red-team Audit
+
+### Rec 1 — Migrate to shared support module (High)
+- ✅ **DONE.** All 8 private helpers (`test_mutex`, `isolated_config`, `workspace_assets_root`, `unique_asset_relative`, `write_file`, `remove_empty_ancestors`, `ConfigResetGuard`, `PackagedAssetGuard`) removed. Replaced with `#[path = "asset_manager_support/mod.rs"]` import using shared `unique_relative_path`, `write_file`, `test_mutex`, `isolated_config`, `ConfigResetGuard`, `PackagedAssetGuard`. Zero private helper function/struct declarations remain in the file. The old field name `assets_root` and hard-coded `.json` extension in `unique_asset_relative` are both resolved by the shared module's `root` field and `unique_relative_path(dir, prefix, extension)` signature.
+
+### Rec 2 — REWRITE Test 3: strict `Added files: 1` (High)
+- ✅ **DONE.** The `||` disjunction `output.contains("Added files: 1") || output.contains("Updated files: 1")` is replaced with strict `output.contains("Added files: 1")` at line 143. Comment on line 141 documents the rationale. The load-bearing `assert_eq!(target_content, source_content)` content-equality assertion preserved at line 147.
+
+### Rec 3 — REWRITE Test 4: add negative guards (High)
+- ✅ **DONE.** Two negative assertions added at lines 173–179:
+  - `!output.contains("Added files:")` 
+  - `!output.contains("Updated files:")`
+  Combined with the existing positive `output.contains("No changes detected")`, this now distinguishes a correct no-change response from a malformed one. Matches eval spec exactly.
+
+### Rec 4 — REWRITE Test 2: strengthen or remove (Medium)
+- ✅ **DONE (option a — strengthen).** Added:
+  - `### Updated Files` section heading assertion (line 103)
+  - `file_name` extraction and assertion (lines 81–85, 107)
+  - Dry-run no-copy guard verifying target still contains v1 content (lines 111–116)
+  - Explanatory comment (lines 66–71) documenting that Test 2 exercises source-modification direction while Test 6 exercises target-modification
+  All four assertion gaps from the eval are closed.
+
+### Rec 5 — Fix traceability tags (Medium)
+- ✅ **DONE.** All 6 occurrences of `T-1.4c` replaced with `T-12.7: RTM NFR-1`. Zero instances of `T-1.4c` remain. The file header at line 1 now reads `// T-12.7: RTM NFR-1 — ToolRegistry dispatch-layer (boundary) tests for UpdateAssets.` Each test has its own `// T-12.7: RTM NFR-1` annotation.
+
+### Rec 6 — Add section heading assertions to Tests 1 and 6 (Low)
+- ✅ **DONE.** Test 1 gains `output.contains("### Added Files")` at line 53. Test 6 gains `output.contains("### Updated Files")` at line 239. Both match eval spec verbatim.
+
+### Rec 7 — Tighten Test 5 OR (Low)
+- ✅ **DONE.** The `output.contains("# UpdateAssets") || output.contains("Refreshes")` replaced with single `output.contains("UpdateAssets")` at line 202. Comment at line 200 documents the choice. Negative assertion `!output.contains("Asset Update Summary")` preserved unchanged.
+
+### Rec 8 — Comment on Test 2 vs Test 6 relationship (Low)
+- ✅ **DONE.** Subsumed by Rec 4 implementation — the explanatory comment block at lines 66–71 explicitly documents the source-modification vs target-modification distinction.
+
+### Cross-checks
+- ✅ All 6 tests pass: `cargo test --test integration_tests -p maenifold-core -- update_assets_boundary` → 6 passed, 0 failed.
+- ✅ No tests removed — all 6 original tests retained (3 KEEP + 3 REWRITE as specified).
+- ✅ No unrelated behavioral changes introduced to the test file.
+- ⚠️ Minor: commit 07fd5ab also includes changes to `vector_sync_diag_reporting.rs` — unrelated to this eval but does not affect correctness.
+
+### Verdict: PASS
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- update_assets_boundary`: 6 passed, 0 failed
+- Verdict: PASS

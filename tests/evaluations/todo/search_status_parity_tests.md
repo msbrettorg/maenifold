@@ -43,3 +43,58 @@ Seven of twelve tests are genuinely load-bearing; the remaining five either carr
 ## Load-Bearing Score: 7/12
 
 Five tests either have vacuous/missing assertions (`invalid_mode_json_reports_hybrid_envelope`), are pure duplicates collapable without coverage loss (`hybrid_mode_returns_nonempty_results`, `memory_status_json_preserves_graph_section`), or assert a strict subset of a sibling test (`fulltext_search_results_contain_next_steps_hint`). Seven tests would catch real regressions if removed.
+
+---
+## SWE Remediation
+- REWRITE `invalid_mode_falls_through_to_hybrid`: pinned heading to exact `"Search Results"` (removed permissive disjunction), added seeded doc title assertion per P0/Rec-5
+- REWRITE `invalid_mode_json_reports_hybrid_envelope`: removed vacuous `if !results.is_empty()` guard (P0/Rec-1), assert non-empty unconditionally, added `mode` field assertion per Rec-6
+- MERGE `fulltext_mode_returns_nonempty_results` + `hybrid_mode_returns_nonempty_results` → `fulltext_and_hybrid_modes_return_nonempty_results` (parameterized loop per Rec-2)
+- MERGE `memory_status_json_wraps_in_success_envelope` + `memory_status_json_preserves_graph_section` → `memory_status_json_output_shape` (single test with all assertions per Rec-3)
+- REWRITE `fulltext_search_results_contain_next_steps_hint`: added ReadMemory + BuildContext assertions matching Hybrid variant rigour per Rec-4
+- KEEP 5 tests: `semantic_mode_degrades_gracefully_without_model`, `search_results_contain_next_steps_hint`, `write_memory_contains_hint`, `search_next_steps_does_not_corrupt_results`, `write_memory_hint_does_not_corrupt_content`
+- Test count: 12 → 10 (2 merges), all passing
+- Commit: 34c7b97
+
+---
+## Red-team Audit
+
+**Traceability**: T-13.7 (FR-6), T-13.8 (FR-7, FR-8) — verified all changes scoped to these items.
+
+### REWRITE verdicts
+
+- ✅ REWRITE `invalid_mode_falls_through_to_hybrid`: Permissive disjunction (`"Search Results" || "Hybrid Search"`) replaced with pinned `"Search Results"` heading. Seeded doc title assertion (`"Rust Programming Guide"`) added. Matches eval Rec-5 exactly.
+- ✅ REWRITE `invalid_mode_json_reports_hybrid_envelope`: Vacuous `if !results.is_empty()` guard removed (P0/Rec-1). Unconditional `assert!(!results.is_empty(), ...)` added. `fusedScore` check now unconditional. `mode` field assertion added per Rec-6 — SWE correctly pinned to `"NotAMode"` (raw passthrough) rather than `"Hybrid"`, verified against source: `search/api.rs` line 54-57 extracts raw mode, line ~325 passes it into JSON envelope without normalization. The comment documents this behavior explicitly. Sound.
+- ✅ REWRITE `fulltext_search_results_contain_next_steps_hint`: Added `"ReadMemory"` and `"BuildContext"` assertions matching Hybrid variant rigour per Rec-4.
+
+### MERGE verdicts
+
+- ✅ MERGE `fulltext_mode_returns_nonempty_results` + `hybrid_mode_returns_nonempty_results` → `fulltext_and_hybrid_modes_return_nonempty_results`: Parameterized via `for mode in &["FullText", "Hybrid"]` loop per Rec-2. Both original modes covered. Both old tests removed. No assertion lost.
+- ✅ MERGE `memory_status_json_wraps_in_success_envelope` + `memory_status_json_preserves_graph_section` → `memory_status_json_output_shape`: Single test with all 8 assertions from both originals: `success=true`, `error=null`, data-is-string, `# Memory System Status`, `Total files:`, `Total folders:`, `### Graph Database`, `- Concepts:`. Per Rec-3. No assertion lost.
+
+### KEEP verdicts
+
+- ✅ KEEP `semantic_mode_degrades_gracefully_without_model`: Unchanged in diff.
+- ✅ KEEP `search_results_contain_next_steps_hint`: Unchanged in diff.
+- ✅ KEEP `write_memory_contains_hint`: Unchanged in diff.
+- ✅ KEEP `search_next_steps_does_not_corrupt_results`: Unchanged in diff.
+- ✅ KEEP `write_memory_hint_does_not_corrupt_content`: Unchanged in diff.
+
+### Priority coverage
+
+- **P0 (Rec-1)**: Vacuous `if !results.is_empty()` guard removed. ✅ Addressed.
+- **P1 (Rec-2,3,4,5)**: All four parameterization/merge/tightening recommendations implemented. ✅
+- **P2 (Rec-6)**: `mode` field assertion added with correct value. ✅
+
+### Scope check
+
+- Only `search_status_parity_tests.rs` changed in commit `34c7b97` (verified via `git diff --stat`).
+- No unrelated code changes introduced.
+- Test count: 12 → 10 confirmed (10 `#[test]` attributes counted).
+- All 10 tests passing (`cargo test -p maenifold-core -- search_status_parity`: 10 passed, 0 failed).
+
+### Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- search_status_parity_tests`: 10 passed, 0 failed
+- Verdict: PASS

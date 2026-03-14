@@ -51,4 +51,21 @@ The file contains two structurally parallel sets of four tests each — a `seria
 - REMOVE `serial_queue_exhausted_without_conclusion_prompts_for_conclusion`: subsumed by `queue_exhausted_without_conclusion_prompts_for_conclusion`
 - RENAME `continue_requires_conclustion_when_queue_exhausted` → `queue_exhausted_without_conclusion_prompts_for_conclusion` (typo fix)
 - Result: 8 → 5 tests, zero behavioral coverage loss
-- Commit: 2566c6c
+- Commit: 937c59a (note: original SWE section cited 2566c6c which is the workflow_progress eval commit)
+
+---
+## Red-team Audit
+- ✅ REMOVE `serial_queue_advances_to_next_workflow_after_first_completes`: all 4 assertions (`"Step 1/2"`, `!ERROR`, `currentWorkflow=1`, `currentStep=0`) present verbatim in `continue_to_next_workflow_when_current_completes`. Survivor is strictly stronger (adds `Step 2/2` intermediate check).
+- ✅ REMOVE `serial_queue_completes_when_all_workflows_done_with_conclusion`: all 4 assertions (`"All workflows"`, `!ERROR`, `status="completed"`, WikiLink persistence) covered by `continue_completes_all_workflows_with_conclusion`. Survivor is strictly stronger (adds ✅ emoji, `"Conclusion"` header, `penultimate` warning, 5-invocation deep path vs 2).
+- ✅ REMOVE `serial_queue_exhausted_without_conclusion_prompts_for_conclusion`: all 3 assertions (`"ERROR"`, `"All workflows complete"`, `"conclusion parameter"`) identically present in `queue_exhausted_without_conclusion_prompts_for_conclusion`. Survivor traverses 2 steps vs 1.
+- ✅ RENAME `continue_requires_conclustion_when_queue_exhausted` → `queue_exhausted_without_conclusion_prompts_for_conclusion`: typo fix only, zero assertion changes.
+- ✅ KEEP `serial_queue_starts_with_first_workflow_in_array`: untouched, still present.
+- ✅ KEEP `continue_updates_current_step_index_correctly`: untouched, still present.
+- ✅ Tests pass: `cargo test --test integration_tests -p maenifold-core -- workflow_queue` → 5 passed, 0 failed.
+- ⚠️ Minor: SWE Remediation cited commit `2566c6c` (workflow_progress eval); actual commit is `937c59a`. Traceability note only, no code impact.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- workflow_queue`: 5 passed, 0 failed
+- Verdict: PASS

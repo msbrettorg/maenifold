@@ -24,21 +24,24 @@ fn search_memories_decay_raises_newer_file_across_all_modes() {
             "This document discusses [[machine-learning]] algorithms and [[deep-learning]] neural networks. The primary focus is on supervised [[machine-learning]] techniques for classification tasks.",
             "machine learning deep learning",
             "ml",
-            60, 1,
+            60,
+            1,
         ),
         (
             "Semantic",
             "Understanding [[vector-embeddings]] for [[semantic-search]] in AI systems.",
             "vector embeddings semantic search",
             "embed",
-            45, 2,
+            45,
+            2,
         ),
         (
             "FullText",
             "This covers [[authentication]] patterns and [[jwt]] token validation strategies.",
             "authentication jwt token",
             "auth",
-            50, 3,
+            50,
+            3,
         ),
     ];
 
@@ -90,8 +93,7 @@ fn search_memories_decay_raises_newer_file_across_all_modes() {
 
         // Primary: newer file should rank higher due to decay weighting
         assert!(
-            title_index(&search_result, &new_title)
-                < title_index(&search_result, &old_title),
+            title_index(&search_result, &new_title) < title_index(&search_result, &old_title),
             "[{mode}] newer document should rank ahead of older document: {search_result}"
         );
 
@@ -206,9 +208,7 @@ fn search_memories_file_just_past_grace_period_has_decayed_weight() {
 
     // File at 1 day should still be in grace period (weight == 1.0)
     support::assert_approx_eq(
-        inside["decayWeight"]
-            .as_f64()
-            .expect("inside decayWeight"),
+        inside["decayWeight"].as_f64().expect("inside decayWeight"),
         1.0,
         0.000_001,
     );

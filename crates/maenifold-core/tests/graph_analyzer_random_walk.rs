@@ -60,8 +60,7 @@ fn random_walk_terminates_at_dead_end() {
     seed_graph(&cfg);
 
     let connection = open_connection(&cfg);
-    let walk =
-        search::random_walk(&connection, "isolated-concept", Some(10)).expect("random walk");
+    let walk = search::random_walk(&connection, "isolated-concept", Some(10)).expect("random walk");
 
     assert_eq!(
         walk.len(),
@@ -176,7 +175,10 @@ fn random_walk_uses_default_length_when_none_given() {
         10,
         "walk with None length should default to 10: {walk:?}"
     );
-    assert_eq!(walk[0], "concept-a", "walk should start at requested concept");
+    assert_eq!(
+        walk[0], "concept-a",
+        "walk should start at requested concept"
+    );
 }
 
 // T-1.6: RTM NFR-1 — R-6: test behavior with a non-existent start concept.
@@ -189,8 +191,7 @@ fn random_walk_with_nonexistent_concept_returns_single_element() {
     seed_graph(&cfg);
 
     let connection = open_connection(&cfg);
-    let walk =
-        search::random_walk(&connection, "does-not-exist", Some(10)).expect("random walk");
+    let walk = search::random_walk(&connection, "does-not-exist", Some(10)).expect("random walk");
 
     assert_eq!(
         walk.len(),

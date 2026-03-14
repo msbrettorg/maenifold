@@ -75,13 +75,21 @@ fn fr28_6_ac1_list_memories_returns_directories() {
     seed_file(&env.cfg, "memory://folder-a/note", None, "# Test");
     seed_file(&env.cfg, "memory://folder-b/note", None, "# Test");
 
-    let output =
-        memory::list_memories(&env.ctx(), &json!({})).expect("list memories");
+    let output = memory::list_memories(&env.ctx(), &json!({})).expect("list memories");
 
     // T-W1-2: RTM FR-28.6 - verify production list_memories surfaces seeded directories.
-    assert!(output.contains("folder-a"), "expected folder-a in output: {output}");
-    assert!(output.contains("folder-b"), "expected folder-b in output: {output}");
-    assert!(output.contains("📁"), "expected folder icons in output: {output}");
+    assert!(
+        output.contains("folder-a"),
+        "expected folder-a in output: {output}"
+    );
+    assert!(
+        output.contains("folder-b"),
+        "expected folder-b in output: {output}"
+    );
+    assert!(
+        output.contains("📁"),
+        "expected folder icons in output: {output}"
+    );
 }
 
 // T-W1-2: RTM FR-28.6
@@ -93,12 +101,17 @@ fn fr28_6_ac2_list_memories_excludes_hidden_dirs() {
     seed_file(&env.cfg, "memory://visible-dir/note", None, "# Test");
     fs::create_dir_all(env.cfg.memory_path.join(".git")).expect("hidden dir");
 
-    let output =
-        memory::list_memories(&env.ctx(), &json!({})).expect("list memories");
+    let output = memory::list_memories(&env.ctx(), &json!({})).expect("list memories");
 
     // T-W1-2: RTM FR-28.6 - production list_memories must exclude hidden directories.
-    assert!(output.contains("visible-dir"), "expected visible-dir in output: {output}");
-    assert!(!output.contains(".git"), "hidden .git dir should be excluded: {output}");
+    assert!(
+        output.contains("visible-dir"),
+        "expected visible-dir in output: {output}"
+    );
+    assert!(
+        !output.contains(".git"),
+        "hidden .git dir should be excluded: {output}"
+    );
 }
 
 // T-W1-2: RTM FR-28.6
@@ -115,10 +128,22 @@ fn fr28_6_ac3_list_memories_folder_filter_returns_only_subset() {
         memory::list_memories(&env.ctx(), &json!({ "path": "docs" })).expect("list memories");
 
     // T-W1-2: RTM FR-28.6 - production list_memories with path filter scopes to that subtree.
-    assert!(output.contains("subfolder"), "expected subfolder in output: {output}");
-    assert!(output.contains("other-sub"), "expected other-sub in output: {output}");
-    assert!(!output.contains("archive"), "notes/archive should not appear: {output}");
-    assert!(!output.contains("notes"), "notes dir should not appear: {output}");
+    assert!(
+        output.contains("subfolder"),
+        "expected subfolder in output: {output}"
+    );
+    assert!(
+        output.contains("other-sub"),
+        "expected other-sub in output: {output}"
+    );
+    assert!(
+        !output.contains("archive"),
+        "notes/archive should not appear: {output}"
+    );
+    assert!(
+        !output.contains("notes"),
+        "notes dir should not appear: {output}"
+    );
 }
 
 // T-W1-2: RTM FR-28.7

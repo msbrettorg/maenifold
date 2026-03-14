@@ -38,13 +38,17 @@ pub fn edit_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         match find_file_as_uri(identifier, &context.config) {
             Some(found) => found,
             None => {
-                return Err(MaenifoldError::Message(format!("Memory file not found: {identifier}")));
+                return Err(MaenifoldError::Message(format!(
+                    "Memory file not found: {identifier}"
+                )));
             }
         }
     };
 
     if !file_exists(&uri, &context.config)? {
-        return Err(MaenifoldError::Message(format!("Memory file not found: {identifier}")));
+        return Err(MaenifoldError::Message(format!(
+            "Memory file not found: {identifier}"
+        )));
     }
 
     let (mut frontmatter, existing_content, actual_checksum) =

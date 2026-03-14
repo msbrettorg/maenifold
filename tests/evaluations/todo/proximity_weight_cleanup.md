@@ -148,3 +148,38 @@ Both tests are load-bearing — no test should be removed without a replacement 
 - **ADD** `sync_preserves_cross_section_weight_after_partial_delete`: new cross-section variant confirms partial deletion preserves actual computed weight (0.5) rather than a fixed constant (1.0), strengthening confidence that cleanup preserves algorithm-derived weights
 - **Traceability collision (Rec #1)**: FR-23.5 does not exist in RTM.md (FR-23 = HTTP Transport). Added NOTE comments on all three test traceability tags flagging the collision for PM RTM reconciliation. SWE cannot resolve without PM updating RTM.md.
 - Commit: b91b56d
+
+---
+
+## Red-team Audit
+
+### Per-change verification (commit b91b56d)
+
+- ✅ **KEEP** `sync_removes_edge_when_last_source_file_is_deleted`: Test body unchanged. Only the traceability comment was updated to flag the FR-23.5 collision — no logic, assertions, or behavioral changes introduced. Matches eval KEEP verdict.
+- ✅ **REWRITE** `sync_preserves_remaining_source_file_weights_after_partial_delete`:
+  - Vacuous `is_object()` assertion removed (eval Rec #3 / REWRITE directive) ✅
+  - Inline comment on file content: `"Both concepts in the same named section → proximity weight 1.0"` added to both `write_memory_file` calls (eval REWRITE directive: document `1.0` in terms of section-weight algorithm) ✅
+  - Inline comment on weight assertion: `"Same-section pair → proximity weight 1.0 per file."` (eval REWRITE directive) ✅
+  - Inline comment on count assertion: `"co_occurrence_count = number of distinct contributing files = 1"` (eval REWRITE directive) ✅
+  - Assertion message improved from `"removed uri must disappear"` → `"removed uri must disappear from source_files"` — minor clarity improvement, no semantic risk ✅
+  - No assertions lost: all 3 surviving assertions (`get(&remove_uri).is_none()`, `assert_approx_eq` on weight, `assert_approx_eq` on count) preserved from original ✅
+- ✅ **ADD** `sync_preserves_cross_section_weight_after_partial_delete`: New test directly implements eval recommendation "Consider adding a cross-section variant (weight 0.5) as a second scenario." The setup is correct: remove-file has both `[[gamma]]`/`[[delta]]` in one section (weight 1.0), keep-file has them in different sections (weight 0.5). After deletion, asserts kept weight is 0.5 — confirming cleanup preserves algorithm-derived weight, not a fixed constant. Uses distinct concepts (`gamma`/`delta`) to avoid cross-contamination with test 1 and 2's `alpha`/`beta`. ✅
+- ✅ **Traceability collision (Rec #1)**: NOTE comments added to all three test traceability tags flagging `FR-23.5` collision with HTTP Transport. SWE correctly scoped this as a PM-level RTM reconciliation item — they cannot unilaterally reassign FR numbers. ✅
+- ✅ **No unrelated changes**: Commit touches exactly 1 file (`proximity_weight_cleanup.rs`), 59 insertions, 7 deletions. All changes trace to eval directives. ✅
+- ✅ **Tests pass**: All 3 tests pass (`cargo test -p maenifold-core proximity_weight_cleanup` — 3 passed, 0 failed, 1.38s). ✅
+
+### Items noted but not grounds for rejection
+
+- The eval's KEEP verdict for test 1 suggested "Add an assertion that orphaned concept nodes are pruned, or document explicitly that concept pruning is out of scope." The SWE did neither. This is acceptable — the eval framed it as a suggestion under a KEEP verdict, not a mandatory REWRITE directive. It remains a valid future improvement.
+- The `T-12.0: RTM NFR-1` header tag (line 1) was flagged in the eval's "Deeper Concerns" as misplaced. The SWE did not address it. This is acceptable — the eval's Deeper Concerns section is advisory, not part of the formal verdicts table.
+- The `acquire_test_lock()` smell (Rec #5) was not addressed. Also acceptable — it is a suite-wide concern, not scoped to this eval's KEEP/REWRITE verdicts.
+
+### Verdict: **PASS**
+
+All eval verdicts (KEEP × 1, REWRITE × 1) are correctly implemented. The bonus ADD test is well-designed and directly addresses an eval recommendation. No unrelated changes. Tests green.
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- proximity_weight_cleanup`: 3 passed, 0 failed (1.95s)
+- Verdict: PASS

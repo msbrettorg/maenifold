@@ -52,9 +52,7 @@ fn build_context_emits_degraded_on_unreadable_file() {
         .as_array()
         .expect("direct relations");
     assert!(
-        direct
-            .iter()
-            .any(|r| r["Name"].as_str() == Some("ctx-b")),
+        direct.iter().any(|r| r["Name"].as_str() == Some("ctx-b")),
         "DirectRelations must contain ctx-b despite content-read failure: {output}"
     );
     assert!(

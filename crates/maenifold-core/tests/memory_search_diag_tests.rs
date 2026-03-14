@@ -148,7 +148,10 @@ fn fr25_2_ac1_fallback_on_missing_file() {
     });
 
     // Decay: neutral fallback weight and structured diagnostic.
-    assert_eq!(weight, 1.0, "missing file should return neutral decay weight");
+    assert_eq!(
+        weight, 1.0,
+        "missing file should return neutral decay weight"
+    );
     assert!(
         stderr.contains("[DEGRADED][MemorySearchTools.Fusion][GetDecayWeightFromDisk]"),
         "decay diagnostic tag missing from stderr: {stderr}"
@@ -187,9 +190,8 @@ fn fr25_2_ac2a_display_info_success_path_no_degraded_signal() {
         "This content contains a targeted query token for snippet extraction.",
     );
 
-    let ((title, snippet), stderr) = capture_stderr(|| {
-        get_file_display_info(&uri, "targeted", &env.cfg)
-    });
+    let ((title, snippet), stderr) =
+        capture_stderr(|| get_file_display_info(&uri, "targeted", &env.cfg));
 
     assert_eq!(title, "Valid Memory Note");
     assert!(
@@ -219,9 +221,7 @@ fn fr25_2_ac2b_decay_weight_success_path_no_degraded_signal() {
         "Content for decay weight validation.",
     );
 
-    let (weight, stderr) = capture_stderr(|| {
-        get_decay_weight_for_file(&uri, &env.cfg)
-    });
+    let (weight, stderr) = capture_stderr(|| get_decay_weight_for_file(&uri, &env.cfg));
 
     assert!(
         weight > 0.90,
@@ -257,13 +257,18 @@ fn fr25_2_ac3_malformed_created_emits_explicit_degraded_diagnostic() {
 
     let (weight, stderr) = capture_stderr(|| get_decay_weight_for_file(malformed_uri, &env.cfg));
 
-    assert_eq!(weight, 1.0, "malformed timestamp should still return neutral weight");
+    assert_eq!(
+        weight, 1.0,
+        "malformed timestamp should still return neutral weight"
+    );
     assert!(
         stderr.contains("[DEGRADED][MemorySearchTools.Fusion]"),
         "component tag missing from degraded diagnostic: {stderr}"
     );
     assert!(
-        stderr.contains("Malformed file_content.created timestamp; using current UTC as degraded fallback"),
+        stderr.contains(
+            "Malformed file_content.created timestamp; using current UTC as degraded fallback"
+        ),
         "malformed-timestamp diagnostic message missing from stderr: {stderr}"
     );
 }
@@ -316,11 +321,13 @@ fn fr25_2_ac4b_decay_diagnostics_redacts_absolute_paths() {
         .join("fr25-2-sensitive-decay")
         .join(&file_name);
 
-    let (weight, stderr) = capture_stderr(|| {
-        get_decay_weight_for_file(&absolute_path.to_string_lossy(), &env.cfg)
-    });
+    let (weight, stderr) =
+        capture_stderr(|| get_decay_weight_for_file(&absolute_path.to_string_lossy(), &env.cfg));
 
-    assert_eq!(weight, 1.0, "non-existent absolute path should return neutral decay weight");
+    assert_eq!(
+        weight, 1.0,
+        "non-existent absolute path should return neutral decay weight"
+    );
     assert!(
         stderr.contains("[DEGRADED][MemorySearchTools.Fusion][GetDecayWeightFromDisk]"),
         "decay diagnostic tag missing from stderr: {stderr}"

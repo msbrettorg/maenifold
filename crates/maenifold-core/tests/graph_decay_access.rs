@@ -51,9 +51,5 @@ fn get_decay_weight_after_read_memory_returns_higher_weight() {
         weight_after_access > weight_before_access,
         "weight should increase after ReadMemory: before={weight_before_access}, after={weight_after_access}"
     );
-    assert_approx_eq(
-        weight_after_access,
-        1.0,
-        0.01,
-    );
+    assert_approx_eq(weight_after_access, 1.0, 0.01);
 }

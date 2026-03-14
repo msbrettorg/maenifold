@@ -108,3 +108,41 @@ Test 4 is genuinely load-bearing and unique: it is the only test in the codebase
 ## Load-Bearing Score: 1/4
 
 Only `sync_stores_source_files_as_json_weight_dictionary` is uniquely load-bearing. The remaining three tests provide no protection that does not already exist in `proximity_weight_sections.rs`, and test 3 provides *less* protection than its counterpart (missing the `beta`–`gamma` pair). The file as a whole is test debt: it adds maintenance surface, mutual-exclusion lock contention, and misleading `DecayEnvGuard` noise without expanding the regression safety net.
+
+---
+
+## SWE Remediation
+
+- REMOVE `sync_same_h2_section_relations_get_full_proximity_weight`: duplicate of `sync_same_section_pairs_store_weight_one` in `proximity_weight_sections.rs`
+- REMOVE `sync_cross_h2_section_relations_get_half_proximity_weight`: duplicate of `sync_cross_section_pairs_store_weight_half` in `proximity_weight_sections.rs`
+- REMOVE `sync_without_h2_headings_stores_cross_section_pair_weights`: inferior duplicate of `sync_flat_docs_store_half_weight_for_all_pairs` in `proximity_weight_sections.rs` (missing `beta`–`gamma` assertion)
+- KEEP `sync_stores_source_files_as_json_weight_dictionary`: unchanged, uniquely load-bearing
+- FIX traceability: `T-12.0: RTM NFR-1` → `T-12.0: RTM NFR-2` on file-level and test-level annotations
+- Removed unused `relation_weight_for_uri` import
+- Commit: aedad4b
+
+---
+
+## Red-team Audit
+
+| Item | Verdict | Detail |
+|---|---|---|
+| REMOVE `sync_same_h2_section_relations_get_full_proximity_weight` | ✅ | Deleted in diff. Superior test `sync_same_section_pairs_store_weight_one` at `proximity_weight_sections.rs:96` covers identical markdown + 1.0 assertion. No coverage lost. |
+| REMOVE `sync_cross_h2_section_relations_get_half_proximity_weight` | ✅ | Deleted in diff. Superior test `sync_cross_section_pairs_store_weight_half` at `proximity_weight_sections.rs:118` covers identical markdown + 0.5 assertion. No coverage lost. |
+| REMOVE `sync_without_h2_headings_stores_cross_section_pair_weights` | ✅ | Deleted in diff. Superior test `sync_flat_docs_store_half_weight_for_all_pairs` at `proximity_weight_sections.rs:140` covers all three pairs (x–y, x–z, y–z at 0.5). Removed test only covered alpha–beta and alpha–gamma — net coverage *increased* by removing the inferior version. |
+| KEEP `sync_stores_source_files_as_json_weight_dictionary` | ✅ | Test body unchanged. Confirmed uniquely load-bearing (only multi-file aggregation test). Compiles and passes: `test result: ok. 1 passed`. |
+| FIX traceability `NFR-1` → `NFR-2` | ✅ | File-level annotation (line 1) and test-level annotation (line 10) both updated to `// T-12.0: RTM NFR-2`. Correct: these are behavioral contract tests, not C# oracle parity tests. |
+| Remove unused `relation_weight_for_uri` import | ✅ | Import removed from `use support::{...}`. Function still exists in `proximity_decay/support.rs` and is consumed by `proximity_weight_sections.rs` and `sync_perf_graph.rs` — no dead code introduced. |
+| No unrelated changes | ✅ | `git diff --stat` confirms: 1 file changed, 3 insertions, 75 deletions. Only `proximity_decay_relations.rs` was modified. |
+| Compilation + test green | ✅ | `cargo test -p maenifold-core sync_stores_source_files_as_json_weight_dictionary` passes with 0 warnings from this module. |
+
+- **P0 (remove 3 duplicates):** Addressed. All three deleted.
+- **P1 (fix traceability):** Addressed. Both annotations corrected.
+- **P2 (optional: extend test 4 with co_occurrence_count):** Not addressed — acceptable, eval marked this as optional.
+
+**Verdict: PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- proximity_decay_relations`: 1 passed, 0 failed
+- Verdict: PASS

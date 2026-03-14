@@ -220,3 +220,58 @@ correctly scoped. Add a comment clarifying why `file_content_row_count` is check
 - Added `read_db_content` to imports.
 - All 3 tests pass: `cargo test --test integration_tests -p maenifold-core -- session_cleanup_sweep`
 - Commit: 2d416e1
+
+---
+
+## Red-team Audit
+
+**Commit audited:** 2d416e1 — `test(session_cleanup_sweep): strengthen assertions per eval spec`
+**Files changed:** 1 (`crates/maenifold-core/tests/session_cleanup_sweep.rs`, +63 −9)
+**Tests confirmed passing:** 3/3 (`cargo test --test integration_tests -p maenifold-core -- session_cleanup_sweep`)
+
+### Test 1 — REWRITE: `completed_and_cancelled_sessions_are_not_touched_regardless_of_age`
+
+- ✅ **P1 — `abandoned` added to terminal-status set.** Third session seeded at `"abandoned"` / 600 minutes. Loop now iterates `[(completed, "completed"), (cancelled, "cancelled"), (abandoned, "abandoned")]`. All three terminal statuses exercised. The gap identified in the eval (SQL WHERE clause could exclude only `abandoned` and pass) is now closed.
+- ✅ **Assertion depth preserved.** Each iteration checks `read_frontmatter_status`, `read_db_status`, and `read_body` (no abandon notice). Consistent with original three-layer verification.
+- ✅ **Error messages improved.** `{expected_status}` interpolated into panic messages for traceability on failure.
+- ✅ **No unrelated changes.** Fixture URIs, body content, and `assert_eq!(abandoned, 0)` unchanged.
+
+### Test 2 — REWRITE: `multiple_abandoned_sessions_are_detected_in_one_sweep`
+
+- ✅ **P1 — `read_db_status` checks added for both abandoned sessions.** Lines 105–109: loop over `[old_sequential, old_workflow]` asserts `read_db_status == "abandoned"`. Closes the eval-identified gap where a DB-update bug would pass undetected.
+- ✅ **P2 — Explicit `"active"` assertions for `recent_active`.** Lines 123–132: both `read_frontmatter_status` and `read_db_status` assert `"active"`. The eval identified that count alone couldn't prove the recent session was untouched — this is now guarded.
+- ✅ **P2 — Body/notice content checks added.** Lines 110–119: `read_body` and `read_db_content` both checked for `"## Session Abandoned"` on the two old sessions. Lines 133–137: `recent_body` asserted NOT to contain abandon notice. The `append_abandoned_notice` path is now verified in both file and DB layers.
+- ✅ **P3 — `recent_active` minutes_ago reduced from 15 → 5.** Diff confirms `-15,` → `+5,`. Increases safety margin against boundary races on slow CI.
+- ✅ **P3 — T-0.3/NFR-4 mtime/ctime comment added.** Lines 82–86: explains why freshly written fixtures don't trigger `should_preserve_recent_filesystem_edit` guard. Prevents future fixture refactors from breaking tests silently.
+- ✅ **No unrelated changes.** Old partial assertions (`read_frontmatter_status` only, no error messages) replaced entirely by the richer assertion set. No logic removed that wasn't superseded.
+
+### Test 3 — KEEP: `empty_database_returns_zero_abandoned_sessions`
+
+- ✅ **P4 — Structural invariant comment added.** Lines 149–150: "cleanup only SELECTs and UPDATEs — it should never INSERT rows. This assertion documents intent rather than guarding against a plausible regression." Matches eval recommendation exactly.
+- ✅ **No functional changes.** Assertions unchanged. Smoke test value preserved.
+
+### Cross-Cutting Checks
+
+- ✅ **Import updated.** `read_db_content` added to use-statement (line 6). Support module already exports `read_db_content` at line 167 — no support module changes in this commit.
+- ✅ **No source code modified.** Commit touches only the test file. No production code altered.
+- ✅ **No unrelated tests added or removed.** Still exactly 3 tests, matching eval verdicts (REWRITE, REWRITE, KEEP).
+- ✅ **Traceability intact.** All three tests carry `// T-4.5b: RTM FR-4.2` comments. Commit message references the eval spec path.
+
+### Recommendation Coverage
+
+| Priority | Eval Recommendation | Status |
+|----------|-------------------|--------|
+| P1 | Add `abandoned` to terminal-status set (test 1) | ✅ Done |
+| P1 | Add `read_db_status` for abandoned sessions (test 2) | ✅ Done |
+| P2 | Explicit `"active"` assertion for `recent_active` (test 2) | ✅ Done |
+| P2 | Body/notice content checks (test 2) | ✅ Done |
+| P3 | Lower minutes_ago 15 → 5 (test 2) | ✅ Done |
+| P3 | T-0.3/NFR-4 mtime/ctime comment (test 2) | ✅ Done |
+| P4 | Annotate `file_content_row_count` (test 3) | ✅ Done |
+
+**Verdict: PASS** — All 7 eval recommendations (P1–P4) addressed. Code changes match eval verdicts exactly. No regressions. No unrelated modifications.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- session_cleanup_sweep`: 3 passed, 0 failed
+- Verdict: PASS

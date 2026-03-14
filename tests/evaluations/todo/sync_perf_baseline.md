@@ -52,3 +52,62 @@ This file harbors a structural identity crisis: tests 1–2 are integration test
 ## Load-Bearing Score: 5/8
 
 > Tests 1 and 2 assert no timing thresholds (misleading framing). Tests 3, 5, and 7 test local helper functions, not production code — they are "testing the tests." Only tests 4, 6, and 8 are unambiguously load-bearing for production behavior.
+
+---
+
+## SWE Remediation
+
+- REWRITE `baseline_process_file_timing_per_file` → `sync_single_file_indexes_all_files_in_corpus`: stripped dead timing instrumentation (Instant, per_file_ms, eprintln), kept functional assertions (sync output contains URI, file_content_row_count == 10)
+- REWRITE `baseline_full_sync_timing_over_corpus` → `sync_all_completes_over_ten_file_corpus`: stripped dead timing instrumentation, kept functional assertions (Sync complete, files processed)
+- MERGE `count_concept_occurrences_golden_alpha_two_beta_one` + `count_concept_occurrences_across_sections_counts_all_occurrences` → `helper_count_visible_wikilinks_single_and_multi_section`: combined single-section and multi-section cases into one test with `helper_` prefix per P0 rec 2
+- KEEP (rename) `extract_wikilinks_with_sections_group_by_count_documents_relation_to_count_occurrences` → `extract_wikilinks_with_sections_deduplicates_per_section_unlike_occurrence_count`: logic and assertions unchanged
+- KEEP `extract_wikilinks_with_sections_assigns_section_indices_correctly`: unchanged
+- REWRITE `count_all_concept_occurrences_matches_per_concept_counts_for_all_concepts` → `helper_count_all_occurrences_matches_per_concept_counts`: added `helper_` prefix per P0 rec 2, assertions unchanged
+- NEW `helper_count_visible_wikilinks_skips_inline_code_spans`: explicit inline-code exclusion test per P0 rec 3
+- KEEP `count_all_concept_occurrences_returns_zero_for_absent_concepts`: unchanged
+- Skipped rec 4 (migrate tests 4/6 to dedicated file) — P3, structural move outside eval scope
+- Commit: eef9d64
+
+---
+
+## Red-team Audit
+
+| Remediation Item | Verdict | Notes |
+|---|---|---|
+| REWRITE `baseline_process_file_timing_per_file` → `sync_single_file_indexes_all_files_in_corpus` | ✅ | Dead timing instrumentation removed (`Instant`, `per_file_ms`, `sort_unstable`, `eprintln`). Functional assertions preserved verbatim (`"Synced memory://perf-baseline/"`, `file_content_row_count == 10`). Name matches eval spec. |
+| REWRITE `baseline_full_sync_timing_over_corpus` → `sync_all_completes_over_ten_file_corpus` | ✅ | Dead timing instrumentation removed (`Instant`, `elapsed_ms`, `eprintln`). Functional assertions preserved verbatim (`"Sync complete:"`, `"files processed"`). Name matches eval spec. |
+| MERGE tests 3+5 → `helper_count_visible_wikilinks_single_and_multi_section` | ✅ | All four original assertions preserved: alpha=2, beta=1 (from test 3), gamma=3, delta=1 (from test 5). `helper_` prefix applied per rec 2. No coverage lost. |
+| KEEP (rename) → `extract_wikilinks_with_sections_deduplicates_per_section_unlike_occurrence_count` | ✅ | Body byte-identical to original. Only the function name changed. Name matches eval spec exactly. |
+| KEEP `extract_wikilinks_with_sections_assigns_section_indices_correctly` | ✅ | Unchanged. |
+| REWRITE → `helper_count_all_occurrences_matches_per_concept_counts` | ✅ | Only the function name changed (added `helper_` prefix, shortened). All 7 assertions intact and identical. |
+| NEW `helper_count_visible_wikilinks_skips_inline_code_spans` | ✅ | Content string and assertions match eval rec 3 exactly: `"[[real]] and \`[[fake]]\`"`, real=1, fake=0. Makes inline-code-exclusion boundary a red-test-guarded contract. |
+| KEEP `count_all_concept_occurrences_returns_zero_for_absent_concepts` | ✅ | Unchanged. |
+
+**P0 recs addressed:**
+- Rec 1 (decide perf gate vs functional): ✅ — chose functional, stripped all timing.
+- Rec 2 (helper_ prefix for oracle tests): ✅ — tests 3+5 merged with prefix, test 7 renamed with prefix.
+- Rec 3 (inline-code exclusion test): ✅ — NEW test added per exact spec.
+
+**P3 rec deferred:** Rec 4 (migrate tests 4/6 to dedicated file) explicitly skipped — acceptable, structural move outside eval scope.
+
+**Test count:** 8 original → 8 after (-1 MERGE, +1 NEW). All 8 pass (`cargo test -- sync_perf_baseline`, 0.89s).
+
+**Unrelated changes:** Commit eef9d64 also touches `similar_concepts_plateau_tests.rs` (164 insertions). That file is not part of this eval spec. Bundling unrelated changes in the same commit is a minor process concern but does not affect the correctness of this eval's remediations.
+
+- Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_perf_baseline`: 8 passed, 0 failed (1.20s)
+- All 8 test functions confirmed green:
+  - `sync_single_file_indexes_all_files_in_corpus`
+  - `sync_all_completes_over_ten_file_corpus`
+  - `helper_count_visible_wikilinks_single_and_multi_section`
+  - `extract_wikilinks_with_sections_deduplicates_per_section_unlike_occurrence_count`
+  - `extract_wikilinks_with_sections_assigns_section_indices_correctly`
+  - `helper_count_all_occurrences_matches_per_concept_counts`
+  - `helper_count_visible_wikilinks_skips_inline_code_spans`
+  - `count_all_concept_occurrences_returns_zero_for_absent_concepts`
+- Traceability: T-0.1 · NFR-3 — all test functions carry `// T-0.1: RTM NFR-3` comments
+- Verdict: **PASS**

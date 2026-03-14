@@ -69,21 +69,9 @@ fn recent_activity_limit_one_returns_exactly_one_item() {
     let env = isolated_env();
 
     // Seed multiple items so limit is actually constraining
-    seed_memory_file(
-        &env.cfg,
-        "note-a.md",
-        "# Note A\n\n## Section\nBody A\n",
-    );
-    seed_memory_file(
-        &env.cfg,
-        "note-b.md",
-        "# Note B\n\n## Section\nBody B\n",
-    );
-    seed_sequential_file(
-        &env.cfg,
-        "session-limit",
-        "## Thought 1/1\nOnly thought",
-    );
+    seed_memory_file(&env.cfg, "note-a.md", "# Note A\n\n## Section\nBody A\n");
+    seed_memory_file(&env.cfg, "note-b.md", "# Note B\n\n## Section\nBody B\n");
+    seed_sequential_file(&env.cfg, "session-limit", "## Thought 1/1\nOnly thought");
 
     invoke_tool("Sync", json!({}));
 

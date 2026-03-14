@@ -105,3 +105,35 @@ Both invoke `MemoryStatus` and assert `contains("# Memory System Status")`. Test
 - ADD `registry_contains_resolves_aliases_not_only_canonical_names`: tests `ToolRegistry::contains` with lowercase/uppercase aliases for both GetConfig and WriteMemory, closing gap #3 from eval
 - Test count: 13 → 12 (–2 removed, +1 added). All 12 pass.
 - Commit: f4fd486
+
+---
+
+## Red-team Audit
+
+**Traceability:** T-0.2 / T-13.4 / FR-1 through FR-6 / FR-7
+
+| Item | Eval Directive | SWE Implementation | Status |
+|---|---|---|---|
+| REMOVE `try_invoke_with_valid_tool_name_returns_successful_result` | Delete — subsumed by test 8 (dynamic `memory_path` assertion) | Deleted entirely | ✅ |
+| REMOVE `try_invoke_with_lowercase_alias_dispatches_same_as_canonical` | Delete — subsumed by test 4 (all four casings) | Deleted entirely | ✅ |
+| REWRITE `try_invoke_read_memory_with_missing_file_returns_not_found_message` | Assert `result.is_ok()` + URI in response; drop loose `contains("not found") \|\| contains("error")` | `.expect()` enforces Ok; asserts identifier URI/slug in response | ✅ |
+| REWRITE `try_invoke_get_help_with_tool_name_returns_non_null_result` | Assert structural marker: `## Parameters`, `Description` | Asserts `contains("## Parameters") \|\| contains("Description")` | ✅ |
+| REWRITE `try_invoke_list_memories_returns_non_null_result` | Dynamic env-aware assertion instead of format-sniffing | Seeds sentinel file, asserts sentinel name in output. Deviates from eval's "assert memory_path" — SWE documented that ListMemories uses relative paths internally, so sentinel approach is strictly stronger (proves correct directory AND observable content). Accepted. | ✅ |
+| ADD `registry_contains_resolves_aliases_not_only_canonical_names` | Gap #3: test `contains` with alias | Tests canonical, lowercase, uppercase for GetConfig + lowercase `writememory` (also partially addresses gap #1: non-GetConfig alias) | ✅ |
+| Test 13 comment | Eval: document that MemoryStatus assertion is incidental | Added comment on lines 256-258 | ✅ |
+
+**Scope check:**
+- Commit f4fd486 touches exactly 2 files: the test file and this eval spec. No production code modified. No unrelated changes.
+- Test count: 13 → 12 (–2 removed, +1 added). Confirmed in `cargo test` output.
+- All 12 tests pass: `test result: ok. 12 passed; 0 failed; 0 ignored`
+
+**Gaps not addressed (acceptable — eval did not mandate these):**
+- Gap #2 (tool returning `Err` from `try_invoke`) — not addressed, not required by eval recommendations
+- Gap #1 (alias lookup for non-GetConfig tool in `try_invoke`) — partially addressed by the new `contains` test using `writememory`, but no `try_invoke` test with a non-GetConfig alias. Acceptable — the eval recommended this as a "missing test" but the SWE remediation section didn't commit to it.
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- tool_registry_tests`: 12 passed, 0 failed
+- Verdict: PASS

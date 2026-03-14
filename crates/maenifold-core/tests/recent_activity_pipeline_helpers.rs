@@ -31,9 +31,18 @@ fn extract_snippet_long_content_truncates_with_ellipsis() {
 fn extract_snippet_bullet_only_content_falls_back_to_all_lines() {
     let content = "* Bullet one\n* Bullet two\n* Bullet three";
     let result = recent_activity_extract_snippet(content, 1000);
-    assert!(result.contains("Bullet one"), "expected 'Bullet one' in result: {result}");
-    assert!(result.contains("Bullet two"), "expected 'Bullet two' in result: {result}");
-    assert!(result.contains("Bullet three"), "expected 'Bullet three' in result: {result}");
+    assert!(
+        result.contains("Bullet one"),
+        "expected 'Bullet one' in result: {result}"
+    );
+    assert!(
+        result.contains("Bullet two"),
+        "expected 'Bullet two' in result: {result}"
+    );
+    assert!(
+        result.contains("Bullet three"),
+        "expected 'Bullet three' in result: {result}"
+    );
 }
 
 // T-2.3: RTM FR-4 / RTM-025
@@ -51,7 +60,12 @@ fn extract_snippet_mixed_content_skips_bullet_lines() {
 fn extract_snippet_uses_default_length_when_minus_one() {
     let long_content = "X".repeat(2000);
     let result = recent_activity_extract_snippet(&long_content, -1);
-    assert_eq!(result.chars().count(), 1000, "expected exactly 1000 chars (997 + '...'), got {}", result.chars().count());
+    assert_eq!(
+        result.chars().count(),
+        1000,
+        "expected exactly 1000 chars (997 + '...'), got {}",
+        result.chars().count()
+    );
 }
 
 // T-2.3: RTM FR-4 / RTM-029
@@ -59,7 +73,10 @@ fn extract_snippet_uses_default_length_when_minus_one() {
 #[test]
 fn extract_session_id_extracts_filename_stem() {
     let cases: &[(&str, &str)] = &[
-        ("memory://thinking/sequential/2026/02/session-12345.md", "session-12345"),
+        (
+            "memory://thinking/sequential/2026/02/session-12345.md",
+            "session-12345",
+        ),
         ("memory://docs/my-note.md", "my-note"),
         ("memory://chat/2026/02/chat-session.md", "chat-session"),
     ];
@@ -75,7 +92,10 @@ fn extract_session_id_extracts_filename_stem() {
 #[test]
 fn determine_file_type_classifies_path_correctly() {
     let cases: &[(&str, &str)] = &[
-        ("memory://thinking/sequential/2026/02/session.md", "sequential"),
+        (
+            "memory://thinking/sequential/2026/02/session.md",
+            "sequential",
+        ),
         ("memory://thinking/workflow/2026/02/wf.md", "workflow"),
         ("memory://thinking/my-note.md", "thinking"),
         ("memory://docs/my-note.md", "memory"),

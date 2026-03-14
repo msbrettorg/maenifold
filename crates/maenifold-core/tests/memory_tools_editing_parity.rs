@@ -78,9 +78,7 @@ fn append_prepend_add_double_newline_separator() {
             let prep_pos = read_result
                 .find("Prepended content with [[concepts]].")
                 .unwrap();
-            let orig_pos = read_result
-                .find("Original content with [[test]].")
-                .unwrap();
+            let orig_pos = read_result.find("Original content with [[test]].").unwrap();
             assert!(
                 prep_pos < orig_pos,
                 "prepend: prepended content should appear before original content"
@@ -175,12 +173,8 @@ fn case_insensitive_operation_names_apply_correctly() {
             read_result.contains("Prepended with [[concepts]]."),
             "PREPEND: prepended content should be present, got:\n{read_result}"
         );
-        let prep_pos = read_result
-            .find("Prepended with [[concepts]].")
-            .unwrap();
-        let orig_pos = read_result
-            .find("Original with [[test]].")
-            .unwrap();
+        let prep_pos = read_result.find("Prepended with [[concepts]].").unwrap();
+        let orig_pos = read_result.find("Original with [[test]].").unwrap();
         assert!(
             prep_pos < orig_pos,
             "PREPEND: prepended content should appear before original"

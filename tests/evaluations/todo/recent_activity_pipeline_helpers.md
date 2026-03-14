@@ -59,3 +59,30 @@ Seven of thirteen tests are genuinely load-bearing with correct assertions. Six 
 ## Load-Bearing Score: 7/13
 
 Tests 1, 2, 3, 5 are correct and load-bearing. Tests 10–13 (the classifier tests) are load-bearing in terms of behavior coverage but not in terms of test count — the same coverage can be achieved with 2 parameterized tests instead of 7 separate functions. Tests 4 and 6 are load-bearing in intent but their assertions are too weak to catch real regressions.
+
+---
+## SWE Remediation
+- REWRITE extract_snippet_bullet_only_content_falls_back_to_all_lines: strengthened assertions — now asserts all three bullet values present (Rec #1, P0)
+- REWRITE extract_snippet_uses_default_length_when_minus_one: replaced `<= 1000` inequality with `assert_eq!(…, 1000)` (Rec #2, P0)
+- MERGE extract_session_id_standard_sequential + _simple_memory + _chat → extract_session_id_extracts_filename_stem: 3 tests collapsed to 1 parameterized test with 3 cases (Rec #3)
+- MERGE determine_file_type_sequential + _workflow + _memory + _chat → determine_file_type_classifies_path_correctly: 4 tests collapsed to 1 parameterized test with 5 cases including new Thinking variant (Rec #4 + #5)
+- 13 tests → 8 tests; same behavioral coverage + new Thinking variant gap closed
+- Commit: 88bb554
+
+---
+## Red-team Audit
+- ✅ REWRITE `extract_snippet_bullet_only_content_falls_back_to_all_lines`: old weak assertions (`!is_empty()` + `contains("Bullet")`) replaced with three individual `contains("Bullet one/two/three")` assertions with diagnostic messages. Matches Rec #1 exactly.
+- ✅ REWRITE `extract_snippet_uses_default_length_when_minus_one`: old `assert!(…<= 1000)` inequality (trivially true for empty string) replaced with `assert_eq!(…, 1000)`. Matches Rec #2 exactly.
+- ✅ MERGE `extract_session_id_*` (3 → 1): all three original (input, expected) pairs preserved in `extract_session_id_extracts_filename_stem`. No unique coverage lost.
+- ✅ MERGE `determine_file_type_*` (4 → 1): all four original cases preserved in `determine_file_type_classifies_path_correctly`. New fifth case `("memory://thinking/my-note.md", "thinking")` closes the Thinking variant gap identified in Rec #5.
+- ✅ KEEP tests (4): `empty_input`, `short_content`, `long_content_truncates`, `mixed_content_skips_bullet_lines` — untouched, correct.
+- ✅ No unrelated changes: commit 88bb554 touches only `recent_activity_pipeline_helpers.rs` (1 file, 31 ins, 51 del).
+- ✅ All 8 tests pass (`cargo test -p maenifold-core recent_activity_pipeline_helpers` — 8 passed, 0 failed).
+- ✅ Test count: 13 → 8, arithmetic checks out (4 KEEP + 2 REWRITE + 1 MERGE-of-3 + 1 MERGE-of-4 = 8).
+- Note: eval recommended `rstest`/`test_case` for parameterization; SWE used inline array + for loop. Functionally equivalent, not grounds for rejection per audit rules.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- recent_activity_pipeline_helpers`: 8 passed, 0 failed
+- Verdict: PASS

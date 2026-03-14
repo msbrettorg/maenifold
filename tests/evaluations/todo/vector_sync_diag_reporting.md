@@ -468,3 +468,48 @@ function + missing reason lines) → Test 3 (single-branch normalization coverag
 | 10 | P3 | ✅ Archival-status comment on `fr25_2_` prefix |
 
 - Commit: 07fd5ab (bundled with update_assets_boundary remediation)
+
+---
+
+## Red-team Audit
+
+**Traceability:** T-9.6 | T-20.1 | T-QUAL-002.6b | RTM FR-7, FR-8
+
+### REWRITE Tests
+
+- ✅ **REWRITE Test 1 → `ac1a`**: Naming collision resolved (`ac1` → `ac1a`). `"- STATUS: failed"` assertion added (Rec 2, P0). `"- FAILURES:"` section header assertion added (Rec 3, P0). Module-level archival comment on `fr25_2_` prefix present (Rec 10, P3). All original assertions retained. Matches eval spec.
+
+- ✅ **REWRITE Test 2 → `ac1b`**: Naming collision resolved (`ac1` → `ac1b`). `EnvVarReset::set("MAENIFOLD_DISABLE_VECTOR", "false")` guard added (Rec 5, P0). `failure_reasons().get(CONCEPT_LOOKUP_FAILED) == Some(&1)` reason count assertion added (Rec 4, P0). `concept_embedding_skipped() == 0` guard assertion added for clear env-var failure diagnostics. All original assertions retained. Matches eval spec.
+
+- ✅ **REWRITE Test 3 → `ac5a`**: `"- STATUS: unavailable"` assertion added (Rec 2, P0). `"- COUNTERS_SKIPPED: concepts=1, memory=1, total=2"` assertion added (closes counter gap). All three security/privacy assertions retained (exception scrub, path scrub, UNKNOWN normalization). Matches eval spec.
+
+### NEW Tests
+
+- ✅ **NEW Test 3b → `ac5b`**: DISABLED_BY_CONFIG normalization case added (Rec 6, P1). Asserts STATUS line and `"- REASON_CODE VECTOR_DISABLED_BY_CONFIG"` positive normalization. Companion coverage for the second branch of `normalize_vector_unavailable_reason`. Matches eval spec.
+
+### SPLIT Tests
+
+- ✅ **REWRITE Test 4 → split `ac6a`/`ac6b`** (Rec 7, P1):
+  - `ac6a` (failure report): Asserts STATUS, both counter lines, FAILURES header, and both REASON lines (`CONCEPT_EMBEDDING_FAILED: 1`, `FILE_EMBEDDING_FAILED: 1`). Matches eval spec.
+  - `ac6b` (unavailable report): Asserts STATUS, both counter lines, and `REASON_CODE VECTOR_DISABLED_BY_CONFIG`. Matches eval spec.
+  - Original dual-function test fully replaced. No unique coverage lost.
+
+### KEEP (enhanced)
+
+- ✅ **KEEP Test 5 (enhanced)**: Deduplication count assertion added: `concept_failure_details().get(...).map(|v| v.len()) == Some(3)` (Rec 8, P1). `"- DETAIL"` prefix format check added via `starts_with("- DETAIL tokenizer encode")` (Rec 9, P2). All 7 original assertions retained. Matches eval spec.
+
+### Cross-cutting
+
+- ✅ Test count 5 → 7: confirmed (`running 7 tests`)
+- ✅ All tests pass: confirmed (`test result: ok. 7 passed; 0 failed`)
+- ✅ All 10 recommendations (P0–P3) addressed per remediation table
+- ✅ No production code changes in commit (only test files)
+- ✅ No unrelated changes introduced (commit modifies `vector_sync_diag_reporting.rs` + sibling `update_assets_boundary.rs` only)
+- ✅ Module-level doc comment clarifies `fr25_2_` archival provenance (Rec 10)
+
+### Verdict: PASS
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- vector_sync_diag_reporting`: 7 passed, 0 failed
+- Verdict: PASS

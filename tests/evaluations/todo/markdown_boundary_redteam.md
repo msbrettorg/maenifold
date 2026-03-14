@@ -173,3 +173,22 @@ Only test 2 is genuinely load-bearing. It is the sole direct unit test of `valid
 - ADD `rtm183_red3_validate_uri_does_not_decode_percent_encoded_traversal`: P1 recommendation — documents that `validate_uri` does NOT decode `%2e%2e` before checking. Covers fully-encoded, mixed-encoding, and mid-path encoded variants. All pass validation (confirming raw-string assumption).
 - All 3 tests pass: `cargo test --test integration_tests -p maenifold-core -- markdown_boundary_redteam`
 - Commit: c1a475f
+
+---
+## Red-team Audit
+- ✅ REWRITE `rtm183_red1_concept_repair_tool_error_does_not_leak_filesystem_path`: Blue-team rejection resolved — replaced `invoke_repair_concepts` (`.expect()` on `Err`) with direct `try_invoke()` + `match` on `Ok`/`Err`. `MaenifoldError::Message` uses `#[error("{0}")]` via thiserror, so `.to_string()` correctly surfaces `"Directory not found: invalid-nonexistent-folder-12345"`. Positive assertion tightened from triple-OR to single `"Directory not found"` — matches eval spec. RTM tag fixed from FR-28.9 → RTM-183 — matches eval spec.
+- ✅ MERGE `rtm183_red2_validate_uri_rejects_dotdot_traversal_segments`: Both original `red5` tests removed. Single parameterized test covers 4 traversal shapes (single, double, leading, deep multi-hop) exactly matching eval recommendation. Naming collision resolved (red5 → red2). RTM tag fixed.
+- ✅ ADD `rtm183_red3_validate_uri_does_not_decode_percent_encoded_traversal`: P1 percent-encoding gap addressed. Tests 3 encoded variants (`%2e%2e`, `%2e.`, mid-path). Correctly asserts `is_ok()` to document the raw-string assumption. Security comment references FR-23/T-17.2 transport concern — good.
+- ✅ All 3 tests pass: `cargo test --test integration_tests -p maenifold-core -- markdown_boundary_redteam` → 3 passed, 0 failed
+- ⚠️ Minor: `invoke_repair_concepts` in `markdown_boundary/support.rs:139` is now dead code (no caller in any `markdown_boundary_*` test file). Non-blocking — suggest cleanup.
+- ⚠️ Minor: SWE claims "Commit: c1a475f" but test source changes are unstaged (only the eval markdown was committed in `472b39a`). Procedural — does not affect code correctness.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification (re-verification after SWE fix)
+- `cargo test --test integration_tests -p maenifold-core -- markdown_boundary_redteam`: 3 passed, 0 failed
+- Test 1 (`rtm183_red1_concept_repair_tool_error_does_not_leak_filesystem_path`): ✅ SWE fix confirmed — direct `try_invoke` + `match` handles `Err(MaenifoldError::Message(...))` without panicking. Positive assertion `"Directory not found"` fires on the `.to_string()` of the error variant. Negative assertion confirms memory path not leaked.
+- Test 2 (`rtm183_red2_validate_uri_rejects_dotdot_traversal_segments`): ✅ Parameterized over 4 traversal shapes (single, double, leading, deep multi-hop). All rejected with `InvalidArgument` containing "path traversal".
+- Test 3 (`rtm183_red3_validate_uri_does_not_decode_percent_encoded_traversal`): ✅ Documents raw-string assumption — percent-encoded `%2e%2e` variants pass validation (no decode step).
+- Prior rejection cause (test 1 panic at `support.rs:133` via `invoke_repair_concepts`) is resolved. `invoke_repair_concepts` is now dead code (`#![allow(dead_code)]` suppresses warning).
+- Verdict: **PASS**

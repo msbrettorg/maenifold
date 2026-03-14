@@ -180,7 +180,9 @@ fn fr30_3_ac8_try_acquire_same_holder_returns_renewed() {
     let (_tmp, cfg) = isolated_env();
     let election = leader_election(&cfg);
 
-    let acquired = election.try_acquire("holder-a", 10).expect("initial acquire");
+    let acquired = election
+        .try_acquire("holder-a", 10)
+        .expect("initial acquire");
     assert_eq!(acquired, (true, "acquired", 1));
 
     let renewed = election
@@ -201,7 +203,9 @@ fn fr30_3_ac8_try_acquire_contended_returns_held_by_other() {
     let (_tmp, cfg) = isolated_env();
     let election = leader_election(&cfg);
 
-    election.try_acquire("holder-a", 10).expect("initial acquire");
+    election
+        .try_acquire("holder-a", 10)
+        .expect("initial acquire");
 
     let contended = election
         .try_acquire("holder-b", 10)
@@ -221,7 +225,9 @@ fn fr30_3_ac8_force_acquire_preempts_active_lease() {
     let (_tmp, cfg) = isolated_env();
     let election = leader_election(&cfg);
 
-    let (_, _, epoch) = election.try_acquire("holder-a", 10).expect("initial acquire");
+    let (_, _, epoch) = election
+        .try_acquire("holder-a", 10)
+        .expect("initial acquire");
 
     let forced = election
         .force_acquire("holder-c", 10)

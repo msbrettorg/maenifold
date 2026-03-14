@@ -19,10 +19,7 @@ fn watcher_error_message_format_contract() {
         format_watcher_error_message("disk full"),
         "[FileWatcher] Error: disk full"
     );
-    assert_eq!(
-        format_watcher_error_message(""),
-        "[FileWatcher] Error: "
-    );
+    assert_eq!(format_watcher_error_message(""), "[FileWatcher] Error: ");
     assert_eq!(
         format_watcher_error_message("Error: nested"),
         "[FileWatcher] Error: Error: nested"
@@ -44,10 +41,7 @@ fn process_path_outside_memory_root_is_silently_ignored() {
 
     let result = process_path_for_test(&ctx, &outside_path);
 
-    assert!(
-        result.is_ok(),
-        "should return Ok without error: {result:?}"
-    );
+    assert!(result.is_ok(), "should return Ok without error: {result:?}");
 
     // P1: Verify the file was NOT indexed — the critical contract is that out-of-scope
     // files produce no side-effects in the database, not merely that they don't error.

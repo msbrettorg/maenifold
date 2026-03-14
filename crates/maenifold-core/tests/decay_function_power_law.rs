@@ -57,12 +57,8 @@ fn power_law_decay_weight_is_bounded_between_zero_and_one() {
     let env = TestConfigGuard::new();
 
     for age_days in [0, 1, 2, 10, 100, 365, 1000, 3650, 10000] {
-        let weight = compute_power_law_decay(
-            &env.cfg,
-            "memory://projects/power-bounded",
-            age_days,
-            0,
-        );
+        let weight =
+            compute_power_law_decay(&env.cfg, "memory://projects/power-bounded", age_days, 0);
         assert!(
             (0.0..=1.0).contains(&weight),
             "power-law weight must be in [0.0, 1.0] for age={age_days}, got {weight}"
@@ -108,20 +104,16 @@ fn power_law_decay_curve_matches_expected_values() {
     // Production formula: weight = A * effective_age^(-B) where A=1.0, B=0.5
     // effective_age = max(age_days, 1), so for age >= 1: weight = age^(-0.5)
     let expected: [(i64, f64); 5] = [
-        (1, 1.0),               // 1^(-0.5) = 1.0
-        (4, 0.5),               // 4^(-0.5) = 0.5
-        (16, 0.25),             // 16^(-0.5) = 0.25
-        (64, 0.125),            // 64^(-0.5) = 0.125
-        (256, 0.0625),          // 256^(-0.5) = 0.0625
+        (1, 1.0),      // 1^(-0.5) = 1.0
+        (4, 0.5),      // 4^(-0.5) = 0.5
+        (16, 0.25),    // 16^(-0.5) = 0.25
+        (64, 0.125),   // 64^(-0.5) = 0.125
+        (256, 0.0625), // 256^(-0.5) = 0.0625
     ];
 
     for (age_days, expected_weight) in expected {
-        let weight = compute_power_law_decay(
-            &env.cfg,
-            "memory://projects/power-curve-shape",
-            age_days,
-            0,
-        );
+        let weight =
+            compute_power_law_decay(&env.cfg, "memory://projects/power-curve-shape", age_days, 0);
         assert_approx_eq(weight, expected_weight, 0.0001);
     }
 }

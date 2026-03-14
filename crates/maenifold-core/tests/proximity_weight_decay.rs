@@ -13,16 +13,15 @@ use support::{
 // Exercises the sum/len path that is trivially identity for N=1.
 #[test]
 fn compute_edge_decay_weight_averages_multiple_proximity_weights() {
-    let result = compute_edge_decay_weight(r#"{"memory://a": 1.0, "memory://b": 0.5}"#)
-        .expect("valid json");
+    let result =
+        compute_edge_decay_weight(r#"{"memory://a": 1.0, "memory://b": 0.5}"#).expect("valid json");
     assert_approx_eq(result, 0.75); // (1.0 + 0.5) / 2
 }
 
 // T-4.3: RTM FR-23.4 — Single-entry passthrough returns the exact weight.
 #[test]
 fn compute_edge_decay_weight_single_entry_returns_that_weight() {
-    let result =
-        compute_edge_decay_weight(r#"{"memory://x": 0.5}"#).expect("valid json");
+    let result = compute_edge_decay_weight(r#"{"memory://x": 0.5}"#).expect("valid json");
     assert_approx_eq(result, 0.5);
 }
 

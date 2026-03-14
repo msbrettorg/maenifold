@@ -204,12 +204,8 @@ fn power_law_decay_negative_age_returns_one() {
     let env = TestConfigGuard::new();
 
     for age_days in [-1, -5, -100] {
-        let weight = compute_power_law_decay(
-            &env.cfg,
-            "memory://projects/power-law-neg-age",
-            age_days,
-            0,
-        );
+        let weight =
+            compute_power_law_decay(&env.cfg, "memory://projects/power-law-neg-age", age_days, 0);
 
         assert_eq!(
             weight, 1.0,

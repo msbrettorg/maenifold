@@ -241,3 +241,35 @@ Ordered by priority:
 4 of 5 tests would detect a genuine regression in their targeted code path. 1 test (AC1) is
 partially load-bearing — it adds isolation value but its correctness claim is not unique to this
 file.
+
+---
+## SWE Remediation
+- REWRITE AC1 (`fr33_1_ac1_batch_produces_identical_output`): added 8-line doc comment documenting relationship to `src/vector/tests.rs::vector_batch_matches_individual` and the three specific value-adds (TEST_MUTEX, cleanup(), f32::EPSILON)
+- REWRITE AC2: renamed from 94-char `fr33_1_ac2_batch_chunking_respects_max_batch_five_texts_with_max_batch_two_all_five_embedded` → `fr33_1_ac2_batch_chunking_respects_max_batch`; added non-zero signal assertion per embedding; added distinctness assertion (`embeddings[0] != embeddings[1]`)
+- KEEP AC3: unchanged per verdict
+- REWRITE AC4: renamed from `nfr33_2_ac2_default_max_batch_is_32_larger_input_set_still_produces_all_embeddings` → `fr33_2_ac2_default_fallback_processes_all_embeddings` (fixed `nfr`→`fr` prefix); changed input count from 40 → 33 (boundary: DEFAULT_MAX_BATCH+1); documented `DEFAULT_MAX_BATCH` is `pub(crate)` and not directly assertable; added non-zero signal assertion per embedding
+- KEEP (rename) AC5: renamed from 107-char name → `fr33_2_ac4_scoped_vec_lookup_skips_only_existing_concepts`
+- NOTE: AC5 has a pre-existing failure (`no such module: vec0` in `ensure_regular_vec_concepts_table`) — identical failure confirmed before and after remediation. Not caused by these changes.
+- Commit: c7a3dca600003071f9604e17eb4400ad9575de56
+
+---
+## Red-team Audit
+
+**Traceability:** T-8.4 (FR-33.1, FR-33.2), T-12.6 (NFR-1)
+**Test run:** `cargo test --test integration_tests -p maenifold-core -- vector_tools_batch` → 5 passed, 0 failed
+**Commit audited:** c7a3dca600003071f9604e17eb4400ad9575de56 (single file: `vector_tools_batch.rs`)
+
+- ✅ REWRITE AC1 (`fr33_1_ac1_batch_produces_identical_output`): 8-line doc comment documents relationship to `src/vector/tests.rs::vector_batch_matches_individual` and all three value-adds (TEST_MUTEX serialization, `cleanup()` pre-condition, `f32::EPSILON` tolerance). Includes sunset clause ("If the internal test is ever strengthened…"). Matches eval spec recommendation P2.
+- ✅ REWRITE AC2 (`fr33_1_ac2_batch_chunking_respects_max_batch`): Name shortened from 94 → 42 chars. Non-zero signal assertion (`v.abs() > f32::EPSILON`) added per embedding in the loop. Distinctness assertion (`assert_ne!(embeddings[0], embeddings[1])`) added. All three sub-recommendations (a, b, c) from the eval satisfied. Matches eval spec recommendation P1.
+- ✅ KEEP AC3 (`fr33_1_ac3_batch_empty_null_inputs_produce_zero_vectors_matching_individual_behavior`): Body unchanged per KEEP verdict.
+- ✅ REWRITE AC4 (`fr33_2_ac2_default_fallback_processes_all_embeddings`): `nfr` → `fr` prefix fixed. Input count changed from 40 → 33 (boundary-targeted: DEFAULT_MAX_BATCH + 1). Non-zero signal assertion per embedding added. `DEFAULT_MAX_BATCH` documented as `pub(crate)` and not directly assertable — the eval offered "expose the constant **or** document that it is intentionally unverifiable" (recommendation #5); the SWE chose the documentation path, which is compliant. Matches eval spec recommendation P0.
+- ✅ KEEP (rename) AC5 (`fr33_2_ac4_scoped_vec_lookup_skips_only_existing_concepts`): Renamed from 107-char name to the eval-suggested 56-char name. Test body unchanged. Matches eval spec recommendation P3.
+- ✅ No unrelated changes: commit touches exactly one file (`crates/maenifold-core/tests/vector_tools_batch.rs`), +37/−11 lines, all traceable to eval recommendations.
+- ✅ Pre-existing AC5 `vec0` failure noted by SWE is no longer reproducing (5/5 pass); no masking risk.
+
+Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- vector_tools_batch`: 5 passed, 0 failed
+- Verdict: PASS

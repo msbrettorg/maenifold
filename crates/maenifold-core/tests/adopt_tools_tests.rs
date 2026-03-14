@@ -228,9 +228,7 @@ fn adopt_with_path_traversal_identifier_is_rejected() {
                     "[{label}] expected slug-validation detail for '{identifier}': {detail}"
                 );
             }
-            other => panic!(
-                "[{label}] expected InvalidArgument for '{identifier}', got {other}"
-            ),
+            other => panic!("[{label}] expected InvalidArgument for '{identifier}', got {other}"),
         }
     }
 }
@@ -260,10 +258,7 @@ fn adopt_workflow_type_is_rejected_with_allowed_types_in_message() {
     }
 
     // The allowed-types portion should not list "workflow" as adoptable.
-    let allowed_portion = message
-        .split("Must be one of:")
-        .nth(1)
-        .unwrap_or("");
+    let allowed_portion = message.split("Must be one of:").nth(1).unwrap_or("");
     assert!(
         !allowed_portion.contains("workflow"),
         "workflow must not appear in the allowed types list: {message}"
@@ -290,7 +285,10 @@ fn adopt_missing_required_properties_returns_missing_property_error() {
     let err = invoke_adopt_err(json!({"type":"role"}));
     match &err {
         MaenifoldError::MissingProperty(field) => {
-            assert_eq!(*field, "identifier", "expected MissingProperty('identifier')");
+            assert_eq!(
+                *field, "identifier",
+                "expected MissingProperty('identifier')"
+            );
         }
         other => panic!("expected MissingProperty for missing identifier, got {other}"),
     }

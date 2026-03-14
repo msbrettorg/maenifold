@@ -149,3 +149,22 @@ Tests 1 and 2 are not load-bearing: removing them loses no coverage. Tests 3 and
 - Rec 7 (rename file): deferred — "Consider" priority, ripple effects on module declaration in main.rs
 - Tests: 4 passed, 0 failed (down from 6 → 4 after removing duplicates)
 - Commit: f14da4f
+
+---
+## Red-team Audit
+- ✅ REMOVE `fr30_1_ac1_non_leader_skips_community_recomputation`: confirmed deleted. Pre-commit body byte-for-byte identical to test 3 (`fr30_2_ac1`). Zero unique coverage lost.
+- ✅ REMOVE `fr30_1_ac2_leader_runs_community_recomputation`: confirmed deleted. Pre-commit body byte-for-byte identical to test 4 (`fr30_2_ac2`). Zero unique coverage lost.
+- ✅ REWRITE `fr30_2_ac1` → `is_leader_returns_false_for_non_holder_with_active_lease`: name matches eval spec exactly, FR tag corrected from FR-30.2 to FR-30.8 per eval Rec 3, `.expect("holder b not leader")` → `.unwrap()` per eval Rec 5.
+- ✅ REWRITE `fr30_2_ac2` → `is_leader_returns_true_for_current_holder_with_active_lease`: name matches eval spec exactly, FR tag corrected from FR-30.2 to FR-30.8 per eval Rec 3, `.expect("holder a leader")` → `.unwrap()` per eval Rec 5.
+- ✅ KEEP `fr30_3_is_leader_returns_false_when_no_lease_exists`: untouched except `.expect("no active leader")` → `.unwrap()` per eval Rec 5. FR-30.8 tag was already correct.
+- ✅ KEEP `fr30_3_is_leader_returns_false_for_expired_lease`: `lease_duration_ms` 10 → 60_000 per eval Rec 6, `.expect("expired lease")` → `.unwrap()` per eval Rec 5. Both changes match eval precisely.
+- ✅ Rec 4 (add real FR-30.1/FR-30.2 integration tests): correctly deferred as out-of-scope.
+- ✅ Rec 7 (rename file to `sync_leader_is_leader.rs`): correctly deferred — "Consider" priority.
+- ✅ No unrelated changes introduced. Commit touches exactly one file. Header comment update ("gating/status" → "is_leader status") is consistent with the eval's reframing.
+- ✅ All 4 remaining tests pass: `cargo test -p maenifold-core --test integration_tests -- sync_leader_gating` → 4 passed, 0 failed.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_leader_gating`: 4 passed, 0 failed
+- Verdict: PASS

@@ -45,3 +45,34 @@ The file covers important append semantics (single, multi, invalid session, miss
 ## Load-Bearing Score: 5/7
 
 Tests 3 (`append_valid_workflow_to_queue`), 4, 5, 6, 7 are load-bearing. Tests 1 and 2 are redundant duplicates that would pass/fail in lockstep with tests 3 and 6 respectively — removing them loses no fault-detection capability.
+
+---
+## SWE Remediation
+- MERGE/DELETE `append_adds_workflow_to_queue`: removed, subsumed by `append_valid_workflow_to_queue`
+- MERGE/DELETE `append_adds_multiple_workflows_as_json_array`: removed, subsumed by `append_multiple_workflows_as_json_array`
+- RENAME `append_valid_workflow_to_queue` → `append_single_workflow_succeeds_and_updates_queue`
+- RENAME `append_multiple_workflows_as_json_array` → `append_json_array_of_workflows_succeeds_and_updates_queue_atomically`
+- FIX `append_with_invalid_session_id_returns_error`: pre-existing bug — test used `.expect()` on an `Err` return; corrected to `.expect_err()` with matching assertions
+- Removed unused `workflow_tools_env` import (no remaining tests use `workflow_tools_env` fixtures)
+- 7 tests → 5 tests, all 5 pass, 0 fault-detection coverage loss
+- Commit: 6b7f907
+
+---
+## Red-team Audit
+- ✅ MERGE/DELETE `append_adds_workflow_to_queue`: confirmed removed. All assertions (count message, name, no-ERROR, queue.len()==2, queue[1]) are structurally identical to surviving `append_single_workflow_succeeds_and_updates_queue`. Zero unique coverage lost.
+- ✅ MERGE/DELETE `append_adds_multiple_workflows_as_json_array`: confirmed removed. Surviving `append_json_array_of_workflows_succeeds_and_updates_queue_atomically` is strictly stronger (exact queue vector via `assert_eq!` + "New queue:" check vs. weaker `queue.len()==3`). Eval explicitly directed this.
+- ✅ RENAME `append_valid_workflow_to_queue` → `append_single_workflow_succeeds_and_updates_queue`: matches eval recommendation #3. Assertions unchanged in diff.
+- ✅ RENAME `append_multiple_workflows_as_json_array` → `append_json_array_of_workflows_succeeds_and_updates_queue_atomically`: matches eval recommendation #3. Assertions unchanged in diff.
+- ✅ FIX `append_with_invalid_session_id_returns_error`: pre-existing bug confirmed. `invoke_workflow` returns `Result<String>` — the original `.expect()` would panic on `Err` rather than asserting meaningfully. SWE corrected to `.expect_err()`. Drops the now-redundant `.contains("ERROR")` string check (capturing via `expect_err` IS the error-path assertion). Retains both substantive assertions: `error.contains(invalid_session_id)` and `error.contains("doesn't exist")`.
+- ✅ KEEP `append_with_missing_workflow_file_returns_error`: untouched, all 3 assertions intact (error contains name, "not found", queue.len()==1).
+- ✅ KEEP `append_validates_all_workflows_before_queue_update`: untouched, atomicity assertion intact (queue.len()==1 after mixed valid+invalid append).
+- ✅ Unused `workflow_tools_env` import removed — no remaining tests reference it.
+- ✅ No unrelated changes: diff touches only `workflow_append.rs`, no production code modified.
+- ✅ All 5 tests pass: `cargo test --test integration_tests -p maenifold-core -- workflow_append` → 5 passed, 0 failed, 0 ignored.
+- ⚠️ Minor: eval verdict table suggests `append_single_valid_workflow_succeeds_and_updates_queue` (with "valid") while recommendation #3 says `append_single_workflow_succeeds_and_updates_queue` (without "valid"). SWE followed recommendation #3. Not reject-worthy — internal eval inconsistency.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- workflow_append`: 5 passed, 0 failed
+- Verdict: PASS

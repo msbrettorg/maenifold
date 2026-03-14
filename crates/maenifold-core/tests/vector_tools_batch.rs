@@ -38,7 +38,11 @@ fn fr33_1_ac2_batch_chunking_respects_max_batch() {
     vector::cleanup();
     let texts = ["one", "two", "three", "four", "five"];
     let embeddings = vector::generate_embeddings(&texts, 2).expect("chunked embeddings");
-    assert_eq!(embeddings.len(), texts.len(), "all 5 texts must produce embeddings");
+    assert_eq!(
+        embeddings.len(),
+        texts.len(),
+        "all 5 texts must produce embeddings"
+    );
     for (index, embedding) in embeddings.iter().enumerate() {
         assert_eq!(embedding.len(), vector::EMBEDDING_DIMENSIONS);
         // T-8.4: FR-33.1 — guard against silent zero-vector regressions in the chunked path.
@@ -84,7 +88,11 @@ fn fr33_2_ac2_default_fallback_processes_all_embeddings() {
         .collect::<Vec<_>>();
     let refs = texts.iter().map(String::as_str).collect::<Vec<_>>();
     let embeddings = vector::generate_embeddings(&refs, 0).expect("default-batch embeddings");
-    assert_eq!(embeddings.len(), texts.len(), "all 33 texts must produce embeddings");
+    assert_eq!(
+        embeddings.len(),
+        texts.len(),
+        "all 33 texts must produce embeddings"
+    );
     for (index, embedding) in embeddings.iter().enumerate() {
         assert_eq!(embedding.len(), vector::EMBEDDING_DIMENSIONS);
         // T-8.4: FR-33.2 — guard against silent zero-vector regressions in the default path.

@@ -256,3 +256,67 @@ the existing 44-test split suite, with weaker assertions in two cases (B5, B6). 
 written provides **negative value** on the margin: it adds noise to failure reports, masks
 regressions behind OR conditions, and gives maintainers false confidence that covered behaviors
 are validated here to a higher standard than they are.
+
+---
+## SWE Remediation
+- REWRITE `recent_activity_filters_timespan_include_content_workflow_and_sequential`: replaced monolithic 9-behavior test with two focused tests:
+  - `recent_activity_all_file_types_survive_full_sync_pipeline`: smoke test verifying all 4 file types survive seed → Sync → RecentActivity (Rec #1, P0)
+  - `recent_activity_limit_one_returns_exactly_one_item`: extracted limit=1 edge case with 3 seeded items (Rec #2, P1; F-7)
+- REMOVE B1–B8: stripped all redundant behavior blocks (filter variants, timespan, includeContent, negative-timespan, assumptions OR-assertion) — fully duplicated by 44-test split suite with stronger assertions (Rec #3, P0)
+- REMOVE unused imports: `ToolRegistry`, `OutputFormat`, `set_last_indexed` (cleanup)
+- Findings addressed: F-1 (attribution impossible → 2 named tests), F-2 (OR assertion → removed), F-3 (weak includeContent checks → removed), F-4 (inconsistent invocation path → removed), F-5 (Sync assertion → removed), F-6 (bad name → descriptive names)
+- 2 tests pass, 0 failures
+- Commit: 04d47c3
+
+---
+## Red-team Audit
+
+### REWRITE Audit
+
+- ✅ `recent_activity_all_file_types_survive_full_sync_pipeline`: matches eval Rec #1 (P0). Seeds all 4 file types (memory, sequential, workflow, chat), invokes Sync as setup (no assertion on Sync output — F-5 fixed), asserts `(sequential)`, `(workflow)`, `(memory)` presence. Eval recommended code matches almost verbatim. Chat renders as `(memory)` type so the 3-assertion pattern is correct.
+- ✅ `recent_activity_limit_one_returns_exactly_one_item`: matches eval Rec #2 (P1) and F-7. Seeds 3 items (2 memory + 1 sequential) to ensure limit is actually constraining, asserts `rendered_item_count == 1`. Existing split-suite tests only use `limit: 2` — this covers the `limit: 1` boundary the eval identified as the sole unique contribution.
+
+### REMOVE Audit
+
+- ✅ B1 (Sync scaffolding): removed. Sync now called as bare setup with no output assertion. No unique coverage lost.
+- ✅ B2 (all filter): removed. Fully duplicated by `recent_activity_filter_variants_select_expected_path_families` in boundary_queries (4 filter variants pinned).
+- ✅ B3 (thinking filter): removed. Same coverage in boundary_queries filter_variants test.
+- ✅ B4 (memory filter): removed. Same coverage.
+- ✅ B5 (assumptions filter + OR assertion): removed. Fixes F-2 (OR conceals undefined behavior). Boundary_queries pins to `Title: Assumption Log` — a stronger assertion.
+- ✅ B6 (includeContent): removed. Fixes F-3 (key-only checks). `recent_activity_include_content_includes_h2_heading_and_content` in boundary_rendering asserts full key-value pairs (`First H2: Thought 1`, `First H2 Content: First content block`).
+- ✅ B7 (timespan): removed. Covered by `recent_activity_timespan_restricts_results_to_requested_window` (boundary_queries) and `recent_activity_timespan_filter_excludes_old_entries_end_to_end` (pipeline_tool).
+- ✅ B8 (negative timespan): removed. Fixes F-4 (inconsistent invocation path). `recent_activity_negative_timespan_returns_error` (pipeline_tool) matches `MaenifoldError::InvalidArgument` directly — more precise.
+
+### Cleanup Audit
+
+- ✅ `ToolRegistry` import removed — only used in deleted B8 `ToolRegistry::global().try_invoke()` path.
+- ✅ `OutputFormat` import removed — only used in deleted B8.
+- ✅ `set_last_indexed` import removed — only used in deleted B7 (line 59 of original, backdating article-alpha for timespan test).
+- ✅ No unrelated changes introduced. Single file, 44 insertions / 135 deletions.
+
+### Findings Cross-check
+
+| Finding | Severity | Addressed | How |
+|---------|----------|-----------|-----|
+| F-1 | CRITICAL | ✅ | 2 named tests replace 1 monolithic 9-behavior test |
+| F-2 | HIGH | ✅ | OR assertion removed with B5; boundary_queries pins exact value |
+| F-3 | MEDIUM | ✅ | Weak key-only checks removed with B6; boundary_rendering checks full pairs |
+| F-4 | MEDIUM | ✅ | Inconsistent `ToolRegistry::global().try_invoke` path removed with B8 |
+| F-5 | LOW | ✅ | Sync output assertion removed; Sync used as bare setup |
+| F-6 | LOW | ✅ | Two descriptive test names replace laundry-list name |
+| F-7 | INFO | ✅ | limit=1 extracted as dedicated test |
+
+### Traceability
+
+- T-2.3 / FR-4 referenced in module doc comment, inline comments, and commit message. ✅
+- Split suite coverage verified: 36 tests across 6 files (boundary_queries: 4, boundary_rendering: 4, pipeline_collect: 8, pipeline_format: 7, pipeline_helpers: 8, pipeline_tool: 5) — confirming B2–B8 behaviors are fully duplicated with stronger assertions.
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- recent_activity_tool_behavior`: 2 passed, 0 failed
+- Tests verified:
+  - `recent_activity_all_file_types_survive_full_sync_pipeline` — ok
+  - `recent_activity_limit_one_returns_exactly_one_item` — ok
+- Verdict: PASS

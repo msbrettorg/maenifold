@@ -44,11 +44,7 @@ Also references [[gamma]] for good measure.
     assert!(output.contains("Synced memory://sync/basic"));
     assert_eq!(
         file_concepts(&env.cfg, &uri),
-        BTreeSet::from([
-            "alpha".to_string(),
-            "beta".to_string(),
-            "gamma".to_string(),
-        ])
+        BTreeSet::from(["alpha".to_string(), "beta".to_string(), "gamma".to_string(),])
     );
     assert_eq!(mention_count(&env.cfg, &uri), 3);
 }

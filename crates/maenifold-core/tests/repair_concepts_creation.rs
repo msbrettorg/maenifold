@@ -290,8 +290,5 @@ Using tools in prose should not be modified during dry run.
         output.contains("This was a DRY RUN"),
         "missing dry-run marker: {output}"
     );
-    assert_eq!(
-        after, original,
-        "dry-run should not modify on-disk content"
-    );
+    assert_eq!(after, original, "dry-run should not modify on-disk content");
 }

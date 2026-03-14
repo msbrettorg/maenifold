@@ -55,3 +55,21 @@ Three tests (`search_graph_tools_are_registered_case_insensitively`, `search_mem
 - KEEP `search_memories_preserves_validated_assumptions_from_decay`: added SQL seeding rationale back-reference comment (Rec 5)
 - Test count: 7 → 4 (all pass)
 - Commit: 75fa25c
+
+---
+## Red-team Audit
+- ✅ REMOVE `search_graph_tools_are_registered_case_insensitively`: confirmed fully duplicated — `tool_registry_tests::new_registry_registers_all_expected_tool_names` asserts all 28 canonical names including SearchMemories, Sync, BuildContext; `try_invoke_case_insensitive_lookup_always_resolves` proves case-insensitive resolution across mixed cases. No unique signal lost.
+- ✅ REMOVE `search_memories_is_no_longer_a_placeholder`: confirmed negative-only scaffold remnant (`!output.contains("Tool not yet implemented: SearchMemories")`). The two retained decay-ranking tests (`search_memories_applies_decay_weight_to_ranking_only`, `search_memories_preserves_validated_assumptions_from_decay`) exercise SearchMemories with observable behavioral assertions. No coverage lost.
+- ✅ REMOVE `sync_is_no_longer_a_placeholder`: confirmed negative-only scaffold remnant (`!output.contains("Tool not yet implemented: Sync")`). The retained `build_context_surfaces_related_concepts_after_sync` exercises Sync with downstream BuildContext assertions on linked concepts. No coverage lost.
+- ✅ KEEP `build_context_surfaces_related_concepts_after_sync`: format-sensitive `sync.contains("Sync complete:")` correctly replaced with `!sync.contains("ERROR")` per Rec 3. The actual behavioral invariant (oauth2 and retry-policy surface after sync) is untouched. Verified in diff.
+- ✅ KEEP `build_context_expanded_relations_is_flat_string_array`: untouched, as expected. C# parity regression for T-15.6 preserved.
+- ✅ KEEP `search_memories_applies_decay_weight_to_ranking_only`: SQL seeding rationale comment added per Rec 5. No assertion changes. Load-bearing test preserved.
+- ✅ KEEP `search_memories_preserves_validated_assumptions_from_decay`: Back-reference SQL seeding comment added per Rec 5. No assertion changes. T-7.8 / FR-7.8 traceability preserved.
+- ✅ No unrelated changes: commit touches only `search_graph_boundary.rs` (7 insertions, 52 deletions). No other files modified.
+- ✅ All 4 retained tests pass: `cargo test -p maenifold-core --test integration_tests -- search_graph_boundary` → 4 passed, 0 failed.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- search_graph_boundary`: 4 passed, 0 failed
+- Verdict: PASS

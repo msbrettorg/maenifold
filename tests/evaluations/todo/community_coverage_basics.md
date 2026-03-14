@@ -221,3 +221,11 @@ Only Test 3 carries any partial load-bearing value, and only through its precond
 - ✅ Tests green: all 5 `community_louvain_basics` tests pass; subsuming sibling `run_louvain_isolated_concepts_normalized_contiguous_ids` passes
 - ℹ️ Stale comment: `community_coverage_topologies.rs:117` still references the deleted file in a comment (`// community_coverage_basics.rs`). Informational only — not a functional defect, and the eval did not specify sibling comment updates.
 - Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- community_coverage_basics`: 0 passed, 0 failed (module confirmed deleted)
+- `cargo test --test integration_tests -p maenifold-core -- community_louvain_basics`: 5 passed, 0 failed (subsuming target with merged precondition guard)
+- `cargo test --test integration_tests -p maenifold-core -- community_coverage_topologies`: 2 passed, 0 failed (sibling with exact-vector assertion)
+- Merged precondition guard confirmed at `community_louvain_basics.rs:115-121` with traceability comment `// T-12.7: Merged precondition guard from community_coverage_basics (R-2).`
+- Verdict: **PASS**

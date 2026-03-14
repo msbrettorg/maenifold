@@ -81,8 +81,7 @@ fn high_gamma_fallback_produces_connected_components() {
 
     // At extreme gamma (100.0), Louvain produces all singletons.
     // Fallback detects two connected components → exactly 2 communities.
-    let count =
-        detect_and_persist(&env.db_path, 100.0, Some(42)).expect("extreme gamma");
+    let count = detect_and_persist(&env.db_path, 100.0, Some(42)).expect("extreme gamma");
     assert_eq!(
         count, 2,
         "at extreme gamma, fallback must produce one community per connected component"
@@ -99,12 +98,30 @@ fn high_gamma_fallback_produces_connected_components() {
     let id_2c = get_community_id(&conn, "cluster2-c").expect("cluster2-c");
     let id_2d = get_community_id(&conn, "cluster2-d").expect("cluster2-d");
 
-    assert_eq!(id_1a, id_1b, "clique-1 members must co-cluster after fallback");
-    assert_eq!(id_1b, id_1c, "clique-1 members must co-cluster after fallback");
-    assert_eq!(id_1c, id_1d, "clique-1 members must co-cluster after fallback");
-    assert_eq!(id_2a, id_2b, "clique-2 members must co-cluster after fallback");
-    assert_eq!(id_2b, id_2c, "clique-2 members must co-cluster after fallback");
-    assert_eq!(id_2c, id_2d, "clique-2 members must co-cluster after fallback");
+    assert_eq!(
+        id_1a, id_1b,
+        "clique-1 members must co-cluster after fallback"
+    );
+    assert_eq!(
+        id_1b, id_1c,
+        "clique-1 members must co-cluster after fallback"
+    );
+    assert_eq!(
+        id_1c, id_1d,
+        "clique-1 members must co-cluster after fallback"
+    );
+    assert_eq!(
+        id_2a, id_2b,
+        "clique-2 members must co-cluster after fallback"
+    );
+    assert_eq!(
+        id_2b, id_2c,
+        "clique-2 members must co-cluster after fallback"
+    );
+    assert_eq!(
+        id_2c, id_2d,
+        "clique-2 members must co-cluster after fallback"
+    );
     assert_ne!(
         id_1a, id_2a,
         "different connected components must get distinct communities"
@@ -150,10 +167,7 @@ fn run_and_persist_persists_to_database() {
     let id_delta = get_community_id(&conn, "delta").expect("delta");
     let id_eps = get_community_id(&conn, "epsilon").expect("epsilon");
     assert_eq!(id_alpha, id_beta, "triangle members must co-cluster");
-    assert_eq!(
-        id_beta, id_gamma_node,
-        "triangle members must co-cluster"
-    );
+    assert_eq!(id_beta, id_gamma_node, "triangle members must co-cluster");
     assert_ne!(
         id_alpha, id_delta,
         "triangle and pair must be distinct communities"

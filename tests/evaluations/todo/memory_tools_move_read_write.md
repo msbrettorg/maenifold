@@ -283,3 +283,33 @@ is guarding without reading the support module header.
 - KEEP `write_memory_with_existing_h1_does_not_create_duplicate_heading`: added `// T-12.6: RTM NFR-1` traceability comment
 - All 6 tests in `memory_tools_move_read_write` pass; both tests in `memory_lifecycle_validation` pass
 - Commit: 91fb6bb
+
+---
+
+## Red-team Audit
+
+| # | Remediation Claim | Verified | Notes |
+|---|---|---|---|
+| 1 | REWRITE `move_memory_path_based_destination_moves_content_to_subdirectory` | ✅ | Renamed accurately; source-URI-post-move assertion added (lines 43-47); traceability comment present (lines 11-13). Extension claim dropped per eval OR option. |
+| 2 | MERGE `move_memory_with_simple_destination_preserves_existing_behavior` → lifecycle file | ✅ | Deleted from `memory_tools_move_read_write.rs`; new `move_memory_valid_destination_succeeds` created in `memory_lifecycle_validation.rs` with content-survival assertion. Note: eval referenced this as a pre-existing test to strengthen; it did not exist — SWE correctly created it, achieving the eval's intent. |
+| 3 | KEEP `read_memory_handles_missing_title_in_frontmatter` + traceability | ✅ | `// T-12.6: RTM NFR-1` added; no other changes. |
+| 4 | REWRITE `read_memory_handles_file_with_no_frontmatter` | ✅ | Renamed from `read_memory_handles_empty_frontmatter`; URI assertion added (line 94) for consistency with Test 3; traceability comment with explanatory distinction between no-frontmatter and empty-frontmatter (lines 74-76). |
+| 5 | NEW `read_memory_handles_empty_frontmatter_delimiters` | ✅ | Input is `---\n---\n# Body\n...` per eval recommendation 6. Asserts no ERROR, URI present, content present. |
+| 6 | KEEP `write_memory_does_not_write_embedding_fields` + traceability | ✅ | `// T-12.6: RTM NFR-1` added; no other changes. |
+| 7 | KEEP `write_memory_with_existing_h1_does_not_create_duplicate_heading` + traceability | ✅ | `// T-12.6: RTM NFR-1` added; redundant `!trimmed.starts_with("## ")` predicate left in place — consistent with KEEP verdict. |
+
+**Test execution confirmed**: 6/6 pass in `memory_tools_move_read_write`, 2/2 pass in `memory_lifecycle_validation`.
+
+**Unrelated changes**: None detected. Commit touches only the two test files and the eval spec.
+
+**Observations (non-blocking)**:
+- The eval evaluator incorrectly stated `move_memory_valid_destination_succeeds` already existed in `memory_lifecycle_validation.rs`. It did not — the file previously contained only `move_memory_rejects_empty_and_whitespace_destinations` with a comment deferring valid-destination coverage to the other file. The SWE handled this correctly by creating the test.
+- The new `move_memory_valid_destination_succeeds` in the lifecycle file does not include a source-URI-post-move assertion (unlike the rewritten Test 1). This is consistent with the eval, which only called for "content-survival" in the merge, and "source-gone" in the rewrite. Acceptable.
+
+- Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_tools_move_read_write`: 6 passed, 0 failed
+- Verdict: PASS

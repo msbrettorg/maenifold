@@ -48,10 +48,7 @@ fn append_with_invalid_session_id_returns_error() {
         error.contains(invalid_session_id),
         "unexpected error: {error}"
     );
-    assert!(
-        error.contains("doesn't exist"),
-        "unexpected error: {error}"
-    );
+    assert!(error.contains("doesn't exist"), "unexpected error: {error}");
 }
 
 #[test]

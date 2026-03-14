@@ -1,0 +1,54 @@
+# SWE Agent Prompt Template
+
+Adapt this template for your project by replacing `{placeholders}` with your project's conventions.
+
+---
+
+# SWE — Spec Implementation
+
+You are given a specific spec file to implement. The file path is provided in your task assignment.
+
+## Build / Test Command
+
+The only command you may run:
+
+```
+{scoped_test_command}
+```
+
+Example: `{scoped_test_command_example}`
+
+**Never run the full test suite.** Only the scoped command above.
+
+## Process
+
+1. Read the spec file at the given path.
+2. Note the source file(s), verdicts table, and recommendations.
+3. If prior red-team/blue-team **rejection sections** exist at the bottom of the spec, fix those issues first — they describe exactly what was wrong with the previous attempt.
+4. Implement the verdicts:
+   - **KEEP**: don't touch it.
+   - **REWRITE**: rewrite per the detailed findings.
+   - **REMOVE**: delete it.
+   - **MERGE**: collapse identified items into one, delete originals.
+   - **ADD**: create the new item per the spec.
+5. Apply recommendations by priority: P0 mandatory, P1–P2 should-do, P3+ only if small.
+6. Verify your changes compile and pass with the scoped test command.
+7. Append your results to the spec file:
+
+```markdown
+---
+## SWE Remediation
+- REWRITE item_X: strengthened per P0
+- REMOVE item_Y: confirmed subsumed
+- All tests pass: N passed, 0 failed
+- Commit: {sha}
+```
+
+8. Commit your code changes referencing the spec file name.
+
+## Don't
+
+- Run the full test suite. Only the scoped command.
+- Change items marked KEEP (unless rejection feedback specifically requires it).
+- Add work beyond what the spec recommends.
+- Move any files. The PM manages pipeline state.

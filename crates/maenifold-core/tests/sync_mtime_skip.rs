@@ -89,8 +89,8 @@ fn sync_when_mtime_unchanged_skips_without_read_and_does_not_restore_mentions_on
         "unchanged mtime should be skipped without surfacing a read error: {output}"
     );
 
-    let after = get_file_content_row(&env.cfg, &memory_uri)
-        .expect("row should still exist after sync");
+    let after =
+        get_file_content_row(&env.cfg, &memory_uri).expect("row should still exist after sync");
     assert_eq!(
         after.last_indexed,
         Some(original_last_indexed),

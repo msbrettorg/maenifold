@@ -305,3 +305,65 @@ Two of the four tests carry genuinely unique, load-bearing coverage:
 **Score: 2/4.** The file delivers 2 tests worth of unique coverage spread across 4 tests, with 2
 vacuous assertions (1 per entry point) adding noise without protection. Post-merge and cleanup the
 score would be 2/2.
+
+---
+## SWE Remediation
+- REWRITE test 1 → `sync_tool_vector_disabled_emits_structured_unavailable_diagnostics`: absorbed negative assertions from test 3 (P1), removed vacuous sqlite-vec assertion (P0), renamed to drop stale `fr25_2` prefix (P2)
+- REWRITE test 2 → `sync_files_vector_disabled_emits_structured_unavailable_diagnostics`: absorbed `!FAILURES:` from test 4 (P1), dropped vacuous `Vector index verification:` assertion (P0), renamed (P2)
+- MERGE test 3 → test 1: deleted (P1)
+- MERGE test 4 → test 2: deleted (P1)
+- Extracted `assert_vector_unavailable_diagnostics` shared helper (P3)
+- Result: 4 tests → 2 tests, 113 lines deleted, 41 added
+- Commit: ee0de75
+
+---
+## Red-team Audit
+
+**Traceability**: T-9.6 | FR-7, FR-8
+
+### REWRITE Verdicts
+
+- ✅ REWRITE test 1 → `sync_tool_vector_disabled_emits_structured_unavailable_diagnostics`:
+  - Absorbed `!output.contains("- FAILURES:")` from test 3 (via shared helper) — P1 ✅
+  - Absorbed `!output.contains("Vector index verification:")` from test 3 (explicit assertion, line 78) — P1 ✅
+  - Removed vacuous `sqlite-vec extension unavailable` negative assertion — P0 ✅
+  - Renamed to drop stale `fr25_2` prefix — P2 ✅
+  - All 6 original positive assertions preserved in helper — ✅
+  - Total: 8 assertions (6 positive + 2 negative), matches eval spec
+
+- ✅ REWRITE test 2 → `sync_files_vector_disabled_emits_structured_unavailable_diagnostics`:
+  - Absorbed `!output.contains("- FAILURES:")` from test 4 (via shared helper) — P1 ✅
+  - Correctly dropped vacuous `!output.contains("Vector index verification:")` (not on `sync_files` code path) — P0 ✅
+  - Renamed to drop stale `fr25_2` prefix — P2 ✅
+  - All 6 original positive assertions preserved in helper — ✅
+  - Total: 7 assertions (6 positive + 1 negative), matches eval spec
+
+### MERGE Verdicts
+
+- ✅ MERGE test 3 → test 1: deleted, both unique negative assertions absorbed into test 1, no unique positive coverage lost (both positive assertions were already in test 1)
+- ✅ MERGE test 4 → test 2: deleted, useful `!FAILURES:` assertion absorbed, vacuous `!Vector index verification:` correctly dropped per P0
+
+### P3 — Shared Helper
+
+- ✅ `assert_vector_unavailable_diagnostics(output, prefix, concepts, memory)` extracted with parameterized counters
+- Helper contains 6 positive assertions + 1 negative (`!FAILURES:`)
+- Test 1 adds `!Vector index verification:` outside the helper (meaningful for `Sync` tool path only)
+- Test 2 relies on helper alone (verification assertion not on `sync_files` path)
+
+### Cross-checks
+
+- Only 1 file changed (the test file) — no source code modifications ✅
+- Test count: 4 → 2 as specified ✅
+- Line delta: 41 added, 113 deleted as claimed ✅
+- `cargo test -- vector_sync_diag_unavailable`: 2 passed, 0 failed ✅
+- No unrelated changes introduced ✅
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- vector_sync_diag_unavailable`: 2 passed, 0 failed
+- Tests confirmed:
+  - `vector_sync_diag_unavailable::sync_tool_vector_disabled_emits_structured_unavailable_diagnostics` — ok
+  - `vector_sync_diag_unavailable::sync_files_vector_disabled_emits_structured_unavailable_diagnostics` — ok
+- Verdict: **PASS**

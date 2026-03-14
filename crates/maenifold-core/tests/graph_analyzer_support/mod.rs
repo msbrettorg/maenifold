@@ -90,6 +90,5 @@ fn insert_edge(connection: &Connection, a: &str, b: &str, weight: i64) {
 // on error strings instead of panicking on Result::Err.
 pub(crate) fn visualize(cfg: &Config, payload: serde_json::Value) -> String {
     let context = markdown_context(cfg);
-    search::visualize(&context, &payload)
-        .unwrap_or_else(|e| format!("ERROR: {e}"))
+    search::visualize(&context, &payload).unwrap_or_else(|e| format!("ERROR: {e}"))
 }

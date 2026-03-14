@@ -209,3 +209,19 @@ These could be driven from a table of `(env_factory, advance_count, expected_str
 - KEEP `view_without_session_id_throws_helpful_error` (Test #7): unchanged
 - **Result**: 7 → 4 tests, all passing
 - Commit: 74644c1
+
+---
+
+## Red-team Audit
+
+- ✅ REMOVE `view_queue_shows_current_position_and_next_step` (Test #1): confirmed strict subset of Test #3 — all 7 original assertions are covered by Test #3's 8 assertions (the only "lost" values are `wtt-*` workflow names, which the eval explicitly ruled as cosmetic fixture variance). T-12.0 traceability comment correctly migrated to Test #3 header.
+- ✅ REWRITE `view_reflects_updated_position_after_step_advancement` (Test #2): P0 `!contains("ERROR")` guard added to both cases. Case 1 preserves original single-workflow assertions (`step 2/3`, `Next:`). Case 2 absorbs Test #5's queue-of-2 scenario with all 3 original assertions (`!ERROR`, `step 2/3`, `Next:`). Comments clearly articulate the single-workflow vs multi-workflow queue distinction as the eval required.
+- ✅ KEEP `view_displays_queue_status_with_current_position` (Test #3): T-12.0 traceability added per eval. All 8 assertions unchanged.
+- ✅ FIX `view_with_invalid_session_id_returns_error` (Test #4): eval said KEEP as-is, but SWE correctly deviated — the original test used `.expect()` (Ok path) + `contains("ERROR")` string check, while the implementation actually returns `Err(...)`. The SWE upgraded to `.expect_err()` which is structurally stronger than a string-based error check. The two surviving assertions (`contains(invalid_session_id)`, `contains("doesn't exist")`) preserve the contract shape. Valid pragmatic fix beyond eval scope.
+- ✅ REMOVE `view_after_progressing_shows_updated_position` (Test #5): all 3 assertions absorbed into rewritten Test #2 Case 2. No unique coverage lost.
+- ✅ REMOVE `view_via_workflow_tools_entry_point` (Test #6): confirmed zero unique coverage — all 3 assertions (`!ERROR`, `Queue:`, `Position:`) are a strict subset of Test #3's 8 assertions.
+- ✅ KEEP `view_without_session_id_throws_helpful_error` (Test #7): unchanged, verified identical to pre-commit. T-15.14 / FR-8 traceability preserved.
+- **Tests**: 4/4 passing (`cargo test --test integration_tests -p maenifold-core -- workflow_view`)
+- **Priority coverage**: P0 (ERROR guard) ✅ | P1 (remove dead weight) ✅ | P2 (collapse duplicate pair) ✅ | P3 (fix advancement pair) ✅
+- **Unrelated changes**: none detected — diff is scoped entirely to eval-specified remediation
+- Verdict: **PASS**

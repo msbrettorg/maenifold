@@ -133,3 +133,70 @@ All three tests guard distinct lifecycle transitions in `sync_single_file()`. Re
 > | `file_content` | ✅ | ✅ | ✅ |
 > | `concept_mentions` | ✅ | ✅ | ✅ |
 > | `concept_graph` | ❌ Missing | ✅ | ❌ Missing |
+
+---
+
+## SWE Remediation
+
+- REWRITE `incremental_sync_file_changed_creates_expected_db_artifacts` → `incremental_sync_new_file_creates_expected_db_artifacts`: renamed to reflect actual create lifecycle (not change); added `concept_graph` edge assertion via `get_edge_source_files`; tightened output assertion to `"2 concept mentions updated"`; standardized `name_prefix` to `None` (matching Tests 2 and 3)
+- KEEP `incremental_sync_file_deleted_cleans_all_artifacts`: untouched (strongest test)
+- KEEP+AUGMENT `incremental_sync_file_renamed_reindexes_under_new_uri`: added `concept_graph` edge assertions verifying new URI present and old URI absent in `source_files` after rename
+- Fixed stale `RTM FR-14.x` traceability annotations → `FR archived — see CHANGELOG.md § FR-14 (RTM-080)` across lifecycle, guards, and support files
+- Documented `TEST_MUTEX` rationale in `support.rs` (guards `Config::override_root()` process-global state)
+- Added module-level doc comment to lifecycle file explaining unification vs boundary layer distinction
+- Commit: 38fd7aa
+
+---
+
+## Red-team Audit
+
+### REWRITE: `incremental_sync_new_file_creates_expected_db_artifacts` (was `incremental_sync_file_changed_creates_expected_db_artifacts`)
+
+- ✅ **Rename**: Function name changed from `file_changed` → `new_file`, matching eval Recommendation 1. Correctly reflects the create lifecycle, not an update.
+- ✅ **`concept_graph` edge assertion**: `get_edge_source_files()` call at lines 73-82 verifies edge exists and `memory_uri` is present in `source_files`. Closes the gap identified in Detailed Findings § Test 1 and the load-bearing table's `concept_graph` ❌ for Test 1.
+- ✅ **Output assertion tightened**: `output.contains("2 concept mentions updated")` at line 34 — matches the eval's recommendation to assert the count, achieving parity with the boundary suite's specificity.
+- ✅ **`name_prefix` standardized**: `create_test_file(&cfg, &content, None)` at line 30 — matches Tests 2 and 3, resolving Recommendation 6.
+
+### KEEP: `incremental_sync_file_deleted_cleans_all_artifacts`
+
+- ✅ **Untouched** except traceability annotation update. All original assertions preserved. This was already the strongest test; no changes required by the eval.
+
+### KEEP+AUGMENT: `incremental_sync_file_renamed_reindexes_under_new_uri`
+
+- ✅ **`concept_graph` edge for new URI**: Lines 205-214 assert edge exists and `new_memory_uri` is in `source_files`. Matches eval Recommendation 2.
+- ✅ **Old URI absent from edge**: Lines 215-219 assert `memory_uri` (old) is NOT in `source_files`. This goes beyond the minimum eval spec (which said "confirm old does not appear") — the SWE added a separate assertion for old-URI absence rather than combining it into one check. Correct and thorough.
+
+### Cross-Cutting Items
+
+- ✅ **Traceability annotations fixed**: All 3 lifecycle test comments + 2 guards test comments + support.rs header now use `FR archived — see CHANGELOG.md § FR-14 (RTM-080)` instead of stale `RTM FR-14.x`. Covers eval Recommendation 3 and Finding B.
+- ✅ **TEST_MUTEX rationale documented**: Lines 19-22 of `support.rs` explain Config::override_root() global state guard. Covers eval Recommendation 4 and Finding A.
+- ✅ **Module-level doc comment**: Lines 1-7 of lifecycle file explain unification vs boundary layer distinction. Covers eval Recommendation 5.
+- ✅ **Shared module documented**: Support.rs header now states "Shared by both lifecycle and guards test files." Addresses Finding C.
+- ℹ️ **Rec 7 (output-string constants) not implemented**: The eval suggested extracting `SYNC_OUTPUT_INDEXED`/`SYNC_OUTPUT_DELETED` as named constants. This was a P2 nice-to-have, not a verdict-required change. Not blocking.
+
+### Test Execution
+
+- ✅ All 3 lifecycle tests pass: `incremental_sync_new_file_creates_expected_db_artifacts`, `incremental_sync_file_deleted_cleans_all_artifacts`, `incremental_sync_file_renamed_reindexes_under_new_uri`
+- ✅ Both companion guards tests pass: `incremental_sync_mtime_guard_skips_unchanged_files`, `incremental_sync_hash_guard_updates_last_indexed_only`
+- ✅ No regressions in broader incremental sync suite (25/25 pass)
+
+### No Unrelated Changes
+
+- Commit 38fd7aa touches exactly 3 files, all test files in the unification suite. No source code changes. No unrelated test modifications. Scope is clean.
+
+### Effective Load-Bearing After Remediation
+
+| Table | Test 1 (Create) | Test 2 (Delete) | Test 3 (Rename) |
+|---|---|---|---|
+| `file_content` | ✅ | ✅ | ✅ |
+| `concept_mentions` | ✅ | ✅ | ✅ |
+| `concept_graph` | ✅ Fixed | ✅ | ✅ Fixed |
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- incremental_sync_unification_lifecycle`: 3 passed, 0 failed
+- `cargo test --test integration_tests -p maenifold-core -- incremental_sync_unification_guards`: 2 passed, 0 failed
+- All 5 tests (3 lifecycle + 2 companion guards) pass cleanly
+- Verdict: **PASS**

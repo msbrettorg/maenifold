@@ -237,3 +237,50 @@ All three tests are load-bearing. They cover the three decision branches of a pe
 The file as a whole is **structurally sound but incomplete**. Its most important contribution (the `UnreadableFileGuard` read-skip proof in test 1) is unique in the codebase. Its most significant weakness (no graph-edge assertions in test 3) creates a blind spot for the most expensive code path.
 
 **Status: REWRITE all three (targeted, surgical rewrites — do not replace wholesale).**
+
+---
+## SWE Remediation
+- REWRITE test_1 (`process_file_changed_when_mtime_unchanged_skips_before_read_and_does_not_restore_state`): removed redundant `set_file_mtime_utc`/`original_mtime` indirection (Rec 4); added `file_content` row immutability assertions for `last_indexed`, `file_md5`, `file_size` (Rec 5); replaced string literal with `SKIP_MTIME_GUARD_MARKER` constant (Rec 2)
+- REWRITE test_2 (`process_file_changed_when_mtime_differs_but_hash_same_updates_last_indexed_only`): replaced post-sync `file_mtime_rfc3339(&path)` with pre-computed `new_mtime.to_rfc3339()` to eliminate TOCTOU (Rec 3); replaced string literal with `SKIP_HASH_GUARD_MARKER` constant (Rec 2)
+- REWRITE test_3 (`process_file_changed_when_hash_differs_reprocesses_and_updates_mentions`): added CRITICAL graph-edge assertions — `concept_a ↔ concept_common` edge removed, `concept_b ↔ concept_common` edge created (Rec 1); added `file_size` changed assertion (Rec 7); replaced post-sync `file_mtime_rfc3339` with pre-computed `new_mtime` (Rec 3); replaced string literal with `SYNCED_MENTIONS_MARKER` constant (Rec 2)
+- PRODUCTION: extracted `pub const SKIP_MTIME_GUARD_MARKER`, `SKIP_HASH_GUARD_MARKER`, `SYNCED_MENTIONS_MARKER` in `sync/mod.rs`, re-exported via `search/mod.rs` (Rec 2)
+- Added module-level doc comment documenting unique contributions vs sibling test files (Rec 6)
+- Commit: b4be5d4
+
+---
+## Red-team Audit
+
+**Traceability**: T-12.0 · RTM NFR-1
+
+### REWRITE test_1 (`process_file_changed_when_mtime_unchanged_skips_before_read_and_does_not_restore_state`)
+- ✅ **Rec 4 (remove redundant `set_file_mtime_utc`)**: Confirmed — no `original_mtime` variable, single `set_file_mtime_utc` call at L50 using value read from `row_before_guard.last_indexed`
+- ✅ **Rec 5 (`file_content` row immutability)**: Confirmed — `row_before_guard` captured at L43, `row_after_guard` at L70, three `assert_eq!` for `last_indexed` (L72), `file_md5` (L76), `file_size` (L80)
+- ✅ **Rec 2 (constant import)**: Confirmed — `SKIP_MTIME_GUARD_MARKER` used at L64; zero string-literal occurrences of `"mtime guard"` in file
+
+### REWRITE test_2 (`process_file_changed_when_mtime_differs_but_hash_same_updates_last_indexed_only`)
+- ✅ **Rec 3 (TOCTOU fix)**: Confirmed — `new_mtime` pre-computed at L118, compared at L131-132 as `Some(new_mtime.to_rfc3339().as_str())`; no call to `file_mtime_rfc3339(&path)` post-sync
+- ✅ **Rec 2 (constant import)**: Confirmed — `SKIP_HASH_GUARD_MARKER` used at L124; zero string-literal occurrences of `"hash guard"` in file
+
+### REWRITE test_3 (`process_file_changed_when_hash_differs_reprocesses_and_updates_mentions`)
+- ✅ **Rec 1 (CRITICAL — graph-edge assertions)**: Confirmed — `get_edge_source_files` at L229 asserts old `concept_a ↔ concept_common` edge removed (`None`); at L235 asserts new `concept_b ↔ concept_common` edge created (`.is_some()`)
+- ✅ **Rec 7 (`file_size` assertion)**: Confirmed — `assert_ne!(after.file_size, before.file_size, ...)` at L204-207
+- ✅ **Rec 3 (TOCTOU fix)**: Confirmed — `new_mtime` pre-computed at L183, compared at L196; no post-sync `file_mtime_rfc3339`
+- ✅ **Rec 2 (constant import)**: Confirmed — `SYNCED_MENTIONS_MARKER` used at L189; zero string-literal occurrences of `"concept mentions updated"` in file
+
+### PRODUCTION changes
+- ✅ **Rec 2 (extract constants)**: `pub const SKIP_MTIME_GUARD_MARKER`, `SKIP_HASH_GUARD_MARKER`, `SYNCED_MENTIONS_MARKER` defined at `sync/mod.rs:27-29` and used in format strings at L176, L186, L225
+- ✅ **Re-export**: Constants re-exported via `search/mod.rs:16`
+
+### Cross-cutting
+- ✅ **Rec 6 (doc comment)**: Module-level doc comment at L1-10 documents unique contributions per test vs `sync_unification_single_file.rs`
+- ✅ **No unrelated changes**: `git log` commit `b4be5d4` message is `eval(sync_mtime_opt_guards): rewrite all 3 tests per evaluation` — scoped to eval
+- ✅ **No residual string literals**: `grep` for `"mtime guard"`, `"hash guard"`, `"concept mentions updated"` returns zero matches in the test file
+
+### Verdict: **PASS**
+
+All 7 eval recommendations addressed. P0 (test 3 missing graph-edge assertions) fixed. All 3 REWRITE tests match eval spec. No regressions, no unrelated changes.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_mtime_opt_guards`: 3 passed, 0 failed
+- Verdict: PASS

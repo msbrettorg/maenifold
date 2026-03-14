@@ -365,3 +365,33 @@ be dropped if the negative stderr assertion were redistributed to the two replac
 - Added traceability comment at file top clarifying `fr25_2` references the archived diagnostics requirement, not active FR-25 (R7)
 - All 6 tests pass: `cargo test --test integration_tests -p maenifold-core -- memory_search_diag_tests`
 - Commit: f44b688
+
+---
+
+## Red-team Audit
+
+- ✅ MERGE Tests 1+2 → `fr25_2_ac1_fallback_on_missing_file`: ac1 naming collision eliminated, all 7 original assertions preserved, no unique coverage lost (R1)
+- ✅ TIGHTEN snippet assertions: `starts_with` → exact `assert_eq!` in merged ac1 and KEEP ac4 (R2)
+- ✅ REWRITE Test 3 → split into `ac2a` (display info) and `ac2b` (decay weight): one-concept-per-test achieved, weight bound tightened from `> 0.0` to `> 0.90`, negative stderr assertions correctly scoped per-function (R3)
+- ✅ REWRITE Test 4 (P0): fragile `(reuse-conn)` sub-label removed; assertion now checks `[MemorySearchTools.Fusion]` component tag + message content only — behavioral contract retained, implementation detail excised (R4)
+- ✅ KEEP Test 5: snippet assertion tightened to exact equality; all 4 assertions including the security-critical negative path assertion preserved
+- ✅ ADD `fr25_2_ac4b_decay_diagnostics_redacts_absolute_paths`: mirrors ac4 structure, covers parallel path-redaction code path in `decay/diagnostics.rs::redact_diagnostic_path`, uses uuid filename isolation (R5)
+- ✅ RAII `StderrGuard`: `Drop` impl restores stderr fd on panic, closing the systemic panic-safety gap in `capture_stderr` (R6)
+- ✅ Traceability comment: file-level comment disambiguates `fr25_2` as archived diagnostics requirement vs active FR-25 (RTM-137–140) (R7)
+- ✅ No unrelated changes: only eval-specified remediations plus improved assertion diagnostics messages
+- ✅ Test count: 5 → 6 (merge 2→1, split 1→2, rewrite 1, keep 1, add 1) — arithmetic verified
+
+Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_search_diag`: 6 passed, 0 failed
+- Test inventory confirmed (5 → 6 arithmetic):
+  - `fr25_2_ac1_fallback_on_missing_file` — MERGED from Tests 1+2 ✅
+  - `fr25_2_ac2a_display_info_success_path_no_degraded_signal` — SPLIT from Test 3 ✅
+  - `fr25_2_ac2b_decay_weight_success_path_no_degraded_signal` — SPLIT from Test 3 ✅
+  - `fr25_2_ac3_malformed_created_emits_explicit_degraded_diagnostic` — REWRITTEN Test 4 ✅
+  - `fr25_2_ac4_path_diagnostics_redacts_absolute_paths` — KEPT Test 5 ✅
+  - `fr25_2_ac4b_decay_diagnostics_redacts_absolute_paths` — ADDED new test ✅
+- Verdict: **PASS**

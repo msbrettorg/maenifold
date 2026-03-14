@@ -185,3 +185,51 @@ All five tests catch behaviors that would not be detected elsewhere in the suite
 - REWRITE test 5 (rename + assertions): `create_wikilinks_preserves_existing_wikilinks` → `mode_b_preserves_unrelated_wikilinks_while_creating_new_ones`; replaced weak `contains("[[build-tool]]")` with `matches("[[build-tool]]").count() == 2`; added exact-string assertion for transformed line; dropped trivial `output.contains("build-tool")` check; added YAML frontmatter to fixture
 - ADD test 6: `mode_b_dry_run_reports_without_modifying_files` — closes RTM-095 coverage gap; verifies Mode B + dryRun=true reports "Would modify" and "This was a DRY RUN" without mutating on-disk content
 - Commit: 2e5af5d
+
+---
+## Red-team Audit
+
+**Commit audited:** `2e5af5d` (76 insertions, 10 deletions — single file)
+**Tests executed:** 6/6 passing (`cargo test -p maenifold-core repair_concepts_mode_b`)
+**Traceability:** T-10.10 (FR-17, RTM-094–097), T-3.2 (FR-6)
+
+### Item-by-item
+
+- ✅ **KEEP tests 1–3** (RTM-094, RTM-096, RTM-097): Diff hunks begin at line 162; lines 7–161 (tests 1–3) have zero changes. Confirmed identical to pre-commit.
+
+- ✅ **KEEP test 4 (rename)**: `create_wikilinks_mode_respects_word_boundaries` → `mode_b_respects_word_boundaries`. Name change verified in diff. YAML frontmatter (`title: Word Boundary`, `created`, `modified`) added to fixture, matching eval Recommendation #4. Assertion set unchanged — correct per KEEP verdict.
+
+- ✅ **REWRITE test 5 (rename + assertions)**:
+  - Renamed `create_wikilinks_preserves_existing_wikilinks` → `mode_b_preserves_unrelated_wikilinks_while_creating_new_ones` ✓
+  - Weak `updated.contains("[[build-tool]]")` replaced with `assert_eq!(updated.matches("[[build-tool]]").count(), 2, ...)` ✓ — matches eval spec exactly
+  - Strong `[[existing-concept]]` count preservation assertion retained with updated message ✓
+  - Exact-string assertion added: `updated.contains("Already [[existing-concept]] with [[build-tool]] text.")` ✓ — matches eval spec
+  - Trivial `output.contains("build-tool")` dropped (variable renamed to `_output`) ✓ — matches eval recommendation
+  - YAML frontmatter added to fixture ✓
+
+- ✅ **ADD test 6** (`mode_b_dry_run_reports_without_modifying_files`): Closes RTM-095 coverage gap identified in eval Recommendation #1. Asserts:
+  - `output.contains("Would modify: repair/mode-b-dry-run")` — dry-run summary check ✓
+  - `output.contains("This was a DRY RUN")` — dry-run marker check ✓
+  - `assert_eq!(after, original, ...)` — on-disk immutability check ✓
+  - RTM comment `// T-10.10: RTM FR-17 / RTM-095` present ✓
+  - Uses YAML frontmatter consistent with all other fixtures ✓
+
+### No unrelated changes
+
+- Diff is confined to the single test file. No source code modified.
+- No new dependencies added. No other files touched.
+- Commit message accurately describes all changes with traceability references.
+
+### P0–P2 coverage
+
+- **P0 (REWRITE test 5):** Fully addressed. Both the count assertion gap and the missing exact-string check are remediated.
+- **P1 (RTM-095 gap):** Fully addressed. New test 6 covers Mode B + dryRun=true.
+- **P2 (rename consistency):** Fully addressed. Tests 4 and 5 renamed to `mode_b_*` prefix.
+- **P2 (frontmatter consistency):** Fully addressed. Tests 4 and 5 fixtures now include YAML frontmatter.
+
+### Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- repair_concepts_creation`: 6 passed, 0 failed
+- Verdict: PASS

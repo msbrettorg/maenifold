@@ -33,7 +33,10 @@ fn write_markdown_null_frontmatter_creates_envelope_with_created_and_modified() 
     // T-12.7.1: RTM NFR-1 — Assert timestamps are valid RFC 3339, not just present.
     let created = assert_valid_rfc3339(&frontmatter, "created");
     let modified = assert_valid_rfc3339(&frontmatter, "modified");
-    assert!(created <= modified, "created ({created}) must be <= modified ({modified})");
+    assert!(
+        created <= modified,
+        "created ({created}) must be <= modified ({modified})"
+    );
 }
 
 #[test]
@@ -82,7 +85,10 @@ fn write_markdown_missing_created_adds_created_and_sets_modified() {
     // T-12.7.1: RTM NFR-1 — Assert timestamps are valid RFC 3339, not just present.
     let created = assert_valid_rfc3339(&read_frontmatter, "created");
     let modified = assert_valid_rfc3339(&read_frontmatter, "modified");
-    assert!(created <= modified, "created ({created}) must be <= modified ({modified})");
+    assert!(
+        created <= modified,
+        "created ({created}) must be <= modified ({modified})"
+    );
     // Verify custom frontmatter key is preserved alongside timestamps.
     assert_eq!(
         scalar(&read_frontmatter, "title").as_deref(),
@@ -162,10 +168,8 @@ fn append_h2_section_existing_file_updates_modified() {
 
     write_markdown(&uri, Some(&frontmatter), "# Test\n\nContent", &env.cfg).expect("write");
     let (before_frontmatter, _, _) = read_markdown(&uri, &env.cfg).expect("read before");
-    let before_modified = assert_valid_rfc3339(
-        &before_frontmatter.expect("frontmatter"),
-        "modified",
-    );
+    let before_modified =
+        assert_valid_rfc3339(&before_frontmatter.expect("frontmatter"), "modified");
 
     // T-12.7.1: RTM NFR-1 — Sleep ≥ 50ms to avoid timestamp collision on low-resolution clocks.
     thread::sleep(Duration::from_millis(50));
@@ -258,8 +262,17 @@ fn append_h2_section_non_existent_file_creates_file_with_envelope() {
     // T-12.7.1: RTM NFR-1 — Assert timestamps are valid RFC 3339, not just present.
     let created = assert_valid_rfc3339(&frontmatter, "created");
     let modified = assert_valid_rfc3339(&frontmatter, "modified");
-    assert!(created <= modified, "created ({created}) must be <= modified ({modified})");
+    assert!(
+        created <= modified,
+        "created ({created}) must be <= modified ({modified})"
+    );
     // Assert section heading and content appear in the body.
-    assert!(content.contains("## First Section"), "body must contain section heading");
-    assert!(content.contains("First content"), "body must contain section content");
+    assert!(
+        content.contains("## First Section"),
+        "body must contain section heading"
+    );
+    assert!(
+        content.contains("First content"),
+        "body must contain section content"
+    );
 }

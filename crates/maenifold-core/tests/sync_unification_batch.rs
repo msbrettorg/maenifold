@@ -93,18 +93,30 @@ fn sync_batch_processes_multiple_files() {
 
     // No concept_graph edges should exist — single-concept-per-file means no co-occurrence.
     assert!(
-        get_edge_source_files(&cfg, &normalize_concept(concept_a), &normalize_concept(concept_b))
-            .is_none(),
+        get_edge_source_files(
+            &cfg,
+            &normalize_concept(concept_a),
+            &normalize_concept(concept_b)
+        )
+        .is_none(),
         "no graph edge between concept_a and concept_b (different files, no co-occurrence)"
     );
     assert!(
-        get_edge_source_files(&cfg, &normalize_concept(concept_a), &normalize_concept(concept_c))
-            .is_none(),
+        get_edge_source_files(
+            &cfg,
+            &normalize_concept(concept_a),
+            &normalize_concept(concept_c)
+        )
+        .is_none(),
         "no graph edge between concept_a and concept_c (different files, no co-occurrence)"
     );
     assert!(
-        get_edge_source_files(&cfg, &normalize_concept(concept_b), &normalize_concept(concept_c))
-            .is_none(),
+        get_edge_source_files(
+            &cfg,
+            &normalize_concept(concept_b),
+            &normalize_concept(concept_c)
+        )
+        .is_none(),
         "no graph edge between concept_b and concept_c (different files, no co-occurrence)"
     );
 }

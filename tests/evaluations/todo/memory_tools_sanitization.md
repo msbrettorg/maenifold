@@ -42,3 +42,45 @@ Seven of eight tests are load-bearing security and boundary guards that would al
 ## Load-Bearing Score: 7/8
 
 > Test 5 (`preserves_legitimate_percent_signs`) does not load-bear the claim in its name. It provides some write/read roundtrip value but zero value for the percentage-sign preservation story it advertises.
+
+---
+
+## SWE Remediation
+
+- REWRITE `sanitize_user_input_preserves_legitimate_percent_signs`: title changed from `"Task 50 Complete"` → `"Task 50% Complete"`, content includes `50%`, asserts slug is `task-50-complete`, asserts `%` preserved in both content body and raw frontmatter. Now load-bears the percent-sign preservation claim (Rec 1 / P0).
+- STRENGTHEN `sanitize_user_input_blocks_double_url_encoded_path_traversal`: added `extract_uri` + `assert!(uri.contains("test"))` to verify slug correctness beyond mere absence of `..` (Rec 2 / P1).
+- KEEP tests 1, 3, 4, 6, 7, 8: unchanged per verdicts.
+- NOTE: tests 6 (`write_memory_truncates_overlong_slug_but_preserves_title_metadata`) and 8 (`write_memory_keeps_exact_255_char_slug_unchanged`) have pre-existing failures on macOS due to `File name too long` (255-char slug + `.md` extension exceeds filesystem limit). These are not caused by this remediation.
+- Commit: 514c910
+
+---
+
+## Red-team Audit
+
+| Item | Status | Detail |
+|---|---|---|
+| REWRITE `sanitize_user_input_preserves_legitimate_percent_signs` | ✅ | Title changed `"Task 50 Complete"` → `"Task 50% Complete"`, content includes `50%`, `assert_eq!` on slug `task-50-complete`, `assert!(read_result.contains("50%"))` on content body, raw frontmatter read + `assert!(raw.contains("50%"))`. Matches Rec 1 exactly. Test now load-bears the percent-sign preservation claim. |
+| STRENGTHEN `sanitize_user_input_blocks_double_url_encoded_path_traversal` | ✅ | Added `extract_uri` + `assert!(uri.contains("test"))` with diagnostic message. Matches Rec 2 exactly. Slug correctness now verified beyond mere absence of `..`. |
+| KEEP test 1 (`blocks_url_encoded_path_traversal`) | ✅ | Zero diff. Unchanged. |
+| KEEP test 3 (`blocks_url_encoded_dot_dot`) | ✅ | Zero diff. Unchanged. |
+| KEEP test 4 (`blocks_mixed_encoded_and_plain_path_traversal`) | ✅ | Zero diff. Unchanged. |
+| KEEP test 6 (`truncates_overlong_slug_but_preserves_title_metadata`) | ✅ | Zero diff. Unchanged. Pre-existing macOS failure (ENAMETOOLONG: 255-char slug + `.md` = 258 bytes > APFS 255-byte limit). Not caused by this commit. |
+| KEEP test 7 (`keeps_normal_slug_unchanged`) | ✅ | Zero diff. Unchanged. |
+| KEEP test 8 (`keeps_exact_255_char_slug_unchanged`) | ✅ | Zero diff. Unchanged. Pre-existing macOS failure (same ENAMETOOLONG root cause as test 6). Not caused by this commit. |
+| P0 (Rec 1) | ✅ | Addressed. |
+| P1 (Rec 2) | ✅ | Addressed. |
+| P2 (Rec 3, 4 — parameterization) | ⏭️ | Not addressed; eval marked "low urgency". Appropriate to defer. |
+| No unrelated changes | ✅ | Commit 514c910 touches exactly 1 file, +32/−3 lines, all directly corresponding to eval recommendations. No behavioral changes outside spec. |
+| Tests pass | ✅ | 6/8 pass. 2 failures are pre-existing macOS filesystem limits (tests 6, 8) — confirmed not introduced by SWE. |
+
+**Verdict: PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_tools_sanitization`: 6 passed, 2 failed
+- Failures (pre-existing macOS ENAMETOOLONG, not caused by SWE changes):
+  - `write_memory_truncates_overlong_slug_but_preserves_title_metadata`: `Os { code: 63, kind: InvalidFilename, message: "File name too long" }` (test 6)
+  - `write_memory_keeps_exact_255_char_slug_unchanged`: `Os { code: 63, kind: InvalidFilename, message: "File name too long" }` (test 8)
+- All 6 non-filesystem-limited tests pass: URL-encoded traversal (tests 1–4), percent-sign preservation rewrite (test 5), normal slug unchanged (test 7)
+- Verdict: **PASS**

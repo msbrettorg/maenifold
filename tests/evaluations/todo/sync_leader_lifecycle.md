@@ -40,3 +40,61 @@ This is the strongest of the three files under review. Ten of eleven tests are g
 ## Load-Bearing Score: 10/11
 
 Ten tests would catch real bugs if removed. `fr30_3_ac8_try_acquire_returns_reason_codes` is load-bearing in content but architecturally unsound — it would be more accurately counted as four tests worth of coverage crammed into one, making fault isolation impossible on failure.
+
+---
+## SWE Remediation
+- REWRITE `fr30_3_ac8_try_acquire_returns_reason_codes`: split into 3 focused tests with fault isolation:
+  - `fr30_3_ac8_try_acquire_same_holder_returns_renewed` — same-holder re-acquire returns "renewed" reason code
+  - `fr30_3_ac8_try_acquire_contended_returns_held_by_other` — contended acquire returns "held_by_other" reason code
+  - `fr30_3_ac8_force_acquire_preempts_active_lease` — force_acquire preempts active lease with epoch increment and DB assertions
+- All 10 KEEP tests untouched.
+- Recommendations 2–3 (naming consistency, ac6 split) skipped: would modify KEEP tests.
+- Recommendation 4 (isolated force_acquire) addressed by the ac8 split.
+- Recommendation 5 (document short_sleep) skipped: would modify KEEP tests.
+- Test count: 12 → 14 (1 omnibus removed, 3 focused tests added; +2 net includes `is_leader_returns_false_when_no_lease_exists` already present).
+- All 14 tests pass: `cargo test --test integration_tests -p maenifold-core -- sync_leader_lifecycle`
+- Commit: 24319ba
+
+---
+## Red-team Audit
+
+### REWRITE — `fr30_3_ac8_try_acquire_returns_reason_codes` → 3 focused tests
+
+- ✅ `fr30_3_ac8_try_acquire_same_holder_returns_renewed`: Isolates same-holder re-acquire path. Asserts `(true, "renewed", 1)` — matches eval spec reason-code requirement. Fault-isolated.
+- ✅ `fr30_3_ac8_try_acquire_contended_returns_held_by_other`: Isolates contention path. Asserts `(false, "held_by_other", 1)` — matches eval spec reason-code requirement. Fault-isolated.
+- ✅ `fr30_3_ac8_force_acquire_preempts_active_lease`: Isolates force_acquire on active (non-expired) lease. Asserts reason `"force_acquired"`, epoch increment via `epoch + 1` (stronger than original hardcoded `2`), **plus** DB-level assertions on `holder_id` and `epoch` — directly addresses eval Recommendation 4. Fault-isolated.
+
+### KEEP tests (10 of 10)
+
+- ✅ Diff confirms only the ac8 block (lines 175–238 in original) was touched. All 10 KEEP tests (ac1–ac7, idempotent, expired, stale_epoch) are byte-identical to pre-commit state.
+
+### Coverage analysis
+
+- ✅ All 4 scenarios from original omnibus preserved: fresh-acquire (setup-only, covered by ac1), same-holder renewed, contended held_by_other, force_acquired.
+- ✅ `force_acquire` now tested in isolation for the first time — closes the gap flagged as eval Recommendation 4.
+- ✅ `is_leader_returns_false_when_no_lease_exists` was already present (pre-existing 12th test not counted in eval header's "Test count: 11" — minor eval discrepancy, not an SWE issue).
+
+### Recommendation disposition
+
+- ✅ Rec 1 (split ac8): Fully addressed.
+- ✅ Rec 2 (naming consistency): Correctly skipped — would modify KEEP tests.
+- ✅ Rec 3 (split ac6): Correctly skipped — would modify KEEP tests.
+- ✅ Rec 4 (isolated force_acquire): Addressed by `fr30_3_ac8_force_acquire_preempts_active_lease`.
+- ✅ Rec 5 (document short_sleep): Correctly skipped — would modify KEEP tests.
+
+### Unrelated changes
+
+- ✅ None. Commit 24319ba touches exactly 1 file with +52/-12 lines, all within the ac8 replacement block.
+
+### Test execution
+
+- ✅ `cargo test --test integration_tests -p maenifold-core -- sync_leader_lifecycle`: 14 passed, 0 failed.
+
+### Traceability: T-8.1 (FR-30.3, FR-30.4), T-12.7 (NFR-1)
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_leader_lifecycle`: 14 passed, 0 failed
+- Verdict: PASS

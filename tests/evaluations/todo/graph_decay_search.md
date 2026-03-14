@@ -283,3 +283,28 @@ boundary is added as a new case.
 - KEEP T4 (`search_memories_files_within_grace_period_have_equal_ranking_weight`): unchanged
 - 4 tests → 2 tests; all mode coverage preserved with stronger assertions
 - Commit: a017810
+
+---
+## SWE Remediation (pass 2)
+- ADD `search_memories_file_just_past_grace_period_has_decayed_weight`: integration-level boundary test for grace period exit (Rec 3). Uses 30-day age (grace=28, effective_age=2) because power-law `x^(-0.5)` yields 1.0 at effective_age=1 (day 29). Control file at 1 day confirms grace period weight == 1.0.
+- ANNOTATE traceability tags: `T-GRAPH-DECAY-001.1` and `RTM FR-7.5`/`NFR-7.5.2` annotated as `(archived: Sprint 15)` per Rec 4 to prevent readers searching living docs.
+- 2 tests → 3 tests; grace-period boundary transition now covered at integration level
+- Commit: e6524bd
+
+---
+## Red-team Audit
+- ✅ REWRITE T1 (`search_memories_newer_content_ranks_higher_when_scores_are_equal` → `search_memories_decay_raises_newer_file_across_all_modes`): Name corrected (dropped false "equal scores" claim). `decayWeight < 1.0` assertion added on older file per P0. Matches eval spec.
+- ✅ MERGE T2 (`search_memories_semantic_mode_applies_decay_weighting`): Folded into table-driven loop as `"Semantic"` case. Graceful ONNX-absent skip is a sound addition (mirrors `access_boosting_search.rs` pattern). Mode coverage preserved.
+- ✅ MERGE T3 (`search_memories_fulltext_mode_applies_decay_weighting`): Folded into table-driven loop as `"FullText"` case. Original content/query pairings carried forward. No unique coverage lost.
+- ✅ KEEP T4 (`search_memories_files_within_grace_period_have_equal_ranking_weight`): Unchanged except for traceability annotation. Matches eval spec.
+- ✅ ADD `search_memories_file_just_past_grace_period_has_decayed_weight` (Rec 3): Correctly tests grace-period exit at 30 days (grace=28, power-law effective_age=2 ≈ 0.707). Control file at 1 day confirms grace-period weight == 1.0. Addresses the gap identified in the eval.
+- ✅ ANNOTATE traceability (Rec 4): `T-GRAPH-DECAY-001.1` and `RTM FR-7.5`/`NFR-7.5.2` annotated as `(archived: Sprint 15)` on all three tests. Prevents readers searching living docs.
+- ✅ No unrelated changes: both commits (`a017810`, `e6524bd`) touch only `graph_decay_search.rs`. Support file unchanged. No source code outside the test file was modified.
+- ✅ Test count: 4 → 2 (pass 1) → 3 (pass 2). All mode coverage preserved. Assertions strengthened with score-value checks.
+- ✅ `modes_exercised >= 2` guard ensures Hybrid + FullText always exercise full assertion path even when ONNX is absent. Sound defensive practice.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- graph_decay_search`: 3 passed, 0 failed
+- Verdict: PASS

@@ -230,3 +230,40 @@ necessary complement to the unit-level coverage in `sync_mtime_opt_guards.rs`.
   - Added comment documenting the explicit `set_file_mtime_system_time` after `fs::write` — explains it ensures mtime delta exceeds filesystem timestamp resolution (e.g. HFS+ 1-second granularity). (P2)
 - SKIPPED: P3+ baseline helper extraction (non-trivial refactor, 3 tests only), `MTIME_ADVANCE_SECS` constant (informational), traceability audit (informational, no action needed)
 - Commit: 6ee49fb
+
+---
+
+## Red-team Audit
+
+**Traceability**: T-2.3 · FR-14.1 · FR-14.2 · FR-14.3
+
+### Test 1 — REWRITE: `sync_when_mtime_unchanged_skips_without_read_and_does_not_restore_mentions_on_unix`
+
+- ✅ **P0 — Root-user guard**: Runtime `std::fs::read` guard after `chmod(0)` returns early with `eprintln!` when the file remains readable. This is superior to the eval's `geteuid().is_root()` suggestion — it validates the actual precondition (file unreadability) rather than a proxy (euid), covering root, Linux capabilities, SELinux permissive, and any other bypass. Correct.
+- ✅ **P0 — Oracle strategy comment**: Two-line comment at function header explains `chmod(0)` is a read-impossibility oracle. Matches eval recommendation 1.
+- ✅ **P1 — `file_md5` unchanged assertion**: `assert_eq!(after.file_md5, before.file_md5, ...)` added. Closes the implicit gap the eval identified — skip is now verified via three independent signals: `last_indexed`, `file_md5`, and mention counts.
+- ✅ **Restructured captures**: `before: FileContentRow` captured pre-tamper, `after: FileContentRow` captured post-sync. Clean `before`/`after` pattern. No semantic regression — the `original_last_indexed` is now extracted via `before.last_indexed.clone().expect(...)` instead of the chained `and_then` which is functionally equivalent but more readable.
+- ✅ **No false-negative risk from early return**: The `PermissionRestore` guard runs its `Drop` impl regardless of the early return path, so chmod is always cleaned up. Verified `PermissionRestore` is constructed before the read guard.
+
+### Test 2 — KEEP: `sync_when_mtime_bumped_but_content_same_updates_last_indexed_only_and_does_not_restore_mentions`
+
+- ✅ No changes. Matches eval verdict.
+
+### Test 3 — KEEP: `sync_when_content_changed_reprocesses_and_restores_mentions_including_new_concept`
+
+- ✅ **P2 — mtime documentation comment**: Three-line comment explains the explicit `set_file_mtime_system_time` compensates for sub-second resolution (HFS+ 1-second granularity). Matches eval recommendation 3 precisely. No behavioral change.
+
+### Scope verification
+
+- ✅ Only `crates/maenifold-core/tests/sync_mtime_skip.rs` modified (1 file, +28/-6 lines).
+- ✅ No unrelated changes introduced.
+- ✅ P3+ items (baseline helper extraction, `MTIME_ADVANCE_SECS` constant, traceability audit) explicitly documented as skipped with rationale. Acceptable — eval marked them Low Priority / Informational.
+- ✅ Commit message references the eval file and describes all changes.
+
+### Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_mtime_skip`: 3 passed, 0 failed
+- Verdict: PASS

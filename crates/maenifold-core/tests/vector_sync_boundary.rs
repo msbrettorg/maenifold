@@ -86,18 +86,12 @@ fn find_similar_concepts_after_sync_surfaces_co_occurring_concepts() {
     );
 
     // Both co-occurring concepts are surfaced
-    let names: Vec<&str> = results
-        .iter()
-        .filter_map(|r| r["name"].as_str())
-        .collect();
+    let names: Vec<&str> = results.iter().filter_map(|r| r["name"].as_str()).collect();
     assert!(
         names.contains(&"oauth2"),
         "expected oauth2 in results: {names:?}"
     );
-    assert!(
-        names.contains(&"jwt"),
-        "expected jwt in results: {names:?}"
-    );
+    assert!(names.contains(&"jwt"), "expected jwt in results: {names:?}");
 
     // Similarity scores are bounded to (0, 1]
     for result in results {

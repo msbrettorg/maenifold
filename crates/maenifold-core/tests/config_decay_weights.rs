@@ -40,8 +40,7 @@ fn compute_decay_weight_path_type_uses_its_config_grace_period() {
         // (+1 is insufficient because effective_age=1 and 1^(-0.5) = 1.0 is a
         // mathematical identity, not a grace-window inclusion.)
         let past_boundary = rfc3339_days_ago(grace_days + 2);
-        let weight_past =
-            memory::compute_decay_weight(path, Some(&past_boundary), &env.cfg, None);
+        let weight_past = memory::compute_decay_weight(path, Some(&past_boundary), &env.cfg, None);
         assert!(
             weight_past < 1.0,
             "past grace boundary: expected < 1.0, got {weight_past} for path={path}"

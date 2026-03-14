@@ -8,7 +8,9 @@ mod support;
 
 use maenifold_core::memory;
 use serde_json::json;
-use support::{TEST_MUTEX, isolated_env, move_memory_output, read_memory_output, write_memory_file};
+use support::{
+    TEST_MUTEX, isolated_env, move_memory_output, read_memory_output, write_memory_file,
+};
 
 /// T-15.5: RTM NFR-1 — move_memory() returns Err for empty and whitespace-only
 /// destinations. Covers both "" and "   " in a single parameterized loop.
@@ -27,11 +29,8 @@ fn move_memory_rejects_empty_and_whitespace_destinations() {
             None,
         );
 
-        let err = memory::move_memory(
-            &env.ctx(),
-            &json!({ "source": uri, "destination": dest }),
-        )
-        .expect_err(&format!("expected error for {label} destination"));
+        let err = memory::move_memory(&env.ctx(), &json!({ "source": uri, "destination": dest }))
+            .expect_err(&format!("expected error for {label} destination"));
 
         assert!(
             err.to_string().contains("cannot be empty"),

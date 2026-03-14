@@ -219,3 +219,22 @@ adversarial coverage in `markdown_adversarial_code.rs`.
 - Test count: 7 → 6 (T2 removed)
 - All 6 tests pass.
 - Commit: 6fbb3d2
+
+---
+## Red-team Audit
+- ✅ REWRITE T1 (`sync_basic_file_db_state_matches_expected_after_sync`): matches eval spec. Redundant `extract_wikilinks_with_sections` + `count_all_concept_occurrences` calls and all associated assertions removed. Rename applied. `read_markdown` + `sync_one` + DB-state assertions (`file_concepts`, `mention_count`) retained. `BTreeSet::from` literal replaces the now-removed derived-from-concepts variable — semantically equivalent.
+- ✅ REMOVE T2 (`sync_wikilinks_with_sections_section_indices_match_expected_extraction`): confirmed removed. Verified `proximity_weight_sections.rs` covers all T2 scenarios — `keeps_preamble_in_section_zero` (exact-match via `BTreeMap`) covers preamble-at-0, `deduplicates_per_section_not_globally` covers cross-section repetition, `tags_multi_section_documents` covers multi-section indexing. All with stronger assertions than T2's `contains()`. No unique coverage lost.
+- ✅ KEEP T3: no changes. Correct.
+- ✅ KEEP T4 + P4 gap closure: `assert_eq!(mention_count(&env.cfg, &uri), 2)` added per eval recommendation.
+- ✅ REWRITE T5: brittle `output.contains("2 concept mentions updated")` replaced with `assert_eq!(mention_count(&env.cfg, &uri), 2)`. Output variable correctly prefixed with `_`. All other assertions preserved (frontmatter, content, checksum, file_concepts).
+- ✅ REWRITE T6: trivially-true `!checksum.is_empty()` removed, checksum variable correctly changed to `_checksum`. Brittle output string assertion replaced with `assert_eq!(mention_count(&env.cfg, &uri), 0)`. `file_concepts(...).is_empty()` retained.
+- ✅ KEEP T7 + P4 gap closure: `assert_eq!(mention_count(&env.cfg, &uri), 2)` added per eval recommendation.
+- ✅ Import cleanup: `BTreeMap` and `extract_wikilinks_with_sections` removed — necessary consequence of T1 rewrite and T2 removal. No extraneous changes.
+- ✅ Test count 7 → 6 confirmed. All 6 pass. No unrelated changes introduced (commit touches exactly 1 file).
+- ✅ P0 (no P0 in this eval): N/A. P1 (brittle strings): addressed in T5, T6. P2 (T1 kitchen-sink): addressed. P3 (T2 removal): addressed. P4 (mention_count gaps): addressed in T4, T7.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- markdown_rw_sync`: 6 passed, 0 failed
+- Verdict: PASS

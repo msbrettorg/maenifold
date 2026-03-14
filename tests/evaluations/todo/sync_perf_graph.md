@@ -155,3 +155,18 @@ Adjusted effective coverage: **3.1 / 4.0** (Test 4 contributes ≈ 0.1 for the "
 - KEEP Test 2: added inline comment at `(a, c) == 0.5` assertion explaining preamble cross-section behavior (T-4.3 / FR-23.2) per P2 recommendation.
 - All 4 tests pass: `cargo test --test integration_tests -p maenifold-core -- sync_perf_graph` → 4 passed, 0 failed.
 - Commit: def612f
+
+---
+## Red-team Audit
+- ✅ REWRITE Test 4 (`build_graph_edges_with_over_1000_concepts_creates_edges_without_error`): `edge_count > 0` replaced with `edge_count == (1100 * 1099) / 2` (i.e. 604_450). Exact match to eval Critical P0 recommendation. Boundary-pair spot checks retained.
+- ✅ KEEP Test 1 (`build_graph_edges_creates_expected_edges_with_correct_source_files_json`): `assert!(count > 0.0, …)` replaced with `assert_eq!(count, 1.0, …)`. Exact match to eval P1 recommendation. T-14.4 invariant now guarded.
+- ✅ KEEP Test 3: renamed from `…resync_does_not_duplicate_edges_co_occurrence_count_correct` to `…resync_is_true_upsert_rowid_stable_and_weight_not_doubled`. Exact match to eval P1 recommendation. Functional body unchanged.
+- ✅ KEEP Test 2 (`build_graph_edges_proximity_weight_same_section_vs_cross_section`): three-line inline comment added at `(a, c) == 0.5` assertion explaining preamble cross-section behavior (T-4.3 / FR-23.2). Exact match to eval P2 recommendation.
+- ✅ No unrelated changes: commit `def612f` touches only `crates/maenifold-core/tests/sync_perf_graph.rs` (+14 / −5). No production code, no other test files, no Cargo.toml.
+- ✅ Tests pass: independently confirmed 4/4 pass (`cargo test --test integration_tests -p maenifold-core -- sync_perf_graph`).
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_perf_graph`: 4 passed, 0 failed
+- Verdict: PASS

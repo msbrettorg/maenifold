@@ -44,3 +44,36 @@ This is the strongest of the three files. Seven of eight tests assert real, obse
 ## Load-Bearing Score: 7/8
 
 Seven tests reliably catch regressions via on-disk or error-type assertions. The semantic bypass test (test 8) is the exception: it cannot falsify a bypass regression because it checks UI text absence rather than an observable effect on file content.
+
+---
+
+## SWE Remediation
+- RENAME `repair_concepts_mode_a_replaces_wikilink_variants_on_disk` → `repair_concepts_replaces_variant_and_preserves_unrelated_wikilinks`: removed vestigial "mode-a" naming per Rec #1
+- REWRITE `repair_concepts_learn_true_returns_help_documentation`: replaced brittle `step_by(2)` code-block stripping with direct pipeline-marker absence assertions (`✓ Modified`, `✓ Skipped`, `Files modified:`) per Rec #2
+- STRENGTHEN `repair_concepts_excludes_git_directories_from_scanning`: added on-disk `read_memory_fixture` + `assert_eq!` to verify `.git/test.md` content unchanged per Rec #3
+- REWRITE `repair_concepts_semantic_bypass_with_zero_threshold_skips_validation_output`: replaced UI-string-absence assertion with `dryRun: false` + file-content assertion proving bypass via observable modification per Rec #4
+- FIX `repair_concepts_dry_run_with_invalid_folder_returns_error_output`: pre-existing failure — switched from `invoke_repair_concepts` (panics on Err) to `try_invoke_repair_concepts` + `expect_err`
+- Commit: 5457a06
+
+---
+
+## Red-team Audit
+
+**Traceability:** T-3.2 (FR-6, RTM-038 through RTM-046)
+
+- ✅ RENAME `repair_concepts_mode_a_replaces_wikilink_variants_on_disk` → `repair_concepts_replaces_variant_and_preserves_unrelated_wikilinks`: function name matches eval Rec #1 exactly, body unchanged.
+- ✅ REWRITE `repair_concepts_learn_true_returns_help_documentation` (Rec #2): brittle `step_by(2)` code-block stripping removed. Replaced with three direct pipeline-marker absence assertions (`✓ Modified`, `✓ Skipped`, `Files modified:`). SWE correctly noted that eval's suggested `"Scanning"` marker appears in help-text examples (would cause false positive). Substitution with `"✓ Skipped"` and `"Files modified:"` is more precise. Positive `"RepairConcepts"` assertion retained. Intent satisfied.
+- ✅ STRENGTHEN `repair_concepts_excludes_git_directories_from_scanning` (Rec #3): added `read_memory_fixture` + `assert_eq!` on `.git/test.md` content, exactly as specified.
+- ✅ REWRITE `repair_concepts_semantic_bypass_with_zero_threshold_skips_validation_output` (Rec #4): `dryRun` flipped from `true` → `false`. UI-string-absence assertions (`"SEMANTIC VALIDATION"`, `"Scanning"`) removed. Replaced with on-disk file-content assertions proving bypass via observable modification (`[[kitchen-appliance]]` present, `[[tool]]` absent). Fixture uses semantically dissimilar pair (`tool` → `kitchen-appliance`). Comment documents the semantic gap. Eval's ideal dual-threshold negative control (`0.5` blocks vs `0.0` permits) was not added, but the verdict cell did not mandate it — the primary requirement (prove bypass by observed behavior) is met.
+- ✅ FIX `repair_concepts_dry_run_with_invalid_folder_returns_error_output`: eval marked KEEP but the test had a pre-existing panic — `invoke_repair_concepts` calls `.expect()` on an `Err` result from a non-existent folder, meaning assertions were unreachable. SWE correctly switched to `try_invoke_repair_concepts` + `expect_err`, matching the pattern already used by `repair_concepts_dry_run_with_empty_variants_returns_error`. The `"ERROR"` string assertion was dropped (correct — it was on the Ok output path which doesn't apply). `"Directory not found"` assertion preserved on the error string. This is a legitimate bug fix the eval missed, not an unrelated change.
+- ✅ No unrelated changes: commit touches only `repair_concepts_replacement.rs` (1 file, +40/−18). All deltas map to eval recommendations or the pre-existing bug fix.
+- ✅ All 8 tests pass: `cargo test -p maenifold-core --test integration_tests repair_concepts_replacement` — 8 passed, 0 failed.
+- ℹ️ Rec #5 (parameterized `#[rstest]` approach) not implemented — eval said "Consider", not mandatory. Acceptable.
+- ℹ️ Commit hash mismatch: SWE remediation references `5457a06` but current history shows `c04bcd5` (likely rebase). Code content matches the described changes. Non-blocking.
+
+**Verdict: PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- repair_concepts_replacement`: 8 passed, 0 failed
+- Verdict: PASS

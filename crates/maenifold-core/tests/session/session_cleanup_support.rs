@@ -105,7 +105,13 @@ pub fn write_session_markdown(cfg: &Config, file_uri: &str, status: &str, body: 
     write_markdown(file_uri, Some(&frontmatter), body, cfg).expect("write markdown");
 }
 
-pub fn seed_file_content(cfg: &Config, file_uri: &str, status: &str, body: &str, last_indexed: &str) {
+pub fn seed_file_content(
+    cfg: &Config,
+    file_uri: &str,
+    status: &str,
+    body: &str,
+    last_indexed: &str,
+) {
     let conn = db::open_connection(&cfg.database_path).expect("open db");
     let title = file_uri
         .trim_start_matches("memory://")

@@ -23,13 +23,17 @@ pub(crate) fn start_workflow_session(
     let workflow_value = match read_workflow_definition(&context.config, workflow_id) {
         Ok(value) => value,
         Err(MaenifoldError::Message(msg)) if msg.contains("not found") => {
-            return Err(MaenifoldError::Message(format!("Workflow '{workflow_id}' not found")));
+            return Err(MaenifoldError::Message(format!(
+                "Workflow '{workflow_id}' not found"
+            )));
         }
         Err(other) => return Err(other),
     };
     let steps = workflow_steps(&workflow_value, workflow_id)?;
     if steps.is_empty() {
-        return Err(MaenifoldError::Message(format!("Workflow '{workflow_id}' has no steps")));
+        return Err(MaenifoldError::Message(format!(
+            "Workflow '{workflow_id}' has no steps"
+        )));
     }
 
     let session_id = generate_workflow_session_id();
@@ -56,7 +60,9 @@ pub(crate) fn start_workflow_session(
 pub(crate) fn view_workflow_session(context: &ToolContext, session_id: &str) -> Result<String> {
     let uri = workflow_session_uri(session_id);
     if !file_exists(&uri, &context.config)? {
-        return Err(MaenifoldError::Message(format!("Session {session_id} doesn't exist")));
+        return Err(MaenifoldError::Message(format!(
+            "Session {session_id} doesn't exist"
+        )));
     }
 
     let (frontmatter, _, _) = read_markdown(&uri, &context.config)?;
@@ -107,7 +113,9 @@ pub(crate) fn append_workflow_queue(
 ) -> Result<String> {
     let uri = workflow_session_uri(session_id);
     if !file_exists(&uri, &context.config)? {
-        return Err(MaenifoldError::Message(format!("Session {session_id} doesn't exist")));
+        return Err(MaenifoldError::Message(format!(
+            "Session {session_id} doesn't exist"
+        )));
     }
 
     let (frontmatter, content, _) = read_markdown(&uri, &context.config)?;
@@ -122,7 +130,9 @@ pub(crate) fn append_workflow_queue(
         match read_workflow_definition(&context.config, workflow_id) {
             Ok(_) => {}
             Err(MaenifoldError::Message(msg)) if msg.contains("not found") => {
-                return Err(MaenifoldError::Message(format!("Workflow '{workflow_id}' not found")));
+                return Err(MaenifoldError::Message(format!(
+                    "Workflow '{workflow_id}' not found"
+                )));
             }
             Err(other) => return Err(other),
         }

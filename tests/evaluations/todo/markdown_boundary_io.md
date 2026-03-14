@@ -58,3 +58,33 @@ Tests ac1, ac2, ac3 (read), ac3, ac2 (write/frontmatter), ac1, ac2 (update), ac1
 - KEEP: 7 tests unchanged (fr28_1_ac2, fr28_1_ac3, fr28_2_ac3, fr28_3_ac1, fr28_3_ac2, fr28_4_ac1, fr28_4_ac2)
 - Test count: 10 → 11, all passing
 - Commit: e76844e
+
+---
+## Red-team Audit
+
+**Traceability:** T-12.7, T-W1-2 | FR-28.1–FR-28.4 | NFR-1, NFR-2
+
+### Line-item verification
+
+- ✅ REWRITE fr28_1_ac1: Renamed per Rec 4. Body assertion strengthened from `contains("World")` → `contains("# Hello\n\nWorld")` per eval spec. Checksum proof matches Rec 2 exactly: second file seeded with different content, `assert_ne!(checksum, checksum2)`. P0 checksum gap closed.
+- ✅ REWRITE fr28_2_ac1: `read_markdown` round-trip added after `write_markdown` with content assertion per Rec 1. Existence assertion preserved (harmless). P0 write-existence gap closed.
+- ✅ REWRITE fr28_2_ac2: `read_markdown` round-trip added after nested write per Rec 1. Verifies content readable through directory hierarchy. P0 write-existence gap closed.
+- ✅ ADD fr28_3_ac3: New test documents that `update_markdown` with `None` checksum skips OCC, matching Rec 3 (P1). Seeds file, updates with `None`, reads back, asserts new content present.
+- ✅ DOC: TEST_MUTEX comment added at lines 9-11 explaining `Config::override_root` global mutation, matching Rec 5 (P2).
+- ✅ KEEP × 7: fr28_1_ac2, fr28_1_ac3, fr28_2_ac3, fr28_3_ac1, fr28_3_ac2, fr28_4_ac1, fr28_4_ac2 — all unmodified in diff, matching eval KEEP verdicts.
+- ✅ No unrelated changes introduced. Diff is scoped exactly to eval recommendations.
+- ✅ 11/11 tests passing (`cargo test -p maenifold-core --test integration_tests -- markdown_boundary_io`).
+
+### Findings
+
+- ⚠️ **Wrong commit hash in SWE remediation section.** Claims `e76844e`, which is the `markdown_adversarial_structure` remediation commit. The actual code change for this file is in `549f292`. The eval spec append (remediation notes only) is `33f45a1`. Non-blocking but traceability should be corrected.
+
+### Verdict: **PASS**
+
+All P0, P1, and P2 recommendations addressed. Code changes match eval spec precisely. Test count correct (10 → 11). No regressions, no unrelated changes.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- markdown_boundary_io`: 11 passed, 0 failed
+- Note: consolidated binary had a pre-existing compilation error in unrelated `markdown_boundary_redteam.rs` (uncommitted WIP adding `ToolRegistry::global().try_invoke` usage). Stashed the WIP, ran tests, restored. The error is not in this eval's scope.
+- Verdict: PASS

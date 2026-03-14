@@ -162,3 +162,59 @@ written would not catch a frontmatter serialization bug that produced empty or w
 making its effective load-bearing contribution closer to 0.5.
 
 **Effective score with implementation quality weighted: ~2.5 / 4**
+
+---
+## SWE Remediation
+- KEEP test 1 (`continue_to_next_step_in_same_workflow`): replaced `!output.contains("ERROR")` with positive `Step 2/3` assertion (P0); added comment distinguishing from `workflow_lifecycle` overlap
+- REWRITE test 2 (`continue_creates_proper_frontmatter_metadata`): replaced 4 vacuous `is_some()` checks with value assertions — non-empty title, `currentStep == 1`, `currentWorkflow == 0`, queue == `["test-workflow-1"]`; removed redundant `type`/`status` checks covered by lifecycle tests
+- KEEP test 3 (`continue_preserves_thoughts_in_content`): absorbed test 4's `output.contains("Step 2/3")` check to verify thoughts-bearing requests still advance steps
+- REMOVE test 4 (`continue_with_thoughts_but_no_conclusion_at_intermediate_step`): fully subsumed by tests 1+3 after merge
+- Tests: 3 passed, 0 failed (down from 4 → 3)
+- Commit: 2566c6c
+
+---
+## Red-team Audit
+
+**Traceability**: T-12.0 · RTM NFR-1
+
+### Test 1 — KEEP `continue_to_next_step_in_same_workflow`
+- ✅ Fragile `assert!(!output.contains("ERROR"))` removed (P0 negative-scan weakness)
+- ✅ Positive `assert!(output.contains("Step 2/3"))` retained with improved error message
+- ✅ Distinguishing comment added referencing `workflow_lifecycle::workflow_advances_from_step1_to_step2` overlap
+- Matches eval spec
+
+### Test 2 — REWRITE `continue_creates_proper_frontmatter_metadata`
+- ✅ `frontmatter.get("title").is_some()` → non-empty title string assertion
+- ✅ `frontmatter.get("queue").is_some()` → `queue_from_frontmatter() == vec!["test-workflow-1"]`
+- ✅ `frontmatter.get("currentWorkflow").is_some()` → `frontmatter_usize("currentWorkflow") == 0`
+- ✅ `frontmatter.get("currentStep").is_some()` → `frontmatter_usize("currentStep") == 1`
+- ✅ `type == "workflow"` check removed (covered by lifecycle)
+- ✅ `status == "active"` check removed (covered by lifecycle)
+- ✅ `permalink == session_id` retained (load-bearing, unique to this test)
+- All 4 vacuous `is_some()` checks replaced with value assertions; both redundant invariant checks removed
+- Matches eval spec sketch exactly
+
+### Test 3 — KEEP + MERGE from test 4
+- ✅ `invoke_workflow()` return value now captured into `output`
+- ✅ `assert!(output.contains("Step 2/3"))` absorbed from test 4 — the only non-redundant signal
+- ✅ Traceability comment documents the MERGE origin
+- All 5 original assertions preserved; 1 new assertion added
+- Matches eval spec
+
+### Test 4 — REMOVE `continue_with_thoughts_but_no_conclusion_at_intermediate_step`
+- ✅ Entire test deleted (19 lines removed)
+- ✅ Confirmed no unique coverage lost: `Step 2/3` now in test 3, `content.contains(thoughts)` in test 3, negative error scan was weak and dropped per eval
+- No residual references to test 4 remain in the file
+
+### Cross-checks
+- ✅ Only `workflow_progress.rs` modified in commit 2566c6c — no unrelated changes
+- ✅ `queue_from_frontmatter` was a pre-existing helper (workflow_support/mod.rs:125), not introduced by this commit
+- ✅ Tests: 3 passed, 0 failed (down from 4 → 3) — matches SWE claim
+- ✅ No new imports beyond `queue_from_frontmatter` which was already in scope
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- workflow_progress`: 3 passed, 0 failed
+- Verdict: PASS

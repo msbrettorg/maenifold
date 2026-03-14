@@ -118,3 +118,41 @@ Tests 1, 2, 3, 4, 5, 7 (rewritten, minus emoji), and 10 cover genuinely distinct
 - Rec 7 (env consolidation): switched all tests to `workflow_tools_env`, removed `workflow_operations_env` import from this file.
 - Final test count: 7 (down from 10). All 7 pass.
 - Commit: e9e88d5 (test changes), a65ca5c (eval annotation)
+
+---
+
+## Red-team Audit
+
+**Traceability:** T-12.0 / RTM NFR-1
+
+### MERGE Verdicts
+
+- ✅ MERGE `conclusion_with_wikilinks_is_stored_in_session_content` → `status_transition_active_to_completed`: The original test checked 4 WikiLinks (`[[sequential-thinking]]`, `[[workflow]]`, `[[maenifold]]`, `[[session-management]]`). The merged test now uses an enriched conclusion containing all 4 and has explicit `content.contains(...)` assertions for each one (lines 63–78). No unique coverage lost.
+- ✅ MERGE `continue_with_cancellation_status_terminates_early` → `status_transition_active_to_cancelled`: The removed test's behavioral assertions (output contains "cancelled", frontmatter `status=cancelled`, `cancelled` timestamp present) are all present in the surviving test. The only unique assertion in the removed test was `assert!(output.contains('❌'))` — a wrong-thing emoji check the eval explicitly flagged for removal.
+
+### REWRITE Verdicts
+
+- ✅ REWRITE `continue_with_completion_status_finalizes_session` → `completion_after_intermediate_step_persists_state`: (1) Renamed per eval rec 4 — confirmed. (2) `assert!(output.contains('✅'))` removed — confirmed in diff. (3) Replaced with `assert!(!output.contains("ERROR"))` guard — a stronger behavioral assertion. (4) Switched from `workflow_operations_env` to `workflow_tools_env` per rec 7 — confirmed. Multi-step scenario (invoke then complete) preserved.
+
+### REMOVE Verdicts
+
+- ✅ REMOVE `continue_without_concepts_returns_error`: Confirmed exact duplicate of `workflow_response_without_wikilinks_returns_error`. Both tested: no WikiLinks in `response` → ERROR + `[[WikiLink]]` guidance. The only assertion lost is `output.contains("knowledge graph")` — which the eval explicitly classified as "the weakest" phrase-check and accepted as expendable (see "Exact error message strings" analysis, test 9).
+
+### Unspecified Changes
+
+- ℹ️ FIX `continue_with_invalid_session_id_returns_error`: Not called for by the eval verdicts (test was KEEP). The SWE changed it to handle both `Err(...)` and `Ok("ERROR: ...")` return paths. This is a **robustness improvement** — the same two semantic assertions (`contains(invalid_session_id)` + `contains("doesn't exist")`) are preserved. The test now handles a real runtime behavior (Err path) the original test would have panicked on. Acceptable, not a spec violation.
+
+### Env Consolidation (Rec 7)
+
+- ✅ All tests now use `workflow_tools_env`. `workflow_operations_env` import removed. Confirmed no test depends on `workflow_operations_env`-specific workflow definitions.
+
+### Not Implemented (Eval Recs 5 & 6)
+
+- ℹ️ `completed_session_rejects_further_responses` — not added. This is an ADD recommendation (new coverage), not a correction of existing tests. Noted as a coverage gap.
+- ℹ️ `cancelled_session_rejects_further_responses` — not added. Same.
+
+### Test Count
+
+- Before: 10 tests. After: 7 tests. All 7 pass (`cargo test --test integration_tests -p maenifold-core -- workflow_completion`).
+
+**Verdict: PASS**

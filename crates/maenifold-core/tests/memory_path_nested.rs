@@ -169,8 +169,7 @@ fn nested_paths_handle_adversarial_title_characters() {
         );
 
         let uri = format!("memory://{folder}/{expected_slug}");
-        let read_result =
-            read_memory_output(&env, &uri).expect("read adversarial title path");
+        let read_result = read_memory_output(&env, &uri).expect("read adversarial title path");
         assert!(
             !read_result.starts_with("ERROR:"),
             "reading adversarial title '{title}' should succeed: {read_result}"
@@ -259,8 +258,7 @@ fn empty_directory_segments_are_normalised_on_write() {
         // Round-trip: read back using the URI that write_memory produced.
         let expected_slug = slugify_title(title);
         let uri = format!("memory://{folder}/{expected_slug}");
-        let read_result =
-            read_memory_output(&env, &uri).expect("read double-slash path");
+        let read_result = read_memory_output(&env, &uri).expect("read double-slash path");
         assert!(
             !read_result.starts_with("ERROR:"),
             "round-trip read should succeed for '{folder}': {read_result}"

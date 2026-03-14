@@ -251,3 +251,64 @@ Act on it.
 ---
 
 *Related concepts: [[test-quality]] [[maenifold-rs]] [[vector sync diagnostics]] [[NFR-1]] [[T-12.7]]*
+
+---
+## SWE Remediation
+- REMOVE `vector_sync_tools_are_registered_case_insensitively`: confirmed fully subsumed by `tool_registry_tests.rs`; zero unique assertions
+- REWRITE `find_similar_concepts_after_sync_should_surface_ranked_related_concepts` → `find_similar_concepts_after_sync_surfaces_co_occurring_concepts`: added asymmetric seed data (oauth2×2, jwt×1), structured JSON assertions on `data.results` array, score bounds ∈ (0,1], rank ordering verification, maxResults enforcement, sync error pre-condition check
+- MERGE `markdown_reader_sync_should_match_single_pass_extraction_contract` → `markdown_rw_sync_tests.rs::sync_extract_excludes_wikilinks_in_all_code_contexts`: structural `BTreeSet` concept-set equality assertion instead of substring matching, combined fenced+inline code exclusion, mention count verification
+- Commit: 094bbf1
+
+---
+## Red-team Audit
+
+**Traceability**: T-12.7 | NFR-1
+
+### REMOVE — `vector_sync_tools_are_registered_case_insensitively`
+- ✅ Function definition deleted from `vector_sync_boundary.rs`
+- ✅ Tombstone comment references T-12.7 and documents rationale (subsumed by `tool_registry_tests.rs`)
+- ✅ No residual `#[test] fn` definition found; only comment mentions remain
+- ✅ No unique coverage lost — eval confirmed zero unique assertions
+
+### REWRITE — `find_similar_concepts_after_sync_surfaces_co_occurring_concepts`
+- ✅ Renamed from `find_similar_concepts_after_sync_should_surface_ranked_related_concepts` per eval spec
+- ✅ Asymmetric seed data: oauth2 × 2 co-occurrences, jwt × 1 — enables rank-order verification
+- ✅ Structured JSON assertions: `OutputFormat::Json`, parsed response, `parsed["success"]`, `parsed["data"]["results"].as_array()`
+- ✅ Score bounds: `similarity > 0.0 && similarity <= 1.0` for every result
+- ✅ Rank ordering: `oauth2_pos < jwt_pos` asserts stronger co-occurrence ranks higher
+- ✅ maxResults enforcement: `results.len() <= 3`
+- ✅ Sync pre-condition strengthened: added `!sync.contains("ERROR")` alongside existing completion marker check
+- ✅ Result field names (`r["name"]`, `r["similarity"]`) match actual `format_ranked_results_json()` output in `similar/mod.rs:262-268` — eval skeleton's `r["conceptName"]` was incorrect; SWE adapted correctly
+- ✅ Test passes green: `cargo test -- vector_sync_boundary` → 1 passed
+
+**Note**: Sync invocation kept as `OutputFormat::Markdown` with string-based check rather than JSON parse (eval skeleton used JSON). SWE comment explains: "Sync returns markdown regardless of output format." This is a pragmatic adaptation, not a deviation — the combined pair (completion marker + no ERROR) is more specific than the original single check.
+
+### MERGE — `sync_extract_excludes_wikilinks_in_all_code_contexts`
+- ✅ Moved to `markdown_rw_sync_tests.rs` alongside sibling `sync_code_block_exclusion_ignores_wikilinks_in_fenced_code_blocks`
+- ✅ Renamed: no unverifiable "single_pass" claim; new name describes combined fenced+inline code-context exclusion
+- ✅ Positive assertion tightened: `BTreeSet::from(["authentication".to_string()])` structural equality replaces `extract.contains("authentication")` substring check
+- ✅ Negative assertions preserved: `!concepts.contains("ignored-in-code")`, `!concepts.contains("ignored-inline")`
+- ✅ Mention count verification added: `mention_count(&env.cfg, &uri), 1`
+- ✅ Uses existing `markdown_rw_sync_tests.rs` infrastructure (`isolated_env`, `sync_one`, `file_concepts`, `write_fixture`) — consistent with sibling tests in the same file
+- ✅ Test passes green: all 7 `markdown_rw_sync` tests pass including the new merged test
+
+**Fidelity note**: Original test used `ToolRegistry::try_invoke("ExtractConceptsFromFile", ...)` (tool dispatch). Merged version uses `file_concepts()` (direct DB query). This is an acceptable downgrade because (a) the eval itself concluded the CLI test `sync_and_extract_concepts_cli_should_exclude_code_block_wikilinks` covers the full tool-dispatch path at higher fidelity, and (b) the eval directed merging into this file which uses internal helpers throughout.
+
+### Unrelated Changes
+- ✅ None detected. Commit touches exactly 2 files: `vector_sync_boundary.rs` and `markdown_rw_sync_tests.rs`
+
+### Priority Coverage
+- P1 (Delete redundant registration test): ✅ Addressed
+- P2 (Rewrite FindSimilarConcepts with honest assertions): ✅ Addressed
+- P3 (Merge markdown extraction test): ✅ Addressed
+- P4 (Delete file if empty): N/A — file retained with 1 remaining test (correct)
+- P5 (Add rank-order-reflects-co-occurrence-weight test): Not in scope — eval recommendation 5 was aspirational, not a verdict action item
+
+### Verdict: PASS
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- vector_sync_boundary`: 1 passed, 0 failed
+- `cargo test --test integration_tests -p maenifold-core -- markdown_rw_sync_tests::sync_extract_excludes_wikilinks_in_all_code_contexts`: 1 passed, 0 failed
+- Notes: `vector_sync_boundary` is not a standalone test binary; all `maenifold-core` integration tests compile into the `integration_tests` binary. Both the rewritten test (`find_similar_concepts_after_sync_surfaces_co_occurring_concepts`) and the merged test (`sync_extract_excludes_wikilinks_in_all_code_contexts`) pass green.
+- Verdict: PASS

@@ -44,3 +44,67 @@ Seven of eleven tests are genuinely load-bearing. One test is outright redundant
 ## Load-Bearing Score: 7/11
 
 Tests 1 (with caveat), 2, 3, 7, 8, 9, 10 are genuinely load-bearing. Test 4 is redundant. Tests 5, 6, 7 (the `fr28_6_*` group) exercise a test-only helper rather than a production API surface; their load-bearing value for the actual product is indirect at best.
+
+---
+
+## SWE Remediation
+
+- REMOVE `fr28_5_ac4`: confirmed redundant with ac1 (same None filter path, weaker `>=2` assertion)
+- REWRITE `fr28_5_ac1`: tightened `assert!(files.len() >= 3)` → `assert_eq!(files.len(), 3)` for exact count in isolated env (P0)
+- REWRITE `fr28_6_ac1` → `fr28_6_ac1_list_memories_returns_directories`: now tests production `memory::list_memories` API, asserts directory names and 📁 icons in output
+- REWRITE `fr28_6_ac2` → `fr28_6_ac2_list_memories_excludes_hidden_dirs`: now tests production `list_memories` excludes `.git` hidden dir
+- REWRITE `fr28_6_ac3` → `fr28_6_ac3_list_memories_folder_filter_returns_only_subset`: now tests production `list_memories` with `path: "docs"` filter, verifies scoped output
+- REWRITE `fr28_8_ac2`: replaced `assert_message_error(err, "Memory file not found")` with direct `match` on `MaenifoldError::Message` variant + URI echo assertion (decoupled from wording)
+- Added `ToolContext::ctx()` method and `memory` re-export to `markdown_boundary/support.rs` for production API access
+- `get_memory_directories` helper preserved in support.rs (still used by `markdown_boundary_validation.rs`)
+- Test count: 11 → 10 (1 removed, 4 rewritten)
+- All 10 tests pass
+- Commit: dae57bd
+
+---
+
+## Red-team Audit
+
+**Traceability:** T-W1-2 (RTM FR-28.5, FR-28.6, FR-28.7, FR-28.8)
+
+### REMOVE verdicts
+
+- ✅ REMOVE `fr28_5_ac4`: Confirmed deleted from test file (diff verified). No dangling references in source code — only eval spec files mention it historically. The test was fully subsumed by `fr28_5_ac1` which already passes `None` with a strict `assert_eq!` count, making the `>= 2` assertion in ac4 zero-signal. No unique coverage lost.
+
+### REWRITE verdicts
+
+- ✅ REWRITE `fr28_5_ac1`: `assert!(files.len() >= 3)` → `assert_eq!(files.len(), 3)`. Matches eval recommendation #2 exactly. Isolated temp env should contain exactly the 3 seeded files; the strict equality guard now catches test contamination.
+
+- ✅ REWRITE `fr28_6_ac1` → `fr28_6_ac1_list_memories_returns_directories`: Now calls production `memory::list_memories(&env.ctx(), &json!({}))` instead of test-only `get_memory_directories`. Asserts `folder-a`, `folder-b`, and `📁` icon presence. Matches eval recommendation #3 (option a: test the production `list_memories` tool output).
+
+- ✅ REWRITE `fr28_6_ac2` → `fr28_6_ac2_list_memories_excludes_hidden_dirs`: Same production API pivot. Asserts `visible-dir` present and `.git` absent. Hidden-directory exclusion is now tested through the actual code path users hit.
+
+- ✅ REWRITE `fr28_6_ac3` → `fr28_6_ac3_list_memories_folder_filter_returns_only_subset`: Now calls `memory::list_memories` with `json!({ "path": "docs" })`. Asserts `subfolder` and `other-sub` present, `archive` and `notes` absent. Tests the production scoped-listing contract rather than the support helper.
+
+- ✅ REWRITE `fr28_8_ac2`: Replaced `assert_message_error(err, "Memory file not found")` with a direct `match` on `MaenifoldError::Message(msg)` + URI echo assertion (`msg.contains("memory://never-existed")`). Decoupled from error wording per eval recommendation #4. Panic arm catches unexpected variant types.
+
+### Support changes
+
+- ✅ `TestEnv::ctx()` method added: returns `ToolContext::new(self.cfg.clone(), OutputFormat::Markdown)` — minimal, correct, and scoped to test infra.
+- ✅ `pub use maenifold_core::memory;` re-export added for production API access.
+- ✅ `get_memory_directories` helper preserved — still consumed by `markdown_boundary_validation.rs` (3 call sites confirmed via grep).
+
+### Unrelated changes check
+
+- ✅ Only 2 files in commit diff: `support.rs` (+9 lines) and `markdown_boundary_listing.rs` (+44/-29). No production source code touched. No unrelated test modifications.
+
+### Test execution
+
+- ✅ All 10 tests pass: `cargo test -p maenifold-core -- "markdown_boundary_listing::" → 10 passed; 0 failed`.
+
+### Minor note (non-blocking)
+
+- ⚠️ SWE remediation summary says "1 removed, 4 rewritten" but lists 5 REWRITE items (ac1 + ac1/ac2/ac3 + ac2). The correct count is **1 removed, 5 rewritten**. Arithmetic-only discrepancy in the log text; actual code changes are complete and correct.
+
+### Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- markdown_boundary_listing`: 10 passed, 0 failed
+- Verdict: PASS

@@ -8,8 +8,8 @@
 mod asset_manager_support;
 
 use asset_manager_support::{
-    isolated_config, test_mutex, unique_relative_path, write_file, ConfigResetGuard,
-    PackagedAssetGuard,
+    ConfigResetGuard, PackagedAssetGuard, isolated_config, test_mutex, unique_relative_path,
+    write_file,
 };
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, ToolRegistry};
@@ -108,8 +108,7 @@ fn update_assets_dry_run_detects_sha_changes_for_existing_files() {
         "expected updated file name in summary: {output}"
     );
     // Dry-run must not modify the target — it should still contain v1 content.
-    let target_content =
-        fs::read_to_string(cfg.assets_path.join(&relative)).expect("read target");
+    let target_content = fs::read_to_string(cfg.assets_path.join(&relative)).expect("read target");
     assert!(
         target_content.contains(r#""version":1"#),
         "dry-run must not overwrite target with v2: {target_content}"

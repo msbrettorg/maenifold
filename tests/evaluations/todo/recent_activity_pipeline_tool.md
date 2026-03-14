@@ -51,3 +51,20 @@ These are full-pipeline integration tests: they seed raw files on disk, run `Syn
 - KEEP: `negative_timespan_returns_error`, `no_database_returns_no_database_error`, `timespan_filter_excludes_old_entries_end_to_end` — unchanged
 - Test count: 7 → 5
 - Commit: 5dbf3d4
+
+---
+## Red-team Audit
+- ✅ REWRITE `recent_activity_learn_mode_returns_help_content`: Removed weak `len() > 20` assertion, added targeted checks for `"## Parameters"`, `"timespan"`, `"filter"`, `"limit"`. Matches eval R1 exactly. Failure messages include `{result}` for debuggability.
+- ✅ REMOVE `recent_activity_filter_thinking_excludes_memory_files`: Confirmed `recent_activity_boundary_queries::recent_activity_filter_variants_select_expected_path_families` covers all three filter variants (thinking, memory, assumptions) with positive and negative assertions. No unique pipeline-only coverage lost — eval correctly noted that `pipeline_sync_produces_output_for_both_file_types` already proves Sync categorises paths.
+- ✅ REMOVE `recent_activity_limit_returns_at_most_limit_entries`: Confirmed `recent_activity_boundary_queries::recent_activity_limit_caps_number_of_results` tests `limit: 2` with `rendered_item_count` plus positive/negative content assertions — strictly superior coverage. No unique coverage lost.
+- ✅ RENAME `recent_activity_normal_query_returns_formatted_report` → `recent_activity_pipeline_sync_produces_output_for_both_file_types`: Matches eval R3. Function body unchanged; name now accurately describes what is asserted.
+- ✅ KEEP (3 tests unchanged): `negative_timespan_returns_error`, `no_database_returns_no_database_error`, `timespan_filter_excludes_old_entries_end_to_end` — verified unchanged in diff.
+- ✅ Test count 7 → 5: Confirmed 5 `#[test]` annotations in file. All 5 pass (`cargo test -p maenifold-core recent_activity_pipeline_tool` — 5 passed, 0 failed).
+- ✅ No unrelated changes: Commit 5dbf3d4 touches exactly one file (`recent_activity_pipeline_tool.rs`).
+- ✅ Traceability: T-2.3 / FR-4 annotations present on all tests. P0 (R1 rewrite) addressed. P1 (R2 merges) addressed. P2 (R3 rename) addressed.
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- recent_activity_pipeline_tool`: 5 passed, 0 failed
+- Verdict: PASS

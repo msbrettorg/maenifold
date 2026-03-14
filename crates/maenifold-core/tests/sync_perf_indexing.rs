@@ -122,7 +122,10 @@ fn sync_populates_vec_memory_files_with_non_trivial_onnx_embedding() {
     let conn = open_db(&env.cfg);
     // vec0 is a per-connection extension — load it before querying vec_memory_files.
     if db::ensure_vec0_tables(&conn, &env.cfg.assets_path).is_err() {
-        eprintln!("Skipping: vec0 extension not available at {}", env.cfg.assets_path.display());
+        eprintln!(
+            "Skipping: vec0 extension not available at {}",
+            env.cfg.assets_path.display()
+        );
         return;
     }
 

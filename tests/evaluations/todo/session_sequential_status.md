@@ -186,3 +186,44 @@ All four test files in this cluster carry the header comment `// T-12.7: RTM NFR
 | `session_with_conclusion_completes_session` | ⚠️ Load-bearing **only** for the `[[synthesis]]` WikiLink-in-conclusion assertion; all other assertions duplicate sibling tests |
 
 The file as a whole is **worth keeping** — it covers terminal status transitions that no sibling file addresses directly. However, the current implementation of tests 1, 3, and 4 contains assertion gaps that would allow meaningful regressions to pass silently.
+
+---
+## SWE Remediation
+- REWRITE test_1 `new_session_with_closed_parent_workflow_returns_error`: added negative `Created session:` assertion, parent-no-mutation verification per P0
+- ADD `new_session_with_cancelled_parent_workflow_returns_error`: sibling test covering cancelled parent terminal state (both terminal states now guarded)
+- KEEP test_2 `session_with_cancel_updates_status_to_cancelled`: unchanged (strongest test in file)
+- REWRITE test_3 `session_with_cancel_without_response_updates_status_to_cancelled`: pinned `thoughtCount` to `"1"` (was key-existence only), added negative `Added thought` assertion
+- REWRITE test_4 → renamed to `session_conclusion_preserves_wikilinks_in_content`: removed 5 duplicated assertions, focused on unique WikiLink-in-conclusion-section positional assertion, added conclusion text preservation check
+- FIX traceability: file-level comment NFR-1 → NFR-2
+- Commit: 575e1b1
+
+---
+## Red-team Audit
+
+**Traceability**: T-12.7 · NFR-2
+
+**Method**: Read eval spec verdicts/recommendations → read committed code at 575e1b1 → diff against pre-commit → run `cargo test -p maenifold-core session_sequential_status` (5/5 pass) → verify no unrelated files touched (1 file changed) → inspect implementation guard in `thinking/session.rs::validate_session_state()`.
+
+### Item-by-item
+
+- ✅ **REWRITE test 1** `new_session_with_closed_parent_workflow_returns_error`: Eval required (a) negative `Created session:` assertion and (b) parent-no-mutation re-read. SWE added both, code matches eval's recommended snippet verbatim. Guard comment added.
+- ✅ **ADD cancelled-parent sibling** `new_session_with_cancelled_parent_workflow_returns_error`: Eval required a sibling test with `status: "cancelled"`. SWE added it with identical structure, negative `Created session:` assertion, and parent-no-mutation check. Confirmed the implementation guard in `validate_session_state()` checks `["completed", "cancelled", "abandoned"]` — the new test exercises the `"cancelled"` branch.
+- ✅ **KEEP test 2** `session_with_cancel_updates_status_to_cancelled`: Eval verdict was KEEP (strongest test). SWE left it unchanged. Confirmed via diff — no hunks touch this test.
+- ✅ **REWRITE test 3** `session_with_cancel_without_response_updates_status_to_cancelled`: Eval's critical P0 was replacing `assert!(frontmatter.contains_key("thoughtCount"))` with `assert_eq!(..., "1")`. SWE made exactly this change. Also added `assert!(!cancel_result.contains("Added thought"))` per eval recommendation. Both the critical weakness and the secondary gap are closed.
+- ✅ **REWRITE test 4** → `session_conclusion_preserves_wikilinks_in_content`: Eval required (a) rename — done, (b) remove 5 duplicated assertions — 4 of 5 removed; `assert!(complete_result.contains("Thinking complete"))` retained as a precondition guard (eval allowed "accept intentional redundancy"), (c) positional WikiLink-in-Conclusion assertion — done, (d) conclusion text preservation check — done. Guard comment added.
+- ✅ **FIX traceability**: Line 1 changed from `NFR-1` to `NFR-2`. Per-test `// Guards:` comments added on tests 1, new-cancelled, and 4.
+
+### Observations (non-blocking)
+
+1. **4/5 duplicates removed, not 5/5**: Test 4 retains `assert!(complete_result.contains("Thinking complete"))` without an explicit `// intentional redundancy` comment. Acceptable — it serves as a precondition that the conclusion call succeeded before asserting content, preventing vacuous-pass on stale data. The eval's "or" clause permits this.
+2. **`abandoned` terminal state untested**: The guard in `validate_session_state()` rejects three terminal states (`completed`, `cancelled`, `abandoned`) but only two have tests. This is *beyond eval scope* — the eval only identified the `cancelled` gap — but it's a residual coverage hole for a future eval pass.
+3. **Tests 2 and 3 lack `// Guards:` comments**: The eval recommended "individual test-level comments referencing the specific behavior each test guards." SWE added them for 3 of 5 tests. Minor documentation gap, not a correctness issue.
+
+### Verdict: **PASS**
+
+All P0 gaps closed. All required assertions present. No unrelated changes introduced. 5/5 tests green.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- session_sequential_status`: 5 passed, 0 failed
+- Verdict: PASS

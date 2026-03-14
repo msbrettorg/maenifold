@@ -44,3 +44,13 @@ The tightest of the three files. Every test targets a distinct lifecycle branch:
 ## Load-Bearing Score: 8/8
 
 > Every test in this file targets a distinct code branch with no cross-test redundancy. This is the model file for the three being evaluated.
+
+---
+## SWE Remediation
+- RENAME `workflow_with_no_parameters_throws_invalid_operation_exception` → `workflow_with_no_parameters_returns_invalid_combination_error`: Java-ish naming → Rust-idiomatic (Rec 1)
+- RENAME `workflow_with_only_session_id_throws_invalid_operation_exception` → `workflow_with_only_session_id_returns_invalid_combination_error`: Java-ish naming → Rust-idiomatic (Rec 1)
+- KEEP all 8 tests per verdicts; no removals, rewrites, or merges needed
+- `workflow_with_workflow_id_creates_new_session`: assert `"Step 1/"` instead of `"Step 1/3"` for fixture-agnostic robustness (Rec 3)
+- Skipped Rec 2 (minor style, not correctness) and Rec 4 (adding new test beyond scope)
+- All 8 tests pass: `test result: ok. 8 passed; 0 failed; 0 ignored`
+- Commit: fe7bfbe

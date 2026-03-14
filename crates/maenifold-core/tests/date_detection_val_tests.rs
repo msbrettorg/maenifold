@@ -6,9 +6,18 @@ use maenifold_core::tools::{is_valid_session_id_format, recent_activity_extract_
 #[test]
 fn is_valid_session_id_format_valid_ids_with_various_prefixes_return_true() {
     let cases: &[(&str, &str)] = &[
-        ("session-1770910549160-79869", "standard sequential session ID"),
-        ("workflow-1770910549160", "workflow session ID without random suffix"),
-        ("custom-1234567890", "arbitrary prefix with numeric timestamp"),
+        (
+            "session-1770910549160-79869",
+            "standard sequential session ID",
+        ),
+        (
+            "workflow-1770910549160",
+            "workflow session ID without random suffix",
+        ),
+        (
+            "custom-1234567890",
+            "arbitrary prefix with numeric timestamp",
+        ),
     ];
 
     for &(session_id, label) in cases {

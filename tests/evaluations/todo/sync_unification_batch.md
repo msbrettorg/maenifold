@@ -164,3 +164,61 @@ Neither `remove_file_cleans_content_and_mentions` (where the edge should be *del
 The `concept_graph` table is entirely unverified in this file. Any regression in graph-edge creation or deletion during batch sync would not be caught here. The lifecycle suite partially compensates, but only for `sync_single_file` operations — `sync_all`-specific graph behavior is unguarded.
 
 > **Summary verdict:** 2 of 3 tests are genuinely load-bearing. 1 is a weaker duplicate of a better test elsewhere. 0 of 3 tests guard `concept_graph` correctness. Effective load-bearing against [[maenifold-rs]] [[test-quality]] standards: **2/3** for DB completeness, **0/3** for graph coherence.
+
+---
+
+## SWE Remediation
+
+- REMOVE `remove_file_cleans_content_and_mentions`: confirmed subsumed by `incremental_sync_unification_lifecycle::incremental_sync_file_deleted_cleans_all_artifacts` (stricter superset: concept_graph edge check, UUID isolation, same DB assertions). Preferred REMOVE over MERGE per eval guidance.
+- REWRITE `sync_batch_processes_multiple_files`: replaced brittle `"- 3 FILES processed"` with case-insensitive `output_lower.contains("files processed") && output.contains("3")`; added cross-file concept isolation assertions (negative `get_mention_count` checks); added `concept_graph` negative assertions via new `get_edge_source_files` helper (no co-occurrence edges for single-concept-per-file setup).
+- KEEP `sync_empty_memory_directory_returns_without_error`: unchanged per eval verdict.
+- Added `get_edge_source_files` to shared `sync_unification/support.rs` (Recommendation 6), enabling graph-level assertions in both batch and single-file test suites.
+- Documented mutex rationale in support module (Recommendation 7).
+- Updated traceability annotations: `// T-5.7: RTM FR-14.3` → `// T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080)` on all remaining tests.
+- Added module-level doc comment clarifying batch-only scope (Recommendation 5, resolved naturally by removing the misplaced single-file test).
+- Commit: 363a683
+
+---
+
+## Red-team Audit
+
+**Traceability:** T-5.7 · FR-14 (archived → RTM-080)
+
+### REMOVE `remove_file_cleans_content_and_mentions`
+
+- ✅ Test fully deleted from `sync_unification_batch.rs` (confirmed in diff).
+- ✅ Subsuming test verified: `incremental_sync_unification_lifecycle::incremental_sync_file_deleted_cleans_all_artifacts` (line 87) is a strict superset — UUID-isolated concept names, same `file_content` + `concept_mentions` deletion assertions, **plus** `concept_graph` edge check via `get_edge_source_files`. No unique coverage lost.
+- ✅ No dangling references to the removed test name outside eval spec files.
+
+### REWRITE `sync_batch_processes_multiple_files`
+
+- ✅ Brittle `output.contains("- 3 FILES processed")` replaced with `output_lower.contains("files processed") && output.contains("3")` — matches eval Recommendation 2 exactly.
+- ✅ Cross-file concept isolation assertions added: negative `get_mention_count` checks for `file_uri1 × concept_b` and `file_uri1 × concept_c` — matches eval Recommendation 2 optional improvement.
+- ✅ `concept_graph` negative assertions added: all 3 concept pairs verified via `get_edge_source_files` — matches eval Recommendation 2 and Finding D.
+- ✅ Existing DB-row assertions (file_content × 3, concept_mentions × 3) preserved unchanged.
+
+### KEEP `sync_empty_memory_directory_returns_without_error`
+
+- ✅ Test body unchanged. Only the traceability comment above it was updated (from stale `// T-5.7: RTM FR-14.3` to `// T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080)`). This is a non-functional change required by Recommendation 4.
+
+### Cross-cutting eval recommendations
+
+- ✅ **Rec 4 (traceability):** All 3 stale `// T-5.7: RTM FR-14.3` annotations replaced with archived reference format.
+- ✅ **Rec 5 (file scope docs):** Module-level doc comment added clarifying batch-only scope and pointing to companion files.
+- ✅ **Rec 6 (`get_edge_source_files` shared helper):** Added to `sync_unification/support.rs` with correct alphabetical-order normalization for `concept_graph` lookups. Available to both `sync_unification_batch.rs` and `sync_unification_single_file.rs` (both use `#[path = "sync_unification/support.rs"]`).
+- ✅ **Rec 7 (mutex rationale):** Comment block added above `TEST_MUTEX` explaining it guards `Config::override_root()` global state, not DB contention.
+
+### No unrelated changes
+
+- Diff touches exactly 2 files: `sync_unification_batch.rs` and `sync_unification/support.rs`. No other source or test files modified.
+
+### Test execution
+
+- `cargo test --test integration_tests -p maenifold-core -- sync_unification_batch`: **2 passed, 0 failed** (removed test correctly absent, REWRITE and KEEP tests pass).
+
+### Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_unification_batch`: 2 passed, 0 failed
+- Verdict: PASS

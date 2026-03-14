@@ -149,15 +149,20 @@ fn invalid_mode_falls_through_to_hybrid() {
         !result.contains("ERROR"),
         "invalid mode should not produce an error: {result}"
     );
-    // The Hybrid path renders "Search Results" for unknown mode strings
-    // (only explicitly matching "Hybrid" gets the "Hybrid Search" heading).
+    // Unknown modes hit the else branch which emits "Search Results" (not "Hybrid Search").
+    // Pin the exact heading to catch accidental label changes.
     assert!(
-        result.contains("Search Results") || result.contains("Hybrid Search"),
-        "invalid mode should fall through to Hybrid search path: {result}"
+        result.contains("Search Results"),
+        "invalid mode should fall through to default heading 'Search Results': {result}"
     );
     assert!(
         result.contains("Found"),
         "invalid mode should still produce results: {result}"
+    );
+    // Verify seeded documents actually appear — prevents silent empty-results pass.
+    assert!(
+        result.contains("Rust Programming Guide"),
+        "seeded document should appear in fallthrough results: {result}"
     );
 }
 
@@ -170,52 +175,49 @@ fn invalid_mode_json_reports_hybrid_envelope() {
 
     let json = search_json(&env, "NotAMode");
     let data = &json["data"];
-    // The mode in the JSON envelope reflects what was passed, but the
-    // code path used is Hybrid (fusedScore fields present).
+
+    // The mode field in the JSON envelope reflects the raw passed value (not normalized).
+    assert_eq!(
+        data["mode"].as_str(),
+        Some("NotAMode"),
+        "mode field should reflect the passed value: {data}"
+    );
+
+    // Results must be non-empty — a broken implementation returning 0 results must fail.
     let results = data["results"].as_array().expect("results array");
-    if !results.is_empty() {
-        assert!(
-            results[0].get("fusedScore").is_some(),
-            "invalid mode should use Hybrid code path with fusedScore: {}",
-            results[0]
-        );
-    }
+    assert!(
+        !results.is_empty(),
+        "invalid mode should still produce results via Hybrid code path: {data}"
+    );
+
+    // fusedScore presence proves the Hybrid code path was used.
+    assert!(
+        results[0].get("fusedScore").is_some(),
+        "invalid mode should use Hybrid code path with fusedScore: {}",
+        results[0]
+    );
 }
 
 // ---------------------------------------------------------------------------
 // T-13.7: RTM FR-6 — Fulltext and Hybrid return non-empty results
 // ---------------------------------------------------------------------------
 
-// T-13.7: RTM FR-6 — FullText mode returns non-empty results for a valid query.
+// T-13.7: RTM FR-6 — FullText and Hybrid modes both return non-empty results for a valid query.
 #[test]
-fn fulltext_mode_returns_nonempty_results() {
+fn fulltext_and_hybrid_modes_return_nonempty_results() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     seed_search_data(&env);
 
-    let json = search_json(&env, "FullText");
-    let results = json["data"]["results"].as_array().expect("results array");
+    for mode in &["FullText", "Hybrid"] {
+        let json = search_json(&env, mode);
+        let results = json["data"]["results"].as_array().expect("results array");
 
-    assert!(
-        !results.is_empty(),
-        "FullText mode should return at least one result for 'Rust programming'"
-    );
-}
-
-// T-13.7: RTM FR-6 — Hybrid mode returns non-empty results for a valid query.
-#[test]
-fn hybrid_mode_returns_nonempty_results() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    seed_search_data(&env);
-
-    let json = search_json(&env, "Hybrid");
-    let results = json["data"]["results"].as_array().expect("results array");
-
-    assert!(
-        !results.is_empty(),
-        "Hybrid mode should return at least one result for 'Rust programming'"
-    );
+        assert!(
+            !results.is_empty(),
+            "{mode} mode should return at least one result for 'Rust programming'"
+        );
+    }
 }
 
 // T-13.7: RTM FR-6 — Semantic mode with no ONNX model degrades gracefully (empty or error-free).
@@ -241,16 +243,16 @@ fn semantic_mode_degrades_gracefully_without_model() {
 // T-13.8: RTM FR-7 — MemoryStatus JSON output envelope
 // ---------------------------------------------------------------------------
 
-// T-13.8: RTM FR-7 — MemoryStatus in JSON mode wraps markdown in success envelope.
+// T-13.8: RTM FR-7 — MemoryStatus in JSON mode wraps markdown in success envelope with all sections.
 #[test]
-fn memory_status_json_wraps_in_success_envelope() {
+fn memory_status_json_output_shape() {
     let _guard = TEST_MUTEX.lock();
     let _env = isolated_env();
 
     let raw = invoke_json("MemoryStatus", json!({}));
     let json: Value = serde_json::from_str(&raw).expect("should be valid JSON");
 
-    // The JSON wrapper uses `success()` which produces {"success":true,"data":"...","error":null}
+    // --- Success envelope assertions ---
     assert_eq!(
         json["success"].as_bool(),
         Some(true),
@@ -264,7 +266,7 @@ fn memory_status_json_wraps_in_success_envelope() {
         .as_str()
         .expect("data should be a string containing the markdown");
 
-    // The embedded markdown should contain the same sections as the markdown output.
+    // --- Embedded markdown section assertions ---
     assert!(
         data.contains("# Memory System Status"),
         "JSON data should contain the status header: {data}"
@@ -277,18 +279,6 @@ fn memory_status_json_wraps_in_success_envelope() {
         data.contains("Total folders:"),
         "JSON data should contain folder count: {data}"
     );
-}
-
-// T-13.8: RTM FR-7 — MemoryStatus JSON data preserves graph database section.
-#[test]
-fn memory_status_json_preserves_graph_section() {
-    let _guard = TEST_MUTEX.lock();
-    let _env = isolated_env();
-
-    let raw = invoke_json("MemoryStatus", json!({}));
-    let json: Value = serde_json::from_str(&raw).expect("should be valid JSON");
-    let data = json["data"].as_str().expect("data string");
-
     assert!(
         data.contains("### Graph Database"),
         "JSON data should contain Graph Database section: {data}"
@@ -339,6 +329,14 @@ fn fulltext_search_results_contain_next_steps_hint() {
     assert!(
         result.contains("💡 Next: Consider using"),
         "FullText search markdown should contain next-steps hint: {result}"
+    );
+    assert!(
+        result.contains("ReadMemory"),
+        "FullText next-steps hint should suggest ReadMemory: {result}"
+    );
+    assert!(
+        result.contains("BuildContext"),
+        "FullText next-steps hint should suggest BuildContext: {result}"
     );
 }
 

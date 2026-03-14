@@ -1,4 +1,3 @@
-use maenifold_core::memory;
 use serde_json::json;
 
 #[path = "memory_tools/support.rs"]
@@ -12,180 +11,255 @@ use support::{
 // T-15.1: RTM FR-15 — append/prepend join with "\n\n" separator
 // ---------------------------------------------------------------------------
 
+/// Merged from `append_adds_double_newline_separator` and
+/// `prepend_adds_double_newline_separator`.  Both operations use the same
+/// setup/assertion pattern; only the expected content ordering differs.
 #[test]
-fn append_adds_double_newline_separator() {
+fn append_prepend_add_double_newline_separator() {
     let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Append Separator Test",
-        "Original content with [[test]].",
-        Some("editing-parity"),
-    );
 
-    let edit_result = edit_memory_output(
-        &env,
-        json!({
-            "identifier": uri,
-            "operation": "append",
-            "content": "Appended content with [[concepts]]."
-        }),
-    );
+    for operation in ["append", "prepend"] {
+        let env = isolated_env();
+        let title = if operation == "append" {
+            "Append Separator Test"
+        } else {
+            "Prepend Separator Test"
+        };
+        let uri = write_memory_file(
+            &env,
+            title,
+            "Original content with [[test]].",
+            Some("editing-parity"),
+        );
 
-    assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
-    );
-    let read_result = read_memory_output(&env, &uri);
-    // The two pieces must be separated by a blank line (\n\n)
-    assert!(
-        read_result
-            .contains("Original content with [[test]].\n\nAppended content with [[concepts]]."),
-        "expected \\n\\n separator between existing and appended content, got:\n{read_result}"
-    );
-}
+        let new_content = if operation == "append" {
+            "Appended content with [[concepts]]."
+        } else {
+            "Prepended content with [[concepts]]."
+        };
 
-#[test]
-fn prepend_adds_double_newline_separator() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Prepend Separator Test",
-        "Original content with [[test]].",
-        Some("editing-parity"),
-    );
+        let edit_result = edit_memory_output(
+            &env,
+            json!({
+                "identifier": uri,
+                "operation": operation,
+                "content": new_content,
+            }),
+        );
 
-    let edit_result = edit_memory_output(
-        &env,
-        json!({
-            "identifier": uri,
-            "operation": "prepend",
-            "content": "Prepended content with [[concepts]]."
-        }),
-    );
+        assert!(
+            edit_result.starts_with("Updated memory FILE:"),
+            "{operation}: unexpected: {edit_result}"
+        );
 
-    assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "unexpected: {edit_result}"
-    );
-    let read_result = read_memory_output(&env, &uri);
-    // Prepended content → \n\n → original content
-    assert!(
-        read_result
-            .contains("Prepended content with [[concepts]].\n\nOriginal content with [[test]]."),
-        "expected \\n\\n separator between prepended and existing content, got:\n{read_result}"
-    );
+        let read_result = read_memory_output(&env, &uri);
+
+        if operation == "append" {
+            // Existing body → \n\n → appended content (no heading between)
+            assert!(
+                read_result.contains(
+                    "Original content with [[test]].\n\nAppended content with [[concepts]]."
+                ),
+                "append: expected \\n\\n separator between existing and appended content, got:\n{read_result}"
+            );
+        } else {
+            // Prepend places new content before the file (including the
+            // # Title heading), so the \n\n separator sits between the
+            // prepended block and the heading — not directly adjacent to
+            // the original body text.  Verify ordering + separator.
+            assert!(
+                read_result.contains("Prepended content with [[concepts]]."),
+                "prepend: prepended content should be present, got:\n{read_result}"
+            );
+            assert!(
+                read_result.contains("Original content with [[test]]."),
+                "prepend: original content should be preserved, got:\n{read_result}"
+            );
+            let prep_pos = read_result
+                .find("Prepended content with [[concepts]].")
+                .unwrap();
+            let orig_pos = read_result
+                .find("Original content with [[test]].")
+                .unwrap();
+            assert!(
+                prep_pos < orig_pos,
+                "prepend: prepended content should appear before original content"
+            );
+            // The \n\n separator follows the prepended text
+            assert!(
+                read_result.contains("Prepended content with [[concepts]].\n\n"),
+                "prepend: expected \\n\\n after prepended content, got:\n{read_result}"
+            );
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
-// T-15.2: RTM FR-15 — case-insensitive operation matching
+// T-15.2: RTM FR-15 — case-insensitive operation matching with read-back
+//         verification (coverage gap fix: rec #1, #3, #4, #5)
 // ---------------------------------------------------------------------------
 
+/// Merged from `operation_uppercase_append_resolves`,
+/// `operation_titlecase_append_resolves`,
+/// `operation_mixed_case_find_replace_resolves`, and
+/// `operation_uppercase_replace_section_resolves`.
+///
+/// Each case variant verifies:
+///   1. The edit returns the success prefix ("Updated memory FILE:").
+///   2. A read-back confirms the operation was actually applied to content.
+///
+/// Also fills the coverage gap (rec #4) by testing PREPEND case variant.
 #[test]
-fn operation_uppercase_append_resolves() {
+fn case_insensitive_operation_names_apply_correctly() {
     let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Uppercase APPEND Test",
-        "Original with [[test]].",
-        Some("editing-parity"),
-    );
 
-    let edit_result = edit_memory_output(
-        &env,
-        json!({
-            "identifier": uri,
-            "operation": "APPEND",
-            "content": "Added with [[concepts]]."
-        }),
-    );
+    // --- APPEND variants (uppercase + titlecase) ---
+    for (label, op_name) in [("uppercase", "APPEND"), ("titlecase", "Append")] {
+        let env = isolated_env();
+        let uri = write_memory_file(
+            &env,
+            &format!("{label} Append CI Test"),
+            "Original with [[test]].",
+            Some("editing-parity"),
+        );
 
-    assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "APPEND (uppercase) should work, got: {edit_result}"
-    );
-}
+        let edit_result = edit_memory_output(
+            &env,
+            json!({
+                "identifier": uri,
+                "operation": op_name,
+                "content": "Added with [[concepts]].",
+            }),
+        );
 
-#[test]
-fn operation_titlecase_append_resolves() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Titlecase Append Test",
-        "Original with [[test]].",
-        Some("editing-parity"),
-    );
+        assert!(
+            edit_result.starts_with("Updated memory FILE:"),
+            "{op_name} ({label}) should succeed, got: {edit_result}"
+        );
+        let read_result = read_memory_output(&env, &uri);
+        assert!(
+            read_result.contains("Added with [[concepts]]."),
+            "{op_name} ({label}): appended content should be present in read-back, got:\n{read_result}"
+        );
+        assert!(
+            read_result.contains("Original with [[test]]."),
+            "{op_name} ({label}): original content should be preserved, got:\n{read_result}"
+        );
+    }
 
-    let edit_result = edit_memory_output(
-        &env,
-        json!({
-            "identifier": uri,
-            "operation": "Append",
-            "content": "Added with [[concepts]]."
-        }),
-    );
+    // --- PREPEND variant (fills coverage gap — rec #4) ---
+    {
+        let env = isolated_env();
+        let uri = write_memory_file(
+            &env,
+            "Uppercase PREPEND CI Test",
+            "Original with [[test]].",
+            Some("editing-parity"),
+        );
 
-    assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "Append (titlecase) should work, got: {edit_result}"
-    );
-}
+        let edit_result = edit_memory_output(
+            &env,
+            json!({
+                "identifier": uri,
+                "operation": "PREPEND",
+                "content": "Prepended with [[concepts]].",
+            }),
+        );
 
-#[test]
-fn operation_mixed_case_find_replace_resolves() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Mixed Case Find_Replace Test",
-        "Text with [[test]] and target word here.",
-        Some("editing-parity"),
-    );
+        assert!(
+            edit_result.starts_with("Updated memory FILE:"),
+            "PREPEND should succeed, got: {edit_result}"
+        );
+        let read_result = read_memory_output(&env, &uri);
+        assert!(
+            read_result.contains("Prepended with [[concepts]]."),
+            "PREPEND: prepended content should be present, got:\n{read_result}"
+        );
+        let prep_pos = read_result
+            .find("Prepended with [[concepts]].")
+            .unwrap();
+        let orig_pos = read_result
+            .find("Original with [[test]].")
+            .unwrap();
+        assert!(
+            prep_pos < orig_pos,
+            "PREPEND: prepended content should appear before original"
+        );
+    }
 
-    let edit_result = edit_memory_output(
-        &env,
-        json!({
-            "identifier": uri,
-            "operation": "Find_Replace",
-            "content": "[[replacement]]",
-            "findText": "target word"
-        }),
-    );
+    // --- Find_Replace (mixed case with underscore — distinct variant, rec #3) ---
+    {
+        let env = isolated_env();
+        let uri = write_memory_file(
+            &env,
+            "Mixed Case Find_Replace CI Test",
+            "Text with [[test]] and target word here.",
+            Some("editing-parity"),
+        );
 
-    assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "Find_Replace (mixed case) should work, got: {edit_result}"
-    );
-}
+        let edit_result = edit_memory_output(
+            &env,
+            json!({
+                "identifier": uri,
+                "operation": "Find_Replace",
+                "content": "[[replacement]]",
+                "findText": "target word",
+            }),
+        );
 
-#[test]
-fn operation_uppercase_replace_section_resolves() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Uppercase REPLACE_SECTION Test",
-        "Intro with [[test]].\n\n## My Section\n\nOld body content.",
-        Some("editing-parity"),
-    );
+        assert!(
+            edit_result.starts_with("Updated memory FILE:"),
+            "Find_Replace (mixed case) should succeed, got: {edit_result}"
+        );
+        let read_result = read_memory_output(&env, &uri);
+        assert!(
+            read_result.contains("[[replacement]]"),
+            "Find_Replace: replacement content should be present, got:\n{read_result}"
+        );
+        assert!(
+            !read_result.contains("target word"),
+            "Find_Replace: original text 'target word' should be replaced, got:\n{read_result}"
+        );
+    }
 
-    let edit_result = edit_memory_output(
-        &env,
-        json!({
-            "identifier": uri,
-            "operation": "REPLACE_SECTION",
-            "content": "New body with [[concepts]].",
-            "sectionName": "My Section"
-        }),
-    );
+    // --- REPLACE_SECTION (uppercase) ---
+    {
+        let env = isolated_env();
+        let uri = write_memory_file(
+            &env,
+            "Uppercase REPLACE_SECTION CI Test",
+            "Intro with [[test]].\n\n## My Section\n\nOld body content.",
+            Some("editing-parity"),
+        );
 
-    assert!(
-        edit_result.starts_with("Updated memory FILE:"),
-        "REPLACE_SECTION (uppercase) should work, got: {edit_result}"
-    );
+        let edit_result = edit_memory_output(
+            &env,
+            json!({
+                "identifier": uri,
+                "operation": "REPLACE_SECTION",
+                "content": "New body with [[concepts]].",
+                "sectionName": "My Section",
+            }),
+        );
+
+        assert!(
+            edit_result.starts_with("Updated memory FILE:"),
+            "REPLACE_SECTION (uppercase) should succeed, got: {edit_result}"
+        );
+        let read_result = read_memory_output(&env, &uri);
+        assert!(
+            read_result.contains("New body with [[concepts]]."),
+            "REPLACE_SECTION: new content should be present, got:\n{read_result}"
+        );
+        assert!(
+            !read_result.contains("Old body content"),
+            "REPLACE_SECTION: old content should be replaced, got:\n{read_result}"
+        );
+        assert!(
+            read_result.contains("## My Section"),
+            "REPLACE_SECTION: heading should be preserved, got:\n{read_result}"
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------

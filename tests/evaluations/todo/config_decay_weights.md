@@ -259,3 +259,13 @@ fn whitespace_decay_function_produces_power_law_weight() {
 
 Net after applying verdicts: 4 distinct behaviors remain testable with 5 tightly-scoped
 tests (3 merged → 1, T4 rewritten, T5 kept, T6 removed, T7 split → 2).
+
+---
+## SWE Remediation
+- MERGE T1–T3 → `compute_decay_weight_path_type_uses_its_config_grace_period`: parameterized over sequential/workflow/default paths with grace boundary (=1.0) and grace+2 off-by-one (<1.0) sub-cases. Note: grace+1 returns 1.0 because power-law `effective_age=1` gives `1^(-0.5)=1.0` (mathematical identity, not a grace inclusion).
+- REWRITE T4 → `power_law_weight_at_one_half_life_matches_formula`: expected value derived from `decay_half_life_days()` via `half_life.powf(-0.5)` instead of hardcoded `0.1826`; tolerance tightened from 0.01 to 0.0001.
+- KEEP T5 → `compute_decay_weight_exponential_at_half_life_gives_point_five`: renamed from `..._applies_correctly` for precision; body unchanged.
+- REMOVE T6 (`compute_decay_weight_decay_function_selection_changes_result_curve`): weak divergence assertion redundant with T4+T5; mid-body env mutation eliminated.
+- REWRITE T7 → split into `whitespace_decay_function_falls_back_to_power_law_config_value` (config accessor + summary assertions) and `whitespace_decay_function_produces_power_law_weight` (derived expected value, tolerance 0.0001).
+- Final test count: 5 (down from 7), covering 4 distinct behaviors with stronger assertions.
+- Commit: 9277798

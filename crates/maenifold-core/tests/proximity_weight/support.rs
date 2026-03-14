@@ -225,6 +225,20 @@ pub fn community_id(conn: &Connection, concept_name: &str) -> i64 {
     .expect("community id")
 }
 
+pub fn insert_file_content(
+    conn: &Connection,
+    uri: &str,
+    created: &str,
+    last_accessed: Option<&str>,
+) {
+    conn.execute(
+        "INSERT OR REPLACE INTO file_content (file_path, title, content, created, last_accessed) \
+         VALUES (?1, ?2, '', ?3, ?4)",
+        params![uri, uri, created, last_accessed],
+    )
+    .expect("insert file_content");
+}
+
 pub fn assert_approx_eq(actual: f64, expected: f64) {
     assert!(
         (actual - expected).abs() <= 1e-9,

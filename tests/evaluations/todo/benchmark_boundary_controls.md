@@ -233,3 +233,16 @@ However, **effectiveness** is lower than the count implies:
 - The upper-bound (`iterations > 100`) validation is entirely unguarded.
 
 **Effective coverage score: 4.5/6** (4 tests covering real contracts + 0.5 credit for test 3's partial positive coverage − 1 point for the untested upper-bound path).
+
+---
+
+## SWE Remediation
+
+- MERGE test 1 + test 2 → `benchmark_header_parameters_reflected_in_output`: combined into single test (same behavioral contract — header parameter echo). Reduces fixture overhead by 2 mutex/env cycles.
+- REWRITE test 3 → `benchmark_deep_traversal_flag_controls_execution` (P1):
+  - Added positive-path assertions: `"Hub concepts:"` and `"Average time:"` now required when `includeDeepTraversal: true`.
+  - Fixed data seeding: replaced DB-only `seed_file_content_bulk` + `seed_graph_data` with real `.md` files on disk (via `write_memory_file`) + pre-sync. The benchmark's internal sync benchmark (`render_sync_benchmark`) calls `sync::sync()` which deletes file_content records not backed by real files — the original DB-only seeds were silently destroyed between the graph benchmark and complex traversal sections within a single benchmark run.
+  - Renamed from `benchmark_exclude_deep_traversal_skips_complex_section_content` per eval recommendation.
+- KEEP test 4 (`benchmark_iterations_zero_returns_error`): unchanged.
+- ADD `benchmark_iterations_above_maximum_returns_error` (P2): covers the `iterations > 100` validation path that had zero test coverage.
+- Commit: ea8d33d

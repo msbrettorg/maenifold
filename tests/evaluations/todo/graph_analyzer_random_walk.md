@@ -219,3 +219,15 @@ test for the revisit/cycle behavior, and no test for the `None` default path. Tw
 tests would survive meaningful implementation regressions. The score reflects genuine protection
 of approximately ⅔ of the function's observable contract — the dead-end termination path is
 well-protected; the traversal logic is not.
+
+---
+## SWE Remediation
+- REWRITE `random_walk_with_valid_concept_returns_walk_sequence`: replaced dead `!is_empty()` with `walk.len() >= 2` (R-1); added edge-validity assertion checking every consecutive pair follows a real edge in concept_graph (R-2)
+- KEEP `random_walk_terminates_at_dead_end`: no changes
+- REWRITE `random_walk_produces_different_results`: increased sample count from 10 to 50, tightened threshold to `>= 3` distinct walks (R-4 Option B); false-failure rate drops from ~0.2% to ~10⁻¹⁵
+- ADD `random_walk_may_revisit_nodes_on_two_node_graph`: seeds a 2-node graph and verifies full-length oscillation with no visited-set guard (R-3)
+- ADD `random_walk_uses_default_length_when_none_given`: covers the `None → 10` default path (R-5)
+- ADD `random_walk_with_nonexistent_concept_returns_single_element`: documents the contract for non-existent start concepts (R-6)
+- R-7 (doc comment on production code) deferred — out of scope for test remediation
+- All 6 tests pass: `cargo test --test integration_tests -p maenifold-core -- graph_analyzer_random_walk`
+- Commit: 1b8d0e0

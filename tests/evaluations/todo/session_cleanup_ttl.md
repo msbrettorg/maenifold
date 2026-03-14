@@ -285,3 +285,14 @@ remove the timing fragility and assertion gap respectively.
 ---
 
 *Evaluation performed under [[Gray - Skeptical Inquiry]] color. References: [[test-quality]], [[maenifold-rs]], [[session cleanup TTL]], [[FR-4.2 session abandonment]]*
+
+---
+## SWE Remediation
+- REWRITE test 1: renamed `active_session_within_default_ttl_is_not_marked_abandoned` → `active_session_at_exact_ttl_boundary_is_not_marked_abandoned`; fixed timing fragility with `align_to_second_boundary()` + anchor-based seeding (mirrors supervisor pattern)
+- ADD `active_session_well_within_ttl_is_not_marked_abandoned`: companion interior-window test (15 min vs 30-min TTL) per recommendation 1
+- KEEP test 2 (`active_session_beyond_default_ttl_is_marked_abandoned`): unchanged
+- REWRITE test 3 (`custom_ttl_from_env_var_is_respected`): added `read_db_status` and `read_db_content` assertions to match test 2's dual-storage thoroughness per recommendation 3
+- ADD `invalid_env_var_falls_back_to_default_ttl`: covers MISSING-2 gap — iterates `["abc", "0", "-1", ""]` confirming 30-min default fallback per recommendation 5
+- Support module: made `write_session_markdown`/`seed_file_content` pub; added `align_to_second_boundary()` per recommendation 2
+- All 5 tests pass: `cargo test --test integration_tests -p maenifold-core -- session_cleanup_ttl`
+- Commit: 2f21186

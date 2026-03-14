@@ -47,3 +47,14 @@ Five of the seven tests are **substantively duplicated** by `workflow_supervisor
 ## Load-Bearing Score: 2/7
 
 Tests 6 and 7 are the only tests where removal would allow a real regression to ship undetected. Tests 1–5 are covered by the cleanup suite in `workflow_supervisor_cleanup_core.rs` and `session_cleanup_ttl.rs`.
+
+---
+## SWE Remediation
+- REMOVE `try_mark_abandoned_from_last_indexed_stale_session_returns_true`: deleted duplicate stale-session count coverage
+- REMOVE `try_mark_abandoned_from_last_indexed_stale_session_updates_frontmatter_status`: deleted duplicate stale-session status coverage
+- REMOVE `try_mark_abandoned_from_last_indexed_stale_session_appends_abandoned_section`: deleted duplicate stale-session body-append coverage
+- REMOVE merged recent-session pair: dropped duplicated "recent session untouched" coverage because `workflow_supervisor_cleanup_core.rs` already asserts count, status, and body invariants together
+- RENAME test 6 to `session_at_exact_abandonment_boundary_is_not_marked_abandoned`
+- RENAME test 7 to `stale_session_abandonment_appends_section_without_corrupting_original_body`
+- Verified with: `cargo test --test integration_tests workflow_supervisor_cleanup_thresholds`
+- Commit: pending

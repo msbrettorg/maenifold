@@ -211,4 +211,4 @@ creating coverage gaps. Both require rewrites to make their assertions commensur
 - `community_sync.rs`: 1 test (was 2). `community_build_context_siblings.rs`: 3 tests (was 2).
 - `cargo test --test integration_tests -p maenifold-core -- community_sync`: 1 passed, 0 failed
 - `cargo test --test integration_tests -p maenifold-core -- community_build_context_siblings`: 3 passed, 0 failed
-- Commit: a0d6209
+- Commit: e19bb95

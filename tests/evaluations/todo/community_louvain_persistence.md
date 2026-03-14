@@ -196,3 +196,11 @@ Three of four tests defend real, non-trivially-guaranteed properties of the prod
 
 **Overall**: The suite is structurally sound and well-organized, but carries one hollow test that provides false confidence in gamma-sensitivity behavior. Address R-1 through R-3 before T-16.2 migrates this code to `DbBackend` trait calls — migration is a high-risk refactor and these tests are the safety net.
 
+---
+## SWE Remediation
+- REWRITE `run_louvain_higher_gamma_tends_to_more_communities` → `high_gamma_fallback_produces_connected_components` (R-1 Option A): replaced trivially-satisfiable `count_high >= count_low` assertions with deterministic test using `gamma=100.0, seed=Some(42)`. Asserts exactly 2 communities via `assert_eq!`, then verifies all 8 nodes' structural membership (clique-1 co-clusters, clique-2 co-clusters, cliques distinct) using `get_community_id()`. Test now verifies a real invariant: extreme gamma → singleton fallback → connected components.
+- KEEP+strengthen `run_and_persist_persists_to_database` (R-2): added 5 structural membership assertions verifying triangle (alpha/beta/gamma co-cluster) and pair (delta/epsilon co-cluster) are distinct communities using `get_community_id()`.
+- KEEP+strengthen `run_and_persist_second_run_replaces_existing` (R-3): added `assert!(count_before > 0)` guard to prevent false green when first `detect_and_persist` silently writes zero rows.
+- KEEP `run_and_persist_fk_constraint_only_persists_existing_concepts`: unchanged.
+- Commit: 16d24fd
+

@@ -55,3 +55,11 @@ This is the strongest of the three evaluated files. Ten of thirteen tests are co
 ## Load-Bearing Score: 10/13
 
 Tests 3 and 6 are load-bearing but redundant with each other (same rule, two separate functions). Test 9 is structurally correct but its assertion strategy gives false confidence. The remaining 10 are correctly specified and would individually catch distinct regressions.
+
+---
+## SWE Remediation
+- MERGE active_status_is_case_insensitive + refined_status_is_case_insensitive → status_matching_is_case_insensitive: 4-case loop (active/ACTIVE, active/Active, refined/REFINED, refined/Refined) since rstest not available
+- REWRITE absent_status_uses_path_defaults: replaced derived-vs-derived comparison with `assert_approx_eq(absent, 0.5f64.powf((60.0 - 28.0) / 30.0), 0.01)` pinning to configured defaults (grace=28, half_life=30)
+- KEEP: 10 tests unchanged
+- Test count: 13 → 12 (all pass)
+- Commit: cd6836e

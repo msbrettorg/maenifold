@@ -136,3 +136,16 @@ Tests 3 and 4 are conditionally load-bearing: the scenarios they cover (non-hold
 Tests 1 and 2 are not load-bearing: removing them loses no coverage. Tests 3 and 4 cover the same code paths with identical assertions.
 
 **4 load-bearing out of 6 tests in the file. 2 are pure duplicates that inflate the count without adding safety.**
+
+---
+## SWE Remediation
+- REMOVE `fr30_1_ac1_non_leader_skips_community_recomputation`: confirmed byte-for-byte dupe of test 3
+- REMOVE `fr30_1_ac2_leader_runs_community_recomputation`: confirmed byte-for-byte dupe of test 4
+- REWRITE `fr30_2_ac1_non_leader_skips_maintenance_work` → `is_leader_returns_false_for_non_holder_with_active_lease`: honest name, FR tag corrected to FR-30.8, `.expect()` → `.unwrap()`
+- REWRITE `fr30_2_ac2_leader_runs_maintenance_normally` → `is_leader_returns_true_for_current_holder_with_active_lease`: honest name, FR tag corrected to FR-30.8, `.expect()` → `.unwrap()`
+- KEEP `fr30_3_is_leader_returns_false_when_no_lease_exists`: fixed `.expect()` → `.unwrap()` per rec 5
+- KEEP `fr30_3_is_leader_returns_false_for_expired_lease`: fixed `.expect()` → `.unwrap()` per rec 5, `lease_duration_ms` 10 → 60_000 per rec 6
+- Rec 4 (add real FR-30.1/FR-30.2 integration tests): out of scope — requires application-layer test harness
+- Rec 7 (rename file): deferred — "Consider" priority, ripple effects on module declaration in main.rs
+- Tests: 4 passed, 0 failed (down from 6 → 4 after removing duplicates)
+- Commit: f14da4f

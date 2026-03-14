@@ -145,3 +145,4 @@ All three tests guard distinct code paths in `search/api.rs` against an accident
 - **R5 DOCUMENT** `TEST_MUTEX` in `support.rs`: added doc comment explaining the mutex serializes tests due to `Config::override_root()` global state mutation, not database contention — a correctness requirement.
 - **R6 UPDATE** orphaned traceability: replaced `T-GRAPH-DECAY-002.1-3: RTM NFR-7.6.2` (not in current RTM) with `NFR-1, NFR-2` on all test functions. Updated file-level comment to `T-12.0: RTM NFR-1, NFR-2`.
 - All 3 tests pass: `cargo test --test integration_tests -p maenifold-core -- access_boosting_search`
+- Commit: fbb4581

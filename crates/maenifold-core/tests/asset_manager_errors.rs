@@ -14,22 +14,6 @@ use std::os::unix::fs::symlink;
 
 // T-12.7: RTM NFR-1 - split error and summary coverage from legacy asset_manager_tests.rs.
 #[test]
-fn update_assets_when_source_dir_missing_returns_error() {
-    let _guard = test_mutex().lock().expect("mutex");
-    let _reset = ConfigResetGuard;
-    let (_tmp, cfg) = isolated_config();
-    let _hidden_roots = hide_packaged_asset_roots();
-
-    let err = invoke_update_assets(&cfg, true).expect_err("missing packaged assets should error");
-
-    assert!(
-        err.to_string()
-            .contains("Source assets directory not found"),
-        "unexpected error: {err}"
-    );
-}
-
-#[test]
 fn update_assets_when_target_dir_missing_returns_error() {
     let _guard = test_mutex().lock().expect("mutex");
     let _reset = ConfigResetGuard;
@@ -46,9 +30,10 @@ fn update_assets_when_target_dir_missing_returns_error() {
     );
 }
 
+// T-12.7: RTM NFR-1 - combined-state summary formatting (added + updated + error).
 #[cfg(unix)]
 #[test]
-fn update_assets_summary_formats_counts_sections_and_errors() {
+fn update_assets_summary_formats_combined_counts_and_sections() {
     let _guard = test_mutex().lock().expect("mutex");
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
@@ -91,12 +76,6 @@ fn update_assets_summary_formats_counts_sections_and_errors() {
         output.contains("Updated files: 1"),
         "missing updated count: {output}"
     );
-    // PARITY-U01: Skipped symlinks count and section removed for C# parity.
-    // Symlink skips are recorded as errors instead.
-    assert!(
-        !output.contains("Skipped symlinks:"),
-        "Skipped symlinks line should not appear (C# parity): {output}"
-    );
     assert!(
         output.contains("Errors: 1"),
         "missing error count: {output}"
@@ -108,10 +87,6 @@ fn update_assets_summary_formats_counts_sections_and_errors() {
     assert!(
         output.contains("### Updated Files"),
         "missing Updated Files section: {output}"
-    );
-    assert!(
-        !output.contains("### Skipped Symlink Targets"),
-        "Skipped Symlink Targets section should not appear (C# parity): {output}"
     );
     assert!(
         output.contains("### Errors"),
@@ -143,8 +118,47 @@ fn update_assets_summary_formats_counts_sections_and_errors() {
     );
 }
 
+// T-12.7: RTM NFR-1 - PARITY-U01 guard: symlinks produce errors, not a "Skipped" category.
+// The pre-parity "Skipped symlinks:" count line and "### Skipped Symlink Targets" section
+// were deliberately removed for C# oracle parity. This test verifies they stay absent.
+#[cfg(unix)]
 #[test]
-fn update_assets_source_missing_error_surfaces_without_summary_counts() {
+fn update_assets_parity_u01_omits_skipped_symlinks_count_and_section() {
+    let _guard = test_mutex().lock().expect("mutex");
+    let _reset = ConfigResetGuard;
+    let (_tmp, cfg) = isolated_config();
+    initialize_assets(&cfg);
+
+    let skipped_relative =
+        unique_relative_path("colors", "asset-manager-parity-skipped", "json");
+    let _skipped = PackagedAssetGuard::create(&skipped_relative, r#"{"id":"parity-skipped"}"#);
+
+    let skipped_target = cfg.assets_path.join(&skipped_relative);
+    fs::create_dir_all(skipped_target.parent().expect("skipped target parent"))
+        .expect("create skipped target dir");
+    let symlink_target = cfg
+        .assets_path
+        .join(format!("{}.txt", unique_suffix("parity-symlink-target")));
+    write_file(&symlink_target, "symlink target content");
+    symlink(&symlink_target, &skipped_target).expect("create target symlink");
+
+    let output = invoke_update_assets(&cfg, true).expect("dry-run update assets");
+
+    assert!(
+        !output.contains("Skipped symlinks:"),
+        "Skipped symlinks count line should not appear (PARITY-U01): {output}"
+    );
+    assert!(
+        !output.contains("### Skipped Symlink Targets"),
+        "Skipped Symlink Targets section should not appear (PARITY-U01): {output}"
+    );
+}
+
+// T-12.7: RTM NFR-1 - source-missing error path returns Err without partial summary rendering.
+// Also verifies the basic error-type check (Err, not Ok) previously covered by the
+// removed update_assets_when_source_dir_missing_returns_error test.
+#[test]
+fn update_assets_source_dir_missing_errors_without_summary_counts() {
     let _guard = test_mutex().lock().expect("mutex");
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
@@ -164,7 +178,7 @@ fn update_assets_source_missing_error_surfaces_without_summary_counts() {
 }
 
 #[test]
-fn update_assets_source_target_mapping_discovers_all_four_rust_asset_subdirectories() {
+fn update_assets_source_target_mapping_scans_all_four_asset_catalog_subdirectories() {
     let _guard = test_mutex().lock().expect("mutex");
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();

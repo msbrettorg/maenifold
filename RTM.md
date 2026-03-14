@@ -124,3 +124,9 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 - □ RTM-192: WikiLink validation failure prevents persistence; workflow pauses | TC-28.9 | Boundary
 - □ RTM-193: JSONL logs stored outside memory_root at {maenifold_root}/sessions/ with 0600 permissions | TC-30.5 | Security
 - □ RTM-194: Workspace root resolved from CLI/env/cwd, frozen for session lifetime, not parent of maenifold_root | TC-29.9 | Boundary
+
+### NFR-8: Decay & Access Boosting
+
+- □ RTM-201: ReadMemory refreshes last_accessed timestamp in file_content on each successful read (by URI and by title) | TC-NFR8.1 | Boundary
+- □ RTM-202: ReadMemory on non-existent identifier does not create or update last_accessed | TC-NFR8.2 | Boundary
+- □ RTM-203: ReadMemory with learn=true short-circuit does not update last_accessed | TC-NFR8.3 | Boundary

@@ -11,6 +11,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tempfile::TempDir;
 
 // T-12.7: RTM NFR-1 - shared helpers keep split asset-manager integration tests behaviorally identical.
+//
+// NOTE: Cross-binary mutex gap (latent). This mutex serializes tests within a single integration
+// test binary, but other binaries (e.g. update_assets_boundary, asset_hot_loading_tests) declare
+// their own static mutexes. PackagedAssetGuard writes into the shared workspace `assets/` directory
+// and HiddenDirGuard renames it, so cross-binary races are theoretically possible when `cargo test`
+// runs integration binaries in parallel. In practice the overlap probability is low, but callers
+// accept this risk. A cross-binary coordination mechanism (e.g. file lock) would eliminate it.
 pub fn test_mutex() -> &'static Mutex<()> {
     static TEST_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
     TEST_MUTEX.get_or_init(|| Mutex::new(()))

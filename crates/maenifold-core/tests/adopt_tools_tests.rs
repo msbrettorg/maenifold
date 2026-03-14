@@ -102,37 +102,54 @@ fn adopt_with_non_existent_identifier_returns_asset_not_found_error() {
     );
 }
 
-// T-1.4: RTM FR-1 - Ports missing C# coverage for empty Adopt identifiers.
+// T-1.4: RTM FR-1, NFR-2 - Tests empty and whitespace-only identifiers against
+// the `trim().is_empty()` code path in `validate_adopt_identifier`.
 #[test]
-fn adopt_with_empty_identifier_returns_invalid_argument_error() {
+fn adopt_with_empty_or_whitespace_identifier_returns_invalid_argument_error() {
     let _guard = TEST_MUTEX.lock();
     let (_config, _tmp, _reset) = isolated_initialized_config();
 
-    let err = invoke_adopt_err(json!({"type":"role","identifier":""}));
-    let message = err.to_string();
+    // Each case exercises the same trim().is_empty() branch documented in the error
+    // message: "Identifier must not be empty or whitespace-only."
+    let cases: &[(&str, &str)] = &[
+        ("", "empty string"),
+        ("   ", "whitespace-only spaces"),
+        ("\t", "whitespace-only tab"),
+    ];
 
-    match err {
-        MaenifoldError::InvalidArgument(detail) => {
-            assert!(
-                detail.contains("must not be empty"),
-                "expected empty identifier detail: {detail}"
-            );
+    for (identifier, label) in cases {
+        let err = invoke_adopt_err(json!({"type":"role","identifier": identifier}));
+        let message = err.to_string();
+
+        match &err {
+            MaenifoldError::InvalidArgument(detail) => {
+                assert!(
+                    detail.contains("must not be empty"),
+                    "[{label}] expected empty/whitespace identifier detail: {detail}"
+                );
+            }
+            other => panic!("[{label}] expected InvalidArgument error, got {other}"),
         }
-        other => panic!("expected InvalidArgument error, got {other}"),
-    }
 
-    assert!(
-        message.contains("Identifier must not be empty"),
-        "expected empty identifier message: {message}"
-    );
+        assert!(
+            message.contains("Identifier must not be empty"),
+            "[{label}] expected empty/whitespace identifier message: {message}"
+        );
+    }
 }
 
 // T-1.4: RTM FR-1 - Ports missing C# coverage for critical Adopt instruction text.
+// Uses a color asset to demonstrate the CRITICAL INSTRUCTIONS template is asset-type-agnostic.
 #[test]
 fn adopt_includes_critical_instructions() {
     let _guard = TEST_MUTEX.lock();
     let (config, _tmp, _reset) = isolated_initialized_config();
-    let color_id = asset_id(&catalog(&config).colors[0]);
+    let cat = catalog(&config);
+    assert!(
+        !cat.colors.is_empty(),
+        "expected at least one bundled color asset"
+    );
+    let color_id = asset_id(&cat.colors[0]);
 
     let output = invoke_adopt(json!({"type":"color","identifier": &color_id}));
 
@@ -179,8 +196,114 @@ fn adopt_distinguishes_between_different_assets_of_same_type() {
         second_output.contains(&second_role_id),
         "expected second output to reference {second_role_id}: {second_output}"
     );
+    // Logically follows from the contains assertions above given distinct ids,
+    // but serves as a belt-and-suspenders guard against coincidental embedding.
     assert_ne!(
         first_output, second_output,
         "different role assets should produce different adoption instructions"
     );
+}
+
+// T-1.4: RTM FR-1, NFR-2 - Security: path-traversal identifiers must be rejected by
+// `validate_adopt_identifier` before any filesystem access occurs.
+#[test]
+fn adopt_with_path_traversal_identifier_is_rejected() {
+    let _guard = TEST_MUTEX.lock();
+    let (_config, _tmp, _reset) = isolated_initialized_config();
+
+    let cases: &[(&str, &str)] = &[
+        ("../secret", "upward traversal"),
+        ("../../etc/passwd", "deep traversal"),
+        ("a/b", "embedded slash"),
+        ("role\\..\\secret", "backslash traversal"),
+    ];
+
+    for (identifier, label) in cases {
+        let err = invoke_adopt_err(json!({"type":"role","identifier": identifier}));
+
+        match &err {
+            MaenifoldError::InvalidArgument(detail) => {
+                assert!(
+                    detail.contains("may only contain ASCII letters"),
+                    "[{label}] expected slug-validation detail for '{identifier}': {detail}"
+                );
+            }
+            other => panic!(
+                "[{label}] expected InvalidArgument for '{identifier}', got {other}"
+            ),
+        }
+    }
+}
+
+// T-1.4: RTM FR-1 (RTM-004) - The `parse_adopt_kind` allow-list intentionally excludes
+// "workflow" even though `AssetKind::parse()` accepts it. This test pins that contract.
+#[test]
+fn adopt_workflow_type_is_rejected_with_allowed_types_in_message() {
+    let _guard = TEST_MUTEX.lock();
+    let (_config, _tmp, _reset) = isolated_initialized_config();
+
+    let err = invoke_adopt_err(json!({"type":"workflow","identifier":"any"}));
+    let message = err.to_string();
+
+    match &err {
+        MaenifoldError::InvalidArgument(detail) => {
+            assert!(
+                detail.contains("Must be one of: role, color, perspective"),
+                "expected allowed-types list in error: {detail}"
+            );
+            assert!(
+                detail.contains("Invalid type 'workflow'"),
+                "expected rejected type name in error: {detail}"
+            );
+        }
+        other => panic!("expected InvalidArgument for workflow type, got {other}"),
+    }
+
+    // The allowed-types portion should not list "workflow" as adoptable.
+    let allowed_portion = message
+        .split("Must be one of:")
+        .nth(1)
+        .unwrap_or("");
+    assert!(
+        !allowed_portion.contains("workflow"),
+        "workflow must not appear in the allowed types list: {message}"
+    );
+}
+
+// T-1.4: RTM FR-1, NFR-2 - Missing required properties yield MissingProperty errors
+// with the correct field name.
+#[test]
+fn adopt_missing_required_properties_returns_missing_property_error() {
+    let _guard = TEST_MUTEX.lock();
+    let (_config, _tmp, _reset) = isolated_initialized_config();
+
+    // Missing "type" field entirely.
+    let err = invoke_adopt_err(json!({"identifier":"some-role"}));
+    match &err {
+        MaenifoldError::MissingProperty(field) => {
+            assert_eq!(*field, "type", "expected MissingProperty('type')");
+        }
+        other => panic!("expected MissingProperty for missing type, got {other}"),
+    }
+
+    // Missing "identifier" field entirely.
+    let err = invoke_adopt_err(json!({"type":"role"}));
+    match &err {
+        MaenifoldError::MissingProperty(field) => {
+            assert_eq!(*field, "identifier", "expected MissingProperty('identifier')");
+        }
+        other => panic!("expected MissingProperty for missing identifier, got {other}"),
+    }
+
+    // Both missing — "type" is parsed first, so it should be the reported field.
+    let err = invoke_adopt_err(json!({}));
+    match &err {
+        MaenifoldError::MissingProperty(field) => {
+            assert_eq!(
+                *field, "type",
+                "expected MissingProperty('type') when both fields missing"
+            );
+        }
+        other => panic!("expected MissingProperty for empty payload, got {other}"),
+    }
 }

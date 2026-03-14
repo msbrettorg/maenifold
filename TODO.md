@@ -267,3 +267,14 @@ AC-7: Focused OpenCode plugin tests pass from `assets/integrations/opencode/test
 
 - **Status**: pending
 - **Depends on**: none
+
+---
+
+## Maintenance — Traceability & Test Gaps
+
+### T-GRAPH-DECAY-002: Access-boosting boundary tests for ReadMemory | RTM: NFR-8
+
+Boundary tests validating that ReadMemory correctly maintains the `last_accessed` timestamp in the `file_content` table for the [[decay-weighting]] system. Covers positive paths (URI-based read, title-based read, sequential reads) and negative paths (missing identifier, learn-mode short-circuit).
+
+- **Files**: `crates/maenifold-core/tests/access_boosting_reads.rs`, `crates/maenifold-core/tests/access_boosting/support.rs`
+- **Status**: complete

@@ -58,3 +58,30 @@ Tests 6 and 7 are the only tests where removal would allow a real regression to 
 - RENAME test 7 to `stale_session_abandonment_appends_section_without_corrupting_original_body`
 - Verified with: `cargo test --test integration_tests workflow_supervisor_cleanup_thresholds`
 - Commit: 91447d6
+
+---
+## Red-team Audit
+
+### Findings
+
+- ✅ REMOVE `try_mark_abandoned_from_last_indexed_stale_session_returns_true`: confirmed deleted; no unique assertions lost — `cleanup_core.rs` test 1 asserts `abandoned == 1` for a stale session.
+- ✅ REMOVE `try_mark_abandoned_from_last_indexed_stale_session_updates_frontmatter_status`: confirmed deleted; `cleanup_core.rs` test 1 asserts both count and `status == "abandoned"`.
+- ✅ REMOVE `try_mark_abandoned_from_last_indexed_stale_session_appends_abandoned_section`: confirmed deleted; `cleanup_core.rs::handle_session_cleanup_stale_workflow_session_appends_abandoned_section` is an identical fixture and identical assertion.
+- ❌ MERGE `recent_session_returns_false` + `recent_session_frontmatter_unchanged`: **SWE removed both tests without first creating the merged test.** The eval verdict was **MERGE** (not REMOVE). Recommendation #2 prescribes a two-step sequence — (1) merge into one test with three assertions (`count == 0`, `status == "active"`, `body == original`), then (2) *optionally* delete the merged result if sufficiently subsumed by `cleanup_core.rs`. The SWE jumped straight to deletion, skipping the merge step entirely. While `cleanup_core.rs::handle_session_cleanup_recent_active_session_no_change` is confirmed to assert all three properties (`abandoned == 0`, `status == "active"`, `body == before_body`), the prescribed action per the verdicts table was MERGE — not REMOVE. The SWE changed the verdict category without authorization.
+- ✅ RENAME test 6 → `session_at_exact_abandonment_boundary_is_not_marked_abandoned`: confirmed; name matches eval recommendation #3 exactly. Dual assertions (`abandoned == 0` + `status == "active"`) present in resulting test body.
+- ✅ RENAME test 7 → `stale_session_abandonment_appends_section_without_corrupting_original_body`: confirmed; name matches eval recommendation #4 exactly. `starts_with(original)` assertion preserved.
+
+### Coverage Note
+
+`cleanup_core.rs::handle_session_cleanup_recent_active_session_no_change` **does** assert all three properties the merged test would have carried (`abandoned == 0`, `read_frontmatter_status == "active"`, `read_body == before_body`). The deletion is substantively defensible, but it bypasses the prescribed MERGE step and constitutes an undocumented verdict change from MERGE → REMOVE.
+
+### Verdict: REJECT
+
+The eval verdicts table prescribed **MERGE** for tests 4 and 5. The SWE removed both without producing the intermediate merged test. The merge step must be executed first; deletion of the resulting merged test requires a second explicit evaluation against `cleanup_core.rs`. The SWE collapsed two prescribed steps into one undocumented decision. Resubmit with either (a) the merged test present, or (b) an explicit eval-level addendum changing the verdict for rows 4–5 from MERGE → REMOVE with justification.
+
+---
+## SWE Remediation (Resubmission)
+- MERGE `try_mark_abandoned_from_last_indexed_recent_session_returns_false` + `try_mark_abandoned_from_last_indexed_recent_session_frontmatter_unchanged`: created `recent_session_before_abandonment_threshold_remains_active_and_unchanged` with the prescribed three assertions (`count == 0`, `status == "active"`, `body == original`)
+- Preserved prior renames for the exact-threshold and original-content tests
+- Verified with: `cargo test -p maenifold-core --test integration_tests workflow_supervisor_cleanup_thresholds`
+- Commit: acaa20f

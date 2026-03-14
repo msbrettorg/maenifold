@@ -9,6 +9,22 @@ use maenifold_core::sessions;
 use support::*;
 use sync_support::align_to_second_boundary;
 
+// T-W1-7: RTM FR-17.7 — temporal guard: recent session remains active and unchanged
+#[test]
+fn recent_session_before_abandonment_threshold_remains_active_and_unchanged() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    let file_uri = "memory://thinking/workflow/2026/03/09/recent-threshold-session";
+    let original = "# Recent Session\n\nContent [[Session Cleanup]]";
+    create_session(&env.cfg, file_uri, "active", 30, original);
+
+    let abandoned = sessions::cleanup_abandoned_sessions(&env.cfg).expect("cleanup");
+
+    assert_eq!(abandoned, 0);
+    assert_eq!(read_frontmatter_status(&env.cfg, file_uri), "active");
+    assert_eq!(read_body(&env.cfg, file_uri), original);
+}
+
 // T-W1-7: RTM FR-17.7
 #[test]
 fn session_at_exact_abandonment_boundary_is_not_marked_abandoned() {

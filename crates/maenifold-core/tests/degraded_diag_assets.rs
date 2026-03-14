@@ -9,7 +9,7 @@ use maenifold_core::assets::{AssetKind, AssetManager};
 use maenifold_core::memory::list_memories;
 use serde_json::{Value, json};
 use std::fs;
-use support::{TEST_MUTEX, TestEnv, capture_stderr, write_memory_file};
+use support::{TEST_MUTEX, TestEnv, capture_stderr, open_connection, write_memory_file};
 
 // T-0.1: RTM FR-25.2 ports FR25_2_AC3_LoadLastAccessedTimestamps_EmitsDegradedOnDbFailure.
 #[test]
@@ -32,6 +32,34 @@ fn load_last_accessed_timestamps_emits_degraded_on_db_failure() {
     assert!(
         stderr.contains("[DEGRADED][SystemTools][LoadLastAccessedTimestamps]"),
         "expected degraded diagnostic, got: {stderr}"
+    );
+}
+
+// T-0.1: RTM FR-25.2 — Covers Finding 1 (prepare-failure branch) in eval.
+// Exercises the second emit site in load_last_accessed_timestamps: `connection.prepare(...)`
+// fails because the `file_content` table has been dropped (schema-drift scenario).
+#[test]
+fn load_last_accessed_timestamps_emits_degraded_on_missing_table() {
+    let _guard = TEST_MUTEX.lock();
+    let env = TestEnv::setup();
+
+    // Drop the file_content table so that `connection.prepare(...)` fails with a "no such table" error.
+    // The SQLite file remains valid — only the expected schema is absent.
+    let conn = open_connection(&env);
+    conn.execute_batch("DROP TABLE IF EXISTS file_content;")
+        .expect("drop table");
+    drop(conn);
+
+    let (result, stderr) = capture_stderr(|| list_memories(&env.markdown_context(), &json!({})));
+
+    let output = result.expect("ListMemories must degrade gracefully");
+    assert!(
+        output.contains("# Directory: /"),
+        "expected directory header despite degraded DB path: {output}"
+    );
+    assert!(
+        stderr.contains("[DEGRADED][SystemTools][LoadLastAccessedTimestamps]"),
+        "expected degraded diagnostic for prepare failure, got: {stderr}"
     );
 }
 
@@ -121,6 +149,12 @@ fn get_asset_metadata_emits_degraded_on_malformed_json() {
         "expected only valid asset metadata: {value}"
     );
     assert_eq!(items[0]["id"], Value::String("valid-1".to_string()));
+    // T-0.1: RTM FR-25.2 — Pin C# parity contract: multiAgent defaults to false when absent.
+    assert_eq!(
+        items[0]["multiAgent"],
+        Value::Bool(false),
+        "expected multiAgent to default to false for assets without the field"
+    );
     assert!(
         stderr.contains("[DEGRADED][AssetResources][GetAssetMetadata]"),
         "expected degraded diagnostic, got: {stderr}"

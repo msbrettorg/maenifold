@@ -43,6 +43,34 @@ impl Drop for TestEnv {
     }
 }
 
+// T-0.1: RTM FR-25.2 — RAII guard for fd restoration on panic.
+// Ensures the saved stderr descriptor is restored even if the capture closure panics,
+// preventing subsequent tests from writing to a dead pipe.
+struct StderrGuard {
+    stderr_fd: i32,
+    saved_stderr: i32,
+    write_end: i32,
+}
+
+impl Drop for StderrGuard {
+    fn drop(&mut self) {
+        unsafe extern "C" {
+            fn dup2(src: i32, dest: i32) -> i32;
+            fn close(fd: i32) -> i32;
+        }
+        // SAFETY: restore the saved stderr and close owned write descriptors.
+        unsafe {
+            dup2(self.saved_stderr, self.stderr_fd);
+            close(self.write_end);
+            close(self.saved_stderr);
+        }
+    }
+}
+
+// NOTE: capture_stderr uses POSIX pipe()/dup()/dup2(), restricting all tests in this
+// file to `#![cfg(unix)]`. The *behaviors under test* — graceful degradation and
+// diagnostic emission — are cross-platform. Windows CI therefore has no coverage of
+// these degraded-diagnostic contracts. See Finding 3 in the evaluation.
 pub fn capture_stderr<F, T>(operation: F) -> (T, String)
 where
     F: FnOnce() -> T,
@@ -51,7 +79,6 @@ where
         fn pipe(fds: *mut i32) -> i32;
         fn dup(fd: i32) -> i32;
         fn dup2(src: i32, dest: i32) -> i32;
-        fn close(fd: i32) -> i32;
     }
 
     let stderr = std::io::stderr();
@@ -66,18 +93,18 @@ where
     // SAFETY: dup2 atomically redirects the current process stderr descriptor.
     assert!(unsafe { dup2(pipe_fds[1], stderr_fd) } >= 0, "dup2 failed");
 
+    // RAII guard ensures fd restoration even if `operation` panics.
+    let guard = StderrGuard {
+        stderr_fd,
+        saved_stderr,
+        write_end: pipe_fds[1],
+    };
+
     let result = operation();
     std::io::stderr().flush().expect("flush stderr");
 
-    // SAFETY: restore the saved stderr and close owned write descriptors.
-    assert!(
-        unsafe { dup2(saved_stderr, stderr_fd) } >= 0,
-        "restore dup2 failed"
-    );
-    unsafe {
-        close(pipe_fds[1]);
-        close(saved_stderr);
-    }
+    // Explicitly drop the guard to restore stderr and close fds before reading.
+    drop(guard);
 
     let mut output = String::new();
     // SAFETY: pipe_fds[0] is the remaining owned read descriptor.

@@ -189,13 +189,22 @@ fn analyze_concept_corruption_excludes_files_in_git_directories() {
         "concept-analysis/legitimate.md",
         "No workflow wikilinks here.\n",
     );
+    write_memory_fixture(
+        &cfg,
+        "concept-analysis/visible.md",
+        "# Visible\n\nUsing [[workflow]] in a non-hidden file.\n",
+    );
 
     let output = analyze_concept_corruption(json!({
         "conceptFamily": "workflow"
     }));
 
     assert!(
-        output.contains("Found 0 unique variants"),
-        "hidden .git directories should be excluded from analysis: {output}"
+        output.contains("Found 1 unique variants"),
+        "non-hidden file should be counted, .git file should be excluded: {output}"
+    );
+    assert!(
+        output.contains("workflow (1x)"),
+        "only the non-hidden file's wikilink should contribute to the count: {output}"
     );
 }

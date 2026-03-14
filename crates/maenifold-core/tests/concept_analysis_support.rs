@@ -48,7 +48,12 @@ pub(crate) fn analyze_concept_corruption(payload: serde_json::Value) -> String {
 }
 
 pub(crate) fn report_body_before_repairs(output: &str) -> &str {
-    output.split("SUGGESTED REPAIRS").next().unwrap_or(output)
+    // Match the "=== SUGGESTED" prefix pattern to be resilient to header renames
+    // (e.g., "=== SUGGESTED REPAIRS ===" → "=== SUGGESTED FIXES ===").
+    output
+        .find("=== SUGGESTED")
+        .map(|idx| &output[..idx])
+        .unwrap_or(output)
 }
 
 pub(crate) fn bullet_count(output: &str) -> usize {

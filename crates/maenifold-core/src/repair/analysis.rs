@@ -59,7 +59,7 @@ pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Res
     Ok(output.trim_end().to_string())
 }
 
-// T-1.2: RTM FR-2
+// T-1.4: RTM FR-2
 pub fn analyze_concept_corruption(context: &ToolContext, payload: &Value) -> Result<String> {
     let learn = payload
         .get("learn")
@@ -237,7 +237,7 @@ pub(super) fn parse_repair_concept_variants(input: &str) -> Vec<String> {
     variants
 }
 
-// T-1.2: RTM FR-2
+// T-1.4: RTM FR-2
 pub(super) fn classify_corruption_variant(concept: &str) -> &'static str {
     let concept_lower = concept.to_ascii_lowercase();
 
@@ -257,12 +257,12 @@ pub(super) fn classify_corruption_variant(concept: &str) -> &'static str {
     }
 }
 
-// T-1.2: RTM FR-2
+// T-1.4: RTM FR-2
 pub(super) fn is_file_path_variant(concept: &str) -> bool {
     concept.starts_with('/') || concept.contains('.')
 }
 
-// T-1.2: RTM FR-2
+// T-1.4: RTM FR-2
 pub(super) fn is_plural_variant(concept: &str) -> bool {
     let concept_lower = concept.to_ascii_lowercase();
     concept_lower.ends_with('s') && !concept_lower.ends_with("ss")

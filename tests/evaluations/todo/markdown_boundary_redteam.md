@@ -165,3 +165,11 @@ Only test 2 is genuinely load-bearing. It is the sole direct unit test of `valid
   - `fr28_9_red5_validate_uri_traversal_single_dotdot_segment_throws`: ✅ correctly rejects `memory://foo/../bar` with `InvalidArgument` containing "path traversal"
   - `fr28_9_red5_validate_uri_traversal_double_dotdot_segment_throws`: ✅ correctly rejects `memory://foo/../../bar` with same error
 - Verdict: **FAIL**
+
+---
+## SWE Remediation
+- REWRITE `fr28_9_red1_concept_repair_tool_error_does_not_leak_filesystem_path` → `rtm183_red1_concept_repair_tool_error_does_not_leak_filesystem_path`: Fixed blue-team rejection — replaced `invoke_repair_concepts` (which `.expect()`s on `Err`) with direct `ToolRegistry::global().try_invoke()` call that handles both `Ok`/`Err` variants via match. Tightened positive assertion from triple-OR (`ERROR || Scanning 0 || Files scanned: 0`) to single `"Directory not found"`. Fixed RTM tag from `FR-28.9` to `RTM-183`.
+- KEEP+MERGE `fr28_9_red5_validate_uri_traversal_single_dotdot_segment_throws` + `fr28_9_red5_validate_uri_traversal_double_dotdot_segment_throws` → `rtm183_red2_validate_uri_rejects_dotdot_traversal_segments`: Renamed red5→red2, fixed RTM tag, merged both into single parameterized test with 4 traversal shapes (single, double, leading, deep multi-hop).
+- ADD `rtm183_red3_validate_uri_does_not_decode_percent_encoded_traversal`: P1 recommendation — documents that `validate_uri` does NOT decode `%2e%2e` before checking. Covers fully-encoded, mixed-encoding, and mid-path encoded variants. All pass validation (confirming raw-string assumption).
+- All 3 tests pass: `cargo test --test integration_tests -p maenifold-core -- markdown_boundary_redteam`
+- Commit: c1a475f

@@ -59,6 +59,14 @@ fn sanitize_user_input_blocks_double_url_encoded_path_traversal() {
         "unexpected: {result}"
     );
     assert!(!result.contains(".."));
+    // T-12.6: RTM NFR-1 — verify the slug was correctly produced (not just
+    // that ".." is absent). A sanitiser that silently drops the entire title
+    // would pass the `!contains("..")` check but fail here.
+    let uri = extract_uri(&result);
+    assert!(
+        uri.contains("test"),
+        "slug should contain 'test' but got URI: {uri}"
+    );
 }
 
 #[test]
@@ -111,6 +119,9 @@ fn sanitize_user_input_blocks_mixed_encoded_and_plain_path_traversal() {
     );
 }
 
+// T-12.6: RTM NFR-1 — the `%` character in a title must survive the
+// sanitize → slugify pipeline without corrupting either the slug, the
+// frontmatter title, or the content body.
 #[test]
 fn sanitize_user_input_preserves_legitimate_percent_signs() {
     let _guard = TEST_MUTEX.lock();
@@ -119,8 +130,8 @@ fn sanitize_user_input_preserves_legitimate_percent_signs() {
     let result = memory::write_memory(
         &env.ctx(),
         &json!({
-            "title": "Task 50 Complete",
-            "content": "Status update with [[task-tracking]].",
+            "title": "Task 50% Complete",
+            "content": "Progress at 50% with [[task-tracking]].",
             "folder": "memory-tools-tests"
         }),
     )
@@ -130,13 +141,31 @@ fn sanitize_user_input_preserves_legitimate_percent_signs() {
         result.starts_with("Created memory FILE:"),
         "unexpected: {result}"
     );
+
+    // Slug strips `%` (not alphanumeric or hyphen) but keeps the rest.
     let uri = extract_uri(&result);
+    assert_eq!(
+        uri, "memory://memory-tools-tests/task-50-complete",
+        "slug should drop the `%` while keeping the rest"
+    );
+
+    // Read-back: content body must preserve the literal `%` character.
     let read_result = read_memory_output(&env, &uri);
     assert!(
         !read_result.starts_with("ERROR:"),
         "unexpected: {read_result}"
     );
-    assert!(read_result.contains("Status update with [[task-tracking]]"));
+    assert!(
+        read_result.contains("50%"),
+        "percent sign was corrupted in content body: {read_result}"
+    );
+
+    // Raw frontmatter: the original title with `%` must survive.
+    let raw = fs::read_to_string(raw_path_for_uri(&env, &uri)).expect("read raw file");
+    assert!(
+        raw.contains("50%"),
+        "percent sign was corrupted in title metadata: {raw}"
+    );
 }
 
 #[test]

@@ -1,6 +1,6 @@
 # Backlog — maenifold-rs
 
-For completed work (Sprints 1–3, 9–15, 20–22), see [CHANGELOG.md](CHANGELOG.md).
+For completed work (Sprints 1–3, 9–15, 20–23), see [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -11,22 +11,22 @@ For completed work (Sprints 1–3, 9–15, 20–22), see [CHANGELOG.md](CHANGELO
 Update workspace `Cargo.toml`: add `transport-streamable-http-server` to rmcp features (gated behind `http` feature flag). Add `axum = "0.7"` and `tower-http = { version = "0.6", features = ["cors"] }` dependencies.
 
 - **Files**: `Cargo.toml`, `crates/maenifold-core/Cargo.toml`
-- **Status**: pending
+- **Status**: complete
 
 ### T-17.2: Implement `serve_http()` in MCP server | RTM: FR-23
 
 Add `MaenifoldMcpServer::serve_http(port: u16)` alongside existing `serve_stdio()`. Uses `StreamableHttpService` from rmcp mounted on axum router. CORS permissive. Session tracking via `Mcp-Session-Id` headers. Same `MaenifoldHandler` used for both transports.
 
 - **Files**: `crates/maenifold-core/src/mcp/http.rs` (new), `crates/maenifold-core/src/mcp/mod.rs`
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: T-17.1
 
 ### T-17.3: CLI `--http` flag and `--port` option | RTM: FR-23
 
 Add `--http` and `--port <PORT>` CLI arguments. `--http` starts `serve_http()`. `--mcp` unchanged. Mutually exclusive flags. Default port 8080.
 
-- **Files**: `crates/maenifold-cli/src/main.rs` or `crates/maenifold-core/src/cli.rs`
-- **Status**: pending
+- **Files**: `crates/maenifold-core/src/cli.rs`
+- **Status**: complete
 - **Depends on**: T-17.2
 
 ### T-17.5: HTTP transport tests | RTM: FR-23
@@ -34,7 +34,7 @@ Add `--http` and `--port <PORT>` CLI arguments. `--http` starts `serve_http()`. 
 Integration tests: start HTTP server on random port, send MCP initialize + tool/call requests via reqwest, verify JSON-RPC responses. Test session creation and cleanup.
 
 - **Files**: `crates/maenifold-core/tests/http_transport_tests.rs` (new)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: T-17.2
 
 ---

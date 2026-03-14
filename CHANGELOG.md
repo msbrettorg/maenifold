@@ -5,6 +5,23 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 23 — Streamable HTTP Transport — 2026-03-14
+
+### Added
+- MCP Streamable HTTP transport via `maenifold --http [--port <PORT>]`
+- `serve_http(port)` using rmcp `StreamableHttpService` + axum 0.8 router
+- `LocalSessionManager` for `Mcp-Session-Id` session lifecycle
+- Permissive CORS for browser-based MCP clients
+- Graceful shutdown via `CancellationToken` + SIGINT handler
+- `--http` / `--port` CLI flags (mutually exclusive with `--mcp`, default port 8080)
+- 3 HTTP transport integration tests (initialize, session validation, tool invocation)
+- HTTP deps gated behind `http` Cargo feature flag
+
+### Requirements Completed
+- FR-23 (RTM-126–130): Streamable HTTP Transport
+
+---
+
 ## Sprint 22 — WikiLink Filter in Sync — 2026-03-13
 
 ### Added
@@ -225,5 +242,6 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 |--------|-------|
 | Tools implemented | 28/28 (zero placeholders) |
 | Tests passing | 500+ |
+| Transports | stdio + Streamable HTTP |
 | CLI parity | Matches C# oracle (27 format fixes in Sprint 15) |
-| Sprints completed | 15 (Sprints 1–3, 9–15, 20–22) |
+| Sprints completed | 16 (Sprints 1–3, 9–15, 20–23) |

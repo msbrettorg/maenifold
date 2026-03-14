@@ -8,11 +8,11 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 
 ### FR-23: Streamable HTTP Transport (`mcp/http.rs`)
 
-- □ RTM-126: `maenifold --http --port 8080` starts axum HTTP server | TC-23.1 | CLI
-- □ RTM-127: HTTP server exposes MCP Streamable HTTP endpoints (POST /mcp, GET /mcp, DELETE /mcp) | TC-23.2 | Integration
-- □ RTM-128: `maenifold --mcp` continues to start stdio server (unchanged) | TC-23.3 | CLI
-- □ RTM-129: HTTP sessions tracked via `Mcp-Session-Id` header | TC-23.4 | Integration
-- □ RTM-130: All 28 tools invokable via HTTP transport | TC-23.5 | Integration
+- ✅ RTM-126: `maenifold --http --port 8080` starts axum HTTP server | TC-23.1 | CLI
+- ✅ RTM-127: HTTP server exposes MCP Streamable HTTP endpoints (POST /mcp, GET /mcp, DELETE /mcp) | TC-23.2 | Integration
+- ✅ RTM-128: `maenifold --mcp` continues to start stdio server (unchanged) | TC-23.3 | CLI
+- ✅ RTM-129: HTTP sessions tracked via `Mcp-Session-Id` header | TC-23.4 | Integration
+- ✅ RTM-130: All 28 tools invokable via HTTP transport | TC-23.5 | Integration
 
 ### FR-31: OpenCode Plugin Runtime Config Helper (`assets/integrations/opencode/plugins/`)
 

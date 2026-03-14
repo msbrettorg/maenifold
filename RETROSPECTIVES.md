@@ -1,5 +1,47 @@
 # Sprint Retrospectives — maenifold-rs
 
+## Sprint 23 — Streamable HTTP Transport — 2026-03-14
+
+### What we delivered
+- **T-17.1**: rmcp `transport-streamable-http-server` feature + axum 0.8, tower-http, tokio-util deps (gated behind `http` feature flag)
+- **T-17.2**: `MaenifoldMcpServer::serve_http(port)` — StreamableHttpService + axum router, LocalSessionManager, CancellationToken graceful shutdown, permissive CORS
+- **T-17.3**: CLI `--http` / `--port <PORT>` flags with mutual exclusion, default port 8080, usage string updated
+- **T-17.5**: 3 HTTP transport integration tests — initialize + session endpoints, session ID validation, tool invocation + 28-tool count assertion
+
+### Test results
+- HTTP transport tests: **3 passed, 0 failed**
+- Full workspace: 1 pre-existing failure (`find_similar_concepts_cli_returns_ranked_text_after_sync`)
+- Clippy: 3 pre-existing warnings in graph/support.rs, assets/manager.rs, assets/support.rs
+
+### What worked
+- Researcher agents (3 parallel) completed crate research + codebase audit + plugin analysis in ~5 min
+- SWE pipeline: T-17.1 → T-17.2 → T-17.3 ∥ T-17.5 — dependency chain respected, T-17.3 and T-17.5 ran in parallel
+- Red-team (Sonnet 4.6) caught two real issues: double `initialize_runtime` and RTM-130 test coverage gap
+- Remediation was surgical (2 changes, 1 commit) and passed re-audit on first attempt
+- rmcp's `StreamableHttpService` factory closure pattern mapped cleanly to existing `MaenifoldHandler`
+
+### What didn't work
+- T-17.5 SWE agent took 481s (8 min) — well over 3-min ceiling; test authoring with SSE parsing is complex
+- Remediation SWE (agent-10) took 1337s (22 min) — anomalous, likely environmental; the fix was 2 lines
+- Blue-team found pre-existing clippy/test failures — need to address in a maintenance sprint
+- T-24.1 (OpenCode plugin) has 10 pre-existing test failures in persistence.test.ts compaction rendering — config helper itself is solid but AC-7 (all tests pass) is not met
+
+### Red-team findings
+- **F-01 (MEDIUM)**: Double `initialize_runtime` in HTTP path — fixed
+- **F-02 (HIGH)**: RTM-130 test gap (only 1/28 tools tested) — fixed with count assertion
+- **F-03 (LOW)**: Port TOCTOU race in test helper — deferred (non-blocking)
+- **F-04 (LOW)**: 127.0.0.1 hardcoded bind — deferred (secure-by-default, reverse proxy for hosted)
+- **F-07 (LOW)**: CORS permissive safety depends on localhost bind — needs documentation
+
+### Action items
+1. Fix pre-existing clippy warnings in graph/support.rs, assets/manager.rs, assets/support.rs
+2. Investigate `find_similar_concepts_cli_returns_ranked_text_after_sync` test failure
+3. Add `--bind` flag for hosted deployment (F-04) — future sprint
+4. Fix persistence.test.ts compaction rendering failures (T-24.1 AC-7)
+5. Keep agent tasks under 3 min — T-17.5 and remediation exceeded ceiling significantly
+
+---
+
 ## Sprint 22 — WikiLink Filter in Sync — 2026-03-13
 
 ### What we delivered

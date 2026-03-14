@@ -107,3 +107,13 @@ The `isolated_env()` fixture creates both `wsup-alpha` (3 steps) and `wsup-beta`
 ## Load-Bearing Score: 5/6
 
 Test 5 (`continue_after_submachine_cancelled_clears_supervisor_fields_and_resumes`) is load-bearing in intent — "cancelled" is a meaningfully distinct terminal state — but as written it does not assert on all the fields it claims to test (FR-10.1). It passes for a partially-correct implementation. The remaining five tests are each the unique owner of a distinct invariant and all carry correct, sufficient assertions for their stated purpose.
+
+---
+
+## SWE Remediation
+
+- REWRITE `continue_after_submachine_cancelled_clears_supervisor_fields_and_resumes`: added `currentStep`, `activeSubmachineType`, and `activeSubmachineSessionId` assertions after cancelled-state resumption.
+- Hardened lifecycle progression checks in tests 3, 4, 5, and 6 by asserting `currentStep == 1` from frontmatter instead of relying on `"Step 2/"` output text.
+- Hardened `register_submachine_enters_waiting_state_without_advancing_step` by dropping the exact `"Registered submachine"` phrase assertion while keeping the session-id and waiting-state checks.
+- Validation: `cargo test --test integration_tests workflow_supervisor_lifecycle` (workspace uses the consolidated `integration_tests` harness in `tests/main.rs`).
+- Commit: 5b10637

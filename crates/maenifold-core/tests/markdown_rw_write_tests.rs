@@ -1,11 +1,22 @@
 #[path = "markdown_rw_support/mod.rs"]
 mod markdown_rw_support;
 
+use chrono::DateTime;
 use maenifold_core::markdown::{Frontmatter, append_h2_section, read_markdown, write_markdown};
 use markdown_rw_support::{TEST_MUTEX, isolated_env, memory_uri, scalar};
 use serde_yaml::Value as YamlValue;
 use std::thread;
 use std::time::Duration;
+
+// T-12.7.1: RTM NFR-1 — Helper: assert a frontmatter value is a valid RFC 3339 timestamp.
+fn assert_valid_rfc3339(frontmatter: &Frontmatter, key: &str) -> String {
+    let value = scalar(frontmatter, key)
+        .unwrap_or_else(|| panic!("frontmatter key '{key}' must be present"));
+    assert!(!value.is_empty(), "'{key}' timestamp must be non-empty");
+    DateTime::parse_from_rfc3339(&value)
+        .unwrap_or_else(|e| panic!("'{key}' value '{value}' is not valid RFC 3339: {e}"));
+    value
+}
 
 // T-12.7.1: RTM NFR-1 — Split markdown write/append regressions by mutation behavior.
 
@@ -19,8 +30,10 @@ fn write_markdown_null_frontmatter_creates_envelope_with_created_and_modified() 
 
     let (frontmatter, _, _) = read_markdown(&uri, &env.cfg).expect("read markdown");
     let frontmatter = frontmatter.expect("frontmatter");
-    assert!(frontmatter.contains_key("created"));
-    assert!(frontmatter.contains_key("modified"));
+    // T-12.7.1: RTM NFR-1 — Assert timestamps are valid RFC 3339, not just present.
+    let created = assert_valid_rfc3339(&frontmatter, "created");
+    let modified = assert_valid_rfc3339(&frontmatter, "modified");
+    assert!(created <= modified, "created ({created}) must be <= modified ({modified})");
 }
 
 #[test]
@@ -43,10 +56,11 @@ fn write_markdown_existing_created_preserves_created_and_updates_modified() {
         scalar(&read_frontmatter, "created").as_deref(),
         Some(original_created)
     );
-    assert!(read_frontmatter.contains_key("modified"));
-    assert_ne!(
-        scalar(&read_frontmatter, "modified").as_deref(),
-        Some(original_created)
+    // T-12.7.1: RTM NFR-1 — Assert modified is a valid timestamp and > original_created.
+    let modified = assert_valid_rfc3339(&read_frontmatter, "modified");
+    assert!(
+        modified.as_str() > original_created,
+        "modified ({modified}) must be > original created ({original_created})"
     );
 }
 
@@ -65,8 +79,15 @@ fn write_markdown_missing_created_adds_created_and_sets_modified() {
 
     let (read_frontmatter, _, _) = read_markdown(&uri, &env.cfg).expect("read");
     let read_frontmatter = read_frontmatter.expect("frontmatter");
-    assert!(read_frontmatter.contains_key("created"));
-    assert!(read_frontmatter.contains_key("modified"));
+    // T-12.7.1: RTM NFR-1 — Assert timestamps are valid RFC 3339, not just present.
+    let created = assert_valid_rfc3339(&read_frontmatter, "created");
+    let modified = assert_valid_rfc3339(&read_frontmatter, "modified");
+    assert!(created <= modified, "created ({created}) must be <= modified ({modified})");
+    // Verify custom frontmatter key is preserved alongside timestamps.
+    assert_eq!(
+        scalar(&read_frontmatter, "title").as_deref(),
+        Some("My Note")
+    );
 }
 
 #[test]
@@ -141,18 +162,22 @@ fn append_h2_section_existing_file_updates_modified() {
 
     write_markdown(&uri, Some(&frontmatter), "# Test\n\nContent", &env.cfg).expect("write");
     let (before_frontmatter, _, _) = read_markdown(&uri, &env.cfg).expect("read before");
-    let before_modified = scalar(&before_frontmatter.expect("frontmatter"), "modified")
-        .expect("modified before append");
+    let before_modified = assert_valid_rfc3339(
+        &before_frontmatter.expect("frontmatter"),
+        "modified",
+    );
 
-    thread::sleep(Duration::from_millis(10));
+    // T-12.7.1: RTM NFR-1 — Sleep ≥ 50ms to avoid timestamp collision on low-resolution clocks.
+    thread::sleep(Duration::from_millis(50));
     append_h2_section(&uri, "New Section", "New content", &env.cfg).expect("append section");
 
     let (after_frontmatter, _, _) = read_markdown(&uri, &env.cfg).expect("read after");
     let after_frontmatter = after_frontmatter.expect("frontmatter");
-    assert!(after_frontmatter.contains_key("modified"));
-    assert_ne!(
-        scalar(&after_frontmatter, "modified").expect("modified after append"),
-        before_modified
+    let after_modified = assert_valid_rfc3339(&after_frontmatter, "modified");
+    // Lexicographic comparison is valid for RFC 3339 — asserts the timestamp advanced.
+    assert!(
+        after_modified > before_modified,
+        "modified after append ({after_modified}) must be > modified before ({before_modified})"
     );
 }
 
@@ -230,7 +255,11 @@ fn append_h2_section_non_existent_file_creates_file_with_envelope() {
 
     let (frontmatter, content, _) = read_markdown(&uri, &env.cfg).expect("read");
     let frontmatter = frontmatter.expect("frontmatter");
-    assert!(frontmatter.contains_key("created"));
-    assert!(frontmatter.contains_key("modified"));
-    assert!(content.contains("## First Section"));
+    // T-12.7.1: RTM NFR-1 — Assert timestamps are valid RFC 3339, not just present.
+    let created = assert_valid_rfc3339(&frontmatter, "created");
+    let modified = assert_valid_rfc3339(&frontmatter, "modified");
+    assert!(created <= modified, "created ({created}) must be <= modified ({modified})");
+    // Assert section heading and content appear in the body.
+    assert!(content.contains("## First Section"), "body must contain section heading");
+    assert!(content.contains("First content"), "body must contain section content");
 }

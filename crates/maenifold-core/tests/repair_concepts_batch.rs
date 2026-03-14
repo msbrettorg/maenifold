@@ -6,7 +6,7 @@ use serde_json::json;
 
 // T-3.2: RTM FR-6
 #[test]
-fn repair_concepts_can_replace_multiple_variants_in_one_operation() {
+fn repair_concepts_replaces_all_listed_variants_in_single_file() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
@@ -90,56 +90,36 @@ fn repair_concepts_modifies_multiple_files_in_a_single_batch() {
 }
 
 // T-3.2: RTM FR-6
+// Merged: empty and whitespace-only files follow the same code path —
+// both produce zero regex matches and are skipped at replacement_count == 0.
 #[test]
-fn repair_concepts_handles_empty_files_gracefully() {
+fn repair_concepts_handles_empty_and_whitespace_only_files_gracefully() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
-    let (_tmp, cfg) = isolated_config();
-    let path = "repair/empty-file.md";
-    write_memory_fixture(&cfg, path, "");
 
-    let output = invoke_repair_concepts(json!({
-        "conceptsToReplace": "tool",
-        "canonicalConcept": "testing-tool",
-        "dryRun": false,
-        "minSemanticSimilarity": 0.0
-    }));
+    for (label, content) in [("empty", ""), ("whitespace-only", "   \n\n   \t\n")] {
+        let (_tmp, cfg) = isolated_config();
+        let path = format!("repair/{label}-file.md");
+        write_memory_fixture(&cfg, &path, content);
 
-    assert_eq!(
-        read_memory_fixture(&cfg, path),
-        "",
-        "empty file should remain empty"
-    );
-    assert!(
-        output.contains("Files modified: 0"),
-        "empty file should not produce modifications: {output}"
-    );
-}
+        let output = invoke_repair_concepts(json!({
+            "conceptsToReplace": "tool",
+            "canonicalConcept": "testing-tool",
+            "dryRun": false,
+            "minSemanticSimilarity": 0.0
+        }));
 
-// T-3.2: RTM FR-6
-#[test]
-fn repair_concepts_handles_whitespace_only_files_gracefully() {
-    let _guard = TEST_MUTEX.lock();
-    let _reset = ConfigOverrideReset;
-    let (_tmp, cfg) = isolated_config();
-    let path = "repair/whitespace-file.md";
-    write_memory_fixture(&cfg, path, "   \n\n   \t\n");
-
-    let output = invoke_repair_concepts(json!({
-        "conceptsToReplace": "tool",
-        "canonicalConcept": "automation-tool",
-        "dryRun": false,
-        "minSemanticSimilarity": 0.0
-    }));
-
-    assert!(
-        read_memory_fixture(&cfg, path).trim().is_empty(),
-        "whitespace-only file should remain whitespace-only"
-    );
-    assert!(
-        output.contains("Files modified: 0"),
-        "whitespace-only file should not be modified: {output}"
-    );
+        let after = read_memory_fixture(&cfg, &path);
+        assert_eq!(
+            after.trim(),
+            content.trim(),
+            "{label} file content should remain unchanged"
+        );
+        assert!(
+            output.contains("Files modified: 0"),
+            "{label} file should not produce modifications: {output}"
+        );
+    }
 }
 
 // T-3.2: RTM FR-6
@@ -240,5 +220,51 @@ fn repair_concepts_scans_nested_folder_depths() {
     assert!(
         output.contains("Files modified: 3"),
         "nested folder scan should report all three modified files: {output}"
+    );
+}
+
+// T-3.2: RTM FR-6
+#[test]
+fn repair_concepts_dry_run_reports_counts_without_modifying_files() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let content1 = "# File 1\n\n[[agent]] and more content\n";
+    let content2 = "# File 2\n\n[[agent]] in different file\n";
+    let content3 = "# File 3\n\nNo matching concepts here\n";
+    write_memory_fixture(&cfg, "repair/dry-file1.md", content1);
+    write_memory_fixture(&cfg, "repair/dry-file2.md", content2);
+    write_memory_fixture(&cfg, "repair/dry-file3.md", content3);
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "agent",
+        "canonicalConcept": "ai-agent",
+        "folder": "repair",
+        "dryRun": true,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    assert_eq!(
+        read_memory_fixture(&cfg, "repair/dry-file1.md"),
+        content1,
+        "dry-run should not modify first file"
+    );
+    assert_eq!(
+        read_memory_fixture(&cfg, "repair/dry-file2.md"),
+        content2,
+        "dry-run should not modify second file"
+    );
+    assert_eq!(
+        read_memory_fixture(&cfg, "repair/dry-file3.md"),
+        content3,
+        "dry-run should not modify third file"
+    );
+    assert!(
+        output.contains("Total replacements: 2"),
+        "dry-run should still report replacement count: {output}"
+    );
+    assert!(
+        output.contains("DRY RUN"),
+        "output should indicate dry-run mode: {output}"
     );
 }

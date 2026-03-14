@@ -142,4 +142,4 @@ The tests correctly carry `// T-1.4a: RTM FR-1` attribution (T-1.4a is archived 
 - ADD `adopt_malformed_asset_json_does_not_panic` (R5): new resilience test for invalid-JSON asset files. Documents current pass-through behavior (tool returns Ok with raw content rather than Err); asserts no panic in either path.
 - Final test count: 7 (was 7; 3 removed by MERGE, 1 added by MERGE, 2 added by R4/R5)
 - Load-bearing score: 7/7 (was 4/7)
-- Commit: 91a7205
+- Commit: a66e608

@@ -229,3 +229,4 @@ The gaps (directory creation, graceful no-op) belong in this file and should be 
 - R-4 (rename): skipped — cosmetic, test marked KEEP
 - R-5 (documentation): applied — added module-level comment documenting live-assets-write side effect and mutex rationale
 - All 4 tests pass: `cargo test --test integration_tests -p maenifold-core -- asset_manager_initialize::`
+- Commit: 62c79cb

@@ -83,3 +83,17 @@ Several test names encode return type in a Rust-specific way (`_returns_null` fo
 ## Load-Bearing Score: 19/21
 
 Tests 19 and 20 are load-bearing in theory but are fully subsumed by tests 18 and 21 respectively. Removing them would not allow any realistic bug to ship undetected. The remaining 19 are all genuinely load-bearing against specific regressions in the implementation.
+
+---
+
+## SWE Remediation
+
+- KEEP tests 1–5, 11–13, 18: untouched (URI boundary, happy-path, case-insensitivity)
+- MERGE tests 6–9 → `validate_update_input_delegates_status_validation_to_status_validator`: single delegation probe with "active" (Rec #1)
+- MERGE test 10 → `validate_update_input_propagates_status_validation_error`: reduced to `is_some()` delegation check
+- MERGE tests 14–17 → `validate_status_accepts_all_valid_values`: for-loop parameterized with per-value failure message (Rec #2)
+- REMOVE test 19 (`validate_status_validated_upper_case_returns_null`): subsumed by test 18 (Rec #3)
+- MERGE+REWRITE tests 20+21 → `validate_status_rejects_unknown_value_with_actionable_error_listing_all_valid_values`: chained assertions for ERROR: prefix, "Invalid status", and all four valid values (Rec #4)
+- ADD `validate_status_rejects_empty_string`: edge case for empty-string status (Rec #5)
+- Test count: 21 → 14, all passing, 0 coverage loss
+- Commit: 314d883

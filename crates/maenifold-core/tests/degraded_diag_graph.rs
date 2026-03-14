@@ -52,8 +52,10 @@ fn build_context_emits_degraded_on_unreadable_file() {
         .as_array()
         .expect("direct relations");
     assert!(
-        !direct.is_empty(),
-        "direct relations should still be populated: {output}"
+        direct
+            .iter()
+            .any(|r| r["Name"].as_str() == Some("ctx-b")),
+        "DirectRelations must contain ctx-b despite content-read failure: {output}"
     );
     assert!(
         stderr.contains("[DEGRADED][GraphTools][BuildContext]"),
@@ -62,8 +64,14 @@ fn build_context_emits_degraded_on_unreadable_file() {
 }
 
 // T-0.1: RTM FR-25.2 ports FR25_2_AC3_EnrichWithCommunityData_EmitsDegradedOnMissingTable.
+//
+// Scenario: concept_communities is recreated with only (concept_name, detected_at),
+// deliberately omitting community_id, modularity, and resolution. When
+// GraphDatabase::initialize_database detects the incompatible schema it returns an
+// error containing "concept_communities" or "community_id", which build_context
+// catches and emits as a [DEGRADED] diagnostic rather than aborting.
 #[test]
-fn enrich_with_community_data_emits_degraded_on_missing_table() {
+fn enrich_with_community_data_emits_degraded_on_incompatible_schema() {
     let _guard = TEST_MUTEX.lock();
     let env = TestEnv::setup();
     let conn = open_connection(&env);
@@ -82,6 +90,9 @@ fn enrich_with_community_data_emits_degraded_on_missing_table() {
         params!["community-a", "community-b", 5_i64, r#"{"memory://community-a": 1.0}"#],
     )
     .expect("insert edge");
+    // Recreate concept_communities with an intentionally incomplete schema.
+    // The production table requires community_id INTEGER, modularity REAL, and
+    // resolution REAL — all omitted here to trigger schema-validation failure.
     conn.execute_batch(
         "DROP TABLE concept_communities;
          CREATE TABLE concept_communities (
@@ -102,6 +113,13 @@ fn enrich_with_community_data_emits_degraded_on_missing_table() {
     let output = result.expect("BuildContext must degrade gracefully");
     let parsed: Value = serde_json::from_str(&output).expect("parse json");
     assert_eq!(parsed["data"]["ConceptName"], "community-a");
+    let direct = parsed["data"]["DirectRelations"]
+        .as_array()
+        .expect("DirectRelations must be present");
+    assert!(
+        !direct.is_empty(),
+        "graph relations must survive community schema failure: {output}"
+    );
     assert!(
         stderr.contains("[DEGRADED][GraphTools][EnrichWithCommunityData]"),
         "expected degraded diagnostic, got: {stderr}"
@@ -109,6 +127,10 @@ fn enrich_with_community_data_emits_degraded_on_missing_table() {
 }
 
 // T-0.1: RTM FR-25.2 ports FR25_2_AC3_PayloadReader_EmitsDegradedOnMalformedJsonString.
+// Note: get_string_array silently returns None for non-string/non-array inputs (null,
+// number, bool, object) without emitting a diagnostic — that is intentional C# oracle
+// parity. Only the Value::String arm emits [DEGRADED] when the string cannot be
+// deserialized as Vec<String>.
 #[test]
 fn payload_reader_emits_degraded_on_malformed_json_string() {
     let _guard = TEST_MUTEX.lock();

@@ -312,3 +312,14 @@ Tests with correct, non-vacuous assertions that would catch the regression they 
 
 **3 of 5 tests would reliably catch the regression they describe. 2 of 5 would silently pass in the
 presence of the specific bug they are meant to prevent.**
+
+---
+## SWE Remediation
+- MERGE test 1 (`process_file_created_with_wikilinks_inserts_concept_mentions_into_db`): retained with entry-point justification comment explaining distinction from unification suite (P1-3)
+- REWRITE test 2 (`process_file_changed_with_new_content_adds_mention_for_new_concept_and_updates_file_content`): added `concept_a = None` assertion after content update to catch append-vs-reconcile regressions (P0-1)
+- KEEP test 3 (`process_file_deleted_after_create_removes_file_content_and_mentions_from_db`): unchanged
+- KEEP+rename test 4: `watcher_processing_only_indexes_nested_markdown_paths` → `watcher_processing_ignores_non_markdown_files_in_batch`; added `.json` variant to confirm filter breadth (P1-4, P1-5)
+- REWRITE test 5 (`debounce_rapid_changes_to_same_path_coalesces_into_final_processing`): index `concept_v1` first, backdate `last_indexed`, then apply rapid overwrites — `concept_v1 = None` assertion is now meaningful (P0-2)
+- P2-6 (sync-call-count assertion) skipped: requires production code changes (test-only atomic counter)
+- All 5 tests pass: `cargo test --test integration_tests -p maenifold-core -- incremental_sync_tools_processing`
+- Commit: 2a37b9d

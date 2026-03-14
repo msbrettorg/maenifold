@@ -122,3 +122,15 @@ Of the five distinct assertions across the two tests:
 - `!table_exists(&conn, "vec_concepts")` and `!table_exists(&conn, "vec_memory_files")` — **load-bearing** (negative assertions, correct but mislabeled)
 
 3 of 5 assertions carry genuine defect-detection power. The two padding assertions in Test 1 provide false confidence by exercising a manual-insert/read loop instead of the production write path. Both tests have REWRITE verdicts: the assertions they contain are salvageable, but the framing, causation documentation, and coverage scope all need rework.
+
+---
+## SWE Remediation
+- REWRITE `t9_6_model_metadata_table_created_and_readable` → split into 3 focused tests:
+  - `t9_6_model_metadata_table_created_after_init`: pure schema assertion (RTM-057)
+  - `t9_6_get_model_metadata_returns_none_for_missing_key`: validates None-return for absent keys, tests critical fallback path in ensure_vec0_tables (RTM-057)
+  - `t9_6_ensure_vec0_tables_writes_embedding_dimensions_metadata`: exercises production upsert path, asserts DEFAULT_EMBEDDING_DIMENSIONS persisted (RTM-057) — requires vec0 extension
+- REWRITE `t9_6_no_model_db_setup_skips_vec0_tables_without_crashing` → renamed to `t9_6_vec0_tables_skipped_when_extension_unavailable`: removed redundant `hide_packaged_model()` call, fixed causation comment to correctly attribute vec0 skip to missing extension binary in isolated temp-dir (RTM-060)
+- ADD `t9_6_vec0_tables_created_when_extension_available`: positive counterpart asserting both vec_concepts and vec_memory_files are created when vec0 extension is present (RTM-059)
+- Removed manual INSERT padding assertions (SQLite round-trip tests), replaced with production-path coverage
+- Test count: 2 → 5; all 5 pass
+- Commit: 9e46737

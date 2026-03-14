@@ -170,3 +170,12 @@ assert!(
 | `new_session_with_parent_workflow_id_creates_bidirectional_links` | ✅ | Sole bidirectional cross-session link happy-path test |
 
 **Summary**: 4 tests earn their place. Test 2 technically covers a unique code path (single-shot completion) but is written so weakly that it could survive any number of regressions without detecting them. Its value is nominal until rewritten with file-level assertions.
+
+---
+## SWE Remediation
+- REWRITE `new_session_with_concepts_in_response_passes_validation` → `single_thought_session_with_conclusion_completes_immediately`: renamed to describe the scenario; added file-level assertions verifying status=completed, thoughtCount=1, completed timestamp present, conclusion content and WikiLinks in persisted file
+- KEEP test 1 (`new_session_with_concepts_creates_session_file`): added `!frontmatter.contains_key("completed")` and `!frontmatter.contains_key("cancelled")` absence assertions per P0. Skipped `thoughtCount == "1"` — implementation does not set thoughtCount on initial creation (only on completion)
+- KEEP test 3 (`new_session_without_concepts_fails_validation`): added side-effect assertion via `std::fs::read_dir` confirming no session files created on validation failure
+- KEEP test 4 (`continue_session_with_valid_session_id_appends_thought`): added `content.contains("Final synthesis with [[concept-synthesis]]")` verifying conclusion text persisted
+- KEEP test 5 (`new_session_with_parent_workflow_id_creates_bidirectional_links`): added assertion messages for debugging; kept substring matching (parent/related values are WikiLink-formatted, not raw IDs — exact match would be incorrect)
+- Commit: 0ad5145

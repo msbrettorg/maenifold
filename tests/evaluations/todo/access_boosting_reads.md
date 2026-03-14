@@ -256,4 +256,4 @@ phantom traceability IDs — not the tests themselves.
 - KEEP `read_memory_updates_last_accessed_on_subsequent_reads`: annotated only per verdict
 - KEEP `read_memory_by_title_updates_last_accessed`: unchanged per verdict
 - Tests: 5 passed, 0 failed (3 original + 2 new)
-- Commit: (see git log)
+- Commit: 7ba746f

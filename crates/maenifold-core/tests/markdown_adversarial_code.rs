@@ -1,101 +1,14 @@
-use maenifold_core::markdown::{extract_wikilinks, normalize_concept};
-use pulldown_cmark::{Event, LinkType, Options, Parser, Tag, TagEnd};
+use maenifold_core::markdown::extract_wikilinks;
 
-// T-2.3: RTM FR-4 / T-W1-3: RTM NFR-2 — Split adversarial MarkdownReader code-path coverage.
-fn count_concept_occurrences(content: &str, concept: &str) -> usize {
-    let target = normalize_concept(concept);
-    let mut count = 0usize;
-    let mut visible = String::with_capacity(content.len());
-    let mut code_block_depth = 0usize;
+// T-2.3: RTM FR-4 / NFR-2 — Adversarial code fence / inline code extraction coverage.
+// Every test follows the pattern: (a) positive assertion for extracted wikilinks,
+// (b) negative assertion for suppressed wikilinks, (c) count to catch phantom extractions.
 
-    for event in Parser::new_ext(content, Options::all()) {
-        match event {
-            Event::Start(Tag::CodeBlock(_)) => code_block_depth += 1,
-            Event::End(TagEnd::CodeBlock) => code_block_depth = code_block_depth.saturating_sub(1),
-            Event::Start(Tag::Link {
-                link_type: LinkType::WikiLink { .. },
-                dest_url,
-                ..
-            }) => {
-                if code_block_depth == 0 && normalize_concept(dest_url.as_ref()) == target {
-                    count += 1;
-                }
-            }
-            Event::Code(_) => {}
-            Event::Text(text) | Event::InlineMath(text) | Event::DisplayMath(text) => {
-                if code_block_depth == 0 {
-                    visible.push_str(&text);
-                }
-            }
-            Event::SoftBreak | Event::HardBreak => {
-                if code_block_depth == 0 {
-                    visible.push('\n');
-                }
-            }
-            _ => {}
-        }
-    }
-
-    count + count_regex_wikilinks(&visible, &target)
-}
-
-// T-2.3: RTM FR-4 — Mirrors markdown regex fallback behavior used by the production reader.
-fn count_regex_wikilinks(content: &str, target: &str) -> usize {
-    let bytes = content.as_bytes();
-    let mut count = 0usize;
-    let mut index = 0usize;
-
-    while index + 3 < bytes.len() {
-        if bytes[index] != b'[' || bytes[index + 1] != b'[' {
-            index += 1;
-            continue;
-        }
-
-        if index > 0 && bytes[index - 1] == b'[' {
-            index += 1;
-            continue;
-        }
-
-        let mut cursor = index + 2;
-        let mut closing = None;
-        let mut invalid = false;
-
-        while cursor + 1 < bytes.len() {
-            match (bytes[cursor], bytes[cursor + 1]) {
-                (b']', b']') => {
-                    closing = Some(cursor);
-                    break;
-                }
-                (b'[', _) | (b']', _) => {
-                    invalid = true;
-                    break;
-                }
-                _ => cursor += 1,
-            }
-        }
-
-        let Some(end) = closing else {
-            index += 2;
-            continue;
-        };
-
-        if invalid || (end + 2 < bytes.len() && bytes[end + 2] == b']') {
-            index = end + 2;
-            continue;
-        }
-
-        if normalize_concept(&content[index + 2..end]) == target {
-            count += 1;
-        }
-        index = end + 2;
-    }
-
-    count
-}
-
-// T-2.3: RTM FR-4 — Adversarial code fence extraction coverage.
+// T-2.3: RTM FR-4 — Wikilink appearing between two adjacent code fences (outside any block)
+// is correctly extracted. The first fence opens and closes a block containing
+// [[should-skip-outer]]. The text between the two fences is normal markdown.
 #[test]
-fn extract_wikilinks_nested_code_blocks_outer_only() {
+fn extract_wikilinks_between_adjacent_code_fences_is_extracted() {
     let content = r#"
 Valid [[markdown-parsing]].
 
@@ -113,12 +26,16 @@ Valid [[code-fence]]."#;
     assert!(concepts.contains(&"markdown-parsing".to_string()));
     assert!(concepts.contains(&"code-fence".to_string()));
     assert!(!concepts.contains(&"should-skip-outer".to_string()));
+    // should-skip-inner appears between two fences (outside any code block), so it IS extracted.
     assert!(concepts.contains(&"should-skip-inner".to_string()));
     assert_eq!(concepts.len(), 3);
 }
 
+// T-2.3: RTM FR-4 — A ```bash info-string line inside an open code block does NOT close
+// the fence early. The outer ``` opens a block; the ```bash line is just content.
+// The block extends until the next standalone ```.
 #[test]
-fn extract_wikilinks_triple_backtick_inside_triple_backtick() {
+fn extract_wikilinks_code_block_with_info_string_suppresses_wikilinks() {
     let content = r#"
 Valid [[security-testing]].
 
@@ -140,26 +57,28 @@ Another [[valid-concept]]."#;
     assert_eq!(concepts.len(), 1);
 }
 
+// T-2.3: RTM FR-4 — A backslash before a backtick (\`) does not create a code span.
+// Wikilinks both inside and adjacent to \`...\` regions are extracted normally.
 #[test]
-fn extract_wikilinks_escaped_backticks() {
-    let content = r"Normal [[regex-pattern]] and \`[[escaped-attack]]\` text.";
+fn extract_wikilinks_backslash_before_backtick_does_not_suppress() {
+    // Case 1: wikilink inside \`...\` span — still extracted
+    let content_inside = r"Normal [[regex-pattern]] and \`[[escaped-attack]]\` text.";
+    let concepts_inside = extract_wikilinks(content_inside);
 
-    let concepts = extract_wikilinks(content);
+    assert!(concepts_inside.contains(&"regex-pattern".to_string()));
+    assert!(concepts_inside.contains(&"escaped-attack".to_string()));
+    assert_eq!(concepts_inside.len(), 2);
 
-    assert!(concepts.contains(&"regex-pattern".to_string()));
-    assert!(concepts.contains(&"escaped-attack".to_string()));
+    // Case 2: wikilink after \`...\` span — still extracted
+    let content_after = r"Normal [[string-escaping]] and \`code\` with [[potential-escape]].";
+    let concepts_after = extract_wikilinks(content_after);
+
+    assert!(concepts_after.contains(&"string-escaping".to_string()));
+    assert!(concepts_after.contains(&"potential-escape".to_string()));
+    assert_eq!(concepts_after.len(), 2);
 }
 
-#[test]
-fn extract_wikilinks_backslash_before_backtick() {
-    let content = r"Normal [[string-escaping]] and \`code\` with [[potential-escape]].";
-
-    let concepts = extract_wikilinks(content);
-
-    assert!(concepts.contains(&"string-escaping".to_string()));
-    assert!(concepts.contains(&"potential-escape".to_string()));
-}
-
+// T-2.3: RTM FR-4 — KEEP: inline code AND fenced code block suppression combined.
 #[test]
 fn extract_wikilinks_inline_code_followed_by_code_block() {
     let content = r#"
@@ -180,6 +99,7 @@ Final [[another-real]]."#;
     assert_eq!(concepts.len(), 2);
 }
 
+// T-2.3: RTM FR-4 — KEEP: multiple inline code spans don't leak state.
 #[test]
 fn extract_wikilinks_multiple_inline_codes_in_same_paragraph() {
     let content = r"Text `[[skip1]]` more `[[skip2]]` and `[[skip3]]` but [[real]] here.";
@@ -193,6 +113,9 @@ fn extract_wikilinks_multiple_inline_codes_in_same_paragraph() {
     assert_eq!(concepts.len(), 1);
 }
 
+// T-2.3: RTM FR-4 — HTML <code> elements. pulldown-cmark treats inline <code> tags as raw
+// HTML, not as code spans, so wikilinks inside them are NOT suppressed by the parser.
+// This test documents the actual extraction behavior: both wikilinks are extracted.
 #[test]
 fn extract_wikilinks_html_code_elements() {
     let content = r"Normal [[html-parsing]] and <code>[[html-attack]]</code> text.";
@@ -200,8 +123,14 @@ fn extract_wikilinks_html_code_elements() {
     let concepts = extract_wikilinks(content);
 
     assert!(concepts.contains(&"html-parsing".to_string()));
+    // NOTE: <code> HTML tags do not suppress wikilink extraction — pulldown-cmark
+    // does not treat raw HTML <code> as a code span. Both wikilinks are extracted.
+    assert!(concepts.contains(&"html-attack".to_string()));
+    assert_eq!(concepts.len(), 2);
 }
 
+// T-2.3: RTM FR-4 — HTML <pre> elements suppress wikilink extraction. pulldown-cmark
+// treats <pre> blocks as HTML blocks, suppressing wikilink parsing inside them.
 #[test]
 fn extract_wikilinks_html_pre_elements() {
     let content = r#"
@@ -217,8 +146,11 @@ Another [[valid]]."#;
 
     assert!(concepts.contains(&"preformatted-text".to_string()));
     assert!(concepts.contains(&"valid".to_string()));
+    assert!(!concepts.contains(&"pre-attack".to_string()));
+    assert_eq!(concepts.len(), 2);
 }
 
+// T-2.3: RTM FR-4 — KEEP: double-backtick code spans.
 #[test]
 fn extract_wikilinks_double_backtick_inline_code() {
     let content = r"Normal [[inline-code-handling]] and ``[[double-backtick]]`` text.";
@@ -229,6 +161,7 @@ fn extract_wikilinks_double_backtick_inline_code() {
     assert!(!concepts.contains(&"double-backtick".to_string()));
 }
 
+// T-2.3: RTM FR-4 — Tilde (~~~) fenced code blocks suppress wikilinks.
 #[test]
 fn extract_wikilinks_tilde_code_block() {
     let content = r#"
@@ -244,8 +177,13 @@ Another [[valid]]."#;
 
     assert!(concepts.contains(&"fence-syntax".to_string()));
     assert!(concepts.contains(&"valid".to_string()));
+    assert!(!concepts.contains(&"tilde-attack".to_string()));
+    assert_eq!(concepts.len(), 2);
 }
 
+// T-2.3: RTM FR-4 — Unclosed code block: everything after the opening fence is suppressed.
+// The wikilink before the fence is extracted; wikilinks inside and after the unclosed
+// fence are treated as code block content and suppressed.
 #[test]
 fn extract_wikilinks_unclosed_code_block() {
     let content = r#"
@@ -259,8 +197,12 @@ Another [[potentially-valid]]."#;
     let concepts = extract_wikilinks(content);
 
     assert!(concepts.contains(&"unclosed-fence".to_string()));
+    assert!(!concepts.contains(&"unclosed-attack".to_string()));
+    assert!(!concepts.contains(&"potentially-valid".to_string()));
+    assert_eq!(concepts.len(), 1);
 }
 
+// T-2.3: RTM FR-4 — KEEP: 5-backtick fence correctly suppresses content.
 #[test]
 fn extract_wikilinks_code_block_with_extra_backticks() {
     let content = r#"
@@ -277,12 +219,19 @@ Another [[valid]]."#;
     assert!(concepts.contains(&"fence-delimiters".to_string()));
     assert!(concepts.contains(&"valid".to_string()));
     assert!(!concepts.contains(&"extra-backtick-attack".to_string()));
+    assert_eq!(concepts.len(), 2);
 }
 
+// T-2.3: RTM FR-4 — Null byte in content does not corrupt wikilink extraction.
+// Tests extract_wikilinks directly (not a test helper) to verify production behavior.
 #[test]
-fn count_concept_occurrences_null_byte_injection() {
+fn extract_wikilinks_null_byte_in_content() {
     let content = "[[null-byte-handling]]\0[[attack]]";
 
-    let count = count_concept_occurrences(content, "null-byte-handling");
-    assert!(count >= 1);
+    let concepts = extract_wikilinks(content);
+
+    assert!(concepts.contains(&"null-byte-handling".to_string()));
+    // Null byte does not suppress subsequent wikilinks — both are extracted.
+    assert!(concepts.contains(&"attack".to_string()));
+    assert_eq!(concepts.len(), 2);
 }

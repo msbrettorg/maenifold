@@ -32,3 +32,14 @@ All eight tests are logically correct and load-bearing; none would willingly pas
 ## Load-Bearing Score: 8/8
 
 Every test would catch a real regression. The merging opportunities are a readability and maintainability concern, not a correctness concern.
+
+---
+## SWE Remediation
+- MERGE validated_status_returns_one_when_new + validated_status_returns_one_when_very_old → `validated_status_never_decays`: loop over ages [1, 90, 365, 730] with descriptive assertion messages (Rec 1)
+- MERGE validated_status_is_case_insensitive_uppercase + validated_status_is_case_insensitive_mixed_case → `validated_status_is_case_insensitive`: iterates ["VALIDATED", "Validated", "vAlIdAtEd"], uses comparison-of-two-outputs oracle against lowercase baseline with 1e-9 tolerance (Rec 2)
+- KEEP invalidated_status_within_grace_period_returns_one: unchanged
+- KEEP invalidated_status_past_grace_period_decays_aggressively: added explicit derivation comment documenting grace=7d, effective half-life=14d for invalidated, and why 7+14=21 days yields ≈0.5 (Rec 3, P0)
+- KEEP invalidated_status_is_case_insensitive: unchanged
+- KEEP invalidated_status_decays_faster_than_active: added inline comment clarifying "active" is an unrecognized status that falls through to default decay curve (Rec 4)
+- Test count: 8 → 6 (two merges, no coverage loss)
+- Commit: 2c449a7

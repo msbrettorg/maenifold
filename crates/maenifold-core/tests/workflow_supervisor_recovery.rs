@@ -27,7 +27,9 @@ fn unblock_after_completion_appends_resume_note_to_content() {
         }),
     );
     update_thinking_session_status(&env.cfg, &thinking_session_id, "completed");
-    invoke_workflow(
+    // Complements lifecycle::continue_after_submachine_completed_clears_supervisor_fields_and_resumes;
+    // focuses on the body annotation write.
+    let resume_result = invoke_workflow(
         &env.cfg,
         json!({
             "sessionId": workflow_session_id,
@@ -35,9 +37,18 @@ fn unblock_after_completion_appends_resume_note_to_content() {
         }),
     );
 
+    assert!(!resume_result.contains("waiting on submachine"));
+    assert!(!resume_result.contains("ERROR"));
+    assert!(resume_result.contains("Step 2/"));
+
+    let frontmatter = read_frontmatter(&env.cfg, &workflow_uri(&workflow_session_id));
+    assert_eq!(yaml_string(&frontmatter, "phase"), "running");
+    assert_eq!(yaml_string(&frontmatter, "activeSubmachineType"), "");
+    assert_eq!(yaml_string(&frontmatter, "activeSubmachineSessionId"), "");
+
     let content = read_body(&env.cfg, &workflow_uri(&workflow_session_id));
     assert!(content.contains("Submachine Resumed"));
-    assert!(content.contains("completed"));
+    assert!(content.contains(&format!("Submachine {} completed.", thinking_session_id)));
 }
 
 // T-W1-7: RTM FR-10.1
@@ -175,10 +186,18 @@ fn re_registration_cycle_works_across_multiple_submachines() {
         read_frontmatter(&env.cfg, &workflow_uri(&workflow_session_id));
     assert_eq!(yaml_string(&frontmatter_after_resume_a, "phase"), "running");
     assert_eq!(
+        yaml_string(&frontmatter_after_resume_a, "activeSubmachineType"),
+        ""
+    );
+    assert_eq!(
         yaml_string(&frontmatter_after_resume_a, "activeSubmachineSessionId"),
         ""
     );
     let step_after_resume_a = yaml_usize(&frontmatter_after_resume_a, "currentStep");
+    assert!(
+        step_after_resume_a > step_before_a,
+        "step should advance after A-cycle resume"
+    );
 
     let thinking_session_id_b = create_thinking_session(&env.cfg, "active");
     invoke_workflow(

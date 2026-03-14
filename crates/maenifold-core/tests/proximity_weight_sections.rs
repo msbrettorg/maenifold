@@ -208,3 +208,102 @@ fn sync_serializes_source_files_as_weight_dictionary() {
     );
     assert_approx_eq(source_files[&uri].as_f64().expect("dictionary weight"), 1.0);
 }
+
+// T-4.3: RTM FR-23.1 — R1: H3 content attributed to surrounding H2 section
+#[test]
+fn extract_wikilinks_with_sections_ignores_h3_headings() {
+    let _guard = acquire_test_lock();
+
+    let content = "# Document\n\n## Main Section\n\nIntro mentions [[top-level]].\n\n### Subsection A\n\nDeep content with [[nested-concept]] and [[another-nested]].\n\n## Second Section\n\nBack to H2 with [[second-level]].\n";
+    let concepts = extract_wikilinks_with_sections(content);
+    let lookup = concepts.into_iter().collect::<BTreeMap<_, _>>();
+
+    // H3 content should be absorbed into the surrounding H2 section (section 1)
+    assert_eq!(
+        lookup.get("top-level"),
+        Some(&1),
+        "top-level concept should be in section 1"
+    );
+    assert_eq!(
+        lookup.get("nested-concept"),
+        Some(&1),
+        "H3 nested concept should stay in parent H2 section 1"
+    );
+    assert_eq!(
+        lookup.get("another-nested"),
+        Some(&1),
+        "H3 nested concept should stay in parent H2 section 1"
+    );
+    assert_eq!(
+        lookup.get("second-level"),
+        Some(&2),
+        "second H2 section concept should be in section 2"
+    );
+}
+
+// T-4.3: RTM FR-23.1 — R2: empty and title-only content returns empty vec
+#[test]
+fn extract_wikilinks_with_sections_empty_content_returns_empty_vec() {
+    let _guard = acquire_test_lock();
+
+    let empty = extract_wikilinks_with_sections("");
+    assert!(
+        empty.is_empty(),
+        "empty string should produce empty vec, got: {empty:?}"
+    );
+
+    let title_only = extract_wikilinks_with_sections("# Title\n");
+    assert!(
+        title_only.is_empty(),
+        "title-only content with no concepts should produce empty vec, got: {title_only:?}"
+    );
+}
+
+// T-4.3: RTM FR-23.2 — R5: same pair across multiple files aggregates weights
+#[test]
+fn sync_same_pair_across_multiple_files_aggregates_source_weights() {
+    let _guard = acquire_test_lock();
+    let env = TestEnv::isolated();
+
+    let uri_a = write_memory_file(
+        &env.cfg,
+        "projects/multi-file-a.md",
+        "# File A\n\n## Identity\nLinks [[alpha]] with [[beta]] in same section.\n",
+    );
+
+    let uri_b = write_memory_file(
+        &env.cfg,
+        "projects/multi-file-b.md",
+        "# File B\n\n## First\nHas [[alpha]] here.\n\n## Second\nHas [[beta]] there.\n",
+    );
+
+    let sync = invoke_sync();
+    assert!(
+        sync.contains("Sync complete:"),
+        "unexpected sync output: {sync}"
+    );
+
+    let conn = open_db(&env.cfg);
+    let source_files = relation_source_files(&conn, "alpha", "beta");
+
+    assert!(
+        source_files.is_object(),
+        "source_files must be a json object: {source_files}"
+    );
+
+    // File A: same section → weight 1.0
+    assert_approx_eq(
+        source_files[&uri_a]
+            .as_f64()
+            .expect("file A weight should be present"),
+        1.0,
+    );
+
+    // File B: cross section → weight 0.5
+    assert_approx_eq(
+        source_files[&uri_b]
+            .as_f64()
+            .expect("file B weight should be present"),
+        0.5,
+    );
+}

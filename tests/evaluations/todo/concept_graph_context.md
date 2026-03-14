@@ -237,3 +237,14 @@ if the test names serve as oracle-lineage documentation.
 
 *References: [[BuildContext]], [[maenifold-rs]], [[test-quality]], [[C# Oracle Parity]]*
 *Traceability: T-12.7 (test mutex / NFR-1), T-1.6 (all four test bodies)*
+
+---
+## SWE Remediation
+- REWRITE concept_graph_smoke_test: replaced permissive `any(AI or DL)` OR with individual `names.contains` assertions for both `artificial-intelligence` AND `deep-learning` (R-2)
+- REWRITE build_context_without_content_test: fixed vacuous truth bug — added second WikiLink (`[[Deep Learning]]`) so `sync_graph` produces a graph edge, added `!direct.is_empty()` precondition before `all()` (R-1 HIGH)
+- REWRITE build_context_with_content_test: replaced three-way OR string matching with `total_preview_count` across all relations' `ContentPreview` maps, asserting `> 1` to verify multi-file aggregation (R-3)
+- KEEP build_context_include_content_default_test: structurally sound, no changes
+- R-4 (merge #2/#4): skipped — kept separate for C# oracle lineage documentation
+- R-5 (new boundary tests): skipped — low priority, beyond eval scope
+- All 4 tests pass: `cargo test --test integration_tests -p maenifold-core -- concept_graph_context`
+- Commit: 3c070ad

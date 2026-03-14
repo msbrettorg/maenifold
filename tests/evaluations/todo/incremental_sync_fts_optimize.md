@@ -268,3 +268,37 @@ risk. Consider adding `reset_optimize_counter()` to `ConfigOverrideReset::drop()
 **3 out of 4 tests earn their place.** The suite provides solid coverage of the core scheduling
 contract (FR-15 / T-15.21) but has a dead-weight test that wastes the reader's trust budget,
 silently accepts maintenance failures, and carries a latent env-var leak on panic.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- incremental_sync_fts_optimize`: 6 passed, 0 failed
+- SWE remediation confirmed:
+  - Test 4 (`empty_batch_does_not_increment_optimize_counter`) **rewritten**: now primes counter to 2 with real files before processing empty batch, asserts counter remains 2 — eliminates the tautology (red-team §Test 4)
+  - New test `threshold_one_triggers_optimize_on_every_sync`: boundary test for threshold=1, guards against off-by-one in `>= threshold` (red-team §Missing Coverage, row 1)
+  - New test `batch_exceeding_threshold_triggers_optimize`: batch_size=5 with threshold=3, guards against counter-arithmetic bugs on overshoot (red-team §Missing Coverage, row 2)
+  - Env var cleanup in rewritten/new tests relies on `ConfigOverrideReset` Drop guard rather than manual `remove_var`, improving panic-safety (red-team §Cross-Cutting Concern 2)
+- Verdict: PASS
+
+---
+## SWE Remediation
+
+### Verdicts Applied
+- **KEEP** test 1 (`batch_sync_triggers_fts_optimize_after_reaching_threshold`): untouched except removing manual `remove_var` (now in Drop guard)
+- **KEEP** test 2 (`single_file_below_threshold_does_not_trigger_optimize`): untouched except removing manual `remove_var`
+- **KEEP** test 3 (`accumulated_small_batches_trigger_optimize_at_threshold`): untouched except removing manual `remove_var`
+- **REWRITE** test 4 (`empty_batch_does_not_increment_optimize_counter`): primes counter to 2 via real file processing before empty batch, asserts counter stays at 2 (not the tautological 0→0)
+
+### New Tests Added
+- `threshold_one_triggers_optimize_on_every_sync`: boundary test for threshold=1 (off-by-one guard, Rec #4)
+- `batch_exceeding_threshold_triggers_optimize`: batch_size=5 > threshold=3 overshoot guard (Rec #5)
+
+### Infrastructure Improvements
+- Extended `ConfigOverrideReset::drop()` with `reset_optimize_counter()` + `remove_var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY")` for panic-safe cleanup (Rec #2, #3)
+- Removed 3x redundant manual `remove_var()` calls from KEEP tests (cleanup now panic-safe via Drop)
+
+### Test Results
+- 6/6 tests pass: `cargo test --test integration_tests -p maenifold-core -- incremental_sync_fts_optimize`
+- 5/5 sibling processing tests pass (no regression from shared support.rs change)
+- 3/3 sibling watcher tests pass (no regression from shared support.rs change)
+
+### Commit: 216adad

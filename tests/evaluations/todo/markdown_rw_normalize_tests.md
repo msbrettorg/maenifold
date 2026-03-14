@@ -85,3 +85,17 @@ The function maps `' '`, `'_'`, `'/'` but passes **all other characters through 
 ## Load-Bearing Score: 9/10
 
 9 out of 10 tests are genuinely load-bearing. The 10th (`many_consecutive_hyphens`) cannot catch any bug the 9th (`triple_hyphens`) would not catch first.
+
+---
+
+## SWE Remediation
+
+- REMOVE `normalize_concept_many_consecutive_hyphens_compresses_to_single_hyphen`: confirmed redundant with `triple_hyphens`; implementation has no count-sensitive logic
+- RENAME `normalize_concept_multiple_slashes_compresses_to_single_hyphen` → `normalize_concept_slash_and_space_mix_deduplicates_to_single_hyphen`: input is spaces AND slashes
+- RENAME `normalize_concept_leading_trailing_separators_trims_hyphens` → `normalize_concept_leading_trailing_spaces_produce_trimmed_result`: describes actual whitespace→trim path
+- RENAME `normalize_concept_single_separators_works_as_expected` → `normalize_concept_single_spaces_produce_hyphen_delimited_lowercase`: eliminates non-name
+- RENAME `normalize_concept_no_separators_works_as_expected` → `normalize_concept_no_separators_returns_lowercased_input`: eliminates non-name
+- ADD `normalize_concept_empty_input_returns_empty`: pins `""` → `""` edge case (P1)
+- ADD `normalize_concept_digits_and_passthrough_chars_preserved`: pins `"user-123"` → `"user-123"` passthrough behavior (P1)
+- Final count: 11 tests (was 10; -1 REMOVE, +2 ADD), all pass
+- Commit: dbb876d

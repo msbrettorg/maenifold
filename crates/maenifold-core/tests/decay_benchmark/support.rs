@@ -147,6 +147,20 @@ pub fn find_document_rank(search_result: &Value, title_fragment: &str) -> Option
         })
 }
 
+// T-12.7: RTM NFR-1 — find a result object by title fragment for field assertions
+pub fn find_result<'a>(search_result: &'a Value, title_fragment: &str) -> Option<&'a Value> {
+    search_result["data"]["results"]
+        .as_array()
+        .expect("results array")
+        .iter()
+        .find(|entry| {
+            entry["title"]
+                .as_str()
+                .map(|title| title.contains(title_fragment))
+                .unwrap_or(false)
+        })
+}
+
 pub fn format_rank(rank: Option<usize>) -> String {
     rank.map(|value| format!("#{}", value + 1))
         .unwrap_or_else(|| "NOT FOUND".to_string())

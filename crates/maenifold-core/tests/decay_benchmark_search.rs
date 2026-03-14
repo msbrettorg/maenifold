@@ -3,13 +3,16 @@
 mod decay_benchmark_support;
 
 use decay_benchmark_support::{
-    TEST_FOLDER, TEST_MUTEX, create_test_file_with_age, find_document_rank, format_rank,
-    isolated_env, search_memories_json, sync_graph,
+    TEST_FOLDER, TEST_MUTEX, create_test_file_with_age, find_document_rank, find_result,
+    format_rank, isolated_env, search_memories_json, sync_graph,
 };
 
 // T-12.7: RTM NFR-1
+/// Verifies that a recent decision document outranks stale research notes in
+/// hybrid search, and that the decay mechanism is actively suppressing old
+/// content — not just relying on text-relevance dominance.
 #[test]
-fn benchmark_context_rot_decay_prevents_old_noise_drowning_recent_signal() {
+fn recent_decision_outranks_stale_research_in_hybrid_search() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
@@ -70,11 +73,48 @@ fn benchmark_context_rot_decay_prevents_old_noise_drowning_recent_signal() {
         decision_index.expect("decision rank") < 2,
         "recent decision document should rank in the top 2 instead of being buried by stale auth notes: {search_result}"
     );
+
+    // T-12.7: RTM NFR-1 — assert decay mechanism is active on the recent decision
+    let decision_result = find_result(&search_result, "DECISION: API Authentication Approach")
+        .expect("decision result in search output");
+    let decision_decay = decision_result["decayWeight"]
+        .as_f64()
+        .expect("decision decayWeight");
+    assert!(
+        decision_decay >= 0.95,
+        "recent decision (1 day old) should have near-full decay weight, got {decision_decay}: {search_result}"
+    );
+
+    // T-12.7: RTM NFR-1 — assert oldest stale doc is suppressed by decay
+    let oldest_result = find_result(&search_result, "Auth Research: OAuth2 vs SAML")
+        .expect("oldest research result in search output");
+    let oldest_decay = oldest_result["decayWeight"]
+        .as_f64()
+        .expect("oldest decayWeight");
+    assert!(
+        oldest_decay < decision_decay,
+        "90-day-old document decay weight ({oldest_decay}) should be less than recent decision ({decision_decay}): {search_result}"
+    );
+
+    // T-12.7: RTM NFR-1 — assert fused scores reflect decay-adjusted ordering
+    let decision_fused = decision_result["fusedScore"]
+        .as_f64()
+        .expect("decision fusedScore");
+    let oldest_fused = oldest_result["fusedScore"]
+        .as_f64()
+        .expect("oldest fusedScore");
+    assert!(
+        decision_fused > oldest_fused,
+        "decision fusedScore ({decision_fused}) should exceed oldest stale doc fusedScore ({oldest_fused}): {search_result}"
+    );
 }
 
 // T-12.7: RTM NFR-1
+/// Verifies that a recent decision outranks stale semantically-related docs in
+/// hybrid search, with decay weight and fused score assertions to isolate the
+/// temporal signal from text-relevance dominance.
 #[test]
-fn benchmark_precision_at_k_relevant_recent_doc_in_top_3() {
+fn recent_decision_outranks_stale_related_docs_in_hybrid_search() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
@@ -147,11 +187,62 @@ fn benchmark_precision_at_k_relevant_recent_doc_in_top_3() {
         decision_rank.is_some(),
         "decision document should appear in search results: {search_result}"
     );
+    let decision_pos = decision_rank.expect("decision rank");
     assert!(
-        decision_rank.expect("decision rank") < 3,
-        "recent decision document should rank in the top 3. decision={}, old1={}, old2={}, search={search_result}",
+        decision_pos < 2,
+        "recent decision document should rank in the top 2. decision={}, old1={}, old2={}, search={search_result}",
         format_rank(decision_rank),
         format_rank(old_related_1_rank),
         format_rank(old_related_2_rank),
     );
+
+    // T-12.7: RTM NFR-1 — assert stale related docs rank below the recent decision
+    if let Some(old1_pos) = old_related_1_rank {
+        assert!(
+            decision_pos < old1_pos,
+            "recent decision (rank {}) should outrank 90-day-old Error Handling Research (rank {}): {search_result}",
+            decision_pos, old1_pos
+        );
+    }
+    if let Some(old2_pos) = old_related_2_rank {
+        assert!(
+            decision_pos < old2_pos,
+            "recent decision (rank {}) should outrank 85-day-old Old Observability Setup (rank {}): {search_result}",
+            decision_pos, old2_pos
+        );
+    }
+
+    // T-12.7: RTM NFR-1 — assert decay weights: recent doc near-full, stale docs suppressed
+    let decision_result = find_result(&search_result, "DECISION: Error Handling Strategy")
+        .expect("decision result in search output");
+    let decision_decay = decision_result["decayWeight"]
+        .as_f64()
+        .expect("decision decayWeight");
+    assert!(
+        decision_decay >= 0.95,
+        "recent decision (2 days old) should have near-full decay weight, got {decision_decay}: {search_result}"
+    );
+
+    // T-12.7: RTM NFR-1 — assert oldest related doc has lower decay weight than decision
+    if let Some(old1_result) = find_result(&search_result, "Error Handling Research") {
+        let old1_decay = old1_result["decayWeight"]
+            .as_f64()
+            .expect("old related 1 decayWeight");
+        assert!(
+            old1_decay < decision_decay,
+            "90-day-old related doc decay weight ({old1_decay}) should be less than recent decision ({decision_decay}): {search_result}"
+        );
+
+        // T-12.7: RTM NFR-1 — assert fused score ordering reflects decay
+        let decision_fused = decision_result["fusedScore"]
+            .as_f64()
+            .expect("decision fusedScore");
+        let old1_fused = old1_result["fusedScore"]
+            .as_f64()
+            .expect("old related 1 fusedScore");
+        assert!(
+            decision_fused > old1_fused,
+            "decision fusedScore ({decision_fused}) should exceed stale related doc fusedScore ({old1_fused}): {search_result}"
+        );
+    }
 }

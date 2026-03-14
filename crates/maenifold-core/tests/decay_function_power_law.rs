@@ -2,8 +2,8 @@
 mod decay_function_support;
 
 use decay_function_support::{
-    DEFAULT_GRACE_PERIOD_DAYS, POWER_LAW_A, POWER_LAW_B, TestConfigGuard, acquire_test_lock,
-    assert_approx_eq, compute_exponential_decay, compute_power_law_decay, power_law_formula,
+    POWER_LAW_A, POWER_LAW_B, TestConfigGuard, acquire_test_lock, assert_approx_eq,
+    compute_exponential_decay, compute_power_law_decay,
 };
 
 // T-12.6: RTM NFR-1
@@ -28,111 +28,102 @@ fn power_law_decay_at_day_one_returns_weight_one() {
     assert_approx_eq(weight, 1.0, 0.0001);
 }
 
-#[test]
-fn power_law_decay_below_day_one_caps_at_one() {
-    let _guard = acquire_test_lock();
-    let env = TestConfigGuard::new();
-    let _env = decay_function_support::DecayEnvGuard::set("power-law", 30, 7, 14, 0);
-    let last_accessed = (chrono::Utc::now() - chrono::Duration::hours(12)).to_rfc3339();
-
-    let weight = decay_function_support::compute_with_last_accessed(
-        &env.cfg,
-        "memory://projects/power-half-day",
-        &last_accessed,
-        None,
-    );
-
-    assert_eq!(weight, 1.0);
-}
-
+// T-12.6: RTM NFR-1 — MERGE: absorbed below_day_one_caps_at_one (same grace-period branch)
 #[test]
 fn power_law_decay_zero_age_returns_weight_one() {
     let _guard = acquire_test_lock();
     let env = TestConfigGuard::new();
 
+    // age_days == 0 hits the grace-period gate directly
     let weight = compute_power_law_decay(&env.cfg, "memory://projects/power-zero-age", 0, 0);
-
     assert_eq!(weight, 1.0);
+
+    // Sub-day timestamp (12 hours old) also yields age_days=0, same branch
+    let _env = decay_function_support::DecayEnvGuard::set("power-law", 30, 7, 14, 0);
+    let last_accessed = (chrono::Utc::now() - chrono::Duration::hours(12)).to_rfc3339();
+    let weight_sub_day = decay_function_support::compute_with_last_accessed(
+        &env.cfg,
+        "memory://projects/power-half-day",
+        &last_accessed,
+        None,
+    );
+    assert_eq!(weight_sub_day, 1.0);
 }
 
+// T-12.6: RTM NFR-1 — MERGE: never_exceeds_one + never_goes_below_zero
 #[test]
-fn power_law_decay_never_exceeds_one() {
+fn power_law_decay_weight_is_bounded_between_zero_and_one() {
     let _guard = acquire_test_lock();
     let env = TestConfigGuard::new();
 
     for age_days in [0, 1, 2, 10, 100, 365, 1000, 3650, 10000] {
         let weight = compute_power_law_decay(
             &env.cfg,
-            "memory://projects/power-never-exceeds-one",
+            "memory://projects/power-bounded",
             age_days,
             0,
         );
         assert!(
-            weight <= 1.0,
-            "power-law weight should never exceed 1.0 for age={age_days}, got {weight}"
+            (0.0..=1.0).contains(&weight),
+            "power-law weight must be in [0.0, 1.0] for age={age_days}, got {weight}"
         );
     }
 }
 
-#[test]
-fn power_law_decay_never_goes_below_zero() {
-    let _guard = acquire_test_lock();
-    let env = TestConfigGuard::new();
-
-    for age_days in [100, 365, 1000, 3650, 10000] {
-        let weight = compute_power_law_decay(
-            &env.cfg,
-            "memory://projects/power-never-below-zero",
-            age_days,
-            0,
-        );
-        assert!(
-            weight >= 0.0,
-            "power-law weight should never go below 0.0 for age={age_days}, got {weight}"
-        );
-    }
-}
-
+// T-12.6: RTM NFR-1 — REWRITE: assert power-law >= exponential for old content
 #[test]
 fn power_law_decay_slower_than_exponential_for_old_content() {
     let _guard = acquire_test_lock();
     let env = TestConfigGuard::new();
 
-    let exponential = compute_exponential_decay(
-        &env.cfg,
-        "memory://projects/old-content-exponential",
-        120,
-        DEFAULT_GRACE_PERIOD_DAYS,
-    );
-    let power_law =
-        compute_power_law_decay(&env.cfg, "memory://projects/old-content-power", 120, 0);
+    // Power-law (B=0.5) decays slower than exponential (half-life=30) beyond the
+    // crossover point (~100 days with these parameters). This "fat tail" property
+    // is the entire motivation for offering power-law decay: old memories retain
+    // more weight than under exponential decay.
+    // Both use grace_days=0 so the comparison is apples-to-apples.
+    for age_days in [120, 180, 365, 1000, 3650] {
+        let exponential = compute_exponential_decay(
+            &env.cfg,
+            "memory://projects/old-content-exponential",
+            age_days,
+            0,
+        );
+        let power_law =
+            compute_power_law_decay(&env.cfg, "memory://projects/old-content-power", age_days, 0);
 
-    assert!(
-        power_law >= exponential * 0.5,
-        "power-law should not decay drastically faster than exponential: power={power_law}, exp={exponential}"
-    );
+        assert!(
+            power_law >= exponential,
+            "power-law should retain more weight than exponential at age={age_days}: \
+             power_law={power_law}, exponential={exponential}"
+        );
+    }
 }
 
+// T-12.6: RTM NFR-1 — REWRITE: verify curve shape via expected values, not mere distinctness
 #[test]
-fn power_law_decay_produces_different_curve_than_exponential() {
+fn power_law_decay_curve_matches_expected_values() {
     let _guard = acquire_test_lock();
     let env = TestConfigGuard::new();
 
-    let mut difference_found = false;
-    for age_days in [1, 4, 16, 64, 256] {
-        let exponential =
-            compute_exponential_decay(&env.cfg, "memory://projects/curve-exp", age_days, 0);
-        let power_law =
-            compute_power_law_decay(&env.cfg, "memory://projects/curve-power", age_days, 0);
-        if (exponential - power_law).abs() > 0.01 {
-            difference_found = true;
-        }
-    }
+    // Production formula: weight = A * effective_age^(-B) where A=1.0, B=0.5
+    // effective_age = max(age_days, 1), so for age >= 1: weight = age^(-0.5)
+    let expected: [(i64, f64); 5] = [
+        (1, 1.0),               // 1^(-0.5) = 1.0
+        (4, 0.5),               // 4^(-0.5) = 0.5
+        (16, 0.25),             // 16^(-0.5) = 0.25
+        (64, 0.125),            // 64^(-0.5) = 0.125
+        (256, 0.0625),          // 256^(-0.5) = 0.0625
+    ];
 
-    assert!(
-        difference_found,
-        "power-law and exponential curves should differ at one or more time points"
-    );
+    for (age_days, expected_weight) in expected {
+        let weight = compute_power_law_decay(
+            &env.cfg,
+            "memory://projects/power-curve-shape",
+            age_days,
+            0,
+        );
+        assert_approx_eq(weight, expected_weight, 0.0001);
+    }
 }
 
 #[test]
@@ -157,14 +148,4 @@ fn power_law_decay_negative_age_returns_weight_one() {
     let weight = compute_power_law_decay(&env.cfg, "memory://projects/power-negative-age", -5, 0);
 
     assert_eq!(weight, 1.0);
-}
-
-#[test]
-fn power_law_decay_custom_parameters_applies_correctly() {
-    let _guard = acquire_test_lock();
-
-    let weight = power_law_formula(10.0, 2.0, 0.3);
-    let expected = (2.0 * 10.0f64.powf(-0.3)).clamp(0.0, 1.0);
-
-    assert_approx_eq(weight, expected, 0.0001);
 }

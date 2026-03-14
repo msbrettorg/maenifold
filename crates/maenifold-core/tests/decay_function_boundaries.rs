@@ -60,6 +60,8 @@ fn exponential_decay_negative_age_treated_as_zero() {
 // T-12.6: RTM NFR-1
 // REWRITE: The implementation returns 0.0 when half_life <= 0 (instant-decay interpretation).
 // Previously asserted only (0.0..=1.0).contains(&weight) which would pass for any value in range.
+// age must exceed DEFAULT_GRACE_PERIOD_DAYS (28) to bypass the grace window and reach the
+// half_life=0 instant-decay branch.
 #[test]
 fn exponential_decay_zero_half_life_returns_zero() {
     let _guard = acquire_test_lock();
@@ -68,7 +70,7 @@ fn exponential_decay_zero_half_life_returns_zero() {
     let weight = compute_exponential_decay_with_half_life(
         &env.cfg,
         "memory://projects/zero-half-life",
-        20,
+        40, // 40 > 28 (DEFAULT_GRACE_PERIOD_DAYS), so we bypass grace window
         DEFAULT_GRACE_PERIOD_DAYS,
         0,
     );
@@ -108,7 +110,7 @@ fn exponential_decay_datetime_within_grace_returns_one() {
     let _guard = acquire_test_lock();
     let env = TestConfigGuard::new();
 
-    // Case 1: 10-day-old date is within 14-day grace → 1.0
+    // Case 1: 10-day-old date is within 28-day grace → 1.0
     let within_grace = Utc::now() - Duration::days(10);
     let weight = compute_exponential_from_date(
         &env.cfg,
@@ -119,9 +121,9 @@ fn exponential_decay_datetime_within_grace_returns_one() {
     );
     assert_eq!(weight, 1.0, "within grace period should return 1.0");
 
-    // Case 2: 44-day-old date is beyond 14-day grace.
-    // effective_age = 44 - 14 = 30, exponent = 30/30 = 1.0, weight = 0.5^1.0 = 0.5
-    let beyond_grace = Utc::now() - Duration::days(44);
+    // Case 2: 58-day-old date is beyond 28-day grace (DEFAULT_GRACE_PERIOD_DAYS).
+    // effective_age = 58 - 28 = 30, exponent = 30/30 = 1.0, weight = 0.5^1.0 = 0.5
+    let beyond_grace = Utc::now() - Duration::days(58);
     let weight = compute_exponential_from_date(
         &env.cfg,
         "memory://projects/datetime-beyond-grace",

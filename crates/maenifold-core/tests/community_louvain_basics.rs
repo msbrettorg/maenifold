@@ -13,9 +13,12 @@ use support::*;
 // Mirrors: RunLouvain_DeterministicSeed_ProducesSameResult
 // T-15.10: Rust now shuffles node visit order each iteration (matching C#).
 // With seed=None, shuffles use system entropy but well-separated topologies
-// converge to the same partition regardless of visit order.
+// converge to the same partition regardless of visit order. This verifies
+// re-run stability (idempotency on a populated DB), not algorithmic
+// determinism — the true determinism contract (seed=Some(42)) is tested
+// by the inline unit tests in louvain.rs.
 #[test]
-fn run_louvain_deterministic_produces_same_result() {
+fn run_louvain_rerun_on_populated_db_produces_stable_partition() {
     let _g = TEST_MUTEX.lock();
     let env = TestEnv::setup();
     let conn = open_conn(&env.db_path);
@@ -86,12 +89,18 @@ fn run_louvain_triangle_plus_isolated_pair_two_communities() {
         "triangle and isolated pair must be in different communities"
     );
 
-    // T-15.9: Gain formula now uses kiIn/m matching C#. Modularity should be non-negative
-    // for well-separated communities. Verify it is finite.
+    // T-15.9: Gain formula now uses kiIn/m matching C#. Modularity must be finite and
+    // within the theoretical range [-0.5, 1.0) for any valid partition. This is
+    // meaningfully stronger than the previous `.is_finite()` check which would pass
+    // for NaN-coerced or runaway values.
     let modularity = get_modularity(&conn);
     assert!(
         modularity.is_finite(),
-        "modularity must be a finite value for a valid partition, got {modularity}"
+        "modularity must be finite for a valid partition, got {modularity}"
+    );
+    assert!(
+        modularity >= -0.5 && modularity < 1.0,
+        "modularity must be in theoretical range [-0.5, 1.0), got {modularity}"
     );
 }
 
@@ -139,6 +148,8 @@ fn run_louvain_single_node_one_community() {
     assert_eq!(
         get_community_id(&conn, "alone"),
         Some(0),
+        // Note: Some(0) depends on normalize_communities' first-occurrence ordering
+        // via BTreeMap. If normalization strategy changes, this assertion may need updating.
         "single node community must be 0"
     );
     assert_eq!(
@@ -173,7 +184,8 @@ fn run_louvain_disconnected_components_separate_communities() {
     insert_edge(&conn, "c2-a", "c2-c", 5);
     drop(conn);
 
-    detect_and_persist(&env.db_path, 1.0, None).expect("detect");
+    let count = detect_and_persist(&env.db_path, 1.0, None).expect("detect");
+    assert_eq!(count, 2, "two disconnected 3-cliques must produce exactly 2 communities");
 
     let conn = open_conn(&env.db_path);
     let c1a = get_community_id(&conn, "c1-a").expect("c1-a");
@@ -191,11 +203,19 @@ fn run_louvain_disconnected_components_separate_communities() {
         c1a, c2a,
         "disconnected components must be in different communities"
     );
+    assert_ne!(
+        c1c, c2c,
+        "last node of each component must also be in different communities"
+    );
 
+    // T-15.9: Gain formula fixed; modularity must be finite and within theoretical range.
     let modularity = get_modularity(&conn);
     assert!(
         modularity.is_finite(),
         "modularity must be finite for disconnected components, got {modularity}"
     );
-    // T-15.9: Gain formula fixed; modularity should be finite for valid partitions.
+    assert!(
+        modularity >= -0.5 && modularity < 1.0,
+        "modularity must be in theoretical range [-0.5, 1.0), got {modularity}"
+    );
 }

@@ -2,6 +2,7 @@
 name = "maenifold-core"
 version = "0.1.0"
 edition = "2024"
+autotests = false
 
 [dependencies]
 anyhow.workspace = true
@@ -35,3 +36,8 @@ predicates.workspace = true
 similar-asserts.workspace = true
 tempfile.workspace = true
 filetime = "0.2.25"
+
+[[test]]
+# T-HOTFIX: RTM NFR-3
+name = "integration_tests"
+path = "tests/main.rs"

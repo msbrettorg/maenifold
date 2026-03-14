@@ -15,16 +15,6 @@ For completed requirements (FR-1 through FR-21), see [CHANGELOG.md](CHANGELOG.md
 
 Enable maenifold-rs to run as a hosted Streamable HTTP MCP server on Azure Container Apps, backed by Azure Database for PostgreSQL, accessible to multiple Azure SRE Agents and local clients simultaneously. The existing stdio + SQLite mode is preserved unchanged behind feature flags.
 
-### FR-22: Storage Abstraction Layer
-
-The system SHALL provide a `trait DbBackend` that abstracts database operations using an **operation-oriented** design, with implementations selectable via Cargo feature flags.
-
-- **Trait design**: Methods map to logical domain operations (e.g., `upsert_file_content()`, `query_concepts()`, `vector_search()`, `graph_traverse()`), NOT to connection handles. Callers never see a `Connection` or `Pool`. A third backend (e.g., Cosmos DB, in-memory, remote API) SHALL be addable as a clean trait impl, not a rewrite.
-- **`SqliteBackend`** (default): Wraps existing `rusqlite` code internally, exposing only domain operations. Zero behavioral change from current implementation.
-- **`PgBackend`** (`--features postgres`): Uses `sqlx` 0.8 with PostgreSQL internally. Connection pooling via `PgPool`. Async calls wrapped with `tokio::task::block_in_place` to preserve sync `ToolFn` signature.
-- **`ToolContext`**: SHALL carry `Arc<dyn DbBackend>` instead of `database_path: PathBuf`. All 27 `open_connection()` call sites SHALL migrate to trait method calls.
-- **Schema**: PostgreSQL schema SHALL be semantically equivalent to SQLite schema. `vec0` virtual tables → `pgvector` `VECTOR(N)` columns with HNSW indexes. FTS5 virtual table → not migrated (current fulltext search bypasses FTS5; Rust-side scoring replicated against PG `file_content` table).
-
 ### FR-23: Streamable HTTP Transport
 
 The system SHALL support MCP Streamable HTTP transport alongside existing stdio transport, selectable via CLI flags.

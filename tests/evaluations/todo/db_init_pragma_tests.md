@@ -32,3 +32,16 @@ This is the strongest test file of the three under evaluation. Seven of eight te
 ## Load-Bearing Score: 7/8
 
 Test 8 (`t15_23_no_query_only_on_standard_connection`) is a marginal documentation test with weak independent defect-detection power. All other seven tests directly assert observable, behavior-critical outcomes. The CI/WAL concern, if confirmed, would reduce the effective score further for tests 5 and 7.
+
+---
+
+## SWE Remediation
+
+- **R1 (P0)**: WAL CI issue resolved — `journal_mode()` in `connection.rs` intentionally returns `"DELETE"` in CI (checks `CI=true` / `GITHUB_ACTIONS=true`). Removed misleading "Outside CI" comment from test 5. Added `is_ci()` helper and runtime skip to `t15_22_journal_mode_wal_on_new_connection` and `t15_22_journal_mode_wal_after_vacuum` with clear documentation explaining why.
+- **R2 (P1)**: Strengthened `t15_11_cascade_delete_works_with_foreign_keys_on` — added `another-concept` + edge `(test-concept, another-concept)` to pin FK cascade on `concept_a` independently of `concept_b`. Edge precondition updated from 1→2. Post-cascade assertion message clarified to document dual-column coverage.
+- **R3 (P1)**: Clarified test 2 comment — now documents that `isolated_env()` already opens a connection via `initialize_database`, so the "second" connection is at least the second handle.
+- **R4 (P1)**: Added `t10_9_busy_timeout_set_on_new_connection` — pins default 5000 ms `busy_timeout` pragma (T-10.9: RTM FR-15). Closes the notable gap identified in the evaluation.
+- **R5 (P3+)**: Skipped — splitting cascade_delete would increase file size without proportional defect-detection gain.
+- **Test 8**: Added diagnostic anchor comment per verdict recommendation.
+- Test count: 8 → 9 (1 added). All 9 passing.
+- Commit: ad0b4c5

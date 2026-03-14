@@ -9,6 +9,47 @@ use rusqlite::params;
 use serde_json::json;
 use support::*;
 
+// T-W1-8: RTM NFR-2 — RAII guard that clears community threshold env vars and restores
+// them on drop. Ensures tests run against default thresholds (min_shared=3, min_overlap=0.4)
+// regardless of the host environment.
+struct CommunityEnvGuard {
+    prev_shared: Option<String>,
+    prev_overlap: Option<String>,
+}
+
+impl CommunityEnvGuard {
+    fn enforce_defaults() -> Self {
+        let prev_shared = std::env::var("MAENIFOLD_COMMUNITY_MIN_SHARED").ok();
+        let prev_overlap = std::env::var("MAENIFOLD_COMMUNITY_MIN_OVERLAP").ok();
+        // SAFETY: all tests in this file hold TEST_MUTEX for their full duration,
+        // so process-wide environment mutations are serialized.
+        unsafe {
+            std::env::remove_var("MAENIFOLD_COMMUNITY_MIN_SHARED");
+            std::env::remove_var("MAENIFOLD_COMMUNITY_MIN_OVERLAP");
+        }
+        Self {
+            prev_shared,
+            prev_overlap,
+        }
+    }
+}
+
+impl Drop for CommunityEnvGuard {
+    fn drop(&mut self) {
+        // SAFETY: all tests in this file hold TEST_MUTEX for their full duration.
+        unsafe {
+            match &self.prev_shared {
+                Some(v) => std::env::set_var("MAENIFOLD_COMMUNITY_MIN_SHARED", v),
+                None => std::env::remove_var("MAENIFOLD_COMMUNITY_MIN_SHARED"),
+            }
+            match &self.prev_overlap {
+                Some(v) => std::env::set_var("MAENIFOLD_COMMUNITY_MIN_OVERLAP", v),
+                None => std::env::remove_var("MAENIFOLD_COMMUNITY_MIN_OVERLAP"),
+            }
+        }
+    }
+}
+
 // T-W1-8: RTM NFR-2
 // Mirrors: BuildContext_ReturnsCommunitySiblings (FR-13.7, FR-13.8)
 #[test]
@@ -92,59 +133,99 @@ fn build_context_returns_community_siblings() {
     );
 
     // FR-13.8: Scoring fields must be populated.
+    // With this topology (4 shared neighbors, all weight=10, no private neighbors),
+    // NormalizedOverlap = 40/40 = 1.0. Assert > 0.9 to document the expected computation
+    // rather than accepting anything above the floor threshold.
     let target_sib = siblings.iter().find(|s| s["Name"] == "sib-target").unwrap();
     let overlap = target_sib["NormalizedOverlap"].as_f64().unwrap_or(0.0);
     assert!(
-        overlap >= 0.4,
-        "FR-13.8: NormalizedOverlap must be >= 0.4, got {overlap}"
+        overlap > 0.9,
+        "FR-13.8: NormalizedOverlap expected ~1.0 (4 shared neighbors, equal weights), got {overlap}"
     );
 }
 
 // T-W1-8: RTM NFR-2
 // Mirrors: BuildContext_SiblingThresholdsFilter (FR-13.9)
+//
+// Exercises BOTH filter gates in `load_community_siblings`:
+//   1. `shared_neighbor_count < min_shared_neighbors` (default 3)
+//   2. `normalized_overlap < min_overlap` (default 0.4)
+//
+// Env vars MAENIFOLD_COMMUNITY_MIN_SHARED and MAENIFOLD_COMMUNITY_MIN_OVERLAP are
+// cleared via CommunityEnvGuard to ensure default thresholds apply regardless of host.
 #[test]
 fn build_context_sibling_thresholds_filter() {
     let _g = TEST_MUTEX.lock();
+    let _env_guard = CommunityEnvGuard::enforce_defaults();
     let env = TestEnv::setup();
     let conn = open_conn(&env.db_path);
 
     for name in [
         "thresh-query",
         "thresh-weak",
+        "thresh-boundary",
         "thresh-strong",
+        "thresh-lowoverlap",
         "thresh-n1",
         "thresh-n2",
         "thresh-n3",
         "thresh-n4",
+        "thresh-priv1",
     ] {
         insert_concept(&conn, name);
     }
 
+    // Query concept: 4 neighbors (n1..n4) with weight 10 each.
     insert_edge(&conn, "thresh-query", "thresh-n1", 10);
     insert_edge(&conn, "thresh-query", "thresh-n2", 10);
     insert_edge(&conn, "thresh-query", "thresh-n3", 10);
     insert_edge(&conn, "thresh-query", "thresh-n4", 10);
 
-    // Weak candidate: only 2 shared neighbors (n1, n2) — below min 3 threshold.
+    // Weak candidate: only 2 shared neighbors (n1, n2) — below min_shared=3.
+    // Expected: FILTERED by min_shared_neighbors gate.
     insert_edge(&conn, "thresh-weak", "thresh-n1", 10);
     insert_edge(&conn, "thresh-weak", "thresh-n2", 10);
 
-    // Strong candidate: 4 shared neighbors (n1..n4) — passes threshold.
+    // Boundary candidate: exactly 3 shared neighbors (n1, n2, n3).
+    // shared_count=3 >= min_shared=3 → passes min_shared gate.
+    // NormalizedOverlap = 30/30 = 1.0 >= 0.4 → passes overlap gate.
+    // Expected: INCLUDED (verifies boundary is inclusive, not off-by-one).
+    insert_edge(&conn, "thresh-boundary", "thresh-n1", 10);
+    insert_edge(&conn, "thresh-boundary", "thresh-n2", 10);
+    insert_edge(&conn, "thresh-boundary", "thresh-n3", 10);
+
+    // Strong candidate: 4 shared neighbors (n1..n4) — well above threshold.
+    // NormalizedOverlap = 40/40 = 1.0 >= 0.4 → passes overlap gate.
+    // Expected: INCLUDED.
     insert_edge(&conn, "thresh-strong", "thresh-n1", 10);
     insert_edge(&conn, "thresh-strong", "thresh-n2", 10);
     insert_edge(&conn, "thresh-strong", "thresh-n3", 10);
     insert_edge(&conn, "thresh-strong", "thresh-n4", 10);
+
+    // Low-overlap candidate: 3 shared neighbors (passes min_shared=3) but a high-weight
+    // private neighbor dilutes overlap below 0.4.
+    //   overlap_numerator    = min(10,1) * 3 = 3
+    //   sibling_total_degree = 1 + 1 + 1 + 30 = 33
+    //   NormalizedOverlap    = 3/33 ≈ 0.091 < 0.4
+    // Expected: FILTERED by min_overlap gate (exercises the second filter path).
+    insert_edge(&conn, "thresh-lowoverlap", "thresh-n1", 1);
+    insert_edge(&conn, "thresh-lowoverlap", "thresh-n2", 1);
+    insert_edge(&conn, "thresh-lowoverlap", "thresh-n3", 1);
+    insert_edge(&conn, "thresh-lowoverlap", "thresh-priv1", 30);
 
     // Manually insert community assignments — all in community 0.
     let now = chrono::Utc::now().to_rfc3339();
     for name in [
         "thresh-query",
         "thresh-weak",
+        "thresh-boundary",
         "thresh-strong",
+        "thresh-lowoverlap",
         "thresh-n1",
         "thresh-n2",
         "thresh-n3",
         "thresh-n4",
+        "thresh-priv1",
     ] {
         conn.execute(
             "INSERT OR REPLACE INTO concept_communities \
@@ -170,14 +251,40 @@ fn build_context_sibling_thresholds_filter() {
         .expect("CommunitySiblings");
     let sibling_names: Vec<&str> = siblings.iter().filter_map(|s| s["Name"].as_str()).collect();
 
-    // FR-13.9: Weak candidate (2 shared neighbors) must be filtered out.
+    // FR-13.9 gate 1: Weak candidate (2 shared neighbors < min 3) must be filtered.
     assert!(
         !sibling_names.contains(&"thresh-weak"),
-        "FR-13.9: thresh-weak (< 3 shared neighbors) must be filtered out"
+        "FR-13.9: thresh-weak (2 shared neighbors < min 3) must be filtered"
     );
-    // Control: strong candidate must appear.
+
+    // FR-13.9 boundary: Candidate with exactly 3 shared neighbors must pass
+    // (verifies threshold is `< 3` not `<= 3`).
+    assert!(
+        sibling_names.contains(&"thresh-boundary"),
+        "FR-13.9: thresh-boundary (exactly 3 shared neighbors = min 3) must be included"
+    );
+
+    // FR-13.9 gate 2: Low-overlap candidate (3 shared but NormalizedOverlap ≈ 0.091 < 0.4)
+    // must be filtered by the overlap gate — exercises the second filter path.
+    assert!(
+        !sibling_names.contains(&"thresh-lowoverlap"),
+        "FR-13.9: thresh-lowoverlap (overlap ~0.091 < min 0.4) must be filtered"
+    );
+
+    // Control: strong candidate (4 shared, overlap 1.0) must appear with valid score.
     assert!(
         sibling_names.contains(&"thresh-strong"),
-        "FR-13.9: thresh-strong (>= 3 shared neighbors) must appear in CommunitySiblings"
+        "FR-13.9: thresh-strong (4 shared neighbors, overlap 1.0) must appear"
+    );
+    let strong_sib = siblings
+        .iter()
+        .find(|s| s["Name"] == "thresh-strong")
+        .expect("thresh-strong in siblings");
+    let strong_overlap = strong_sib["NormalizedOverlap"]
+        .as_f64()
+        .expect("NormalizedOverlap field");
+    assert!(
+        strong_overlap > 0.9,
+        "FR-13.9: thresh-strong NormalizedOverlap expected ~1.0, got {strong_overlap}"
     );
 }

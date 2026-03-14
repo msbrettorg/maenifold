@@ -28,14 +28,19 @@ fn concept_graph_smoke_test() {
         !direct.is_empty(),
         "expected BuildContext to return related concepts: {context}"
     );
+
+    // T-1.6: RTM NFR-1 — assert both neighbours individually, not via permissive OR.
+    let names: Vec<&str> = direct
+        .iter()
+        .filter_map(|r| r["Name"].as_str())
+        .collect();
     assert!(
-        direct.iter().any(|relation| {
-            matches!(
-                relation["Name"].as_str(),
-                Some("artificial-intelligence" | "deep-learning")
-            )
-        }),
-        "expected direct relation to AI or Deep Learning: {context}"
+        names.contains(&"artificial-intelligence"),
+        "expected AI as direct relation of Machine Learning: {context}"
+    );
+    assert!(
+        names.contains(&"deep-learning"),
+        "expected Deep Learning as direct relation of Machine Learning: {context}"
     );
 }
 
@@ -45,10 +50,12 @@ fn build_context_without_content_test() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
+    // T-1.6: RTM NFR-1 — two WikiLinks required for a graph edge so DirectRelations
+    // is non-empty and the `all()` assertion below is non-vacuous.
     write_memory_file(
         &env,
         "Machine Learning Concepts for Content Test",
-        "This document discusses [[Machine Learning]] and its applications in modern systems.",
+        "[[Machine Learning]] enables [[Deep Learning]] applications in modern systems.",
     );
 
     sync_graph(&env);
@@ -56,6 +63,11 @@ fn build_context_without_content_test() {
     let context = build_context_json(&env, "Machine Learning", 2, 20, Some(false));
     let direct = direct_relations(&context);
 
+    // Pre-condition: relations must exist so `all()` is non-vacuous.
+    assert!(
+        !direct.is_empty(),
+        "expected at least one relation to make content-flag assertion non-vacuous: {context}"
+    );
     assert!(
         direct
             .iter()
@@ -90,26 +102,31 @@ fn build_context_with_content_test() {
 
     let context = build_context_json(&env, "Deep Learning", 2, 20, Some(true));
     let direct = direct_relations(&context);
-    let preview_values = direct
-        .iter()
-        .flat_map(relation_preview_values)
-        .collect::<Vec<_>>();
 
     assert!(
         !direct.is_empty(),
         "should have direct relations from shared concepts: {context}"
     );
+
+    // T-1.6: RTM NFR-1 — collect all preview values across all relations and verify
+    // multi-file aggregation by counting distinct contributing files rather than
+    // using a permissive OR that passes even when most files are missing.
+    let total_preview_count: usize = direct
+        .iter()
+        .map(|r| {
+            r["ContentPreview"]
+                .as_object()
+                .map_or(0, |map| map.len())
+        })
+        .sum();
+
     assert!(
-        !preview_values.is_empty(),
+        total_preview_count > 0,
         "includeContent=true should populate content previews: {context}"
     );
     assert!(
-        preview_values.iter().any(|preview| {
-            preview.contains("Comprehensive guide")
-                || preview.contains("Overview of [[Machine Learning]]")
-                || preview.contains("Tutorial on [[Neural Networks]]")
-        }),
-        "expected previews from contributing files: {context}"
+        total_preview_count > 1,
+        "expected previews from multiple contributing files, got {total_preview_count}: {context}"
     );
 }
 

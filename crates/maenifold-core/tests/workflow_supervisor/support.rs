@@ -19,6 +19,7 @@ use tempfile::TempDir;
 
 pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 static SESSION_COUNTER: AtomicU64 = AtomicU64::new(10_000);
+pub(crate) const WIKILINK_ERROR_HINT: &str = "[[WikiLink]]";
 
 pub(crate) struct TestEnv {
     _tmp: TempDir,

@@ -16,6 +16,11 @@ fn register_nonexistent_submachine_returns_error() {
         json!({"workflowId": "wsup-alpha"}),
     ));
     let fake_session_id = "session-9999999999999-00001";
+    let phase_before = yaml_string(
+        &read_frontmatter(&env.cfg, &workflow_uri(&workflow_session_id)),
+        "phase",
+    );
+    assert_eq!(phase_before, "running");
 
     let result = invoke_workflow(
         &env.cfg,
@@ -28,12 +33,12 @@ fn register_nonexistent_submachine_returns_error() {
 
     assert!(result.contains("ERROR"));
     assert!(result.contains(fake_session_id));
-    assert_ne!(
+    assert_eq!(
         yaml_string(
             &read_frontmatter(&env.cfg, &workflow_uri(&workflow_session_id)),
             "phase"
         ),
-        "waiting",
+        phase_before,
     );
 }
 
@@ -110,6 +115,11 @@ fn register_path_enforces_wikilink_validation_on_response() {
         json!({"workflowId": "wsup-alpha"}),
     ));
     let thinking_session_id = create_thinking_session(&env.cfg, "active");
+    let phase_before = yaml_string(
+        &read_frontmatter(&env.cfg, &workflow_uri(&workflow_session_id)),
+        "phase",
+    );
+    assert_eq!(phase_before, "running");
 
     let result = invoke_workflow(
         &env.cfg,
@@ -121,13 +131,13 @@ fn register_path_enforces_wikilink_validation_on_response() {
     );
 
     assert!(result.contains("ERROR"));
-    assert!(result.contains("[[WikiLink]]"));
-    assert_ne!(
+    assert!(result.contains(WIKILINK_ERROR_HINT));
+    assert_eq!(
         yaml_string(
             &read_frontmatter(&env.cfg, &workflow_uri(&workflow_session_id)),
             "phase"
         ),
-        "waiting",
+        phase_before,
     );
 }
 

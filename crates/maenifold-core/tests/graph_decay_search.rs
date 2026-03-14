@@ -7,7 +7,7 @@ use support::{
     search_memories_json, sync_graph, title_index,
 };
 
-// T-GRAPH-DECAY-001.1: RTM FR-7.5
+// T-GRAPH-DECAY-001.1 (archived: Sprint 15): RTM FR-7.5
 // Merged from three structurally identical per-mode tests into one parameterized test.
 // Name corrected: base scores are similar (not equal) since titles differ; the age gap
 // dominates any embedding divergence. Each mode retains its own content/query pairing
@@ -116,7 +116,7 @@ fn search_memories_decay_raises_newer_file_across_all_modes() {
     );
 }
 
-// T-GRAPH-DECAY-001.1: RTM NFR-7.5.2
+// T-GRAPH-DECAY-001.1 (archived: Sprint 15): RTM NFR-7.5.2
 #[test]
 fn search_memories_files_within_grace_period_have_equal_ranking_weight() {
     let _guard = TEST_MUTEX.lock();
@@ -151,6 +151,64 @@ fn search_memories_files_within_grace_period_have_equal_ranking_weight() {
     );
     support::assert_approx_eq(
         day10["decayWeight"].as_f64().expect("day10 decay weight"),
+        1.0,
+        0.000_001,
+    );
+}
+
+// T-GRAPH-DECAY-001.1 (archived: Sprint 15): RTM NFR-7.5.2
+// Companion to the grace-period test above: verifies that a file sufficiently past the
+// default 28-day grace window carries a decayed weight < 1.0.
+// Note: with the default power-law function (x^-0.5), effective_age=1 (day 29) still
+// yields 1.0 because 1^(-0.5) = 1.0. Visible decay starts at effective_age=2 (day 30),
+// giving weight ≈ 0.707. We test at day 30 to confirm the transition.
+#[test]
+fn search_memories_file_just_past_grace_period_has_decayed_weight() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+
+    let content = "Testing [[grace-period]] boundary for [[decay-weighting]] at exit.";
+
+    // 30 days = default grace (28) + 2: power-law effective_age=2, weight ≈ 0.707
+    create_test_file_with_age(
+        &env.cfg,
+        &format!("{TEST_FOLDER}/boundary-file.md"),
+        "Grace Boundary File",
+        content,
+        30,
+    );
+
+    // Control file well inside the grace period
+    create_test_file_with_age(
+        &env.cfg,
+        &format!("{TEST_FOLDER}/inside-grace-file.md"),
+        "Inside Grace File",
+        content,
+        1,
+    );
+
+    sync_graph(&env);
+
+    let search_result =
+        search_memories_json(&env, "grace period decay weighting boundary", "Hybrid");
+
+    let boundary = find_result(&search_result, "Grace Boundary File");
+    let inside = find_result(&search_result, "Inside Grace File");
+
+    // File at 30 days should have a decayed weight (past grace + power-law effective)
+    let boundary_decay = boundary["decayWeight"]
+        .as_f64()
+        .expect("boundary decayWeight");
+    assert!(
+        boundary_decay < 1.0,
+        "file at 30 days (grace=28, power-law effective_age=2) should have decayWeight < 1.0, got {boundary_decay}"
+    );
+
+    // File at 1 day should still be in grace period (weight == 1.0)
+    support::assert_approx_eq(
+        inside["decayWeight"]
+            .as_f64()
+            .expect("inside decayWeight"),
         1.0,
         0.000_001,
     );

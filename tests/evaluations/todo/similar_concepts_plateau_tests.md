@@ -295,3 +295,45 @@ It is a useful utility, but keeping dead helpers in test files increases mainten
 Three tests (1, 2, 3) are currently functioning as load-bearing regression guards.
 Three tests (4, 5, 6) are broken and provide zero protection today — a regression in
 length validation, range validation, or the similarity clamping formula would go undetected.
+
+---
+
+## SWE Remediation
+
+**Result:** 9 tests pass (was 3 passing + 3 panicking). All P0 and P1/P2 recommendations addressed.
+
+### KEEP (unchanged)
+- Test 1 `find_similar_concepts_when_query_is_punctuation_only_does_not_emit_confident_results`: kept as-is
+- Test 2 `find_similar_concepts_when_query_contains_unicode_bracket_confusables_rejects_helpfully`: kept as-is
+- Test 3 `find_similar_concepts_when_query_contains_bracket_like_delimiters_rejects_helpfully`: kept as-is
+
+### REWRITE: Test 4 — concept_name length validation
+- Added `try_find_similar_concepts` helper returning `Result<String, MaenifoldError>` (no `.expect()`)
+- Test now asserts `result.is_err()` and inspects error message via `format!("{}", err)`
+- Added boundary success test `find_similar_concepts_when_concept_name_at_limit_succeeds` (256 chars)
+
+### REWRITE: Test 5 — maxResults range validation
+- Split single test into two independent tests for clear failure signals:
+  - `find_similar_concepts_when_max_results_is_zero_returns_validation_error`
+  - `find_similar_concepts_when_max_results_above_fifty_returns_validation_error`
+- Added boundary success test `find_similar_concepts_when_max_results_at_boundaries_succeeds` (1 and 50)
+- All use `try_find_similar_concepts` to properly inspect `Err` returns
+
+### REWRITE: Test 6 — similarity values bounded
+- Renamed to `find_similar_concepts_similarity_values_are_bounded_to_one`
+- Replaced broken `seed_vec_concept` (requires unavailable vec0 extension) with `seed_concept_graph` helper that seeds `concept_graph` + `concepts` tables for graph-based search path
+- Test now produces actual ranked results and verifies similarity ∈ [0.0, 1.0]
+- Removed dead `seed_vec_concept` helper and `maenifold_core::vector` import
+
+### Structural changes
+- Added `try_find_similar_concepts` helper for error-path tests
+- Added `seed_concept_graph` helper for graph-based search seeding
+- Removed `seed_vec_concept` helper (orphaned after Test 6 rewrite)
+- Removed `use maenifold_core::vector` import (no longer needed)
+
+### Not addressed
+- Traceability: `T-QUAL-FSC2: RTM FR-7.4` references retained as-is; eval notes FR-7.4 is stale but determining correct RTM entry is out of scope for SWE remediation
+- File rename/split: eval recommends moving validation tests to separate file; SWE prompt prohibits file moves
+- Unit tests of `similarity_plateau_warning` and clamping formula: these are `pub(crate)` and not accessible from integration tests; would require production code changes to expose
+
+- Commit: eef9d64

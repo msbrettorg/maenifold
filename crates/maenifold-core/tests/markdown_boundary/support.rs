@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 
 use maenifold_core::json::OutputFormat;
+use maenifold_core::tools::ToolContext;
 use maenifold_core::{AssetManager, Config, GraphDatabase, MaenifoldError, ToolRegistry};
+
+pub use maenifold_core::memory;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use serde_json::Value;
@@ -19,6 +22,12 @@ pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 pub struct TestEnv {
     _tmp: TempDir,
     pub cfg: Config,
+}
+
+impl TestEnv {
+    pub fn ctx(&self) -> ToolContext {
+        ToolContext::new(self.cfg.clone(), OutputFormat::Markdown)
+    }
 }
 
 impl Drop for TestEnv {

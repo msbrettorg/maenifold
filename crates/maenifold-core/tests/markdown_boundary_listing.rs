@@ -1,6 +1,8 @@
 #[path = "markdown_boundary/support.rs"]
 mod support;
 
+use maenifold_core::MaenifoldError;
+use serde_json::json;
 use std::fs;
 use support::*;
 
@@ -18,7 +20,7 @@ fn fr28_5_ac1_get_memory_files_returns_memory_uris() {
 
     let files = markdown::get_memory_files(&env.cfg, None).expect("memory files");
 
-    assert!(files.len() >= 3);
+    assert_eq!(files.len(), 3);
     assert!(files.iter().all(|file| file.starts_with("memory://")));
     assert!(files.contains(&"memory://alpha".to_string()));
     assert!(files.contains(&"memory://beta".to_string()));
@@ -64,53 +66,44 @@ fn fr28_5_ac3_get_memory_files_folder_uri_filter_returns_only_subset() {
     );
 }
 
-// T-W1-2: RTM FR-28.5
-#[test]
-fn fr28_5_ac4_get_memory_files_null_filter_returns_all_files() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-
-    seed_file(&env.cfg, "memory://a", None, "# Test");
-    seed_file(&env.cfg, "memory://folder/b", None, "# Test");
-
-    let files = markdown::get_memory_files(&env.cfg, None).expect("all files");
-
-    assert!(files.len() >= 2);
-}
-
 // T-W1-2: RTM FR-28.6
 #[test]
-fn fr28_6_ac1_get_memory_directories_returns_memory_uris() {
+fn fr28_6_ac1_list_memories_returns_directories() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
     seed_file(&env.cfg, "memory://folder-a/note", None, "# Test");
     seed_file(&env.cfg, "memory://folder-b/note", None, "# Test");
 
-    let dirs = get_memory_directories(&env.cfg, None).expect("memory directories");
+    let output =
+        memory::list_memories(&env.ctx(), &json!({})).expect("list memories");
 
-    assert!(dirs.iter().all(|dir| dir.starts_with("memory://")));
-    assert!(dirs.contains(&"memory://folder-a".to_string()));
-    assert!(dirs.contains(&"memory://folder-b".to_string()));
+    // T-W1-2: RTM FR-28.6 - verify production list_memories surfaces seeded directories.
+    assert!(output.contains("folder-a"), "expected folder-a in output: {output}");
+    assert!(output.contains("folder-b"), "expected folder-b in output: {output}");
+    assert!(output.contains("📁"), "expected folder icons in output: {output}");
 }
 
 // T-W1-2: RTM FR-28.6
 #[test]
-fn fr28_6_ac2_get_memory_directories_excludes_hidden_dirs() {
+fn fr28_6_ac2_list_memories_excludes_hidden_dirs() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
     seed_file(&env.cfg, "memory://visible-dir/note", None, "# Test");
     fs::create_dir_all(env.cfg.memory_path.join(".git")).expect("hidden dir");
 
-    let dirs = get_memory_directories(&env.cfg, None).expect("memory directories");
+    let output =
+        memory::list_memories(&env.ctx(), &json!({})).expect("list memories");
 
-    assert!(dirs.iter().all(|dir| !dir.contains(".git")));
+    // T-W1-2: RTM FR-28.6 - production list_memories must exclude hidden directories.
+    assert!(output.contains("visible-dir"), "expected visible-dir in output: {output}");
+    assert!(!output.contains(".git"), "hidden .git dir should be excluded: {output}");
 }
 
 // T-W1-2: RTM FR-28.6
 #[test]
-fn fr28_6_ac3_get_memory_directories_folder_uri_filter_returns_only_subset() {
+fn fr28_6_ac3_list_memories_folder_filter_returns_only_subset() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
@@ -118,11 +111,14 @@ fn fr28_6_ac3_get_memory_directories_folder_uri_filter_returns_only_subset() {
     seed_file(&env.cfg, "memory://docs/other-sub/note", None, "# Test");
     seed_file(&env.cfg, "memory://notes/archive/note", None, "# Test");
 
-    let dirs = get_memory_directories(&env.cfg, Some("memory://docs")).expect("docs dirs");
+    let output =
+        memory::list_memories(&env.ctx(), &json!({ "path": "docs" })).expect("list memories");
 
-    assert_eq!(dirs.len(), 2);
-    assert!(dirs.iter().all(|dir| dir.starts_with("memory://docs/")));
-    assert!(dirs.iter().all(|dir| !dir.starts_with("memory://notes/")));
+    // T-W1-2: RTM FR-28.6 - production list_memories with path filter scopes to that subtree.
+    assert!(output.contains("subfolder"), "expected subfolder in output: {output}");
+    assert!(output.contains("other-sub"), "expected other-sub in output: {output}");
+    assert!(!output.contains("archive"), "notes/archive should not appear: {output}");
+    assert!(!output.contains("notes"), "notes dir should not appear: {output}");
 }
 
 // T-W1-2: RTM FR-28.7
@@ -168,5 +164,15 @@ fn fr28_8_ac2_delete_file_non_existent_file_returns_not_found_error() {
     let err = markdown::delete_file("memory://never-existed", &env.cfg)
         .expect_err("missing delete target should fail");
 
-    assert_message_error(err, "Memory file not found");
+    // T-W1-2: RTM FR-28.8 - Assert the error variant (Message), not exact wording.
+    // Verify the URI is echoed so the caller can identify which file was missing.
+    match &err {
+        MaenifoldError::Message(msg) => {
+            assert!(
+                msg.contains("memory://never-existed"),
+                "expected URI echoed in error, got: {msg:?}"
+            );
+        }
+        other => panic!("expected MaenifoldError::Message, got: {other:?}"),
+    }
 }

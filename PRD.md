@@ -7,24 +7,6 @@ maenifold-rs is the Rust reimplementation of the maenifold MCP server — a pers
 **Current state**: 28/28 tools implemented with C# oracle parity, 500+ tests passing, 15 sprints completed.
 For completed requirements (FR-1 through FR-21), see [CHANGELOG.md](CHANGELOG.md).
 
-## Evergreen Quality Gates
-
-### NFR-1: C# Oracle Parity
-
-All tools SHALL produce semantically equivalent output to the C# oracle when invoked with identical parameters against identical data.
-
-### NFR-2: Test Coverage
-
-Each tool SHALL have tests at all 3 layers: boundary (in-process), CLI (binary), and parity (oracle comparison).
-
-### NFR-3: No Regressions
-
-Implementation SHALL NOT break any existing passing tests. `cargo test` SHALL remain green.
-
-### NFR-4: Code Quality
-
-All code SHALL pass `cargo clippy --workspace --all-targets -- -D warnings` and `cargo fmt --all --check`.
-
 ---
 
 ## Hosted Deployment — Dual-Transport, Dual-Backend
@@ -143,14 +125,4 @@ The system SHALL package OpenCode local plugin shared runtime helpers inside the
 - **Plugin-loader safety**: Runtime plugin modules SHALL expose only callable plugin factories at top level so OpenCode's plugin loader does not attempt to invoke non-plugin helper exports.
 - **Shared usage**: `persistence.ts`, `confession.ts`, and `compaction.ts` SHALL all consume the shared helper rather than duplicating config resolution logic.
 
-### NFR-7: Agent Isolation
 
-Spawned ACP agents SHALL operate in bounded contexts. No agent receives unrestricted access to the host filesystem or shell. Permission policy defaults to deny-all; explicit allowlists required per workflow step. Agent crashes SHALL NOT corrupt workflow state — the workflow pauses and awaits human intervention. Agent prompts SHALL time out after a configurable duration (`MAENIFOLD_AGENT_TIMEOUT`, default 300s). The orchestrator SHALL enforce: max agent response buffer of 10MB per turn, max JSONL event log of 100MB per session (rotate), max terminal output of 1MB per `terminal/create`. Violations trigger turn cancellation and workflow pause. Symlinks and path traversal attempts SHALL be canonicalized and denied if outside allowed roots. Concurrent orchestrators on the same workflow session SHALL be prevented via advisory file locks.
-
-### NFR-5: Local Mode Preservation
-
-The existing stdio + SQLite mode SHALL be completely unaffected by hosted deployment changes. `cargo build` (without `postgres` or `http` features) SHALL produce a binary identical in behavior to the current release. No new runtime dependencies introduced for the default build.
-
-### NFR-6: Concurrent Access
-
-The PostgreSQL backend SHALL support 5+ simultaneous clients performing concurrent reads and writes without data corruption, lock contention timeouts, or lost updates. Connection pool size SHALL be configurable via `MAENIFOLD_PG_POOL_SIZE` (default 10).

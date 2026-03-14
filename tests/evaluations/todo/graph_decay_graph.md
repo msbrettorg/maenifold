@@ -180,3 +180,14 @@ The distinction matters: test 3 ensures the feature does not consult decay metad
 | `read_memory_decayed_content_remains_fully_retrievable` | ✅ Yes | ✅ Passing | ✅ Sound |
 
 **All 4 tests are conceptually necessary and currently passing.** No test should be removed. One should be rewritten (test 2). Two could be strengthened with weight assertions (tests 1 and 2). The file would benefit from two additional grace-period boundary tests to close the coverage gap that `graph_decay_search.rs` already addresses for SearchMemories.
+
+---
+## SWE Remediation
+- REWRITE `find_similar_concepts_newer_concepts_rank_higher`: replaced fragile `str::find()` on Markdown with `OutputFormat::Json` + structured `concept_index()` comparison per P1 recommendation. Added `find_similar_concepts_json()` and `concept_index()` helpers to `graph_decay/support.rs`.
+- Added `OutputFormat::Json` support to `find_similar_concepts` in `similar/mod.rs`: extracted `rank_candidates()` shared ranking logic, added `format_ranked_results_json()` producing `{name, similarity, decayWeight, weightedSimilarity}` per result.
+- KEEP `build_context_newer_related_concepts_rank_higher`: unchanged
+- KEEP `read_memory_bypasses_decay_and_returns_full_content_regardless_of_age`: unchanged
+- KEEP `read_memory_decayed_content_remains_fully_retrievable`: unchanged
+- P2/P3 recommendations (grace-period boundary tests, weight assertions, tag clarification) deferred — not required by eval verdicts
+- All 4 tests pass
+- Commit: 861bae0

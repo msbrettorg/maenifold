@@ -1,99 +1,13 @@
 // T-DATE-001: RTM FR-005, FR-006 — Ported timestamp regression tests from the C# oracle.
+// NOTE: FR-005 and FR-006 are legacy C# oracle IDs not present in the current RTM.md.
+// These map to behavioral contracts in thinking/formatting.rs and thinking/session.rs.
 
-use chrono::{Datelike, TimeZone, Utc};
-use maenifold_core::json::OutputFormat;
-use maenifold_core::markdown::{Frontmatter, read_markdown};
-use maenifold_core::{AssetManager, Config, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::{Mutex, MutexGuard};
+#[path = "session/support.rs"]
+mod support;
+
 use regex::Regex;
-use serde_json::{Value, json};
-use serde_yaml::Value as YamlValue;
-use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
-
-struct TestHarness {
-    _guard: MutexGuard<'static, ()>,
-    _tmp: TempDir,
-    config: Config,
-}
-
-impl TestHarness {
-    fn new() -> Self {
-        let guard = TEST_MUTEX.lock();
-        let tmp = TempDir::new().expect("tmp");
-        Config::override_root(tmp.path());
-        Config::set_database_path(tmp.path().join("memory.db"));
-        let config = Config::current();
-        config.ensure_directories().expect("dirs");
-        AssetManager::initialize_assets(&config).expect("assets");
-        Self {
-            _guard: guard,
-            _tmp: tmp,
-            config,
-        }
-    }
-
-    fn invoke_markdown(&self, tool: &str, payload: Value) -> String {
-        ToolRegistry::global()
-            .try_invoke(tool, &payload, OutputFormat::Markdown)
-            .expect("tool invocation")
-    }
-
-    fn read(&self, uri: &str) -> (Frontmatter, String) {
-        let (frontmatter, content, _) = read_markdown(uri, &self.config).expect("read markdown");
-        (frontmatter.expect("frontmatter"), content)
-    }
-}
-
-impl Drop for TestHarness {
-    fn drop(&mut self) {
-        Config::reset_overrides();
-    }
-}
-
-fn extract_session_id(response_message: &str) -> String {
-    response_message
-        .lines()
-        .find_map(|line| {
-            if line.contains("Created session:") || line.contains("to session:") {
-                line.split(':')
-                    .next_back()
-                    .map(|value| value.trim().to_string())
-            } else {
-                None
-            }
-        })
-        .expect("session id")
-}
-
-fn session_uri(session_id: &str) -> String {
-    let millis = session_id
-        .split('-')
-        .nth(1)
-        .and_then(|value| value.parse::<i64>().ok())
-        .expect("timestamp millis");
-    let timestamp = Utc
-        .timestamp_millis_opt(millis)
-        .single()
-        .expect("timestamp");
-    format!(
-        "memory://thinking/sequential/{:04}/{:02}/{:02}/{session_id}",
-        timestamp.year(),
-        timestamp.month(),
-        timestamp.day()
-    )
-}
-
-fn frontmatter_string(frontmatter: &Frontmatter, key: &str) -> String {
-    match frontmatter.get(key) {
-        Some(YamlValue::String(value)) => value.clone(),
-        Some(YamlValue::Number(value)) => value.to_string(),
-        Some(YamlValue::Bool(value)) => value.to_string(),
-        _ => String::new(),
-    }
-}
+use serde_json::json;
+use support::*;
 
 #[test]
 fn sequential_thought_timestamp_includes_utc_suffix() {
@@ -109,13 +23,8 @@ fn sequential_thought_timestamp_includes_utc_suffix() {
         }),
     );
 
-    assert!(
-        result.contains("Created session:"),
-        "session should be created successfully"
-    );
-
     let session_id = extract_session_id(&result);
-    let (_, content) = harness.read(&session_uri(&session_id));
+    let (_, content) = harness.read(&session_uri("sequential", &session_id));
 
     // T-DATE-001: RTM FR-005 — Human-readable sequential thought timestamps must include UTC.
     let utc_timestamp_pattern =
@@ -124,31 +33,8 @@ fn sequential_thought_timestamp_includes_utc_suffix() {
         utc_timestamp_pattern.is_match(&content),
         "content should contain timestamp with UTC suffix. Content:\n{content}"
     );
-}
 
-#[test]
-fn sequential_thought_timestamp_does_not_contain_bare_timestamp_without_utc() {
-    let harness = TestHarness::new();
-
-    let result = harness.invoke_markdown(
-        "SequentialThinking",
-        json!({
-            "response": "Test thought with [[bare-timestamp-regression]]",
-            "nextThoughtNeeded": true,
-            "thoughtNumber": 0,
-            "totalThoughts": 2
-        }),
-    );
-
-    assert!(
-        result.contains("Created session:"),
-        "session should be created successfully"
-    );
-
-    let session_id = extract_session_id(&result);
-    let (_, content) = harness.read(&session_uri(&session_id));
-
-    // T-DATE-001: RTM FR-005 — No italicized timestamp may omit the UTC suffix.
+    // T-DATE-001: RTM FR-005 — No italicized timestamp may omit the UTC suffix (merged from Test 2).
     let bare_timestamp_pattern =
         Regex::new(r"\*\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\*").expect("regex");
     assert!(
@@ -173,16 +59,12 @@ fn completed_session_has_iso8601_completed_field_in_frontmatter() {
     );
 
     assert!(
-        result.contains("Created session:"),
-        "session should be created successfully"
-    );
-    assert!(
         result.contains("Thinking complete"),
         "session should complete"
     );
 
     let session_id = extract_session_id(&result);
-    let (frontmatter, _) = harness.read(&session_uri(&session_id));
+    let (frontmatter, _) = harness.read(&session_uri("sequential", &session_id));
 
     // T-DATE-001: RTM FR-006 — Completed sessions must persist ISO 8601 completion timestamps.
     assert_eq!(frontmatter_string(&frontmatter, "status"), "completed");
@@ -193,10 +75,13 @@ fn completed_session_has_iso8601_completed_field_in_frontmatter() {
         "completed value should not be null or empty"
     );
 
-    let iso8601_pattern = Regex::new(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}").expect("regex");
+    // R-1: Regex now requires timezone designator (Z or ±HH:MM) to guard UTC persistence.
+    let iso8601_utc_pattern =
+        Regex::new(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$")
+            .expect("regex");
     assert!(
-        iso8601_pattern.is_match(&completed_value),
-        "completed timestamp should be ISO 8601 format (contains 'T' separator). Got: {completed_value}"
+        iso8601_utc_pattern.is_match(&completed_value),
+        "completed timestamp must be ISO 8601 with timezone designator. Got: {completed_value}"
     );
 }
 
@@ -214,11 +99,6 @@ fn cancelled_session_has_iso8601_cancelled_field_in_frontmatter() {
         }),
     );
 
-    assert!(
-        create_result.contains("Created session:"),
-        "session should be created successfully"
-    );
-
     let session_id = extract_session_id(&create_result);
 
     let cancel_result = harness.invoke_markdown(
@@ -234,7 +114,7 @@ fn cancelled_session_has_iso8601_cancelled_field_in_frontmatter() {
         "session should be cancelled"
     );
 
-    let (frontmatter, _) = harness.read(&session_uri(&session_id));
+    let (frontmatter, _) = harness.read(&session_uri("sequential", &session_id));
 
     // T-DATE-001: RTM FR-006 — Cancelled sessions must persist ISO 8601 cancellation timestamps.
     assert_eq!(frontmatter_string(&frontmatter, "status"), "cancelled");
@@ -245,9 +125,12 @@ fn cancelled_session_has_iso8601_cancelled_field_in_frontmatter() {
         "cancelled value should not be null or empty"
     );
 
-    let iso8601_pattern = Regex::new(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}").expect("regex");
+    // R-1: Regex now requires timezone designator (Z or ±HH:MM) to guard UTC persistence.
+    let iso8601_utc_pattern =
+        Regex::new(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$")
+            .expect("regex");
     assert!(
-        iso8601_pattern.is_match(&cancelled_value),
-        "cancelled timestamp should be ISO 8601 format (contains 'T' separator). Got: {cancelled_value}"
+        iso8601_utc_pattern.is_match(&cancelled_value),
+        "cancelled timestamp must be ISO 8601 with timezone designator. Got: {cancelled_value}"
     );
 }

@@ -285,3 +285,13 @@ introduced. This is currently unverified anywhere in the suite.
 **Effective unique signal: 1.5 / 4 tests.**  
 If Test 3 is rewritten with a `&&` assertion, that rises to 2 / 4 with genuine value.
 The file as written costs 4 test slots and delivers the equivalent of ~1.5.
+
+---
+## SWE Remediation
+- REMOVE `runner_community_data_immediately_available_after_run` (MERGE/P4): fully duplicated by `community_louvain_persistence::run_and_persist_persists_to_database` with stronger assertions; dropped the misleading "immediately available" framing
+- REMOVE `runner_community_data_persists_across_connections` (P1): strict subset of Test 1 and `run_and_persist_persists_to_database`; zero unique signal
+- REWRITE `runner_concurrent_calls_do_not_panic_or_corrupt` (P2): strengthened `r1.is_ok() || r2.is_ok()` to `r1.is_ok() && r2.is_ok()` with comment citing `busy_timeout=5000ms`; added `{r1:?}, {r2:?}` to failure message for diagnostics
+- REWRITE `runner_detect_and_persist_returns_valid_community_count` → `runner_returns_zero_on_empty_db` (P3): extracted the unique empty-DB boundary phase as a standalone test; added `community_row_count == 0` assertion; dropped the duplicated populated-graph phase
+- ADD `runner_seed_produces_deterministic_assignments` (P5): exercises `detect_and_persist(db_path, 1.0, Some(42))` twice and asserts identical community count and per-concept `community_id` assignments, covering the T-15.10 determinism contract
+- Final test count: 3 (down from 4), effective unique signal: 3/3
+- Commit: 4a32062

@@ -209,3 +209,14 @@ correctly scoped. Add a comment clarifying why `file_content_row_count` is check
 > concrete assertion gaps (DB status consistency in test 2, missing `abandoned` status in
 > test 1) that would allow real regressions to pass undetected. Both are fixable with
 > ≤10 lines each.
+
+---
+
+## SWE Remediation
+
+- REWRITE test 1 (`completed_and_cancelled_sessions_are_not_touched_regardless_of_age`): Added `abandoned` to terminal-status set, now iterates over all three terminal statuses (completed, cancelled, abandoned). Improved assertion error messages with status context. (P1)
+- REWRITE test 2 (`multiple_abandoned_sessions_are_detected_in_one_sweep`): Added `read_db_status` checks for both abandoned sessions (P1). Added explicit `"active"` frontmatter + DB assertions for `recent_active` (P2). Added body/notice content checks via `read_body` and `read_db_content` for `"## Session Abandoned"` marker (P2). Reduced `recent_active` minutes_ago from 15 → 5 (P3). Added T-0.3/NFR-4 comment explaining mtime/ctime guard expectation (P3).
+- KEEP test 3 (`empty_database_returns_zero_abandoned_sessions`): Added P4 comment clarifying `file_content_row_count` is a structural invariant documenting intent.
+- Added `read_db_content` to imports.
+- All 3 tests pass: `cargo test --test integration_tests -p maenifold-core -- session_cleanup_sweep`
+- Commit: 2d416e1

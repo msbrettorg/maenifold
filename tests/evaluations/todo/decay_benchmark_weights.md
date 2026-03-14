@@ -346,3 +346,16 @@ It will catch catastrophic failures (no decay, wrong sign, zero output) but will
 moderate regressions (curve flattening, partial boost, tier mis-dispatch). Rewrites are
 warranted before this suite can be considered production-grade confidence coverage for
 [[NFR-1]] [[decay]] in [[maenifold-rs]].
+
+---
+
+## SWE Remediation
+
+- REWRITE `benchmark_decay_weight_distribution_produces_meaningful_separation`: assert all 9 checkpoints against formula-derived values (Rec 4), add minimum-gap assertions (Rec 2), monotonic decay check, tighten suppression ratio 5×→10× (Rec 2), pin decay env (Rec 1), document all thresholds (Rec 7)
+- REWRITE `benchmark_access_boosting_rescues_actively_used_old_content`: tighten `stale_weight_after` <0.5→<0.25, `boost_ratio` >2.0→>4.0 (Rec 3), add formula verification for pre-boost weight, pin decay env (Rec 1), document 60-day age choice and all thresholds (Rec 7)
+- REWRITE `benchmark_tiered_decay_episodic_decays_faster_than_semantic` → renamed to `benchmark_episodic_decays_faster_than_semantic` (Rec 8): add config pre-condition guards (Rec 5), minimum-separation assertion >0.3 (Rec 2), formula-based expected value checks, pin decay env (Rec 1)
+- ADD `benchmark_workflow_decays_between_episodic_and_semantic`: new test covering previously untested workflow tier (Rec 6), verifies strict ordering episodic < workflow < semantic with pre-condition guards and gap assertions
+- Support: added `DecayEnvGuard::pin_defaults()` to pin all 5 decay env vars for hermetic tests (Rec 1), added `expected_power_law_weight()` for formula-based assertions
+- All 8 recommendations addressed: Rec 1 (High) ✅, Rec 2 (High) ✅, Rec 3 (High) ✅, Rec 4 (Medium) ✅, Rec 5 (Medium) ✅, Rec 6 (Medium) ✅, Rec 7 (Low) ✅, Rec 8 (Low) ✅
+- Test count: 3 → 4 (added workflow tier test)
+- Commit: 6dc42da

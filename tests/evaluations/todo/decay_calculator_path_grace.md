@@ -236,3 +236,13 @@ instead of `r"C:\\..."` which has double backslashes.
 **3 of 5 tests contribute unique, irreplaceable signal.** The two removals (tests 3 and 4) are
 safe — no coverage is lost, only redundancy is eliminated. The two rewrites (tests 1 and 2) are
 required to make the remaining tests structurally sound.
+
+---
+## SWE Remediation
+- REWRITE `empty_path_uses_default_grace_period`: added post-grace assertion at day 29 (`weight < 1.0`) to close boundary-only gap (P0)
+- REWRITE `windows_backslash_sequential_path_uses_sequential_grace_period`: added decisive day 8 post-grace assertion proving sequential routing; fixed Windows path from double-backslash to single-backslash per recommendation 5; merged comparative claim from test 5 (P0)
+- REMOVE `thinking_workflow_path_uses_workflow_grace_period`: confirmed superseded by `decay_function_grace_periods::exponential_decay_workflows_uses_14_day_grace_period`
+- REMOVE `regular_path_uses_default_grace_period`: confirmed superseded by `decay_function_grace_periods::exponential_decay_default_memory_uses_14_day_grace_period`
+- MERGE `sequential_path_has_shorter_grace_than_default_path`: comparative assertion folded into test 2 using Windows backslash path; redundant `regular == 1.0` sub-assertion dropped
+- Tests: 2 passed, 0 failed (was 5 tests, now 2 structurally sound tests)
+- Commit: 5f52699

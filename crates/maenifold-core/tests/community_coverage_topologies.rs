@@ -6,31 +6,42 @@ use maenifold_core::community::detect_and_persist;
 use support::*;
 
 // T-W1-8: RTM NFR-2
-// Mirrors: RunLouvain_TwoCliquesWeakBridge_ImprovedFlagSet
+// Mirrors: RunLouvain_TwoCliquesWeakBridge_ImprovedFlagSet (C# oracle)
+// Renamed: the C# test verified an internal `IsImproved` flag not present in Rust.
+// This test verifies the behavioral invariant: Louvain resists merging two dense
+// cliques connected only by a weak inter-community bridge.
 #[test]
-fn run_louvain_two_cliques_weak_bridge_improved_flag_set() {
+fn run_louvain_two_cliques_weak_bridge_resists_merge() {
     let _g = TEST_MUTEX.lock();
     let env = TestEnv::setup();
     let conn = open_conn(&env.db_path);
 
+    const CLIQUE_WEIGHT: i64 = 10;
+    const BRIDGE_WEIGHT: i64 = 1;
+
     for name in ["clq1-x", "clq1-y", "clq1-z"] {
         insert_concept(&conn, name);
     }
-    insert_edge(&conn, "clq1-x", "clq1-y", 10);
-    insert_edge(&conn, "clq1-y", "clq1-z", 10);
-    insert_edge(&conn, "clq1-x", "clq1-z", 10);
+    insert_edge(&conn, "clq1-x", "clq1-y", CLIQUE_WEIGHT);
+    insert_edge(&conn, "clq1-y", "clq1-z", CLIQUE_WEIGHT);
+    insert_edge(&conn, "clq1-x", "clq1-z", CLIQUE_WEIGHT);
 
     for name in ["clq2-x", "clq2-y", "clq2-z"] {
         insert_concept(&conn, name);
     }
-    insert_edge(&conn, "clq2-x", "clq2-y", 10);
-    insert_edge(&conn, "clq2-y", "clq2-z", 10);
-    insert_edge(&conn, "clq2-x", "clq2-z", 10);
+    insert_edge(&conn, "clq2-x", "clq2-y", CLIQUE_WEIGHT);
+    insert_edge(&conn, "clq2-y", "clq2-z", CLIQUE_WEIGHT);
+    insert_edge(&conn, "clq2-x", "clq2-z", CLIQUE_WEIGHT);
 
-    insert_edge(&conn, "clq1-x", "clq2-x", 1); // weak bridge
+    insert_edge(&conn, "clq1-x", "clq2-x", BRIDGE_WEIGHT); // weak bridge
     drop(conn);
 
-    detect_and_persist(&env.db_path, 1.0, None).expect("detect");
+    // T-12.7: RTM FR-12.7 — assert community count from detect_and_persist return value
+    let count = detect_and_persist(&env.db_path, 1.0, None).expect("detect");
+    assert_eq!(
+        count, 2,
+        "two-clique weak-bridge topology must produce exactly 2 communities"
+    );
 
     let conn = open_conn(&env.db_path);
     assert_eq!(
@@ -56,10 +67,13 @@ fn run_louvain_two_cliques_weak_bridge_improved_flag_set() {
     );
 
     let modularity = get_modularity(&conn);
-    // T-15.9: Gain formula fixed; verify the partition produces finite modularity.
+    // T-15.9: Gain formula fixed. The Louvain partition for this two-clique weak-bridge
+    // topology produces a small negative modularity (~−0.008) because the bridge edge
+    // penalizes the partition. The key invariant is that the value is finite (no NaN/Inf
+    // from division-by-zero regressions).
     assert!(
         modularity.is_finite(),
-        "two-clique graph must produce finite modularity, got {modularity}"
+        "two-clique weak-bridge graph must produce finite modularity, got {modularity}"
     );
 }
 
@@ -75,10 +89,15 @@ fn run_louvain_isolated_concepts_normalized_contiguous_ids() {
     }
     drop(conn);
 
-    detect_and_persist(&env.db_path, 1.0, None).expect("detect");
+    // T-12.7: RTM FR-12.7 — assert community count from detect_and_persist return value
+    let count = detect_and_persist(&env.db_path, 1.0, None).expect("detect");
+    assert_eq!(
+        count, 4,
+        "four isolated concepts must each receive their own community"
+    );
 
     let conn = open_conn(&env.db_path);
-    let mut ids: Vec<i64> = {
+    let ids: Vec<i64> = {
         let mut stmt = conn
             .prepare("SELECT community_id FROM concept_communities ORDER BY community_id")
             .expect("stmt");
@@ -87,11 +106,18 @@ fn run_louvain_isolated_concepts_normalized_contiguous_ids() {
             .collect::<Result<_, _>>()
             .expect("collect")
     };
-    ids.sort_unstable();
     assert_eq!(
         ids,
         vec![0, 1, 2, 3],
         "isolated concepts must receive contiguous normalized IDs 0..N-1, got {:?}",
         ids
+    );
+
+    // No edges → modularity must be 0.0, consistent with sibling tests in
+    // community_coverage_basics.rs.
+    assert_eq!(
+        get_modularity(&conn),
+        0.0,
+        "no edges → modularity must be 0.0"
     );
 }

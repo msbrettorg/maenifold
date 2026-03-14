@@ -101,3 +101,9 @@ is more resilient. This is a low-priority cosmetic concern — the uppercase gua
 ## Load-Bearing Score: 3/4
 
 Tests 2, 3, and 4 are independently necessary — removing any one would allow a distinct class of regression to ship undetected. Test 1 is load-bearing only for the content annotation path (`"Submachine Resumed"` written to body) and requires a rewrite to be defensively complete against state-machine regressions on the completed-submachine path.
+
+---
+## SWE Remediation
+- REWRITE `unblock_after_completion_appends_resume_note_to_content`: added resume result assertions, frontmatter clearing checks, and a precise completion annotation assertion; documented its relationship to the lifecycle coverage.
+- HARDEN `re_registration_cycle_works_across_multiple_submachines`: asserted `activeSubmachineType` clears after cycle A and that the step counter advances after the first resume.
+- Commit: 5fe347d

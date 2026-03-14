@@ -46,3 +46,15 @@ The best-written of the three files: all 10 tests exercise the production API ag
 ## Load-Bearing Score: 8/10
 
 Tests ac1, ac2, ac3 (read), ac3, ac2 (write/frontmatter), ac1, ac2 (update), ac1, ac2 (append) — 8 are genuinely load-bearing for distinct behaviors. The write-existence-only tests (fr28_2_ac1 and fr28_2_ac2) are load-bearing at the weakest possible assertion level.
+
+---
+## SWE Remediation
+
+- REWRITE fr28_1_ac1: renamed to `fr28_1_ac1_read_markdown_returns_frontmatter_content_and_checksum` (Rec 4); strengthened body assertion from `contains("World")` to `contains("# Hello\n\nWorld")`; replaced `assert!(!checksum.is_empty())` with checksum-differs proof — writes second file with different content and asserts checksums are not equal (Rec 2, P0)
+- REWRITE fr28_2_ac1: added `read_markdown` round-trip after `write_markdown` to assert body content, not just file existence (Rec 1, P0)
+- REWRITE fr28_2_ac2: added `read_markdown` round-trip after nested write to verify content is readable through directory hierarchy (Rec 1, P0)
+- ADD fr28_3_ac3_update_markdown_none_checksum_overwrites_unconditionally: new test documenting that `update_markdown` with `None` checksum skips OCC and overwrites unconditionally (Rec 3, P1)
+- DOC: added comment explaining TEST_MUTEX is mandatory because `Config::override_root` mutates process-global state (Rec 5, P2)
+- KEEP: 7 tests unchanged (fr28_1_ac2, fr28_1_ac3, fr28_2_ac3, fr28_3_ac1, fr28_3_ac2, fr28_4_ac1, fr28_4_ac2)
+- Test count: 10 → 11, all passing
+- Commit: e76844e

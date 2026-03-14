@@ -41,3 +41,11 @@ The strongest of the three files evaluated. Tests assert directly against the `c
 ## Load-Bearing Score: 7/9
 
 Tests 3 and 8 have assertion defects that would fail to catch real bugs. Test 3's digit-scan assertion is too weak to be reliable. Test 8 silently skips its second intended assertion.
+
+---
+## SWE Remediation
+- REWRITE `sync_output_reports_filtered_count`: replaced weak digit-scan `chars().any(|ch| matches!(ch, '1'..='9'))` with exact `filtered_line.contains("3 concept mentions filtered")` per P0
+- REWRITE `sync_filter_excludes_blocked_from_concept_graph`: added missing `allowed_b` graph assertion via `count_concept_graph_entries(&cfg, &allowed_b) > 0`, removed dead `let _ = allowed_b` suppression per P0
+- KEEP: all 7 remaining tests unchanged
+- All 9 tests pass
+- Commit: 33824c6

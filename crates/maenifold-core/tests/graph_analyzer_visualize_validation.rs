@@ -5,57 +5,41 @@ use graph_analyzer_support::*;
 use regex::Regex;
 use serde_json::json;
 
-// T-1.6: RTM NFR-1 — split from graph_analyzer_tests.rs to keep validation coverage isolated.
+// T-1.6: RTM NFR-1 — validation: empty and null conceptName are identical code paths
+// (Value::Null.as_str() → None → unwrap_or_default() → ""; same as empty string).
+// Merged from separate empty-string and null tests per eval recommendation.
 #[test]
-fn visualize_with_empty_concept_name_returns_error() {
+fn visualize_with_empty_or_null_concept_name_returns_error() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
-    seed_graph(&cfg);
+    // No seed_graph — validation rejects before any DB access.
 
-    let result = visualize(
-        &cfg,
-        json!({
-            "conceptName": "",
-            "depth": 1,
-            "maxNodes": 10
-        }),
-    );
+    for (label, concept_value) in [
+        ("empty string", json!("")),
+        ("null", json!(null)),
+    ] {
+        let result = visualize(
+            &cfg,
+            json!({
+                "conceptName": concept_value,
+                "depth": 1,
+                "maxNodes": 10
+            }),
+        );
 
-    assert!(
-        result.starts_with("ERROR"),
-        "expected error output: {result}"
-    );
-    assert!(
-        result.contains("required"),
-        "missing required detail: {result}"
-    );
+        assert!(
+            result.starts_with("ERROR"),
+            "{label}: expected error output: {result}"
+        );
+        assert!(
+            result.contains("required"),
+            "{label}: missing required detail: {result}"
+        );
+    }
 }
 
-// T-1.6: RTM NFR-1 — split from graph_analyzer_tests.rs to keep validation coverage isolated.
-#[test]
-fn visualize_with_null_concept_name_returns_error() {
-    let _guard = TEST_MUTEX.lock();
-    let _reset = ConfigOverrideReset;
-    let (_tmp, cfg) = isolated_config();
-    seed_graph(&cfg);
-
-    let result = visualize(
-        &cfg,
-        json!({
-            "conceptName": serde_json::Value::Null,
-            "depth": 1,
-            "maxNodes": 10
-        }),
-    );
-
-    assert!(
-        result.starts_with("ERROR"),
-        "expected error output: {result}"
-    );
-}
-
-// T-1.6: RTM NFR-1 — split from graph_analyzer_tests.rs to keep validation coverage isolated.
+// T-1.6: RTM NFR-1 — non-existent concept returns guidance to run sync.
 #[test]
 fn visualize_with_non_existent_concept_returns_not_found_message() {
     let _guard = TEST_MUTEX.lock();
@@ -76,13 +60,16 @@ fn visualize_with_non_existent_concept_returns_not_found_message() {
         result.contains("not found"),
         "missing not-found detail: {result}"
     );
+    // T-1.6: RTM NFR-2 — pinned to exact phrase; previous `.to_ascii_lowercase().contains("sync")`
+    // was incidental and would match any output containing "sync" in any context.
     assert!(
-        result.to_ascii_lowercase().contains("sync"),
+        result.contains("Run sync first"),
         "missing sync guidance: {result}"
     );
 }
 
-// T-1.6: RTM NFR-1 — split from graph_analyzer_tests.rs to keep validation coverage isolated.
+// T-1.6: RTM NFR-1 — depth boundary validation. Collects all failures so every
+// boundary value is verified even if an earlier one fails.
 #[test]
 fn visualize_with_invalid_depth_returns_error() {
     let _guard = TEST_MUTEX.lock();
@@ -90,6 +77,7 @@ fn visualize_with_invalid_depth_returns_error() {
     let (_tmp, cfg) = isolated_config();
     seed_graph(&cfg);
 
+    let mut failures = Vec::new();
     for invalid_depth in [0, -1, 6, 10] {
         let result = visualize(
             &cfg,
@@ -100,18 +88,23 @@ fn visualize_with_invalid_depth_returns_error() {
             }),
         );
 
-        assert!(
-            result.starts_with("ERROR"),
-            "depth {invalid_depth} should fail: {result}"
-        );
-        assert!(
-            result.contains("depth") && result.contains("between"),
-            "depth range detail missing for {invalid_depth}: {result}"
-        );
+        if !result.starts_with("ERROR") {
+            failures.push(format!("depth {invalid_depth} should fail: {result}"));
+        } else if !(result.contains("depth") && result.contains("between")) {
+            failures.push(format!(
+                "depth range detail missing for {invalid_depth}: {result}"
+            ));
+        }
     }
+    assert!(
+        failures.is_empty(),
+        "depth validation failures:\n{}",
+        failures.join("\n")
+    );
 }
 
-// T-1.6: RTM NFR-1 — split from graph_analyzer_tests.rs to keep validation coverage isolated.
+// T-1.6: RTM NFR-1 — maxNodes boundary validation. Collects all failures so every
+// boundary value is verified even if an earlier one fails.
 #[test]
 fn visualize_with_invalid_max_nodes_returns_error() {
     let _guard = TEST_MUTEX.lock();
@@ -119,6 +112,7 @@ fn visualize_with_invalid_max_nodes_returns_error() {
     let (_tmp, cfg) = isolated_config();
     seed_graph(&cfg);
 
+    let mut failures = Vec::new();
     for invalid_max_nodes in [0, 4, 101, 1000] {
         let result = visualize(
             &cfg,
@@ -129,18 +123,25 @@ fn visualize_with_invalid_max_nodes_returns_error() {
             }),
         );
 
-        assert!(
-            result.starts_with("ERROR"),
-            "maxNodes {invalid_max_nodes} should fail: {result}"
-        );
-        assert!(
-            result.contains("maxNodes") && result.contains("between"),
-            "maxNodes range detail missing for {invalid_max_nodes}: {result}"
-        );
+        if !result.starts_with("ERROR") {
+            failures.push(format!(
+                "maxNodes {invalid_max_nodes} should fail: {result}"
+            ));
+        } else if !(result.contains("maxNodes") && result.contains("between")) {
+            failures.push(format!(
+                "maxNodes range detail missing for {invalid_max_nodes}: {result}"
+            ));
+        }
     }
+    assert!(
+        failures.is_empty(),
+        "maxNodes validation failures:\n{}",
+        failures.join("\n")
+    );
 }
 
-// T-1.6: RTM NFR-1 — split from graph_analyzer_tests.rs to keep validation coverage isolated.
+// T-1.6: RTM NFR-1 — isolated concept with zero edges produces valid Mermaid with
+// "No connections found" indicator. Both node ID and message are asserted independently.
 #[test]
 fn visualize_with_isolated_concept_returns_empty_graph() {
     let _guard = TEST_MUTEX.lock();
@@ -161,9 +162,15 @@ fn visualize_with_isolated_concept_returns_empty_graph() {
         result.starts_with("graph TD"),
         "expected Mermaid output: {result}"
     );
+    // T-1.6: RTM NFR-2 — assert both conditions independently; previous OR allowed
+    // silent regressions where one branch could disappear undetected.
     assert!(
-        result.contains("No connections found") || result.contains("isolated_concept"),
-        "expected isolated-node indicator: {result}"
+        result.contains("isolated_concept"),
+        "expected node ID in output: {result}"
+    );
+    assert!(
+        result.contains("No connections found"),
+        "expected isolation indicator: {result}"
     );
 }
 

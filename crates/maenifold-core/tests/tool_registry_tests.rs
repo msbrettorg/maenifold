@@ -88,36 +88,6 @@ fn new_registry_registers_all_expected_tool_names() {
 
 // T-0.2: RTM FR-1 / FR-2 / FR-3 / FR-4 / FR-5 / FR-6
 #[test]
-fn try_invoke_with_valid_tool_name_returns_successful_result() {
-    let _guard = TEST_MUTEX.lock();
-    let _env = isolated_env();
-
-    let result = invoke_markdown("GetConfig", json!({})).expect("GetConfig should succeed");
-
-    assert!(
-        result.contains("Maenifold Configuration"),
-        "unexpected result: {result}"
-    );
-}
-
-// T-0.2: RTM FR-1 / FR-2 / FR-3 / FR-4 / FR-5 / FR-6
-#[test]
-fn try_invoke_with_lowercase_alias_dispatches_same_as_canonical() {
-    let _guard = TEST_MUTEX.lock();
-    let _env = isolated_env();
-
-    let canonical =
-        invoke_markdown("GetConfig", json!({})).expect("canonical GetConfig should succeed");
-    let alias = invoke_markdown("getconfig", json!({})).expect("alias getconfig should succeed");
-
-    assert_eq!(
-        alias, canonical,
-        "alias dispatch should match canonical output"
-    );
-}
-
-// T-0.2: RTM FR-1 / FR-2 / FR-3 / FR-4 / FR-5 / FR-6
-#[test]
 fn try_invoke_case_insensitive_lookup_always_resolves() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
@@ -166,14 +136,16 @@ fn try_invoke_read_memory_with_missing_file_returns_not_found_message() {
     let _guard = TEST_MUTEX.lock();
     let _env = isolated_env();
 
-    let result = invoke_markdown(
-        "ReadMemory",
-        json!({"identifier":"memory://tool-registry-test-does-not-exist"}),
-    )
-    .expect("ReadMemory should return a rendered not-found response");
+    let identifier = "memory://tool-registry-test-does-not-exist";
+    let result = invoke_markdown("ReadMemory", json!({"identifier": identifier}))
+        .expect("ReadMemory should return a rendered not-found response, not an Err");
 
-    let lower = result.to_ascii_lowercase();
-    assert!(lower.contains("not found") || lower.contains("error"));
+    // The rendered response must reference the identifier the caller asked for,
+    // proving the tool resolved the URI rather than returning a generic error.
+    assert!(
+        result.contains(identifier) || result.contains("tool-registry-test-does-not-exist"),
+        "not-found response should reference the requested identifier: {result}"
+    );
 }
 
 // T-0.2: RTM FR-1 / FR-2 / FR-3 / FR-4 / FR-5 / FR-6
@@ -230,9 +202,11 @@ fn try_invoke_get_help_with_tool_name_returns_non_null_result() {
     let result =
         invoke_markdown("GetHelp", json!({"toolName":"GetHelp"})).expect("GetHelp should work");
 
+    // Assert structural markers from the help format, not just tool name presence.
+    // A meaningful help response must contain parameter documentation or a description section.
     assert!(
-        result.to_ascii_lowercase().contains("gethelp"),
-        "unexpected help output: {result}"
+        result.contains("## Parameters") || result.contains("Description"),
+        "help output should contain structural markers (## Parameters or Description): {result}"
     );
 }
 
@@ -240,13 +214,20 @@ fn try_invoke_get_help_with_tool_name_returns_non_null_result() {
 #[test]
 fn try_invoke_list_memories_returns_non_null_result() {
     let _guard = TEST_MUTEX.lock();
-    let _env = isolated_env();
+    let env = isolated_env();
+
+    // Seed a file so the listing has observable, test-specific content.
+    let sentinel = env.config.memory_path.join("tool-registry-sentinel.md");
+    std::fs::write(&sentinel, "# Sentinel\n\nCreated by tool_registry_tests.\n")
+        .expect("write sentinel file");
 
     let result = invoke_markdown("ListMemories", json!({})).expect("ListMemories should succeed");
 
+    // Assert the listing contains the sentinel filename, proving ListMemories
+    // reads from the isolated test environment, not just any directory.
     assert!(
-        result.contains("# Directory:") || result.contains("### Files"),
-        "unexpected list output: {result}"
+        result.contains("tool-registry-sentinel"),
+        "list output should contain the sentinel file name: {result}"
     );
 }
 
@@ -272,8 +253,38 @@ fn global_registry_invocation_works_without_explicit_setup_call() {
 
     let output = result.expect("global registry should lazily initialize");
     // T-13.4: RTM FR-7 — MemoryStatus returns markdown, not JSON.
+    // Note: the MemoryStatus content assertion is incidental — the test's
+    // distinct value is proving the global singleton path works without
+    // a prior explicit ToolRegistry::new() call.
     assert!(
         output.contains("# Memory System Status"),
         "unexpected output: {output}"
+    );
+}
+
+// T-0.2: RTM FR-1 — ToolRegistry::contains resolves aliases, not only canonical names
+#[test]
+fn registry_contains_resolves_aliases_not_only_canonical_names() {
+    let registry = ToolRegistry::new();
+
+    // Canonical name should work
+    assert!(
+        registry.contains("GetConfig"),
+        "canonical name 'GetConfig' should be found"
+    );
+    // Lowercase alias should also resolve
+    assert!(
+        registry.contains("getconfig"),
+        "lowercase alias 'getconfig' should be found via case-insensitive lookup"
+    );
+    // Mixed-case alias should also resolve
+    assert!(
+        registry.contains("GETCONFIG"),
+        "uppercase alias 'GETCONFIG' should be found via case-insensitive lookup"
+    );
+    // Non-GetConfig tool alias to confirm aliasing isn't a GetConfig-only special case
+    assert!(
+        registry.contains("writememory"),
+        "lowercase alias 'writememory' should be found via case-insensitive lookup"
     );
 }

@@ -93,3 +93,14 @@ Both invoke `MemoryStatus` and assert `contains("# Memory System Status")`. Test
 - Tests 2 and 3 are fully subsumed (2 tests that add zero unique coverage).
 - Tests 10 and 11 have assertions so weak that a meaningful regression (tool returning garbage output) would pass them. Technically they'd catch a complete `None`/panic but not a wrong-content response.
 - The remaining 9 tests are genuinely load-bearing: test 1 would catch a missing tool registration; tests 5–6 catch error-type regressions; test 9 catches MemoryStatus format regressions; tests 12–13 catch registry construction/init regressions.
+
+---
+
+## SWE Remediation
+- REMOVE `try_invoke_with_valid_tool_name_returns_successful_result`: deleted, subsumed by `try_invoke_get_config_returns_non_null_result` (test 8) which asserts dynamic memory path
+- REMOVE `try_invoke_with_lowercase_alias_dispatches_same_as_canonical`: deleted, subsumed by `try_invoke_case_insensitive_lookup_always_resolves` (test 4) which covers all casing variants
+- REWRITE `try_invoke_read_memory_with_missing_file_returns_not_found_message`: now asserts the rendered response contains the requested URI/identifier, replacing loose `contains("not found") || contains("error")`
+- REWRITE `try_invoke_get_help_with_tool_name_returns_non_null_result`: now asserts structural markers (`## Parameters` or `Description`), replacing near-useless `contains("gethelp")`
+- REWRITE `try_invoke_list_memories_returns_non_null_result`: now seeds a sentinel file and asserts it appears in the listing, proving the tool reads from the isolated test environment (ListMemories uses relative paths internally so absolute memory_path assertion was not viable)
+- ADD `registry_contains_resolves_aliases_not_only_canonical_names`: tests `ToolRegistry::contains` with lowercase/uppercase aliases for both GetConfig and WriteMemory, closing gap #3 from eval
+- Test count: 13 → 12 (–2 removed, +1 added). All 12 pass.

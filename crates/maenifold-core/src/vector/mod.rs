@@ -15,7 +15,7 @@ pub use inference::{
 };
 
 pub const DEFAULT_EMBEDDING_DIMENSIONS: usize = 384;
-pub(crate) const DEFAULT_MAX_TOKENS: usize = 512;
+pub const DEFAULT_MAX_TOKENS: usize = 512;
 #[doc(hidden)]
 pub const EMBEDDING_DIMENSIONS: usize = DEFAULT_EMBEDDING_DIMENSIONS;
 

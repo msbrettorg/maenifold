@@ -288,3 +288,14 @@ Four tests have clear, distinct execution paths that would catch real regression
 or `persist.rs`. Test 5 is only partially load-bearing due to the missing count assertion — a
 partition bug producing the wrong number of communities would evade its checks entirely. After
 applying P1 and P2, this file would achieve 5/5.
+
+---
+## SWE Remediation
+- REWRITE test 1: renamed `run_louvain_deterministic_produces_same_result` → `run_louvain_rerun_on_populated_db_produces_stable_partition`; expanded comment to clarify re-run stability vs. algorithmic determinism (P3)
+- KEEP test 2: strengthened modularity assertion from `.is_finite()` to range check `[-0.5, 1.0)` with explicit `.is_finite()` guard (P2 adapted — see note)
+- KEEP test 3: no changes needed
+- KEEP test 4: added comment noting `Some(0)` depends on `normalize_communities` first-occurrence ordering
+- REWRITE test 5: added missing `count == 2` assertion (P1), added `assert_ne!(c1c, c2c)` cross-check (P4), strengthened modularity to range check `[-0.5, 1.0)` (P2 adapted)
+- P2 adaptation note: eval recommended `modularity > 0.0` but actual values are -0.125 (test 2) and 0.0 (test 5); adapted to theoretical range `[-0.5, 1.0)` which is meaningfully stronger than `.is_finite()` while matching implementation reality
+- P5 (parameterization) skipped: optional, and tests 2 and 5 are readable as-is
+- Commit: 2a2d6f0

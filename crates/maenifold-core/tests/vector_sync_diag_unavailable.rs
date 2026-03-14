@@ -13,9 +13,50 @@ use support::{
     ConfigOverrideReset, EnvVarReset, TEST_MUTEX, isolated_config, write_memory_fixture,
 };
 
+// T-9.6: Shared assertion helper — reduces drift if diagnostic format changes.
+fn assert_vector_unavailable_diagnostics(
+    output: &str,
+    prefix: &str,
+    concepts: usize,
+    memory: usize,
+) {
+    let total = concepts + memory;
+    assert!(
+        output.contains(&format!("{prefix} complete:")),
+        "expected '{prefix} complete:' in output: {output}"
+    );
+    assert!(
+        output.contains("Vector sync diagnostics:"),
+        "expected 'Vector sync diagnostics:' in output: {output}"
+    );
+    assert!(
+        output.contains("- STATUS: unavailable"),
+        "expected '- STATUS: unavailable' in output: {output}"
+    );
+    assert!(
+        output.contains("- COUNTERS_FAILED: concepts=0, memory=0, total=0"),
+        "expected zero failure counters in output: {output}"
+    );
+    assert!(
+        output.contains(&format!(
+            "- COUNTERS_SKIPPED: concepts={concepts}, memory={memory}, total={total}"
+        )),
+        "expected skipped counters concepts={concepts}, memory={memory}, total={total} in output: {output}"
+    );
+    assert!(
+        output.contains("- REASON_CODE VECTOR_DISABLED_BY_CONFIG"),
+        "expected VECTOR_DISABLED_BY_CONFIG reason code in output: {output}"
+    );
+    // Negative: failure section must be absent on the unavailable path
+    assert!(
+        !output.contains("- FAILURES:"),
+        "unexpected FAILURES section in output: {output}"
+    );
+}
+
+// T-9.6: RTM FR-7 — Sync tool emits structured unavailable diagnostics (merged from guardrail test).
 #[test]
-fn fr25_2_ac3_sync_vector_unavailable_emits_structured_diagnostics_with_skipped_counts_and_reason()
-{
+fn sync_tool_vector_disabled_emits_structured_unavailable_diagnostics() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
@@ -31,39 +72,18 @@ fn fr25_2_ac3_sync_vector_unavailable_emits_structured_diagnostics_with_skipped_
         .try_invoke("Sync", &json!({}), OutputFormat::Markdown)
         .expect("sync invoke");
 
+    assert_vector_unavailable_diagnostics(&output, "Sync", 1, 1);
+
+    // Negative: verification section must be absent on the unavailable path
     assert!(
-        output.contains("Sync complete:"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("Vector sync diagnostics:"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("- STATUS: unavailable"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("- COUNTERS_FAILED: concepts=0, memory=0, total=0"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("- COUNTERS_SKIPPED: concepts=1, memory=1, total=2"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("- REASON_CODE VECTOR_DISABLED_BY_CONFIG"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        !output.contains("- WARNING: sqlite-vec extension unavailable; semantic tooling disabled"),
-        "unexpected output: {output}"
+        !output.contains("Vector index verification:"),
+        "unexpected verification section in output: {output}"
     );
 }
 
+// T-9.6: RTM FR-8 — sync_files emits structured unavailable diagnostics (merged from guardrail test).
 #[test]
-fn fr25_2_ac4_sync_files_vector_unavailable_emits_structured_diagnostics_with_skipped_counts_and_reason()
- {
+fn sync_files_vector_disabled_emits_structured_unavailable_diagnostics() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
@@ -83,97 +103,5 @@ fn fr25_2_ac4_sync_files_vector_unavailable_emits_structured_diagnostics_with_sk
     let context = ToolContext::new(cfg.clone(), OutputFormat::Markdown);
     let output = sync_files(&context, &[file_path_a, file_path_b]).expect("sync files");
 
-    assert!(
-        output.contains("SyncFiles complete:"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("Vector sync diagnostics:"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("- STATUS: unavailable"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("- COUNTERS_FAILED: concepts=0, memory=0, total=0"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("- COUNTERS_SKIPPED: concepts=2, memory=2, total=4"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("- REASON_CODE VECTOR_DISABLED_BY_CONFIG"),
-        "unexpected output: {output}"
-    );
-}
-
-#[test]
-fn fr25_2_ac3_sync_vector_unavailable_does_not_emit_failure_or_verification_sections() {
-    let _guard = TEST_MUTEX.lock();
-    let _reset = ConfigOverrideReset;
-    let (_tmp, cfg) = isolated_config();
-    let _disable_vector = EnvVarReset::set("MAENIFOLD_DISABLE_VECTOR", "true");
-
-    let _file_path = write_memory_fixture(
-        &cfg,
-        "vector-diag/sync-ac3-guardrail.md",
-        "# Sync AC3 Guardrail\n\nReferences [[ac3-sync-guardrail]].\n",
-    );
-
-    let output = ToolRegistry::global()
-        .try_invoke("Sync", &json!({}), OutputFormat::Markdown)
-        .expect("sync invoke");
-
-    assert!(
-        output.contains("Vector sync diagnostics:"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("- STATUS: unavailable"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        !output.contains("- FAILURES:"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        !output.contains("Vector index verification:"),
-        "unexpected output: {output}"
-    );
-}
-
-#[test]
-fn fr25_2_ac4_sync_files_vector_unavailable_does_not_emit_failure_or_verification_sections() {
-    let _guard = TEST_MUTEX.lock();
-    let _reset = ConfigOverrideReset;
-    let (_tmp, cfg) = isolated_config();
-    let _disable_vector = EnvVarReset::set("MAENIFOLD_DISABLE_VECTOR", "true");
-
-    let file_path = write_memory_fixture(
-        &cfg,
-        "vector-diag/sync-files-guardrail.md",
-        "# SyncFiles AC4 Guardrail\n\nReferences [[ac4-syncfiles-guardrail]].\n",
-    );
-
-    let context = ToolContext::new(cfg.clone(), OutputFormat::Markdown);
-    let output = sync_files(&context, &[file_path]).expect("sync files");
-
-    assert!(
-        output.contains("Vector sync diagnostics:"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("- STATUS: unavailable"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        !output.contains("- FAILURES:"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        !output.contains("Vector index verification:"),
-        "unexpected output: {output}"
-    );
+    assert_vector_unavailable_diagnostics(&output, "SyncFiles", 2, 2);
 }

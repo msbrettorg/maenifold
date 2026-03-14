@@ -44,6 +44,8 @@ fn path_fragment(segments: &[&str]) -> String {
     path.to_string_lossy().into_owned()
 }
 
+// REWRITE: Dropped redundant `contains` assertion (subsumed by `ends_with`).
+// Consolidated epoch-regression concern from removed Test 3 as comment.
 #[test]
 fn get_session_path_sequential_session_id_parses_timestamp_to_correct_date() {
     let env = TestEnv::new();
@@ -52,8 +54,9 @@ fn get_session_path_sequential_session_id_parses_timestamp_to_correct_date() {
     let path = dated_sequential_path("session-1770910549160-79869", &env.config);
     let rendered = path.to_string_lossy();
 
-    // T-DATE-001: RTM-001 — Must parse the timestamp after stripping the `session-` prefix.
-    assert!(rendered.contains(&path_fragment(&["2026", "02", "12"])));
+    // T-DATE-001: RTM-001, RTM-002 — Must parse the millisecond timestamp from segment[1]
+    // after splitting on '-'. Regression: the old bug parsed "session" (segment[0]) as the
+    // timestamp, yielding epoch 0 → 1970/01/01. Correct date is 2026-02-12.
     assert!(rendered.ends_with(&path_fragment(&[
         "thinking",
         "sequential",
@@ -64,6 +67,8 @@ fn get_session_path_sequential_session_id_parses_timestamp_to_correct_date() {
     ])));
 }
 
+// REWRITE+MERGE: Dropped redundant `contains` assertion. Merged Test 6's negative assertion
+// to guard that session_type is not hardcoded to "sequential".
 #[test]
 fn get_session_path_workflow_session_id_parses_timestamp_to_correct_date() {
     let env = TestEnv::new();
@@ -72,8 +77,7 @@ fn get_session_path_workflow_session_id_parses_timestamp_to_correct_date() {
     let path = dated_thinking_path("workflow", "workflow-1770910549160", &env.config);
     let rendered = path.to_string_lossy();
 
-    // T-DATE-001: RTM-001 — Must handle session IDs without a trailing random suffix.
-    assert!(rendered.contains(&path_fragment(&["2026", "02", "12"])));
+    // T-DATE-001: RTM-001 — Must handle 2-segment session IDs without a trailing random suffix.
     assert!(rendered.ends_with(&path_fragment(&[
         "thinking",
         "workflow",
@@ -82,37 +86,11 @@ fn get_session_path_workflow_session_id_parses_timestamp_to_correct_date() {
         "12",
         "workflow-1770910549160.md",
     ])));
+    // T-DATE-001: RTM-002 — session_type must not be hardcoded to "sequential".
+    assert!(!rendered.contains(&path_fragment(&["thinking", "sequential"])));
 }
 
-#[test]
-fn get_session_path_modern_timestamp_does_not_produce_epoch_date() {
-    let env = TestEnv::new();
-
-    let path = dated_sequential_path("session-1770910549160-79869", &env.config);
-    let rendered = path.to_string_lossy();
-
-    // T-DATE-001: RTM-002 — The old bug parsed `session` as the timestamp, yielding epoch 0 -> 1970/01/01.
-    assert!(!rendered.contains("1970"));
-}
-
-#[test]
-fn get_session_path_returns_correct_directory_structure() {
-    let env = TestEnv::new();
-
-    let path = dated_sequential_path("session-1770910549160-79869", &env.config);
-    let rendered = path.to_string_lossy();
-
-    // T-DATE-001: RTM-002 — Full expected path suffix.
-    assert!(rendered.ends_with(&path_fragment(&[
-        "thinking",
-        "sequential",
-        "2026",
-        "02",
-        "12",
-        "session-1770910549160-79869.md",
-    ])));
-}
-
+// KEEP: Only multi-case test with distinct timestamps (2021, 2023). Genuinely load-bearing.
 #[test]
 fn get_session_path_different_timestamps_produce_different_date_directories() {
     let env = TestEnv::new();
@@ -131,14 +109,21 @@ fn get_session_path_different_timestamps_produce_different_date_directories() {
     assert_ne!(path_a, path_b);
 }
 
+// NEW (Recommendation 4, P1): Exercises the Utc::now() fallback path in date_parts_from_session_id
+// when segment[1] is not a valid numeric timestamp. This was a complete coverage gap.
 #[test]
-fn get_session_path_thinking_type_propagates_correctly() {
+fn get_session_path_with_non_numeric_segment_falls_back_to_today_not_epoch() {
     let env = TestEnv::new();
 
-    let path = dated_thinking_path("workflow", "workflow-1770910549160", &env.config);
+    // "session-abc-123" → segment[1] = "abc" → parse::<i64> fails → fallback to Utc::now()
+    let path = dated_sequential_path("session-abc-123", &env.config);
     let rendered = path.to_string_lossy();
 
-    // T-DATE-001: RTM-002 — thinkingType must appear in the path under /thinking/.
-    assert!(rendered.contains(&path_fragment(&["thinking", "workflow"])));
-    assert!(!rendered.contains(&path_fragment(&["thinking", "sequential"])));
+    // T-DATE-001: RTM-002 — Fallback must not produce 1970 (epoch). It should produce
+    // today's date via Utc::now(). We assert the absence of epoch directories rather than
+    // an exact date since the value is runtime-dependent.
+    assert!(!rendered.contains(&path_fragment(&["thinking", "sequential", "1970"])));
+    // Must still produce a valid directory structure with the session ID as the filename.
+    assert!(rendered.ends_with("session-abc-123.md"));
+    assert!(rendered.contains(&path_fragment(&["thinking", "sequential"])));
 }

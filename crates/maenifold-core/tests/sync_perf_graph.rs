@@ -73,6 +73,8 @@ fn build_graph_edges_proximity_weight_same_section_vs_cross_section() {
 }
 
 // T-0.1: RTM NFR-3
+// This test owns "no duplicate rows + correct co_occurrence_count" for a single same-section pair.
+// See also: concept_sync_edge_stability.rs — owns multi-edge rowid preservation across section types.
 #[test]
 fn build_graph_edges_resync_does_not_duplicate_edges_co_occurrence_count_correct() {
     let env = TestEnv::new();

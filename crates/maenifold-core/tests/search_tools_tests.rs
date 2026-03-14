@@ -152,6 +152,9 @@ fn min_score_zero_returns_all_results() {
 }
 
 // T-0.1: RTM NFR-3 - Ports C# SearchToolsTests minScore=1.0 coverage to guard SearchMemories regressions.
+// minScore=1.0 must unconditionally exclude low-relevance documents. Either nothing
+// qualifies (empty results) or only perfect matches appear — both are valid, but
+// "Cooking Recipes" must never survive the filter.
 #[test]
 fn min_score_one_returns_only_perfect_matches() {
     let _guard = TEST_MUTEX.lock();
@@ -164,63 +167,39 @@ fn min_score_one_returns_only_perfect_matches() {
         !result.contains("ERROR"),
         "should not return an error: {result}"
     );
-    if result.contains("Machine Learning Tutorial") {
-        assert!(
-            !result.contains("Cooking Recipes"),
-            "should not include unrelated low-score content: {result}"
-        );
-    }
+    // Unconditional: unrelated content must never appear at minScore=1.0,
+    // regardless of whether any perfect matches exist.
+    assert!(
+        !result.contains("Cooking Recipes"),
+        "minScore=1.0 must exclude unrelated low-score content: {result}"
+    );
+    assert!(
+        !result.contains("Data Analysis Methods"),
+        "minScore=1.0 must exclude low-relevance content: {result}"
+    );
 }
 
 // T-0.1: RTM NFR-3 - Ports C# SearchToolsTests cross-mode minScore coverage to guard SearchMemories regressions.
+// Parameterized over all three modes. Only behavioral assertions (minScore filtering)
+// remain; mode-label display checks are covered by the JSON-mode tests below.
 #[test]
 fn all_search_modes_respect_min_score() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     create_test_data_with_known_scores(&env);
 
-    let semantic_result = search_output(&env, "Semantic", 0.5);
-    assert!(
-        semantic_result.contains("Semantic Search"),
-        "should indicate semantic search mode: {semantic_result}"
-    );
-    assert!(
-        !semantic_result.contains("ERROR"),
-        "semantic search should not return an error: {semantic_result}"
-    );
+    for mode in &["Hybrid", "Semantic", "FullText"] {
+        let result = search_output(&env, mode, 0.5);
 
-    let full_text_result = search_output(&env, "FullText", 0.5);
-    assert!(
-        full_text_result.contains("Full-Text Search"),
-        "should indicate full-text search mode: {full_text_result}"
-    );
-    assert!(
-        !full_text_result.contains("ERROR"),
-        "full-text search should not return an error: {full_text_result}"
-    );
-
-    let hybrid_result = search_output(&env, "Hybrid", 0.5);
-    assert!(
-        hybrid_result.contains("Hybrid Search"),
-        "should indicate hybrid search mode: {hybrid_result}"
-    );
-    assert!(
-        !hybrid_result.contains("ERROR"),
-        "hybrid search should not return an error: {hybrid_result}"
-    );
-
-    assert!(
-        !semantic_result.contains("Cooking Recipes"),
-        "semantic search should filter out unrelated content with moderate minScore: {semantic_result}"
-    );
-    assert!(
-        !full_text_result.contains("Cooking Recipes"),
-        "full-text search should filter out unrelated content with moderate minScore: {full_text_result}"
-    );
-    assert!(
-        !hybrid_result.contains("Cooking Recipes"),
-        "hybrid search should filter out unrelated content with moderate minScore: {hybrid_result}"
-    );
+        assert!(
+            !result.contains("ERROR"),
+            "{mode} search should not return an error: {result}"
+        );
+        assert!(
+            !result.contains("Cooking Recipes"),
+            "{mode} search should filter out unrelated content at minScore=0.5: {result}"
+        );
+    }
 }
 
 // ---- T-13.1: RTM FR-6 — Search mode path tests ----
@@ -334,9 +313,11 @@ fn semantic_mode_returns_only_score_field() {
     );
 }
 
-// T-13.1: RTM FR-6 — FullText mode returns only score field, top result score ≈ 1.0.
+// T-13.1/T-13.3: RTM FR-6 — FullText scores are normalized to [0.0, 1.0] range.
+// Also owns FullText JSON schema contract: per-result `score` present, fused fields absent.
+// Top result score ≈ 1.0 assumes freshly-indexed content has decay ≈ 1.0.
 #[test]
-fn fulltext_mode_returns_only_score_field_with_normalized_top() {
+fn fulltext_scores_are_max_normalized() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     create_test_data_with_known_scores(&env);
@@ -349,10 +330,11 @@ fn fulltext_mode_returns_only_score_field_with_normalized_top() {
         .as_array()
         .expect("results should be an array");
     assert!(
-        !results.is_empty(),
-        "fulltext search should return results for 'machine learning'"
+        results.len() >= 2,
+        "need at least 2 results to verify normalization"
     );
 
+    // --- Schema contract (merged from fulltext_mode_returns_only_score_field_with_normalized_top) ---
     for result in results {
         assert!(
             result.get("score").is_some(),
@@ -372,15 +354,6 @@ fn fulltext_mode_returns_only_score_field_with_normalized_top() {
         );
     }
 
-    // Top result should have score ≈ 1.0 (max-normalized, with fresh decay ≈ 1.0)
-    let top_score = results[0]["score"]
-        .as_f64()
-        .expect("top result should have score");
-    assert!(
-        top_score > 0.95,
-        "top fulltext result should have score close to 1.0 (got {top_score})"
-    );
-
     // FullText envelope should NOT have textResultCount/semanticResultCount
     assert!(
         data.get("textResultCount").is_none(),
@@ -390,25 +363,8 @@ fn fulltext_mode_returns_only_score_field_with_normalized_top() {
         data.get("semanticResultCount").is_none(),
         "fulltext envelope should NOT contain semanticResultCount"
     );
-}
 
-// T-13.1/T-13.3: RTM FR-6 — FullText scores are normalized to [0.0, 1.0] range.
-#[test]
-fn fulltext_scores_are_max_normalized() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    create_test_data_with_known_scores(&env);
-
-    let json = search_json(&env, "FullText", 0.0);
-    let data = &json["data"];
-    let results = data["results"]
-        .as_array()
-        .expect("results should be an array");
-    assert!(
-        results.len() >= 2,
-        "need at least 2 results to verify normalization"
-    );
-
+    // --- Normalization invariants ---
     let scores: Vec<f64> = results.iter().filter_map(|r| r["score"].as_f64()).collect();
 
     // All scores should be in [0.0, 1.0] range
@@ -436,13 +392,21 @@ fn fulltext_scores_are_max_normalized() {
         scores[0],
         scores[1]
     );
+
+    // Top result should have score ≈ 1.0 (max-normalized, with fresh decay ≈ 1.0)
+    assert!(
+        scores[0] > 0.95,
+        "top fulltext result should have score close to 1.0 (got {})",
+        scores[0]
+    );
 }
 
-// T-13.2: RTM FR-6 — PreFusion multiplier parity: Hybrid uses pageSize*3, Semantic uses pageSize*2.
+// T-13.2: RTM FR-6 — Page size bounds are respected across all search modes.
 // Verifies that small pageSize values are respected and that each mode returns at most
-// pageSize results (the candidate pool is larger, but final output is bounded by pageSize).
+// pageSize results. The internal pre-fusion candidate pool may be larger, but the
+// final output slice is always bounded by the requested pageSize.
 #[test]
-fn prefusion_multiplier_respects_page_size_bounds() {
+fn page_size_bounds_respected_across_all_modes() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     create_test_data_with_known_scores(&env);

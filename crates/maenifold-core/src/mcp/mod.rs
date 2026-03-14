@@ -1,5 +1,7 @@
 // T-12.0: RTM NFR-1 — consolidate MCP runtime into a directory module while preserving
 // the existing crate::mcp facade and resource entrypoints.
+#[cfg(feature = "http")]
+pub mod http;
 pub mod resources;
 pub mod schema;
 pub use resources::*;

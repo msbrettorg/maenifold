@@ -30,9 +30,10 @@ fn build_graph_edges_creates_expected_edges_with_correct_source_files_json() {
     ] {
         let (count, source_files) = query_edge(&env.cfg, left, right)
             .unwrap_or_else(|| panic!("missing edge ({left}, {right})"));
-        assert!(
-            count > 0.0,
-            "edge weight should be positive for ({left}, {right})"
+        // T-0.1: RTM NFR-3 — co_occurrence_count = number of distinct source files (1 here).
+        assert_eq!(
+            count, 1.0,
+            "co_occurrence_count should be 1.0 (one contributing file) for ({left}, {right})"
         );
         assert_eq!(source_files.get(&uri).copied(), Some(1.0));
     }
@@ -62,6 +63,9 @@ fn build_graph_edges_proximity_weight_same_section_vs_cross_section() {
         relation_weight_for_uri(&env.cfg, &concept_a, &concept_b, &uri),
         0.5
     );
+    // Preamble (section_index=0) co-occurrence is intentionally treated as cross-section
+    // per T-4.3 / FR-23.2: flat docs keep section_index=0 for extraction, but sync treats
+    // that implicit root as cross-section, yielding 0.5 instead of 1.0.
     assert_eq!(
         relation_weight_for_uri(&env.cfg, &concept_a, &concept_c, &uri),
         0.5
@@ -76,7 +80,7 @@ fn build_graph_edges_proximity_weight_same_section_vs_cross_section() {
 // This test owns "no duplicate rows + correct co_occurrence_count" for a single same-section pair.
 // See also: concept_sync_edge_stability.rs — owns multi-edge rowid preservation across section types.
 #[test]
-fn build_graph_edges_resync_does_not_duplicate_edges_co_occurrence_count_correct() {
+fn build_graph_edges_resync_is_true_upsert_rowid_stable_and_weight_not_doubled() {
     let env = TestEnv::new();
     let unique = unique_suffix();
     let concept_a = normalize_concept(&format!("resync-alpha-{unique}"));
@@ -134,12 +138,17 @@ fn build_graph_edges_with_over_1000_concepts_creates_edges_without_error() {
     let output = sync_one(&env, &relative_path);
     assert!(output.contains("affected relations rebuilt"), "{output}");
 
+    // C(1100, 2) = 604_450
+    let expected_edges: i64 = (1100 * 1099) / 2;
     let edge_count = open_db(&env.cfg)
         .query_row("SELECT COUNT(*) FROM concept_graph", [], |row| {
             row.get::<_, i64>(0)
         })
         .expect("edge count");
-    assert!(edge_count > 0, "concept_graph should contain edges");
+    assert_eq!(
+        edge_count, expected_edges,
+        "concept_graph should contain all C(1100,2) = {expected_edges} edges; got {edge_count}"
+    );
 
     let first = normalize_concept(&concept_names[0]);
     let second = normalize_concept(&concept_names[1]);

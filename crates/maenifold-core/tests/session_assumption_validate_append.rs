@@ -4,105 +4,105 @@ mod support;
 
 use support::*;
 
+// T-12.7: RTM NFR-1 — exact error strings for oracle parity assertions
+const ERR_ASSUMPTION_REQUIRED: &str =
+    "ERROR: Assumption text is required for 'append' action.";
+const ERR_CONCEPTS_REQUIRED: &str =
+    "ERROR: At least one [[WikiLink]] tag must be provided. Example: concepts: [\"dialogue\", \"workflow-dispatch\"]";
+const ERR_BRACKETS_IN_CONCEPTS: &str =
+    "ERROR: Concept tags should not include brackets. Use 'dialogue' not '[[dialogue]]'.";
+
+// T-12.7: RTM NFR-1 — KEEP: canonical test for the None assumption branch
 #[test]
 fn validate_append_input_null_assumption_returns_error() {
     let concepts = vec!["concept".to_string()];
     let result = validate_assumption_append_input(None, Some(&concepts));
-    assert!(result.is_some());
-    assert!(
-        result
-            .expect("error")
-            .contains("Assumption text is required")
+    assert_eq!(
+        result.as_deref(),
+        Some(ERR_ASSUMPTION_REQUIRED),
+        "None assumption must return the exact parity error message"
     );
 }
 
+// T-12.7: RTM NFR-1 — MERGE: empty + whitespace + tab assumption variants
 #[test]
-fn validate_append_input_empty_assumption_returns_error() {
+fn assumption_text_required_for_empty_variants() {
     let concepts = vec!["concept".to_string()];
-    let result = validate_assumption_append_input(Some(""), Some(&concepts));
-    assert!(result.is_some());
-    assert!(
-        result
-            .expect("error")
-            .contains("Assumption text is required")
-    );
+    for (label, input) in [
+        ("empty string", Some("")),
+        ("whitespace only", Some("   ")),
+        ("tab only", Some("\t")),
+    ] {
+        let result = validate_assumption_append_input(input, Some(&concepts));
+        assert_eq!(
+            result.as_deref(),
+            Some(ERR_ASSUMPTION_REQUIRED),
+            "assumption={label:?} must return the exact parity error message"
+        );
+    }
 }
 
-#[test]
-fn validate_append_input_whitespace_assumption_returns_error() {
-    let concepts = vec!["concept".to_string()];
-    let result = validate_assumption_append_input(Some("   "), Some(&concepts));
-    assert!(result.is_some());
-    assert!(
-        result
-            .expect("error")
-            .contains("Assumption text is required")
-    );
-}
-
+// T-12.7: RTM NFR-1 — KEEP: canonical test for the None concepts branch
 #[test]
 fn validate_append_input_null_concepts_returns_error() {
     let result = validate_assumption_append_input(Some("Valid assumption"), None);
-    assert!(result.is_some());
-    assert!(result.expect("error").contains("[[WikiLink]]"));
+    assert_eq!(
+        result.as_deref(),
+        Some(ERR_CONCEPTS_REQUIRED),
+        "None concepts must return the exact parity error message"
+    );
 }
 
+// T-12.7: RTM NFR-1 — KEEP: empty-vec concepts branch (separate code path from None)
 #[test]
 fn validate_append_input_empty_concepts_array_returns_error() {
     let concepts: Vec<String> = Vec::new();
     let result = validate_assumption_append_input(Some("Valid assumption"), Some(&concepts));
-    assert!(result.is_some());
-    assert!(result.expect("error").contains("[[WikiLink]]"));
+    assert_eq!(
+        result.as_deref(),
+        Some(ERR_CONCEPTS_REQUIRED),
+        "empty concepts vec must return the exact parity error message"
+    );
 }
 
+// T-12.7: RTM NFR-1 — MERGE: three bracket-pattern variants into parameterized test
 #[test]
-fn validate_append_input_concept_with_full_brackets_returns_error() {
-    let concepts = vec!["[[foo]]".to_string()];
-    let result = validate_assumption_append_input(Some("Valid assumption"), Some(&concepts));
-    assert!(result.is_some());
-    assert!(result.expect("error").contains("brackets"));
+fn bracket_patterns_in_concepts_are_rejected() {
+    for (label, concept) in [
+        ("full brackets", "[[foo]]"),
+        ("open bracket only", "[[dialogue"),
+        ("close bracket only", "dialogue]]"),
+    ] {
+        let concepts = vec![concept.to_string()];
+        let result =
+            validate_assumption_append_input(Some("Valid assumption"), Some(&concepts));
+        assert_eq!(
+            result.as_deref(),
+            Some(ERR_BRACKETS_IN_CONCEPTS),
+            "concept={label:?} ({concept:?}) must return the exact parity error message"
+        );
+    }
 }
 
-#[test]
-fn validate_append_input_concept_with_only_open_bracket_returns_error() {
-    let concepts = vec!["[[dialogue".to_string()];
-    let result = validate_assumption_append_input(Some("Valid assumption"), Some(&concepts));
-    assert!(result.is_some());
-    assert!(result.expect("error").contains("brackets"));
-}
-
-#[test]
-fn validate_append_input_concept_with_only_close_bracket_returns_error() {
-    let concepts = vec!["dialogue]]".to_string()];
-    let result = validate_assumption_append_input(Some("Valid assumption"), Some(&concepts));
-    assert!(result.is_some());
-    assert!(result.expect("error").contains("brackets"));
-}
-
+// T-12.7: RTM NFR-1 — KEEP: happy-path anchor for well-formed input
 #[test]
 fn validate_append_input_valid_single_concept_returns_null() {
     let concepts = vec!["dialogue".to_string()];
-    assert!(
-        validate_assumption_append_input(Some("Valid assumption text"), Some(&concepts)).is_none()
-    );
+    let result = validate_assumption_append_input(Some("Valid assumption text"), Some(&concepts));
+    assert!(result.is_none(), "expected Ok but got error: {result:?}");
 }
 
-#[test]
-fn validate_append_input_valid_multiple_concepts_returns_null() {
-    let concepts = vec![
-        "dialogue".to_string(),
-        "workflow-dispatch".to_string(),
-        "assumption-ledger".to_string(),
-    ];
-    assert!(
-        validate_assumption_append_input(Some("Valid assumption text"), Some(&concepts)).is_none()
-    );
-}
+// REMOVE: validate_append_input_valid_multiple_concepts_returns_null
+// Redundant — bracket_error_on_second_concept already proves multi-concept iteration.
 
+// T-12.7: RTM NFR-1 — KEEP: proves bracket check iterates over ALL concepts
 #[test]
 fn validate_append_input_bracket_error_on_second_concept_returns_error() {
     let concepts = vec!["good-concept".to_string(), "[[bad-concept]]".to_string()];
     let result = validate_assumption_append_input(Some("Valid assumption text"), Some(&concepts));
-    assert!(result.is_some());
-    assert!(result.expect("error").contains("brackets"));
+    assert_eq!(
+        result.as_deref(),
+        Some(ERR_BRACKETS_IN_CONCEPTS),
+        "bracket on second concept must return the exact parity error message"
+    );
 }

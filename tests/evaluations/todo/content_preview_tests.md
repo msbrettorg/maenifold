@@ -391,3 +391,17 @@ contributes no meaningful coverage — it is a vacuous test that must be rewritt
 it earns load-bearing status.
 
 > **Tags**: [[test-quality]], [[maenifold-rs]], [[content-preview]], [[create_smart_preview]]
+
+---
+## SWE Remediation
+- REWRITE test 3 (no_sentence_boundary_uses_paragraph): `assert_eq!` replaces `contains`+`ends_with` per P0
+- REWRITE test 4 (no_paragraph_boundary_uses_word_boundary): `assert_eq!` replaces `contains`+`ends_with` per P0
+- REWRITE test 6 (with_wikilinks_preserves_links): fixed vacuous test — params changed from target=60 to target=30 so truncation fires; exact `assert_eq!` plus positive/negative assertions per P0
+- REWRITE test 7 (multiple_short_sentences): `assert_eq!` replaces partial `contains` per P0
+- NEW sentence_below_minimum_falls_through_to_word: covers sentence boundary below `min_acceptable` forcing fallthrough (P1 Rec 3)
+- NEW exclamation_as_sentence_boundary: covers `!` terminator in `find_last_sentence_boundary` (P1 Rec 4)
+- NEW question_mark_as_sentence_boundary: covers `?` terminator in `find_last_sentence_boundary` (P1 Rec 4)
+- NEW zero_tolerance_uses_word_boundary: covers `tolerance=0` edge case (P2 Rec 5)
+- NEW zero_target_produces_ellipsis_only: covers `target_length=0` edge case (P2 Rec 5)
+- Tests: 13/13 pass (was 8, added 5)
+- Commit: f0155fa

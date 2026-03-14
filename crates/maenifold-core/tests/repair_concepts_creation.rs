@@ -162,7 +162,7 @@ Existing [[tool]] should stay linked while tools in prose may be added.
 
 // T-3.2: RTM FR-6
 #[test]
-fn repair_concepts_create_wikilinks_mode_respects_word_boundaries() {
+fn repair_concepts_mode_b_respects_word_boundaries() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
@@ -170,7 +170,16 @@ fn repair_concepts_create_wikilinks_mode_respects_word_boundaries() {
     write_memory_fixture(
         &cfg,
         path,
-        "# Test\nThe tool is used in toolbox management.\nThis is a toolkit.\nNo: the tool (parentheses)\n",
+        r#"---
+title: Word Boundary
+created: 2026-01-01T00:00:00.0000000+00:00
+modified: 2026-01-01T00:00:00.0000000+00:00
+---
+# Test
+The tool is used in toolbox management.
+This is a toolkit.
+No: the tool (parentheses)
+"#,
     );
 
     let output = invoke_repair_concepts(json!({
@@ -198,15 +207,24 @@ fn repair_concepts_create_wikilinks_mode_respects_word_boundaries() {
 
 // T-3.2: RTM FR-6
 #[test]
-fn repair_concepts_create_wikilinks_preserves_existing_wikilinks() {
+fn repair_concepts_mode_b_preserves_unrelated_wikilinks_while_creating_new_ones() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
     let path = "repair/existing-wikilinks.md";
-    let original = "# Test\nAlready [[existing-concept]] with tool text.\n[[existing-concept]] is already a link.\ntool should be converted but [[existing-concept]] should stay.\n";
+    let original = r#"---
+title: Existing WikiLinks
+created: 2026-01-01T00:00:00.0000000+00:00
+modified: 2026-01-01T00:00:00.0000000+00:00
+---
+# Test
+Already [[existing-concept]] with tool text.
+[[existing-concept]] is already a link.
+tool should be converted but [[existing-concept]] should stay.
+"#;
     write_memory_fixture(&cfg, path, original);
 
-    let output = invoke_repair_concepts(json!({
+    let _output = invoke_repair_concepts(json!({
         "conceptsToReplace": "tool",
         "canonicalConcept": "build-tool",
         "createWikiLinks": true,
@@ -215,17 +233,65 @@ fn repair_concepts_create_wikilinks_preserves_existing_wikilinks() {
     }));
 
     let updated = read_memory_fixture(&cfg, path);
+    // T-10.10: RTM FR-17 — count-based assertion ensures both standalone mentions are wrapped
+    assert_eq!(
+        updated.matches("[[build-tool]]").count(),
+        2,
+        "both standalone 'tool' mentions should be wrapped: {updated}"
+    );
+    // Preservation assertion: all unrelated WikiLinks survive intact
     assert_eq!(
         updated.matches("[[existing-concept]]").count(),
         original.matches("[[existing-concept]]").count(),
-        "existing wikilinks should be preserved without modification: {updated}"
+        "existing wikilinks for unrelated concepts should be preserved: {updated}"
+    );
+    // Exact-string check: verifies position-level correctness for a transformed line
+    assert!(
+        updated.contains("Already [[existing-concept]] with [[build-tool]] text."),
+        "unrelated wikilink should stay intact while plain-text variant is wrapped: {updated}"
+    );
+}
+
+// T-10.10: RTM FR-17 / RTM-095
+#[test]
+fn repair_concepts_mode_b_dry_run_reports_without_modifying_files() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let path = "repair/mode-b-dry-run.md";
+    write_memory_fixture(
+        &cfg,
+        path,
+        r#"---
+title: Mode B Dry Run
+created: 2026-01-01T00:00:00.0000000+00:00
+modified: 2026-01-01T00:00:00.0000000+00:00
+---
+# Test
+Using tools in prose should not be modified during dry run.
+"#,
+    );
+    let original = read_memory_fixture(&cfg, path);
+
+    let output = invoke_repair_concepts(json!({
+        "conceptsToReplace": "tools",
+        "canonicalConcept": "tool",
+        "createWikiLinks": true,
+        "dryRun": true,
+        "minSemanticSimilarity": 0.0
+    }));
+
+    let after = read_memory_fixture(&cfg, path);
+    assert!(
+        output.contains("Would modify: repair/mode-b-dry-run"),
+        "expected dry-run change summary: {output}"
     );
     assert!(
-        updated.contains("[[build-tool]]"),
-        "plain-text tool mentions should become build-tool wikilinks: {updated}"
+        output.contains("This was a DRY RUN"),
+        "missing dry-run marker: {output}"
     );
-    assert!(
-        output.contains("build-tool"),
-        "expected canonical concept mention in output: {output}"
+    assert_eq!(
+        after, original,
+        "dry-run should not modify on-disk content"
     );
 }

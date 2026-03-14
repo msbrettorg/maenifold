@@ -269,3 +269,17 @@ explicit.
 The file has real value but is undermined by imprecise names, missing source-gone assertions,
 and a traceability gap that makes it impossible to determine which sprint requirement each test
 is guarding without reading the support module header.
+
+---
+
+## SWE Remediation
+
+- REWRITE `move_memory_with_path_based_destination_preserves_markdown_extension` → `move_memory_path_based_destination_moves_content_to_subdirectory`: renamed for accuracy, added source-URI-post-move assertion to detect copy-without-delete bugs, added traceability comment
+- MERGE `move_memory_with_simple_destination_preserves_existing_behavior` → `memory_lifecycle_validation.rs::move_memory_valid_destination_succeeds`: merged with content-survival assertion; deleted from this file
+- KEEP `read_memory_handles_missing_title_in_frontmatter`: added `// T-12.6: RTM NFR-1` traceability comment
+- REWRITE `read_memory_handles_empty_frontmatter` → `read_memory_handles_file_with_no_frontmatter`: renamed to match actual input (no frontmatter delimiters, not empty frontmatter), added missing URI assertion for consistency with Test 3, added traceability comment
+- NEW `read_memory_handles_empty_frontmatter_delimiters`: true empty-frontmatter test (`---\n---\n# Body\n`) per recommendation 6
+- KEEP `write_memory_does_not_write_embedding_fields`: added `// T-12.6: RTM NFR-1` traceability comment
+- KEEP `write_memory_with_existing_h1_does_not_create_duplicate_heading`: added `// T-12.6: RTM NFR-1` traceability comment
+- All 6 tests in `memory_tools_move_read_write` pass; both tests in `memory_lifecycle_validation` pass
+- Commit: 91fb6bb

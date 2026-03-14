@@ -8,9 +8,11 @@ use support::{
     write_memory_file, write_raw_memory,
 };
 
-// T-12.6: RTM NFR-1
+// T-12.6: RTM NFR-1 — MoveMemory with a slash-containing destination creates
+// the subdirectory structure and moves content so it is readable at the new URI.
+// The source URI must become inaccessible after the move.
 #[test]
-fn move_memory_with_path_based_destination_preserves_markdown_extension() {
+fn move_memory_path_based_destination_moves_content_to_subdirectory() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     let uri = write_memory_file(
@@ -28,45 +30,24 @@ fn move_memory_with_path_based_destination_preserves_markdown_extension() {
     );
     assert!(move_result.contains("memory://regression-test/moved-extension-test"));
 
+    // Verify content is readable at the new URI
     let read_result = read_memory_output(&env, "memory://regression-test/moved-extension-test");
     assert!(
         !read_result.starts_with("ERROR:"),
         "unexpected: {read_result}"
     );
     assert!(read_result.contains("Testing [[file-operations]] preserves .md extension."));
+
+    // Verify the source URI is no longer accessible — a move that copies
+    // without deleting the source would pass all prior assertions.
+    let source_read = read_memory_output(&env, &uri);
+    assert!(
+        source_read.starts_with("ERROR:"),
+        "source URI should be inaccessible after move, got: {source_read}"
+    );
 }
 
-// T-15.5: RTM NFR-1 — Also serves as the regression guard that valid simple
-// destinations still succeed after adding the empty-destination validation in
-// lifecycle.rs. Uses a non-nested path; nested destination directories trigger
-// a known canonicalize bug (see memory_lifecycle_validation.rs evaluation notes).
-#[test]
-fn move_memory_with_simple_destination_preserves_existing_behavior() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env();
-    let uri = write_memory_file(
-        &env,
-        "Simple Move Test",
-        "# Simple Move Test\n\nTesting [[refactoring]] functionality.",
-        None,
-    );
-
-    let move_result = move_memory_output(&env, &uri, "Simple Move Renamed");
-
-    assert!(
-        move_result.starts_with("Moved memory FILE:"),
-        "unexpected: {move_result}"
-    );
-    assert!(move_result.contains("memory://simple-move-renamed"));
-
-    let read_result = read_memory_output(&env, "memory://simple-move-renamed");
-    assert!(
-        !read_result.starts_with("ERROR:"),
-        "unexpected: {read_result}"
-    );
-    assert!(read_result.contains("Testing [[refactoring]] functionality."));
-}
-
+// T-12.6: RTM NFR-1
 #[test]
 fn read_memory_handles_missing_title_in_frontmatter() {
     let _guard = TEST_MUTEX.lock();
@@ -90,8 +71,11 @@ fn read_memory_handles_missing_title_in_frontmatter() {
     );
 }
 
+// T-12.6: RTM NFR-1 — file has no frontmatter delimiters at all (not the same
+// as empty frontmatter `---\n---`). ReadMemory should fall back to the filename
+// slug for heading and URI, and preserve the body content.
 #[test]
-fn read_memory_handles_empty_frontmatter() {
+fn read_memory_handles_file_with_no_frontmatter() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
     let uri = write_raw_memory(
@@ -107,9 +91,33 @@ fn read_memory_handles_empty_frontmatter() {
         "unexpected: {read_result}"
     );
     assert!(read_result.contains("# no-frontmatter-test"));
+    assert!(read_result.contains("URI: memory://memory-tools-tests/no-frontmatter-test"));
     assert!(read_result.contains("This is a [[yaml-frontmatter]] without any frontmatter."));
 }
 
+// T-12.6: RTM NFR-1 — file has empty frontmatter delimiters (`---\n---`) with
+// no YAML keys. ReadMemory should handle this identically to no-frontmatter.
+#[test]
+fn read_memory_handles_empty_frontmatter_delimiters() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    let uri = write_raw_memory(
+        &env,
+        "memory-tools-tests/empty-frontmatter-test.md",
+        "---\n---\n# Body\n\nContent with [[yaml-frontmatter]] after empty delimiters.\n",
+    );
+
+    let read_result = read_memory_output(&env, &uri);
+
+    assert!(
+        !read_result.starts_with("ERROR:"),
+        "unexpected: {read_result}"
+    );
+    assert!(read_result.contains("URI: memory://memory-tools-tests/empty-frontmatter-test"));
+    assert!(read_result.contains("Content with [[yaml-frontmatter]] after empty delimiters."));
+}
+
+// T-12.6: RTM NFR-1
 #[test]
 fn write_memory_does_not_write_embedding_fields() {
     let _guard = TEST_MUTEX.lock();
@@ -127,6 +135,7 @@ fn write_memory_does_not_write_embedding_fields() {
     assert!(!raw.contains("embedding_date"));
 }
 
+// T-12.6: RTM NFR-1
 #[test]
 fn write_memory_with_existing_h1_does_not_create_duplicate_heading() {
     let _guard = TEST_MUTEX.lock();

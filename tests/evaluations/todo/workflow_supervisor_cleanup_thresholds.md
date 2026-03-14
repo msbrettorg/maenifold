@@ -57,4 +57,4 @@ Tests 6 and 7 are the only tests where removal would allow a real regression to 
 - RENAME test 6 to `session_at_exact_abandonment_boundary_is_not_marked_abandoned`
 - RENAME test 7 to `stale_session_abandonment_appends_section_without_corrupting_original_body`
 - Verified with: `cargo test --test integration_tests workflow_supervisor_cleanup_thresholds`
-- Commit: pending
+- Commit: 91447d6

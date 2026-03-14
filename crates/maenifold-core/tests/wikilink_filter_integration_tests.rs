@@ -91,11 +91,21 @@ fn write_memory_with_filtered_concept_returns_error() {
     )
     .expect("write memory");
 
-    assert!(result.contains("ERROR"), "unexpected: {result}");
+    assert!(result.contains("ERROR"), "expected error marker: {result}");
     // PARITY-WIKIFILTER: RTM NFR-1 — updated message to match C# text.
     assert!(
         result.contains("WikiLinks that are excluded"),
-        "unexpected: {result}"
+        "expected exclusion message: {result}"
+    );
+    // T-2.4: Verify the filtered concept name appears in the error output.
+    assert!(
+        result.contains("[[tool]]"),
+        "error must name the filtered concept: {result}"
+    );
+    // T-2.4: Blocked write must not create a file on disk.
+    assert!(
+        !result.starts_with("Created memory FILE:"),
+        "blocked write should not create a file: {result}"
     );
 }
 
@@ -117,6 +127,11 @@ fn write_memory_mixed_filtered_and_valid_still_blocked() {
     assert!(result.contains("ERROR"), "unexpected: {result}");
     assert!(result.contains("[[tool]]"), "unexpected: {result}");
     assert!(result.contains("[[agent]]"), "unexpected: {result}");
+    // T-2.4: Unfiltered concept must NOT appear in the error output.
+    assert!(
+        !result.contains("[[react]]"),
+        "unfiltered concept must not appear in error: {result}"
+    );
     assert!(
         !result.starts_with("Created memory FILE:"),
         "blocked write should not create a file: {result}"
@@ -206,6 +221,83 @@ fn write_memory_filtered_concept_json_mode_returns_structured_error() {
     assert_eq!(parsed["success"], false, "unexpected json: {result}");
     assert_eq!(
         parsed["error"]["code"], "FILTERED_WIKILINKS",
-        "unexpected json: {result}"
+        "unexpected error code: {result}"
+    );
+    // T-2.4: Verify blocked array names the filtered concept with its reason.
+    let blocked = parsed["error"]["details"]["blocked"]
+        .as_array()
+        .expect("blocked must be an array");
+    assert_eq!(
+        blocked.len(),
+        1,
+        "exactly one filtered concept expected: {result}"
+    );
+    assert_eq!(
+        blocked[0]["concept"], "tool",
+        "must name the filtered concept: {result}"
+    );
+    assert_eq!(
+        blocked[0]["reason"], "Generic hub - too connected",
+        "must include the filter reason: {result}"
+    );
+}
+
+// T-2.4: RTM FR-11.2 / NFR-11.2.2 / NFR-11.2.3
+#[test]
+fn edit_memory_filtered_concept_json_mode_returns_structured_error() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    remove_filter_file(&env);
+
+    // Seed a file without the filter active.
+    let write_result = memory::write_memory(
+        &env.json_ctx(),
+        &json!({
+            "title": "Edit Json Filter Test",
+            "content": "Original content with [[react]]",
+            "folder": "wikilink-filter-integration-tests"
+        }),
+    )
+    .expect("seed write memory");
+    let write_parsed: Value = serde_json::from_str(&write_result).expect("json seed");
+    assert_eq!(
+        write_parsed["success"], true,
+        "seed write should succeed: {write_result}"
+    );
+
+    // Re-enable the filter, then edit with a filtered concept.
+    write_filter_file(&env);
+
+    let edit_result = memory::edit_memory(
+        &env.json_ctx(),
+        &json!({
+            "identifier": "memory://wikilink-filter-integration-tests/edit-json-filter-test",
+            "operation": "append",
+            "content": "New content with [[tool]]"
+        }),
+    )
+    .expect("edit memory");
+
+    let parsed: Value = serde_json::from_str(&edit_result).expect("json edit result");
+    assert_eq!(
+        parsed["success"], false,
+        "edit with filtered concept should fail: {edit_result}"
+    );
+    assert_eq!(
+        parsed["error"]["code"], "FILTERED_WIKILINKS",
+        "unexpected error code: {edit_result}"
+    );
+    // T-2.4: Verify blocked array in JSON edit_memory path.
+    let blocked = parsed["error"]["details"]["blocked"]
+        .as_array()
+        .expect("blocked must be an array");
+    assert_eq!(
+        blocked.len(),
+        1,
+        "exactly one filtered concept expected: {edit_result}"
+    );
+    assert_eq!(
+        blocked[0]["concept"], "tool",
+        "must name the filtered concept: {edit_result}"
     );
 }

@@ -42,8 +42,7 @@ fn batch_sync_triggers_fts_optimize_after_reaching_threshold() {
         0,
         "optimize counter should reset to 0 after reaching threshold"
     );
-
-    unsafe { std::env::remove_var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY") };
+    // env var + counter cleanup handled by ConfigOverrideReset drop guard.
 }
 
 // T-15.21: RTM FR-15
@@ -71,8 +70,7 @@ fn single_file_below_threshold_does_not_trigger_optimize() {
         1,
         "optimize counter should accumulate without resetting below threshold"
     );
-
-    unsafe { std::env::remove_var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY") };
+    // env var + counter cleanup handled by ConfigOverrideReset drop guard.
 }
 
 // T-15.21: RTM FR-15
@@ -89,7 +87,7 @@ fn accumulated_small_batches_trigger_optimize_at_threshold() {
     unsafe { std::env::set_var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY", "4") };
     reset_optimize_counter();
 
-    // First batch: 2 files → counter = 2 (below threshold).
+    // First batch: 2 files -> counter = 2 (below threshold).
     let mut batch1 = Vec::new();
     for i in 0..2 {
         let content = format!("# Batch1 Note {i}\n\n[[accum-concept-b1-{i}]]\n");
@@ -103,7 +101,7 @@ fn accumulated_small_batches_trigger_optimize_at_threshold() {
         "counter should be 2 after first batch"
     );
 
-    // Second batch: 2 more files → accumulated = 4, reaches threshold.
+    // Second batch: 2 more files -> accumulated = 4, reaches threshold.
     let mut batch2 = Vec::new();
     for i in 0..2 {
         let content = format!("# Batch2 Note {i}\n\n[[accum-concept-b2-{i}]]\n");
@@ -118,12 +116,13 @@ fn accumulated_small_batches_trigger_optimize_at_threshold() {
         0,
         "optimize counter should reset after accumulated batches reach threshold"
     );
-
-    unsafe { std::env::remove_var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY") };
+    // env var + counter cleanup handled by ConfigOverrideReset drop guard.
 }
 
 // T-15.21: RTM FR-15
-// Empty batch (no valid files) should not increment the counter.
+// Empty batch (no valid files) must not disturb the accumulated counter.
+// Regression guard: starts with a non-zero counter to ensure the assertion
+// is non-tautological — a counter that starts at 0 and stays at 0 proves nothing.
 #[test]
 fn empty_batch_does_not_increment_optimize_counter() {
     let _guard = TEST_MUTEX.lock();
@@ -134,14 +133,79 @@ fn empty_batch_does_not_increment_optimize_counter() {
     unsafe { std::env::set_var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY", "5") };
     reset_optimize_counter();
 
-    // Process an empty batch.
+    // Prime the counter with 2 real file changes (below threshold=5).
+    let (path1, _) = create_test_file(&cfg, "tests/fts-empty", "# A\n\n[[empty-batch-a]]\n");
+    let (path2, _) = create_test_file(&cfg, "tests/fts-empty", "# B\n\n[[empty-batch-b]]\n");
+    process_pending_paths_for_test(&ctx, &[path1, path2]).expect("prime counter");
+    assert_eq!(
+        changes_since_last_optimize(),
+        2,
+        "baseline: counter should be 2 after priming"
+    );
+
+    // Now process an empty batch — counter must remain at 2.
     process_pending_paths_for_test(&ctx, &[]).expect("empty batch");
+    assert_eq!(
+        changes_since_last_optimize(),
+        2,
+        "empty batch must not disturb accumulated counter"
+    );
+}
+
+// T-15.21: RTM FR-15
+// Boundary: threshold=1 means every single file sync triggers optimize.
+// Guards against off-by-one in the >= threshold comparison.
+#[test]
+fn threshold_one_triggers_optimize_on_every_sync() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let ctx = context(&cfg);
+
+    unsafe { std::env::set_var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY", "1") };
+    reset_optimize_counter();
+
+    let (path, _) = create_test_file(
+        &cfg,
+        "tests/fts-optimize",
+        "# Note\n\n[[threshold-one-concept]]\n",
+    );
+    process_pending_paths_for_test(&ctx, &[path]).expect("single file sync");
 
     assert_eq!(
         changes_since_last_optimize(),
         0,
-        "empty batch should not increment optimize counter"
+        "threshold=1 should trigger optimize after every single file"
     );
+}
 
-    unsafe { std::env::remove_var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY") };
+// T-15.21: RTM FR-15
+// A single batch that overshoots the threshold should still trigger optimize
+// and reset the counter. Guards against counter-arithmetic bugs where
+// batch_size > threshold causes underflow or a missed trigger.
+#[test]
+fn batch_exceeding_threshold_triggers_optimize() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_config();
+    let ctx = context(&cfg);
+
+    unsafe { std::env::set_var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY", "3") };
+    reset_optimize_counter();
+
+    // Create 5 files (exceeds threshold of 3).
+    let mut paths = Vec::new();
+    for i in 0..5 {
+        let content = format!("# Overshoot {i}\n\n[[overshoot-concept-{i}]]\n");
+        let (path, _) = create_test_file(&cfg, "tests/fts-optimize-overshoot", &content);
+        paths.push(path);
+    }
+
+    process_pending_paths_for_test(&ctx, &paths).expect("overshoot batch");
+
+    assert_eq!(
+        changes_since_last_optimize(),
+        0,
+        "single batch exceeding threshold should trigger optimize and reset counter"
+    );
 }

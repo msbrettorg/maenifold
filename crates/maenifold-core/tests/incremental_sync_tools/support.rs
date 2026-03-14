@@ -23,7 +23,11 @@ pub struct ConfigOverrideReset;
 
 impl Drop for ConfigOverrideReset {
     fn drop(&mut self) {
+        // T-15.21: RTM NFR-2 — Panic-safe cleanup: reset config overrides, the global
+        // optimize counter, and the threshold env var so no state leaks between tests.
         Config::reset_overrides();
+        reset_optimize_counter();
+        unsafe { std::env::remove_var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY") };
     }
 }
 

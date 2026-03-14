@@ -14,9 +14,17 @@ use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
+/// Serializes access_boosting tests because `Config::override_root()` mutates
+/// process-global state. Each test creates a `TempDir` and calls `override_root`,
+/// so parallel execution would race on the global config singleton. This mutex is
+/// a correctness requirement, not a performance choice — removing it will cause
+/// intermittent test failures from config state races.
 pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 pub(crate) const TEST_FOLDER: &str = "access-boosting-tests";
+// Sleep required because update_last_accessed uses second-precision timestamps
+// (%Y-%m-%dT%H:%M:%SZ). Two reads in the same wall-clock second produce identical
+// timestamps, so we sleep 1.1s to guarantee the `>` assertion sees distinct values.
 pub(crate) const READ_SLEEP_MS: u64 = 1_100;
 
 pub(crate) struct TestEnv {

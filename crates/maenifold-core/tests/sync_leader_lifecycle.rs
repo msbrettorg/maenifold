@@ -172,29 +172,69 @@ fn fr30_3_ac7_release_noop_for_wrong_holder() {
     assert!(election.is_leader("holder-a").expect("holder a leader"));
 }
 
-// T-8.1: RTM FR-30.4 / FR-30.7
+// T-8.1: RTM FR-30.3 — same-holder re-acquire returns "renewed" reason code (split from ac8).
 #[test]
-fn fr30_3_ac8_try_acquire_returns_reason_codes() {
+fn fr30_3_ac8_try_acquire_same_holder_returns_renewed() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_env();
     let election = leader_election(&cfg);
 
-    let acquired = election.try_acquire("holder-a", 10).expect("acquired");
-    let renewed = election.try_acquire("holder-a", 10).expect("renewed");
-    let contended = election.try_acquire("holder-b", 10).expect("contended");
+    let acquired = election.try_acquire("holder-a", 10).expect("initial acquire");
+    assert_eq!(acquired, (true, "acquired", 1));
+
+    let renewed = election
+        .try_acquire("holder-a", 10)
+        .expect("same-holder re-acquire");
+    assert_eq!(
+        renewed,
+        (true, "renewed", 1),
+        "same-holder re-acquire must return reason 'renewed'"
+    );
+}
+
+// T-8.1: RTM FR-30.3 — contended acquire returns "held_by_other" reason code (split from ac8).
+#[test]
+fn fr30_3_ac8_try_acquire_contended_returns_held_by_other() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_env();
+    let election = leader_election(&cfg);
+
+    election.try_acquire("holder-a", 10).expect("initial acquire");
+
+    let contended = election
+        .try_acquire("holder-b", 10)
+        .expect("contended acquire");
+    assert_eq!(
+        contended,
+        (false, "held_by_other", 1),
+        "contended acquire must return reason 'held_by_other'"
+    );
+}
+
+// T-8.1: RTM FR-30.4 — force_acquire preempts an active lease, incrementing epoch (split from ac8).
+#[test]
+fn fr30_3_ac8_force_acquire_preempts_active_lease() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_env();
+    let election = leader_election(&cfg);
+
+    let (_, _, epoch) = election.try_acquire("holder-a", 10).expect("initial acquire");
+
     let forced = election
         .force_acquire("holder-c", 10)
         .expect("force acquire");
-
-    assert_eq!(acquired, (true, "acquired", 1));
-    assert_eq!(renewed, (true, "renewed", 1));
-    assert_eq!(contended, (false, "held_by_other", 1));
-    assert_eq!(forced, (true, "force_acquired", 2));
     assert_eq!(
-        current_lease(&cfg).expect("lease after force").holder_id,
-        "holder-c"
+        forced,
+        (true, "force_acquired", epoch + 1),
+        "force_acquire must preempt active lease"
     );
+
+    let lease = current_lease(&cfg).expect("lease after force acquire");
+    assert_eq!(lease.holder_id, "holder-c");
+    assert_eq!(lease.epoch, epoch + 1);
 }
 
 // T-8.1: RTM FR-30.3

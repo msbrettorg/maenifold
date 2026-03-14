@@ -55,3 +55,15 @@ Three of the eight tests redundantly verify the same single branch of implementa
 ## Load-Bearing Score: 6/8
 
 > Tests 1 and 2 (`within_grace_period` and `zero_age`) are not load-bearing. Any regression they could catch is already caught by test 3 (`exactly_at_grace_period_boundary`). Removing them would not allow any new bug to ship that test 3 does not already block.
+
+---
+## SWE Remediation
+- REMOVE `exponential_decay_within_grace_period_returns_weight_one`: subsumed by boundary test (P0)
+- REMOVE `exponential_decay_zero_age_returns_weight_one`: subsumed by boundary test (P0)
+- KEEP `exponential_decay_exactly_at_grace_period_boundary_returns_weight_one`: added comment noting subsumption
+- MERGE tests 4,5,6 → `exponential_decay_n_half_lives_past_grace_returns_correct_weight`: parameterized table test with [(1, 0.5), (2, 0.25), (3, 0.125)] (P1)
+- KEEP `exponential_decay_half_of_half_life_past_grace_returns_intermediate_weight`: untouched
+- KEEP `exponential_decay_very_old_content_approaches_zero_but_never_reaches`: untouched
+- P2 (relocate grace-period tests) and P3 (attribution review): skipped per SWE scope rules
+- 8 tests → 4 tests, zero coverage loss
+- Commit: b59f267

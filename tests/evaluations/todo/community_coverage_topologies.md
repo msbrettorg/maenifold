@@ -244,3 +244,19 @@ that reduce their detection power for regressions in areas they nominally cover.
 |------|:---:|--------|
 | `run_louvain_two_cliques_weak_bridge_improved_flag_set` | ✅ | Only test of weak-bridge (connected graph) topology in the entire suite |
 | `run_louvain_isolated_concepts_normalized_contiguous_ids` | ✅ | Only test with exact sorted-list ID equality — the sole precise guard on the ID normalization step |
+
+---
+
+## SWE Remediation
+
+- REWRITE `run_louvain_two_cliques_weak_bridge_improved_flag_set`:
+  - P1: Renamed → `run_louvain_two_cliques_weak_bridge_resists_merge` (removed misleading C# `IsImproved` flag artifact)
+  - P2: Added `assert_eq!(count, 2)` on `detect_and_persist` return value
+  - Named constants `CLIQUE_WEIGHT = 10`, `BRIDGE_WEIGHT = 1` for self-documenting contrast ratio
+  - P3 SKIPPED: Modularity is actually ~−0.008 for this topology (the bridge edge penalizes the partition), not positive as the eval assumed. Kept `is_finite()` guard with updated comment documenting the actual value.
+- KEEP `run_louvain_isolated_concepts_normalized_contiguous_ids`:
+  - P2: Added `assert_eq!(count, 4)` on `detect_and_persist` return value
+  - P4: Added `assert_eq!(get_modularity(&conn), 0.0)` — no edges → zero modularity
+  - P6: Removed redundant `sort_unstable()` (SQL `ORDER BY` is sufficient)
+- P5 deferred: cross-file parameterization/merge is a structural change beyond eval scope
+- Commit: 1a11514

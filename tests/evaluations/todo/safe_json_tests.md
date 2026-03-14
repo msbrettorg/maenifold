@@ -227,3 +227,19 @@ Ordered by impact:
 | `safe_json_with_depth_64_throws_exception` | ❌ No — redundant code path |
 
 **2 of 4 tests are genuinely load-bearing.** The suite guards the critical boundary correctly but leaves the `[`-nesting path and in-string exclusion logic completely unverified. A targeted scanner regression (breaking only array depth counting or string escape handling) would pass all 4 existing tests.
+
+---
+
+## SWE Remediation
+
+- MERGE `safe_json_with_normal_depth_deserializes` → `safe_json_sub_boundary_depths_deserialize`: parameterized over depths [1, 10, 31] replacing arbitrary depth-10
+- KEEP `safe_json_with_max_depth_32_deserializes`: unchanged (off-by-one boundary guard)
+- KEEP+REWRITE `safe_json_with_depth_over_32_throws_exception` → `safe_json_depth_33_exceeds_limit_returns_err`: Rust-idiomatic name
+- REMOVE `safe_json_with_depth_64_throws_exception`: redundant with depth-33 test
+- ADD `safe_json_array_nesting_at_max_depth_deserializes`: Gap 1 — array `[` nesting at boundary 32 (Rec #1)
+- ADD `safe_json_array_nesting_at_33_returns_err`: Gap 1 — array nesting rejection at 33 (Rec #1)
+- ADD `safe_json_brackets_inside_strings_are_not_counted`: Gap 2 — in-string bracket exclusion guard (Rec #2)
+- ADD `safe_json_mixed_nesting_at_max_depth_deserializes`: mixed `{`/`[` nesting at boundary
+- FIX dangling `SEC-001` references in `json.rs` and test comments → `NFR-3` only (Rec #6)
+- Final test count: 7 (was 4). Load-bearing score: 7/7.
+- Commit: 2286708

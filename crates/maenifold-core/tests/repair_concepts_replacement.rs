@@ -6,7 +6,7 @@ use serde_json::json;
 
 // T-3.2: RTM FR-6 (RTM-038 / TC-6.1)
 #[test]
-fn repair_concepts_mode_a_replaces_wikilink_variants_on_disk() {
+fn repair_concepts_replaces_variant_and_preserves_unrelated_wikilinks() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
@@ -121,10 +121,19 @@ fn repair_concepts_learn_true_returns_help_documentation() {
         output.contains("RepairConcepts"),
         "expected help content to mention tool name: {output}"
     );
-    let outside_code_blocks: String = output.split("```").step_by(2).collect();
+    // Pipeline execution markers must be absent — learn=true returns help, not live output.
+    // Note: "Scanning" appears in help-text examples, so we check markers unique to live runs.
     assert!(
-        !outside_code_blocks.contains("\nScanning "),
-        "learn=true should return help instead of live repair output: {output}"
+        !output.contains("✓ Modified"),
+        "learn=true must not execute repair pipeline (found modification marker): {output}"
+    );
+    assert!(
+        !output.contains("✓ Skipped"),
+        "learn=true must not execute repair pipeline (found skip marker): {output}"
+    );
+    assert!(
+        !output.contains("Files modified:"),
+        "learn=true must not execute repair pipeline (found summary marker): {output}"
     );
 }
 
@@ -135,7 +144,7 @@ fn repair_concepts_dry_run_with_invalid_folder_returns_error_output() {
     let _reset = ConfigOverrideReset;
     let (_tmp, _cfg) = isolated_config();
 
-    let output = invoke_repair_concepts(json!({
+    let result = try_invoke_repair_concepts(json!({
         "conceptsToReplace": "tool",
         "canonicalConcept": "build-tool",
         "folder": "nonexistent-folder-xyz",
@@ -143,13 +152,10 @@ fn repair_concepts_dry_run_with_invalid_folder_returns_error_output() {
         "minSemanticSimilarity": 0.0
     }));
 
+    let error = result.expect_err("non-existent folder should produce an error");
     assert!(
-        output.contains("ERROR"),
-        "expected invalid folder error output: {output}"
-    );
-    assert!(
-        output.contains("Directory not found"),
-        "expected directory-not-found detail: {output}"
+        error.to_string().contains("Directory not found"),
+        "expected directory-not-found detail: {error}"
     );
 }
 
@@ -180,7 +186,8 @@ fn repair_concepts_excludes_git_directories_from_scanning() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
-    write_memory_fixture(&cfg, "repair/.git/test.md", "[[tool]]");
+    let git_fixture = "[[tool]]";
+    write_memory_fixture(&cfg, "repair/.git/test.md", git_fixture);
     write_memory_fixture(&cfg, "repair/visible.md", "No matching concepts here.");
 
     let output = invoke_repair_concepts(json!({
@@ -199,6 +206,12 @@ fn repair_concepts_excludes_git_directories_from_scanning() {
         output.contains("Files modified: 0"),
         "only hidden matches should yield no visible modifications: {output}"
     );
+    // On-disk verification: .git file must be untouched even with dryRun=true
+    let git_after = read_memory_fixture(&cfg, "repair/.git/test.md");
+    assert_eq!(
+        git_after, git_fixture,
+        ".git fixture must remain unchanged on disk"
+    );
 }
 
 // T-3.2: RTM FR-6
@@ -207,21 +220,30 @@ fn repair_concepts_semantic_bypass_with_zero_threshold_skips_validation_output()
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
-    write_memory_fixture(&cfg, "repair/semantic-bypass.md", "[[tool]]");
+    // "tool" → "kitchen-appliance" are semantically dissimilar; a non-zero threshold
+    // would block this replacement. threshold 0.0 should bypass validation and replace.
+    let fixture_content = "Using [[tool]] in the kitchen.";
+    write_memory_fixture(&cfg, "repair/semantic-bypass.md", fixture_content);
 
     let output = invoke_repair_concepts(json!({
         "conceptsToReplace": "tool",
         "canonicalConcept": "kitchen-appliance",
-        "dryRun": true,
+        "dryRun": false,
         "minSemanticSimilarity": 0.0
     }));
 
+    // Primary assertion: file WAS modified, proving bypass occurred by observable behavior
+    let updated = read_memory_fixture(&cfg, "repair/semantic-bypass.md");
     assert!(
-        !output.contains("SEMANTIC VALIDATION"),
-        "threshold 0.0 should bypass semantic validation output: {output}"
+        updated.contains("[[kitchen-appliance]]"),
+        "zero threshold should bypass semantic validation and replace concept: {updated}"
     );
     assert!(
-        output.contains("Scanning"),
-        "repair should still proceed after bypassing semantic validation: {output}"
+        !updated.contains("[[tool]]"),
+        "original variant should be replaced: {updated}"
+    );
+    assert!(
+        output.contains("✓ Modified"),
+        "output should confirm modification: {output}"
     );
 }

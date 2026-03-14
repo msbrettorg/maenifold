@@ -177,3 +177,11 @@ assert!(
 ## Load-Bearing Score: 5/5
 
 All five tests catch behaviors that would not be detected elsewhere in the suite. However, test 5's load-bearing capacity for the *creation* side of its scenario is diminished by the missing count assertion — it guards preservation but only weakly guards completeness. The score would be 4.5/5 in a half-point scale: five tests that should exist, one that needs a stronger assertion set before it fully earns its keep.
+
+---
+## SWE Remediation
+- KEEP tests 1–3: unchanged (RTM-094, RTM-096, RTM-097)
+- KEEP test 4 (rename): `create_wikilinks_mode_respects_word_boundaries` → `mode_b_respects_word_boundaries`; added YAML frontmatter to fixture for consistency with tests 1–3
+- REWRITE test 5 (rename + assertions): `create_wikilinks_preserves_existing_wikilinks` → `mode_b_preserves_unrelated_wikilinks_while_creating_new_ones`; replaced weak `contains("[[build-tool]]")` with `matches("[[build-tool]]").count() == 2`; added exact-string assertion for transformed line; dropped trivial `output.contains("build-tool")` check; added YAML frontmatter to fixture
+- ADD test 6: `mode_b_dry_run_reports_without_modifying_files` — closes RTM-095 coverage gap; verifies Mode B + dryRun=true reports "Would modify" and "This was a DRY RUN" without mutating on-disk content
+- Commit: 2e5af5d

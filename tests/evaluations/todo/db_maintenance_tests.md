@@ -175,3 +175,18 @@ Align the 80%/90% thresholds with a single documented rationale. Change `ac3`'s 
 | `ac6b` | ❌ Marginal | Same as `ac6a` |
 
 3 tests carry genuine behavioral signal. 2 are subsumed. 2 claim more than they prove.
+
+---
+
+## SWE Remediation
+
+- MERGE ac1 → ac2: removed subsumed smoke test; ac2 already proves execution + postcondition
+- KEEP ac2: P1 — added `expected_journal_mode()` helper mirroring `connection.rs::journal_mode()` CI logic; assertion now environment-conditional (WAL outside CI, DELETE in CI)
+- KEEP ac3: P5 — strengthened second assertion to compare `size_after_full < size_after_delete` (proves VACUUM reclaimed freed pages, not just "smaller than peak"); standardized threshold to shared `NO_VACUUM_RETENTION_RATIO` (0.9)
+- MERGE ac4 → ac5: removed subsumed smoke test; ac5 already proves execution + postcondition
+- KEEP ac5: P5 — standardized threshold to shared `NO_VACUUM_RETENTION_RATIO` (0.9) with documented rationale
+- REWRITE ac6a: added page_count + freelist_count state comparison after each run to prove f(f(x)) = f(x); setup creates bulk data then deletes it so first VACUUM has meaningful work
+- REWRITE ac6b: added page_count comparison with checkpoint_and_sync after each call; setup inserts FTS5 content so first optimize has real work
+- P2 traceability: reclassified all tests from phantom `T-QUAL-SYNC-001.1: RTM FR-25.6` to `T-DB-MAINT-001: RTM NFR-2`; added merge-tombstone comments for removed tests
+- Test count: 7 → 5 (2 subsumed smoke tests removed, 0 signal loss)
+- Commit: 592df81

@@ -78,3 +78,16 @@ Now that `filter.rs` has a robust inline test module (10 tests) covering prefix 
 ## Load-Bearing Score: 3/6
 
 Tests 3, 4, and 6 carry coverage that is not replicated elsewhere in the test suite. Tests 1, 2, and 5 either duplicate inline tests or are strict subsets of another test in the same file. Two of the three non-load-bearing tests (1 and 2) should be removed outright. The third (5) should be renamed to eliminate its misleading framing before it causes a misunderstanding.
+
+---
+## SWE Remediation
+- MERGE test 1 (`check_filter_with_filter_file_blocks_matching_concepts`): RTM-102/103 traceability folded into test 4 header, test 1 deleted.
+- REMOVE test 2 (`check_filter_missing_file_returns_empty`): confirmed exact dup of inline `wikilink_filter_allows_content_when_filter_file_is_missing`.
+- KEEP+RENAME test 3: `check_filter_case_insensitive_matching` → `check_filter_json_key_is_normalized_to_lowercase`. Added key-normalization comment.
+- KEEP test 4 (`check_filter_mixed_filtered_and_unfiltered`): added merged traceability comment from test 1.
+- REWRITE test 5: `check_filter_empty_concepts_list_returns_empty` → `check_filter_no_wikilinks_in_content_returns_ok`. Updated comment to clarify populated filter + empty content.
+- KEEP+ANNOTATE test 6 (`check_filter_invalid_json_returns_empty`): added `check()` vs `try_check()` contract comment and cross-reference to inline counterpart.
+- Rec 5 applied: documented `check_filter()` helper scope limitation at top of file.
+- Rec 7 applied: added 4 `is_concept_blocked()` gap tests (exact match, prefix match, no match, missing file).
+- Test count: 6 → 8 (−2 removed, +4 new gap coverage). All 8 pass.
+- Commit: fa1ee1b

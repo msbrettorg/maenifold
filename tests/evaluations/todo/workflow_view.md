@@ -195,3 +195,17 @@ These could be driven from a table of `(env_factory, advance_count, expected_str
 | `view_without_session_id_throws_helpful_error` | ✅ | Unique `Err` path; T-15.14/FR-8 contract test |
 
 **Minimum viable set after recommendations: 4 tests** (initial queue view, step advancement, invalid session, missing session ID). Current 7 tests represent 75% redundancy in scenario coverage relative to that minimum.
+
+---
+
+## SWE Remediation
+
+- REMOVE `view_queue_shows_current_position_and_next_step` (Test #1): strict subset of Test #3; T-12.0 traceability migrated
+- REWRITE `view_reflects_updated_position_after_step_advancement` (Test #2): added `!contains("ERROR")` guard (P0), merged queue-of-2 case from Test #5, added comments distinguishing single-workflow vs multi-workflow queue contexts
+- KEEP `view_displays_queue_status_with_current_position` (Test #3): added T-12.0 traceability comment from merged Test #1
+- FIX `view_with_invalid_session_id_returns_error` (Test #4): updated to `expect_err` — implementation returns `Err`, not `Ok("ERROR: ...")`; assertion on `"ERROR"` removed since the error path is now structural, not string-embedded
+- REMOVE `view_after_progressing_shows_updated_position` (Test #5): absorbed into rewritten Test #2
+- REMOVE `view_via_workflow_tools_entry_point` (Test #6): zero unique coverage, misleading name
+- KEEP `view_without_session_id_throws_helpful_error` (Test #7): unchanged
+- **Result**: 7 → 4 tests, all passing
+- Commit: 74644c1

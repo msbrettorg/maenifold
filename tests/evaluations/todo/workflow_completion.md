@@ -117,4 +117,4 @@ Tests 1, 2, 3, 4, 5, 7 (rewritten, minus emoji), and 10 cover genuinely distinct
 - FIX `continue_with_invalid_session_id_returns_error`: tool returns `Err(Message(...))` not `Ok("ERROR: ...")` for invalid session IDs — updated to handle both `Err` and `Ok` paths while preserving the same semantic assertions (contains session ID + "doesn't exist").
 - Rec 7 (env consolidation): switched all tests to `workflow_tools_env`, removed `workflow_operations_env` import from this file.
 - Final test count: 7 (down from 10). All 7 pass.
-- Commit: (staged)
+- Commit: e9e88d5 (test changes), a65ca5c (eval annotation)

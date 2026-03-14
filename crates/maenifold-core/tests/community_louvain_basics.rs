@@ -97,10 +97,19 @@ fn run_louvain_triangle_plus_isolated_pair_two_communities() {
 
 // T-W1-8: RTM NFR-2
 // Mirrors: RunLouvain_EmptyGraph_ReturnsEmpty
+// T-12.7: Merged precondition guard from community_coverage_basics (R-2).
 #[test]
 fn run_louvain_empty_graph_returns_empty() {
     let _g = TEST_MUTEX.lock();
     let env = TestEnv::setup();
+
+    // Precondition: TestEnv must start with an empty concepts table.
+    let conn = open_conn(&env.db_path);
+    let concept_count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM concepts", [], |r| r.get(0))
+        .expect("count");
+    assert_eq!(concept_count, 0, "TestEnv must start with empty concepts table");
+    drop(conn);
 
     let count = detect_and_persist(&env.db_path, 1.0, None).expect("detect");
 

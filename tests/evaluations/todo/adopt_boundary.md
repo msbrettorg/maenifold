@@ -143,3 +143,72 @@ The tests correctly carry `// T-1.4a: RTM FR-1` attribution (T-1.4a is archived 
 - Final test count: 7 (was 7; 3 removed by MERGE, 1 added by MERGE, 2 added by R4/R5)
 - Load-bearing score: 7/7 (was 4/7)
 - Commit: a66e608
+
+---
+
+## Red-team Audit
+
+**Audited:** 2026-06-23 · **Ref:** T-1.4a · FR-1 · NFR-2
+
+### MERGE tests 1–3 → `adopt_all_asset_types_return_instruction_with_valid_json_configuration`
+
+- ✅ Three original tests (`adopt_role_*`, `adopt_color_*`, `adopt_perspective_*`) removed from file — confirmed via diff
+- ✅ Single parameterized test calls shared helper `assert_adopt_type_produces_valid_instruction` for all three asset types (role, color, perspective)
+- ✅ Assertions upgraded to test-7 rigor: `output.contains("JSON Configuration:")` marker check present, `extract_json_configuration` parses embedded JSON, `parsed["id"]` and `parsed["name"]` validated against expected values
+- ✅ RTM-001, RTM-002, RTM-003 explicitly called out in test comments
+- ✅ `extract_json_configuration` helper now exercised against all three types (was role-only) — satisfies eval Finding 4 / Recommendation 2
+- ✅ No unique coverage lost: every assertion from the original three tests (type keyword + identifier echo) is preserved, with strictly stronger assertions added on top
+
+### REWRITE `adopt_learn_true_returns_help_documentation_not_adoption_instruction`
+
+- ✅ Weak OR-of-three (`"Adopt" || "Loads" || "Parameters"`) removed — confirmed via diff
+- ✅ Replaced with `lower.contains("help")` — "help" is diagnostic of the help code path (unlike "Adopt" which appeared in all tool output). Eval spec said "something structural" and offered examples; this satisfies the intent
+- ✅ Original negative assertion `!output.contains("JSON Configuration:")` preserved
+- ✅ Second negative assertion added: `!output.contains("CRITICAL INSTRUCTIONS:")` — strictly stronger than eval spec required (eval only asked to keep one negative)
+- ✅ The combination of one positive help-path signal + two negative adoption-path guards gives real discriminating power against false passes
+
+### KEEP `adopt_invalid_type_returns_invalid_type_error`
+
+- ✅ Unchanged — confirmed via diff (no modifications to this test in commit)
+
+### KEEP `adopt_falls_back_to_json_id_field_when_filename_differs`
+
+- ✅ Unchanged — confirmed via diff (no modifications to this test in commit)
+
+### KEEP `adopt_output_contains_json_configuration_followed_by_valid_json`
+
+- ✅ Unchanged — confirmed via diff (no modifications to this test in commit)
+
+### ADD `adopt_nonexistent_identifier_returns_not_found_error` (R4)
+
+- ✅ New test present, matches eval Recommendation 4 exactly
+- ✅ Asserts `result.is_err()` — verifies graceful error, not panic
+- ✅ Uses `does-not-exist` identifier against clean isolated config (no assets written)
+- ✅ Follows existing test patterns: mutex guard, isolated_config, Config::reset_overrides
+
+### ADD `adopt_malformed_asset_json_does_not_panic` (R5)
+
+- ✅ New test present, matches eval Recommendation 5
+- ✅ Writes `"{ not valid json !!!"` to asset file — exercises invalid JSON path
+- ✅ Handles both Ok and Err outcomes via `match` — no-panic property proven regardless of which path the tool takes
+- ✅ Documents current behavior (pass-through) vs ideal (error) in comments — honest characterization
+
+### Cross-cutting
+
+- ✅ Test count: 7 (3 removed by MERGE + 1 added by MERGE + 2 added by R4/R5 = net 0 change). Matches remediation claim
+- ✅ All 7 tests pass: `cargo test -p maenifold-core adopt_boundary` — 7 passed, 0 failed
+- ✅ No unrelated changes: commit touches exactly 1 file (`adopt_boundary.rs`), only the tests specified in verdicts
+- ✅ Traceability: all test comments reference T-1.4a, RTM FR-1, and specific RTM/TC items
+- ✅ Commit message (a66e608) explicitly lists each verdict applied and references the eval spec file
+
+### Not addressed (eval Recommendations 3 and 6 — informational only)
+
+- Recommendation 3 (extend test 7 to color/perspective): The intent is satisfied by the MERGE — `extract_json_configuration` now runs against all three types in the merged test. Test 7 remains as a focused role-only regression test. No coverage gap.
+- Recommendation 6 (T-QA.* backlog item): Meta-recommendation about sprint planning, not a code change. Outside SWE scope; PM responsibility.
+
+### Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test -p maenifold-core --test integration_tests adopt_boundary`: 7 passed, 0 failed
+- Verdict: PASS

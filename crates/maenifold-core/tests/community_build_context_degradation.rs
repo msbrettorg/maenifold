@@ -142,9 +142,9 @@ fn build_context_graceful_degradation_concept_not_in_communities() {
         "FR-13.10: existing-a must still appear in DirectRelations for orphan"
     );
 
-    // In the Rust implementation, when the query concept (orphan) has no community
-    // assignment, include_community_data=false, so ALL relation CommunityIds are null.
-    // This is the correct Rust behaviour (confirmed by reading search.rs line ~1162).
+    // Rust behaviour: when the query concept has no community assignment,
+    // include_community_data = false, so ALL DirectRelation CommunityIds are null.
+    // (build_context.rs:61, formatter.rs:28–35)
     let empty_vec3 = vec![];
     let existing_a_rel = data["DirectRelations"]
         .as_array()
@@ -152,14 +152,17 @@ fn build_context_graceful_degradation_concept_not_in_communities() {
         .iter()
         .find(|r| r["Name"] == "existing-a")
         .expect("existing-a relation");
-    // existing-a's CommunityId is null because include_community_data=false for orphan query.
-    let _ = existing_a_rel; // documented difference from C# — no assertion on CommunityId here.
+    assert!(
+        existing_a_rel["CommunityId"].is_null(),
+        "FR-13.10: when query concept is not in a community, relation CommunityIds \
+         must also be null (include_community_data=false path)"
+    );
 }
 
 // T-W1-8: RTM NFR-2
 // Mirrors: BuildContext_NullCommunityId_DoesNotCrash (FR-16.10)
 #[test]
-fn build_context_null_community_id_does_not_crash() {
+fn build_context_mixed_community_state_in_direct_relations_is_correct() {
     let _g = TEST_MUTEX.lock();
     let env = TestEnv::setup();
     let conn = open_conn(&env.db_path);

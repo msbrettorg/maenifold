@@ -286,3 +286,31 @@ need to maintain multiple test variants to guard against accidental call-site ad
 - P4/P5 skipped: parameterized sweep is future work; source-level comment is out of test-file scope
 - Tests: 3 passed, 0 failed (`cargo test --test integration_tests -p maenifold-core -- access_boosting_build_context`)
 - Commit: 0560894
+
+---
+## Red-team Audit
+
+> **Traceability**: T-12.0 (RTM NFR-1), T-GRAPH-DECAY-002.1-3 (RTM NFR-7.6.1/7.6.2/7.6.3)
+
+### Item-by-item
+
+- ✅ **REMOVE `build_context_with_content_preview_does_not_update_last_accessed`** (P1): Fully deleted. Confirmed via diff — the entire function body is gone. No unique coverage lost: test 1 already exercises `includeContent=true` and test 4 subsumes the BuildContext assertion. Matches eval spec.
+- ✅ **REWRITE `build_context_at_various_depths_does_not_update_last_accessed` → `build_context_deep_traversal_does_not_update_last_accessed`** (P2): All four eval-specified changes applied:
+  1. Name changed from misleading "various depths" to accurate "deep traversal" ✅
+  2. Trivial depth-echo assertion (`context_result["data"]["Depth"].as_u64() == Some(3)`) removed ✅
+  3. Intent comment added: `// Depth=3 exercises the full hop-expansion loop in expand_related_concepts` ✅
+  4. Unnecessary pre-read (`read_memory_output` before `set_last_accessed`) dropped ✅
+  5. `includeContent=false` preserved (only `false`-path test in file) ✅
+  6. Implementation matches the eval's suggested rewrite code block verbatim (modulo rustfmt) ✅
+- ✅ **KEEP `build_context_does_not_update_last_accessed`** (P3): Comment added before `read_memory_output` calls: `// Verify files exist and are readable in the graph before setting the controlled baseline.` — matches the P3 recommendation to annotate intent of pre-read calls. No behavioral changes.
+- ✅ **KEEP `only_read_memory_updates_last_accessed_not_search_or_build_context`**: Confirmed untouched in diff (no hunks touch this function).
+- ✅ **P4/P5 skipped**: Appropriate — P4 is explicitly labeled FUTURE and P5 targets source code outside the test file.
+- ✅ **No unrelated changes**: Commit 0560894 touches exactly 2 files: the test file and the eval spec. No source code, no other tests.
+- ✅ **Tests pass**: 3 passed, 0 failed, 947 filtered out (verified live run against current HEAD).
+
+### Verdict: PASS
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- access_boosting_build_context`: 3 passed, 0 failed (947 filtered out)
+- Verdict: PASS

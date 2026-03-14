@@ -256,3 +256,27 @@ Ordered by priority:
 - NOTE: pre-existing environment issue found — stale empty `target/debug/deps/assets/` directory causes `resolve_packaged_assets_root()` to resolve exe-adjacent (empty) dir instead of workspace `assets/`, making all PackagedAssetGuard-based tests fail with "No changes detected"
 - All 5 tests pass: `cargo test -p maenifold-core --test integration_tests 'asset_manager_errors'`
 - Commit: cba1d9af013f87217ca5507a4e6e9fa59d7622b1
+
+---
+
+## Red-team Audit
+
+| Eval Item | Status | Notes |
+|-----------|--------|-------|
+| REMOVE T1 (`when_source_dir_missing_returns_error`) | ✅ | Deleted. T4 retains both the positive `"Source assets directory not found"` assertion and the unique negative `!contains("Added files:")` assertion. Comment in T4 documents the absorption: *"Also verifies the basic error-type check (Err, not Ok) previously covered by the removed update_assets_when_source_dir_missing_returns_error test."* No unique coverage lost. |
+| KEEP T2 (`when_target_dir_missing_returns_error`) | ✅ | Unchanged. Still the only test exercising the target-missing guard. |
+| REWRITE T3 → T3a (`summary_formats_combined_counts_and_sections`) | ✅ | Renamed per eval. Retains exactly the 10 positive assertions specified (eval assertions 1–3, 5–7, 9–12). Both PARITY-U01 negative assertions (eval #4, #8) correctly removed. `#[cfg(unix)]` gate preserved. Setup unchanged. |
+| REWRITE T3 → T3b (`parity_u01_omits_skipped_symlinks_count_and_section`) | ✅ | New function with exact name from eval Recommendation 2. Carries the 2 negative PARITY-U01 assertions (`!contains("Skipped symlinks:")`, `!contains("### Skipped Symlink Targets")`). Setup is minimum viable: single category + single symlink, not the 3-category setup from T3a. `#[cfg(unix)]` gate preserved. Comment names PARITY-U01 explicitly. |
+| RENAME T4 → `source_dir_missing_errors_without_summary_counts` | ✅ | Matches eval Recommendation 1. Removes the awkward "surfaces" from the old name. Absorption comment added per eval. Both assertions (positive + negative) intact. |
+| RENAME T5 → `scans_all_four_asset_catalog_subdirectories` | ✅ | Matches eval Recommendation 3. Removes confusing "Rust" qualifier. Body and assertions unchanged. |
+| DOCUMENT cross-binary mutex gap (Finding 3 / P2) | ✅ | 7-line comment added in `asset_manager_support/mod.rs` above `test_mutex()`. Names both risk actors (`PackagedAssetGuard`, `HiddenDirGuard`), explains the cross-binary limitation, and notes the mitigation option (file lock). Eval suggested placement "near `PackagedAssetGuard::create`" — placement at `test_mutex()` is arguably more appropriate since the mutex is the coordination primitive under discussion. Acceptable deviation. |
+| P2 Rec 5 (platform-independent PARITY-U01 test) | ⚠️ | Not addressed. Eval phrased this as [Low] "Consider" — advisory, not prescriptive. No coverage regression. |
+| No unrelated changes | ✅ | Diff touches only the test file, support module, and eval spec. No production code modified. No new dependencies. |
+| Tests pass | ✅ | Independently verified: `cargo test -p maenifold-core --test integration_tests 'asset_manager_errors'` → 5 passed, 0 failed. |
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- asset_manager_errors`: 5 passed, 0 failed
+- Verdict: PASS

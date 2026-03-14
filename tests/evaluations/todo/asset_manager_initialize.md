@@ -230,3 +230,33 @@ The gaps (directory creation, graceful no-op) belong in this file and should be 
 - R-5 (documentation): applied — added module-level comment documenting live-assets-write side effect and mutex rationale
 - All 4 tests pass: `cargo test --test integration_tests -p maenifold-core -- asset_manager_initialize::`
 - Commit: 62c79cb
+
+---
+## Red-team Audit
+
+| Item | Eval Requirement | SWE Action | Status |
+|------|-----------------|------------|--------|
+| KEEP test_1 | `initialize_assets_with_source_files_copies_files_to_target` unchanged | Body unchanged; only line offsets shifted from R-5 header | ✅ |
+| KEEP test_2 + R-1 | Add `assert_ne!` distinguishing source vs target content | Named variables `source_content`/`pre_existing_target` + `assert_ne!` guard added before `PackagedAssetGuard::create` | ✅ |
+| ADD test_3 (R-2) | Branch A: subdirectory creation with nested path | `unique_relative_path("subdir", ...)` + asserts `target.exists()`, `parent().is_dir()`, and content equality | ✅ |
+| ADD test_4 (R-3) | Graceful no-op via `hide_packaged_asset_roots()` | Uses `hide_packaged_asset_roots()`, calls `initialize_assets`, asserts `entries.is_empty()` | ✅ |
+| R-4 (rename) | Cosmetic, not required | Skipped — eval verdict was KEEP, not REWRITE | ✅ |
+| R-5 (documentation) | Document live-assets-write side effect | Module-level comment (lines 1–8) documents `PackagedAssetGuard` workspace mutation, mutex rationale, and SIGKILL orphan risk | ✅ |
+
+**Observations:**
+
+- ✅ KEEP test_1: body identical to pre-remediation; no functional change
+- ✅ KEEP test_2 + R-1: `assert_ne!` matches eval recommendation exactly — prevents false-green if a refactor makes source == target
+- ✅ ADD test_3 (R-2): covers Branch A via `subdir/` prefix; asserts directory creation (`is_dir()`), file existence, and content — all three observable properties of the branch
+- ✅ ADD test_4 (R-3): covers `None` return from `resolve_packaged_assets_root()`; uses existing `hide_packaged_asset_roots()` helper; asserts no files copied to assets dir
+- ✅ R-5: module-level doc comment covers all three points the eval raised (non-hermetic writes, mutex serialization, SIGKILL cleanup failure)
+- ✅ No unrelated changes: commit 62c79cb touches only `asset_manager_initialize.rs` and eval spec files — zero production code modified
+- ✅ All 4 tests pass: `test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 946 filtered out; finished in 0.39s`
+- ✅ Traceability: test comments reference T-12.7, RTM NFR-1, NFR-2, and specific R-* recommendations
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- asset_manager_initialize::`: 4 passed, 0 failed
+- Verdict: PASS

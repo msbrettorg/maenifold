@@ -252,3 +252,36 @@ misleading name, its cargo-cult sleeps, or its tautological preamble.
 - Verified: `cargo test -p maenifold-core --test integration_tests -- asset_watcher_events` — 4 passed, 0 failed
 - Verified: `cargo test -p maenifold-core --test integration_tests -- asset_hot_loading` — 0 tests found (confirmed removal)
 - Commit: 3aa2b1ebc6468eef0f2c8ea6123080a1bbc1e8b1
+
+---
+## Red-team Audit
+
+**Traceability**: T-0.1 · NFR-3 · NFR-2
+
+### Per-verdict verification
+
+- ✅ REMOVE `file_created_adds_resource_to_asset_manager`: File deleted. Superseding test `asset_watcher_events::file_created_triggers_debounce_and_notification` (line 12) covers all meaningful assertions (`read_asset` parse, name/version equality) plus real watcher synchronization via `wait_for_batch_with_path()`. No unique coverage lost.
+- ✅ REMOVE `file_changed_updates_resource_in_asset_manager`: File deleted. Superseding test `asset_watcher_events::file_changed_triggers_debounce_and_notification` (line 40) covers write→read round-trip with watcher notification. The eval explicitly ruled `AssetKind::Role` vs `AssetKind::Workflow` as zero behavioral distinction (same code path, different `dir_name()` string). No unique coverage lost.
+- ✅ REMOVE `file_deleted_removes_resource_from_asset_manager`: File deleted. Superseding test `asset_watcher_events::file_deleted_triggers_debounce_and_notification` (line 74) asserts the same `MaenifoldError::AssetNotFound` variant match pattern. The eval explicitly ruled `AssetKind::Color` vs `AssetKind::Workflow` as no distinct code path. No unique coverage lost.
+
+### Structural checks
+
+- ✅ `mod asset_hot_loading_tests;` removed from `main.rs` — confirmed via git diff (single `-` line) and `grep` (zero matches).
+- ✅ Commit `3aa2b1ebc6468eef0f2c8ea6123080a1bbc1e8b1` touches exactly 3 files: the deleted test file, `main.rs` (1 line), and this eval spec. No unrelated changes.
+- ✅ Superseding tests independently verified: `cargo test -- asset_watcher_events` → 4 passed, 0 failed.
+- ✅ Removed tests confirmed absent: `cargo test -- asset_hot_loading` → 0 tests found.
+
+### Informational
+
+- ⚠️ Stale comment in `asset_manager_support/mod.rs:16` still references `asset_hot_loading_tests` by name. This is a comment in a `NOTE` block about cross-binary mutex gaps, not a code dependency. Does not affect compilation or behavior. Not a rejection issue per audit scope (eval is the spec), but should be cleaned up in a future pass.
+
+### Verdict: **PASS**
+
+All 3 REMOVE verdicts executed correctly. Superseding tests in `asset_watcher_events.rs` cover every meaningful assertion from the deleted file with strictly stronger synchronization (real watcher vs cargo-cult sleep). No unique coverage lost. No unrelated changes introduced. Commit is clean and well-scoped.
+
+---
+## Blue-team Verification
+- `cargo test --test asset_hot_loading_tests`: no test target found (binary correctly removed)
+- File `crates/maenifold-core/tests/asset_hot_loading_tests.rs` confirmed absent
+- All 3 tests were REMOVE verdicts; entire file deleted by SWE — no binary should exist
+- Verdict: PASS

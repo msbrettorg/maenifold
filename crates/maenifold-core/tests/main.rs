@@ -15,7 +15,6 @@ mod benchmark_boundary_controls;
 mod benchmark_boundary_output;
 mod community_build_context_degradation;
 mod community_build_context_siblings;
-mod community_coverage_basics;
 mod community_coverage_topologies;
 mod community_louvain_basics;
 mod community_louvain_persistence;

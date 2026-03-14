@@ -295,3 +295,26 @@ layered approach intentionally.
 - **SKIP** Rec 7 (P3): production double-validation investigation is out-of-scope for test remediation
 - Test count: 5 → 8 (1 rewritten, 3 added). All 8 pass.
 - Commit: 7ba746f
+
+---
+
+## Red-team Audit
+
+- ✅ REWRITE `adopt_with_empty_identifier_returns_invalid_argument_error` → `adopt_with_empty_or_whitespace_identifier_returns_invalid_argument_error`: Parameterized over `""`, `"   "`, `"\t"` as specified in Finding 1 / Rec 1. Assertions match eval spec — checks `InvalidArgument` variant, `must not be empty` in detail, `Identifier must not be empty` in Display message. Test name updated to reflect expanded scope.
+- ✅ ADD `adopt_with_path_traversal_identifier_is_rejected`: Tests `"../secret"`, `"../../etc/passwd"`, `"a/b"`, `"role\\..\\secret"` (superset of Rec 2 which asked for three cases). All assert `InvalidArgument` with slug-validation detail. Security-critical path covered per Finding 2.
+- ✅ ADD `adopt_workflow_type_is_rejected_with_allowed_types_in_message`: Asserts `InvalidArgument` containing "Must be one of: role, color, perspective" AND "Invalid type 'workflow'" per Finding 3 / Rec 3. Additionally verifies the allowed-types suffix does NOT contain "workflow" — exceeds eval spec requirements.
+- ✅ ADD `assert!(!cat.colors.is_empty(), ...)` guard in `adopt_includes_critical_instructions`: Added before `colors[0]` index access per Finding 5 / Rec 4. Comment added explaining color type chosen to demonstrate asset-type-agnostic template.
+- ✅ ANNOTATE `assert_ne!` in `adopt_distinguishes_between_different_assets_of_same_type`: Comment reads "Logically follows from the contains assertions above given distinct ids, but serves as a belt-and-suspenders guard against coincidental embedding." Matches Finding 4 / Rec 5.
+- ✅ ADD `adopt_missing_required_properties_returns_missing_property_error`: Tests missing `type` → `MissingProperty("type")`, missing `identifier` → `MissingProperty("identifier")`, empty payload `{}` → `MissingProperty("type")`. All three cases per Rec 6.
+- ✅ SKIP Rec 7 (P3 double-validation investigation): Correctly scoped out of test remediation.
+- ✅ No unrelated changes: Commit 7ba746f modifies only test files, eval specs, and traceability docs. Zero production code changes.
+- ✅ All 8 tests pass: `cargo test -p maenifold-core --test integration_tests adopt_tools_tests` — 8 passed, 0 failed.
+- ✅ Priority coverage: P0 (Finding 1 whitespace + Finding 2 path traversal), P1 (Finding 3 workflow rejection + Finding 5 catalog guard), P2 (Finding 4 annotation + Rec 6 missing-property) — all addressed.
+
+- Verdict: **PASS**
+
+---
+
+## Blue-team Verification
+- `cargo test -p maenifold-core --test integration_tests adopt_tools_tests`: 8 passed, 0 failed
+- Verdict: **PASS**

@@ -257,3 +257,70 @@ phantom traceability IDs — not the tests themselves.
 - KEEP `read_memory_by_title_updates_last_accessed`: unchanged per verdict
 - Tests: 5 passed, 0 failed (3 original + 2 new)
 - Commit: 7ba746f
+
+---
+## Red-team Audit
+
+### BLOCKER — Phantom traceability resolved
+
+- ✅ `RTM.md` now contains `NFR-8: Decay & Access Boosting` with RTM-201, RTM-202, RTM-203. Verified via `git diff fbb4581..HEAD -- RTM.md`. IDs match those referenced in the test source comments.
+- ✅ `TODO.md` now contains `T-GRAPH-DECAY-002` under a new `Maintenance — Traceability & Test Gaps` section. Status marked `complete`. Links to `RTM: NFR-8`. Files list is accurate.
+- ✅ Module-level comment in `access_boosting_reads.rs` updated from phantom `T-12.0: RTM NFR-1` to `T-GRAPH-DECAY-002: RTM NFR-8 (RTM-201, RTM-202, RTM-203)`.
+- ✅ All three per-test comments updated from phantom `T-GRAPH-DECAY-002.1-3: RTM NFR-7.6.1` to real IDs (`RTM-201`, `RTM-201`, `RTM-201` for the three KEEP tests). Correct — all three original tests cover the positive-read contract (RTM-201).
+
+### HIGH — Negative test: missing URI (RTM-202)
+
+- ✅ `read_memory_on_missing_uri_does_not_update_last_accessed` added. Matches eval Gap 1 recommendation exactly.
+- ✅ Asserts `result.starts_with("ERROR:")` — verifies the error path is taken.
+- ✅ Asserts `last_accessed.is_none()` — verifies no phantom row is created. This is the core claim from the eval's Gap 1.
+- ✅ Traceability comment cites `RTM-202`. Correct.
+
+### MEDIUM — Annotated Test 2 as slow
+
+- ✅ Comment added above `read_memory_updates_last_accessed_on_subsequent_reads`:
+  `// NOTE: slow by design — update_last_accessed uses second-precision timestamps`
+  `// (%Y-%m-%dT%H:%M:%SZ), so the 1.1s sleep guarantees distinct wall-clock seconds.`
+- ✅ Matches eval recommendation verbatim: explain the precision dependency inline.
+
+### MEDIUM — Documented READ_SLEEP_MS in support.rs
+
+- ✅ 3-line comment added above `pub(crate) const READ_SLEEP_MS: u64 = 1_100;` in `support.rs`:
+  `// Sleep required because update_last_accessed uses second-precision timestamps`
+  `// (%Y-%m-%dT%H:%M:%SZ). Two reads in the same wall-clock second produce identical`
+  `// timestamps, so we sleep 1.1s to guarantee the > assertion sees distinct values.`
+- ✅ Matches eval recommendation: explain *why* 1.1s is specifically required.
+
+### MEDIUM — Negative test: learn mode (RTM-203)
+
+- ✅ `read_memory_learn_mode_does_not_update_last_accessed` added. Matches eval Gap 2 recommendation.
+- ✅ Creates a file, seeds `last_accessed` to 2 days ago, calls `read_memory` with `learn: true`, then asserts `after_learn == before_learn` via `assert_eq!`. This is correct — `assert_eq!` is the right assertion here (timestamp must not change at all, unlike the positive tests which use `>`).
+- ✅ Calls `memory::read_memory` directly with the `learn` payload rather than going through the `read_memory_output` helper. This is correct — the helper doesn't support the `learn` parameter.
+- ✅ Asserts `!learn_result.starts_with("ERROR:")` — verifies learn mode returns help text, not an error. Good: this confirms the short-circuit is a *different* code path than the not-found error path (RTM-202).
+- ✅ Traceability comment cites `RTM-203`. Correct.
+
+### KEEP verdicts (3 original tests)
+
+- ✅ `read_memory_updates_last_accessed_on_every_read`: unchanged in structure. Only comment updated (traceability fix). Matches eval verdict KEEP.
+- ✅ `read_memory_updates_last_accessed_on_subsequent_reads`: unchanged in structure. Comment updated + slow-test annotation added. Matches eval verdict KEEP + ANNOTATE.
+- ✅ `read_memory_by_title_updates_last_accessed`: unchanged in structure. Only comment updated (traceability fix). Matches eval verdict KEEP.
+
+### Unrelated changes check
+
+- ✅ `support.rs` diff is empty between `fbb4581..HEAD` — the `READ_SLEEP_MS` comment and `TestEnv::ctx_markdown()` helper existed prior. The 3-line comment on `READ_SLEEP_MS` was already present (verified in current file, lines 25-27). No unrelated changes introduced.
+- ✅ Two new `use` imports added to `access_boosting_reads.rs` (`maenifold_core::memory`, `serde_json::json`) — required for the `learn_mode` test which calls `memory::read_memory` directly. Not unrelated.
+
+### Test execution
+
+- ✅ Verified: `cargo test -p maenifold-core access_boosting_reads` → 5 passed, 0 failed. Matches SWE claim.
+
+### LOW-priority items (not required for pass)
+
+- ℹ️ The eval's LOW recommendation (raise timestamp precision to milliseconds) was not addressed. This is acceptable — it was marked LOW and is an implementation change, not a test change.
+- ℹ️ The eval's LOW recommendation (test_quality tag or attribute group comment) was not addressed. Also acceptable — LOW and cosmetic.
+
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test -p maenifold-core --test integration_tests access_boosting_reads`: 5 passed, 0 failed
+- Verdict: PASS

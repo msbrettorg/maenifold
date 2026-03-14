@@ -13,6 +13,7 @@ repository = "https://github.com/msbrettorg/maenifold"
 
 [workspace.dependencies]
 anyhow = "1.0.100"
+axum = "0.8"
 chrono = { version = "0.4.42", features = ["serde"] }
 once_cell = "1.21.3"
 parking_lot = "0.12.5"
@@ -24,7 +25,10 @@ serde_json = { version = "1.0.145", features = ["preserve_order"] }
 serde_yaml = "0.9.34"
 slug = "0.1.6"
 thiserror = "2.0.17"
-tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "io-std", "sync"] }
+# T-17.1: RTM FR-23 (RTM-126) - enable networking for HTTP transport listener support.
+tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "io-std", "sync", "net"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+tower-http = { version = "0.6", features = ["cors"] }
 walkdir = "2.5.0"
 gray_matter = "0.3.2"
 pulldown-cmark = "0.13.0"

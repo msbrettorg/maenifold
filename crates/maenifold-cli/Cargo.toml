@@ -9,7 +9,8 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
-maenifold-core = { path = "../maenifold-core" }
+# T-17.1: RTM FR-23 (RTM-126) - compile CLI against HTTP-enabled core transport support.
+maenifold-core = { path = "../maenifold-core", features = ["http"] }
 rmcp.workspace = true
 tokio.workspace = true
 serde_json.workspace = true
@@ -21,4 +22,3 @@ predicates.workspace = true
 rusqlite.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true
-

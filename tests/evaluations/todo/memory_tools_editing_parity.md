@@ -45,3 +45,12 @@ The most structurally flawed of the three files. Four tests (3, 4, 5, 6) exist s
 ## Load-Bearing Score: 5/9
 
 Tests 1, 2, 7, 8, 9 are genuinely load-bearing. Tests 3, 4, 5, 6 verify operation-name parsing only — not the actual effect on file content. A regression in the apply logic for any case-normalized operation would be invisible to this suite.
+
+---
+## SWE Remediation
+
+- MERGE tests 1+2 (`append_adds_double_newline_separator` + `prepend_adds_double_newline_separator`) → `append_prepend_add_double_newline_separator`: parameterized loop over append/prepend. Fixed pre-existing prepend assertion failure — `write_memory` inserts a `# Title` heading, so prepend places content before the heading, making the original assertion `prepended\n\noriginal` incorrect (the heading sits between them). New assertion verifies ordering + `\n\n` separator after prepended content.
+- REWRITE+MERGE tests 3+4+5+6 (`operation_uppercase_append_resolves`, `operation_titlecase_append_resolves`, `operation_mixed_case_find_replace_resolves`, `operation_uppercase_replace_section_resolves`) → `case_insensitive_operation_names_apply_correctly`: all case variants now include read-back content verification per P0. Added PREPEND uppercase variant to fill coverage gap (rec #4). Find_Replace verifies replacement present + original absent. REPLACE_SECTION verifies new body present + old body absent + heading preserved.
+- KEEP tests 7+8+9: untouched.
+- 9 tests (1 pre-existing failure) → 5 tests (0 failures), load-bearing score 5/5
+- Commit: 9aaa5ac

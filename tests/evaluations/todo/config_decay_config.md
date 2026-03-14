@@ -337,3 +337,14 @@ specific accessor's default unverified.
 Net after applying verdicts: 8 current tests restructure to **5 focused tests** (T1–T5
 merged to 1, T6 kept, T7 kept, T8 split to 3) for a net gain of +3 tests with higher
 specificity and no coverage loss.
+
+---
+## SWE Remediation
+- MERGE T1–T5 → `decay_config_accessor_defaults_match_spec`: five isomorphic default-value tests collapsed into one table-driven test with failure messages per field. All traceability tags (T-GRAPH-DECAY-001.2/2a/3/4/6, NFR-7.5.1–7.5.5) preserved.
+- KEEP T6 `get_config_summary_includes_decay_config`: unchanged.
+- KEEP T7 `get_config_summary_shows_actual_values`: added direct accessor assertions (Rec #3) to close the indirect coverage gap — now asserts both raw accessor values and summary output.
+- REWRITE T8 `invalid_integer_decay_env_vars_fall_back_to_defaults`: removed redundant summary assertions (already covered by T6/T7 chain), added failure messages.
+- ADD `unrecognized_decay_function_string_is_passed_through_not_defaulted`: documents the `env_string` pass-through contract — bogus function names are NOT defaulted (Rec #2 P0).
+- ADD `whitespace_only_decay_function_falls_back_to_default`: verifies empty-after-trim falls back to `"power-law"` (Rec #2 P0).
+- Net: 8 tests → 6 tests, zero coverage loss, +2 new behavioral contracts.
+- Commit: 2b4f98b

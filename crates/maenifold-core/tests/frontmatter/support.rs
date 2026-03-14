@@ -6,7 +6,7 @@ use maenifold_core::tools::ToolContext;
 use maenifold_core::{AssetManager, Config, GraphDatabase};
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
-use rusqlite::params;
+use rusqlite::{Connection, params};
 use serde_json::Value;
 use serde_yaml::Value as YamlValue;
 use std::fs;
@@ -124,4 +124,29 @@ pub fn read_frontmatter_status(cfg: &Config, file_uri: &str) -> String {
                 .map(str::to_string)
         })
         .expect("status")
+}
+
+pub fn read_body(cfg: &Config, file_uri: &str) -> String {
+    let (_, body, _) = read_markdown(file_uri, cfg).expect("read markdown");
+    body
+}
+
+pub fn read_db_status(cfg: &Config, file_uri: &str) -> String {
+    let conn = Connection::open(&cfg.database_path).expect("open db");
+    conn.query_row(
+        "SELECT status FROM file_content WHERE file_path = ?1",
+        params![file_uri],
+        |row| row.get::<_, String>(0),
+    )
+    .expect("db status")
+}
+
+pub fn read_db_content(cfg: &Config, file_uri: &str) -> String {
+    let conn = Connection::open(&cfg.database_path).expect("open db");
+    conn.query_row(
+        "SELECT content FROM file_content WHERE file_path = ?1",
+        params![file_uri],
+        |row| row.get::<_, String>(0),
+    )
+    .expect("db content")
 }

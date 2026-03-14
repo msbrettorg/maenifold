@@ -43,3 +43,15 @@ Three of the seven tests are dead weight: two scaffold remnants that assert only
 ## Load-Bearing Score: 4/7
 
 Three tests (`search_graph_tools_are_registered_case_insensitively`, `search_memories_is_no_longer_a_placeholder`, `sync_is_no_longer_a_placeholder`) could be removed today without allowing any real bug to ship undetected.
+
+---
+## SWE Remediation
+- REMOVE `search_graph_tools_are_registered_case_insensitively`: duplicated by `tool_registry_tests.rs`
+- REMOVE `search_memories_is_no_longer_a_placeholder`: negative-only scaffold remnant with no behavioral coverage
+- REMOVE `sync_is_no_longer_a_placeholder`: negative-only scaffold remnant with no behavioral coverage
+- KEEP `build_context_surfaces_related_concepts_after_sync`: replaced format-sensitive `sync.contains("Sync complete:")` with `!sync.contains("ERROR")` (Rec 3)
+- KEEP `build_context_expanded_relations_is_flat_string_array`: untouched
+- KEEP `search_memories_applies_decay_weight_to_ranking_only`: added SQL seeding rationale comment (Rec 5)
+- KEEP `search_memories_preserves_validated_assumptions_from_decay`: added SQL seeding rationale back-reference comment (Rec 5)
+- Test count: 7 → 4 (all pass)
+- Commit: 75fa25c

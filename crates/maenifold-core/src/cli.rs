@@ -17,7 +17,46 @@ impl CliApp {
             return 0;
         }
 
-        if args.iter().any(|arg| arg == "--mcp") {
+        let wants_mcp = args.iter().any(|arg| arg == "--mcp");
+        let wants_http = args.iter().any(|arg| arg == "--http");
+
+        // T-17.3: RTM FR-23 (RTM-126, RTM-128) — stdio and HTTP transports are
+        // alternative runtime entrypoints and must not be enabled together.
+        if wants_mcp && wants_http {
+            eprintln!("Error: --mcp and --http are mutually exclusive");
+            return 1;
+        }
+
+        // T-17.3: RTM FR-23 (RTM-126) — reject stray --port usage so the
+        // hand-rolled CLI stays unambiguous about HTTP-only transport options.
+        if args.iter().any(|arg| arg == "--port") && !wants_http {
+            eprintln!("Error: --port is only valid with --http");
+            return 1;
+        }
+
+        if wants_http {
+            let port = match parse_http_port(args) {
+                Ok(port) => port,
+                Err(err) => {
+                    eprintln!("{err}");
+                    return 1;
+                }
+            };
+
+            #[cfg(feature = "http")]
+            {
+                return Self::run_http(port);
+            }
+
+            #[cfg(not(feature = "http"))]
+            {
+                let _ = port;
+                eprintln!("Error: HTTP transport is not enabled in this build");
+                return 1;
+            }
+        }
+
+        if wants_mcp {
             return Self::run_mcp();
         }
 
@@ -57,6 +96,37 @@ impl CliApp {
             Ok(()) => 0,
             Err(err) => {
                 eprintln!("Error running MCP stdio server: {err}");
+                1
+            }
+        }
+    }
+
+    #[cfg(feature = "http")]
+    fn run_http(port: u16) -> i32 {
+        let config = Config::current();
+        if let Err(err) = mcp::initialize_runtime(&config) {
+            eprintln!("Error initializing storage: {err}");
+            return 1;
+        }
+        if let Err(err) = start_mcp_watchers(&config) {
+            eprintln!("Error starting MCP watchers: {err}");
+            return 1;
+        }
+
+        // T-17.3: RTM FR-23 (RTM-126, RTM-128) — HTTP transport uses the same
+        // async runtime/bootstrap path as stdio before handing off to serve_http.
+        let rt = match tokio::runtime::Runtime::new() {
+            Ok(rt) => rt,
+            Err(err) => {
+                eprintln!("Error creating async runtime: {err}");
+                return 1;
+            }
+        };
+
+        match rt.block_on(MaenifoldMcpServer::serve_http(port)) {
+            Ok(()) => 0,
+            Err(err) => {
+                eprintln!("Error running MCP HTTP server: {err}");
                 1
             }
         }
@@ -190,6 +260,22 @@ fn usage_error() -> (String, i32) {
     (usage(), 1)
 }
 
+fn parse_http_port(args: &[String]) -> std::result::Result<u16, String> {
+    // T-17.3: RTM FR-23 (RTM-126) — `--http` defaults to port 8080 but accepts
+    // an explicit u16 override through the next positional argument after --port.
+    let Some(port_index) = args.iter().position(|arg| arg == "--port") else {
+        return Ok(8080);
+    };
+
+    let Some(port_raw) = args.get(port_index + 1) else {
+        return Err("Error: --port requires a value".to_string());
+    };
+
+    port_raw
+        .parse::<u16>()
+        .map_err(|_| format!("Error: invalid port '{}'", port_raw))
+}
+
 fn normalize_json_output(output: String) -> (String, i32) {
     match serde_json::from_str::<Value>(&output) {
         Ok(Value::Object(object))
@@ -217,6 +303,7 @@ fn usage() -> String {
         "",
         "Usage:",
         "  MCP Server mode:   maenifold --mcp",
+        "  HTTP Server mode:  maenifold --http [--port <PORT>]",
         "  Direct tool mode:  maenifold --tool <name> --payload '<json>' [--json]",
         "",
         "  (For development from source: cargo run -p maenifold-cli -- --tool <name> --payload '<json>')",

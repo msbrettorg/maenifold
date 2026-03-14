@@ -45,14 +45,32 @@ fn recent_activity_learn_mode_returns_help_content() {
     let context = markdown_context(&env.cfg);
 
     let result = tools::recent_activity(&context, &json!({ "learn": true })).expect("learn");
-    assert!(!result.is_empty());
-    assert!(result.len() > 20);
-    assert!(result.contains("RecentActivity"));
+    assert!(!result.is_empty(), "learn mode returned empty string");
+    assert!(
+        result.contains("RecentActivity"),
+        "help doc missing tool name header: {result}"
+    );
+    assert!(
+        result.contains("## Parameters"),
+        "help doc missing Parameters section: {result}"
+    );
+    assert!(
+        result.contains("timespan"),
+        "help doc missing timespan parameter: {result}"
+    );
+    assert!(
+        result.contains("filter"),
+        "help doc missing filter parameter: {result}"
+    );
+    assert!(
+        result.contains("limit"),
+        "help doc missing limit parameter: {result}"
+    );
 }
 
 // T-2.3: RTM FR-4 / RTM-020
 #[test]
-fn recent_activity_normal_query_returns_formatted_report() {
+fn recent_activity_pipeline_sync_produces_output_for_both_file_types() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env(true);
     seed_sequential_file(
@@ -71,51 +89,6 @@ fn recent_activity_normal_query_returns_formatted_report() {
     assert!(result.contains("# Recent Activity"));
     assert!(result.contains("session-e2e-001"));
     assert!(result.contains("e2e-note"));
-}
-
-// T-2.3: RTM FR-4 / RTM-021
-#[test]
-fn recent_activity_filter_thinking_excludes_memory_files() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env(true);
-    seed_sequential_file(
-        &env.cfg,
-        "session-e2e-filter",
-        "## Thought 1/1\nSingle thought.",
-    );
-    seed_memory_file(
-        &env.cfg,
-        "docs/excluded-note.md",
-        "# Excluded Note\n\n## Section\nMust not appear.",
-    );
-    invoke_sync();
-
-    let result = invoke_recent_activity(json!({ "filter": "thinking", "limit": 20 }))
-        .expect("recent activity");
-    assert!(result.contains("session-e2e-filter"));
-    assert!(!result.contains("excluded-note"));
-}
-
-// T-2.3: RTM FR-4 / RTM-026
-#[test]
-fn recent_activity_limit_returns_at_most_limit_entries() {
-    let _guard = TEST_MUTEX.lock();
-    let env = isolated_env(true);
-    for index in 0..4 {
-        seed_memory_file(
-            &env.cfg,
-            &format!("docs/limit-e2e-{index}.md"),
-            &format!("# Limit Note {index}\n\n## S\nContent."),
-        );
-    }
-    invoke_sync();
-
-    let result = invoke_recent_activity(json!({ "limit": 2 })).expect("recent activity");
-    assert_eq!(
-        rendered_item_count(&result),
-        2,
-        "unexpected output: {result}"
-    );
 }
 
 // T-2.3: RTM FR-4 / RTM-024

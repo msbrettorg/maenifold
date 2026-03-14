@@ -39,30 +39,36 @@ fn build_context_extracts_section_with_concept_test() {
         .flat_map(relation_preview_values)
         .collect::<Vec<_>>();
 
+    // T-12.7: RTM NFR-2 — positive: extracted preview must START at a ## section heading,
+    // not at the document title (# Title). starts_with("## ") proves section extraction is
+    // selecting the correct subsection, not returning the full document body as fallback.
     assert!(
         preview_values
             .iter()
-            .any(|preview| { preview.contains("## Security") || preview.contains("JWT tokens") }),
-        "preview should contain the section where authentication is mentioned: {context}"
+            .all(|preview| preview.starts_with("## ")),
+        "every preview should START at a ## section heading (not the document title): {context}"
     );
+    // T-12.7: RTM NFR-2 — negative: intro section content must be entirely absent from
+    // section-targeted previews (contains, not starts_with, to catch full-body fallback).
     assert!(
         preview_values
             .iter()
-            .all(|preview| !preview.starts_with("## Introduction")),
-        "preview should not start at the intro section when the concept is in a later section: {context}"
+            .all(|preview| !preview.contains("## Introduction")),
+        "intro section should be excluded from section-targeted preview: {context}"
     );
 }
 
 // T-1.6: RTM NFR-1 — ports ConceptGraphTests.cs ExtractSectionWithConceptEdgeCasesTest.
 #[test]
 fn extract_section_with_concept_edge_cases_test() {
-    let _guard = TEST_MUTEX.lock();
+    // No mutex needed — pure function, no DB or filesystem access.
 
     let content1 = "# Title\n## Intro\nSome intro.\n## Security\nUsing [[authentication]] here.\n## End\nThe end.";
     let result1 = search::extract_section_with_concept(content1, "authentication", 500);
+    // T-12.7: RTM NFR-2 — starts_with proves section extraction, not full-body fallback.
     assert!(
-        result1.contains("## Security"),
-        "should extract Security section: {result1}"
+        result1.starts_with("## Security"),
+        "should START at Security section: {result1}"
     );
     assert!(
         result1.contains("[[authentication]]"),
@@ -103,10 +109,11 @@ fn extract_section_with_concept_edge_cases_test() {
 
     let long_content = format!("# Title\n## Long\nUsing [[test]]. {}", "x".repeat(1000));
     let result6 = search::extract_section_with_concept(&long_content, "test", 100);
+    // T-12.7: RTM NFR-2 — max_length(100) + ellipsis("...")(3) = 103 chars ceiling.
     assert!(
-        result6.len() <= 200,
-        "long sections should be truncated to a compact preview: {}",
-        result6.len()
+        result6.chars().count() <= 103,
+        "truncated preview must not exceed max_length + ellipsis: {} chars",
+        result6.chars().count()
     );
 
     let result7 = search::extract_section_with_concept("", "test", 500);

@@ -44,3 +44,13 @@ Six of eight tests are genuinely load-bearing and assert real behavioral contrac
 ## Load-Bearing Score: 6/8
 
 Tests 2 and 3 are presently either vacuous under common conditions (test 2) or diluted by format-label assertions (test 3). The remaining six provide genuine regression protection for the search pipeline's behavioral and structural contracts.
+
+---
+
+## SWE Remediation
+- REWRITE `min_score_one_returns_only_perfect_matches`: removed conditional guard (`if result.contains(...)`) that made core negative assertion vacuous on empty result sets; now unconditionally asserts both "Cooking Recipes" and "Data Analysis Methods" are absent at minScore=1.0
+- REWRITE `all_search_modes_respect_min_score`: replaced 9 assertions (3 cosmetic label checks + 3 error checks + 3 behavioral) with parameterized `for mode in ["Hybrid", "Semantic", "FullText"]` loop containing only 2 behavioral assertions per mode (no error + no Cooking Recipes)
+- MERGE `fulltext_mode_returns_only_score_field_with_normalized_top` into `fulltext_scores_are_max_normalized`: consolidated FullText schema contract (score present, fused fields absent, envelope fields absent) + normalization invariants (range, ordering, strict top > second) + top_score > 0.95 into single authoritative test; documented decay assumption in comment
+- RENAME `prefusion_multiplier_respects_page_size_bounds` → `page_size_bounds_respected_across_all_modes`: name now reflects the observable behavior (page size bounds) not invisible internals (pre-fusion pool)
+- Test count: 8 → 7 (1 MERGE). All 7 passing.
+- Commit: adee661

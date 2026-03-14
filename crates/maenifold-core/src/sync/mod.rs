@@ -23,6 +23,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+// T-12.0: RTM NFR-1 — shared guard marker constants prevent silent test rot on message refactoring.
+pub const SKIP_MTIME_GUARD_MARKER: &str = "mtime guard";
+pub const SKIP_HASH_GUARD_MARKER: &str = "hash guard";
+pub const SYNCED_MENTIONS_MARKER: &str = "concept mentions updated";
+
 use self::{
     file_index::{
         delete_missing_files, indexed_timestamp_for_metadata, load_file_concepts,
@@ -168,7 +173,7 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
         .and_then(|state| state.file_md5.as_deref());
     if should_skip_by_mtime(metadata.modified().ok(), last_indexed) {
         tx.commit()?;
-        return Ok(format!("Skipped {file_uri}: mtime guard"));
+        return Ok(format!("Skipped {file_uri}: {SKIP_MTIME_GUARD_MARKER}"));
     }
 
     let (frontmatter, content, checksum) = read_markdown(&file_uri, &context.config)?;
@@ -178,7 +183,7 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
             rusqlite::params![file_uri, indexed_at],
         )?;
         tx.commit()?;
-        return Ok(format!("Skipped {file_uri}: hash guard"));
+        return Ok(format!("Skipped {file_uri}: {SKIP_HASH_GUARD_MARKER}"));
     }
 
     let file_filtered = upsert_processed_file(
@@ -217,7 +222,7 @@ pub fn sync_single_file(context: &ToolContext, file_path: &Path) -> Result<Strin
     tx.commit()?;
     Ok(format!(
         // T-22.5: RTM FR-19 — report incremental [[WikiLink Filter]] exclusions in sync output.
-        "Synced {file_uri}: {mention_count} concept mentions updated, {file_filtered} filtered, {relation_count} affected relations rebuilt"
+        "Synced {file_uri}: {mention_count} {SYNCED_MENTIONS_MARKER}, {file_filtered} filtered, {relation_count} affected relations rebuilt"
     ))
 }
 

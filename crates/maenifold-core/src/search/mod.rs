@@ -13,6 +13,7 @@ pub use crate::graph::{
 pub use crate::repair::extract_concepts_from_file;
 pub use crate::similar::find_similar_concepts;
 pub use crate::sync::{
+    SKIP_HASH_GUARD_MARKER, SKIP_MTIME_GUARD_MARKER, SYNCED_MENTIONS_MARKER,
     VectorFailureReasonCodes, VectorSyncDiagnostics, VectorUnavailableReasonCodes,
     build_vector_failure_report, build_vector_unavailable_report, generate_concept_embeddings,
     generate_file_embedding, recompute_communities_if_needed, sync, sync_files, sync_single_file,

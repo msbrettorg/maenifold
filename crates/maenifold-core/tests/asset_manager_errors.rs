@@ -1,3 +1,4 @@
+#[path = "asset_manager_support/mod.rs"]
 mod asset_manager_support;
 
 use asset_manager_support::{

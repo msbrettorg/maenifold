@@ -1,3 +1,4 @@
+#[path = "workflow_support/mod.rs"]
 mod workflow_support;
 
 use serde_json::json;

@@ -1,3 +1,4 @@
+#[path = "concept_analysis_support.rs"]
 mod concept_analysis_support;
 
 use concept_analysis_support::{

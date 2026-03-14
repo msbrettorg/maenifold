@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration as StdDuration, SystemTime, UNIX_EPOCH};
 
-use crate::support::{path_for_uri, session_uri};
+use super::support::{path_for_uri, session_uri};
 
 pub(crate) fn create_normal_memory_file(
     cfg: &Config,

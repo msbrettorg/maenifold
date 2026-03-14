@@ -70,3 +70,17 @@ They cover `(expected=1, actual=3)`, `(expected=0, actual=1)`, and `(expected=2,
 ## Load-Bearing Score: 7/9
 
 Tests 2, 3, 5 are genuinely load-bearing but redundant with each other — they cover three instances of the same error path. Collapsing them to one parameterized test raises the signal-to-noise ratio without reducing coverage.
+
+---
+
+## SWE Remediation
+
+- KEEP `find_replace_with_correct_expected_count_succeeds`: replaced `starts_with("Updated memory FILE:")` with `contains(&uri)` per P0 R3
+- MERGE tests 2, 3, 5 → `find_replace_expectedcount_mismatch_errors`: table-driven with (expected=1,actual=3), (expected=0,actual=1), (expected=2,actual=0) per P0 R1
+- KEEP `find_replace_with_null_expected_count_succeeds`: replaced `starts_with("Updated memory FILE:")` with `contains(&uri)` per P0 R3
+- REWRITE `find_replace_with_multiline_pattern_works_correctly` → `find_replace_replaces_word_across_document_sections`: renamed per P1 R4, replaced `starts_with` with `contains(&uri)` per P0 R3
+- MERGE tests 7, 8 → `edit_memory_op_with_concepts_succeeds`: parameterized over `["append", "prepend"]` per P0 R2, replaced `starts_with` with `contains(&uri)` per P0 R3
+- KEEP `edit_memory_without_concepts_returns_error`: unchanged (uses `starts_with("ERROR:")` which is correct for error path)
+- Test count: 9 → 6 (3 merges reduced by 3)
+- All 6 tests pass
+- Commit: 4421659

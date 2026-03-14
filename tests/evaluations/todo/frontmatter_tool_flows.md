@@ -226,3 +226,18 @@ Tests 1 and 5 rely on `thread::sleep(Duration::from_millis(20))` to ensure clock
 | `fr24_3_ac3_move_memory_modified_via_writer` | ✗ — `contains_key` assertion is too weak to catch real regressions |
 
 **4 tests carry genuine load** (2 via unique sub-assertions that need rescue by rewrite; 2 via tool-layer coverage). **2 tests should be removed or rewritten** before they mislead future readers into believing the suite has stronger coverage than it does.
+
+---
+
+## SWE Remediation
+
+- REMOVE `fr24_2_ac1_append_h2_section_updates_modified`: pure duplicate of `markdown_rw_write_tests::append_h2_section_existing_file_updates_modified`
+- REWRITE `fr24_2_ac2_append_h2_section_preserves_frontmatter` → `append_h2_section_preserves_created_timestamp`: stripped 3 duplicate field assertions (title/type/status already covered by rw_write), retained unique `created` unchanged assertion
+- REWRITE `fr24_2_ac3_append_h2_section_preserves_content` → `append_h2_section_appends_after_existing_content`: stripped 3 duplicate `contains()` assertions (already covered by rw_write), retained unique `find()` ordering assertion
+- KEEP `fr24_3_ac1` → `write_memory_produces_created_and_modified_timestamps`: strengthened from `contains_key` to `yaml_string(...).is_some_and(|v| !v.is_empty())` per P0
+- KEEP `fr24_3_ac2` → `edit_memory_advances_modified_timestamp`: renamed to remove stale prefix; logic unchanged
+- REWRITE `fr24_3_ac3` → `move_memory_destination_has_nonempty_modified`: strengthened from `contains_key("modified")` to `yaml_string(...).is_some_and(|v| !v.is_empty())`
+- Fixed stale RTM references: all `FR-24.x` comments updated to `NFR-1` (C# oracle parity)
+- Removed unused imports: `serde_yaml::Value as YamlValue`, `std::collections::BTreeMap`
+- Result: 6 tests → 5 tests; all 5 pass
+- Commit: aacc63e

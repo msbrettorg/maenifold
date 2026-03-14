@@ -68,3 +68,19 @@ All six tests exercise distinct, regression-catching behaviors. None should be r
 However, the *reliability* score is lower: tests 3 and 6 carry assertion defects that produce false passes for specific bug classes (under-truncation in test 3; repair-command regression in test 6). The REWRITE verdicts on those two tests are the highest-priority actions before relying on this suite as a quality gate.
 
 The complete absence of error-path coverage (3 untested branches) and the missing multi-file corpus test are structural gaps that should be addressed before this tool's contract is considered fully specified by tests.
+
+---
+
+## SWE Remediation
+
+- REWRITE test 3 (`respects_max_results_limit`): replaced asymmetric `<= 2` with exact `== 2` assertion; added which-variant survival checks (alpha-tool, beta-tool survive; delta-tool, gamma-tool truncated per count-desc-then-alpha sort). Strengthened per P0 rec 1.
+- REWRITE test 6 (`suggests_repair_commands_for_safe_merges`): replaced ineffective third assertion (`output.contains("tools") && output.contains("tool")`) with section-scoped `output.contains("conceptsToReplace='tools'")` per P0 rec 2.
+- ADD 3 error-path tests: `rejects_missing_concept_family` (MissingProperty), `rejects_empty_concept_family` (InvalidArgument), `rejects_negative_max_results` (InvalidArgument). Covers all 3 untested branches per P1 rec 3.
+- RENAME test 1: `reports_variant_counts_from_single_file` (was misleading `scans_memory_files_and_reports_variant_counts`) per P1 rec 5.
+- RENAME test 4: `returns_zero_variants_for_unknown_family` (was inaccurate `returns_empty_report_for_unknown_family`) per P2 rec 6.
+- ADD `try_analyze_concept_corruption` helper to support module for fallible error-path testing.
+- SKIP rec 4 (multi-file test): already covered by `concept_analysis_counting::aggregates_counts_across_multiple_files`.
+- SKIP rec 7 (align traceability): impl-side annotation, outside test file scope.
+- SKIP rec 8 (setup helper): P3, not a correctness issue.
+- Test count: 6 → 9 (6 original + 3 error-path). All 9 pass.
+- Commit: 28a32ce

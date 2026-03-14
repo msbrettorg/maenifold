@@ -26,79 +26,9 @@ fn serial_queue_starts_with_first_workflow_in_array() {
     assert_eq!(queue, vec!["wtt-alpha".to_string(), "wtt-beta".to_string()]);
 }
 
-#[test]
-fn serial_queue_advances_to_next_workflow_after_first_completes() {
-    let _guard = TEST_MUTEX.lock();
-    let env = workflow_tools_env();
-    let queue_json = serde_json::to_string(&["wtt-gamma", "wtt-beta"]).expect("queue json");
-    let (_, session_id) = start_session(json!(queue_json));
-    let output = invoke_workflow(json!({
-        "sessionId": session_id,
-        "response": "Step done with [[workflow-transition]] and [[serial-queuing]]."
-    }))
-    .expect("transition workflow");
-    assert!(output.contains("Step 1/2"), "unexpected output: {output}");
-    assert!(!output.contains("ERROR"), "unexpected output: {output}");
-    let (frontmatter, _) = read_workflow_session(&session_id, &env.cfg);
-    let frontmatter = frontmatter.expect("frontmatter");
-    assert_eq!(frontmatter_usize(&frontmatter, "currentWorkflow"), 1);
-    assert_eq!(frontmatter_usize(&frontmatter, "currentStep"), 0);
-}
-
-#[test]
-fn serial_queue_completes_when_all_workflows_done_with_conclusion() {
-    let _guard = TEST_MUTEX.lock();
-    let env = workflow_tools_env();
-    let queue_json = serde_json::to_string(&["wtt-gamma", "wtt-gamma"]).expect("queue json");
-    let (_, session_id) = start_session(json!(queue_json));
-    let response = "Step done with [[workflow-queue]] completion.";
-    let conclusion =
-        "All workflows completed — [[serial-queuing]] verified with [[workflow]] mechanics.";
-    invoke_workflow(json!({ "sessionId": session_id, "response": response }))
-        .expect("complete first workflow");
-    let output = invoke_workflow(json!({
-        "sessionId": session_id,
-        "response": response,
-        "conclusion": conclusion
-    }))
-    .expect("complete queue");
-    assert!(
-        output.contains("All workflows"),
-        "unexpected output: {output}"
-    );
-    assert!(!output.contains("ERROR"), "unexpected output: {output}");
-    let (frontmatter, content) = read_workflow_session(&session_id, &env.cfg);
-    let frontmatter = frontmatter.expect("frontmatter");
-    assert_eq!(
-        frontmatter.get("status").and_then(YamlValue::as_str),
-        Some("completed")
-    );
-    assert!(
-        content.contains("[[serial-queuing]]"),
-        "unexpected content: {content}"
-    );
-}
-
-#[test]
-fn serial_queue_exhausted_without_conclusion_prompts_for_conclusion() {
-    let _guard = TEST_MUTEX.lock();
-    let _env = workflow_tools_env();
-    let (_, session_id) = start_session(json!("wtt-gamma"));
-    let output = invoke_workflow(json!({
-        "sessionId": session_id,
-        "response": "Done with [[workflow-queue]] exhaustion test."
-    }))
-    .expect("queue exhaustion output");
-    assert!(output.contains("ERROR"), "unexpected output: {output}");
-    assert!(
-        output.contains("All workflows complete"),
-        "unexpected output: {output}"
-    );
-    assert!(
-        output.contains("conclusion parameter"),
-        "unexpected output: {output}"
-    );
-}
+// T-12.0: RTM NFR-1 - serial_queue_advances_*, serial_queue_completes_*, and
+// serial_queue_exhausted_* removed: each was a pairwise duplicate of the stronger
+// continue_* counterpart exercising deeper fixture paths. See workflow_queue eval.
 
 #[test]
 fn continue_to_next_workflow_when_current_completes() {
@@ -127,7 +57,7 @@ fn continue_to_next_workflow_when_current_completes() {
 }
 
 #[test]
-fn continue_requires_conclustion_when_queue_exhausted() {
+fn queue_exhausted_without_conclusion_prompts_for_conclusion() {
     let _guard = TEST_MUTEX.lock();
     let _env = workflow_operations_env();
     let (_, session_id) = start_session(json!("test-workflow-3"));

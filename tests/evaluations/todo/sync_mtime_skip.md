@@ -215,3 +215,18 @@ rewritten to address the root-user fragility. Tests 2 and 3 are fit for purpose 
 The file as a whole defends FR-14's three-tier optimization contract (skip-on-unchanged-mtime,
 update-only-on-hash-match, full-reprocess-on-content-change) at integration depth. It is a
 necessary complement to the unit-level coverage in `sync_mtime_opt_guards.rs`.
+
+---
+
+## SWE Remediation
+
+- REWRITE test 1 (`sync_when_mtime_unchanged_skips_without_read_and_does_not_restore_mentions_on_unix`):
+  - Added runtime root-user guard: after `chmod(0)`, attempts `std::fs::read` — if the file is still readable (root/Docker), the test returns early with an explanatory `eprintln!` instead of giving a false pass. This is more robust than checking `geteuid()` because it validates the actual precondition (file unreadability) regardless of cause (root, capabilities, SELinux, etc.). (P0)
+  - Added `file_md5` unchanged assertion to close the implicit gap — now verifies skip via `last_indexed`, `file_md5`, and mentions. (P1)
+  - Added oracle strategy comment explaining `chmod(0)` is a read-impossibility oracle, not a permissions test. (P0)
+  - Restructured initial capture to use `before: FileContentRow` for `file_md5` comparison, and `after` row for grouped assertions.
+- KEEP test 2 (`sync_when_mtime_bumped_but_content_same_updates_last_indexed_only_and_does_not_restore_mentions`): no changes
+- KEEP test 3 (`sync_when_content_changed_reprocesses_and_restores_mentions_including_new_concept`):
+  - Added comment documenting the explicit `set_file_mtime_system_time` after `fs::write` — explains it ensures mtime delta exceeds filesystem timestamp resolution (e.g. HFS+ 1-second granularity). (P2)
+- SKIPPED: P3+ baseline helper extraction (non-trivial refactor, 3 tests only), `MTIME_ADVANCE_SECS` constant (informational), traceability audit (informational, no action needed)
+- Commit: 6ee49fb

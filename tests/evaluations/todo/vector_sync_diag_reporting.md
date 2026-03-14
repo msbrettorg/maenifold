@@ -425,3 +425,46 @@ The file scores **3/5 on assertion completeness** (Tests 1–4 each have at leas
 meaningful gap; Test 5 has minor gaps only). Priority order for rewrites: Test 4 (dual
 function + missing reason lines) → Test 3 (single-branch normalization coverage) → Test 2
 (env-var fragility) → Test 1 (missing status/header lines) → Test 5 (minor enhancements).
+
+---
+
+## SWE Remediation
+
+**Test count: 5 → 7** (Test 3 split into ac5a/ac5b, Test 4 split into ac6a/ac6b)
+
+### Changes Applied
+
+- **REWRITE Test 1 → `fr25_2_ac1a_failure_report_counters_and_reason_codes_are_rendered`:**
+  Renamed from `ac1` to `ac1a` resolving naming collision with Test 2. Added `"- STATUS: failed"` and `"- FAILURES:"` section header assertions (Rec 2, 3 — P0). Added archival-status module-doc comment (Rec 10).
+
+- **REWRITE Test 2 → `fr25_2_ac1b_generate_concept_embeddings_lookup_failure_is_captured`:**
+  Renamed from `ac1` to `ac1b` resolving naming collision. Added `EnvVarReset::set("MAENIFOLD_DISABLE_VECTOR", "false")` guard (Rec 5 — P0). Added `failure_reasons().get(CONCEPT_LOOKUP_FAILED) == Some(&1)` reason count assertion (Rec 4 — P0). Added `concept_embedding_skipped() == 0` guard assertion for clear env-var failure diagnostics.
+
+- **REWRITE Test 3 → `fr25_2_ac5a_unknown_unavailable_reason_is_normalized_and_does_not_leak_sensitive_data`:**
+  Added `"- STATUS: unavailable"` and `"- COUNTERS_SKIPPED: concepts=1, memory=1, total=2"` assertions (Rec 2 — P0). Retained all security/privacy assertions.
+
+- **NEW Test 3b → `fr25_2_ac5b_disabled_by_config_reason_is_normalized`:**
+  Added companion DISABLED_BY_CONFIG normalization case (Rec 6 — P1). Asserts STATUS line and `"- REASON_CODE VECTOR_DISABLED_BY_CONFIG"` positive normalization.
+
+- **REWRITE Test 4 → split into `fr25_2_ac6a_failure_report_counters_are_separated` and `fr25_2_ac6b_unavailable_report_counters_are_separated`:**
+  Split dual-function test into two isolated tests (Rec 7 — P1). Each now asserts STATUS, counters, and reason/reason-code lines independently.
+
+- **KEEP Test 5 (enhanced) → `fr7_t20_1_concept_embedding_failure_details_are_sampled_and_rendered`:**
+  Added explicit deduplication count assertion: `concept_failure_details().get(...).map(|v| v.len()) == Some(3)` (Rec 8 — P1). Added `"- DETAIL"` prefix format check via `starts_with("- DETAIL tokenizer encode")` (Rec 9 — P2).
+
+### Recommendations addressed
+
+| # | Priority | Status |
+|---|----------|--------|
+| 1 | P0 | ✅ `ac1` naming collision resolved (ac1a/ac1b) |
+| 2 | P0 | ✅ STATUS assertions added to Tests 1, 3, 4a, 4b |
+| 3 | P0 | ✅ FAILURES header assertion added to Tests 1, 4a |
+| 4 | P0 | ✅ Reason count assertion added to Test 2 |
+| 5 | P0 | ✅ MAENIFOLD_DISABLE_VECTOR env-var guard in Test 2 |
+| 6 | P1 | ✅ DISABLED_BY_CONFIG normalization case added (Test 3b) |
+| 7 | P1 | ✅ Test 4 split into ac6a/ac6b with reason assertions |
+| 8 | P1 | ✅ Deduplication count assertion in Test 5 |
+| 9 | P2 | ✅ DETAIL prefix format check in Test 5 |
+| 10 | P3 | ✅ Archival-status comment on `fr25_2_` prefix |
+
+- Commit: 07fd5ab (bundled with update_assets_boundary remediation)

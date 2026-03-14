@@ -84,4 +84,4 @@ The eval verdicts table prescribed **MERGE** for tests 4 and 5. The SWE removed 
 - MERGE `try_mark_abandoned_from_last_indexed_recent_session_returns_false` + `try_mark_abandoned_from_last_indexed_recent_session_frontmatter_unchanged`: created `recent_session_before_abandonment_threshold_remains_active_and_unchanged` with the prescribed three assertions (`count == 0`, `status == "active"`, `body == original`)
 - Preserved prior renames for the exact-threshold and original-content tests
 - Verified with: `cargo test -p maenifold-core --test integration_tests workflow_supervisor_cleanup_thresholds`
-- Commit: acaa20f
+- Commit: 9a79207

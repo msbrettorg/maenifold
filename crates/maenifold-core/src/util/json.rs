@@ -15,7 +15,7 @@ pub struct ErrorPayload<'a> {
     pub message: String,
 }
 
-// T-0.1: RTM NFR-3 / SEC-001 keeps JSON parsing bounded to prevent deep-nesting regressions.
+// T-0.1: RTM NFR-3 keeps JSON parsing bounded to prevent deep-nesting regressions.
 pub const SAFE_JSON_MAX_DEPTH: usize = 32;
 
 pub fn success<T: Serialize>(data: T) -> String {
@@ -39,7 +39,7 @@ pub fn failure(code: &str, message: impl Into<String>) -> String {
     .expect("json serialization")
 }
 
-// T-0.1: RTM NFR-3 / SEC-001 validates nesting depth before deserializing untrusted JSON.
+// T-0.1: RTM NFR-3 validates nesting depth before deserializing untrusted JSON.
 pub fn from_str_safe<T>(input: &str) -> serde_json::Result<T>
 where
     T: DeserializeOwned,

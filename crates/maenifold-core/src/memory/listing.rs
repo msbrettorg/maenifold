@@ -4,7 +4,7 @@ use crate::decay::{
     compute_decay_weight as decay_compute_decay_weight, emit_stderr_line, parse_datetime,
     read_created_date, redact_diagnostic_path,
 };
-use crate::error::Result;
+use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use chrono::{DateTime, Local, Utc};
 use std::collections::BTreeMap;
@@ -38,7 +38,7 @@ pub fn list_memories(context: &ToolContext, payload: &serde_json::Value) -> Resu
     if let Some(path) = path
         && let Some(error) = super::support::validate_relative_folder(path)
     {
-        return Ok(format!("ERROR: Invalid path - {error}"));
+        return Err(MaenifoldError::Message(format!("Invalid path - {error}")));
     }
 
     let target_path = match path {
@@ -52,7 +52,7 @@ pub fn list_memories(context: &ToolContext, payload: &serde_json::Value) -> Resu
     let canonical_memory_root = fs::canonicalize(&context.config.memory_path)?;
     let canonical_target_path = fs::canonicalize(&target_path)?;
     if !canonical_target_path.starts_with(&canonical_memory_root) {
-        return Ok("ERROR: Resolved path escapes memory root".to_string());
+        return Err(MaenifoldError::Message("Resolved path escapes memory root".to_string()));
     }
 
     let last_accessed_cache = load_last_accessed_timestamps(&context.config)?;

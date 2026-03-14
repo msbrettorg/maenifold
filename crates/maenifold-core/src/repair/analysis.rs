@@ -17,21 +17,20 @@ pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Res
         .get("identifier")
         .and_then(Value::as_str)
         .ok_or(MaenifoldError::MissingProperty("identifier"))?;
-    // T-16.3: RTM FR-25.2 — resolve identifier to URI, then check existence.
-    // C# returns a successful "ERROR: ..." response for not-found; Rust must match.
+    // T-16.3: RTM FR-25.2 — resolve identifier to URI, then surface not-found as an MCP error.
     let uri = if identifier.starts_with("memory://") {
         identifier.to_string()
     } else {
         match find_file_as_uri(identifier, &context.config) {
             Some(found) => found,
             None => {
-                return Ok(format!("ERROR: Memory file not found: {identifier}"));
+                return Err(MaenifoldError::Message(format!("Memory file not found: {identifier}")));
             }
         }
     };
 
     if !file_exists(&uri, &context.config)? {
-        return Ok(format!("ERROR: Memory file not found: {identifier}"));
+        return Err(MaenifoldError::Message(format!("Memory file not found: {identifier}")));
     }
 
     let (_, content, _) = read_markdown(&uri, &context.config)?;

@@ -38,10 +38,10 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
         .ok_or(MaenifoldError::MissingProperty("conceptName"))?
         .trim();
     if concept_name.is_empty() {
-        return Ok("ERROR: conceptName parameter is required and cannot be empty".to_string());
+        return Err(MaenifoldError::Message("conceptName parameter is required and cannot be empty".to_string()));
     }
     if concept_name.len() > 256 {
-        return Ok("ERROR: conceptName must be 256 characters or fewer".to_string());
+        return Err(MaenifoldError::Message("conceptName must be 256 characters or fewer".to_string()));
     }
 
     let original_concept_name = concept_name.to_string();
@@ -68,7 +68,7 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
         .and_then(Value::as_u64)
         .unwrap_or(10);
     if !(1..=50).contains(&max_results) {
-        return Ok("ERROR: maxResults must be between 1 and 50".to_string());
+        return Err(MaenifoldError::Message("maxResults must be between 1 and 50".to_string()));
     }
 
     let concept_name = normalize_concept(concept_name);

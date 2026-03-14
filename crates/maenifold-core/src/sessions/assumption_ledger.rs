@@ -43,7 +43,7 @@ pub fn assumption_ledger(context: &ToolContext, payload: &Value) -> Result<Strin
         return read_assumption(context, payload);
     }
 
-    Ok("ERROR: Invalid action. Use 'append', 'update', or 'read'".to_string())
+    Err(MaenifoldError::Message("Invalid action. Use 'append', 'update', or 'read'".to_string()))
 }
 
 fn append_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
@@ -150,7 +150,7 @@ fn update_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
 
     let uri = uri.expect("validated uri");
     if !file_exists(uri, &context.config)? {
-        return Ok("ERROR: Assumption not found".to_string());
+        return Err(MaenifoldError::Message("Assumption not found".to_string()));
     }
 
     let (frontmatter, content, _) = read_markdown(uri, &context.config)?;
@@ -213,7 +213,7 @@ fn read_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
 
     let uri = uri.expect("validated uri");
     if !file_exists(uri, &context.config)? {
-        return Ok("ERROR: Assumption not found".to_string());
+        return Err(MaenifoldError::Message("Assumption not found".to_string()));
     }
 
     let (frontmatter, content, _) = read_markdown(uri, &context.config)?;

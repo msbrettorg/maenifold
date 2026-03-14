@@ -1,5 +1,5 @@
 use crate::db::{self, GraphDatabase};
-use crate::error::Result;
+use crate::error::{MaenifoldError, Result};
 use crate::markdown::normalize_concept;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
@@ -63,12 +63,12 @@ pub fn visualize(context: &ToolContext, payload: &Value) -> Result<String> {
         .unwrap_or_default()
         .trim();
     if concept_name.is_empty() {
-        return Ok("ERROR: conceptName is required".to_string());
+        return Err(MaenifoldError::Message("conceptName is required".to_string()));
     }
 
     let depth = payload.get("depth").and_then(Value::as_i64).unwrap_or(2);
     if !(1..=5).contains(&depth) {
-        return Ok("ERROR: depth must be between 1 and 5".to_string());
+        return Err(MaenifoldError::Message("depth must be between 1 and 5".to_string()));
     }
 
     let max_nodes = payload
@@ -76,7 +76,7 @@ pub fn visualize(context: &ToolContext, payload: &Value) -> Result<String> {
         .and_then(Value::as_i64)
         .unwrap_or(30);
     if !(5..=100).contains(&max_nodes) {
-        return Ok("ERROR: maxNodes must be between 5 and 100".to_string());
+        return Err(MaenifoldError::Message("maxNodes must be between 5 and 100".to_string()));
     }
 
     let concept_name = normalize_concept(concept_name);

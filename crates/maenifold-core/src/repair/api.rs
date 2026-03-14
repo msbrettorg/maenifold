@@ -81,7 +81,7 @@ pub fn repair_concepts(context: &ToolContext, payload: &Value) -> Result<String>
     if let Some(relative_folder) = folder_relative.as_deref() {
         let folder_path = context.config.memory_path.join(relative_folder);
         if !folder_path.exists() {
-            return Ok(format!("ERROR: Directory not found: {relative_folder}"));
+            return Err(MaenifoldError::Message(format!("Directory not found: {relative_folder}")));
         }
     }
 

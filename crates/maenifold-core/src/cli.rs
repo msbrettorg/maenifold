@@ -11,10 +11,10 @@ pub struct CliApp;
 
 impl CliApp {
     pub fn run(args: &[String]) -> i32 {
-        // T-16.1 + PARITY-CLI-HELP-EXIT: RTM FR-8.1 — explicit --help prints full usage and exits 1 (C# parity).
+        // T-16.1: RTM FR-8.1 — explicit --help prints full usage and exits 0 (POSIX convention; C# bug not ported).
         if args.iter().any(|arg| arg == "--help") {
             println!("{}", usage());
-            return 1;
+            return 0;
         }
 
         if args.iter().any(|arg| arg == "--mcp") {

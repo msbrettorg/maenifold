@@ -85,26 +85,27 @@ pub fn move_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         .ok_or(MaenifoldError::MissingProperty("destination"))?;
 
     // T-15.5: RTM FR-25.2 — reject empty/whitespace-only destination early
-    // to prevent silent URI construction bugs (matches C# MoveMemory validation).
+    // to prevent silent URI construction bugs (matches MoveMemory validation).
     if destination.trim().is_empty() {
-        return Ok("ERROR: Destination parameter is required and cannot be empty.".to_string());
+        return Err(MaenifoldError::Message(
+            "Destination parameter is required and cannot be empty.".to_string(),
+        ));
     }
 
-    // T-16.3: RTM FR-25.2 — resolve identifier to URI, then check existence.
-    // C# returns a successful "ERROR: ..." response for source-not-found; Rust must match.
+    // T-16.3: RTM FR-25.2 — resolve identifier to URI, then surface source-not-found as an MCP error.
     let source_uri = if source.starts_with("memory://") {
         source.to_string()
     } else {
         match find_file_as_uri(source, &context.config) {
             Some(found) => found,
             None => {
-                return Ok(format!("ERROR: Source memory file not found: {source}"));
+                return Err(MaenifoldError::Message(format!("Source memory file not found: {source}")));
             }
         }
     };
 
     if !file_exists(&source_uri, &context.config)? {
-        return Ok(format!("ERROR: Source memory file not found: {source}"));
+        return Err(MaenifoldError::Message(format!("Source memory file not found: {source}")));
     }
 
     let source_path = crate::markdown::uri_to_path(&source_uri, &context.config.memory_path)?;

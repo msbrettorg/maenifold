@@ -31,21 +31,20 @@ pub fn edit_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         .ok_or(MaenifoldError::MissingProperty("content"))?;
     let checksum = payload.get("checksum").and_then(Value::as_str);
 
-    // T-16.3: RTM FR-25.2 — resolve identifier to URI, then check existence.
-    // C# returns a successful "ERROR: ..." response for not-found; Rust must match.
+    // T-16.3: RTM FR-25.2 — resolve identifier to URI, then surface not-found as an MCP error.
     let uri = if identifier.starts_with("memory://") {
         identifier.to_string()
     } else {
         match find_file_as_uri(identifier, &context.config) {
             Some(found) => found,
             None => {
-                return Ok(format!("ERROR: Memory file not found: {identifier}"));
+                return Err(MaenifoldError::Message(format!("Memory file not found: {identifier}")));
             }
         }
     };
 
     if !file_exists(&uri, &context.config)? {
-        return Ok(format!("ERROR: Memory file not found: {identifier}"));
+        return Err(MaenifoldError::Message(format!("Memory file not found: {identifier}")));
     }
 
     let (mut frontmatter, existing_content, actual_checksum) =

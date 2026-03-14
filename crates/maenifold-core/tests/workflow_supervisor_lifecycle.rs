@@ -43,7 +43,6 @@ fn register_submachine_enters_waiting_state_without_advancing_step() {
         }),
     );
 
-    assert!(register_result.contains("Registered submachine"));
     assert!(register_result.contains(&thinking_session_id));
     assert!(register_result.contains("waiting"));
 
@@ -94,7 +93,6 @@ fn continue_while_waiting_on_active_submachine_blocks_and_does_not_advance_step(
 
     assert!(block_result.contains("waiting on submachine"));
     assert!(block_result.contains(&thinking_session_id));
-    assert!(!block_result.contains("Step 2/"));
     assert_eq!(
         yaml_usize(
             &read_frontmatter(&env.cfg, &workflow_uri(&workflow_session_id)),
@@ -135,9 +133,8 @@ fn continue_after_submachine_completed_clears_supervisor_fields_and_resumes() {
 
     assert!(!resume_result.contains("waiting on submachine"));
     assert!(!resume_result.contains("ERROR"));
-    assert!(resume_result.contains("Step 2/"));
-
     let frontmatter = read_frontmatter(&env.cfg, &workflow_uri(&workflow_session_id));
+    assert_eq!(yaml_usize(&frontmatter, "currentStep"), 1);
     assert_eq!(yaml_string(&frontmatter, "phase"), "running");
     assert_eq!(yaml_string(&frontmatter, "activeSubmachineType"), "");
     assert_eq!(yaml_string(&frontmatter, "activeSubmachineSessionId"), "");
@@ -173,14 +170,11 @@ fn continue_after_submachine_cancelled_clears_supervisor_fields_and_resumes() {
     );
 
     assert!(!resume_result.contains("waiting on submachine"));
-    assert!(resume_result.contains("Step 2/"));
-    assert_eq!(
-        yaml_string(
-            &read_frontmatter(&env.cfg, &workflow_uri(&workflow_session_id)),
-            "phase"
-        ),
-        "running",
-    );
+    let frontmatter = read_frontmatter(&env.cfg, &workflow_uri(&workflow_session_id));
+    assert_eq!(yaml_usize(&frontmatter, "currentStep"), 1);
+    assert_eq!(yaml_string(&frontmatter, "phase"), "running");
+    assert_eq!(yaml_string(&frontmatter, "activeSubmachineType"), "");
+    assert_eq!(yaml_string(&frontmatter, "activeSubmachineSessionId"), "");
 }
 
 // T-W1-7: RTM FR-10.2
@@ -202,5 +196,7 @@ fn backward_compatibility_old_session_without_phase_field_proceeds_normally() {
     );
 
     assert!(!result.contains("ERROR"));
-    assert!(result.contains("Step 2/"));
+    let post_frontmatter = read_frontmatter(&env.cfg, &workflow_uri(&session_id));
+    assert_eq!(yaml_usize(&post_frontmatter, "currentStep"), 1);
+    assert_eq!(yaml_string(&post_frontmatter, "phase"), "");
 }

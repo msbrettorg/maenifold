@@ -22,11 +22,12 @@ fn file_created_triggers_debounce_and_notification() {
         .watcher
         .wait_for_batch_with_path(&test_file, Duration::from_secs(5));
 
-    assert!(test_file.exists(), "file should exist after creation");
     assert!(
         batch.iter().any(|path| path == &test_file),
         "debounced batch should include the created file: {batch:?}"
     );
+    // Read-after-notify consistency: verify AssetManager can read the asset after the watcher
+    // event fires, confirming the notification does not corrupt or pre-empt a subsequent read.
     let asset = harness
         .asset_manager()
         .read_asset(AssetKind::Workflow, "test-create")
@@ -53,15 +54,12 @@ fn file_changed_triggers_debounce_and_notification() {
         .watcher
         .wait_for_batch_with_path(&test_file, Duration::from_secs(5));
 
-    let content = fs::read_to_string(&test_file).expect("read updated asset");
-    assert!(
-        content.contains("2.0.0"),
-        "file should contain updated content"
-    );
     assert!(
         batch.iter().any(|path| path == &test_file),
         "debounced batch should include the changed file: {batch:?}"
     );
+    // Read-after-modify consistency: verify AssetManager reflects the updated content after the
+    // watcher event fires.
     let asset = harness
         .asset_manager()
         .read_asset(AssetKind::Workflow, "test-modify")
@@ -87,7 +85,6 @@ fn file_deleted_triggers_debounce_and_notification() {
         .watcher
         .wait_for_batch_with_path(&test_file, Duration::from_secs(5));
 
-    assert!(!test_file.exists(), "file should not exist after deletion");
     assert!(
         batch.iter().any(|path| path == &test_file),
         "debounced batch should include the deleted file path: {batch:?}"
@@ -117,25 +114,33 @@ fn file_renamed_triggers_debounce_and_notification() {
         .wait_for_notifications(1, Duration::from_secs(5));
 
     fs::rename(&old_file, &new_file).expect("rename asset");
-    harness
-        .watcher
-        .wait_for_notifications(2, Duration::from_secs(5));
-    let batches = harness.watcher.drain_batches();
 
-    assert!(new_file.exists(), "renamed file should exist at new path");
-    assert!(!old_file.exists(), "old path should not exist after rename");
+    // Use wait_for_batch_with_path instead of wait_for_notifications(2, ...) + drain_batches()
+    // to avoid fragile OS-event-count assumptions. PollWatcher may surface a rename as one or
+    // two events depending on poll timing; what matters is that the new path appears.
+    let batch = harness
+        .watcher
+        .wait_for_batch_with_path(&new_file, Duration::from_secs(5));
+
     assert!(
-        batches
-            .iter()
-            .flatten()
-            .any(|path| path == &old_file || path == &new_file),
-        "rename should surface old or new file path in a debounced batch: {batches:?}"
+        batch.iter().any(|path| path == &new_file),
+        "debounced batch should include the renamed file's new path: {batch:?}"
     );
+    // Read-after-rename consistency: the new name must be resolvable through AssetManager.
     assert!(
         harness
             .asset_manager()
             .read_asset(AssetKind::Workflow, "test-new-name")
             .is_ok(),
         "renamed asset should be readable by new filename"
+    );
+    // Verify the old name is no longer accessible (mirrors the delete test's AssetNotFound pattern).
+    let error = harness
+        .asset_manager()
+        .read_asset(AssetKind::Workflow, "test-old-name")
+        .expect_err("old asset name should no longer be readable after rename");
+    assert!(
+        matches!(&error, MaenifoldError::AssetNotFound(kind, id) if kind == "workflow" && id == "test-old-name"),
+        "expected AssetNotFound for old name after rename, got: {error:?}"
     );
 }

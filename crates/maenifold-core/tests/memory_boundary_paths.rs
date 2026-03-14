@@ -32,15 +32,20 @@ fn memory_uri_to_path_resolves_nested_uri_under_memory_root() {
     Config::reset_overrides();
 }
 
+// T-15.19: RTM FR-12 — URI already ending in .md must not get double extension
 #[test]
-fn memory_uri_to_path_adds_md_extension_for_extensionless_uris() {
+fn memory_uri_to_path_does_not_double_extend_md_uri() {
     let _guard = TEST_MUTEX.lock();
     let (_tmp, cfg) = isolated_config();
 
-    let path = paths::memory_uri_to_path("memory://alpha", &cfg).expect("uri path");
+    let path = paths::memory_uri_to_path("memory://note.md", &cfg).expect("uri path");
 
+    assert_eq!(
+        path.file_name().and_then(|s| s.to_str()),
+        Some("note.md"),
+        "URI already ending in .md should not become note.md.md"
+    );
     assert_eq!(path.extension().and_then(|s| s.to_str()), Some("md"));
-    assert_eq!(path.file_stem().and_then(|s| s.to_str()), Some("alpha"));
     Config::reset_overrides();
 }
 
@@ -90,8 +95,9 @@ fn validate_relative_path_accepts_valid_nested_relative_folder() {
     );
 }
 
+// T-14.5: RTM FR-12 — slugify lowercases and hyphenates spaces
 #[test]
-fn slugify_title_matches_memory_tool_contract_for_simple_title() {
+fn slugify_title_lowercases_and_hyphenates_spaces() {
     assert_eq!(
         paths::slugify_title("Valid Relative Path"),
         "valid-relative-path"
@@ -155,6 +161,19 @@ fn compute_decay_weight_defaults_to_one_without_last_accessed() {
 fn compute_decay_weight_uses_shorter_sequential_grace_period_than_default() {
     let _guard = TEST_MUTEX.lock();
     let (_tmp, cfg) = isolated_config();
+
+    // T-12.5: RTM FR-21 — guard: test relies on default config values
+    assert_eq!(
+        cfg.decay_grace_days_sequential(),
+        7,
+        "test assumes default sequential grace of 7 days"
+    );
+    assert_eq!(
+        cfg.decay_grace_days_default(),
+        28,
+        "test assumes default grace of 28 days"
+    );
+
     let last_accessed = (Utc::now() - Duration::days(10)).to_rfc3339();
 
     let sequential = memory::compute_decay_weight(
@@ -199,9 +218,14 @@ fn compute_decay_weight_keeps_validated_assumptions_at_one() {
 fn compute_decay_weight_decays_invalidated_assumptions_faster_than_active() {
     let _guard = TEST_MUTEX.lock();
     let (_tmp, cfg) = isolated_config();
-    let last_accessed = (Utc::now() - Duration::days(20)).to_rfc3339();
 
     // T-7.8: RTM FR-7.8
+    // Note: assumption status grace/half-life values are hardcoded in scoring.rs
+    // (invalidated: grace=7d, hl=14d; active: grace=14d, hl=30d), so config env vars
+    // do not affect this test. The 20-day age ensures both statuses have exited their
+    // grace periods: invalidated decayed for 13d (weight ≈ 0.53), active for 6d (weight ≈ 0.87).
+    let last_accessed = (Utc::now() - Duration::days(20)).to_rfc3339();
+
     let invalidated = memory::compute_decay_weight(
         "memory://assumptions/2026/03/invalidated-note",
         Some(&last_accessed),
@@ -220,4 +244,10 @@ fn compute_decay_weight_decays_invalidated_assumptions_faster_than_active() {
         "invalidated assumptions should decay faster: invalidated={invalidated}, active={active}"
     );
     Config::reset_overrides();
+}
+
+// T-14.5: RTM FR-12 — sanitize_user_input must be a no-op on safe input
+#[test]
+fn sanitize_user_input_passes_clean_input_unchanged() {
+    assert_eq!(memory::sanitize_user_input("hello world"), "hello world");
 }

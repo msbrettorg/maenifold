@@ -324,3 +324,50 @@ let default_uri = write_memory_file(...);
 Tests 3 and 4 are fully load-bearing. Tests 1 and 2 are load-bearing only in combination — the
 within-grace/post-grace pair for the power-law sequential path has no equivalent elsewhere, but
 neither test is independently sufficient to anchor the claim.
+
+---
+## SWE Remediation
+- MERGE tests 1+2 → `power_law_sequential_path_respects_seven_day_grace_window`: single boundary test with within-grace (3d → 1.0 exact) and past-grace (12d → < 0.5, expected ≈ 0.447) assertions under power-law
+- REWRITE test 2 assertion: replaced weak `< 1.0` with `< 0.5` bounding the expected magnitude
+- KEEP test 3: strengthened sequential assertion from `< 1.0` to `< 0.65` per P0 (expected ≈ 0.577)
+- KEEP test 4: strengthened `decayWeight` lower bound from `< 1.0` to `< 0.65`; added "identical content" design comment per P2
+- Test count: 4 → 3
+- Commit: b149dc5 (cherry-picked from orphaned 3c618f7)
+
+---
+## Red-team Audit
+
+### Critical Finding: Commit Orphaned — Code on `main` Is Unremediated
+
+Commit `3c618f7` exists in the reflog but is **not an ancestor of HEAD** (`da94b14`).
+Git forensics (reflog) shows the following sequence:
+
+1. `91fb6bb HEAD@{4}` — committed `memory_tools_move_read_write` remediation
+2. `3c618f7 HEAD@{3}` — committed proximity_decay_search remediation on top
+3. `dc96dd1 HEAD@{2}` — amended (added unrelated file to commit)
+4. `91fb6bb HEAD@{1}` — **`reset HEAD~1`** — dropped the proximity_decay commit
+5. `da94b14 HEAD@{0}` — amended the memory_tools commit (current HEAD)
+
+**Result**: The test file at HEAD still has 4 tests (should be 3), all original weak assertions intact.
+The SWE remediation section claims completion against a dangling commit that is not on any branch.
+
+### Audit of Orphaned Commit `3c618f7` (Code Quality)
+
+If the commit were applied, the changes are **correct and high-quality**:
+
+- ✅ **MERGE Tests 1+2** → `power_law_sequential_path_respects_seven_day_grace_window`: Properly merged with both within-grace (3d → `assert_weight_eq(within, 1.0)`) and past-grace (12d → `past < 0.5`, expected ≈ 0.447) sub-assertions. Test name explicitly states path type, decay function, and grace window per eval spec.
+- ✅ **REWRITE Test 2 assertion**: `< 1.0` → `< 0.5` bounding the expected magnitude. Matches eval recommendation ("assert `weight < 0.5` (still loose)").
+- ✅ **KEEP Test 3 strengthened**: `sequential < 1.0` → `sequential < 0.65` with explanatory comment. Matches eval recommendation #2 exactly.
+- ✅ **KEEP Test 4 strengthened**: `< 1.0` → `< 0.65`; added "Intentionally identical content" design comment per eval recommendation #5. `results.len() >= 2` not tightened to `== 2` — eval said "Optionally", so acceptable.
+- ✅ **Test count 4 → 3**: Confirmed in orphaned commit (146 lines vs 151 at HEAD).
+- ✅ **No unrelated changes**: Diff only touches the one test file.
+
+#### Noteworthy: SWE Correctly Identified Eval Math Error
+
+The eval recommendation #1 suggested using day 8 as the "one-past-grace" point. The SWE's code comments correctly note that at day 8 with a 7-day sequential grace under power-law: `effective_age = max(8-7, 1) = 1`, and `1^(-0.5) = 1.0` — so day 8 would **not** show observable decay. The SWE kept day 12 and documented the reasoning. This deviation from the eval's literal suggestion is mathematically correct and shows genuine understanding of the decay formula.
+
+### Verdict: **REJECT**
+
+**Reason**: The code changes exist in an orphaned commit (`3c618f7`) that is not on `main`. The working tree at HEAD (`da94b14`) contains the original unremediated code — 4 tests with all original weak assertions. The SWE did the work correctly but lost it through a git mishap (`reset HEAD~1`).
+
+**Remediation path**: Cherry-pick or re-apply commit `3c618f7` onto `main`. The commit's content is audit-approved — once applied, no further changes needed.

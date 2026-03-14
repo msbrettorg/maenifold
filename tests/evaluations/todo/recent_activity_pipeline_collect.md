@@ -49,3 +49,12 @@ These tests exercise `collect_recent_activity_records()` — the exported public
 ## Load-Bearing Score: 7/7
 
 > Every test in this file covers a distinct, meaningful axis of `collect_recent_activity_records`. None are redundant with each other; none are label-checking.
+
+---
+## SWE Remediation
+- KEEP all 7 existing tests: no modifications (all verdicts KEEP)
+- ADD `collect_recent_activity_rejects_invalid_filter_string`: covers recommendation 4 — validates `MaenifoldError::InvalidArgument` for bogus filter values, asserts both "Invalid filter" message and offending value echo
+- SKIP recommendation 1 (parameterization): eval notes "not urgent", low friction currently
+- SKIP recommendations 2–3: would modify KEEP tests; improvements are cosmetic
+- Test count: 7 → 8 (all passing)
+- Commit: 28a0c3c

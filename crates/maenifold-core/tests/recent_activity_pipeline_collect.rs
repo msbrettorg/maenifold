@@ -201,3 +201,26 @@ fn collect_recent_activity_returns_error_when_no_database_exists() {
         other => panic!("unexpected error: {other:?}"),
     }
 }
+
+// T-2.3: RTM FR-4 — Invalid filter string returns InvalidArgument error
+#[test]
+fn collect_recent_activity_rejects_invalid_filter_string() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env(true);
+
+    let err =
+        collect_recent_activity_records(&env.cfg, None, Some("bogus"), 50).expect_err("bad filter");
+    match err {
+        MaenifoldError::InvalidArgument(message) => {
+            assert!(
+                message.contains("Invalid filter"),
+                "expected 'Invalid filter' in message: {message}"
+            );
+            assert!(
+                message.contains("bogus"),
+                "expected offending value in message: {message}"
+            );
+        }
+        other => panic!("expected InvalidArgument, got: {other:?}"),
+    }
+}

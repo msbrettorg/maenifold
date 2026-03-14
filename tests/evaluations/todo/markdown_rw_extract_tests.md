@@ -37,3 +37,20 @@ Seven tests guard the public `extract_wikilinks` API with genuine behavioral cov
 ## Load-Bearing Score: 6/10
 
 Tests 1, 2, 5, 6, 7 are load-bearing for the production `extract_wikilinks` API. Tests 8–10 guard a test helper. Tests 3 and 4 overlap.
+
+---
+
+## SWE Remediation
+
+- **KEEP** `extract_wikilinks_skips_code_blocks`: unchanged
+- **KEEP** `extract_wikilinks_skips_inline_code`: unchanged
+- **MERGE** `extract_wikilinks_extracts_from_headings` + `extract_wikilinks_extracts_from_lists` → `extract_wikilinks_extracts_from_all_structural_contexts`: covers headings, list items, and block quotes in one fixture (rec #4)
+- **KEEP** `extract_wikilinks_normalizes_concepts`: unchanged
+- **KEEP+RENAME** `extract_wikilinks_skips_fenced_code_block_with_language` → `extract_wikilinks_skips_language_tagged_fenced_code_block`
+- **REWRITE** `extract_wikilinks_skips_indented_code_blocks` → `extract_wikilinks_skips_four_space_indented_code_block`: added control assertion for CommonMark context-sensitivity (rec #3)
+- **REMOVE** `count_concept_occurrences_skips_code_blocks`: guarded test helper, not production API
+- **REMOVE** `count_concept_occurrences_skips_inline_code`: same; accept implicit coverage (rec #2 option b)
+- **REMOVE** `count_concept_occurrences_handles_normalization`: same
+- Test count: 10 → 7 (3 removed, 2 merged into 1, 1 rewritten, 1 renamed)
+- All 6 remaining tests pass
+- Commit: ab8a232

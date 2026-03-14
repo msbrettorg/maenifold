@@ -44,3 +44,15 @@ The file is named "CRUD" but contains no Delete test — the D is structurally a
 ## Load-Bearing Score: 5/6
 
 `append_assumption_requires_concepts` is the only test whose coverage is exactly duplicated by a sibling in this same file (`rejects_concepts_with_brackets`). Both test input validation for the concepts field with the same assertion shape. Merging them loses zero coverage. All other five tests exercise distinct code paths (full create pipeline, bracket-format guard, read action, status-change update, partial-field update) and cannot be removed without creating a coverage gap.
+
+---
+
+## SWE Remediation
+- REWRITE `append_assumption_creates_file_with_correct_structure`: removed redundant `files_before + 1` file-count assertion (proven by `harness.read`); replaced verbatim `💡 Next: Consider running Sync()` assertion with semantic `!ERROR` + valid `memory://assumptions/` URI check per P0
+- MERGE `append_assumption_requires_concepts` + `append_assumption_rejects_concepts_with_brackets` → `append_assumption_rejects_invalid_concepts`: extracted `assert_append_validation_error(concepts, expected_prefix)` helper, called with both `json!([])` and `json!(["[[dialogue]]"])` cases; zero coverage loss
+- REWRITE `read_assumption_returns_correct_content`: replaced weak `**Created**:`/`**Modified**:` label-presence assertions with frontmatter value validation — asserts non-empty, valid RFC 3339 parse, and `created ≈ modified` within 1s tolerance on fresh assumption (YAML roundtrip normalises format)
+- REWRITE `update_assumption_persists_validation_plan`: added `assert!(read_result.contains("**Status**: active"))` to detect partial updates silently resetting status
+- KEEP `update_assumption_changes_status`: unchanged
+- P5 (rename file for missing D) and P6 (document coverage split) deferred as P3+ scope
+- Test count: 6 → 5 (merged pair)
+- Commit: 9618af6

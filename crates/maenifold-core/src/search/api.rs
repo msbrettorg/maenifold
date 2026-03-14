@@ -273,7 +273,7 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
             Some(json!({
                 "title": title,
                 "path": path,
-                // T-16.4: RTM NFR-1 — C# does not include decayWeight in JSON output
+                "decayWeight": decay_weight,
                 "fusedScore": rrf_score * decay_weight,
                 "textScore": *text_score,
                 "semanticScore": *semantic_score,
@@ -405,6 +405,7 @@ fn perform_semantic_search(
             Some(json!({
                 "title": title,
                 "path": path,
+                "decayWeight": decay_weight,
                 "score": decayed_score,
                 "snippet": build_snippet(content, query_terms, query_slug),
             }))
@@ -558,6 +559,7 @@ fn perform_fulltext_search(
                     Some(json!({
                         "title": title,
                         "path": path,
+                        "decayWeight": decay_weight,
                         "score": decayed_score,
                         "snippet": build_snippet(content, query_terms, query_slug),
                     }))

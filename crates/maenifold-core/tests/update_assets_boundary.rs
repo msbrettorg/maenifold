@@ -1,93 +1,24 @@
+// T-12.7: RTM NFR-1 — ToolRegistry dispatch-layer (boundary) tests for UpdateAssets.
+// These tests exercise the full MCP tool registration and dispatch pipeline via
+// ToolRegistry::global().try_invoke("UpdateAssets", ...) rather than calling
+// update_assets() directly (which sibling files asset_manager_update_detection.rs
+// and asset_manager_errors.rs cover at the direct-fn layer).
+
+#[path = "asset_manager_support/mod.rs"]
+mod asset_manager_support;
+
+use asset_manager_support::{
+    isolated_config, test_mutex, unique_relative_path, write_file, ConfigResetGuard,
+    PackagedAssetGuard,
+};
 use maenifold_core::json::OutputFormat;
-use maenifold_core::{AssetManager, Config, ToolRegistry};
+use maenifold_core::{AssetManager, ToolRegistry};
 use serde_json::json;
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
-use std::time::{SystemTime, UNIX_EPOCH};
-use tempfile::TempDir;
+use std::path::Path;
 
-fn test_mutex() -> &'static Mutex<()> {
-    static TEST_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
-    TEST_MUTEX.get_or_init(|| Mutex::new(()))
-}
-
-fn isolated_config() -> (TempDir, Config) {
-    let tmp = TempDir::new().expect("tmp");
-    Config::override_root(tmp.path());
-    Config::set_database_path(tmp.path().join("memory.db"));
-    let cfg = Config::current();
-    cfg.ensure_directories().expect("dirs");
-    (tmp, cfg)
-}
-
-fn workspace_assets_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .expect("workspace root")
-        .join("assets")
-}
-
-fn unique_asset_relative(dir: &str, prefix: &str) -> String {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("clock")
-        .as_nanos();
-    format!("{dir}/{prefix}-{nanos}.json")
-}
-
-fn write_file(path: &Path, content: &str) {
-    fs::create_dir_all(path.parent().expect("parent")).expect("dirs");
-    fs::write(path, content).expect("write file");
-}
-
-fn remove_empty_ancestors(mut current: Option<&Path>, stop_at: &Path) {
-    while let Some(path) = current {
-        if path == stop_at {
-            break;
-        }
-        match fs::remove_dir(path) {
-            Ok(()) => current = path.parent(),
-            Err(_) => break,
-        }
-    }
-}
-
-struct ConfigResetGuard;
-
-impl Drop for ConfigResetGuard {
-    fn drop(&mut self) {
-        Config::reset_overrides();
-    }
-}
-
-struct PackagedAssetGuard {
-    path: PathBuf,
-    assets_root: PathBuf,
-}
-
-impl PackagedAssetGuard {
-    fn create(relative: &str, content: &str) -> Self {
-        let assets_root = workspace_assets_root();
-        let path = assets_root.join(relative);
-        write_file(&path, content);
-        Self { path, assets_root }
-    }
-
-    fn path(&self) -> &Path {
-        &self.path
-    }
-}
-
-impl Drop for PackagedAssetGuard {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.path);
-        remove_empty_ancestors(self.path.parent(), &self.assets_root);
-    }
-}
-
-// T-1.4c: RTM FR-3
+// T-12.7: RTM NFR-1 — KEEP. Most complete new-file dry-run test in the suite
+// (count + name + section heading + not-copied).
 #[test]
 fn update_assets_dry_run_detects_files_missing_from_target() {
     let _guard = test_mutex().lock().expect("mutex");
@@ -95,7 +26,7 @@ fn update_assets_dry_run_detects_files_missing_from_target() {
     let (_tmp, cfg) = isolated_config();
     AssetManager::initialize_assets(&cfg).expect("seed runtime assets");
 
-    let relative = unique_asset_relative("workflows", "t14c-added");
+    let relative = unique_relative_path("workflows", "t127-added", "json");
     let file_name = Path::new(&relative)
         .file_name()
         .expect("file name")
@@ -103,7 +34,7 @@ fn update_assets_dry_run_detects_files_missing_from_target() {
         .into_owned();
     let _source = PackagedAssetGuard::create(
         &relative,
-        r#"{"id":"t14c-added","name":"Added boundary workflow"}"#,
+        r#"{"id":"t127-added","name":"Added boundary workflow"}"#,
     );
 
     let output = ToolRegistry::global()
@@ -119,6 +50,10 @@ fn update_assets_dry_run_detects_files_missing_from_target() {
         "expected one added file in summary: {output}"
     );
     assert!(
+        output.contains("### Added Files"),
+        "expected Added Files section heading: {output}"
+    );
+    assert!(
         output.contains(&file_name),
         "expected missing file name in summary: {output}"
     );
@@ -128,17 +63,29 @@ fn update_assets_dry_run_detects_files_missing_from_target() {
     );
 }
 
-// T-1.4c: RTM FR-3
+// T-12.7: RTM NFR-1 — REWRITE. Exercises the SHA-256 code path via *source-modification*
+// (source overwritten after initialize_assets copies v1 to target). This is structurally
+// distinct from Test 6, which modifies the *target* after initialization. Both produce
+// source != target with equal byte lengths, ensuring SHA-256 comparison (not size) detects
+// the change. Test 2 validates the source-modification direction; Test 6 validates the
+// target-modification direction.
 #[test]
 fn update_assets_dry_run_detects_sha_changes_for_existing_files() {
     let _guard = test_mutex().lock().expect("mutex");
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
 
-    let relative = unique_asset_relative("roles", "t14c-updated");
-    let source = PackagedAssetGuard::create(&relative, r#"{"id":"t14c-updated","version":1}"#);
+    // Both v1 and v2 are the same byte length (33 bytes), so size comparison alone would miss
+    // the change. Only SHA-256 hashing detects the difference.
+    let relative = unique_relative_path("roles", "t127-updated", "json");
+    let file_name = Path::new(&relative)
+        .file_name()
+        .expect("file name")
+        .to_string_lossy()
+        .into_owned();
+    let source = PackagedAssetGuard::create(&relative, r#"{"id":"t127-updated","version":1}"#);
     AssetManager::initialize_assets(&cfg).expect("seed runtime assets");
-    write_file(source.path(), r#"{"id":"t14c-updated","version":2}"#);
+    write_file(source.path(), r#"{"id":"t127-updated","version":2}"#);
 
     let output = ToolRegistry::global()
         .try_invoke(
@@ -152,9 +99,26 @@ fn update_assets_dry_run_detects_sha_changes_for_existing_files() {
         output.contains("Updated files: 1"),
         "expected one updated file in summary: {output}"
     );
+    assert!(
+        output.contains("### Updated Files"),
+        "expected Updated Files section heading: {output}"
+    );
+    assert!(
+        output.contains(&file_name),
+        "expected updated file name in summary: {output}"
+    );
+    // Dry-run must not modify the target — it should still contain v1 content.
+    let target_content =
+        fs::read_to_string(cfg.assets_path.join(&relative)).expect("read target");
+    assert!(
+        target_content.contains(r#""version":1"#),
+        "dry-run must not overwrite target with v2: {target_content}"
+    );
 }
 
-// T-1.4c: RTM FR-3
+// T-12.7: RTM NFR-1 — REWRITE. Strict classification: a new file that never existed in the
+// target is Added by definition. The previous `||` disjunction masked potential
+// misclassification. Content-equality assertion is the load-bearing value of this test.
 #[test]
 fn update_assets_non_dry_run_copies_added_files_into_runtime_assets() {
     let _guard = test_mutex().lock().expect("mutex");
@@ -162,8 +126,8 @@ fn update_assets_non_dry_run_copies_added_files_into_runtime_assets() {
     let (_tmp, cfg) = isolated_config();
     AssetManager::initialize_assets(&cfg).expect("seed runtime assets");
 
-    let relative = unique_asset_relative("workflows", "t14c-copy");
-    let source_content = r#"{"id":"t14c-copy","name":"Copied workflow"}"#;
+    let relative = unique_relative_path("workflows", "t127-copy", "json");
+    let source_content = r#"{"id":"t127-copy","name":"Copied workflow"}"#;
     let _source = PackagedAssetGuard::create(&relative, source_content);
 
     let output = ToolRegistry::global()
@@ -174,15 +138,18 @@ fn update_assets_non_dry_run_copies_added_files_into_runtime_assets() {
         )
         .expect("invoke update assets");
 
+    // Strict: a file created after initialize_assets is *Added*, not *Updated*.
     assert!(
-        output.contains("Added files: 1") || output.contains("Updated files: 1"),
-        "expected copy summary for changed file: {output}"
+        output.contains("Added files: 1"),
+        "new file should be classified Added, not Updated: {output}"
     );
     let target_content = fs::read_to_string(cfg.assets_path.join(&relative)).expect("target file");
     assert_eq!(target_content, source_content);
 }
 
-// T-1.4c: RTM FR-3
+// T-12.7: RTM NFR-1 — REWRITE. Added negative guards to distinguish a correct no-change
+// response from a malformed response that happens to contain "No changes detected" alongside
+// stray count lines.
 #[test]
 fn update_assets_reports_no_changes_when_source_and_target_match() {
     let _guard = test_mutex().lock().expect("mutex");
@@ -202,9 +169,19 @@ fn update_assets_reports_no_changes_when_source_and_target_match() {
         output.contains("No changes detected"),
         "expected no-change summary: {output}"
     );
+    assert!(
+        !output.contains("Added files:"),
+        "no-change output must not list Added counts: {output}"
+    );
+    assert!(
+        !output.contains("Updated files:"),
+        "no-change output must not list Updated counts: {output}"
+    );
 }
 
-// T-1.4c: RTM FR-3
+// T-12.7: RTM NFR-1 — KEEP. Unique across the entire suite: tests the learn-mode early-exit
+// path at the ToolRegistry dispatch layer. The `learn` parameter branches before any
+// filesystem access.
 #[test]
 fn update_assets_learn_mode_returns_help_instead_of_update_summary() {
     let _guard = test_mutex().lock().expect("mutex");
@@ -220,9 +197,10 @@ fn update_assets_learn_mode_returns_help_instead_of_update_summary() {
         )
         .expect("invoke update assets");
 
+    // The help document always contains "UpdateAssets" in its heading or description.
     assert!(
-        output.contains("# UpdateAssets") || output.contains("Refreshes"),
-        "expected help documentation: {output}"
+        output.contains("UpdateAssets"),
+        "expected help documentation containing tool name: {output}"
     );
     assert!(
         !output.contains("Asset Update Summary"),
@@ -230,14 +208,17 @@ fn update_assets_learn_mode_returns_help_instead_of_update_summary() {
     );
 }
 
-// T-1.4c: RTM FR-3
+// T-12.7: RTM NFR-1 — KEEP. Canonical SHA-256 regression guard. Creates source={"a":1},
+// copies to target via initialize_assets, then overwrites *target* with {"b":2} (same 7
+// bytes). If the implementation dropped SHA-256 and compared only byte lengths, the update
+// would be missed and this test would fail.
 #[test]
 fn update_assets_uses_sha256_not_file_size_for_equal_length_content() {
     let _guard = test_mutex().lock().expect("mutex");
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
 
-    let relative = unique_asset_relative("roles", "t14c-same-size");
+    let relative = unique_relative_path("roles", "t127-same-size", "json");
     let source = PackagedAssetGuard::create(&relative, r#"{"a":1}"#);
     AssetManager::initialize_assets(&cfg).expect("seed runtime assets");
     write_file(&cfg.assets_path.join(&relative), r#"{"b":2}"#);
@@ -253,6 +234,10 @@ fn update_assets_uses_sha256_not_file_size_for_equal_length_content() {
     assert!(
         output.contains("Updated files: 1"),
         "same-size content changes must still be reported: {output}"
+    );
+    assert!(
+        output.contains("### Updated Files"),
+        "expected Updated Files section heading: {output}"
     );
     assert!(
         output.contains(

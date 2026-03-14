@@ -287,3 +287,8 @@ The second new test would be the test that the current name implies but the body
 **Overall: 1.5 / 2** — Both tests survive the cut, but neither can be shipped as-is without
 misleading future readers and leaving coverage gaps that are invisible unless the test body is
 read in full.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- vector_tools_runtime`: 2 passed, 0 failed
+- Verdict: PASS

@@ -71,7 +71,6 @@ mod incremental_sync_tools_processing;
 mod incremental_sync_tools_watcher;
 mod incremental_sync_unification_guards;
 mod incremental_sync_unification_lifecycle;
-mod leader_election_boundary;
 mod markdown_adversarial_code;
 mod markdown_adversarial_structure;
 mod markdown_boundary_io;

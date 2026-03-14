@@ -230,3 +230,31 @@ significant but do not justify removal — only rewriting tests 1 and 2 and exte
 **Net coverage gap**: the similarity mid-range (values between 0.0 and 1.0 exclusive) is unexercised.
 All "above threshold" coverage uses cosine = 1.0 (identical vectors). This is the single most
 actionable gap to close after the naming rewrites.
+
+---
+
+## Blue-team Verification
+
+- `cargo test --test integration_tests -p maenifold-core -- vector_tools_semantic`: 0 passed, 3 failed
+- Failures:
+  - `vector_tools_semantic::empty_and_null_inputs_produce_safe_embeddings` — FAILED
+  - `vector_tools_semantic::thread_safe_initialization_works` — FAILED
+  - `vector_tools_semantic::above_threshold_similarity_returns_success_output` — FAILED
+- All 3 tests share the same root cause, panicking at `support.rs:63`:
+  ```
+  create vec_concepts table: SqliteFailure(Error { code: Unknown, extended_code: 1 },
+  Some("no such module: vec0"))
+  ```
+- **Root cause**: `ensure_regular_vec_concepts_table()` opens a raw `db::open_connection()` without
+  loading the vec0 extension, then issues `DROP TABLE IF EXISTS vec_concepts`. But
+  `GraphDatabase::initialize_database()` (called earlier in `isolated_env()`) loads the vec0
+  extension and creates `vec_concepts` as a vec0 **virtual table**. SQLite requires the module to
+  be present to drop a virtual table, so the DROP fails. This affects any platform where the vec0
+  native dylib exists in the assets directory (confirmed on macOS aarch64).
+- **Corroborating evidence**: The sibling test `vector_tools_batch` shows the same failure in its
+  one test that calls `ensure_regular_vec_concepts_table`
+  (`fr33_2_ac4_scoped_vec_concepts_lookup...` — FAILED), while the 4 batch tests that skip it pass
+  (4 passed, 1 failed).
+- **SWE fix needed in `support.rs`**: Either (a) load vec0 extension in the test connection before
+  dropping, or (b) use `db::vec0::load_vec0_extension()` + drop, then create the plain table.
+- Verdict: **FAIL**

@@ -326,3 +326,8 @@ The four tests share the concept names `sync-unify-a`, `sync-unify-b`, `sync-uni
 ## Load-Bearing Score: 4/4
 
 All 4 tests are load-bearing. Each covers a distinct code path in `sync_single_file()` that is not fully covered by any other single test file. The verdicts are KEEP (1) and REWRITE (3) — no test should be removed. The REWRITE verdicts reflect assertion shallowness, not structural invalidity. Removing any of the 4 would leave a complete behavioral branch of `sync_single_file()` unverified at the mention layer.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_unification_single_file`: 4 passed, 0 failed
+- Verdict: PASS

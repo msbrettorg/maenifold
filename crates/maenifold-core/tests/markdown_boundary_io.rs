@@ -6,10 +6,13 @@ use std::collections::BTreeMap;
 use support::*;
 
 // T-12.7: RTM NFR-1 - split markdown I/O boundary coverage by theme.
+// NOTE: All tests acquire TEST_MUTEX because `Config::override_root` mutates
+// process-global state. Each test uses an isolated TempDir, but the global
+// Config singleton must be set/reset sequentially to avoid races.
 
 // T-W1-2: RTM FR-28.1
 #[test]
-fn fr28_1_ac1_read_markdown_valid_uri_returns_content() {
+fn fr28_1_ac1_read_markdown_returns_frontmatter_content_and_checksum() {
     let _guard = TEST_MUTEX.lock();
     let env = isolated_env();
 
@@ -28,10 +31,28 @@ fn fr28_1_ac1_read_markdown_valid_uri_returns_content() {
     let (read_fm, read_content, checksum) =
         markdown::read_markdown("memory://notes/test-note", &env.cfg).expect("read markdown");
 
+    // T-W1-2: RTM FR-28.1 - assert frontmatter round-trips correctly.
     let read_fm = read_fm.expect("frontmatter");
     assert_eq!(yaml_string(&read_fm, "title").as_deref(), Some("Test Note"));
-    assert!(read_content.contains("World"));
-    assert!(!checksum.is_empty());
+    // Assert the full body, not just a substring.
+    assert!(
+        read_content.contains("# Hello\n\nWorld"),
+        "expected full seeded body in read content, got: {read_content:?}"
+    );
+
+    // T-W1-2: RTM FR-28.1 - prove checksum is content-derived, not a constant.
+    seed_file(
+        &env.cfg,
+        "memory://notes/other-note",
+        None,
+        "# Different\n\nOther",
+    );
+    let (_, _, checksum2) =
+        markdown::read_markdown("memory://notes/other-note", &env.cfg).expect("read other note");
+    assert_ne!(
+        checksum, checksum2,
+        "checksums must differ for different content"
+    );
 }
 
 // T-W1-2: RTM FR-28.1
@@ -80,6 +101,14 @@ fn fr28_2_ac1_write_markdown_valid_uri_creates_file() {
     .expect("write markdown");
 
     assert!(env.cfg.memory_path.join("simple-note.md").exists());
+
+    // T-W1-2: RTM FR-28.2 - verify written content round-trips, not just file existence.
+    let (_, read_content, _) =
+        markdown::read_markdown("memory://simple-note", &env.cfg).expect("read back written file");
+    assert!(
+        read_content.contains("# Simple\n\nContent"),
+        "expected written body to round-trip, got: {read_content:?}"
+    );
 }
 
 // T-W1-2: RTM FR-28.2
@@ -105,6 +134,15 @@ fn fr28_2_ac2_write_markdown_nested_uri_creates_intermediate_dirs() {
             .join("structure")
             .join("note.md")
             .exists()
+    );
+
+    // T-W1-2: RTM FR-28.2 - verify nested file is readable with correct content.
+    let (_, read_content, _) =
+        markdown::read_markdown("memory://deep/nested/folder/structure/note", &env.cfg)
+            .expect("read back nested file");
+    assert!(
+        read_content.contains("# Deep\n\nContent"),
+        "expected nested written body to round-trip, got: {read_content:?}"
     );
 }
 
@@ -207,6 +245,37 @@ fn fr28_3_ac2_update_markdown_stale_checksum_returns_error() {
     .expect_err("stale checksum should fail");
 
     assert_message_error(err, "Checksum mismatch");
+}
+
+// T-W1-2: RTM FR-28.3
+#[test]
+fn fr28_3_ac3_update_markdown_none_checksum_overwrites_unconditionally() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+
+    seed_file(
+        &env.cfg,
+        "memory://no-checksum-test",
+        None,
+        "# Original\n\nOriginal content",
+    );
+
+    // T-W1-2: RTM FR-28.3 - passing None for checksum should skip OCC and overwrite.
+    markdown::update_markdown(
+        "memory://no-checksum-test",
+        None,
+        "# Overwritten\n\nNew content without checksum",
+        None,
+        &env.cfg,
+    )
+    .expect("update with None checksum should succeed");
+
+    let (_, updated_content, _) =
+        markdown::read_markdown("memory://no-checksum-test", &env.cfg).expect("read updated");
+    assert!(
+        updated_content.contains("New content without checksum"),
+        "expected unconditional overwrite to succeed, got: {updated_content:?}"
+    );
 }
 
 // T-W1-2: RTM FR-28.4

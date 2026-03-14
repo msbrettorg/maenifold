@@ -302,3 +302,15 @@ existence. The fix cost is one line change.
 ---
 
 *Evaluated under [[test-quality]] standards for [[maenifold-rs]] · [[NFR-1 C# Oracle Parity]] · [[community detection]]*
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- repair_concepts_communities`: 3 passed, 1 failed
+- Failures:
+  - `repair_concepts_communities::build_context_with_community_data_shows_community_siblings_section` — panicked at `crates/maenifold-core/tests/repair_concepts_communities.rs:80`: assertion `context.contains("Community Siblings")` failed. Production formatter emits `"Community siblings"` (lowercase `s` at `formatter.rs:129`). Actual output includes `Community siblings (1 concepts in community 1):` and `lambda (overlap: 1.000) [community 1]` — confirming the section *is* present but the test uses the wrong capitalization.
+- Cross-references validated:
+  - `formatter.rs:129` emits `"Community siblings"` (lowercase) — confirmed via grep
+  - Test 3 line 80 asserts `"Community Siblings"` (uppercase) — confirmed via source read
+  - Test 4 line 117 negative assertion `!contains("Community Siblings")` is vacuously true for the same reason — confirmed
+  - Red team's proposed rewrite (`"Community siblings"` + `"lambda (overlap:"`) matches actual output format exactly
+- Verdict: **PASS** — eval spec analysis is accurate; 1 known failure matches red-team finding exactly

@@ -290,3 +290,10 @@ be deleted outright. All 4 need assertion hardening. Test 1 needs consolidation 
 
 **Priority order for rewrites**: Finding 3 (Test 3) > Finding 2 (Test 2) > Finding 1
 (Test 1) > Finding 4 (Test 4) > Finding 5 (positive control).
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_path_security`: 3 passed, 1 failed
+- Failures:
+  - `memory_path_security::move_memory_rejects_path_traversal_in_destination` — panicked at line 96: the `Err` arm assertion checks `contains("Path traversal")` (capital P) but production error message uses lowercase `"path traversal"`. For input `"../outside-memory"`, neither `contains("Invalid")` nor `contains("escape")` match either, so all three disjuncts fail. This confirms red-team Finding 3 (High severity): the assertion is structurally flawed by case-sensitivity mismatch and the `contains("escape")` fallback only accidentally passes for vectors whose input text contains that substring.
+- Verdict: **FAIL**

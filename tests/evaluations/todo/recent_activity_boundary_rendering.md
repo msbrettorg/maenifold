@@ -247,3 +247,8 @@ major behaviors is correct architecture.
 | `no_activity_message` | ⚠️ Marginal | Pipeline formatter test covers same logical assertion |
 | `learn_true` | ✅ Yes | More thorough than pipeline_tool learn test; only boundary-level `learn` gate test |
 | `classifies_types` | ⚠️ Partial | Pipeline format suite covers per-type logic; boundary adds DB-routing integration |
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- recent_activity_boundary_rendering`: 4 passed, 0 failed
+- Verdict: PASS

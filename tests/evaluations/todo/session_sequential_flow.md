@@ -274,3 +274,8 @@ However, the quality of those tests is uneven:
 The file earns credit for covering unique ground. It loses credit for a missing-state
 assertion in T3, a silent setup risk in T2, and two tests misplaced in the wrong module
 by the file-naming convention of this test corpus.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- session_sequential_flow`: 5 passed, 0 failed
+- Verdict: PASS

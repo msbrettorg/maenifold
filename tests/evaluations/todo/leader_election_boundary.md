@@ -68,3 +68,15 @@ Three structural problems compound the coverage overlap:
 **When evaluated in isolation (no lifecycle file):** 5/7. Tests #4 and #7 are redundant with each other even without the lifecycle file. Tests #1, #2, #3, #5, #6 each cover distinct scenarios.
 
 **When evaluated alongside `sync_leader_lifecycle.rs` (correct framing):** 1/7. Only `is_leader_returns_correct_status` contains a single unique behavioural claim (is_leader on empty table), and that claim is buried inside an omnibus test alongside five superseded state transitions and a 1 100 ms sleep. No other test in this file adds coverage not already present in the lifecycle file.
+
+---
+## SWE Remediation
+- REMOVE first_acquire_succeeds_when_no_existing_leader: superseded by fr30_3_ac1_try_acquire_succeeds_on_empty_table
+- REMOVE same_holder_reacquire_renews_existing_lease: superseded by fr30_3_try_acquire_idempotent_for_same_holder + fr30_3_ac5_try_renew_succeeds_for_current_holder
+- REMOVE different_holder_is_blocked_while_lease_is_active: superseded by fr30_3_ac3_try_acquire_fails_when_lease_active
+- REMOVE expired_lease_allows_new_holder_to_acquire: superseded by fr30_3_ac4_try_acquire_succeeds_on_expired_lease
+- REMOVE release_clears_leadership: superseded by fr30_3_ac6_release_succeeds_for_current_holder
+- REWRITE is_leader_returns_correct_status → extracted unique empty-table assertion as `is_leader_returns_false_when_no_lease_exists` into sync_leader_lifecycle.rs with tag T-8.1: RTM FR-30.8
+- REMOVE epoch_increments_when_new_holder_acquires_after_expiry: redundant with fr30_3_ac4_try_acquire_succeeds_on_expired_lease
+- Retired leader_election_boundary.rs entirely; removed mod declaration from main.rs (line 74)
+- All 12 sync_leader_lifecycle tests pass (11 existing + 1 new); 0 failed

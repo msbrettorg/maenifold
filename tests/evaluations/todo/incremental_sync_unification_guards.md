@@ -181,3 +181,19 @@ pub fn file_mtime_rfc3339(path: &Path) -> String {
 ## Load-Bearing Score: 2/2
 
 Both tests are load-bearing. Each provides graph-edge coverage (`concept_graph` table assertions) that exists nowhere else in the test suite. Removing either would leave a behavioral contract completely unverified at the edge layer. The verdict is REWRITE, not REMOVE — the tests must stay but must be strengthened to close the assertion gaps documented above.
+
+---
+
+## SWE Remediation
+
+- REWRITE `incremental_sync_mtime_guard_skips_unchanged_files`: added `last_indexed` invariant assertion proving mtime guard does NOT update `last_indexed` (P1 — closes asymmetry with hash guard path)
+- REWRITE `incremental_sync_hash_guard_updates_last_indexed_only`: replaced weak `assert_ne!` with exact-value `assert_eq!` against `file_mtime_rfc3339(&file_path)` (P2); added `file_size` stability assertion (P2)
+- Added `file_mtime_rfc3339(path: &Path) -> String` helper to `incremental_sync_unification/support.rs` (P2)
+- P3 (support module consolidation) deferred — out of scope for this eval
+- All 2 tests pass: `cargo test --test integration_tests -p maenifold-core -- incremental_sync_unification_guards`
+- Commit: 27074e3
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- incremental_sync_unification_guards`: 2 passed, 0 failed
+- Verdict: PASS

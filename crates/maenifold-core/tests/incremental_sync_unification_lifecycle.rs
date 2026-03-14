@@ -1,3 +1,11 @@
+// Unification lifecycle tests verify multi-table DB coherence (file_content, concept_mentions,
+// concept_graph) for each sync_single_file() lifecycle transition: create, delete, rename.
+// The complementary boundary suite (incremental_sync_boundary_mutations) verifies behavior
+// contracts at a shallower level (concept existence, source sets). Both layers are needed:
+// boundary tests catch behavioral regressions; unification tests catch DB-column-level bugs
+// (e.g., missing file_size, orphaned concept_mentions surviving a delete, graph edges not
+// rebuilt after rename).
+
 #[path = "incremental_sync_unification/support.rs"]
 mod incremental_sync_unification_support;
 
@@ -5,9 +13,10 @@ use incremental_sync_unification_support::*;
 use maenifold_core::markdown::path_to_uri;
 use std::fs;
 
-// T-5.7: RTM FR-14.3
+// T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080). Incremental sync DB-coherence
+// coverage; no current open RTM item — all relevant items delivered and archived.
 #[test]
-fn incremental_sync_file_changed_creates_expected_db_artifacts() {
+fn incremental_sync_new_file_creates_expected_db_artifacts() {
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
     let (_tmp, cfg) = isolated_config();
@@ -18,12 +27,12 @@ fn incremental_sync_file_changed_creates_expected_db_artifacts() {
     let content =
         format!("# Unification Test\n\nReferences [[{concept_a}]] and [[{concept_b}]].\n");
 
-    let (file_path, memory_uri) = create_test_file(&cfg, &content, Some(&format!("incr-{unique}")));
+    let (file_path, memory_uri) = create_test_file(&cfg, &content, None);
     let output = sync_path(&cfg, &file_path);
 
     assert!(
-        output.contains("concept mentions updated"),
-        "incremental sync should process the file: {output}"
+        output.contains("2 concept mentions updated"),
+        "incremental sync should index exactly 2 concept mentions: {output}"
     );
 
     let file_content = get_file_content_row(&cfg, &memory_uri);
@@ -56,6 +65,20 @@ fn incremental_sync_file_changed_creates_expected_db_artifacts() {
     assert!(
         file_content.file_size.is_some_and(|value| value > 0),
         "incremental sync must populate file_size"
+    );
+
+    // Verify concept_graph co-occurrence edge was created between the two concepts.
+    // Test 2 (delete) asserts graph edges are cleaned; symmetrically, the create path
+    // must verify they are established.
+    let edge = get_edge_source_files(
+        &cfg,
+        &normalized_concept(&concept_a),
+        &normalized_concept(&concept_b),
+    );
+    assert!(
+        edge.as_ref()
+            .is_some_and(|files| files.contains_key(&memory_uri)),
+        "concept_graph edge must exist and reference the indexed file's URI as a source"
     );
 }
 

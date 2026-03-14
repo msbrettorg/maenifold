@@ -155,3 +155,13 @@ The most actionable finding is the **percent-encoding gap**. `validate_uri` oper
 ## Load-Bearing Score: 1/3
 
 Only test 2 is genuinely load-bearing. It is the sole direct unit test of `validate_uri`'s traversal predicate and would catch a regression in the core check before any of the indirect tests surface the failure. Test 1 has a trivially-passing negative assertion and overlaps a stronger test in another file. Test 3 covers an identical code path to test 2 and adds no independent failure detection.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- markdown_boundary_redteam`: 2 passed, 1 failed
+- Failures:
+  - `fr28_9_red1_concept_repair_tool_error_does_not_leak_filesystem_path`: panicked at `support.rs:133` — `invoke_repair_concepts` calls `try_invoke(...).expect(...)` which unwraps `Err(Message("Directory not found: invalid-nonexistent-folder-12345"))`. The test never reaches its assertions because the support helper assumes `try_invoke` returns `Ok(error_text)` when the tool actually returns `Err(MaenifoldError)` for an invalid folder. This confirms the red-team's REWRITE verdict — the test is not merely trivially-passing; it is outright broken at the call-site level.
+- Passing tests:
+  - `fr28_9_red5_validate_uri_traversal_single_dotdot_segment_throws`: ✅ correctly rejects `memory://foo/../bar` with `InvalidArgument` containing "path traversal"
+  - `fr28_9_red5_validate_uri_traversal_double_dotdot_segment_throws`: ✅ correctly rejects `memory://foo/../../bar` with same error
+- Verdict: **FAIL**

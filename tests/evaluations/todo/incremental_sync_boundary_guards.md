@@ -151,3 +151,33 @@ Both files call `Config::override_root(tmp.path())` — a **process-global** sid
 | `watcher_start_stop_lifecycle_contract_still_holds` | REWRITE → MOVE | ❌ |
 
 Two of three tests are genuinely load-bearing boundary probes for the mtime and hash guard contracts. The watcher test is an artefact of earlier test organisation that is now not only redundant but is exerting pressure on production code to maintain a compatibility shim. It should be dissolved into the dedicated watcher test file and deleted here.
+
+---
+## SWE Remediation
+- KEEP test 1 (`sync_single_file_skips_unchanged_file_with_mtime_guard`): added `file_concepts(cfg, &target_uri)` assertion pinning exact `{alpha, beta}` set per Rec 1
+- KEEP test 2 (`sync_single_file_skips_file_with_same_hash`): strengthened `assert_ne` with `starts_with("202")` year check per Rec 2
+- REWRITE→MOVE test 3 (`watcher_start_stop_lifecycle_contract_still_holds`): deleted from guards file; migrated debounce format assertion to `incremental_sync_tools_watcher::start_watcher_then_stop_watcher_lifecycle_returns_expected_messages` per Rec 3
+- REMOVE `stop_watcher_tool` compat shim from `sync/watchers.rs`; registry now invokes `stop_watcher` directly (no other test depended on the shim)
+- Removed unused imports (`ToolRegistry`, `OutputFormat`, `serde_json::json`) from guards file
+- Commit: a63a3ad
+
+---
+## Red-team Audit
+- ✅ KEEP test 1 (`mtime_guard`): `file_concepts(&cfg, &target_uri)` assertion added — queries `concept_mentions WHERE source_file = ?1`, pins exact `{alpha, beta}` BTreeSet. Matches eval Rec 1.
+- ✅ KEEP test 2 (`hash_guard`): `assert!(updated_last_indexed.starts_with("202"), ...)` added alongside preserved `assert_ne!`. Matches eval Rec 2 verbatim.
+- ✅ REWRITE→MOVE test 3 (`watcher_lifecycle`): deleted from guards file (2 `#[test]` remain); debounce format assertion `contains(" for incremental sync (debounce: 250ms)")` migrated to `incremental_sync_tools_watcher.rs:52`; fragile OR stop assertion correctly NOT migrated. Matches eval Rec 3.
+- ✅ REMOVE `stop_watcher_tool`: function deleted from `sync/watchers.rs`; `StopWatcher` registry entry rewired to `watchers::stop_watcher` (signature `fn(&ToolContext, &Value) -> Result<String>` matches `ToolFn`); zero references to `stop_watcher_tool` remain in codebase (`grep -rn` confirms).
+- ✅ No unrelated changes: 4 files touched (`registry.rs`, `watchers.rs`, `boundary_guards.rs`, `tools_watcher.rs`), all directly traceable to eval Recs 1–3.
+- ⚠️ NOTE: `integration_tests` binary has pre-existing compilation error in `graph_decay_graph.rs` (unresolved `find_similar_concepts_markdown`, file unchanged since commit `558d5ff`) preventing test execution at HEAD. Not caused by this eval's commit (a63a3ad).
+- Verdict: **PASS**
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- incremental_sync_boundary_guards`: 2 passed, 0 failed
+- Tests verified:
+  - `sync_single_file_skips_unchanged_file_with_mtime_guard` — ok
+  - `sync_single_file_skips_file_with_same_hash` — ok
+- SWE remediation confirmed: Test 3 (`watcher_start_stop_lifecycle_contract_still_holds`) correctly removed; only 2 `#[test]` functions remain in module, matching eval REWRITE→MOVE verdict
+- Eval Rec 1 confirmed: `file_concepts(&cfg, &target_uri)` assertion present at line 48, pinning exact `{alpha, beta}` BTreeSet
+- Eval Rec 2 confirmed: `starts_with("202")` year check present at line 90, alongside preserved `assert_ne!`
+- Verdict: **PASS**

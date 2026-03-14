@@ -257,3 +257,43 @@ scoped; the issues are in assertion completeness, not in scenario selection.
 - SKIP P2 `fetch_file_md5`: not dead — used by `incremental_sync_boundary_guards.rs` via shared support module
 - All 3 tests pass: `cargo test --test integration_tests -p maenifold-core -- incremental_sync_boundary_mutations`
 - Commit: 80a6fec
+
+---
+## Red-team Audit
+
+**Traceability**: T-5.7 | NFR-2 | FR-14.3 (RTM-080)
+
+### P0 — Traceability Fix (all 3 tests)
+- ✅ Test 1 `sync_single_file_processes_a_new_file_correctly`: `FR-5.7` → `FR-14.3` on line 13
+- ✅ Test 2 `sync_single_file_updates_concepts_when_content_changes`: `FR-5.7` → `FR-14.3` on line 68
+- ✅ Test 3 `deleted_files_remove_their_concepts_from_the_graph`: `FR-5.7` → `FR-14.3` on line 132
+
+### P1 — KEEP Test 1: brittle string → structural assertion + concept_sources
+- ✅ Removed: `assert!(output.contains("2 concept mentions updated"), ...)`
+- ✅ Added: `file_concepts(&cfg, &file_uri("notes/new-file.md"))` == `{fresh, shared}` — matches eval Recommendation 4 exactly
+- ✅ Added: `concept_sources(&cfg, "fresh")` == `{memory://notes/new-file}` — closes orphaned-concept hole per Recommendation 5
+- ✅ Cross-file isolation assertion (`baseline_last_indexed` unchanged) preserved untouched
+
+### P1 — REWRITE Test 2: concept_sources("beta") + mtime guard comment
+- ✅ Added: `concept_sources(&cfg, "beta")` == `{memory://notes/target}` — matches eval Recommendation 2 verbatim
+- ✅ Added: two-line comment above `set_last_indexed` explaining back-dating intent for mtime guard
+- ✅ All original assertions preserved: `file_concepts`, `concept_sources("alpha").is_empty()`, `concept_names`, cross-file isolation
+
+### P1 — KEEP Test 3: concept_sources("shared") survivor assertion
+- ✅ Added: `concept_sources(&cfg, "shared")` == `{memory://notes/survivor}` — matches eval Recommendation 3 verbatim
+- ✅ Message text matches eval spec: `"shared concept's mention in survivor file must survive deletion of peer"`
+- ✅ Distinguishes live-mention survival (A) from orphaned-concept row (B) as eval required
+
+### P2 — SKIP fetch_file_md5 dead export
+- ✅ Correct skip. `fetch_file_md5` is alive: imported and used by `incremental_sync_boundary_guards.rs` lines 6, 72, 94 via the shared support module. Eval scoped analysis to `_mutations.rs` only; SWE correctly widened scope to shared consumers.
+
+### P3 — ConfigOverrideReset comment
+- ✅ Added in Test 1 line 17: `// ConfigOverrideReset restores Config::current() for the next test on drop.` — sufficient, pattern is self-documenting in Tests 2/3 after first explanation.
+
+### No Unrelated Changes
+- ✅ Diff is 1 file, +26 −6 lines. Every change maps to an eval recommendation. No code additions, removals, or refactors outside scope.
+
+### Tests Pass
+- ✅ `cargo test --test integration_tests -p maenifold-core -- incremental_sync_boundary_mutations`: 3 passed, 0 failed (verified at audit time, 0.09s)
+
+### Verdict: PASS

@@ -207,3 +207,17 @@ Only Test 3 carries any partial load-bearing value, and only through its precond
 - REMOVE `run_and_persist_isolated_concepts_persists_each_with_own_community`: sibling's exact-vector `[0,1,2,3]` assertion subsumes the `id_a != id_b` distinctness check
 - DELETE `community_coverage_basics.rs` and removed `mod community_coverage_basics;` from `main.rs`
 - Commit: 31cba3b
+
+---
+
+## Red-team Audit
+
+- ✅ REMOVE `run_louvain_multiple_isolated_concepts_no_edges_each_get_own_community`: file deleted; subsuming sibling `community_coverage_topologies::run_louvain_isolated_concepts_normalized_contiguous_ids` confirmed present with exact-vector `[0,1,2,3]` assertion (strictly dominates `max_id < 3`)
+- ✅ REMOVE `run_louvain_five_isolated_concepts_no_edges_five_distinct_communities`: file deleted; sibling exact-vector assertion subsumes any N-isolated claim
+- ✅ MERGE `run_and_persist_empty_graph_returns_zero_without_db_writes`: precondition guard (`concept_count == 0`) absorbed into `community_louvain_basics::run_louvain_empty_graph_returns_empty` at lines 115-121, matching eval spec R-2 verbatim; traceability comment `// T-12.7: Merged precondition guard from community_coverage_basics (R-2).` added
+- ✅ REMOVE `run_and_persist_isolated_concepts_persists_each_with_own_community`: file deleted; sibling `[0,1,2,3]` exact-vector check mathematically implies distinctness, subsuming `id_a != id_b`
+- ✅ DELETE file: `community_coverage_basics.rs` confirmed absent from disk
+- ✅ MOD removal: `mod community_coverage_basics;` confirmed absent from `main.rs`
+- ✅ Tests green: all 5 `community_louvain_basics` tests pass; subsuming sibling `run_louvain_isolated_concepts_normalized_contiguous_ids` passes
+- ℹ️ Stale comment: `community_coverage_topologies.rs:117` still references the deleted file in a comment (`// community_coverage_basics.rs`). Informational only — not a functional defect, and the eval did not specify sibling comment updates.
+- Verdict: **PASS**

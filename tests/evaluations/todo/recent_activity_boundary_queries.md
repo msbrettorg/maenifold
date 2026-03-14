@@ -234,3 +234,8 @@ Add an inline comment documenting the ordering dependency.
 > (`filter_variants`) carries genuine boundary-layer value but is a poor diagnostic unit due
 > to bundling and substantial overlap with `tool_behavior.rs`. Rewriting it as 3 focused tests
 > elevates this file to 5/6 and makes every failure immediately actionable.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- recent_activity_boundary_queries`: 4 passed, 0 failed
+- Verdict: PASS

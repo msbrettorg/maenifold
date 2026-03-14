@@ -348,3 +348,15 @@ outright. Priority order for action:
 5. **MEDIUM**: Rename Tests 1–4 to eliminate the stale `fr25_N_acN` prefixes (Finding 3)
 6. **LOW**: Consolidate the two parallel validator implementations (Finding 6)
 7. **LOW**: Extend Test 5 with URL-encoded traversal variants (Finding 7)
+
+---
+
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- path_security_tests`: 2 passed; 4 failed
+- Failures:
+  - `fr25_5_ac1_shared_path_validator_absolute_path_rejected_by_memory_and_system_tools` — panicked at line 54: `list_memories` returns `Err(Message("Invalid path - Absolute paths are not allowed. Use relative paths only."))` instead of `Ok("ERROR: ...")`
+  - `fr25_6_ac1_shared_path_validator_dot_sequence_rejected_by_memory_and_system_tools` — panicked at line 54: `list_memories` returns `Err(Message("Invalid path - Path traversal components (dot sequences) are not allowed."))` instead of `Ok("ERROR: ...")`
+  - `fr25_5_ac3_shared_path_validator_rejects_dot_space_traversal_variants_consistently` — panicked at line 54: same `Err` propagation for all 6 dot-space variants
+  - `fr25_6_ac4_list_memories_rejects_symlink_escaping_memory_path` — panicked at line 54: `list_memories` returns `Err(Message("Resolved path escapes memory root"))` instead of `Ok("ERROR: ...")`
+- Root cause: **API error convention mismatch.** `write_memory` (in `access.rs:87-90`) wraps validation failures as `Ok("ERROR: Invalid folder path - {error}")`. `list_memories` (in `listing.rs:41`) propagates them as `Err(MaenifoldError::Message(...))`. The `list_memories_output` test helper on line 54 calls `.expect("list memories")` which panics on the `Err`. The 4 failing tests all exercise `list_memories` with invalid paths; the 2 passing tests exercise it with valid paths. **The security validation works correctly — the tests just unwrap the Result incorrectly.** The SWE fix should change the `list_memories_output` helper to convert `Err` into an `"ERROR: {msg}"` string (matching the test assertions), or change `list_memories` in production to return `Ok("ERROR: ...")` matching `write_memory`'s convention.
+- Verdict: **FAIL**

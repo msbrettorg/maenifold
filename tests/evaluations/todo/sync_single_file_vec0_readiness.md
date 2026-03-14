@@ -229,3 +229,8 @@ Without the rewrites, the effective load-bearing score on the vec0-specific cont
 
 *Evaluated under Gray (Skeptical Inquiry). Key question applied throughout:*  
 *"What evidence do these tests actually provide that vec0 is being skipped, and not merely that sync works?"*
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_single_file_vec0_readiness`: 2 passed, 0 failed
+- Verdict: PASS

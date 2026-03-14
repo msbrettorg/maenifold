@@ -127,3 +127,8 @@ A reader must mentally simulate three acquire/release cycles just to understand 
 ## Load-Bearing Score: 1/2
 
 One of the two tests (`sweep_abandoned_thinking_sessions_mtime_guard_protects_recently_edited_sessions`) provides coverage that is genuinely absent from the dedicated session cleanup suites and cannot be safely deleted without creating a coverage gap in the mtime guard logic. It earns its existence but needs a rewrite. The other test is redundant dead weight.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- sync_perf_coordination`: 2 passed, 0 failed
+- Verdict: PASS

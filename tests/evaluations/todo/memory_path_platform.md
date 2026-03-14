@@ -287,3 +287,8 @@ Two of the four tests are genuinely load-bearing:
 > **Verdict summary**: This file's cross-platform coverage mandate (T-W1-4, NFR-1) is meaningful,
 > but test 3 is currently a phantom test on the CI platform, and test 4 has a silent failure
 > mode. Remediating both would raise the load-bearing score to 4/4 with no redundancy penalty.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_path_platform`: 4 passed, 0 failed
+- Verdict: PASS

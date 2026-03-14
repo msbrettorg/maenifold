@@ -276,3 +276,10 @@ signal and the rank-order assertions should be strengthened with score-value che
 Net after applying verdicts: 3 merged/rewritten tests replace 4, with stronger assertions
 and accurate names. Coverage is preserved; noise is reduced; the grace-period transition
 boundary is added as a new case.
+
+---
+## SWE Remediation
+- REWRITE T1 + MERGE T2/T3: Collapsed three structurally identical per-mode tests into `search_memories_decay_raises_newer_file_across_all_modes` — a table-driven loop over `["Hybrid", "Semantic", "FullText"]` with per-mode content/query pairings. Corrected name (dropped false "equal scores" claim). Added `decayWeight < 1.0` assertion on the older file per P0 recommendation. Semantic mode gracefully skips when ONNX embedding model is absent (mirrors `access_boosting_search.rs` pattern); guard asserts at least Hybrid + FullText are fully exercised.
+- KEEP T4 (`search_memories_files_within_grace_period_have_equal_ranking_weight`): unchanged
+- 4 tests → 2 tests; all mode coverage preserved with stronger assertions
+- Commit: a017810

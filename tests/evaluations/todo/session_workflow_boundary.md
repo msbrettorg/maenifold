@@ -389,3 +389,8 @@ key input data, ensuring the tool wrote the correct session content.
 The _concept_ this file covers is load-bearing. The _execution_ needs hardening on
 panic safety, traceability, and output-format robustness before these tests can be
 trusted to catch real regressions without producing spurious ones.
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- session_workflow_boundary`: 6 passed, 0 failed
+- Verdict: PASS

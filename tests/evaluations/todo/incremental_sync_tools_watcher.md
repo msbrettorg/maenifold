@@ -256,3 +256,17 @@ trace and the test infrastructure cost (mutex, setup) exceeds the risk it mitiga
 ---
 
 *Report generated under [[test-quality]] evaluation framework for [[maenifold-rs]]. References: T-12.7, RTM NFR-1, RTM FR-17.5 (T-COV-001.3).*
+
+---
+## SWE Remediation
+
+- REWRITE `watcher_errors_are_formatted_with_expected_prefix` → `watcher_error_message_format_contract`: removed unnecessary TEST_MUTEX lock on pure function (P2); parameterized across 3 inputs — nominal, empty, nested-prefix (P5)
+- REWRITE `process_file_created_with_path_outside_memory_path_does_not_throw` → `process_path_outside_memory_root_is_silently_ignored`: added database-state assertion verifying zero `file_content` rows after processing out-of-scope path (P1); renamed to Rust-idiomatic convention (P3)
+- KEEP `start_watcher_then_stop_watcher_lifecycle_returns_expected_messages`: added `assert!(watcher_is_running())` immediately after first `start_watcher` call to close state-assertion gap (P4)
+- All 3 tests pass: `cargo test --test integration_tests -p maenifold-core -- incremental_sync_tools_watcher`
+- Commit: 55f0a46
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- incremental_sync_tools_watcher`: 3 passed, 0 failed
+- Verdict: PASS

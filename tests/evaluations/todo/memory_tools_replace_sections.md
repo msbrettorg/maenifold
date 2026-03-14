@@ -135,3 +135,8 @@ Three tests exercise code paths or semantic invariants not covered by any other 
 | `replace_section_with_h1_heading_replaces_correctly` | ✅ |
 | `replace_section_with_h3_heading_replaces_correctly` | ✅ |
 | `replace_section_old_content_completely_removed_not_appended` | ✅ |
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- memory_tools_replace_sections`: 5 passed, 0 failed
+- Verdict: PASS

@@ -239,6 +239,16 @@ fn fr30_3_try_renew_fails_for_expired_lease() {
     assert!(!election.is_leader("holder-a").expect("expired leader"));
 }
 
+// T-8.1: RTM FR-30.8
+#[test]
+fn is_leader_returns_false_when_no_lease_exists() {
+    let _guard = TEST_MUTEX.lock();
+    let _reset = ConfigOverrideReset;
+    let (_tmp, cfg) = isolated_env();
+    let election = leader_election(&cfg);
+    assert!(!election.is_leader("holder-a").expect("no lease row"));
+}
+
 // T-8.1: RTM FR-30.6
 #[test]
 fn fr30_3_try_renew_fails_for_stale_epoch() {

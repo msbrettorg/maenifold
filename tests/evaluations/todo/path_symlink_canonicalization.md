@@ -294,3 +294,8 @@ The practical **security coverage score** for RTM-182 is therefore:
 | Symlink escape — existent leaf (fast-path canonicalize) | ❌ | Not covered anywhere |
 | Symlink chain (symlink → symlink → outside) | ❌ | Not covered anywhere |
 | Silent-skip vacuous pass risk | ⚠️ | Tests 3 + 4 on non-Unix |
+
+---
+## Blue-team Verification
+- `cargo test --test integration_tests -p maenifold-core -- path_symlink_canonicalization`: 4 passed, 0 failed
+- Verdict: PASS

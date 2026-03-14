@@ -41,3 +41,13 @@ These are full-pipeline integration tests: they seed raw files on disk, run `Syn
 ## Load-Bearing Score: 5/7
 
 > `learn_mode` (weak assertions) and `limit` (fully covered at boundary) are not load-bearing in practice.
+
+---
+## SWE Remediation
+- REWRITE `recent_activity_learn_mode_returns_help_content`: replaced `len() > 20` with targeted assertions for `"## Parameters"`, `"timespan"`, `"filter"`, `"limit"` — catches blanked/swapped help files (P0 R1)
+- REMOVE `recent_activity_filter_thinking_excludes_memory_files`: fully covered by `recent_activity_boundary_queries::recent_activity_filter_variants_select_expected_path_families` (P1 R2)
+- REMOVE `recent_activity_limit_returns_at_most_limit_entries`: fully covered by `recent_activity_boundary_queries::recent_activity_limit_caps_number_of_results` (P1 R2)
+- RENAME `recent_activity_normal_query_returns_formatted_report` → `recent_activity_pipeline_sync_produces_output_for_both_file_types` (P2 R3)
+- KEEP: `negative_timespan_returns_error`, `no_database_returns_no_database_error`, `timespan_filter_excludes_old_entries_end_to_end` — unchanged
+- Test count: 7 → 5
+- Commit: 5dbf3d4

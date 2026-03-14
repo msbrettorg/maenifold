@@ -81,3 +81,19 @@ This test would pass even if `append_h2_section` created the file with the right
 ## Load-Bearing Score: 6/9
 
 Tests 4, 5, 7, 8 are correctly specified and genuinely load-bearing. Tests 1, 2, 3, 6, 9 test real behavior but with assertions weak enough to survive significant regressions.
+
+---
+
+## SWE Remediation
+
+- REWRITE test 1 (`write_markdown_null_frontmatter_creates_envelope_with_created_and_modified`): replaced `contains_key` with `assert_valid_rfc3339` helper + `created <= modified` invariant
+- REWRITE test 2 (`write_markdown_existing_created_preserves_created_and_updates_modified`): replaced `contains_key`/`!=` with RFC 3339 validation + `modified > original_created` lexicographic assertion
+- REWRITE test 3 (`write_markdown_missing_created_adds_created_and_sets_modified`): replaced `contains_key` with RFC 3339 validation + `created <= modified` invariant + title preservation check
+- KEEP test 4 (`write_markdown_completed_and_cancelled_not_overwritten`): unchanged
+- KEEP test 5 (`write_markdown_does_not_mutate_caller_dict`): unchanged
+- REWRITE test 6 (`append_h2_section_existing_file_updates_modified`): sleep 10ms→50ms, `!=` assertion→`after > before` lexicographic, RFC 3339 validation on both timestamps
+- KEEP test 7 (`append_h2_section_existing_file_preserves_all_frontmatter_fields`): unchanged
+- KEEP test 8 (`append_h2_section_existing_file_preserves_existing_content`): unchanged
+- REWRITE test 9 (`append_h2_section_non_existent_file_creates_file_with_envelope`): RFC 3339 validation + `created <= modified` invariant + section heading/content assertions
+- Added shared `assert_valid_rfc3339` helper: validates key presence, non-empty, and `DateTime::parse_from_rfc3339` parsability
+- Commit: 0bdc57c

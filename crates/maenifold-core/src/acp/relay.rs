@@ -106,8 +106,10 @@ pub fn acp_routes(config: AgentsConfig) -> Router {
 // ── Socket handler ──────────────────────────────────────────────────────
 
 async fn handle_socket(mut socket: WebSocket, params: HashMap<String, String>, state: Arc<RelayState>) {
-    let (command_tx, command_rx) = mpsc::unbounded_channel();
-    let (event_tx, mut event_rx) = mpsc::unbounded_channel();
+    // Bounded channels (capacity 256) to cap memory if the browser stalls or
+    // the worker falls behind.  See FR-32-SEC / TC-SEC.3.
+    let (command_tx, command_rx) = mpsc::channel::<WorkerCommand>(256);
+    let (event_tx, mut event_rx) = mpsc::channel::<WorkerEvent>(256);
 
     // Use ?agent= query param, fall back to first available
     let agent_name = params.get("agent")
@@ -140,21 +142,48 @@ async fn handle_socket(mut socket: WebSocket, params: HashMap<String, String>, s
 
                         match msg.r#type.as_str() {
                             "connect" => {
-                                let _ = command_tx.send(WorkerCommand::Connect);
+                                match command_tx.try_send(WorkerCommand::Connect) {
+                                    Ok(()) => {}
+                                    Err(mpsc::error::TrySendError::Full(_)) => {
+                                        let _ = socket.send(Message::Text(
+                                            error_msg("Server busy – command backlog full").into(),
+                                        )).await;
+                                        continue;
+                                    }
+                                    Err(mpsc::error::TrySendError::Closed(_)) => break,
+                                }
                             }
                             "new_session" => {
                                 let cwd = msg.payload.get("cwd")
                                     .and_then(|v| v.as_str())
                                     .unwrap_or(".")
                                     .to_string();
-                                let _ = command_tx.send(WorkerCommand::NewSession { cwd });
+                                match command_tx.try_send(WorkerCommand::NewSession { cwd }) {
+                                    Ok(()) => {}
+                                    Err(mpsc::error::TrySendError::Full(_)) => {
+                                        let _ = socket.send(Message::Text(
+                                            error_msg("Server busy – command backlog full").into(),
+                                        )).await;
+                                        continue;
+                                    }
+                                    Err(mpsc::error::TrySendError::Closed(_)) => break,
+                                }
                             }
                             "prompt" => {
                                 let content = msg.payload.get("content")
                                     .and_then(|v| v.as_array())
                                     .cloned()
                                     .unwrap_or_default();
-                                let _ = command_tx.send(WorkerCommand::Prompt { content });
+                                match command_tx.try_send(WorkerCommand::Prompt { content }) {
+                                    Ok(()) => {}
+                                    Err(mpsc::error::TrySendError::Full(_)) => {
+                                        let _ = socket.send(Message::Text(
+                                            error_msg("Server busy – command backlog full").into(),
+                                        )).await;
+                                        continue;
+                                    }
+                                    Err(mpsc::error::TrySendError::Closed(_)) => break,
+                                }
                             }
                             "disconnect" => {
                                 let _ = socket.send(Message::Text(status_disconnected().into())).await;
@@ -208,8 +237,8 @@ fn spawn_agent_worker(
     agent_name: String,
     agent_entry: AgentEntry,
     cwd: PathBuf,
-    command_rx: mpsc::UnboundedReceiver<WorkerCommand>,
-    event_tx: mpsc::UnboundedSender<WorkerEvent>,
+    command_rx: mpsc::Receiver<WorkerCommand>,
+    event_tx: mpsc::Sender<WorkerEvent>,
 ) {
     std::thread::spawn(move || {
         let runtime = match tokio::runtime::Builder::new_current_thread()
@@ -218,7 +247,8 @@ fn spawn_agent_worker(
         {
             Ok(r) => r,
             Err(e) => {
-                let _ = event_tx.send(WorkerEvent::Error(format!("Runtime creation failed: {e}")));
+                // Pre-runtime: no async context available, use try_send.
+                let _ = event_tx.try_send(WorkerEvent::Error(format!("Runtime creation failed: {e}")));
                 return;
             }
         };
@@ -233,8 +263,8 @@ async fn run_agent_worker(
     agent_name: String,
     agent_entry: AgentEntry,
     cwd: PathBuf,
-    mut command_rx: mpsc::UnboundedReceiver<WorkerCommand>,
-    event_tx: mpsc::UnboundedSender<WorkerEvent>,
+    mut command_rx: mpsc::Receiver<WorkerCommand>,
+    event_tx: mpsc::Sender<WorkerEvent>,
 ) {
     let mut manager: Option<AcpManager> = None;
     let mut session_id = String::new();
@@ -252,10 +282,10 @@ async fn run_agent_worker(
                 maybe_chunk = rx.recv() => {
                     match maybe_chunk {
                         Some(text) => {
-                            let _ = event_tx.send(WorkerEvent::Chunk(session_id.clone(), text));
+                            let _ = event_tx.send(WorkerEvent::Chunk(session_id.clone(), text)).await;
                         }
                         None => {
-                            let _ = event_tx.send(WorkerEvent::PromptComplete);
+                            let _ = event_tx.send(WorkerEvent::PromptComplete).await;
                             text_rx = None;
                         }
                     }
@@ -278,7 +308,7 @@ async fn handle_worker_command(
     manager: &mut Option<AcpManager>,
     session_id: &mut String,
     text_rx: &mut Option<mpsc::UnboundedReceiver<String>>,
-    event_tx: &mpsc::UnboundedSender<WorkerEvent>,
+    event_tx: &mpsc::Sender<WorkerEvent>,
 ) {
     match cmd {
         WorkerCommand::Connect => {
@@ -290,20 +320,20 @@ async fn handle_worker_command(
             ).await {
                 Ok(mut mgr) => {
                     *text_rx = Some(mgr.take_text_stream());
-                    let _ = event_tx.send(WorkerEvent::Status(status_connected(agent_name)));
+                    let _ = event_tx.send(WorkerEvent::Status(status_connected(agent_name))).await;
                     *manager = Some(mgr);
                 }
                 Err(e) => {
-                    let _ = event_tx.send(WorkerEvent::Error(e.to_string()));
+                    let _ = event_tx.send(WorkerEvent::Error(e.to_string())).await;
                 }
             }
         }
         WorkerCommand::NewSession { cwd: _ } => {
             if let &mut Some(ref mgr) = manager {
                 *session_id = mgr.session_id().to_string();
-                let _ = event_tx.send(WorkerEvent::SessionCreated(session_id.clone()));
+                let _ = event_tx.send(WorkerEvent::SessionCreated(session_id.clone())).await;
             } else {
-                let _ = event_tx.send(WorkerEvent::Error("Agent not connected".into()));
+                let _ = event_tx.send(WorkerEvent::Error("Agent not connected".into())).await;
             }
         }
         WorkerCommand::Prompt { content } => {
@@ -314,10 +344,10 @@ async fn handle_worker_command(
                     })
                     .collect();
                 if let Err(e) = mgr.prompt(messages).await {
-                    let _ = event_tx.send(WorkerEvent::Error(e.to_string()));
+                    let _ = event_tx.send(WorkerEvent::Error(e.to_string())).await;
                 }
             } else {
-                let _ = event_tx.send(WorkerEvent::Error("Agent not connected".into()));
+                let _ = event_tx.send(WorkerEvent::Error("Agent not connected".into())).await;
             }
         }
     }

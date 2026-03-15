@@ -5,6 +5,28 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 26 — Web UI Full Feature Parity — 2025-07-23
+
+### Added
+- 22 UI components promoted from chrome-extension to shared package (chain-of-thought, plan, checkpoint, suggestion, artifact, image, sources, task, loader, open-in-chat, queue, web-preview, canvas, controls, panel, toolbar, node, edge, connection, inline-citation, confirmation, context)
+- 3 shared UI primitives promoted (alert, carousel, progress)
+- ChatInterface.tsx wired with ChainOfThought, Plan, Checkpoint, Suggestions, Artifact, Task, Sources
+- New shared deps: @xyflow/react, embla-carousel-react, @radix-ui/react-progress, tokenlens
+
+### Fixed
+- **SECURITY**: CORS restricted to localhost origins (replaced `CorsLayer::permissive()`)
+- **SECURITY**: Relay MPSC channel bounded to 256 (was unbounded — OOM risk)
+- **SECURITY**: Exec validation uses `libc::access(X_OK)` instead of mode bitmask
+- **SECURITY**: `agent-client-protocol` pinned to specific git rev (was floating HEAD)
+- Consolidated duplicate shimmer.tsx and reasoning.tsx between extension and shared
+- 10 pre-existing TypeScript errors in shared package fixed
+
+### Requirements Completed
+- FR-32 (RTM-204–218): Web UI — full component parity with chrome extension
+- FR-32-SEC: 4 security fixes from red-team audit
+
+---
+
 ## Sprint 23 — Streamable HTTP Transport — 2026-03-14
 
 ### Added

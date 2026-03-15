@@ -36,7 +36,7 @@ pub(crate) fn resolve_packaged_assets_root() -> Option<PathBuf> {
     if let Ok(exe) = std::env::current_exe() {
         if let Some(exe_dir) = exe.parent() {
             let candidate = exe_dir.join("assets");
-            if candidate.is_dir() {
+            if asset_root_has_packaged_assets(&candidate) {
                 return Some(candidate);
             }
         }
@@ -46,14 +46,31 @@ pub(crate) fn resolve_packaged_assets_root() -> Option<PathBuf> {
     if let Ok(exe) = std::env::current_exe() {
         let mut dir = exe.parent();
         while let Some(d) = dir {
-            if d.join("Cargo.toml").exists() && d.join("assets").is_dir() {
-                return Some(d.join("assets"));
+            let candidate = d.join("assets");
+            if d.join("Cargo.toml").exists() && asset_root_has_packaged_assets(&candidate) {
+                return Some(candidate);
             }
             dir = d.parent();
         }
     }
 
     None
+}
+
+fn asset_root_has_packaged_assets(root: &Path) -> bool {
+    if !root.is_dir() {
+        return false;
+    }
+
+    ["workflows", "roles", "colors", "perspectives"]
+        .into_iter()
+        .map(|dir| root.join(dir))
+        .any(|dir| {
+            dir.is_dir()
+                && fs::read_dir(dir)
+                    .map(|mut entries| entries.next().is_some())
+                    .unwrap_or(false)
+        })
 }
 
 pub(crate) fn sha256_digest(path: &Path) -> Result<[u8; 32]> {

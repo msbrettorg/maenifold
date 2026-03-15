@@ -13,10 +13,11 @@ web = ["http", "dep:rust-embed", "dep:agent-client-protocol", "dep:mime_guess", 
 anyhow.workspace = true
 async-trait = { version = "0.1", optional = true }
 axum = { workspace = true, optional = true, features = ["ws"] }
-agent-client-protocol = { git = "https://github.com/agentclientprotocol/rust-sdk", optional = true }
+agent-client-protocol = { git = "https://github.com/agentclientprotocol/rust-sdk", rev = "a0917aafe98c95d8e3654d5c441e0cd347df654f", optional = true }
 base64.workspace = true
 chrono.workspace = true
 gray_matter.workspace = true
+libc.workspace = true
 mime_guess = { version = "2", optional = true }
 notify = { version = "7", features = ["macos_fsevent"] }
 once_cell.workspace = true

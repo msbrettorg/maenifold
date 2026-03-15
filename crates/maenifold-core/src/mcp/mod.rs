@@ -8,6 +8,30 @@ pub mod schema;
 mod web;
 pub use resources::*;
 
+// FR-32-SEC: Shared CORS factory restricting origins to localhost variants
+// while keeping all methods and headers allowed for MCP transport.
+#[cfg(any(feature = "http", feature = "web"))]
+pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
+    use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
+
+    let origin_predicate = AllowOrigin::predicate(|origin: &axum::http::HeaderValue, _parts: &axum::http::request::Parts| {
+        let Ok(s) = origin.to_str() else {
+            return false;
+        };
+        s == "http://localhost"
+            || s.starts_with("http://localhost:")
+            || s == "http://127.0.0.1"
+            || s.starts_with("http://127.0.0.1:")
+            || s == "http://[::1]"
+            || s.starts_with("http://[::1]:")
+    });
+
+    CorsLayer::new()
+        .allow_origin(origin_predicate)
+        .allow_methods(AllowMethods::any())
+        .allow_headers(AllowHeaders::any())
+}
+
 use self::schema::mcp_tool_from_registry_name;
 use crate::assets::AssetManager;
 use crate::config::Config;

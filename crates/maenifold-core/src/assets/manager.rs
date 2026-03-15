@@ -50,7 +50,12 @@ impl AssetManager {
             if let Some(parent) = dst.parent() {
                 fs::create_dir_all(parent)?;
             }
-            fs::copy(src, dst)?;
+            if let Err(error) = fs::copy(src, &dst) {
+                if should_skip_initialize_asset_copy(src, &error) {
+                    continue;
+                }
+                return Err(error.into());
+            }
         }
         Ok(())
     }
@@ -212,4 +217,16 @@ impl AssetManager {
             identifier.to_string(),
         ))
     }
+}
+
+fn should_skip_initialize_asset_copy(src: &Path, error: &std::io::Error) -> bool {
+    if error.kind() != std::io::ErrorKind::InvalidInput {
+        return false;
+    }
+
+    if !src.is_symlink() {
+        return false;
+    }
+
+    fs::metadata(src).map(|metadata| metadata.is_dir()).unwrap_or(false)
 }

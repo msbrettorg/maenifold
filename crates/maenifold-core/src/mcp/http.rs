@@ -4,8 +4,6 @@ use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
 };
 use std::sync::Arc;
-use tower_http::cors::CorsLayer;
-
 impl super::MaenifoldMcpServer {
     // T-17.2: RTM FR-23 (RTM-127, RTM-129, RTM-130) — expose Streamable HTTP MCP
     // endpoints with rmcp session management and browser-friendly CORS.
@@ -25,7 +23,8 @@ impl super::MaenifoldMcpServer {
             .nest_service("/mcp", service)
             // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
             // shared tool surface over HTTP.
-            .layer(CorsLayer::permissive());
+            // FR-32-SEC: restrict CORS to localhost origins only.
+            .layer(super::localhost_cors());
 
         let bind_addr = format!("127.0.0.1:{port}");
         let tcp_listener = tokio::net::TcpListener::bind(&bind_addr)

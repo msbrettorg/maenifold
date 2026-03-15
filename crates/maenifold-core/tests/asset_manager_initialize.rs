@@ -15,6 +15,8 @@ use asset_manager_support::{
     isolated_config, test_mutex, unique_relative_path, unique_suffix, write_file,
 };
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::symlink;
 
 // T-12.7: RTM NFR-1 - split bootstrap coverage from legacy asset_manager_tests.rs.
 #[test]
@@ -120,5 +122,47 @@ fn initialize_assets_is_no_op_when_no_packaged_assets_exist() {
     assert!(
         entries.is_empty(),
         "no files should be copied when source is absent"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn initialize_assets_skips_directory_symlinks_and_continues_copying_regular_assets() {
+    struct DirectorySymlinkGuard {
+        link: std::path::PathBuf,
+        target: std::path::PathBuf,
+    }
+
+    impl Drop for DirectorySymlinkGuard {
+        fn drop(&mut self) {
+            let _ = fs::remove_file(&self.link);
+            let _ = fs::remove_dir(&self.target);
+        }
+    }
+
+    let _guard = test_mutex().lock().expect("mutex");
+    let _reset = ConfigResetGuard;
+    let (_tmp, cfg) = isolated_config();
+
+    let symlinked_dir_name = unique_suffix("asset-manager-init-symlink-dir");
+    let symlinked_dir = asset_manager_support::workspace_assets_root().join(&symlinked_dir_name);
+    let real_dir = asset_manager_support::workspace_assets_root()
+        .join(format!("{symlinked_dir_name}-target"));
+    fs::create_dir_all(&real_dir).expect("create symlink target dir");
+    symlink(&real_dir, &symlinked_dir).expect("create packaged directory symlink");
+    let _symlink_guard = DirectorySymlinkGuard {
+        link: symlinked_dir,
+        target: real_dir,
+    };
+
+    let copied_relative = unique_relative_path("roles", "asset-manager-init-regular", "json");
+    let copied_content = r#"{"id":"asset-manager-init-regular"}"#;
+    let _copied = PackagedAssetGuard::create(&copied_relative, copied_content);
+
+    initialize_assets(&cfg);
+
+    assert!(
+        cfg.assets_path.join(&copied_relative).exists(),
+        "regular packaged assets should still be copied when directory symlinks are present"
     );
 }

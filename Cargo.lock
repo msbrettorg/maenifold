@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "agent-client-protocol"
 version = "0.10.2"
-source = "git+https://github.com/agentclientprotocol/rust-sdk#a0917aafe98c95d8e3654d5c441e0cd347df654f"
+source = "git+https://github.com/agentclientprotocol/rust-sdk?rev=a0917aafe98c95d8e3654d5c441e0cd347df654f#a0917aafe98c95d8e3654d5c441e0cd347df654f"
 dependencies = [
  "agent-client-protocol-schema",
  "anyhow",
@@ -1541,6 +1541,7 @@ dependencies = [
  "ctor",
  "filetime",
  "gray_matter",
+ "libc",
  "mime_guess",
  "ndarray 0.16.1",
  "notify",

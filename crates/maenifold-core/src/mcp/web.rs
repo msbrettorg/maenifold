@@ -21,8 +21,6 @@ impl super::MaenifoldMcpServer {
             StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
         };
         use std::sync::Arc;
-        use tower_http::cors::CorsLayer;
-
         let ct = tokio_util::sync::CancellationToken::new();
         let config = Config::current();
         let config_root = config.maenifold_root.clone();
@@ -38,7 +36,8 @@ impl super::MaenifoldMcpServer {
             },
         );
 
-        let cors = CorsLayer::permissive();
+        // FR-32-SEC: restrict CORS to localhost origins only.
+        let cors = super::localhost_cors();
 
         let api = axum::Router::new()
             .merge(acp_routes(agents_config.clone()))

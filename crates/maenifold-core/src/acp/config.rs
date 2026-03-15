@@ -1,6 +1,6 @@
 use std::collections::HashMap;
+use std::ffi::CString;
 use std::fs;
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -89,8 +89,8 @@ fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
         return false;
     }
 
-    let metadata = match fs::metadata(command_path) {
-        Ok(metadata) => metadata,
+    match fs::metadata(command_path) {
+        Ok(_) => {}
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             eprintln!(
                 "Warning: excluding agent '{name}': command does not exist ('{}')",
@@ -107,10 +107,25 @@ fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
         }
     };
 
-    let mode = metadata.permissions().mode();
-    if mode & 0o111 == 0 {
+    // FR-32-SEC: Check real user execute permission via access(2) instead of
+    // inspecting mode bits, which don't account for file ownership or ACLs.
+    let c_path = match CString::new(command_path.as_os_str().as_encoded_bytes()) {
+        Ok(p) => p,
+        Err(_) => {
+            eprintln!(
+                "Warning: excluding agent '{name}': command path contains interior NUL ('{}')",
+                entry.command
+            );
+            return false;
+        }
+    };
+
+    // SAFETY: c_path is a valid NUL-terminated C string that lives for the duration of
+    // the call, and libc::access is a read-only POSIX syscall with no memory side-effects.
+    let accessible = unsafe { libc::access(c_path.as_ptr(), libc::X_OK) };
+    if accessible != 0 {
         eprintln!(
-            "Warning: excluding agent '{name}': command is not executable ('{}')",
+            "Warning: excluding agent '{name}': command is not executable by the current user ('{}')",
             entry.command
         );
         return false;

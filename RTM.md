@@ -46,3 +46,17 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 - □ RTM-216: ACP agent spawn failure returns error without panic | TC-32.13 | Unit
 - □ RTM-217: ACP initialize handshake has 10-second timeout | TC-32.14 | Integration
 - □ RTM-218: Agent command in agents.json validated (absolute path, exists, executable) | TC-32.15 | Unit
+
+### FR-33: Web UI — Files & History Tabs
+
+- □ RTM-219: `list_dir` WebSocket message returns directory listing from agent cwd | TC-33.1 | Integration
+- □ RTM-220: `read_file` WebSocket message returns file contents with MIME type | TC-33.2 | Integration
+- □ RTM-221: `list_sessions` forwarded to ACP agent and response relayed to browser | TC-33.3 | Integration
+- □ RTM-222: `load_session` replays session history to browser via session_update messages | TC-33.4 | Integration
+
+### FR-34: Web UI — Community-Scoped Graph View
+
+- □ RTM-223: `GET /api/graph/communities` returns community summaries with label, member count, top concepts | TC-34.1 | Integration
+- □ RTM-224: Default graph view shows community nodes, not individual concepts | TC-34.2 | Frontend
+- □ RTM-225: Clicking a community node drills into its member concepts | TC-34.3 | Frontend
+- □ RTM-226: "Back to communities" button returns to overview | TC-34.4 | Frontend

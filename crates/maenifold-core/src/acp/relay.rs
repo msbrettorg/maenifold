@@ -2,13 +2,14 @@ use super::config::{AgentEntry, AgentsConfig};
 use super::manager::AcpManager;
 use axum::Router;
 use axum::extract::{
-    State,
+    Query, State,
     ws::{CloseFrame, Message, WebSocket, WebSocketUpgrade},
 };
 use axum::response::IntoResponse;
 use axum::routing::get;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -80,9 +81,10 @@ enum WorkerEvent {
 
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
+    Query(params): Query<HashMap<String, String>>,
     State(state): State<Arc<RelayState>>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, state))
+    ws.on_upgrade(move |socket| handle_socket(socket, params, state))
 }
 
 pub struct RelayState {
@@ -103,12 +105,16 @@ pub fn acp_routes(config: AgentsConfig) -> Router {
 
 // ── Socket handler ──────────────────────────────────────────────────────
 
-async fn handle_socket(mut socket: WebSocket, state: Arc<RelayState>) {
+async fn handle_socket(mut socket: WebSocket, params: HashMap<String, String>, state: Arc<RelayState>) {
     let (command_tx, command_rx) = mpsc::unbounded_channel();
     let (event_tx, mut event_rx) = mpsc::unbounded_channel();
 
-    // Spawn worker eagerly with the first available agent
-    let agent_name = state.default_agent.clone().unwrap_or_default();
+    // Use ?agent= query param, fall back to first available
+    let agent_name = params.get("agent")
+        .filter(|n| !n.is_empty() && state.config.agents.contains_key(n.as_str()))
+        .cloned()
+        .or_else(|| state.default_agent.clone())
+        .unwrap_or_default();
     let agent_entry = match state.config.agents.get(&agent_name) {
         Some(entry) => entry.clone(),
         None => {

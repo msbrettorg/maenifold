@@ -1,0 +1,311 @@
+//! T-29.2: RTM FR-35 — System tray icon for `--web` / `--http` modes on macOS.
+//!
+//! Architecture (required by macOS):
+//! - **Main thread**: winit event loop driving the tray icon + menu.
+//! - **Background `std::thread`**: tokio runtime + axum server.
+//!
+//! The winit `EventLoop` properly integrates with macOS's `NSRunLoop`,
+//! ensuring menu events are delivered reliably.
+//!
+//! `--mcp` mode never enters this module — it remains fully headless.
+
+use tokio_util::sync::CancellationToken;
+use tray_icon::menu::{Menu, MenuEvent, MenuId, MenuItem, PredefinedMenuItem};
+use tray_icon::{Icon, TrayIconBuilder};
+use winit::application::ApplicationHandler;
+use winit::event::StartCause;
+use winit::event_loop::{ActiveEventLoop, EventLoop};
+
+/// Which HTTP-based server mode was requested.
+#[derive(Debug, Clone, Copy)]
+pub enum ServerMode {
+    Http(u16),
+    Web(u16),
+}
+
+impl ServerMode {
+    pub fn port(self) -> u16 {
+        match self {
+            Self::Http(p) | Self::Web(p) => p,
+        }
+    }
+
+    pub fn is_web(self) -> bool {
+        matches!(self, Self::Web(_))
+    }
+}
+
+// ── Icon ──────────────────────────────────────────────────────────────
+
+/// Build a 32×32 RGBA icon with a simple "M" glyph (placeholder).
+fn build_icon() -> Icon {
+    let size = 32u32;
+    let mut rgba = Vec::with_capacity((size * size * 4) as usize);
+    for y in 0..size {
+        for x in 0..size {
+            if is_m_pixel(x, y, size) {
+                rgba.extend_from_slice(&[220, 220, 220, 255]); // light gray M
+            } else {
+                rgba.extend_from_slice(&[60, 60, 60, 255]); // dark background
+            }
+        }
+    }
+    Icon::from_rgba(rgba, size, size).expect("valid 32×32 RGBA icon")
+}
+
+/// Rough "M" letter mask for a 32×32 grid.
+fn is_m_pixel(x: u32, y: u32, size: u32) -> bool {
+    // Only draw in the inner region.
+    if y < 6 || y > size - 7 {
+        return false;
+    }
+    // Left vertical stroke
+    if (6..=9).contains(&x) {
+        return true;
+    }
+    // Right vertical stroke
+    if x >= size - 10 && x <= size - 7 {
+        return true;
+    }
+    // Left diagonal (top half)
+    if y < size / 2 {
+        let d = (y - 6) * 10 / (size / 2 - 6);
+        let cx = 9 + d;
+        if x >= cx && x <= cx + 2 {
+            return true;
+        }
+    }
+    // Right diagonal (top half)
+    if y < size / 2 {
+        let d = (y - 6) * 10 / (size / 2 - 6);
+        if d + 3 <= size - 7 {
+            let cx = size - 7 - d;
+            if cx >= 2 && x >= cx - 2 && x <= cx {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+// ── URL helpers ───────────────────────────────────────────────────────
+
+fn open_url(url: &str) {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open").arg(url).spawn();
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = url; // suppress unused warning on non-macOS
+    }
+}
+
+// ── TrayApp (winit ApplicationHandler) ────────────────────────────────
+
+/// State for the winit `ApplicationHandler` that drives the tray icon.
+struct TrayApp {
+    mode: ServerMode,
+    shutdown_token: CancellationToken,
+    server_handle: Option<std::thread::JoinHandle<i32>>,
+    // Tray state — initialised in `new_events` when `cause == StartCause::Init`.
+    tray_icon: Option<tray_icon::TrayIcon>,
+    quit_id: Option<MenuId>,
+    help_id: Option<MenuId>,
+    open_id: Option<MenuId>,
+    exit_code: i32,
+}
+
+impl TrayApp {
+    fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
+        let port = self.mode.port();
+        let is_web = self.mode.is_web();
+
+        let menu = Menu::new();
+        let open_item = if is_web {
+            let item = MenuItem::new(format!("Open Web UI (:{port})"), true, None);
+            let _ = menu.append(&item);
+            Some(item)
+        } else {
+            None
+        };
+
+        let help_item = MenuItem::new("Help", true, None);
+        let _ = menu.append(&help_item);
+        let _ = menu.append(&PredefinedMenuItem::separator());
+        let quit_item = MenuItem::new("Quit", true, None);
+        let _ = menu.append(&quit_item);
+
+        self.quit_id = Some(quit_item.id().clone());
+        self.help_id = Some(help_item.id().clone());
+        self.open_id = open_item.as_ref().map(|item| item.id().clone());
+
+        let icon = build_icon();
+        match TrayIconBuilder::new()
+            .with_menu(Box::new(menu))
+            .with_tooltip("maenifold")
+            .with_icon(icon)
+            .build()
+        {
+            Ok(tray_icon) => {
+                self.tray_icon = Some(tray_icon);
+            }
+            Err(err) => {
+                eprintln!("Warning: failed to create tray icon: {err}");
+                self.shutdown_token.cancel();
+                self.exit_code = 1;
+                event_loop.exit();
+                return;
+            }
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            use objc2_core_foundation::CFRunLoop;
+            let rl = CFRunLoop::main().unwrap();
+            rl.wake_up();
+        }
+    }
+
+    fn handle_menu_event(&mut self, event_loop: &ActiveEventLoop, event: tray_icon::menu::MenuEvent) {
+        if self.quit_id.as_ref().is_some_and(|id| event.id == *id) {
+            self.shutdown_token.cancel();
+            self.tray_icon.take();
+            event_loop.exit();
+            return;
+        }
+
+        if self.help_id.as_ref().is_some_and(|id| event.id == *id) {
+            open_url("https://github.com/ma-collective/maenifold-rs/issues");
+        }
+
+        if self.open_id.as_ref().is_some_and(|id| event.id == *id) {
+            open_url(&format!("http://localhost:{}", self.mode.port()));
+        }
+    }
+}
+
+impl ApplicationHandler for TrayApp {
+    fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
+        if matches!(cause, StartCause::Init) {
+            self.initialize_tray(event_loop);
+        }
+
+        while let Ok(event) = MenuEvent::receiver().try_recv() {
+            self.handle_menu_event(event_loop, event);
+        }
+
+        if self.server_handle.as_ref().is_some_and(|h| h.is_finished()) {
+            self.tray_icon.take();
+            event_loop.exit();
+        }
+    }
+
+    fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
+        // No windows — nothing to do.
+    }
+
+    fn window_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _window_id: winit::window::WindowId,
+        _event: winit::event::WindowEvent,
+    ) {
+        // No windows — nothing to do.
+    }
+}
+
+// ── Public entry point ────────────────────────────────────────────────
+
+/// Run the server with a system-tray icon on the main thread.
+///
+/// 1. Initialises storage / watchers (matching `CliApp::run_http` / `run_web`).
+/// 2. Spawns the tokio/axum server on a background `std::thread`.
+/// 3. Builds a winit `EventLoop` and drives the tray icon via `ApplicationHandler`.
+/// 4. On "Quit", cancels the shared shutdown token so the server thread exits.
+/// 5. Joins the server thread and returns its exit code.
+pub fn run_with_tray(mode: ServerMode) -> i32 {
+    // ── Initialise runtime (mirrors cli::run_http / run_web patterns) ──
+    // serve_web handles its own initialize_runtime internally.
+    // serve_http expects callers to initialise first (as run_http does).
+    if !mode.is_web() {
+        let config = crate::config::Config::current();
+        if let Err(err) = crate::mcp::initialize_runtime(&config) {
+            eprintln!("Error initializing storage: {err}");
+            return 1;
+        }
+        if let Err(err) = crate::cli::start_mcp_watchers(&config) {
+            eprintln!("Error starting MCP watchers: {err}");
+            return 1;
+        }
+    }
+
+    let port = mode.port();
+    let is_web = mode.is_web();
+    let shutdown_token = CancellationToken::new();
+
+    // ── Spawn server on background thread ──────────────────────────────
+    let server_shutdown_token = shutdown_token.clone();
+    let server_handle = std::thread::Builder::new()
+        .name("maenifold-server".into())
+        .spawn(move || {
+            let rt = match tokio::runtime::Runtime::new() {
+                Ok(rt) => rt,
+                Err(err) => {
+                    eprintln!("Error creating async runtime: {err}");
+                    return 1i32;
+                }
+            };
+            let result = rt.block_on(async move {
+                tokio::select! {
+                    result = async {
+                        if is_web {
+                            crate::mcp::MaenifoldMcpServer::serve_web(port).await
+                        } else {
+                            crate::mcp::MaenifoldMcpServer::serve_http(port).await
+                        }
+                    } => result,
+                    _ = server_shutdown_token.cancelled() => Ok(()),
+                }
+            });
+            match result {
+                Ok(()) => 0,
+                Err(err) => {
+                    eprintln!("Server error: {err}");
+                    1
+                }
+            }
+        })
+        .expect("failed to spawn server thread");
+
+    // ── Build winit event loop & run ───────────────────────────────────
+    let event_loop = EventLoop::builder().build().unwrap();
+    let mut app = TrayApp {
+        mode,
+        shutdown_token,
+        server_handle: Some(server_handle),
+        tray_icon: None,
+        quit_id: None,
+        help_id: None,
+        open_id: None,
+        exit_code: 0,
+    };
+
+    if let Err(err) = event_loop.run_app(&mut app) {
+        eprintln!("Error running tray event loop: {err}");
+        app.shutdown_token.cancel();
+        app.exit_code = 1;
+    }
+
+    // ── Join server thread and return its exit code ────────────────────
+    let server_exit_code = match app.server_handle.take() {
+        Some(handle) => handle.join().unwrap_or(1),
+        None => 1,
+    };
+
+    if app.exit_code != 0 {
+        app.exit_code
+    } else {
+        server_exit_code
+    }
+}

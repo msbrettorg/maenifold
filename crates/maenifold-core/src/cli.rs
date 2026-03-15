@@ -7,9 +7,60 @@ use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, failure, from_str_safe, success};
 use serde_json::{Value, json};
 
+/// T-29.2: RTM FR-35 — parsed CLI action for tray-aware dispatch in `main()`.
+///
+/// [`CliAction::Headless`] covers `--mcp`, `--tool`, `--help`, and error paths —
+/// all of which are fully handled by [`CliApp::run`] on the main thread with no
+/// native event loop.
+///
+/// [`CliAction::Http`] and [`CliAction::Web`] signal that `main()` should
+/// delegate to [`crate::tray::run_with_tray`] instead.
+#[derive(Debug)]
+pub enum CliAction {
+    /// --mcp, --tool, --help, or invalid args → handled by [`CliApp::run`].
+    Headless,
+    /// --http mode with the resolved port.
+    Http(u16),
+    /// --web mode with the resolved port.
+    Web(u16),
+}
+
 pub struct CliApp;
 
 impl CliApp {
+    /// T-29.2: Classify CLI arguments *before* blocking on any runtime.
+    ///
+    /// Returns [`CliAction::Http`] or [`CliAction::Web`] only when the flags
+    /// are unambiguously valid for those modes.  All other cases (including
+    /// errors) fall through to [`CliAction::Headless`] so that [`Self::run`]
+    /// can print the appropriate error message.
+    pub fn classify(args: &[String]) -> CliAction {
+        let wants_mcp = args.iter().any(|a| a == "--mcp");
+        let wants_http = args.iter().any(|a| a == "--http");
+        let wants_web = args.iter().any(|a| a == "--web");
+
+        // Mutual-exclusion violations → let run() handle the error.
+        if (wants_mcp && wants_http) || (wants_mcp && wants_web) || (wants_http && wants_web) {
+            return CliAction::Headless;
+        }
+
+        if wants_http {
+            return match parse_http_port(args) {
+                Ok(port) => CliAction::Http(port),
+                Err(_) => CliAction::Headless,
+            };
+        }
+
+        if wants_web {
+            return match parse_http_port(args) {
+                Ok(port) => CliAction::Web(port),
+                Err(_) => CliAction::Headless,
+            };
+        }
+
+        CliAction::Headless
+    }
+
     pub fn run(args: &[String]) -> i32 {
         // T-16.1: RTM FR-8.1 — explicit --help prints full usage and exits 0 (POSIX convention; C# bug not ported).
         if args.iter().any(|arg| arg == "--help") {
@@ -43,18 +94,7 @@ impl CliApp {
                     return 1;
                 }
             };
-
-            #[cfg(feature = "http")]
-            {
-                return Self::run_http(port);
-            }
-
-            #[cfg(not(feature = "http"))]
-            {
-                let _ = port;
-                eprintln!("Error: HTTP transport is not enabled in this build");
-                return 1;
-            }
+            return Self::run_http(port);
         }
 
         if wants_web {
@@ -65,18 +105,7 @@ impl CliApp {
                     return 1;
                 }
             };
-
-            #[cfg(feature = "web")]
-            {
-                return Self::run_web(port);
-            }
-
-            #[cfg(not(feature = "web"))]
-            {
-                let _ = port;
-                eprintln!("Error: Web UI is not enabled in this build");
-                return 1;
-            }
+            return Self::run_web(port);
         }
 
         if wants_mcp {
@@ -124,7 +153,6 @@ impl CliApp {
         }
     }
 
-    #[cfg(feature = "http")]
     fn run_http(port: u16) -> i32 {
         let config = Config::current();
         if let Err(err) = mcp::initialize_runtime(&config) {
@@ -155,7 +183,6 @@ impl CliApp {
         }
     }
 
-    #[cfg(feature = "web")]
     fn run_web(port: u16) -> i32 {
         let rt = match tokio::runtime::Runtime::new() {
             Ok(rt) => rt,
@@ -245,7 +272,7 @@ impl CliApp {
     }
 }
 
-fn start_mcp_watchers(config: &Config) -> Result<(), MaenifoldError> {
+pub(crate) fn start_mcp_watchers(config: &Config) -> Result<(), MaenifoldError> {
     // T-10.4: RTM FR-12 — mirror C# Program.cs by auto-starting incremental sync
     // before entering MCP stdio mode when auto sync is enabled.
     if config.enable_auto_sync() {

@@ -1,6 +1,4 @@
 // T-17.5: RTM FR-23 (RTM-127, RTM-129, RTM-130)
-#![cfg(feature = "http")]
-
 use maenifold_core::Config;
 use maenifold_core::mcp::MaenifoldMcpServer;
 use once_cell::sync::Lazy;

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Geodesics — maenifold</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --anthropic-dark: #141413;
+            --anthropic-light: #faf9f5;
+            --anthropic-mid-gray: #b0aea5;
+            --anthropic-light-gray: #e8e6dc;
+            --anthropic-orange: #d97757;
+            --anthropic-blue: #6a9bcc;
+            --anthropic-green: #788c5d;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--anthropic-light) 0%, #f5f3ee 100%);
+            min-height: 100vh;
+            color: var(--anthropic-dark);
+        }
+        .container { display: flex; min-height: 100vh; padding: 20px; gap: 20px; }
+        .sidebar {
+            width: 320px; flex-shrink: 0;
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+            padding: 24px; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(20,20,19,0.1);
+            overflow-y: auto; overflow-x: hidden;
+        }
+        .sidebar h1 { font-family: 'Lora', serif; font-size: 24px; font-weight: 500; color: var(--anthropic-dark); margin-bottom: 8px; }
+        .sidebar .subtitle { color: var(--anthropic-mid-gray); font-size: 14px; margin-bottom: 32px; line-height: 1.4; }
+        .control-section { margin-bottom: 32px; }
+        .control-section h3 { font-size: 16px; font-weight: 600; color: var(--anthropic-dark); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .control-section h3::before { content: '•'; color: var(--anthropic-orange); font-weight: bold; }
+        .seed-input {
+            width: 100%; background: var(--anthropic-light); padding: 12px; border-radius: 8px;
+            font-family: 'Courier New', monospace; font-size: 14px; margin-bottom: 12px;
+            border: 1px solid var(--anthropic-light-gray); text-align: center;
+        }
+        .seed-input:focus { outline: none; border-color: var(--anthropic-orange); box-shadow: 0 0 0 2px rgba(217,119,87,0.1); background: white; }
+        .seed-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .regen-button { margin-bottom: 0; }
+        .control-group { margin-bottom: 20px; }
+        .control-group label { display: block; font-size: 14px; font-weight: 500; color: var(--anthropic-dark); margin-bottom: 8px; }
+        .slider-container { display: flex; align-items: center; gap: 12px; }
+        .slider-container input[type="range"] { flex: 1; height: 4px; background: var(--anthropic-light-gray); border-radius: 2px; outline: none; -webkit-appearance: none; }
+        .slider-container input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: var(--anthropic-orange); border-radius: 50%; cursor: pointer; transition: all 0.2s ease; }
+        .slider-container input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); background: #c86641; }
+        .slider-container input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; background: var(--anthropic-orange); border-radius: 50%; border: none; cursor: pointer; }
+        .value-display { font-family: 'Courier New', monospace; font-size: 12px; color: var(--anthropic-mid-gray); min-width: 60px; text-align: right; }
+        .color-group { margin-bottom: 16px; }
+        .color-group label { display: block; font-size: 12px; color: var(--anthropic-mid-gray); margin-bottom: 4px; }
+        .color-picker-container { display: flex; align-items: center; gap: 8px; }
+        .color-picker-container input[type="color"] { width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; background: none; padding: 0; }
+        .color-value { font-family: 'Courier New', monospace; font-size: 12px; color: var(--anthropic-mid-gray); }
+        .button { background: var(--anthropic-orange); color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; width: 100%; }
+        .button:hover { background: #c86641; transform: translateY(-1px); }
+        .button:active { transform: translateY(0); }
+        .button.secondary { background: var(--anthropic-blue); }
+        .button.secondary:hover { background: #5a8bb8; }
+        .button.tertiary { background: var(--anthropic-green); }
+        .button.tertiary:hover { background: #6b7b52; }
+        .button-row { display: flex; gap: 8px; }
+        .button-row .button { flex: 1; }
+        .canvas-area { flex: 1; display: flex; align-items: center; justify-content: center; min-width: 0; }
+        #canvas-container { width: 100%; max-width: 1000px; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(20,20,19,0.1); background: #0a0a1a; }
+        #canvas-container canvas { display: block; width: 100% !important; height: auto !important; }
+        .loading { display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--anthropic-mid-gray); padding: 200px 0; }
+        @media (max-width: 600px) { .container { flex-direction: column; } .sidebar { width: 100%; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>Cognitive Geodesics</h1>
+            <div class="subtitle">Thought flows across a curved knowledge manifold. Concept nodes warp space; attention traces geodesic paths through the curvature.</div>
+
+            <!-- Seed Section -->
+            <div class="control-section">
+                <h3>Seed</h3>
+                <input type="number" id="seed-input" class="seed-input" value="42" onchange="updateSeed()">
+                <div class="seed-controls">
+                    <button class="button secondary" onclick="previousSeed()">← Prev</button>
+                    <button class="button secondary" onclick="nextSeed()">Next →</button>
+                </div>
+                <button class="button tertiary regen-button" onclick="randomSeedAndUpdate()">↻ Random</button>
+            </div>
+
+            <!-- Parameters Section -->
+            <div class="control-section">
+                <h3>Parameters</h3>
+
+                <div class="control-group">
+                    <label>Concept Nodes</label>
+                    <div class="slider-container">
+                        <input type="range" id="nodeCount" min="3" max="12" step="1" value="7" oninput="updateParam('nodeCount', this.value)">
+                        <span class="value-display" id="nodeCount-value">7</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Geodesic Particles</label>
+                    <div class="slider-container">
+                        <input type="range" id="particleCount" min="500" max="8000" step="500" value="4000" oninput="updateParam('particleCount', this.value)">
+                        <span class="value-display" id="particleCount-value">4000</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Curvature Intensity</label>
+                    <div class="slider-container">
+                        <input type="range" id="curvature" min="0.5" max="5.0" step="0.1" value="2.0" oninput="updateParam('curvature', this.value)">
+                        <span class="value-display" id="curvature-value">2.0</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Noise Scale</label>
+                    <div class="slider-container">
+                        <input type="range" id="noiseScale" min="0.001" max="0.015" step="0.001" value="0.004" oninput="updateParam('noiseScale', this.value)">
+                        <span class="value-display" id="noiseScale-value">0.004</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Gravitational Pull</label>
+                    <div class="slider-container">
+                        <input type="range" id="gravity" min="10" max="200" step="10" value="80" oninput="updateParam('gravity', this.value)">
+                        <span class="value-display" id="gravity-value">80</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Flow Speed</label>
+                    <div class="slider-container">
+                        <input type="range" id="speed" min="0.3" max="3.0" step="0.1" value="1.2" oninput="updateParam('speed', this.value)">
+                        <span class="value-display" id="speed-value">1.2</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Trail Opacity</label>
+                    <div class="slider-container">
+                        <input type="range" id="trailAlpha" min="2" max="30" step="1" value="8" oninput="updateParam('trailAlpha', this.value)">
+                        <span class="value-display" id="trailAlpha-value">8</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colors Section -->
+            <div class="control-section">
+                <h3>Colors</h3>
+                <div class="color-group">
+                    <label>Geodesic Warm</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color1" value="#d4863c" onchange="updateColor('color1', this.value)">
+                        <span class="color-value" id="color1-value">#d4863c</span>
+                    </div>
+                </div>
+                <div class="color-group">
+                    <label>Geodesic Cool</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color2" value="#4a8ec2" onchange="updateColor('color2', this.value)">
+                        <span class="color-value" id="color2-value">#4a8ec2</span>
+                    </div>
+                </div>
+                <div class="color-group">
+                    <label>Convergence</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="color3" value="#f0e6d0" onchange="updateColor('color3', this.value)">
+                        <span class="color-value" id="color3-value">#f0e6d0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions Section -->
+            <div class="control-section">
+                <h3>Actions</h3>
+                <button class="button" onclick="regenerate()" style="margin-bottom:8px">Regenerate</button>
+                <div class="button-row">
+                    <button class="button secondary" onclick="resetParameters()">Reset</button>
+                    <button class="button tertiary" onclick="exportImage()">↓ PNG</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <div id="canvas-container">
+                <div class="loading">Initializing cognitive geodesics...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ═══════════════════════════════════════════════════════════════════
+    // COGNITIVE GEODESICS — maenifold tray icon generator
+    // Thought flowing across a curved knowledge manifold
+    // ═══════════════════════════════════════════════════════════════════
+
+    let params = {
+        seed: 42,
+        nodeCount: 7,
+        particleCount: 3000,
+        curvature: 2.0,
+        noiseScale: 0.004,
+        gravity: 80,
+        speed: 1.2,
+        trailAlpha: 8,
+        colorPalette: ['#d4863c', '#4a8ec2', '#f0e6d0']
+    };
+    let defaultParams = JSON.parse(JSON.stringify(params));
+
+    let conceptNodes = [];
+    let particles = [];
+    let frameNum = 0;
+    let pg; // offscreen graphics for accumulating trails
+
+    // ── Concept Node: warps local space ──
+    class ConceptNode {
+        constructor(x, y, mass) {
+            this.pos = createVector(x, y);
+            this.mass = mass;
+            this.pulsePhase = random(TWO_PI);
+        }
+
+        influence(px, py) {
+            let dx = this.pos.x - px;
+            let dy = this.pos.y - py;
+            let distSq = dx * dx + dy * dy;
+            let d = Math.sqrt(distSq);
+            if (d < 25) d = 25;
+            let strength = (this.mass * params.gravity) / (d * d);
+            strength = Math.min(strength, 3.0);
+            return { fx: (dx / d) * strength, fy: (dy / d) * strength };
+        }
+
+        display() {
+            let pulse = 0.7 + 0.3 * sin(frameNum * 0.015 + this.pulsePhase);
+            let r = map(this.mass, 0.5, 2.0, 5, 12) * pulse;
+
+            // Outer glow rings
+            for (let ring = 5; ring >= 0; ring--) {
+                let rr = r + ring * 8;
+                let alpha = map(ring, 0, 5, 60, 3);
+                noStroke();
+                let c = color(params.colorPalette[0]);
+                c.setAlpha(alpha * pulse);
+                fill(c);
+                ellipse(this.pos.x, this.pos.y, rr * 2);
+            }
+
+            // Bright core
+            fill(255, 255, 240, 220 * pulse);
+            noStroke();
+            ellipse(this.pos.x, this.pos.y, r * 2);
+        }
+    }
+
+    // ── Geodesic Particle: follows curvature, draws trail segments ──
+    class GeodesicParticle {
+        constructor() {
+            this.prevX = 0;
+            this.prevY = 0;
+            this.reset();
+        }
+
+        reset() {
+            // 60% from edges, 40% scattered near center for density
+            if (random() < 0.6) {
+                let edge = floor(random(4));
+                if (edge === 0) { this.x = random(width); this.y = -5; }
+                else if (edge === 1) { this.x = width + 5; this.y = random(height); }
+                else if (edge === 2) { this.x = random(width); this.y = height + 5; }
+                else { this.x = -5; this.y = random(height); }
+            } else {
+                this.x = random(width * 0.1, width * 0.9);
+                this.y = random(height * 0.1, height * 0.9);
+            }
+
+            this.prevX = this.x;
+            this.prevY = this.y;
+            this.vx = random(-0.5, 0.5);
+            this.vy = random(-0.5, 0.5);
+            this.life = random(300, 800);
+            this.age = 0;
+            this.maxSpeed = random(1.0, 3.0) * params.speed;
+
+            // Color assignment
+            let t = random();
+            if (t < 0.45) this.colorIdx = 0;
+            else if (t < 0.85) this.colorIdx = 1;
+            else this.colorIdx = 2;
+        }
+
+        update() {
+            this.prevX = this.x;
+            this.prevY = this.y;
+
+            // Perlin noise curvature field
+            let angle = noise(this.x * params.noiseScale, this.y * params.noiseScale, params.seed * 0.01) * TWO_PI * params.curvature;
+            let fx = cos(angle) * 0.5;
+            let fy = sin(angle) * 0.5;
+
+            // Gravitational lensing from concept nodes
+            for (let node of conceptNodes) {
+                let inf = node.influence(this.x, this.y);
+                fx += inf.fx;
+                fy += inf.fy;
+            }
+
+            // Smooth velocity update (parallel transport)
+            this.vx = this.vx * 0.9 + fx * 0.1;
+            this.vy = this.vy * 0.9 + fy * 0.1;
+
+            let spd = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+            if (spd > this.maxSpeed) {
+                this.vx = (this.vx / spd) * this.maxSpeed;
+                this.vy = (this.vy / spd) * this.maxSpeed;
+            }
+
+            this.x += this.vx;
+            this.y += this.vy;
+            this.age++;
+
+            if (this.age > this.life || this.x < -30 || this.x > width + 30 || this.y < -30 || this.y > height + 30) {
+                this.reset();
+            }
+        }
+
+        display() {
+            let lifeFrac = this.age / this.life;
+            let alphaFade = 1.0;
+            if (lifeFrac < 0.05) alphaFade = lifeFrac / 0.05;
+            else if (lifeFrac > 0.85) alphaFade = (1.0 - lifeFrac) / 0.15;
+
+            let spd = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+            let brightness = map(spd, 0, this.maxSpeed, 0.4, 1.0);
+
+            let c = color(params.colorPalette[this.colorIdx]);
+            // Much higher alpha: base 40-80 range instead of 8
+            let alpha = (30 + params.trailAlpha * 5) * alphaFade * brightness;
+            c.setAlpha(constrain(alpha, 0, 255));
+
+            // Draw line segment from prev to current — visible trail
+            pg.stroke(c);
+            pg.strokeWeight(map(spd, 0, this.maxSpeed, 0.8, 2.5));
+            pg.line(this.prevX, this.prevY, this.x, this.y);
+        }
+    }
+
+    // ── Edge connections between nearby nodes ──
+    function drawConnections() {
+        for (let i = 0; i < conceptNodes.length; i++) {
+            for (let j = i + 1; j < conceptNodes.length; j++) {
+                let d = p5.Vector.dist(conceptNodes[i].pos, conceptNodes[j].pos);
+                if (d < width * 0.45) {
+                    let alpha = map(d, 0, width * 0.45, 30, 3);
+                    let c = color(params.colorPalette[2]);
+                    c.setAlpha(alpha);
+                    stroke(c);
+                    strokeWeight(0.6);
+                    // Slightly curved connections (bezier)
+                    let mx = (conceptNodes[i].pos.x + conceptNodes[j].pos.x) / 2;
+                    let my = (conceptNodes[i].pos.y + conceptNodes[j].pos.y) / 2;
+                    let offset = (noise(i * 100, j * 100) - 0.5) * 60;
+                    noFill();
+                    bezier(
+                        conceptNodes[i].pos.x, conceptNodes[i].pos.y,
+                        mx + offset, my - offset,
+                        mx - offset, my + offset,
+                        conceptNodes[j].pos.x, conceptNodes[j].pos.y
+                    );
+                }
+            }
+        }
+    }
+
+    // ── System initialization ──
+    function initializeSystem() {
+        randomSeed(params.seed);
+        noiseSeed(params.seed);
+        frameNum = 0;
+
+        // Create offscreen buffer for trail accumulation
+        pg = createGraphics(1200, 1200);
+        pg.background(10, 10, 26);
+
+        // Generate concept nodes with minimum spacing
+        conceptNodes = [];
+        let margin = width * 0.12;
+        for (let i = 0; i < params.nodeCount; i++) {
+            let attempts = 0;
+            let x, y, tooClose;
+            do {
+                x = random(margin, width - margin);
+                y = random(margin, height - margin);
+                tooClose = false;
+                for (let n of conceptNodes) {
+                    if (dist(x, y, n.pos.x, n.pos.y) < 100) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                attempts++;
+            } while (tooClose && attempts < 200);
+            let mass = random(0.5, 2.0);
+            conceptNodes.push(new ConceptNode(x, y, mass));
+        }
+
+        // Generate particles
+        particles = [];
+        for (let i = 0; i < params.particleCount; i++) {
+            particles.push(new GeodesicParticle());
+        }
+
+        background(10, 10, 26);
+    }
+
+    // ── p5.js lifecycle ──
+    function setup() {
+        let canvas = createCanvas(1200, 1200);
+        canvas.parent('canvas-container');
+        document.querySelector('.loading').style.display = 'none';
+        initializeSystem();
+    }
+
+    function draw() {
+        // Gentle fade on the trail buffer for persistence
+        pg.noStroke();
+        pg.fill(10, 10, 26, 6);
+        pg.rect(0, 0, pg.width, pg.height);
+
+        // Update and draw particles into trail buffer
+        for (let p of particles) {
+            p.update();
+            p.display();
+        }
+
+        // Composite: draw trail buffer to main canvas
+        image(pg, 0, 0);
+
+        // Draw connections every few frames (on top of trails)
+        if (frameNum % 60 === 0) drawConnections();
+
+        // Draw concept nodes last (always on top)
+        for (let n of conceptNodes) {
+            n.display();
+        }
+
+        frameNum++;
+    }
+
+    // ── UI Handlers ──
+    function updateSeed() {
+        params.seed = parseInt(document.getElementById('seed-input').value) || 0;
+        regenerate();
+    }
+    function previousSeed() {
+        params.seed = Math.max(0, params.seed - 1);
+        document.getElementById('seed-input').value = params.seed;
+        regenerate();
+    }
+    function nextSeed() {
+        params.seed++;
+        document.getElementById('seed-input').value = params.seed;
+        regenerate();
+    }
+    function randomSeedAndUpdate() {
+        params.seed = floor(random(0, 99999));
+        document.getElementById('seed-input').value = params.seed;
+        regenerate();
+    }
+    function updateParam(name, value) {
+        params[name] = parseFloat(value);
+        document.getElementById(name + '-value').textContent = value;
+        regenerate();
+    }
+    function updateColor(id, value) {
+        let idx = parseInt(id.replace('color', '')) - 1;
+        params.colorPalette[idx] = value;
+        document.getElementById(id + '-value').textContent = value;
+        regenerate();
+    }
+    function resetParameters() {
+        params = JSON.parse(JSON.stringify(defaultParams));
+        // Update all UI elements
+        document.getElementById('seed-input').value = params.seed;
+        document.getElementById('nodeCount').value = params.nodeCount;
+        document.getElementById('nodeCount-value').textContent = params.nodeCount;
+        document.getElementById('particleCount').value = params.particleCount;
+        document.getElementById('particleCount-value').textContent = params.particleCount;
+        document.getElementById('curvature').value = params.curvature;
+        document.getElementById('curvature-value').textContent = params.curvature;
+        document.getElementById('noiseScale').value = params.noiseScale;
+        document.getElementById('noiseScale-value').textContent = params.noiseScale;
+        document.getElementById('gravity').value = params.gravity;
+        document.getElementById('gravity-value').textContent = params.gravity;
+        document.getElementById('speed').value = params.speed;
+        document.getElementById('speed-value').textContent = params.speed;
+        document.getElementById('trailAlpha').value = params.trailAlpha;
+        document.getElementById('trailAlpha-value').textContent = params.trailAlpha;
+        for (let i = 0; i < params.colorPalette.length; i++) {
+            document.getElementById('color' + (i+1)).value = params.colorPalette[i];
+            document.getElementById('color' + (i+1) + '-value').textContent = params.colorPalette[i];
+        }
+        regenerate();
+    }
+    function regenerate() {
+        initializeSystem();
+    }
+    function exportImage() {
+        saveCanvas('maenifold-geodesics-' + params.seed, 'png');
+    }
+    </script>
+</body>
+</html>

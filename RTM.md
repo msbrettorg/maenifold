@@ -47,19 +47,13 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 - ✅ RTM-217: ACP initialize handshake has 10-second timeout | TC-32.14 | Integration
 - ✅ RTM-218: Agent command in agents.json validated (absolute path, exists, executable) | TC-32.15 | Unit
 
-### FR-33: Web UI — Files & History Tabs
+### ~~FR-33: Web UI — Files & History Tabs~~ (DEPRECATED)
 
-- □ RTM-219: `list_dir` WebSocket message returns directory listing from agent cwd | TC-33.1 | Integration
-- □ RTM-220: `read_file` WebSocket message returns file contents with MIME type | TC-33.2 | Integration
-- □ RTM-221: `list_sessions` forwarded to ACP agent and response relayed to browser | TC-33.3 | Integration
-- □ RTM-222: `load_session` replays session history to browser via session_update messages | TC-33.4 | Integration
+- ~~RTM-219~~ through ~~RTM-222~~: Deprecated — chrome-acp proxy protocol removed (FR-39). ACP UI handles sessions natively.
 
-### FR-34: Web UI — Community-Scoped Graph View
+### ~~FR-34: Web UI — Community-Scoped Graph View~~ (DEPRECATED)
 
-- □ RTM-223: `GET /api/graph/communities` returns community summaries with label, member count, top concepts | TC-34.1 | Integration
-- □ RTM-224: Default graph view shows community nodes, not individual concepts | TC-34.2 | Frontend
-- □ RTM-225: Clicking a community node drills into its member concepts | TC-34.3 | Frontend
-- □ RTM-226: "Back to communities" button returns to overview | TC-34.4 | Frontend
+- ~~RTM-223~~ through ~~RTM-226~~: Deprecated — GraphView disabled, future graph viz will be an ACP UI panel extension.
 
 ### FR-37: MCP Server Hardening
 
@@ -94,3 +88,25 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 - ✅ RTM-249: make web-build produces working binary with embedded ACP UI SPA | TC-39.10 | Build
 - ✅ RTM-250: ACP UI renders in browser with agent dropdown, sessions, chat, model picker | TC-39.11 | Frontend
 - ✅ RTM-251: Full ACP round-trip: select agent → connect → prompt → response rendered | TC-39.12 | Integration
+
+## FR-35: System Tray Icon (Sprint 29)
+
+- ✅ RTM-260: tray-icon + winit + muda crates added to maenifold-core | Build
+- ✅ RTM-261: Tray icon appears in macOS menu bar when running --web | Functional
+- ✅ RTM-262: Tray icon appears in macOS menu bar when running --http | Functional
+- ✅ RTM-263: "Open Web UI" menu item opens browser to localhost:port | Functional
+- ✅ RTM-264: "Help" menu item opens GitHub issues page | Functional
+- ✅ RTM-265: "Quit" menu item triggers graceful server shutdown via CancellationToken | Functional
+- ✅ RTM-266: --mcp mode remains headless — no tray icon, no native event loop | Functional
+- ✅ RTM-267: Main thread runs native event loop (macOS requirement); tokio on background thread | Architecture
+- ✅ RTM-268: Tray icon disappears on shutdown | Functional
+- ✅ RTM-269: Cognitive Geodesics icon asset at assets/tray-icon.png | Asset
+
+## FR-36: Remove Cargo Feature Flags (Sprint 29)
+
+- ✅ RTM-270: [features] section removed from maenifold-core Cargo.toml | Build
+- ✅ RTM-271: [features] section removed from maenifold-cli Cargo.toml | Build
+- ✅ RTM-272: All #[cfg(feature = "...")] gates removed from crates/ | Code
+- ✅ RTM-273: --features flag removed from Makefile | Build
+- ✅ RTM-274: cargo build --release -p maenifold-cli succeeds without --features | Build
+- ✅ RTM-275: All previously feature-gated deps compile unconditionally | Build

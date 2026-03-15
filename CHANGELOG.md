@@ -5,6 +5,20 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 29 — System Tray Icon & Remove Feature Flags — 2026-03-15
+
+### Added
+- **System tray icon** (FR-35): macOS menu bar icon with "Open Web UI", "Help", "Quit" menu items when running `--web` or `--http`. Uses `tray-icon` + `winit` for native event loop on main thread; tokio server on background thread. Graceful shutdown via `CancellationToken`.
+- **Cognitive Geodesics** tray icon art: generative algorithmic art at `assets/tray-icon.png` — concept nodes warping a knowledge manifold with geodesic particle flows.
+- Dependencies: `tray-icon`, `muda`, `winit`, `open`, `image`, `objc2-core-foundation` (macOS)
+
+### Changed
+- **Feature flags removed** (FR-36): Removed `http` and `web` cargo feature flags from all crates. All deps compile unconditionally. `cargo build --release -p maenifold-cli` works without `--features`. All 10 `#[cfg(feature = "...")]` gates removed.
+- `Makefile`: `--features web` removed from build command
+- `main.rs` restructured: dispatches `--web`/`--http` to tray event loop, `--mcp` stays headless
+
+---
+
 ## Sprint 28 — Replace chrome-acp with ACP UI — 2026-03-15
 
 ### Changed

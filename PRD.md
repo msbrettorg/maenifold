@@ -39,23 +39,15 @@ The system SHALL support a `--web` CLI flag that launches a browser-accessible w
 - **Graph visualization**: Force-directed graph view of the knowledge graph (concepts as nodes, co-occurrence as edges, communities as clusters), exposed via REST API endpoints at `/api/graph/*`.
 - **Agent configuration**: `agents.json` config file (in maenifold config dir) defining available ACP agents with command, args, and env vars. Supports fetching the [ACP registry](https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json).
 
-### FR-33: Web UI — Files & History Tabs
+### ~~FR-33: Web UI — Files & History Tabs~~ (DEPRECATED)
 
-The system SHALL support file browsing and session history in the web UI.
+Deprecated: ACP UI (FR-39) provides native session management. The chrome-acp proxy protocol that FR-33 targeted has been removed. File browsing is handled by the ACP agent itself.
 
-- **Files tab**: The WebSocket relay SHALL handle `list_dir` and `read_file` messages from the browser, reading from the agent's working directory (cwd from `new_session`). Returns directory listings and file contents over the same WebSocket connection using the chrome-acp proxy protocol (`dir_listing`, `file_content` response types).
-- **History tab**: The WebSocket relay SHALL handle `list_sessions`, `load_session`, and `resume_session` messages by forwarding them to the ACP agent (if the agent supports session capabilities). Returns session lists and replays session history via the standard ACP protocol.
+### ~~FR-34: Web UI — Community-Scoped Graph View~~ (DEPRECATED)
 
-### FR-34: Web UI — Community-Scoped Graph View
+Deprecated: GraphView was disabled due to performance issues (30s forced refresh). Future graph visualization will be implemented as an ACP UI Vue panel extension, not as the chrome-acp React component this FR targeted.
 
-The graph visualization SHALL default to showing Louvain community summaries rather than the full concept graph.
-
-- **Community view**: Default view shows one node per community (labeled with top concept by degree), sized by member count, edges by inter-community co-occurrence weight.
-- **Drill-down**: Clicking a community node switches to showing all concepts within that community with intra-community edges.
-- **Back navigation**: A "Back to communities" button returns to the overview.
-- **API**: `GET /api/graph/communities` returns community summaries: `{ "id": N, "label": "...", "member_count": N, "top_concepts": [...] }`.
-
-### FR-35: System Tray Icon
+### FR-35: System Tray Icon ✅ Sprint 29
 
 The system SHALL display a system tray icon (macOS menu bar / Windows system tray / Linux notification area) when running in `--web` or `--http` mode.
 
@@ -64,7 +56,7 @@ The system SHALL display a system tray icon (macOS menu bar / Windows system tra
 - **Implementation**: Uses the `tray-icon` crate. The native event loop runs on the main thread; the tokio runtime and server run on a background thread.
 - **Applicability**: Only active in `--web` and `--http` modes. Stdio mode (`--mcp`) is headless.
 
-### FR-36: Remove Cargo Feature Flags
+### FR-36: Remove Cargo Feature Flags ✅ Sprint 29
 
 The system SHALL compile all functionality unconditionally — no cargo feature flags.
 

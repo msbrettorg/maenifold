@@ -4,25 +4,20 @@ version = "0.1.0"
 edition = "2024"
 autotests = false
 
-[features]
-# T-17.1: RTM FR-23 (RTM-126) - gate Streamable HTTP transport deps behind `http`.
-http = ["rmcp/transport-streamable-http-server", "dep:axum", "dep:tower-http", "dep:tokio-util"]
-web = ["http", "dep:rust-embed", "dep:mime_guess"]
-
 [dependencies]
 anyhow.workspace = true
-axum = { workspace = true, optional = true, features = ["ws"] }
+axum = { workspace = true, features = ["ws"] }
 base64.workspace = true
 chrono.workspace = true
 gray_matter.workspace = true
 libc.workspace = true
-mime_guess = { version = "2", optional = true }
+mime_guess = { version = "2" }
 notify = { version = "7", features = ["macos_fsevent"] }
 once_cell.workspace = true
 parking_lot.workspace = true
 pulldown-cmark.workspace = true
 regex.workspace = true
-rust-embed = { version = "8", features = ["interpolate-folder-path"], optional = true }
+rust-embed = { version = "8", features = ["interpolate-folder-path"] }
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -31,15 +26,21 @@ sha2.workspace = true
 slug.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["process", "time"] }
-tokio-util = { workspace = true, optional = true, features = ["compat"] }
-rmcp.workspace = true
-tower-http = { workspace = true, optional = true }
+tokio-util = { workspace = true, features = ["compat"] }
+rmcp = { workspace = true, features = ["transport-streamable-http-server"] }
+tower-http.workspace = true
 uuid.workspace = true
 walkdir.workspace = true
 urlencoding.workspace = true
 ort.workspace = true
 tokenizers.workspace = true
 ndarray = "0.16"
+# T-29.2: RTM FR-35 — system tray icon for --web/--http modes on macOS.
+tray-icon = "0.21"
+winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFRunLoop"] }
 
 [dev-dependencies]
 assert_cmd.workspace = true

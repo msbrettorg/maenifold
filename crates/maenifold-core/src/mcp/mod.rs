@@ -1,16 +1,13 @@
 // T-12.0: RTM NFR-1 — consolidate MCP runtime into a directory module while preserving
 // the existing crate::mcp facade and resource entrypoints.
-#[cfg(feature = "http")]
 pub mod http;
 pub mod resources;
 pub mod schema;
-#[cfg(feature = "web")]
 mod web;
 pub use resources::*;
 
 // FR-32-SEC: Shared CORS factory restricting origins to localhost variants
 // while keeping all methods and headers allowed for MCP transport.
-#[cfg(any(feature = "http", feature = "web"))]
 pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
     use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 

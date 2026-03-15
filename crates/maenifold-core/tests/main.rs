@@ -105,7 +105,6 @@ mod graph_analyzer_visualize_validation;
 mod graph_decay_access;
 mod graph_decay_graph;
 mod graph_decay_search;
-#[cfg(feature = "http")]
 mod http_transport_tests;
 mod incremental_sync_boundary_guards;
 mod incremental_sync_boundary_mutations;

@@ -1,6 +1,6 @@
 ---
 name: product-manager
-description: Use this agent when the user needs product management, sprint planning, backlog management, TDD orchestration with red-team/blue-team validation, requirements traceability (PRD/RTM/TODO), or coordinating parallel task execution across SWE, researcher, and security agents. This agent excels at decomposing work into parallel-safe micro-tasks, orchestrating subagent teams, and delivering Simple, Lovable, and Complete products.
+description: Use this agent when the user needs product management, sprint planning, backlog management, TDD orchestration with red-team/blue-team validation, requirements traceability (PRD/RTM/TODO), or coordinating parallel task execution across SWE, researcher, and security agents.
 skills:
   - maenifold
 tools:

@@ -53,39 +53,53 @@ fn build_icon() -> Icon {
     Icon::from_rgba(rgba, size, size).expect("valid 32×32 RGBA icon")
 }
 
-/// Rough "M" letter mask for a 32×32 grid.
+/// Rough lowercase "m" letter mask for a 32×32 grid.
 fn is_m_pixel(x: u32, y: u32, size: u32) -> bool {
-    // Only draw in the inner region.
-    if y < 6 || y > size - 7 {
+    let top = size * 3 / 8;
+    let baseline = size * 3 / 4;
+
+    if y < top || y > baseline {
         return false;
     }
-    // Left vertical stroke
-    if (6..=9).contains(&x) {
-        return true;
-    }
-    // Right vertical stroke
-    if x >= size - 10 && x <= size - 7 {
-        return true;
-    }
-    // Left diagonal (top half)
-    if y < size / 2 {
-        let d = (y - 6) * 10 / (size / 2 - 6);
-        let cx = 9 + d;
-        if x >= cx && x <= cx + 2 {
-            return true;
-        }
-    }
-    // Right diagonal (top half)
-    if y < size / 2 {
-        let d = (y - 6) * 10 / (size / 2 - 6);
-        if d + 3 <= size - 7 {
-            let cx = size - 7 - d;
-            if cx >= 2 && x >= cx - 2 && x <= cx {
-                return true;
+
+    let left_stem = size * 3 / 16;
+    let first_peak = size * 13 / 32;
+    let middle_stem = size / 2 + 1;
+    let second_peak = size * 21 / 32;
+    let right_stem = size * 3 / 4 + 1;
+    let stroke_half_width = 1.5f32; // ≈3 px strokes on a 32×32 icon
+
+    let px = x as f32;
+    let py = y as f32;
+
+    let hits_segment =
+        |x0: u32, y0: u32, x1: u32, y1: u32| -> bool {
+            let x0 = x0 as f32;
+            let y0 = y0 as f32;
+            let x1 = x1 as f32;
+            let y1 = y1 as f32;
+            let dx = x1 - x0;
+            let dy = y1 - y0;
+            let len_sq = dx * dx + dy * dy;
+            if len_sq == 0.0 {
+                return (px - x0).abs() <= stroke_half_width
+                    && (py - y0).abs() <= stroke_half_width;
             }
-        }
-    }
-    false
+
+            let t = (((px - x0) * dx + (py - y0) * dy) / len_sq).clamp(0.0, 1.0);
+            let nearest_x = x0 + t * dx;
+            let nearest_y = y0 + t * dy;
+            let dist_sq = (px - nearest_x).powi(2) + (py - nearest_y).powi(2);
+            dist_sq <= stroke_half_width.powi(2)
+        };
+
+    hits_segment(left_stem, top, left_stem, baseline)
+        || hits_segment(left_stem + 1, baseline, first_peak, top)
+        || hits_segment(first_peak, top, middle_stem, baseline)
+        || hits_segment(middle_stem, top + 3, middle_stem, baseline)
+        || hits_segment(middle_stem, baseline, second_peak, top)
+        || hits_segment(second_peak, top, right_stem, baseline)
+        || hits_segment(right_stem, top, right_stem, baseline)
 }
 
 // ── URL helpers ───────────────────────────────────────────────────────

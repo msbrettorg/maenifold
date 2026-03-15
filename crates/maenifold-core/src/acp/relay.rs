@@ -101,15 +101,10 @@ pub async fn ws_handler(
 
 pub struct RelayState {
     pub config: AgentsConfig,
-    pub default_agent: Option<String>,
 }
 
 pub fn acp_routes(config: AgentsConfig) -> Router {
-    let default_agent = config.agents.keys().next().cloned();
-    let state = Arc::new(RelayState {
-        config,
-        default_agent,
-    });
+    let state = Arc::new(RelayState { config });
     Router::new()
         .route("/ws/acp", get(ws_handler))
         .with_state(state)
@@ -127,18 +122,44 @@ async fn handle_socket(
     let (command_tx, command_rx) = mpsc::channel::<WorkerCommand>(256);
     let (event_tx, mut event_rx) = mpsc::channel::<WorkerEvent>(256);
 
-    // Use ?agent= query param, fall back to first available
-    let agent_name = params
-        .get("agent")
-        .filter(|n| !n.is_empty() && state.config.agents.contains_key(n.as_str()))
-        .cloned()
-        .or_else(|| state.default_agent.clone())
-        .unwrap_or_default();
+    let mut available_agents = state.config.agents.keys().cloned().collect::<Vec<_>>();
+    available_agents.sort();
+    let available_agents_msg = if available_agents.is_empty() {
+        "none".to_string()
+    } else {
+        available_agents.join(", ")
+    };
+
+    let agent_name = match params.get("agent").map(|name| name.trim()) {
+        Some(name) if !name.is_empty() => name.to_string(),
+        _ => {
+            let message = format!(
+                "No agent specified. Use ?agent=<name> query parameter. Available agents: {available_agents_msg}"
+            );
+            let _ = socket.send(Message::Text(error_msg(&message).into())).await;
+            let _ = socket
+                .send(Message::Close(Some(CloseFrame {
+                    code: 1008,
+                    reason: "Missing agent query parameter".into(),
+                })))
+                .await;
+            return;
+        }
+    };
     let agent_entry = match state.config.agents.get(&agent_name) {
         Some(entry) => entry.clone(),
         None => {
+            let message = format!(
+                "Unknown agent '{agent_name}'. Available agents: {available_agents_msg}"
+            );
             let _ = socket
-                .send(Message::Text(error_msg("No agents configured").into()))
+                .send(Message::Text(error_msg(&message).into()))
+                .await;
+            let _ = socket
+                .send(Message::Close(Some(CloseFrame {
+                    code: 1008,
+                    reason: "Unknown agent".into(),
+                })))
                 .await;
             return;
         }

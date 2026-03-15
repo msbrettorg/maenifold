@@ -49,6 +49,14 @@ Every sprint **must** complete ALL of the following before handoff:
 8. ✅ Branch merged to main (if sprint branch used)
 9. ✅ No untracked source files left uncommitted
 
-All tests must pass. No warnings. No ignored tests.
+Release gates:
+- All tests must pass. No warnings. No ignored tests.
+- The PM must smoke test all changes using the release binary.
+- PM must prove that the Web UI can chat with OpenCode and Copilot via ACP.
+- A sprint that ships a stale binary is a broken sprint. Period.
 
-**A sprint that ships a stale binary is a broken sprint. Period.**
+## Web UI / ACP Rules
+
+- **The WebSocket URI MUST specify the agent via `?agent=` query parameter.** Example: `ws://localhost:9878/ws/acp?agent=OpenCode`. Never connect without specifying the agent.
+- **No default agent fallback.** The relay must NOT silently pick the first agent from `agents.json` when no `?agent=` is provided. If the parameter is missing, the connection must be rejected with an error.
+- **The PM must connect to a specific agent by name during smoke tests.** Connecting to the bare `/ws/acp` endpoint without `?agent=` is a test failure.

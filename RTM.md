@@ -60,3 +60,22 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 - □ RTM-224: Default graph view shows community nodes, not individual concepts | TC-34.2 | Frontend
 - □ RTM-225: Clicking a community node drills into its member concepts | TC-34.3 | Frontend
 - □ RTM-226: "Back to communities" button returns to overview | TC-34.4 | Frontend
+
+### FR-37: MCP Server Hardening
+
+- ✅ RTM-227: call_tool offloads to spawn_blocking | TC-37.1 | Unit
+- ✅ RTM-228: list_resources offloads to spawn_blocking | TC-37.2 | Unit
+- ✅ RTM-229: read_resource offloads to spawn_blocking | TC-37.3 | Unit
+- ✅ RTM-230: HTTP sessions expire after 5 min idle via keep_alive config | TC-37.4 | Integration
+- ✅ RTM-231: CORS applied to /mcp endpoint in web mode | TC-37.5 | Integration
+- ✅ RTM-232: Mcp-Session-Id exposed in CORS response headers | TC-37.6 | Integration
+- ✅ RTM-233: HTTP/web transports do not advertise resources/list_changed | TC-37.7 | Unit
+- ✅ RTM-234: MaenifoldError::Message not in is_validation_error | TC-37.8 | Unit
+- ✅ RTM-235: replace_section returns error instead of panic on missing heading_end | TC-37.9 | Unit
+- ✅ RTM-236: current_asset_manager does not call initialize_runtime | TC-37.10 | Unit
+
+### FR-38: Rust MCP Expert Agent Rewrite
+
+- ✅ RTM-237: Agent file references rmcp 1.1.0 | TC-38.1 | Review
+- ✅ RTM-238: All code examples compile against rmcp 1.1.0 | TC-38.2 | Review
+- ✅ RTM-239: Transport section covers stdio + streamable HTTP correctly | TC-38.3 | Review

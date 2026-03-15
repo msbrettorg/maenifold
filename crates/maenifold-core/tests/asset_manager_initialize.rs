@@ -146,8 +146,8 @@ fn initialize_assets_skips_directory_symlinks_and_continues_copying_regular_asse
 
     let symlinked_dir_name = unique_suffix("asset-manager-init-symlink-dir");
     let symlinked_dir = asset_manager_support::workspace_assets_root().join(&symlinked_dir_name);
-    let real_dir = asset_manager_support::workspace_assets_root()
-        .join(format!("{symlinked_dir_name}-target"));
+    let real_dir =
+        asset_manager_support::workspace_assets_root().join(format!("{symlinked_dir_name}-target"));
     fs::create_dir_all(&real_dir).expect("create symlink target dir");
     symlink(&real_dir, &symlinked_dir).expect("create packaged directory symlink");
     let _symlink_guard = DirectorySymlinkGuard {

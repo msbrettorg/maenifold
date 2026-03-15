@@ -28,10 +28,13 @@ fn server_msg(r#type: &str, payload: Value) -> String {
 }
 
 fn status_connected(name: &str) -> String {
-    server_msg("status", serde_json::json!({
-        "connected": true,
-        "agentInfo": { "name": name, "version": "1.0" }
-    }))
+    server_msg(
+        "status",
+        serde_json::json!({
+            "connected": true,
+            "agentInfo": { "name": name, "version": "1.0" }
+        }),
+    )
 }
 
 fn status_disconnected() -> String {
@@ -39,21 +42,30 @@ fn status_disconnected() -> String {
 }
 
 fn session_created(session_id: &str) -> String {
-    server_msg("session_created", serde_json::json!({ "sessionId": session_id }))
+    server_msg(
+        "session_created",
+        serde_json::json!({ "sessionId": session_id }),
+    )
 }
 
 fn session_update_chunk(session_id: &str, text: &str) -> String {
-    server_msg("session_update", serde_json::json!({
-        "sessionId": session_id,
-        "update": {
-            "sessionUpdate": "agent_message_chunk",
-            "content": { "type": "text", "text": text }
-        }
-    }))
+    server_msg(
+        "session_update",
+        serde_json::json!({
+            "sessionId": session_id,
+            "update": {
+                "sessionUpdate": "agent_message_chunk",
+                "content": { "type": "text", "text": text }
+            }
+        }),
+    )
 }
 
 fn prompt_complete() -> String {
-    server_msg("prompt_complete", serde_json::json!({ "stopReason": "end_turn" }))
+    server_msg(
+        "prompt_complete",
+        serde_json::json!({ "stopReason": "end_turn" }),
+    )
 }
 
 fn error_msg(msg: &str) -> String {
@@ -105,14 +117,19 @@ pub fn acp_routes(config: AgentsConfig) -> Router {
 
 // ── Socket handler ──────────────────────────────────────────────────────
 
-async fn handle_socket(mut socket: WebSocket, params: HashMap<String, String>, state: Arc<RelayState>) {
+async fn handle_socket(
+    mut socket: WebSocket,
+    params: HashMap<String, String>,
+    state: Arc<RelayState>,
+) {
     // Bounded channels (capacity 256) to cap memory if the browser stalls or
     // the worker falls behind.  See FR-32-SEC / TC-SEC.3.
     let (command_tx, command_rx) = mpsc::channel::<WorkerCommand>(256);
     let (event_tx, mut event_rx) = mpsc::channel::<WorkerEvent>(256);
 
     // Use ?agent= query param, fall back to first available
-    let agent_name = params.get("agent")
+    let agent_name = params
+        .get("agent")
         .filter(|n| !n.is_empty() && state.config.agents.contains_key(n.as_str()))
         .cloned()
         .or_else(|| state.default_agent.clone())
@@ -120,12 +137,20 @@ async fn handle_socket(mut socket: WebSocket, params: HashMap<String, String>, s
     let agent_entry = match state.config.agents.get(&agent_name) {
         Some(entry) => entry.clone(),
         None => {
-            let _ = socket.send(Message::Text(error_msg("No agents configured").into())).await;
+            let _ = socket
+                .send(Message::Text(error_msg("No agents configured").into()))
+                .await;
             return;
         }
     };
     let cwd = crate::config::Config::current().maenifold_root;
-    spawn_agent_worker(agent_name.clone(), agent_entry, cwd, command_rx, event_tx.clone());
+    spawn_agent_worker(
+        agent_name.clone(),
+        agent_entry,
+        cwd,
+        command_rx,
+        event_tx.clone(),
+    );
 
     loop {
         tokio::select! {
@@ -248,13 +273,18 @@ fn spawn_agent_worker(
             Ok(r) => r,
             Err(e) => {
                 // Pre-runtime: no async context available, use try_send.
-                let _ = event_tx.try_send(WorkerEvent::Error(format!("Runtime creation failed: {e}")));
+                let _ =
+                    event_tx.try_send(WorkerEvent::Error(format!("Runtime creation failed: {e}")));
                 return;
             }
         };
         let local = tokio::task::LocalSet::new();
         runtime.block_on(local.run_until(run_agent_worker(
-            agent_name, agent_entry, cwd, command_rx, event_tx,
+            agent_name,
+            agent_entry,
+            cwd,
+            command_rx,
+            event_tx,
         )));
     });
 }
@@ -293,7 +323,19 @@ async fn run_agent_worker(
             }
         } else {
             match command_rx.recv().await {
-                Some(cmd) => handle_worker_command(cmd, &agent_name, &agent_entry, &cwd, &mut manager, &mut session_id, &mut text_rx, &event_tx).await,
+                Some(cmd) => {
+                    handle_worker_command(
+                        cmd,
+                        &agent_name,
+                        &agent_entry,
+                        &cwd,
+                        &mut manager,
+                        &mut session_id,
+                        &mut text_rx,
+                        &event_tx,
+                    )
+                    .await
+                }
                 None => break,
             }
         }
@@ -317,10 +359,14 @@ async fn handle_worker_command(
                 &agent_entry.args,
                 &agent_entry.env,
                 cwd,
-            ).await {
+            )
+            .await
+            {
                 Ok(mut mgr) => {
                     *text_rx = Some(mgr.take_text_stream());
-                    let _ = event_tx.send(WorkerEvent::Status(status_connected(agent_name))).await;
+                    let _ = event_tx
+                        .send(WorkerEvent::Status(status_connected(agent_name)))
+                        .await;
                     *manager = Some(mgr);
                 }
                 Err(e) => {
@@ -331,23 +377,33 @@ async fn handle_worker_command(
         WorkerCommand::NewSession { cwd: _ } => {
             if let &mut Some(ref mgr) = manager {
                 *session_id = mgr.session_id().to_string();
-                let _ = event_tx.send(WorkerEvent::SessionCreated(session_id.clone())).await;
+                let _ = event_tx
+                    .send(WorkerEvent::SessionCreated(session_id.clone()))
+                    .await;
             } else {
-                let _ = event_tx.send(WorkerEvent::Error("Agent not connected".into())).await;
+                let _ = event_tx
+                    .send(WorkerEvent::Error("Agent not connected".into()))
+                    .await;
             }
         }
         WorkerCommand::Prompt { content } => {
             if let &mut Some(ref mgr) = manager {
-                let messages: Vec<String> = content.iter()
+                let messages: Vec<String> = content
+                    .iter()
                     .filter_map(|block| {
-                        block.get("text").and_then(|v| v.as_str()).map(|s| s.to_string())
+                        block
+                            .get("text")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string())
                     })
                     .collect();
                 if let Err(e) = mgr.prompt(messages).await {
                     let _ = event_tx.send(WorkerEvent::Error(e.to_string())).await;
                 }
             } else {
-                let _ = event_tx.send(WorkerEvent::Error("Agent not connected".into())).await;
+                let _ = event_tx
+                    .send(WorkerEvent::Error("Agent not connected".into()))
+                    .await;
             }
         }
     }

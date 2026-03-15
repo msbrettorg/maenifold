@@ -5,6 +5,27 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 27 — MCP Server Hardening — 2026-03-15
+
+### Fixed
+- **CRITICAL**: Tool/resource handlers offloaded to `spawn_blocking` — no longer block async runtime (filesystem, SQLite, ONNX inference)
+- **CRITICAL**: HTTP sessions expire after 5 min idle (`keep_alive: 300s`) — no more unbounded session accumulation
+- CORS applied to `/mcp` endpoint in web mode (was only on API sub-router)
+- `Mcp-Session-Id` header exposed in CORS responses for browser MCP clients
+- HTTP/web transports no longer falsely advertise `resources/list_changed` capability
+- `MaenifoldError::Message` removed from validation error classifier — internal errors no longer misclassified
+- Panic in `replace_section` replaced with proper error return (`expect` → `ok_or_else`)
+- Redundant `initialize_runtime` call removed from resource request hot path
+
+### Changed
+- `rust-mcp-expert.agent.md` fully rewritten for rmcp 1.1.0 (was written for v0.8+, contained 18+ non-compilable examples)
+
+### Requirements Completed
+- FR-37 (RTM-227–236): MCP Server Hardening
+- FR-38 (RTM-237–239): Rust MCP Expert Agent Rewrite
+
+---
+
 ## Sprint 26 — Web UI Full Feature Parity — 2025-07-23
 
 ### Added

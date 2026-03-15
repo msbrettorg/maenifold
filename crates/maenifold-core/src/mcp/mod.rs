@@ -14,22 +14,25 @@ pub use resources::*;
 pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
     use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
-    let origin_predicate = AllowOrigin::predicate(|origin: &axum::http::HeaderValue, _parts: &axum::http::request::Parts| {
-        let Ok(s) = origin.to_str() else {
-            return false;
-        };
-        s == "http://localhost"
-            || s.starts_with("http://localhost:")
-            || s == "http://127.0.0.1"
-            || s.starts_with("http://127.0.0.1:")
-            || s == "http://[::1]"
-            || s.starts_with("http://[::1]:")
-    });
+    let origin_predicate = AllowOrigin::predicate(
+        |origin: &axum::http::HeaderValue, _parts: &axum::http::request::Parts| {
+            let Ok(s) = origin.to_str() else {
+                return false;
+            };
+            s == "http://localhost"
+                || s.starts_with("http://localhost:")
+                || s == "http://127.0.0.1"
+                || s.starts_with("http://127.0.0.1:")
+                || s == "http://[::1]"
+                || s.starts_with("http://[::1]:")
+        },
+    );
 
     CorsLayer::new()
         .allow_origin(origin_predicate)
         .allow_methods(AllowMethods::any())
         .allow_headers(AllowHeaders::any())
+        .expose_headers([axum::http::HeaderName::from_static("mcp-session-id")])
 }
 
 use self::schema::mcp_tool_from_registry_name;
@@ -53,11 +56,18 @@ pub struct MaenifoldMcpServer;
 
 // T-5.1: RTM FR-22.1 — rmcp-based async MCP handler.
 struct MaenifoldHandler {
+    transport: TransportKind,
     tools: Vec<Tool>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TransportKind {
+    Stdio,
+    Http,
+}
+
 impl MaenifoldHandler {
-    fn new() -> Result<Self> {
+    fn new(transport: TransportKind) -> Result<Self> {
         let mcp_tools = list_mcp_tools(&ToolRegistry::new())?;
         let tools = mcp_tools
             .into_iter()
@@ -69,7 +79,7 @@ impl MaenifoldHandler {
                 Tool::new(t.name, t.description, Arc::new(schema))
             })
             .collect();
-        Ok(Self { tools })
+        Ok(Self { transport, tools })
     }
 }
 
@@ -77,15 +87,21 @@ impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
         // T-10.2: RTM FR-11 / RTM-068 — MCP initialize advertises native resources support.
         // T-5.1: RTM FR-22.1 — server info returned during MCP initialize handshake.
-        ServerInfo::new(
-            ServerCapabilities::builder()
+        let capabilities = match self.transport {
+            TransportKind::Stdio => ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
                 // T-10.3: RTM FR-11 / RTM-071 — advertise MCP resource list change
                 // notifications so clients know to expect notifications/resources/list_changed.
                 .enable_resources_list_changed()
                 .build(),
-        )
+            TransportKind::Http => ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .build(),
+        };
+
+        ServerInfo::new(capabilities)
         .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
         .with_instructions(
             "Use maenifold tools to read, write, search, and organize memory files, \
@@ -116,9 +132,12 @@ impl ServerHandler for MaenifoldHandler {
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> impl Future<Output = std::result::Result<ListResourcesResult, rmcp::ErrorData>> + Send + '_
     {
-        std::future::ready(
-            self::resources::handle_list_resources().map_err(self::resources::map_resource_error),
-        )
+        async move {
+            tokio::task::spawn_blocking(self::resources::handle_list_resources)
+                .await
+                .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
+                .map_err(self::resources::map_resource_error)
+        }
     }
 
     // T-10.2: RTM FR-11 / RTM-070 — resources/read resolves asset://{type}/{id} URIs to JSON payloads.
@@ -128,10 +147,14 @@ impl ServerHandler for MaenifoldHandler {
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> impl Future<Output = std::result::Result<ReadResourceResult, rmcp::ErrorData>> + Send + '_
     {
-        std::future::ready(
-            self::resources::handle_read_resource(&request.uri)
-                .map_err(self::resources::map_resource_error),
-        )
+        let uri = request.uri.to_string();
+
+        async move {
+            tokio::task::spawn_blocking(move || self::resources::handle_read_resource(&uri))
+                .await
+                .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
+                .map_err(self::resources::map_resource_error)
+        }
     }
 
     // T-5.1: RTM FR-22.1 — tools/call dispatches through ToolRegistry.
@@ -146,16 +169,27 @@ impl ServerHandler for MaenifoldHandler {
             Some(map) => Value::Object(map),
             None => json!({}),
         };
+        let tool_name_for_invoke = tool_name.clone();
 
-        std::future::ready(
-            match ToolRegistry::global().try_invoke(&tool_name, &arguments, OutputFormat::Json) {
+        async move {
+            let result = tokio::task::spawn_blocking(move || {
+                ToolRegistry::global().try_invoke(
+                    &tool_name_for_invoke,
+                    &arguments,
+                    OutputFormat::Json,
+                )
+            })
+            .await
+            .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?;
+
+            match result {
                 Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
                 // T-11.6: RTM FR-11 preserves raw validation diagnostics while prefixing internal failures.
                 Err(err) => Ok(CallToolResult::error(vec![Content::text(
                     format_tool_error(&tool_name, &err),
                 )])),
-            },
-        )
+            }
+        }
     }
 }
 
@@ -168,7 +202,7 @@ impl MaenifoldMcpServer {
     pub async fn serve_stdio() -> Result<()> {
         let config = Config::current();
         initialize_runtime(&config)?;
-        let handler = MaenifoldHandler::new()?;
+        let handler = MaenifoldHandler::new(TransportKind::Stdio)?;
         let transport = rmcp::transport::io::stdio();
         let service = handler
             .serve(transport)
@@ -229,7 +263,6 @@ fn is_validation_error(err: &MaenifoldError) -> bool {
             | MaenifoldError::AssetNotFound(_, _)
             | MaenifoldError::PathTraversal(_)
             | MaenifoldError::MissingProperty(_)
-            | MaenifoldError::Message(_)
     )
 }
 
@@ -289,13 +322,20 @@ mod tests {
     // T-5.1: RTM FR-22.1 — handler builds and exposes correct server info.
     #[test]
     fn t_5_1_handler_server_info_matches_expected() {
-        let handler = MaenifoldHandler::new().expect("handler should build");
+        let handler = MaenifoldHandler::new(TransportKind::Stdio).expect("handler should build");
         let info = handler.get_info();
 
         assert_eq!(info.server_info.name, "maenifold");
         assert!(!info.server_info.version.is_empty());
         assert!(info.capabilities.tools.is_some());
         assert!(info.capabilities.resources.is_some());
+        assert_eq!(
+            info.capabilities
+                .resources
+                .as_ref()
+                .and_then(|resources| resources.list_changed),
+            Some(true)
+        );
         assert!(info.instructions.is_some());
         assert!(
             info.instructions
@@ -308,12 +348,48 @@ mod tests {
     // T-5.1: RTM FR-22.1 — handler converts all 28 McpToolDefinitions into rmcp Tools.
     #[test]
     fn t_5_1_handler_builds_28_rmcp_tools() {
-        let handler = MaenifoldHandler::new().expect("handler should build");
+        let handler = MaenifoldHandler::new(TransportKind::Stdio).expect("handler should build");
         assert_eq!(handler.tools.len(), 28);
 
         let names: BTreeSet<&str> = handler.tools.iter().map(|t| t.name.as_ref()).collect();
         assert!(names.contains("WriteMemory"));
         assert!(names.contains("SequentialThinking"));
         assert!(names.contains("ReadMcpResource"));
+    }
+
+    #[test]
+    fn t_27_4_http_handler_does_not_advertise_resource_list_changed() {
+        let handler = MaenifoldHandler::new(TransportKind::Http).expect("handler should build");
+        let info = handler.get_info();
+
+        assert!(info.capabilities.resources.is_some());
+        assert_eq!(
+            info.capabilities
+                .resources
+                .as_ref()
+                .and_then(|resources| resources.list_changed),
+            None
+        );
+    }
+
+    #[test]
+    fn t_27_5_message_errors_are_not_validation_errors() {
+        let err = MaenifoldError::Message("database unavailable".to_string());
+
+        assert!(!is_validation_error(&err));
+        assert_eq!(
+            format_tool_error("WriteMemory", &err),
+            "Error invoking WriteMemory: database unavailable"
+        );
+    }
+
+    #[test]
+    fn t_27_5_message_resource_errors_map_to_internal_error() {
+        let err = self::resources::map_resource_error(MaenifoldError::Message(
+            "database unavailable".to_string(),
+        ));
+
+        assert_eq!(err.code, rmcp::model::ErrorCode::INTERNAL_ERROR);
+        assert_eq!(err.message.as_ref(), "database unavailable");
     }
 }

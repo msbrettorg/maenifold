@@ -55,3 +55,36 @@ The graph visualization SHALL default to showing Louvain community summaries rat
 - **Drill-down**: Clicking a community node switches to showing all concepts within that community with intra-community edges.
 - **Back navigation**: A "Back to communities" button returns to the overview.
 - **API**: `GET /api/graph/communities` returns community summaries: `{ "id": N, "label": "...", "member_count": N, "top_concepts": [...] }`.
+
+### FR-35: System Tray Icon
+
+The system SHALL display a system tray icon (macOS menu bar / Windows system tray / Linux notification area) when running in `--web` or `--http` mode.
+
+- **Menu items**: The tray menu SHALL include: "Open Web UI" (launches default browser to `http://localhost:{port}`), "Help" (opens `https://github.com/ma-collective/maenifold-rs/issues`), and "Quit" (graceful shutdown).
+- **Lifecycle**: The tray icon appears when the server starts and disappears on shutdown.
+- **Implementation**: Uses the `tray-icon` crate. The native event loop runs on the main thread; the tokio runtime and server run on a background thread.
+- **Applicability**: Only active in `--web` and `--http` modes. Stdio mode (`--mcp`) is headless.
+
+### FR-36: Remove Cargo Feature Flags
+
+The system SHALL compile all functionality unconditionally — no cargo feature flags.
+
+- **Rationale**: All features (`http`, `web`) ship in every binary. Feature flags add build matrix complexity, conditional compilation bugs, and "forgot `--features`" friction for zero benefit.
+- **Scope**: Remove `http` and `web` feature flags from all `Cargo.toml` files. Remove all `#[cfg(feature = "...")]` gates. All deps compile unconditionally.
+- **CLI unchanged**: `--mcp`, `--http`, `--web` remain as runtime mode selectors — they choose behavior, not compilation scope.
+
+### FR-37: MCP Server Hardening
+
+The MCP server SHALL be hardened against async correctness, resource leak, protocol compliance, and reliability issues identified by dual-model audit.
+
+- **Async correctness**: `call_tool`, `list_resources`, and `read_resource` handlers SHALL offload blocking work (filesystem, SQLite, ONNX) to `tokio::task::spawn_blocking` instead of executing synchronously on the async runtime.
+- **Session lifetime**: HTTP and web transports SHALL configure `LocalSessionManager` with a finite `keep_alive` (5 minutes) so abandoned sessions are reaped automatically.
+- **CORS completeness**: `serve_web` SHALL apply CORS to the top-level router (including `/mcp`), and `localhost_cors()` SHALL expose `Mcp-Session-Id` in response headers.
+- **Resource notification truthfulness**: HTTP and web transports SHALL either implement `resources/list_changed` notifications or stop advertising the capability.
+- **Error classification**: `MaenifoldError::Message` SHALL be removed from `is_validation_error` to prevent internal errors from being misclassified as user input errors.
+- **Panic elimination**: `replace_section` in `editing.rs` SHALL replace `expect("heading end set with section start")` with a proper `ok_or_else` error return.
+- **Runtime initialization dedup**: `current_asset_manager()` SHALL not re-run `initialize_runtime` on every resource request.
+
+### FR-38: Rust MCP Expert Agent Rewrite
+
+The `rust-mcp-expert.agent.md` instruction file SHALL be rewritten to accurately reflect rmcp v1.1.0 APIs, transports, macros, and patterns. All code examples SHALL be compilable against the current SDK.

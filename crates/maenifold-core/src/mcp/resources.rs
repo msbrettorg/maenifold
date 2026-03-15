@@ -1,6 +1,5 @@
 // T-12.0: RTM NFR-1 / FR-11 — resource enumeration, reads, and asset watcher
 // notification handling now live in mcp/resources.rs behind the stable crate::mcp facade.
-use super::initialize_runtime;
 use crate::assets::{AssetKind, AssetManager, is_watchable_asset_json_path};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
@@ -57,11 +56,11 @@ pub fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
     ]))
 }
 
-// T-12.0: RTM FR-11 — resource handlers rebuild the current AssetManager on demand
-// while reusing the shared MCP runtime initialization path.
+// T-27.7: RTM FR-37 / RTM-236 — resource handlers rebuild the current AssetManager on
+// demand without re-running runtime initialization, which already happens during server
+// startup.
 pub(crate) fn current_asset_manager() -> Result<AssetManager> {
     let config = Config::current();
-    initialize_runtime(&config)?;
     Ok(AssetManager::new(&config))
 }
 
@@ -132,8 +131,9 @@ pub fn map_resource_error(err: MaenifoldError) -> rmcp::ErrorData {
         | MaenifoldError::InvalidArgument(_)
         | MaenifoldError::InvalidResourceUri(_)
         | MaenifoldError::PathTraversal(_)
-        | MaenifoldError::MissingProperty(_)
-        | MaenifoldError::Message(_) => rmcp::ErrorData::invalid_params(err.to_string(), None),
+        | MaenifoldError::MissingProperty(_) => {
+            rmcp::ErrorData::invalid_params(err.to_string(), None)
+        }
         _ => rmcp::ErrorData::internal_error(err.to_string(), None),
     }
 }

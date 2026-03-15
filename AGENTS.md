@@ -49,4 +49,6 @@ Every sprint **must** complete ALL of the following before handoff:
 8. ✅ Branch merged to main (if sprint branch used)
 9. ✅ No untracked source files left uncommitted
 
+All tests must pass. No warnings. No ignored tests.
+
 **A sprint that ships a stale binary is a broken sprint. Period.**

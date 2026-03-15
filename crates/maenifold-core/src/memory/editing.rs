@@ -106,7 +106,7 @@ pub fn edit_memory(context: &ToolContext, payload: &Value) -> Result<String> {
                 .get("sectionName")
                 .and_then(Value::as_str)
                 .ok_or(MaenifoldError::MissingProperty("sectionName"))?;
-            replace_section(&existing_content, section_name, content)?
+            replace_section(&existing_content, section_name, content, &uri)?
         }
         _ => {
             return Err(MaenifoldError::InvalidArgument(format!(
@@ -168,6 +168,7 @@ fn replace_section(
     existing_content: &str,
     section_name: &str,
     new_content: &str,
+    file_context: &str,
 ) -> Result<String> {
     let mut line_start = 0usize;
     let mut section_start = None;
@@ -198,7 +199,11 @@ fn replace_section(
             "Section not found: '{section_name}'. Cannot replace a section that doesn't exist."
         ))
     })?;
-    let heading_end = heading_end.expect("heading end set with section start");
+    let heading_end = heading_end.ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "Failed to determine the heading boundary for section '{section_name}' in '{file_context}'. The markdown heading may be malformed."
+        ))
+    })?;
 
     // T-15.4: RTM FR-15 heading preservation — C# always keeps the old heading
     // via regex backreference $2.  When new content starts with a heading,
@@ -301,7 +306,13 @@ mod editing_parity_tests {
     fn t15_1_replace_section_basic() {
         // T-15.1: RTM FR-15 — basic replace_section still works
         let existing = "Intro\n\n## Alpha\n\nOld alpha body.\n\n## Beta\n\nBeta body.";
-        let result = replace_section(existing, "Alpha", "New alpha with [[concepts]].").unwrap();
+        let result = replace_section(
+            existing,
+            "Alpha",
+            "New alpha with [[concepts]].",
+            "memory://test.md",
+        )
+        .unwrap();
         assert!(result.contains("## Alpha\n"), "heading preserved");
         assert!(
             result.contains("New alpha with [[concepts]]."),
@@ -318,8 +329,13 @@ mod editing_parity_tests {
         // T-15.3: RTM FR-15 — "Design" matches "## Design Decisions"
         let existing =
             "Intro\n\n## Design Decisions\n\nOld design.\n\n## Implementation\n\nImpl body.";
-        let result =
-            replace_section(existing, "Design", "New design notes with [[arch]].").unwrap();
+        let result = replace_section(
+            existing,
+            "Design",
+            "New design notes with [[arch]].",
+            "memory://test.md",
+        )
+        .unwrap();
         assert!(
             result.contains("## Design Decisions\n"),
             "original full heading preserved, got:\n{result}"
@@ -333,7 +349,13 @@ mod editing_parity_tests {
     fn t15_3_exact_heading_still_works() {
         // T-15.3: RTM FR-15 — exact match continues to work
         let existing = "## Notes\n\nBody of notes.";
-        let result = replace_section(existing, "Notes", "Updated with [[links]].").unwrap();
+        let result = replace_section(
+            existing,
+            "Notes",
+            "Updated with [[links]].",
+            "memory://test.md",
+        )
+        .unwrap();
         assert!(result.contains("## Notes\n"));
         assert!(result.contains("Updated with [[links]]."));
     }
@@ -342,7 +364,8 @@ mod editing_parity_tests {
     fn t15_3_partial_heading_not_found() {
         // T-15.3: RTM FR-15 — no match returns error
         let existing = "## Something Else\n\nBody.";
-        let err = replace_section(existing, "Design", "New with [[x]].").unwrap_err();
+        let err =
+            replace_section(existing, "Design", "New with [[x]].", "memory://test.md").unwrap_err();
         assert!(err.to_string().contains("Section not found"));
     }
 
@@ -356,6 +379,7 @@ mod editing_parity_tests {
             existing,
             "Original Title",
             "## Replaced Heading\nNew body with [[concepts]].",
+            "memory://test.md",
         )
         .unwrap();
         assert!(
@@ -377,8 +401,13 @@ mod editing_parity_tests {
     fn t15_4_new_content_without_heading_preserves_old_heading() {
         // T-15.4: RTM FR-15 — when no heading in new content, old heading still kept
         let existing = "## Section\n\nOld body.";
-        let result =
-            replace_section(existing, "Section", "Plain new body with [[links]].").unwrap();
+        let result = replace_section(
+            existing,
+            "Section",
+            "Plain new body with [[links]].",
+            "memory://test.md",
+        )
+        .unwrap();
         assert!(result.contains("## Section\n"));
         assert!(result.contains("Plain new body with [[links]]."));
     }

@@ -9,7 +9,7 @@ For completed requirements (FR-1 through FR-21), see [CHANGELOG.md](CHANGELOG.md
 
 ---
 
-### FR-23: Streamable HTTP Transport
+### FR-23: Streamable HTTP Transport ✅ Sprint 26
 
 The system SHALL support MCP Streamable HTTP transport alongside existing stdio transport, selectable via CLI flags.
 
@@ -28,7 +28,7 @@ The system SHALL package OpenCode local plugin shared runtime helpers inside the
 - **Plugin-loader safety**: Runtime plugin modules SHALL expose only callable plugin factories at top level so OpenCode's plugin loader does not attempt to invoke non-plugin helper exports.
 - **Shared usage**: `persistence.ts`, `confession.ts`, and `compaction.ts` SHALL all consume the shared helper rather than duplicating config resolution logic.
 
-### FR-32: Web UI (`--web` flag)
+### FR-32: Web UI (`--web` flag) ✅ Sprint 26
 
 The system SHALL support a `--web` CLI flag that launches a browser-accessible web interface on the same port as the MCP HTTP endpoint, combining an ACP chat panel for interacting with AI coding agents and a force-directed knowledge graph visualization.
 
@@ -64,7 +64,7 @@ The system SHALL compile all functionality unconditionally — no cargo feature 
 - **Scope**: Remove `http` and `web` feature flags from all `Cargo.toml` files. Remove all `#[cfg(feature = "...")]` gates. All deps compile unconditionally.
 - **CLI unchanged**: `--mcp`, `--http`, `--web` remain as runtime mode selectors — they choose behavior, not compilation scope.
 
-### FR-37: MCP Server Hardening
+### FR-37: MCP Server Hardening ✅ Sprint 27
 
 The MCP server SHALL be hardened against async correctness, resource leak, protocol compliance, and reliability issues identified by dual-model audit.
 
@@ -76,11 +76,11 @@ The MCP server SHALL be hardened against async correctness, resource leak, proto
 - **Panic elimination**: `replace_section` in `editing.rs` SHALL replace `expect("heading end set with section start")` with a proper `ok_or_else` error return.
 - **Runtime initialization dedup**: `current_asset_manager()` SHALL not re-run `initialize_runtime` on every resource request.
 
-### FR-38: Rust MCP Expert Agent Rewrite
+### FR-38: Rust MCP Expert Agent Rewrite ✅ Sprint 27
 
 The `rust-mcp-expert.agent.md` instruction file SHALL be rewritten to accurately reflect rmcp v1.1.0 APIs, transports, macros, and patterns. All code examples SHALL be compilable against the current SDK.
 
-### FR-39: Replace chrome-acp with ACP UI
+### FR-39: Replace chrome-acp with ACP UI ✅ Sprint 28
 
 The web UI SPA SHALL be replaced from chrome-acp (React, minimal) to ACP UI (Vue 3, feature-complete).
 

@@ -2,125 +2,191 @@ use super::config::{AgentEntry, AgentsConfig};
 use super::manager::AcpManager;
 use axum::Router;
 use axum::extract::{
-    Query, State,
+    State,
     ws::{CloseFrame, Message, WebSocket, WebSocketUpgrade},
 };
 use axum::response::IntoResponse;
 use axum::routing::get;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use tokio::time::{self, Duration, MissedTickBehavior};
+
+// ── Chrome-ACP proxy protocol messages ──────────────────────────────────
 
 #[derive(Deserialize)]
-#[serde(tag = "type")]
-enum ClientMessage {
-    #[serde(rename = "prompt")]
-    Prompt { messages: Vec<String> },
+struct ProxyMessage {
+    r#type: String,
+    #[serde(default)]
+    payload: Value,
 }
 
-#[derive(Serialize)]
-#[serde(tag = "type")]
-enum ServerMessage {
-    #[serde(rename = "session")]
-    Session { session_id: String },
-    #[serde(rename = "chunk")]
-    Chunk { content: String },
-    #[serde(rename = "error")]
-    Error { message: String },
-    #[serde(rename = "done")]
-    Done,
+fn server_msg(r#type: &str, payload: Value) -> String {
+    serde_json::to_string(&serde_json::json!({ "type": r#type, "payload": payload })).unwrap()
 }
+
+fn status_connected(name: &str) -> String {
+    server_msg("status", serde_json::json!({
+        "connected": true,
+        "agentInfo": { "name": name, "version": "1.0" }
+    }))
+}
+
+fn status_disconnected() -> String {
+    server_msg("status", serde_json::json!({ "connected": false }))
+}
+
+fn session_created(session_id: &str) -> String {
+    server_msg("session_created", serde_json::json!({ "sessionId": session_id }))
+}
+
+fn session_update_chunk(session_id: &str, text: &str) -> String {
+    server_msg("session_update", serde_json::json!({
+        "sessionId": session_id,
+        "update": {
+            "sessionUpdate": "agent_message_chunk",
+            "content": { "type": "text", "text": text }
+        }
+    }))
+}
+
+fn prompt_complete() -> String {
+    server_msg("prompt_complete", serde_json::json!({ "stopReason": "end_turn" }))
+}
+
+fn error_msg(msg: &str) -> String {
+    server_msg("error", serde_json::json!({ "message": msg }))
+}
+
+// ── Worker communication ────────────────────────────────────────────────
 
 enum WorkerCommand {
-    Prompt { messages: Vec<String> },
+    Connect,
+    NewSession { cwd: String },
+    Prompt { content: Vec<Value> },
 }
 
 enum WorkerEvent {
-    Message(ServerMessage),
+    Status(String),
+    SessionCreated(String),
+    Chunk(String, String),
+    PromptComplete,
+    Error(String),
     UnexpectedExit,
 }
 
+// ── Routes ──────────────────────────────────────────────────────────────
+
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
-    Query(params): Query<HashMap<String, String>>,
-    State(config): State<Arc<AgentsConfig>>,
+    State(state): State<Arc<RelayState>>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, params, config))
+    ws.on_upgrade(move |socket| handle_socket(socket, state))
+}
+
+pub struct RelayState {
+    pub config: AgentsConfig,
+    pub default_agent: Option<String>,
 }
 
 pub fn acp_routes(config: AgentsConfig) -> Router {
+    let default_agent = config.agents.keys().next().cloned();
+    let state = Arc::new(RelayState {
+        config,
+        default_agent,
+    });
     Router::new()
         .route("/ws/acp", get(ws_handler))
-        .with_state(Arc::new(config))
+        .with_state(state)
 }
 
-async fn handle_socket(
-    mut socket: WebSocket,
-    params: HashMap<String, String>,
-    config: Arc<AgentsConfig>,
-) {
-    let Some(agent_name) = params.get("agent").filter(|name| !name.is_empty()) else {
-        let _ = send_error(&mut socket, "Missing required 'agent' query parameter").await;
-        let _ = socket.send(Message::Close(None)).await;
-        return;
-    };
+// ── Socket handler ──────────────────────────────────────────────────────
 
-    let Some(agent_entry) = config.agents.get(agent_name).cloned() else {
-        let _ = send_error(&mut socket, &format!("Unknown ACP agent '{agent_name}'")).await;
-        let _ = socket.send(Message::Close(None)).await;
-        return;
-    };
-
-    let cwd = crate::config::Config::current().maenifold_root;
-
+async fn handle_socket(mut socket: WebSocket, state: Arc<RelayState>) {
     let (command_tx, command_rx) = mpsc::unbounded_channel();
     let (event_tx, mut event_rx) = mpsc::unbounded_channel();
-    spawn_agent_worker(agent_entry, cwd, command_rx, event_tx);
+
+    // Spawn worker eagerly with the first available agent
+    let agent_name = state.default_agent.clone().unwrap_or_default();
+    let agent_entry = match state.config.agents.get(&agent_name) {
+        Some(entry) => entry.clone(),
+        None => {
+            let _ = socket.send(Message::Text(error_msg("No agents configured").into())).await;
+            return;
+        }
+    };
+    let cwd = crate::config::Config::current().maenifold_root;
+    spawn_agent_worker(agent_name.clone(), agent_entry, cwd, command_rx, event_tx.clone());
 
     loop {
         tokio::select! {
-            maybe_browser_message = socket.recv() => {
-                match maybe_browser_message {
+            maybe_msg = socket.recv() => {
+                match maybe_msg {
                     Some(Ok(Message::Text(payload))) => {
-                        if handle_browser_message(&mut socket, &command_tx, &payload).await.is_err() {
-                            break;
+                        let msg: ProxyMessage = match serde_json::from_str(&payload) {
+                            Ok(m) => m,
+                            Err(e) => {
+                                let _ = socket.send(Message::Text(error_msg(&format!("Malformed message: {e}")).into())).await;
+                                continue;
+                            }
+                        };
+
+                        match msg.r#type.as_str() {
+                            "connect" => {
+                                let _ = command_tx.send(WorkerCommand::Connect);
+                            }
+                            "new_session" => {
+                                let cwd = msg.payload.get("cwd")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or(".")
+                                    .to_string();
+                                let _ = command_tx.send(WorkerCommand::NewSession { cwd });
+                            }
+                            "prompt" => {
+                                let content = msg.payload.get("content")
+                                    .and_then(|v| v.as_array())
+                                    .cloned()
+                                    .unwrap_or_default();
+                                let _ = command_tx.send(WorkerCommand::Prompt { content });
+                            }
+                            "disconnect" => {
+                                let _ = socket.send(Message::Text(status_disconnected().into())).await;
+                                break;
+                            }
+                            other => {
+                                let _ = socket.send(Message::Text(error_msg(&format!("Unsupported message type: {other}")).into())).await;
+                            }
                         }
                     }
                     Some(Ok(Message::Close(_))) | None => break,
-                    Some(Ok(Message::Ping(payload))) => {
-                        if socket.send(Message::Pong(payload)).await.is_err() {
-                            break;
-                        }
-                    }
-                    Some(Ok(Message::Pong(_))) => {}
-                    Some(Ok(Message::Binary(_))) => {
-                        if send_error(&mut socket, "Binary WebSocket messages are not supported")
-                            .await
-                            .is_err()
-                        {
-                            break;
-                        }
-                    }
-                    Some(Err(error)) => {
-                        let _ =
-                            send_error(&mut socket, &format!("WebSocket receive failed: {error}"))
-                                .await;
-                        break;
-                    }
+                    Some(Ok(Message::Ping(p))) => { let _ = socket.send(Message::Pong(p)).await; }
+                    _ => {}
                 }
             }
             maybe_event = event_rx.recv() => {
                 match maybe_event {
-                    Some(WorkerEvent::Message(message)) => {
-                        if send_message(&mut socket, &message).await.is_err() {
-                            break;
-                        }
+                    Some(WorkerEvent::Status(s)) => {
+                        let _ = socket.send(Message::Text(s.into())).await;
+                    }
+                    Some(WorkerEvent::SessionCreated(sid)) => {
+                        let _ = socket.send(Message::Text(session_created(&sid).into())).await;
+                    }
+                    Some(WorkerEvent::Chunk(sid, text)) => {
+                        let _ = socket.send(Message::Text(session_update_chunk(&sid, &text).into())).await;
+                    }
+                    Some(WorkerEvent::PromptComplete) => {
+                        let _ = socket.send(Message::Text(prompt_complete().into())).await;
+                    }
+                    Some(WorkerEvent::Error(e)) => {
+                        let _ = socket.send(Message::Text(error_msg(&e).into())).await;
                     }
                     Some(WorkerEvent::UnexpectedExit) => {
-                        let _ = close_unexpected_agent_exit(&mut socket).await;
+                        let _ = socket.send(Message::Text(error_msg("Agent process exited unexpectedly").into())).await;
+                        let _ = socket.send(Message::Close(Some(CloseFrame {
+                            code: 1011,
+                            reason: "Agent process exited unexpectedly".into(),
+                        }))).await;
                         break;
                     }
                     None => break,
@@ -130,7 +196,10 @@ async fn handle_socket(
     }
 }
 
+// ── Agent worker thread ─────────────────────────────────────────────────
+
 fn spawn_agent_worker(
+    agent_name: String,
     agent_entry: AgentEntry,
     cwd: PathBuf,
     command_rx: mpsc::UnboundedReceiver<WorkerCommand>,
@@ -141,162 +210,109 @@ fn spawn_agent_worker(
             .enable_all()
             .build()
         {
-            Ok(runtime) => runtime,
-            Err(error) => {
-                let _ = event_tx.send(WorkerEvent::Message(ServerMessage::Error {
-                    message: format!("Failed to create ACP relay runtime: {error}"),
-                }));
+            Ok(r) => r,
+            Err(e) => {
+                let _ = event_tx.send(WorkerEvent::Error(format!("Runtime creation failed: {e}")));
                 return;
             }
         };
-
-        let local_set = tokio::task::LocalSet::new();
-        runtime.block_on(local_set.run_until(run_agent_worker(
-            agent_entry,
-            cwd,
-            command_rx,
-            event_tx,
+        let local = tokio::task::LocalSet::new();
+        runtime.block_on(local.run_until(run_agent_worker(
+            agent_name, agent_entry, cwd, command_rx, event_tx,
         )));
     });
 }
 
 async fn run_agent_worker(
+    agent_name: String,
     agent_entry: AgentEntry,
     cwd: PathBuf,
     mut command_rx: mpsc::UnboundedReceiver<WorkerCommand>,
     event_tx: mpsc::UnboundedSender<WorkerEvent>,
 ) {
-    let mut manager = match AcpManager::spawn(
-        &agent_entry.command,
-        &agent_entry.args,
-        &agent_entry.env,
-        &cwd,
-    )
-    .await
-    {
-        Ok(manager) => manager,
-        Err(error) => {
-            let _ = event_tx.send(WorkerEvent::Message(ServerMessage::Error {
-                message: error.to_string(),
-            }));
-            return;
-        }
-    };
-
-    let _ = event_tx.send(WorkerEvent::Message(ServerMessage::Session {
-        session_id: manager.session_id().to_string(),
-    }));
-
-    let mut text_stream = manager.take_text_stream();
-    let mut exit_check = time::interval(Duration::from_millis(250));
-    exit_check.set_missed_tick_behavior(MissedTickBehavior::Delay);
+    let mut manager: Option<AcpManager> = None;
+    let mut session_id = String::new();
+    let mut text_rx: Option<mpsc::UnboundedReceiver<String>> = None;
 
     loop {
-        tokio::select! {
-            maybe_command = command_rx.recv() => {
-                match maybe_command {
-                    Some(WorkerCommand::Prompt { messages }) => {
-                        if let Err(error) = manager.prompt(messages).await {
-                            let _ = event_tx.send(WorkerEvent::Message(ServerMessage::Error {
-                                message: error.to_string(),
-                            }));
-                        }
+        if let Some(ref mut rx) = text_rx {
+            tokio::select! {
+                maybe_cmd = command_rx.recv() => {
+                    match maybe_cmd {
+                        Some(cmd) => handle_worker_command(cmd, &agent_name, &agent_entry, &cwd, &mut manager, &mut session_id, &mut text_rx, &event_tx).await,
+                        None => break,
                     }
-                    None => break,
                 }
-            }
-            maybe_chunk = text_stream.recv() => {
-                match maybe_chunk {
-                    Some(content) => {
-                        let _ = event_tx.send(WorkerEvent::Message(ServerMessage::Chunk { content }));
-                    }
-                    None => {
-                        match manager.try_wait() {
-                            Ok(Some(_)) => {
-                                let _ = event_tx.send(WorkerEvent::UnexpectedExit);
-                            }
-                            Ok(None) => {
-                                let _ = event_tx.send(WorkerEvent::Message(ServerMessage::Done));
-                            }
-                            Err(error) => {
-                                let _ = event_tx.send(WorkerEvent::Message(ServerMessage::Error {
-                                    message: error.to_string(),
-                                }));
-                            }
+                maybe_chunk = rx.recv() => {
+                    match maybe_chunk {
+                        Some(text) => {
+                            let _ = event_tx.send(WorkerEvent::Chunk(session_id.clone(), text));
                         }
-                        break;
+                        None => {
+                            let _ = event_tx.send(WorkerEvent::PromptComplete);
+                            text_rx = None;
+                        }
                     }
                 }
             }
-            _ = exit_check.tick() => {
-                match manager.try_wait() {
-                    Ok(Some(_)) => {
-                        let _ = event_tx.send(WorkerEvent::UnexpectedExit);
-                        break;
-                    }
-                    Ok(None) => {}
-                    Err(error) => {
-                        let _ = event_tx.send(WorkerEvent::Message(ServerMessage::Error {
-                            message: error.to_string(),
-                        }));
-                        break;
-                    }
-                }
+        } else {
+            match command_rx.recv().await {
+                Some(cmd) => handle_worker_command(cmd, &agent_name, &agent_entry, &cwd, &mut manager, &mut session_id, &mut text_rx, &event_tx).await,
+                None => break,
             }
         }
     }
 }
 
-async fn handle_browser_message(
-    socket: &mut WebSocket,
-    command_tx: &mpsc::UnboundedSender<WorkerCommand>,
-    payload: &str,
-) -> Result<(), ()> {
-    let message: ClientMessage = match serde_json::from_str(payload) {
-        Ok(message) => message,
-        Err(error) => {
-            let _ = send_error(socket, &format!("Malformed relay message: {error}")).await;
-            return Ok(());
+async fn handle_worker_command(
+    cmd: WorkerCommand,
+    agent_name: &str,
+    agent_entry: &AgentEntry,
+    cwd: &PathBuf,
+    manager: &mut Option<AcpManager>,
+    session_id: &mut String,
+    text_rx: &mut Option<mpsc::UnboundedReceiver<String>>,
+    event_tx: &mpsc::UnboundedSender<WorkerEvent>,
+) {
+    match cmd {
+        WorkerCommand::Connect => {
+            match AcpManager::spawn(
+                &agent_entry.command,
+                &agent_entry.args,
+                &agent_entry.env,
+                cwd,
+            ).await {
+                Ok(mut mgr) => {
+                    *text_rx = Some(mgr.take_text_stream());
+                    let _ = event_tx.send(WorkerEvent::Status(status_connected(agent_name)));
+                    *manager = Some(mgr);
+                }
+                Err(e) => {
+                    let _ = event_tx.send(WorkerEvent::Error(e.to_string()));
+                }
+            }
         }
-    };
-
-    match message {
-        ClientMessage::Prompt { messages } => {
-            if command_tx.send(WorkerCommand::Prompt { messages }).is_err() {
-                let _ = send_error(socket, "ACP session is no longer available").await;
-                return Err(());
+        WorkerCommand::NewSession { cwd: _ } => {
+            if let &mut Some(ref mgr) = manager {
+                *session_id = mgr.session_id().to_string();
+                let _ = event_tx.send(WorkerEvent::SessionCreated(session_id.clone()));
+            } else {
+                let _ = event_tx.send(WorkerEvent::Error("Agent not connected".into()));
+            }
+        }
+        WorkerCommand::Prompt { content } => {
+            if let &mut Some(ref mgr) = manager {
+                let messages: Vec<String> = content.iter()
+                    .filter_map(|block| {
+                        block.get("text").and_then(|v| v.as_str()).map(|s| s.to_string())
+                    })
+                    .collect();
+                if let Err(e) = mgr.prompt(messages).await {
+                    let _ = event_tx.send(WorkerEvent::Error(e.to_string()));
+                }
+            } else {
+                let _ = event_tx.send(WorkerEvent::Error("Agent not connected".into()));
             }
         }
     }
-
-    Ok(())
-}
-
-async fn send_message(socket: &mut WebSocket, message: &ServerMessage) -> Result<(), ()> {
-    let payload = serde_json::to_string(message).map_err(|_| ())?;
-    socket
-        .send(Message::Text(payload.into()))
-        .await
-        .map_err(|_| ())
-}
-
-async fn send_error(socket: &mut WebSocket, message: &str) -> Result<(), ()> {
-    send_message(
-        socket,
-        &ServerMessage::Error {
-            message: message.to_string(),
-        },
-    )
-    .await
-}
-
-async fn close_unexpected_agent_exit(socket: &mut WebSocket) -> Result<(), ()> {
-    send_error(socket, "Agent process exited unexpectedly").await?;
-    socket
-        .send(Message::Close(Some(CloseFrame {
-            code: 1011,
-            reason: "Agent process exited unexpectedly".into(),
-        })))
-        .await
-        .map_err(|_| ())
 }

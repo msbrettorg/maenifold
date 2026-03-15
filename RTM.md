@@ -79,3 +79,18 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 - ✅ RTM-237: Agent file references rmcp 1.1.0 | TC-38.1 | Review
 - ✅ RTM-238: All code examples compile against rmcp 1.1.0 | TC-38.2 | Review
 - ✅ RTM-239: Transport section covers stdio + streamable HTTP correctly | TC-38.3 | Review
+
+### FR-39: Replace chrome-acp with ACP UI
+
+- ✅ RTM-240: chrome-acp submodule removed, acp-ui submodule added at vendor/acp-ui | TC-39.1 | Build
+- ✅ RTM-241: Zero @tauri-apps imports in vendor/acp-ui/src/ | TC-39.2 | Build
+- ✅ RTM-242: src/lib/relay.ts WebSocket adapter replaces tauri.ts | TC-39.3 | Build
+- ✅ RTM-243: localStorage replaces @tauri-apps/plugin-store for sessions and prefs | TC-39.4 | Build
+- ✅ RTM-244: Relay passes raw JSON-RPC between browser WebSocket and agent stdin/stdout | TC-39.5 | Integration
+- ✅ RTM-245: ?agent= query parameter enforcement preserved on /ws/acp | TC-39.6 | Integration
+- ✅ RTM-246: Agent stderr forwarded as {"type":"stderr","data":"..."} messages | TC-39.7 | Integration
+- ✅ RTM-247: agent-client-protocol crate dependency removed | TC-39.8 | Build
+- ✅ RTM-248: build.rs points at vendor/acp-ui/dist | TC-39.9 | Build
+- ✅ RTM-249: make web-build produces working binary with embedded ACP UI SPA | TC-39.10 | Build
+- ✅ RTM-250: ACP UI renders in browser with agent dropdown, sessions, chat, model picker | TC-39.11 | Frontend
+- ✅ RTM-251: Full ACP round-trip: select agent → connect → prompt → response rendered | TC-39.12 | Integration

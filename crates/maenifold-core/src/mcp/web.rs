@@ -18,8 +18,7 @@ impl super::MaenifoldMcpServer {
         // Reuse the same MCP setup as serve_http.
         use super::{MaenifoldHandler, TransportKind};
         use rmcp::transport::streamable_http_server::{
-            StreamableHttpServerConfig,
-            StreamableHttpService,
+            StreamableHttpServerConfig, StreamableHttpService,
             session::local::{LocalSessionManager, SessionConfig},
         };
         use std::{sync::Arc, time::Duration};

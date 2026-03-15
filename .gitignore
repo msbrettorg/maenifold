@@ -1,7 +1,8 @@
-/target
-**/*.rs.bk
-/test-outputs
 .DS_Store
 .serena/
-sprint-baseline.txt
 *.onnx
+**/*.rs.bk
+/target
+/test-outputs
+pipeline.db
+sprint-baseline.txt

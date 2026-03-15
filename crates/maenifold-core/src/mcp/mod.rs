@@ -102,13 +102,13 @@ impl ServerHandler for MaenifoldHandler {
         };
 
         ServerInfo::new(capabilities)
-        .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
-        .with_instructions(
-            "Use maenifold tools to read, write, search, and organize memory files, \
+            .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
+            .with_instructions(
+                "Use maenifold tools to read, write, search, and organize memory files, \
                  inspect graph relationships, and run workflow or thinking sessions. \
                  Prefer exact tool names from tools/list and pass JSON arguments that \
                  match each tool schema.",
-        )
+            )
     }
 
     // T-5.2: RTM FR-22.4 — tools/list returns all 28 tool schemas.

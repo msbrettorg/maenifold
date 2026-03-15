@@ -7,13 +7,11 @@ autotests = false
 [features]
 # T-17.1: RTM FR-23 (RTM-126) - gate Streamable HTTP transport deps behind `http`.
 http = ["rmcp/transport-streamable-http-server", "dep:axum", "dep:tower-http", "dep:tokio-util"]
-web = ["http", "dep:rust-embed", "dep:agent-client-protocol", "dep:mime_guess", "dep:async-trait", "tokio-util/compat"]
+web = ["http", "dep:rust-embed", "dep:mime_guess"]
 
 [dependencies]
 anyhow.workspace = true
-async-trait = { version = "0.1", optional = true }
 axum = { workspace = true, optional = true, features = ["ws"] }
-agent-client-protocol = { git = "https://github.com/agentclientprotocol/rust-sdk", rev = "a0917aafe98c95d8e3654d5c441e0cd347df654f", optional = true }
 base64.workspace = true
 chrono.workspace = true
 gray_matter.workspace = true

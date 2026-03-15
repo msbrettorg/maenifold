@@ -5,6 +5,27 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 28 — Replace chrome-acp with ACP UI — 2026-03-15
+
+### Changed
+- **Web UI replaced**: chrome-acp (minimal React) → ACP UI (feature-complete Vue 3 SPA)
+- New features from ACP UI: multi-agent sessions, agent thinking view, slash commands, permission dialogs, model picker, mode selector, traffic monitor, session management
+- **Relay simplified**: chrome-acp proxy protocol → transparent JSON-RPC passthrough (browser sends raw ACP JSON-RPC over WebSocket, relay pipes to agent stdin/stdout)
+- `agent-client-protocol` crate dependency removed — relay is now pure subprocess + pipe management
+- `manager.rs` (ACP SDK wrapper) deleted — relay handles subprocess lifecycle directly
+
+### Added
+- `vendor/acp-ui` submodule (fork of formulahendry/acp-ui, Tauri shell stripped)
+- `src/lib/relay.ts` — WebSocket adapter replacing Tauri invoke/listen
+- stderr forwarding as `{"type":"stderr","data":"..."}` for ACP UI startup progress display
+
+### Removed
+- `vendor/chrome-acp` submodule
+- `crates/maenifold-core/src/acp/manager.rs`
+- `agent-client-protocol` dependency from Cargo.toml
+
+---
+
 ## Sprint 27 — MCP Server Hardening — 2026-03-15
 
 ### Fixed

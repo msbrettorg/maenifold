@@ -2,8 +2,7 @@ use super::{MaenifoldHandler, TransportKind};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use rmcp::transport::streamable_http_server::{
-    StreamableHttpServerConfig,
-    StreamableHttpService,
+    StreamableHttpServerConfig, StreamableHttpService,
     session::local::{LocalSessionManager, SessionConfig},
 };
 use std::{sync::Arc, time::Duration};

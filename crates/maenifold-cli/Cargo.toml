@@ -7,6 +7,9 @@ edition = "2024"
 name = "maenifold"
 path = "src/main.rs"
 
+[features]
+web = ["maenifold-core/web"]
+
 [dependencies]
 anyhow.workspace = true
 # T-17.1: RTM FR-23 (RTM-126) - compile CLI against HTTP-enabled core transport support.

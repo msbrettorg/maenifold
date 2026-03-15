@@ -8,14 +8,17 @@ use maenifold_core::memory::{self, compute_decay_weight};
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{AssetManager, Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::params;
 use serde_json::{Value, json};
 use std::fs;
 use tempfile::TempDir;
 
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+/// Re-exports the single binary-wide config mutex from `main.rs` so that
+/// decay_benchmark tests are serialised on the same lock as access_boosting
+/// tests.  Both suites call `Config::override_root()` which mutates
+/// process-global state; a per-module `static` would be a distinct object per
+/// including module and cannot prevent cross-module races.
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 pub const TEST_FOLDER: &str = "decay-benchmark-tests";
 
 // T-12.7: RTM NFR-1 — all decay-related env vars that influence test behavior
@@ -121,7 +124,12 @@ pub fn isolated_env() -> TestEnv {
     Config::set_database_path(tmp.path().join("memory.db"));
     let cfg = Config::current();
     cfg.ensure_directories().expect("dirs");
-    AssetManager::initialize_assets(&cfg).expect("assets");
+    // Initialize bundled assets, but tolerate CI/workspace symlink-copy failures.
+    // Some packaged asset trees contain symlinks that fs::copy rejects with
+    // InvalidInput ("the source path is neither a regular file nor a symlink to
+    // a regular file"). Decay benchmark coverage still needs best-effort asset
+    // seeding so later integration tests can find bundled assets.
+    let _ = AssetManager::initialize_assets(&cfg);
     GraphDatabase::initialize_database(&cfg).expect("db init");
     TestEnv { _tmp: tmp, cfg }
 }

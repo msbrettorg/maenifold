@@ -19,18 +19,19 @@ impl CliApp {
 
         let wants_mcp = args.iter().any(|arg| arg == "--mcp");
         let wants_http = args.iter().any(|arg| arg == "--http");
+        let wants_web = args.iter().any(|arg| arg == "--web");
 
         // T-17.3: RTM FR-23 (RTM-126, RTM-128) — stdio and HTTP transports are
         // alternative runtime entrypoints and must not be enabled together.
-        if wants_mcp && wants_http {
-            eprintln!("Error: --mcp and --http are mutually exclusive");
+        if (wants_mcp && wants_http) || (wants_mcp && wants_web) || (wants_http && wants_web) {
+            eprintln!("Error: --mcp, --http, and --web are mutually exclusive");
             return 1;
         }
 
         // T-17.3: RTM FR-23 (RTM-126) — reject stray --port usage so the
         // hand-rolled CLI stays unambiguous about HTTP-only transport options.
-        if args.iter().any(|arg| arg == "--port") && !wants_http {
-            eprintln!("Error: --port is only valid with --http");
+        if args.iter().any(|arg| arg == "--port") && !wants_http && !wants_web {
+            eprintln!("Error: --port is only valid with --http or --web");
             return 1;
         }
 
@@ -52,6 +53,28 @@ impl CliApp {
             {
                 let _ = port;
                 eprintln!("Error: HTTP transport is not enabled in this build");
+                return 1;
+            }
+        }
+
+        if wants_web {
+            let port = match parse_http_port(args) {
+                Ok(port) => port,
+                Err(err) => {
+                    eprintln!("{err}");
+                    return 1;
+                }
+            };
+
+            #[cfg(feature = "web")]
+            {
+                return Self::run_web(port);
+            }
+
+            #[cfg(not(feature = "web"))]
+            {
+                let _ = port;
+                eprintln!("Error: Web UI is not enabled in this build");
                 return 1;
             }
         }
@@ -130,6 +153,26 @@ impl CliApp {
                 1
             }
         }
+    }
+
+    #[cfg(feature = "web")]
+    fn run_web(port: u16) -> i32 {
+        let rt = match tokio::runtime::Runtime::new() {
+            Ok(rt) => rt,
+            Err(e) => {
+                eprintln!("Error: failed to create async runtime: {e}");
+                return 1;
+            }
+        };
+        rt.block_on(async {
+            match crate::mcp::MaenifoldMcpServer::serve_web(port).await {
+                Ok(()) => 0,
+                Err(e) => {
+                    eprintln!("Error: {e}");
+                    1
+                }
+            }
+        })
     }
 
     fn run_inner(args: &[String]) -> std::result::Result<String, (String, i32)> {
@@ -304,6 +347,7 @@ fn usage() -> String {
         "Usage:",
         "  MCP Server mode:   maenifold --mcp",
         "  HTTP Server mode:  maenifold --http [--port <PORT>]",
+        "  Web UI mode:       maenifold --web [--port <PORT>]",
         "  Direct tool mode:  maenifold --tool <name> --payload '<json>' [--json]",
         "",
         "  (For development from source: cargo run -p maenifold-cli -- --tool <name> --payload '<json>')",

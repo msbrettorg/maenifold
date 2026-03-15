@@ -1,6 +1,10 @@
 #![warn(clippy::too_many_lines)]
 #![warn(clippy::cognitive_complexity)]
 
+#[cfg(feature = "web")]
+pub mod acp;
+#[cfg(feature = "web")]
+pub mod api;
 pub mod assets;
 pub mod benchmark;
 pub mod cli;

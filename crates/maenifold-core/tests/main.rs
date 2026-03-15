@@ -1,6 +1,44 @@
 // T-HOTFIX: RTM NFR-3
 // Consolidates maenifold-core integration tests into a single binary.
 
+// Single process-wide mutex for all tests that mutate the global Config state
+// via `Config::override_root` / `Config::set_database_path`.  Each support
+// module used to declare its own `TEST_MUTEX`, but because every test file
+// includes support.rs as its *own* sub-module, those statics are distinct
+// objects — tests from different modules could race.  All such support modules
+// now re-export this one mutex, guaranteeing serialisation across the whole
+// integration-test binary.
+pub(crate) static GLOBAL_CONFIG_TEST_MUTEX: once_cell::sync::Lazy<parking_lot::Mutex<()>> =
+    once_cell::sync::Lazy::new(|| parking_lot::Mutex::new(()));
+
+/// Policy guard: running the full integration test suite is prohibited by default.
+/// Individual test modules or targeted test patterns MUST be specified.
+/// To explicitly opt in to a full suite run, set MAENIFOLD_FULL_SUITE=1.
+///
+/// This exists because the full suite takes 500+ seconds in serial mode and
+/// AI agents have been observed running it repeatedly, wasting significant time.
+#[cfg(test)]
+#[ctor::ctor]
+fn guard_full_suite_run() {
+    let args: Vec<String> = std::env::args().collect();
+    let has_filter = args.windows(2).any(|w| w[0] == "--" || w[0].contains("::"));
+    let has_skip = args.iter().any(|a| a == "--skip" || a == "--exact");
+    let opted_in = std::env::var("MAENIFOLD_FULL_SUITE").map_or(false, |v| v == "1");
+
+    if !has_filter && !has_skip && !opted_in {
+        eprintln!("\n\x1b[1;31m╔══════════════════════════════════════════════════════════════╗");
+        eprintln!("║  POLICY VIOLATION: Full test suite runs are prohibited.      ║");
+        eprintln!("║                                                              ║");
+        eprintln!("║  Use targeted tests:                                         ║");
+        eprintln!("║    cargo test -p maenifold-core --test integration_tests     ║");
+        eprintln!("║      -- <module>::<test_name>                                ║");
+        eprintln!("║                                                              ║");
+        eprintln!("║  To override: MAENIFOLD_FULL_SUITE=1 cargo test ...          ║");
+        eprintln!("╚══════════════════════════════════════════════════════════════╝\x1b[0m\n");
+        std::process::exit(1);
+    }
+}
+
 mod access_boosting_build_context;
 mod access_boosting_reads;
 mod access_boosting_search;

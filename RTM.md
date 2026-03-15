@@ -25,6 +25,24 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 
 ### NFR-8: Decay & Access Boosting
 
-- □ RTM-201: ReadMemory refreshes last_accessed timestamp in file_content on each successful read (by URI and by title) | TC-NFR8.1 | Boundary
-- □ RTM-202: ReadMemory on non-existent identifier does not create or update last_accessed | TC-NFR8.2 | Boundary
-- □ RTM-203: ReadMemory with learn=true short-circuit does not update last_accessed | TC-NFR8.3 | Boundary
+- ✅ RTM-201: ReadMemory refreshes last_accessed timestamp in file_content on each successful read (by URI and by title) | TC-NFR8.1 | Boundary
+- ✅ RTM-202: ReadMemory on non-existent identifier does not create or update last_accessed | TC-NFR8.2 | Boundary
+- ✅ RTM-203: ReadMemory with learn=true short-circuit does not update last_accessed | TC-NFR8.3 | Boundary
+
+### FR-32: Web UI (`--web` flag)
+
+- □ RTM-204: `maenifold --web` starts axum server serving SPA at `/` and MCP at `/mcp` on same port | TC-32.1 | CLI
+- □ RTM-205: `--web` implies `--http` behavior — all 28 MCP tools accessible via HTTP transport | TC-32.2 | Integration
+- □ RTM-206: `web` cargo feature flag gates all web UI dependencies; `web` implies `http` | TC-32.3 | Build
+- □ RTM-207: ACP agent subprocess spawned from agents.json config via `agent-client-protocol` crate | TC-32.4 | Integration
+- □ RTM-208: ACP `initialize` + `new_session` handshake completes with spawned agent | TC-32.5 | Integration
+- □ RTM-209: WebSocket endpoint at `/ws/acp` relays messages between browser and ACP agent stdin/stdout via maenifold relay protocol | TC-32.6 | Integration
+- □ RTM-210: Agent prompt responses stream to browser via WebSocket as ACP session notifications | TC-32.7 | Integration
+- □ RTM-211: Static SPA assets embedded in binary via `rust-embed` and served at `/` with correct MIME types | TC-32.8 | Build+Integration
+- □ RTM-212: `GET /api/graph/nodes` returns concept nodes with name, file count (derived), community ID (nullable), and degree (derived) | TC-32.9 | Integration
+- □ RTM-213: `GET /api/graph/edges` returns co-occurrence edges with source, target, and weight (integer count) | TC-32.10 | Integration
+- □ RTM-214: Graph visualization renders force-directed layout from `/api/graph/*` data in the SPA | TC-32.11 | Frontend
+- □ RTM-215: `agents.json` config file parsed at startup to populate available ACP agents | TC-32.12 | Unit
+- □ RTM-216: ACP agent spawn failure returns error without panic | TC-32.13 | Unit
+- □ RTM-217: ACP initialize handshake has 10-second timeout | TC-32.14 | Integration
+- □ RTM-218: Agent command in agents.json validated (absolute path, exists, executable) | TC-32.15 | Unit

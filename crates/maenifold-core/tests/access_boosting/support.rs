@@ -8,18 +8,17 @@ use maenifold_core::memory;
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
 /// Serializes access_boosting tests because `Config::override_root()` mutates
-/// process-global state. Each test creates a `TempDir` and calls `override_root`,
-/// so parallel execution would race on the global config singleton. This mutex is
-/// a correctness requirement, not a performance choice — removing it will cause
-/// intermittent test failures from config state races.
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+/// process-global state.  Re-exports the single binary-wide mutex from `main.rs`
+/// so that tests from *all* access_boosting modules (reads, build_context, search)
+/// — and any decay_benchmark test whose name matches an "access_boosting" filter —
+/// are serialised on the same lock object.  A per-module `static` would be a
+/// distinct object in each including module and would not prevent cross-module races.
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub(crate) const TEST_FOLDER: &str = "access-boosting-tests";
 // Sleep required because update_last_accessed uses second-precision timestamps

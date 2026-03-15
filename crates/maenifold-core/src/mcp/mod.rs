@@ -4,6 +4,8 @@
 pub mod http;
 pub mod resources;
 pub mod schema;
+#[cfg(feature = "web")]
+mod web;
 pub use resources::*;
 
 use self::schema::mcp_tool_from_registry_name;

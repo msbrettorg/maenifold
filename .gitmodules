@@ -1,0 +1,3 @@
+[submodule "vendor/chrome-acp"]
+	path = vendor/chrome-acp
+	url = https://github.com/Areo-Joe/chrome-acp.git

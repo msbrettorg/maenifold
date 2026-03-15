@@ -28,4 +28,14 @@ The system SHALL package OpenCode local plugin shared runtime helpers inside the
 - **Plugin-loader safety**: Runtime plugin modules SHALL expose only callable plugin factories at top level so OpenCode's plugin loader does not attempt to invoke non-plugin helper exports.
 - **Shared usage**: `persistence.ts`, `confession.ts`, and `compaction.ts` SHALL all consume the shared helper rather than duplicating config resolution logic.
 
+### FR-32: Web UI (`--web` flag)
 
+The system SHALL support a `--web` CLI flag that launches a browser-accessible web interface on the same port as the MCP HTTP endpoint, combining an ACP chat panel for interacting with AI coding agents and a force-directed knowledge graph visualization.
+
+- **CLI**: `maenifold --web [--port <PORT>]` starts HTTP server with MCP endpoints at `/mcp` AND serves the web UI SPA at `/`. Superset of `--http`. Mutually exclusive with `--mcp`.
+- **Feature flag**: Gated behind `web` cargo feature flag to keep the base binary lean. `web` implies `http`.
+- **ACP integration**: Uses `agent-client-protocol` Rust crate to spawn AI coding agents as subprocesses and communicate via ACP JSON-RPC 2.0 over stdin/stdout.
+- **WebSocket relay**: axum WebSocket endpoint at `/ws/acp` bridges browser ↔ ACP agent stdio, streaming agent responses (session notifications) to the chat panel in real time.
+- **Embedded SPA**: Frontend based on [chrome-acp](https://github.com/Areo-Joe/chrome-acp) shared React components (git submodule at `vendor/chrome-acp`), compiled to static assets and embedded in the binary via `rust-embed`.
+- **Graph visualization**: Force-directed graph view of the knowledge graph (concepts as nodes, co-occurrence as edges, communities as clusters), exposed via REST API endpoints at `/api/graph/*`.
+- **Agent configuration**: `agents.json` config file (in maenifold config dir) defining available ACP agents with command, args, and env vars. Supports fetching the [ACP registry](https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json).

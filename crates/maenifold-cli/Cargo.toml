@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+maenifold-app = { path = "../maenifold-app" }
 maenifold-core = { path = "../maenifold-core" }
 rmcp.workspace = true
 tokio.workspace = true

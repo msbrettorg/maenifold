@@ -11,11 +11,13 @@ base64.workspace = true
 chrono.workspace = true
 gray_matter.workspace = true
 libc.workspace = true
+mime_guess = { version = "2" }
 notify = { version = "7", features = ["macos_fsevent"] }
 once_cell.workspace = true
 parking_lot.workspace = true
 pulldown-cmark.workspace = true
 regex.workspace = true
+rust-embed = { version = "8", features = ["interpolate-folder-path"] }
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -33,7 +35,7 @@ urlencoding.workspace = true
 ort.workspace = true
 tokenizers.workspace = true
 ndarray = "0.16"
-# T-29.2: RTM FR-35 — system tray icon for --http mode on macOS.
+# T-29.2: RTM FR-35 — system tray icon for --web/--http modes on macOS.
 tray-icon = "0.21"
 winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
 

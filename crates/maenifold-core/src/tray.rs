@@ -39,69 +39,10 @@ impl ServerMode {
 
 // ── Icon ──────────────────────────────────────────────────────────────
 
-/// Build a 32×32 RGBA icon with a simple "M" glyph (placeholder).
+/// Build a 64×64 RGBA icon from the embedded font-rendered glyph.
 fn build_icon() -> Icon {
-    let size = 32u32;
-    let mut rgba = Vec::with_capacity((size * size * 4) as usize);
-    for y in 0..size {
-        for x in 0..size {
-            if is_m_pixel(x, y, size) {
-                rgba.extend_from_slice(&[255, 255, 255, 255]); // white M
-            } else {
-                rgba.extend_from_slice(&[0, 0, 0, 0]); // transparent background
-            }
-        }
-    }
-    Icon::from_rgba(rgba, size, size).expect("valid 32×32 RGBA icon")
-}
-
-/// Rough lowercase "m" letter mask for a 32×32 grid.
-fn is_m_pixel(x: u32, y: u32, size: u32) -> bool {
-    let pad = 2u32;
-    let top = pad;
-    let baseline = size - pad;
-
-    if y < top || y > baseline {
-        return false;
-    }
-
-    let usable = size - 2 * pad;
-    let left_stem = pad;
-    let first_peak = pad + usable / 4;
-    let middle_stem = pad + usable / 2;
-    let second_peak = pad + 3 * usable / 4;
-    let right_stem = size - pad - 1;
-    let stroke_half_width = 1.8f32;
-
-    let px = x as f32;
-    let py = y as f32;
-
-    let hits_segment = |x0: u32, y0: u32, x1: u32, y1: u32| -> bool {
-        let x0 = x0 as f32;
-        let y0 = y0 as f32;
-        let x1 = x1 as f32;
-        let y1 = y1 as f32;
-        let dx = x1 - x0;
-        let dy = y1 - y0;
-        let len_sq = dx * dx + dy * dy;
-        if len_sq == 0.0 {
-            return (px - x0).abs() <= stroke_half_width && (py - y0).abs() <= stroke_half_width;
-        }
-
-        let t = (((px - x0) * dx + (py - y0) * dy) / len_sq).clamp(0.0, 1.0);
-        let nearest_x = x0 + t * dx;
-        let nearest_y = y0 + t * dy;
-        let dist_sq = (px - nearest_x).powi(2) + (py - nearest_y).powi(2);
-        dist_sq <= stroke_half_width.powi(2)
-    };
-
-    hits_segment(left_stem, top, left_stem, baseline)
-        || hits_segment(left_stem, baseline, first_peak, top)
-        || hits_segment(first_peak, top, middle_stem, baseline)
-        || hits_segment(middle_stem, top, middle_stem, baseline)
-        || hits_segment(middle_stem, baseline, second_peak, top)
-        || hits_segment(second_peak, top, right_stem, baseline)
-        || hits_segment(right_stem, top, right_stem, baseline)
+    let rgba = include_bytes!("tray_icon.rgba");
+    Icon::from_rgba(rgba.to_vec(), 64, 64).expect("valid 64×64 RGBA icon")
 }
 
 // ── URL helpers ───────────────────────────────────────────────────────

@@ -35,6 +35,44 @@
 | `claude-haiku-*` | 75% false positive rate on code audits |
 | `gpt-5.1-codex-mini` | Misses subtle drift that Sonnet 4.6 catches |
 
+## Build Process
+
+The release binary embeds the frontend SPA at compile time via Tauri's `generate_context!()`. **Cargo does not detect frontend changes automatically** — you must rebuild the frontend first, then touch a Rust source file to force recompilation.
+
+### Full rebuild (frontend + binary)
+
+```bash
+# 1. Build the frontend (bun preferred, npm fallback)
+cd vendor/acp-ui && bun install && bun run build
+
+# 2. Force Rust to re-embed the new assets
+cd /path/to/maenifold-rs
+touch crates/maenifold-app/src/lib.rs
+
+# 3. Build the release binary
+cargo build --release -p maenifold-cli
+```
+
+Or use the Makefile shortcut:
+
+```bash
+make app
+```
+
+### Why `touch` is needed
+
+Tauri embeds `vendor/acp-ui/dist/` into the binary at compile time. Cargo tracks `.rs` file mtimes, not frontend dist files. If you only rebuild the frontend, `cargo build` will no-op and ship stale assets. Touching `lib.rs` forces recompilation of the `maenifold-app` crate, which re-runs `tauri_build::build()` and re-embeds the dist.
+
+### Binary location
+
+The release binary is at `target/release/maenifold`. A symlink at `/usr/local/bin/maenifold` points to it. After rebuilding, restart the app to pick up changes:
+
+```bash
+maenifold --app            # Native Tauri desktop window
+maenifold --http           # Browser-served SPA at http://localhost:8080
+maenifold --mcp            # Headless MCP mode (no UI)
+```
+
 ## Sprint Completion Checklist
 
 Every sprint **must** complete ALL of the following before handoff:
@@ -42,7 +80,7 @@ Every sprint **must** complete ALL of the following before handoff:
 1. ✅ All spec files moved from `todo/` to `done/`
 2. ✅ `pipeline.db` shows all tasks in terminal state
 3. ✅ Targeted tests pass for all changed code
-4. ✅ **Release binary rebuilt**: `cargo build --release -p maenifold-cli`
+4. ✅ **Release binary rebuilt**: full rebuild (frontend + `cargo build --release -p maenifold-cli`)
 5. ✅ **Verify installed binary**: `maenifold --help` reflects all new features
 6. ✅ CHANGELOG.md updated
 7. ✅ RTM.md updated

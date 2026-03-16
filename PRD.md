@@ -89,3 +89,14 @@ The web UI SPA SHALL be replaced from chrome-acp (React, minimal) to ACP UI (Vue
 - **Relay simplification**: Replace chrome-acp proxy protocol (connect/new_session/prompt message types) with transparent JSON-RPC passthrough. Browser sends raw ACP JSON-RPC over WebSocket, relay pipes to agent stdin. Agent stdout pipes back to browser. Remove `agent-client-protocol` crate dependency.
 - **Build system**: Update `build.rs` and `Makefile` to build and embed `vendor/acp-ui/dist` instead of `vendor/chrome-acp/packages/proxy-server/public`.
 - **Features preserved**: `?agent=` query parameter enforcement, `/api/agents` REST endpoint, stderr forwarding for startup progress, agent lifecycle tied to WebSocket connection.
+
+### FR-40: Mermaid Diagram Rendering in Chat
+
+The web UI SHALL render Mermaid diagram code blocks in assistant chat messages as interactive SVG diagrams.
+
+- **Detection**: Code blocks with language tag `mermaid` (` ```mermaid `) in rendered chat messages SHALL be detected and replaced with rendered SVG output.
+- **Rendering**: Uses the `mermaid` npm package for client-side SVG rendering. No server-side dependency.
+- **Lazy loading**: The mermaid library SHALL be loaded dynamically (`import('mermaid')`) only when the first mermaid code block is detected, to avoid bloating initial page load.
+- **Dark theme**: Mermaid SHALL be initialized with `{ theme: 'dark' }` to match the application's dark UI theme.
+- **Error handling**: Invalid mermaid syntax SHALL display the original code block with an error indicator rather than crashing or showing blank content.
+- **Supported diagram types**: All mermaid-supported diagram types (flowchart, sequence, class, state, ER, gantt, pie, etc.) SHALL render correctly.

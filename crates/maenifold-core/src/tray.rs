@@ -46,9 +46,9 @@ fn build_icon() -> Icon {
     for y in 0..size {
         for x in 0..size {
             if is_m_pixel(x, y, size) {
-                rgba.extend_from_slice(&[220, 220, 220, 255]); // light gray M
+                rgba.extend_from_slice(&[255, 255, 255, 255]); // white M
             } else {
-                rgba.extend_from_slice(&[60, 60, 60, 255]); // dark background
+                rgba.extend_from_slice(&[0, 0, 0, 0]); // transparent background
             }
         }
     }
@@ -57,19 +57,21 @@ fn build_icon() -> Icon {
 
 /// Rough lowercase "m" letter mask for a 32×32 grid.
 fn is_m_pixel(x: u32, y: u32, size: u32) -> bool {
-    let top = size * 3 / 8;
-    let baseline = size * 3 / 4;
+    let pad = 2u32;
+    let top = pad;
+    let baseline = size - pad;
 
     if y < top || y > baseline {
         return false;
     }
 
-    let left_stem = size * 3 / 16;
-    let first_peak = size * 13 / 32;
-    let middle_stem = size / 2 + 1;
-    let second_peak = size * 21 / 32;
-    let right_stem = size * 3 / 4 + 1;
-    let stroke_half_width = 1.5f32; // ≈3 px strokes on a 32×32 icon
+    let usable = size - 2 * pad;
+    let left_stem = pad;
+    let first_peak = pad + usable / 4;
+    let middle_stem = pad + usable / 2;
+    let second_peak = pad + 3 * usable / 4;
+    let right_stem = size - pad - 1;
+    let stroke_half_width = 1.8f32;
 
     let px = x as f32;
     let py = y as f32;
@@ -94,9 +96,9 @@ fn is_m_pixel(x: u32, y: u32, size: u32) -> bool {
     };
 
     hits_segment(left_stem, top, left_stem, baseline)
-        || hits_segment(left_stem + 1, baseline, first_peak, top)
+        || hits_segment(left_stem, baseline, first_peak, top)
         || hits_segment(first_peak, top, middle_stem, baseline)
-        || hits_segment(middle_stem, top + 3, middle_stem, baseline)
+        || hits_segment(middle_stem, top, middle_stem, baseline)
         || hits_segment(middle_stem, baseline, second_peak, top)
         || hits_segment(second_peak, top, right_stem, baseline)
         || hits_segment(right_stem, top, right_stem, baseline)

@@ -110,3 +110,68 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 - ✅ RTM-273: --features flag removed from Makefile | Build
 - ✅ RTM-274: cargo build --release -p maenifold-cli succeeds without --features | Build
 - ✅ RTM-275: All previously feature-gated deps compile unconditionally | Build
+
+## ACP Protocol Compliance — Sprint 32
+
+### FR-42.1: Initialization Compliance (`stores/session.ts`)
+
+- □ RTM-276: `initResponse.protocolVersion` checked; mismatch disconnects with error | TC-42.1.1 | Unit
+- □ RTM-277: `agentInfo` stored from `initResponse` and accessible in store | TC-42.1.2 | Unit
+- □ RTM-278: `promptCapabilities` stored from `initResponse.agentCapabilities` | TC-42.1.3 | Unit
+- □ RTM-279: Shared `performInitialization()` replaces duplicate initialize blocks | TC-42.1.4 | Refactor
+
+### FR-42.2: Session Setup Compliance (`stores/session.ts`, `App.vue`)
+
+- □ RTM-280: `cwd` validated as absolute path before `session/new`; `'.'` fallback removed | TC-42.2.1 | Unit
+- □ RTM-281: `resumeSession` re-checks live `loadSession` capability from `initResponse` | TC-42.2.2 | Unit
+- □ RTM-282: `resumeSession` has abort guards and `isConnecting` flag | TC-42.2.3 | Unit
+
+### FR-42.3: Prompt Turn Compliance (`stores/session.ts`)
+
+- □ RTM-283: `cancelOperation()` calls `cancelPermission()` when permission pending | TC-42.3.1 | Unit
+- □ RTM-284: `cancelOperation()` marks non-finished tool calls as `cancelled` | TC-42.3.2 | Unit
+- □ RTM-285: `stopReason` values produce differentiated UI feedback | TC-42.3.3 | UI
+
+### FR-42.4: Session Config Options (`stores/session.ts`, `ChatView.vue`, `acp-bridge.ts`)
+
+- □ RTM-286: `ConfigOptionPicker` rendered for each `configOption` in `ChatView.vue` | TC-42.4.1 | UI
+- □ RTM-287: Legacy pickers suppressed when `configOptions` present | TC-42.4.2 | UI
+- □ RTM-288: `unstable_setSessionConfigOption` implemented on `AcpClientBridge` | TC-42.4.3 | Unit
+- □ RTM-289: Unrecognized option `type` values filtered (only `select` rendered) | TC-42.4.4 | Unit
+
+### FR-42.5: Tool Call Content (`stores/session.ts`, `types.ts`)
+
+- □ RTM-290: `ToolCallInfo` type includes `content` field | TC-42.5.1 | Type
+- □ RTM-291: `tool_call` handler stores `content` from notification | TC-42.5.2 | Unit
+- □ RTM-292: `tool_call_update` handler accumulates `content` and updates `locations` | TC-42.5.3 | Unit
+
+### FR-42.6: Agent Plan Support (`stores/session.ts`, `PlanView.vue`)
+
+- □ RTM-293: `plan` session update stored in reactive `currentPlan` state | TC-42.6.1 | Unit
+- □ RTM-294: `PlanView.vue` renders entries with content, priority, status | TC-42.6.2 | UI
+
+### FR-42.7: Session Info Updates (`stores/session.ts`)
+
+- □ RTM-295: `session_info_update` handler updates session title and timestamp | TC-42.7.1 | Unit
+- □ RTM-296: Client-side first-message title hack removed from `sendPrompt` | TC-42.7.2 | Refactor
+
+### FR-42.8: Slash Command Hint (`ChatView.vue`, `CommandPalette.vue`)
+
+- □ RTM-297: `hint` rendered as textarea placeholder after command selection | TC-42.8.1 | UI
+- □ RTM-298: Dead code branch in `handleCommandSelect` removed | TC-42.8.2 | Refactor
+
+### FR-42.9: File System Compliance (`acp-bridge.ts`)
+
+- □ RTM-299: `fs/read_text_file` and `fs/write_text_file` validate absolute path | TC-42.9.1 | Unit
+- □ RTM-300: `writeTextFile` creates parent directories before writing | TC-42.9.2 | Unit
+- □ RTM-301: `writeTextFile` returns `null` on success | TC-42.9.3 | Unit
+
+### FR-42.10: Transport & Extensibility (`relay.rs`, `ModePicker.vue`, `ModelPicker.vue`)
+
+- □ RTM-302: WebSocket relay stderr/error frames are `_relay/*` JSON-RPC notifications | TC-42.10.1 | Unit
+- □ RTM-303: `ModePicker.vue` removes click listener on unmount | TC-42.10.2 | Unit
+- □ RTM-304: `ModelPicker.vue` removes click listener on unmount | TC-42.10.3 | Unit
+
+### NFR-9: Non-Text Content Blocks (`stores/session.ts`)
+
+- □ RTM-305: Non-text content blocks logged as warnings instead of silently dropped | TC-NFR9.1 | Unit

@@ -111,3 +111,80 @@ The system SHALL embed the ACP UI frontend in a native Tauri v2 webview window, 
 - **Frontend embedding**: The Vue frontend dist/ from `vendor/acp-ui` SHALL be embedded at compile time via Tauri's asset codegen.
 - **Mode separation**: `--mcp` remains headless. `--http` retains axum-served UI for remote/browser access. `--app` is native desktop only.
 - **Window behavior**: Close button hides to tray. Tray click shows window. Dock icon visible only when window is visible.
+
+### FR-42: ACP Protocol Compliance — Sprint 32
+
+The ACP-UI client SHALL fully comply with the Agent Client Protocol specification across all protocol areas. This encompasses initialization, session setup, prompt turn lifecycle, session configuration, slash commands, tool calls, content blocks, agent plans, session listing, file system methods, and transport compliance.
+
+#### FR-42.1: Initialization Compliance
+
+The client SHALL:
+- Check the `protocolVersion` returned by the agent in the `initialize` response and disconnect with a clear error if the version is unsupported.
+- Store `agentInfo` (name, title, version) from the `initialize` response for display and diagnostics.
+- Store `agentCapabilities.promptCapabilities` and gate image/audio/resource UI features accordingly.
+- Extract a shared `performInitialization()` helper to eliminate duplicate `initialize` blocks in `createSession` and `resumeSession`.
+
+#### FR-42.2: Session Setup Compliance
+
+The client SHALL:
+- Validate that `cwd` is an absolute path before calling `session/new`. The `'.'` fallback MUST be removed.
+- Re-check `agentCapabilities.loadSession` from the live `initialize` response before calling `session/load` in `resumeSession`.
+- Add abort guards and `isConnecting` flag to `resumeSession` matching the `createSession` pattern.
+
+#### FR-42.3: Prompt Turn Compliance
+
+The client SHALL:
+- Call `cancelPermission()` from within `cancelOperation()` when a permission request is pending (MUST per spec).
+- Preemptively mark all non-finished tool calls as `cancelled` when sending `session/cancel`.
+- Differentiate `stopReason` values (`refusal`, `max_tokens`, `max_turn_requests`) in the UI with appropriate feedback.
+
+#### FR-42.4: Session Config Options
+
+The client SHALL:
+- Render `ConfigOptionPicker` components for each `configOption` returned by the agent.
+- Suppress legacy `ModePicker`/`ModelPicker` when `configOptions` is present and non-empty.
+- Implement `unstable_setSessionConfigOption` on `AcpClientBridge` to call `session/set_config_option`.
+- Filter unrecognized option `type` values (only render `select`).
+
+#### FR-42.5: Tool Call Content
+
+The client SHALL:
+- Store the `content` field from `tool_call` and `tool_call_update` notifications.
+- Accumulate content from successive `tool_call_update` notifications.
+- Store `locations` updates from `tool_call_update`.
+- Add `line` to the `locations` type definition.
+
+#### FR-42.6: Agent Plan Support
+
+The client SHALL:
+- Handle `plan` session update notifications and store plan entries in reactive state.
+- Render plan entries with `content`, `priority` badge, and `status` indicator.
+
+#### FR-42.7: Session Info Updates
+
+The client SHALL:
+- Handle `session_info_update` notifications to update session title and timestamp.
+- Remove the client-side first-message title hack in `sendPrompt`.
+
+#### FR-42.8: Slash Command Hint
+
+The client SHALL:
+- Render the `hint` field from slash commands as textarea placeholder text after command selection.
+- Remove the dead code branch in `handleCommandSelect`.
+
+#### FR-42.9: File System Compliance
+
+The client SHALL:
+- Validate that `path` is absolute before executing `fs/read_text_file` and `fs/write_text_file`.
+- Create parent directories before writing files (`mkdir -p` equivalent).
+- Return `null` (not `{}`) from successful `writeTextFile` calls.
+
+#### FR-42.10: Transport & Extensibility Compliance
+
+The client SHALL:
+- Convert WebSocket relay out-of-band frames to valid JSON-RPC `_relay/*` notifications.
+- Fix event listener leaks in `ModePicker.vue` and `ModelPicker.vue` (add `onUnmounted` cleanup).
+
+### NFR-9: Non-Text Content Blocks
+
+The system SHOULD log warnings when receiving non-text content blocks instead of silently dropping them. Full rendering of image/audio/resource content blocks is deferred to a future sprint.

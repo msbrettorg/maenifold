@@ -182,16 +182,18 @@ fn available_agents_message(config: &AgentsConfig) -> String {
 
 fn error_msg(message: &str) -> String {
     serde_json::to_string(&json!({
-        "type": "error",
-        "payload": { "message": message }
+        "jsonrpc": "2.0",
+        "method": "_relay/error",
+        "params": { "message": message }
     }))
     .expect("error control messages must serialize")
 }
 
 fn stderr_msg(line: &str) -> String {
     serde_json::to_string(&json!({
-        "type": "stderr",
-        "data": line
+        "jsonrpc": "2.0",
+        "method": "_relay/stderr",
+        "params": { "data": line }
     }))
     .expect("stderr control messages must serialize")
 }
@@ -274,7 +276,7 @@ impl RelayProcess {
 
 #[cfg(test)]
 mod tests {
-    use super::{available_agents_message, resolve_agent, stderr_msg};
+    use super::{available_agents_message, error_msg, resolve_agent, stderr_msg};
     use crate::acp::config::{AgentEntry, AgentsConfig};
     use std::collections::HashMap;
 
@@ -327,7 +329,20 @@ mod tests {
         let payload = stderr_msg("starting agent");
         let value: serde_json::Value =
             serde_json::from_str(&payload).expect("stderr payload should be valid json");
-        assert_eq!(value["type"], "stderr");
-        assert_eq!(value["data"], "starting agent");
+        assert_eq!(value["jsonrpc"], "2.0");
+        assert_eq!(value["method"], "_relay/stderr");
+        assert_eq!(value["params"]["data"], "starting agent");
+        assert!(value.get("id").is_none());
+    }
+
+    #[test]
+    fn relay_formats_error_messages_as_json_rpc_notifications() {
+        let payload = error_msg("agent failed");
+        let value: serde_json::Value =
+            serde_json::from_str(&payload).expect("error payload should be valid json");
+        assert_eq!(value["jsonrpc"], "2.0");
+        assert_eq!(value["method"], "_relay/error");
+        assert_eq!(value["params"]["message"], "agent failed");
+        assert!(value.get("id").is_none());
     }
 }

@@ -11,6 +11,7 @@
       {
         "label": "main",
         "title": "maenifold",
+        "visible": true,
         "width": 1200,
         "height": 800
       }

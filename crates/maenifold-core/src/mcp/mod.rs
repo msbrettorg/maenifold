@@ -3,7 +3,6 @@
 pub mod http;
 pub mod resources;
 pub mod schema;
-mod web;
 pub use resources::*;
 
 // FR-32-SEC: Shared CORS factory restricting origins to localhost variants

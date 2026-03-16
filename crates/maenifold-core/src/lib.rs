@@ -29,7 +29,7 @@ pub mod similar;
 pub mod sync;
 pub mod thinking;
 pub mod tools;
-// T-29.2: RTM FR-35 — system tray icon for --app/--http modes.
+// T-29.2: RTM FR-35 — system tray icon for --http mode.
 pub mod tray;
 pub mod vector;
 pub mod workflow;

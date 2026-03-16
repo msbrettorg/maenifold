@@ -1,13 +1,7 @@
-.PHONY: frontend app web-assets web-build
+.PHONY: build release
 
-frontend:
-	cd vendor/acp-ui && if command -v bun >/dev/null 2>&1; then bun install && bun run build; else npm install && npm run build; fi
+build:
+	cargo build -p maenifold-cli
 
-app: frontend
-	cargo build --release -p maenifold-cli
-
-web-assets:
-	cd vendor/acp-ui && bun install && bun run build
-
-web-build: web-assets
+release:
 	cargo build --release -p maenifold-cli

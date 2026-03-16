@@ -1,4 +1,4 @@
-//! T-29.2: RTM FR-35 — System tray icon for `--web` / `--http` modes on macOS.
+//! T-29.2: RTM FR-35 — System tray icon for `--app` / `--http` modes on macOS.
 //!
 //! Architecture (required by macOS):
 //! - **Main thread**: winit event loop driving the tray icon + menu.
@@ -15,23 +15,25 @@ use tray_icon::{Icon, TrayIconBuilder};
 use winit::application::ApplicationHandler;
 use winit::event::StartCause;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
+#[cfg(target_os = "macos")]
+use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
 /// Which HTTP-based server mode was requested.
 #[derive(Debug, Clone, Copy)]
 pub enum ServerMode {
     Http(u16),
-    Web(u16),
+    App(u16),
 }
 
 impl ServerMode {
     pub fn port(self) -> u16 {
         match self {
-            Self::Http(p) | Self::Web(p) => p,
+            Self::Http(p) | Self::App(p) => p,
         }
     }
 
-    pub fn is_web(self) -> bool {
-        matches!(self, Self::Web(_))
+    pub fn is_app(self) -> bool {
+        matches!(self, Self::App(_))
     }
 }
 
@@ -168,8 +170,8 @@ impl TrayApp {
         }
 
         let exe_path = std::env::current_exe()?;
-        let mode_flag = if self.mode.is_web() {
-            "--web"
+        let mode_flag = if self.mode.is_app() {
+            "--app"
         } else {
             "--http"
         };
@@ -217,16 +219,16 @@ impl TrayApp {
         if let Some(item) = &self.login_item {
             item.set_text(login_menu_text(is_login_enabled()));
         }
-    }
+        }
 
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
         let port = self.mode.port();
-        let is_web = self.mode.is_web();
+        let is_app = self.mode.is_app();
         let login_enabled = is_login_enabled();
 
         let menu = Menu::new();
-        let open_item = if is_web {
-            let item = MenuItem::new(format!("Open Web UI (:{port})"), true, None);
+        let open_item = if is_app {
+            let item = MenuItem::new(format!("Open Desktop App (:{port})"), true, None);
             let _ = menu.append(&item);
             Some(item)
         } else {
@@ -351,16 +353,16 @@ impl ApplicationHandler for TrayApp {
 
 /// Run the server with a system-tray icon on the main thread.
 ///
-/// 1. Initialises storage / watchers (matching `CliApp::run_http` / `run_web`).
+/// 1. Initialises storage / watchers (matching `CliApp::run_http` / `run_app`).
 /// 2. Spawns the tokio/axum server on a background `std::thread`.
 /// 3. Builds a winit `EventLoop` and drives the tray icon via `ApplicationHandler`.
 /// 4. On "Quit", cancels the shared shutdown token so the server thread exits.
 /// 5. Joins the server thread and returns its exit code.
 pub fn run_with_tray(mode: ServerMode) -> i32 {
-    // ── Initialise runtime (mirrors cli::run_http / run_web patterns) ──
+    // ── Initialise runtime (mirrors cli::run_http / run_app patterns) ──
     // serve_web handles its own initialize_runtime internally.
     // serve_http expects callers to initialise first (as run_http does).
-    if !mode.is_web() {
+    if !mode.is_app() {
         let config = crate::config::Config::current();
         if let Err(err) = crate::mcp::initialize_runtime(&config) {
             eprintln!("Error initializing storage: {err}");
@@ -373,7 +375,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
     }
 
     let port = mode.port();
-    let is_web = mode.is_web();
+    let is_app = mode.is_app();
     let shutdown_token = CancellationToken::new();
 
     // ── Spawn server on background thread ──────────────────────────────
@@ -391,7 +393,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
             let result = rt.block_on(async move {
                 tokio::select! {
                     result = async {
-                        if is_web {
+                        if is_app {
                             crate::mcp::MaenifoldMcpServer::serve_web(port).await
                         } else {
                             crate::mcp::MaenifoldMcpServer::serve_http(port).await
@@ -411,7 +413,10 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
         .expect("failed to spawn server thread");
 
     // ── Build winit event loop & run ───────────────────────────────────
-    let event_loop = EventLoop::builder().build().unwrap();
+    let mut builder = EventLoop::builder();
+    #[cfg(target_os = "macos")]
+    builder.with_activation_policy(ActivationPolicy::Accessory);
+    let event_loop = builder.build().unwrap();
     let mut app = TrayApp {
         mode,
         shutdown_token,

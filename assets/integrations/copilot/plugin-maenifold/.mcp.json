@@ -1,12 +1,9 @@
 {
-	"mcpServers": {
-		"maenifold": {
-			"type": "stdio",
-			"command": "maenifold",
-			"args": [
-				"--mcp"
-			],
-			"tools": ["*"]
-		}
-	}
+  "mcpServers": {
+    "maenifold": {
+      "type": "http",
+      "url": "http://localhost:8080/mcp",
+      "tools": ["*"]
+    }
+  }
 }

@@ -100,3 +100,14 @@ The web UI SHALL render Mermaid diagram code blocks in assistant chat messages a
 - **Dark theme**: Mermaid SHALL be initialized with `{ theme: 'dark' }` to match the application's dark UI theme.
 - **Error handling**: Invalid mermaid syntax SHALL display the original code block with an error indicator rather than crashing or showing blank content.
 - **Supported diagram types**: All mermaid-supported diagram types (flowchart, sequence, class, state, ER, gantt, pie, etc.) SHALL render correctly.
+
+### FR-41: Native Desktop App via Tauri — Sprint 31
+
+The system SHALL embed the ACP UI frontend in a native Tauri v2 webview window, replacing the browser-served SPA approach.
+
+- **Single binary**: `maenifold --app` SHALL open a native desktop window (Tauri webview) instead of serving assets to a browser.
+- **Workspace integration**: A new `crates/maenifold-app` crate SHALL own the Tauri runtime, config, and build script.
+- **Tray integration**: The Tauri app SHALL provide system tray functionality (Open Window, Open at Login, Help, Quit) using Tauri's native tray APIs, replacing the current winit/tray-icon implementation for `--app` mode.
+- **Frontend embedding**: The Vue frontend dist/ from `vendor/acp-ui` SHALL be embedded at compile time via Tauri's asset codegen.
+- **Mode separation**: `--mcp` remains headless. `--http` retains axum-served UI for remote/browser access. `--app` is native desktop only.
+- **Window behavior**: Close button hides to tray. Tray click shows window. Dock icon visible only when window is visible.

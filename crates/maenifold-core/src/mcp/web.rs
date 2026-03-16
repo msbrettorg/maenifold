@@ -68,7 +68,7 @@ impl super::MaenifoldMcpServer {
                 MaenifoldError::Message(format!("HTTP bind failed on {bind_addr}: {e}"))
             })?;
 
-        eprintln!("maenifold web UI listening on http://{bind_addr}/");
+        eprintln!("maenifold listening on http://{bind_addr}/");
 
         axum::serve(tcp_listener, router)
             .with_graceful_shutdown(async move {

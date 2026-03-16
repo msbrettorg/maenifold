@@ -29,7 +29,7 @@ You own the process. Only you may:
 
 ## Subagents
 
-You have access to a pool of: **SWE**, **red-team**, **blue-team**, **researcher**. No other agent types — general agents like Explore are not allowed.
+You have access to a pool of: **SWE**, **red-team**, **blue-team**, **researcher**, **rust-mcp-expert**. No other agent types — general agents like Explore are not allowed.
 
 Target 8 concurrent agents. Decompose work to the file/component/test-suite level — each discrete unit goes to a separate agent instance. Ask yourself: "Could I give this to 8 agents instead of 1?" If yes, decompose further.
 

@@ -23,6 +23,10 @@ function handleResume(session: SavedSession) {
   emit('resume', session);
 }
 
+function isAgentSession(session: SavedSession): boolean {
+  return session.id.startsWith('agent:');
+}
+
 function handleDelete(sessionId: string, event: Event) {
   event.stopPropagation();
   if (confirm('Delete this session?')) {
@@ -49,7 +53,10 @@ function handleDelete(sessionId: string, event: Event) {
       >
         <div class="session-info">
           <span class="session-title">{{ session.title }}</span>
-          <span class="session-agent">{{ session.agentName }}</span>
+          <span class="session-agent">
+            {{ session.agentName }}
+            <span v-if="isAgentSession(session)" class="session-badge">from agent</span>
+          </span>
           <span class="session-date">{{ formatDate(session.lastUpdated) }}</span>
         </div>
         <button 
@@ -125,6 +132,18 @@ ul {
 .session-agent {
   font-size: 0.75rem;
   color: var(--text-accent, #0066cc);
+}
+
+.session-badge {
+  display: inline-block;
+  margin-left: 0.375rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  background: var(--bg-hover, #f5f5f5);
+  color: var(--text-muted, #999);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: lowercase;
 }
 
 .session-date {

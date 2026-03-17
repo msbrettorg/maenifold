@@ -262,6 +262,13 @@ export class AcpClientBridge implements Client {
     return this.sendRequest<LoadSessionResponse>('session/load', params);
   }
 
+  async listSessions(params?: { cwd?: string; cursor?: string }): Promise<{
+    sessions: Array<{ sessionId: string; cwd: string; title?: string; updatedAt?: string }>;
+    nextCursor?: string;
+  }> {
+    return await this.sendRequest('session/list', params ?? {});
+  }
+
   async prompt(params: PromptRequest): Promise<PromptResponse> {
     return this.sendRequest<PromptResponse>('session/prompt', params);
   }

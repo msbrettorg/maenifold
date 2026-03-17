@@ -123,6 +123,15 @@ function normalizeConfigOptions(configOptions: unknown): SessionConfigOption[] {
     }));
 }
 
+function parseUpdatedAt(updatedAt?: string | null): number | undefined {
+  if (!updatedAt) {
+    return undefined;
+  }
+
+  const timestamp = new Date(updatedAt).getTime();
+  return Number.isNaN(timestamp) ? undefined : timestamp;
+}
+
 export const useSessionStore = defineStore('session', () => {
   // State
   const savedSessions = ref<SavedSession[]>([]);
@@ -134,6 +143,7 @@ export const useSessionStore = defineStore('session', () => {
   const isConnecting = ref(false);
   const error = ref<string | null>(null);
   const pendingPermission = ref<PermissionRequest | null>(null);
+  const supportsSessionList = ref(false);
   
   // Authentication state
   const pendingAuthMethods = ref<AuthMethod[]>([]);
@@ -168,6 +178,7 @@ export const useSessionStore = defineStore('session', () => {
   // Current ACP client
   let acpClient: AcpClientBridge | null = null;
   let store: Store | null = null;
+  let connectedAgentName = '';
 
   // Computed
   const hasActiveSession = computed(() => currentSession.value !== null);
@@ -271,6 +282,68 @@ export const useSessionStore = defineStore('session', () => {
       await store.set('sessions', savedSessions.value);
       await store.save();
     }
+  }
+
+  async function mergeSessionsFromAgent(cwd: string): Promise<void> {
+    if (!acpClient || !connectedAgentName) {
+      return;
+    }
+
+    const listedSessions: Array<{
+      sessionId: string;
+      cwd: string;
+      title?: string;
+      updatedAt?: string;
+    }> = [];
+
+    let cursor: string | undefined;
+
+    do {
+      const response = await acpClient.listSessions(
+        cursor === undefined ? { cwd } : { cwd, cursor }
+      );
+
+      listedSessions.push(...response.sessions);
+      cursor = response.nextCursor;
+    } while (cursor !== undefined);
+
+    const sessionsById = new Map(
+      savedSessions.value.map((session) => [session.sessionId, session] as const)
+    );
+
+    for (const listedSession of listedSessions) {
+      const existingSession = sessionsById.get(listedSession.sessionId);
+      const nextTitle =
+        listedSession.title ??
+        existingSession?.title ??
+        'Untitled session';
+      const nextLastUpdated =
+        parseUpdatedAt(listedSession.updatedAt) ??
+        existingSession?.lastUpdated ??
+        Date.now();
+
+      if (existingSession) {
+        existingSession.agentName = connectedAgentName;
+        existingSession.cwd = listedSession.cwd;
+        existingSession.title = nextTitle;
+        existingSession.lastUpdated = nextLastUpdated;
+        existingSession.supportsLoadSession = true;
+        continue;
+      }
+
+      sessionsById.set(listedSession.sessionId, {
+        id: `agent:${connectedAgentName}:${listedSession.sessionId}`,
+        agentName: connectedAgentName,
+        sessionId: listedSession.sessionId,
+        title: nextTitle,
+        lastUpdated: nextLastUpdated,
+        cwd: listedSession.cwd,
+        supportsLoadSession: true,
+      });
+    }
+
+    savedSessions.value = Array.from(sessionsById.values());
+    await saveSessionsToStore();
   }
 
   // Session update handler
@@ -406,18 +479,18 @@ export const useSessionStore = defineStore('session', () => {
         break;
 
       case 'session_info_update':
-        if (!('sessionId' in update) || typeof update.sessionId !== 'string') {
-          break;
-        }
-
-        const targetSessionId = update.sessionId;
-        const nextTitle = 'title' in update && update.title !== undefined ? (update.title as string) : undefined;
+        const targetSessionId = notification.sessionId;
+        const nextTitle =
+          'title' in update
+            ? update.title === null
+              ? ''
+              : update.title ?? undefined
+            : undefined;
         const nextLastUpdated =
-          'updatedAt' in update && update.updatedAt !== undefined
-            ? (() => {
-                const ts = new Date(update.updatedAt as string).getTime();
-                return Number.isNaN(ts) ? Date.now() : ts;
-              })()
+          'updatedAt' in update
+            ? update.updatedAt === null
+              ? Date.now()
+              : parseUpdatedAt(update.updatedAt) ?? Date.now()
             : undefined;
 
         let savedSessionModified = false;
@@ -487,6 +560,8 @@ export const useSessionStore = defineStore('session', () => {
     isConnecting.value = true;
     connectionAborted = false;
     error.value = null;
+    supportsSessionList.value = false;
+    connectedAgentName = agentName;
     
     // Reset and start progress tracking
     startupPhase.value = 'starting';
@@ -559,6 +634,7 @@ export const useSessionStore = defineStore('session', () => {
 
       // Check if agent supports session loading
       const supportsLoadSession = initResponse.agentCapabilities?.loadSession ?? false;
+      supportsSessionList.value = Boolean(initResponse.agentCapabilities?.sessionCapabilities?.list);
 
       if (connectionAborted) {
         await acpClient.disconnect();
@@ -632,6 +708,10 @@ export const useSessionStore = defineStore('session', () => {
       currentSession.value = session;
       savedSessions.value.push(session);
       await saveSessionsToStore();
+
+      if (supportsSessionList.value) {
+        await mergeSessionsFromAgent(cwd);
+      }
       
       isConnected.value = true;
       messages.value = [];
@@ -645,6 +725,8 @@ export const useSessionStore = defineStore('session', () => {
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       acpClient = null;
+      supportsSessionList.value = false;
+      connectedAgentName = '';
       // Track session creation failure
       trackEvent('SessionCreated', { agentName, success: 'false' });
       trackError(e instanceof Error ? e : new Error(String(e)));
@@ -670,6 +752,8 @@ export const useSessionStore = defineStore('session', () => {
     isConnecting.value = true;
     connectionAborted = false;
     error.value = null;
+    supportsSessionList.value = false;
+    connectedAgentName = savedSession.agentName;
 
     try {
       // Spawn agent process
@@ -718,6 +802,8 @@ export const useSessionStore = defineStore('session', () => {
         await acpClient.disconnect();
         throw new Error('Connection cancelled');
       }
+
+      supportsSessionList.value = Boolean(initResponse.agentCapabilities?.sessionCapabilities?.list);
 
       if (!initResponse.agentCapabilities?.loadSession) {
         await acpClient.disconnect();
@@ -793,6 +879,10 @@ export const useSessionStore = defineStore('session', () => {
       // Messages already populated by session/update notifications during loadSession
       applySessionConfigurationState(loadResponse);
 
+      if (supportsSessionList.value) {
+        await mergeSessionsFromAgent(savedSession.cwd);
+      }
+
       // Track successful session resume
       trackEvent('SessionResumed', { agentName: savedSession.agentName, success: 'true' });
 
@@ -803,6 +893,8 @@ export const useSessionStore = defineStore('session', () => {
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       acpClient = null;
+      supportsSessionList.value = false;
+      connectedAgentName = '';
       // Track session resume failure
       trackEvent('SessionResumed', { agentName: savedSession.agentName, success: 'false' });
       trackError(e instanceof Error ? e : new Error(String(e)));
@@ -886,6 +978,8 @@ export const useSessionStore = defineStore('session', () => {
     isLoading.value = false;
     isConnecting.value = false;
     error.value = null;
+    supportsSessionList.value = false;
+    connectedAgentName = '';
   }
 
   // Handle permission response
@@ -921,6 +1015,8 @@ export const useSessionStore = defineStore('session', () => {
     
     currentSession.value = null;
     isConnected.value = false;
+    supportsSessionList.value = false;
+    connectedAgentName = '';
     messages.value = [];
     toolCalls.value.clear();
     configOptions.value = [];
@@ -1006,6 +1102,7 @@ export const useSessionStore = defineStore('session', () => {
     isConnecting,
     error,
     pendingPermission,
+    supportsSessionList,
     pendingAuthMethods,
     pendingAuthAgentName,
     availableModes,

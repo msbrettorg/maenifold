@@ -5,6 +5,29 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 34 — Multi-Tab Sessions — 2026-03-17
+
+### Added
+- **Tab state model** (T-44.1): `TabState`, `TabInfo` interfaces and `createEmptyTabState()` factory for per-tab session isolation
+- **Multi-session store** (T-44.2): Session store refactored from singleton to `tabs: Map<string, TabState>` + `activeTabId` with backward-compatible computed shims
+- **TabStrip component** (T-44.3): Horizontal tab bar with active/connecting/disconnected states, close buttons, and pending-action badges
+- **App.vue layout** (T-44.4): TabStrip integrated, sidebar always-available as launcher, per-tab content rendering
+- **ChatView per-tab** (T-44.5): Scroll position and input draft preserved per tab, auto-scroll on tab switch
+- **SessionList tabs** (T-44.6): Duplicate-tab prevention, focus existing tabs, delete safety for open sessions
+- **Tab-aware dialogs** (T-44.7): Permission and auth dialogs show session context; pending-action indicators on non-active tabs
+
+### Changed
+- Sidebar no longer toggles between "New Session" / "Disconnect" — always shows launcher
+- Multiple simultaneous ACP agent sessions supported (each in its own tab)
+- StartupProgress moved from sidebar to main content area
+
+### Architecture
+- `AcpClientBridge` instances are per-tab (already instance-capable, now properly utilized)
+- Bridge cleanup on tab close with proper watcher disposal
+- Foundation for DAG workflow orchestrator tab type (Sprint 35)
+
+---
+
 ## Sprint 33 — Full ACP Protocol Compliance — 2026-03-17
 
 ### Added

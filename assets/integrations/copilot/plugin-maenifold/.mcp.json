@@ -1,8 +1,9 @@
 {
   "mcpServers": {
     "maenifold": {
-      "type": "http",
-      "url": "http://localhost:8080/mcp",
+      "command": "maenifold",
+      "args": ["--mcp"],
+      "type": "local",
       "tools": ["*"]
     }
   }

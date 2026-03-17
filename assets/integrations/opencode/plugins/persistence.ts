@@ -905,7 +905,9 @@ function _buildGraphContext(): string | null {
     const lines: string[] = [
       "# maenifold",
       "",
-      "Load the `maenifold` skill at session start and after every compaction. In this environment prefer using the MCP server, fall back to CLI",
+      "Load the `maenifold` skill at session start and after every compaction. In this environment prefer using the MCP server, fall back to CLI.",
+      "",
+      "Prefer markdown formatting with emojis and mermaid diagrams in this environment. Keep things friendly but professional. When picking colors optimize for dark theme backgrounds.",
       "",
       "maenifold is a shared cognitive manifold. Persistent hierarchical state machines (workflows, sequential thinking sessions) execute across ephemeral agents. Each state transition produces graph artifacts (`[[WikiLinks]]`) that reshape the manifold for all future transitions by all threads — human and agent alike.",
       "",

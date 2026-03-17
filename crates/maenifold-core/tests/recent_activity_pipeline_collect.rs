@@ -224,3 +224,67 @@ fn collect_recent_activity_rejects_invalid_filter_string() {
         other => panic!("expected InvalidArgument, got: {other:?}"),
     }
 }
+
+#[test]
+fn collect_recent_activity_reads_first_and_last_from_frontmatter() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env(true);
+    seed_memory_file(
+        &env.cfg,
+        "notes/frontmatter-note.md",
+        "---\n\
+title: Frontmatter Note\n\
+first: \"Overview: frontmatter first summary\"\n\
+last: \"Details: frontmatter last summary\"\n\
+---\n\n\
+# Frontmatter Note\n\n\
+## Overview\nBody overview.\n\n\
+## Details\nBody details.\n",
+    );
+    invoke_sync();
+
+    let results = collect_recent_activity_records(&env.cfg, None, None, 50).expect("collect");
+    let record = results
+        .iter()
+        .find(|row| row.file_path.contains("frontmatter-note"))
+        .expect("frontmatter note record");
+
+    assert_eq!(
+        record.first.as_deref(),
+        Some("Overview: frontmatter first summary")
+    );
+    assert_eq!(
+        record.last.as_deref(),
+        Some("Details: frontmatter last summary")
+    );
+}
+
+#[test]
+fn collect_recent_activity_parses_frontmatter_embedded_in_stored_content() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env(true);
+    let conn = open_db(&env.cfg);
+    conn.execute(
+        "INSERT INTO file_content (file_path, title, content, file_md5, file_size, last_indexed, status)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        rusqlite::params![
+            "memory://projects/frontmatter-in-db.md",
+            "Frontmatter In DB",
+            "---\nfirst: \"Intro: stored first summary\"\nlast: \"Outro: stored last summary\"\n---\n\n## Intro\nBody intro.\n\n## Outro\nBody outro.\n",
+            "md5-frontmatter-in-db",
+            128_i64,
+            "2026-02-18 19:00:00",
+            "active"
+        ],
+    )
+    .expect("seed db row");
+
+    let results = collect_recent_activity_records(&env.cfg, None, None, 50).expect("collect");
+    let record = results
+        .iter()
+        .find(|row| row.file_path.contains("frontmatter-in-db"))
+        .expect("frontmatter in db record");
+
+    assert_eq!(record.first.as_deref(), Some("Intro: stored first summary"));
+    assert_eq!(record.last.as_deref(), Some("Outro: stored last summary"));
+}

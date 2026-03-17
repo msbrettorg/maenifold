@@ -108,7 +108,7 @@ impl ServerHandler for MaenifoldHandler {
             )
     }
 
-    // T-5.2: RTM FR-22.4 — tools/list returns all 28 tool schemas.
+    // T-5.2: RTM FR-22.4 — tools/list returns all 29 tool schemas.
     fn list_tools(
         &self,
         _request: Option<rmcp::model::PaginatedRequestParams>,
@@ -268,7 +268,7 @@ mod tests {
     use super::*;
     use std::collections::BTreeSet;
 
-    // T-5.2: RTM FR-22.4 — all 28 tools are represented in the MCP schema mapping.
+    // T-5.2: RTM FR-22.4 — all 29 tools are represented in the MCP schema mapping.
     #[test]
     fn t_5_2_registry_mapping_covers_all_tools() {
         let tools = list_mcp_tools(&ToolRegistry::new()).expect("registry mapping should succeed");
@@ -277,8 +277,8 @@ mod tests {
             .map(|tool| tool.name.as_str())
             .collect::<BTreeSet<_>>();
 
-        assert_eq!(tools.len(), 28);
-        assert_eq!(names.len(), 28);
+        assert_eq!(tools.len(), 29);
+        assert_eq!(names.len(), 29);
         assert!(names.contains("WriteMemory"));
         assert!(names.contains("ReadMcpResource"));
         assert!(names.contains("RunFullBenchmark"));
@@ -342,15 +342,16 @@ mod tests {
         );
     }
 
-    // T-5.1: RTM FR-22.1 — handler converts all 28 McpToolDefinitions into rmcp Tools.
+    // T-5.1: RTM FR-22.1 — handler converts all 29 McpToolDefinitions into rmcp Tools.
     #[test]
-    fn t_5_1_handler_builds_28_rmcp_tools() {
+    fn t_5_1_handler_builds_29_rmcp_tools() {
         let handler = MaenifoldHandler::new(TransportKind::Stdio).expect("handler should build");
-        assert_eq!(handler.tools.len(), 28);
+        assert_eq!(handler.tools.len(), 29);
 
         let names: BTreeSet<&str> = handler.tools.iter().map(|t| t.name.as_ref()).collect();
         assert!(names.contains("WriteMemory"));
         assert!(names.contains("SequentialThinking"));
+        assert!(names.contains("Pipeline"));
         assert!(names.contains("ReadMcpResource"));
     }
 

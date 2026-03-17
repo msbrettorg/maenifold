@@ -3,10 +3,12 @@ use super::recent_activity_format::format_recent_activity_report;
 use crate::config::Config;
 use crate::db;
 use crate::error::{MaenifoldError, Result};
+use crate::markdown::read_markdown;
 use crate::util::json::{OutputFormat, success};
 use chrono::{TimeDelta, Utc};
 use rusqlite::{Connection, params};
 use serde_json::Value;
+use serde_yaml::Value as YamlValue;
 
 pub fn recent_activity(context: &ToolContext, payload: &Value) -> Result<String> {
     let learn = payload
@@ -61,6 +63,8 @@ pub struct RecentActivityRecord {
     pub last_indexed: String,
     pub content: String,
     pub status: String,
+    pub first: Option<String>,
+    pub last: Option<String>,
 }
 
 #[derive(Clone, Copy)]
@@ -215,8 +219,15 @@ fn collect_recent_activity_records_with_filter(
         statement.query_map(params![limit], map_recent_activity_row)?
     };
 
-    rows.collect::<std::result::Result<Vec<_>, _>>()
-        .map_err(MaenifoldError::from)
+    let mut records = rows
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(MaenifoldError::from)?;
+
+    for record in &mut records {
+        populate_recent_activity_summaries(record, config);
+    }
+
+    Ok(records)
 }
 
 fn recent_activity_table_exists(connection: &Connection) -> Result<bool> {
@@ -234,5 +245,98 @@ fn map_recent_activity_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<RecentAc
         last_indexed: row.get(2)?,
         content: row.get(3)?,
         status: row.get(4)?,
+        first: None,
+        last: None,
     })
+}
+
+fn populate_recent_activity_summaries(record: &mut RecentActivityRecord, config: &Config) {
+    let (content_first, content_last) = parse_frontmatter_summaries(&record.content);
+    record.first = content_first;
+    record.last = content_last;
+
+    if record.first.is_some() && record.last.is_some() {
+        return;
+    }
+
+    let Ok((frontmatter, _, _)) = read_markdown(&record.file_path, config) else {
+        return;
+    };
+    let Some(frontmatter) = frontmatter else {
+        return;
+    };
+
+    if record.first.is_none() {
+        record.first = frontmatter_map_string(&frontmatter, "first");
+    }
+    if record.last.is_none() {
+        record.last = frontmatter_map_string(&frontmatter, "last");
+    }
+}
+
+fn parse_frontmatter_summaries(content: &str) -> (Option<String>, Option<String>) {
+    let Some((yaml_text, _body)) = split_embedded_frontmatter(content) else {
+        return (None, None);
+    };
+    let Ok(frontmatter) = serde_yaml::from_str::<YamlValue>(yaml_text) else {
+        return (None, None);
+    };
+
+    (
+        frontmatter_yaml_string(&frontmatter, "first"),
+        frontmatter_yaml_string(&frontmatter, "last"),
+    )
+}
+
+fn split_embedded_frontmatter(content: &str) -> Option<(&str, &str)> {
+    let yaml_start = if content.starts_with("---\n") {
+        4
+    } else if content.starts_with("---\r\n") {
+        5
+    } else {
+        return None;
+    };
+
+    let mut cursor = yaml_start;
+    while cursor <= content.len() {
+        let remaining = &content[cursor..];
+        match remaining.find('\n') {
+            Some(line_end) => {
+                let line = remaining[..line_end].trim_end_matches('\r');
+                if line == "---" {
+                    let yaml_text = &content[yaml_start..cursor];
+                    let body = &remaining[line_end + 1..];
+                    return Some((yaml_text, body));
+                }
+                cursor += line_end + 1;
+            }
+            None => {
+                if remaining.trim_end_matches('\r') == "---" {
+                    let yaml_text = &content[yaml_start..cursor];
+                    return Some((yaml_text, ""));
+                }
+                return None;
+            }
+        }
+    }
+
+    None
+}
+
+fn normalize_frontmatter_string(value: Option<&str>) -> Option<String> {
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn frontmatter_map_string(
+    frontmatter: &std::collections::BTreeMap<String, YamlValue>,
+    key: &str,
+) -> Option<String> {
+    normalize_frontmatter_string(frontmatter.get(key).and_then(YamlValue::as_str))
+}
+
+fn frontmatter_yaml_string(frontmatter: &YamlValue, key: &str) -> Option<String> {
+    normalize_frontmatter_string(frontmatter.get(key).and_then(YamlValue::as_str))
 }

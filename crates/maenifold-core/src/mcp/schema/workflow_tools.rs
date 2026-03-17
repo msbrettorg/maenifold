@@ -156,6 +156,62 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
                 &[],
             ),
         ),
+        "Pipeline" => tool_definition(
+            registry_name,
+            "Creates and manages pipeline sessions composed of workflow nodes.",
+            object_schema(
+                vec![
+                    (
+                        "sessionId",
+                        string_property("Existing pipeline session identifier"),
+                    ),
+                    (
+                        "definition",
+                        json!({
+                            "type": "object",
+                            "description": "Pipeline definition with nodes[] and edges[]"
+                        }),
+                    ),
+                    (
+                        "maxConcurrency",
+                        integer_property_with_default("Max concurrent active nodes", json!(8)),
+                    ),
+                    (
+                        "view",
+                        bool_property("Return current pipeline state", false),
+                    ),
+                    (
+                        "dispatch",
+                        bool_property("Claim ready nodes as active", false),
+                    ),
+                    (
+                        "nodeId",
+                        string_property("Target node for status updates or restart"),
+                    ),
+                    (
+                        "status",
+                        enum_string_property(
+                            "Node status update",
+                            &["completed", "abandoned"],
+                        )
+                        .into(),
+                    ),
+                    (
+                        "conclusion",
+                        string_property("Conclusion text when completing a node"),
+                    ),
+                    (
+                        "restart",
+                        bool_property("Restart an abandoned/stuck node", false),
+                    ),
+                    (
+                        "learn",
+                        bool_property("Return help documentation", false),
+                    ),
+                ],
+                &[],
+            ),
+        ),
         "RecentActivity" => tool_definition(
             registry_name,
             "Reports recently indexed files with optional content excerpts.",

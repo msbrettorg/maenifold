@@ -4,6 +4,7 @@ use serde_json::Value;
 use std::fs;
 
 mod handler;
+pub mod pipeline;
 mod queue;
 mod status;
 mod submachine;
@@ -11,8 +12,8 @@ mod submachine;
 // T-12.0: RTM NFR-1 consolidates the workflow facade and helpers under a single directory module.
 pub(crate) use handler::*;
 pub(crate) use queue::{
-    append_workflow_queue, frontmatter_usize, read_workflow_queue, start_workflow_session,
-    view_workflow_session,
+    append_workflow_queue, frontmatter_usize, initial_workflow_frontmatter, read_workflow_queue,
+    start_workflow_session, view_workflow_session,
 };
 pub(crate) use status::{
     handle_cancelled_workflow_status, handle_completed_workflow_status, handle_queue_exhaustion,

@@ -118,12 +118,26 @@ pub(crate) fn sample_record(
     content: &str,
     status: &str,
 ) -> RecentActivityRecord {
+    sample_record_with_summaries(file_path, title, last_indexed, content, status, None, None)
+}
+
+pub(crate) fn sample_record_with_summaries(
+    file_path: &str,
+    title: &str,
+    last_indexed: &str,
+    content: &str,
+    status: &str,
+    first: Option<&str>,
+    last: Option<&str>,
+) -> RecentActivityRecord {
     RecentActivityRecord {
         file_path: file_path.to_string(),
         title: title.to_string(),
         last_indexed: last_indexed.to_string(),
         content: content.to_string(),
         status: status.to_string(),
+        first: first.map(str::to_string),
+        last: last.map(str::to_string),
     }
 }
 

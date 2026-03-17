@@ -17,6 +17,11 @@ pub(crate) fn workflow_session_uri(session_id: &str) -> String {
     format!("memory://thinking/workflow/{year:04}/{month:02}/{day:02}/{session_id}")
 }
 
+pub(crate) fn pipeline_session_uri(session_id: &str) -> String {
+    let (year, month, day) = date_parts_from_session_id(session_id);
+    format!("memory://pipelines/{year:04}/{month:02}/{day:02}/{session_id}")
+}
+
 pub(crate) fn display_utc_now() -> String {
     Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string()
 }

@@ -40,7 +40,7 @@ pub(crate) fn start_workflow_session(
     let first_step = steps.first().cloned().unwrap_or_else(|| json!({}));
     let rendered_step = format_workflow_step(&first_step)?;
     let uri = workflow_session_uri(&session_id);
-    let frontmatter = initial_workflow_frontmatter(&session_id, workflow_ids);
+    let frontmatter = initial_workflow_frontmatter(&session_id, workflow_ids, "active");
 
     let file_content = format!(
         "# Workflow Session\n\nStarted: {}\n\n## Step 1/{}\n\n{}\n",
@@ -199,7 +199,11 @@ pub(crate) fn frontmatter_usize(frontmatter: &Frontmatter, key: &str) -> usize {
         .unwrap_or(0)
 }
 
-fn initial_workflow_frontmatter(session_id: &str, workflow_ids: &[String]) -> Frontmatter {
+pub(crate) fn initial_workflow_frontmatter(
+    session_id: &str,
+    workflow_ids: &[String],
+    status: &str,
+) -> Frontmatter {
     let mut frontmatter: Frontmatter = BTreeMap::new();
     frontmatter.insert(
         "title".to_string(),
@@ -213,10 +217,7 @@ fn initial_workflow_frontmatter(session_id: &str, workflow_ids: &[String]) -> Fr
         "type".to_string(),
         YamlValue::String("workflow".to_string()),
     );
-    frontmatter.insert(
-        "status".to_string(),
-        YamlValue::String("active".to_string()),
-    );
+    frontmatter.insert("status".to_string(), YamlValue::String(status.to_string()));
     frontmatter.insert(
         "queue".to_string(),
         yaml_sequence_from_strings(workflow_ids),

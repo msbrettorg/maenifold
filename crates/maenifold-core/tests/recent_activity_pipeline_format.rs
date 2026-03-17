@@ -268,3 +268,44 @@ fn format_activity_report_thinking_entry_classified_as_thinking() {
         "expected timestamp, got:\n{output}"
     );
 }
+
+#[test]
+fn format_activity_report_prefers_frontmatter_summaries_for_first_and_last() {
+    let output = format_recent_activity_report(
+        vec![sample_record_with_summaries(
+            "memory://thinking/sequential/2026/02/session-frontmatter-001.md",
+            "Frontmatter Sequential Session",
+            "2026-02-18 18:00:00",
+            "# Frontmatter Sequential Session\n\n## Thought 1/2\nBody first content.\n\n## Thought 2/2\nBody last content.",
+            "active",
+            Some("Thought 1/2: Frontmatter first summary"),
+            Some("Thought 2/2: Frontmatter last summary"),
+        )],
+        true,
+    );
+
+    assert!(
+        output.contains("First H2: Thought 1/2"),
+        "expected heading derived from first summary, got:\n{output}"
+    );
+    assert!(
+        output.contains("First H2 Content: Thought 1/2: Frontmatter first summary"),
+        "expected first frontmatter summary content, got:\n{output}"
+    );
+    assert!(
+        output.contains("Last H2: Thought 2/2"),
+        "expected heading derived from last summary, got:\n{output}"
+    );
+    assert!(
+        output.contains("Last H2 Content: Thought 2/2: Frontmatter last summary"),
+        "expected last frontmatter summary content, got:\n{output}"
+    );
+    assert!(
+        !output.contains("First H2 Content: Body first content."),
+        "formatter should prefer frontmatter summary over parsed H2 body:\n{output}"
+    );
+    assert!(
+        !output.contains("Last H2 Content: Body last content."),
+        "formatter should prefer frontmatter summary over parsed H2 body:\n{output}"
+    );
+}

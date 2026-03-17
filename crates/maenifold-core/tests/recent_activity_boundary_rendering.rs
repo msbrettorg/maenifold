@@ -121,3 +121,36 @@ fn recent_activity_classifies_sequential_workflow_and_memory_files() {
     assert!(output.contains("**memory-classified** (memory)"));
     assert!(output.contains("Title: Memory Classified"));
 }
+
+#[test]
+fn recent_activity_prefers_frontmatter_summaries_when_available() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    let conn = open_db(&env.cfg);
+    seed_activity(
+        &conn,
+        "memory://thinking/sequential/2026/03/session-frontmatter-render",
+        "Frontmatter Render Session",
+        "---\nfirst: \"Thought 1: frontmatter first summary\"\nlast: \"Thought 2: frontmatter last summary\"\n---\n\n## Thought 1\nBody first content\n## Thought 2\nBody last content",
+        &timestamp(1),
+        "active",
+    );
+
+    let output = invoke_recent_activity(json!({
+        "limit": 10,
+        "includeContent": true
+    }));
+
+    assert!(
+        output.contains("First H2 Content: Thought 1: frontmatter first summary"),
+        "tool should prefer frontmatter summary for first content:\n{output}"
+    );
+    assert!(
+        output.contains("Last H2 Content: Thought 2: frontmatter last summary"),
+        "tool should prefer frontmatter summary for last content:\n{output}"
+    );
+    assert!(
+        !output.contains("First H2 Content: Body first content"),
+        "tool should not fall back to parsed H2 body when frontmatter exists:\n{output}"
+    );
+}

@@ -33,7 +33,7 @@ function isAbsolutePath(path: string): boolean {
 let prefsStore: Awaited<ReturnType<typeof load>> | null = null;
 
 const isConnected = computed(() => sessionStore.isConnected);
-const isLoading = computed(() => sessionStore.isLoading);
+
 const isConnecting = computed(() => sessionStore.isConnecting);
 const error = computed(() => sessionStore.error || configStore.error);
 const hasAgents = computed(() => configStore.hasAgents);
@@ -118,9 +118,6 @@ async function handleDeleteSession(sessionId: string) {
   await sessionStore.deleteSession(sessionId);
 }
 
-async function handleDisconnect() {
-  await sessionStore.disconnect();
-}
 
 async function handleCancelConnection() {
   await sessionStore.cancelConnection();
@@ -197,12 +194,12 @@ function clearError() {
           </div>
           
           <button 
-            v-if="hasAgents && !isConnected && !isConnecting"
+            v-if="hasAgents"
             class="new-session-btn"
-            :disabled="!selectedAgent || isLoading"
+            :disabled="!selectedAgent || isConnecting"
             @click="handleNewSession"
           >
-            {{ isLoading ? 'Connecting...' : 'New Session' }}
+            New Session
           </button>
           
           <!-- Startup Progress -->
@@ -217,13 +214,6 @@ function clearError() {
             @toggle-details="showStartupDetails = !showStartupDetails"
           />
           
-          <button 
-            v-if="isConnected"
-            class="disconnect-btn"
-            @click="handleDisconnect"
-          >
-            Disconnect
-          </button>
         </div>
         
         <!-- Session List -->

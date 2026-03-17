@@ -27,10 +27,51 @@ function isAgentSession(session: SavedSession): boolean {
   return session.id.startsWith('agent:');
 }
 
-function handleDelete(sessionId: string, event: Event) {
+function isCurrentConnectedSession(session: SavedSession): boolean {
+  return (
+    sessionStore.currentSession?.sessionId === session.sessionId &&
+    sessionStore.isConnected
+  );
+}
+
+function isCurrentConnectingSession(session: SavedSession): boolean {
+  return (
+    sessionStore.currentSession?.sessionId === session.sessionId &&
+    sessionStore.isConnecting
+  );
+}
+
+function getDeleteTitle(session: SavedSession): string {
+  if (isCurrentConnectedSession(session)) {
+    return 'Disconnect';
+  }
+
+  if (isCurrentConnectingSession(session)) {
+    return 'Cancel';
+  }
+
+  return 'Delete session';
+}
+
+async function handleDelete(session: SavedSession, event: Event) {
   event.stopPropagation();
+
+  if (isCurrentConnectedSession(session)) {
+    await sessionStore.disconnect();
+    return;
+  }
+
+  if (isCurrentConnectingSession(session)) {
+    if (sessionStore.cancelConnection) {
+      await sessionStore.cancelConnection();
+    } else {
+      await sessionStore.disconnect();
+    }
+    return;
+  }
+
   if (confirm('Delete this session?')) {
-    emit('delete', sessionId);
+    emit('delete', session.id);
   }
 }
 </script>
@@ -52,7 +93,25 @@ function handleDelete(sessionId: string, event: Event) {
         @click="handleResume(session)"
       >
         <div class="session-info">
-          <span class="session-title">{{ session.title }}</span>
+          <div class="session-title-row">
+            <span class="session-title">{{ session.title }}</span>
+            <span
+              v-if="isCurrentConnectedSession(session)"
+              class="connection-indicator connected"
+              title="Connected"
+              aria-label="Connected"
+            >
+              ●
+            </span>
+            <span
+              v-else-if="isCurrentConnectingSession(session)"
+              class="connection-indicator connecting"
+              title="Connecting"
+              aria-label="Connecting"
+            >
+              ●
+            </span>
+          </div>
           <span class="session-agent">
             {{ session.agentName }}
             <span v-if="isAgentSession(session)" class="session-badge">from agent</span>
@@ -61,8 +120,8 @@ function handleDelete(sessionId: string, event: Event) {
         </div>
         <button 
           class="delete-btn"
-          @click="(e) => handleDelete(session.id, e)"
-          title="Delete session"
+          @click="(e) => handleDelete(session, e)"
+          :title="getDeleteTitle(session)"
         >
           ×
         </button>
@@ -127,6 +186,27 @@ ul {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.session-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.connection-indicator {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.connection-indicator.connected {
+  color: var(--bg-success, #28a745);
+}
+
+.connection-indicator.connecting {
+  color: #d18b00;
 }
 
 .session-agent {

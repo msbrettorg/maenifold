@@ -625,11 +625,18 @@ export const useSessionStore = defineStore('session', () => {
   // Resume existing session
   async function resumeSession(savedSession: SavedSession): Promise<void> {
     isLoading.value = true;
+    isConnecting.value = true;
+    connectionAborted = false;
     error.value = null;
 
     try {
       // Spawn agent process
       const agentInstance = await spawnAgent(savedSession.agentName);
+
+      if (connectionAborted) {
+        await killAgent(agentInstance.id);
+        throw new Error('Connection cancelled');
+      }
       
       // Create ACP client bridge
       acpClient = await createAcpClient(agentInstance);
@@ -643,6 +650,11 @@ export const useSessionStore = defineStore('session', () => {
         },
         { immediate: true }
       );
+
+      if (connectionAborted) {
+        await acpClient.disconnect();
+        throw new Error('Connection cancelled');
+      }
 
       // Initialize connection
       const initResponse = await acpClient.initialize({
@@ -660,12 +672,27 @@ export const useSessionStore = defineStore('session', () => {
         },
       });
 
+      if (connectionAborted) {
+        await acpClient.disconnect();
+        throw new Error('Connection cancelled');
+      }
+
+      if (!initResponse.agentCapabilities?.loadSession) {
+        await acpClient.disconnect();
+        throw new Error('Agent no longer supports session loading');
+      }
+
       // Store available auth methods for potential retry
       const availableAuthMethods = initResponse.authMethods || [];
 
       // Clear messages BEFORE loadSession - the agent will stream replay via notifications
       messages.value = [];
       toolCalls.value.clear();
+
+      if (connectionAborted) {
+        await acpClient.disconnect();
+        throw new Error('Connection cancelled');
+      }
 
       // Try to load existing session - may fail with auth_required
       let loadResponse;
@@ -687,9 +714,9 @@ export const useSessionStore = defineStore('session', () => {
           // Prompt user to select auth method
           const selectedMethodId = await promptForAuthMethod(availableAuthMethods, savedSession.agentName);
           
-          if (!selectedMethodId) {
+          if (!selectedMethodId || connectionAborted) {
             await acpClient.disconnect();
-            throw new Error('Authentication cancelled by user');
+            throw new Error(connectionAborted ? 'Connection cancelled' : 'Authentication cancelled by user');
           }
           
           console.log('Authenticating with method:', selectedMethodId);
@@ -697,6 +724,11 @@ export const useSessionStore = defineStore('session', () => {
             methodId: selectedMethodId,
           });
           console.log('Authentication successful:', authResponse);
+
+          if (connectionAborted) {
+            await acpClient.disconnect();
+            throw new Error('Connection cancelled');
+          }
 
           // Retry loading session after auth
           loadResponse = await acpClient.loadSession({
@@ -707,6 +739,11 @@ export const useSessionStore = defineStore('session', () => {
         } else {
           throw sessionError;
         }
+      }
+
+      if (connectionAborted) {
+        await acpClient.disconnect();
+        throw new Error('Connection cancelled');
       }
 
       currentSession.value = savedSession;
@@ -723,12 +760,14 @@ export const useSessionStore = defineStore('session', () => {
 
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
+      acpClient = null;
       // Track session resume failure
       trackEvent('SessionResumed', { agentName: savedSession.agentName, success: 'false' });
       trackError(e instanceof Error ? e : new Error(String(e)));
       throw e;
     } finally {
       isLoading.value = false;
+      isConnecting.value = false;
     }
   }
 
@@ -917,6 +956,10 @@ export const useSessionStore = defineStore('session', () => {
     error.value = null;
   }
 
+  function setError(msg: string) {
+    error.value = msg;
+  }
+
   return {
     // State
     savedSessions,
@@ -962,6 +1005,7 @@ export const useSessionStore = defineStore('session', () => {
     setMode,
     setModel,
     setConfigOption,
+    setError,
     clearError,
     
     // Expose client for permission handling

@@ -25,6 +25,10 @@ const showSettings = ref(false);
 const showTrafficMonitor = ref(false);
 const showStartupDetails = ref(false);
 
+function isAbsolutePath(path: string): boolean {
+  return /^\/|^[A-Za-z]:[\\/]|^\\\\/.test(path);
+}
+
 // Preferences store for persisting user selections
 let prefsStore: Awaited<ReturnType<typeof load>> | null = null;
 
@@ -81,9 +85,20 @@ async function handleSelectFolder() {
 
 async function handleNewSession() {
   if (!selectedAgent.value) return;
+
+  const cwd = selectedCwd.value.trim();
+
+  if (!cwd) {
+    sessionStore.setError('Working directory is required');
+    return;
+  }
+
+  if (!isAbsolutePath(cwd)) {
+    sessionStore.setError('Working directory must be an absolute path');
+    return;
+  }
   
   try {
-    const cwd = selectedCwd.value || '.';
     await sessionStore.createSession(selectedAgent.value, cwd);
   } catch (e) {
     console.error('Failed to create session:', e);

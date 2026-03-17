@@ -7,7 +7,7 @@ use axum::extract::{
 };
 use axum::response::IntoResponse;
 use axum::routing::get;
-use serde_json::json;
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::ExitStatus;
@@ -74,6 +74,14 @@ async fn handle_socket(
             maybe_msg = socket.recv() => {
                 match maybe_msg {
                     Some(Ok(Message::Text(payload))) => {
+                        let payload = match validate_outbound_frame(&payload) {
+                            Ok(payload) => payload,
+                            Err(message) => {
+                                let _ = socket.send(Message::Text(error_msg(&message).into())).await;
+                                continue;
+                            }
+                        };
+
                         if let Err(error) = process.write_line(&payload).await {
                             let message = format!("Failed to write to agent stdin: {error}");
                             let _ = socket.send(Message::Text(error_msg(&message).into())).await;
@@ -102,8 +110,10 @@ async fn handle_socket(
             stdout_line = process.stdout_lines.next_line(), if !stdout_closed => {
                 match stdout_line {
                     Ok(Some(line)) => {
-                        if socket.send(Message::Text(line.into())).await.is_err() {
-                            break;
+                        if let Some(line) = normalize_inbound_frame(&line, "stdout") {
+                            if socket.send(Message::Text(line.into())).await.is_err() {
+                                break;
+                            }
                         }
                     }
                     Ok(None) => stdout_closed = true,
@@ -212,6 +222,28 @@ fn agent_exit_reason(status: ExitStatus) -> String {
     }
 }
 
+fn validate_outbound_frame(frame: &str) -> std::result::Result<String, String> {
+    let compact = compact_json_frame(frame)
+        .map_err(|error| format!("Outbound ACP frame must be valid JSON: {error}"))?;
+    debug_assert!(!compact.contains('\n'));
+    Ok(compact)
+}
+
+fn normalize_inbound_frame(frame: &str, source: &str) -> Option<String> {
+    match compact_json_frame(frame) {
+        Ok(compact) => Some(compact),
+        Err(error) => {
+            eprintln!("Warning: skipping invalid ACP {source} frame: {error}; raw={frame:?}");
+            None
+        }
+    }
+}
+
+fn compact_json_frame(frame: &str) -> serde_json::Result<String> {
+    let value: Value = serde_json::from_str(frame)?;
+    serde_json::to_string(&value)
+}
+
 struct RelayProcess {
     child: Child,
     stdin: ChildStdin,
@@ -276,7 +308,10 @@ impl RelayProcess {
 
 #[cfg(test)]
 mod tests {
-    use super::{available_agents_message, error_msg, resolve_agent, stderr_msg};
+    use super::{
+        available_agents_message, error_msg, normalize_inbound_frame, resolve_agent, stderr_msg,
+        validate_outbound_frame,
+    };
     use crate::acp::config::{AgentEntry, AgentsConfig};
     use std::collections::HashMap;
 
@@ -344,5 +379,39 @@ mod tests {
         assert_eq!(value["method"], "_relay/error");
         assert_eq!(value["params"]["message"], "agent failed");
         assert!(value.get("id").is_none());
+    }
+
+    #[test]
+    fn relay_compacts_outbound_json_frames_before_writing() {
+        let payload = "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"ping\"\n}";
+        let compact = validate_outbound_frame(payload).expect("payload should be compacted");
+        assert!(!compact.contains('\n'));
+        let value: serde_json::Value =
+            serde_json::from_str(&compact).expect("compacted payload should remain valid json");
+        assert_eq!(value["jsonrpc"], "2.0");
+        assert_eq!(value["id"], 1);
+        assert_eq!(value["method"], "ping");
+    }
+
+    #[test]
+    fn relay_rejects_invalid_outbound_json_frames() {
+        let error = validate_outbound_frame("{not json]").expect_err("invalid json should fail");
+        assert!(error.contains("Outbound ACP frame must be valid JSON"));
+    }
+
+    #[test]
+    fn relay_skips_invalid_inbound_stdout_frames() {
+        assert!(normalize_inbound_frame("{not json]", "stdout").is_none());
+    }
+
+    #[test]
+    fn relay_compacts_valid_inbound_stdout_frames() {
+        let payload = "{\n  \"jsonrpc\": \"2.0\",\n  \"result\": {\"ok\": true}\n}";
+        let compact =
+            normalize_inbound_frame(payload, "stdout").expect("valid json should be forwarded");
+        let value: serde_json::Value =
+            serde_json::from_str(&compact).expect("forwarded payload should remain valid json");
+        assert_eq!(value["jsonrpc"], "2.0");
+        assert_eq!(value["result"]["ok"], true);
     }
 }

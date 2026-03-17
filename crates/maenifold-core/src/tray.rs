@@ -162,7 +162,7 @@ impl TrayApp {
         if let Some(item) = &self.login_item {
             item.set_text(login_menu_text(is_login_enabled()));
         }
-        }
+    }
 
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
         let port = self.mode.port();

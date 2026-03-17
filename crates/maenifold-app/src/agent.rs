@@ -1,5 +1,6 @@
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
@@ -92,33 +93,28 @@ impl AgentManager {
                 format!("{} {}", escaped_command, quoted_args.join(" "))
             };
 
-            // Determine shell and whether it supports -l (login) flag
-            // bash, zsh, ksh support -l; fish, tcsh, csh, dash do not
+            // Determine the shell to use for PATH resolution without invoking a login shell.
             let user_shell = std::env::var("SHELL").unwrap_or_default();
             let shell_name = std::path::Path::new(&user_shell)
                 .file_name()
                 .and_then(|s| s.to_str())
                 .unwrap_or("");
 
-            let (shell, use_login_flag) = match shell_name {
-                "bash" | "zsh" | "ksh" => (user_shell.as_str(), true),
-                "fish" => (user_shell.as_str(), false), // fish auto-loads config
+            let shell = match shell_name {
+                "bash" | "zsh" | "ksh" | "fish" => user_shell.as_str(),
                 _ => {
-                    // Probe for bash at common paths, fall back to /bin/sh (common default on Unix-like systems)
+                    // Probe for bash at common paths, fall back to /bin/sh (common default on Unix-like systems).
                     if std::path::Path::new("/bin/bash").exists() {
-                        ("/bin/bash", true)
+                        "/bin/bash"
                     } else if std::path::Path::new("/usr/bin/bash").exists() {
-                        ("/usr/bin/bash", true)
+                        "/usr/bin/bash"
                     } else {
-                        ("/bin/sh", false) // /bin/sh may be dash; don't use -l
+                        "/bin/sh"
                     }
                 }
             };
 
             let mut cmd = Command::new(shell);
-            if use_login_flag {
-                cmd.arg("-l"); // login shell to source user's profile
-            }
             cmd.arg("-c")
                 .arg(&shell_command)
                 .envs(&config.env)
@@ -156,6 +152,11 @@ impl AgentManager {
             for line in reader.lines() {
                 match line {
                     Ok(message) => {
+                        let Some(message) =
+                            normalize_inbound_frame(&message, &agent_id_clone, "stdout")
+                        else {
+                            continue;
+                        };
                         let agent_message = AgentMessage {
                             agent_id: agent_id_clone.clone(),
                             message,
@@ -200,8 +201,10 @@ impl AgentManager {
         let agent = agents
             .get(agent_id)
             .ok_or_else(|| format!("Agent not found: {}", agent_id))?;
+        let message = validate_outbound_frame(message)?;
 
         let mut stdin = agent.stdin.write();
+        debug_assert!(!message.contains('\n'));
         writeln!(stdin, "{}", message).map_err(|e| format!("Failed to write to stdin: {}", e))?;
         stdin
             .flush()
@@ -229,5 +232,57 @@ impl AgentManager {
 impl Default for AgentManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+fn validate_outbound_frame(frame: &str) -> Result<String, String> {
+    let compact = compact_json_frame(frame)
+        .map_err(|error| format!("Outbound ACP frame must be valid JSON: {error}"))?;
+    debug_assert!(!compact.contains('\n'));
+    Ok(compact)
+}
+
+fn normalize_inbound_frame(frame: &str, agent_id: &str, source: &str) -> Option<String> {
+    match compact_json_frame(frame) {
+        Ok(compact) => Some(compact),
+        Err(error) => {
+            eprintln!(
+                "Warning: skipping invalid ACP {source} frame from agent {agent_id}: {error}; raw={frame:?}"
+            );
+            None
+        }
+    }
+}
+
+fn compact_json_frame(frame: &str) -> serde_json::Result<String> {
+    let value: Value = serde_json::from_str(frame)?;
+    serde_json::to_string(&value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{normalize_inbound_frame, validate_outbound_frame};
+
+    #[test]
+    fn agent_compacts_outbound_json_frames_before_writing() {
+        let payload = "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"ping\"\n}";
+        let compact = validate_outbound_frame(payload).expect("payload should be compacted");
+        assert!(!compact.contains('\n'));
+        let value: serde_json::Value =
+            serde_json::from_str(&compact).expect("compacted payload should remain valid json");
+        assert_eq!(value["jsonrpc"], "2.0");
+        assert_eq!(value["id"], 1);
+        assert_eq!(value["method"], "ping");
+    }
+
+    #[test]
+    fn agent_rejects_invalid_outbound_json_frames() {
+        let error = validate_outbound_frame("{not json]").expect_err("invalid json should fail");
+        assert!(error.contains("Outbound ACP frame must be valid JSON"));
+    }
+
+    #[test]
+    fn agent_skips_invalid_inbound_stdout_frames() {
+        assert!(normalize_inbound_frame("{not json]", "agent-1", "stdout").is_none());
     }
 }

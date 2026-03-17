@@ -199,13 +199,17 @@ The ACP-UI client SHALL support multiple simultaneous agent sessions as tabs, re
 - **Tab strip**: A horizontal tab bar displays all open sessions with agent name, connection status indicator, and close button.
 - **Backward compatibility**: Single-tab usage is indistinguishable from the previous singleton model.
 
-### FR-44.1: Tab Reactivity Fix — Sprint 35
+### ~~FR-44.1: Tab Reactivity Fix~~ (DEPRECATED — superseded by FR-44.12)
 
-The ACP-UI client SHALL fix the Vue reactivity bypass in `createSession()` and `resumeSession()` that prevents tab state transitions from propagating to the UI.
+Interim fix using `shallowRef + triggerRef`. Addressed immediate tab strip failures but created a maintenance burden: 17+ mutation sites require manual `triggerRef` calls. Superseded by FR-44.12's architectural approach.
 
-- **Root cause**: Both functions hold a reference to the raw (non-proxied) `TabState` object returned by `createEmptyTabState()`. After inserting it into the reactive `tabs` Map via `.set()`, subsequent mutations (`isConnected = true`, `isConnecting = false`) go through the raw reference, bypassing Vue's reactive proxy. The `tabList` computed and `TabStrip` component never recompute.
-- **Symptom**: Tab strip shows "Connecting" indefinitely despite successful connection. Chat is functional because `activeTab` re-evaluates on re-render.
-- **Fix**: After `tabs.value.set(tabId, tab)`, re-obtain the tab reference through the reactive proxy: `tab = tabs.value.get(tabId)!`. Apply to both `createSession()` and `resumeSession()` in `session.ts`.
+### FR-44.12: Multi-Tab State Architecture — Sprint 35
+
+The ACP-UI client SHALL restructure multi-tab state management so that per-tab mutations are naturally reactive without manual `triggerRef` calls.
+
+- **Problem**: Sprint 34 wrapped the OG single-session state in `shallowRef<Map<string, TabState>>`. This requires manual `triggerRef(tabs)` at every mutation site. Research (T-44.5b, T-44.10) identified 17+ gaps causing stale permission dialogs, broken auto-scroll during streaming, and component state bleed across tabs.
+- **Solution**: Per-tab reactive state (each tab independently reactive), keyed `<ChatView :key="activeTabId">`, per-tab UI state in store, deep scroll watch on active tab's messages, and content-version-based unseen output detection.
+- **Success criteria**: Zero `triggerRef` calls remain in `session.ts` after restructuring.
 
 ### FR-45: Pipeline Engine — Sprint 35
 
@@ -260,7 +264,8 @@ Pipeline state SHALL be derived from session files, never stored separately.
 
 - **Status derivation**: A node's status is read from its pre-created workflow session file's frontmatter `status` field.
 - **Ready computation**: A node is `ready` when all upstream nodes (per `success` edges) have `status: completed` AND the node's own status is `pending`.
-- **Blocked computation**: A node is `blocked` when at least one upstream node (per `success` or `always` edges) is not `completed`.
+- **`always` edge semantics**: An `always` edge is satisfied when the upstream node is `completed`, `abandoned`, or `stuck`.
+- **Blocked computation**: A node is `blocked` when at least one upstream node on a `success` edge is `abandoned` or `stuck`. Nodes with unsatisfied but not terminal dependencies remain `pending`.
 - **Pure function**: The ready set is computed by a Rust function reading the pipeline definition + session file frontmatter. No database tables, no virtual tables. Dropping and recomputing yields identical results.
 - **Rebuildable**: If the pipeline session file is lost, it can be reconstructed from the node session files on disk (each carries `pipelineId` and `nodeId` in frontmatter).
 
@@ -269,13 +274,93 @@ Pipeline state SHALL be derived from session files, never stored separately.
 The system SHALL expose pipeline operations via a new `Pipeline` MCP tool, accessible by both the UI and AI agents through the same API surface.
 
 - `pipeline(definition={nodes,edges})` — validate and create a pipeline. Pre-create all node sessions. Return pipeline session ID + initial ready set.
-- `pipeline(sessionId=X, view=true)` — return current pipeline state as structured JSON: nodes with statuses, ready set, edges, node session IDs. Suitable for UI rendering.
-- `pipeline(sessionId=X, dispatch=true)` — return the set of ready nodes with their session IDs, for the caller to hand to ACP clients.
-- `pipeline(sessionId=X, nodeId=Y, status="active")` — mark a node as dispatched / active.
-- `pipeline(sessionId=X, nodeId=Y, status="completed", conclusion="...")` — mark a node as complete, trigger ready-set recomputation for downstream nodes.
+- `pipeline(sessionId=X, view=true)` — return current pipeline state as structured JSON (see response shape below) and a pre-rendered Mermaid diagram string. Suitable for UI rendering and chat display via FR-40.
+- `pipeline(sessionId=X, dispatch=true)` — compute ready set, atomically transition ready nodes to `active`, and return them with session IDs. Dispatch IS the claim — no separate status update needed.
+- `pipeline(sessionId=X, nodeId=Y, status="completed", conclusion="...")` — mark a node as complete, trigger ready-set recomputation and predecessor context injection for downstream nodes.
 - `pipeline(sessionId=X, nodeId=Y, status="abandoned")` — mark a node as abandoned (agent failure).
-- `pipeline(sessionId=X, nodeId=Y, fork=true, acpClient="different-client")` — create a new session for the same node's workflow with the same predecessor context, targeting a different ACP client. Original session preserved as audit trail.
+- `pipeline(sessionId=X, nodeId=Y, restart=true)` — create a new session for an abandoned node, increment attempt count.
 - **Single API surface**: The UI (via HTTP `/mcp`), AI agents (via stdio MCP), and the PM (via MCP) SHALL all use the same Pipeline tool. No direct file or database access.
+- **Ownership boundary**: The Pipeline tool owns `pending → ready → active` transitions. The Workflow tool owns `active → completed/cancelled`. Neither crosses the boundary.
+
+**`view=true` response shape:**
+```json
+{
+  "pipelineId": "pipeline-1772717599558",
+  "status": "active",
+  "nodes": [
+    {"nodeId": "swe", "workflowId": "tdd-implement", "sessionId": "workflow-1772717601234-swe", "status": "completed", "attempts": 1},
+    {"nodeId": "red", "workflowId": "tdd-audit", "sessionId": "workflow-1772717605678-red", "status": "active", "attempts": 1},
+    {"nodeId": "blue", "workflowId": "tdd-verify", "sessionId": "workflow-1772717605679-blue", "status": "pending", "attempts": 0}
+  ],
+  "edges": [
+    {"source": "swe", "target": "red", "type": "success"},
+    {"source": "red", "target": "blue", "type": "success"}
+  ],
+  "ready": [],
+  "active": ["red"],
+  "completed": ["swe"],
+  "mermaid": "graph LR\n  swe[swe ✅] --> red[red 🔄]\n  red --> blue[blue ⏳]"
+}
+```
+
+**`dispatch=true` response shape:**
+```json
+{
+  "dispatched": [
+    {"nodeId": "swe", "sessionId": "workflow-1772717601234-swe", "workflowId": "tdd-implement"}
+  ],
+  "active": [],
+  "completed": [],
+  "remaining": 2
+}
+```
+
+**Pipeline session file format:**
+```yaml
+title: Pipeline Session pipeline-1772717599558
+permalink: pipeline-1772717599558
+type: pipeline
+status: active
+definition:
+  nodes:
+    - id: swe
+      workflowId: tdd-implement
+    - id: red
+      workflowId: tdd-audit
+    - id: blue
+      workflowId: tdd-verify
+  edges:
+    - source: swe
+      target: red
+      type: success
+    - source: red
+      target: blue
+      type: success
+nodeStates:
+  swe:
+    sessionId: workflow-1772717601234-swe
+    status: completed
+    attempts: 1
+  red:
+    sessionId: workflow-1772717605678-red
+    status: active
+    attempts: 1
+  blue:
+    sessionId: workflow-1772717605679-blue
+    status: pending
+    attempts: 0
+maxConcurrency: 8
+first: "Pipeline created with 3 nodes: swe, red, blue"
+last: "Node swe completed"
+```
+
+**Worked example — TDD pipeline:**
+1. PM: `pipeline(definition={nodes:[swe,red,blue], edges:[swe→red, red→blue]})` → creates 3 session files, returns `pipeline-17727...` + ready set `["swe"]`
+2. PM: `pipeline(sessionId=X, dispatch=true)` → atomically claims `swe` as active, returns session ID
+3. PM hands SWE agent the session ID → agent calls `workflow(sessionId=swe-session, response=...)` for each step
+4. Agent completes → `workflow(sessionId=swe-session, status="completed", conclusion="...")`
+5. PM: `pipeline(sessionId=X, dispatch=true)` → swe's `last` injected into red's `## Predecessor Context`, red claimed as active
+6. Repeat for red → blue → pipeline complete
 
 #### FR-45.7: Pipeline Dispatch Model
 
@@ -283,19 +368,25 @@ The v1 dispatch model SHALL be pull-based (cooperative scheduling).
 
 - **Pull-based**: A supervisor (PM agent, UI user, or automation) calls `pipeline(dispatch=true)` to get the ready set, then manually hands session IDs + prompts to ACP clients.
 - **No auto-dispatch**: The pipeline engine does NOT push work to ACP clients automatically in v1. There is no ACP client module in the codebase. Auto-dispatch is a future enhancement.
-- **Idempotent dispatch**: A node in `ready` state transitions to `active` atomically. If two callers request dispatch simultaneously, only one sees the node as ready; the other sees it as `active`.
+- **Dispatch-as-claim**: `dispatch=true` atomically transitions ready nodes to `active` and returns them. There is no separate "mark as active" step. This prevents double-dispatch when multiple callers poll simultaneously.
 - **Concurrency**: An optional `maxConcurrency` field on the pipeline definition limits how many nodes can be `active` simultaneously. The `dispatch` response respects this limit.
+- **`always` edge semantics**: An `always` edge allows the downstream node to become ready when the upstream node is in `completed`, `abandoned`, or `stuck` state. This enables fault-tolerant pipelines where some nodes are optional and terminal upstream failures should not strand downstream cleanup or follow-up work.
 
-#### FR-45.8: Pipeline Resume, Restart, and Fork
+#### FR-45.8: Pipeline Resume and Restart
 
 Pipelines SHALL support lifecycle operations beyond initial execution.
 
 - **Resume**: A pipeline with `active` or `ready` nodes can be resumed after interruption. The engine reads session files, derives current state, and returns the ready set. No state is lost because session files persist.
 - **Restart**: An `abandoned` node can be retried by creating a new workflow session for the same node (new session file, same workflow definition, same predecessor context). The prior session file remains as audit trail. Attempt count is tracked in the pipeline session frontmatter.
-- **Fork**: Any completed or abandoned node can be forked — re-run with the same inputs but a different ACP client. Creates a new session, original preserved. Enables A/B comparisons across different agents.
 - **Max attempts**: Nodes SHALL have a configurable `maxAttempts` (default 3). After reaching max attempts, the node transitions to a `stuck` status and blocks downstream nodes.
+- **Immutable topology**: Pipeline topology is immutable after creation in v1. No appending nodes or rewiring edges at runtime. To change topology, create a new pipeline.
+- **Status gating**: The Workflow tool SHALL gate `continue_workflow_session` on the session's `status` field. Sessions in `pending` state SHALL reject continuation attempts. Sessions in `completed` state SHALL reject re-opening.
 
-#### FR-45.9: Verdict-Based Edge Routing (v2 — deferred)
+#### FR-45.9: Pipeline Fork (v2 — deferred)
+
+_Deferred to Sprint 36._ Fork creates a new session for a completed or abandoned node targeting a different ACP client, enabling A/B comparisons across agents. Forks are observational — they do not affect canonical downstream scheduling unless explicitly promoted.
+
+#### FR-45.10: Verdict-Based Edge Routing (v2 — deferred)
 
 _Deferred to Sprint 36._ The v1 engine supports `success` and `always` edge types only. Future enhancements:
 
@@ -303,7 +394,7 @@ _Deferred to Sprint 36._ The v1 engine supports `success` and `always` edge type
 - `optional` edges where upstream failure does not block downstream.
 - Conditional edges based on conclusion content.
 
-#### FR-45.10: Vue Flow DAG Tab (v2 — deferred)
+#### FR-45.11: Vue Flow DAG Tab (v2 — deferred)
 
 _Deferred to Sprint 36._ The v1 engine is fully functional via MCP tool calls. Visual rendering in a Vue Flow tab requires:
 

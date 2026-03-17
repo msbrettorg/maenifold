@@ -115,13 +115,27 @@ pub fn append_h2_section(uri: &str, heading: &str, content: &str, config: &Confi
         (None, String::new(), String::new())
     };
 
+    let mut envelope = frontmatter.unwrap_or_default();
+    let section_summary = summarize_section_for_frontmatter(heading, content);
+    if existing_content.trim().is_empty() && !envelope.contains_key("first") {
+        envelope.insert(
+            "first".to_string(),
+            YamlValue::String(section_summary.clone()),
+        );
+    }
+    envelope.insert("last".to_string(), YamlValue::String(section_summary));
+
     let mut new_content = existing_content;
     if !new_content.is_empty() && !new_content.ends_with('\n') {
         new_content.push('\n');
     }
     new_content.push_str(&format!("\n## {heading}\n\n{content}\n"));
 
-    write_markdown(uri, frontmatter.as_ref(), &new_content, config)
+    write_markdown(uri, Some(&envelope), &new_content, config)
+}
+
+fn summarize_section_for_frontmatter(heading: &str, content: &str) -> String {
+    format!("{heading}: {content}").chars().take(256).collect()
 }
 
 fn parse_frontmatter(full_text: &str, uri: &str) -> (Option<Frontmatter>, String) {
@@ -200,6 +214,8 @@ fn render_frontmatter(frontmatter: &Frontmatter) -> Result<String> {
         "analysisType",
         "parent",
         "related",
+        "first",
+        "last",
         "tags",
         "created",
         "modified",
@@ -234,4 +250,136 @@ fn now_iso() -> String {
 fn system_time_to_iso(system_time: SystemTime) -> String {
     let date_time: DateTime<Utc> = system_time.into();
     format_iso(date_time)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use once_cell::sync::Lazy;
+    use parking_lot::Mutex;
+    use tempfile::TempDir;
+
+    static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+
+    struct ConfigResetGuard;
+
+    impl Drop for ConfigResetGuard {
+        fn drop(&mut self) {
+            Config::reset_overrides();
+        }
+    }
+
+    fn test_config() -> (TempDir, ConfigResetGuard, Config) {
+        let tmp = TempDir::new().expect("tmp");
+        Config::override_root(tmp.path());
+        Config::set_database_path(tmp.path().join("memory.db"));
+        let config = Config::current();
+        config.ensure_directories().expect("ensure directories");
+        (tmp, ConfigResetGuard, config)
+    }
+
+    fn frontmatter_string(frontmatter: &Frontmatter, key: &str) -> Option<String> {
+        frontmatter
+            .get(key)
+            .and_then(YamlValue::as_str)
+            .map(str::to_string)
+    }
+
+    #[test]
+    fn append_h2_section_sets_first_last_on_initial_write() {
+        let _guard = TEST_MUTEX.lock();
+        let (_tmp, _reset, config) = test_config();
+        let uri = "memory://append-first-last-initial";
+
+        append_h2_section(
+            uri,
+            "Thought 1",
+            "Opening [[concept]] with enough detail to preserve verbatim markup.",
+            &config,
+        )
+        .expect("append section");
+
+        let (frontmatter, _, _) = read_markdown(uri, &config).expect("read markdown");
+        let frontmatter = frontmatter.expect("frontmatter");
+        let expected =
+            "Thought 1: Opening [[concept]] with enough detail to preserve verbatim markup.";
+
+        assert_eq!(
+            frontmatter_string(&frontmatter, "first").as_deref(),
+            Some(expected)
+        );
+        assert_eq!(
+            frontmatter_string(&frontmatter, "last").as_deref(),
+            Some(expected)
+        );
+    }
+
+    #[test]
+    fn append_h2_section_first_last_preserve_first_and_update_last() {
+        let _guard = TEST_MUTEX.lock();
+        let (_tmp, _reset, config) = test_config();
+        let uri = "memory://append-first-last-update";
+        let mut frontmatter = Frontmatter::new();
+        frontmatter.insert(
+            "first".to_string(),
+            YamlValue::String("Original: keep me".to_string()),
+        );
+
+        write_markdown(uri, Some(&frontmatter), "Existing body", &config).expect("write markdown");
+
+        let long_content = format!("Most recent [[state]] {}", "x".repeat(300));
+        append_h2_section(uri, "Thought 2", &long_content, &config).expect("append section");
+
+        let (frontmatter, _, _) = read_markdown(uri, &config).expect("read markdown");
+        let frontmatter = frontmatter.expect("frontmatter");
+        let expected_last: String = format!("Thought 2: {long_content}")
+            .chars()
+            .take(256)
+            .collect();
+
+        assert_eq!(
+            frontmatter_string(&frontmatter, "first").as_deref(),
+            Some("Original: keep me")
+        );
+        assert_eq!(
+            frontmatter_string(&frontmatter, "last").as_deref(),
+            Some(expected_last.as_str())
+        );
+        assert_eq!(expected_last.chars().count(), 256);
+        assert!(
+            expected_last.contains("[[state]]"),
+            "wikilinks must be preserved in last"
+        );
+    }
+
+    #[test]
+    fn first_last_frontmatter_render_after_related_before_tags() {
+        let mut frontmatter = Frontmatter::new();
+        frontmatter.insert("tags".to_string(), YamlValue::Sequence(vec![]));
+        frontmatter.insert(
+            "last".to_string(),
+            YamlValue::String("Last value".to_string()),
+        );
+        frontmatter.insert(
+            "related".to_string(),
+            YamlValue::Sequence(vec![YamlValue::String("memory://other".to_string())]),
+        );
+        frontmatter.insert(
+            "first".to_string(),
+            YamlValue::String("First value".to_string()),
+        );
+
+        let rendered = render_frontmatter(&frontmatter).expect("render frontmatter");
+        let related_index = rendered.find("related:").expect("related");
+        let first_index = rendered.find("first:").expect("first");
+        let last_index = rendered.find("last:").expect("last");
+        let tags_index = rendered.find("tags:").expect("tags");
+
+        assert!(
+            related_index < first_index,
+            "related should render before first"
+        );
+        assert!(first_index < last_index, "first should render before last");
+        assert!(last_index < tags_index, "last should render before tags");
+    }
 }

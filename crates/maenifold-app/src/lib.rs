@@ -141,7 +141,9 @@ fn hide_main_window<R: tauri::Runtime>(window: &Window<R>) {
     }
 }
 
-fn spawn_relay_server(port: u16) -> std::io::Result<(CancellationToken, std::thread::JoinHandle<i32>)> {
+fn spawn_relay_server(
+    port: u16,
+) -> std::io::Result<(CancellationToken, std::thread::JoinHandle<i32>)> {
     let shutdown_token = CancellationToken::new();
     let server_shutdown_token = shutdown_token.clone();
     let server_handle = std::thread::Builder::new()

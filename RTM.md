@@ -175,3 +175,80 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 ### NFR-9: Non-Text Content Blocks (`stores/session.ts`)
 
 - □ RTM-305: Non-text content blocks logged as warnings instead of silently dropped | TC-NFR9.1 | Unit
+
+## Sprint 35 — Pipeline Engine + Fixes
+
+### FR-44.1: Tab Reactivity Fix (`stores/session.ts`)
+
+- □ RTM-306: `createSession()` re-obtains tab ref through reactive proxy after `tabs.value.set()` | TC-44.1.1 | Unit
+- □ RTM-307: `resumeSession()` re-obtains tab ref through reactive proxy after `tabs.value.set()` | TC-44.1.2 | Unit
+- □ RTM-308: Tab strip transitions from "Connecting" to connected state after successful connection | TC-44.1.3 | Integration
+
+### FR-44.5: ChatView Parameterization (`vendor/acp-ui` view-state stack)
+
+- □ RTM-350: Research comparison against OG ACP-UI identifies the divergence causing broken per-tab view state and proposes file-scoped remediation tasks | TC-44.5.1 | Review
+
+### FR-45.1: Pipeline Definition Format (`workflow/pipeline/`)
+
+- □ RTM-309: Pipeline definition JSON with `nodes[]` and `edges[]` parsed and validated | TC-45.1.1 | Unit
+- □ RTM-310: Node schema validates `id` (unique string) and `workflowId` (references existing workflow asset) | TC-45.1.2 | Unit
+- □ RTM-311: Edge schema validates `source` and `target` reference valid node IDs, `type` is `success` or `always` | TC-45.1.3 | Unit
+- □ RTM-312: Cycle detection via topological sort rejects cyclic definitions with error | TC-45.1.4 | Unit
+- □ RTM-313: Existing serial workflow sessions (`queue: [A, B, C]`) unaffected by pipeline additions | TC-45.1.5 | Regression
+
+### FR-45.2: Session Pre-Creation (`workflow/pipeline/`)
+
+- □ RTM-314: `pipeline(definition=...)` pre-creates one workflow session file per node with `status: pending` | TC-45.2.1 | Integration
+- □ RTM-315: Pre-created session files contain `pipelineId`, `nodeId`, `workflowId` in frontmatter | TC-45.2.2 | Unit
+- □ RTM-316: Pre-created session files contain full step definitions from referenced workflow JSON | TC-45.2.3 | Unit
+- □ RTM-317: Session IDs use `workflow-{timestamp}-{nodeId}` suffix to prevent millisecond collisions | TC-45.2.4 | Unit
+- □ RTM-318: Predecessor context injection reads `last` from upstream node sessions and writes `## Predecessor Context` into downstream session | TC-45.2.5 | Integration
+- □ RTM-319: Predecessor context injection is idempotent — replace, not append on re-injection | TC-45.2.6 | Unit
+
+### FR-45.3: Session Frontmatter — `first` and `last` Fields (`sessions/`, `workflow/`, `sequential/`)
+
+- □ RTM-320: `first` field set on initial `append_h2_section` write, never updated after | TC-45.3.1 | Unit
+- □ RTM-321: `last` field updated on every `append_h2_section` call | TC-45.3.2 | Unit
+- □ RTM-322: Both fields include `[[WikiLinks]]` as written | TC-45.3.3 | Unit
+- □ RTM-323: `first`/`last` populated across workflow sessions, sequential thinking sessions, and pipeline sessions | TC-45.3.4 | Integration
+- □ RTM-324: `RecentActivity` tool reads `first`/`last` from frontmatter instead of parsing markdown body | TC-45.3.5 | Integration
+
+### FR-45.4: Workflow Session Status Lifecycle (`workflow/handler.rs`, `workflow/queue.rs`)
+
+- □ RTM-325: Workflow session frontmatter accepts `pending`, `ready`, `active`, `completed`, `abandoned` as valid `status` values | TC-45.4.1 | Unit
+- □ RTM-326: `continue_workflow_session` rejects sessions with `status: pending` | TC-45.4.2 | Unit
+- □ RTM-327: `continue_workflow_session` rejects sessions with `status: completed` | TC-45.4.3 | Unit
+- □ RTM-328: Session cleanup only marks `active` sessions as `abandoned` — `pending` and `ready` sessions untouched | TC-45.4.4 | Unit
+
+### FR-45.5: Derived Execution State (`workflow/pipeline/`)
+
+- □ RTM-329: `compute_ready_set()` pure function returns nodes where all upstream `success` edges have `completed` status AND node is `pending` | TC-45.5.1 | Unit
+- □ RTM-330: `always` edges allow downstream readiness when upstream is `completed` OR `abandoned` | TC-45.5.2 | Unit
+- □ RTM-331: Pipeline state derivation produces identical results when recomputed from session files | TC-45.5.3 | Integration
+- □ RTM-332: Pipeline session reconstructable from node session files on disk via `pipelineId`/`nodeId` frontmatter | TC-45.5.4 | Integration
+
+### FR-45.6: Pipeline MCP Tool (`tools/pipeline_tools.rs`, `workflow/pipeline/`)
+
+- □ RTM-333: Pipeline tool registered in MCP tool registry with schema and help doc | TC-45.6.1 | Unit
+- □ RTM-334: `pipeline(definition=...)` validates, pre-creates sessions, returns pipeline ID + initial ready set | TC-45.6.2 | Integration
+- □ RTM-335: `pipeline(sessionId=X, view=true)` returns structured JSON with nodes, statuses, edges, ready set, session IDs | TC-45.6.3 | Integration
+- □ RTM-336: `pipeline(sessionId=X, view=true)` response includes pre-rendered Mermaid diagram string | TC-45.6.4 | Unit
+- □ RTM-337: `pipeline(sessionId=X, dispatch=true)` atomically claims ready nodes as `active` and returns them with session IDs | TC-45.6.5 | Integration
+- □ RTM-338: `pipeline(sessionId=X, nodeId=Y, status="completed", conclusion="...")` marks node complete, triggers ready-set recomputation + predecessor context injection | TC-45.6.6 | Integration
+- □ RTM-339: `pipeline(sessionId=X, nodeId=Y, status="abandoned")` marks node abandoned | TC-45.6.7 | Unit
+- □ RTM-340: `pipeline(sessionId=X, nodeId=Y, restart=true)` creates new session for abandoned node, increments attempt count | TC-45.6.8 | Integration
+- □ RTM-341: Pipeline tool ownership boundary: Pipeline owns `pending→ready→active`, Workflow owns `active→completed` | TC-45.6.9 | Integration
+
+### FR-45.7: Pipeline Dispatch Model (`workflow/pipeline/`)
+
+- □ RTM-342: Dispatch-as-claim: `dispatch=true` atomically transitions ready→active, preventing double-dispatch | TC-45.7.1 | Unit
+- □ RTM-343: `maxConcurrency` field limits number of simultaneously `active` nodes | TC-45.7.2 | Unit
+- □ RTM-344: Dispatch response shape matches specified JSON contract (dispatched, active, completed, remaining) | TC-45.7.3 | Unit
+
+### FR-45.8: Pipeline Resume and Restart (`workflow/pipeline/`)
+
+- □ RTM-345: Pipeline with `active`/`ready` nodes resumes correctly — ready set derived from session files | TC-45.8.1 | Integration
+- □ RTM-346: Restart of abandoned node creates new session with same workflow + predecessor context | TC-45.8.2 | Integration
+- □ RTM-347: `maxAttempts` (default 3) transitions node to `stuck` after exhaustion | TC-45.8.3 | Unit
+- □ RTM-348: Pipeline topology is immutable after creation — no append or rewiring | TC-45.8.4 | Unit
+- □ RTM-349: Pipeline session file format matches specified YAML contract (definition, nodeStates, maxConcurrency) | TC-45.8.5 | Unit

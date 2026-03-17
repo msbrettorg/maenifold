@@ -14,5 +14,6 @@ pub use validation::{
 
 pub(crate) use support::{
     date_parts_from_session_id, display_utc_now, extract_session_timestamp_millis,
-    frontmatter_string, load_help_doc, now_iso8601_roundtrip, workflow_session_uri,
+    frontmatter_string, load_help_doc, now_iso8601_roundtrip, pipeline_session_uri,
+    workflow_session_uri,
 };

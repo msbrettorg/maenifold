@@ -146,6 +146,11 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: workflow::workflow,
     },
     ToolDescriptor {
+        name: "Pipeline",
+        aliases: &["pipeline"],
+        invoke: workflow::pipeline::pipeline,
+    },
+    ToolDescriptor {
         name: "RecentActivity",
         aliases: &["recentactivity"],
         // T-2.1: RTM FR-4

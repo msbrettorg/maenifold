@@ -151,27 +151,45 @@ fn format_thinking_entry(
     lines.push(format!("  Status: {status}"));
 
     // C# only emits First if meaningfulSections.Count > 0
-    if !meaningful.is_empty() {
+    if !meaningful.is_empty()
+        || row
+            .first
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+    {
         if include_content {
-            let (first_heading, first_content) = section_details(Some(meaningful[0]));
+            let (first_heading, first_content) =
+                summary_section_details(row.first.as_deref(), meaningful.first().copied());
             lines.push(format!("  First H2: {first_heading}"));
             lines.push(format!("  First H2 Content: {first_content}"));
         } else {
-            let first_snippet = render_recent_activity_snippet(Some(meaningful[0]));
+            let first_snippet = render_recent_activity_summary_or_snippet(
+                row.first.as_deref(),
+                meaningful.first().copied(),
+            );
             lines.push(format!("  First: \"{first_snippet}\""));
         }
     }
 
     // C# only emits Last/Current if meaningfulSections.Count > 1 AND last != first
-    if meaningful.len() > 1 {
-        let last = meaningful.last().unwrap();
+    let has_distinct_summary_last = row
+        .last
+        .as_deref()
+        .zip(row.first.as_deref())
+        .map(|(last, first)| last.trim() != first.trim())
+        .unwrap_or(false);
+    if meaningful.len() > 1 || has_distinct_summary_last {
+        let last = meaningful.last().copied();
         if include_content {
-            let (last_heading, last_content) = section_details(Some(last));
+            let (last_heading, last_content) = summary_section_details(row.last.as_deref(), last);
             lines.push(format!("  Last H2: {last_heading}"));
             lines.push(format!("  Last H2 Content: {last_content}"));
         } else {
-            let last_snippet = render_recent_activity_snippet(Some(last));
-            let first_snippet = render_recent_activity_snippet(Some(meaningful[0]));
+            let last_snippet = render_recent_activity_summary_or_snippet(row.last.as_deref(), last);
+            let first_snippet = render_recent_activity_summary_or_snippet(
+                row.first.as_deref(),
+                meaningful.first().copied(),
+            );
             if last_snippet != first_snippet {
                 lines.push(format!("  {last_label}: \"{last_snippet}\""));
             }
@@ -200,26 +218,42 @@ fn format_memory_entry(
     lines.push(format!("  Sections: {}", sections.len()));
 
     // C# only emits First if sections.Count > 0
-    if !sections.is_empty() {
+    if !sections.is_empty()
+        || row
+            .first
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty())
+    {
         if include_content {
-            let (first_heading, first_content) = section_details(sections.first());
+            let (first_heading, first_content) =
+                summary_section_details(row.first.as_deref(), sections.first());
             lines.push(format!("  First H2: {first_heading}"));
             lines.push(format!("  First H2 Content: {first_content}"));
         } else {
-            let first_snippet = render_recent_activity_snippet(sections.first());
+            let first_snippet =
+                render_recent_activity_summary_or_snippet(row.first.as_deref(), sections.first());
             lines.push(format!("  First: \"{first_snippet}\""));
         }
     }
 
     // C# only emits Last if sections.Count > 1 AND last != first
-    if sections.len() > 1 {
+    let has_distinct_summary_last = row
+        .last
+        .as_deref()
+        .zip(row.first.as_deref())
+        .map(|(last, first)| last.trim() != first.trim())
+        .unwrap_or(false);
+    if sections.len() > 1 || has_distinct_summary_last {
         if include_content {
-            let (last_heading, last_content) = section_details(sections.last());
+            let (last_heading, last_content) =
+                summary_section_details(row.last.as_deref(), sections.last());
             lines.push(format!("  Last H2: {last_heading}"));
             lines.push(format!("  Last H2 Content: {last_content}"));
         } else {
-            let last_snippet = render_recent_activity_snippet(sections.last());
-            let first_snippet = render_recent_activity_snippet(sections.first());
+            let last_snippet =
+                render_recent_activity_summary_or_snippet(row.last.as_deref(), sections.last());
+            let first_snippet =
+                render_recent_activity_summary_or_snippet(row.first.as_deref(), sections.first());
             if last_snippet != first_snippet {
                 lines.push(format!("  Last: \"{last_snippet}\""));
             }
@@ -241,6 +275,20 @@ fn section_details(section: Option<&(String, String)>) -> (String, String) {
         ),
         None => (String::new(), String::new()),
     }
+}
+
+fn summary_section_details(
+    summary: Option<&str>,
+    fallback: Option<&(String, String)>,
+) -> (String, String) {
+    if let Some(summary) = summary.map(str::trim).filter(|value| !value.is_empty()) {
+        let heading = summary
+            .split_once(':')
+            .map(|(heading, _)| heading.trim().to_string())
+            .unwrap_or_default();
+        return (heading, summary.to_string());
+    }
+    section_details(fallback)
 }
 
 // T-2.1: RTM FR-4 / RTM-025 exposes snippet extraction parity for RecentActivity pipeline tests.
@@ -294,6 +342,16 @@ fn render_recent_activity_snippet(section: Option<&(String, String)>) -> String 
         None => "",
     };
     recent_activity_extract_snippet(source, -1)
+}
+
+fn render_recent_activity_summary_or_snippet(
+    summary: Option<&str>,
+    fallback: Option<&(String, String)>,
+) -> String {
+    if let Some(summary) = summary.map(str::trim).filter(|value| !value.is_empty()) {
+        return recent_activity_extract_snippet(summary, -1);
+    }
+    render_recent_activity_snippet(fallback)
 }
 
 fn extract_recent_activity_session_id(file_path: &str) -> String {

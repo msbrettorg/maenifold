@@ -4,7 +4,19 @@ import { ref, computed, watch } from 'vue';
 import { load, Store } from '@tauri-apps/plugin-store';
 import { getVersion } from '@tauri-apps/api/app';
 import { trackEvent, trackError } from '../lib/telemetry';
-import type { SavedSession, ChatMessage, ToolCallInfo, PermissionRequest, SessionMode, SlashCommand, ModelInfo } from '../lib/types';
+import type {
+  SavedSession,
+  ChatMessage,
+  ToolCallInfo,
+  PermissionRequest,
+  SessionMode,
+  SlashCommand,
+  ModelInfo,
+  SessionConfigOption,
+  SessionConfigSelectGroup,
+  SessionConfigSelectOption,
+  SessionConfigSelectOptions,
+} from '../lib/types';
 import { AcpClientBridge, createAcpClient } from '../lib/acp-bridge';
 import { spawnAgent, killAgent, onAgentStderr } from '../lib/tauri';
 import type { SessionNotification, AuthMethod } from '@agentclientprotocol/sdk';
@@ -33,6 +45,84 @@ function detectPhase(line: string): string | null {
   return null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeConfigSelectOption(option: unknown): SessionConfigSelectOption | null {
+  if (!isRecord(option) || typeof option.value !== 'string' || typeof option.name !== 'string') {
+    return null;
+  }
+
+  return {
+    value: option.value,
+    name: option.name,
+    description: typeof option.description === 'string' ? option.description : undefined,
+  };
+}
+
+function normalizeConfigSelectOptions(options: unknown): SessionConfigSelectOptions {
+  if (!Array.isArray(options)) {
+    return [];
+  }
+
+  const hasGroups = options.some(
+    (option) => isRecord(option) && typeof option.group === 'string' && Array.isArray(option.options)
+  );
+
+  if (hasGroups) {
+    return options
+      .filter((option): option is Record<string, unknown> => isRecord(option))
+      .map((group): SessionConfigSelectGroup | null => {
+        if (
+          typeof group.group !== 'string' ||
+          typeof group.name !== 'string' ||
+          !Array.isArray(group.options)
+        ) {
+          return null;
+        }
+
+        return {
+          group: group.group,
+          name: group.name,
+          options: group.options
+            .map(normalizeConfigSelectOption)
+            .filter((option): option is SessionConfigSelectOption => option !== null),
+        };
+      })
+      .filter((group): group is SessionConfigSelectGroup => group !== null);
+  }
+
+  return options
+    .map(normalizeConfigSelectOption)
+    .filter((option): option is SessionConfigSelectOption => option !== null);
+}
+
+function normalizeConfigOptions(configOptions: unknown): SessionConfigOption[] {
+  if (!Array.isArray(configOptions)) {
+    return [];
+  }
+
+  return configOptions
+    .filter(
+      (option): option is Record<string, unknown> =>
+        isRecord(option) &&
+        option.type === 'select' &&
+        typeof option.id === 'string' &&
+        typeof option.name === 'string' &&
+        typeof option.currentValue === 'string'
+    )
+    .map((option) => ({
+      id: option.id as string,
+      name: option.name as string,
+      description: typeof option.description === 'string' ? option.description : undefined,
+      category: typeof option.category === 'string' ? option.category : undefined,
+      type: 'select' as const,
+      currentValue: option.currentValue as string,
+      options: normalizeConfigSelectOptions(option.options),
+    }));
+}
+
 export const useSessionStore = defineStore('session', () => {
   // State
   const savedSessions = ref<SavedSession[]>([]);
@@ -53,6 +143,10 @@ export const useSessionStore = defineStore('session', () => {
   // Session modes
   const availableModes = ref<SessionMode[]>([]);
   const currentModeId = ref<string>('');
+
+  // Session config options
+  const configOptions = ref<SessionConfigOption[]>([]);
+  const hasConfigOptions = ref(false);
   
   // Slash commands
   const availableCommands = ref<SlashCommand[]>([]);
@@ -83,6 +177,78 @@ export const useSessionStore = defineStore('session', () => {
   const resumableSessions = computed(() => 
     savedSessions.value.filter(s => s.supportsLoadSession === true)
   );
+
+  function applyConfigOptionsState(
+    response: { configOptions?: unknown[] | null }
+  ): void {
+    hasConfigOptions.value =
+      'configOptions' in response && response.configOptions !== null;
+    configOptions.value = hasConfigOptions.value
+      ? normalizeConfigOptions(response.configOptions)
+      : [];
+  }
+
+  function applyLegacySessionState(
+    response: {
+      modes?: {
+        availableModes?: Array<{ id: string; name: string; description?: string | null }>;
+        currentModeId?: string | null;
+      } | null;
+      models?: {
+        availableModels?: Array<{ modelId: string; name: string; description?: string | null }>;
+        currentModelId?: string | null;
+      } | null;
+    }
+  ): void {
+    if (hasConfigOptions.value) {
+      availableModes.value = [];
+      currentModeId.value = '';
+      availableModels.value = [];
+      currentModelId.value = '';
+      return;
+    }
+
+    if (response.modes) {
+      availableModes.value = (response.modes.availableModes || []).map(m => ({
+        id: m.id,
+        name: m.name,
+        description: m.description ?? undefined,
+      }));
+      currentModeId.value = response.modes.currentModeId || '';
+    } else {
+      availableModes.value = [];
+      currentModeId.value = '';
+    }
+
+    if (response.models) {
+      availableModels.value = (response.models.availableModels || []).map(m => ({
+        modelId: m.modelId,
+        name: m.name,
+        description: m.description ?? undefined,
+      }));
+      currentModelId.value = response.models.currentModelId || '';
+    } else {
+      availableModels.value = [];
+      currentModelId.value = '';
+    }
+  }
+
+  function applySessionConfigurationState(
+    response: {
+      configOptions?: unknown[] | null;
+      modes?: {
+        availableModes?: Array<{ id: string; name: string; description?: string | null }>;
+        currentModeId?: string | null;
+      } | null;
+      models?: {
+        availableModels?: Array<{ modelId: string; name: string; description?: string | null }>;
+        currentModelId?: string | null;
+      } | null;
+    }
+  ): void {
+    applyConfigOptionsState(response);
+    applyLegacySessionState(response);
+  }
 
   // Initialize store
   async function initStore() {
@@ -211,9 +377,21 @@ export const useSessionStore = defineStore('session', () => {
 
       case 'current_mode_update':
         // Agent changed the mode
+        if (hasConfigOptions.value) {
+          break;
+        }
         if ('modeId' in update && update.modeId) {
           currentModeId.value = update.modeId as string;
         }
+        break;
+
+      case 'config_option_update':
+        configOptions.value = normalizeConfigOptions(update.configOptions);
+        hasConfigOptions.value = true;
+        availableModes.value = [];
+        currentModeId.value = '';
+        availableModels.value = [];
+        currentModelId.value = '';
         break;
 
       case 'available_commands_update':
@@ -420,31 +598,7 @@ export const useSessionStore = defineStore('session', () => {
       // Track successful session creation
       trackEvent('SessionCreated', { agentName, success: 'true' });
       
-      // Set up session modes if available
-      if (sessionResponse.modes) {
-        availableModes.value = (sessionResponse.modes.availableModes || []).map(m => ({
-          id: m.id,
-          name: m.name,
-          description: m.description ?? undefined,
-        }));
-        currentModeId.value = sessionResponse.modes.currentModeId || '';
-      } else {
-        availableModes.value = [];
-        currentModeId.value = '';
-      }
-
-      // Set up session models if available
-      if (sessionResponse.models) {
-        availableModels.value = (sessionResponse.models.availableModels || []).map(m => ({
-          modelId: m.modelId,
-          name: m.name,
-          description: m.description ?? undefined,
-        }));
-        currentModelId.value = sessionResponse.models.currentModelId || '';
-      } else {
-        availableModels.value = [];
-        currentModelId.value = '';
-      }
+      applySessionConfigurationState(sessionResponse);
 
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
@@ -514,8 +668,9 @@ export const useSessionStore = defineStore('session', () => {
       toolCalls.value.clear();
 
       // Try to load existing session - may fail with auth_required
+      let loadResponse;
       try {
-        await acpClient.loadSession({
+        loadResponse = await acpClient.loadSession({
           sessionId: savedSession.sessionId,
           cwd: savedSession.cwd,
           mcpServers: [],
@@ -544,7 +699,7 @@ export const useSessionStore = defineStore('session', () => {
           console.log('Authentication successful:', authResponse);
 
           // Retry loading session after auth
-          await acpClient.loadSession({
+          loadResponse = await acpClient.loadSession({
             sessionId: savedSession.sessionId,
             cwd: savedSession.cwd,
             mcpServers: [],
@@ -557,6 +712,7 @@ export const useSessionStore = defineStore('session', () => {
       currentSession.value = savedSession;
       isConnected.value = true;
       // Messages already populated by session/update notifications during loadSession
+      applySessionConfigurationState(loadResponse);
 
       // Track successful session resume
       trackEvent('SessionResumed', { agentName: savedSession.agentName, success: 'true' });
@@ -692,6 +848,8 @@ export const useSessionStore = defineStore('session', () => {
     isConnected.value = false;
     messages.value = [];
     toolCalls.value.clear();
+    configOptions.value = [];
+    hasConfigOptions.value = false;
     availableModes.value = [];
     currentModeId.value = '';
     availableCommands.value = [];
@@ -735,6 +893,26 @@ export const useSessionStore = defineStore('session', () => {
     currentModelId.value = modelId;
   }
 
+  // Set session config option
+  async function setConfigOption(configId: string, value: string): Promise<void> {
+    if (!acpClient || !currentSession.value) {
+      throw new Error('No active session');
+    }
+
+    const response = await acpClient.unstable_setSessionConfigOption({
+      sessionId: currentSession.value.sessionId,
+      configId,
+      value,
+    });
+
+    hasConfigOptions.value = true;
+    configOptions.value = normalizeConfigOptions(response.configOptions);
+    availableModes.value = [];
+    currentModeId.value = '';
+    availableModels.value = [];
+    currentModelId.value = '';
+  }
+
   function clearError() {
     error.value = null;
   }
@@ -753,6 +931,8 @@ export const useSessionStore = defineStore('session', () => {
     pendingAuthAgentName,
     availableModes,
     currentModeId,
+    configOptions,
+    hasConfigOptions,
     availableCommands,
     availableModels,
     currentModelId,
@@ -781,6 +961,7 @@ export const useSessionStore = defineStore('session', () => {
     deleteSession,
     setMode,
     setModel,
+    setConfigOption,
     clearError,
     
     // Expose client for permission handling

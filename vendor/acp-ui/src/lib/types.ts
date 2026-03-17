@@ -76,6 +76,33 @@ export interface SessionModeState {
   availableModes: SessionMode[];
 }
 
+// Session Config Options
+export interface SessionConfigSelectOption {
+  value: string;
+  name: string;
+  description?: string;
+}
+
+export interface SessionConfigSelectGroup {
+  group: string;
+  name: string;
+  options: SessionConfigSelectOption[];
+}
+
+export type SessionConfigSelectOptions =
+  | SessionConfigSelectOption[]
+  | SessionConfigSelectGroup[];
+
+export interface SessionConfigOption {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  type: 'select';
+  currentValue: string;
+  options: SessionConfigSelectOptions;
+}
+
 // Slash Commands
 export interface SlashCommand {
   name: string;

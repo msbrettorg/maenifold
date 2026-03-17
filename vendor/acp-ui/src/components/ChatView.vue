@@ -4,6 +4,7 @@ import { marked } from 'marked';
 import { useSessionStore } from '../stores/session';
 import ModePicker from './ModePicker.vue';
 import ModelPicker from './ModelPicker.vue';
+import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import CommandPalette from './CommandPalette.vue';
 import type { SlashCommand } from '../lib/types';
 
@@ -22,6 +23,8 @@ const availableModes = computed(() => sessionStore.availableModes);
 const currentModeId = computed(() => sessionStore.currentModeId);
 const availableModels = computed(() => sessionStore.availableModels);
 const currentModelId = computed(() => sessionStore.currentModelId);
+const configOptions = computed(() => sessionStore.configOptions);
+const hasConfigOptions = computed(() => sessionStore.hasConfigOptions);
 const availableCommands = computed(() => sessionStore.availableCommands);
 
 // Slash command state
@@ -108,6 +111,14 @@ async function handleModelChange(modelId: string) {
   }
 }
 
+async function handleConfigOptionChange(configId: string, value: string) {
+  try {
+    await sessionStore.setConfigOption(configId, value);
+  } catch (e) {
+    console.error('Failed to change config option:', e);
+  }
+}
+
 function isThoughtExpanded(messageId: string): boolean {
   return expandedThoughts.value.has(messageId);
 }
@@ -154,20 +165,28 @@ function getStatusIcon(status: string): string {
     <div class="chat-header">
       <h2>{{ currentSession?.title || 'Chat' }}</h2>
       <div class="header-right">
-        <ModelPicker 
-          v-if="availableModels.length > 0"
-          :models="availableModels"
-          :current-model-id="currentModelId"
-          :disabled="isLoading"
-          @change="handleModelChange"
-        />
-        <ModePicker 
-          v-if="availableModes.length > 0"
-          :modes="availableModes"
-          :current-mode-id="currentModeId"
-          :disabled="isLoading"
-          @change="handleModeChange"
-        />
+        <template v-if="hasConfigOptions">
+          <ConfigOptionPicker
+            v-for="option in configOptions"
+            :key="option.id"
+            :option="option"
+            @change="handleConfigOptionChange"
+          />
+        </template>
+        <template v-else>
+          <ModelPicker 
+            v-if="availableModels.length > 0"
+            :models="availableModels"
+            :current-model-id="currentModelId"
+            @change="handleModelChange"
+          />
+          <ModePicker 
+            v-if="availableModes.length > 0"
+            :modes="availableModes"
+            :current-mode-id="currentModeId"
+            @change="handleModeChange"
+          />
+        </template>
         <span class="agent-name">{{ currentSession?.agentName }}</span>
       </div>
     </div>
@@ -281,6 +300,8 @@ function getStatusIcon(status: string): string {
 .header-right {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.75rem;
 }
 

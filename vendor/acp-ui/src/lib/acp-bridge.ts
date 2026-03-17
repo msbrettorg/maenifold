@@ -278,6 +278,12 @@ export class AcpClientBridge implements Client {
     await this.sendRequest('session/set_model', params);
   }
 
+  async unstable_setSessionConfigOption(
+    params: { sessionId: string; configId: string; value: string }
+  ): Promise<{ configOptions: unknown[] }> {
+    return this.sendRequest<{ configOptions: unknown[] }>('session/set_config_option', params);
+  }
+
   async authenticate(params: AuthenticateRequest): Promise<AuthenticateResponse> {
     return this.sendRequest<AuthenticateResponse>('authenticate', params);
   }

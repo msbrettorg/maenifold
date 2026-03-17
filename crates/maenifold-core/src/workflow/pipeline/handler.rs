@@ -1,25 +1,25 @@
 use crate::assets::AssetManager;
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{Frontmatter, append_h2_section, file_exists, read_markdown, write_markdown};
+use crate::markdown::{append_h2_section, file_exists, read_markdown, write_markdown, Frontmatter};
 use crate::sessions::{
     date_parts_from_session_id, load_help_doc, pipeline_session_uri, workflow_session_uri,
 };
 use crate::tools::ToolContext;
-use crate::util::json::{OutputFormat, success};
+use crate::util::json::{success, OutputFormat};
 use crate::workflow::{
     format_workflow_step, initial_workflow_frontmatter, read_workflow_definition, workflow_steps,
 };
 use chrono::Utc;
 use serde::de::DeserializeOwned;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use serde_yaml::Value as YamlValue;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 
 use super::{
-    EdgeType, NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status,
-    compute_ready_set, validate_pipeline,
+    compute_pipeline_status, compute_ready_set, validate_pipeline, EdgeType, NodeState, NodeStatus,
+    PipelineDefinition,
 };
 
 // T-45.6a: RTM-333 / RTM-334 / RTM-314 / RTM-315 / RTM-316 / RTM-317
@@ -354,15 +354,27 @@ fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Result<String> 
     let dispatch_slots = max_concurrency.saturating_sub(active_count) as usize;
     let to_dispatch: Vec<String> = ready.into_iter().take(dispatch_slots).collect();
 
-    // Atomic claim: transition dispatched nodes pending→active and activate their workflow sessions.
+    // Track the dispatch attempt up-front so any partial persistence on error records
+    // the same dispatch sequence number as a fully successful run.
+    let last = frontmatter
+        .get("last")
+        .and_then(YamlValue::as_u64)
+        .unwrap_or(0);
+    frontmatter.insert("last".to_string(), serde_yaml::to_value(last + 1)?);
+
+    // Best-effort dispatch: only include nodes activated in this call, but persist
+    // progress after each node so retries observe already-activated sessions.
     let mut dispatched = Vec::with_capacity(to_dispatch.len());
     for node_id in &to_dispatch {
-        let state = node_states.get_mut(node_id).ok_or_else(|| {
-            MaenifoldError::Message(format!(
-                "ERROR: Pipeline session missing node state for '{node_id}'"
-            ))
-        })?;
-        state.status = NodeStatus::Active;
+        let workflow_session_id = node_states
+            .get(node_id)
+            .ok_or_else(|| {
+                MaenifoldError::Message(format!(
+                    "ERROR: Pipeline session missing node state for '{node_id}'"
+                ))
+            })?
+            .session_id
+            .clone();
 
         let node = definition
             .nodes
@@ -374,43 +386,44 @@ fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Result<String> 
                 ))
             })?;
 
-        // Activate the workflow session: update status to active and render first step.
-        activate_workflow_node_session(context, &node.workflow_id, &state.session_id)?;
+        // Activate the workflow session: atomically update status to active and render first step.
+        let activated =
+            activate_workflow_node_session(context, &node.workflow_id, &workflow_session_id)?;
 
-        dispatched.push(json!({
-            "nodeId": node_id,
-            "sessionId": state.session_id,
-            "workflowId": node.workflow_id,
-        }));
+        let workflow_id = {
+            let state = node_states.get_mut(node_id).ok_or_else(|| {
+                MaenifoldError::Message(format!(
+                    "ERROR: Pipeline session missing node state for '{node_id}'"
+                ))
+            })?;
+            state.status = NodeStatus::Active;
+            node.workflow_id.clone()
+        };
+
+        persist_pipeline_state(
+            &mut frontmatter,
+            &node_states,
+            &uri,
+            &pipeline_content,
+            context,
+        )?;
+
+        if activated {
+            dispatched.push(json!({
+                "nodeId": node_id,
+                "sessionId": workflow_session_id,
+                "workflowId": workflow_id,
+            }));
+        }
     }
 
-    // Update pipeline session frontmatter with new node states.
-    let updated_node_states: BTreeMap<String, YamlValue> = node_states
-        .iter()
-        .map(|(key, value)| Ok((key.clone(), serde_yaml::to_value(value)?)))
-        .collect::<Result<_>>()?;
-    frontmatter.insert(
-        "nodeStates".to_string(),
-        YamlValue::Mapping(
-            updated_node_states
-                .iter()
-                .map(|(key, value)| (YamlValue::String(key.clone()), value.clone()))
-                .collect(),
-        ),
-    );
-    frontmatter.insert(
-        "status".to_string(),
-        YamlValue::String(compute_pipeline_status(&node_states).to_string()),
-    );
-
-    // Increment `last` field to track dispatch operations.
-    let last = frontmatter
-        .get("last")
-        .and_then(YamlValue::as_u64)
-        .unwrap_or(0);
-    frontmatter.insert("last".to_string(), serde_yaml::to_value(last + 1)?);
-
-    write_markdown(&uri, Some(&frontmatter), &pipeline_content, &context.config)?;
+    persist_pipeline_state(
+        &mut frontmatter,
+        &node_states,
+        &uri,
+        &pipeline_content,
+        context,
+    )?;
 
     // Build response with current pipeline state.
     let active_nodes = node_ids_with_status(&definition, &node_states, NodeStatus::Active)?;
@@ -438,13 +451,16 @@ fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Result<String> 
     })
 }
 
-/// Activate a workflow node session: update its frontmatter status to `active`
-/// and render the first workflow step into the session body.
+/// Activate a workflow node session with a single write that updates its frontmatter
+/// status to `active` and renders the first workflow step into the session body.
+///
+/// Returns `Ok(true)` when activation performed a write, or `Ok(false)` when the
+/// session was already active and should be skipped.
 fn activate_workflow_node_session(
     context: &ToolContext,
     workflow_id: &str,
     session_id: &str,
-) -> Result<()> {
+) -> Result<bool> {
     let workflow_uri = workflow_session_uri(session_id);
     let (session_frontmatter, existing_content, _) = read_markdown(&workflow_uri, &context.config)?;
     let mut session_frontmatter = session_frontmatter.ok_or_else(|| {
@@ -453,32 +469,70 @@ fn activate_workflow_node_session(
         ))
     })?;
 
-    // Transition status from pending to active.
+    if session_frontmatter
+        .get("status")
+        .and_then(YamlValue::as_str)
+        == Some("active")
+    {
+        return Ok(false);
+    }
+
+    let workflow_value = read_workflow_definition(&context.config, workflow_id)?;
+    let steps = workflow_steps(&workflow_value, workflow_id)?;
+
+    // Transition status from pending to active and render the first step into the
+    // session content before performing a single write.
     session_frontmatter.insert(
         "status".to_string(),
         YamlValue::String("active".to_string()),
     );
+    let updated_content = if let Some(first_step) = steps.first() {
+        let heading = format!("Step 1/{}", steps.len());
+        let rendered_step = format_workflow_step(first_step)?;
+        update_activation_section_frontmatter(
+            &mut session_frontmatter,
+            &existing_content,
+            &heading,
+            &rendered_step,
+        );
+        append_step_section(&existing_content, &heading, &rendered_step)
+    } else {
+        existing_content
+    };
+
     write_markdown(
         &workflow_uri,
         Some(&session_frontmatter),
-        &existing_content,
+        &updated_content,
         &context.config,
     )?;
 
-    // Render the first workflow step into the session body.
-    let workflow_value = read_workflow_definition(&context.config, workflow_id)?;
-    let steps = workflow_steps(&workflow_value, workflow_id)?;
-    if let Some(first_step) = steps.first() {
-        let rendered_step = format_workflow_step(first_step)?;
-        append_h2_section(
-            &workflow_uri,
-            &format!("Step 1/{}", steps.len()),
-            &rendered_step,
-            &context.config,
-        )?;
-    }
+    Ok(true)
+}
 
-    Ok(())
+fn append_step_section(existing_content: &str, heading: &str, content: &str) -> String {
+    let mut new_content = existing_content.to_string();
+    if !new_content.is_empty() && !new_content.ends_with('\n') {
+        new_content.push('\n');
+    }
+    new_content.push_str(&format!("\n## {heading}\n\n{content}\n"));
+    new_content
+}
+
+fn update_activation_section_frontmatter(
+    frontmatter: &mut Frontmatter,
+    existing_content: &str,
+    heading: &str,
+    content: &str,
+) {
+    let section_summary: String = format!("{heading}: {content}").chars().take(256).collect();
+    if existing_content.trim().is_empty() && !frontmatter.contains_key("first") {
+        frontmatter.insert(
+            "first".to_string(),
+            YamlValue::String(section_summary.clone()),
+        );
+    }
+    frontmatter.insert("last".to_string(), YamlValue::String(section_summary));
 }
 
 fn read_pipeline_session(
@@ -2024,6 +2078,89 @@ mod tests {
     }
 
     #[test]
+    fn pipeline_dispatch_only_reports_nodes_transitioned_in_this_call() {
+        let (_tmp, context, _reset, _test_lock) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600150";
+        let definition = PipelineDefinition {
+            nodes: vec![
+                crate::workflow::pipeline::PipelineNode {
+                    id: "root".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                },
+                crate::workflow::pipeline::PipelineNode {
+                    id: "sibling".to_string(),
+                    workflow_id: "test-workflow-b".to_string(),
+                    acp_client: None,
+                },
+            ],
+            edges: vec![],
+        };
+        let node_states = HashMap::from([
+            (
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600150-root".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            ),
+            (
+                "sibling".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600150-sibling".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            ),
+        ]);
+        seed_pipeline_session_with_workflows(&context, pipeline_id, definition, node_states, 8);
+
+        activate_workflow_node_session(&context, "test-workflow-a", "workflow-1735689600150-root")
+            .expect("activate root workflow session");
+
+        let output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "dispatch": true }),
+        )
+        .expect("dispatch pipeline");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+
+        assert_eq!(
+            data.get("dispatched").and_then(Value::as_array),
+            Some(&vec![json!({
+                "nodeId": "sibling",
+                "sessionId": "workflow-1735689600150-sibling",
+                "workflowId": "test-workflow-b",
+            })])
+        );
+        assert_eq!(
+            data.get("active").and_then(Value::as_array),
+            Some(&vec![
+                Value::String("root".to_string()),
+                Value::String("sibling".to_string()),
+            ])
+        );
+
+        let (pipeline_fm, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
+                .expect("read pipeline");
+        let pipeline_fm = pipeline_fm.expect("pipeline frontmatter");
+        let updated_states: HashMap<String, NodeState> =
+            frontmatter_value(&pipeline_fm, "nodeStates").expect("node states");
+        assert_eq!(updated_states["root"].status, NodeStatus::Active);
+        assert_eq!(updated_states["sibling"].status, NodeStatus::Active);
+
+        let (_, root_content, _) = read_markdown(
+            &workflow_session_uri("workflow-1735689600150-root"),
+            &context.config,
+        )
+        .expect("read root workflow");
+        assert_eq!(root_content.matches("## Step 1/1").count(), 1);
+    }
+
+    #[test]
     fn pipeline_dispatch_returns_empty_when_no_nodes_ready() {
         let (_tmp, context, _reset, _test_lock) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600200";
@@ -2188,6 +2325,213 @@ mod tests {
         assert!(
             !child_content.contains("## Step"),
             "child should not have steps rendered"
+        );
+    }
+
+    #[test]
+    fn pipeline_dispatch_persists_partial_progress_when_activation_fails() {
+        let (_tmp, context, _reset, _test_lock) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600460";
+        let definition = PipelineDefinition {
+            nodes: vec![
+                crate::workflow::pipeline::PipelineNode {
+                    id: "root".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                },
+                crate::workflow::pipeline::PipelineNode {
+                    id: "broken".to_string(),
+                    workflow_id: "missing-workflow".to_string(),
+                    acp_client: None,
+                },
+            ],
+            edges: vec![],
+        };
+        let node_states = HashMap::from([
+            (
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600460-root".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            ),
+            (
+                "broken".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600460-broken".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            ),
+        ]);
+        seed_pipeline_session_with_workflows(&context, pipeline_id, definition, node_states, 8);
+
+        let error = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "dispatch": true }),
+        )
+        .expect_err("dispatch should fail when a workflow asset is missing");
+        assert!(
+            error.to_string().contains("missing-workflow"),
+            "unexpected error: {error}"
+        );
+
+        let (pipeline_fm, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
+                .expect("read pipeline");
+        let pipeline_fm = pipeline_fm.expect("pipeline frontmatter");
+        let updated_states: HashMap<String, NodeState> =
+            frontmatter_value(&pipeline_fm, "nodeStates").expect("node states");
+        assert_eq!(updated_states["root"].status, NodeStatus::Active);
+        assert_eq!(updated_states["broken"].status, NodeStatus::Pending);
+        assert_eq!(pipeline_fm.get("last").and_then(YamlValue::as_u64), Some(1));
+
+        let (root_fm, root_content, _) = read_markdown(
+            &workflow_session_uri("workflow-1735689600460-root"),
+            &context.config,
+        )
+        .expect("read root workflow");
+        let root_fm = root_fm.expect("root frontmatter");
+        assert_eq!(
+            root_fm.get("status").and_then(YamlValue::as_str),
+            Some("active")
+        );
+        assert_eq!(root_content.matches("## Step 1/1").count(), 1);
+    }
+
+    #[test]
+    fn activate_workflow_node_session_skips_active_session_without_duplication() {
+        let (_tmp, context, _reset, _test_lock) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600450";
+        let node_states = HashMap::from([
+            (
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600450-root".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            ),
+            (
+                "child".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600450-child".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            ),
+        ]);
+        seed_dispatch_pipeline(&context, pipeline_id, node_states, 8);
+
+        let first_activation = activate_workflow_node_session(
+            &context,
+            "test-workflow-a",
+            "workflow-1735689600450-root",
+        )
+        .expect("activate workflow session");
+        assert!(first_activation, "pending session should activate");
+
+        let second_activation = activate_workflow_node_session(
+            &context,
+            "test-workflow-a",
+            "workflow-1735689600450-root",
+        )
+        .expect("skip already active session");
+        assert!(
+            !second_activation,
+            "already active session should be skipped without rewriting"
+        );
+
+        let (wf_fm, wf_content, _) = read_markdown(
+            &workflow_session_uri("workflow-1735689600450-root"),
+            &context.config,
+        )
+        .expect("read workflow session");
+        let wf_fm = wf_fm.expect("workflow frontmatter");
+        assert_eq!(
+            wf_fm.get("status").and_then(YamlValue::as_str),
+            Some("active")
+        );
+        assert_eq!(
+            wf_content.matches("## Step 1/1").count(),
+            1,
+            "step heading must only be rendered once"
+        );
+    }
+
+    #[test]
+    fn pipeline_dispatch_skips_already_active_workflow_sessions() {
+        let (_tmp, context, _reset, _test_lock) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600475";
+        let node_states = HashMap::from([
+            (
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600475-root".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            ),
+            (
+                "child".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600475-child".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            ),
+        ]);
+        seed_dispatch_pipeline(&context, pipeline_id, node_states, 8);
+
+        let activated = activate_workflow_node_session(
+            &context,
+            "test-workflow-a",
+            "workflow-1735689600475-root",
+        )
+        .expect("activate workflow session");
+        assert!(activated, "setup should pre-activate workflow session");
+
+        let output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "dispatch": true }),
+        )
+        .expect("dispatch pipeline");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+
+        let dispatched = data
+            .get("dispatched")
+            .and_then(Value::as_array)
+            .expect("dispatched array");
+        assert!(
+            dispatched.is_empty(),
+            "pre-activated sessions should be skipped from dispatched response"
+        );
+
+        let active = data
+            .get("active")
+            .and_then(Value::as_array)
+            .expect("active array");
+        assert_eq!(active, &vec![Value::String("root".to_string())]);
+
+        let (pipeline_fm, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
+                .expect("read pipeline");
+        let pipeline_fm = pipeline_fm.expect("pipeline frontmatter");
+        let updated_states: HashMap<String, NodeState> =
+            frontmatter_value(&pipeline_fm, "nodeStates").expect("node states");
+        assert_eq!(updated_states["root"].status, NodeStatus::Active);
+
+        let (_, wf_content, _) = read_markdown(
+            &workflow_session_uri("workflow-1735689600475-root"),
+            &context.config,
+        )
+        .expect("read workflow session");
+        assert_eq!(
+            wf_content.matches("## Step 1/1").count(),
+            1,
+            "dispatch retry must not append duplicate first steps"
         );
     }
 

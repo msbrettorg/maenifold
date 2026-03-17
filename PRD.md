@@ -199,13 +199,17 @@ The ACP-UI client SHALL support multiple simultaneous agent sessions as tabs, re
 - **Tab strip**: A horizontal tab bar displays all open sessions with agent name, connection status indicator, and close button.
 - **Backward compatibility**: Single-tab usage is indistinguishable from the previous singleton model.
 
-### FR-44.1: Tab Reactivity Fix — Sprint 35
+### ~~FR-44.1: Tab Reactivity Fix~~ (DEPRECATED — superseded by FR-44.12)
 
-The ACP-UI client SHALL fix the Vue reactivity bypass in `createSession()` and `resumeSession()` that prevents tab state transitions from propagating to the UI.
+Interim fix using `shallowRef + triggerRef`. Addressed immediate tab strip failures but created a maintenance burden: 17+ mutation sites require manual `triggerRef` calls. Superseded by FR-44.12's architectural approach.
 
-- **Root cause**: Both functions hold a reference to the raw (non-proxied) `TabState` object returned by `createEmptyTabState()`. After inserting it into the reactive `tabs` Map via `.set()`, subsequent mutations (`isConnected = true`, `isConnecting = false`) go through the raw reference, bypassing Vue's reactive proxy. The `tabList` computed and `TabStrip` component never recompute.
-- **Symptom**: Tab strip shows "Connecting" indefinitely despite successful connection. Chat is functional because `activeTab` re-evaluates on re-render.
-- **Fix**: After `tabs.value.set(tabId, tab)`, re-obtain the tab reference through the reactive proxy: `tab = tabs.value.get(tabId)!`. Apply to both `createSession()` and `resumeSession()` in `session.ts`.
+### FR-44.12: Multi-Tab State Architecture — Sprint 35
+
+The ACP-UI client SHALL restructure multi-tab state management so that per-tab mutations are naturally reactive without manual `triggerRef` calls.
+
+- **Problem**: Sprint 34 wrapped the OG single-session state in `shallowRef<Map<string, TabState>>`. This requires manual `triggerRef(tabs)` at every mutation site. Research (T-44.5b, T-44.10) identified 17+ gaps causing stale permission dialogs, broken auto-scroll during streaming, and component state bleed across tabs.
+- **Solution**: Per-tab reactive state (each tab independently reactive), keyed `<ChatView :key="activeTabId">`, per-tab UI state in store, deep scroll watch on active tab's messages, and content-version-based unseen output detection.
+- **Success criteria**: Zero `triggerRef` calls remain in `session.ts` after restructuring.
 
 ### FR-45: Pipeline Engine — Sprint 35
 
@@ -260,7 +264,8 @@ Pipeline state SHALL be derived from session files, never stored separately.
 
 - **Status derivation**: A node's status is read from its pre-created workflow session file's frontmatter `status` field.
 - **Ready computation**: A node is `ready` when all upstream nodes (per `success` edges) have `status: completed` AND the node's own status is `pending`.
-- **Blocked computation**: A node is `blocked` when at least one upstream node (per `success` or `always` edges) is not `completed`.
+- **`always` edge semantics**: An `always` edge is satisfied when the upstream node is `completed`, `abandoned`, or `stuck`.
+- **Blocked computation**: A node is `blocked` when at least one upstream node on a `success` edge is `abandoned` or `stuck`. Nodes with unsatisfied but not terminal dependencies remain `pending`.
 - **Pure function**: The ready set is computed by a Rust function reading the pipeline definition + session file frontmatter. No database tables, no virtual tables. Dropping and recomputing yields identical results.
 - **Rebuildable**: If the pipeline session file is lost, it can be reconstructed from the node session files on disk (each carries `pipelineId` and `nodeId` in frontmatter).
 
@@ -365,7 +370,7 @@ The v1 dispatch model SHALL be pull-based (cooperative scheduling).
 - **No auto-dispatch**: The pipeline engine does NOT push work to ACP clients automatically in v1. There is no ACP client module in the codebase. Auto-dispatch is a future enhancement.
 - **Dispatch-as-claim**: `dispatch=true` atomically transitions ready nodes to `active` and returns them. There is no separate "mark as active" step. This prevents double-dispatch when multiple callers poll simultaneously.
 - **Concurrency**: An optional `maxConcurrency` field on the pipeline definition limits how many nodes can be `active` simultaneously. The `dispatch` response respects this limit.
-- **`always` edge semantics**: An `always` edge allows the downstream node to become ready when the upstream node is in `completed` OR `abandoned` state. This enables fault-tolerant pipelines where some nodes are optional.
+- **`always` edge semantics**: An `always` edge allows the downstream node to become ready when the upstream node is in `completed`, `abandoned`, or `stuck` state. This enables fault-tolerant pipelines where some nodes are optional and terminal upstream failures should not strand downstream cleanup or follow-up work.
 
 #### FR-45.8: Pipeline Resume and Restart
 

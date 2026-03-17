@@ -185,6 +185,24 @@ mod tests {
     }
 
     #[test]
+    fn ready_set_accepts_completed_upstream_for_always_edges() {
+        let definition = pipeline_definition(vec![PipelineEdge {
+            source: "root".to_string(),
+            target: "middle".to_string(),
+            edge_type: EdgeType::Always,
+        }]);
+        let node_states = HashMap::from([
+            ("root".to_string(), node_state(NodeStatus::Completed)),
+            ("middle".to_string(), node_state(NodeStatus::Pending)),
+            ("tail".to_string(), node_state(NodeStatus::Active)),
+        ]);
+
+        let ready = compute_ready_set(&definition, &node_states);
+
+        assert_eq!(ready, vec!["middle".to_string()]);
+    }
+
+    #[test]
     fn ready_set_accepts_abandoned_upstream_for_always_edges() {
         let definition = pipeline_definition(vec![PipelineEdge {
             source: "root".to_string(),
@@ -203,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn pipeline_restart_ready_set_accepts_stuck_upstream_for_always_edges() {
+    fn ready_set_accepts_stuck_upstream_for_always_edges() {
         let definition = pipeline_definition(vec![PipelineEdge {
             source: "root".to_string(),
             target: "middle".to_string(),

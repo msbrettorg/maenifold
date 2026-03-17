@@ -190,11 +190,8 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
                     ),
                     (
                         "status",
-                        enum_string_property(
-                            "Node status update",
-                            &["completed", "abandoned"],
-                        )
-                        .into(),
+                        enum_string_property("Node status update", &["completed", "abandoned"])
+                            .into(),
                     ),
                     (
                         "conclusion",
@@ -204,10 +201,7 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
                         "restart",
                         bool_property("Restart an abandoned/stuck node", false),
                     ),
-                    (
-                        "learn",
-                        bool_property("Return help documentation", false),
-                    ),
+                    ("learn", bool_property("Return help documentation", false)),
                 ],
                 &[],
             ),

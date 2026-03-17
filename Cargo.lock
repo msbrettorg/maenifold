@@ -2830,6 +2830,7 @@ dependencies = [
  "dirs 5.0.1",
  "indexmap 2.13.0",
  "machine-uid",
+ "maenifold-core",
  "notify 6.1.1",
  "parking_lot",
  "serde",
@@ -2842,6 +2843,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-store",
  "tokio",
+ "tokio-util",
  "uuid",
 ]
 

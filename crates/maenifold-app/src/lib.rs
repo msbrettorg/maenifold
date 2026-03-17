@@ -12,6 +12,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 use tauri_plugin_opener::OpenerExt;
+use tokio_util::sync::CancellationToken;
 
 const MAIN_WINDOW_LABEL: &str = "main";
 const OPEN_WINDOW_MENU_ID: &str = "tray-open-window";
@@ -140,6 +141,39 @@ fn hide_main_window<R: tauri::Runtime>(window: &Window<R>) {
     }
 }
 
+fn spawn_relay_server(port: u16) -> std::io::Result<(CancellationToken, std::thread::JoinHandle<i32>)> {
+    let shutdown_token = CancellationToken::new();
+    let server_shutdown_token = shutdown_token.clone();
+    let server_handle = std::thread::Builder::new()
+        .name("maenifold-server".into())
+        .spawn(move || {
+            let rt = match tokio::runtime::Runtime::new() {
+                Ok(rt) => rt,
+                Err(err) => {
+                    eprintln!("Error creating async runtime: {err}");
+                    return 1i32;
+                }
+            };
+            let result = rt.block_on(async move {
+                tokio::select! {
+                    result = async {
+                        maenifold_core::mcp::MaenifoldMcpServer::serve_web(port).await
+                    } => result,
+                    _ = server_shutdown_token.cancelled() => Ok(()),
+                }
+            });
+            match result {
+                Ok(()) => 0,
+                Err(err) => {
+                    eprintln!("Server error: {err}");
+                    1
+                }
+            }
+        })?;
+
+    Ok((shutdown_token, server_handle))
+}
+
 #[tauri::command]
 fn get_config(state: State<AppState>) -> Result<AgentsConfig, String> {
     let config_manager = state.config_manager.read();
@@ -249,7 +283,15 @@ fn get_machine_id() -> Result<String, String> {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run_app(_port: u16) -> i32 {
+pub fn run_app(port: u16) -> i32 {
+    let (server_shutdown_token, server_handle) = match spawn_relay_server(port) {
+        Ok(server) => server,
+        Err(err) => {
+            eprintln!("Failed to spawn relay server thread: {err}");
+            return 1;
+        }
+    };
+
     let app_state = AppState {
         config_manager: Arc::new(RwLock::new(None)),
         agent_manager: AgentManager::new(),
@@ -333,7 +375,7 @@ pub fn run_app(_port: u16) -> i32 {
                         let result = if is_login_enabled() {
                             remove_launch_agent()
                         } else {
-                            write_launch_agent(_port)
+                            write_launch_agent(port)
                         };
 
                         if let Err(err) = result {
@@ -384,7 +426,7 @@ pub fn run_app(_port: u16) -> i32 {
         ])
         .build(tauri::generate_context!());
 
-    match app {
+    let exit_code = match app {
         Ok(app) => {
             app.run(|_, _| {});
             0
@@ -393,5 +435,14 @@ pub fn run_app(_port: u16) -> i32 {
             eprintln!("error while running tauri application: {err}");
             1
         }
+    };
+
+    server_shutdown_token.cancel();
+    let server_exit_code = server_handle.join().unwrap_or(1);
+
+    if exit_code != 0 {
+        exit_code
+    } else {
+        server_exit_code
     }
 }

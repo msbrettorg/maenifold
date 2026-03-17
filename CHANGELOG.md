@@ -5,6 +5,57 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 33 — Full ACP Protocol Compliance — 2026-03-17
+
+### Added
+- **Content block refactor** (T-43.1): `ChatMessage.blocks: ContentBlock[]` supporting text, image, audio, resource, and resource_link types with full rendering
+- **Session list** (T-43.2): `session/list` RPC with capability detection, cursor pagination, agent↔local session merge, "from agent" indicator
+- **Terminal subsystem** (T-43.6): All 5 `terminal/*` methods (create, output, wait_for_exit, kill, release), `TerminalManager`, `TerminalOutputBlock.vue`, Rust backend with ring-buffer output
+- **Prompt capabilities** (T-43.7): Client declares `prompt.image/audio/embeddedContext` capabilities; UI gates attachment controls based on agent support
+- **Multiple permissions** (T-43.10): Permission requests queued via `Map<string, PendingPermissionEntry>` instead of singleton; sequential UI with queue count
+- **Permission fidelity** (T-43.15): Full tool-call context (content, rawInput, rawOutput) displayed in permission dialogs
+- **Tool content rendering** (T-43.13): Expandable tool-call cards with text/diff/terminal content blocks
+- **Resource link fields** (T-43.14): `title`, `description`, `size` (including bigint) on resource_link content blocks
+- **Frame validation** (T-43.16): JSON-RPC validation on both relay (WebSocket) and app (Tauri IPC) inbound/outbound paths
+- **ACP extensibility** (T-43.3): `_meta` on all request/response types, `_session/set_model` wire name, capability advertisement
+
+### Changed
+- **Per-method timeouts** (T-43.5, T-43.9): Replaced blanket 60s timeout with method-specific values; `session/prompt` gets 30min
+- **SDK type alignment** (T-43.4): `SlashCommand` → SDK `AvailableCommand` type; no more flattening
+- **Config during generation** (T-43.20): Mode/model/config changes allowed while prompt is generating; optimistic updates with rollback
+- **configOptions presence** (T-43.21): Check field presence (`'configOptions' in response`) not array length; empty array ≠ absent
+- **session_info targeting** (T-43.18): `session_info_update` scoped by `sessionId`; updates `savedSessions` and `currentSession` independently
+- **updatedAt null** (T-43.19): `updatedAt: null` clears the timestamp (sets to 0) instead of `Date.now()`
+- **cwd validation** (T-43.8): `session/load` validates absolute path including Windows UNC paths
+- **Tool-only turns** (T-43.11): Stub assistant message synthesized when `tool_call` arrives before any text
+- **rawInput/rawOutput** (T-43.12): Stored on `ToolCallInfo`, propagated through creation and update paths
+- **Clean stdio** (T-43.17): Removed login shell wrapper (`-l` flag) to prevent stdout contamination from shell profiles
+
+### Pipeline Stats
+- 21 specs through SWE → Red-team → Blue-team pipeline
+- 2 red-team rejects caught and fixed (4.9% reject rate)
+- ~50 agent dispatches across GPT-5.4 (SWE/Blue) and Claude Sonnet 4.6 (Red)
+
+---
+
+## Sprint 32 — ACP Protocol Compliance Audit (Initial) — 2026-03-16
+
+### Added
+- **Protocol version check** (T-42.1): Shared `performInitialization()` helper, `agentInfo`/`promptCapabilities` stored
+- **Agent plan support** (T-42.6): `plan` session update handler, `PlanView.vue` component
+- **Session info updates** (T-42.7): `session_info_update` notification handler
+- **ConfigOptionPicker** (T-42.4): Generic dropdown for any ACP configOption; legacy pickers gated
+
+### Changed
+- **Session setup** (T-42.2): Absolute cwd validation, `loadSession` capability re-check, resume abort guards
+- **Prompt turn** (T-42.3): `cancelPermission` on cancel, tool call cancellation, `stopReason` UI
+- **Tool call content** (T-42.5): `content` field stored and accumulated on updates; `locations` with line
+- **Slash hint** (T-42.8): Hint rendered as placeholder, dead code removed, listener leak fixes
+- **Filesystem** (T-42.9): Absolute path validation, `mkdir -p`, null return
+- **Transport bridge** (T-42.10): JSON-RPC relay frames, bridge method, content warnings
+
+---
+
 ## Sprint 29 — System Tray Icon & Remove Feature Flags — 2026-03-15
 
 ### Added

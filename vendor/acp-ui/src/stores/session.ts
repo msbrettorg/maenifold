@@ -406,19 +406,44 @@ export const useSessionStore = defineStore('session', () => {
         break;
 
       case 'session_info_update':
-        if (currentSession.value) {
-          if ('title' in update && update.title !== undefined) {
-            currentSession.value.title = update.title as string;
-            const saved = savedSessions.value.find(s => s.id === currentSession.value!.id);
-            if (saved) {
-              saved.title = update.title as string;
-            }
-            saveSessionsToStore();
+        if (!('sessionId' in update) || typeof update.sessionId !== 'string') {
+          break;
+        }
+
+        const targetSessionId = update.sessionId;
+        const nextTitle = 'title' in update && update.title !== undefined ? (update.title as string) : undefined;
+        const nextLastUpdated =
+          'updatedAt' in update && update.updatedAt !== undefined
+            ? (() => {
+                const ts = new Date(update.updatedAt as string).getTime();
+                return Number.isNaN(ts) ? Date.now() : ts;
+              })()
+            : undefined;
+
+        let savedSessionModified = false;
+        const savedSession = savedSessions.value.find((session) => session.sessionId === targetSessionId);
+        if (savedSession) {
+          if (nextTitle !== undefined) {
+            savedSession.title = nextTitle;
+            savedSessionModified = true;
           }
-          if ('updatedAt' in update && update.updatedAt !== undefined) {
-            const ts = new Date(update.updatedAt as string).getTime();
-            currentSession.value.lastUpdated = Number.isNaN(ts) ? Date.now() : ts;
+          if (nextLastUpdated !== undefined) {
+            savedSession.lastUpdated = nextLastUpdated;
+            savedSessionModified = true;
           }
+        }
+
+        if (currentSession.value?.sessionId === targetSessionId) {
+          if (nextTitle !== undefined) {
+            currentSession.value.title = nextTitle;
+          }
+          if (nextLastUpdated !== undefined) {
+            currentSession.value.lastUpdated = nextLastUpdated;
+          }
+        }
+
+        if (savedSessionModified) {
+          saveSessionsToStore();
         }
         break;
 

@@ -405,6 +405,23 @@ export const useSessionStore = defineStore('session', () => {
         }
         break;
 
+      case 'session_info_update':
+        if (currentSession.value) {
+          if ('title' in update && update.title !== undefined) {
+            currentSession.value.title = update.title as string;
+            const saved = savedSessions.value.find(s => s.id === currentSession.value!.id);
+            if (saved) {
+              saved.title = update.title as string;
+            }
+            saveSessionsToStore();
+          }
+          if ('updatedAt' in update && update.updatedAt !== undefined) {
+            const ts = new Date(update.updatedAt as string).getTime();
+            currentSession.value.lastUpdated = Number.isNaN(ts) ? Date.now() : ts;
+          }
+        }
+        break;
+
       default:
         console.log('Unhandled session update:', update);
     }
@@ -805,12 +822,6 @@ export const useSessionStore = defineStore('session', () => {
         stopReason: response.stopReason || 'unknown',
       });
 
-      // Update session title if it's the first message
-      if (messages.value.length === 2 && currentSession.value) {
-        currentSession.value.title = text.slice(0, 50) + (text.length > 50 ? '...' : '');
-        currentSession.value.lastUpdated = Date.now();
-        await saveSessionsToStore();
-      }
     } finally {
       isLoading.value = false;
     }

@@ -185,6 +185,135 @@ The client SHALL:
 - Convert WebSocket relay out-of-band frames to valid JSON-RPC `_relay/*` notifications.
 - Fix event listener leaks in `ModePicker.vue` and `ModelPicker.vue` (add `onUnmounted` cleanup).
 
+### FR-43: ACP Protocol Compliance — Prompt Capabilities — Sprint 33
+
+The ACP-UI client SHALL implement all remaining ACP protocol compliance gaps identified by dual-model audit, covering prompt capabilities, content block fidelity, session management, and transport correctness. (21 specs, see CHANGELOG.md for details.)
+
+### FR-44: Multi-Tab Sessions — Sprint 34
+
+The ACP-UI client SHALL support multiple simultaneous agent sessions as tabs, replacing the singleton session model.
+
+- **Tab lifecycle**: Each `createSession` or `resumeSession` opens a new tab. Closing a tab disconnects its ACP bridge.
+- **Tab state isolation**: Each tab owns its own messages, tool calls, config options, scroll position, and input draft.
+- **Sidebar as launcher**: The sidebar agent list remains always available. Selecting an agent opens a new tab (or focuses an existing tab connected to that agent).
+- **Tab strip**: A horizontal tab bar displays all open sessions with agent name, connection status indicator, and close button.
+- **Backward compatibility**: Single-tab usage is indistinguishable from the previous singleton model.
+
+### FR-44.1: Tab Reactivity Fix — Sprint 35
+
+The ACP-UI client SHALL fix the Vue reactivity bypass in `createSession()` and `resumeSession()` that prevents tab state transitions from propagating to the UI.
+
+- **Root cause**: Both functions hold a reference to the raw (non-proxied) `TabState` object returned by `createEmptyTabState()`. After inserting it into the reactive `tabs` Map via `.set()`, subsequent mutations (`isConnected = true`, `isConnecting = false`) go through the raw reference, bypassing Vue's reactive proxy. The `tabList` computed and `TabStrip` component never recompute.
+- **Symptom**: Tab strip shows "Connecting" indefinitely despite successful connection. Chat is functional because `activeTab` re-evaluates on re-render.
+- **Fix**: After `tabs.value.set(tabId, tab)`, re-obtain the tab reference through the reactive proxy: `tab = tabs.value.get(tabId)!`. Apply to both `createSession()` and `resumeSession()` in `session.ts`.
+
+### FR-45: Pipeline Engine — Sprint 35
+
+The system SHALL introduce a Pipeline entity that orchestrates workflows across multiple ACP clients as a directed acyclic graph (DAG). Workflows remain the unit of work for a single ACP client. Pipelines coordinate work across clients with dependency tracking, derived execution state, and session pre-creation.
+
+#### Conceptual Model
+
+- **Workflow** = unit of work for one ACP client. Steps execute sequentially within a single session. One agent, one session, no cross-context leakage. Existing 69 JSON definitions unchanged.
+- **Pipeline** = DAG orchestrator across multiple ACP clients. Each node references a workflow and an ACP client. Resumable, restartable, forkable. The pipeline owns session lifecycle; agents are executors handed sessions to work through.
+
+#### FR-45.1: Pipeline Definition Format
+
+The system SHALL support pipeline definitions as JSON with `nodes[]` and `edges[]` arrays.
+
+- **Node schema**: Each node SHALL have `id` (unique string), `workflowId` (reference to an existing workflow JSON asset), and optional `acpClient` (which connected ACP client executes this node).
+- **Edge schema**: Each edge SHALL have `source` (node ID), `target` (node ID), and `type` (`success` or `always` for v1).
+- **Validation**: The system SHALL reject pipeline definitions containing cycles (topological sort validation at creation time).
+- **Backward compatibility**: Existing serial workflow sessions (`queue: [A, B, C]`) SHALL continue to work unchanged. Pipelines are a new entity, not a modification of existing workflow behavior.
+
+#### FR-45.2: Session Pre-Creation
+
+When a pipeline is run, the system SHALL pre-create all workflow sessions upfront.
+
+- **Pre-creation**: On "run," the system SHALL create one workflow session file per pipeline node. Each session contains full frontmatter (step definitions, `pipelineId`, `nodeId`, `workflowId`) and starts with `status: pending`.
+- **Inspectability**: All sessions are visible and inspectable before any agent executes. The full execution plan is materialized as files on disk.
+- **Predecessor context injection**: Before a downstream node transitions to `ready`, the system SHALL read the `last` frontmatter field from each upstream node's session file and inject the content into the downstream session file as a `## Predecessor Context` section. The executing agent reads this as part of the session content.
+
+#### FR-45.3: Session Frontmatter — `first` and `last` Fields
+
+All session types (workflow, sequential thinking, pipeline) SHALL track `first` and `last` fields in YAML frontmatter.
+
+- **`first`**: Set once on the initial write to the session body. Never updated after creation. Captures the opening context.
+- **`last`**: Updated on every append to the session body (step responses, thoughts, conclusions). Always reflects the most recent content written.
+- **Scope**: Applies to all `append_h2_section` operations across session types. Both fields store the content as written, including `[[WikiLinks]]`.
+- **Use case**: The pipeline engine reads `last` from upstream node sessions for predecessor context injection. Any tool needing "what happened most recently?" reads `last` instead of parsing the markdown body. The `RecentActivity` tool SHALL be updated to use `first`/`last` fields instead of parsing markdown body content.
+
+#### FR-45.4: Workflow Session Status Lifecycle
+
+The system SHALL extend workflow session frontmatter with the following status values:
+
+- **`pending`** — session created, upstream dependencies not yet met.
+- **`ready`** — all upstream dependencies met, waiting for dispatch to an ACP client.
+- **`active`** — dispatched to an ACP client, currently executing.
+- **`completed`** — all steps finished successfully.
+- **`abandoned`** — was `active` but the agent disconnected, crashed, or timed out.
+
+Existing session cleanup logic SHALL only clean up sessions in `active` state that have been abandoned (no heartbeat, agent disconnected). `pending` and `ready` sessions SHALL NOT be cleaned. `completed` sessions are permanent audit trail artifacts.
+
+#### FR-45.5: Derived Execution State
+
+Pipeline state SHALL be derived from session files, never stored separately.
+
+- **Status derivation**: A node's status is read from its pre-created workflow session file's frontmatter `status` field.
+- **Ready computation**: A node is `ready` when all upstream nodes (per `success` edges) have `status: completed` AND the node's own status is `pending`.
+- **Blocked computation**: A node is `blocked` when at least one upstream node (per `success` or `always` edges) is not `completed`.
+- **Pure function**: The ready set is computed by a Rust function reading the pipeline definition + session file frontmatter. No database tables, no virtual tables. Dropping and recomputing yields identical results.
+- **Rebuildable**: If the pipeline session file is lost, it can be reconstructed from the node session files on disk (each carries `pipelineId` and `nodeId` in frontmatter).
+
+#### FR-45.6: Pipeline MCP Tool
+
+The system SHALL expose pipeline operations via a new `Pipeline` MCP tool, accessible by both the UI and AI agents through the same API surface.
+
+- `pipeline(definition={nodes,edges})` — validate and create a pipeline. Pre-create all node sessions. Return pipeline session ID + initial ready set.
+- `pipeline(sessionId=X, view=true)` — return current pipeline state as structured JSON: nodes with statuses, ready set, edges, node session IDs. Suitable for UI rendering.
+- `pipeline(sessionId=X, dispatch=true)` — return the set of ready nodes with their session IDs, for the caller to hand to ACP clients.
+- `pipeline(sessionId=X, nodeId=Y, status="active")` — mark a node as dispatched / active.
+- `pipeline(sessionId=X, nodeId=Y, status="completed", conclusion="...")` — mark a node as complete, trigger ready-set recomputation for downstream nodes.
+- `pipeline(sessionId=X, nodeId=Y, status="abandoned")` — mark a node as abandoned (agent failure).
+- `pipeline(sessionId=X, nodeId=Y, fork=true, acpClient="different-client")` — create a new session for the same node's workflow with the same predecessor context, targeting a different ACP client. Original session preserved as audit trail.
+- **Single API surface**: The UI (via HTTP `/mcp`), AI agents (via stdio MCP), and the PM (via MCP) SHALL all use the same Pipeline tool. No direct file or database access.
+
+#### FR-45.7: Pipeline Dispatch Model
+
+The v1 dispatch model SHALL be pull-based (cooperative scheduling).
+
+- **Pull-based**: A supervisor (PM agent, UI user, or automation) calls `pipeline(dispatch=true)` to get the ready set, then manually hands session IDs + prompts to ACP clients.
+- **No auto-dispatch**: The pipeline engine does NOT push work to ACP clients automatically in v1. There is no ACP client module in the codebase. Auto-dispatch is a future enhancement.
+- **Idempotent dispatch**: A node in `ready` state transitions to `active` atomically. If two callers request dispatch simultaneously, only one sees the node as ready; the other sees it as `active`.
+- **Concurrency**: An optional `maxConcurrency` field on the pipeline definition limits how many nodes can be `active` simultaneously. The `dispatch` response respects this limit.
+
+#### FR-45.8: Pipeline Resume, Restart, and Fork
+
+Pipelines SHALL support lifecycle operations beyond initial execution.
+
+- **Resume**: A pipeline with `active` or `ready` nodes can be resumed after interruption. The engine reads session files, derives current state, and returns the ready set. No state is lost because session files persist.
+- **Restart**: An `abandoned` node can be retried by creating a new workflow session for the same node (new session file, same workflow definition, same predecessor context). The prior session file remains as audit trail. Attempt count is tracked in the pipeline session frontmatter.
+- **Fork**: Any completed or abandoned node can be forked — re-run with the same inputs but a different ACP client. Creates a new session, original preserved. Enables A/B comparisons across different agents.
+- **Max attempts**: Nodes SHALL have a configurable `maxAttempts` (default 3). After reaching max attempts, the node transitions to a `stuck` status and blocks downstream nodes.
+
+#### FR-45.9: Verdict-Based Edge Routing (v2 — deferred)
+
+_Deferred to Sprint 36._ The v1 engine supports `success` and `always` edge types only. Future enhancements:
+
+- `reject` edges that route based on a structured `verdict` field in the node's workflow conclusion.
+- `optional` edges where upstream failure does not block downstream.
+- Conditional edges based on conclusion content.
+
+#### FR-45.10: Vue Flow DAG Tab (v2 — deferred)
+
+_Deferred to Sprint 36._ The v1 engine is fully functional via MCP tool calls. Visual rendering in a Vue Flow tab requires:
+
+- Vue Flow dependency integration in acp-ui.
+- New tab type alongside chat tabs.
+- Real-time status notification channel (does not exist yet).
+- Node dispatch interaction UX.
+
+For Sprint 35, pipeline state can be inspected via `pipeline(view=true)` and optionally rendered as Mermaid diagrams using existing FR-40 support.
+
 ### NFR-9: Non-Text Content Blocks
 
 The system SHOULD log warnings when receiving non-text content blocks instead of silently dropping them. Full rendering of image/audio/resource content blocks is deferred to a future sprint.

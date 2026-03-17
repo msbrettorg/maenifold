@@ -142,7 +142,7 @@ function clearError() {
     <!-- Sidebar -->
     <aside v-if="showSidebar" class="sidebar">
       <div class="sidebar-header">
-        <h1>ACP UI</h1>
+        <h1>maenifold</h1>
         <div class="header-actions">
           <button 
             class="settings-btn" 
@@ -245,7 +245,7 @@ function clearError() {
         
         <!-- Welcome screen when not connected -->
         <div v-else class="welcome-screen">
-          <h2>Welcome to ACP UI</h2>
+          <h2>Welcome to maenifold</h2>
           <p>Select an agent and create a new session to get started.</p>
           <p v-if="!hasAgents" class="hint">
             Configure agents in your config file to begin.

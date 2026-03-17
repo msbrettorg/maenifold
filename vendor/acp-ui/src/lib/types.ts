@@ -1,4 +1,4 @@
-// Types for ACP UI application
+// Types for maenifold application
 
 export interface AgentConfig {
   command: string;

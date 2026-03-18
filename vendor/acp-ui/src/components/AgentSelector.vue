@@ -64,16 +64,21 @@ function handleSelect(event: Event) {
 
 label {
   font-weight: 600;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, #aaa);
 }
 
 select {
   padding: 0.5rem;
-  border: 1px solid var(--border-color, #ccc);
+  border: 1px solid var(--border-color, #444);
   border-radius: 4px;
   font-size: 1rem;
-  background: var(--bg-input, #fff);
-  color: var(--text-primary, #333);
+  background: var(--bg-input, #1e2028);
+  color: var(--text-primary, #e0e0e0);
+}
+
+option {
+  background: #1e2028;
+  color: #e0e0e0;
 }
 
 select:disabled {

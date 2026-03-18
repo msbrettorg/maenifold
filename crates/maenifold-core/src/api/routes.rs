@@ -267,7 +267,7 @@ async fn memory_search(
 ) -> ApiResult<Json<MemorySearchResponse>> {
     let query = params
         .get("query")
-        .map(String::as_str)
+        .map(|value| value.trim())
         .unwrap_or_default();
     if query.is_empty() {
         return Err(ApiError::bad_request(
@@ -277,11 +277,21 @@ async fn memory_search(
 
     let mode = params
         .get("mode")
-        .map(String::as_str)
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
         .unwrap_or("Hybrid");
     let page_size: u64 = parse_optional::<u64>(&params, "pageSize")?.unwrap_or(10);
     let page: u64 = parse_optional::<u64>(&params, "page")?.unwrap_or(1);
-    let folder = params.get("folder").map(String::as_str);
+    if page_size == 0 {
+        return Err(ApiError::bad_request("pageSize must be a positive integer"));
+    }
+    if page == 0 {
+        return Err(ApiError::bad_request("page must be a positive integer"));
+    }
+    let folder = params
+        .get("folder")
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty());
 
     let mut payload = json!({
         "query": query,
@@ -297,8 +307,13 @@ async fn memory_search(
     let raw = search_memories(&context, &payload).map_err(ApiError::internal)?;
 
     // search_memories with Json output wraps results in {"success":true,"data":{...}}
-    let outer: Value =
-        serde_json::from_str(&raw).map_err(|e| ApiError::internal(format!("search parse error: {e}")))?;
+    let outer: Value = serde_json::from_str(&raw).map_err(|error| {
+        if raw.starts_with("ERROR:") {
+            ApiError::bad_request(raw.clone())
+        } else {
+            ApiError::internal(format!("search parse error: {error}"))
+        }
+    })?;
     let data = outer
         .get("data")
         .ok_or_else(|| ApiError::internal("unexpected search response shape"))?;

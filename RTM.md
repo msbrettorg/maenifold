@@ -186,7 +186,7 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 
 ### FR-44.5: ChatView Parameterization (`vendor/acp-ui` view-state stack)
 
-- □ RTM-350: Research comparison against OG ACP-UI identifies the divergence causing broken per-tab view state and proposes file-scoped remediation tasks | TC-44.5.1 | Review
+- □ RTM-376: Research comparison against OG ACP-UI identifies the divergence causing broken per-tab view state and proposes file-scoped remediation tasks | TC-44.5.1 | Review
 
 ### FR-45.1: Pipeline Definition Format (`workflow/pipeline/`)
 
@@ -252,3 +252,43 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 - □ RTM-347: `maxAttempts` (default 3) transitions node to `stuck` after exhaustion | TC-45.8.3 | Unit
 - □ RTM-348: Pipeline topology is immutable after creation — no append or rewiring | TC-45.8.4 | Unit
 - □ RTM-349: Pipeline session file format matches specified YAML contract (definition, nodeStates, maxConcurrency) | TC-45.8.5 | Unit
+
+## Sprint 35 — Upstream UI Rebuild + ACP Compliance
+
+### FR-30: Mermaid Rendering (`vendor/acp-ui/src/components/ChatView.vue`, `vendor/acp-ui/src/composables/useMermaid.ts`)
+
+- ✅ RTM-350: Mermaid code fences lazy-load Mermaid, render inline SVG diagrams, and preserve source blocks with inline error styling on render failures | TC-30.1 | UI
+
+### FR-42: ACP Protocol Compliance (`vendor/acp-ui/src/stores/session.ts`, `vendor/acp-ui/src/lib/acp-bridge.ts`, `crates/maenifold-core/src/web/relay.rs`)
+
+- ✅ RTM-351: Tool call notifications persist `content`, `cancelled` status, and location updates in both the global tool-call map and per-message tool-call state | TC-42.5 | Unit
+- ✅ RTM-352: Agent plan updates populate reactive `currentPlan` state and render a collapsible plan panel with status and priority affordances | TC-42.6 | UI
+- ✅ RTM-353: Slash command selection surfaces command hints in the palette and input placeholder while removing duplicate hint-branch logic | TC-42.8 | UI
+- ✅ RTM-354: ACP filesystem bridge rejects non-absolute paths, creates parent directories before writes, and returns `null` on successful file writes | TC-42.9 | Unit
+- ✅ RTM-355: Relay stderr/error frames emit JSON-RPC notifications, the bridge exposes session config-option transport, and non-text content chunks log explicit warnings | TC-42.10 | Integration
+
+### FR-43: Upstream ACP UI Rebuild (`vendor/acp-ui/src/stores/session.ts`, `vendor/acp-ui/src/lib/acp-bridge.ts`, `vendor/acp-ui/src/components/`)
+
+- ✅ RTM-356: Chat messages support rich ACP content blocks plus prompt attachments for text, image, audio, resource, and resource-link content | TC-43.1 | UI
+- ✅ RTM-357: ACP extensibility wiring preserves `_meta`, uses compliant custom method names, advertises client extensions, and reads agent extension capabilities safely | TC-43.3 | Unit
+- ✅ RTM-358: Slash command types align with the ACP SDK shape, preserving nested input hints and `_meta` fields without flattening command payloads | TC-43.4 | Type
+- ✅ RTM-359: Request dispatch applies method-specific timeouts for long-lived ACP operations instead of a blanket 60-second timeout | TC-43.5 | Unit
+- ✅ RTM-360: Client prompt capabilities are declared during initialization and attachment affordances are gated by advertised agent prompt support | TC-43.7 | UI
+- ✅ RTM-361: `session/load` validates absolute `cwd` values, including UNC paths, across every resume-session load path | TC-43.8 | Unit
+- ✅ RTM-362: `session/prompt` receives long-lived timeout coverage so multi-cycle prompt turns are not cancelled by transport timeout defaults | TC-43.9 | Unit
+- ✅ RTM-363: Permission handling tracks multiple pending requests concurrently and cancels or resolves them without singleton-state collisions | TC-43.10 | Unit
+- ✅ RTM-364: Tool-only prompt turns synthesize assistant containers as needed and still render tool-call cards when no assistant text is present | TC-43.11 | UI
+- ✅ RTM-365: Tool-call state preserves `rawInput` on initial notifications and `rawOutput` on updates in both store-level and message-level tool-call records | TC-43.12 | Unit
+- ✅ RTM-366: Tool-call cards render structured content payloads, diffs, and terminal-linked output inside expandable inline UI | TC-43.13 | UI
+- ✅ RTM-367: `resource_link` content blocks carry complete title, description, and size metadata and render richer resource chips in chat | TC-43.14 | UI
+- ✅ RTM-368: Permission requests preserve full tool-call fidelity, including content and raw payloads, so approval UI can present richer execution context | TC-43.15 | UI
+- ✅ RTM-369: `session_info_update` treats `updatedAt: null` as an explicit clear operation instead of replacing it with the current timestamp | TC-43.19 | Unit
+
+### FR-46: Multi-Session State + Sync Robustness (`vendor/acp-ui/src/stores/session.ts`, `vendor/acp-ui/src/composables/`, `crates/maenifold-core/src/memory/sync/`)
+
+- ✅ RTM-370: `SessionState` types centralize the per-session contract, empty-state factory, and generated local session identifiers for live ACP sessions | TC-46.1 | Type
+- ✅ RTM-371: Session store state is refactored to a Map-backed multi-session model with active-session compatibility shims and bridge instances scoped per live session | TC-46.2 | Integration
+- ✅ RTM-372: Sidebar and app shell detect already-live sessions, switch active sessions without reconnecting, and distinguish connected vs connecting badges correctly | TC-46.3 | UI
+- ✅ RTM-373: Session store orchestration is decomposed into lifecycle, message, permission, and persistence composables without breaking the existing store API | TC-46.4 | Refactor
+- ✅ RTM-374: Sync processing continues after per-file failures, reports `file_errors`, and marks partially successful sync runs explicitly instead of aborting early | TC-46.5 | Integration
+- ✅ RTM-375: Session entries are wrapped for deep reactivity, Map mutations trigger active-session recomputation, and the cwd picker remains enabled during connection attempts | TC-46.6 | UI

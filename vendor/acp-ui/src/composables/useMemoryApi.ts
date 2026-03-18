@@ -52,32 +52,33 @@ async function getErrorMessage(response: Response): Promise<string> {
 }
 
 /**
- * In --app (Tauri) mode the SPA is served from tauri://localhost, so relative
- * fetch URLs never reach the axum HTTP server.  Detect Tauri via the globals
- * it injects and build an explicit http://localhost:{port} base URL instead.
- * In --http mode the SPA is served by the same axum process, so an empty base
- * (i.e. relative URLs) works fine.
+ * In Tauri v2 with frontendDist, the webview loads from http://localhost:{port}
+ * — the same origin as the axum server — so relative fetch URLs work without
+ * any base URL override.  Only fall back to an explicit http://localhost:8080
+ * base if the page is served under a non-HTTP protocol (e.g. a legacy
+ * tauri://localhost origin), which would make relative URLs unreachable.
+ *
+ * Exported for unit testing.
  */
-function getApiBase(): string {
-  const isTauri =
-    typeof window !== 'undefined' &&
-    ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
-
-  if (!isTauri) {
+export function getApiBase(): string {
+  if (typeof window === 'undefined') {
     return '';
   }
 
-  // window.location.port is empty when the protocol is "tauri:" — fall back to
-  // the default axum server port used by both --http and --app modes.
-  const port = window.location.port || '8080';
-  return `http://localhost:${port}`;
+  const { protocol } = window.location;
+  if (protocol === 'http:' || protocol === 'https:') {
+    // Same-origin: relative URLs reach the axum server directly.
+    return '';
+  }
+
+  // Exotic protocol (e.g. tauri:) — construct an explicit base URL.
+  return 'http://localhost:8080';
 }
 
-const API_BASE = getApiBase();
-
 async function fetchJson<T>(path: string, params: URLSearchParams): Promise<T> {
+  const apiBase = getApiBase();
   const query = params.toString();
-  const url = query ? `${API_BASE}${path}?${query}` : `${API_BASE}${path}`;
+  const url = query ? `${apiBase}${path}?${query}` : `${apiBase}${path}`;
   const response = await fetch(url);
 
   if (!response.ok) {

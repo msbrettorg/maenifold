@@ -97,12 +97,19 @@ export function useMessageHandler({
   }
 
   function appendMessageBlock(message: SessionState['messages'][number], block: ContentBlock): void {
-    const nextBlock = cloneContentBlock(block);
-    message.blocks = [...(message.blocks ?? []), nextBlock];
-
     if (block.type === 'text') {
+      // Accumulate into the last text block instead of creating a new one per chunk
+      const existing = message.blocks;
+      const lastBlock = existing?.[existing.length - 1];
+      if (lastBlock && lastBlock.type === 'text') {
+        lastBlock.text += block.text;
+        message.blocks = [...existing!];
+      } else {
+        message.blocks = [...(existing ?? []), cloneContentBlock(block)];
+      }
       message.content += block.text;
     } else {
+      message.blocks = [...(message.blocks ?? []), cloneContentBlock(block)];
       warnNonTextContentBlock(block);
     }
   }

@@ -119,7 +119,11 @@ watch(messages, async () => {
   await nextTick();
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-    await renderMermaidBlocks(messagesContainer.value);
+    // Only render mermaid when not streaming — incomplete fences get permanently
+    // marked as processed and won't re-render when the full definition arrives.
+    if (!isLoading.value) {
+      await renderMermaidBlocks(messagesContainer.value);
+    }
   }
 }, { deep: true });
 

@@ -1,5 +1,5 @@
 use crate::assets::AssetManager;
-use crate::config::Config;
+
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::{append_h2_section, file_exists, read_markdown, write_markdown, Frontmatter};
 use crate::sessions::{

@@ -5,6 +5,34 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 35 — Upstream UI Rebuild + ACP Compliance — 2026-03-18
+
+### Added
+- **Vendored upstream acp-ui** — replaced MSBrett/acp-ui fork submodule with plain files from upstream `formulahendry/acp-ui`
+- **Multi-session architecture** (T-46.1–T-46.3): `ref<Map<string, SessionState>>` with per-session `AcpClientBridge` instances; sidebar-based session switching
+- **Store decomposition** (T-46.4): `session.ts` split into composables (`useSessionLifecycle`, `useMessageHandler`, `usePermissions`, `useSessionPersistence`, `session-utils`)
+- **Mermaid diagram rendering** (T-30.1): `useMermaid` composable with lazy init, dark theme, streaming-safe gating
+- **Agent plan support** (T-42.6): `PlanView` component with status icons and priority badges
+- **Pinia skill** — Vue state management reference for agents
+
+### Changed
+- **20 ACP compliance specs** replayed through TDD pipeline (SWE → red-team → blue-team) against the new upstream-based UI
+- **Sync continue-on-error** (T-46.5): `run_sync`/`sync_files` collect per-file errors and continue
+- **Session map reactivity** (T-46.6): `reactive()` wrappers + Map reassignment for Vue deep tracking
+- **Mermaid streaming fix**: Gate `renderMermaidBlocks` on `!isLoading` to prevent incomplete fences from being permanently marked as processed
+
+### Removed
+- MSBrett/acp-ui GitHub fork (deleted)
+- `.gitmodules` submodule configuration
+
+### Pipeline Stats
+- 20 specs through SWE → Red-team → Blue-team pipeline
+- 1 red-team reject (6.6% reject rate)
+- ~60 agent dispatches across GPT-5.4/5.2 (SWE/Blue) and Claude Sonnet 4.6 (Red)
+- 0 stuck tasks
+
+---
+
 ## Sprint 34 — Multi-Tab Sessions — 2026-03-17
 
 ### Added

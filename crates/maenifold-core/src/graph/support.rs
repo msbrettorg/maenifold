@@ -125,6 +125,7 @@ pub(crate) fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<Strin
     .ok()
 }
 
+#[allow(dead_code)] // Used by graph visualization — retained for future use
 pub(crate) fn format_source_files_for_display(source_files: &str) -> String {
     let trimmed = source_files.trim();
     // T-0.3b: RTM NFR-4

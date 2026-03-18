@@ -193,7 +193,6 @@ function clearError() {
                 class="cwd-btn" 
                 @click="handleSelectFolder"
                 title="Select folder"
-                :disabled="isConnecting"
               >
                 📁
               </button>

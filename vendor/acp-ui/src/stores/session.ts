@@ -1,7 +1,7 @@
 // Session store — thin orchestrator that composes focused composables
 // while preserving the full external API contract unchanged.
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import type {
   SavedSession,
   ChatMessage,
@@ -276,9 +276,10 @@ export const useSessionStore = defineStore('session', () => {
       session.error = msg;
     } else {
       const localId = generateSessionId();
-      const errorSession = createEmptySessionState(localId, '', '');
+      const errorSession = reactive(createEmptySessionState(localId, '', ''));
       errorSession.error = msg;
       sessions.value.set(localId, errorSession);
+      sessions.value = new Map(sessions.value);
       activeSessionId.value = localId;
     }
   }

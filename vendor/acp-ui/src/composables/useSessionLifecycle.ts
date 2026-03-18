@@ -1,5 +1,5 @@
 // Session lifecycle composable — create, resume, disconnect, close sessions
-import { watch, type Ref, type WatchStopHandle } from 'vue';
+import { reactive, watch, type Ref, type WatchStopHandle } from 'vue';
 import type { SavedSession, SessionState } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
 import { AcpClientBridge, createAcpClient } from '../lib/acp-bridge';
@@ -51,6 +51,20 @@ export function useSessionLifecycle({
   const permissionWatchStops = new Map<string, WatchStopHandle>();
 
   // ── Internal helpers ──────────────────────────────────────────────
+
+  function replaceSessionsMap(): void {
+    sessions.value = new Map(sessions.value);
+  }
+
+  function setSessionState(sessionId: string, sessionState: SessionState): void {
+    sessions.value.set(sessionId, sessionState);
+    replaceSessionsMap();
+  }
+
+  function deleteSessionState(sessionId: string): void {
+    sessions.value.delete(sessionId);
+    replaceSessionsMap();
+  }
 
   function adjustActiveSessionId(removedId: string): void {
     if (activeSessionId.value === removedId) {
@@ -129,18 +143,18 @@ export function useSessionLifecycle({
     if (activeSessionId.value) {
       const existing = sessions.value.get(activeSessionId.value);
       if (existing && !existing.isConnected) {
-        sessions.value.delete(activeSessionId.value);
+        deleteSessionState(activeSessionId.value);
         bridges.delete(activeSessionId.value);
       }
     }
 
     // Create session slot
     const localId = generateSessionId();
-    const sessionState = createEmptySessionState(localId, agentName, cwd);
+    const sessionState = reactive(createEmptySessionState(localId, agentName, cwd));
     sessionState.isLoading = true;
     sessionState.isConnecting = true;
     sessionState.startupPhase = 'starting';
-    sessions.value.set(localId, sessionState);
+    setSessionState(localId, sessionState);
     activeSessionId.value = localId;
 
     abortedSessions.delete(localId);
@@ -335,17 +349,19 @@ export function useSessionLifecycle({
     if (activeSessionId.value) {
       const existing = sessions.value.get(activeSessionId.value);
       if (existing && !existing.isConnected) {
-        sessions.value.delete(activeSessionId.value);
+        deleteSessionState(activeSessionId.value);
         bridges.delete(activeSessionId.value);
       }
     }
 
     // Create session slot
     const localId = generateSessionId();
-    const sessionState = createEmptySessionState(localId, savedSession.agentName, savedSession.cwd);
+    const sessionState = reactive(
+      createEmptySessionState(localId, savedSession.agentName, savedSession.cwd)
+    );
     sessionState.isLoading = true;
     sessionState.isConnecting = true;
-    sessions.value.set(localId, sessionState);
+    setSessionState(localId, sessionState);
     activeSessionId.value = localId;
 
     abortedSessions.delete(localId);
@@ -525,7 +541,7 @@ export function useSessionLifecycle({
       messageCount: String(session?.messages.length ?? 0),
     });
 
-    sessions.value.delete(targetId);
+    deleteSessionState(targetId);
     adjustActiveSessionId(targetId);
   }
 
@@ -548,7 +564,7 @@ export function useSessionLifecycle({
     } else {
       stopPermissionWatch(sessionId);
       bridges.delete(sessionId);
-      sessions.value.delete(sessionId);
+      deleteSessionState(sessionId);
       adjustActiveSessionId(sessionId);
     }
   }
@@ -582,7 +598,7 @@ export function useSessionLifecycle({
       bridges.delete(targetId);
     }
 
-    sessions.value.delete(targetId);
+    deleteSessionState(targetId);
     adjustActiveSessionId(targetId);
   }
 

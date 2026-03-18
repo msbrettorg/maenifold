@@ -69,6 +69,12 @@ export function useMessageHandler({
   saveSessionsToStore,
   cancelPermission,
 }: UseMessageHandlerDeps) {
+  function warnNonTextContentBlock(block: ContentBlock): void {
+    if (block.type !== 'text') {
+      console.warn('[ACP] Received non-text content block:', block.type, block);
+    }
+  }
+
   function cloneContentBlock(block: ContentBlock): ContentBlock {
     return {
       ...block,
@@ -86,6 +92,8 @@ export function useMessageHandler({
 
     if (block.type === 'text') {
       message.content += block.text;
+    } else {
+      warnNonTextContentBlock(block);
     }
   }
 
@@ -95,6 +103,7 @@ export function useMessageHandler({
       return;
     }
 
+    warnNonTextContentBlock(block);
     message.blocks = [...(message.blocks ?? []), cloneContentBlock(block)];
   }
 
@@ -143,6 +152,7 @@ export function useMessageHandler({
         if (lastUserMsg && lastUserMsg.role === 'user') {
           appendMessageBlock(lastUserMsg, update.content);
         } else {
+          warnNonTextContentBlock(update.content);
           session.messages.push({
             id: crypto.randomUUID(),
             role: 'user',
@@ -160,6 +170,7 @@ export function useMessageHandler({
         if (lastMsg && lastMsg.role === 'assistant') {
           appendMessageBlock(lastMsg, update.content);
         } else {
+          warnNonTextContentBlock(update.content);
           session.messages.push({
             id: crypto.randomUUID(),
             role: 'assistant',
@@ -178,6 +189,7 @@ export function useMessageHandler({
         if (lastAssistantMsg && lastAssistantMsg.role === 'assistant') {
           appendThoughtBlock(lastAssistantMsg, update.content);
         } else {
+          warnNonTextContentBlock(update.content);
           session.messages.push({
             id: crypto.randomUUID(),
             role: 'assistant',

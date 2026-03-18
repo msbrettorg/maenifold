@@ -289,6 +289,7 @@ export class AcpClientBridge implements Client {
 
   private getTimeoutForMethod(method: string): number {
     switch (method) {
+      case 'session/prompt':
       case 'terminal/wait_for_exit':
         return 30 * 60 * 1000; // 30 minutes
       case 'terminal/create':
@@ -336,7 +337,7 @@ export class AcpClientBridge implements Client {
         reject(e);
       });
 
-      // Timeout after 60 seconds (increased for auth flows)
+      // Apply a method-specific timeout so long-lived ACP flows can complete.
       setTimeout(() => {
         if (this.messageResolvers.has(id)) {
           this.messageResolvers.delete(id);
@@ -410,8 +411,8 @@ export class AcpClientBridge implements Client {
 
   async unstable_setSessionConfigOption(
     params: { sessionId: string; configId: string; value: string }
-  ): Promise<{ configOptions: unknown[] }> {
-    return this.sendRequest<{ configOptions: unknown[] }>(
+  ): Promise<{ configOptions: any[] }> {
+    return await this.sendRequest<{ configOptions: any[] }>(
       SESSION_SET_CONFIG_OPTION_METHOD,
       params
     );

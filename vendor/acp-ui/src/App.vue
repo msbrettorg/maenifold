@@ -20,7 +20,7 @@ import type { SavedSession } from './lib/types';
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();
 
-const GOLDEN_WORKFLOW_URI = 'memory://thinking/workflow/2026/03/17/workflow-1773720937011';
+const GOLDEN_WORKFLOW_URI = 'memory://thinking/workflow/2026/02/27/workflow-1772232256568';
 
 const selectedAgent = ref('');
 const selectedCwd = ref('');

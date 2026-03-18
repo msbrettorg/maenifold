@@ -37,6 +37,10 @@ import { useTrafficStore } from '../stores/traffic';
 
 // Event emitter for permission requests
 type PermissionResolver = (response: RequestPermissionResponse) => void;
+type PendingPermissionEntry = {
+  request: LocalPermissionRequest;
+  resolver: PermissionResolver;
+};
 
 // Traffic store instance (lazily initialized)
 let trafficStore: ReturnType<typeof useTrafficStore> | null = null;
@@ -147,8 +151,8 @@ export class AcpClientBridge implements Client {
   private supportedAgentMethods = new Set<string>();
   
   // Permission request handling
-  public pendingPermissionRequest: Ref<LocalPermissionRequest | null> = ref(null);
-  private permissionResolver: PermissionResolver | null = null;
+  public pendingPermissionRequests: Ref<LocalPermissionRequest[]> = ref([]);
+  private pendingPermissionResolvers: Map<string, PendingPermissionEntry> = new Map();
 
   // Session update callback
   public onSessionUpdate: ((notification: SessionNotification) => void) | null = null;
@@ -171,6 +175,7 @@ export class AcpClientBridge implements Client {
       this.unlistenMessage = null;
     }
     this.supportedAgentMethods.clear();
+    this.cancelPermission();
     await killAgent(this.agentId);
   }
 
@@ -427,60 +432,88 @@ export class AcpClientBridge implements Client {
     return this.sendRequest<AuthenticateResponse>('authenticate', params);
   }
 
+  private getPermissionRequestKey(params: RequestPermissionRequest): string {
+    return params.toolCall.toolCallId;
+  }
+
+  private normalizePermissionRequest(params: RequestPermissionRequest): LocalPermissionRequest {
+    return {
+      sessionId: params.sessionId,
+      toolCall: {
+        toolCallId: params.toolCall.toolCallId,
+        title: params.toolCall.title ?? '',
+        kind: params.toolCall.kind ?? 'other',
+        status:
+          (params.toolCall.status as 'pending' | 'in_progress' | 'completed' | 'failed') ?? 'pending',
+        locations: params.toolCall.locations?.map(({ path, line }) =>
+          line == null ? { path } : { path, line }
+        ),
+        content: params.toolCall.content ?? undefined,
+        _meta: params.toolCall._meta ?? null,
+      },
+      options: params.options.map((opt) => ({
+        kind: opt.kind,
+        name: opt.name,
+        optionId: opt.optionId,
+        _meta: opt._meta ?? null,
+      })),
+      _meta: params._meta ?? null,
+    };
+  }
+
+  private syncPendingPermissionRequests(): void {
+    this.pendingPermissionRequests.value = Array.from(this.pendingPermissionResolvers.values()).map(
+      ({ request }) => request
+    );
+  }
+ 
   // ACP Client interface methods (agent calls these)
   async requestPermission(
     params: RequestPermissionRequest
   ): Promise<RequestPermissionResponse> {
     return new Promise((resolve) => {
-      this.pendingPermissionRequest.value = {
-        sessionId: params.sessionId,
-        toolCall: {
-          toolCallId: params.toolCall.toolCallId,
-          title: params.toolCall.title ?? '',
-          kind: params.toolCall.kind ?? 'other',
-          status: (params.toolCall.status as 'pending' | 'in_progress' | 'completed' | 'failed') ?? 'pending',
-          locations: params.toolCall.locations?.map(({ path, line }) =>
-            line == null ? { path } : { path, line }
-          ),
-          content: params.toolCall.content ?? undefined,
-          _meta: params.toolCall._meta ?? null,
-        },
-        options: params.options.map((opt) => ({
-          kind: opt.kind,
-          name: opt.name,
-          optionId: opt.optionId,
-          _meta: opt._meta ?? null,
-        })),
-        _meta: params._meta ?? null,
-      };
-      this.permissionResolver = resolve;
+      const key = this.getPermissionRequestKey(params);
+      this.pendingPermissionResolvers.set(key, {
+        request: this.normalizePermissionRequest(params),
+        resolver: resolve,
+      });
+      this.syncPendingPermissionRequests();
     });
   }
-
-  resolvePermission(optionId: string): void {
-    if (this.permissionResolver) {
-      this.permissionResolver({
-        outcome: {
-          outcome: 'selected',
-          optionId,
-        },
-        _meta: null,
-      });
-      this.permissionResolver = null;
-      this.pendingPermissionRequest.value = null;
+ 
+  resolvePermission(requestId: string, optionId: string): void {
+    const pendingRequest = this.pendingPermissionResolvers.get(requestId);
+    if (!pendingRequest) {
+      return;
     }
-  }
 
+    this.pendingPermissionResolvers.delete(requestId);
+    this.syncPendingPermissionRequests();
+    pendingRequest.resolver({
+      outcome: {
+        outcome: 'selected',
+        optionId,
+      },
+      _meta: null,
+    });
+  }
+ 
   cancelPermission(): void {
-    if (this.permissionResolver) {
-      this.permissionResolver({
+    if (this.pendingPermissionResolvers.size === 0) {
+      return;
+    }
+
+    const pendingRequests = Array.from(this.pendingPermissionResolvers.values());
+    this.pendingPermissionResolvers.clear();
+    this.syncPendingPermissionRequests();
+
+    for (const { resolver } of pendingRequests) {
+      resolver({
         outcome: {
           outcome: 'cancelled',
         },
         _meta: null,
       });
-      this.permissionResolver = null;
-      this.pendingPermissionRequest.value = null;
     }
   }
 

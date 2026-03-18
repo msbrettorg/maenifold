@@ -438,7 +438,7 @@ export function useMessageHandler({
     const bridge = bridges.get(sid);
     if (!session || !bridge || !session.session) return;
 
-    if (session.pendingPermissions.length > 0 || bridge.pendingPermissionRequest.value) {
+    if (session.pendingPermissions.length > 0 || bridge.pendingPermissionRequests.value.length > 0) {
       cancelPermission();
     }
 

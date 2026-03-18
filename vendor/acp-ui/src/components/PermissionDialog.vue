@@ -3,6 +3,7 @@ import type { PermissionRequest } from '../lib/types';
 
 defineProps<{
   request: PermissionRequest;
+  totalPending?: number;
 }>();
 
 const emit = defineEmits<{
@@ -32,6 +33,11 @@ function handleCancel() {
           <span class="tool-title">{{ request.toolCall.title }}</span>
           <span class="tool-kind">{{ request.toolCall.kind }}</span>
         </div>
+
+        <p v-if="(totalPending ?? 0) > 1" class="queue-hint">
+          Showing request 1 of {{ totalPending }}. The remaining requests will appear after you
+          respond.
+        </p>
         
         <div v-if="request.toolCall.locations?.length" class="locations">
           <div 
@@ -137,6 +143,12 @@ function handleCancel() {
   padding: 0.125rem 0;
   color: var(--text-primary, #333);
   word-break: break-all;
+}
+
+.queue-hint {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #555);
 }
 
 .dialog-actions {

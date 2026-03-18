@@ -1,11 +1,11 @@
 // Session lifecycle composable — create, resume, disconnect, close sessions
 import { reactive, watch, type Ref, type WatchStopHandle } from 'vue';
-import type { SavedSession, SessionState } from '../lib/types';
+import type { PromptCapabilities, SavedSession, SessionState } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
 import { AcpClientBridge, createAcpClient, isAbsolutePath } from '../lib/acp-bridge';
 import { spawnAgent, killAgent, onAgentStderr } from '../lib/tauri';
 import { trackEvent, trackError } from '../lib/telemetry';
-import type { AuthMethod, SessionNotification } from '@agentclientprotocol/sdk';
+import type { AuthMethod, InitializeRequest, SessionNotification } from '@agentclientprotocol/sdk';
 import { detectPhase, applySessionConfigurationState } from './session-utils';
 
 const PROTOCOL_VERSION = 1;
@@ -94,11 +94,19 @@ export function useSessionLifecycle({
   function bindPendingPermission(sessionId: string, bridge: AcpClientBridge): void {
     stopPermissionWatch(sessionId);
     const stop = watch(
-      () => bridge.pendingPermissionRequest.value,
+      () => bridge.pendingPermissionRequests.value,
       (value) => {
         const session = sessions.value.get(sessionId);
         if (session) {
-          session.pendingPermissions = value ? [value] : [];
+          session.pendingPermissions = value.map((request) => ({
+            ...request,
+            toolCall: {
+              ...request.toolCall,
+              locations: request.toolCall.locations?.map((location) => ({ ...location })),
+              content: request.toolCall.content?.map((item) => ({ ...item })),
+            },
+            options: request.options.map((option) => ({ ...option })),
+          }));
         }
       },
       { immediate: true }
@@ -107,14 +115,26 @@ export function useSessionLifecycle({
   }
 
   async function performInitialization(client: AcpClientBridge) {
+    type InitializeClientCapabilities = NonNullable<InitializeRequest['clientCapabilities']> & {
+      prompt: PromptCapabilities;
+    };
+
+    const clientCapabilities: InitializeClientCapabilities = {
+      fs: {
+        readTextFile: true,
+        writeTextFile: true,
+      },
+      terminal: true,
+      prompt: {
+        image: true,
+        audio: true,
+        embeddedContext: true,
+      },
+    };
+
     const initResponse = await client.initialize({
       protocolVersion: PROTOCOL_VERSION,
-      clientCapabilities: {
-        fs: {
-          readTextFile: true,
-          writeTextFile: true,
-        },
-      },
+      clientCapabilities,
       clientInfo: {
         name: 'maenifold',
         title: 'maenifold',

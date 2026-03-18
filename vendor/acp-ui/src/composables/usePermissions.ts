@@ -15,9 +15,11 @@ export function usePermissions({ sessions, bridges, activeSessionId }: UsePermis
 
   function resolvePermission(optionId: string): void {
     if (!activeSessionId.value) return;
+    const session = sessions.value.get(activeSessionId.value);
     const bridge = bridges.get(activeSessionId.value);
-    if (bridge) {
-      bridge.resolvePermission(optionId);
+    const activePermission = session?.pendingPermissions[0];
+    if (bridge && activePermission) {
+      bridge.resolvePermission(activePermission.toolCall.toolCallId, optionId);
     }
   }
 

@@ -31,6 +31,7 @@ const configOptions = computed(() => sessionStore.configOptions);
 const hasConfigOptions = computed(() => sessionStore.hasConfigOptions);
 const availableCommands = computed(() => sessionStore.availableCommands);
 const currentPlan = computed(() => sessionStore.currentPlan);
+const pendingPermissionCount = computed(() => sessionStore.pendingPermissionCount);
 
 // Slash command state
 const showCommandPalette = computed(() => {
@@ -441,6 +442,11 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
         />
       </div>
       
+      <div v-if="pendingPermissionCount > 0" class="permission-status">
+        {{ pendingPermissionCount }}
+        permission request{{ pendingPermissionCount === 1 ? '' : 's' }} awaiting review.
+      </div>
+
       <!-- Loading indicator -->
       <div v-if="isLoading" class="loading-indicator">
         <span class="spinner"></span>
@@ -517,6 +523,15 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
+}
+
+.permission-status {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-warning, #fff3cd);
+  color: var(--text-primary);
 }
 
 .message {

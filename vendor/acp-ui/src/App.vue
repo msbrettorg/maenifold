@@ -37,6 +37,7 @@ const hasAgents = computed(() => configStore.hasAgents);
 
 // Watch for permission requests from session store
 const pendingPermission = computed(() => sessionStore.pendingPermission);
+const pendingPermissionCount = computed(() => sessionStore.pendingPermissionCount);
 
 // Watch for auth method selection requests
 const pendingAuthMethods = computed(() => sessionStore.pendingAuthMethods);
@@ -271,6 +272,7 @@ function clearError() {
     <PermissionDialog 
       v-if="pendingPermission"
       :request="pendingPermission"
+      :total-pending="pendingPermissionCount"
       @select="handlePermissionSelect"
       @cancel="handlePermissionCancel"
     />

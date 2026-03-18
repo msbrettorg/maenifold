@@ -8,6 +8,7 @@ import type {
   ChatMessage,
   PlanEntry,
   PermissionRequest,
+  PromptCapabilities,
   SessionMode,
   AvailableCommand,
   ModelInfo,
@@ -131,6 +132,14 @@ export const useSessionStore = defineStore('session', () => {
     () => activeSession.value?.pendingPermissions[0] ?? null
   );
 
+  const pendingPermissions = computed<PermissionRequest[]>(
+    () => activeSession.value?.pendingPermissions ?? []
+  );
+
+  const pendingPermissionCount = computed<number>(
+    () => activeSession.value?.pendingPermissions.length ?? 0
+  );
+
   const supportsSessionList = computed<boolean>(
     () => activeSession.value?.supportsSessionList ?? false
   );
@@ -139,11 +148,9 @@ export const useSessionStore = defineStore('session', () => {
     () => activeSession.value?.agentInfo ?? null
   );
 
-  const agentPromptCapabilities = computed<{
-    image?: boolean;
-    audio?: boolean;
-    embeddedContext?: boolean;
-  }>(() => activeSession.value?.agentPromptCapabilities ?? {});
+  const agentPromptCapabilities = computed<PromptCapabilities>(
+    () => activeSession.value?.agentPromptCapabilities ?? {}
+  );
 
   const pendingAuthMethods = computed<AuthMethod[]>(
     () => (activeSession.value?.pendingAuthMethods ?? []) as AuthMethod[]
@@ -306,6 +313,8 @@ export const useSessionStore = defineStore('session', () => {
     isConnecting,
     error,
     pendingPermission,
+    pendingPermissions,
+    pendingPermissionCount,
     supportsSessionList,
     agentInfo,
     agentPromptCapabilities,

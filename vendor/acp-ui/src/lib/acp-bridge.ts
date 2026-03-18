@@ -66,6 +66,12 @@ function cloneMeta(meta: unknown): Record<string, unknown> | null {
   return isRecord(meta) ? { ...meta } : null;
 }
 
+function normalizePermissionToolCallPayload(
+  payload: unknown
+): Record<string, unknown> | undefined {
+  return isRecord(payload) ? { ...payload } : undefined;
+}
+
 function withAcpMeta<T>(
   value: T,
   extraMeta?: Record<string, unknown>
@@ -444,11 +450,18 @@ export class AcpClientBridge implements Client {
         title: params.toolCall.title ?? '',
         kind: params.toolCall.kind ?? 'other',
         status:
-          (params.toolCall.status as 'pending' | 'in_progress' | 'completed' | 'failed') ?? 'pending',
+          (params.toolCall.status as
+            | 'pending'
+            | 'in_progress'
+            | 'completed'
+            | 'failed'
+            | 'cancelled') ?? 'pending',
         locations: params.toolCall.locations?.map(({ path, line }) =>
           line == null ? { path } : { path, line }
         ),
-        content: params.toolCall.content ?? undefined,
+        content: params.toolCall.content?.map((item) => ({ ...item })) ?? undefined,
+        rawInput: normalizePermissionToolCallPayload(params.toolCall.rawInput),
+        rawOutput: normalizePermissionToolCallPayload(params.toolCall.rawOutput),
         _meta: params.toolCall._meta ?? null,
       },
       options: params.options.map((opt) => ({

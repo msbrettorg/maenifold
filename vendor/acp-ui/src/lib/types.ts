@@ -1,3 +1,9 @@
+import type {
+  AvailableCommand as SdkAvailableCommand,
+  PlanEntry as SdkPlanEntry,
+  PromptCapabilities as SdkPromptCapabilities,
+} from '@agentclientprotocol/sdk';
+
 // Types for maenifold application
 
 export interface AgentConfig {
@@ -115,4 +121,80 @@ export interface ModelInfo {
   modelId: string;
   name: string;
   description?: string;
+}
+
+export type PromptCapabilities = SdkPromptCapabilities;
+
+export type AvailableCommand = SdkAvailableCommand;
+
+export type PlanEntry = SdkPlanEntry;
+
+export interface SessionState {
+  sessionId: string;
+  agentName: string;
+  cwd: string;
+  session: SavedSession | null;
+  isConnected: boolean;
+  isConnecting: boolean;
+  isLoading: boolean;
+  error: string | null;
+  messages: ChatMessage[];
+  toolCalls: Map<string, ToolCallInfo>;
+  pendingPermissions: PermissionRequest[];
+  pendingAuthMethods: any[];
+  pendingAuthAgentName: string;
+  agentInfo: { name: string; title?: string; version?: string } | null;
+  agentPromptCapabilities: PromptCapabilities | null;
+  supportsSessionList: boolean;
+  availableModes: SessionMode[];
+  currentModeId: string;
+  availableModels: ModelInfo[];
+  currentModelId: string;
+  availableCommands: AvailableCommand[];
+  configOptions: SessionConfigOption[];
+  hasConfigOptions: boolean;
+  currentPlan: PlanEntry[];
+  startupPhase: string;
+  startupLogs: string[];
+  startupElapsed: number;
+}
+
+export function generateSessionId(): string {
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+export function createEmptySessionState(
+  sessionId: string,
+  agentName: string,
+  cwd: string
+): SessionState {
+  return {
+    sessionId,
+    agentName,
+    cwd,
+    session: null,
+    isConnected: false,
+    isConnecting: false,
+    isLoading: false,
+    error: null,
+    messages: [],
+    toolCalls: new Map<string, ToolCallInfo>(),
+    pendingPermissions: [],
+    pendingAuthMethods: [],
+    pendingAuthAgentName: '',
+    agentInfo: null,
+    agentPromptCapabilities: null,
+    supportsSessionList: false,
+    availableModes: [],
+    currentModeId: '',
+    availableModels: [],
+    currentModelId: '',
+    availableCommands: [],
+    configOptions: [],
+    hasConfigOptions: false,
+    currentPlan: [],
+    startupPhase: '',
+    startupLogs: [],
+    startupElapsed: 0,
+  };
 }

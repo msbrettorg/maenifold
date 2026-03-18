@@ -27,7 +27,11 @@ import {
 } from '@tauri-apps/plugin-fs';
 import { dirname } from '@tauri-apps/api/path';
 import { sendToAgent, onAgentMessage, killAgent } from './tauri';
-import type { AgentInstance, PermissionRequest as LocalPermissionRequest } from './types';
+import type {
+  AcpMetadata,
+  AgentInstance,
+  PermissionRequest as LocalPermissionRequest,
+} from './types';
 import { ref, type Ref } from 'vue';
 import { useTrafficStore } from '../stores/traffic';
 
@@ -44,6 +48,83 @@ function getTrafficStore() {
 }
 
 const WINDOWS_ABSOLUTE_PATH = /^[A-Za-z]:[\\/]/;
+const ACP_EXTENSION_META_KEY = 'maenifold/extensions';
+
+export const SESSION_SET_MODEL_METHOD = '_session/set_model';
+const SESSION_SET_CONFIG_OPTION_METHOD = 'session/set_config_option';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function cloneMeta(meta: unknown): Record<string, unknown> | null {
+  return isRecord(meta) ? { ...meta } : null;
+}
+
+function withAcpMeta<T>(
+  value: T,
+  extraMeta?: Record<string, unknown>
+): (T extends Record<string, unknown> ? T : Record<string, unknown>) & {
+  _meta: AcpMetadata;
+} {
+  const base = isRecord(value) ? { ...value } : {};
+  const existingMeta = cloneMeta(base._meta);
+  const mergedMeta =
+    existingMeta || extraMeta ? { ...(existingMeta ?? {}), ...(extraMeta ?? {}) } : null;
+  return {
+    ...base,
+    _meta: mergedMeta,
+  } as (T extends Record<string, unknown> ? T : Record<string, unknown>) & {
+    _meta: AcpMetadata;
+  };
+}
+
+function readAdvertisedAgentMethods(meta: unknown): Set<string> {
+  if (!isRecord(meta)) {
+    return new Set();
+  }
+
+  const extensions = meta[ACP_EXTENSION_META_KEY];
+  if (!isRecord(extensions) || !Array.isArray(extensions.supportedAgentMethods)) {
+    return new Set();
+  }
+
+  return new Set(
+    extensions.supportedAgentMethods.filter(
+      (method): method is string => typeof method === 'string'
+    )
+  );
+}
+
+function withExtensionCapabilities(
+  capabilities: unknown
+): Record<string, unknown> & { _meta: AcpMetadata } {
+  const existing = isRecord(capabilities) ? { ...capabilities } : {};
+  const existingMeta = cloneMeta(existing._meta);
+  const existingExtensions = isRecord(existingMeta?.[ACP_EXTENSION_META_KEY])
+    ? { ...(existingMeta?.[ACP_EXTENSION_META_KEY] as Record<string, unknown>) }
+    : {};
+  const supportedAgentMethods = Array.isArray(existingExtensions.supportedAgentMethods)
+    ? existingExtensions.supportedAgentMethods.filter(
+        (method): method is string => typeof method === 'string'
+      )
+    : [];
+
+  if (!supportedAgentMethods.includes(SESSION_SET_MODEL_METHOD)) {
+    supportedAgentMethods.push(SESSION_SET_MODEL_METHOD);
+  }
+
+  return {
+    ...existing,
+    _meta: {
+      ...(existingMeta ?? {}),
+      [ACP_EXTENSION_META_KEY]: {
+        ...existingExtensions,
+        supportedAgentMethods,
+      },
+    },
+  };
+}
 
 function assertAbsolutePath(path: string): void {
   if (!path.startsWith('/') && !WINDOWS_ABSOLUTE_PATH.test(path)) {

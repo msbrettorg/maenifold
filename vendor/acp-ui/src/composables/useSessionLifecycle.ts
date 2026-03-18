@@ -2,7 +2,7 @@
 import { reactive, watch, type Ref, type WatchStopHandle } from 'vue';
 import type { SavedSession, SessionState } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
-import { AcpClientBridge, createAcpClient } from '../lib/acp-bridge';
+import { AcpClientBridge, createAcpClient, isAbsolutePath } from '../lib/acp-bridge';
 import { spawnAgent, killAgent, onAgentStderr } from '../lib/tauri';
 import { trackEvent, trackError } from '../lib/telemetry';
 import type { AuthMethod, SessionNotification } from '@agentclientprotocol/sdk';
@@ -78,6 +78,16 @@ export function useSessionLifecycle({
     if (stop) {
       stop();
       permissionWatchStops.delete(sessionId);
+    }
+  }
+
+  async function validateSavedSessionCwd(
+    bridge: AcpClientBridge,
+    savedSession: SavedSession
+  ): Promise<void> {
+    if (!isAbsolutePath(savedSession.cwd)) {
+      await bridge.disconnect();
+      throw new Error('Saved session working directory must be an absolute path');
     }
   }
 
@@ -437,6 +447,7 @@ export function useSessionLifecycle({
       // Try to load existing session - may fail with auth_required
       let loadResponse;
       try {
+        await validateSavedSessionCwd(bridge, savedSession);
         loadResponse = await bridge.loadSession({
           sessionId: savedSession.sessionId,
           cwd: savedSession.cwd,
@@ -478,6 +489,7 @@ export function useSessionLifecycle({
           }
 
           // Retry loading session after auth
+          await validateSavedSessionCwd(bridge, savedSession);
           loadResponse = await bridge.loadSession({
             sessionId: savedSession.sessionId,
             cwd: savedSession.cwd,

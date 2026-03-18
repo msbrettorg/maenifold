@@ -48,6 +48,7 @@ function getTrafficStore() {
 }
 
 const WINDOWS_ABSOLUTE_PATH = /^[A-Za-z]:[\\/]/;
+const WINDOWS_UNC_PATH = /^\\\\/;
 const ACP_EXTENSION_META_KEY = 'maenifold/extensions';
 
 export const SESSION_SET_MODEL_METHOD = '_session/set_model';
@@ -126,8 +127,12 @@ function withExtensionCapabilities(
   };
 }
 
-function assertAbsolutePath(path: string): void {
-  if (!path.startsWith('/') && !WINDOWS_ABSOLUTE_PATH.test(path)) {
+export function isAbsolutePath(path: string): boolean {
+  return path.startsWith('/') || WINDOWS_ABSOLUTE_PATH.test(path) || WINDOWS_UNC_PATH.test(path);
+}
+
+export function assertAbsolutePath(path: string): void {
+  if (!isAbsolutePath(path)) {
     throw Object.assign(new Error('Path must be absolute'), { code: -32602 });
   }
 }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue';
+import { ref, computed, nextTick, onMounted, watch } from 'vue';
 import { marked } from 'marked';
 import { useSessionStore } from '../stores/session';
+import { useMermaid } from '../composables/useMermaid';
 import ModePicker from './ModePicker.vue';
 import ModelPicker from './ModelPicker.vue';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
@@ -14,6 +15,7 @@ const inputText = ref('');
 const activeCommandHint = ref<string | null>(null);
 const messagesContainer = ref<HTMLElement | null>(null);
 const commandPaletteRef = ref<InstanceType<typeof CommandPalette> | null>(null);
+const { renderMermaidBlocks } = useMermaid();
 
 // Track expanded thought sections by message id
 const expandedThoughts = ref<Set<string>>(new Set());
@@ -51,8 +53,16 @@ watch(messages, async () => {
   await nextTick();
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    await renderMermaidBlocks(messagesContainer.value);
   }
 }, { deep: true });
+
+onMounted(async () => {
+  await nextTick();
+  if (messagesContainer.value) {
+    await renderMermaidBlocks(messagesContainer.value);
+  }
+});
 
 watch(inputText, (text) => {
   if (!text.startsWith('/')) {
@@ -540,6 +550,26 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
 .message-content :deep(code) {
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 0.9rem;
+}
+
+.messages-container :deep(.mermaid-rendered) {
+  margin: 0.75rem 0;
+}
+
+.messages-container :deep(.mermaid-rendered svg) {
+  display: block;
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+.messages-container :deep(pre.mermaid-error) {
+  border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
+.messages-container :deep(.mermaid-error-message) {
+  margin-top: 0.5rem;
+  color: #fca5a5;
+  font-size: 0.8rem;
 }
 
 .message-image {

@@ -4,6 +4,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { load } from '@tauri-apps/plugin-store';
 import { useConfigStore } from './stores/config';
 import { useSessionStore } from './stores/session';
+import { isAbsolutePath } from './lib/acp-bridge';
 import { initTelemetry } from './lib/telemetry';
 import AgentSelector from './components/AgentSelector.vue';
 import SessionList from './components/SessionList.vue';
@@ -24,10 +25,6 @@ const showSidebar = ref(true);
 const showSettings = ref(false);
 const showTrafficMonitor = ref(false);
 const showStartupDetails = ref(false);
-
-function isAbsolutePath(path: string): boolean {
-  return /^\/|^[A-Za-z]:[\\/]|^\\\\/.test(path);
-}
 
 // Preferences store for persisting user selections
 let prefsStore: Awaited<ReturnType<typeof load>> | null = null;

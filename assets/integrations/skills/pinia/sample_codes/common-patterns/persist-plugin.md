@@ -1,3 +1,6 @@
+# Persistence Plugin
+
+```ts
 import type { PiniaPluginContext } from 'pinia'
 
 export function persistPlugin({ store }: PiniaPluginContext) {
@@ -12,3 +15,4 @@ export function persistPlugin({ store }: PiniaPluginContext) {
     localStorage.setItem(key, JSON.stringify(state))
   })
 }
+```

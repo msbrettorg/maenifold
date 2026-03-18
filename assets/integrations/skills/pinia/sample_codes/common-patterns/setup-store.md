@@ -1,3 +1,6 @@
+# Setup Store Pattern
+
+```ts
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
@@ -29,3 +32,4 @@ export const useCartStore = defineStore('cart', () => {
     $reset,
   }
 })
+```

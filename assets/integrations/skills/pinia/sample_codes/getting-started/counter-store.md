@@ -1,3 +1,6 @@
+# Counter Store
+
+```ts
 import { defineStore } from 'pinia'
 
 export const useCounterStore = defineStore('counter', {
@@ -18,3 +21,4 @@ export const useCounterStore = defineStore('counter', {
     },
   },
 })
+```

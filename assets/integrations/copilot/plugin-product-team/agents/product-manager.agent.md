@@ -2,8 +2,10 @@
 name: product-manager
 description: Use this agent when the user needs TDD pipeline orchestration, sprint planning, requirements traceability (PRD/RTM), or coordinating parallel task execution across SWE, red-team, blue-team, and researcher agents. Excels at decomposing work into parallel-safe micro-tasks and managing the todo/ to done/ lifecycle via pipeline.db state.
 skills:
-  - maenifold
-  - test-driven-development
+  - maenifold:maenifold
+  - maenifold-product-team:test-driven-development
+  - maenifold-product-team:agent-client-protocol
+  - maenifold-product-team:pinia
 ---
 
 # Product Manager
@@ -17,8 +19,10 @@ You are devoted to the "Simple, Lovable, Complete" (SLC) philosophy. MVPs, scaff
 You always ground decisions in the knowledge graph and memory:// corpus. You never rely on internal model knowledge alone for claims about the repo's behavior, decisions, or architecture.
 
 You always load these skills when starting a new session and after compaction/summarization:
-- maenifold
-- test-driven-development
+  - maenifold:maenifold
+  - maenifold-product-team:test-driven-development
+  - maenifold-product-team:agent-client-protocol
+  - maenifold-product-team:pinia
 
 ## Ownership
 

@@ -195,6 +195,47 @@ export const useSessionStore = defineStore('session', () => {
     savedSessions.value.filter(s => s.supportsLoadSession === true)
   );
 
+  type CancellableToolCallInfo = Omit<ToolCallInfo, 'status'> & {
+    status: ToolCallInfo['status'] | 'cancelled';
+  };
+
+  function pushSystemMessage(content: string): void {
+    messages.value.push({
+      id: crypto.randomUUID(),
+      role: 'system',
+      content,
+      timestamp: Date.now(),
+    });
+  }
+
+  function cancelPendingToolCalls(): void {
+    for (const toolCall of toolCalls.value.values()) {
+      const cancellableToolCall = toolCall as CancellableToolCallInfo;
+      if (
+        cancellableToolCall.status === 'pending' ||
+        cancellableToolCall.status === 'in_progress'
+      ) {
+        cancellableToolCall.status = 'cancelled';
+      }
+    }
+
+    for (const message of messages.value) {
+      if (!message.toolCalls) {
+        continue;
+      }
+
+      for (const toolCall of message.toolCalls) {
+        const cancellableToolCall = toolCall as CancellableToolCallInfo;
+        if (
+          cancellableToolCall.status === 'pending' ||
+          cancellableToolCall.status === 'in_progress'
+        ) {
+          cancellableToolCall.status = 'cancelled';
+        }
+      }
+    }
+  }
+
   function applyConfigOptionsState(
     response: { configOptions?: unknown[] | null }
   ): void {
@@ -943,6 +984,22 @@ export const useSessionStore = defineStore('session', () => {
 
       console.log('Prompt completed:', response.stopReason);
 
+      switch (response.stopReason) {
+        case 'refusal':
+          error.value = 'The agent refused this request.';
+          break;
+        case 'max_tokens':
+          pushSystemMessage('Response was truncated due to token limits.');
+          break;
+        case 'max_turn_requests':
+          pushSystemMessage('Turn limit reached.');
+          break;
+        case 'end_turn':
+        case 'cancelled':
+        default:
+          break;
+      }
+
       // Track prompt sent
       trackEvent('PromptSent', { 
         messageLength: String(text.length),
@@ -957,7 +1014,13 @@ export const useSessionStore = defineStore('session', () => {
   // Cancel current operation
   async function cancelOperation(): Promise<void> {
     if (!acpClient || !currentSession.value) return;
-    
+
+    if (pendingPermission.value || acpClient.pendingPermissionRequest.value) {
+      cancelPermission();
+    }
+
+    cancelPendingToolCalls();
+
     await acpClient.cancel({
       sessionId: currentSession.value.sessionId,
     });

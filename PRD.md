@@ -496,13 +496,13 @@ The system SHALL extend pipeline session frontmatter with richer execution metad
 
 #### FR-45.14: Pipeline API Surface — Sprint 37
 
-The pipeline system SHALL use MCP as the single API surface for both the UI and AI agents. No privileged REST endpoints for the UI — if the UI can do it, an agent can do it via the same MCP tools.
+The pipeline system SHALL use MCP as the **sole** API surface for both the UI and AI agents. No REST endpoints. No SSE. The UI connects to `/mcp` as an MCP client and uses the same tools as agents.
 
 - **Reads**: `ListAssets(type="pipeline")`, `ReadMcpResource("asset://pipeline/{id}")`, `Pipeline(sessionId=X, view=true)`.
 - **Writes**: A new `WriteAsset` MCP tool SHALL write asset files: `WriteAsset(type="pipeline", id="tdd-review-loop", content={...})` writes to `assets/pipelines/{id}.json`. Supports `delete=true` for removal.
 - **Execution**: `Pipeline(sessionId=X, run=true)` triggers active execution (see FR-45.15).
-- **Events**: `GET /api/pipelines/sessions/:id/events` — cursor-tracked SSE stream (the only non-MCP endpoint, since MCP is request-response and cannot stream).
-- **Principle**: The UI connects to the service via `/mcp` as an MCP client. The interaction model is pure MCP. The UI has no special privileges — it uses the same tools available to any connected agent.
+- **Events**: Pipeline execution events SHALL be delivered as MCP notifications (`notifications/pipeline/event`) over the existing `/mcp` connection. No SSE endpoint needed.
+- **Principle**: The UI is an MCP client with a visual interface. It has no special privileges. If the UI can do it, an agent can do it via the same MCP tools. 100% MCP, zero REST, zero SSE.
 - `POST /api/pipelines/sessions/:id/run` — start active execution of a pipeline session. Returns 202 with `runId`.
 - `GET /api/pipelines/sessions/:id/events` — cursor-tracked SSE stream of pipeline execution events. Supports `Last-Event-ID` header for reconnection without data loss. Falls back to polling via `?since={cursor}` query parameter.
 
@@ -522,8 +522,7 @@ The pipeline engine SHALL support active, autonomous execution of pipelines with
   6. On completion, persist node state and notify the main loop via `mpsc::channel`
   7. Recompute ready set and repeat until pipeline is terminal
 - **Dual execution mode**: Nodes with `acpClient` set SHALL execute via `AgentProcess` (external ACP agent). Nodes with `acpClient` unset SHALL execute in-process by calling workflow tool handlers directly.
-- **Cursor-tracked event streaming**: Pipeline execution events SHALL be persisted with monotonic sequence numbers. The `/events` SSE endpoint SHALL support `Last-Event-ID` header for reconnection without data loss. A polling fallback SHALL be available via `GET /api/pipelines/sessions/:id/events?since={cursor}` for clients that cannot use SSE. This follows the AgentBoss pattern: events are cursor-tracked, so disconnects never lose data.
-- **Event types**: `NodeStarted`, `NodeCompleted`, `NodeFailed`, `NodeOutput` (streaming agent text), `PipelineCompleted`, `PipelineStuck`.
+- **Pipeline event notifications**: The executor SHALL emit MCP notifications (`notifications/pipeline/event`) with event types: `NodeStarted`, `NodeCompleted`, `NodeFailed`, `NodeOutput` (streaming agent text), `PipelineCompleted`, `PipelineStuck`. These flow over the existing `/mcp` connection to all connected MCP clients (UI and agents alike).
 - **Long-running support**: Pipelines may run for hours or days. The executor SHALL survive server restarts by reading persisted state from session files. On restart, incomplete pipelines can be resumed via `POST /run` which re-enters the execution loop from current state.
 - **Backward compatibility**: The existing `Pipeline` MCP tool (`dispatch=true` / manual status updates) SHALL continue to work unchanged for AI-agent-driven pipelines. The active executor is an additional execution path that reuses the same underlying state functions.
 

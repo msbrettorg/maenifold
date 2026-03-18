@@ -1,0 +1,152 @@
+<!-- Minimal local copy of the official ACP docs. Source: https://agentclientprotocol.com/protocol/initialization -->
+
+# Initialization
+
+> How all Agent Client Protocol connections begin
+
+The Initialization phase allows [Clients](./overview.md#client) and [Agents](./overview.md#agent) to negotiate protocol versions, capabilities, and authentication methods.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Agent
+
+    Note over Client, Agent: Connection established
+    Client->>Agent: initialize
+    Note right of Agent: Negotiate protocol<br/>version & capabilities
+    Agent-->>Client: initialize response
+    Note over Client,Agent: Ready for session setup
+```
+
+Before a Session can be created, Clients **MUST** initialize the connection by calling the `initialize` method with:
+
+* The latest protocol version supported
+* The capabilities supported
+
+They **SHOULD** also provide a name and version to the Agent.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": 1,
+    "clientCapabilities": {
+      "fs": {
+        "readTextFile": true,
+        "writeTextFile": true
+      },
+      "terminal": true
+    },
+    "clientInfo": {
+      "name": "my-client",
+      "title": "My Client",
+      "version": "1.0.0"
+    }
+  }
+}
+```
+
+The Agent **MUST** respond with the chosen protocol version and the capabilities it supports. It **SHOULD** also provide a name and version to the Client as well:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": {
+    "protocolVersion": 1,
+    "agentCapabilities": {
+      "loadSession": true,
+      "promptCapabilities": {
+        "image": true,
+        "audio": true,
+        "embeddedContext": true
+      },
+      "mcp": {
+        "http": true,
+        "sse": true
+      }
+    },
+    "agentInfo": {
+      "name": "my-agent",
+      "title": "My Agent",
+      "version": "1.0.0"
+    },
+    "authMethods": []
+  }
+}
+```
+
+## Protocol version
+
+The protocol versions that appear in the `initialize` requests and responses are a single integer that identifies a **MAJOR** protocol version. This version is only incremented when breaking changes are introduced.
+
+Clients and Agents **MUST** agree on a protocol version and act according to its specification.
+
+### Version Negotiation
+
+The `initialize` request **MUST** include the latest protocol version the Client supports.
+
+If the Agent supports the requested version, it **MUST** respond with the same version. Otherwise, the Agent **MUST** respond with the latest version it supports.
+
+If the Client does not support the version specified by the Agent in the `initialize` response, the Client **SHOULD** close the connection and inform the user about it.
+
+## Capabilities
+
+Capabilities describe features supported by the Client and the Agent.
+
+All capabilities included in the `initialize` request are **OPTIONAL**. Clients and Agents **SHOULD** support all possible combinations of their peer's capabilities.
+
+The introduction of new capabilities is not considered a breaking change. Therefore, Clients and Agents **MUST** treat all capabilities omitted in the `initialize` request as **UNSUPPORTED**.
+
+Implementations can also advertise custom capabilities using the `_meta` field to indicate support for protocol extensions.
+
+### Client Capabilities
+
+The Client **SHOULD** specify whether it supports the following capabilities:
+
+#### File System
+
+- `readTextFile` — The `fs/read_text_file` method is available.
+- `writeTextFile` — The `fs/write_text_file` method is available.
+
+#### Terminal
+
+- `terminal` — All `terminal/*` methods are available, allowing the Agent to execute and manage shell commands.
+
+### Agent Capabilities
+
+The Agent **SHOULD** specify whether it supports the following capabilities:
+
+- `loadSession` — The `session/load` method is available.
+- `promptCapabilities` — Object indicating the different types of content that may be included in `session/prompt` requests.
+
+#### Prompt capabilities
+
+As a baseline, all Agents **MUST** support `ContentBlock::Text` and `ContentBlock::ResourceLink` in `session/prompt` requests.
+
+Optionally, they **MAY** support richer types of content by specifying the following capabilities:
+
+- `image`
+- `audio`
+- `embeddedContext`
+
+#### MCP capabilities
+
+- `http` — The Agent supports connecting to MCP servers over HTTP.
+- `sse` — The Agent supports connecting to MCP servers over SSE. Note: This transport has been deprecated by the MCP spec.
+
+#### Session Capabilities
+
+As a baseline, all Agents **MUST** support `session/new`, `session/prompt`, `session/cancel`, and `session/update`.
+
+## Implementation Information
+
+Both Clients and Agents **SHOULD** provide information about their implementation in the `clientInfo` and `agentInfo` fields respectively. Both take the following three fields:
+
+- `name`
+- `title`
+- `version`
+
+Once the connection is initialized, you're ready to create a session and begin the conversation with the Agent.

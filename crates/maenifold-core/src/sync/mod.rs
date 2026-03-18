@@ -102,6 +102,7 @@ pub fn sync(context: &ToolContext, payload: &Value) -> Result<String> {
                 concept_relations: 0,
                 abandoned_sessions: 0,
                 communities_detected: 0,
+                file_errors: Vec::new(),
                 vector_warning_code: None,
                 // T-21.7: RTM FR-21.7 follower path does not execute sync phases.
                 files_changed: 0,
@@ -256,12 +257,26 @@ pub fn recompute_communities_if_needed(context: &ToolContext) -> Result<Option<u
 
 pub fn sync_files(context: &ToolContext, file_paths: &[PathBuf]) -> Result<String> {
     // T-22.3: delegates to sync_single_file which applies [[WikiLink Filter]] per RTM-154.
+    let mut file_errors = Vec::new();
     for file_path in file_paths {
-        sync_single_file(context, file_path)?;
+        if let Err(error) = sync_single_file(context, file_path) {
+            let error_message = error.to_string();
+            eprintln!(
+                "SyncFiles failed for {}: {}",
+                file_path.display(),
+                error_message
+            );
+            file_errors.push((file_path.display().to_string(), error_message));
+        }
     }
 
     let mut output = format!(
-        "SyncFiles complete:\n- {} FILES processed",
+        "SyncFiles complete:\n- STATUS: {}\n- {} FILES processed",
+        if file_errors.is_empty() {
+            "success"
+        } else {
+            "partial"
+        },
         file_paths.len()
     );
     if vector_sync_disabled_by_config() {
@@ -274,6 +289,12 @@ pub fn sync_files(context: &ToolContext, file_paths: &[PathBuf]) -> Result<Strin
             )
             .join("\n"),
         );
+    }
+    if !file_errors.is_empty() {
+        output.push_str("\n\n## Errors");
+        for (file_path, error_message) in &file_errors {
+            output.push_str(&format!("\n- `{file_path}`: {error_message}"));
+        }
     }
     Ok(output)
 }
@@ -292,47 +313,62 @@ fn run_sync(context: &ToolContext) -> Result<String> {
     let tx = connection.transaction()?;
     let sync_started_at = current_iso_timestamp();
     let mut processed_files = Vec::new();
+    let mut file_errors = Vec::new();
     // T-22.2: RTM-151, RTM-152, RTM-153, RTM-155 — full [[sync]] must filter blocked concepts before mention insertion.
     let wikilink_filter = WikiLinkFilter::new(&context.config.memory_path);
     let mut total_filtered = 0i64;
 
     delete_missing_files(&tx, &file_uri_set)?;
     for uri in &file_uris {
-        let file_path = crate::markdown::uri_to_path(uri, &context.config.memory_path)?;
-        let metadata = fs::metadata(&file_path)?;
-        let indexed_at = indexed_timestamp_for_metadata(&metadata);
-        let stored_file = load_indexed_file_state(&tx, uri)?;
-        let synced_file = stored_file
-            .as_ref()
-            .filter(|indexed_file| !should_bootstrap_graph_state(indexed_file));
-        let stored_hash = synced_file.and_then(|indexed_file| indexed_file.file_md5.as_deref());
-        let last_indexed =
-            synced_file.and_then(|indexed_file| indexed_file.last_indexed.as_deref());
-        if should_skip_by_mtime(metadata.modified().ok(), last_indexed) {
-            continue;
-        }
+        tx.execute_batch("SAVEPOINT sync_file")?;
+        let file_result: Result<()> = (|| {
+            let file_path = crate::markdown::uri_to_path(uri, &context.config.memory_path)?;
+            let metadata = fs::metadata(&file_path)?;
+            let indexed_at = indexed_timestamp_for_metadata(&metadata);
+            let stored_file = load_indexed_file_state(&tx, uri)?;
+            let synced_file = stored_file
+                .as_ref()
+                .filter(|indexed_file| !should_bootstrap_graph_state(indexed_file));
+            let stored_hash = synced_file.and_then(|indexed_file| indexed_file.file_md5.as_deref());
+            let last_indexed =
+                synced_file.and_then(|indexed_file| indexed_file.last_indexed.as_deref());
+            if should_skip_by_mtime(metadata.modified().ok(), last_indexed) {
+                return Ok(());
+            }
 
-        let (frontmatter, content, checksum) = read_markdown(uri, &context.config)?;
-        if stored_hash == Some(checksum.as_str()) {
-            tx.execute(
-                "UPDATE file_content SET last_indexed = ?2 WHERE file_path = ?1",
-                rusqlite::params![uri, indexed_at],
+            let (frontmatter, content, checksum) = read_markdown(uri, &context.config)?;
+            if stored_hash == Some(checksum.as_str()) {
+                tx.execute(
+                    "UPDATE file_content SET last_indexed = ?2 WHERE file_path = ?1",
+                    rusqlite::params![uri, indexed_at],
+                )?;
+                return Ok(());
+            }
+
+            let file_filtered = upsert_processed_file(
+                &tx,
+                uri,
+                &frontmatter,
+                &content,
+                &checksum,
+                metadata.len() as i64,
+                &indexed_at,
+                Some(&wikilink_filter),
             )?;
-            continue;
-        }
+            total_filtered += file_filtered;
+            processed_files.push((uri.clone(), content));
+            Ok(())
+        })();
 
-        let file_filtered = upsert_processed_file(
-            &tx,
-            uri,
-            &frontmatter,
-            &content,
-            &checksum,
-            metadata.len() as i64,
-            &indexed_at,
-            Some(&wikilink_filter),
-        )?;
-        total_filtered += file_filtered;
-        processed_files.push((uri.clone(), content));
+        match file_result {
+            Ok(()) => tx.execute_batch("RELEASE SAVEPOINT sync_file")?,
+            Err(error) => {
+                let error_message = error.to_string();
+                eprintln!("Sync failed for {uri}: {error_message}");
+                tx.execute_batch("ROLLBACK TO SAVEPOINT sync_file; RELEASE SAVEPOINT sync_file;")?;
+                file_errors.push((uri.clone(), error_message));
+            }
+        }
     }
 
     // T-21.7: RTM FR-21.7 include changed-file count in the sync timing output.
@@ -404,6 +440,8 @@ fn run_sync(context: &ToolContext) -> Result<String> {
         SyncSummary {
             status: if file_uris.is_empty() {
                 "degraded"
+            } else if !file_errors.is_empty() {
+                "partial"
             } else {
                 "success"
             },
@@ -413,6 +451,7 @@ fn run_sync(context: &ToolContext) -> Result<String> {
             concept_relations: relation_count,
             abandoned_sessions,
             communities_detected,
+            file_errors,
             vector_warning_code: if file_uris.is_empty() {
                 Some("VECTOR_TABLES_EMPTY_AFTER_SYNC")
             } else {

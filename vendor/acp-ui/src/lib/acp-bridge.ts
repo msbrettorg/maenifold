@@ -20,7 +20,12 @@ import type {
   AuthenticateRequest,
   AuthenticateResponse,
 } from '@agentclientprotocol/sdk';
-import { readTextFile as tauriReadTextFile, writeTextFile as tauriWriteTextFile } from '@tauri-apps/plugin-fs';
+import {
+  mkdir,
+  readTextFile as tauriReadTextFile,
+  writeTextFile as tauriWriteTextFile,
+} from '@tauri-apps/plugin-fs';
+import { dirname } from '@tauri-apps/api/path';
 import { sendToAgent, onAgentMessage, killAgent } from './tauri';
 import type { AgentInstance, PermissionRequest as LocalPermissionRequest } from './types';
 import { ref, type Ref } from 'vue';
@@ -36,6 +41,14 @@ function getTrafficStore() {
     trafficStore = useTrafficStore();
   }
   return trafficStore;
+}
+
+const WINDOWS_ABSOLUTE_PATH = /^[A-Za-z]:[\\/]/;
+
+function assertAbsolutePath(path: string): void {
+  if (!path.startsWith('/') && !WINDOWS_ABSOLUTE_PATH.test(path)) {
+    throw Object.assign(new Error('Path must be absolute'), { code: -32602 });
+  }
 }
 
 export class AcpClientBridge implements Client {
@@ -153,7 +166,11 @@ export class AcpClientBridge implements Client {
           error = { code: -32601, message: `Method not found: ${method}` };
       }
     } catch (e) {
-      error = { code: -32603, message: e instanceof Error ? e.message : String(e) };
+      const code =
+        typeof (e as { code?: unknown })?.code === 'number'
+          ? (e as { code: number }).code
+          : -32603;
+      error = { code, message: e instanceof Error ? e.message : String(e) };
     }
 
     // Send response back to agent
@@ -183,6 +200,19 @@ export class AcpClientBridge implements Client {
     }
   }
 
+  private getTimeoutForMethod(method: string): number {
+    switch (method) {
+      case 'terminal/wait_for_exit':
+        return 30 * 60 * 1000; // 30 minutes
+      case 'terminal/create':
+        return 5 * 60 * 1000; // 5 minutes
+      case 'session/load':
+        return 5 * 60 * 1000; // 5 minutes
+      default:
+        return 60 * 1000; // 60 seconds
+    }
+  }
+
   private async sendRequest<T>(method: string, params?: unknown): Promise<T> {
     const id = this.nextRequestId++;
     const request = {
@@ -204,6 +234,7 @@ export class AcpClientBridge implements Client {
     this.pendingMethods.set(id, method);
 
     console.log('Sending request:', request);
+    const timeoutMs = this.getTimeoutForMethod(method);
 
     return new Promise((resolve, reject) => {
       this.messageResolvers.set(id, (response) => {
@@ -226,7 +257,7 @@ export class AcpClientBridge implements Client {
           this.pendingMethods.delete(id);
           reject(new Error(`Request timeout: ${method}`));
         }
-      }, 60000);
+      }, timeoutMs);
     });
   }
 
@@ -307,7 +338,9 @@ export class AcpClientBridge implements Client {
           title: params.toolCall.title ?? '',
           kind: params.toolCall.kind ?? 'other',
           status: (params.toolCall.status as 'pending' | 'in_progress' | 'completed' | 'failed') ?? 'pending',
-          locations: params.toolCall.locations ?? undefined,
+          locations: params.toolCall.locations?.map(({ path, line }) =>
+            line == null ? { path } : { path, line }
+          ),
         },
         options: params.options.map((opt) => ({
           kind: opt.kind,
@@ -352,9 +385,12 @@ export class AcpClientBridge implements Client {
     params: WriteTextFileRequest
   ): Promise<WriteTextFileResponse> {
     try {
+      assertAbsolutePath(params.path);
+      const dir = await dirname(params.path);
+      await mkdir(dir, { recursive: true });
       await tauriWriteTextFile(params.path, params.content);
       console.log('writeTextFile completed:', params.path);
-      return {};
+      return null as unknown as WriteTextFileResponse;
     } catch (e) {
       console.error('writeTextFile failed:', params.path, e);
       throw e;
@@ -365,6 +401,7 @@ export class AcpClientBridge implements Client {
     params: ReadTextFileRequest
   ): Promise<ReadTextFileResponse> {
     try {
+      assertAbsolutePath(params.path);
       let content = await tauriReadTextFile(params.path);
       
       // Handle line/limit parameters if specified

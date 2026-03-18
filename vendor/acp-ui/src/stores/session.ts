@@ -196,9 +196,6 @@ export const useSessionStore = defineStore('session', () => {
   // ── Derived computeds ─────────────────────────────────────────────
   const hasActiveSession = computed(() => currentSession.value !== null);
   const messageList = computed(() => messages.value);
-  const toolCallList = computed(() =>
-    Array.from(activeSession.value?.toolCalls.values() ?? [])
-  );
 
   // ── Actions that remain in the orchestrator ───────────────────────
 
@@ -321,7 +318,6 @@ export const useSessionStore = defineStore('session', () => {
     // Computed (derived)
     hasActiveSession,
     messageList,
-    toolCallList,
     resumableSessions,
 
     // Actions

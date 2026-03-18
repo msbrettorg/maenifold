@@ -6,10 +6,11 @@ import ModePicker from './ModePicker.vue';
 import ModelPicker from './ModelPicker.vue';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import CommandPalette from './CommandPalette.vue';
-import type { SlashCommand } from '../lib/types';
+import type { ChatMessage, SlashCommand } from '../lib/types';
 
 const sessionStore = useSessionStore();
 const inputText = ref('');
+const activeCommandHint = ref<string | null>(null);
 const messagesContainer = ref<HTMLElement | null>(null);
 const commandPaletteRef = ref<InstanceType<typeof CommandPalette> | null>(null);
 
@@ -51,6 +52,12 @@ watch(messages, async () => {
   }
 }, { deep: true });
 
+watch(inputText, (text) => {
+  if (!text.startsWith('/')) {
+    activeCommandHint.value = null;
+  }
+});
+
 async function handleSend() {
   const text = inputText.value.trim();
   if (!text || isLoading.value) return;
@@ -79,12 +86,8 @@ function handleKeyDown(event: KeyboardEvent) {
 }
 
 function handleCommandSelect(command: SlashCommand) {
-  // Replace current input with the command
-  if (command.hint) {
-    inputText.value = `/${command.name} `;
-  } else {
-    inputText.value = `/${command.name} `;
-  }
+  inputText.value = `/${command.name} `;
+  activeCommandHint.value = command.hint ?? null;
 }
 
 function handleCommandClose() {
@@ -158,6 +161,18 @@ function getStatusIcon(status: string): string {
     default: return '';
   }
 }
+
+function getMessageToolCalls(message: ChatMessage) {
+  return message.toolCalls ?? [];
+}
+
+function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
+  return (
+    message.role === 'assistant' &&
+    !message.content &&
+    getMessageToolCalls(message).length > 0
+  );
+}
 </script>
 
 <template>
@@ -192,11 +207,15 @@ function getStatusIcon(status: string): string {
     </div>
     
     <div ref="messagesContainer" class="messages-container">
-      <div 
-        v-for="message in messages" 
-        :key="message.id"
-        :class="['message', `message-${message.role}`]"
-      >
+        <div 
+          v-for="message in messages" 
+          :key="message.id"
+          :class="[
+            'message',
+            `message-${message.role}`,
+            { 'message-tool-only': isToolOnlyAssistantMessage(message) },
+          ]"
+        >
         <div class="message-header">
           <span class="role">{{ message.role === 'user' ? 'You' : 'Assistant' }}</span>
         </div>
@@ -214,9 +233,9 @@ function getStatusIcon(status: string): string {
         </div>
         
         <!-- Tool calls for this message (shown after thinking) -->
-        <div v-if="message.toolCalls?.length" class="tool-calls-section">
+        <div v-if="getMessageToolCalls(message).length" class="tool-calls-section">
           <div 
-            v-for="tc in message.toolCalls" 
+            v-for="tc in getMessageToolCalls(message)" 
             :key="tc.toolCallId"
             :class="['tool-call-inline', `tool-${tc.status}`]"
           >
@@ -257,7 +276,7 @@ function getStatusIcon(status: string): string {
       />
       <textarea
         v-model="inputText"
-        :placeholder="availableCommands.length > 0 ? 'Type your message... (/ for commands)' : 'Type your message...'"
+        :placeholder="activeCommandHint ?? 'Type your message...'"
         :disabled="isLoading"
         @keydown="handleKeyDown"
         rows="3"

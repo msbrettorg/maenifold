@@ -7,7 +7,11 @@ import type {
   AvailableCommand,
 } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-bridge';
-import type { SessionNotification } from '@agentclientprotocol/sdk';
+import type {
+  SessionNotification,
+  ToolCallContent as SdkToolCallContent,
+  ToolCallLocation as SdkToolCallLocation,
+} from '@agentclientprotocol/sdk';
 import { trackEvent } from '../lib/telemetry';
 import { normalizeConfigOptions, parseUpdatedAt } from './session-utils';
 
@@ -20,9 +24,39 @@ interface UseMessageHandlerDeps {
   cancelPermission: () => void;
 }
 
-type CancellableToolCallInfo = Omit<ToolCallInfo, 'status'> & {
-  status: ToolCallInfo['status'] | 'cancelled';
+type ToolCallUpdateSnapshot = {
+  toolCallId: string;
+  title: string;
+  kind?: string | null;
+  status?: ToolCallInfo['status'] | null;
+  locations?: Array<SdkToolCallLocation> | null;
+  content?: Array<SdkToolCallContent> | null;
 };
+
+function normalizeToolCallLocations(
+  locations: Array<SdkToolCallLocation> | null | undefined
+): ToolCallInfo['locations'] | undefined {
+  return locations?.map(({ path, line }) =>
+    line == null ? { path } : { path, line }
+  );
+}
+
+function normalizeToolCallContent(
+  content: Array<SdkToolCallContent> | null | undefined
+): ToolCallInfo['content'] | undefined {
+  return content?.map((item) => ({ ...item }));
+}
+
+function createToolCallInfo(update: ToolCallUpdateSnapshot): ToolCallInfo {
+  return {
+    toolCallId: update.toolCallId,
+    title: update.title,
+    kind: update.kind ?? 'other',
+    status: update.status ?? 'pending',
+    locations: normalizeToolCallLocations(update.locations),
+    content: normalizeToolCallContent(update.content),
+  };
+}
 
 export function useMessageHandler({
   sessions,
@@ -43,12 +77,8 @@ export function useMessageHandler({
 
   function cancelPendingToolCalls(session: SessionState): void {
     for (const toolCall of session.toolCalls.values()) {
-      const cancellableToolCall = toolCall as CancellableToolCallInfo;
-      if (
-        cancellableToolCall.status === 'pending' ||
-        cancellableToolCall.status === 'in_progress'
-      ) {
-        cancellableToolCall.status = 'cancelled';
+      if (toolCall.status === 'pending' || toolCall.status === 'in_progress') {
+        toolCall.status = 'cancelled';
       }
     }
 
@@ -58,12 +88,8 @@ export function useMessageHandler({
       }
 
       for (const toolCall of message.toolCalls) {
-        const cancellableToolCall = toolCall as CancellableToolCallInfo;
-        if (
-          cancellableToolCall.status === 'pending' ||
-          cancellableToolCall.status === 'in_progress'
-        ) {
-          cancellableToolCall.status = 'cancelled';
+        if (toolCall.status === 'pending' || toolCall.status === 'in_progress') {
+          toolCall.status = 'cancelled';
         }
       }
     }
@@ -137,28 +163,30 @@ export function useMessageHandler({
       }
 
       case 'tool_call': {
-        // Add tool call to the current assistant message
-        const currentAssistantMsg = session.messages[session.messages.length - 1];
-        if (currentAssistantMsg && currentAssistantMsg.role === 'assistant') {
-          if (!currentAssistantMsg.toolCalls) {
-            currentAssistantMsg.toolCalls = [];
-          }
-          currentAssistantMsg.toolCalls.push({
-            toolCallId: update.toolCallId,
-            title: update.title,
-            kind: update.kind || 'other',
-            status: update.status || 'pending',
-            locations: update.locations,
+        const toolCallInfo = createToolCallInfo(update);
+
+        // Add tool call to the current assistant message, synthesizing a
+        // tool-only assistant turn when the agent emits tool activity before
+        // any assistant text.
+        let currentAssistantMsg = session.messages[session.messages.length - 1];
+        if (!currentAssistantMsg || currentAssistantMsg.role !== 'assistant') {
+          session.messages.push({
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: '',
+            timestamp: Date.now(),
+            toolCalls: [],
           });
+          currentAssistantMsg = session.messages[session.messages.length - 1];
         }
+
+        if (!currentAssistantMsg.toolCalls) {
+          currentAssistantMsg.toolCalls = [];
+        }
+        currentAssistantMsg.toolCalls.push({ ...toolCallInfo });
+
         // Also keep in session's tool call map for updates
-        session.toolCalls.set(update.toolCallId, {
-          toolCallId: update.toolCallId,
-          title: update.title,
-          kind: update.kind || 'other',
-          status: update.status || 'pending',
-          locations: update.locations,
-        });
+        session.toolCalls.set(update.toolCallId, { ...toolCallInfo });
         break;
       }
 
@@ -167,6 +195,13 @@ export function useMessageHandler({
         if (existing) {
           if (update.status) existing.status = update.status;
           if (update.title) existing.title = update.title;
+          const nextContent = normalizeToolCallContent(update.content);
+          if (nextContent?.length) {
+            existing.content = [...(existing.content ?? []), ...nextContent];
+          }
+          if (update.locations) {
+            existing.locations = normalizeToolCallLocations(update.locations);
+          }
           // Also update in the message's toolCalls array
           for (const msg of session.messages) {
             if (msg.toolCalls) {
@@ -174,6 +209,12 @@ export function useMessageHandler({
               if (tc) {
                 if (update.status) tc.status = update.status;
                 if (update.title) tc.title = update.title;
+                if (nextContent?.length) {
+                  tc.content = [...(tc.content ?? []), ...nextContent];
+                }
+                if (update.locations) {
+                  tc.locations = normalizeToolCallLocations(update.locations);
+                }
               }
             }
           }
@@ -216,10 +257,10 @@ export function useMessageHandler({
               : update.title ?? undefined
             : undefined;
         const nextLastUpdated =
-          'updatedAt' in update
+          'updatedAt' in update && update.updatedAt !== undefined
             ? update.updatedAt === null
-              ? Date.now()
-              : parseUpdatedAt(update.updatedAt) ?? Date.now()
+              ? 0
+              : parseUpdatedAt(update.updatedAt)
             : undefined;
 
         let savedSessionModified = false;

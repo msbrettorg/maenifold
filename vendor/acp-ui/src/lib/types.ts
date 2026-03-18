@@ -6,6 +6,12 @@ import type {
 
 // Types for maenifold application
 
+export type AcpMetadata = Record<string, unknown> | null;
+
+interface AcpMetadataCarrier {
+  _meta?: AcpMetadata;
+}
+
 export interface AgentConfig {
   command: string;
   args: string[];
@@ -50,28 +56,29 @@ export interface ChatMessage {
   toolCalls?: ToolCallInfo[];
 }
 
-export interface ToolCallInfo {
+export interface ToolCallInfo extends AcpMetadataCarrier {
   toolCallId: string;
   title: string;
   kind: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  locations?: { path: string }[];
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+  locations?: { path: string; line?: number }[];
+  content?: Array<{ type: string; [key: string]: unknown }>;
 }
 
-export interface PermissionRequest {
+export interface PermissionRequest extends AcpMetadataCarrier {
   sessionId: string;
   toolCall: ToolCallInfo;
   options: PermissionOption[];
 }
 
-export interface PermissionOption {
+export interface PermissionOption extends AcpMetadataCarrier {
   kind: string;
   name: string;
   optionId: string;
 }
 
 // Session Modes
-export interface SessionMode {
+export interface SessionMode extends AcpMetadataCarrier {
   id: string;
   name: string;
   description?: string;
@@ -83,13 +90,13 @@ export interface SessionModeState {
 }
 
 // Session Config Options
-export interface SessionConfigSelectOption {
+export interface SessionConfigSelectOption extends AcpMetadataCarrier {
   value: string;
   name: string;
   description?: string;
 }
 
-export interface SessionConfigSelectGroup {
+export interface SessionConfigSelectGroup extends AcpMetadataCarrier {
   group: string;
   name: string;
   options: SessionConfigSelectOption[];
@@ -99,7 +106,7 @@ export type SessionConfigSelectOptions =
   | SessionConfigSelectOption[]
   | SessionConfigSelectGroup[];
 
-export interface SessionConfigOption {
+export interface SessionConfigOption extends AcpMetadataCarrier {
   id: string;
   name: string;
   description?: string;
@@ -110,24 +117,30 @@ export interface SessionConfigOption {
 }
 
 // Slash Commands
-export interface SlashCommand {
+export interface SlashCommand extends AcpMetadataCarrier {
   name: string;
   description: string;
   hint?: string;
 }
 
 // Models
-export interface ModelInfo {
+export interface ModelInfo extends AcpMetadataCarrier {
   modelId: string;
   name: string;
   description?: string;
 }
 
-export type PromptCapabilities = SdkPromptCapabilities;
+export interface AgentInfo extends AcpMetadataCarrier {
+  name: string;
+  title?: string;
+  version?: string;
+}
 
-export type AvailableCommand = SdkAvailableCommand;
+export type PromptCapabilities = SdkPromptCapabilities & AcpMetadataCarrier;
 
-export type PlanEntry = SdkPlanEntry;
+export type AvailableCommand = SdkAvailableCommand & AcpMetadataCarrier;
+
+export type PlanEntry = SdkPlanEntry & AcpMetadataCarrier;
 
 export interface SessionState {
   sessionId: string;
@@ -143,7 +156,7 @@ export interface SessionState {
   pendingPermissions: PermissionRequest[];
   pendingAuthMethods: any[];
   pendingAuthAgentName: string;
-  agentInfo: { name: string; title?: string; version?: string } | null;
+  agentInfo: AgentInfo | null;
   agentPromptCapabilities: PromptCapabilities | null;
   supportsSessionList: boolean;
   availableModes: SessionMode[];

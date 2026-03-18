@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import type { ModelInfo } from '../lib/types';
 
 const props = defineProps<{
@@ -49,10 +49,13 @@ function handleClickOutside(event: MouseEvent) {
   }
 }
 
-// Close dropdown when clicking outside
-if (typeof window !== 'undefined') {
+onMounted(() => {
   window.addEventListener('click', handleClickOutside);
-}
+});
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <template>

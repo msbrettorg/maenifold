@@ -86,6 +86,7 @@ function selectCommand(cmd: SlashCommand) {
         <div class="command-row">
           <span class="command-name">/{{ cmd.name }}</span>
           <span class="command-description">{{ cmd.description }}</span>
+          <span v-if="cmd.hint" class="command-hint">{{ cmd.hint }}</span>
         </div>
       </div>
     </div>

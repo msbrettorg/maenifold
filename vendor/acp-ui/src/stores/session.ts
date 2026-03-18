@@ -1,6 +1,6 @@
 // Session store for managing ACP sessions and persistence
 import { defineStore } from 'pinia';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, type WatchStopHandle } from 'vue';
 import { load, Store } from '@tauri-apps/plugin-store';
 import { getVersion } from '@tauri-apps/api/app';
 import { trackEvent, trackError } from '../lib/telemetry';
@@ -16,7 +16,10 @@ import type {
   SessionConfigSelectGroup,
   SessionConfigSelectOption,
   SessionConfigSelectOptions,
+  SessionState,
+  AvailableCommand,
 } from '../lib/types';
+import { generateSessionId, createEmptySessionState } from '../lib/types';
 import { AcpClientBridge, createAcpClient } from '../lib/acp-bridge';
 import { spawnAgent, killAgent, onAgentStderr } from '../lib/tauri';
 import type { SessionNotification, AuthMethod } from '@agentclientprotocol/sdk';
@@ -133,74 +136,141 @@ function parseUpdatedAt(updatedAt?: string | null): number | undefined {
 }
 
 export const useSessionStore = defineStore('session', () => {
-  // State
+  // ── Core multi-session state ──────────────────────────────────────
+  const sessions = ref<Map<string, SessionState>>(new Map());
+  const activeSessionId = ref<string | null>(null);
+  const bridges = new Map<string, AcpClientBridge>();
+  const permissionWatchStops = new Map<string, WatchStopHandle>();
+
+  // ── Global state (not per-session) ────────────────────────────────
   const savedSessions = ref<SavedSession[]>([]);
-  const currentSession = ref<SavedSession | null>(null);
-  const messages = ref<ChatMessage[]>([]);
-  const toolCalls = ref<Map<string, ToolCallInfo>>(new Map());
-  const isConnected = ref(false);
-  const isLoading = ref(false);
-  const isConnecting = ref(false);
-  const error = ref<string | null>(null);
-  const pendingPermission = ref<PermissionRequest | null>(null);
-  const supportsSessionList = ref(false);
-  const agentInfo = ref<{ name: string; title?: string; version?: string } | null>(null);
-  const agentPromptCapabilities = ref<{
+  let store: Store | null = null;
+  const abortedSessions = new Set<string>();
+  const authMethodResolvers = new Map<string, (methodId: string | null) => void>();
+
+  // ── Active session helper ─────────────────────────────────────────
+  const activeSession = computed<SessionState | null>(() => {
+    if (!activeSessionId.value) return null;
+    return sessions.value.get(activeSessionId.value) ?? null;
+  });
+
+  // ── Computed shims (backward compatibility) ───────────────────────
+  // These ensure all existing consumers (App.vue, ChatView.vue,
+  // SessionList.vue) continue working without changes.
+
+  const currentSession = computed<SavedSession | null>(
+    () => activeSession.value?.session ?? null
+  );
+
+  const messages = computed<ChatMessage[]>(
+    () => activeSession.value?.messages ?? []
+  );
+
+  const isConnected = computed<boolean>(
+    () => activeSession.value?.isConnected ?? false
+  );
+
+  const isLoading = computed<boolean>(
+    () => activeSession.value?.isLoading ?? false
+  );
+
+  const isConnecting = computed<boolean>(
+    () => activeSession.value?.isConnecting ?? false
+  );
+
+  const error = computed<string | null>(
+    () => activeSession.value?.error ?? null
+  );
+
+  const pendingPermission = computed<PermissionRequest | null>(
+    () => activeSession.value?.pendingPermissions[0] ?? null
+  );
+
+  const supportsSessionList = computed<boolean>(
+    () => activeSession.value?.supportsSessionList ?? false
+  );
+
+  const agentInfo = computed<{ name: string; title?: string; version?: string } | null>(
+    () => activeSession.value?.agentInfo ?? null
+  );
+
+  const agentPromptCapabilities = computed<{
     image?: boolean;
     audio?: boolean;
     embeddedContext?: boolean;
-  }>({});
-  
-  // Authentication state
-  const pendingAuthMethods = ref<AuthMethod[]>([]);
-  const pendingAuthAgentName = ref<string>('');
-  let authMethodResolver: ((methodId: string | null) => void) | null = null;
-  
-  // Session modes
-  const availableModes = ref<SessionMode[]>([]);
-  const currentModeId = ref<string>('');
+  }>(() => activeSession.value?.agentPromptCapabilities ?? {});
 
-  // Session config options
-  const configOptions = ref<SessionConfigOption[]>([]);
-  const hasConfigOptions = ref(false);
-  
-  // Slash commands
-  const availableCommands = ref<SlashCommand[]>([]);
-  
-  // Session models
-  const availableModels = ref<ModelInfo[]>([]);
-  const currentModelId = ref<string>('');
-  
-  // Connection cancellation
-  let connectionAborted = false;
-  
-  // Startup progress tracking
-  const startupPhase = ref<string>('starting');
-  const startupLogs = ref<string[]>([]);
-  const startupElapsed = ref<number>(0);
-  let startupTimer: ReturnType<typeof setInterval> | null = null;
-  let stderrUnlisten: (() => void) | null = null;
-  
-  // Current ACP client
-  let acpClient: AcpClientBridge | null = null;
-  let store: Store | null = null;
-  let connectedAgentName = '';
+  const pendingAuthMethods = computed<AuthMethod[]>(
+    () => (activeSession.value?.pendingAuthMethods ?? []) as AuthMethod[]
+  );
 
-  // Computed
+  const pendingAuthAgentName = computed<string>(
+    () => activeSession.value?.pendingAuthAgentName ?? ''
+  );
+
+  const availableModes = computed<SessionMode[]>(
+    () => activeSession.value?.availableModes ?? []
+  );
+
+  const currentModeId = computed<string>(
+    () => activeSession.value?.currentModeId ?? ''
+  );
+
+  const configOptions = computed<SessionConfigOption[]>(
+    () => activeSession.value?.configOptions ?? []
+  );
+
+  const hasConfigOptions = computed<boolean>(
+    () => activeSession.value?.hasConfigOptions ?? false
+  );
+
+  const availableCommands = computed<SlashCommand[]>(() => {
+    const cmds = activeSession.value?.availableCommands ?? [];
+    return cmds.map((cmd) => ({
+      name: cmd.name,
+      description: cmd.description,
+      hint: cmd.input?.hint ?? undefined,
+    }));
+  });
+
+  const availableModels = computed<ModelInfo[]>(
+    () => activeSession.value?.availableModels ?? []
+  );
+
+  const currentModelId = computed<string>(
+    () => activeSession.value?.currentModelId ?? ''
+  );
+
+  const startupPhase = computed<string>(
+    () => activeSession.value?.startupPhase ?? ''
+  );
+
+  const startupLogs = computed<string[]>(
+    () => activeSession.value?.startupLogs ?? []
+  );
+
+  const startupElapsed = computed<number>(
+    () => activeSession.value?.startupElapsed ?? 0
+  );
+
+  // ── Derived computeds ─────────────────────────────────────────────
   const hasActiveSession = computed(() => currentSession.value !== null);
   const messageList = computed(() => messages.value);
-  const toolCallList = computed(() => Array.from(toolCalls.value.values()));
-  // Only sessions that support resuming (loadSession capability)
-  const resumableSessions = computed(() => 
+  const toolCallList = computed(() =>
+    Array.from(activeSession.value?.toolCalls.values() ?? [])
+  );
+  const resumableSessions = computed(() =>
     savedSessions.value.filter(s => s.supportsLoadSession === true)
   );
+
+  // ── Internal helpers (session-scoped) ─────────────────────────────
 
   type CancellableToolCallInfo = Omit<ToolCallInfo, 'status'> & {
     status: ToolCallInfo['status'] | 'cancelled';
   };
 
-  function pushSystemMessage(content: string): void {
-    messages.value.push({
+  function pushSystemMessage(session: SessionState, content: string): void {
+    session.messages.push({
       id: crypto.randomUUID(),
       role: 'system',
       content,
@@ -208,8 +278,8 @@ export const useSessionStore = defineStore('session', () => {
     });
   }
 
-  function cancelPendingToolCalls(): void {
-    for (const toolCall of toolCalls.value.values()) {
+  function cancelPendingToolCalls(session: SessionState): void {
+    for (const toolCall of session.toolCalls.values()) {
       const cancellableToolCall = toolCall as CancellableToolCallInfo;
       if (
         cancellableToolCall.status === 'pending' ||
@@ -219,7 +289,7 @@ export const useSessionStore = defineStore('session', () => {
       }
     }
 
-    for (const message of messages.value) {
+    for (const message of session.messages) {
       if (!message.toolCalls) {
         continue;
       }
@@ -237,16 +307,18 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   function applyConfigOptionsState(
+    session: SessionState,
     response: { configOptions?: unknown[] | null }
   ): void {
-    hasConfigOptions.value =
+    session.hasConfigOptions =
       'configOptions' in response && response.configOptions !== null;
-    configOptions.value = hasConfigOptions.value
+    session.configOptions = session.hasConfigOptions
       ? normalizeConfigOptions(response.configOptions)
       : [];
   }
 
   function applyLegacySessionState(
+    session: SessionState,
     response: {
       modes?: {
         availableModes?: Array<{ id: string; name: string; description?: string | null }>;
@@ -258,40 +330,41 @@ export const useSessionStore = defineStore('session', () => {
       } | null;
     }
   ): void {
-    if (hasConfigOptions.value) {
-      availableModes.value = [];
-      currentModeId.value = '';
-      availableModels.value = [];
-      currentModelId.value = '';
+    if (session.hasConfigOptions) {
+      session.availableModes = [];
+      session.currentModeId = '';
+      session.availableModels = [];
+      session.currentModelId = '';
       return;
     }
 
     if (response.modes) {
-      availableModes.value = (response.modes.availableModes || []).map(m => ({
+      session.availableModes = (response.modes.availableModes || []).map(m => ({
         id: m.id,
         name: m.name,
         description: m.description ?? undefined,
       }));
-      currentModeId.value = response.modes.currentModeId || '';
+      session.currentModeId = response.modes.currentModeId || '';
     } else {
-      availableModes.value = [];
-      currentModeId.value = '';
+      session.availableModes = [];
+      session.currentModeId = '';
     }
 
     if (response.models) {
-      availableModels.value = (response.models.availableModels || []).map(m => ({
+      session.availableModels = (response.models.availableModels || []).map(m => ({
         modelId: m.modelId,
         name: m.name,
         description: m.description ?? undefined,
       }));
-      currentModelId.value = response.models.currentModelId || '';
+      session.currentModelId = response.models.currentModelId || '';
     } else {
-      availableModels.value = [];
-      currentModelId.value = '';
+      session.availableModels = [];
+      session.currentModelId = '';
     }
   }
 
   function applySessionConfigurationState(
+    session: SessionState,
     response: {
       configOptions?: unknown[] | null;
       modes?: {
@@ -304,14 +377,11 @@ export const useSessionStore = defineStore('session', () => {
       } | null;
     }
   ): void {
-    applyConfigOptionsState(response);
-    applyLegacySessionState(response);
+    applyConfigOptionsState(session, response);
+    applyLegacySessionState(session, response);
   }
 
   async function performInitialization(client: AcpClientBridge) {
-    agentInfo.value = null;
-    agentPromptCapabilities.value = {};
-
     const initResponse = await client.initialize({
       protocolVersion: PROTOCOL_VERSION,
       clientCapabilities: {
@@ -334,29 +404,32 @@ export const useSessionStore = defineStore('session', () => {
       );
     }
 
-    agentInfo.value = initResponse.agentInfo
+    const agentInfoResult = initResponse.agentInfo
       ? {
           name: initResponse.agentInfo.name,
           title: initResponse.agentInfo.title ?? undefined,
           version: initResponse.agentInfo.version ?? undefined,
         }
       : null;
-    agentPromptCapabilities.value = initResponse.agentCapabilities?.promptCapabilities ?? {};
+    const promptCaps = initResponse.agentCapabilities?.promptCapabilities ?? null;
 
     return {
       initResponse,
       availableAuthMethods: initResponse.authMethods || [],
+      agentInfoResult,
+      promptCaps,
     };
   }
 
-  // Initialize store
+  // ── Store persistence ─────────────────────────────────────────────
+
   async function initStore() {
     store = await load(STORE_PATH);
     const saved = await store.get<SavedSession[]>('sessions');
     if (saved) {
       savedSessions.value = saved;
     }
-    
+
     // Load app version from Tauri
     try {
       appVersion = await getVersion();
@@ -372,11 +445,11 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
-  async function mergeSessionsFromAgent(cwd: string): Promise<void> {
-    if (!acpClient || !connectedAgentName) {
-      return;
-    }
-
+  async function mergeSessionsFromAgent(
+    bridge: AcpClientBridge,
+    agentName: string,
+    cwd: string
+  ): Promise<void> {
     const listedSessions: Array<{
       sessionId: string;
       cwd: string;
@@ -387,7 +460,7 @@ export const useSessionStore = defineStore('session', () => {
     let cursor: string | undefined;
 
     do {
-      const response = await acpClient.listSessions(
+      const response = await bridge.listSessions(
         cursor === undefined ? { cwd } : { cwd, cursor }
       );
 
@@ -411,7 +484,7 @@ export const useSessionStore = defineStore('session', () => {
         Date.now();
 
       if (existingSession) {
-        existingSession.agentName = connectedAgentName;
+        existingSession.agentName = agentName;
         existingSession.cwd = listedSession.cwd;
         existingSession.title = nextTitle;
         existingSession.lastUpdated = nextLastUpdated;
@@ -420,8 +493,8 @@ export const useSessionStore = defineStore('session', () => {
       }
 
       sessionsById.set(listedSession.sessionId, {
-        id: `agent:${connectedAgentName}:${listedSession.sessionId}`,
-        agentName: connectedAgentName,
+        id: `agent:${agentName}:${listedSession.sessionId}`,
+        agentName,
         sessionId: listedSession.sessionId,
         title: nextTitle,
         lastUpdated: nextLastUpdated,
@@ -434,20 +507,27 @@ export const useSessionStore = defineStore('session', () => {
     await saveSessionsToStore();
   }
 
-  // Session update handler
-  function handleSessionUpdate(notification: SessionNotification) {
+  // ── Session update handler (scoped per session) ───────────────────
+
+  function handleSessionUpdate(
+    localSessionId: string,
+    notification: SessionNotification
+  ) {
+    const session = sessions.value.get(localSessionId);
+    if (!session) return;
+
     const update = notification.update;
-    
+
     switch (update.sessionUpdate) {
-      case 'user_message_chunk':
+      case 'user_message_chunk': {
         // Append to last user message or create new (for replay)
-        const lastUserMsg = messages.value[messages.value.length - 1];
+        const lastUserMsg = session.messages[session.messages.length - 1];
         if (lastUserMsg && lastUserMsg.role === 'user') {
           if (update.content.type === 'text') {
             lastUserMsg.content += update.content.text;
           }
         } else {
-          messages.value.push({
+          session.messages.push({
             id: crypto.randomUUID(),
             role: 'user',
             content: update.content.type === 'text' ? update.content.text : '',
@@ -455,16 +535,17 @@ export const useSessionStore = defineStore('session', () => {
           });
         }
         break;
+      }
 
-      case 'agent_message_chunk':
+      case 'agent_message_chunk': {
         // Append to last assistant message or create new
-        const lastMsg = messages.value[messages.value.length - 1];
+        const lastMsg = session.messages[session.messages.length - 1];
         if (lastMsg && lastMsg.role === 'assistant') {
           if (update.content.type === 'text') {
             lastMsg.content += update.content.text;
           }
         } else {
-          messages.value.push({
+          session.messages.push({
             id: crypto.randomUUID(),
             role: 'assistant',
             content: update.content.type === 'text' ? update.content.text : '',
@@ -473,16 +554,17 @@ export const useSessionStore = defineStore('session', () => {
           });
         }
         break;
+      }
 
-      case 'agent_thought_chunk':
+      case 'agent_thought_chunk': {
         // Append to last assistant message's thought field or create new
-        const lastAssistantMsg = messages.value[messages.value.length - 1];
+        const lastAssistantMsg = session.messages[session.messages.length - 1];
         if (lastAssistantMsg && lastAssistantMsg.role === 'assistant') {
           if (update.content.type === 'text') {
             lastAssistantMsg.thought = (lastAssistantMsg.thought || '') + update.content.text;
           }
         } else {
-          messages.value.push({
+          session.messages.push({
             id: crypto.randomUUID(),
             role: 'assistant',
             content: '',
@@ -492,10 +574,11 @@ export const useSessionStore = defineStore('session', () => {
           });
         }
         break;
+      }
 
-      case 'tool_call':
+      case 'tool_call': {
         // Add tool call to the current assistant message
-        const currentAssistantMsg = messages.value[messages.value.length - 1];
+        const currentAssistantMsg = session.messages[session.messages.length - 1];
         if (currentAssistantMsg && currentAssistantMsg.role === 'assistant') {
           if (!currentAssistantMsg.toolCalls) {
             currentAssistantMsg.toolCalls = [];
@@ -508,8 +591,8 @@ export const useSessionStore = defineStore('session', () => {
             locations: update.locations,
           });
         }
-        // Also keep in global map for updates
-        toolCalls.value.set(update.toolCallId, {
+        // Also keep in session's tool call map for updates
+        session.toolCalls.set(update.toolCallId, {
           toolCallId: update.toolCallId,
           title: update.title,
           kind: update.kind || 'other',
@@ -517,14 +600,15 @@ export const useSessionStore = defineStore('session', () => {
           locations: update.locations,
         });
         break;
+      }
 
-      case 'tool_call_update':
-        const existing = toolCalls.value.get(update.toolCallId);
+      case 'tool_call_update': {
+        const existing = session.toolCalls.get(update.toolCallId);
         if (existing) {
           if (update.status) existing.status = update.status;
           if (update.title) existing.title = update.title;
           // Also update in the message's toolCalls array
-          for (const msg of messages.value) {
+          for (const msg of session.messages) {
             if (msg.toolCalls) {
               const tc = msg.toolCalls.find(t => t.toolCallId === update.toolCallId);
               if (tc) {
@@ -535,38 +619,35 @@ export const useSessionStore = defineStore('session', () => {
           }
         }
         break;
+      }
 
       case 'current_mode_update':
         // Agent changed the mode
-        if (hasConfigOptions.value) {
+        if (session.hasConfigOptions) {
           break;
         }
         if ('modeId' in update && update.modeId) {
-          currentModeId.value = update.modeId as string;
+          session.currentModeId = update.modeId as string;
         }
         break;
 
       case 'config_option_update':
-        configOptions.value = normalizeConfigOptions(update.configOptions);
-        hasConfigOptions.value = true;
-        availableModes.value = [];
-        currentModeId.value = '';
-        availableModels.value = [];
-        currentModelId.value = '';
+        session.configOptions = normalizeConfigOptions(update.configOptions);
+        session.hasConfigOptions = true;
+        session.availableModes = [];
+        session.currentModeId = '';
+        session.availableModels = [];
+        session.currentModelId = '';
         break;
 
       case 'available_commands_update':
         // Agent advertised slash commands
         if ('availableCommands' in update && Array.isArray(update.availableCommands)) {
-          availableCommands.value = update.availableCommands.map((cmd) => ({
-            name: cmd.name,
-            description: cmd.description,
-            hint: cmd.input?.hint ?? undefined,
-          }));
+          session.availableCommands = update.availableCommands as AvailableCommand[];
         }
         break;
 
-      case 'session_info_update':
+      case 'session_info_update': {
         const targetSessionId = notification.sessionId;
         const nextTitle =
           'title' in update
@@ -582,7 +663,9 @@ export const useSessionStore = defineStore('session', () => {
             : undefined;
 
         let savedSessionModified = false;
-        const savedSession = savedSessions.value.find((session) => session.sessionId === targetSessionId);
+        const savedSession = savedSessions.value.find(
+          (s) => s.sessionId === targetSessionId
+        );
         if (savedSession) {
           if (nextTitle !== undefined) {
             savedSession.title = nextTitle;
@@ -594,12 +677,12 @@ export const useSessionStore = defineStore('session', () => {
           }
         }
 
-        if (currentSession.value?.sessionId === targetSessionId) {
+        if (session.session?.sessionId === targetSessionId) {
           if (nextTitle !== undefined) {
-            currentSession.value.title = nextTitle;
+            session.session.title = nextTitle;
           }
           if (nextLastUpdated !== undefined) {
-            currentSession.value.lastUpdated = nextLastUpdated;
+            session.session.lastUpdated = nextLastUpdated;
           }
         }
 
@@ -607,119 +690,195 @@ export const useSessionStore = defineStore('session', () => {
           saveSessionsToStore();
         }
         break;
+      }
 
       default:
         console.log('Unhandled session update:', update);
     }
   }
 
-  // Prompt user to select auth method
-  async function promptForAuthMethod(authMethods: AuthMethod[], agentName: string): Promise<string | null> {
+  // ── Auth flow ─────────────────────────────────────────────────────
+
+  async function promptForAuthMethod(
+    sessionId: string,
+    session: SessionState,
+    authMethods: AuthMethod[],
+    agentName: string
+  ): Promise<string | null> {
     return new Promise((resolve) => {
-      pendingAuthMethods.value = authMethods;
-      pendingAuthAgentName.value = agentName;
-      authMethodResolver = resolve;
+      session.pendingAuthMethods = authMethods;
+      session.pendingAuthAgentName = agentName;
+      authMethodResolvers.set(sessionId, resolve);
     });
   }
 
-  // User selected an auth method
   function selectAuthMethod(methodId: string): void {
-    if (authMethodResolver) {
-      authMethodResolver(methodId);
-      authMethodResolver = null;
-      pendingAuthMethods.value = [];
-      pendingAuthAgentName.value = '';
+    const sessionId = activeSessionId.value;
+    if (!sessionId) {
+      return;
+    }
+
+    const resolver = authMethodResolvers.get(sessionId);
+    if (resolver) {
+      resolver(methodId);
+      authMethodResolvers.delete(sessionId);
+    }
+
+    const session = activeSession.value;
+    if (session) {
+      session.pendingAuthMethods = [];
+      session.pendingAuthAgentName = '';
     }
   }
 
-  // User cancelled auth selection
   function cancelAuthSelection(): void {
-    if (authMethodResolver) {
-      authMethodResolver(null);
-      authMethodResolver = null;
-      pendingAuthMethods.value = [];
-      pendingAuthAgentName.value = '';
+    const sessionId = activeSessionId.value;
+    if (!sessionId) {
+      return;
+    }
+
+    const resolver = authMethodResolvers.get(sessionId);
+    if (resolver) {
+      resolver(null);
+      authMethodResolvers.delete(sessionId);
+    }
+
+    const session = activeSession.value;
+    if (session) {
+      session.pendingAuthMethods = [];
+      session.pendingAuthAgentName = '';
     }
   }
 
-  // Create new session
+  // ── Helper to adjust activeSessionId after removal ────────────────
+
+  function adjustActiveSessionId(removedId: string): void {
+    if (activeSessionId.value === removedId) {
+      const remaining = Array.from(sessions.value.keys());
+      activeSessionId.value = remaining.length > 0 ? remaining[0] : null;
+    }
+  }
+
+  function stopPermissionWatch(sessionId: string): void {
+    const stop = permissionWatchStops.get(sessionId);
+    if (stop) {
+      stop();
+      permissionWatchStops.delete(sessionId);
+    }
+  }
+
+  function bindPendingPermission(sessionId: string, bridge: AcpClientBridge): void {
+    stopPermissionWatch(sessionId);
+    const stop = watch(
+      () => bridge.pendingPermissionRequest.value,
+      (value) => {
+        const session = sessions.value.get(sessionId);
+        if (session) {
+          session.pendingPermissions = value ? [value] : [];
+        }
+      },
+      { immediate: true }
+    );
+    permissionWatchStops.set(sessionId, stop);
+  }
+
+  // ── Create new session ────────────────────────────────────────────
+
   async function createSession(agentName: string, cwd: string): Promise<void> {
-    isLoading.value = true;
-    isConnecting.value = true;
-    connectionAborted = false;
-    error.value = null;
-    supportsSessionList.value = false;
-    connectedAgentName = agentName;
-    
-    // Reset and start progress tracking
-    startupPhase.value = 'starting';
-    startupLogs.value = [];
-    startupElapsed.value = 0;
+    // Clean up previous non-connected active session (e.g., from a failed attempt)
+    if (activeSessionId.value) {
+      const existing = sessions.value.get(activeSessionId.value);
+      if (existing && !existing.isConnected) {
+        sessions.value.delete(activeSessionId.value);
+        bridges.delete(activeSessionId.value);
+      }
+    }
+
+    // Create session slot
+    const localId = generateSessionId();
+    const sessionState = createEmptySessionState(localId, agentName, cwd);
+    sessionState.isLoading = true;
+    sessionState.isConnecting = true;
+    sessionState.startupPhase = 'starting';
+    sessions.value.set(localId, sessionState);
+    activeSessionId.value = localId;
+
+    abortedSessions.delete(localId);
+
+    // Startup progress tracking (local to this call)
+    let startupTimer: ReturnType<typeof setInterval> | null = null;
+    let stderrUnlisten: (() => void) | null = null;
+
     startupTimer = setInterval(() => {
-      startupElapsed.value++;
+      const s = sessions.value.get(localId);
+      if (s) s.startupElapsed++;
     }, 1000);
-    
+
     try {
       // Spawn agent process
       const agentInstance = await spawnAgent(agentName);
-      
+
       // Listen for stderr to track startup progress
       stderrUnlisten = await onAgentStderr((stderr) => {
         if (stderr.agent_id === agentInstance.id) {
-          startupLogs.value.push(stderr.line);
-          // Detect phase from output
-          const detectedPhase = detectPhase(stderr.line);
-          if (detectedPhase) {
-            startupPhase.value = detectedPhase;
+          const s = sessions.value.get(localId);
+          if (s) {
+            s.startupLogs.push(stderr.line);
+            const detectedPhase = detectPhase(stderr.line);
+            if (detectedPhase) {
+              s.startupPhase = detectedPhase;
+            }
           }
         }
       }) as unknown as () => void;
-      
-      if (connectionAborted) {
+
+      if (abortedSessions.has(localId)) {
         await killAgent(agentInstance.id);
         throw new Error('Connection cancelled');
       }
-      
-      startupPhase.value = 'initializing';
-      
-      // Create ACP client bridge
-      acpClient = await createAcpClient(agentInstance);
-      acpClient.onSessionUpdate = handleSessionUpdate;
-      
-      // Sync bridge's pendingPermissionRequest to store's pendingPermission
-      watch(
-        () => acpClient?.pendingPermissionRequest.value,
-        (newValue) => {
-          pendingPermission.value = newValue ?? null;
-        },
-        { immediate: true }
-      );
 
-      if (connectionAborted) {
-        await acpClient.disconnect();
+      sessionState.startupPhase = 'initializing';
+
+      // Create ACP client bridge and store in bridges Map
+      const bridge = await createAcpClient(agentInstance);
+      bridges.set(localId, bridge);
+      bindPendingPermission(localId, bridge);
+
+      // Wire scoped session update handler
+      bridge.onSessionUpdate = (notification) =>
+        handleSessionUpdate(localId, notification);
+
+      if (abortedSessions.has(localId)) {
+        await bridge.disconnect();
         throw new Error('Connection cancelled');
       }
 
-      startupPhase.value = 'connecting';
+      sessionState.startupPhase = 'connecting';
 
       // Initialize connection
-      const { initResponse, availableAuthMethods } = await performInitialization(acpClient);
+      const { initResponse, availableAuthMethods, agentInfoResult, promptCaps } =
+        await performInitialization(bridge);
 
       console.log('Agent initialized:', initResponse);
 
+      sessionState.agentInfo = agentInfoResult;
+      sessionState.agentPromptCapabilities = promptCaps;
+
       // Check if agent supports session loading
       const supportsLoadSession = initResponse.agentCapabilities?.loadSession ?? false;
-      supportsSessionList.value = Boolean(initResponse.agentCapabilities?.sessionCapabilities?.list);
+      sessionState.supportsSessionList = Boolean(
+        initResponse.agentCapabilities?.sessionCapabilities?.list
+      );
 
-      if (connectionAborted) {
-        await acpClient.disconnect();
+      if (abortedSessions.has(localId)) {
+        await bridge.disconnect();
         throw new Error('Connection cancelled');
       }
 
       // Try to create session - may fail with auth_required
       let sessionResponse;
       try {
-        sessionResponse = await acpClient.newSession({
+        sessionResponse = await bridge.newSession({
           cwd,
           mcpServers: [],
         });
@@ -728,31 +887,34 @@ export const useSessionStore = defineStore('session', () => {
         const errorMessage = sessionError instanceof Error ? sessionError.message : String(sessionError);
         const isAuthRequired = errorMessage.toLowerCase().includes('authentication required') ||
                                errorMessage.includes('-32000');
-        
+
         if (isAuthRequired && availableAuthMethods.length > 0) {
           console.log('Authentication required, available methods:', availableAuthMethods);
-          
+
           // Prompt user to select auth method
-          const selectedMethodId = await promptForAuthMethod(availableAuthMethods, agentName);
-          
-          if (!selectedMethodId || connectionAborted) {
-            await acpClient.disconnect();
+          const selectedMethodId = await promptForAuthMethod(
+            localId,
+            sessionState, availableAuthMethods, agentName
+          );
+
+          if (!selectedMethodId || abortedSessions.has(localId)) {
+            await bridge.disconnect();
             throw new Error('Authentication cancelled by user');
           }
-          
+
           console.log('Authenticating with method:', selectedMethodId);
-          const authResponse = await acpClient.authenticate({
+          const authResponse = await bridge.authenticate({
             methodId: selectedMethodId,
           });
           console.log('Authentication successful:', authResponse);
 
-          if (connectionAborted) {
-            await acpClient.disconnect();
+          if (abortedSessions.has(localId)) {
+            await bridge.disconnect();
             throw new Error('Connection cancelled');
           }
 
           // Retry session creation after auth
-          sessionResponse = await acpClient.newSession({
+          sessionResponse = await bridge.newSession({
             cwd,
             mcpServers: [],
           });
@@ -762,7 +924,7 @@ export const useSessionStore = defineStore('session', () => {
       }
 
       // Save session
-      const session: SavedSession = {
+      const saved: SavedSession = {
         id: crypto.randomUUID(),
         agentName,
         sessionId: sessionResponse.sessionId,
@@ -772,35 +934,41 @@ export const useSessionStore = defineStore('session', () => {
         supportsLoadSession,
       };
 
-      currentSession.value = session;
-      savedSessions.value.push(session);
+      sessionState.session = saved;
+      savedSessions.value.push(saved);
       await saveSessionsToStore();
 
-      if (supportsSessionList.value) {
-        await mergeSessionsFromAgent(cwd);
+      if (sessionState.supportsSessionList) {
+        await mergeSessionsFromAgent(bridge, agentName, cwd);
       }
-      
-      isConnected.value = true;
-      messages.value = [];
-      toolCalls.value.clear();
-      
+
+      sessionState.isConnected = true;
+      sessionState.messages = [];
+      sessionState.toolCalls.clear();
+
       // Track successful session creation
       trackEvent('SessionCreated', { agentName, success: 'true' });
-      
-      applySessionConfigurationState(sessionResponse);
+
+      applySessionConfigurationState(sessionState, sessionResponse);
 
     } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
-      acpClient = null;
-      supportsSessionList.value = false;
-      connectedAgentName = '';
+      const s = sessions.value.get(localId);
+      if (s) {
+        s.error = e instanceof Error ? e.message : String(e);
+      }
+      stopPermissionWatch(localId);
+      bridges.delete(localId);
       // Track session creation failure
       trackEvent('SessionCreated', { agentName, success: 'false' });
       trackError(e instanceof Error ? e : new Error(String(e)));
       throw e;
     } finally {
-      isLoading.value = false;
-      isConnecting.value = false;
+      const s = sessions.value.get(localId);
+      if (s) {
+        s.isLoading = false;
+        s.isConnecting = false;
+      }
+      abortedSessions.delete(localId);
       // Clean up startup progress tracking
       if (startupTimer) {
         clearInterval(startupTimer);
@@ -813,70 +981,92 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
-  // Resume existing session
+  // ── Resume existing session ───────────────────────────────────────
+
   async function resumeSession(savedSession: SavedSession): Promise<void> {
-    isLoading.value = true;
-    isConnecting.value = true;
-    connectionAborted = false;
-    error.value = null;
-    supportsSessionList.value = false;
-    connectedAgentName = savedSession.agentName;
+    for (const [localId, session] of sessions.value.entries()) {
+      if (session.session?.sessionId === savedSession.sessionId) {
+        activeSessionId.value = localId;
+        return;
+      }
+    }
+
+    // Clean up previous non-connected active session
+    if (activeSessionId.value) {
+      const existing = sessions.value.get(activeSessionId.value);
+      if (existing && !existing.isConnected) {
+        sessions.value.delete(activeSessionId.value);
+        bridges.delete(activeSessionId.value);
+      }
+    }
+
+    // Create session slot
+    const localId = generateSessionId();
+    const sessionState = createEmptySessionState(localId, savedSession.agentName, savedSession.cwd);
+    sessionState.isLoading = true;
+    sessionState.isConnecting = true;
+    sessions.value.set(localId, sessionState);
+    activeSessionId.value = localId;
+
+    abortedSessions.delete(localId);
 
     try {
       // Spawn agent process
       const agentInstance = await spawnAgent(savedSession.agentName);
 
-      if (connectionAborted) {
+      if (abortedSessions.has(localId)) {
         await killAgent(agentInstance.id);
         throw new Error('Connection cancelled');
       }
-      
-      // Create ACP client bridge
-      acpClient = await createAcpClient(agentInstance);
-      acpClient.onSessionUpdate = handleSessionUpdate;
-      
-      // Sync bridge's pendingPermissionRequest to store's pendingPermission
-      watch(
-        () => acpClient?.pendingPermissionRequest.value,
-        (newValue) => {
-          pendingPermission.value = newValue ?? null;
-        },
-        { immediate: true }
-      );
 
-      if (connectionAborted) {
-        await acpClient.disconnect();
+      // Create ACP client bridge and store in bridges Map
+      const bridge = await createAcpClient(agentInstance);
+      bridges.set(localId, bridge);
+      bindPendingPermission(localId, bridge);
+
+      // Wire scoped session update handler
+      bridge.onSessionUpdate = (notification) =>
+        handleSessionUpdate(localId, notification);
+
+      if (abortedSessions.has(localId)) {
+        await bridge.disconnect();
         throw new Error('Connection cancelled');
       }
 
       // Initialize connection
-      const { initResponse, availableAuthMethods } = await performInitialization(acpClient);
+      const { initResponse, availableAuthMethods, agentInfoResult, promptCaps } =
+        await performInitialization(bridge);
 
-      if (connectionAborted) {
-        await acpClient.disconnect();
+      sessionState.agentInfo = agentInfoResult;
+      sessionState.agentPromptCapabilities = promptCaps;
+
+      if (abortedSessions.has(localId)) {
+        await bridge.disconnect();
         throw new Error('Connection cancelled');
       }
 
-      supportsSessionList.value = Boolean(initResponse.agentCapabilities?.sessionCapabilities?.list);
+      sessionState.supportsSessionList = Boolean(
+        initResponse.agentCapabilities?.sessionCapabilities?.list
+      );
 
       if (!initResponse.agentCapabilities?.loadSession) {
-        await acpClient.disconnect();
+        await bridge.disconnect();
         throw new Error('Agent no longer supports session loading');
       }
 
       // Clear messages BEFORE loadSession - the agent will stream replay via notifications
-      messages.value = [];
-      toolCalls.value.clear();
+      sessionState.messages = [];
+      sessionState.toolCalls.clear();
 
-      if (connectionAborted) {
-        await acpClient.disconnect();
+      if (abortedSessions.has(localId)) {
+        await bridge.disconnect();
         throw new Error('Connection cancelled');
       }
 
       // Try to load existing session - may fail with auth_required
       let loadResponse;
       try {
-        loadResponse = await acpClient.loadSession({
+        loadResponse = await bridge.loadSession({
           sessionId: savedSession.sessionId,
           cwd: savedSession.cwd,
           mcpServers: [],
@@ -886,31 +1076,38 @@ export const useSessionStore = defineStore('session', () => {
         const errorMessage = sessionError instanceof Error ? sessionError.message : String(sessionError);
         const isAuthRequired = errorMessage.toLowerCase().includes('authentication required') ||
                                errorMessage.includes('-32000');
-        
+
         if (isAuthRequired && availableAuthMethods.length > 0) {
           console.log('Authentication required, available methods:', availableAuthMethods);
-          
+
           // Prompt user to select auth method
-          const selectedMethodId = await promptForAuthMethod(availableAuthMethods, savedSession.agentName);
-          
-          if (!selectedMethodId || connectionAborted) {
-            await acpClient.disconnect();
-            throw new Error(connectionAborted ? 'Connection cancelled' : 'Authentication cancelled by user');
+          const selectedMethodId = await promptForAuthMethod(
+            localId,
+            sessionState, availableAuthMethods, savedSession.agentName
+          );
+
+          if (!selectedMethodId || abortedSessions.has(localId)) {
+            await bridge.disconnect();
+            throw new Error(
+              abortedSessions.has(localId)
+                ? 'Connection cancelled'
+                : 'Authentication cancelled by user'
+            );
           }
-          
+
           console.log('Authenticating with method:', selectedMethodId);
-          const authResponse = await acpClient.authenticate({
+          const authResponse = await bridge.authenticate({
             methodId: selectedMethodId,
           });
           console.log('Authentication successful:', authResponse);
 
-          if (connectionAborted) {
-            await acpClient.disconnect();
+          if (abortedSessions.has(localId)) {
+            await bridge.disconnect();
             throw new Error('Connection cancelled');
           }
 
           // Retry loading session after auth
-          loadResponse = await acpClient.loadSession({
+          loadResponse = await bridge.loadSession({
             sessionId: savedSession.sessionId,
             cwd: savedSession.cwd,
             mcpServers: [],
@@ -920,18 +1117,18 @@ export const useSessionStore = defineStore('session', () => {
         }
       }
 
-      if (connectionAborted) {
-        await acpClient.disconnect();
+      if (abortedSessions.has(localId)) {
+        await bridge.disconnect();
         throw new Error('Connection cancelled');
       }
 
-      currentSession.value = savedSession;
-      isConnected.value = true;
+      sessionState.session = savedSession;
+      sessionState.isConnected = true;
       // Messages already populated by session/update notifications during loadSession
-      applySessionConfigurationState(loadResponse);
+      applySessionConfigurationState(sessionState, loadResponse);
 
-      if (supportsSessionList.value) {
-        await mergeSessionsFromAgent(savedSession.cwd);
+      if (sessionState.supportsSessionList) {
+        await mergeSessionsFromAgent(bridge, savedSession.agentName, savedSession.cwd);
       }
 
       // Track successful session resume
@@ -942,38 +1139,49 @@ export const useSessionStore = defineStore('session', () => {
       await saveSessionsToStore();
 
     } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
-      acpClient = null;
-      supportsSessionList.value = false;
-      connectedAgentName = '';
+      const s = sessions.value.get(localId);
+      if (s) {
+        s.error = e instanceof Error ? e.message : String(e);
+      }
+      stopPermissionWatch(localId);
+      bridges.delete(localId);
       // Track session resume failure
       trackEvent('SessionResumed', { agentName: savedSession.agentName, success: 'false' });
       trackError(e instanceof Error ? e : new Error(String(e)));
       throw e;
     } finally {
-      isLoading.value = false;
-      isConnecting.value = false;
+      const s = sessions.value.get(localId);
+      if (s) {
+        s.isLoading = false;
+        s.isConnecting = false;
+      }
+      abortedSessions.delete(localId);
     }
   }
 
-  // Send prompt
+  // ── Send prompt ───────────────────────────────────────────────────
+
   async function sendPrompt(text: string): Promise<void> {
-    if (!acpClient || !currentSession.value) {
+    const sid = activeSessionId.value;
+    if (!sid) throw new Error('No active session');
+    const session = sessions.value.get(sid);
+    const bridge = bridges.get(sid);
+    if (!session || !bridge || !session.session) {
       throw new Error('No active session');
     }
 
     // Add user message
-    messages.value.push({
+    session.messages.push({
       id: crypto.randomUUID(),
       role: 'user',
       content: text,
       timestamp: Date.now(),
     });
 
-    isLoading.value = true;
+    session.isLoading = true;
     try {
-      const response = await acpClient.prompt({
-        sessionId: currentSession.value.sessionId,
+      const response = await bridge.prompt({
+        sessionId: session.session.sessionId,
         prompt: [
           {
             type: 'text',
@@ -986,13 +1194,13 @@ export const useSessionStore = defineStore('session', () => {
 
       switch (response.stopReason) {
         case 'refusal':
-          error.value = 'The agent refused this request.';
+          session.error = 'The agent refused this request.';
           break;
         case 'max_tokens':
-          pushSystemMessage('Response was truncated due to token limits.');
+          pushSystemMessage(session, 'Response was truncated due to token limits.');
           break;
         case 'max_turn_requests':
-          pushSystemMessage('Turn limit reached.');
+          pushSystemMessage(session, 'Turn limit reached.');
           break;
         case 'end_turn':
         case 'cancelled':
@@ -1001,175 +1209,250 @@ export const useSessionStore = defineStore('session', () => {
       }
 
       // Track prompt sent
-      trackEvent('PromptSent', { 
+      trackEvent('PromptSent', {
         messageLength: String(text.length),
         stopReason: response.stopReason || 'unknown',
       });
 
     } finally {
-      isLoading.value = false;
+      session.isLoading = false;
     }
   }
 
-  // Cancel current operation
-  async function cancelOperation(): Promise<void> {
-    if (!acpClient || !currentSession.value) return;
+  // ── Cancel current operation ──────────────────────────────────────
 
-    if (pendingPermission.value || acpClient.pendingPermissionRequest.value) {
+  async function cancelOperation(): Promise<void> {
+    const sid = activeSessionId.value;
+    if (!sid) return;
+    const session = sessions.value.get(sid);
+    const bridge = bridges.get(sid);
+    if (!session || !bridge || !session.session) return;
+
+    if (pendingPermission.value || bridge.pendingPermissionRequest.value) {
       cancelPermission();
     }
 
-    cancelPendingToolCalls();
+    cancelPendingToolCalls(session);
 
-    await acpClient.cancel({
-      sessionId: currentSession.value.sessionId,
+    await bridge.cancel({
+      sessionId: session.session.sessionId,
     });
   }
 
-  // Cancel ongoing connection attempt
+  // ── Cancel ongoing connection attempt ─────────────────────────────
+
   async function cancelConnection(): Promise<void> {
-    connectionAborted = true;
-    
+    const targetId = activeSessionId.value;
+    if (!targetId) return;
+    abortedSessions.add(targetId);
+
     // Cancel auth selection if pending
-    if (authMethodResolver) {
-      authMethodResolver(null);
-      authMethodResolver = null;
-      pendingAuthMethods.value = [];
-      pendingAuthAgentName.value = '';
+    const resolver = authMethodResolvers.get(targetId);
+    if (resolver) {
+      resolver(null);
+      authMethodResolvers.delete(targetId);
     }
-    
-    // Disconnect if client exists
-    if (acpClient) {
+
+    const session = sessions.value.get(targetId);
+    const bridge = bridges.get(targetId);
+
+    if (session) {
+      session.pendingAuthMethods = [];
+      session.pendingAuthAgentName = '';
+    }
+
+    // Disconnect if bridge exists
+    if (bridge) {
       try {
-        await acpClient.disconnect();
+        await bridge.disconnect();
       } catch (e) {
         console.error('Error disconnecting:', e);
       }
-      acpClient = null;
+      stopPermissionWatch(targetId);
+      bridges.delete(targetId);
     }
-    
-    isLoading.value = false;
-    isConnecting.value = false;
-    error.value = null;
-    supportsSessionList.value = false;
-    connectedAgentName = '';
+
+    sessions.value.delete(targetId);
+    adjustActiveSessionId(targetId);
   }
 
-  // Handle permission response
+  // ── Permission handling ───────────────────────────────────────────
+
   function resolvePermission(optionId: string): void {
-    if (acpClient) {
-      acpClient.resolvePermission(optionId);
+    if (!activeSessionId.value) return;
+    const bridge = bridges.get(activeSessionId.value);
+    if (bridge) {
+      bridge.resolvePermission(optionId);
     }
   }
 
   function cancelPermission(): void {
-    if (acpClient) {
-      acpClient.cancelPermission();
+    if (!activeSessionId.value) return;
+    const bridge = bridges.get(activeSessionId.value);
+    if (bridge) {
+      bridge.cancelPermission();
     }
   }
 
-  // Disconnect current session
-  async function disconnect(): Promise<void> {
-    const agentName = currentSession.value?.agentName || 'unknown';
-    const sessionStart = currentSession.value?.lastUpdated || Date.now();
+  // ── Disconnect session ────────────────────────────────────────────
+
+  async function disconnect(sessionId?: string): Promise<void> {
+    const targetId = sessionId ?? activeSessionId.value;
+    if (!targetId) return;
+
+    const session = sessions.value.get(targetId);
+    const bridge = bridges.get(targetId);
+
+    const agentName = session?.session?.agentName || session?.agentName || 'unknown';
+    const sessionStart = session?.session?.lastUpdated || Date.now();
     const sessionDuration = Math.round((Date.now() - sessionStart) / 1000);
-    
-    if (acpClient) {
-      await acpClient.disconnect();
-      acpClient = null;
+
+    if (bridge) {
+      await bridge.disconnect();
+      stopPermissionWatch(targetId);
+      bridges.delete(targetId);
     }
-    
+
     // Track session disconnect
-    trackEvent('SessionDisconnected', { 
+    trackEvent('SessionDisconnected', {
       agentName,
       sessionDurationSeconds: String(sessionDuration),
-      messageCount: String(messages.value.length),
+      messageCount: String(session?.messages.length ?? 0),
     });
-    
-    currentSession.value = null;
-    isConnected.value = false;
-    supportsSessionList.value = false;
-    agentInfo.value = null;
-    agentPromptCapabilities.value = {};
-    connectedAgentName = '';
-    messages.value = [];
-    toolCalls.value.clear();
-    configOptions.value = [];
-    hasConfigOptions.value = false;
-    availableModes.value = [];
-    currentModeId.value = '';
-    availableCommands.value = [];
-    availableModels.value = [];
-    currentModelId.value = '';
+
+    sessions.value.delete(targetId);
+    adjustActiveSessionId(targetId);
   }
 
-  // Delete saved session
+  // ── Set active session ────────────────────────────────────────────
+
+  function setActiveSession(sessionId: string): void {
+    if (sessions.value.has(sessionId)) {
+      activeSessionId.value = sessionId;
+    }
+  }
+
+  // ── Close session ─────────────────────────────────────────────────
+
+  async function closeSession(sessionId: string): Promise<void> {
+    const session = sessions.value.get(sessionId);
+    if (!session) return;
+
+    if (session.isConnected || session.isConnecting) {
+      await disconnect(sessionId);
+    } else {
+      stopPermissionWatch(sessionId);
+      bridges.delete(sessionId);
+      sessions.value.delete(sessionId);
+      adjustActiveSessionId(sessionId);
+    }
+  }
+
+  // ── Delete saved session ──────────────────────────────────────────
+
   async function deleteSession(sessionId: string): Promise<void> {
     savedSessions.value = savedSessions.value.filter(s => s.id !== sessionId);
     await saveSessionsToStore();
   }
 
-  // Set session mode
+  // ── Set session mode ──────────────────────────────────────────────
+
   async function setMode(modeId: string): Promise<void> {
-    if (!acpClient || !currentSession.value) {
+    const sid = activeSessionId.value;
+    if (!sid) throw new Error('No active session');
+    const session = sessions.value.get(sid);
+    const bridge = bridges.get(sid);
+    if (!session || !bridge || !session.session) {
       throw new Error('No active session');
     }
-    
-    await acpClient.setMode({
-      sessionId: currentSession.value.sessionId,
+
+    await bridge.setMode({
+      sessionId: session.session.sessionId,
       modeId,
     });
-    
+
     // Optimistically update the current mode
-    currentModeId.value = modeId;
+    session.currentModeId = modeId;
   }
 
-  // Set session model
+  // ── Set session model ─────────────────────────────────────────────
+
   async function setModel(modelId: string): Promise<void> {
-    if (!acpClient || !currentSession.value) {
+    const sid = activeSessionId.value;
+    if (!sid) throw new Error('No active session');
+    const session = sessions.value.get(sid);
+    const bridge = bridges.get(sid);
+    if (!session || !bridge || !session.session) {
       throw new Error('No active session');
     }
-    
-    await acpClient.unstable_setSessionModel({
-      sessionId: currentSession.value.sessionId,
+
+    await bridge.unstable_setSessionModel({
+      sessionId: session.session.sessionId,
       modelId,
     });
-    
+
     // Optimistically update the current model
-    currentModelId.value = modelId;
+    session.currentModelId = modelId;
   }
 
-  // Set session config option
+  // ── Set session config option ─────────────────────────────────────
+
   async function setConfigOption(configId: string, value: string): Promise<void> {
-    if (!acpClient || !currentSession.value) {
+    const sid = activeSessionId.value;
+    if (!sid) throw new Error('No active session');
+    const session = sessions.value.get(sid);
+    const bridge = bridges.get(sid);
+    if (!session || !bridge || !session.session) {
       throw new Error('No active session');
     }
 
-    const response = await acpClient.unstable_setSessionConfigOption({
-      sessionId: currentSession.value.sessionId,
+    const response = await bridge.unstable_setSessionConfigOption({
+      sessionId: session.session.sessionId,
       configId,
       value,
     });
 
-    hasConfigOptions.value = true;
-    configOptions.value = normalizeConfigOptions(response.configOptions);
-    availableModes.value = [];
-    currentModeId.value = '';
-    availableModels.value = [];
-    currentModelId.value = '';
+    session.hasConfigOptions = true;
+    session.configOptions = normalizeConfigOptions(response.configOptions);
+    session.availableModes = [];
+    session.currentModeId = '';
+    session.availableModels = [];
+    session.currentModelId = '';
   }
 
+  // ── Error helpers ─────────────────────────────────────────────────
+
   function clearError() {
-    error.value = null;
+    const session = activeSession.value;
+    if (session) {
+      session.error = null;
+    }
   }
 
   function setError(msg: string) {
-    error.value = msg;
+    const session = activeSession.value;
+    if (session) {
+      session.error = msg;
+    } else {
+      const localId = generateSessionId();
+      const errorSession = createEmptySessionState(localId, '', '');
+      errorSession.error = msg;
+      sessions.value.set(localId, errorSession);
+      activeSessionId.value = localId;
+    }
   }
 
+  // ── Return ────────────────────────────────────────────────────────
+
   return {
-    // State
+    // Multi-session state
+    sessions,
+    activeSessionId,
+
+    // State (global)
     savedSessions,
+
+    // Computed shims (backward compat)
     currentSession,
     messages,
     isConnected,
@@ -1192,13 +1475,13 @@ export const useSessionStore = defineStore('session', () => {
     startupPhase,
     startupLogs,
     startupElapsed,
-    
-    // Computed
+
+    // Computed (derived)
     hasActiveSession,
     messageList,
     toolCallList,
     resumableSessions,
-    
+
     // Actions
     initStore,
     createSession,
@@ -1217,8 +1500,15 @@ export const useSessionStore = defineStore('session', () => {
     setConfigOption,
     setError,
     clearError,
-    
+
+    // Multi-session actions
+    setActiveSession,
+    closeSession,
+
     // Expose client for permission handling
-    get acpClient() { return acpClient; },
+    get acpClient() {
+      if (!activeSessionId.value) return null;
+      return bridges.get(activeSessionId.value) ?? null;
+    },
   };
 });

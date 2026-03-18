@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, watch } from 'vue';
 import { marked } from 'marked';
+import { open } from '@tauri-apps/plugin-dialog';
+import { readFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { resolve } from '@tauri-apps/api/path';
 import { useSessionStore } from '../stores/session';
 import { useMermaid } from '../composables/useMermaid';
+import { isAbsolutePath } from '../lib/acp-bridge';
 import ModePicker from './ModePicker.vue';
 import ModelPicker from './ModelPicker.vue';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
@@ -10,11 +14,44 @@ import CommandPalette from './CommandPalette.vue';
 import PlanView from './PlanView.vue';
 import type { AvailableCommand, ChatMessage, ContentBlock } from '../lib/types';
 
+type PendingAttachment = {
+  id: string;
+  kind: 'image' | 'audio';
+  label: string;
+  block: ContentBlock;
+};
+
+const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
+const IMAGE_MIME_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.bmp': 'image/bmp',
+  '.ico': 'image/x-icon',
+  '.tif': 'image/tiff',
+  '.tiff': 'image/tiff',
+};
+const AUDIO_MIME_TYPES: Record<string, string> = {
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.flac': 'audio/flac',
+  '.opus': 'audio/opus',
+  '.weba': 'audio/webm',
+};
+
 const sessionStore = useSessionStore();
 const inputText = ref('');
 const activeCommandHint = ref<string | null>(null);
 const messagesContainer = ref<HTMLElement | null>(null);
 const commandPaletteRef = ref<InstanceType<typeof CommandPalette> | null>(null);
+const pendingAttachments = ref<PendingAttachment[]>([]);
+const attachmentError = ref<string | null>(null);
 const { renderMermaidBlocks } = useMermaid();
 
 // Track expanded thought sections by message id
@@ -32,6 +69,27 @@ const hasConfigOptions = computed(() => sessionStore.hasConfigOptions);
 const availableCommands = computed(() => sessionStore.availableCommands);
 const currentPlan = computed(() => sessionStore.currentPlan);
 const pendingPermissionCount = computed(() => sessionStore.pendingPermissionCount);
+const agentPromptCapabilities = computed(() => sessionStore.agentPromptCapabilities);
+const supportsImageAttachments = computed(() => agentPromptCapabilities.value.image === true);
+const supportsAudioAttachments = computed(() => agentPromptCapabilities.value.audio === true);
+const supportsEmbeddedContext = computed(
+  () => agentPromptCapabilities.value.embeddedContext === true
+);
+const imageAttachmentTooltip = computed(() =>
+  supportsImageAttachments.value
+    ? 'Attach image'
+    : 'This agent does not support image attachments.'
+);
+const audioAttachmentTooltip = computed(() =>
+  supportsAudioAttachments.value
+    ? 'Attach audio'
+    : 'This agent does not support audio attachments.'
+);
+const embeddedContextTooltip = computed(() =>
+  supportsEmbeddedContext.value
+    ? 'Type @README.md or @"notes/file name.md" to embed a file.'
+    : 'This agent does not support embedded file context.'
+);
 
 // Slash command state
 const showCommandPalette = computed(() => {
@@ -74,11 +132,18 @@ watch(inputText, (text) => {
 async function handleSend() {
   const text = inputText.value.trim();
   if (!text || isLoading.value) return;
-  
-  inputText.value = '';
+
+  attachmentError.value = null;
   try {
-    await sessionStore.sendPrompt(text);
+    const attachments = [
+      ...pendingAttachments.value.map((attachment) => attachment.block),
+      ...(await buildEmbeddedContextAttachments(text)),
+    ];
+    await sessionStore.sendPrompt(text, attachments);
+    inputText.value = '';
+    pendingAttachments.value = [];
   } catch (e) {
+    attachmentError.value = e instanceof Error ? e.message : 'Failed to send prompt.';
     console.error('Failed to send prompt:', e);
   }
 }
@@ -301,6 +366,198 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
     !getMessageBlocks(message).length &&
     getMessageToolCalls(message).length > 0
   );
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+function getFileLabel(path: string): string {
+  const normalized = path.replace(/\\/g, '/');
+  const segments = normalized.split('/');
+  return segments[segments.length - 1] || path;
+}
+
+function getMimeType(path: string, kind: 'image' | 'audio'): string {
+  const extensionIndex = path.lastIndexOf('.');
+  const extension = extensionIndex >= 0 ? path.slice(extensionIndex).toLowerCase() : '';
+  const knownMimeType =
+    kind === 'image' ? IMAGE_MIME_TYPES[extension] : AUDIO_MIME_TYPES[extension];
+  if (knownMimeType) {
+    return knownMimeType;
+  }
+
+  return kind === 'image' ? 'image/png' : 'audio/mpeg';
+}
+
+function normalizeDialogSelection(selection: string | string[] | null): string[] {
+  if (!selection) {
+    return [];
+  }
+
+  return Array.isArray(selection) ? selection : [selection];
+}
+
+async function addPendingAttachments(kind: 'image' | 'audio'): Promise<void> {
+  if (isLoading.value) {
+    return;
+  }
+
+  if (kind === 'image' && !supportsImageAttachments.value) {
+    return;
+  }
+
+  if (kind === 'audio' && !supportsAudioAttachments.value) {
+    return;
+  }
+
+  attachmentError.value = null;
+
+  try {
+    const selection = await open({
+      multiple: true,
+      title: kind === 'image' ? 'Select image attachments' : 'Select audio attachments',
+      filters: [
+        kind === 'image'
+          ? {
+              name: 'Images',
+              extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tif', 'tiff'],
+            }
+          : {
+              name: 'Audio',
+              extensions: ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'opus', 'weba'],
+            },
+      ],
+    });
+
+    const nextPaths = normalizeDialogSelection(selection);
+    if (!nextPaths.length) {
+      return;
+    }
+
+    const nextAttachments = await Promise.all(
+      nextPaths.map(async (path) => {
+        const data = await readFile(path);
+        const label = getFileLabel(path);
+        const mimeType = getMimeType(path, kind);
+        const block: ContentBlock =
+          kind === 'image'
+            ? {
+                type: 'image',
+                data: bytesToBase64(data),
+                mimeType,
+                uri: path,
+              }
+            : {
+                type: 'audio',
+                data: bytesToBase64(data),
+                mimeType,
+              };
+
+        return {
+          id: crypto.randomUUID(),
+          kind,
+          label,
+          block,
+        } satisfies PendingAttachment;
+      })
+    );
+
+    pendingAttachments.value = [...pendingAttachments.value, ...nextAttachments];
+  } catch (e) {
+    attachmentError.value =
+      e instanceof Error ? e.message : `Failed to load ${kind} attachment(s).`;
+    console.error(`Failed to load ${kind} attachment(s):`, e);
+  }
+}
+
+function removePendingAttachment(attachmentId: string): void {
+  pendingAttachments.value = pendingAttachments.value.filter(
+    (attachment) => attachment.id !== attachmentId
+  );
+}
+
+function isPathLikeMention(candidate: string): boolean {
+  return (
+    candidate.includes('/') ||
+    candidate.includes('\\') ||
+    candidate.includes('.') ||
+    candidate.startsWith('~')
+  );
+}
+
+function normalizeMentionPath(candidate: string): string {
+  return candidate.trim().replace(/[),.;!?]+$/, '');
+}
+
+function insertEmbeddedContextHint(): void {
+  if (!supportsEmbeddedContext.value || isLoading.value) {
+    return;
+  }
+
+  const snippet = '@"path/to/file"';
+  inputText.value = inputText.value.trim().length
+    ? `${inputText.value} ${snippet}`
+    : `${snippet} `;
+}
+
+async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlock[]> {
+  if (!supportsEmbeddedContext.value) {
+    return [];
+  }
+
+  const cwd = currentSession.value?.cwd;
+  if (!cwd) {
+    return [];
+  }
+
+  const attachments: ContentBlock[] = [];
+  const seenPaths = new Set<string>();
+
+  for (const match of text.matchAll(EMBEDDED_CONTEXT_MENTION)) {
+    const rawCandidate = match[2] ?? match[3];
+    if (!rawCandidate) {
+      continue;
+    }
+
+    const candidate = normalizeMentionPath(rawCandidate);
+    if (!candidate || !isPathLikeMention(candidate)) {
+      continue;
+    }
+
+    const resolvedPath = isAbsolutePath(candidate) ? candidate : await resolve(cwd, candidate);
+    if (seenPaths.has(resolvedPath)) {
+      continue;
+    }
+
+    try {
+      const content = await readTextFile(resolvedPath);
+      attachments.push({
+        type: 'resource',
+        resource: {
+          uri: resolvedPath,
+          text: content,
+          mimeType: 'text/plain',
+        },
+      });
+      seenPaths.add(resolvedPath);
+    } catch (e) {
+      const fileLabel = getFileLabel(candidate);
+      throw new Error(
+        `Failed to embed file context for ${fileLabel}: ${
+          e instanceof Error ? e.message : 'Unable to read file'
+        }`
+      );
+    }
+  }
+
+  return attachments;
 }
 </script>
 

@@ -12,7 +12,13 @@ import ModelPicker from './ModelPicker.vue';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import CommandPalette from './CommandPalette.vue';
 import PlanView from './PlanView.vue';
-import type { AvailableCommand, ChatMessage, ContentBlock } from '../lib/types';
+import type {
+  AvailableCommand,
+  ChatMessage,
+  ContentBlock,
+  ToolCallContentBlock,
+  ToolCallInfo,
+} from '../lib/types';
 
 type PendingAttachment = {
   id: string;
@@ -56,6 +62,7 @@ const { renderMermaidBlocks } = useMermaid();
 
 // Track expanded thought sections by message id
 const expandedThoughts = ref<Set<string>>(new Set());
+const expandedToolCalls = ref<Set<string>>(new Set());
 
 const messages = computed(() => sessionStore.messageList);
 const isLoading = computed(() => sessionStore.isLoading);
@@ -204,16 +211,203 @@ function isThoughtExpanded(messageId: string): boolean {
   return expandedThoughts.value.has(messageId);
 }
 
-function toggleThought(messageId: string): void {
+async function rerenderExpandedMarkdown(): Promise<void> {
+  await nextTick();
+  if (messagesContainer.value) {
+    await renderMermaidBlocks(messagesContainer.value);
+  }
+}
+
+async function toggleThought(messageId: string): Promise<void> {
   if (expandedThoughts.value.has(messageId)) {
     expandedThoughts.value.delete(messageId);
   } else {
     expandedThoughts.value.add(messageId);
+    await rerenderExpandedMarkdown();
   }
+}
+
+function isToolCallExpanded(toolCallId: string): boolean {
+  return expandedToolCalls.value.has(toolCallId);
+}
+
+async function toggleToolCall(toolCallId: string): Promise<void> {
+  if (expandedToolCalls.value.has(toolCallId)) {
+    expandedToolCalls.value.delete(toolCallId);
+    return;
+  }
+
+  expandedToolCalls.value.add(toolCallId);
+  await rerenderExpandedMarkdown();
 }
 
 function renderMarkdown(content: string): string {
   return marked.parse(content, { async: false }) as string;
+}
+
+function hasToolCallDetails(toolCall: ToolCallInfo): boolean {
+  return Boolean(
+    toolCall.content?.length ||
+    toolCall.rawInput ||
+    toolCall.rawOutput
+  );
+}
+
+function getToolCallLocationLabel(toolCall: ToolCallInfo): string | null {
+  const firstLocation = toolCall.locations?.[0];
+  if (!firstLocation) {
+    return null;
+  }
+
+  return firstLocation.line != null
+    ? `${firstLocation.path}:${firstLocation.line}`
+    : firstLocation.path;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+type InlineTextToolCallContentBlock = Extract<ToolCallContentBlock, { type: 'content' }> & {
+  content: Extract<ContentBlock, { type: 'text' }>;
+};
+
+function isInlineTextToolCallContentBlock(
+  block: ToolCallContentBlock
+): block is InlineTextToolCallContentBlock {
+  if (block.type !== 'content' || !isRecord(block.content)) {
+    return false;
+  }
+
+  return block.content.type === 'text' && typeof block.content.text === 'string';
+}
+
+type DiffLine = {
+  kind: 'header' | 'context' | 'add' | 'remove';
+  text: string;
+};
+
+function isDiffToolCallContentBlock(
+  block: ToolCallContentBlock
+): block is Extract<ToolCallContentBlock, { type: 'diff' }> {
+  return block.type === 'diff';
+}
+
+function isTerminalToolCallContentBlock(
+  block: ToolCallContentBlock
+): block is Extract<ToolCallContentBlock, { type: 'terminal' }> {
+  return block.type === 'terminal';
+}
+
+function splitDiffLines(text: string | null | undefined): string[] {
+  return (text ?? '').split('\n');
+}
+
+function buildDiffOperations(oldLines: string[], newLines: string[]): DiffLine[] {
+  const lengths = Array.from(
+    { length: oldLines.length + 1 },
+    () => Array<number>(newLines.length + 1).fill(0)
+  );
+
+  for (let oldIndex = oldLines.length - 1; oldIndex >= 0; oldIndex -= 1) {
+    for (let newIndex = newLines.length - 1; newIndex >= 0; newIndex -= 1) {
+      lengths[oldIndex][newIndex] = oldLines[oldIndex] === newLines[newIndex]
+        ? lengths[oldIndex + 1][newIndex + 1] + 1
+        : Math.max(lengths[oldIndex + 1][newIndex], lengths[oldIndex][newIndex + 1]);
+    }
+  }
+
+  const diffLines: DiffLine[] = [];
+  let oldIndex = 0;
+  let newIndex = 0;
+
+  while (oldIndex < oldLines.length && newIndex < newLines.length) {
+    if (oldLines[oldIndex] === newLines[newIndex]) {
+      diffLines.push({ kind: 'context', text: ` ${oldLines[oldIndex]}` });
+      oldIndex += 1;
+      newIndex += 1;
+      continue;
+    }
+
+    if (lengths[oldIndex + 1][newIndex] >= lengths[oldIndex][newIndex + 1]) {
+      diffLines.push({ kind: 'remove', text: `-${oldLines[oldIndex]}` });
+      oldIndex += 1;
+    } else {
+      diffLines.push({ kind: 'add', text: `+${newLines[newIndex]}` });
+      newIndex += 1;
+    }
+  }
+
+  while (oldIndex < oldLines.length) {
+    diffLines.push({ kind: 'remove', text: `-${oldLines[oldIndex]}` });
+    oldIndex += 1;
+  }
+
+  while (newIndex < newLines.length) {
+    diffLines.push({ kind: 'add', text: `+${newLines[newIndex]}` });
+    newIndex += 1;
+  }
+
+  return diffLines;
+}
+
+function getUnifiedDiffLines(block: Extract<ToolCallContentBlock, { type: 'diff' }>): DiffLine[] {
+  return [
+    {
+      kind: 'header',
+      text: `--- ${block.oldText == null ? '/dev/null' : block.path}`,
+    },
+    {
+      kind: 'header',
+      text: `+++ ${block.path}`,
+    },
+    ...buildDiffOperations(splitDiffLines(block.oldText), splitDiffLines(block.newText)),
+  ];
+}
+
+function getDiffLineClass(line: DiffLine): string {
+  switch (line.kind) {
+    case 'add':
+      return 'diff-line-add';
+    case 'remove':
+      return 'diff-line-remove';
+    case 'header':
+      return 'diff-line-header';
+    default:
+      return 'diff-line-context';
+  }
+}
+
+function formatJsonPayload(payload: Record<string, unknown>): string {
+  return JSON.stringify(payload, null, 2);
+}
+
+function formatUnknownToolContent(block: ToolCallContentBlock): string {
+  return JSON.stringify(block, null, 2);
+}
+
+function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {
+  const exitStatus = isRecord(block.exitStatus) ? block.exitStatus : null;
+  const exitCode =
+    typeof exitStatus?.exitCode === 'number' ? exitStatus.exitCode : null;
+  const signal =
+    typeof exitStatus?.signal === 'string' && exitStatus.signal.length > 0
+      ? exitStatus.signal
+      : null;
+
+  if (signal) {
+    return `signal: ${signal}`;
+  }
+
+  if (exitCode != null) {
+    return `exit ${exitCode}`;
+  }
+
+  if (block.released === true) {
+    return 'released';
+  }
+
+  return null;
 }
 
 function getToolIcon(kind: string): string {
@@ -236,6 +430,7 @@ function getStatusIcon(status: string): string {
     case 'in_progress': return '⚙️';
     case 'completed': return '✓';
     case 'failed': return '✗';
+    case 'cancelled': return '⊘';
     default: return '';
   }
 }
@@ -626,14 +821,96 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
             :key="tc.toolCallId"
             :class="['tool-call-inline', `tool-${tc.status}`]"
           >
-            <span class="tool-icon">{{ getToolIcon(tc.kind) }}</span>
-            <span class="tool-name">{{ tc.title }}</span>
-            <span v-if="tc.locations?.length" class="tool-location">
-              {{ tc.locations[0].path }}
-            </span>
-            <span :class="['tool-status', `status-${tc.status}`]">
-              {{ getStatusIcon(tc.status) }}
-            </span>
+            <button
+              type="button"
+              class="tool-call-summary"
+              :class="{ 'tool-call-summary-expandable': hasToolCallDetails(tc) }"
+              @click="hasToolCallDetails(tc) && toggleToolCall(tc.toolCallId)"
+            >
+              <span class="tool-icon">{{ getToolIcon(tc.kind) }}</span>
+              <span class="tool-name">{{ tc.title }}</span>
+              <span v-if="getToolCallLocationLabel(tc)" class="tool-location">
+                {{ getToolCallLocationLabel(tc) }}
+              </span>
+              <span :class="['tool-status', `status-${tc.status}`]">
+                {{ getStatusIcon(tc.status) }}
+              </span>
+              <span
+                v-if="hasToolCallDetails(tc)"
+                class="tool-chevron"
+              >
+                {{ isToolCallExpanded(tc.toolCallId) ? '▲' : '▼' }}
+              </span>
+            </button>
+
+            <div
+              v-if="hasToolCallDetails(tc) && isToolCallExpanded(tc.toolCallId)"
+              class="tool-call-details"
+            >
+              <div
+                v-if="tc.content?.length"
+                class="tool-call-content-list"
+              >
+                <div
+                  v-for="(block, blockIndex) in tc.content"
+                  :key="`${tc.toolCallId}-content-${blockIndex}`"
+                  class="tool-content-block"
+                >
+                  <div
+                    v-if="isInlineTextToolCallContentBlock(block)"
+                    class="tool-content-markdown"
+                    v-html="renderMarkdown(block.content.text)"
+                  />
+                  <div
+                    v-else-if="isDiffToolCallContentBlock(block)"
+                    class="tool-content-diff"
+                  >
+                    <div class="tool-content-label">{{ block.path }}</div>
+                    <pre class="tool-diff-pre"><code><span
+                      v-for="(line, lineIndex) in getUnifiedDiffLines(block)"
+                      :key="`${tc.toolCallId}-diff-${blockIndex}-${lineIndex}`"
+                      :class="['tool-diff-line', getDiffLineClass(line)]"
+                    >{{ line.text }}
+</span></code></pre>
+                  </div>
+                  <div
+                    v-else-if="isTerminalToolCallContentBlock(block)"
+                    class="tool-content-terminal"
+                  >
+                    <div class="tool-content-label">
+                      Terminal {{ block.terminalId }}
+                      <span v-if="getTerminalStatusLabel(block)" class="tool-terminal-status">
+                        · {{ getTerminalStatusLabel(block) }}
+                      </span>
+                    </div>
+                    <pre
+                      v-if="typeof block.output === 'string' && block.output.length > 0"
+                      class="tool-terminal-output"
+                    ><code>{{ block.output }}</code></pre>
+                    <p v-else class="tool-terminal-placeholder">
+                      Live terminal output will appear here once terminal rendering lands.
+                    </p>
+                    <p
+                      v-if="block.truncated === true"
+                      class="tool-terminal-meta"
+                    >
+                      Output truncated by the terminal byte limit.
+                    </p>
+                  </div>
+                  <pre v-else class="tool-content-unknown"><code>{{ formatUnknownToolContent(block) }}</code></pre>
+                </div>
+              </div>
+
+              <details v-if="tc.rawInput" class="tool-call-payload">
+                <summary>Raw input</summary>
+                <pre><code>{{ formatJsonPayload(tc.rawInput) }}</code></pre>
+              </details>
+
+              <details v-if="tc.rawOutput" class="tool-call-payload">
+                <summary>Raw output</summary>
+                <pre><code>{{ formatJsonPayload(tc.rawOutput) }}</code></pre>
+              </details>
+            </div>
           </div>
         </div>
         
@@ -894,13 +1171,33 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 
 .tool-call-inline {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.625rem;
+  flex-direction: column;
   border-radius: 4px;
   font-size: 0.8rem;
   background: rgba(0, 0, 0, 0.04);
   border-left: 2px solid var(--border-color);
+  overflow: hidden;
+}
+
+.tool-call-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.625rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.tool-call-summary-expandable {
+  cursor: pointer;
+}
+
+.tool-call-summary-expandable:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .tool-pending {
@@ -920,6 +1217,11 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 .tool-failed {
   border-left-color: #ef4444;
   background: rgba(239, 68, 68, 0.08);
+}
+
+.tool-cancelled {
+  border-left-color: #6b7280;
+  background: rgba(107, 114, 128, 0.08);
 }
 
 .tool-icon {
@@ -945,10 +1247,121 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
   font-weight: 600;
 }
 
+.tool-chevron {
+  color: var(--text-muted, #666);
+  font-size: 0.7rem;
+}
+
+.tool-call-details {
+  padding: 0 0.625rem 0.625rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.tool-call-content-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.tool-content-block {
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 0.625rem;
+}
+
+.tool-content-label {
+  margin-bottom: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary, #555);
+}
+
+.tool-content-markdown {
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.tool-content-markdown :deep(p) {
+  margin: 0.5rem 0;
+}
+
+.tool-content-markdown :deep(pre),
+.tool-content-unknown,
+.tool-diff-pre,
+.tool-terminal-output,
+.tool-call-payload pre {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: var(--bg-code, #282c34);
+  color: var(--text-code, #abb2bf);
+  overflow-x: auto;
+}
+
+.tool-content-unknown code,
+.tool-diff-pre code,
+.tool-terminal-output code,
+.tool-call-payload code {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.82rem;
+}
+
+.tool-diff-line {
+  display: block;
+  white-space: pre;
+}
+
+.diff-line-header {
+  color: #93c5fd;
+}
+
+.diff-line-context {
+  color: inherit;
+}
+
+.diff-line-add {
+  color: #86efac;
+}
+
+.diff-line-remove {
+  color: #fca5a5;
+}
+
+.tool-terminal-placeholder,
+.tool-terminal-meta {
+  margin: 0;
+  color: var(--text-secondary, #555);
+}
+
+.tool-terminal-status {
+  font-weight: 500;
+}
+
+.tool-call-payload {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.tool-call-payload summary {
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+}
+
+.tool-call-payload pre {
+  margin: 0 0.75rem 0.75rem;
+}
+
 .status-pending { color: #f59e0b; }
 .status-in_progress { color: #3b82f6; }
 .status-completed { color: #10b981; }
 .status-failed { color: #ef4444; }
+.status-cancelled { color: #6b7280; }
 
 .message-content {
   line-height: 1.5;

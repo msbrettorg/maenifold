@@ -2,6 +2,7 @@ import type {
   AvailableCommand as SdkAvailableCommand,
   ContentBlock as SdkContentBlock,
   PromptCapabilities as SdkPromptCapabilities,
+  ToolCallContent as SdkToolCallContent,
 } from '@agentclientprotocol/sdk';
 
 // Types for maenifold application
@@ -63,7 +64,7 @@ export interface ToolCallInfo extends AcpMetadataCarrier {
   kind: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
   locations?: { path: string; line?: number }[];
-  content?: Array<{ type: string; [key: string]: unknown }>;
+  content?: ToolCallContentBlock[];
   rawInput?: Record<string, unknown>;
   rawOutput?: Record<string, unknown>;
 }
@@ -149,6 +150,31 @@ export type ResourceLinkContentBlock = Extract<SdkContentBlock, { type: 'resourc
 export type ContentBlock =
   | Exclude<SdkContentBlock, { type: 'resource_link' }>
   | ResourceLinkContentBlock;
+
+export type ToolCallInlineContentBlock = Extract<SdkToolCallContent, { type: 'content' }>;
+
+export type ToolCallDiffContentBlock = Extract<SdkToolCallContent, { type: 'diff' }>;
+
+export type ToolCallTerminalContentBlock = Extract<SdkToolCallContent, { type: 'terminal' }> & {
+  output?: string;
+  truncated?: boolean;
+  released?: boolean;
+  exitStatus?: {
+    exitCode?: number | null;
+    signal?: string | null;
+  } | null;
+};
+
+export type ToolCallUnknownContentBlock = {
+  type: string;
+  [key: string]: unknown;
+};
+
+export type ToolCallContentBlock =
+  | ToolCallInlineContentBlock
+  | ToolCallDiffContentBlock
+  | ToolCallTerminalContentBlock
+  | ToolCallUnknownContentBlock;
 
 export interface PlanEntry extends AcpMetadataCarrier {
   content: string;

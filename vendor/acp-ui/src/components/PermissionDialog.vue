@@ -30,10 +30,6 @@ type RenderedToolContent = {
   body: string;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function isPrimitive(value: unknown): value is string | number | boolean | bigint {
   return (
     typeof value === 'string' ||

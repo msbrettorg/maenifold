@@ -144,6 +144,12 @@ export const useSessionStore = defineStore('session', () => {
   const error = ref<string | null>(null);
   const pendingPermission = ref<PermissionRequest | null>(null);
   const supportsSessionList = ref(false);
+  const agentInfo = ref<{ name: string; title?: string; version?: string } | null>(null);
+  const agentPromptCapabilities = ref<{
+    image?: boolean;
+    audio?: boolean;
+    embeddedContext?: boolean;
+  }>({});
   
   // Authentication state
   const pendingAuthMethods = ref<AuthMethod[]>([]);
@@ -259,6 +265,47 @@ export const useSessionStore = defineStore('session', () => {
   ): void {
     applyConfigOptionsState(response);
     applyLegacySessionState(response);
+  }
+
+  async function performInitialization(client: AcpClientBridge) {
+    agentInfo.value = null;
+    agentPromptCapabilities.value = {};
+
+    const initResponse = await client.initialize({
+      protocolVersion: PROTOCOL_VERSION,
+      clientCapabilities: {
+        fs: {
+          readTextFile: true,
+          writeTextFile: true,
+        },
+      },
+      clientInfo: {
+        name: 'maenifold',
+        title: 'maenifold',
+        version: appVersion,
+      },
+    });
+
+    if (initResponse.protocolVersion !== PROTOCOL_VERSION) {
+      await client.disconnect();
+      throw new Error(
+        `ACP protocol version mismatch: agent responded with version ${initResponse.protocolVersion}, expected ${PROTOCOL_VERSION}`
+      );
+    }
+
+    agentInfo.value = initResponse.agentInfo
+      ? {
+          name: initResponse.agentInfo.name,
+          title: initResponse.agentInfo.title ?? undefined,
+          version: initResponse.agentInfo.version ?? undefined,
+        }
+      : null;
+    agentPromptCapabilities.value = initResponse.agentCapabilities?.promptCapabilities ?? {};
+
+    return {
+      initResponse,
+      availableAuthMethods: initResponse.authMethods || [],
+    };
   }
 
   // Initialize store
@@ -615,34 +662,13 @@ export const useSessionStore = defineStore('session', () => {
       startupPhase.value = 'connecting';
 
       // Initialize connection
-      const initResponse = await acpClient.initialize({
-        protocolVersion: PROTOCOL_VERSION,
-        clientCapabilities: {
-          fs: {
-            readTextFile: true,
-            writeTextFile: true,
-          },
-        },
-        clientInfo: {
-          name: 'maenifold',
-          title: 'maenifold',
-          version: appVersion,
-        },
-      });
+      const { initResponse, availableAuthMethods } = await performInitialization(acpClient);
 
       console.log('Agent initialized:', initResponse);
 
       // Check if agent supports session loading
       const supportsLoadSession = initResponse.agentCapabilities?.loadSession ?? false;
       supportsSessionList.value = Boolean(initResponse.agentCapabilities?.sessionCapabilities?.list);
-
-      if (connectionAborted) {
-        await acpClient.disconnect();
-        throw new Error('Connection cancelled');
-      }
-
-      // Store available auth methods for potential retry
-      const availableAuthMethods = initResponse.authMethods || [];
 
       if (connectionAborted) {
         await acpClient.disconnect();
@@ -783,20 +809,7 @@ export const useSessionStore = defineStore('session', () => {
       }
 
       // Initialize connection
-      const initResponse = await acpClient.initialize({
-        protocolVersion: PROTOCOL_VERSION,
-        clientCapabilities: {
-          fs: {
-            readTextFile: true,
-            writeTextFile: true,
-          },
-        },
-        clientInfo: {
-          name: 'maenifold',
-          title: 'maenifold',
-          version: appVersion,
-        },
-      });
+      const { initResponse, availableAuthMethods } = await performInitialization(acpClient);
 
       if (connectionAborted) {
         await acpClient.disconnect();
@@ -809,9 +822,6 @@ export const useSessionStore = defineStore('session', () => {
         await acpClient.disconnect();
         throw new Error('Agent no longer supports session loading');
       }
-
-      // Store available auth methods for potential retry
-      const availableAuthMethods = initResponse.authMethods || [];
 
       // Clear messages BEFORE loadSession - the agent will stream replay via notifications
       messages.value = [];
@@ -1016,6 +1026,8 @@ export const useSessionStore = defineStore('session', () => {
     currentSession.value = null;
     isConnected.value = false;
     supportsSessionList.value = false;
+    agentInfo.value = null;
+    agentPromptCapabilities.value = {};
     connectedAgentName = '';
     messages.value = [];
     toolCalls.value.clear();
@@ -1103,6 +1115,8 @@ export const useSessionStore = defineStore('session', () => {
     error,
     pendingPermission,
     supportsSessionList,
+    agentInfo,
+    agentPromptCapabilities,
     pendingAuthMethods,
     pendingAuthAgentName,
     availableModes,

@@ -51,9 +51,33 @@ async function getErrorMessage(response: Response): Promise<string> {
   return bodyText.trim() || `Request failed with status ${response.status}`;
 }
 
+/**
+ * In --app (Tauri) mode the SPA is served from tauri://localhost, so relative
+ * fetch URLs never reach the axum HTTP server.  Detect Tauri via the globals
+ * it injects and build an explicit http://localhost:{port} base URL instead.
+ * In --http mode the SPA is served by the same axum process, so an empty base
+ * (i.e. relative URLs) works fine.
+ */
+function getApiBase(): string {
+  const isTauri =
+    typeof window !== 'undefined' &&
+    ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
+
+  if (!isTauri) {
+    return '';
+  }
+
+  // window.location.port is empty when the protocol is "tauri:" — fall back to
+  // the default axum server port used by both --http and --app modes.
+  const port = window.location.port || '8080';
+  return `http://localhost:${port}`;
+}
+
+const API_BASE = getApiBase();
+
 async function fetchJson<T>(path: string, params: URLSearchParams): Promise<T> {
   const query = params.toString();
-  const url = query ? `${path}?${query}` : path;
+  const url = query ? `${API_BASE}${path}?${query}` : `${API_BASE}${path}`;
   const response = await fetch(url);
 
   if (!response.ok) {

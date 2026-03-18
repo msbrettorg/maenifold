@@ -224,7 +224,7 @@ The system SHALL introduce a Pipeline entity that orchestrates workflows across 
 
 The system SHALL support pipeline definitions as JSON with `nodes[]` and `edges[]` arrays.
 
-- **Node schema**: Each node SHALL have `id` (unique string), `workflowId` (reference to an existing workflow JSON asset), and optional `acpClient` (which connected ACP client executes this node).
+- **Node schema**: Each node SHALL have `nodeId` (unique string, derived as `{workflowId}-{N}` where N is a sequence suffix), `workflowId` (reference to an existing workflow JSON asset), `acpClient` (name of a registered ACP agent from `agents.json`), and `label` (friendly display name, derived from the workflow definition's `name` field).
 - **Edge schema**: Each edge SHALL have `source` (node ID), `target` (node ID), and `type` (`success` or `always` for v1).
 - **Validation**: The system SHALL reject pipeline definitions containing cycles (topological sort validation at creation time).
 - **Backward compatibility**: Existing serial workflow sessions (`queue: [A, B, C]`) SHALL continue to work unchanged. Pipelines are a new entity, not a modification of existing workflow behavior.
@@ -286,20 +286,22 @@ The system SHALL expose pipeline operations via a new `Pipeline` MCP tool, acces
 ```json
 {
   "pipelineId": "pipeline-1772717599558",
+  "definitionId": "tdd-review-loop",
   "status": "active",
+  "createdAt": "2026-03-18T12:00:00Z",
   "nodes": [
-    {"nodeId": "swe", "workflowId": "tdd-implement", "sessionId": "workflow-1772717601234-swe", "status": "completed", "attempts": 1},
-    {"nodeId": "red", "workflowId": "tdd-audit", "sessionId": "workflow-1772717605678-red", "status": "active", "attempts": 1},
-    {"nodeId": "blue", "workflowId": "tdd-verify", "sessionId": "workflow-1772717605679-blue", "status": "pending", "attempts": 0}
+    {"nodeId": "tdd-implement-1", "workflowId": "tdd-implement", "sessionId": "workflow-1772717601234-tdd-implement-1", "status": "completed", "attempts": 1, "startedAt": "2026-03-18T12:05:00Z", "completedAt": "2026-03-18T12:45:00Z", "agentId": "OpenCode"},
+    {"nodeId": "tdd-audit-1", "workflowId": "tdd-audit", "sessionId": "workflow-1772717605678-tdd-audit-1", "status": "active", "attempts": 1, "startedAt": "2026-03-18T12:46:00Z", "agentId": "Copilot"},
+    {"nodeId": "tdd-verify-1", "workflowId": "tdd-verify", "sessionId": "workflow-1772717605679-tdd-verify-1", "status": "pending", "attempts": 0}
   ],
   "edges": [
-    {"source": "swe", "target": "red", "type": "success"},
-    {"source": "red", "target": "blue", "type": "success"}
+    {"source": "tdd-implement-1", "target": "tdd-audit-1", "type": "success"},
+    {"source": "tdd-audit-1", "target": "tdd-verify-1", "type": "success"}
   ],
   "ready": [],
-  "active": ["red"],
-  "completed": ["swe"],
-  "mermaid": "graph LR\n  swe[swe ✅] --> red[red 🔄]\n  red --> blue[blue ⏳]"
+  "active": ["tdd-audit-1"],
+  "completed": ["tdd-implement-1"],
+  "mermaid": "graph LR\n  tdd-implement-1[TDD Implementation ✅] --> tdd-audit-1[TDD Audit 🔄]\n  tdd-audit-1 --> tdd-verify-1[TDD Verification ⏳]"
 }
 ```
 
@@ -307,7 +309,7 @@ The system SHALL expose pipeline operations via a new `Pipeline` MCP tool, acces
 ```json
 {
   "dispatched": [
-    {"nodeId": "swe", "sessionId": "workflow-1772717601234-swe", "workflowId": "tdd-implement"}
+    {"nodeId": "tdd-implement-1", "sessionId": "workflow-1772717601234-tdd-implement-1", "workflowId": "tdd-implement", "acpClient": "OpenCode"}
   ],
   "active": [],
   "completed": [],
@@ -321,46 +323,66 @@ title: Pipeline Session pipeline-1772717599558
 permalink: pipeline-1772717599558
 type: pipeline
 status: active
+definitionId: tdd-review-loop
+definitionVersion: "1.0.0"
+createdAt: "2026-03-18T12:00:00Z"
 definition:
   nodes:
-    - id: swe
+    - nodeId: tdd-implement-1
       workflowId: tdd-implement
-    - id: red
+      acpClient: OpenCode
+      label: TDD Implementation
+    - nodeId: tdd-audit-1
       workflowId: tdd-audit
-    - id: blue
+      acpClient: Copilot
+      label: TDD Audit
+    - nodeId: tdd-verify-1
       workflowId: tdd-verify
+      acpClient: OpenCode
+      label: TDD Verification
   edges:
-    - source: swe
-      target: red
+    - source: tdd-implement-1
+      target: tdd-audit-1
       type: success
-    - source: red
-      target: blue
+    - source: tdd-audit-1
+      target: tdd-verify-1
       type: success
 nodeStates:
-  swe:
-    sessionId: workflow-1772717601234-swe
+  tdd-implement-1:
+    sessionId: workflow-1772717601234-tdd-implement-1
     status: completed
     attempts: 1
-  red:
-    sessionId: workflow-1772717605678-red
+    startedAt: "2026-03-18T12:05:00Z"
+    completedAt: "2026-03-18T12:45:00Z"
+    agentId: OpenCode
+    predecessorContextInjected: false
+    submachines: []
+  tdd-audit-1:
+    sessionId: workflow-1772717605678-tdd-audit-1
     status: active
     attempts: 1
-  blue:
-    sessionId: workflow-1772717605679-blue
+    startedAt: "2026-03-18T12:46:00Z"
+    agentId: Copilot
+    predecessorContextInjected: true
+    submachines: []
+  tdd-verify-1:
+    sessionId: workflow-1772717605679-tdd-verify-1
     status: pending
     attempts: 0
-maxConcurrency: 8
-first: "Pipeline created with 3 nodes: swe, red, blue"
-last: "Node swe completed"
+    predecessorContextInjected: false
+    submachines: []
+maxConcurrency: 3
+first: "Pipeline created with 3 nodes: tdd-implement-1, tdd-audit-1, tdd-verify-1"
+last: "Node tdd-implement-1 completed"
 ```
 
 **Worked example — TDD pipeline:**
-1. PM: `pipeline(definition={nodes:[swe,red,blue], edges:[swe→red, red→blue]})` → creates 3 session files, returns `pipeline-17727...` + ready set `["swe"]`
-2. PM: `pipeline(sessionId=X, dispatch=true)` → atomically claims `swe` as active, returns session ID
-3. PM hands SWE agent the session ID → agent calls `workflow(sessionId=swe-session, response=...)` for each step
-4. Agent completes → `workflow(sessionId=swe-session, status="completed", conclusion="...")`
-5. PM: `pipeline(sessionId=X, dispatch=true)` → swe's `last` injected into red's `## Predecessor Context`, red claimed as active
-6. Repeat for red → blue → pipeline complete
+1. PM: `pipeline(definitionId="tdd-review-loop")` → loads template from `assets/pipelines/tdd-review-loop.json`, creates 3 session files, returns `pipeline-17727...` + ready set `["tdd-implement-1"]`
+2. PM: `pipeline(sessionId=X, dispatch=true)` → atomically claims `tdd-implement-1` as active, returns session ID + acpClient `"OpenCode"`
+3. PM hands OpenCode agent the session ID → agent calls `workflow(sessionId=tdd-implement-1-session, response=...)` for each step
+4. Agent completes → `workflow(sessionId=tdd-implement-1-session, status="completed", conclusion="...")`
+5. PM: `pipeline(sessionId=X, dispatch=true)` → tdd-implement-1's `last` injected into tdd-audit-1's `## Predecessor Context`, tdd-audit-1 claimed as active via Copilot
+6. Repeat for tdd-audit-1 → tdd-verify-1 → pipeline complete
 
 #### FR-45.7: Pipeline Dispatch Model
 
@@ -394,16 +416,81 @@ _Deferred to Sprint 36._ The v1 engine supports `success` and `always` edge type
 - `optional` edges where upstream failure does not block downstream.
 - Conditional edges based on conclusion content.
 
-#### FR-45.11: Vue Flow DAG Tab (v2 — deferred)
+#### FR-45.11: Pipeline Designer UI — Sprint 37
 
-_Deferred to Sprint 36._ The v1 engine is fully functional via MCP tool calls. Visual rendering in a Vue Flow tab requires:
+The system SHALL provide a Vue Flow-based pipeline designer that replaces the workflow tree viewer.
 
-- Vue Flow dependency integration in acp-ui.
-- New tab type alongside chat tabs.
-- Real-time status notification channel (does not exist yet).
-- Node dispatch interaction UX.
+- **Vue Flow integration**: The acp-ui SHALL integrate `@vue-flow/core` for interactive DAG rendering with drag-and-drop node placement.
+- **Replaces workflow tree**: The 🌳 Workflows sidebar toggle SHALL be replaced by a pipeline designer view.
+- **Create pipelines**: Users SHALL be able to create new pipeline definitions by adding nodes (selecting a workflow + ACP client), drawing edges between them, and saving to `assets/pipelines/`.
+- **Edit pipelines**: Users SHALL be able to load, modify, and re-save existing pipeline definitions.
+- **Node creation UX**: Adding a node SHALL present a workflow picker (from `assets/workflows/`) and an ACP client picker (from `agents.json`). The `nodeId` and `label` SHALL be auto-derived from the selected workflow.
+- **Edge creation UX**: Users SHALL draw edges between nodes and select the edge type (`success` or `always`).
+- **Node positions**: The designer SHALL persist node positions in the pipeline definition's `ui.nodes` field.
+- **Execution history**: The designer SHALL display past pipeline execution sessions with status, timing, and node state detail.
 
-For Sprint 35, pipeline state can be inspected via `pipeline(view=true)` and optionally rendered as Mermaid diagrams using existing FR-40 support.
+#### FR-45.12: Pipeline Definition Storage — Sprint 37
+
+The system SHALL support persistent, reusable pipeline templates stored as JSON assets.
+
+- **Storage location**: Pipeline definitions SHALL be stored as JSON files in `assets/pipelines/`, mirroring the existing `assets/workflows/` pattern.
+- **Asset kind**: A new `AssetKind::Pipeline` SHALL be added to the asset system, enabling discovery via `ListAssets(type="pipeline")` and `ReadMcpResource("asset://pipeline/{id}")`.
+- **Naming convention**: Pipeline definition IDs SHALL use kebab-case slugs. The filename SHALL be `{id}.json`.
+- **Schema**: Each pipeline definition SHALL contain `id`, `name`, `nodes[]`, `edges[]`, and optional fields: `description`, `version` (semver string), `maxConcurrency`, and `ui` (node positions).
+- **Node schema**: See FR-45.1 for the updated node schema (`nodeId`, `workflowId`, `acpClient`, `label`).
+- **Template vs instance**: Pipeline definitions (templates) are immutable design-time assets. Pipeline sessions (instances) are mutable runtime state. The definition SHALL be snapshotted into the session frontmatter at creation time.
+- **`definitionId` parameter**: The Pipeline MCP tool SHALL accept an optional `definitionId` parameter to load a saved template instead of requiring an inline `definition`. Both modes SHALL remain supported.
+- **Workflow reference validation**: At creation time, the system SHALL validate that all `workflowId` references resolve to existing workflow assets.
+
+**Pipeline definition example:**
+```json
+{
+  "id": "tdd-review-loop",
+  "name": "TDD Review Loop",
+  "description": "SWE implements → red-team audits → blue-team verifies",
+  "version": "1.0.0",
+  "maxConcurrency": 3,
+  "nodes": [
+    { "nodeId": "tdd-implement-1", "workflowId": "tdd-implement", "acpClient": "OpenCode", "label": "TDD Implementation" },
+    { "nodeId": "tdd-audit-1", "workflowId": "tdd-audit", "acpClient": "Copilot", "label": "TDD Audit" },
+    { "nodeId": "tdd-verify-1", "workflowId": "tdd-verify", "acpClient": "OpenCode", "label": "TDD Verification" }
+  ],
+  "edges": [
+    { "source": "tdd-implement-1", "target": "tdd-audit-1", "type": "success" },
+    { "source": "tdd-audit-1", "target": "tdd-verify-1", "type": "always" }
+  ],
+  "ui": {
+    "nodes": {
+      "tdd-implement-1": { "x": 0, "y": 0 },
+      "tdd-audit-1": { "x": 300, "y": 0 },
+      "tdd-verify-1": { "x": 600, "y": 0 }
+    }
+  }
+}
+```
+
+#### FR-45.13: Pipeline Execution Tracking — Sprint 37
+
+The system SHALL extend pipeline session frontmatter with richer execution metadata.
+
+- **Definition provenance**: Pipeline sessions SHALL record `definitionId` and `definitionVersion` when created from a saved template.
+- **Pipeline-level timing**: Sessions SHALL track `createdAt` and `completedAt` timestamps.
+- **Per-node timing**: `NodeState` SHALL be extended with `startedAt` (set on dispatch), `completedAt` (set on completion/abandonment), and `agentId` (copied from the node's `acpClient` at dispatch time).
+- **Predecessor context tracking**: `NodeState` SHALL include a `predecessorContextInjected` boolean indicating whether upstream context was injected into this node's session.
+- **Submachine tracking**: `NodeState` SHALL include a `submachines` array of `SubmachineRecord` entries, each containing `sessionId`, `sessionType`, `stepIndex` (which workflow step spawned it), `stepName`, `startedAt`, `completedAt`, and `status`.
+- **Submachine write-through**: The existing `register_workflow_submachine` and `maybe_resume_workflow_submachine` functions SHALL propagate submachine lifecycle events to the parent pipeline session's `nodeStates` (best-effort, non-blocking).
+
+#### FR-45.14: Pipeline REST API — Sprint 37
+
+The system SHALL expose REST endpoints for pipeline definition CRUD and execution history.
+
+- `GET /api/pipelines/definitions` — list all pipeline definitions (summary: id, name, description, nodeCount, edgeCount).
+- `GET /api/pipelines/definitions/:id` — read a full pipeline definition.
+- `POST /api/pipelines/definitions` — create a new pipeline definition.
+- `PUT /api/pipelines/definitions/:id` — update an existing pipeline definition.
+- `DELETE /api/pipelines/definitions/:id` — delete a pipeline definition.
+- `GET /api/pipelines/sessions` — list pipeline execution sessions (filterable by status, definitionId).
+- `GET /api/pipelines/sessions/:id` — read full pipeline session detail (reuses `view_pipeline_session` logic, includes mermaid diagram).
 
 ### NFR-9: Non-Text Content Blocks
 

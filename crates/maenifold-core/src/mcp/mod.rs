@@ -18,6 +18,8 @@ pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
             };
             s == "http://localhost"
                 || s.starts_with("http://localhost:")
+                || s == "tauri://localhost"
+                || s == "https://tauri.localhost"
                 || s == "http://127.0.0.1"
                 || s.starts_with("http://127.0.0.1:")
                 || s == "http://[::1]"

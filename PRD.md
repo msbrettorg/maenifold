@@ -494,17 +494,15 @@ The system SHALL extend pipeline session frontmatter with richer execution metad
 - **Submachine tracking**: `NodeState` SHALL include a `submachines` array of `SubmachineRecord` entries, each containing `sessionId`, `sessionType`, `stepIndex` (which workflow step spawned it), `stepName`, `startedAt`, `completedAt`, and `status`.
 - **Submachine write-through**: The existing `register_workflow_submachine` and `maybe_resume_workflow_submachine` functions SHALL propagate submachine lifecycle events to the parent pipeline session's `nodeStates` (best-effort, non-blocking).
 
-#### FR-45.14: Pipeline REST API — Sprint 37
+#### FR-45.14: Pipeline API Surface — Sprint 37
 
-The system SHALL expose REST endpoints for pipeline definition CRUD and execution history.
+The pipeline system SHALL use MCP as the single API surface for both the UI and AI agents. No privileged REST endpoints for the UI — if the UI can do it, an agent can do it via the same MCP tools.
 
-- `GET /api/pipelines/definitions` — list all pipeline definitions (summary: id, name, description, nodeCount, edgeCount).
-- `GET /api/pipelines/definitions/:id` — read a full pipeline definition.
-- `POST /api/pipelines/definitions` — create a new pipeline definition.
-- `PUT /api/pipelines/definitions/:id` — update an existing pipeline definition.
-- `DELETE /api/pipelines/definitions/:id` — delete a pipeline definition.
-- `GET /api/pipelines/sessions` — list pipeline execution sessions (filterable by status, definitionId).
-- `GET /api/pipelines/sessions/:id` — read full pipeline session detail (reuses `view_pipeline_session` logic, includes mermaid diagram).
+- **Reads**: `ListAssets(type="pipeline")`, `ReadMcpResource("asset://pipeline/{id}")`, `Pipeline(sessionId=X, view=true)`.
+- **Writes**: A new `WriteAsset` MCP tool SHALL write asset files: `WriteAsset(type="pipeline", id="tdd-review-loop", content={...})` writes to `assets/pipelines/{id}.json`. Supports `delete=true` for removal.
+- **Execution**: `Pipeline(sessionId=X, run=true)` triggers active execution (see FR-45.15).
+- **Events**: `GET /api/pipelines/sessions/:id/events` — cursor-tracked SSE stream (the only non-MCP endpoint, since MCP is request-response and cannot stream).
+- **Principle**: The UI connects to the service via `/mcp` as an MCP client. The interaction model is pure MCP. The UI has no special privileges — it uses the same tools available to any connected agent.
 - `POST /api/pipelines/sessions/:id/run` — start active execution of a pipeline session. Returns 202 with `runId`.
 - `GET /api/pipelines/sessions/:id/events` — cursor-tracked SSE stream of pipeline execution events. Supports `Last-Event-ID` header for reconnection without data loss. Falls back to polling via `?since={cursor}` query parameter.
 

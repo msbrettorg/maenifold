@@ -224,7 +224,7 @@ The system SHALL introduce a Pipeline entity that orchestrates workflows across 
 
 The system SHALL support pipeline definitions as JSON with `nodes[]` and `edges[]` arrays.
 
-- **Node schema**: Each node SHALL have `nodeId` (unique string, derived as `{workflowId}-{N}` where N is a sequence suffix), `workflowId` (reference to an existing workflow JSON asset), `acpClient` (name of a registered ACP agent from `agents.json`), and `label` (friendly display name, derived from the workflow definition's `name` field).
+- **Node schema**: Pipeline nodes SHALL support two types via a tagged union. Each node SHALL have `nodeId` (unique string, derived as `{workflowId}-{N}` or `{stepId}-{N}`), `type` (`"step"` or `"workflow"`), `acpClient` (name of a registered ACP agent from `agents.json`), and `label` (friendly display name, derived from the workflow/step name). **Step nodes** SHALL have a `step` field with the same schema as a workflow step: `{id, name, description, metadata?, requiresSequentialThinking?}`. **Workflow nodes** SHALL have a `workflowId` field referencing `assets/workflows/{id}.json`. Both types compile to the same runtime representation: an ordered list of steps (1 for step nodes, N for workflow nodes).
 - **Edge schema**: Each edge SHALL have `source` (node ID), `target` (node ID), and `type` (`success` or `always` for v1).
 - **Validation**: The system SHALL reject pipeline definitions containing cycles (topological sort validation at creation time).
 - **Backward compatibility**: Existing serial workflow sessions (`queue: [A, B, C]`) SHALL continue to work unchanged. Pipelines are a new entity, not a modification of existing workflow behavior.
@@ -437,7 +437,7 @@ The system SHALL support persistent, reusable pipeline templates stored as JSON 
 - **Asset kind**: A new `AssetKind::Pipeline` SHALL be added to the asset system, enabling discovery via `ListAssets(type="pipeline")` and `ReadMcpResource("asset://pipeline/{id}")`.
 - **Naming convention**: Pipeline definition IDs SHALL use kebab-case slugs. The filename SHALL be `{id}.json`.
 - **Schema**: Each pipeline definition SHALL contain `id`, `name`, `nodes[]`, `edges[]`, and optional fields: `description`, `version` (semver string), `maxConcurrency`, and `ui` (node positions).
-- **Node schema**: See FR-45.1 for the updated node schema (`nodeId`, `workflowId`, `acpClient`, `label`).
+- **Node schema**: See FR-45.1 for the updated node schema. Nodes are a tagged union: `type: "step"` (inline step definition) or `type: "workflow"` (references a workflow asset).
 - **Template vs instance**: Pipeline definitions (templates) are immutable design-time assets. Pipeline sessions (instances) are mutable runtime state. The definition SHALL be snapshotted into the session frontmatter at creation time.
 - **`definitionId` parameter**: The Pipeline MCP tool SHALL accept an optional `definitionId` parameter to load a saved template instead of requiring an inline `definition`. Both modes SHALL remain supported.
 - **Workflow reference validation**: At creation time, the system SHALL validate that all `workflowId` references resolve to existing workflow assets.
@@ -447,23 +447,37 @@ The system SHALL support persistent, reusable pipeline templates stored as JSON 
 {
   "id": "tdd-review-loop",
   "name": "TDD Review Loop",
-  "description": "SWE implements → red-team audits → blue-team verifies",
+  "description": "Clarify scope → implement → audit → verify",
   "version": "1.0.0",
   "maxConcurrency": 3,
   "nodes": [
-    { "nodeId": "tdd-implement-1", "workflowId": "tdd-implement", "acpClient": "OpenCode", "label": "TDD Implementation" },
-    { "nodeId": "tdd-audit-1", "workflowId": "tdd-audit", "acpClient": "Copilot", "label": "TDD Audit" },
-    { "nodeId": "tdd-verify-1", "workflowId": "tdd-verify", "acpClient": "OpenCode", "label": "TDD Verification" }
+    {
+      "nodeId": "clarify-scope-1",
+      "type": "step",
+      "acpClient": "Copilot",
+      "label": "Clarify Scope",
+      "step": {
+        "id": "clarify-scope",
+        "name": "Clarify Scope",
+        "description": "Restate the task, identify constraints, produce a concise implementation brief.",
+        "requiresSequentialThinking": false
+      }
+    },
+    { "nodeId": "tdd-implement-1", "type": "workflow", "workflowId": "tdd-implement", "acpClient": "OpenCode", "label": "TDD Implementation" },
+    { "nodeId": "tdd-audit-1", "type": "workflow", "workflowId": "tdd-audit", "acpClient": "Copilot", "label": "TDD Audit" },
+    { "nodeId": "tdd-verify-1", "type": "workflow", "workflowId": "tdd-verify", "acpClient": "OpenCode", "label": "TDD Verification" }
   ],
   "edges": [
+    { "source": "clarify-scope-1", "target": "tdd-implement-1", "type": "success" },
     { "source": "tdd-implement-1", "target": "tdd-audit-1", "type": "success" },
     { "source": "tdd-audit-1", "target": "tdd-verify-1", "type": "always" }
   ],
   "ui": {
     "nodes": {
-      "tdd-implement-1": { "x": 0, "y": 0 },
-      "tdd-audit-1": { "x": 300, "y": 0 },
-      "tdd-verify-1": { "x": 600, "y": 0 }
+      "clarify-scope-1": { "x": 0, "y": 0 },
+      "tdd-implement-1": { "x": 300, "y": 0 },
+      "tdd-audit-1": { "x": 600, "y": 0 },
+      "tdd-verify-1": { "x": 900, "y": 0 }
     }
   }
 }
@@ -491,6 +505,27 @@ The system SHALL expose REST endpoints for pipeline definition CRUD and executio
 - `DELETE /api/pipelines/definitions/:id` — delete a pipeline definition.
 - `GET /api/pipelines/sessions` — list pipeline execution sessions (filterable by status, definitionId).
 - `GET /api/pipelines/sessions/:id` — read full pipeline session detail (reuses `view_pipeline_session` logic, includes mermaid diagram).
+- `POST /api/pipelines/sessions/:id/run` — start active execution of a pipeline session. Returns 202 with `runId`.
+- `GET /api/pipelines/sessions/:id/events` — SSE stream of pipeline execution events (node status changes, completion).
+
+#### FR-45.15: Pipeline Active Executor — Sprint 37
+
+The pipeline engine SHALL support active, autonomous execution of pipelines without requiring an external PM agent or manual dispatch loop. When a user clicks "Run Pipeline" in the UI, the engine SHALL execute the full DAG end-to-end.
+
+- **`PipelineEngine`**: A new async executor component SHALL be added to the axum server. It SHALL be constructed once at server startup and shared via `ApiState`.
+- **`AgentProcess` extraction**: The existing `RelayProcess` in `acp/relay.rs` SHALL be refactored into a shared `acp/process.rs` module (`AgentProcess`). Both the WebSocket relay handler and the pipeline executor SHALL use this shared process abstraction. Zero behavior change to the existing relay.
+- **Execution trigger**: `POST /api/pipelines/sessions/:id/run` SHALL spawn a detached `tokio::task` that runs the execution loop. The HTTP handler SHALL return 202 immediately.
+- **Execution loop**: The executor SHALL:
+  1. Load pipeline state from the session file
+  2. Compute ready nodes via `compute_ready_set()` (existing pure function)
+  3. Claim ready nodes up to `maxConcurrency` (using a `tokio::Semaphore`)
+  4. Spawn a `tokio::task` per claimed node
+  5. Each node task spawns an `AgentProcess` for the target `acpClient`, sends step prompts, collects responses
+  6. On completion, persist node state and notify the main loop via `mpsc::channel`
+  7. Recompute ready set and repeat until pipeline is terminal
+- **Dual execution mode**: Nodes with `acpClient` set SHALL execute via `AgentProcess` (external ACP agent). Nodes with `acpClient` unset SHALL execute in-process by calling workflow tool handlers directly.
+- **SSE events**: The executor SHALL broadcast `PipelineEvent` variants (`NodeStarted`, `NodeCompleted`, `NodeFailed`, `PipelineCompleted`, `PipelineStuck`) via `tokio::sync::broadcast`. The `/events` SSE endpoint SHALL subscribe to this channel.
+- **Backward compatibility**: The existing `Pipeline` MCP tool (`dispatch=true` / manual status updates) SHALL continue to work unchanged for AI-agent-driven pipelines. The active executor is an additional execution path that reuses the same underlying state functions.
 
 ### NFR-9: Non-Text Content Blocks
 

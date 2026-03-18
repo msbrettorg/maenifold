@@ -506,7 +506,7 @@ The system SHALL expose REST endpoints for pipeline definition CRUD and executio
 - `GET /api/pipelines/sessions` — list pipeline execution sessions (filterable by status, definitionId).
 - `GET /api/pipelines/sessions/:id` — read full pipeline session detail (reuses `view_pipeline_session` logic, includes mermaid diagram).
 - `POST /api/pipelines/sessions/:id/run` — start active execution of a pipeline session. Returns 202 with `runId`.
-- `GET /api/pipelines/sessions/:id/events` — SSE stream of pipeline execution events (node status changes, completion).
+- `GET /api/pipelines/sessions/:id/events` — cursor-tracked SSE stream of pipeline execution events. Supports `Last-Event-ID` header for reconnection without data loss. Falls back to polling via `?since={cursor}` query parameter.
 
 #### FR-45.15: Pipeline Active Executor — Sprint 37
 
@@ -524,7 +524,9 @@ The pipeline engine SHALL support active, autonomous execution of pipelines with
   6. On completion, persist node state and notify the main loop via `mpsc::channel`
   7. Recompute ready set and repeat until pipeline is terminal
 - **Dual execution mode**: Nodes with `acpClient` set SHALL execute via `AgentProcess` (external ACP agent). Nodes with `acpClient` unset SHALL execute in-process by calling workflow tool handlers directly.
-- **SSE events**: The executor SHALL broadcast `PipelineEvent` variants (`NodeStarted`, `NodeCompleted`, `NodeFailed`, `PipelineCompleted`, `PipelineStuck`) via `tokio::sync::broadcast`. The `/events` SSE endpoint SHALL subscribe to this channel.
+- **Cursor-tracked event streaming**: Pipeline execution events SHALL be persisted with monotonic sequence numbers. The `/events` SSE endpoint SHALL support `Last-Event-ID` header for reconnection without data loss. A polling fallback SHALL be available via `GET /api/pipelines/sessions/:id/events?since={cursor}` for clients that cannot use SSE. This follows the AgentBoss pattern: events are cursor-tracked, so disconnects never lose data.
+- **Event types**: `NodeStarted`, `NodeCompleted`, `NodeFailed`, `NodeOutput` (streaming agent text), `PipelineCompleted`, `PipelineStuck`.
+- **Long-running support**: Pipelines may run for hours or days. The executor SHALL survive server restarts by reading persisted state from session files. On restart, incomplete pipelines can be resumed via `POST /run` which re-enters the execution loop from current state.
 - **Backward compatibility**: The existing `Pipeline` MCP tool (`dispatch=true` / manual status updates) SHALL continue to work unchanged for AI-agent-driven pipelines. The active executor is an additional execution path that reuses the same underlying state functions.
 
 ### NFR-9: Non-Text Content Blocks

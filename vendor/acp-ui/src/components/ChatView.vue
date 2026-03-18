@@ -721,13 +721,80 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
         @select="handleCommandSelect"
         @close="handleCommandClose"
       />
-      <textarea
-        v-model="inputText"
-        :placeholder="activeCommandHint ?? 'Type your message...'"
-        :disabled="isLoading"
-        @keydown="handleKeyDown"
-        rows="3"
-      />
+      <div class="composer">
+        <div class="composer-toolbar">
+          <span class="composer-control-wrapper" :title="imageAttachmentTooltip">
+            <button
+              type="button"
+              class="attachment-btn"
+              :disabled="!supportsImageAttachments || isLoading"
+              @click="addPendingAttachments('image')"
+            >
+              🖼️ Image
+            </button>
+          </span>
+          <span class="composer-control-wrapper" :title="audioAttachmentTooltip">
+            <button
+              type="button"
+              class="attachment-btn"
+              :disabled="!supportsAudioAttachments || isLoading"
+              @click="addPendingAttachments('audio')"
+            >
+              🎧 Audio
+            </button>
+          </span>
+          <span class="composer-control-wrapper" :title="embeddedContextTooltip">
+            <button
+              type="button"
+              class="attachment-btn"
+              :disabled="!supportsEmbeddedContext || isLoading"
+              @click="insertEmbeddedContextHint"
+            >
+              @ File
+            </button>
+          </span>
+        </div>
+
+        <div v-if="pendingAttachments.length" class="pending-attachments">
+          <div
+            v-for="attachment in pendingAttachments"
+            :key="attachment.id"
+            class="pending-attachment-chip"
+          >
+            <span>{{ attachment.kind === 'image' ? '🖼️' : '🎧' }} {{ attachment.label }}</span>
+            <button
+              type="button"
+              class="pending-attachment-remove"
+              :disabled="isLoading"
+              @click="removePendingAttachment(attachment.id)"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="embedded-context-hint"
+          :title="embeddedContextTooltip"
+          :aria-disabled="!supportsEmbeddedContext"
+        >
+          {{
+            supportsEmbeddedContext
+              ? 'Embed file context with @README.md or @"notes/file name.md".'
+              : 'Embedded file context is unavailable for this agent.'
+          }}
+        </div>
+
+        <div v-if="attachmentError" class="attachment-error">{{ attachmentError }}</div>
+
+        <textarea
+          v-model="inputText"
+          :placeholder="activeCommandHint ?? 'Type your message...'"
+          :disabled="isLoading"
+          @keydown="handleKeyDown"
+          rows="3"
+        />
+      </div>
       <button 
         class="send-btn"
         :disabled="!inputText.trim() || isLoading"
@@ -1065,9 +1132,87 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 .input-container {
   position: relative;
   display: flex;
+  align-items: flex-end;
   gap: 0.5rem;
   padding: 1rem;
   border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.composer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.composer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.composer-control-wrapper {
+  display: inline-flex;
+}
+
+.attachment-btn {
+  border: 1px solid var(--border-color, #d0d7de);
+  border-radius: 999px;
+  background: var(--bg-hover, #f5f7fa);
+  color: var(--text-primary, #1f2328);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.attachment-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pending-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pending-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  background: var(--bg-hover, #f0f4f8);
+  border: 1px solid var(--border-color, #d0d7de);
+  font-size: 0.8rem;
+}
+
+.pending-attachment-remove {
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #666);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.pending-attachment-remove:disabled {
+  cursor: not-allowed;
+}
+
+.embedded-context-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted, #666);
+}
+
+.embedded-context-hint[aria-disabled='true'] {
+  opacity: 0.7;
+}
+
+.attachment-error {
+  color: #b42318;
+  font-size: 0.8rem;
 }
 
 textarea {

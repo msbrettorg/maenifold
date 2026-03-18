@@ -1104,6 +1104,7 @@ fn write_workflow_node_session(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::Config;
     use crate::markdown::write_markdown;
     use crate::registry::ToolRegistry;
     use once_cell::sync::Lazy;

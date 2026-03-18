@@ -1,5 +1,6 @@
 import type {
   AvailableCommand as SdkAvailableCommand,
+  ContentBlock as SdkContentBlock,
   PromptCapabilities as SdkPromptCapabilities,
 } from '@agentclientprotocol/sdk';
 
@@ -50,6 +51,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  blocks?: ContentBlock[];
   thought?: string;
   timestamp: number;
   toolCalls?: ToolCallInfo[];
@@ -138,6 +140,7 @@ export interface AgentInfo extends AcpMetadataCarrier {
 export type PromptCapabilities = SdkPromptCapabilities & AcpMetadataCarrier;
 
 export type AvailableCommand = SdkAvailableCommand & AcpMetadataCarrier;
+export type ContentBlock = SdkContentBlock;
 
 export interface PlanEntry extends AcpMetadataCarrier {
   content: string;

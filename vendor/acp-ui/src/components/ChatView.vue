@@ -7,7 +7,7 @@ import ModelPicker from './ModelPicker.vue';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import CommandPalette from './CommandPalette.vue';
 import PlanView from './PlanView.vue';
-import type { ChatMessage, SlashCommand } from '../lib/types';
+import type { ChatMessage, ContentBlock, SlashCommand } from '../lib/types';
 
 const sessionStore = useSessionStore();
 const inputText = ref('');
@@ -168,10 +168,47 @@ function getMessageToolCalls(message: ChatMessage) {
   return message.toolCalls ?? [];
 }
 
+function getMessageBlocks(message: ChatMessage): ContentBlock[] {
+  return message.blocks ?? [];
+}
+
+function shouldRenderLegacyContent(message: ChatMessage): boolean {
+  return Boolean(message.content) && !getMessageBlocks(message).some((block) => block.type === 'text');
+}
+
+function getImageSrc(block: ContentBlock): string {
+  return block.type === 'image' ? `data:${block.mimeType};base64,${block.data}` : '';
+}
+
+function getAudioSrc(block: ContentBlock): string {
+  return block.type === 'audio' ? `data:${block.mimeType};base64,${block.data}` : '';
+}
+
+function getResourceLinkLabel(block: ContentBlock): string {
+  if (block.type !== 'resource_link') {
+    return '';
+  }
+
+  return block.name || block.title || block.uri;
+}
+
+function getResourceUri(block: ContentBlock): string {
+  return block.type === 'resource' ? block.resource.uri : '';
+}
+
+function getResourceBody(block: ContentBlock): string {
+  if (block.type !== 'resource') {
+    return '';
+  }
+
+  return 'text' in block.resource ? block.resource.text : block.resource.blob;
+}
+
 function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
   return (
     message.role === 'assistant' &&
     !message.content &&
+    !getMessageBlocks(message).length &&
     getMessageToolCalls(message).length > 0
   );
 }
@@ -253,8 +290,45 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
           </div>
         </div>
         
-        <div 
-          v-if="message.content"
+        <div
+          v-for="(block, index) in getMessageBlocks(message)"
+          :key="`${message.id}-block-${index}`"
+          class="message-content-block"
+        >
+          <div
+            v-if="block.type === 'text'"
+            class="message-content"
+            v-html="renderMarkdown(block.text)"
+          />
+          <img
+            v-else-if="block.type === 'image'"
+            class="message-image"
+            :src="getImageSrc(block)"
+            :alt="block.uri ?? 'Message image'"
+          />
+          <audio
+            v-else-if="block.type === 'audio'"
+            class="message-audio"
+            controls
+            :src="getAudioSrc(block)"
+          />
+          <a
+            v-else-if="block.type === 'resource_link'"
+            class="resource-link-chip"
+            :href="block.uri"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            {{ getResourceLinkLabel(block) }}
+          </a>
+          <div v-else-if="block.type === 'resource'" class="resource-block">
+            <div class="resource-label">{{ getResourceUri(block) }}</div>
+            <pre class="resource-content"><code>{{ getResourceBody(block) }}</code></pre>
+          </div>
+        </div>
+
+        <div
+          v-if="shouldRenderLegacyContent(message)"
           class="message-content"
           v-html="renderMarkdown(message.content)"
         />
@@ -436,6 +510,10 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
   word-wrap: break-word;
 }
 
+.message-content-block + .message-content-block {
+  margin-top: 0.75rem;
+}
+
 .message-content :deep(p) {
   margin: 0.5rem 0;
 }
@@ -461,6 +539,57 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
 .message-content :deep(code) {
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 0.9rem;
+}
+
+.message-image {
+  display: block;
+  max-width: min(100%, 32rem);
+  max-height: 24rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.message-audio {
+  width: min(100%, 28rem);
+}
+
+.resource-link-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  background: var(--bg-hover, #f0f4f8);
+  border: 1px solid var(--border-color, #d0d7de);
+  color: var(--text-accent, #0066cc);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.resource-link-chip:hover {
+  text-decoration: underline;
+}
+
+.resource-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.resource-label {
+  font-size: 0.8rem;
+  color: var(--text-muted, #666);
+  word-break: break-all;
+}
+
+.resource-content {
+  margin: 0;
+  background: var(--bg-code, #282c34);
+  color: var(--text-code, #abb2bf);
+  padding: 0.75rem;
+  border-radius: 4px;
+  overflow-x: auto;
 }
 
 .loading-indicator {

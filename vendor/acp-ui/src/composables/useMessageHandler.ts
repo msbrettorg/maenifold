@@ -1,6 +1,7 @@
 // Message handler composable — session update handling, prompt, and cancel
 import type { Ref } from 'vue';
 import type {
+  ContentBlock,
   SavedSession,
   SessionState,
   ToolCallInfo,
@@ -68,6 +69,35 @@ export function useMessageHandler({
   saveSessionsToStore,
   cancelPermission,
 }: UseMessageHandlerDeps) {
+  function cloneContentBlock(block: ContentBlock): ContentBlock {
+    return {
+      ...block,
+      ...(block.type === 'resource' && block.resource
+        ? { resource: { ...block.resource } }
+        : {}),
+      ...(block.annotations ? { annotations: { ...block.annotations } } : {}),
+      ...(isRecord(block._meta) ? { _meta: { ...block._meta } } : {}),
+    };
+  }
+
+  function appendMessageBlock(message: SessionState['messages'][number], block: ContentBlock): void {
+    const nextBlock = cloneContentBlock(block);
+    message.blocks = [...(message.blocks ?? []), nextBlock];
+
+    if (block.type === 'text') {
+      message.content += block.text;
+    }
+  }
+
+  function appendThoughtBlock(message: SessionState['messages'][number], block: ContentBlock): void {
+    if (block.type === 'text') {
+      message.thought = (message.thought || '') + block.text;
+      return;
+    }
+
+    message.blocks = [...(message.blocks ?? []), cloneContentBlock(block)];
+  }
+
   function pushSystemMessage(session: SessionState, content: string): void {
     session.messages.push({
       id: crypto.randomUUID(),
@@ -111,14 +141,13 @@ export function useMessageHandler({
         // Append to last user message or create new (for replay)
         const lastUserMsg = session.messages[session.messages.length - 1];
         if (lastUserMsg && lastUserMsg.role === 'user') {
-          if (update.content.type === 'text') {
-            lastUserMsg.content += update.content.text;
-          }
+          appendMessageBlock(lastUserMsg, update.content);
         } else {
           session.messages.push({
             id: crypto.randomUUID(),
             role: 'user',
             content: update.content.type === 'text' ? update.content.text : '',
+            blocks: [cloneContentBlock(update.content)],
             timestamp: Date.now(),
           });
         }
@@ -129,14 +158,13 @@ export function useMessageHandler({
         // Append to last assistant message or create new
         const lastMsg = session.messages[session.messages.length - 1];
         if (lastMsg && lastMsg.role === 'assistant') {
-          if (update.content.type === 'text') {
-            lastMsg.content += update.content.text;
-          }
+          appendMessageBlock(lastMsg, update.content);
         } else {
           session.messages.push({
             id: crypto.randomUUID(),
             role: 'assistant',
             content: update.content.type === 'text' ? update.content.text : '',
+            blocks: [cloneContentBlock(update.content)],
             timestamp: Date.now(),
             toolCalls: [],
           });
@@ -148,15 +176,14 @@ export function useMessageHandler({
         // Append to last assistant message's thought field or create new
         const lastAssistantMsg = session.messages[session.messages.length - 1];
         if (lastAssistantMsg && lastAssistantMsg.role === 'assistant') {
-          if (update.content.type === 'text') {
-            lastAssistantMsg.thought = (lastAssistantMsg.thought || '') + update.content.text;
-          }
+          appendThoughtBlock(lastAssistantMsg, update.content);
         } else {
           session.messages.push({
             id: crypto.randomUUID(),
             role: 'assistant',
             content: '',
             thought: update.content.type === 'text' ? update.content.text : '',
+            blocks: update.content.type === 'text' ? undefined : [cloneContentBlock(update.content)],
             timestamp: Date.now(),
             toolCalls: [],
           });
@@ -320,7 +347,7 @@ export function useMessageHandler({
     }
   }
 
-  async function sendPrompt(text: string): Promise<void> {
+  async function sendPrompt(text: string, attachments: ContentBlock[] = []): Promise<void> {
     const sid = activeSessionId.value;
     if (!sid) throw new Error('No active session');
     const session = sessions.value.get(sid);
@@ -329,11 +356,17 @@ export function useMessageHandler({
       throw new Error('No active session');
     }
 
+    const prompt = [
+      { type: 'text', text } as const,
+      ...attachments.map((attachment) => cloneContentBlock(attachment)),
+    ];
+
     // Add user message
     session.messages.push({
       id: crypto.randomUUID(),
       role: 'user',
       content: text,
+      blocks: prompt.map((block) => cloneContentBlock(block)),
       timestamp: Date.now(),
     });
 
@@ -341,12 +374,7 @@ export function useMessageHandler({
     try {
       const response = await bridge.prompt({
         sessionId: session.session.sessionId,
-        prompt: [
-          {
-            type: 'text',
-            text,
-          },
-        ],
+        prompt,
       });
 
       console.log('Prompt completed:', response.stopReason);

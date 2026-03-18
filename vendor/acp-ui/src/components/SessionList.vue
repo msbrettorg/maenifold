@@ -97,19 +97,15 @@ async function handleDelete(session: SavedSession, event: Event) {
             <span class="session-title">{{ session.title }}</span>
             <span
               v-if="isCurrentConnectedSession(session)"
-              class="connection-indicator connected"
-              title="Connected"
-              aria-label="Connected"
+              class="connection-badge connected"
             >
-              ●
+              <span class="connection-dot">●</span> connected
             </span>
             <span
               v-else-if="isCurrentConnectingSession(session)"
-              class="connection-indicator connecting"
-              title="Connecting"
-              aria-label="Connecting"
+              class="connection-badge connecting"
             >
-              ●
+              <span class="connection-dot">●</span> connecting
             </span>
           </div>
           <span class="session-agent">
@@ -195,18 +191,30 @@ ul {
   min-width: 0;
 }
 
-.connection-indicator {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  line-height: 1;
+.connection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.connection-indicator.connected {
+.connection-badge.connected {
+  background: rgba(40, 167, 69, 0.12);
   color: var(--bg-success, #28a745);
 }
 
-.connection-indicator.connecting {
+.connection-badge.connecting {
+  background: rgba(209, 139, 0, 0.12);
   color: #d18b00;
+}
+
+.connection-dot {
+  font-size: 0.5rem;
+  line-height: 1;
 }
 
 .session-agent {

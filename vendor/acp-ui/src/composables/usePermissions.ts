@@ -1,0 +1,101 @@
+// Permissions composable — handles permission resolution and auth method selection
+import type { Ref } from 'vue';
+import type { SessionState } from '../lib/types';
+import type { AcpClientBridge } from '../lib/acp-bridge';
+import type { AuthMethod } from '@agentclientprotocol/sdk';
+
+interface UsePermissionsDeps {
+  sessions: Ref<Map<string, SessionState>>;
+  bridges: Map<string, AcpClientBridge>;
+  activeSessionId: Ref<string | null>;
+}
+
+export function usePermissions({ sessions, bridges, activeSessionId }: UsePermissionsDeps) {
+  const authMethodResolvers = new Map<string, (methodId: string | null) => void>();
+
+  function resolvePermission(optionId: string): void {
+    if (!activeSessionId.value) return;
+    const bridge = bridges.get(activeSessionId.value);
+    if (bridge) {
+      bridge.resolvePermission(optionId);
+    }
+  }
+
+  function cancelPermission(): void {
+    if (!activeSessionId.value) return;
+    const bridge = bridges.get(activeSessionId.value);
+    if (bridge) {
+      bridge.cancelPermission();
+    }
+  }
+
+  function selectAuthMethod(methodId: string): void {
+    const sessionId = activeSessionId.value;
+    if (!sessionId) {
+      return;
+    }
+
+    const resolver = authMethodResolvers.get(sessionId);
+    if (resolver) {
+      resolver(methodId);
+      authMethodResolvers.delete(sessionId);
+    }
+
+    const session = sessions.value.get(sessionId);
+    if (session) {
+      session.pendingAuthMethods = [];
+      session.pendingAuthAgentName = '';
+    }
+  }
+
+  function cancelAuthSelection(): void {
+    const sessionId = activeSessionId.value;
+    if (!sessionId) {
+      return;
+    }
+
+    const resolver = authMethodResolvers.get(sessionId);
+    if (resolver) {
+      resolver(null);
+      authMethodResolvers.delete(sessionId);
+    }
+
+    const session = sessions.value.get(sessionId);
+    if (session) {
+      session.pendingAuthMethods = [];
+      session.pendingAuthAgentName = '';
+    }
+  }
+
+  /** Prompt user for auth method selection. Returns the selected method ID or null if cancelled. */
+  async function promptForAuthMethod(
+    sessionId: string,
+    session: SessionState,
+    authMethods: AuthMethod[],
+    agentName: string
+  ): Promise<string | null> {
+    return new Promise((resolve) => {
+      session.pendingAuthMethods = authMethods;
+      session.pendingAuthAgentName = agentName;
+      authMethodResolvers.set(sessionId, resolve);
+    });
+  }
+
+  /** Cancel an auth resolver by session ID (used by lifecycle's cancelConnection). */
+  function cancelAuthResolver(sessionId: string): void {
+    const resolver = authMethodResolvers.get(sessionId);
+    if (resolver) {
+      resolver(null);
+      authMethodResolvers.delete(sessionId);
+    }
+  }
+
+  return {
+    resolvePermission,
+    cancelPermission,
+    selectAuthMethod,
+    cancelAuthSelection,
+    promptForAuthMethod,
+    cancelAuthResolver,
+  };
+}

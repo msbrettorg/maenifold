@@ -10,7 +10,7 @@ pub(crate) const COMMUNITY_PENDING_COUNT_KEY: &str = "pending_change_count";
 pub(crate) const COMMUNITY_LAST_CHANGE_KEY: &str = "last_change_at";
 pub(crate) const COMMUNITY_LAST_RECOMPUTE_KEY: &str = "last_community_recompute_at";
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) struct SyncSummary {
     pub(crate) status: &'static str,
     pub(crate) files_processed: i64,
@@ -19,6 +19,7 @@ pub(crate) struct SyncSummary {
     pub(crate) concept_relations: i64,
     pub(crate) abandoned_sessions: i64,
     pub(crate) communities_detected: i64,
+    pub(crate) file_errors: Vec<(String, String)>,
     pub(crate) vector_warning_code: Option<&'static str>,
     // T-21.7: RTM FR-21.7 phase timing telemetry for [[sync]] markdown output.
     pub(crate) files_changed: i64,
@@ -159,6 +160,12 @@ pub(crate) fn render_sync_markdown(summary: SyncSummary, vector_section: Option<
         // after querying live vec0 tables, so only explicit warning codes fall back here.
         output.push_str(&format!("\n- WARNING_CODE {warning_code}"));
     }
+    if !summary.file_errors.is_empty() {
+        output.push_str("\n\n## Errors");
+        for (file_uri, error_message) in &summary.file_errors {
+            output.push_str(&format!("\n- `{file_uri}`: {error_message}"));
+        }
+    }
     // T-21.7: RTM FR-21.7 append phase timing telemetry after the vector section.
     output.push_str(&format!(
         "\nTiming:\n- File processing: {:.3}s ({} changed)\n- Graph rebuild: {:.3}s\n- Embeddings: {:.3}s\n- Community detection: {:.3}s\n- Total: {:.3}s",
@@ -170,6 +177,39 @@ pub(crate) fn render_sync_markdown(summary: SyncSummary, vector_section: Option<
         summary.total_secs,
     ));
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SyncSummary, render_sync_markdown};
+
+    #[test]
+    fn render_sync_markdown_includes_errors_section() {
+        let output = render_sync_markdown(
+            SyncSummary {
+                status: "partial",
+                files_processed: 2,
+                concept_mentions: 1,
+                concepts_filtered: 0,
+                concept_relations: 1,
+                abandoned_sessions: 0,
+                communities_detected: 0,
+                file_errors: vec![("memory://broken.md".to_string(), "bad file".to_string())],
+                vector_warning_code: None,
+                files_changed: 1,
+                file_processing_secs: 0.1,
+                graph_rebuild_secs: 0.2,
+                embeddings_secs: 0.3,
+                community_secs: 0.4,
+                total_secs: 1.0,
+            },
+            None,
+        );
+
+        assert!(output.contains("## Errors"));
+        assert!(output.contains("- `memory://broken.md`: bad file"));
+        assert!(output.contains("- STATUS: partial"));
+    }
 }
 
 pub(crate) fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<String> {

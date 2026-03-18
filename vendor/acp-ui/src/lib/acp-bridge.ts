@@ -67,7 +67,7 @@ function withAcpMeta<T>(
 ): (T extends Record<string, unknown> ? T : Record<string, unknown>) & {
   _meta: AcpMetadata;
 } {
-  const base = isRecord(value) ? { ...value } : {};
+  const base: Record<string, unknown> = isRecord(value) ? { ...value } : {};
   const existingMeta = cloneMeta(base._meta);
   const mergedMeta =
     existingMeta || extraMeta ? { ...(existingMeta ?? {}), ...(extraMeta ?? {}) } : null;
@@ -139,6 +139,7 @@ export class AcpClientBridge implements Client {
   private pendingMethods: Map<number, string> = new Map(); // Track method names for responses
   private nextRequestId = 0;
   private unlistenMessage: (() => void) | null = null;
+  private supportedAgentMethods = new Set<string>();
   
   // Permission request handling
   public pendingPermissionRequest: Ref<LocalPermissionRequest | null> = ref(null);
@@ -164,7 +165,12 @@ export class AcpClientBridge implements Client {
       this.unlistenMessage();
       this.unlistenMessage = null;
     }
+    this.supportedAgentMethods.clear();
     await killAgent(this.agentId);
+  }
+
+  supportsAgentMethod(method: string): boolean {
+    return this.supportedAgentMethods.has(method);
   }
 
   private handleMessage(message: string): void {
@@ -300,7 +306,7 @@ export class AcpClientBridge implements Client {
       jsonrpc: '2.0',
       id,
       method,
-      params: params || {},
+      params: withAcpMeta(params ?? {}),
     };
 
     // Track outgoing request
@@ -346,7 +352,7 @@ export class AcpClientBridge implements Client {
     const notification = {
       jsonrpc: '2.0',
       method,
-      params: params || {},
+      params: withAcpMeta(params ?? {}),
     };
     
     // Track outgoing notification
@@ -363,7 +369,12 @@ export class AcpClientBridge implements Client {
 
   // ACP Agent methods (client calls these to talk to agent)
   async initialize(params: InitializeRequest): Promise<InitializeResponse> {
-    return this.sendRequest<InitializeResponse>('initialize', params);
+    const response = await this.sendRequest<InitializeResponse>('initialize', {
+      ...withAcpMeta(params),
+      clientCapabilities: withExtensionCapabilities(params.clientCapabilities),
+    });
+    this.supportedAgentMethods = readAdvertisedAgentMethods(response.agentCapabilities?._meta);
+    return response;
   }
 
   async newSession(params: NewSessionRequest): Promise<NewSessionResponse> {
@@ -394,13 +405,16 @@ export class AcpClientBridge implements Client {
   }
 
   async unstable_setSessionModel(params: { sessionId: string; modelId: string }): Promise<void> {
-    await this.sendRequest('session/set_model', params);
+    await this.sendRequest(SESSION_SET_MODEL_METHOD, params);
   }
 
   async unstable_setSessionConfigOption(
     params: { sessionId: string; configId: string; value: string }
   ): Promise<{ configOptions: unknown[] }> {
-    return this.sendRequest<{ configOptions: unknown[] }>('session/set_config_option', params);
+    return this.sendRequest<{ configOptions: unknown[] }>(
+      SESSION_SET_CONFIG_OPTION_METHOD,
+      params
+    );
   }
 
   async authenticate(params: AuthenticateRequest): Promise<AuthenticateResponse> {
@@ -422,12 +436,16 @@ export class AcpClientBridge implements Client {
           locations: params.toolCall.locations?.map(({ path, line }) =>
             line == null ? { path } : { path, line }
           ),
+          content: params.toolCall.content ?? undefined,
+          _meta: params.toolCall._meta ?? null,
         },
         options: params.options.map((opt) => ({
           kind: opt.kind,
           name: opt.name,
           optionId: opt.optionId,
+          _meta: opt._meta ?? null,
         })),
+        _meta: params._meta ?? null,
       };
       this.permissionResolver = resolve;
     });
@@ -440,6 +458,7 @@ export class AcpClientBridge implements Client {
           outcome: 'selected',
           optionId,
         },
+        _meta: null,
       });
       this.permissionResolver = null;
       this.pendingPermissionRequest.value = null;
@@ -452,6 +471,7 @@ export class AcpClientBridge implements Client {
         outcome: {
           outcome: 'cancelled',
         },
+        _meta: null,
       });
       this.permissionResolver = null;
       this.pendingPermissionRequest.value = null;
@@ -492,9 +512,9 @@ export class AcpClientBridge implements Client {
         const endLine = params.limit ? startLine + params.limit : lines.length;
         content = lines.slice(startLine, endLine).join('\n');
       }
-      
+       
       console.log('readTextFile completed:', params.path);
-      return { content };
+      return { content, _meta: null };
     } catch (e) {
       console.error('readTextFile failed:', params.path, e);
       throw e;

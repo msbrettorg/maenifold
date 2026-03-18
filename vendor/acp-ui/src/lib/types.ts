@@ -1,6 +1,5 @@
 import type {
   AvailableCommand as SdkAvailableCommand,
-  PlanEntry as SdkPlanEntry,
   PromptCapabilities as SdkPromptCapabilities,
 } from '@agentclientprotocol/sdk';
 
@@ -140,7 +139,11 @@ export type PromptCapabilities = SdkPromptCapabilities & AcpMetadataCarrier;
 
 export type AvailableCommand = SdkAvailableCommand & AcpMetadataCarrier;
 
-export type PlanEntry = SdkPlanEntry & AcpMetadataCarrier;
+export interface PlanEntry extends AcpMetadataCarrier {
+  content: string;
+  priority: 'high' | 'medium' | 'low';
+  status: 'pending' | 'in_progress' | 'completed';
+}
 
 export interface SessionState {
   sessionId: string;
@@ -166,7 +169,7 @@ export interface SessionState {
   availableCommands: AvailableCommand[];
   configOptions: SessionConfigOption[];
   hasConfigOptions: boolean;
-  currentPlan: PlanEntry[];
+  currentPlan: PlanEntry[] | null;
   startupPhase: string;
   startupLogs: string[];
   startupElapsed: number;
@@ -205,7 +208,7 @@ export function createEmptySessionState(
     availableCommands: [],
     configOptions: [],
     hasConfigOptions: false,
-    currentPlan: [],
+    currentPlan: null,
     startupPhase: '',
     startupLogs: [],
     startupElapsed: 0,

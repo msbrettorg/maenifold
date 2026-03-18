@@ -6,6 +6,7 @@ import ModePicker from './ModePicker.vue';
 import ModelPicker from './ModelPicker.vue';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import CommandPalette from './CommandPalette.vue';
+import PlanView from './PlanView.vue';
 import type { ChatMessage, SlashCommand } from '../lib/types';
 
 const sessionStore = useSessionStore();
@@ -27,6 +28,7 @@ const currentModelId = computed(() => sessionStore.currentModelId);
 const configOptions = computed(() => sessionStore.configOptions);
 const hasConfigOptions = computed(() => sessionStore.hasConfigOptions);
 const availableCommands = computed(() => sessionStore.availableCommands);
+const currentPlan = computed(() => sessionStore.currentPlan);
 
 // Slash command state
 const showCommandPalette = computed(() => {
@@ -207,6 +209,7 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
     </div>
     
     <div ref="messagesContainer" class="messages-container">
+        <PlanView v-if="currentPlan" :entries="currentPlan" />
         <div 
           v-for="message in messages" 
           :key="message.id"

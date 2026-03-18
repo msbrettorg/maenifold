@@ -3,8 +3,10 @@
 import { defineStore } from 'pinia';
 import { ref, computed, reactive } from 'vue';
 import type {
+  AgentInfo,
   SavedSession,
   ChatMessage,
+  PlanEntry,
   PermissionRequest,
   SessionMode,
   SlashCommand,
@@ -13,7 +15,7 @@ import type {
   SessionState,
 } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
-import type { AcpClientBridge } from '../lib/acp-bridge';
+import { SESSION_SET_MODEL_METHOD, type AcpClientBridge } from '../lib/acp-bridge';
 import type { AuthMethod } from '@agentclientprotocol/sdk';
 import { normalizeConfigOptions } from '../composables/session-utils';
 
@@ -22,6 +24,9 @@ import { useSessionPersistence } from '../composables/useSessionPersistence';
 import { usePermissions } from '../composables/usePermissions';
 import { useMessageHandler } from '../composables/useMessageHandler';
 import { useSessionLifecycle } from '../composables/useSessionLifecycle';
+
+// `_meta.traceparent`, `_meta.tracestate`, and `_meta.baggage` are reserved
+// for W3C trace context and must not be repurposed for custom ACP metadata.
 
 export const useSessionStore = defineStore('session', () => {
   // ── Core multi-session state (owned by orchestrator) ──────────────
@@ -130,7 +135,7 @@ export const useSessionStore = defineStore('session', () => {
     () => activeSession.value?.supportsSessionList ?? false
   );
 
-  const agentInfo = computed<{ name: string; title?: string; version?: string } | null>(
+  const agentInfo = computed<AgentInfo | null>(
     () => activeSession.value?.agentInfo ?? null
   );
 
@@ -170,8 +175,13 @@ export const useSessionStore = defineStore('session', () => {
       name: cmd.name,
       description: cmd.description,
       hint: cmd.input?.hint ?? undefined,
+      _meta: cmd._meta ?? null,
     }));
   });
+
+  const currentPlan = computed<PlanEntry[] | null>(
+    () => activeSession.value?.currentPlan ?? null
+  );
 
   const availableModels = computed<ModelInfo[]>(
     () => activeSession.value?.availableModels ?? []
@@ -224,6 +234,9 @@ export const useSessionStore = defineStore('session', () => {
     const bridge = bridges.get(sid);
     if (!session || !bridge || !session.session) {
       throw new Error('No active session');
+    }
+    if (!bridge.supportsAgentMethod(SESSION_SET_MODEL_METHOD)) {
+      throw new Error('Active agent does not advertise support for _session/set_model');
     }
 
     await bridge.unstable_setSessionModel({
@@ -309,6 +322,7 @@ export const useSessionStore = defineStore('session', () => {
     configOptions,
     hasConfigOptions,
     availableCommands,
+    currentPlan,
     availableModels,
     currentModelId,
     startupPhase,

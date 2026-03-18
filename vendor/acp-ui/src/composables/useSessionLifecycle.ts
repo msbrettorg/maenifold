@@ -124,9 +124,22 @@ export function useSessionLifecycle({
           name: initResponse.agentInfo.name,
           title: initResponse.agentInfo.title ?? undefined,
           version: initResponse.agentInfo.version ?? undefined,
+          _meta:
+            typeof initResponse.agentInfo._meta === 'object' && initResponse.agentInfo._meta !== null
+              ? initResponse.agentInfo._meta
+              : null,
         }
       : null;
-    const promptCaps = initResponse.agentCapabilities?.promptCapabilities ?? null;
+    const promptCaps = initResponse.agentCapabilities?.promptCapabilities
+      ? {
+          ...initResponse.agentCapabilities.promptCapabilities,
+          _meta:
+            typeof initResponse.agentCapabilities.promptCapabilities._meta === 'object' &&
+            initResponse.agentCapabilities.promptCapabilities._meta !== null
+              ? initResponse.agentCapabilities.promptCapabilities._meta
+              : null,
+        }
+      : null;
 
     return {
       initResponse,
@@ -153,6 +166,7 @@ export function useSessionLifecycle({
     const sessionState = reactive(createEmptySessionState(localId, agentName, cwd));
     sessionState.isLoading = true;
     sessionState.isConnecting = true;
+    sessionState.currentPlan = null;
     sessionState.startupPhase = 'starting';
     setSessionState(localId, sessionState);
     activeSessionId.value = localId;
@@ -361,6 +375,7 @@ export function useSessionLifecycle({
     );
     sessionState.isLoading = true;
     sessionState.isConnecting = true;
+    sessionState.currentPlan = null;
     setSessionState(localId, sessionState);
     activeSessionId.value = localId;
 
@@ -527,6 +542,10 @@ export function useSessionLifecycle({
     const agentName = session?.session?.agentName || session?.agentName || 'unknown';
     const sessionStart = session?.session?.lastUpdated || Date.now();
     const sessionDuration = Math.round((Date.now() - sessionStart) / 1000);
+
+    if (session) {
+      session.currentPlan = null;
+    }
 
     if (bridge) {
       await bridge.disconnect();

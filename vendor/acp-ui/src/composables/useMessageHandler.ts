@@ -13,7 +13,7 @@ import type {
   ToolCallLocation as SdkToolCallLocation,
 } from '@agentclientprotocol/sdk';
 import { trackEvent } from '../lib/telemetry';
-import { normalizeConfigOptions, parseUpdatedAt } from './session-utils';
+import { isRecord, normalizeConfigOptions, parseUpdatedAt } from './session-utils';
 
 interface UseMessageHandlerDeps {
   sessions: Ref<Map<string, SessionState>>;
@@ -31,6 +31,7 @@ type ToolCallUpdateSnapshot = {
   status?: ToolCallInfo['status'] | null;
   locations?: Array<SdkToolCallLocation> | null;
   content?: Array<SdkToolCallContent> | null;
+  _meta?: Record<string, unknown> | null;
 };
 
 function normalizeToolCallLocations(
@@ -55,6 +56,7 @@ function createToolCallInfo(update: ToolCallUpdateSnapshot): ToolCallInfo {
     status: update.status ?? 'pending',
     locations: normalizeToolCallLocations(update.locations),
     content: normalizeToolCallContent(update.content),
+    _meta: isRecord(update._meta) ? update._meta : null,
   };
 }
 
@@ -202,6 +204,9 @@ export function useMessageHandler({
           if (update.locations) {
             existing.locations = normalizeToolCallLocations(update.locations);
           }
+          if (isRecord(update._meta)) {
+            existing._meta = update._meta;
+          }
           // Also update in the message's toolCalls array
           for (const msg of session.messages) {
             if (msg.toolCalls) {
@@ -214,6 +219,9 @@ export function useMessageHandler({
                 }
                 if (update.locations) {
                   tc.locations = normalizeToolCallLocations(update.locations);
+                }
+                if (isRecord(update._meta)) {
+                  tc._meta = update._meta;
                 }
               }
             }
@@ -241,10 +249,24 @@ export function useMessageHandler({
         session.currentModelId = '';
         break;
 
+      case 'plan':
+        if ('entries' in update && Array.isArray(update.entries)) {
+          session.currentPlan = update.entries.map((entry) => ({
+            content: entry.content,
+            priority: entry.priority ?? 'medium',
+            status: entry.status ?? 'pending',
+            _meta: entry._meta ?? null,
+          }));
+        }
+        break;
+
       case 'available_commands_update':
         // Agent advertised slash commands
         if ('availableCommands' in update && Array.isArray(update.availableCommands)) {
-          session.availableCommands = update.availableCommands as AvailableCommand[];
+          session.availableCommands = update.availableCommands.map((command) => ({
+            ...command,
+            _meta: isRecord(command._meta) ? command._meta : null,
+          })) as AvailableCommand[];
         }
         break;
 

@@ -37,6 +37,43 @@ export interface Thought {
   timestamp: string;
 }
 
+export type MemorySearchMode = 'Hybrid' | 'Semantic' | 'FullText';
+
+export type RecentActivityFilter = 'thinking' | 'memory' | 'assumptions' | 'all';
+
+export interface MemoryFile {
+  uri: string;
+  title: string;
+  content: string;
+  created: string | null;
+  modified: string | null;
+}
+
+export interface MemorySearchItem {
+  uri: string;
+  title: string;
+  snippet: string;
+  score: number;
+}
+
+export interface SearchResult {
+  results: MemorySearchItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface RecentActivityItem {
+  uri: string;
+  title: string;
+  modified: string;
+  sections: string[];
+}
+
+export interface RecentResult {
+  items: RecentActivityItem[];
+}
+
 export interface WorkflowTreeWorkflowNode {
   type: 'workflow';
   data: WorkflowSession;

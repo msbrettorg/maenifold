@@ -64,6 +64,8 @@ export interface ToolCallInfo extends AcpMetadataCarrier {
   status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
   locations?: { path: string; line?: number }[];
   content?: Array<{ type: string; [key: string]: unknown }>;
+  rawInput?: Record<string, unknown>;
+  rawOutput?: Record<string, unknown>;
 }
 
 export interface PermissionRequest extends AcpMetadataCarrier {
@@ -133,7 +135,20 @@ export interface AgentInfo extends AcpMetadataCarrier {
 export type PromptCapabilities = SdkPromptCapabilities & AcpMetadataCarrier;
 
 export type AvailableCommand = SdkAvailableCommand & AcpMetadataCarrier;
-export type ContentBlock = SdkContentBlock;
+
+// The ACP SDK content block type is intentionally strict, but maenifold's UI
+// expects these optional fields on resource_link blocks.
+export type ResourceLinkContentBlock = Extract<SdkContentBlock, { type: 'resource_link' }> & {
+  // For resource_link blocks:
+  title?: string | null;
+  description?: string | null;
+  // ACP often encodes int64 sizes as bigint in TypeScript; allow both.
+  size?: number | bigint | null;
+};
+
+export type ContentBlock =
+  | Exclude<SdkContentBlock, { type: 'resource_link' }>
+  | ResourceLinkContentBlock;
 
 export interface PlanEntry extends AcpMetadataCarrier {
   content: string;

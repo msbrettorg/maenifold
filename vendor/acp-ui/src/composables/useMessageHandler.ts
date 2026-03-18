@@ -32,6 +32,8 @@ type ToolCallUpdateSnapshot = {
   status?: ToolCallInfo['status'] | null;
   locations?: Array<SdkToolCallLocation> | null;
   content?: Array<SdkToolCallContent> | null;
+  rawInput?: unknown;
+  rawOutput?: unknown;
   _meta?: Record<string, unknown> | null;
 };
 
@@ -49,6 +51,12 @@ function normalizeToolCallContent(
   return content?.map((item) => ({ ...item }));
 }
 
+function normalizeToolCallPayload(
+  payload: unknown
+): Record<string, unknown> | undefined {
+  return isRecord(payload) ? { ...payload } : undefined;
+}
+
 function createToolCallInfo(update: ToolCallUpdateSnapshot): ToolCallInfo {
   return {
     toolCallId: update.toolCallId,
@@ -57,6 +65,8 @@ function createToolCallInfo(update: ToolCallUpdateSnapshot): ToolCallInfo {
     status: update.status ?? 'pending',
     locations: normalizeToolCallLocations(update.locations),
     content: normalizeToolCallContent(update.content),
+    rawInput: normalizeToolCallPayload(update.rawInput),
+    rawOutput: normalizeToolCallPayload(update.rawOutput),
     _meta: isRecord(update._meta) ? update._meta : null,
   };
 }
@@ -243,6 +253,9 @@ export function useMessageHandler({
           if (update.locations) {
             existing.locations = normalizeToolCallLocations(update.locations);
           }
+          if ('rawOutput' in update) {
+            existing.rawOutput = normalizeToolCallPayload(update.rawOutput);
+          }
           if (isRecord(update._meta)) {
             existing._meta = update._meta;
           }
@@ -258,6 +271,9 @@ export function useMessageHandler({
                 }
                 if (update.locations) {
                   tc.locations = normalizeToolCallLocations(update.locations);
+                }
+                if ('rawOutput' in update) {
+                  tc.rawOutput = normalizeToolCallPayload(update.rawOutput);
                 }
                 if (isRecord(update._meta)) {
                   tc._meta = update._meta;

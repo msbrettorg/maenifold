@@ -199,7 +199,86 @@ function getResourceLinkLabel(block: ContentBlock): string {
     return '';
   }
 
-  return block.name || block.title || block.uri;
+  // Spec: prefer title over name.
+  return block.title || block.name || block.uri;
+}
+
+function getResourceLinkDescription(block: ContentBlock): string | null {
+  if (block.type !== 'resource_link') {
+    return null;
+  }
+
+  if (typeof block.description !== 'string') {
+    return null;
+  }
+
+  const trimmed = block.description.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function formatFileSize(bytes: number | bigint): string {
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];
+
+  // BigInt path (ACP int64)
+  if (typeof bytes === 'bigint') {
+    if (bytes < 1024n) {
+      return `${bytes} B`;
+    }
+
+    let unitIndex = 0;
+    let value = bytes;
+    while (value >= 1024n && unitIndex < units.length - 1) {
+      value = value / 1024n;
+      unitIndex += 1;
+    }
+
+    return `${value} ${units[unitIndex]}`;
+  }
+
+  // Number path
+  if (!Number.isFinite(bytes) || bytes < 0) {
+    return '';
+  }
+
+  if (bytes < 1024) {
+    return `${Math.round(bytes)} B`;
+  }
+
+  let unitIndex = 0;
+  let value = bytes;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  const rounded = value < 10 ? value.toFixed(1) : Math.round(value).toString();
+  return `${rounded} ${units[unitIndex]}`;
+}
+
+function getResourceLinkSizeLabel(block: ContentBlock): string | null {
+  if (block.type !== 'resource_link') {
+    return null;
+  }
+
+  if (block.size == null) {
+    return null;
+  }
+
+  return (typeof block.size === 'number' || typeof block.size === 'bigint')
+    ? formatFileSize(block.size)
+    : null;
+}
+
+function getResourceLinkTooltip(block: ContentBlock): string | null {
+  if (block.type !== 'resource_link') {
+    return null;
+  }
+
+  const description = getResourceLinkDescription(block);
+  const size = getResourceLinkSizeLabel(block);
+  const parts = [description, size].filter((part): part is string => Boolean(part));
+
+  return parts.length ? parts.join(' • ') : null;
 }
 
 function getResourceUri(block: ContentBlock): string {
@@ -328,8 +407,25 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
             :href="block.uri"
             target="_blank"
             rel="noreferrer noopener"
+            :title="getResourceLinkTooltip(block) || undefined"
           >
-            <span>{{ getResourceLinkLabel(block) }}</span>
+            <span class="resource-link-chip__content">
+              <span class="resource-link-chip__label">{{ getResourceLinkLabel(block) }}</span>
+              <span
+                v-if="getResourceLinkDescription(block) || getResourceLinkSizeLabel(block)"
+                class="resource-link-chip__meta"
+              >
+                <span
+                  v-if="getResourceLinkDescription(block)"
+                  class="resource-link-chip__description"
+                >
+                  {{ getResourceLinkDescription(block) }}
+                </span>
+                <span v-if="getResourceLinkSizeLabel(block)" class="resource-link-chip__size">
+                  {{ getResourceLinkSizeLabel(block) }}
+                </span>
+              </span>
+            </span>
             <span class="resource-link-uri">{{ block.uri }}</span>
           </a>
           <div v-else-if="block.type === 'resource'" class="resource-block">
@@ -586,7 +682,7 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
 
 .resource-link-chip {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
   border-radius: 999px;
@@ -596,6 +692,37 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
   text-decoration: none;
   font-size: 0.85rem;
   font-weight: 500;
+}
+
+.resource-link-chip__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.resource-link-chip__label {
+  line-height: 1.1;
+}
+
+.resource-link-chip__meta {
+  display: inline-flex;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted, #666);
+  line-height: 1.1;
+}
+
+.resource-link-chip__description {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource-link-chip__size {
+  white-space: nowrap;
 }
 
 .resource-link-chip:hover {

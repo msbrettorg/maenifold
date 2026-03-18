@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import type { SlashCommand } from '../lib/types';
+import type { AvailableCommand } from '../lib/types';
 
 const props = defineProps<{
-  commands: SlashCommand[];
+  commands: AvailableCommand[];
   filter: string;
   visible: boolean;
 }>();
 
 const emit = defineEmits<{
-  select: [command: SlashCommand];
+  select: [command: AvailableCommand];
   close: [];
 }>();
 
@@ -21,7 +21,7 @@ const filteredCommands = computed(() => {
   if (!filterText) return props.commands;
   return props.commands.filter(cmd => 
     cmd.name.toLowerCase().startsWith(filterText) ||
-    cmd.description.toLowerCase().includes(filterText)
+    (cmd.description ?? '').toLowerCase().includes(filterText)
   );
 });
 
@@ -64,7 +64,7 @@ function handleKeyDown(event: KeyboardEvent) {
 // Expose keyboard handler for parent to call
 defineExpose({ handleKeyDown });
 
-function selectCommand(cmd: SlashCommand) {
+function selectCommand(cmd: AvailableCommand) {
   emit('select', cmd);
 }
 </script>
@@ -86,7 +86,7 @@ function selectCommand(cmd: SlashCommand) {
         <div class="command-row">
           <span class="command-name">/{{ cmd.name }}</span>
           <span class="command-description">{{ cmd.description }}</span>
-          <span v-if="cmd.hint" class="command-hint">{{ cmd.hint }}</span>
+          <span v-if="cmd.input?.hint" class="command-hint">{{ cmd.input.hint }}</span>
         </div>
       </div>
     </div>

@@ -290,10 +290,7 @@ export function useMessageHandler({
       case 'available_commands_update':
         // Agent advertised slash commands
         if ('availableCommands' in update && Array.isArray(update.availableCommands)) {
-          session.availableCommands = update.availableCommands.map((command) => ({
-            ...command,
-            _meta: isRecord(command._meta) ? command._meta : null,
-          })) as AvailableCommand[];
+          session.availableCommands = update.availableCommands as AvailableCommand[];
         }
         break;
 

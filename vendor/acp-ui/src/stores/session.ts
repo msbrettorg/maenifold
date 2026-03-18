@@ -9,7 +9,7 @@ import type {
   PlanEntry,
   PermissionRequest,
   SessionMode,
-  SlashCommand,
+  AvailableCommand,
   ModelInfo,
   SessionConfigOption,
   SessionState,
@@ -169,15 +169,9 @@ export const useSessionStore = defineStore('session', () => {
     () => activeSession.value?.hasConfigOptions ?? false
   );
 
-  const availableCommands = computed<SlashCommand[]>(() => {
-    const cmds = activeSession.value?.availableCommands ?? [];
-    return cmds.map((cmd) => ({
-      name: cmd.name,
-      description: cmd.description,
-      hint: cmd.input?.hint ?? undefined,
-      _meta: cmd._meta ?? null,
-    }));
-  });
+  const availableCommands = computed<AvailableCommand[]>(
+    () => activeSession.value?.availableCommands ?? []
+  );
 
   const currentPlan = computed<PlanEntry[] | null>(
     () => activeSession.value?.currentPlan ?? null

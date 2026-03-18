@@ -117,13 +117,6 @@ export interface SessionConfigOption extends AcpMetadataCarrier {
   options: SessionConfigSelectOptions;
 }
 
-// Slash Commands
-export interface SlashCommand extends AcpMetadataCarrier {
-  name: string;
-  description: string;
-  hint?: string;
-}
-
 // Models
 export interface ModelInfo extends AcpMetadataCarrier {
   modelId: string;

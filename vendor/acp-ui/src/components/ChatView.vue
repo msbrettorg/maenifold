@@ -7,7 +7,7 @@ import ModelPicker from './ModelPicker.vue';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import CommandPalette from './CommandPalette.vue';
 import PlanView from './PlanView.vue';
-import type { ChatMessage, ContentBlock, SlashCommand } from '../lib/types';
+import type { AvailableCommand, ChatMessage, ContentBlock } from '../lib/types';
 
 const sessionStore = useSessionStore();
 const inputText = ref('');
@@ -87,9 +87,9 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
-function handleCommandSelect(command: SlashCommand) {
+function handleCommandSelect(command: AvailableCommand) {
   inputText.value = `/${command.name} `;
-  activeCommandHint.value = command.hint ?? null;
+  activeCommandHint.value = command.input?.hint ?? null;
 }
 
 function handleCommandClose() {
@@ -319,7 +319,8 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
             target="_blank"
             rel="noreferrer noopener"
           >
-            {{ getResourceLinkLabel(block) }}
+            <span>{{ getResourceLinkLabel(block) }}</span>
+            <span class="resource-link-uri">{{ block.uri }}</span>
           </a>
           <div v-else-if="block.type === 'resource'" class="resource-block">
             <div class="resource-label">{{ getResourceUri(block) }}</div>
@@ -569,6 +570,15 @@ function isToolOnlyAssistantMessage(message: ChatMessage): boolean {
 
 .resource-link-chip:hover {
   text-decoration: underline;
+}
+
+.resource-link-uri {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted, #666);
+  font-weight: 400;
 }
 
 .resource-block {

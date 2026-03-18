@@ -108,6 +108,13 @@ async function handleNewSession() {
 async function handleResumeSession(session: SavedSession) {
   selectedAgent.value = session.agentName;
   try {
+    for (const [localId, liveSession] of sessionStore.sessions.entries()) {
+      if (liveSession.session?.sessionId === session.sessionId) {
+        sessionStore.setActiveSession(localId);
+        return;
+      }
+    }
+
     await sessionStore.resumeSession(session);
   } catch (e) {
     console.error('Failed to resume session:', e);
@@ -246,7 +253,7 @@ function clearError() {
         </div>
         
         <!-- Chat View when connected -->
-        <ChatView v-if="isConnected" />
+        <ChatView v-if="isConnected" :key="sessionStore.activeSessionId ?? 'active-session'" />
         
         <!-- Welcome screen when not connected -->
         <div v-else class="welcome-screen">

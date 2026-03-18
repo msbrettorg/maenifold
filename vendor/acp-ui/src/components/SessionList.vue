@@ -15,11 +15,44 @@ const sessions = computed(() =>
   [...sessionStore.resumableSessions].sort((a, b) => b.lastUpdated - a.lastUpdated)
 );
 
+const liveSessionsByRemoteId = computed(() => {
+  const liveSessions = new Map<
+    string,
+    {
+      localId: string;
+      isConnected: boolean;
+      isConnecting: boolean;
+    }
+  >();
+
+  for (const [localId, liveSession] of sessionStore.sessions.entries()) {
+    const remoteSessionId = liveSession.session?.sessionId;
+    if (!remoteSessionId) {
+      continue;
+    }
+
+    liveSessions.set(remoteSessionId, {
+      localId,
+      isConnected: liveSession.isConnected,
+      isConnecting: liveSession.isConnecting,
+    });
+  }
+
+  return liveSessions;
+});
+
 function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleString();
 }
 
 function handleResume(session: SavedSession) {
+  const liveSession = liveSessionsByRemoteId.value.get(session.sessionId);
+
+  if (liveSession) {
+    sessionStore.setActiveSession(liveSession.localId);
+    return;
+  }
+
   emit('resume', session);
 }
 
@@ -28,17 +61,11 @@ function isAgentSession(session: SavedSession): boolean {
 }
 
 function isCurrentConnectedSession(session: SavedSession): boolean {
-  return (
-    sessionStore.currentSession?.sessionId === session.sessionId &&
-    sessionStore.isConnected
-  );
+  return liveSessionsByRemoteId.value.get(session.sessionId)?.isConnected ?? false;
 }
 
 function isCurrentConnectingSession(session: SavedSession): boolean {
-  return (
-    sessionStore.currentSession?.sessionId === session.sessionId &&
-    sessionStore.isConnecting
-  );
+  return liveSessionsByRemoteId.value.get(session.sessionId)?.isConnecting ?? false;
 }
 
 function getDeleteTitle(session: SavedSession): string {
@@ -56,17 +83,19 @@ function getDeleteTitle(session: SavedSession): string {
 async function handleDelete(session: SavedSession, event: Event) {
   event.stopPropagation();
 
-  if (isCurrentConnectedSession(session)) {
-    await sessionStore.disconnect();
+  const liveSession = liveSessionsByRemoteId.value.get(session.sessionId);
+
+  if (liveSession?.isConnected) {
+    await sessionStore.closeSession(liveSession.localId);
     return;
   }
 
-  if (isCurrentConnectingSession(session)) {
-    if (sessionStore.cancelConnection) {
-      await sessionStore.cancelConnection();
-    } else {
-      await sessionStore.disconnect();
+  if (liveSession?.isConnecting) {
+    if (sessionStore.activeSessionId !== liveSession.localId) {
+      sessionStore.setActiveSession(liveSession.localId);
     }
+
+    await sessionStore.cancelConnection();
     return;
   }
 

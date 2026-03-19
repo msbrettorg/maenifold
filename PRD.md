@@ -503,16 +503,14 @@ The pipeline system SHALL use MCP as the **sole** API surface for both the UI an
 - **Execution**: `Pipeline(sessionId=X, run=true)` triggers active execution (see FR-45.15).
 - **Events**: Pipeline execution events SHALL be delivered as MCP notifications (`notifications/pipeline/event`) over the existing `/mcp` connection. No SSE endpoint needed.
 - **Principle**: The UI is an MCP client with a visual interface. It has no special privileges. If the UI can do it, an agent can do it via the same MCP tools. 100% MCP, zero REST, zero SSE.
-- `POST /api/pipelines/sessions/:id/run` — start active execution of a pipeline session. Returns 202 with `runId`.
-- `GET /api/pipelines/sessions/:id/events` — cursor-tracked SSE stream of pipeline execution events. Supports `Last-Event-ID` header for reconnection without data loss. Falls back to polling via `?since={cursor}` query parameter.
 
 #### FR-45.15: Pipeline Active Executor — Sprint 37
 
 The pipeline engine SHALL support active, autonomous execution of pipelines without requiring an external PM agent or manual dispatch loop. When a user clicks "Run Pipeline" in the UI, the engine SHALL execute the full DAG end-to-end.
 
 - **`PipelineEngine`**: A new async executor component SHALL be added to the axum server. It SHALL be constructed once at server startup and shared via `ApiState`.
-- **`AgentProcess` extraction**: The existing `RelayProcess` in `acp/relay.rs` SHALL be refactored into a shared `acp/process.rs` module (`AgentProcess`). Both the WebSocket relay handler and the pipeline executor SHALL use this shared process abstraction. Zero behavior change to the existing relay.
-- **Execution trigger**: `POST /api/pipelines/sessions/:id/run` SHALL spawn a detached `tokio::task` that runs the execution loop. The HTTP handler SHALL return 202 immediately.
+- **`AgentProcess` module**: Subprocess management for spawning and communicating with ACP agents SHALL be implemented in `acp/process.rs`. The pipeline executor SHALL use this module to drive agent subprocesses as an ACP client using the official `agent-client-protocol` Rust crate.
+- **Execution trigger**: `Pipeline(sessionId=X, run=true)` SHALL spawn a detached `tokio::task` that runs the execution loop.
 - **Execution loop**: The executor SHALL:
   1. Load pipeline state from the session file
   2. Compute ready nodes via `compute_ready_set()` (existing pure function)

@@ -3,19 +3,26 @@ import type mermaidType from 'mermaid';
 let mermaidPromise: Promise<typeof mermaidType> | null = null;
 let mermaidRenderSequence = 0;
 
+function getMermaidTheme(): 'dark' | 'default' {
+  const isDark =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  return isDark ? 'dark' : 'default';
+}
+
 async function getMermaid(): Promise<typeof mermaidType> {
   if (!mermaidPromise) {
-    mermaidPromise = import('mermaid').then((module) => {
-      const mermaid = module.default;
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: 'dark',
-      });
-      return mermaid;
-    });
+    mermaidPromise = import('mermaid').then((module) => module.default);
   }
 
-  return mermaidPromise;
+  const mermaid = await mermaidPromise;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: getMermaidTheme(),
+  });
+
+  return mermaid;
 }
 
 function createErrorMessage(error: unknown): HTMLDivElement {

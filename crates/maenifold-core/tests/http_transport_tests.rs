@@ -195,11 +195,11 @@ async fn http_transport_validates_session_ids_on_follow_up_requests() {
         .iter()
         .filter_map(|tool| tool["name"].as_str())
         .collect::<Vec<_>>();
-    // T-17.5: RTM FR-23 (RTM-130) — assert the full 28-tool registry is exposed over HTTP.
+    // T-17.5: RTM FR-23 (RTM-130) — assert the full 29-tool registry is exposed over HTTP.
     assert_eq!(
         tool_names.len(),
-        28,
-        "RTM-130: all 28 tools must be registered over HTTP"
+        29,
+        "RTM-130: all 29 tools must be registered over HTTP"
     );
     assert!(
         tool_names.contains(&"GetConfig"),

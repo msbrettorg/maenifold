@@ -461,6 +461,31 @@ function renderMarkdown(text: string | undefined): string {
   padding: 0;
 }
 
+.step-response :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  display: block;
+}
+
+.step-response :deep(th),
+.step-response :deep(td) {
+  border: 1px solid var(--border-color, #3d3d3d);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.step-response :deep(th) {
+  background: var(--bg-tertiary, #2d2d2d);
+  font-weight: 600;
+}
+
+.step-response :deep(tr:nth-child(even)) {
+  background: var(--bg-secondary, #1e1e1e);
+}
+
 .step-response :deep(ul),
 .step-response :deep(ol) {
   margin: 0.25rem 0;

@@ -36,7 +36,7 @@ fn mcp_initialize_returns_server_info() {
 }
 
 #[test]
-fn mcp_tools_list_returns_all_28_tools_with_schemas() {
+fn mcp_tools_list_returns_all_29_tools_with_schemas() {
     let tmp = isolated_root();
     let mut h = McpTestHarness::spawn(&tmp);
     h.initialize();

@@ -483,6 +483,36 @@ function onAfterLeave(element: Element): void {
   padding: 0;
 }
 
+.thought-content :deep(table),
+.conclusion-content :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  display: block;
+}
+
+.thought-content :deep(th),
+.thought-content :deep(td),
+.conclusion-content :deep(th),
+.conclusion-content :deep(td) {
+  border: 1px solid var(--border-color, #3d3d3d);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.thought-content :deep(th),
+.conclusion-content :deep(th) {
+  background: var(--bg-tertiary, #2d2d2d);
+  font-weight: 600;
+}
+
+.thought-content :deep(tr:nth-child(even)),
+.conclusion-content :deep(tr:nth-child(even)) {
+  background: var(--bg-secondary, #1e1e1e);
+}
+
 .thought-content :deep(.wiki-pill),
 .conclusion-content :deep(.wiki-pill) {
   display: inline-flex;

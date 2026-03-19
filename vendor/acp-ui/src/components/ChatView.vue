@@ -1404,6 +1404,35 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
   font-size: 0.9rem;
 }
 
+.message-content :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  display: block;
+}
+
+.message-content :deep(th),
+.message-content :deep(td) {
+  border: 1px solid var(--border-color, #3d3d3d);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.message-content :deep(th) {
+  background: var(--bg-hover, #2d2d2d);
+  font-weight: 600;
+}
+
+.message-content :deep(tr:nth-child(even)) {
+  background: var(--bg-main, #1e1e1e);
+}
+
+.message-content :deep(tr:hover) {
+  background: var(--bg-hover, #2d2d2d);
+}
+
 .messages-container :deep(.mermaid-rendered) {
   margin: 0.75rem 0;
 }

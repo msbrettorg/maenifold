@@ -20,7 +20,7 @@ fn isolated_root() -> (TempDir, Config) {
 
 // T-12.7: REMOVED — vector_sync_tools_are_registered_case_insensitively
 // Zero unique assertions; fully subsumed by tool_registry_tests.rs which exhaustively
-// tests all 28 tools including case-insensitive invocation with arbitrary mixed-case forms.
+// tests all 29 tools including case-insensitive invocation with arbitrary mixed-case forms.
 
 // T-12.7: MERGED — markdown_reader_sync_should_match_single_pass_extraction_contract
 // Moved to markdown_rw_sync_tests.rs as sync_extract_excludes_wikilinks_in_all_code_contexts.

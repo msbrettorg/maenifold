@@ -10,8 +10,8 @@ use std::time::Duration;
 use tempfile::TempDir;
 
 // T-10.18: RTM NFR-3 — expected tool count must stay in sync with
-// registry.rs DESCRIPTORS (currently 28 tools).
-pub const EXPECTED_TOOL_COUNT: usize = 28;
+// registry.rs DESCRIPTORS (currently 29 tools).
+pub const EXPECTED_TOOL_COUNT: usize = 29;
 
 /// Timeout for receiving a single MCP JSON-RPC response frame.
 const READ_TIMEOUT: Duration = Duration::from_secs(10);

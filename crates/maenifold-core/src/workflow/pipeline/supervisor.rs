@@ -37,9 +37,11 @@ pub(super) fn supervisor_cancel(session_id: &str) -> Result<()> {
         MaenifoldError::InvalidArgument(format!("Pipeline {session_id} isn't running"))
     })?;
 
-    let _ = send_signal(handle.pid, libc::SIGTERM)?;
+    // Signal the process GROUP (negative PID) so the entire tree is terminated,
+    // not just the bash wrapper. process_group(0) in spawn makes PGID == PID.
+    let _ = send_signal_group(handle.pid, libc::SIGTERM)?;
     if !wait_for_exit(&mut handle.child, Duration::from_secs(5))? {
-        let _ = send_signal(handle.pid, libc::SIGKILL)?;
+        let _ = send_signal_group(handle.pid, libc::SIGKILL)?;
         let _ = wait_for_exit(&mut handle.child, Duration::from_secs(1))?;
     }
 
@@ -65,7 +67,7 @@ pub(super) fn supervisor_clear_all() {
     };
 
     for (_, mut handle) in handles {
-        let _ = send_signal(handle.pid, libc::SIGKILL);
+        let _ = send_signal_group(handle.pid, libc::SIGKILL);
         let _ = wait_for_exit(&mut handle.child, Duration::from_secs(1));
     }
 }
@@ -76,6 +78,14 @@ fn spawn_supervised_command(session_id: &str, mut command: Command) -> Result<u3
         return Err(MaenifoldError::InvalidArgument(format!(
             "Pipeline {session_id} is already running"
         )));
+    }
+
+    // Create a new process group so cancel signals the entire tree
+    // (bash + maenifold-acp + acpx grandchildren), not just the wrapper.
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
     }
 
     let child = command.spawn()?;
@@ -142,9 +152,11 @@ fn poll_process_exit(pid: u32) -> ProcessState {
     }
 }
 
-fn send_signal(pid: u32, signal: i32) -> Result<bool> {
+/// Signal the entire process group (PGID == PID because we set process_group(0) on spawn).
+fn send_signal_group(pid: u32, signal: i32) -> Result<bool> {
     loop {
-        let result = unsafe { libc::kill(pid as i32, signal) };
+        // Negative PID signals the process group, not just the leader
+        let result = unsafe { libc::kill(-(pid as i32), signal) };
         if result == 0 {
             return Ok(true);
         }

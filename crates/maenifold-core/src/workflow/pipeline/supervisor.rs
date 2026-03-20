@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::read_markdown;
+use crate::markdown::{get_memory_files, read_markdown};
 use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
@@ -32,7 +32,64 @@ pub(super) struct RunHandle {
 }
 
 pub(super) fn supervisor_run(root: &Path, session_id: &str, prompt: &str) -> Result<u32> {
+    let _ = supervisor_detect_orphans(root);
     spawn_supervised(session_id, root, prompt)
+}
+
+pub(super) fn supervisor_detect_orphans(root: &Path) -> usize {
+    let context = supervisor_context(root);
+    let Ok(session_uris) = get_memory_files(&context.config, Some("memory://pipelines")) else {
+        eprintln!("[pipeline-supervisor] failed to list pipeline sessions for orphan detection");
+        return 0;
+    };
+
+    let orphan_session_ids = {
+        let guard = SUPERVISOR.lock();
+        session_uris
+            .into_iter()
+            .filter_map(|uri| {
+                let Ok((frontmatter, _, _)) = read_markdown(&uri, &context.config) else {
+                    eprintln!(
+                        "[pipeline-supervisor] failed to read pipeline session {} during orphan detection",
+                        uri
+                    );
+                    return None;
+                };
+                let Some(frontmatter) = frontmatter else {
+                    eprintln!(
+                        "[pipeline-supervisor] pipeline session {} has invalid frontmatter during orphan detection",
+                        uri
+                    );
+                    return None;
+                };
+                let Ok(status) = frontmatter_value::<String>(&frontmatter, "status") else {
+                    eprintln!(
+                        "[pipeline-supervisor] pipeline session {} is missing status during orphan detection",
+                        uri
+                    );
+                    return None;
+                };
+                if !matches!(status.as_str(), "active" | "paused") {
+                    return None;
+                }
+
+                let Some(session_id) = uri.split('/').next_back() else {
+                    return None;
+                };
+                if guard.contains_key(session_id) {
+                    return None;
+                }
+
+                Some(session_id.to_string())
+            })
+            .collect::<Vec<_>>()
+    };
+
+    for session_id in &orphan_session_ids {
+        mark_pipeline_stuck(root, session_id);
+    }
+
+    orphan_session_ids.len()
 }
 
 pub(super) fn supervisor_cancel(session_id: &str) -> Result<()> {
@@ -684,5 +741,108 @@ mod tests {
                 .and_then(YamlValue::as_str),
             Some("stuck")
         );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_detect_orphans_marks_stuck() {
+        let (_tmp, context, _config_reset) = pipeline_test_context(OutputFormat::Json);
+        let _reset = reset_supervisor();
+        let pipeline_id = "pipeline-1735689601000";
+        let workflow_id = "workflow-1735689601000-root";
+        let definition = PipelineDefinition {
+            nodes: vec![PipelineNode {
+                id: "root".to_string(),
+                workflow_id: "test-workflow-a".to_string(),
+                acp_client: None,
+            }],
+            edges: vec![],
+        };
+        let node_states = HashMap::from([(
+            "root".to_string(),
+            NodeState {
+                session_id: workflow_id.to_string(),
+                status: NodeStatus::Active,
+                attempts: 0,
+            },
+        )]);
+        seed_pipeline_session_with_workflows(&context, pipeline_id, definition, node_states, 1);
+
+        let orphan_count = supervisor_detect_orphans(context.config.maenifold_root.as_path());
+
+        assert_eq!(orphan_count, 1);
+
+        let (frontmatter, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
+                .expect("read pipeline");
+        let frontmatter = frontmatter.expect("pipeline frontmatter");
+        assert_eq!(
+            frontmatter.get("status").and_then(YamlValue::as_str),
+            Some("stuck")
+        );
+
+        let (workflow_frontmatter, _, _) =
+            read_markdown(&workflow_session_uri(workflow_id), &context.config)
+                .expect("read workflow");
+        let workflow_frontmatter = workflow_frontmatter.expect("workflow frontmatter");
+        assert_eq!(
+            workflow_frontmatter
+                .get("status")
+                .and_then(YamlValue::as_str),
+            Some("stuck")
+        );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_detect_orphans_skips_running() {
+        let (_tmp, context, _config_reset) = pipeline_test_context(OutputFormat::Json);
+        let _reset = reset_supervisor();
+        let pipeline_id = "pipeline-1735689601001";
+        let workflow_id = "workflow-1735689601001-root";
+        let definition = PipelineDefinition {
+            nodes: vec![PipelineNode {
+                id: "root".to_string(),
+                workflow_id: "test-workflow-a".to_string(),
+                acp_client: None,
+            }],
+            edges: vec![],
+        };
+        let node_states = HashMap::from([(
+            "root".to_string(),
+            NodeState {
+                session_id: workflow_id.to_string(),
+                status: NodeStatus::Active,
+                attempts: 0,
+            },
+        )]);
+        seed_pipeline_session_with_workflows(&context, pipeline_id, definition, node_states, 1);
+        supervisor_spawn_test_process(pipeline_id, "sleep", &["30"]).expect("spawn process");
+
+        let orphan_count = supervisor_detect_orphans(context.config.maenifold_root.as_path());
+
+        assert_eq!(orphan_count, 0);
+
+        let (frontmatter, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
+                .expect("read pipeline");
+        let frontmatter = frontmatter.expect("pipeline frontmatter");
+        assert_eq!(
+            frontmatter.get("status").and_then(YamlValue::as_str),
+            Some("active")
+        );
+
+        let (workflow_frontmatter, _, _) =
+            read_markdown(&workflow_session_uri(workflow_id), &context.config)
+                .expect("read workflow");
+        let workflow_frontmatter = workflow_frontmatter.expect("workflow frontmatter");
+        assert_eq!(
+            workflow_frontmatter
+                .get("status")
+                .and_then(YamlValue::as_str),
+            Some("active")
+        );
+
+        supervisor_cancel(pipeline_id).expect("cleanup");
     }
 }

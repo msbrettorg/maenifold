@@ -183,14 +183,22 @@ pub(super) fn delete_pipeline_session_files(
     for state in node_states.values() {
         if workflow_session_ids.insert(state.session_id.clone()) {
             let workflow_uri = workflow_session_uri(&state.session_id);
+            let exists = file_exists(&workflow_uri, &context.config).unwrap_or(false);
+            if !exists {
+                skipped_files += 1;
+                eprintln!(
+                    "Warning: workflow session {} not found, skipping",
+                    state.session_id
+                );
+                continue;
+            }
             match delete_file(&workflow_uri, &context.config) {
                 Ok(()) => cleaned_up_files += 1,
                 Err(err) => {
-                    skipped_files += 1;
-                    eprintln!(
-                        "Warning: failed to delete workflow session {}: {}",
+                    return Err(MaenifoldError::Message(format!(
+                        "Failed to delete workflow session {}: {}",
                         state.session_id, err
-                    );
+                    )));
                 }
             }
         }

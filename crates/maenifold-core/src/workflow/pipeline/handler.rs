@@ -25,6 +25,7 @@ use super::session_io::{
 };
 #[cfg(test)]
 use super::test_support;
+use super::supervisor::{supervisor_cancel, supervisor_is_running, supervisor_run};
 use super::update::{restart_pipeline_node, update_pipeline_node_status};
 use super::view::{build_pipeline_view_result, view_pipeline_session};
 use super::{NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline};
@@ -135,7 +136,8 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
     }
 
     if let Some(session_id) = session_id.filter(|_| run) {
-        return run_pipeline(context, session_id);
+        let prompt = payload.get("prompt").and_then(Value::as_str);
+        return run_pipeline(context, session_id, prompt);
     }
 
     if let Some(session_id) = session_id.filter(|_| pause) {
@@ -266,6 +268,9 @@ fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
     let node_states: HashMap<String, NodeState> = frontmatter_value(&frontmatter, "nodeStates")?;
 
+    // Guard uses stored frontmatter states (not derived from workflow files) so delete
+    // works even when workflow session files are missing. Trade-off: frontmatter may lag
+    // behind actual workflow file status if a dispatch/view cycle hasn't run recently.
     if node_states
         .values()
         .any(|state| matches!(state.status, NodeStatus::Active))
@@ -288,10 +293,50 @@ fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     })
 }
 
-fn run_pipeline(_context: &ToolContext, _session_id: &str) -> Result<String> {
-    Err(MaenifoldError::Message(
-        "Pipeline run operation isn't implemented yet".to_string(),
-    ))
+fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -> Result<String> {
+    let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    let node_states =
+        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+
+    if node_states
+        .values()
+        .any(|state| matches!(state.status, NodeStatus::Active))
+    {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Pipeline {session_id} already has active nodes"
+        )));
+    }
+
+    if supervisor_is_running(session_id) {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Pipeline {session_id} is already running"
+        )));
+    }
+
+    let pid = supervisor_run(
+        context.config.maenifold_root.as_path(),
+        session_id,
+        prompt.unwrap_or(""),
+    )?;
+    persist_pipeline_state_with_status(
+        &mut frontmatter,
+        &node_states,
+        Some("active"),
+        &uri,
+        &pipeline_content,
+        context,
+    )?;
+
+    let result = json!({
+        "status": "started",
+        "pid": pid,
+        "sessionId": session_id,
+    });
+
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
 }
 
 fn pause_pipeline(_context: &ToolContext, _session_id: &str) -> Result<String> {
@@ -306,10 +351,36 @@ fn resume_pipeline(_context: &ToolContext, _session_id: &str) -> Result<String> 
     ))
 }
 
-fn cancel_pipeline(_context: &ToolContext, _session_id: &str) -> Result<String> {
-    Err(MaenifoldError::Message(
-        "Pipeline cancel operation isn't implemented yet".to_string(),
-    ))
+fn cancel_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
+    if !supervisor_is_running(session_id) {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Pipeline {session_id} isn't running"
+        )));
+    }
+
+    supervisor_cancel(session_id)?;
+
+    let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    let node_states =
+        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    persist_pipeline_state_with_status(
+        &mut frontmatter,
+        &node_states,
+        Some("cancelled"),
+        &uri,
+        &pipeline_content,
+        context,
+    )?;
+
+    let result = json!({
+        "status": "cancelled",
+        "sessionId": session_id,
+    });
+
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
 }
 
 fn rewind_pipeline(
@@ -1091,7 +1162,7 @@ mod tests {
         for (payload, expected_error) in [
             (
                 json!({ "sessionId": "pipeline-missing", "run": true }),
-                "Pipeline run operation isn't implemented yet",
+                "Session pipeline-missing doesn't exist",
             ),
             (
                 json!({ "sessionId": "pipeline-missing", "pause": true }),
@@ -1103,7 +1174,7 @@ mod tests {
             ),
             (
                 json!({ "sessionId": "pipeline-missing", "cancel": true }),
-                "Pipeline cancel operation isn't implemented yet",
+                "Pipeline pipeline-missing isn't running",
             ),
             (
                 json!({ "sessionId": "pipeline-missing", "rewind": { "nodeIds": ["root"] } }),
@@ -1255,6 +1326,123 @@ mod tests {
         assert!(registry.contains("Pipeline"));
         assert!(registry.contains("pipeline"));
         assert!(registry.canonical_names().contains(&"Pipeline"));
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_run_starts_supervisor_and_reports_pid() {
+        let (tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        super::supervisor::supervisor_clear_all();
+        std::fs::write(
+            tmp.path().join("maenifold-acp"),
+            "#!/usr/bin/env bash
+sleep 30
+",
+        )
+        .expect("write maenifold-acp stub");
+
+        let pipeline_id = "pipeline-1735689600991";
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![super::super::PipelineNode {
+                    id: "root".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                }],
+                edges: vec![],
+            },
+            HashMap::from([(
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600991-root".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            )]),
+            1,
+        );
+
+        let output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "run": true, "prompt": "ship it" }),
+        )
+        .expect("run pipeline");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+        let pid = data.get("pid").and_then(Value::as_u64).expect("pid");
+
+        assert_eq!(data.get("status").and_then(Value::as_str), Some("started"));
+        assert_eq!(data.get("sessionId").and_then(Value::as_str), Some(pipeline_id));
+        assert!(pid > 0);
+        assert!(super::supervisor::supervisor_is_running(pipeline_id));
+
+        let view_output = pipeline(&context, &json!({ "sessionId": pipeline_id, "view": true }))
+            .expect("view running pipeline");
+        let view_response: Value = serde_json::from_str(&view_output).expect("parse response");
+        let view_data = view_response.get("data").expect("view data");
+        assert_eq!(view_data.get("running").and_then(Value::as_bool), Some(true));
+        assert_eq!(view_data.get("pid").and_then(Value::as_u64), Some(pid));
+        assert_eq!(view_data.get("attempts").and_then(Value::as_u64), Some(0));
+
+        super::supervisor::supervisor_cancel(pipeline_id).expect("cancel running process");
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_cancel_stops_supervisor_and_marks_pipeline_cancelled() {
+        let (tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        super::supervisor::supervisor_clear_all();
+        std::fs::write(
+            tmp.path().join("maenifold-acp"),
+            "#!/usr/bin/env bash
+sleep 30
+",
+        )
+        .expect("write maenifold-acp stub");
+
+        let pipeline_id = "pipeline-1735689600992";
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![super::super::PipelineNode {
+                    id: "root".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                }],
+                edges: vec![],
+            },
+            HashMap::from([(
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600992-root".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            )]),
+            1,
+        );
+
+        pipeline(&context, &json!({ "sessionId": pipeline_id, "run": true }))
+            .expect("start pipeline");
+        let output = pipeline(&context, &json!({ "sessionId": pipeline_id, "cancel": true }))
+            .expect("cancel pipeline");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+
+        assert_eq!(data.get("status").and_then(Value::as_str), Some("cancelled"));
+        assert_eq!(data.get("sessionId").and_then(Value::as_str), Some(pipeline_id));
+        assert!(!super::supervisor::supervisor_is_running(pipeline_id));
+
+        let (frontmatter, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read file");
+        let frontmatter = frontmatter.expect("frontmatter");
+        assert_eq!(
+            frontmatter.get("status").and_then(YamlValue::as_str),
+            Some("cancelled")
+        );
     }
 
     #[test]

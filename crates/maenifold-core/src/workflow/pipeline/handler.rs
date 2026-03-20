@@ -23,7 +23,9 @@ use super::session_io::{
     persist_pipeline_state_with_status, read_pipeline_session, write_pipeline_session,
     write_workflow_node_session, write_workflow_node_session_with_status,
 };
-use super::supervisor::{supervisor_cancel, supervisor_is_running, supervisor_run};
+use super::supervisor::{
+    supervisor_cancel, supervisor_is_running, supervisor_pause, supervisor_resume, supervisor_run,
+};
 #[cfg(test)]
 use super::test_support;
 use super::update::{restart_pipeline_node, update_pipeline_node_status};
@@ -339,16 +341,99 @@ fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -
     })
 }
 
-fn pause_pipeline(_context: &ToolContext, _session_id: &str) -> Result<String> {
-    Err(MaenifoldError::Message(
-        "Pipeline pause operation isn't implemented yet".to_string(),
-    ))
+fn pause_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
+    #[cfg(not(unix))]
+    {
+        let _ = (context, session_id);
+        return Err(MaenifoldError::Message(
+            "Pipeline pause is not supported on this platform".to_string(),
+        ));
+    }
+
+    #[cfg(unix)]
+    {
+        if !supervisor_is_running(session_id) {
+            return Err(MaenifoldError::InvalidArgument(format!(
+                "Pipeline {session_id} isn't running"
+            )));
+        }
+
+        let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+        let node_states =
+            derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+        let pid = supervisor_pause(session_id)?;
+        persist_pipeline_state_with_status(
+            &mut frontmatter,
+            &node_states,
+            Some("paused"),
+            &uri,
+            &pipeline_content,
+            context,
+        )?;
+
+        let result = json!({
+            "status": "paused",
+            "sessionId": session_id,
+            "pid": pid,
+        });
+
+        Ok(match context.output_format {
+            OutputFormat::Json => success(result),
+            OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+        })
+    }
 }
 
-fn resume_pipeline(_context: &ToolContext, _session_id: &str) -> Result<String> {
-    Err(MaenifoldError::Message(
-        "Pipeline resume operation isn't implemented yet".to_string(),
-    ))
+fn resume_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
+    #[cfg(not(unix))]
+    {
+        let _ = (context, session_id);
+        return Err(MaenifoldError::Message(
+            "Pipeline resume is not supported on this platform".to_string(),
+        ));
+    }
+
+    #[cfg(unix)]
+    {
+        let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+        let node_states =
+            derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+        let pipeline_status = frontmatter
+            .get("status")
+            .and_then(YamlValue::as_str)
+            .unwrap_or_default();
+
+        if !supervisor_is_running(session_id) {
+            return Err(if pipeline_status == "paused" {
+                MaenifoldError::InvalidArgument(
+                    "Pipeline process is no longer running; use run to restart".to_string(),
+                )
+            } else {
+                MaenifoldError::InvalidArgument(format!("Pipeline {session_id} isn't running"))
+            });
+        }
+
+        let pid = supervisor_resume(session_id)?;
+        persist_pipeline_state_with_status(
+            &mut frontmatter,
+            &node_states,
+            Some("active"),
+            &uri,
+            &pipeline_content,
+            context,
+        )?;
+
+        let result = json!({
+            "status": "resumed",
+            "sessionId": session_id,
+            "pid": pid,
+        });
+
+        Ok(match context.output_format {
+            OutputFormat::Json => success(result),
+            OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+        })
+    }
 }
 
 fn cancel_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
@@ -1166,11 +1251,11 @@ mod tests {
             ),
             (
                 json!({ "sessionId": "pipeline-missing", "pause": true }),
-                "Pipeline pause operation isn't implemented yet",
+                "Pipeline pipeline-missing isn't running",
             ),
             (
                 json!({ "sessionId": "pipeline-missing", "resume": true }),
-                "Pipeline resume operation isn't implemented yet",
+                "Session pipeline-missing doesn't exist",
             ),
             (
                 json!({ "sessionId": "pipeline-missing", "cancel": true }),
@@ -1460,6 +1545,115 @@ sleep 30
             frontmatter.get("status").and_then(YamlValue::as_str),
             Some("cancelled")
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    #[serial(config)]
+    fn pipeline_pause_and_pipeline_resume_updates_status() {
+        let (tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        super::super::supervisor::supervisor_clear_all();
+        std::fs::write(
+            tmp.path().join("maenifold-acp"),
+            "#!/usr/bin/env bash
+sleep 30
+",
+        )
+        .expect("write maenifold-acp stub");
+
+        let pipeline_id = "pipeline-1735689600993";
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![super::super::PipelineNode {
+                    id: "root".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                }],
+                edges: vec![],
+            },
+            HashMap::from([(
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600993-root".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            )]),
+            1,
+        );
+
+        pipeline(&context, &json!({ "sessionId": pipeline_id, "run": true }))
+            .expect("start pipeline");
+
+        let pause_output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "pause": true }),
+        )
+        .expect("pause pipeline");
+        let pause_response: Value = serde_json::from_str(&pause_output).expect("parse response");
+        let pause_data = pause_response.get("data").expect("pause data");
+
+        assert_eq!(
+            pause_data.get("status").and_then(Value::as_str),
+            Some("paused")
+        );
+        assert_eq!(
+            pause_data.get("sessionId").and_then(Value::as_str),
+            Some(pipeline_id)
+        );
+        assert!(
+            pause_data
+                .get("pid")
+                .and_then(Value::as_u64)
+                .unwrap_or_default()
+                > 0,
+            "pause should return pid"
+        );
+
+        let (frontmatter, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read file");
+        let frontmatter = frontmatter.expect("frontmatter");
+        assert_eq!(
+            frontmatter.get("status").and_then(YamlValue::as_str),
+            Some("paused")
+        );
+
+        let resume_output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "resume": true }),
+        )
+        .expect("resume pipeline");
+        let resume_response: Value = serde_json::from_str(&resume_output).expect("parse response");
+        let resume_data = resume_response.get("data").expect("resume data");
+
+        assert_eq!(
+            resume_data.get("status").and_then(Value::as_str),
+            Some("resumed")
+        );
+        assert_eq!(
+            resume_data.get("sessionId").and_then(Value::as_str),
+            Some(pipeline_id)
+        );
+        assert!(
+            resume_data
+                .get("pid")
+                .and_then(Value::as_u64)
+                .unwrap_or_default()
+                > 0,
+            "resume should return pid"
+        );
+
+        let (frontmatter, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read file");
+        let frontmatter = frontmatter.expect("frontmatter");
+        assert_eq!(
+            frontmatter.get("status").and_then(YamlValue::as_str),
+            Some("active")
+        );
+
+        super::super::supervisor::supervisor_cancel(pipeline_id).expect("cleanup running process");
     }
 
     #[test]

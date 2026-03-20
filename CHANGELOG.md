@@ -5,6 +5,31 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 52 — Pipeline Active Executor: Supervisor — 2026-03-20
+
+### Added
+- **Resident supervisor** (T-52.3): `maenifold-acp pipeline` runs as a managed child process with full lifecycle controls
+  - `run`: spawn supervised process with process group isolation
+  - `cancel`: signal entire process tree via negative PGID
+  - `pause`/`resume`: SIGSTOP/SIGCONT to process group with frontmatter state persistence
+  - `status`: PID, uptime, and restart attempts
+- **Health monitoring + auto-restart**: monitor thread distinguishes ExitedClean/ExitedCrash/Gone; auto-restarts on crash up to 3 attempts; marks pipeline stuck on exhaustion
+- **Orphan detection** (T-52.3 Wave 2c): `supervisor_detect_orphans` scans active/paused pipelines on run, marks untracked sessions stuck
+
+### Fixed
+- **Delete best-effort** (T-52.2): distinguish NotFound from IO errors; frontmatter-based active guard prevents deletion of running pipelines
+- **Signal delivery check**: `supervisor_pause`/`resume` now error on ESRCH (process gone) instead of silently succeeding
+- **Resume pre-condition**: `resume_pipeline` rejects calls when pipeline is not paused
+- **Process group termination**: `process_group(0)` + `kill(-(pid))` ensures entire subprocess tree is signaled on cancel
+- **Dispatch test flakiness**: all 9 dispatch tests annotated with `#[serial(config)]` to prevent parallel config corruption
+
+### Pipeline Stats
+- 95 pipeline tests passing (was 68 at sprint start)
+- 11 test gaps closed from Opus blue-team audit (B+ grade)
+- 3 red-team audits, 4 findings fixed, 2 deferred (TOCTOU, PID reuse)
+
+---
+
 ## Sprint 35 — Upstream UI Rebuild + ACP Compliance — 2026-03-18
 
 ### Added

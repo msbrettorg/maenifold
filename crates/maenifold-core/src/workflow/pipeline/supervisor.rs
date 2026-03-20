@@ -66,7 +66,11 @@ pub(super) fn supervisor_pause(session_id: &str) -> Result<u32> {
         let handle = guard.get(session_id).ok_or_else(|| {
             MaenifoldError::InvalidArgument(format!("Pipeline {session_id} isn't running"))
         })?;
-        send_signal_group(handle.pid, libc::SIGSTOP)?;
+        if !send_signal_group(handle.pid, libc::SIGSTOP)? {
+            return Err(MaenifoldError::InvalidArgument(format!(
+                "Pipeline {session_id} process group no longer exists"
+            )));
+        }
         Ok(handle.pid)
     }
 }
@@ -86,7 +90,11 @@ pub(super) fn supervisor_resume(session_id: &str) -> Result<u32> {
         let handle = guard.get(session_id).ok_or_else(|| {
             MaenifoldError::InvalidArgument(format!("Pipeline {session_id} isn't running"))
         })?;
-        send_signal_group(handle.pid, libc::SIGCONT)?;
+        if !send_signal_group(handle.pid, libc::SIGCONT)? {
+            return Err(MaenifoldError::InvalidArgument(format!(
+                "Pipeline {session_id} process group no longer exists"
+            )));
+        }
         Ok(handle.pid)
     }
 }

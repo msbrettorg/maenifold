@@ -403,14 +403,16 @@ fn resume_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
             .and_then(YamlValue::as_str)
             .unwrap_or_default();
 
+        if pipeline_status != "paused" {
+            return Err(MaenifoldError::InvalidArgument(format!(
+                "Pipeline {session_id} is not paused (status: {pipeline_status})"
+            )));
+        }
+
         if !supervisor_is_running(session_id) {
-            return Err(if pipeline_status == "paused" {
-                MaenifoldError::InvalidArgument(
-                    "Pipeline process is no longer running; use run to restart".to_string(),
-                )
-            } else {
-                MaenifoldError::InvalidArgument(format!("Pipeline {session_id} isn't running"))
-            });
+            return Err(MaenifoldError::InvalidArgument(
+                "Pipeline process is no longer running; use run to restart".to_string(),
+            ));
         }
 
         let pid = supervisor_resume(session_id)?;

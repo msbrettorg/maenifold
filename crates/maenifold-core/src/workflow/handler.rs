@@ -293,6 +293,7 @@ mod tests {
     use crate::markdown::{Frontmatter, read_markdown, write_markdown};
     use crate::util::json::OutputFormat;
     use serde_json::json;
+    use serial_test::serial;
     use std::fs;
     use tempfile::TempDir;
 
@@ -395,6 +396,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn status_lifecycle_rejects_pending_session() {
         let (_tmp, context, _reset) = workflow_test_context();
         let session_id = "workflow-1735689600000-pending";
@@ -418,6 +420,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn status_lifecycle_rejects_completed_session() {
         let (_tmp, context, _reset) = workflow_test_context();
         let session_id = "workflow-1735689600001-completed";
@@ -441,6 +444,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn status_lifecycle_rejects_abandoned_session() {
         let (_tmp, context, _reset) = workflow_test_context();
         let session_id = "workflow-1735689600002-abandoned";
@@ -464,6 +468,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn status_lifecycle_promotes_ready_session_to_active() {
         let (_tmp, context, _reset) = workflow_test_context();
         let session_id = "workflow-1735689600003-ready";
@@ -494,6 +499,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn status_lifecycle_treats_missing_status_as_active() {
         let (_tmp, context, _reset) = workflow_test_context();
         let session_id = "workflow-1735689600004-legacy";

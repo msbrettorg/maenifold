@@ -6,7 +6,7 @@ autotests = false
 
 [dependencies]
 anyhow.workspace = true
-axum = { workspace = true, features = ["ws"] }
+axum.workspace = true
 base64.workspace = true
 chrono.workspace = true
 gray_matter.workspace = true
@@ -15,6 +15,7 @@ mime_guess = { version = "2" }
 notify = { version = "7", features = ["macos_fsevent"] }
 once_cell.workspace = true
 parking_lot.workspace = true
+petgraph = { version = "0.8", features = ["stable_graph", "serde-1"] }
 pulldown-cmark.workspace = true
 regex.workspace = true
 rust-embed = { version = "8", features = ["interpolate-folder-path"] }
@@ -47,6 +48,7 @@ assert_cmd.workspace = true
 ctor = "0.4"
 predicates.workspace = true
 reqwest.workspace = true
+serial_test = "3"
 similar-asserts.workspace = true
 tempfile.workspace = true
 filetime = "0.2.25"

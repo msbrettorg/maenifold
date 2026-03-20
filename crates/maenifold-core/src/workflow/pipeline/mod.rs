@@ -1,9 +1,16 @@
 use crate::error::{MaenifoldError, Result};
-use std::collections::{HashMap, HashSet, VecDeque};
+use petgraph::algo::is_cyclic_directed;
+use std::collections::HashSet;
 
+mod dispatch;
 mod engine;
 mod handler;
+mod session_io;
+#[cfg(test)]
+mod test_support;
 mod types;
+mod update;
+mod view;
 
 pub use engine::{compute_pipeline_status, compute_ready_set};
 pub use handler::pipeline;
@@ -17,8 +24,6 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
     }
 
     let mut node_ids = HashSet::with_capacity(definition.nodes.len());
-    let mut in_degree = HashMap::with_capacity(definition.nodes.len());
-    let mut adjacency: HashMap<&str, Vec<&str>> = HashMap::with_capacity(definition.nodes.len());
 
     for node in &definition.nodes {
         if !node_ids.insert(node.id.as_str()) {
@@ -27,10 +32,9 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
                 node.id
             )));
         }
-
-        in_degree.insert(node.id.as_str(), 0usize);
-        adjacency.entry(node.id.as_str()).or_default();
     }
+
+    let mut edge_pairs = HashSet::with_capacity(definition.edges.len());
 
     for edge in &definition.edges {
         if !node_ids.contains(edge.source.as_str()) {
@@ -47,34 +51,15 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
             )));
         }
 
-        adjacency
-            .entry(edge.source.as_str())
-            .or_default()
-            .push(edge.target.as_str());
-        *in_degree.entry(edge.target.as_str()).or_default() += 1;
-    }
-
-    let mut ready = VecDeque::from_iter(definition.nodes.iter().filter_map(|node| {
-        (in_degree.get(node.id.as_str()) == Some(&0)).then_some(node.id.as_str())
-    }));
-    let mut processed = 0usize;
-
-    while let Some(node_id) = ready.pop_front() {
-        processed += 1;
-
-        if let Some(targets) = adjacency.get(node_id) {
-            for target in targets {
-                if let Some(target_degree) = in_degree.get_mut(target) {
-                    *target_degree -= 1;
-                    if *target_degree == 0 {
-                        ready.push_back(target);
-                    }
-                }
-            }
+        if !edge_pairs.insert((edge.source.as_str(), edge.target.as_str())) {
+            return Err(MaenifoldError::InvalidArgument(format!(
+                "Pipeline contains duplicate edge '{} -> {}'",
+                edge.source, edge.target
+            )));
         }
     }
 
-    if processed != definition.nodes.len() {
+    if is_cyclic_directed(&definition.build_graph()) {
         return Err(MaenifoldError::InvalidArgument(
             "Pipeline definition contains a cycle".to_string(),
         ));
@@ -123,53 +108,40 @@ mod tests {
     }
 
     #[test]
-    fn pipeline_validation_accepts_valid_acyclic_definition() {
-        let definition = sample_definition();
-
-        assert!(validate_pipeline(&definition).is_ok());
-    }
-
-    #[test]
-    fn pipeline_validation_rejects_empty_nodes() {
+    fn validate_pipeline_rejects_empty_node_list() {
         let definition = PipelineDefinition {
-            nodes: Vec::new(),
-            edges: Vec::new(),
+            nodes: vec![],
+            edges: vec![],
         };
 
-        let err = validate_pipeline(&definition).expect_err("empty pipeline should fail");
-        assert!(
-            err.to_string().contains("at least one node"),
-            "unexpected error: {err}"
-        );
+        let error = validate_pipeline(&definition).expect_err("expected empty pipeline to fail");
+        assert!(error.to_string().contains("must contain at least one node"));
     }
 
     #[test]
-    fn pipeline_validation_rejects_duplicate_node_ids() {
+    fn validate_pipeline_rejects_duplicate_node_ids() {
         let definition = PipelineDefinition {
             nodes: vec![
                 PipelineNode {
-                    id: "duplicate".to_string(),
+                    id: "dup".to_string(),
                     workflow_id: "workflow-a".to_string(),
                     acp_client: None,
                 },
                 PipelineNode {
-                    id: "duplicate".to_string(),
+                    id: "dup".to_string(),
                     workflow_id: "workflow-b".to_string(),
                     acp_client: None,
                 },
             ],
-            edges: Vec::new(),
+            edges: vec![],
         };
 
-        let err = validate_pipeline(&definition).expect_err("duplicate nodes should fail");
-        assert!(
-            err.to_string().contains("duplicate node ID"),
-            "unexpected error: {err}"
-        );
+        let error = validate_pipeline(&definition).expect_err("expected duplicate IDs to fail");
+        assert!(error.to_string().contains("duplicate node ID 'dup'"));
     }
 
     #[test]
-    fn pipeline_validation_rejects_unknown_edge_source() {
+    fn validate_pipeline_rejects_unknown_edge_source() {
         let mut definition = sample_definition();
         definition.edges.push(PipelineEdge {
             source: "missing".to_string(),
@@ -177,31 +149,25 @@ mod tests {
             edge_type: EdgeType::Success,
         });
 
-        let err = validate_pipeline(&definition).expect_err("missing source should fail");
-        assert!(
-            err.to_string().contains("unknown source node"),
-            "unexpected error: {err}"
-        );
+        let error = validate_pipeline(&definition).expect_err("expected missing source to fail");
+        assert!(error.to_string().contains("unknown source node 'missing'"));
     }
 
     #[test]
-    fn pipeline_validation_rejects_unknown_edge_target() {
+    fn validate_pipeline_rejects_unknown_edge_target() {
         let mut definition = sample_definition();
         definition.edges.push(PipelineEdge {
             source: "a".to_string(),
             target: "missing".to_string(),
-            edge_type: EdgeType::Success,
+            edge_type: EdgeType::Always,
         });
 
-        let err = validate_pipeline(&definition).expect_err("missing target should fail");
-        assert!(
-            err.to_string().contains("unknown target node"),
-            "unexpected error: {err}"
-        );
+        let error = validate_pipeline(&definition).expect_err("expected missing target to fail");
+        assert!(error.to_string().contains("unknown target node 'missing'"));
     }
 
     #[test]
-    fn pipeline_validation_rejects_cycles() {
+    fn validate_pipeline_detects_cycle() {
         let definition = PipelineDefinition {
             nodes: vec![
                 PipelineNode {
@@ -229,63 +195,109 @@ mod tests {
             ],
         };
 
-        let err = validate_pipeline(&definition).expect_err("cycle should fail");
-        assert!(
-            err.to_string().contains("contains a cycle"),
-            "unexpected error: {err}"
+        let error = validate_pipeline(&definition).expect_err("expected cycle to fail");
+        assert!(error.to_string().contains("contains a cycle"));
+    }
+
+    #[test]
+    fn validate_pipeline_rejects_duplicate_edge_pair() {
+        let definition = PipelineDefinition {
+            nodes: vec![
+                PipelineNode {
+                    id: "a".to_string(),
+                    workflow_id: "workflow-a".to_string(),
+                    acp_client: None,
+                },
+                PipelineNode {
+                    id: "b".to_string(),
+                    workflow_id: "workflow-b".to_string(),
+                    acp_client: None,
+                },
+            ],
+            edges: vec![
+                PipelineEdge {
+                    source: "a".to_string(),
+                    target: "b".to_string(),
+                    edge_type: EdgeType::Success,
+                },
+                PipelineEdge {
+                    source: "a".to_string(),
+                    target: "b".to_string(),
+                    edge_type: EdgeType::Always,
+                },
+            ],
+        };
+
+        let error =
+            validate_pipeline(&definition).expect_err("expected duplicate edge pair to fail");
+        assert!(error.to_string().contains("duplicate edge 'a -> b'"));
+    }
+
+    #[test]
+    fn validate_pipeline_accepts_mixed_edge_types_when_acyclic() {
+        let definition = sample_definition();
+
+        validate_pipeline(&definition).expect("valid pipeline should pass validation");
+    }
+
+    #[test]
+    fn build_graph_preserves_node_ids_and_edge_types() {
+        let definition = sample_definition();
+        let graph = definition.build_graph();
+        let mut nodes = graph
+            .node_indices()
+            .map(|node_index| graph[node_index].clone())
+            .collect::<Vec<_>>();
+        nodes.sort();
+
+        let mut edges = graph
+            .edge_indices()
+            .map(|edge_index| {
+                let (source_index, target_index) = graph
+                    .edge_endpoints(edge_index)
+                    .expect("edge endpoints should exist");
+                (
+                    graph[source_index].clone(),
+                    graph[target_index].clone(),
+                    graph[edge_index].clone(),
+                )
+            })
+            .collect::<Vec<_>>();
+        edges.sort_by(|left, right| left.0.cmp(&right.0).then(left.1.cmp(&right.1)));
+
+        assert_eq!(
+            nodes,
+            vec!["a".to_string(), "b".to_string(), "c".to_string()]
+        );
+        assert_eq!(
+            edges,
+            vec![
+                ("a".to_string(), "b".to_string(), EdgeType::Success),
+                ("b".to_string(), "c".to_string(), EdgeType::Always),
+            ]
         );
     }
 
     #[test]
-    fn pipeline_types_deserialize_with_camel_case_and_default_edge_type() {
-        let definition: PipelineDefinition = serde_json::from_value(json!({
-            "nodes": [
-                {
-                    "id": "node-1",
-                    "workflowId": "workflow-1",
-                    "acpClient": "acp-a"
-                },
-                {
-                    "id": "node-2",
-                    "workflowId": "workflow-2",
-                    "acpClient": null
-                }
-            ],
-            "edges": [
-                {
-                    "source": "node-1",
-                    "target": "node-2"
-                }
-            ]
+    fn edge_type_deserializes_default_to_success() {
+        let edge: PipelineEdge = serde_json::from_value(json!({
+            "source": "a",
+            "target": "b"
         }))
-        .expect("pipeline definition should deserialize");
+        .expect("edge should deserialize");
 
-        assert_eq!(definition.nodes[0].workflow_id, "workflow-1");
-        assert_eq!(definition.nodes[0].acp_client.as_deref(), Some("acp-a"));
-        assert_eq!(definition.edges[0].edge_type, EdgeType::Success);
+        assert!(matches!(edge.edge_type, EdgeType::Success));
     }
 
     #[test]
-    fn pipeline_types_serialize_enums_and_type_field_for_json_compatibility() {
-        let edge = PipelineEdge {
-            source: "a".to_string(),
-            target: "b".to_string(),
-            edge_type: EdgeType::Always,
-        };
-        let state = NodeState {
-            session_id: "session-1".to_string(),
-            status: NodeStatus::Completed,
-            attempts: 2,
-        };
+    fn edge_type_deserializes_always_variant() {
+        let edge: PipelineEdge = serde_json::from_value(json!({
+            "source": "a",
+            "target": "b",
+            "type": "always"
+        }))
+        .expect("edge should deserialize");
 
-        let edge_json = serde_json::to_value(&edge).expect("edge serializes");
-        let state_json = serde_json::to_value(&state).expect("state serializes");
-
-        assert_eq!(edge_json["type"], "always");
-        assert_eq!(edge_json["source"], "a");
-        assert_eq!(edge_json["target"], "b");
-        assert_eq!(state_json["sessionId"], "session-1");
-        assert_eq!(state_json["status"], "completed");
-        assert_eq!(state_json["attempts"], 2);
+        assert!(matches!(edge.edge_type, EdgeType::Always));
     }
 }

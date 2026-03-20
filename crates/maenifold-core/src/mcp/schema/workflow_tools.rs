@@ -177,12 +177,164 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
                         integer_property_with_default("Max concurrent active nodes", json!(8)),
                     ),
                     (
+                        "run",
+                        bool_property("Start autonomous execution for an existing pipeline", false),
+                    ),
+                    (
+                        "pause",
+                        bool_property("Pause a running pipeline after active nodes drain", false),
+                    ),
+                    ("resume", bool_property("Resume a paused pipeline", false)),
+                    (
+                        "cancel",
+                        bool_property("Cancel a running pipeline and stop future execution", false),
+                    ),
+                    (
                         "view",
                         bool_property("Return current pipeline state", false),
                     ),
                     (
                         "dispatch",
                         bool_property("Claim ready nodes as active", false),
+                    ),
+                    (
+                        "rewind",
+                        json!({
+                            "type": "object",
+                            "description": "Rewind the specified nodeIds and all downstream nodes",
+                            "properties": {
+                                "nodeIds": {
+                                    "type": "array",
+                                    "description": "Node identifiers to rewind before cascading downstream resets",
+                                    "items": { "type": "string" }
+                                }
+                            },
+                            "required": ["nodeIds"],
+                            "additionalProperties": false
+                        }),
+                    ),
+                    (
+                        "delete",
+                        bool_property(
+                            "Delete the pipeline session and all associated workflow sessions",
+                            false,
+                        ),
+                    ),
+                    (
+                        "graft",
+                        json!({
+                            "type": "object",
+                            "description": "Add new nodes and edges onto an existing pipeline session",
+                            "properties": {
+                                "nodes": {
+                                    "type": "array",
+                                    "description": "New pipeline nodes to append",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "New node identifier"
+                                            },
+                                            "workflowId": {
+                                                "type": "string",
+                                                "description": "Workflow definition to run for the new node"
+                                            },
+                                            "acpClient": {
+                                                "type": "string",
+                                                "description": "Optional ACP client assigned to the new node"
+                                            }
+                                        },
+                                        "required": ["id", "workflowId"],
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "edges": {
+                                    "type": "array",
+                                    "description": "New pipeline edges to add",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "source": {
+                                                "type": "string",
+                                                "description": "Upstream node identifier"
+                                            },
+                                            "target": {
+                                                "type": "string",
+                                                "description": "Downstream node identifier"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "description": "Edge type controlling downstream activation",
+                                                "enum": ["success", "always"]
+                                            }
+                                        },
+                                        "required": ["source", "target"],
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "required": ["nodes", "edges"],
+                            "additionalProperties": false
+                        }),
+                    ),
+                    (
+                        "join",
+                        json!({
+                            "type": "object",
+                            "description": "Merge another pipeline session into this session using additional linking edges",
+                            "properties": {
+                                "sourceSessionId": {
+                                    "type": "string",
+                                    "description": "Pipeline session identifier to merge into the target pipeline"
+                                },
+                                "edges": {
+                                    "type": "array",
+                                    "description": "Edges that connect the source pipeline into the target pipeline",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "source": {
+                                                "type": "string",
+                                                "description": "Upstream node identifier"
+                                            },
+                                            "target": {
+                                                "type": "string",
+                                                "description": "Downstream node identifier"
+                                            },
+                                            "type": {
+                                                "type": "string",
+                                                "description": "Edge type controlling downstream activation",
+                                                "enum": ["success", "always"]
+                                            }
+                                        },
+                                        "required": ["source", "target"],
+                                        "additionalProperties": false
+                                    }
+                                }
+                            },
+                            "required": ["sourceSessionId", "edges"],
+                            "additionalProperties": false
+                        }),
+                    ),
+                    (
+                        "fork",
+                        json!({
+                            "type": "object",
+                            "description": "Clone the selected node and downstream subgraph into a new pipeline session",
+                            "properties": {
+                                "fromNodeId": {
+                                    "type": "string",
+                                    "description": "Node identifier where the forked subgraph starts"
+                                },
+                                "newSessionId": {
+                                    "type": "string",
+                                    "description": "Optional pipeline session identifier for the forked pipeline"
+                                }
+                            },
+                            "required": ["fromNodeId"],
+                            "additionalProperties": false
+                        }),
                     ),
                     (
                         "nodeId",
@@ -311,4 +463,120 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     };
 
     Some(tool)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::tool;
+    use serde_json::Value;
+
+    #[test]
+    fn pipeline_schema_includes_all_new_operation_fields_with_expected_types() {
+        let tool = tool("Pipeline").expect("pipeline tool schema");
+        let properties = tool
+            .input_schema
+            .get("properties")
+            .and_then(Value::as_object)
+            .expect("pipeline properties");
+
+        for field in ["run", "pause", "resume", "cancel", "delete"] {
+            let property = properties
+                .get(field)
+                .and_then(Value::as_object)
+                .expect("boolean property");
+            assert_eq!(
+                property.get("type").and_then(Value::as_str),
+                Some("boolean")
+            );
+            assert!(
+                property
+                    .get("description")
+                    .and_then(Value::as_str)
+                    .is_some_and(|description| !description.is_empty())
+            );
+        }
+
+        let rewind = properties
+            .get("rewind")
+            .and_then(Value::as_object)
+            .expect("rewind property");
+        assert_eq!(rewind.get("type").and_then(Value::as_str), Some("object"));
+        assert_eq!(
+            rewind
+                .get("required")
+                .and_then(Value::as_array)
+                .and_then(|required| required.first())
+                .and_then(Value::as_str),
+            Some("nodeIds")
+        );
+        assert_eq!(
+            rewind
+                .get("properties")
+                .and_then(Value::as_object)
+                .and_then(|properties| properties.get("nodeIds"))
+                .and_then(Value::as_object)
+                .and_then(|node_ids| node_ids.get("type"))
+                .and_then(Value::as_str),
+            Some("array")
+        );
+
+        let graft = properties
+            .get("graft")
+            .and_then(Value::as_object)
+            .expect("graft property");
+        assert_eq!(graft.get("type").and_then(Value::as_str), Some("object"));
+        let graft_properties = graft
+            .get("properties")
+            .and_then(Value::as_object)
+            .expect("graft properties");
+        assert_eq!(
+            graft_properties
+                .get("nodes")
+                .and_then(Value::as_object)
+                .and_then(|nodes| nodes.get("type"))
+                .and_then(Value::as_str),
+            Some("array")
+        );
+        assert_eq!(
+            graft_properties
+                .get("edges")
+                .and_then(Value::as_object)
+                .and_then(|edges| edges.get("type"))
+                .and_then(Value::as_str),
+            Some("array")
+        );
+
+        let join = properties
+            .get("join")
+            .and_then(Value::as_object)
+            .expect("join property");
+        assert_eq!(join.get("type").and_then(Value::as_str), Some("object"));
+        assert_eq!(
+            join.get("required")
+                .and_then(Value::as_array)
+                .map(|values| values.iter().filter_map(Value::as_str).collect::<Vec<_>>()),
+            Some(vec!["sourceSessionId", "edges"])
+        );
+
+        let fork = properties
+            .get("fork")
+            .and_then(Value::as_object)
+            .expect("fork property");
+        assert_eq!(fork.get("type").and_then(Value::as_str), Some("object"));
+        assert_eq!(
+            fork.get("required")
+                .and_then(Value::as_array)
+                .map(|values| values.iter().filter_map(Value::as_str).collect::<Vec<_>>()),
+            Some(vec!["fromNodeId"])
+        );
+        assert_eq!(
+            fork.get("properties")
+                .and_then(Value::as_object)
+                .and_then(|properties| properties.get("newSessionId"))
+                .and_then(Value::as_object)
+                .and_then(|property| property.get("type"))
+                .and_then(Value::as_str),
+            Some("string")
+        );
+    }
 }

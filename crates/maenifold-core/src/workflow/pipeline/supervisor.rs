@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::{get_memory_files, read_markdown};
-use crate::sessions::{pipeline_session_uri, workflow_session_uri};
+use crate::sessions::pipeline_session_uri;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 use once_cell::sync::Lazy;
@@ -167,7 +167,7 @@ pub(super) fn supervisor_is_running(session_id: &str) -> bool {
     supervisor_status(session_id).is_some()
 }
 
-#[doc(hidden)]
+#[cfg(test)]
 pub(super) fn supervisor_clear_all() {
     let handles = {
         let mut guard = SUPERVISOR.lock();
@@ -549,6 +549,7 @@ pub(super) fn supervisor_spawn_test_process(
 mod tests {
     use super::*;
     use crate::markdown::read_markdown;
+    use crate::sessions::workflow_session_uri;
     use crate::util::json::OutputFormat;
     use crate::workflow::pipeline::test_support::{
         pipeline_test_context, seed_pipeline_session_with_workflows,

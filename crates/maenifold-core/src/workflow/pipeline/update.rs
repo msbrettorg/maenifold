@@ -473,14 +473,9 @@ mod tests {
         ]);
         seed_dispatch_pipeline(&context, pipeline_id, node_states, 8);
 
-        let error = update_pipeline_node_status(
-            &context,
-            pipeline_id,
-            "root",
-            "invalid_status",
-            None,
-        )
-        .expect_err("unsupported status should fail");
+        let error =
+            update_pipeline_node_status(&context, pipeline_id, "root", "invalid_status", None)
+                .expect_err("unsupported status should fail");
 
         assert!(
             error
@@ -743,6 +738,51 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
+    fn predecessor_context_returns_none_when_completed_upstream_has_no_last_field() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600850";
+        let node_states = HashMap::from([
+            (
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600850-root".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                },
+            ),
+            (
+                "child".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600850-child".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            ),
+        ]);
+        let definition = seed_dispatch_pipeline(&context, pipeline_id, node_states.clone(), 8);
+
+        let root_uri = workflow_session_uri("workflow-1735689600850-root");
+        let (root_frontmatter, root_content, _) =
+            read_markdown(&root_uri, &context.config).expect("read root workflow");
+        let mut root_frontmatter = root_frontmatter.expect("root frontmatter");
+        root_frontmatter.remove("last");
+        write_markdown(
+            &root_uri,
+            Some(&root_frontmatter),
+            &root_content,
+            &context.config,
+        )
+        .expect("rewrite root workflow without last");
+
+        let content =
+            predecessor_context_content(&context, &definition, &node_states, "child")
+                .expect("predecessor context lookup");
+
+        assert_eq!(content, None);
+    }
+
+    #[test]
     fn pipeline_replace_h2_section_missing_heading_errors() {
         let content = "## Existing Section\n\nSome content\n";
         let result = replace_h2_section(content, "Nonexistent", "new content");
@@ -874,6 +914,63 @@ mod tests {
             "restarted node should retain predecessor context"
         );
         assert!(new_child_content.contains("Root finished [[handoff]]"));
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_restart_recreates_stuck_node_session() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600950";
+        let original_child_session = "workflow-1735689600950-child";
+        let node_states = HashMap::from([
+            (
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600950-root".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                },
+            ),
+            (
+                "child".to_string(),
+                NodeState {
+                    session_id: original_child_session.to_string(),
+                    status: NodeStatus::Stuck,
+                    attempts: 2,
+                },
+            ),
+        ]);
+        seed_dispatch_pipeline(&context, pipeline_id, node_states, 8);
+
+        let output = restart_pipeline_node(&context, pipeline_id, "child").expect("restart node");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+        let nodes = data
+            .get("nodes")
+            .and_then(Value::as_array)
+            .expect("nodes array");
+        let child = nodes
+            .iter()
+            .find(|node| node.get("nodeId") == Some(&Value::String("child".to_string())))
+            .expect("child node");
+        let restarted_session = child
+            .get("sessionId")
+            .and_then(Value::as_str)
+            .expect("new session id");
+
+        assert_ne!(restarted_session, original_child_session);
+        assert_eq!(child.get("status").and_then(Value::as_str), Some("pending"));
+        assert_eq!(child.get("attempts").and_then(Value::as_u64), Some(3));
+
+        let (pipeline_frontmatter, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
+                .expect("read pipeline");
+        let pipeline_frontmatter = pipeline_frontmatter.expect("pipeline frontmatter");
+        let updated_states: HashMap<String, NodeState> =
+            frontmatter_value(&pipeline_frontmatter, "nodeStates").expect("node states");
+        assert_eq!(updated_states["child"].status, NodeStatus::Pending);
+        assert_eq!(updated_states["child"].attempts, 3);
+        assert_eq!(updated_states["child"].session_id, restarted_session);
     }
 
     #[test]

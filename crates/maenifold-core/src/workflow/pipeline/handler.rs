@@ -1417,6 +1417,62 @@ mod tests {
 
     #[test]
     #[serial(config)]
+    fn pipeline_run_rejects_pipeline_with_active_nodes() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600990";
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![
+                    super::super::PipelineNode {
+                        id: "root".to_string(),
+                        workflow_id: "test-workflow-a".to_string(),
+                        acp_client: None,
+                    },
+                    super::super::PipelineNode {
+                        id: "child".to_string(),
+                        workflow_id: "test-workflow-b".to_string(),
+                        acp_client: None,
+                    },
+                ],
+                edges: vec![super::super::PipelineEdge {
+                    source: "root".to_string(),
+                    target: "child".to_string(),
+                    edge_type: super::super::EdgeType::Success,
+                }],
+            },
+            HashMap::from([
+                (
+                    "root".to_string(),
+                    NodeState {
+                        session_id: "workflow-1735689600990-root".to_string(),
+                        status: NodeStatus::Active,
+                        attempts: 1,
+                    },
+                ),
+                (
+                    "child".to_string(),
+                    NodeState {
+                        session_id: "workflow-1735689600990-child".to_string(),
+                        status: NodeStatus::Pending,
+                        attempts: 0,
+                    },
+                ),
+            ]),
+            1,
+        );
+
+        let error = run_pipeline(&context, pipeline_id, None).expect_err("run should fail");
+
+        assert!(
+            error.to_string().contains("already has active nodes"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    #[serial(config)]
     fn pipeline_run_starts_supervisor_and_reports_pid() {
         let (tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         super::super::supervisor::supervisor_clear_all();
@@ -1877,6 +1933,32 @@ sleep 30
                 .and_then(YamlValue::as_u64),
             Some(8)
         );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_create_rejects_non_positive_max_concurrency() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+
+        for max_concurrency in [json!(0), json!(-1)] {
+            let payload = json!({
+                "definition": {
+                    "nodes": [
+                        { "id": "solo", "workflowId": "test-workflow-a" }
+                    ],
+                    "edges": []
+                },
+                "maxConcurrency": max_concurrency
+            });
+
+            let error = pipeline(&context, &payload).expect_err("invalid maxConcurrency should fail");
+            assert!(
+                error
+                    .to_string()
+                    .contains("maxConcurrency must be a positive integer"),
+                "unexpected error: {error}"
+            );
+        }
     }
 
     #[test]
@@ -3010,6 +3092,95 @@ sleep 30
             error
                 .to_string()
                 .contains("duplicate edge 'source-root -> source-leaf'")
+        );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_join_fork_fork_rejects_existing_new_session_id() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let source_id = "pipeline-1735689600698";
+        let existing_id = "pipeline-1735689600699";
+
+        seed_pipeline_session_with_workflows(
+            &context,
+            source_id,
+            PipelineDefinition {
+                nodes: vec![
+                    super::super::PipelineNode {
+                        id: "root".to_string(),
+                        workflow_id: "test-workflow-a".to_string(),
+                        acp_client: None,
+                    },
+                    super::super::PipelineNode {
+                        id: "child".to_string(),
+                        workflow_id: "test-workflow-b".to_string(),
+                        acp_client: None,
+                    },
+                ],
+                edges: vec![super::super::PipelineEdge {
+                    source: "root".to_string(),
+                    target: "child".to_string(),
+                    edge_type: super::super::EdgeType::Success,
+                }],
+            },
+            HashMap::from([
+                (
+                    "root".to_string(),
+                    NodeState {
+                        session_id: "workflow-1735689600698-root".to_string(),
+                        status: NodeStatus::Completed,
+                        attempts: 1,
+                    },
+                ),
+                (
+                    "child".to_string(),
+                    NodeState {
+                        session_id: "workflow-1735689600698-child".to_string(),
+                        status: NodeStatus::Completed,
+                        attempts: 1,
+                    },
+                ),
+            ]),
+            2,
+        );
+        seed_pipeline_session_with_workflows(
+            &context,
+            existing_id,
+            PipelineDefinition {
+                nodes: vec![super::super::PipelineNode {
+                    id: "existing".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                }],
+                edges: vec![],
+            },
+            HashMap::from([(
+                "existing".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600699-existing".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                },
+            )]),
+            1,
+        );
+
+        let error = pipeline(
+            &context,
+            &json!({
+                "sessionId": source_id,
+                "fork": {
+                    "fromNodeId": "root",
+                    "newSessionId": existing_id
+                }
+            }),
+        )
+        .expect_err("fork should reject existing session id");
+
+        assert!(
+            error.to_string().contains("already exists"),
+            "unexpected error: {error}"
         );
     }
 

@@ -6,6 +6,7 @@ mod dispatch;
 mod engine;
 mod handler;
 mod session_io;
+mod supervisor;
 #[cfg(test)]
 mod test_support;
 mod types;

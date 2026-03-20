@@ -229,9 +229,11 @@ mod tests {
     use crate::workflow::pipeline::{EdgeType, NodeState};
     use serde_json::{Value, json};
     use serde_yaml::Value as YamlValue;
+    use serial_test::serial;
     use std::collections::{BTreeMap, HashMap};
 
     #[test]
+    #[serial(config)]
     fn pipeline_dispatch_transitions_ready_nodes_to_active() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600000";
@@ -325,6 +327,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_dispatch_respects_max_concurrency() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600100";
@@ -473,6 +476,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_dispatch_only_reports_nodes_transitioned_in_this_call() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600150";
@@ -556,6 +560,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_dispatch_returns_empty_when_no_nodes_ready() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600200";
@@ -605,6 +610,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_dispatch_returns_empty_when_at_max_concurrency() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600300";
@@ -649,6 +655,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_dispatch_renders_first_step_into_session_body() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600400";
@@ -724,6 +731,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_dispatch_persists_partial_progress_when_activation_fails() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600460";
@@ -796,6 +804,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn activate_workflow_node_session_skips_active_session_without_duplication() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600450";
@@ -856,6 +865,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_dispatch_skips_already_active_workflow_sessions() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600475";

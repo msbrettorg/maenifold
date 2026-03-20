@@ -23,9 +23,9 @@ use super::session_io::{
     persist_pipeline_state_with_status, read_pipeline_session, write_pipeline_session,
     write_workflow_node_session, write_workflow_node_session_with_status,
 };
+use super::supervisor::{supervisor_cancel, supervisor_is_running, supervisor_run};
 #[cfg(test)]
 use super::test_support;
-use super::supervisor::{supervisor_cancel, supervisor_is_running, supervisor_run};
 use super::update::{restart_pipeline_node, update_pipeline_node_status};
 use super::view::{build_pipeline_view_result, view_pipeline_session};
 use super::{NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline};
@@ -1332,7 +1332,7 @@ mod tests {
     #[serial(config)]
     fn pipeline_run_starts_supervisor_and_reports_pid() {
         let (tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
-        super::supervisor::supervisor_clear_all();
+        super::super::supervisor::supervisor_clear_all();
         std::fs::write(
             tmp.path().join("maenifold-acp"),
             "#!/usr/bin/env bash
@@ -1374,26 +1374,32 @@ sleep 30
         let pid = data.get("pid").and_then(Value::as_u64).expect("pid");
 
         assert_eq!(data.get("status").and_then(Value::as_str), Some("started"));
-        assert_eq!(data.get("sessionId").and_then(Value::as_str), Some(pipeline_id));
+        assert_eq!(
+            data.get("sessionId").and_then(Value::as_str),
+            Some(pipeline_id)
+        );
         assert!(pid > 0);
-        assert!(super::supervisor::supervisor_is_running(pipeline_id));
+        assert!(super::super::supervisor::supervisor_is_running(pipeline_id));
 
         let view_output = pipeline(&context, &json!({ "sessionId": pipeline_id, "view": true }))
             .expect("view running pipeline");
         let view_response: Value = serde_json::from_str(&view_output).expect("parse response");
         let view_data = view_response.get("data").expect("view data");
-        assert_eq!(view_data.get("running").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            view_data.get("running").and_then(Value::as_bool),
+            Some(true)
+        );
         assert_eq!(view_data.get("pid").and_then(Value::as_u64), Some(pid));
         assert_eq!(view_data.get("attempts").and_then(Value::as_u64), Some(0));
 
-        super::supervisor::supervisor_cancel(pipeline_id).expect("cancel running process");
+        super::super::supervisor::supervisor_cancel(pipeline_id).expect("cancel running process");
     }
 
     #[test]
     #[serial(config)]
     fn pipeline_cancel_stops_supervisor_and_marks_pipeline_cancelled() {
         let (tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
-        super::supervisor::supervisor_clear_all();
+        super::super::supervisor::supervisor_clear_all();
         std::fs::write(
             tmp.path().join("maenifold-acp"),
             "#!/usr/bin/env bash
@@ -1427,14 +1433,25 @@ sleep 30
 
         pipeline(&context, &json!({ "sessionId": pipeline_id, "run": true }))
             .expect("start pipeline");
-        let output = pipeline(&context, &json!({ "sessionId": pipeline_id, "cancel": true }))
-            .expect("cancel pipeline");
+        let output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "cancel": true }),
+        )
+        .expect("cancel pipeline");
         let response: Value = serde_json::from_str(&output).expect("parse response");
         let data = response.get("data").expect("response data");
 
-        assert_eq!(data.get("status").and_then(Value::as_str), Some("cancelled"));
-        assert_eq!(data.get("sessionId").and_then(Value::as_str), Some(pipeline_id));
-        assert!(!super::supervisor::supervisor_is_running(pipeline_id));
+        assert_eq!(
+            data.get("status").and_then(Value::as_str),
+            Some("cancelled")
+        );
+        assert_eq!(
+            data.get("sessionId").and_then(Value::as_str),
+            Some(pipeline_id)
+        );
+        assert!(!super::super::supervisor::supervisor_is_running(
+            pipeline_id
+        ));
 
         let (frontmatter, _, _) =
             read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read file");

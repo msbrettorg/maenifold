@@ -5,6 +5,7 @@ use serde_json::{Value, json};
 use std::collections::HashMap;
 
 use super::session_io::{derive_pipeline_node_states, frontmatter_value, read_pipeline_session};
+use super::supervisor::supervisor_status;
 #[cfg(test)]
 use super::test_support;
 use super::{
@@ -61,6 +62,10 @@ pub(super) fn build_pipeline_view_result(
     let nodes = pipeline_nodes_json(definition, node_states)?;
     let edges = pipeline_edges_json(definition);
     let mermaid = render_pipeline_mermaid(definition, node_states)?;
+    let (running, pid, attempts) = match supervisor_status(session_id) {
+        Some((pid, _started_at, attempts)) => (true, Some(pid), Some(attempts)),
+        None => (false, None, None),
+    };
 
     Ok(json!({
         "pipelineId": session_id,
@@ -71,6 +76,9 @@ pub(super) fn build_pipeline_view_result(
         "active": active,
         "completed": completed,
         "mermaid": mermaid,
+        "running": running,
+        "pid": pid,
+        "attempts": attempts,
     }))
 }
 
@@ -233,5 +241,8 @@ mod tests {
         assert!(mermaid.contains("child[\"⏳ child\"]"));
         assert!(mermaid.contains("root --> child"));
         assert!(mermaid.contains("root -.-> cleanup"));
+        assert_eq!(data.get("running").and_then(Value::as_bool), Some(false));
+        assert!(data.get("pid").is_none() || data.get("pid") == Some(&Value::Null));
+        assert!(data.get("attempts").is_none() || data.get("attempts") == Some(&Value::Null));
     }
 }

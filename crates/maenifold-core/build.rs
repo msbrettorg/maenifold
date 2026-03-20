@@ -4,14 +4,9 @@ fn main() {
     println!("cargo:rerun-if-env-changed=MAENIFOLD_WEB_DIST");
 
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let vendor_dir = manifest_dir.join("../../vendor/acp-ui/dist");
 
     let web_dist = if let Ok(path) = std::env::var("MAENIFOLD_WEB_DIST") {
         PathBuf::from(path)
-    } else if vendor_dir.join("index.html").exists() {
-        vendor_dir
-            .canonicalize()
-            .expect("failed to canonicalize vendor web-dist path")
     } else {
         manifest_dir.join("web-dist")
     };

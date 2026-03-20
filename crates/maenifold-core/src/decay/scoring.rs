@@ -84,6 +84,7 @@ mod tests {
     use super::compute_decay_weight_with_created;
     use crate::config::Config;
     use chrono::{Duration, Utc};
+    use serial_test::serial;
     use tempfile::TempDir;
 
     struct ConfigResetGuard;
@@ -105,6 +106,7 @@ mod tests {
 
     // T-14.1: RTM FR-21
     #[test]
+    #[serial(config)]
     fn falls_back_to_created_timestamp_when_last_accessed_is_missing() {
         let (_tmp, cfg, _reset) = isolated_config();
         let created = (Utc::now() - Duration::days(30)).to_rfc3339();
@@ -122,6 +124,7 @@ mod tests {
 
     // T-14.1: RTM FR-21
     #[test]
+    #[serial(config)]
     fn preserves_recent_last_accessed_behavior() {
         let (_tmp, cfg, _reset) = isolated_config();
         let last_accessed = (Utc::now() - Duration::days(1)).to_rfc3339();
@@ -139,6 +142,7 @@ mod tests {
 
     // T-14.1: RTM FR-21
     #[test]
+    #[serial(config)]
     fn keeps_graceful_neutral_fallback_when_no_timestamps_exist() {
         let (_tmp, cfg, _reset) = isolated_config();
 

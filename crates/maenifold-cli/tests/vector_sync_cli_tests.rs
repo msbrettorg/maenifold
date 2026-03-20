@@ -30,15 +30,15 @@ fn find_similar_concepts_cli_returns_ranked_text_after_sync() {
         .assert()
         .code(0);
 
-     let output = maenifold_cmd(&tmp)
-         .args([
-             "--tool",
-             "FindSimilarConcepts",
-             "--payload",
-             r#"{"conceptName":"authentication","maxResults":5}"#,
-         ])
-         .assert()
-         .code(0)
+    let output = maenifold_cmd(&tmp)
+        .args([
+            "--tool",
+            "FindSimilarConcepts",
+            "--payload",
+            r#"{"conceptName":"authentication","maxResults":5}"#,
+        ])
+        .assert()
+        .code(0)
         .get_output()
         .stdout
         .clone();

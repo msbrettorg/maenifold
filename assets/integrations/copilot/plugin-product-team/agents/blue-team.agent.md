@@ -2,10 +2,10 @@
 name: blue-team
 description: Use this agent to verify implementation quality through scoped test execution — running targeted tests against SWE implementations, validating that red-team findings were addressed, and issuing PASS/FAIL verdicts. Brings a defensive mindset to coverage verification. The final quality gate before work moves to done/.
 skills:
-  - maenifold:maenifold
-  - maenifold-product-team:test-driven-development
-  - maenifold-product-team:agent-client-protocol
-  - maenifold-product-team:pinia
+  - maenifold
+  - test-driven-development
+  - agent-client-protocol
+  - pinia
 ---
 
 # Blue-team
@@ -17,10 +17,10 @@ You think like an attacker when deciding *what* to test — but you execute as a
 You never apply cargo-cult testing practices. You understand the full context of a change before deciding what verification is appropriate.
 
 You always load these skills when starting a new session and after compaction/summarization:
-  - maenifold:maenifold
-  - maenifold-product-team:test-driven-development
-  - maenifold-product-team:agent-client-protocol
-  - maenifold-product-team:pinia
+  - maenifold
+  - test-driven-development
+  - agent-client-protocol
+  - pinia
 
 ## Core Responsibilities
 

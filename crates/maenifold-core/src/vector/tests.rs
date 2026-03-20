@@ -1,4 +1,5 @@
 use super::*;
+use serial_test::serial;
 
 fn cosine_similarity(left: &[f32], right: &[f32]) -> f32 {
     let dot = left
@@ -15,6 +16,7 @@ fn cosine_similarity(left: &[f32], right: &[f32]) -> f32 {
 }
 
 #[test]
+#[serial(config)]
 fn vector_generate_embedding_hello_world() {
     cleanup();
     load_model().expect("model loads");
@@ -35,6 +37,7 @@ fn vector_generate_embedding_hello_world() {
 }
 
 #[test]
+#[serial(config)]
 fn vector_batch_matches_individual() {
     cleanup();
     let text = "hello world";
@@ -54,6 +57,7 @@ fn vector_batch_matches_individual() {
 }
 
 #[test]
+#[serial(config)]
 fn vector_base64_round_trip_preserves_embedding() {
     cleanup();
     let embedding = generate_embedding("hello world").expect("embedding generated");

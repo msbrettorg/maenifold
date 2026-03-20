@@ -1,4 +1,3 @@
-use crate::acp::config::{AgentInfo, AgentsConfig};
 use crate::api::graph;
 use crate::markdown::{extract_h2_sections, file_exists, find_file_as_uri, read_markdown};
 use crate::search::search_memories;
@@ -21,16 +20,12 @@ use std::str::FromStr;
 #[derive(Clone)]
 pub struct ApiState {
     config: Config,
-    agents_config: AgentsConfig,
 }
 
 impl ApiState {
     #[must_use]
-    pub fn new(config: Config, agents_config: AgentsConfig) -> Self {
-        Self {
-            config,
-            agents_config,
-        }
+    pub fn new(config: Config) -> Self {
+        Self { config }
     }
 }
 
@@ -110,10 +105,6 @@ async fn graph_edges(
         db::open_connection(&state.config.database_path).map_err(ApiError::internal)?;
     let edges = graph::get_edges(&connection, community).map_err(ApiError::internal)?;
     Ok(Json(edges))
-}
-
-async fn list_agents(State(state): State<ApiState>) -> Json<Vec<AgentInfo>> {
-    Json(state.agents_config.list_agents())
 }
 
 #[derive(Serialize)]
@@ -243,7 +234,6 @@ async fn memory_recent(
     Ok(Json(RecentActivityResponse { items }))
 }
 
-
 #[derive(Serialize)]
 struct SearchResultItem {
     uri: String,
@@ -355,10 +345,7 @@ async fn memory_search(
         })
         .collect();
 
-    let total_count = data
-        .get("totalCount")
-        .and_then(Value::as_u64)
-        .unwrap_or(0);
+    let total_count = data.get("totalCount").and_then(Value::as_u64).unwrap_or(0);
     let page_out = data.get("page").and_then(Value::as_u64).unwrap_or(page);
     let page_size_out = data
         .get("pageSize")
@@ -378,7 +365,6 @@ pub fn api_routes(state: ApiState) -> Router {
     Router::new()
         .route("/api/graph/nodes", get(graph_nodes))
         .route("/api/graph/edges", get(graph_edges))
-        .route("/api/agents", get(list_agents))
         .route("/api/memory/read", get(memory_read))
         .route("/api/memory/recent", get(memory_recent))
         .route("/api/memory/search", get(memory_search))

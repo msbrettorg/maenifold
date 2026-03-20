@@ -1,5 +1,3 @@
-use crate::acp::config::AgentsConfig;
-use crate::acp::relay::acp_routes;
 use crate::api::routes::{ApiState, api_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
@@ -25,9 +23,7 @@ impl super::MaenifoldMcpServer {
         let ct = tokio_util::sync::CancellationToken::new();
         let config = Config::current();
         super::initialize_runtime(&config)?;
-        let config_root = config.maenifold_root.clone();
-        let agents_config = AgentsConfig::load(&config_root);
-        let api_state = ApiState::new(config.clone(), agents_config.clone());
+        let api_state = ApiState::new(config.clone());
         let session_manager = Arc::new(LocalSessionManager {
             session_config: SessionConfig {
                 keep_alive: Some(Duration::from_secs(300)),
@@ -52,7 +48,6 @@ impl super::MaenifoldMcpServer {
         let cors = super::localhost_cors();
 
         let api = axum::Router::new()
-            .merge(acp_routes(agents_config.clone()))
             .merge(api_routes(api_state))
             .fallback(static_handler);
 

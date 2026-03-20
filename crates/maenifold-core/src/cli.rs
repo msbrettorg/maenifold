@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 /// all of which are fully handled by [`CliApp::run`] on the main thread with no
 /// native event loop.
 ///
-/// [`CliAction::Http`] and [`CliAction::App`] signal that `main()` should
+/// [`CliAction::Http`] signals that `main()` should
 /// delegate to [`crate::tray::run_with_tray`] instead.
 #[derive(Debug)]
 pub enum CliAction {
@@ -21,8 +21,6 @@ pub enum CliAction {
     Headless,
     /// --http mode with the resolved port.
     Http(u16),
-    /// --app mode with the resolved port.
-    App(u16),
 }
 
 pub struct CliApp;
@@ -30,30 +28,22 @@ pub struct CliApp;
 impl CliApp {
     /// T-29.2: Classify CLI arguments *before* blocking on any runtime.
     ///
-    /// Returns [`CliAction::Http`] or [`CliAction::App`] only when the flags
-    /// are unambiguously valid for those modes.  All other cases (including
+    /// Returns [`CliAction::Http`] only when the flags
+    /// are unambiguously valid for that mode.  All other cases (including
     /// errors) fall through to [`CliAction::Headless`] so that [`Self::run`]
     /// can print the appropriate error message.
     pub fn classify(args: &[String]) -> CliAction {
         let wants_mcp = args.iter().any(|a| a == "--mcp");
         let wants_http = args.iter().any(|a| a == "--http");
-        let wants_app = args.iter().any(|a| a == "--app");
 
         // Mutual-exclusion violations → let run() handle the error.
-        if (wants_mcp && wants_http) || (wants_mcp && wants_app) || (wants_http && wants_app) {
+        if wants_mcp && wants_http {
             return CliAction::Headless;
         }
 
         if wants_http {
             return match parse_http_port(args) {
                 Ok(port) => CliAction::Http(port),
-                Err(_) => CliAction::Headless,
-            };
-        }
-
-        if wants_app {
-            return match parse_http_port(args) {
-                Ok(port) => CliAction::App(port),
                 Err(_) => CliAction::Headless,
             };
         }
@@ -70,19 +60,18 @@ impl CliApp {
 
         let wants_mcp = args.iter().any(|arg| arg == "--mcp");
         let wants_http = args.iter().any(|arg| arg == "--http");
-        let wants_app = args.iter().any(|arg| arg == "--app");
 
-        // T-17.3: RTM FR-23 (RTM-126, RTM-128) — stdio, HTTP, and desktop-app
+        // T-17.3: RTM FR-23 (RTM-126, RTM-128) — stdio and HTTP
         // entrypoints are mutually exclusive runtime modes.
-        if (wants_mcp && wants_http) || (wants_mcp && wants_app) || (wants_http && wants_app) {
-            eprintln!("Error: --mcp, --http, and --app are mutually exclusive");
+        if wants_mcp && wants_http {
+            eprintln!("Error: --mcp and --http are mutually exclusive");
             return 1;
         }
 
         // T-17.3: RTM FR-23 (RTM-126) — reject stray --port usage so the
-        // hand-rolled CLI stays unambiguous about HTTP/app transport options.
-        if args.iter().any(|arg| arg == "--port") && !wants_http && !wants_app {
-            eprintln!("Error: --port is only valid with --http or --app");
+        // hand-rolled CLI stays unambiguous about HTTP transport options.
+        if args.iter().any(|arg| arg == "--port") && !wants_http {
+            eprintln!("Error: --port is only valid with --http");
             return 1;
         }
 
@@ -95,17 +84,6 @@ impl CliApp {
                 }
             };
             return Self::run_http(port);
-        }
-
-        if wants_app {
-            let port = match parse_http_port(args) {
-                Ok(port) => port,
-                Err(err) => {
-                    eprintln!("{err}");
-                    return 1;
-                }
-            };
-            return Self::run_app(port);
         }
 
         if wants_mcp {
@@ -181,25 +159,6 @@ impl CliApp {
                 1
             }
         }
-    }
-
-    fn run_app(port: u16) -> i32 {
-        let rt = match tokio::runtime::Runtime::new() {
-            Ok(rt) => rt,
-            Err(e) => {
-                eprintln!("Error: failed to create async runtime: {e}");
-                return 1;
-            }
-        };
-        rt.block_on(async {
-            match crate::mcp::MaenifoldMcpServer::serve_web(port).await {
-                Ok(()) => 0,
-                Err(e) => {
-                    eprintln!("Error: {e}");
-                    1
-                }
-            }
-        })
     }
 
     fn run_inner(args: &[String]) -> std::result::Result<String, (String, i32)> {
@@ -331,8 +290,8 @@ fn usage_error() -> (String, i32) {
 }
 
 fn parse_http_port(args: &[String]) -> std::result::Result<u16, String> {
-    // T-17.3: RTM FR-23 (RTM-126) — `--http` and `--app` default to port 8080
-    // but accept an explicit u16 override through the next positional argument
+    // T-17.3: RTM FR-23 (RTM-126) — `--http` defaults to port 8080
+    // but accepts an explicit u16 override through the next positional argument
     // after --port.
     let Some(port_index) = args.iter().position(|arg| arg == "--port") else {
         return Ok(8080);
@@ -375,13 +334,11 @@ fn usage() -> String {
         "Usage:",
         "  MCP Server mode:   maenifold --mcp",
         "  HTTP Server mode:  maenifold --http [--port <PORT>]",
-        "  Desktop app mode:  maenifold --app [--port <PORT>]",
         "  Direct tool mode:  maenifold --tool <name> --payload '<json>' [--json]",
         "",
         "  (For development from source: cargo run -p maenifold-cli -- --tool <name> --payload '<json>')",
         "",
         "Options:",
-        "  --app              Launch the desktop app",
         "  --json             Output structured JSON instead of markdown (FR-8.1)",
         "",
         "Examples:",

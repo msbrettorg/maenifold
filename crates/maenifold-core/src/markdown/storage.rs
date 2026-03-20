@@ -255,11 +255,8 @@ fn system_time_to_iso(system_time: SystemTime) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use once_cell::sync::Lazy;
-    use parking_lot::Mutex;
+    use serial_test::serial;
     use tempfile::TempDir;
-
-    static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
     struct ConfigResetGuard;
 
@@ -286,8 +283,8 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn append_h2_section_sets_first_last_on_initial_write() {
-        let _guard = TEST_MUTEX.lock();
         let (_tmp, _reset, config) = test_config();
         let uri = "memory://append-first-last-initial";
 
@@ -315,8 +312,8 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn append_h2_section_first_last_preserve_first_and_update_last() {
-        let _guard = TEST_MUTEX.lock();
         let (_tmp, _reset, config) = test_config();
         let uri = "memory://append-first-last-update";
         let mut frontmatter = Frontmatter::new();
@@ -353,6 +350,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn first_last_frontmatter_render_after_related_before_tags() {
         let mut frontmatter = Frontmatter::new();
         frontmatter.insert("tags".to_string(), YamlValue::Sequence(vec![]));

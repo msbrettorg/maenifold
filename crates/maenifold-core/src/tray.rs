@@ -1,4 +1,4 @@
-//! T-29.2: RTM FR-35 — System tray icon for `--app` / `--http` modes on macOS.
+//! T-29.2: RTM FR-35 — System tray icon for `--http` mode on macOS.
 //!
 //! Architecture (required by macOS):
 //! - **Main thread**: winit event loop driving the tray icon + menu.
@@ -22,18 +22,13 @@ use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 #[derive(Debug, Clone, Copy)]
 pub enum ServerMode {
     Http(u16),
-    App(u16),
 }
 
 impl ServerMode {
     pub fn port(self) -> u16 {
         match self {
-            Self::Http(p) | Self::App(p) => p,
+            Self::Http(p) => p,
         }
-    }
-
-    pub fn is_app(self) -> bool {
-        matches!(self, Self::App(_))
     }
 }
 
@@ -113,11 +108,7 @@ impl TrayApp {
         }
 
         let exe_path = std::env::current_exe()?;
-        let mode_flag = if self.mode.is_app() {
-            "--app"
-        } else {
-            "--http"
-        };
+        let mode_flag = "--http";
         let plist = format!(
             r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -165,18 +156,9 @@ impl TrayApp {
     }
 
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
-        let port = self.mode.port();
-        let is_app = self.mode.is_app();
         let login_enabled = is_login_enabled();
 
         let menu = Menu::new();
-        let open_item = if is_app {
-            let item = MenuItem::new(format!("Open Desktop App (:{port})"), true, None);
-            let _ = menu.append(&item);
-            Some(item)
-        } else {
-            None
-        };
 
         #[cfg(target_os = "macos")]
         let login_item = MenuItem::new(login_menu_text(login_enabled), true, None);
@@ -192,7 +174,7 @@ impl TrayApp {
 
         self.quit_id = Some(quit_item.id().clone());
         self.help_id = Some(help_item.id().clone());
-        self.open_id = open_item.as_ref().map(|item| item.id().clone());
+        self.open_id = None;
         self.login_id = Some(login_item.id().clone());
         self.login_item = Some(login_item);
 
@@ -296,29 +278,23 @@ impl ApplicationHandler for TrayApp {
 
 /// Run the server with a system-tray icon on the main thread.
 ///
-/// 1. Initialises storage / watchers (matching `CliApp::run_http` / `run_app`).
+/// 1. Initialises storage / watchers (matching `CliApp::run_http`).
 /// 2. Spawns the tokio/axum server on a background `std::thread`.
 /// 3. Builds a winit `EventLoop` and drives the tray icon via `ApplicationHandler`.
 /// 4. On "Quit", cancels the shared shutdown token so the server thread exits.
 /// 5. Joins the server thread and returns its exit code.
 pub fn run_with_tray(mode: ServerMode) -> i32 {
-    // ── Initialise runtime (mirrors cli::run_http / run_app patterns) ──
-    // serve_web handles its own initialize_runtime internally.
-    // serve_http expects callers to initialise first (as run_http does).
-    if !mode.is_app() {
-        let config = crate::config::Config::current();
-        if let Err(err) = crate::mcp::initialize_runtime(&config) {
-            eprintln!("Error initializing storage: {err}");
-            return 1;
-        }
-        if let Err(err) = crate::cli::start_mcp_watchers(&config) {
-            eprintln!("Error starting MCP watchers: {err}");
-            return 1;
-        }
+    let config = crate::config::Config::current();
+    if let Err(err) = crate::mcp::initialize_runtime(&config) {
+        eprintln!("Error initializing storage: {err}");
+        return 1;
+    }
+    if let Err(err) = crate::cli::start_mcp_watchers(&config) {
+        eprintln!("Error starting MCP watchers: {err}");
+        return 1;
     }
 
     let port = mode.port();
-    let is_app = mode.is_app();
     let shutdown_token = CancellationToken::new();
 
     // ── Spawn server on background thread ──────────────────────────────
@@ -335,13 +311,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
             };
             let result = rt.block_on(async move {
                 tokio::select! {
-                    result = async {
-                        if is_app {
-                            crate::mcp::MaenifoldMcpServer::serve_web(port).await
-                        } else {
-                            crate::mcp::MaenifoldMcpServer::serve_http(port).await
-                        }
-                    } => result,
+                    result = crate::mcp::MaenifoldMcpServer::serve_http(port) => result,
                     _ = server_shutdown_token.cancelled() => Ok(()),
                 }
             });

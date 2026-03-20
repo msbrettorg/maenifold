@@ -2,7 +2,6 @@
 members = [
   "crates/maenifold-core",
   "crates/maenifold-cli",
-  "crates/maenifold-app",
 ]
 resolver = "2"
 

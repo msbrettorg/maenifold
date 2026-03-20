@@ -363,6 +363,19 @@ mod tests {
     use std::collections::HashMap;
 
     #[test]
+    fn pipeline_workflow_status_cancelled_maps_to_abandoned() {
+        assert_eq!(
+            workflow_status_to_node_status("cancelled"),
+            Some(NodeStatus::Abandoned)
+        );
+    }
+
+    #[test]
+    fn pipeline_workflow_status_unknown_returns_none() {
+        assert_eq!(workflow_status_to_node_status("garbage"), None);
+    }
+
+    #[test]
     #[serial(config)]
     fn pipeline_view_rejects_missing_session() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);

@@ -357,6 +357,7 @@ mod tests {
     use crate::markdown::{append_h2_section, file_exists, read_markdown, write_markdown};
     use crate::sessions::{pipeline_session_uri, workflow_session_uri};
     use serde_json::{Value, json};
+    use serial_test::serial;
 
     use super::test_support::*;
 
@@ -444,6 +445,48 @@ mod tests {
         assert_eq!(
             root_fm.get("conclusion").and_then(YamlValue::as_str),
             Some("Root [[context]] conclusion")
+        );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_status_rejects_unsupported_status_values() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600550";
+        let node_states = HashMap::from([
+            (
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600550-root".to_string(),
+                    status: NodeStatus::Active,
+                    attempts: 1,
+                },
+            ),
+            (
+                "child".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600550-child".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            ),
+        ]);
+        seed_dispatch_pipeline(&context, pipeline_id, node_states, 8);
+
+        let error = update_pipeline_node_status(
+            &context,
+            pipeline_id,
+            "root",
+            "invalid_status",
+            None,
+        )
+        .expect_err("unsupported status should fail");
+
+        assert!(
+            error
+                .to_string()
+                .contains("Unsupported pipeline node status"),
+            "unexpected error: {error}"
         );
     }
 
@@ -697,6 +740,16 @@ mod tests {
             "stale content should be gone"
         );
         assert!(child_content.contains("## Step 1/1"));
+    }
+
+    #[test]
+    fn pipeline_replace_h2_section_missing_heading_errors() {
+        let content = "## Existing Section\n\nSome content\n";
+        let result = replace_h2_section(content, "Nonexistent", "new content");
+
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Section not found"));
     }
 
     #[test]

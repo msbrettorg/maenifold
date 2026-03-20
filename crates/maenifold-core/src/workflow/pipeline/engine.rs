@@ -306,6 +306,36 @@ mod tests {
     }
 
     #[test]
+    fn pipeline_compute_status_empty_node_states_returns_active() {
+        let node_states: HashMap<String, NodeState> = HashMap::new();
+
+        assert_eq!(compute_pipeline_status(&node_states), "active");
+    }
+
+    #[test]
+    fn pipeline_compute_status_all_stuck_returns_stuck() {
+        let mut node_states = HashMap::new();
+        node_states.insert(
+            "n1".to_string(),
+            NodeState {
+                session_id: "ws-1".to_string(),
+                status: NodeStatus::Stuck,
+                attempts: 3,
+            },
+        );
+        node_states.insert(
+            "n2".to_string(),
+            NodeState {
+                session_id: "ws-2".to_string(),
+                status: NodeStatus::Stuck,
+                attempts: 3,
+            },
+        );
+
+        assert_eq!(compute_pipeline_status(&node_states), "stuck");
+    }
+
+    #[test]
     fn pipeline_status_returns_stuck_when_stuck_without_active_or_ready() {
         let node_states = HashMap::from([
             ("root".to_string(), node_state(NodeStatus::Stuck)),

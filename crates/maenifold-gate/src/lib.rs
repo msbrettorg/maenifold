@@ -333,7 +333,9 @@ fn parse_stage_value(value: &str) -> Result<TaskStage, CliError> {
 }
 
 fn parse_verdict_value(value: &str) -> Result<StageVerdict, CliError> {
-    match value {
+    let normalized = value.to_ascii_uppercase();
+
+    match normalized.as_str() {
         "PASS" => Ok(StageVerdict::Pass),
         "REJECT" => Ok(StageVerdict::Reject),
         "FAIL" => Ok(StageVerdict::Fail),
@@ -415,8 +417,112 @@ fn only_positional(name: &str, mut positional: Vec<PathBuf>) -> Result<PathBuf, 
 
 #[cfg(test)]
 mod tests {
-    use super::{Command, HelpTopic, SyncArgs, parse_from};
+    use super::{AdvanceArgs, Command, HelpTopic, StageVerdict, SyncArgs, TaskStage, parse_from};
     use std::path::PathBuf;
+
+    #[test]
+    fn advance_accepts_lowercase_red_pass_verdict() {
+        let cli = parse_from([
+            "gate",
+            "advance",
+            "--root",
+            ".",
+            "--stage",
+            "red",
+            "--verdict",
+            "pass",
+            "T-1.1.md",
+        ])
+        .unwrap();
+        assert_eq!(
+            cli.command,
+            Some(Command::Advance(AdvanceArgs {
+                db: None,
+                root: Some(PathBuf::from(".")),
+                stage: TaskStage::Red,
+                verdict: Some(StageVerdict::Pass),
+                notes: None,
+                model: None,
+                task: PathBuf::from("T-1.1.md"),
+            }))
+        );
+    }
+
+    #[test]
+    fn advance_preserves_uppercase_red_reject_verdict() {
+        let cli = parse_from([
+            "gate",
+            "advance",
+            "--root",
+            ".",
+            "--stage",
+            "red",
+            "--verdict",
+            "REJECT",
+            "T-1.1.md",
+        ])
+        .unwrap();
+        assert_eq!(
+            cli.command,
+            Some(Command::Advance(AdvanceArgs {
+                db: None,
+                root: Some(PathBuf::from(".")),
+                stage: TaskStage::Red,
+                verdict: Some(StageVerdict::Reject),
+                notes: None,
+                model: None,
+                task: PathBuf::from("T-1.1.md"),
+            }))
+        );
+    }
+
+    #[test]
+    fn advance_accepts_mixed_case_blue_fail_verdict() {
+        let cli = parse_from([
+            "gate",
+            "advance",
+            "--root",
+            ".",
+            "--stage",
+            "blue",
+            "--verdict",
+            "Fail",
+            "T-1.1.md",
+        ])
+        .unwrap();
+        assert_eq!(
+            cli.command,
+            Some(Command::Advance(AdvanceArgs {
+                db: None,
+                root: Some(PathBuf::from(".")),
+                stage: TaskStage::Blue,
+                verdict: Some(StageVerdict::Fail),
+                notes: None,
+                model: None,
+                task: PathBuf::from("T-1.1.md"),
+            }))
+        );
+    }
+
+    #[test]
+    fn advance_rejects_invalid_verdict_value() {
+        let error = parse_from([
+            "gate",
+            "advance",
+            "--root",
+            ".",
+            "--stage",
+            "red",
+            "--verdict",
+            "maybe",
+            "T-1.1.md",
+        ])
+        .unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "invalid value 'maybe' for --verdict; expected PASS, REJECT, or FAIL"
+        );
+    }
 
     #[test]
     fn sync_help_is_available() {

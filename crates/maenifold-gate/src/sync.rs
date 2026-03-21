@@ -2,7 +2,12 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 
-use crate::{CommandStubError, SyncArgs, db::GateDb, fs, parser};
+use crate::{
+    CommandStubError, SyncArgs,
+    db::GateDb,
+    fs, parser,
+    types::{TaskLocation, TaskState},
+};
 
 pub fn run(args: &SyncArgs) -> Result<(), CommandStubError> {
     run_sync(args, &args.root).map_err(|error| CommandStubError::new(error.to_string()))
@@ -23,8 +28,12 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
                 continue;
             }
         };
-        let state = match parser::parse_task_file(&task.path) {
+        let state = match parser::parse_task_content(&task.path, &content) {
             Ok(state) => state,
+            Err(parser::ParseTaskError::LocationStatusMismatch {
+                location: TaskLocation::Done,
+                ..
+            }) => TaskState::done_override_from_content(&task.path, &content),
             Err(error) => {
                 eprintln!("warning: {}: {error}", task.path.display());
                 errors += 1;
@@ -32,10 +41,12 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
             }
         };
         let requirement = extract_requirement(&content).unwrap_or_else(|| {
-            eprintln!(
-                "warning: {}: missing **Requirement** metadata; using UNKNOWN",
-                task.path.display()
-            );
+            if task.location == TaskLocation::Todo {
+                eprintln!(
+                    "warning: {}: missing **Requirement** metadata; using UNKNOWN",
+                    task.path.display()
+                );
+            }
             "UNKNOWN".into()
         });
         rows.push((
@@ -58,7 +69,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
                 file,
                 title.as_deref(),
                 requirement,
-                state.status.as_str(),
+                state.effective_status().as_str(),
                 state.location.as_str(),
                 state.attempts as i32,
             )?;
@@ -69,7 +80,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
 
     let (mut updated, mut unchanged) = (0, 0);
     for (file, title, requirement, state) in rows {
-        let status = state.status.as_str();
+        let status = state.effective_status().as_str();
         let location = state.location.as_str();
         let changed = match db.get_task(&file)? {
             Some(existing) => {

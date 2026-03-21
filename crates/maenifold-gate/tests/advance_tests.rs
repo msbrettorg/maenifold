@@ -2,9 +2,9 @@ use std::fs;
 use std::path::Path;
 use tempfile::tempdir;
 
-use maenifold_gate::{AdvanceArgs, TaskStage, StageVerdict};
 use maenifold_gate::advance::run_advance;
 use maenifold_gate::fs::read_task;
+use maenifold_gate::{AdvanceArgs, StageVerdict, TaskStage};
 
 fn create_pending_task(root: &Path, name: &str) -> String {
     let todo = root.join("todo");

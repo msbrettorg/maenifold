@@ -28,31 +28,10 @@ pub fn parse_task_content(
 
     let lines: Vec<&str> = content.lines().collect();
     let mut sections = Vec::new();
-    let mut current_stage: Option<TaskStage> = None;
-    let mut seen_stages = Vec::new();
 
     for (index, line) in lines.iter().enumerate() {
         if let Some(stage) = match_stage_heading(line)? {
             let heading_line = index + 1;
-            if seen_stages.contains(&stage) {
-                return Err(ParseTaskError::DuplicateHeading {
-                    stage,
-                    line: heading_line,
-                });
-            }
-
-            if let Some(previous) = current_stage {
-                if stage < previous {
-                    return Err(ParseTaskError::OutOfOrderHeading {
-                        previous,
-                        current: stage,
-                        line: heading_line,
-                    });
-                }
-            }
-
-            current_stage = Some(stage);
-            seen_stages.push(stage);
             sections.push(Section {
                 stage,
                 heading_line,
@@ -67,25 +46,26 @@ pub fn parse_task_content(
         }
     }
 
-    let mut stages = Vec::with_capacity(sections.len());
+    let mut history = Vec::with_capacity(sections.len());
     let mut attempts = 0u32;
 
-    for section in sections {
-        let verdict = parse_section_verdict(&lines, &section)?;
-        if let Some(verdict) = verdict {
-            if verdict.counts_as_attempt() {
-                attempts += 1;
-            }
+    for (index, section) in sections.iter().enumerate() {
+        let has_later_same_stage = sections[index + 1..]
+            .iter()
+            .any(|other| other.stage == section.stage);
+        let verdict = parse_section_verdict(&lines, section, location, has_later_same_stage, path)?;
+        if verdict.is_some_and(StageVerdict::counts_as_attempt) {
+            attempts += 1;
         }
 
-        stages.push(StageState {
+        history.push(StageState {
             stage: section.stage,
             heading_line: section.heading_line,
             verdict,
         });
     }
 
-    let derived = derive_status(stages.as_slice())?;
+    let (derived, stages) = derive_status(history.as_slice(), location)?;
     let status = reconcile_location(location, derived, path)?;
 
     Ok(TaskState::new(
@@ -97,29 +77,23 @@ pub fn parse_task_content(
     ))
 }
 
-fn derive_status(stages: &[StageState]) -> Result<TaskStatus, ParseTaskError> {
-    if stages.is_empty() {
-        return Ok(TaskStatus::Pending);
+fn derive_status(
+    history: &[StageState],
+    location: TaskLocation,
+) -> Result<(TaskStatus, Vec<StageState>), ParseTaskError> {
+    if history.is_empty() {
+        return Ok((TaskStatus::Pending, vec![]));
     }
 
-    let has_swe = stages.iter().any(|stage| stage.stage == TaskStage::Swe);
-    let red = stages.iter().find(|stage| stage.stage == TaskStage::Red);
-    let blue = stages.iter().find(|stage| stage.stage == TaskStage::Blue);
+    let swe = history
+        .iter()
+        .rfind(|stage| stage.stage == TaskStage::Swe)
+        .cloned();
 
-    if blue.is_some() && red.is_none() {
-        return Err(ParseTaskError::OutOfOrderHeading {
-            previous: TaskStage::Swe,
-            current: TaskStage::Blue,
-            line: stages
-                .iter()
-                .find(|stage| stage.stage == TaskStage::Blue)
-                .map(|stage| stage.heading_line)
-                .unwrap_or(0),
-        });
-    }
-
-    if !has_swe {
-        let first = stages
+    // T-54.1: done/ files tolerate missing SWE — treat as implicit completion.
+    // todo/ files still require SWE before Red/Blue.
+    if swe.is_none() && location != TaskLocation::Done {
+        let first = history
             .first()
             .expect("non-empty stage list should have a first element");
         return Err(ParseTaskError::OutOfOrderHeading {
@@ -129,39 +103,54 @@ fn derive_status(stages: &[StageState]) -> Result<TaskStatus, ParseTaskError> {
         });
     }
 
-    match (
-        red.and_then(|stage| stage.verdict),
-        blue.and_then(|stage| stage.verdict),
+    let red = if let Some(ref swe) = swe {
+        history
+            .iter()
+            .rfind(|stage| stage.stage == TaskStage::Red && stage.heading_line > swe.heading_line)
+            .cloned()
+    } else {
+        history
+            .iter()
+            .rfind(|stage| stage.stage == TaskStage::Red)
+            .cloned()
+    };
+
+    let blue = red
+        .as_ref()
+        .filter(|stage| stage.verdict == Some(StageVerdict::Pass))
+        .and_then(|red| {
+            history
+                .iter()
+                .rfind(|stage| {
+                    stage.stage == TaskStage::Blue && stage.heading_line > red.heading_line
+                })
+                .cloned()
+        });
+
+    let stages = [swe.clone(), red.clone(), blue.clone()]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+
+    let status = match (
+        red.as_ref().and_then(|stage: &StageState| stage.verdict),
+        blue.as_ref().and_then(|stage: &StageState| stage.verdict),
     ) {
-        (None, None) => Ok(TaskStatus::Red),
-        (Some(StageVerdict::Reject), None) => Ok(TaskStatus::Pending),
-        (Some(StageVerdict::Pass), None) => Ok(TaskStatus::Blue),
-        (Some(StageVerdict::Pass), Some(StageVerdict::Pass)) => Ok(TaskStatus::Done),
-        (Some(StageVerdict::Pass), Some(StageVerdict::Fail)) => Ok(TaskStatus::Pending),
-        (Some(StageVerdict::Pass), Some(StageVerdict::Reject)) => {
-            Err(ParseTaskError::InvalidVerdictForStage {
-                stage: TaskStage::Blue,
-                verdict: StageVerdict::Reject,
-                line: blue_heading_line(stages),
-            })
+        (None, None) => TaskStatus::Red,
+        (Some(StageVerdict::Reject), None) => TaskStatus::Pending,
+        (Some(StageVerdict::Reject), Some(_)) => TaskStatus::Pending,
+        (Some(StageVerdict::Pass), None) => TaskStatus::Blue,
+        (Some(StageVerdict::Pass), Some(StageVerdict::Pass)) => TaskStatus::Done,
+        (Some(StageVerdict::Pass), Some(StageVerdict::Fail | StageVerdict::Reject)) => {
+            TaskStatus::Pending
         }
-        (Some(StageVerdict::Reject), Some(_)) => Err(ParseTaskError::InvalidStatusFlow {
-            message: format!(
-                "blue stage cannot follow a red {} verdict",
-                StageVerdict::Reject.as_str()
-            ),
-            line: line_for_stage(stages, TaskStage::Blue),
-        }),
-        (Some(StageVerdict::Fail), _) => Err(ParseTaskError::InvalidVerdictForStage {
-            stage: TaskStage::Red,
-            verdict: StageVerdict::Fail,
-            line: line_for_stage(stages, TaskStage::Red),
-        }),
-        (None, Some(_)) => Err(ParseTaskError::InvalidStatusFlow {
-            message: "blue stage cannot appear before a completed red verdict".to_string(),
-            line: line_for_stage(stages, TaskStage::Blue),
-        }),
-    }
+        (Some(StageVerdict::Fail), _) => {
+            unreachable!("red FAIL verdicts are rejected during parse")
+        }
+        (None, Some(_)) => unreachable!("blue is only selected after a PASS red section"),
+    };
+
+    Ok((status, stages))
 }
 
 fn reconcile_location(
@@ -188,6 +177,9 @@ fn reconcile_location(
 fn parse_section_verdict(
     lines: &[&str],
     section: &Section,
+    location: TaskLocation,
+    has_later_same_stage: bool,
+    path: &Path,
 ) -> Result<Option<StageVerdict>, ParseTaskError> {
     let mut verdict = None;
 
@@ -212,12 +204,23 @@ fn parse_section_verdict(
     }
 
     match section.stage {
-        TaskStage::Swe => Ok(verdict),
+        TaskStage::Swe => Ok(None),
         TaskStage::Red | TaskStage::Blue => {
-            verdict.map(Some).ok_or(ParseTaskError::MissingVerdict {
-                stage: section.stage,
-                line: section.heading_line,
-            })
+            if let Some(verdict) = verdict {
+                Ok(Some(verdict))
+            } else if has_later_same_stage {
+                Ok(Some(StageVerdict::Reject))
+            } else if location == TaskLocation::Done {
+                Ok(Some(StageVerdict::Pass))
+            } else {
+                eprintln!(
+                    "warning: {}: missing verdict for {} section starting at line {}",
+                    path.display(),
+                    section.stage.as_str(),
+                    section.heading_line
+                );
+                Ok(None)
+            }
         }
     }
 }
@@ -232,10 +235,13 @@ fn parse_verdict(
         .map(|(_, verdict)| verdict.trim())
         .unwrap_or_default();
 
-    let verdict = match raw {
-        "PASS" => StageVerdict::Pass,
-        "REJECT" => StageVerdict::Reject,
-        "FAIL" => StageVerdict::Fail,
+    let verdict = match raw
+        .split(|ch: char| !ch.is_alphanumeric())
+        .find(|token| matches!(*token, "PASS" | "REJECT" | "FAIL"))
+    {
+        Some("PASS") => StageVerdict::Pass,
+        Some("REJECT") => StageVerdict::Reject,
+        Some("FAIL") => StageVerdict::Fail,
         _ => {
             return Err(ParseTaskError::UnknownVerdict {
                 stage,
@@ -265,32 +271,12 @@ fn parse_verdict(
 fn match_stage_heading(line: &str) -> Result<Option<TaskStage>, ParseTaskError> {
     let trimmed = line.trim();
     for stage in TaskStage::ALL {
-        let canonical = stage.canonical_heading();
-        if trimmed == canonical {
+        if trimmed.starts_with(stage.canonical_heading()) {
             return Ok(Some(stage));
-        }
-
-        if trimmed.starts_with(canonical) {
-            return Err(ParseTaskError::NonCanonicalHeading {
-                stage,
-                found: trimmed.to_string(),
-            });
         }
     }
 
     Ok(None)
-}
-
-fn line_for_stage(stages: &[StageState], stage: TaskStage) -> usize {
-    stages
-        .iter()
-        .find(|state| state.stage == stage)
-        .map(|state| state.heading_line)
-        .unwrap_or(0)
-}
-
-fn blue_heading_line(stages: &[StageState]) -> usize {
-    line_for_stage(stages, TaskStage::Blue)
 }
 
 #[derive(Debug, Clone)]
@@ -311,21 +297,9 @@ pub enum ParseTaskError {
     UnknownTaskLocation {
         path: std::path::PathBuf,
     },
-    NonCanonicalHeading {
-        stage: TaskStage,
-        found: String,
-    },
-    DuplicateHeading {
-        stage: TaskStage,
-        line: usize,
-    },
     OutOfOrderHeading {
         previous: TaskStage,
         current: TaskStage,
-        line: usize,
-    },
-    MissingVerdict {
-        stage: TaskStage,
         line: usize,
     },
     DuplicateVerdict {
@@ -364,16 +338,6 @@ impl fmt::Display for ParseTaskError {
                 "task file {} must live under todo/ or done/",
                 path.display()
             ),
-            Self::NonCanonicalHeading { stage, found } => write!(
-                f,
-                "non-canonical {} heading '{}' ; use '{}'",
-                stage.as_str(),
-                found,
-                stage.canonical_heading()
-            ),
-            Self::DuplicateHeading { stage, line } => {
-                write!(f, "duplicate {} heading at line {}", stage.as_str(), line)
-            }
             Self::OutOfOrderHeading {
                 previous,
                 current,
@@ -384,12 +348,6 @@ impl fmt::Display for ParseTaskError {
                 current.canonical_heading(),
                 line,
                 previous.canonical_heading()
-            ),
-            Self::MissingVerdict { stage, line } => write!(
-                f,
-                "missing verdict for {} section starting at line {}",
-                stage.as_str(),
-                line
             ),
             Self::DuplicateVerdict { stage, line } => write!(
                 f,

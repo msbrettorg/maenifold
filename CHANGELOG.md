@@ -5,6 +5,25 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 54 — Parser Hardening (FR-41)
+
+### Added
+- Rework-cycle tolerance: parser handles repeated SWE/Red/Blue sections with last-section-wins semantics
+- Implicit verdict support: intermediate sections without verdict = implicit REJECT; final done/ section = implicit PASS
+- Emoji verdict parsing: `❌ REJECT` and similar emoji-prefixed verdicts extracted correctly
+- No-SWE tolerance: done/ files with only Red/Blue sections (no SWE) accepted as valid
+- Location-authoritative fallback: done/ files always report as Done regardless of parse completeness
+- Incomplete audit trail note in status output for done/ files with partial stage data
+- Case-insensitive CLI verdict parsing: `pass`, `PASS`, `Pass` all accepted
+- 20 new tests across parser_rework_tests.rs and integration.rs (45 total, up from 25)
+
+### Changed
+- `parser.rs`: prefix heading matching (`starts_with`) replaces exact string match
+- `sync.rs`: metadata warnings suppressed for done/ files (historical files lack `**Requirement**`)
+- Removed 3 dead error variants: NonCanonicalHeading, DuplicateHeading, MissingVerdict
+
+---
+
 ## Sprint 53 — FR-41: File-Authoritative Pipeline Gate Cache — 2026-03-21
 
 ### Added

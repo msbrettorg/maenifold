@@ -19,3 +19,5 @@ walkdir.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+assert_cmd.workspace = true
+predicates.workspace = true

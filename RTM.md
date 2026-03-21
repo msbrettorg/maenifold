@@ -25,3 +25,12 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 | RTM-168 | FR-41 | `crates/maenifold-gate/src/sync.rs` | TC-168: T-53.4 Cache Rebuild/Reconcile — rebuild and reconcile cache state from disk | integration |
 | RTM-169 | FR-41 | `crates/maenifold-gate/src/advance.rs` | TC-169: T-53.5 Stage Advance — validate transition, append canonical section, and move file on terminal pass | integration |
 | RTM-170 | FR-41 | `crates/maenifold-gate/tests/{advance_tests,integration}.rs` | TC-170: T-53.6 Integration Tests — 6 cross-module tests; FR-41 implementation in `crates/maenifold-gate/src/{fs,db,status,sync,advance}.rs` is ✅ Complete with 25 tests total (15 unit + 4 advance + 6 integration); integrated TDD skill (`SKILL.md`), PM agent config, scaffold, and deprecated `DISPATCH.md` updates | integration |
+
+## Sprint 54 — Parser Hardening (FR-41)
+
+| RTM | Requirement | Component | Test Case | Test Type |
+|-----|-------------|-----------|-----------|-----------|
+| RTM-171 | FR-41 | `crates/maenifold-gate/src/parser.rs` | TC-171: T-54.1 Parser Rework Tolerance — prefix heading matching, last-section-wins, implicit verdicts, emoji parsing, no-SWE tolerance; 9 tests in `parser_rework_tests.rs` | unit |
+| RTM-172 | FR-41 | `crates/maenifold-gate/src/{types,status,sync}.rs` | TC-172: T-54.2 Location-Authoritative Fallback — `effective_status()` override for done/ files, incomplete trail note, attempts preservation; 2 new integration tests | integration |
+| RTM-173 | FR-41 | `crates/maenifold-gate/src/lib.rs` | TC-173: T-54.3 Case-Insensitive Verdict — `to_ascii_uppercase()` normalization at CLI boundary; 4 unit tests | unit |
+| RTM-174 | FR-41 | `crates/maenifold-gate/` | TC-174: T-54.4 Zero-Warning Verification — full pipeline clean: 0 sync warnings on 106 files, 45/45 tests pass, sync rebuild stable | integration |

@@ -5,6 +5,31 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 55 — FR-42: Configurable Pipeline Engine
+
+### Added
+- JSON-driven pipeline definitions (`pipeline.rs`): configurable stages, verdicts, transitions
+  - Ships `assets/pipelines/tdd.json` (swe→red→blue) and `lightweight.json` (swe→blue)
+  - DAG validation with cycle detection and reachability checks
+- `gate pass <ID>` — advances task per pipeline JSON, moves to done/ on terminal pass
+- `gate reject <ID>` — rolls back task per pipeline JSON, increments attempts
+- `gate append <ID> --agent <role> --notes "..."` — logs agent work without state change
+- Task ID column in DB: `T-55.1` resolves to `T-55.1-pipeline-definition-schema.md`
+- ID-based `gate status <ID>` lookup
+- 10 pipeline integration tests, 84 total tests (up from 45)
+
+### Changed
+- CLI is now ID-based: `gate pass T-55.1` instead of `gate advance T-55.1-file.md --stage red --verdict PASS`
+- Shared helpers extracted: `load_pipeline_def`, `resolve_file_path`, `append_orchestrator_section`
+- `extract_task_id` handles trailing alpha suffixes (T-44.5b)
+
+### Removed
+- `gate advance` command and `advance.rs` module
+- `--stage`, `--model`, `--verdict` CLI flags
+- `advance_tests.rs`
+
+---
+
 ## Sprint 54 — Parser Hardening (FR-41)
 
 ### Added

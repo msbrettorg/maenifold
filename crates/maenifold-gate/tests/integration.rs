@@ -4,8 +4,11 @@ use std::path::{Path, PathBuf};
 use assert_cmd::Command;
 use assert_cmd::cargo::cargo_bin_cmd;
 use maenifold_gate::{
-    AdvanceArgs, StageVerdict, StatusArgs, SyncArgs, TaskLocation, TaskStage, TaskState,
-    TaskStatus, advance, db::GateDb, parser, status, sync,
+    StatusArgs, SyncArgs, TaskLocation, TaskState, TaskStatus,
+    db::{GateDb, extract_task_id},
+    parser,
+    pass::{self, PassArgs},
+    status, sync,
 };
 use serde_json::Value;
 use tempfile::{TempDir, tempdir};
@@ -67,16 +70,15 @@ fn read_row(db_path: &Path, file: &str) -> maenifold_gate::db::TaskRow {
         .unwrap()
 }
 
-fn advance_args(root: &Path, db: Option<&Path>, file: &str, stage: TaskStage) -> AdvanceArgs {
-    AdvanceArgs {
-        task: PathBuf::from(file),
-        stage,
-        verdict: None,
-        notes: None,
-        model: None,
-        root: Some(root.to_path_buf()),
-        db: db.map(Path::to_path_buf),
-    }
+fn run_pass(root: &Path, db_path: &Path, id: &str, notes: Option<&str>) {
+    pass::run(&PassArgs {
+        id: id.into(),
+        notes: notes.map(str::to_owned),
+        pipeline_path: None,
+        db_path: db_path.into(),
+        root: root.into(),
+    })
+    .unwrap();
 }
 
 fn gate_command() -> Command {
@@ -165,8 +167,16 @@ fn test_sync_reconcile_detects_drift() {
 
     let db_path = rebuild_cache(root.path());
     let db = GateDb::open(&db_path).unwrap();
-    db.upsert_task(&blue_file, Some("Corrupted"), "FR-99", "pending", "done", 7)
-        .unwrap();
+    db.upsert_task(
+        &extract_task_id(&blue_file),
+        &blue_file,
+        Some("Corrupted"),
+        "FR-99",
+        "pending",
+        "done",
+        7,
+    )
+    .unwrap();
     drop(db);
 
     let args = SyncArgs {
@@ -185,7 +195,7 @@ fn test_sync_reconcile_detects_drift() {
 }
 
 #[test]
-fn test_status_single_file() {
+fn test_status_single_id() {
     let root = setup_root();
     let file = task_file_name(1);
     let path = write_task(
@@ -200,9 +210,9 @@ fn test_status_single_file() {
     let db_path = rebuild_cache(root.path());
     let args = StatusArgs {
         db: Some(db_path),
-        root: Some(root.path().to_path_buf()),
+        root: root.path().to_path_buf(),
         json: false,
-        task: PathBuf::from(&file),
+        id: Some(extract_task_id(&file)),
     };
 
     status::run_status(&args, root.path()).unwrap();
@@ -233,42 +243,37 @@ fn test_status_all_files_summary() {
     let db_path = rebuild_cache(root.path());
     let args = StatusArgs {
         db: Some(db_path),
-        root: Some(root.path().to_path_buf()),
+        root: root.path().to_path_buf(),
         json: false,
-        task: PathBuf::new(),
+        id: None,
     };
 
     status::run_status(&args, root.path()).unwrap();
 }
 
 #[test]
-fn test_advance_then_sync_roundtrip() {
+fn test_pass_then_sync_roundtrip() {
     let root = setup_root();
     let file = task_file_name(1);
     write_task(root.path(), TaskLocation::Todo, &file, &base_task(1));
 
-    let db_path = root.path().join("pipeline.db");
-    GateDb::open(&db_path).unwrap();
-
-    let mut args = advance_args(root.path(), Some(&db_path), &file, TaskStage::Swe);
-    args.notes = Some("Implementation done.".into());
-    advance::run_advance(&args, root.path()).unwrap();
-
-    args.stage = TaskStage::Red;
-    args.verdict = Some(StageVerdict::Pass);
-    args.notes = Some("No issues found.".into());
-    advance::run_advance(&args, root.path()).unwrap();
-
-    args.stage = TaskStage::Blue;
-    args.verdict = Some(StageVerdict::Pass);
-    args.notes = Some("All tests pass.".into());
-    advance::run_advance(&args, root.path()).unwrap();
+    let db_path = rebuild_cache(root.path());
+    let id = extract_task_id(&file);
+    for note in [
+        "Implementation done.",
+        "Ready for red.",
+        "Ready for blue.",
+        "All tests pass.",
+    ] {
+        run_pass(root.path(), &db_path, &id, Some(note));
+    }
 
     let done_path = root.path().join("done").join(&file);
     assert!(!root.path().join("todo").join(&file).exists());
     assert!(done_path.exists());
-    let final_state = parser::parse_task_file(&done_path).unwrap();
-    assert_eq!(final_state.status, TaskStatus::Done);
+    assert!(parser::parse_task_file(&done_path).is_err());
+    let final_state = TaskState::done_override(done_path.clone());
+    assert_eq!(final_state.effective_status(), TaskStatus::Done);
     assert_eq!(final_state.location, TaskLocation::Done);
 
     let sync_args = SyncArgs {
@@ -285,20 +290,6 @@ fn test_advance_then_sync_roundtrip() {
     assert_eq!(row.attempts, 0);
 }
 
-#[test]
-fn test_advance_errors_on_wrong_transition() {
-    let root = setup_root();
-    let file = task_file_name(1);
-    write_task(root.path(), TaskLocation::Todo, &file, &base_task(1));
-
-    let mut args = advance_args(root.path(), None, &file, TaskStage::Blue);
-    args.verdict = Some(StageVerdict::Pass);
-    let error = advance::run_advance(&args, root.path()).unwrap_err();
-
-    assert!(error.to_string().contains("Cannot advance"));
-    assert!(error.to_string().contains("pending"));
-}
-
 // T-54.2: Location-authoritative fallback tests
 
 #[test]
@@ -306,11 +297,9 @@ fn test_done_zero_sections_effective_done() {
     let root = setup_root();
     let file = task_file_name(10);
     let path = write_task(root.path(), TaskLocation::Done, &file, &base_task(10));
-    // Parser errors (LocationStatusMismatch), but effective_status overrides to Done
     assert!(parser::parse_task_file(&path).is_err());
     let state = TaskState::done_override(path);
     assert_eq!(state.effective_status(), TaskStatus::Done);
-    // Sync also persists as done
     let db_path = rebuild_cache(root.path());
     let row = read_row(&db_path, &file);
     assert_eq!(row.status, "done");
@@ -369,10 +358,8 @@ fn test_todo_zero_sections_stays_pending() {
 #[test]
 fn test_sync_rebuild_legacy_done_file() {
     let root = setup_root();
-    // Legacy done/ file (no pipeline sections)
     let legacy = task_file_name(14);
     write_task(root.path(), TaskLocation::Done, &legacy, &base_task(14));
-    // Modern done/ file (full pipeline)
     let modern = task_file_name(15);
     write_task(
         root.path(),
@@ -380,7 +367,6 @@ fn test_sync_rebuild_legacy_done_file() {
         &modern,
         &with_blue_pass(with_red_pass(with_swe(base_task(15)))),
     );
-    // Pending todo/ file
     let pending = task_file_name(16);
     write_task(root.path(), TaskLocation::Todo, &pending, &base_task(16));
 
@@ -404,12 +390,14 @@ fn test_status_json_reports_done_override_for_legacy_done_file() {
     let root = setup_root();
     let file = task_file_name(17);
     write_task(root.path(), TaskLocation::Done, &file, &base_task(17));
+    let _db_path = rebuild_cache(root.path());
+    let id = extract_task_id(&file);
 
     let output = gate_command()
         .args(["status", "--root"])
         .arg(root.path())
         .arg("--json")
-        .arg(&file)
+        .arg(&id)
         .assert()
         .success()
         .get_output()

@@ -1,7 +1,8 @@
 use crate::types::TaskLocation;
 use anyhow::{Context, Result, bail};
 use std::{
-    fs,
+    fs::{self, OpenOptions},
+    io::Write,
     path::{Path, PathBuf},
 };
 
@@ -64,6 +65,18 @@ pub fn move_task(from: &Path, to_dir: &Path) -> Result<PathBuf> {
     Ok(to)
 }
 
+pub fn move_to_done(root: &Path, file: &str) -> Result<PathBuf> {
+    let (from, location) = resolve_task_path(root, file)?;
+    if location == TaskLocation::Done {
+        bail!("task file {file} is already under {}/done", root.display());
+    }
+    move_task(&from, &root.join("done"))
+}
+
+pub fn resolve_file_path(root: &Path, file: &str) -> Result<PathBuf> {
+    Ok(resolve_task_path(root, file)?.0)
+}
+
 pub fn resolve_task_path(root: &Path, file: &str) -> Result<(PathBuf, TaskLocation)> {
     for (path, location) in [
         (root.join("todo").join(file), TaskLocation::Todo),
@@ -78,6 +91,19 @@ pub fn resolve_task_path(root: &Path, file: &str) -> Result<(PathBuf, TaskLocati
         root.display(),
         root.display()
     )
+}
+
+pub fn append_orchestrator_section(path: &Path, verdict: &str, notes: Option<&str>) -> Result<()> {
+    let mut file = OpenOptions::new()
+        .append(true)
+        .open(path)
+        .with_context(|| format!("opening task file {}", path.display()))?;
+    write!(
+        file,
+        "\n## Orchestrator — {verdict}\n\n{}\n",
+        notes.unwrap_or("")
+    )
+    .with_context(|| format!("writing task file {}", path.display()))
 }
 
 #[cfg(test)]

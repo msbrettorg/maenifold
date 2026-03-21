@@ -139,8 +139,16 @@ fn todo_file_missing_last_red_verdict_emits_warning() {
     );
     fs::write(&path, content).expect("write task");
 
-    let mut command: Command = if std::env::var_os("CARGO_BIN_EXE_gate").is_some() {
-        Command::new(std::env::var_os("CARGO_BIN_EXE_gate").expect("gate binary"))
+    let gate_bin = std::env::var_os("CARGO_BIN_EXE_gate");
+    let mut sync_command: Command = if gate_bin.is_some() {
+        Command::new(gate_bin.clone().expect("gate binary"))
+    } else {
+        cargo_bin_cmd!("gate")
+    };
+    sync_command.arg("sync").arg(root.path()).assert().success();
+
+    let mut command: Command = if let Some(path) = gate_bin {
+        Command::new(path)
     } else {
         cargo_bin_cmd!("gate")
     };
@@ -148,7 +156,7 @@ fn todo_file_missing_last_red_verdict_emits_warning() {
     command
         .args(["status", "--root"])
         .arg(root.path())
-        .arg(file)
+        .arg("T-54.1")
         .assert()
         .success()
         .stderr(contains("warning:").and(contains("missing verdict for red section")));

@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 
 use crate::{
     CommandStubError, SyncArgs,
-    db::GateDb,
+    db::{GateDb, extract_task_id},
     fs, parser,
     types::{TaskLocation, TaskState},
 };
@@ -66,6 +66,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
         db.delete_all_tasks()?;
         for (file, title, requirement, state) in &rows {
             db.upsert_task(
+                &extract_task_id(file),
                 file,
                 title.as_deref(),
                 requirement,
@@ -99,6 +100,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
             None => true,
         };
         db.upsert_task(
+            &extract_task_id(&file),
             &file,
             title.as_deref(),
             &requirement,

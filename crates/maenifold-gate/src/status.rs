@@ -4,7 +4,7 @@ use crate::{
     fs, parser,
     types::{TaskLocation, TaskStage, TaskState},
 };
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use serde::Serialize;
 use std::{collections::BTreeMap, path::Path};
 
@@ -25,37 +25,47 @@ struct StatusOutput {
 }
 
 pub fn run(args: &StatusArgs) -> Result<(), CommandStubError> {
-    run_status(args, args.root.as_deref().unwrap_or(Path::new(".")))
-        .map_err(|e| CommandStubError::new(e.to_string()))
+    run_status(args, &args.root).map_err(|e| CommandStubError::new(e.to_string()))
 }
 
 pub fn run_status(args: &StatusArgs, root: &Path) -> Result<()> {
-    let db = args.db.as_deref().map(GateDb::open).transpose()?;
+    let db = open_db(args, root)?;
     let check_drift = db.is_some();
-    if args.task.as_os_str().is_empty() {
-        return run_all(root, args.json, db.as_ref());
+    if let Some(id) = args.id.as_deref() {
+        return run_one_by_id(root, id, args.json, db.as_ref(), check_drift);
     }
-    let file = args
-        .task
-        .file_name()
-        .unwrap_or(args.task.as_os_str())
-        .to_string_lossy()
-        .into_owned();
-    let (path, location) = fs::resolve_task_path(root, &file)?;
-    let content = fs::read_task(&path)?;
+    run_all(root, args.json, db.as_ref(), check_drift)
+}
+
+fn open_db(args: &StatusArgs, root: &Path) -> Result<Option<GateDb>> {
+    match (args.db.as_deref(), args.id.as_ref()) {
+        (Some(path), _) => Ok(Some(GateDb::open(path)?)),
+        (None, Some(_)) => Ok(Some(GateDb::open(&root.join("pipeline.db"))?)),
+        (None, None) => Ok(None),
+    }
+}
+
+fn run_one_by_id(
+    root: &Path,
+    id: &str,
+    json: bool,
+    db: Option<&GateDb>,
+    check_drift: bool,
+) -> Result<()> {
+    let db = db.ok_or_else(|| anyhow!("task ID lookup requires a database"))?;
     let row = db
-        .as_ref()
-        .map(|db| db.get_task(&file))
-        .transpose()?
-        .flatten();
+        .get_task_by_id(id)?
+        .ok_or_else(|| anyhow!("unknown task ID: {id}"))?;
+    let (path, location) = fs::resolve_task_path(root, &row.file)?;
+    let content = fs::read_task(&path)?;
     match parser::parse_task_content(&path, &content) {
         Ok(state) => output_one(
-            &file,
+            &row.file,
             location.as_str(),
             Some(&state),
             None,
-            maybe_drift(check_drift, &state, row.as_ref()),
-            args.json,
+            maybe_drift(check_drift, &state, Some(&row)),
+            json,
         )?,
         Err(parser::ParseTaskError::LocationStatusMismatch {
             location: TaskLocation::Done,
@@ -63,29 +73,28 @@ pub fn run_status(args: &StatusArgs, root: &Path) -> Result<()> {
         }) => {
             let state = TaskState::done_override_from_content(&path, &content);
             output_one(
-                &file,
+                &row.file,
                 location.as_str(),
                 Some(&state),
                 Some(INCOMPLETE_AUDIT_TRAIL_NOTE.into()),
-                maybe_drift(check_drift, &state, row.as_ref()),
-                args.json,
+                maybe_drift(check_drift, &state, Some(&row)),
+                json,
             )?
         }
         Err(err) => output_one(
-            &file,
+            &row.file,
             location.as_str(),
             None,
             Some(err.to_string()),
             vec![],
-            args.json,
+            json,
         )?,
     }
     Ok(())
 }
 
-fn run_all(root: &Path, json: bool, db: Option<&GateDb>) -> Result<()> {
+fn run_all(root: &Path, json: bool, db: Option<&GateDb>, check_drift: bool) -> Result<()> {
     let mut tasks = fs::discover_tasks(root)?;
-    let check_drift = db.is_some();
     let rows = db
         .map(GateDb::get_all_tasks)
         .transpose()?

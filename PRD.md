@@ -60,3 +60,35 @@ CLI tool (`gate`) making todo/done markdown files authoritative for pipeline tas
 - **Status inspection**: `gate status` SHALL report effective task state derived from disk, with optional cache cross-check metadata.
 - **Parser hardening** (Sprint 54): Parser SHALL tolerate rework cycles, out-of-order headings, emoji verdicts, implicit verdicts, no-SWE done files, and case-insensitive CLI input.
 - **Location-authoritative fallback**: Files in `done/` SHALL be treated as done regardless of incomplete audit trail, with a diagnostic note preserved in status output.
+
+### FR-42: Configurable Pipeline Engine
+
+Replace the hardcoded SWE→Red→Blue pipeline with a JSON-driven process engine. Simplify the CLI to three state-changing commands with role-based separation enforced by agent tool configuration.
+
+#### Pipeline Definition
+
+- The system SHALL load pipeline stage definitions from a JSON file (e.g., `pipeline.json`).
+- Each stage SHALL declare: name, valid verdicts (pass/reject/fail), transition targets on each verdict, and optionally allowed/denied agent roles.
+- The JSON definition SHALL be validated as a DAG on load. Cycles SHALL be rejected.
+- Predefined pipelines SHALL be shipped (e.g., `tdd.json`: swe→red→blue; `lightweight.json`: swe→blue).
+- `--pipeline <path>` SHALL override the default; if omitted, gate SHALL look for `pipeline.json` in the root.
+
+#### ID-Based CLI
+
+- All state-changing commands SHALL accept a task ID (e.g., `T-54.1`), NOT a filename.
+- The database SHALL map task IDs to file paths, current stage, location, and history.
+- `gate status` and `gate status <ID>` SHALL resolve from the database. `gate sync` rebuilds the mapping.
+
+#### Command Separation
+
+- `gate append <ID> --notes "..." --agent <role>` — Logs work to the task file. Does NOT change pipeline state. Available to subagents.
+- `gate pass <ID> --notes "..."` — Advances the task to the next stage per the pipeline definition. Moves file to `done/` on terminal pass. Orchestrator-only.
+- `gate reject <ID> --notes "..."` — Rolls the task back per the pipeline definition (e.g., to pending). Orchestrator-only.
+- `gate advance` SHALL be removed. Its responsibilities are split across `pass`, `reject`, and `append`.
+
+#### Authorization Model
+
+- Authorization SHALL be enforced by agent tool configuration, NOT by the binary.
+- Subagent configs SHALL include `gate append` only. `gate pass` and `gate reject` SHALL be excluded from subagent tool lists.
+- `pass` and `reject` SHALL implicitly record `orchestrator` as the agent role.
+- The binary SHALL NOT implement authentication, tokens, or cryptographic verification.

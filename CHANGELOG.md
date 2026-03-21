@@ -5,6 +5,29 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 53 — FR-41: File-Authoritative Pipeline Gate Cache — 2026-03-21
+
+### Added
+- `gate` CLI tool (`crates/maenifold-gate`) — standalone binary for pipeline task management
+  - `gate status` — report pipeline state from authoritative task files
+  - `gate advance` — enforce stage transitions (SWE → Red → Blue → Done)
+  - `gate sync` — rebuild/reconcile `pipeline.db` cache from disk
+- File-authoritative design: `todo/` and `done/` markdown files are the source of truth
+- `pipeline.db` is now a rebuildable cache (not the authority)
+- 25 tests (15 unit + 4 advance + 6 integration)
+
+### Changed
+- TDD skill (`SKILL.md`) rewritten to use `gate` CLI instead of raw `sqlite3` commands
+- PM agent config updated to reference gate CLI
+- Scaffold updated: sample files use `T-*.md` naming, `pipeline.db` removed (auto-generated)
+- `setup-template.md` updated for file-authoritative workflow
+
+### Deprecated
+- `DISPATCH.md` — replaced by TDD skill + gate CLI
+- Raw `sqlite3 pipeline.db` workflow — use `gate` commands instead
+
+---
+
 ## Sprint 52 — Pipeline Active Executor: Supervisor — 2026-03-20
 
 ### Added

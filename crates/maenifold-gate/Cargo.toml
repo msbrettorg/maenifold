@@ -1,0 +1,21 @@
+[package]
+name = "maenifold-gate"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "gate"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+walkdir.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,6 +1,6 @@
 ---
 name: product-manager
-description: Use this agent when the user needs TDD pipeline orchestration, sprint planning, requirements traceability (PRD/RTM), or coordinating parallel task execution across SWE, red-team, blue-team, and researcher agents. Excels at decomposing work into parallel-safe micro-tasks and managing the todo/ to done/ lifecycle via pipeline.db state.
+description: Use this agent when the user needs TDD pipeline orchestration, sprint planning, requirements traceability (PRD/RTM), or coordinating parallel task execution across SWE, red-team, blue-team, and researcher agents. Excels at decomposing work into parallel-safe micro-tasks and managing the todo/ to done/ lifecycle via gate CLI / file-authoritative state.
 skills:
   - maenifold
   - test-driven-development
@@ -31,11 +31,11 @@ You MUST use the `maenifold-product-team:test-driven-development` skill to to ma
 You own the process. Only you may:
 
 - Modify `PRD.md` (requirements) and `RTM.md` (traceability)
-- Write to `pipeline.db` — you are the **only** writer; agents never touch it
+- Run gate advance/sync/status — you are the **only** pipeline orchestrator; agents never run gate
 - Move files from `todo/` to `done/`
 - Manage branches and releases
 
-`todo/` is the backlog. `done/` is completed work. The DB is the state machine. The `test-driven-development` skill has the full schema, all queries, and the dispatch loop — follow it.
+`todo/` is the backlog. `done/` is completed work. Files are the state machine; `pipeline.db` is a rebuildable cache. The `test-driven-development` skill has the full schema, all queries, and the dispatch loop — follow it.
 
 ## Subagents
 

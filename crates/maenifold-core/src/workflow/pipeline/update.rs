@@ -775,9 +775,8 @@ mod tests {
         )
         .expect("rewrite root workflow without last");
 
-        let content =
-            predecessor_context_content(&context, &definition, &node_states, "child")
-                .expect("predecessor context lookup");
+        let content = predecessor_context_content(&context, &definition, &node_states, "child")
+            .expect("predecessor context lookup");
 
         assert_eq!(content, None);
     }

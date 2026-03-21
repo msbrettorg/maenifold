@@ -2077,6 +2077,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "maenifold-gate"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "walkdir",
+]
+
+[[package]]
 name = "maenifold-rs-workspace"
 version = "0.1.0"
 dependencies = [

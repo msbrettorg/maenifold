@@ -9,9 +9,9 @@ Step-by-step instructions for initializing a new dispatch pipeline.
 ├── PRD.md              # Requirements (FR-*, NFR-*)
 ├── RTM.md              # Traceability matrix (FR-* → TC-*)
 ├── todo/               # Backlog — pending spec files (inbox)
-│   ├── feature-a.md
-│   ├── feature-b.md
-│   └── bug-fix-c.md
+│   ├── T-1.1-feature-a.md
+│   ├── T-1.2-feature-b.md
+│   └── T-1.3-bug-fix-c.md
 ├── done/               # Archive — completed specs with audit trails
 ├── pipeline.db         # SQLite state tracker (gitignored)
 ├── swe-prompt.md       # SWE agent instructions (from template)
@@ -21,25 +21,18 @@ Step-by-step instructions for initializing a new dispatch pipeline.
 
 `PRD.md` defines what to build. `RTM.md` traces requirements to components and test cases. `todo/` is the inbox — each file is one backlog item (a T-* spec referencing FR-* from PRD.md). `done/` is the archive — completed files with their full audit trails. Both folders are committed. There is no TODO.md — `ls todo/` is the backlog.
 
-## 2. Create the Database
+## 2. Create Requirements + Backlog Files
 
 ```bash
 mkdir -p todo done
-sqlite3 pipeline.db "CREATE TABLE eval_queue (
-    file TEXT PRIMARY KEY,
-    status TEXT NOT NULL DEFAULT 'pending'
-        CHECK(status IN ('pending','red','blue','done','stuck')),
-    attempts INTEGER NOT NULL DEFAULT 0,
-    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);"
 ```
 
-## 3. Load Work Items
+Create `PRD.md` first, then write your spec files into `todo/`. The pipeline is file-authoritative, so the backlog is whatever markdown task files exist in `todo/`.
+
+## 3. Initialize the Cache
 
 ```bash
-for f in todo/*.md; do
-    sqlite3 pipeline.db "INSERT INTO eval_queue (file) VALUES ('$(basename $f)');"
-done
+gate sync --rebuild .
 ```
 
 ## 4. Write Agent Prompts
@@ -57,13 +50,13 @@ The scoped test command is the single most important thing to get right. If agen
 echo "pipeline.db" >> .gitignore
 ```
 
-The DB is operational state, not source code. The spec files with their accumulated audit trails are the persistent record.
+The cache is rebuildable operational state, not source code. The spec files with their accumulated audit trails are the persistent record.
 
 ## 6. Verify
 
 ```bash
-sqlite3 pipeline.db "SELECT count(*) FROM eval_queue WHERE status = 'pending';"
-# Should match the number of files in todo/
+gate status --root .
+# Should show the same backlog represented by files in todo/ and done/
 ```
 
 ## 7. Start the Pipeline
@@ -74,7 +67,7 @@ Tell the PM orchestrator (or load the dispatch-pipeline skill) and provide:
 - Slot limit (default: 8)
 - Agent types to use (SWE, red-team, blue-team)
 
-The PM will query the DB and start filling slots.
+The PM will use `gate` and start filling slots.
 
 ## Spec File Format
 

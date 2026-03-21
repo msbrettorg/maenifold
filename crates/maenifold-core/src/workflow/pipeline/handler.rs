@@ -1951,7 +1951,8 @@ sleep 30
                 "maxConcurrency": max_concurrency
             });
 
-            let error = pipeline(&context, &payload).expect_err("invalid maxConcurrency should fail");
+            let error =
+                pipeline(&context, &payload).expect_err("invalid maxConcurrency should fail");
             assert!(
                 error
                     .to_string()

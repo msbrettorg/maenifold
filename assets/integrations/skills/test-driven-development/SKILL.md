@@ -5,13 +5,19 @@ description: The team's test-driven development process. Use this skill when the
 
 # Test-Driven Development Process
 
-Everything is a file. The database is state.
+Everything is a file. The database is a rebuildable cache.
 
-A spec file is a unit of work. It lives in `todo/`. Agents read it, do the work, append their results. When the pipeline finishes with it, it moves to `done/`. The SQLite database tracks where each file is in the pipeline. That's the whole system.
+A spec file is a unit of work. It lives in `todo/`. Agents read it, do the work, append their results. When the pipeline finishes with it, the `advance` subcommand moves it to `done/`. Markdown task files under `todo/` and `done/` are authoritative. `pipeline.db` is only a fast query cache rebuilt from disk whenever needed.
 
 ## Philosophy
 
-The unix view: small files, each representing one task, flowing through a pipeline of transforms. The DB is `ps` — it tells you what's running and where. The files are the filesystem — they hold the actual content and accumulate history. `todo/` is the inbox. `done/` is the archive. Agents are processes.
+The unix view: small files, each representing one task, flowing through a pipeline of transforms. The cache is `ps` — it gives you fast queryability into what's running and where. The files are the filesystem — they hold the actual content and accumulate history. `todo/` is the inbox. `done/` is the archive. Agents are processes.
+
+- **Files are authoritative.** Task state lives in markdown files under `todo/` and `done/`.
+- **`pipeline.db` is a rebuildable cache.** Use it for fast queries, but treat it as disposable; `gate sync --rebuild .` recreates it from disk at any time.
+- **The `advance` subcommand enforces legal transitions** and appends the canonical `SWE Remediation`, `Red-team Audit`, and `Blue-team Verification` sections before updating the cache.
+- **`gate status` reports effective state derived from files,** with optional cache cross-checks when you pass `--db`.
+- **`gate sync` rebuilds or reconciles the cache from disk.**
 
 ## Requirements Hierarchy
 
@@ -35,7 +41,7 @@ Only the PM adds/modifies requirements (PRD.md, RTM.md) or moves files to `done/
 ## The Pipeline
 
 ```
-todo/spec.md ──▶ SWE ──▶ Red-team ──▶ Blue-team ──▶ done/spec.md
+todo/T-1.1-auth-login-jwt.md ──▶ SWE ──▶ Red-team ──▶ Blue-team ──▶ done/T-1.1-auth-login-jwt.md
       ▲                      │                │
       │        REJECT        │         REJECT │
       └──────────────────────┘                │
@@ -52,9 +58,9 @@ Three stages. Each agent appends its section to the file. Rejections return to p
 | Red-team | spec + SWE section | audits SWE against spec | `## Red-team Audit` (PASS/REJECT) |
 | Blue-team | spec + SWE + red sections | runs scoped tests | `## Blue-team Verification` (PASS/FAIL) |
 
-### The database
+### The cache database
 
-Four tables. Files on disk are the artifacts. DB is the index + state machine.
+Four tables. Files on disk are the artifacts and source of truth. The DB is the index + state-machine cache.
 
 ```sql
 -- Requirements from PRD.md
@@ -76,7 +82,7 @@ CREATE TABLE traceability (
 
 -- Task queue — each row points to a file in todo/ or done/
 CREATE TABLE tasks (
-    file TEXT PRIMARY KEY,        -- 'auth-login-jwt.md'
+    file TEXT PRIMARY KEY,        -- 'T-1.1-auth-login-jwt.md'
     title TEXT,
     requirement TEXT NOT NULL REFERENCES requirements(id),
     status TEXT NOT NULL DEFAULT 'pending'
@@ -101,13 +107,13 @@ CREATE TABLE work_log (
 );
 ```
 
-`requirements` and `traceability` mirror the PRD.md and RTM.md on disk. They're loaded at setup and provide the relational backbone — "which requirements have no tasks?" is a JOIN, not a grep.
+`requirements` and `traceability` mirror the PRD.md and RTM.md on disk. They provide the relational backbone for cache-backed reporting, but the markdown files remain canonical.
 
 `tasks` points to files. The `location` column tracks whether the file is in `todo/` or `done/`. The `requirement` FK connects every task back to the PRD.
 
-`work_log` is append-only. Every agent action gets a row. This is the audit trail in queryable form — the file on disk has the same info in markdown, but the DB lets you ask "what's our average red-team reject rate?" without parsing markdown.
+`work_log` is append-only. Every agent action gets a row in the cache. This is the audit trail in queryable form — the file on disk has the same info in markdown, but the cache lets you ask "what's our average red-team reject rate?" without parsing markdown.
 
-The PM is the only writer. Agents never touch it.
+The PM is the only writer. Agents never touch the cache directly; the PM uses the `advance`, `status`, and `sync` subcommands as the canonical interface.
 
 ## Directory Layout
 
@@ -117,19 +123,19 @@ The PM is the only writer. Agents never touch it.
 ├── RTM.md                # Traceability matrix (FR-* → TC-*)
 ├── todo/                 # Backlog — pending spec files
 ├── done/                 # Archive — completed specs with audit trails
-├── pipeline.db           # State tracker (gitignored)
+├── pipeline.db           # Rebuildable cache/index (gitignored)
 ├── swe-prompt.md         # SWE agent instructions
 ├── red-prompt.md         # Red-team agent instructions
 └── blue-prompt.md        # Blue-team agent instructions
 ```
 
-`PRD.md` and `RTM.md` are the contracts — what to build and how to trace it. `todo/` and `done/` are the work. All four are committed. `pipeline.db` is ephemeral state, gitignored.
+`PRD.md` and `RTM.md` are the contracts — what to build and how to trace it. `todo/` and `done/` are the work. All four are committed. `pipeline.db` is a rebuildable cache, gitignored.
 
 Sprint planning = write spec files into `todo/`, each referencing FR-* from PRD.md. Sprint progress = `ls todo/ | wc -l` remaining, `ls done/ | wc -l` complete. Sprint close = `todo/` is empty.
 
 ## Setup
 
-A working reference scaffold is in `references/scaffold/` — a ready-to-copy pipeline root with a seeded DB, sample PRD/RTM, one todo item, and one done item. Copy it, adapt it, go.
+A working reference scaffold is in `references/scaffold/` — a ready-to-copy pipeline root with a seeded cache, sample PRD/RTM, one todo item, and one done item. Copy it, adapt it, go.
 
 ```bash
 # Copy scaffold to your pipeline root
@@ -139,137 +145,122 @@ cp -r references/scaffold/ /path/to/pipeline/
 mkdir -p todo done
 # Create PRD.md, RTM.md (see scaffold for examples)
 
-# Create DB (full schema in references/scaffold/pipeline.db)
-sqlite3 pipeline.db < references/schema.sql
-
-# Load requirements from PRD.md
-sqlite3 pipeline.db "INSERT INTO requirements (id, type, description) VALUES
-    ('FR-1', 'FR', 'System SHALL provide user authentication via JWT tokens');"
-
-# Load traceability from RTM.md
-sqlite3 pipeline.db "INSERT INTO traceability (test_case, requirement, component, test_type) VALUES
-    ('TC-1', 'FR-1', 'src/auth/', 'integration');"
-
-# Load tasks (one per spec file in todo/)
-for f in todo/*.md; do
-    sqlite3 pipeline.db "INSERT INTO tasks (file, title, requirement) VALUES
-        ('$(basename $f)', 'TODO: set title', 'TODO: set requirement');"
-done
+# Rebuild pipeline.db from the authoritative files on disk
+gate sync --rebuild .
 
 # Write agent prompts (copy from references/, adapt test commands)
 echo "pipeline.db" >> .gitignore
 ```
 
+### Gate binary location
+
+`gate` is built from `crates/maenifold-gate`. Put the binary on your `PATH` to use the short `gate ...` form in prompts/scripts. During development, use `cargo run -p maenifold-gate -- <subcommand>`. The release binary is `target/release/gate`.
+
 ## The PM Dispatch Loop
 
 Five things, forever:
 
-1. **Query** the DB for files at each status
+1. **Query** `gate status` for files at each status
 2. **Dispatch** the matching agent with the file path
 3. **Read** the agent's verdict
-4. **Advance or reject** in the DB; on done, `mv todo/{file} done/{file}`
+4. **Advance or reject** with the `advance` subcommand; on blue PASS it moves the file to `done/`
 5. **Backfill** any freed slot immediately
 
 ### Queries
 
 #### Dispatch operations
 
-```sql
--- Dashboard
-SELECT status, count(*) FROM tasks GROUP BY status;
+```bash
+# Dashboard
+gate status --root .
 
--- Next file for SWE
-SELECT file FROM tasks WHERE status = 'pending' ORDER BY file LIMIT 1;
+# Machine-readable queue snapshot
+gate status --root . --json
 
--- Advance: SWE done → red
-INSERT INTO work_log (file, stage, agent_model, duration_seconds, notes)
-    VALUES (?, 'swe', ?, ?, ?);
-UPDATE tasks SET status = 'red', updated_at = datetime('now') WHERE file = ?;
+# Next file for SWE
+# Filter the JSON array for the first object whose status == "pending"
+gate status --root . --json
 
--- Advance: red passed → blue
-INSERT INTO work_log (file, stage, agent_model, verdict, duration_seconds, notes)
-    VALUES (?, 'red', ?, 'PASS', ?, ?);
-UPDATE tasks SET status = 'blue', updated_at = datetime('now') WHERE file = ?;
+# Advance: SWE done → red
+gate advance T-1.1-auth-login-jwt.md --root . --stage swe \
+  --notes "Implemented feature and ran scoped tests" \
+  --model "gpt-5.4"
 
--- Advance: blue passed → done (then mv todo/{file} done/{file})
-INSERT INTO work_log (file, stage, agent_model, verdict, duration_seconds, notes)
-    VALUES (?, 'blue', ?, 'PASS', ?, ?);
-UPDATE tasks SET status = 'done', location = 'done', updated_at = datetime('now') WHERE file = ?;
+# Advance: red passed → blue
+gate advance T-1.1-auth-login-jwt.md --root . --stage red --verdict PASS \
+  --notes "Spec-compliant after audit" \
+  --model "claude-sonnet-4.6"
 
--- Reject: back to pending
-INSERT INTO work_log (file, stage, agent_model, verdict, duration_seconds, notes)
-    VALUES (?, ?, ?, 'REJECT', ?, ?);
-UPDATE tasks SET status = 'pending', attempts = attempts + 1,
-    updated_at = datetime('now') WHERE file = ?;
+# Advance: blue passed → done (moves file to done/)
+gate advance T-1.1-auth-login-jwt.md --root . --stage blue --verdict PASS \
+  --notes "Scoped verification passed" \
+  --model "gpt-5.4"
 
--- Escalate (3 strikes)
-UPDATE tasks SET status = 'stuck'
-    WHERE attempts >= 3 AND status = 'pending';
+# Reject: red sends file back to pending
+gate advance T-1.1-auth-login-jwt.md --root . --stage red --verdict REJECT \
+  --notes "Missing acceptance-criteria coverage"
+
+# Fail: blue sends file back to pending
+gate advance T-1.1-auth-login-jwt.md --root . --stage blue --verdict FAIL \
+  --notes "Scoped tests still failing"
 ```
+
+The `advance` subcommand records the transition, appends the canonical section, updates the cache, and moves blue PASS tasks into `done/`. `gate` does **not** auto-escalate `attempts >= 3`; repeated REJECT/FAIL cycles are a PM decision point.
 
 #### Sprint tracking
 
-```sql
--- Sprint progress
-SELECT 
-    (SELECT count(*) FROM tasks WHERE status = 'done') as done,
-    (SELECT count(*) FROM tasks WHERE status != 'done') as remaining,
-    (SELECT count(*) FROM tasks) as total,
-    printf('%.0f%%', 100.0 * (SELECT count(*) FROM tasks WHERE status = 'done') 
-        / (SELECT count(*) FROM tasks)) as progress;
+```bash
+# Sprint progress dashboard
+gate status --root .
 
--- Sprint complete?
-SELECT CASE WHEN count(*) = 0 THEN 'YES' ELSE 'NO' END as sprint_complete
-FROM tasks WHERE status != 'done';
+# Machine-readable task state for scripts/dashboards
+gate status --root . --json
 ```
+
+From the JSON output: `done = count(status == "done")`, `remaining = count(status != "done")`, `total = len(tasks)`. Sprint complete means no task remains in `pending`, `red`, or `blue`, and `todo/` is empty.
 
 #### Requirements traceability
 
-```sql
--- Requirement coverage (which requirements have tasks, which are done)
-SELECT 
-    r.id, r.description,
-    count(t.file) as total_tasks,
-    sum(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done,
-    sum(CASE WHEN t.status != 'done' THEN 1 ELSE 0 END) as remaining
-FROM requirements r
-LEFT JOIN tasks t ON t.requirement = r.id
-GROUP BY r.id;
-
--- Requirements with no tasks (uncovered)
-SELECT r.id, r.description
-FROM requirements r
-LEFT JOIN tasks t ON t.requirement = r.id
-WHERE t.file IS NULL;
-
--- Full traceability chain
-SELECT r.id as req, tr.test_case, tr.component, t.file, t.status
-FROM requirements r
-JOIN traceability tr ON tr.requirement = r.id
-LEFT JOIN tasks t ON t.requirement = r.id
-ORDER BY r.id, tr.test_case;
+```bash
+# Per-task file/status/location view
+gate status --root . --json
 ```
+
+`gate status` gives you the live per-file state derived from disk. Correlate that JSON with `PRD.md`, `RTM.md`, and the task files themselves to answer requirement-coverage questions. If you need a relational traceability report, query `./pipeline.db` as a cache-backed convenience — never as the source of truth.
 
 #### Health and analytics
 
-```sql
--- Reject rate
-SELECT 
-    printf('%.1f%%', 100.0 * sum(CASE WHEN verdict = 'REJECT' THEN 1 ELSE 0 END) 
-        / count(*)) as reject_rate
-FROM work_log WHERE stage = 'red';
+```bash
+# Operational dashboard
+gate status --root .
 
--- Average time per stage
-SELECT stage, count(*) as runs,
-    printf('%.0fs', avg(duration_seconds)) as avg_duration
-FROM work_log GROUP BY stage;
+# Detailed task-by-task state for scripts
+gate status --root . --json
+```
 
--- Work log for a specific task (full audit trail)
-SELECT stage, agent_model, verdict, duration_seconds, notes, created_at
-FROM work_log WHERE file = ? ORDER BY id;
+`gate status` is the primary dashboard for operational health. It exposes file-derived state and is the default source for dispatch decisions.
 
--- Tasks with most attempts (trouble spots)
-SELECT file, attempts, status FROM tasks WHERE attempts > 0 ORDER BY attempts DESC;
+Detailed analytics still require raw SQLite against the cache because `gate` does not yet expose reject-rate, duration, or work-log drilldowns. Treat those queries as optional reporting over a rebuildable cache:
+
+```bash
+# Reject rate
+sqlite3 ./pipeline.db "SELECT \
+    printf('%.1f%%', 100.0 * sum(CASE WHEN verdict = 'REJECT' THEN 1 ELSE 0 END) \
+        / count(*)) as reject_rate \
+FROM work_log WHERE stage = 'red';"
+
+# Average time per stage
+sqlite3 ./pipeline.db "SELECT stage, count(*) as runs, \
+    printf('%.0fs', avg(duration_seconds)) as avg_duration \
+FROM work_log GROUP BY stage;"
+
+# Work log for a specific task (full audit trail)
+sqlite3 ./pipeline.db "SELECT stage, agent_model, verdict, duration_seconds, notes, created_at \
+FROM work_log WHERE file = 'T-1.1-auth-login-jwt.md' ORDER BY id;"
+
+# Tasks with most attempts (trouble spots)
+sqlite3 ./pipeline.db "SELECT file, attempts, status FROM tasks \
+WHERE attempts > 0 ORDER BY attempts DESC;"
 ```
 
 ### Dispatch pattern
@@ -286,7 +277,7 @@ The PM never tells the agent what's in the spec. Never reads the spec itself. Ne
 **Never batch.** The pipeline is a stream.
 
 1. Poll all active agents in parallel
-2. For each completion: read verdict → update DB → spawn next-stage agent
+2. For each completion: read verdict → run the `advance` subcommand → spawn next-stage agent
 3. Any free slot → pull next pending → spawn SWE
 4. Repeat
 
@@ -296,7 +287,7 @@ At steady state: a **mix** of SWE + red + blue running concurrently. All same ty
 
 Target 8 concurrent agents. When one finishes:
 
-1. Process result → update DB (→ `mv` to `done/` if complete)
+1. Process result → run the `advance` subcommand (blue PASS moves the file to `done/`)
 2. File advanced? → spawn next-stage agent
 3. Slot still free? → pull next pending for SWE
 4. No pending left? → pipeline is draining
@@ -324,53 +315,16 @@ Agent prompts must be:
 
 ## Recovery
 
-If the DB is lost, reconstruct from the filesystem:
+If the cache is lost, rebuild it from the filesystem:
 
 ```bash
-# Recreate schema
-sqlite3 pipeline.db < references/schema.sql
-# (or copy from references/scaffold/pipeline.db and clear data)
-
-# Load requirements/traceability from PRD.md and RTM.md
-# (parse manually or script it — these change rarely)
-
-# Files already in done/ → status = done
-for f in done/*.md; do
-    sqlite3 pipeline.db "INSERT INTO tasks (file, title, requirement, status, location) VALUES
-        ('$(basename $f)', '', 'TODO', 'done', 'done');"
-done
-
-# Files still in todo/ — check audit trail headers
-# Blue-team section present → done (mv to done/ too)
-grep -rl "Blue-team Verification" todo/ | while read f; do
-    mv "$f" done/
-    sqlite3 pipeline.db "INSERT INTO tasks (file, title, requirement, status, location) VALUES
-        ('$(basename "$f")', '', 'TODO', 'done', 'done');"
-done
-
-# Red-team section but no blue → status = blue
-grep -rl "Red-team Audit" todo/ | xargs grep -rL "Blue-team Verification" | while read f; do
-    sqlite3 pipeline.db "INSERT INTO tasks (file, title, requirement, status, location) VALUES
-        ('$(basename "$f")', '', 'TODO', 'blue', 'todo');"
-done
-
-# SWE section but no red → status = red
-grep -rl "SWE Remediation" todo/ | xargs grep -rL "Red-team Audit" | while read f; do
-    sqlite3 pipeline.db "INSERT INTO tasks (file, title, requirement, status, location) VALUES
-        ('$(basename "$f")', '', 'TODO', 'red', 'todo');"
-done
-
-# Everything else → status = pending
-for f in todo/*.md; do
-    sqlite3 pipeline.db "INSERT OR IGNORE INTO tasks (file, title, requirement, status, location) VALUES
-        ('$(basename $f)', '', 'TODO', 'pending', 'todo');"
-done
-
-# Rebuild work_log from file sections (grep for agent headers in done/)
-# Then backfill requirement FKs from PRD.md
+# Rebuild pipeline.db from authoritative files on disk
+gate sync --rebuild .
 ```
 
-The filesystem IS the backup. `done/` is authoritative for completed work. `todo/` file contents reveal in-progress state.
+`gate sync --rebuild .` reparses `todo/` and `done/`, reconstructs cached task/work-log rows, and re-derives status/location from the canonical markdown sections. Manual `grep` + `sqlite3` reconstruction is no longer the recovery path.
+
+The filesystem IS the backup. `done/` is authoritative for completed work. `todo/` file contents reveal in-progress state. `pipeline.db` is disposable.
 
 ## Health Signals
 
@@ -390,7 +344,7 @@ Ready-to-use templates in `references/`:
 | File | What It Is |
 |------|-----------|
 | `references/scaffold/` | **Complete working pipeline** — copy and adapt |
-| `references/scaffold/pipeline.db` | Seeded DB with 1 todo, 1 done, full work log |
+| `references/scaffold/README.md` | Scaffold usage notes — rebuild `pipeline.db` with `gate sync --rebuild .` |
 | `references/scaffold/PRD.md` | Sample requirements doc |
 | `references/scaffold/RTM.md` | Sample traceability matrix |
 | `references/scaffold/todo/` | Sample pending spec |

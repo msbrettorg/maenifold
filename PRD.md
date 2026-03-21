@@ -48,3 +48,13 @@ The Pipeline tool SHALL become an autonomous DAG execution engine that drives AC
 - **Graph surgery**: The system SHALL support `graft` (add nodes/edges), `join` (merge DAGs), and `fork` (clone from a node) operations on pipeline DAGs, leveraging `StableGraph` stable indices.
 - **CRUD**: The system SHALL support `create`, `view`, `delete` pipeline operations via MCP for agents and UI.
 - **State persistence**: Pipeline state SHALL persist as markdown + YAML frontmatter (existing pattern). No database migration.
+
+### FR-41: File-Authoritative Pipeline Gate Cache ✅ Sprint 53
+
+CLI tool (`gate`) making todo/done markdown files authoritative for pipeline task state, with pipeline.db as a rebuildable cache. Replaces raw sqlite3 pipeline.db commands.
+
+- **Authoritative state**: Pipeline task state SHALL live entirely in markdown artifacts under `todo/` and `done/`.
+- **Cache semantics**: `pipeline.db` SHALL be treated as a derived cache/index used to avoid rescanning thousands of task files during normal pipeline operations.
+- **Advance enforcement**: `gate advance` SHALL validate the requested transition against the task file, append the canonical stage section, and only then update the DB cache.
+- **Sync recovery**: `gate sync` SHALL rebuild or reconcile `pipeline.db` from on-disk task state.
+- **Status inspection**: `gate status` SHALL report effective task state derived from disk, with optional cache cross-check metadata.

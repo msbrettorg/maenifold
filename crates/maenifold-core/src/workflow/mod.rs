@@ -6,6 +6,7 @@ use std::fs;
 mod handler;
 pub mod pipeline;
 mod queue;
+pub mod runner;
 mod status;
 mod submachine;
 

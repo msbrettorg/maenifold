@@ -8,8 +8,8 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 |-----|-------------|-----------|-----------|-----------|
 | RTM-157 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/engine.rs` | TC-157: petgraph StableGraph replaces hand-rolled DAG; cycle detection, toposort, ready-set all pass existing tests | unit |
 | RTM-158 | FR-40 | `crates/maenifold-core/src/acp/driver.rs` | TC-158: AcpX driver spawns acpx subprocess, creates sessions, sends prompts with --format json, parses NDJSON output | integration |
-| RTM-159 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/executor.rs` | TC-159: Executor run loop computes ready set, dispatches via JoinSet+Semaphore, cascades completion, respects maxConcurrency | integration |
-| RTM-160 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/executor.rs` | TC-160: Lifecycle controls — pause drains active, resume continues, cancel aborts, rewind resets subgraph | integration |
+| RTM-159 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/executor.rs` | TC-159: Executor run loop computes ready set, dispatches via JoinSet+Semaphore, cascades completion, respects maxConcurrency. Sprint 56: Rust-native async executor replaced bash bridge. | unit |
+| RTM-160 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/supervisor.rs` | TC-160: Lifecycle controls — pause/resume via AtomicBool flag, cancel via CancellationToken, rewind resets subgraph. Sprint 56: process/signal management removed; lightweight tokio task tracking. | unit |
 | RTM-161 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/executor.rs` | TC-161: HSM integration — executor drives Workflow tool per node, spawns SequentialThinking submachines | integration |
 | RTM-162 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/handler.rs` | TC-162: Graft adds nodes+edges to existing pipeline, validates no cycles | unit |
 | RTM-163 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/handler.rs` | TC-163: Join merges two DAGs with ID remapping; Fork clones subgraph with state reset | unit |
@@ -46,3 +46,23 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 | RTM-179 | FR-42 | `crates/maenifold-gate/src/reject.rs` | TC-179: T-55.5 Gate Reject — rolls back per pipeline JSON, increments attempts, location guard; 5 tests | integration |
 | RTM-180 | FR-42 | `crates/maenifold-gate/src/lib.rs` | TC-180: T-55.6 CLI Migration — removed advance, wired pass/reject/append, --pipeline flag, status by ID; 7 CLI parser tests | integration |
 | RTM-181 | FR-42 | `crates/maenifold-gate/tests/pipeline_tests.rs` | TC-181: T-55.7 Integration Tests — full pipeline pass-through, reject flows, lightweight pipeline, custom JSON, error cases; 10 integration tests | integration |
+
+## Sprint 56 — Gate Correctness + Skill Alignment
+
+| RTM | Requirement | Component | Test Case | Test Type |
+|-----|-------------|-----------|-----------|-----------|
+| RTM-182 | FR-41 | `crates/maenifold-gate/src/{append,pass,reject,parser,status,sync}.rs` | TC-182: T-56.1 Canonical State Roundtrip — command sequence artifacts are sufficient for `status` and `sync --rebuild` to derive the same task state from disk and cache | integration |
+| RTM-183 | FR-42 | `crates/maenifold-gate/src/{fs,db,sync}.rs` | TC-183: T-56.2 ID + Path Fidelity — nested task paths resolve consistently by ID, file moves are deterministic, and stale cache rows are removed during sync | integration |
+| RTM-184 | FR-41 | `crates/maenifold-gate/src/{types,status}.rs` | TC-184: T-56.3 Warning Capture Safety — quiet parsing preserves diagnostics without process-global stderr redirection | unit |
+| RTM-185 | FR-41 | `assets/integrations/skills/test-driven-development/{SKILL.md,references/**}` | TC-185: T-56.4 Skill Asset Consistency — scaffold, templates, and setup docs match shipped `gate` commands and asset inventory | integration |
+| RTM-186 | FR-41 | `crates/maenifold-gate/tests/{integration,pipeline_tests,parser_rework_tests}.rs` | TC-186: T-56.5 Regression Coverage — roundtrip, nested-path, stale-row, and canonical-artifact regressions stay green | integration |
+
+## Sprint 57 — Native Workflow & Think Runners
+
+| RTM | Requirement | Component | Test Case | Test Type |
+|-----|-------------|-----------|-----------|-----------|
+| RTM-187 | FR-40 | `crates/maenifold-core/src/workflow/runner.rs::run_workflow()` | TC-187: T-57.1 Active workflow step-loop runner — `workflow_runner_completes_multi_step_workflow`, `workflow_runner_stops_on_terminal_success`, `workflow_runner_propagates_agent_failures`, and `workflow_runner_tags_response_without_wikilinks` verify active step-loop orchestration | unit |
+| RTM-188 | FR-40 | `crates/maenifold-core/src/workflow/runner.rs::{run_think(),seed_think_session(),drive_think_session()}` | TC-188: T-57.2 Sequential thinking runner — `happy_path_stops_when_agent_says_done`, `overflow_protection_stops_at_total_plus_three`, and `injects_step_wikilink_when_agent_response_has_none` verify think-session orchestration and guardrails | unit |
+| RTM-189 | FR-40 | `crates/maenifold-core/src/workflow/runner.rs::{step_think_config(),run_workflow()}` | TC-189: T-57.3 Submachine integration — `workflow_runner_thinks_before_agent_prompt_when_required`, `workflow_runner_skips_thinking_without_flag`, and `run_think_seeds_parent_workflow_linkage` verify SequentialThinking execution within workflow steps | integration |
+| RTM-190 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/executor.rs::{execute_pipeline(),classify_workflow_result()}` | TC-190: T-57.4 Pipeline executor wiring — `executor_completes_single_node_pipeline`, `executor_handles_node_failure`, `executor_respects_cancellation`, `executor_respects_max_concurrency`, and `executor_cascades_through_dag` verify executor use of the workflow runner | unit |
+| RTM-191 | FR-40 | `crates/maenifold-cli/src/cli.rs::run_script_command()` | TC-191: T-57.5 CLI workflow and think subcommands — `cli_contract_tests` (6 tests) verify `workflow` and `think` command coverage | integration |

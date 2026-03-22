@@ -5,6 +5,51 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 57 — Native Workflow & Think Runners (maenifold-acp Rust integration)
+
+### Added
+- `runner.rs`: New `run_workflow()` function that starts a workflow session, creates an acpx agent session, and loops through steps — prompting the agent at each step and advancing the workflow
+  - Handles terminal statuses (✅/❌), WikiLink injection via `tag_response()`, and step progress parsing
+- `runner.rs`: New `run_think()` / `seed_think_session()` / `drive_think_session()` functions that drive SequentialThinking sessions through an agent
+  - Supports parent workflow linkage and overflow protection
+- `cli.rs`: Added `maenifold workflow <id> <agent> [prompt]` and `maenifold think <agent> <topic>` subcommands for direct invocation
+- 21 scoped tests (10 runner + 5 executor + 6 CLI contract)
+
+### Changed
+- Native Rust orchestration now replaces the bash `maenifold-acp` script's workflow/think runner logic
+  - The pipeline executor actively drives workflow steps instead of passively waiting for agents to self-orchestrate
+- `runner.rs`: Workflow steps with `requiresSequentialThinking: true` now automatically spawn thinking submachines
+  - Uses correct pre-registration ordering (seed → register → drive) for crash recovery durability
+- `executor.rs`: Pipeline executor now calls `run_workflow()` instead of raw `AcpxDriver::prompt()`
+  - Nodes without `acp_client` are abandoned immediately
+  - Removed `build_driver()` and direct acpx imports
+
+---
+
+## Sprint 56 — FR-40: Async Pipeline Executor (replaces bash bridge)
+
+### Added
+- `executor.rs`: Rust-native async pipeline executor using `tokio::task::JoinSet` + `tokio::sync::Semaphore`
+  - Dispatch→AcpxDriver::prompt→update_pipeline_node_status loop
+  - `CancellationToken` for clean cancel with active node abandonment
+  - `AtomicBool` pause flag checked between dispatch cycles
+  - 5 scoped unit tests (single node, failure, cancel, concurrency, DAG cascade)
+
+### Changed
+- `supervisor.rs`: Stripped process/signal/thread management (~500 LOC removed); replaced with lightweight tokio task tracking (`CancellationToken` + `JoinHandle`)
+  - Preserved: orphan detection, mark-stuck, pipeline_has_non_terminal_nodes
+  - 9 scoped unit tests
+- `handler.rs`: Lifecycle commands (run/pause/resume/cancel) rewired from bash subprocess to executor
+  - No PID in run_pipeline response; no SIGSTOP/SIGCONT platform guards
+- Gate CLI docs updated: `gate advance` references replaced with `gate pass`/`reject`/`append` in TDD skill and PM agent doc
+
+### Removed
+- `maenifold-acp` pipeline subcommand and all pipeline-only bash helpers
+  - `run_pipeline`, `pipeline_worker`, `pipeline_launch_node`, `pipeline_wait_for_any`, etc.
+  - Preserved: `workflow` and `think` subcommands, all shared helpers
+
+---
+
 ## Sprint 55 — FR-42: Configurable Pipeline Engine
 
 ### Added

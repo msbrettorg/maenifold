@@ -5,7 +5,11 @@ use crate::registry::ToolRegistry;
 use crate::sync::watchers;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, failure, from_str_safe, success};
+use crate::workflow::runner::{ThinkOptions, run_think, run_workflow};
 use serde_json::{Value, json};
+
+const WORKFLOW_USAGE: &str = "Usage: maenifold workflow <workflow-id> <agent> <prompt>\n\nRuns a workflow session through the configured ACP agent and prints the conclusion.";
+const THINK_USAGE: &str = "Usage: maenifold think <agent> <topic>\n\nRuns a sequential thinking session through the configured ACP agent and prints the conclusion.";
 
 /// T-29.2: RTM FR-35 — parsed CLI action for tray-aware dispatch in `main()`.
 ///
@@ -52,6 +56,10 @@ impl CliApp {
     }
 
     pub fn run(args: &[String]) -> i32 {
+        if let Some(code) = Self::run_script_command(args) {
+            return code;
+        }
+
         // T-16.1: RTM FR-8.1 — explicit --help prints full usage and exits 0 (POSIX convention; C# bug not ported).
         if args.iter().any(|arg| arg == "--help") {
             println!("{}", usage());
@@ -183,6 +191,7 @@ impl CliApp {
                 // T-12.7: RTM NFR-1 - invalid direct CLI invocations must keep the established C#-parity exit code.
                 None => return Err(usage_error()),
             },
+            None if tool_name == "MemoryStatus" => "{}",
             None => return Err(usage_error()),
         };
 
@@ -226,6 +235,86 @@ impl CliApp {
             Err(err) => {
                 let output = render_error(output_format, tool_name, err);
                 Err((output, 1))
+            }
+        }
+    }
+
+    fn run_script_command(args: &[String]) -> Option<i32> {
+        let (command, rest) = args.split_first()?;
+        if command.starts_with('-') {
+            return None;
+        }
+        match command.as_str() {
+            "workflow" => Some(Self::run_workflow_command(rest)),
+            "think" => Some(Self::run_think_command(rest)),
+            _ => None,
+        }
+    }
+
+    fn run_workflow_command(args: &[String]) -> i32 {
+        if matches!(args, [help] if help == "--help") {
+            println!("{WORKFLOW_USAGE}");
+            return 0;
+        }
+        let (workflow_id, agent, prompt) = match args {
+            [workflow_id, agent, prompt] => (workflow_id.clone(), agent.clone(), prompt.clone()),
+            _ => {
+                eprintln!("{WORKFLOW_USAGE}");
+                return 1;
+            }
+        };
+        Self::run_async_command(move |context| async move {
+            run_workflow(&context, &workflow_id, &agent, &prompt)
+                .await
+                .map(|result| result.conclusion.unwrap_or_default())
+        })
+    }
+
+    fn run_think_command(args: &[String]) -> i32 {
+        if matches!(args, [help] if help == "--help") {
+            println!("{THINK_USAGE}");
+            return 0;
+        }
+        let (agent, topic) = match args {
+            [agent, topic] => (agent.clone(), topic.clone()),
+            _ => {
+                eprintln!("{THINK_USAGE}");
+                return 1;
+            }
+        };
+        Self::run_async_command(move |context| async move {
+            run_think(&context, &agent, &topic, ThinkOptions::default())
+                .await
+                .map(|result| result.conclusion.unwrap_or_default())
+        })
+    }
+
+    fn run_async_command<F, Fut>(f: F) -> i32
+    where
+        F: FnOnce(ToolContext) -> Fut,
+        Fut: std::future::Future<Output = crate::error::Result<String>>,
+    {
+        let config = Config::current();
+        if let Err(err) = mcp::initialize_runtime(&config) {
+            eprintln!("Error initializing storage: {err}");
+            return 1;
+        }
+        let context = ToolContext::new(config, OutputFormat::Markdown);
+        let rt = match tokio::runtime::Runtime::new() {
+            Ok(rt) => rt,
+            Err(err) => {
+                eprintln!("Error creating async runtime: {err}");
+                return 1;
+            }
+        };
+        match rt.block_on(f(context)) {
+            Ok(output) => {
+                println!("{output}");
+                0
+            }
+            Err(err) => {
+                eprintln!("{err}");
+                1
             }
         }
     }
@@ -335,6 +424,8 @@ fn usage() -> String {
         "  MCP Server mode:   maenifold --mcp",
         "  HTTP Server mode:  maenifold --http [--port <PORT>]",
         "  Direct tool mode:  maenifold --tool <name> --payload '<json>' [--json]",
+        "  Workflow mode:     maenifold workflow <workflow-id> <agent> <prompt>",
+        "  Think mode:        maenifold think <agent> <topic>",
         "",
         "  (For development from source: cargo run -p maenifold-cli -- --tool <name> --payload '<json>')",
         "",

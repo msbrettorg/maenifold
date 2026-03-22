@@ -36,14 +36,14 @@ The system SHALL support a `--web` CLI flag that launches a browser-accessible w
 
 ### FR-39: Replace chrome-acp with ACP UI ✅ Sprint 28
 
-### FR-40: Pipeline Active Executor — Sprint 51
+### FR-40: Pipeline Active Executor — Sprint 51, Sprint 56
 
 The Pipeline tool SHALL become an autonomous DAG execution engine that drives ACP agents via `acpx` subprocesses, inverting the current passive state-tracker model.
 
 - **Graph backend**: Pipeline DAG SHALL use `petgraph::StableGraph` for graph structure, cycle detection, topological ordering, and graph surgery (graft/join/fork).
 - **AcpX driver**: The system SHALL spawn and manage `acpx` subprocesses via `tokio::process::Command`, using `--format json` for structured output parsing.
-- **Execution engine**: On `run`, maenifold SHALL autonomously compute ready sets, dispatch nodes to ACP agents bounded by `maxConcurrency` (via `tokio::sync::Semaphore` + `JoinSet`), collect results, cascade state, and repeat until the DAG completes.
-- **Lifecycle controls**: The system SHALL support `run`, `pause` (drain active, stop dispatching), `resume`, `cancel` (abort active, abandon remaining), and `rewind` (reset subgraph to Pending and re-execute).
+- **Execution engine**: On `run`, maenifold SHALL autonomously compute ready sets, dispatch nodes to ACP agents bounded by `maxConcurrency` (via `tokio::sync::Semaphore` + `JoinSet`), collect results, cascade state, and repeat until the DAG completes. The executor runs as a Rust-native async task (`executor.rs`) — the original bash bridge (`maenifold-acp pipeline`) was removed in Sprint 56.
+- **Lifecycle controls**: The system SHALL support `run`, `pause` (stop dispatching new nodes), `resume`, `cancel` (abort active via `CancellationToken`, abandon remaining), and `rewind` (reset subgraph to Pending and re-execute). Pause/resume use an `AtomicBool` flag checked between dispatch cycles.
 - **HSM integration**: Each pipeline node SHALL execute its workflow via the existing Workflow tool, with SequentialThinking submachines spawned when `requiresSequentialThinking=true`. Nesting: Pipeline → Workflow → SequentialThinking.
 - **Graph surgery**: The system SHALL support `graft` (add nodes/edges), `join` (merge DAGs), and `fork` (clone from a node) operations on pipeline DAGs, leveraging `StableGraph` stable indices.
 - **CRUD**: The system SHALL support `create`, `view`, `delete` pipeline operations via MCP for agents and UI.

@@ -7,7 +7,7 @@ description: The team's test-driven development process. Use this skill when the
 
 Everything is a file. The database is a rebuildable cache.
 
-A spec file is a unit of work. It lives in `todo/`. Agents read it, do the work, append their results. When the pipeline finishes with it, the `advance` subcommand moves it to `done/`. Markdown task files under `todo/` and `done/` are authoritative. `pipeline.db` is only a fast query cache rebuilt from disk whenever needed.
+A spec file is a unit of work. It lives in `todo/`. Agents read it, do the work, append their results. When the pipeline finishes with it, a final-stage `gate pass` moves it to `done/`. Markdown task files under `todo/` and `done/` are authoritative. `pipeline.db` is only a fast query cache rebuilt from disk whenever needed.
 
 ## Philosophy
 
@@ -15,7 +15,7 @@ The unix view: small files, each representing one task, flowing through a pipeli
 
 - **Files are authoritative.** Task state lives in markdown files under `todo/` and `done/`.
 - **`pipeline.db` is a rebuildable cache.** Use it for fast queries, but treat it as disposable; `gate sync --rebuild .` recreates it from disk at any time.
-- **The `advance` subcommand enforces legal transitions** and appends the canonical `SWE Remediation`, `Red-team Audit`, and `Blue-team Verification` sections before updating the cache.
+- **The `gate append`, `gate pass`, and `gate reject` subcommands enforce legal transitions** and append the canonical `SWE Remediation`, `Red-team Audit`, and `Blue-team Verification` sections before updating the cache.
 - **`gate status` reports effective state derived from files,** with optional cache cross-checks when you pass `--db`.
 - **`gate sync` rebuilds or reconciles the cache from disk.**
 
@@ -113,7 +113,7 @@ CREATE TABLE work_log (
 
 `work_log` is append-only. Every agent action gets a row in the cache. This is the audit trail in queryable form — the file on disk has the same info in markdown, but the cache lets you ask "what's our average red-team reject rate?" without parsing markdown.
 
-The PM is the only writer. Agents never touch the cache directly; the PM uses the `advance`, `status`, and `sync` subcommands as the canonical interface.
+The PM is the only writer. Agents never touch the cache directly; the PM uses the `append`, `pass`, `reject`, `status`, and `sync` subcommands as the canonical interface.
 
 ## Directory Layout
 
@@ -163,7 +163,7 @@ Five things, forever:
 1. **Query** `gate status` for files at each status
 2. **Dispatch** the matching agent with the file path
 3. **Read** the agent's verdict
-4. **Advance or reject** with the `advance` subcommand; on blue PASS it moves the file to `done/`
+4. **Record the result** with `gate append`, `gate pass`, or `gate reject`; a final-stage `gate pass` moves the file to `done/`
 5. **Backfill** any freed slot immediately
 
 ### Queries
@@ -181,31 +181,28 @@ gate status --root . --json
 # Filter the JSON array for the first object whose status == "pending"
 gate status --root . --json
 
-# Advance: SWE done → red
-gate advance T-1.1-auth-login-jwt.md --root . --stage swe \
-  --notes "Implemented feature and ran scoped tests" \
-  --model "gpt-5.4"
+# Append: SWE done → red
+gate append T-1.1 --root . --agent swe \
+  --notes "Implemented feature and ran scoped tests"
 
-# Advance: red passed → blue
-gate advance T-1.1-auth-login-jwt.md --root . --stage red --verdict PASS \
-  --notes "Spec-compliant after audit" \
-  --model "claude-sonnet-4.6"
+# Pass: red passed → blue
+gate pass T-1.1 --root . \
+  --notes "Spec-compliant after audit"
 
-# Advance: blue passed → done (moves file to done/)
-gate advance T-1.1-auth-login-jwt.md --root . --stage blue --verdict PASS \
-  --notes "Scoped verification passed" \
-  --model "gpt-5.4"
+# Pass: blue passed → done (moves file to done/)
+gate pass T-1.1 --root . \
+  --notes "Scoped verification passed"
 
 # Reject: red sends file back to pending
-gate advance T-1.1-auth-login-jwt.md --root . --stage red --verdict REJECT \
+gate reject T-1.1 --root . \
   --notes "Missing acceptance-criteria coverage"
 
-# Fail: blue sends file back to pending
-gate advance T-1.1-auth-login-jwt.md --root . --stage blue --verdict FAIL \
+# Reject: blue sends file back to pending
+gate reject T-1.1 --root . \
   --notes "Scoped tests still failing"
 ```
 
-The `advance` subcommand records the transition, appends the canonical section, updates the cache, and moves blue PASS tasks into `done/`. `gate` does **not** auto-escalate `attempts >= 3`; repeated REJECT/FAIL cycles are a PM decision point.
+These commands record the transition, append the canonical section, update the cache, and a final-stage `gate pass` moves tasks into `done/`. `gate` does **not** auto-escalate `attempts >= 3`; repeated REJECT/FAIL cycles are a PM decision point.
 
 #### Sprint tracking
 
@@ -277,7 +274,7 @@ The PM never tells the agent what's in the spec. Never reads the spec itself. Ne
 **Never batch.** The pipeline is a stream.
 
 1. Poll all active agents in parallel
-2. For each completion: read verdict → run the `advance` subcommand → spawn next-stage agent
+2. For each completion: read verdict → run `gate append`, `gate pass`, or `gate reject` → spawn the next-stage agent
 3. Any free slot → pull next pending → spawn SWE
 4. Repeat
 
@@ -287,8 +284,8 @@ At steady state: a **mix** of SWE + red + blue running concurrently. All same ty
 
 Target 8 concurrent agents. When one finishes:
 
-1. Process result → run the `advance` subcommand (blue PASS moves the file to `done/`)
-2. File advanced? → spawn next-stage agent
+1. Process result → run `gate append`, `gate pass`, or `gate reject` (a final-stage `gate pass` moves the file to `done/`)
+2. File moved forward? → spawn next-stage agent
 3. Slot still free? → pull next pending for SWE
 4. No pending left? → pipeline is draining
 

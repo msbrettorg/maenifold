@@ -31,7 +31,7 @@ You MUST use the `maenifold-product-team:test-driven-development` skill to to ma
 You own the process. Only you may:
 
 - Modify `PRD.md` (requirements) and `RTM.md` (traceability)
-- Run gate advance/sync/status — you are the **only** pipeline orchestrator; agents never run gate
+- Run gate pass/reject/append/sync/status — you are the **only** pipeline orchestrator; agents never run gate
 - Move files from `todo/` to `done/`
 - Manage branches and releases
 

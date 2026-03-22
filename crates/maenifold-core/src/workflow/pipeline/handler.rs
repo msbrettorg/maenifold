@@ -299,6 +299,10 @@ fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
     let node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    let previous_status = frontmatter
+        .get("status")
+        .and_then(YamlValue::as_str)
+        .map(str::to_string);
 
     if node_states
         .values()
@@ -315,11 +319,6 @@ fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -
         )));
     }
 
-    let pid = supervisor_run(
-        context.config.maenifold_root.as_path(),
-        session_id,
-        prompt.unwrap_or(""),
-    )?;
     persist_pipeline_state_with_status(
         &mut frontmatter,
         &node_states,
@@ -328,10 +327,24 @@ fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -
         &pipeline_content,
         context,
     )?;
+    if let Err(error) = supervisor_run(
+        context.config.maenifold_root.as_path(),
+        session_id,
+        prompt.unwrap_or(""),
+    ) {
+        persist_pipeline_state_with_status(
+            &mut frontmatter,
+            &node_states,
+            previous_status.as_deref(),
+            &uri,
+            &pipeline_content,
+            context,
+        )?;
+        return Err(error);
+    }
 
     let result = json!({
         "status": "started",
-        "pid": pid,
         "sessionId": session_id,
     });
 
@@ -342,100 +355,76 @@ fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -
 }
 
 fn pause_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
-    #[cfg(not(unix))]
-    {
-        let _ = (context, session_id);
-        return Err(MaenifoldError::Message(
-            "Pipeline pause is not supported on this platform".to_string(),
-        ));
+    if !supervisor_is_running(session_id) {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Pipeline {session_id} isn't running"
+        )));
     }
 
-    #[cfg(unix)]
-    {
-        if !supervisor_is_running(session_id) {
-            return Err(MaenifoldError::InvalidArgument(format!(
-                "Pipeline {session_id} isn't running"
-            )));
-        }
+    let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    let node_states =
+        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    supervisor_pause(session_id)?;
+    persist_pipeline_state_with_status(
+        &mut frontmatter,
+        &node_states,
+        Some("paused"),
+        &uri,
+        &pipeline_content,
+        context,
+    )?;
 
-        let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
-        let node_states =
-            derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
-        let pid = supervisor_pause(session_id)?;
-        persist_pipeline_state_with_status(
-            &mut frontmatter,
-            &node_states,
-            Some("paused"),
-            &uri,
-            &pipeline_content,
-            context,
-        )?;
+    let result = json!({
+        "status": "paused",
+        "sessionId": session_id,
+    });
 
-        let result = json!({
-            "status": "paused",
-            "sessionId": session_id,
-            "pid": pid,
-        });
-
-        Ok(match context.output_format {
-            OutputFormat::Json => success(result),
-            OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
-        })
-    }
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
 }
 
 fn resume_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
-    #[cfg(not(unix))]
-    {
-        let _ = (context, session_id);
-        return Err(MaenifoldError::Message(
-            "Pipeline resume is not supported on this platform".to_string(),
+    let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    let node_states =
+        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    let pipeline_status = frontmatter
+        .get("status")
+        .and_then(YamlValue::as_str)
+        .unwrap_or_default();
+
+    if pipeline_status != "paused" {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Pipeline {session_id} is not paused (status: {pipeline_status})"
+        )));
+    }
+
+    if !supervisor_is_running(session_id) {
+        return Err(MaenifoldError::InvalidArgument(
+            "Pipeline process is no longer running; use run to restart".to_string(),
         ));
     }
 
-    #[cfg(unix)]
-    {
-        let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
-        let node_states =
-            derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
-        let pipeline_status = frontmatter
-            .get("status")
-            .and_then(YamlValue::as_str)
-            .unwrap_or_default();
+    supervisor_resume(session_id)?;
+    persist_pipeline_state_with_status(
+        &mut frontmatter,
+        &node_states,
+        Some("active"),
+        &uri,
+        &pipeline_content,
+        context,
+    )?;
 
-        if pipeline_status != "paused" {
-            return Err(MaenifoldError::InvalidArgument(format!(
-                "Pipeline {session_id} is not paused (status: {pipeline_status})"
-            )));
-        }
+    let result = json!({
+        "status": "resumed",
+        "sessionId": session_id,
+    });
 
-        if !supervisor_is_running(session_id) {
-            return Err(MaenifoldError::InvalidArgument(
-                "Pipeline process is no longer running; use run to restart".to_string(),
-            ));
-        }
-
-        let pid = supervisor_resume(session_id)?;
-        persist_pipeline_state_with_status(
-            &mut frontmatter,
-            &node_states,
-            Some("active"),
-            &uri,
-            &pipeline_content,
-            context,
-        )?;
-
-        let result = json!({
-            "status": "resumed",
-            "sessionId": session_id,
-            "pid": pid,
-        });
-
-        Ok(match context.output_format {
-            OutputFormat::Json => success(result),
-            OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
-        })
-    }
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
 }
 
 fn cancel_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
@@ -1473,18 +1462,19 @@ mod tests {
 
     #[test]
     #[serial(config)]
-    fn pipeline_run_starts_supervisor_and_reports_pid() {
-        let (tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+    fn pipeline_run_starts_supervisor_and_reports_running_state() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         super::super::supervisor::supervisor_clear_all();
-        std::fs::write(
-            tmp.path().join("maenifold-acp"),
-            "#!/usr/bin/env bash
-sleep 30
-",
-        )
-        .expect("write maenifold-acp stub");
+        let _path_guard = install_acpx_stub(&context.config.maenifold_root);
 
         let pipeline_id = "pipeline-1735689600991";
+        let workflow_session_id = "workflow-1735689600991-root";
+        write_acpx_stub_config(
+            &context.config.maenifold_root,
+            json!({
+                workflow_session_id: { "delay": 30.0, "text": "still running" }
+            }),
+        );
         seed_pipeline_session_with_workflows(
             &context,
             pipeline_id,
@@ -1499,7 +1489,7 @@ sleep 30
             HashMap::from([(
                 "root".to_string(),
                 NodeState {
-                    session_id: "workflow-1735689600991-root".to_string(),
+                    session_id: workflow_session_id.to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
                 },
@@ -1514,14 +1504,13 @@ sleep 30
         .expect("run pipeline");
         let response: Value = serde_json::from_str(&output).expect("parse response");
         let data = response.get("data").expect("response data");
-        let pid = data.get("pid").and_then(Value::as_u64).expect("pid");
 
         assert_eq!(data.get("status").and_then(Value::as_str), Some("started"));
         assert_eq!(
             data.get("sessionId").and_then(Value::as_str),
             Some(pipeline_id)
         );
-        assert!(pid > 0);
+        assert!(data.get("pid").is_none() || data.get("pid") == Some(&Value::Null));
         assert!(super::super::supervisor::supervisor_is_running(pipeline_id));
 
         let view_output = pipeline(&context, &json!({ "sessionId": pipeline_id, "view": true }))
@@ -1532,8 +1521,10 @@ sleep 30
             view_data.get("running").and_then(Value::as_bool),
             Some(true)
         );
-        assert_eq!(view_data.get("pid").and_then(Value::as_u64), Some(pid));
-        assert_eq!(view_data.get("attempts").and_then(Value::as_u64), Some(0));
+        assert!(view_data.get("pid").is_none() || view_data.get("pid") == Some(&Value::Null));
+        assert!(
+            view_data.get("attempts").is_none() || view_data.get("attempts") == Some(&Value::Null)
+        );
 
         super::super::supervisor::supervisor_cancel(pipeline_id).expect("cancel running process");
     }
@@ -1541,17 +1532,18 @@ sleep 30
     #[test]
     #[serial(config)]
     fn pipeline_cancel_stops_supervisor_and_marks_pipeline_cancelled() {
-        let (tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         super::super::supervisor::supervisor_clear_all();
-        std::fs::write(
-            tmp.path().join("maenifold-acp"),
-            "#!/usr/bin/env bash
-sleep 30
-",
-        )
-        .expect("write maenifold-acp stub");
+        let _path_guard = install_acpx_stub(&context.config.maenifold_root);
 
         let pipeline_id = "pipeline-1735689600992";
+        let workflow_session_id = "workflow-1735689600992-root";
+        write_acpx_stub_config(
+            &context.config.maenifold_root,
+            json!({
+                workflow_session_id: { "delay": 30.0, "text": "still running" }
+            }),
+        );
         seed_pipeline_session_with_workflows(
             &context,
             pipeline_id,
@@ -1566,7 +1558,7 @@ sleep 30
             HashMap::from([(
                 "root".to_string(),
                 NodeState {
-                    session_id: "workflow-1735689600992-root".to_string(),
+                    session_id: workflow_session_id.to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
                 },
@@ -1605,21 +1597,21 @@ sleep 30
         );
     }
 
-    #[cfg(unix)]
     #[test]
     #[serial(config)]
     fn pipeline_pause_and_pipeline_resume_updates_status() {
-        let (tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         super::super::supervisor::supervisor_clear_all();
-        std::fs::write(
-            tmp.path().join("maenifold-acp"),
-            "#!/usr/bin/env bash
-sleep 30
-",
-        )
-        .expect("write maenifold-acp stub");
+        let _path_guard = install_acpx_stub(&context.config.maenifold_root);
 
         let pipeline_id = "pipeline-1735689600993";
+        let workflow_session_id = "workflow-1735689600993-root";
+        write_acpx_stub_config(
+            &context.config.maenifold_root,
+            json!({
+                workflow_session_id: { "delay": 30.0, "text": "still running" }
+            }),
+        );
         seed_pipeline_session_with_workflows(
             &context,
             pipeline_id,
@@ -1634,7 +1626,7 @@ sleep 30
             HashMap::from([(
                 "root".to_string(),
                 NodeState {
-                    session_id: "workflow-1735689600993-root".to_string(),
+                    session_id: workflow_session_id.to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
                 },
@@ -1661,14 +1653,7 @@ sleep 30
             pause_data.get("sessionId").and_then(Value::as_str),
             Some(pipeline_id)
         );
-        assert!(
-            pause_data
-                .get("pid")
-                .and_then(Value::as_u64)
-                .unwrap_or_default()
-                > 0,
-            "pause should return pid"
-        );
+        assert!(pause_data.get("pid").is_none() || pause_data.get("pid") == Some(&Value::Null));
 
         let (frontmatter, _, _) =
             read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read file");
@@ -1694,14 +1679,7 @@ sleep 30
             resume_data.get("sessionId").and_then(Value::as_str),
             Some(pipeline_id)
         );
-        assert!(
-            resume_data
-                .get("pid")
-                .and_then(Value::as_u64)
-                .unwrap_or_default()
-                > 0,
-            "resume should return pid"
-        );
+        assert!(resume_data.get("pid").is_none() || resume_data.get("pid") == Some(&Value::Null));
 
         let (frontmatter, _, _) =
             read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read file");

@@ -137,3 +137,73 @@ Add focused tests covering CLI surface, parser invariants, disk-first transition
 - **Files**: `crates/maenifold-gate/tests/gate_cli.rs`, `crates/maenifold-gate/tests/gate_advance.rs`, `crates/maenifold-gate/tests/gate_sync.rs`, `crates/maenifold-gate/tests/gate_status.rs`
 - **Status**: pending
 - **Depends on**: T-53.3, T-53.4
+
+---
+
+## Sprint 56 — Gate Correctness + Skill Alignment
+
+### T-56.1: Make `gate` transitions produce parser-recognized canonical artifacts | RTM: FR-41, RTM-182
+
+Align `gate append`, `gate pass`, and `gate reject` with the file-authoritative model so command-driven transitions leave markdown artifacts that `parser`, `status`, and `sync --rebuild` can all interpret consistently without DB-only state.
+
+  AC-1: `gate append --agent swe` appends a canonical `## SWE Remediation` section rather than a noncanonical agent-note heading
+  AC-2: `gate pass` and `gate reject` append canonical stage/verdict artifacts that `parse_task_content()` recognizes when deriving effective status
+  AC-3: A task advanced from pending → swe → red → blue → done via commands can be reparsed from disk after each step without relying on location-only fallback except for legacy files
+  AC-4: `gate sync --rebuild` reproduces the same status/location/attempts as the pre-rebuild cache for command-driven task histories
+
+- **Files**: `crates/maenifold-gate/src/append.rs`, `crates/maenifold-gate/src/pass.rs`, `crates/maenifold-gate/src/reject.rs`, `crates/maenifold-gate/src/parser.rs`, `crates/maenifold-gate/src/status.rs`, `crates/maenifold-gate/src/sync.rs`
+- **Status**: pending
+- **Depends on**: T-55.7
+
+### T-56.2: Reconcile task path semantics and stale cache cleanup in `gate sync` | RTM: FR-42, RTM-183
+
+Fix the mismatch between recursive task discovery and flat path resolution, and make non-rebuild sync remove stale cache rows so `pipeline.db` behaves like a true derived index.
+
+  AC-1: If nested task files are supported, `append`, `pass`, `reject`, `status <ID>`, and `move_to_done` all resolve the same discovered file path deterministically
+  AC-2: If nested task files are not supported, discovery and sync reject nested tasks with a clear error instead of accepting them and breaking later commands
+  AC-3: `gate sync` without `--rebuild` removes DB rows for task files no longer present on disk
+  AC-4: ID-to-file mapping remains unique and correct after sync reconciliation, moves to `done/`, and renamed/deleted task scenarios
+
+- **Files**: `crates/maenifold-gate/src/fs.rs`, `crates/maenifold-gate/src/db.rs`, `crates/maenifold-gate/src/sync.rs`, `crates/maenifold-gate/src/append.rs`
+- **Status**: pending
+- **Depends on**: T-55.2, T-55.7
+
+### T-56.3: Remove process-global stderr suppression from quiet parsing | RTM: FR-41, RTM-184
+
+Replace the Unix-only `dup2`-based stderr redirection in quiet parsing with an explicit warning capture or suppression mechanism that is safe for tests, libraries, and concurrent execution.
+
+  AC-1: `TaskState::parse_quietly()` no longer performs process-global file descriptor mutation or uses `unsafe` stderr redirection
+  AC-2: `status` can still suppress noisy parse warnings during full scans while preserving diagnostics for targeted inspection paths
+  AC-3: Warning behavior is covered by tests and remains stable across Unix and non-Unix targets
+
+- **Files**: `crates/maenifold-gate/src/types.rs`, `crates/maenifold-gate/src/parser.rs`, `crates/maenifold-gate/src/status.rs`
+- **Status**: pending
+- **Depends on**: T-54.2
+
+### T-56.4: Align test-driven-development skill assets with shipped `gate` behavior | RTM: FR-41, RTM-185
+
+Bring the skill package, scaffold, and prompt templates back into agreement with the current `gate` CLI and the intended file-authoritative workflow.
+
+  AC-1: No skill document or scaffold file references obsolete `gate advance` commands
+  AC-2: Skill docs do not claim the scaffold contains a seeded `pipeline.db` unless such a file is actually shipped
+  AC-3: `setup-template.md`, scaffold README, and prompt templates refer only to shipped skills/assets and current command names
+  AC-4: Prompt templates and scaffold examples use canonical section names and verdict formatting consistent with `maenifold-gate` parser expectations
+  AC-5: Repository noise files such as `.DS_Store` are removed from the skill asset tree
+
+- **Files**: `assets/integrations/skills/test-driven-development/SKILL.md`, `assets/integrations/skills/test-driven-development/references/setup-template.md`, `assets/integrations/skills/test-driven-development/references/scaffold/README.md`, `assets/integrations/skills/test-driven-development/references/{swe,red,blue}-prompt-template.md`, `assets/integrations/skills/test-driven-development/.DS_Store`
+- **Status**: pending
+- **Depends on**: T-56.1
+
+### T-56.5: Add regression coverage for roundtrip state, nested paths, and skill consistency | RTM: FR-41, RTM-186
+
+Add focused tests that lock in the repaired source-of-truth model and the new sync/path semantics so future changes cannot silently reintroduce DB/file drift.
+
+  AC-1: Integration tests cover command-driven state roundtrip through `status` and `sync --rebuild`
+  AC-2: Tests cover the chosen nested-task behavior end-to-end
+  AC-3: Tests cover stale-row deletion during non-rebuild sync
+  AC-4: Tests fail if noncanonical command output causes parser/status drift
+  AC-5: Focused `maenifold-gate` test command passes cleanly after the new coverage is added
+
+- **Files**: `crates/maenifold-gate/tests/integration.rs`, `crates/maenifold-gate/tests/pipeline_tests.rs`, `crates/maenifold-gate/tests/parser_rework_tests.rs`, `crates/maenifold-gate/src/{append,pass,reject,sync,fs}.rs`
+- **Status**: pending
+- **Depends on**: T-56.1, T-56.2, T-56.3, T-56.4

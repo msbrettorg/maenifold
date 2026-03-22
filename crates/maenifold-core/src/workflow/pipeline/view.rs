@@ -62,10 +62,7 @@ pub(super) fn build_pipeline_view_result(
     let nodes = pipeline_nodes_json(definition, node_states)?;
     let edges = pipeline_edges_json(definition);
     let mermaid = render_pipeline_mermaid(definition, node_states)?;
-    let (running, pid, attempts) = match supervisor_status(session_id) {
-        Some((pid, _started_at, attempts)) => (true, Some(pid), Some(attempts)),
-        None => (false, None, None),
-    };
+    let running = supervisor_status(session_id).is_some();
 
     Ok(json!({
         "pipelineId": session_id,
@@ -77,8 +74,6 @@ pub(super) fn build_pipeline_view_result(
         "completed": completed,
         "mermaid": mermaid,
         "running": running,
-        "pid": pid,
-        "attempts": attempts,
     }))
 }
 

@@ -4,6 +4,7 @@ use std::collections::HashSet;
 
 mod dispatch;
 mod engine;
+pub(super) mod executor;
 mod handler;
 mod session_io;
 mod supervisor;

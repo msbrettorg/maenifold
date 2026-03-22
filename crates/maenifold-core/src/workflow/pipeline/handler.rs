@@ -460,14 +460,74 @@ fn cancel_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
 }
 
 fn rewind_pipeline(
-    _context: &ToolContext,
-    _session_id: &str,
+    context: &ToolContext,
+    session_id: &str,
     rewind: RewindRequest,
 ) -> Result<String> {
-    let _ = rewind.node_ids;
-    Err(MaenifoldError::Message(
-        "Pipeline rewind operation isn't implemented yet".to_string(),
-    ))
+    AssetManager::initialize_assets(&context.config)?;
+
+    let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    if supervisor_is_running(session_id) {
+        return Err(MaenifoldError::Message(format!(
+            "Pipeline {session_id} is running; pause or cancel before rewinding"
+        )));
+    }
+
+    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let mut node_states =
+        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    let graph = definition.build_graph();
+    let mut reset_node_ids = HashSet::new();
+
+    for node_id in rewind.node_ids {
+        let node_index = graph
+            .node_indices()
+            .find(|index| graph[*index] == node_id)
+            .ok_or_else(|| MaenifoldError::Message(format!("Unknown node ID: {node_id}")))?;
+        reset_node_ids.extend(reachable_node_ids(&graph, node_index));
+    }
+
+    let mut new_node_files = Vec::with_capacity(reset_node_ids.len());
+    for node in definition
+        .nodes
+        .iter()
+        .filter(|node| reset_node_ids.contains(&node.id))
+    {
+        let workflow_session_id = allocate_node_session_id(context, &node.id)?;
+        let state = node_states.get_mut(&node.id).ok_or_else(|| {
+            MaenifoldError::Message(format!(
+                "ERROR: Pipeline session missing node state for '{}'",
+                node.id
+            ))
+        })?;
+        state.session_id = workflow_session_id.clone();
+        state.status = NodeStatus::Pending;
+        state.attempts = 0;
+        new_node_files.push(NodeFile {
+            session_id: workflow_session_id,
+            node_id: node.id.clone(),
+            workflow_id: node.workflow_id.clone(),
+        });
+    }
+
+    for node_file in &new_node_files {
+        write_workflow_node_session(context, session_id, node_file)?;
+    }
+
+    persist_pipeline_state_with_status(
+        &mut frontmatter,
+        &node_states,
+        Some(super::compute_pipeline_status(&node_states)),
+        &uri,
+        &pipeline_content,
+        context,
+    )?;
+
+    let result = build_pipeline_view_result(session_id, &definition, &node_states)?;
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
 }
 
 fn reject_join_for_running_pipeline(
@@ -1254,7 +1314,7 @@ mod tests {
             ),
             (
                 json!({ "sessionId": "pipeline-missing", "rewind": { "nodeIds": ["root"] } }),
-                "Pipeline rewind operation isn't implemented yet",
+                "Session pipeline-missing doesn't exist",
             ),
         ] {
             let error = pipeline(&context, &payload).expect_err("operation should route");
@@ -1402,6 +1462,320 @@ mod tests {
         assert!(registry.contains("Pipeline"));
         assert!(registry.contains("pipeline"));
         assert!(registry.canonical_names().contains(&"Pipeline"));
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_rewind_resets_specified_node_to_pending() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600061";
+        let root_session_id = "workflow-1735689600061-a".to_string();
+        let middle_session_id = "workflow-1735689600061-b".to_string();
+        let leaf_session_id = "workflow-1735689600061-c".to_string();
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![
+                    super::super::PipelineNode {
+                        id: "a".to_string(),
+                        workflow_id: "test-workflow-a".to_string(),
+                        acp_client: None,
+                    },
+                    super::super::PipelineNode {
+                        id: "b".to_string(),
+                        workflow_id: "test-workflow-b".to_string(),
+                        acp_client: None,
+                    },
+                    super::super::PipelineNode {
+                        id: "c".to_string(),
+                        workflow_id: "test-workflow-a".to_string(),
+                        acp_client: None,
+                    },
+                ],
+                edges: vec![
+                    super::super::PipelineEdge {
+                        source: "a".to_string(),
+                        target: "b".to_string(),
+                        edge_type: super::super::EdgeType::Success,
+                    },
+                    super::super::PipelineEdge {
+                        source: "b".to_string(),
+                        target: "c".to_string(),
+                        edge_type: super::super::EdgeType::Success,
+                    },
+                ],
+            },
+            HashMap::from([
+                (
+                    "a".to_string(),
+                    NodeState {
+                        session_id: root_session_id.clone(),
+                        status: NodeStatus::Completed,
+                        attempts: 1,
+                    },
+                ),
+                (
+                    "b".to_string(),
+                    NodeState {
+                        session_id: middle_session_id.clone(),
+                        status: NodeStatus::Completed,
+                        attempts: 2,
+                    },
+                ),
+                (
+                    "c".to_string(),
+                    NodeState {
+                        session_id: leaf_session_id.clone(),
+                        status: NodeStatus::Pending,
+                        attempts: 3,
+                    },
+                ),
+            ]),
+            2,
+        );
+
+        let output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "rewind": { "nodeIds": ["b"] } }),
+        )
+        .expect("rewind succeeds");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let nodes = response["data"]["nodes"].as_array().expect("nodes array");
+        let find_node = |node_id: &str| {
+            nodes
+                .iter()
+                .find(|node| node.get("nodeId") == Some(&Value::String(node_id.to_string())))
+                .expect("node exists")
+        };
+
+        let a = find_node("a");
+        assert_eq!(a["sessionId"], root_session_id);
+        assert_eq!(a["status"], "completed");
+        assert_eq!(a["attempts"], 1);
+
+        let b = find_node("b");
+        let b_session_id = b["sessionId"].as_str().expect("b session");
+        assert_ne!(b_session_id, middle_session_id);
+        assert_eq!(b["status"], "pending");
+        assert_eq!(b["attempts"], 0);
+        assert!(
+            file_exists(&workflow_session_uri(b_session_id), &context.config).expect("b workflow")
+        );
+
+        let c = find_node("c");
+        let c_session_id = c["sessionId"].as_str().expect("c session");
+        assert_ne!(c_session_id, leaf_session_id);
+        assert_eq!(c["status"], "pending");
+        assert_eq!(c["attempts"], 0);
+        assert!(
+            file_exists(&workflow_session_uri(c_session_id), &context.config).expect("c workflow")
+        );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_rewind_cascades_downstream() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600062";
+        let old_session_ids = HashMap::from([
+            ("a".to_string(), "workflow-1735689600062-a".to_string()),
+            ("b".to_string(), "workflow-1735689600062-b".to_string()),
+            ("c".to_string(), "workflow-1735689600062-c".to_string()),
+        ]);
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![
+                    super::super::PipelineNode {
+                        id: "a".to_string(),
+                        workflow_id: "test-workflow-a".to_string(),
+                        acp_client: None,
+                    },
+                    super::super::PipelineNode {
+                        id: "b".to_string(),
+                        workflow_id: "test-workflow-b".to_string(),
+                        acp_client: None,
+                    },
+                    super::super::PipelineNode {
+                        id: "c".to_string(),
+                        workflow_id: "test-workflow-a".to_string(),
+                        acp_client: None,
+                    },
+                ],
+                edges: vec![
+                    super::super::PipelineEdge {
+                        source: "a".to_string(),
+                        target: "b".to_string(),
+                        edge_type: super::super::EdgeType::Success,
+                    },
+                    super::super::PipelineEdge {
+                        source: "b".to_string(),
+                        target: "c".to_string(),
+                        edge_type: super::super::EdgeType::Success,
+                    },
+                ],
+            },
+            HashMap::from([
+                (
+                    "a".to_string(),
+                    NodeState {
+                        session_id: old_session_ids["a"].clone(),
+                        status: NodeStatus::Completed,
+                        attempts: 1,
+                    },
+                ),
+                (
+                    "b".to_string(),
+                    NodeState {
+                        session_id: old_session_ids["b"].clone(),
+                        status: NodeStatus::Completed,
+                        attempts: 1,
+                    },
+                ),
+                (
+                    "c".to_string(),
+                    NodeState {
+                        session_id: old_session_ids["c"].clone(),
+                        status: NodeStatus::Completed,
+                        attempts: 1,
+                    },
+                ),
+            ]),
+            2,
+        );
+        set_pipeline_status(&context, pipeline_id, "completed");
+
+        let output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "rewind": { "nodeIds": ["a"] } }),
+        )
+        .expect("rewind succeeds");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+        let nodes = data
+            .get("nodes")
+            .and_then(Value::as_array)
+            .expect("nodes array");
+
+        assert_eq!(data.get("status").and_then(Value::as_str), Some("active"));
+        for node in nodes {
+            let node_id = node["nodeId"].as_str().expect("node id");
+            let session_id = node["sessionId"].as_str().expect("session id");
+            assert_ne!(session_id, old_session_ids[node_id]);
+            assert_eq!(node["status"], "pending");
+            assert_eq!(node["attempts"], 0);
+            assert!(
+                file_exists(&workflow_session_uri(session_id), &context.config)
+                    .expect("rewound workflow exists")
+            );
+        }
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_rewind_rejects_running_pipeline() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        super::super::supervisor::supervisor_clear_all();
+        let _path_guard = install_acpx_stub(&context.config.maenifold_root);
+
+        let pipeline_id = "pipeline-1735689600063";
+        let workflow_session_id = "workflow-1735689600063-root";
+        write_acpx_stub_config(
+            &context.config.maenifold_root,
+            json!({
+                workflow_session_id: { "delay": 30.0, "text": "still running" }
+            }),
+        );
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![super::super::PipelineNode {
+                    id: "root".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                }],
+                edges: vec![],
+            },
+            HashMap::from([(
+                "root".to_string(),
+                NodeState {
+                    session_id: workflow_session_id.to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                },
+            )]),
+            1,
+        );
+
+        pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "run": true, "prompt": "keep running" }),
+        )
+        .expect("start pipeline");
+        assert!(super::super::supervisor::supervisor_is_running(pipeline_id));
+        super::super::supervisor::supervisor_pause(pipeline_id).expect("pause running process");
+        assert_eq!(
+            super::super::supervisor::supervisor_is_paused(pipeline_id),
+            Some(true)
+        );
+        let error = rewind_pipeline(
+            &context,
+            pipeline_id,
+            RewindRequest {
+                node_ids: vec!["root".to_string()],
+            },
+        )
+        .expect_err("running pipeline rewind should fail");
+
+        assert!(
+            error.to_string().contains("running") || error.to_string().contains("pause"),
+            "unexpected error: {error}"
+        );
+
+        super::super::supervisor::supervisor_cancel(pipeline_id).expect("cancel running process");
+        super::super::supervisor::supervisor_clear_all();
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_rewind_rejects_unknown_node_id() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600064";
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![super::super::PipelineNode {
+                    id: "root".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                }],
+                edges: vec![],
+            },
+            HashMap::from([(
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600064-root".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                },
+            )]),
+            1,
+        );
+
+        let error = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "rewind": { "nodeIds": ["missing"] } }),
+        )
+        .expect_err("missing node should fail");
+
+        assert!(
+            error.to_string().contains("Unknown node ID: missing"),
+            "unexpected error: {error}"
+        );
     }
 
     #[test]

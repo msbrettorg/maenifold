@@ -5,6 +5,16 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 58 — Pipeline Rewind Implementation
+
+- **FR-40 completion**: Implemented `rewind_pipeline` in handler.rs — replaces stub with working subgraph reset
+  - Computes downstream transitive closure via BFS (`reachable_node_ids`)
+  - Allocates fresh workflow session IDs for rewound nodes
+  - Atomic persistence ordering (workflow sessions before pipeline frontmatter)
+  - Guards against rewinding running pipelines
+- **RTM fixes**: Updated RTM-160 (rewind test references) and RTM-163 (join uses collision-rejection, not ID remapping)
+- **FR-40 fully closed**: All lifecycle controls (pause/resume/cancel/rewind) and graph surgery (graft/join/fork) implemented and tested
+
 ## Sprint 57 — Native Workflow & Think Runners (maenifold-acp Rust integration)
 
 ### Added

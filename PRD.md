@@ -36,7 +36,7 @@ The system SHALL support a `--web` CLI flag that launches a browser-accessible w
 
 ### FR-39: Replace chrome-acp with ACP UI ✅ Sprint 28
 
-### FR-40: Pipeline Active Executor — Sprint 51, Sprint 56
+### FR-40: Pipeline Active Executor ✅ Sprint 51 + Sprint 56 + Sprint 57 + Sprint 58
 
 The Pipeline tool SHALL become an autonomous DAG execution engine that drives ACP agents via `acpx` subprocesses, inverting the current passive state-tracker model.
 

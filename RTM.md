@@ -9,10 +9,10 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 | RTM-157 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/engine.rs` | TC-157: petgraph StableGraph replaces hand-rolled DAG; cycle detection, toposort, ready-set all pass existing tests | unit |
 | RTM-158 | FR-40 | `crates/maenifold-core/src/acp/driver.rs` | TC-158: AcpX driver spawns acpx subprocess, creates sessions, sends prompts with --format json, parses NDJSON output | integration |
 | RTM-159 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/executor.rs` | TC-159: Executor run loop computes ready set, dispatches via JoinSet+Semaphore, cascades completion, respects maxConcurrency. Sprint 56: Rust-native async executor replaced bash bridge. | unit |
-| RTM-160 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/supervisor.rs` | TC-160: Lifecycle controls — pause/resume via AtomicBool flag, cancel via CancellationToken, rewind resets subgraph. Sprint 56: process/signal management removed; lightweight tokio task tracking. | unit |
+| RTM-160 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/supervisor.rs` | TC-160: Lifecycle controls — pause/resume via AtomicBool flag, cancel via CancellationToken, rewind behavior covered by `pipeline_rewind_resets_specified_node_to_pending`, `pipeline_rewind_cascades_downstream`, `pipeline_rewind_rejects_running_pipeline`, and `pipeline_rewind_rejects_unknown_node_id`. Sprint 56: process/signal management removed; lightweight tokio task tracking. | unit |
 | RTM-161 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/executor.rs` | TC-161: HSM integration — executor drives Workflow tool per node, spawns SequentialThinking submachines | integration |
 | RTM-162 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/handler.rs` | TC-162: Graft adds nodes+edges to existing pipeline, validates no cycles | unit |
-| RTM-163 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/handler.rs` | TC-163: Join merges two DAGs with ID remapping; Fork clones subgraph with state reset | unit |
+| RTM-163 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/handler.rs` | TC-163: Join merges two DAGs using collision-rejection when source and target node IDs overlap; Fork clones subgraph with state reset and ID remapping via `fork-{session}-{id}` prefixes | unit |
 | RTM-164 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/handler.rs` | TC-164: Delete archives pipeline session and associated workflow sessions | unit |
 
 ## Sprint 53 — File-Authoritative Pipeline Gate Cache (FR-41)

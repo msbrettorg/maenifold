@@ -96,12 +96,8 @@ pub(crate) async fn drive_think_session(
 ) -> Result<ThinkResult> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
     let acpx_session = format!("think-{session_id}");
-    let driver = AcpxDriver::new(
-        agent.to_string(),
-        0,
-        context.config.maenifold_root.clone(),
-    )
-    .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let driver = AcpxDriver::new(agent.to_string(), 0, context.config.maenifold_root.clone())
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
     driver
         .create_session(&acpx_session)
         .await
@@ -157,12 +153,8 @@ pub async fn run_workflow(
     let session_id = extract_workflow_session_id(&start).ok_or_else(|| {
         MaenifoldError::Message("Workflow session ID missing from response".to_string())
     })?;
-    let driver = AcpxDriver::new(
-        agent.to_string(),
-        0,
-        context.config.maenifold_root.clone(),
-    )
-    .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let driver = AcpxDriver::new(agent.to_string(), 0, context.config.maenifold_root.clone())
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
     driver
         .create_session(&session_id)
         .await

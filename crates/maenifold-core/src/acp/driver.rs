@@ -149,19 +149,19 @@ impl AcpxDriver {
     }
 
     fn prompt_spec(&self, session: &str, prompt: &str) -> CommandSpec {
-        CommandSpec {
-            args: vec![
-                "--format".to_string(),
-                "json".to_string(),
-                "--timeout".to_string(),
-                self.timeout.to_string(),
-                "--approve-all".to_string(),
-                self.agent.clone(),
-                "-s".to_string(),
-                session.to_string(),
-                prompt.to_string(),
-            ],
+        let mut args = vec!["--format".to_string(), "json".to_string()];
+        if self.timeout > 0 {
+            args.push("--timeout".to_string());
+            args.push(self.timeout.to_string());
         }
+        args.extend([
+            "--approve-all".to_string(),
+            self.agent.clone(),
+            "-s".to_string(),
+            session.to_string(),
+            prompt.to_string(),
+        ]);
+        CommandSpec { args }
     }
 
     fn cancel_spec(&self, session: &str) -> CommandSpec {
@@ -360,7 +360,7 @@ mod tests {
     fn test_driver() -> AcpxDriver {
         AcpxDriver::new_for_tests(
             "codex".to_string(),
-            300,
+            0,
             PathBuf::from("/tmp/worktree"),
             PathBuf::from("/usr/local/bin/acpx"),
         )
@@ -402,8 +402,6 @@ mod tests {
             vec![
                 "--format",
                 "json",
-                "--timeout",
-                "300",
                 "--approve-all",
                 "codex",
                 "-s",

@@ -98,7 +98,7 @@ pub(crate) async fn drive_think_session(
     let acpx_session = format!("think-{session_id}");
     let driver = AcpxDriver::new(
         agent.to_string(),
-        300,
+        0,
         context.config.maenifold_root.clone(),
     )
     .map_err(|error| MaenifoldError::Message(error.to_string()))?;
@@ -159,7 +159,7 @@ pub async fn run_workflow(
     })?;
     let driver = AcpxDriver::new(
         agent.to_string(),
-        300,
+        0,
         context.config.maenifold_root.clone(),
     )
     .map_err(|error| MaenifoldError::Message(error.to_string()))?;

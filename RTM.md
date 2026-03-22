@@ -66,3 +66,16 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 | RTM-189 | FR-40 | `crates/maenifold-core/src/workflow/runner.rs::{step_think_config(),run_workflow()}` | TC-189: T-57.3 Submachine integration — `workflow_runner_thinks_before_agent_prompt_when_required`, `workflow_runner_skips_thinking_without_flag`, and `run_think_seeds_parent_workflow_linkage` verify SequentialThinking execution within workflow steps | integration |
 | RTM-190 | FR-40 | `crates/maenifold-core/src/workflow/pipeline/executor.rs::{execute_pipeline(),classify_workflow_result()}` | TC-190: T-57.4 Pipeline executor wiring — `executor_completes_single_node_pipeline`, `executor_handles_node_failure`, `executor_respects_cancellation`, `executor_respects_max_concurrency`, and `executor_cascades_through_dag` verify executor use of the workflow runner | unit |
 | RTM-191 | FR-40 | `crates/maenifold-cli/src/cli.rs::run_script_command()` | TC-191: T-57.5 CLI workflow and think subcommands — `cli_contract_tests` (6 tests) verify `workflow` and `think` command coverage | integration |
+
+## Sprint — Pipeline UI Frontend (FR-43)
+
+| RTM | Requirement | Component | Test Case | Type |
+|-----|------------|-----------|-----------|------|
+| RTM-192 | FR-43.1 | pipeline-ui/src/components/PipelineInspector.vue | TC-192: Inspector renders 5 context modes correctly | unit |
+| RTM-193 | FR-43.2 | pipeline-ui/src/components/PipelineRunner.vue | TC-193: Runner controls + event log + mermaid tab | unit |
+| RTM-194 | FR-43.3 | pipeline-ui/src/components/PipelineSidebar.vue | TC-194: Sidebar lists/loads/creates/deletes pipelines | unit |
+| RTM-195 | FR-43.4 | pipeline-ui/src/components/PipelineView.vue + App.vue | TC-195: Four-panel layout integrates into App.vue | integration |
+| RTM-196 | FR-44 | pipeline-ui/src/components/PipelineComposer.vue | TC-196: Composer allows adding/removing nodes in design mode | integration |
+| RTM-197 | FR-45 | pipeline-ui/src/composables/__tests__/ | TC-197: MCP client integration tests against live server | integration |
+| RTM-198 | FR-45 | pipeline-ui/src/composables/__tests__/ | TC-198: Composable integration tests against live server | integration |
+| RTM-199 | FR-46 | pipeline-ui/src/components/__tests__/ | TC-199: Component smoke tests with real rendering | integration |

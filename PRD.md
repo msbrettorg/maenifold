@@ -92,3 +92,21 @@ Replace the hardcoded SWE→Red→Blue pipeline with a JSON-driven process engin
 - Subagent configs SHALL include `gate append` only. `gate pass` and `gate reject` SHALL be excluded from subagent tool lists.
 - `pass` and `reject` SHALL implicitly record `orchestrator` as the agent role.
 - The binary SHALL NOT implement authentication, tokens, or cryptographic verification.
+
+## FR-43: Pipeline UI Frontend Components
+
+The standalone pipeline-ui application (`/Users/brett/src/ma-collective/pipeline-ui/`) SHALL provide a visual DAG editor and runner for maenifold pipelines, communicating exclusively via MCP Streamable HTTP to the maenifold server.
+
+FR-43.1: The application SHALL include a PipelineInspector component that shows context-sensitive configuration (design mode) or read-only status with action buttons (server mode) for the selected node or edge.
+
+FR-43.2: The application SHALL include a PipelineRunner component with lifecycle control buttons (create/run/pause/resume/cancel/delete), an event log tab, and a mermaid diagram tab.
+
+FR-43.3: The application SHALL include a PipelineSidebar component that lists all pipelines from the server, supports creating new pipelines, loading existing ones, and deleting them.
+
+FR-43.4: The application SHALL include a PipelineView shell component that composes the sidebar, composer, inspector, and runner into a four-panel layout, integrated into the main App.vue via a toggle button.
+
+FR-44: The PipelineComposer SHALL provide a node creation toolbar in design mode enabling users to add nodes with workflow ID, optional ACP client, and connect them with edges.
+
+FR-45: The pipeline-ui test suite SHALL use ONLY real integration tests against a live maenifold --http server. No mocked fetch, no mocked composables, no fake responses. Per TESTING_PHILOSOPHY.md.
+
+FR-46: The pipeline-ui SHALL include functional smoke tests that verify UI components render, respond to user interaction, and display real data from the MCP server.

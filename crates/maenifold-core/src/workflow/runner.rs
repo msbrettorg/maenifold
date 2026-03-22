@@ -163,7 +163,10 @@ pub async fn run_workflow(
         context.config.maenifold_root.clone(),
     )
     .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    let _ = driver.create_session(&session_id).await;
+    driver
+        .create_session(&session_id)
+        .await
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
     let wikilinks = Regex::new(r"\[\[.*?\]\]").expect("wikilink regex");
 
     let mut step = workflow_text(&start);
@@ -378,11 +381,11 @@ fn slug(topic: &str) -> String {
             }
         })
         .collect::<String>();
-    let slug = slug
-        .trim_matches('-')
-        .replace("--", "-")
-        .trim_matches('-')
-        .to_string();
+    let mut slug = slug.trim_matches('-').to_string();
+    while slug.contains("--") {
+        slug = slug.replace("--", "-");
+    }
+    let slug = slug.trim_matches('-').to_string();
     if slug.is_empty() {
         "topic".to_string()
     } else {

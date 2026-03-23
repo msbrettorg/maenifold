@@ -354,7 +354,7 @@ mod tests {
                     id: "tool-node".to_string(),
                     tool_name: "ReadMemory".to_string(),
                     tool_args: Some(json!({"identifier": "memory://build/test"})),
-                    agent: "agent-tool".to_string(),
+                    agent: None,
                 },
             ],
             edges: vec![
@@ -453,7 +453,7 @@ mod tests {
         assert_eq!(nodes[2]["output"], Value::Null);
 
         assert_eq!(nodes[3]["type"], "tool");
-        assert_eq!(nodes[3]["agent"], "agent-tool");
+        assert_eq!(nodes[3]["agent"], Value::Null);
         assert_eq!(nodes[3]["toolName"], "ReadMemory");
         assert_eq!(
             nodes[3]["toolArgs"],

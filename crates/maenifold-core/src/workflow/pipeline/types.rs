@@ -61,7 +61,7 @@ pub enum PipelineNode {
         id: String,
         tool_name: String,
         tool_args: Option<Value>,
-        agent: String,
+        agent: Option<String>,
     },
 }
 
@@ -120,8 +120,8 @@ impl PipelineNode {
         match self {
             Self::Workflow { acp_client, .. } => acp_client.as_deref(),
             Self::Prompt { agent, .. }
-            | Self::SequentialThinking { agent, .. }
-            | Self::Tool { agent, .. } => Some(agent),
+            | Self::SequentialThinking { agent, .. } => Some(agent),
+            Self::Tool { agent, .. } => agent.as_deref(),
         }
     }
 
@@ -194,7 +194,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 id: wire.id,
                 tool_name: required(wire.tool_name, "toolName")?,
                 tool_args: wire.tool_args,
-                agent: required(wire.agent, "agent")?,
+                agent: wire.agent,
             },
             other => {
                 return Err(format!(
@@ -277,7 +277,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 workflow_id: None,
                 acp_client: None,
                 prompt: None,
-                agent: Some(agent),
+                agent,
                 tool_mode: default_prompt_tool_mode(),
                 topic: None,
                 total_thoughts: default_total_thoughts(),
@@ -462,7 +462,27 @@ mod tests {
                 id: "t1".into(),
                 tool_name: "pipeline".into(),
                 tool_args: Some(json!({"sessionId": "pipeline-42"})),
-                agent: "claude".into(),
+                agent: Some("claude".into()),
+            }
+        );
+    }
+
+    #[test]
+    fn tool_node_deserializes_without_agent() {
+        let node: PipelineNode = serde_json::from_value(json!({
+            "type": "tool",
+            "id": "t1",
+            "toolName": "pipeline",
+            "toolArgs": { "sessionId": "pipeline-42" }
+        }))
+        .unwrap();
+        assert_eq!(
+            node,
+            PipelineNode::Tool {
+                id: "t1".into(),
+                tool_name: "pipeline".into(),
+                tool_args: Some(json!({"sessionId": "pipeline-42"})),
+                agent: None,
             }
         );
     }
@@ -473,7 +493,7 @@ mod tests {
             id: "t1".into(),
             tool_name: "pipeline".into(),
             tool_args: Some(json!({"sessionId": "pipeline-42"})),
-            agent: "claude".into(),
+            agent: Some("claude".into()),
         };
         assert_eq!(
             serde_json::to_value(node).unwrap(),
@@ -483,6 +503,25 @@ mod tests {
                 "toolName": "pipeline",
                 "toolArgs": {"sessionId": "pipeline-42"},
                 "agent": "claude"
+            })
+        );
+    }
+
+    #[test]
+    fn tool_node_serializes_without_agent() {
+        let node = PipelineNode::Tool {
+            id: "t1".into(),
+            tool_name: "pipeline".into(),
+            tool_args: Some(json!({"sessionId": "pipeline-42"})),
+            agent: None,
+        };
+        assert_eq!(
+            serde_json::to_value(node).unwrap(),
+            json!({
+                "type": "tool",
+                "id": "t1",
+                "toolName": "pipeline",
+                "toolArgs": {"sessionId": "pipeline-42"}
             })
         );
     }

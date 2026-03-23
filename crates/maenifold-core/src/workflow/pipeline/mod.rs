@@ -79,11 +79,9 @@ fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
         PipelineNode::Tool {
             id,
             tool_name,
-            agent,
             ..
         } => {
-            validate_non_empty_node_field(id, "toolName", tool_name)?;
-            validate_non_empty_node_field(id, "agent", agent)
+            validate_non_empty_node_field(id, "toolName", tool_name)
         }
     }
 }

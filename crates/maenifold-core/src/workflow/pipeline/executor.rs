@@ -108,8 +108,10 @@ pub(super) async fn execute_pipeline(
                 ))
             })?;
             let node_id = dispatch.node_id.clone();
+            let is_tool_node = matches!(node, PipelineNode::Tool { .. });
             let agent = match node.acp_client() {
-                Some(client) => client.to_string(),
+                Some(client) => Some(client.to_string()),
+                None if is_tool_node => None,
                 None => {
                     drop(permit);
                     update_pipeline_node_status(
@@ -138,36 +140,45 @@ pub(super) async fn execute_pipeline(
                     NodeExecutionRequest::Workflow {
                         workflow_id,
                         prompt,
-                    } => NodeTaskResult::Workflow(
-                        runner::run_workflow(&ctx, &workflow_id, &agent, &prompt).await,
-                    ),
+                    } => {
+                        let agent = agent.as_deref().expect("agent required for workflow nodes");
+                        NodeTaskResult::Workflow(
+                            runner::run_workflow(&ctx, &workflow_id, agent, &prompt).await,
+                        )
+                    }
                     NodeExecutionRequest::Prompt {
                         session_id,
                         prompt,
                         tool_mode,
-                    } => NodeTaskResult::Prompt(
-                        run_prompt_node(&ctx, &agent, &session_id, &prompt, &tool_mode).await,
-                    ),
+                    } => {
+                        let agent = agent.as_deref().expect("agent required for prompt nodes");
+                        NodeTaskResult::Prompt(
+                            run_prompt_node(&ctx, agent, &session_id, &prompt, &tool_mode).await,
+                        )
+                    }
                     NodeExecutionRequest::SequentialThinking {
                         topic,
                         total_thoughts,
-                    } => NodeTaskResult::SequentialThinking(
-                        runner::run_think(
-                            &ctx,
-                            &agent,
-                            &topic,
-                            runner::ThinkOptions {
-                                total_thoughts,
-                                parent_workflow_id: None,
-                            },
+                    } => {
+                        let agent = agent.as_deref().expect("agent required for thinking nodes");
+                        NodeTaskResult::SequentialThinking(
+                            runner::run_think(
+                                &ctx,
+                                agent,
+                                &topic,
+                                runner::ThinkOptions {
+                                    total_thoughts,
+                                    parent_workflow_id: None,
+                                },
+                            )
+                            .await,
                         )
-                        .await,
-                    ),
+                    }
                     NodeExecutionRequest::Tool {
                         tool_name,
                         tool_args,
                     } => NodeTaskResult::Tool(
-                        run_tool_node(&ctx, &agent, &tool_name, tool_args.as_ref()).await,
+                        run_tool_node(&ctx, &tool_name, tool_args.as_ref()).await,
                     ),
                 };
                 (node_id, result)
@@ -458,7 +469,6 @@ async fn run_prompt_node(
 
 async fn run_tool_node(
     _context: &ToolContext,
-    agent: &str,
     tool_name: &str,
     tool_args: Option<&JsonValue>,
 ) -> Result<String> {
@@ -482,7 +492,7 @@ async fn run_tool_node(
                 error
             } else {
                 MaenifoldError::Message(format!(
-                    "Error invoking {tool_name} for agent {agent}: {error}"
+                    "Error invoking {tool_name}: {error}"
                 ))
             }
         })
@@ -911,7 +921,7 @@ mod pipeline_executor_tests {
                     id: "tool".to_string(),
                     tool_name: "GetConfig".to_string(),
                     tool_args: Some(json!({})),
-                    agent: "prompt-agent".to_string(),
+                    agent: None,
                 }],
                 edges: vec![],
             },

@@ -270,21 +270,17 @@ fn build_dispatched_node_response(
             tool_args,
             ..
         } => {
-            let agent = node.acp_client().ok_or_else(|| {
-                MaenifoldError::Message(format!(
-                    "ERROR: Pipeline node '{}' of type '{}' does not have an agent",
-                    node.id(),
-                    node.node_type_name()
-                ))
-            })?;
-            Ok(json!({
+            let mut response = json!({
                 "nodeId": node.id(),
                 "sessionId": session_id,
                 "type": node.node_type_name(),
-                "agent": agent,
                 "toolName": tool_name,
                 "toolArgs": tool_args,
-            }))
+            });
+            if let Some(agent) = node.acp_client() {
+                response["agent"] = serde_json::Value::String(agent.to_string());
+            }
+            Ok(response)
         }
     }
 }
@@ -1330,7 +1326,7 @@ mod tests {
                 id: "tool-node".to_string(),
                 tool_name: "ReadMemory".to_string(),
                 tool_args: Some(json!({"identifier": "memory://build/test"})),
-                agent: "prompt-agent".to_string(),
+                agent: None,
             }],
             edges: vec![],
         };
@@ -1363,7 +1359,6 @@ mod tests {
                 "nodeId": "tool-node",
                 "sessionId": "tool-tool-node-1735689600495",
                 "type": "tool",
-                "agent": "prompt-agent",
                 "toolName": "ReadMemory",
                 "toolArgs": {"identifier": "memory://build/test"},
             })]

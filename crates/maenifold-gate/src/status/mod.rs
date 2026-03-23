@@ -2,6 +2,7 @@ use crate::{
     CommandStubError, StatusArgs,
     db::GateDb,
     fs, parser,
+    pipeline::load_pipeline_def,
     types::{TaskLocation, TaskState},
 };
 use anyhow::{Result, anyhow};
@@ -17,12 +18,13 @@ pub fn run(args: &StatusArgs) -> Result<(), CommandStubError> {
 }
 
 pub fn run_status(args: &StatusArgs, root: &Path) -> Result<()> {
+    let pipeline = load_pipeline_def(None, root)?;
     let db = open_db(args, root)?;
     let check_drift = db.is_some();
     if let Some(id) = args.id.as_deref() {
-        return run_one_by_id(root, id, args.json, db.as_ref(), check_drift);
+        return run_one_by_id(root, &pipeline, id, args.json, db.as_ref(), check_drift);
     }
-    run_all(root, args.json, db.as_ref(), check_drift)
+    run_all(root, &pipeline, args.json, db.as_ref(), check_drift)
 }
 
 fn open_db(args: &StatusArgs, root: &Path) -> Result<Option<GateDb>> {
@@ -35,6 +37,7 @@ fn open_db(args: &StatusArgs, root: &Path) -> Result<Option<GateDb>> {
 
 fn run_one_by_id(
     root: &Path,
+    pipeline: &crate::pipeline::PipelineDef,
     id: &str,
     json: bool,
     db: Option<&GateDb>,
@@ -46,7 +49,7 @@ fn run_one_by_id(
         .ok_or_else(|| anyhow!("unknown task ID: {id}"))?;
     let (path, location) = fs::resolve_task_path(root, &row.file)?;
     let content = fs::read_task(&path)?;
-    match parser::parse_task_content(&path, &content) {
+    match parser::parse_task_content_with_pipeline(&path, &content, pipeline) {
         Ok(state) => output_one(
             &row.file,
             location.as_str(),
@@ -59,7 +62,8 @@ fn run_one_by_id(
             location: TaskLocation::Done,
             ..
         }) => {
-            let state = TaskState::done_override_from_content(&path, &content);
+            let state =
+                TaskState::done_override_from_content_with_pipeline(&path, &content, pipeline);
             output_one(
                 &row.file,
                 location.as_str(),
@@ -81,7 +85,13 @@ fn run_one_by_id(
     Ok(())
 }
 
-fn run_all(root: &Path, json: bool, db: Option<&GateDb>, check_drift: bool) -> Result<()> {
+fn run_all(
+    root: &Path,
+    pipeline: &crate::pipeline::PipelineDef,
+    json: bool,
+    db: Option<&GateDb>,
+    check_drift: bool,
+) -> Result<()> {
     let mut tasks = fs::discover_tasks(root)?;
     let rows = db
         .map(GateDb::get_all_tasks)
@@ -118,32 +128,35 @@ fn run_all(root: &Path, json: bool, db: Option<&GateDb>, check_drift: bool) -> R
                 continue;
             }
         };
-        let (state, note) = match TaskState::parse_quietly(&task.path, &content) {
-            Ok(state) => (state, None),
-            Err(parser::ParseTaskError::LocationStatusMismatch {
-                location: TaskLocation::Done,
-                ..
-            }) => (
-                TaskState::done_override_from_content(&task.path, &content),
-                Some(INCOMPLETE_AUDIT_TRAIL_NOTE.to_string()),
-            ),
-            Err(err) => {
-                *counts.entry("error".to_string()).or_default() += 1;
-                let message = err.to_string();
-                if json {
-                    out.push(json_output(
-                        file,
-                        task.location.as_str(),
-                        None,
-                        Some(message),
-                        vec![],
-                    ));
-                } else {
-                    eprintln!("warning: {file}: status=error: {message}");
+        let (state, note) =
+            match TaskState::parse_quietly_with_pipeline(&task.path, &content, pipeline) {
+                Ok(state) => (state, None),
+                Err(parser::ParseTaskError::LocationStatusMismatch {
+                    location: TaskLocation::Done,
+                    ..
+                }) => (
+                    TaskState::done_override_from_content_with_pipeline(
+                        &task.path, &content, pipeline,
+                    ),
+                    Some(INCOMPLETE_AUDIT_TRAIL_NOTE.to_string()),
+                ),
+                Err(err) => {
+                    *counts.entry("error".to_string()).or_default() += 1;
+                    let message = err.to_string();
+                    if json {
+                        out.push(json_output(
+                            file,
+                            task.location.as_str(),
+                            None,
+                            Some(message),
+                            vec![],
+                        ));
+                    } else {
+                        eprintln!("warning: {file}: status=error: {message}");
+                    }
+                    continue;
                 }
-                continue;
-            }
-        };
+            };
         *counts
             .entry(state.effective_status().to_string())
             .or_default() += 1;

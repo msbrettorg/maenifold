@@ -6,6 +6,7 @@ use crate::{
     CommandStubError, SyncArgs,
     db::{GateDb, extract_task_id},
     fs, parser,
+    pipeline::load_pipeline_def,
     types::{TaskLocation, TaskState},
 };
 
@@ -14,6 +15,7 @@ pub fn run(args: &SyncArgs) -> Result<(), CommandStubError> {
 }
 
 pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
+    let pipeline = load_pipeline_def(None, root)?;
     let db_path = args.db.clone().unwrap_or_else(|| root.join("pipeline.db"));
     let mut found = fs::discover_tasks(root)?;
     let mut rows = Vec::new();
@@ -28,7 +30,8 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
                 continue;
             }
         };
-        let state = match parser::parse_task_content(&task.path, &content) {
+        let state = match parser::parse_task_content_with_pipeline(&task.path, &content, &pipeline)
+        {
             Ok(state) => state,
             Err(parser::ParseTaskError::LocationStatusMismatch {
                 location: TaskLocation::Done,

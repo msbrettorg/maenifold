@@ -3,9 +3,11 @@ use std::{fs, path::Path};
 use crate::types::{StageState, StageVerdict, TaskLocation, TaskState};
 
 mod error;
+mod pipeline_aware;
 mod sections;
 
 pub use error::ParseTaskError;
+pub use pipeline_aware::parse_task_content_with_pipeline;
 pub use sections::{ParsedSection, extract_sections};
 use sections::{RawSection, scan_sections};
 
@@ -70,11 +72,9 @@ pub fn parse_task_content(
     let mut attempts = 0u32;
 
     for (index, (stage, section)) in sections.iter().enumerate() {
-        let has_later_same_stage = sections[index + 1..]
-            .iter()
-            .any(|other| other.0 == *stage);
+        let has_later_same_stage = sections[index + 1..].iter().any(|other| other.0 == *stage);
         let verdict =
-            parse_section_verdict(stage, section, location, has_later_same_stage, path)?;
+            parse_section_verdict(stage, None, section, location, has_later_same_stage, path)?;
         if verdict.is_some_and(StageVerdict::counts_as_attempt) {
             attempts += 1;
         }
@@ -143,22 +143,26 @@ fn reconcile_location(
 
 fn parse_section_verdict(
     stage: &str,
+    allowed_verdicts: Option<&[String]>,
     section: &RawSection,
     location: TaskLocation,
     has_later_same_stage: bool,
     path: &Path,
 ) -> Result<Option<StageVerdict>, ParseTaskError> {
-    let verdict = parse_detected_verdict(stage, section)?;
+    let verdict = parse_detected_verdict(stage, allowed_verdicts, section)?;
 
-    if stage == "swe" {
+    if allowed_verdicts.is_some_and(|verdicts| verdicts.is_empty())
+        || (allowed_verdicts.is_none() && stage == "swe")
+    {
         return Ok(None);
     }
 
-    // For red/blue and other review stages
     if let Some(verdict) = verdict {
         Ok(Some(verdict))
     } else if has_later_same_stage {
-        Ok(Some(StageVerdict::Reject))
+        Ok(Some(
+            infer_retry_verdict(allowed_verdicts).unwrap_or(StageVerdict::Reject),
+        ))
     } else if location == TaskLocation::Done {
         Ok(Some(StageVerdict::Pass))
     } else {
@@ -174,6 +178,7 @@ fn parse_section_verdict(
 
 fn parse_detected_verdict(
     stage: &str,
+    allowed_verdicts: Option<&[String]>,
     section: &RawSection,
 ) -> Result<Option<StageVerdict>, ParseTaskError> {
     let mut verdict = None;
@@ -184,7 +189,7 @@ fn parse_detected_verdict(
             line: raw.line,
             value: raw.value.clone(),
         })?;
-        validate_stage_verdict(stage, parsed, raw.line)?;
+        validate_stage_verdict(stage, allowed_verdicts, parsed, raw.line)?;
         if verdict.is_some() {
             return Err(ParseTaskError::DuplicateVerdict {
                 stage: stage.to_string(),
@@ -199,16 +204,23 @@ fn parse_detected_verdict(
 
 fn validate_stage_verdict(
     stage: &str,
+    allowed_verdicts: Option<&[String]>,
     verdict: StageVerdict,
     line_number: usize,
 ) -> Result<(), ParseTaskError> {
-    let allowed = match stage {
-        "swe" => false,
-        "red" => matches!(verdict, StageVerdict::Pass | StageVerdict::Reject),
-        "blue" => matches!(verdict, StageVerdict::Pass | StageVerdict::Fail),
-        // For unknown stages, allow all verdicts
-        _ => true,
-    };
+    let allowed = allowed_verdicts.map_or_else(
+        || match stage {
+            "swe" => false,
+            "red" => matches!(verdict, StageVerdict::Pass | StageVerdict::Reject),
+            "blue" => matches!(verdict, StageVerdict::Pass | StageVerdict::Fail),
+            _ => true,
+        },
+        |verdicts| {
+            verdicts
+                .iter()
+                .any(|value| value.eq_ignore_ascii_case(verdict_key(verdict)))
+        },
+    );
 
     if !allowed {
         return Err(ParseTaskError::InvalidVerdictForStage {
@@ -219,4 +231,30 @@ fn validate_stage_verdict(
     }
 
     Ok(())
+}
+
+fn infer_retry_verdict(allowed_verdicts: Option<&[String]>) -> Option<StageVerdict> {
+    if allowed_verdicts.is_some_and(|verdicts| {
+        verdicts
+            .iter()
+            .any(|value| value.eq_ignore_ascii_case("reject"))
+    }) {
+        Some(StageVerdict::Reject)
+    } else if allowed_verdicts.is_some_and(|verdicts| {
+        verdicts
+            .iter()
+            .any(|value| value.eq_ignore_ascii_case("fail"))
+    }) {
+        Some(StageVerdict::Fail)
+    } else {
+        None
+    }
+}
+
+fn verdict_key(verdict: StageVerdict) -> &'static str {
+    match verdict {
+        StageVerdict::Pass => "pass",
+        StageVerdict::Reject => "reject",
+        StageVerdict::Fail => "fail",
+    }
 }

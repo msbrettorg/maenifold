@@ -93,6 +93,14 @@ impl TaskState {
         crate::parser::parse_task_content(path, content)
     }
 
+    pub fn parse_quietly_with_pipeline(
+        path: &Path,
+        content: &str,
+        pipeline: &crate::pipeline::PipelineDef,
+    ) -> Result<Self, crate::parser::ParseTaskError> {
+        crate::parser::parse_task_content_with_pipeline(path, content, pipeline)
+    }
+
     /// T-54.2: preserve parsed attempts/stages while enforcing done/ as terminal.
     pub fn with_done_override(mut self) -> Self {
         self.location = TaskLocation::Done;
@@ -105,6 +113,17 @@ impl TaskState {
     /// forces done-override on the result.
     pub fn done_override_from_content(path: &Path, content: &str) -> Self {
         match crate::parser::parse_task_content(path, content) {
+            Ok(state) => state.with_done_override(),
+            Err(_) => Self::done_override(path.to_path_buf()),
+        }
+    }
+
+    pub fn done_override_from_content_with_pipeline(
+        path: &Path,
+        content: &str,
+        pipeline: &crate::pipeline::PipelineDef,
+    ) -> Self {
+        match crate::parser::parse_task_content_with_pipeline(path, content, pipeline) {
             Ok(state) => state.with_done_override(),
             Err(_) => Self::done_override(path.to_path_buf()),
         }

@@ -15,19 +15,9 @@ use sections::{RawSection, scan_sections};
 ///
 /// Compatibility behavior:
 /// - lowercased heading
-/// - "swe", "red", and "blue" normalize when followed by a separator
-/// - otherwise first whitespace-delimited word lowercased, or whole heading lowercased.
+/// - first whitespace-delimited word lowercased, or whole heading lowercased.
 pub fn normalize_stage_name(heading: &str) -> String {
     let lower = heading.to_lowercase();
-    if lower == "swe" || lower.starts_with("swe-") || lower.starts_with("swe ") {
-        return "swe".to_string();
-    }
-    if lower == "red" || lower.starts_with("red-") || lower.starts_with("red ") {
-        return "red".to_string();
-    }
-    if lower == "blue" || lower.starts_with("blue-") || lower.starts_with("blue ") {
-        return "blue".to_string();
-    }
     lower
         .split_whitespace()
         .next()
@@ -149,9 +139,7 @@ fn parse_section_verdict(
 ) -> Result<Option<StageVerdict>, ParseTaskError> {
     let verdict = parse_detected_verdict(stage, allowed_verdicts, section)?;
 
-    if allowed_verdicts.is_some_and(|verdicts| verdicts.is_empty())
-        || (allowed_verdicts.is_none() && stage == "swe")
-    {
+    if allowed_verdicts.is_some_and(|verdicts| verdicts.is_empty()) {
         return Ok(None);
     }
 
@@ -207,14 +195,7 @@ fn validate_stage_verdict(
     line_number: usize,
 ) -> Result<(), ParseTaskError> {
     let allowed = allowed_verdicts.map_or_else(
-        || match stage {
-            "swe" => false,
-            "red" => matches!(verdict, StageVerdict::Pass | StageVerdict::Reject),
-            "blue" => matches!(verdict, StageVerdict::Pass | StageVerdict::Fail),
-            // The no-pipeline fallback only knows about SWE/red/blue semantics.
-            // For any other normalized heading, every StageVerdict variant is valid.
-            _ => true,
-        },
+        || true,
         |verdicts| {
             verdicts
                 .iter()

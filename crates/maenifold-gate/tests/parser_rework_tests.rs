@@ -2,10 +2,16 @@ use std::{fs, path::Path};
 
 use assert_cmd::Command;
 use assert_cmd::cargo::cargo_bin_cmd;
-use maenifold_gate::{ParseTaskError, parse_task_content, parser::normalize_stage_name};
+use maenifold_gate::{
+    parse_task_content,
+    parser::{normalize_stage_name, parse_task_content_with_pipeline},
+    pipeline::load_pipeline_from_str,
+};
 use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
 use tempfile::tempdir;
+
+const SDD_PIPELINE: &str = include_str!("../../../assets/pipelines/sdd.json");
 
 fn base_task() -> String {
     "# T-54.1 — Parser Rework Tolerance\n\n**Requirement**: FR-41\n".to_string()
@@ -16,12 +22,10 @@ fn parse_task(location: &str, body: &str) -> maenifold_gate::TaskState {
     parse_task_content(path, body).expect("task should parse")
 }
 
-fn parse_task_result(
-    location: &str,
-    body: &str,
-) -> Result<maenifold_gate::TaskState, ParseTaskError> {
+fn parse_task_with_sdd(location: &str, body: &str) -> maenifold_gate::TaskState {
     let path = Path::new(location).join("T-54.1-parser-rework-tolerance.md");
-    parse_task_content(path, body)
+    let pipeline = load_pipeline_from_str(SDD_PIPELINE).expect("SDD pipeline should load");
+    parse_task_content_with_pipeline(path, body, &pipeline).expect("task should parse")
 }
 
 #[test]
@@ -31,9 +35,9 @@ fn duplicate_swe_headings_keep_last_attempt() {
         base_task()
     );
 
-    let state = parse_task("todo", &content);
+    let state = parse_task_with_sdd("todo", &content);
 
-    assert_eq!(state.status, "swe");
+    assert_eq!(state.status, "red");
     assert_eq!(state.attempts, 0);
     assert_eq!(state.stages.len(), 2);
     assert_eq!(state.stages[0].stage, "swe");
@@ -47,33 +51,28 @@ fn duplicate_swe_headings_keep_last_attempt() {
 #[test]
 fn re_audit_without_initial_verdict_becomes_blue_ready() {
     let content = format!(
-        "{}\n## SWE Remediation\n\nFixed issues.\n\n## Red-team Audit\n\nNeeds another pass.\n\n## Red-team Audit (Re-audit)\n\n**Verdict**: PASS\n\nLooks good.\n",
+        "{}\n## SWE Remediation\n\nFixed issues.\n\n## Red Team Audit\n\nNeeds another pass.\n\n## Red Team Audit (Re-audit)\n\n**Verdict**: PASS\n\nLooks good.\n",
         base_task()
     );
 
-    let error =
-        parse_task_result("todo", &content).expect_err("todo task should reject done status");
+    let state = parse_task_with_sdd("todo", &content);
 
-    assert!(matches!(
-        error,
-        ParseTaskError::LocationStatusMismatch {
-            location: maenifold_gate::TaskLocation::Todo,
-            ref status,
-            ..
-        } if status == "done"
-    ));
+    assert_eq!(state.status, "blue");
+    assert_eq!(state.attempts, 1);
+    assert_eq!(state.stages[1].verdict.map(|v| v.as_str()), Some("REJECT"));
+    assert_eq!(state.stages[2].verdict.map(|v| v.as_str()), Some("PASS"));
 }
 
 #[test]
 fn out_of_order_swe_after_red_is_treated_as_rework_cycle() {
     let content = format!(
-        "{}\n## SWE Remediation\n\nInitial fix.\n\n## Red-team Audit\n\n**Verdict**: REJECT\n\nFound regressions.\n\n## SWE Remediation (Attempt 2)\n\nAddressed red-team feedback.\n",
+        "{}\n## SWE Remediation\n\nInitial fix.\n\n## Red Team Audit\n\n**Verdict**: REJECT\n\nFound regressions.\n\n## SWE Remediation (Attempt 2)\n\nAddressed red-team feedback.\n",
         base_task()
     );
 
-    let state = parse_task("todo", &content);
+    let state = parse_task_with_sdd("todo", &content);
 
-    assert_eq!(state.status, "swe");
+    assert_eq!(state.status, "red");
     assert_eq!(state.attempts, 1);
     assert_eq!(state.stages.len(), 3);
     assert_eq!(state.stages[0].stage, "swe");
@@ -88,37 +87,31 @@ fn out_of_order_swe_after_red_is_treated_as_rework_cycle() {
 #[test]
 fn round_suffix_red_heading_is_recognized() {
     let content = format!(
-        "{}\n## SWE Remediation\n\nImplemented fix.\n\n## Red-team Audit — Round 2\n\n**Verdict**: PASS\n\nApproved.\n",
+        "{}\n## SWE Remediation\n\nImplemented fix.\n\n## Red Team Audit — Round 2\n\n**Verdict**: PASS\n\nApproved.\n",
         base_task()
     );
 
-    let error =
-        parse_task_result("todo", &content).expect_err("todo task should reject done status");
+    let state = parse_task_with_sdd("todo", &content);
 
-    assert!(matches!(
-        error,
-        ParseTaskError::LocationStatusMismatch {
-            location: maenifold_gate::TaskLocation::Todo,
-            ref status,
-            ..
-        } if status == "done"
-    ));
+    assert_eq!(state.status, "blue");
+    assert_eq!(state.stages[1].stage, "red");
+    assert_eq!(state.stages[1].verdict.map(|v| v.as_str()), Some("PASS"));
 }
 
 #[test]
-fn stage_prefix_shortcuts_require_word_boundaries() {
+fn normalize_stage_name_uses_first_whitespace_delimited_token() {
     assert_eq!(normalize_stage_name("SWE"), "swe");
     assert_eq!(normalize_stage_name("SWE Remediation"), "swe");
-    assert_eq!(normalize_stage_name("SWE-Remediation"), "swe");
+    assert_eq!(normalize_stage_name("SWE-Remediation"), "swe-remediation");
     assert_eq!(normalize_stage_name("swerve handling"), "swerve");
 
     assert_eq!(normalize_stage_name("Red"), "red");
-    assert_eq!(normalize_stage_name("Red-team Audit"), "red");
+    assert_eq!(normalize_stage_name("Red-team Audit"), "red-team");
     assert_eq!(normalize_stage_name("Red Team Audit"), "red");
     assert_eq!(normalize_stage_name("reduce churn"), "reduce");
 
     assert_eq!(normalize_stage_name("Blue"), "blue");
-    assert_eq!(normalize_stage_name("Blue-team Verification"), "blue");
+    assert_eq!(normalize_stage_name("Blue-team Verification"), "blue-team");
     assert_eq!(normalize_stage_name("Blue Team Verification"), "blue");
     assert_eq!(normalize_stage_name("bluebird review"), "bluebird");
 }
@@ -140,31 +133,26 @@ fn emoji_prefixed_verdict_is_accepted() {
 #[test]
 fn stale_blue_section_before_reaudit_pass_is_ignored() {
     let content = format!(
-        "{}\n## SWE Remediation\n\nInitial fix.\n\n## Red-team Audit\n\n**Verdict**: REJECT\n\nNeeds changes.\n\n## Blue-team Verification\n\n**Verdict**: PASS\n\nStale verification from prior cycle.\n\n## SWE Remediation (Attempt 2)\n\nAddressed feedback.\n\n## Red-team Audit (Re-audit)\n\n**Verdict**: PASS\n\nReady for blue.\n",
+        "{}\n## SWE Remediation\n\nInitial fix.\n\n## Red Team Audit\n\n**Verdict**: REJECT\n\nNeeds changes.\n\n## Blue Team Verification\n\n**Verdict**: PASS\n\nStale verification from prior cycle.\n\n## SWE Remediation (Attempt 2)\n\nAddressed feedback.\n\n## Red Team Audit (Re-audit)\n\n**Verdict**: PASS\n\nReady for blue.\n",
         base_task()
     );
 
-    let error =
-        parse_task_result("todo", &content).expect_err("todo task should reject done status");
+    let state = parse_task_with_sdd("todo", &content);
 
-    assert!(matches!(
-        error,
-        ParseTaskError::LocationStatusMismatch {
-            location: maenifold_gate::TaskLocation::Todo,
-            ref status,
-            ..
-        } if status == "done"
-    ));
+    assert_eq!(state.status, "blue");
+    assert_eq!(state.attempts, 1);
+    assert_eq!(state.stages[2].stage, "blue");
+    assert_eq!(state.stages[4].stage, "red");
 }
 
 #[test]
 fn done_file_missing_last_blue_verdict_gets_implicit_pass() {
     let content = format!(
-        "{}\n## SWE Remediation\n\nImplemented fix.\n\n## Red-team Audit\n\n**Verdict**: PASS\n\nApproved.\n\n## Blue-team Verification\n\nFinal verification complete.\n",
+        "{}\n## SWE Remediation\n\nImplemented fix.\n\n## Red Team Audit\n\n**Verdict**: PASS\n\nApproved.\n\n## Blue Team Verification\n\nFinal verification complete.\n",
         base_task()
     );
 
-    let state = parse_task("done", &content);
+    let state = parse_task_with_sdd("done", &content);
 
     assert_eq!(state.status, "done");
     assert_eq!(state.stages.len(), 3);
@@ -181,7 +169,7 @@ fn todo_file_missing_last_red_verdict_emits_warning() {
     let file = "T-54.1-parser-rework-tolerance.md";
     let path = root.path().join("todo").join(file);
     let content = format!(
-        "{}\n## SWE Remediation\n\nImplemented fix.\n\n## Red-team Audit\n\nAwaiting verdict.\n",
+        "{}\n## SWE Remediation\n\nImplemented fix.\n\n## Red Team Audit\n\nAwaiting verdict.\n",
         base_task()
     );
     fs::write(&path, content).expect("write task");
@@ -212,11 +200,11 @@ fn todo_file_missing_last_red_verdict_emits_warning() {
 #[test]
 fn done_file_with_only_red_blue_sections_parses_as_done() {
     let content = format!(
-        "{}\n## Red-team Audit\n\n**Verdict**: PASS\n\nApproved.\n\n## Blue-team Verification\n\n**Verdict**: PASS\n\nVerified.\n",
+        "{}\n## Red Team Audit\n\n**Verdict**: PASS\n\nApproved.\n\n## Blue Team Verification\n\n**Verdict**: PASS\n\nVerified.\n",
         base_task()
     );
 
-    let state = parse_task("done", &content);
+    let state = parse_task_with_sdd("done", &content);
 
     assert_eq!(state.status, "done");
     assert_eq!(state.stages.len(), 2);

@@ -46,12 +46,12 @@ fn with_swe(mut content: String) -> String {
 }
 
 fn with_red_pass(mut content: String) -> String {
-    content.push_str("\n## Red-team Audit\n\n**Verdict**: PASS\n\nNo issues found.\n");
+    content.push_str("\n## Red Team Audit\n\n**Verdict**: PASS\n\nNo issues found.\n");
     content
 }
 
 fn with_blue_pass(mut content: String) -> String {
-    content.push_str("\n## Blue-team Verification\n\n**Verdict**: PASS\n\nAll tests pass.\n");
+    content.push_str("\n## Blue Team Verification\n\n**Verdict**: PASS\n\nAll tests pass.\n");
     content
 }
 
@@ -320,7 +320,8 @@ fn test_done_swe_only_effective_done() {
         &file,
         &with_swe(base_task(11)),
     );
-    assert!(parser::parse_task_file(&path).is_err());
+    let parsed = parser::parse_task_file(&path).unwrap();
+    assert_eq!(parsed.effective_status(), "done");
     let state = TaskState::done_override(path);
     assert_eq!(state.effective_status(), "done");
     let db_path = rebuild_cache(root.path());

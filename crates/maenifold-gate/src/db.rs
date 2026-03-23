@@ -81,25 +81,15 @@ impl GateDb {
     pub fn ensure_schema(&self) -> Result<()> {
         self.conn
             .execute_batch(
+                // CHECK constraints on status/stage are intentionally omitted to support
+                // arbitrary pipeline stage names. Existing databases with old constraints
+                // may reject novel stage names — use `gate sync --rebuild` to recreate.
                 "CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT UNIQUE NOT NULL,
                 file TEXT PRIMARY KEY,
                 title TEXT,
                 requirement TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN (
-                    'pending',
-                    'swe',
-                    'red',
-                    'blue',
-                    'test',
-                    'implement',
-                    'verify',
-                    'research',
-                    'plan',
-                    'execute',
-                    'done',
-                    'stuck'
-                )),
+                status TEXT NOT NULL DEFAULT 'pending',
                 location TEXT NOT NULL DEFAULT 'todo' CHECK(location IN ('todo','done')),
                 attempts INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -108,18 +98,7 @@ impl GateDb {
              CREATE TABLE IF NOT EXISTS work_log (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  file TEXT NOT NULL REFERENCES tasks(file),
-                 stage TEXT NOT NULL CHECK(stage IN (
-                     'swe',
-                     'red',
-                     'blue',
-                     'test',
-                     'implement',
-                     'verify',
-                     'research',
-                     'plan',
-                     'execute',
-                     'orchestrator'
-                 )),
+                 stage TEXT NOT NULL,
                  agent_model TEXT,
                  verdict TEXT,
                  duration_seconds INTEGER,

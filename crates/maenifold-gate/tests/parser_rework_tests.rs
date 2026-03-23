@@ -2,7 +2,7 @@ use std::{fs, path::Path};
 
 use assert_cmd::Command;
 use assert_cmd::cargo::cargo_bin_cmd;
-use maenifold_gate::{TaskStage, TaskStatus, parse_task_content};
+use maenifold_gate::{ParseTaskError, parse_task_content};
 use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
 use tempfile::tempdir;
@@ -16,6 +16,11 @@ fn parse_task(location: &str, body: &str) -> maenifold_gate::TaskState {
     parse_task_content(path, body).expect("task should parse")
 }
 
+fn parse_task_result(location: &str, body: &str) -> Result<maenifold_gate::TaskState, ParseTaskError> {
+    let path = Path::new(location).join("T-54.1-parser-rework-tolerance.md");
+    parse_task_content(path, body)
+}
+
 #[test]
 fn duplicate_swe_headings_keep_last_attempt() {
     let content = format!(
@@ -25,12 +30,15 @@ fn duplicate_swe_headings_keep_last_attempt() {
 
     let state = parse_task("todo", &content);
 
-    assert_eq!(state.status, TaskStatus::Red);
+    assert_eq!(state.status, "swe");
     assert_eq!(state.attempts, 0);
-    assert_eq!(state.stages.len(), 1);
-    assert_eq!(state.stages[0].stage, TaskStage::Swe);
-    assert_eq!(state.stages[0].heading_line, 9);
+    assert_eq!(state.stages.len(), 2);
+    assert_eq!(state.stages[0].stage, "swe");
+    assert_eq!(state.stages[0].heading_line, 5);
     assert_eq!(state.stages[0].verdict, None);
+    assert_eq!(state.stages[1].stage, "swe");
+    assert_eq!(state.stages[1].heading_line, 9);
+    assert_eq!(state.stages[1].verdict, None);
 }
 
 #[test]
@@ -40,13 +48,16 @@ fn re_audit_without_initial_verdict_becomes_blue_ready() {
         base_task()
     );
 
-    let state = parse_task("todo", &content);
+    let error = parse_task_result("todo", &content).expect_err("todo task should reject done status");
 
-    assert_eq!(state.status, TaskStatus::Blue);
-    assert_eq!(state.attempts, 1);
-    assert_eq!(state.stages.len(), 2);
-    assert_eq!(state.stages[1].stage, TaskStage::Red);
-    assert_eq!(state.stages[1].verdict.map(|v| v.as_str()), Some("PASS"));
+    assert!(matches!(
+        error,
+        ParseTaskError::LocationStatusMismatch {
+            location: maenifold_gate::TaskLocation::Todo,
+            ref status,
+            ..
+        } if status == "done"
+    ));
 }
 
 #[test]
@@ -58,11 +69,16 @@ fn out_of_order_swe_after_red_is_treated_as_rework_cycle() {
 
     let state = parse_task("todo", &content);
 
-    assert_eq!(state.status, TaskStatus::Red);
+    assert_eq!(state.status, "swe");
     assert_eq!(state.attempts, 1);
-    assert_eq!(state.stages.len(), 1);
-    assert_eq!(state.stages[0].stage, TaskStage::Swe);
-    assert_eq!(state.stages[0].heading_line, 15);
+    assert_eq!(state.stages.len(), 3);
+    assert_eq!(state.stages[0].stage, "swe");
+    assert_eq!(state.stages[0].heading_line, 5);
+    assert_eq!(state.stages[1].stage, "red");
+    assert_eq!(state.stages[1].heading_line, 9);
+    assert_eq!(state.stages[1].verdict.map(|v| v.as_str()), Some("REJECT"));
+    assert_eq!(state.stages[2].stage, "swe");
+    assert_eq!(state.stages[2].heading_line, 15);
 }
 
 #[test]
@@ -72,12 +88,16 @@ fn round_suffix_red_heading_is_recognized() {
         base_task()
     );
 
-    let state = parse_task("todo", &content);
+    let error = parse_task_result("todo", &content).expect_err("todo task should reject done status");
 
-    assert_eq!(state.status, TaskStatus::Blue);
-    assert_eq!(state.stages.len(), 2);
-    assert_eq!(state.stages[1].stage, TaskStage::Red);
-    assert_eq!(state.stages[1].verdict.map(|v| v.as_str()), Some("PASS"));
+    assert!(matches!(
+        error,
+        ParseTaskError::LocationStatusMismatch {
+            location: maenifold_gate::TaskLocation::Todo,
+            ref status,
+            ..
+        } if status == "done"
+    ));
 }
 
 #[test]
@@ -89,7 +109,7 @@ fn emoji_prefixed_verdict_is_accepted() {
 
     let state = parse_task("todo", &content);
 
-    assert_eq!(state.status, TaskStatus::Pending);
+    assert_eq!(state.status, "pending");
     assert_eq!(state.attempts, 1);
     assert_eq!(state.stages[1].verdict.map(|v| v.as_str()), Some("REJECT"));
 }
@@ -101,13 +121,16 @@ fn stale_blue_section_before_reaudit_pass_is_ignored() {
         base_task()
     );
 
-    let state = parse_task("todo", &content);
+    let error = parse_task_result("todo", &content).expect_err("todo task should reject done status");
 
-    assert_eq!(state.status, TaskStatus::Blue);
-    assert_eq!(state.attempts, 1);
-    assert_eq!(state.stages.len(), 2);
-    assert_eq!(state.stages[1].stage, TaskStage::Red);
-    assert_eq!(state.stages[1].verdict.map(|v| v.as_str()), Some("PASS"));
+    assert!(matches!(
+        error,
+        ParseTaskError::LocationStatusMismatch {
+            location: maenifold_gate::TaskLocation::Todo,
+            ref status,
+            ..
+        } if status == "done"
+    ));
 }
 
 #[test]
@@ -119,9 +142,9 @@ fn done_file_missing_last_blue_verdict_gets_implicit_pass() {
 
     let state = parse_task("done", &content);
 
-    assert_eq!(state.status, TaskStatus::Done);
+    assert_eq!(state.status, "done");
     assert_eq!(state.stages.len(), 3);
-    assert_eq!(state.stages[2].stage, TaskStage::Blue);
+    assert_eq!(state.stages[2].stage, "blue");
     assert_eq!(state.stages[2].verdict.map(|v| v.as_str()), Some("PASS"));
 }
 
@@ -171,10 +194,10 @@ fn done_file_with_only_red_blue_sections_parses_as_done() {
 
     let state = parse_task("done", &content);
 
-    assert_eq!(state.status, TaskStatus::Done);
+    assert_eq!(state.status, "done");
     assert_eq!(state.stages.len(), 2);
-    assert_eq!(state.stages[0].stage, TaskStage::Red);
+    assert_eq!(state.stages[0].stage, "red");
     assert_eq!(state.stages[0].verdict.map(|v| v.as_str()), Some("PASS"));
-    assert_eq!(state.stages[1].stage, TaskStage::Blue);
+    assert_eq!(state.stages[1].stage, "blue");
     assert_eq!(state.stages[1].verdict.map(|v| v.as_str()), Some("PASS"));
 }

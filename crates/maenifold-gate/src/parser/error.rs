@@ -12,11 +12,6 @@ pub enum ParseTaskError {
     UnknownTaskLocation {
         path: std::path::PathBuf,
     },
-    OutOfOrderHeading {
-        previous: String,
-        current: String,
-        line: usize,
-    },
     DuplicateVerdict {
         stage: String,
         line: usize,
@@ -52,15 +47,6 @@ impl fmt::Display for ParseTaskError {
                 f,
                 "task file {} must live under todo/ or done/",
                 path.display()
-            ),
-            Self::OutOfOrderHeading {
-                previous,
-                current,
-                line,
-            } => write!(
-                f,
-                "out-of-order heading '{}' at line {}; it cannot appear after '{}'",
-                current, line, previous
             ),
             Self::DuplicateVerdict { stage, line } => write!(
                 f,

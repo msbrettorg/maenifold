@@ -15,19 +15,17 @@ use sections::{RawSection, scan_sections};
 ///
 /// Compatibility behavior:
 /// - lowercased heading
-/// - starts_with("swe") => "swe"
-/// - starts_with("red") => "red"
-/// - starts_with("blue") => "blue"
+/// - "swe", "red", and "blue" normalize when followed by a separator
 /// - otherwise first whitespace-delimited word lowercased, or whole heading lowercased.
 pub fn normalize_stage_name(heading: &str) -> String {
     let lower = heading.to_lowercase();
-    if lower.starts_with("swe") {
+    if lower == "swe" || lower.starts_with("swe-") || lower.starts_with("swe ") {
         return "swe".to_string();
     }
-    if lower.starts_with("red") {
+    if lower == "red" || lower.starts_with("red-") || lower.starts_with("red ") {
         return "red".to_string();
     }
-    if lower.starts_with("blue") {
+    if lower == "blue" || lower.starts_with("blue-") || lower.starts_with("blue ") {
         return "blue".to_string();
     }
     lower
@@ -213,6 +211,8 @@ fn validate_stage_verdict(
             "swe" => false,
             "red" => matches!(verdict, StageVerdict::Pass | StageVerdict::Reject),
             "blue" => matches!(verdict, StageVerdict::Pass | StageVerdict::Fail),
+            // The no-pipeline fallback only knows about SWE/red/blue semantics.
+            // For any other normalized heading, every StageVerdict variant is valid.
             _ => true,
         },
         |verdicts| {

@@ -2,7 +2,7 @@ use std::{fs, path::Path};
 
 use assert_cmd::Command;
 use assert_cmd::cargo::cargo_bin_cmd;
-use maenifold_gate::{ParseTaskError, parse_task_content};
+use maenifold_gate::{ParseTaskError, parse_task_content, parser::normalize_stage_name};
 use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
 use tempfile::tempdir;
@@ -98,6 +98,24 @@ fn round_suffix_red_heading_is_recognized() {
             ..
         } if status == "done"
     ));
+}
+
+#[test]
+fn stage_prefix_shortcuts_require_word_boundaries() {
+    assert_eq!(normalize_stage_name("SWE"), "swe");
+    assert_eq!(normalize_stage_name("SWE Remediation"), "swe");
+    assert_eq!(normalize_stage_name("SWE-Remediation"), "swe");
+    assert_eq!(normalize_stage_name("swerve handling"), "swerve");
+
+    assert_eq!(normalize_stage_name("Red"), "red");
+    assert_eq!(normalize_stage_name("Red-team Audit"), "red");
+    assert_eq!(normalize_stage_name("Red Team Audit"), "red");
+    assert_eq!(normalize_stage_name("reduce churn"), "reduce");
+
+    assert_eq!(normalize_stage_name("Blue"), "blue");
+    assert_eq!(normalize_stage_name("Blue-team Verification"), "blue");
+    assert_eq!(normalize_stage_name("Blue Team Verification"), "blue");
+    assert_eq!(normalize_stage_name("bluebird review"), "bluebird");
 }
 
 #[test]

@@ -90,3 +90,16 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 | RTM-203 | FR-47 | `crates/maenifold-core/src/workflow/pipeline/executor.rs` | TC-203: T-61.7 — Per-node prompt assembly + type-based execution; `executor_prompt_node_single_shot`, `executor_thinking_node_drives_session`, `executor_captures_output`, `executor_assembles_predecessor_context` | unit |
 | RTM-204 | FR-47 | `crates/maenifold-core/src/workflow/pipeline/handler.rs` | TC-204: T-61.8 — Validate new node types on create/graft; `create_pipeline_with_prompt_node`, `create_pipeline_with_thinking_node`, `reject_prompt_node_missing_agent`, `reject_thinking_node_missing_topic` | unit |
 | RTM-205 | FR-47 | `crates/maenifold-core/src/workflow/pipeline/view.rs` | TC-205: T-61.9 — Mermaid display differentiates node types; `mermaid_shows_prompt_node_style`, `mermaid_shows_thinking_node_style`, `mermaid_shows_workflow_node_style` | unit |
+
+## Sprint 62 — Gate Generalization (FR-48)
+
+| RTM | Requirement | Component | Test Case | Type |
+|-----|-------------|-----------|-----------|------|
+| RTM-210 | FR-48: pulldown-cmark parser | `crates/maenifold-gate/src/parser/sections.rs` | TC-210: pulldown-cmark AST extraction — `extract_sections`, verdict detection via Strong node state machine; parser_rework_tests (10 tests) | unit |
+| RTM-211 | FR-48: string-based stages | `crates/maenifold-gate/src/types.rs` | TC-211: TaskStage/TaskStatus enums removed, StageState.stage is String, TaskState.status is String; all 95 tests validate string comparisons | refactor |
+| RTM-212 | FR-48: pipeline definitions | `assets/pipelines/{sdd,tdd,gsd,lightweight}.json` | TC-212: pipeline validation — `load_valid_sdd_json`, `load_valid_tdd_json`, `load_valid_gsd_json`, `load_valid_lightweight_json`, `allow_cycle_with_escape_path` | unit |
+| RTM-213 | FR-48: pipeline-aware parsing | `crates/maenifold-gate/src/parser/pipeline_aware.rs` | TC-213: `parse_task_content_with_pipeline` — pipeline-driven status derivation; `full_tdd_pipeline_pass_through`, `custom_pipeline_json`, `embedded_pipeline_name_works_end_to_end` | integration |
+| RTM-214 | FR-48: named pipeline selection | `crates/maenifold-gate/src/pipeline.rs` | TC-214: `load_embedded_pipeline` — supports sdd/tdd/gsd/lightweight by name; `--pipeline` wired into all 4 commands; `status_accepts_pipeline_flag`, `sync_accepts_pipeline_flag` | unit |
+| RTM-215 | FR-48: dynamic JSON status | `crates/maenifold-gate/src/status/output.rs` | TC-215: `StatusOutput.stages: Vec<StageOutput>` — deprecated swe/red/blue fields removed; `test_status_json_reports_dynamic_pipeline_stages` | integration |
+| RTM-216 | FR-48: DB schema generalization | `crates/maenifold-gate/src/db/mod.rs` | TC-216: CHECK constraints removed from status/stage columns; `open_handles_existing_schema_variants`, `upsert_task_inserts_and_updates` | unit |
+| RTM-217 | FR-48: deprecated no-pipeline API | `crates/maenifold-gate/src/parser.rs`, `types.rs` | TC-217: `#[deprecated]` on parse_task_content, parse_task_file, done_override_from_content; zero compiler warnings | refactor |

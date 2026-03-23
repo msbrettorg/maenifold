@@ -5,7 +5,36 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
-## Sprint 58 — Pipeline Rewind Implementation
+## Sprint 62 — Gate Generalization
+
+Generalized `maenifold-gate` to support arbitrary development pipelines (SDD, TDD, GSD) instead of hardcoded SWE→Red→Blue stages.
+
+### Added
+- **Pipeline definitions**: Correct `sdd.json` (default), `tdd.json` (Red/Green/Refactor), `gsd.json` (Get Shit Done), `lightweight.json`
+- **Pipeline-aware parsing**: `parse_task_content_with_pipeline()` derives status from pipeline transitions
+- **Named pipeline selection**: `--pipeline tdd` on all commands loads embedded pipelines by name
+- **SDD fallback warning**: `gate status` emits `note:` when no `pipeline.json` found
+- **Dynamic JSON stages**: `StatusOutput` emits `stages: Vec<StageOutput>` instead of hardcoded `swe`/`red`/`blue` fields
+- **pulldown-cmark parser**: Rewrote markdown parser to use AST event stream instead of `starts_with()` matching
+- 95 tests (up from ~65)
+
+### Changed
+- `TaskStage`/`TaskStatus` enums removed — stages and statuses are strings everywhere
+- DB schema relaxed: CHECK constraints removed from `status`/`stage` columns
+- Skill renamed from `test-driven-development` to `gate` (pipeline-agnostic)
+- `normalize_stage_name()` uses generic first-word extraction, no SDD shortcuts
+- No-pipeline public API (`parse_task_content`, `parse_task_file`, `done_override_from_content`) deprecated
+- `lib.rs` split into `cli.rs` + `cli/util.rs`; `db.rs` split into `db/mod.rs` + `db/migration.rs`
+
+### Fixed
+- `tdd.json` was mislabeled (was actually SDD) — now correctly named `sdd.json`
+- `--pipeline` flag wired into all 4 commands (pass, reject, status, sync)
+- Dead `OutOfOrderHeading` error variant removed
+- `normalize_stage_name` prefix matching tightened to word boundaries
+
+---
+
+## Sprint 58— Pipeline Rewind Implementation
 
 - **FR-40 completion**: Implemented `rewind_pipeline` in handler.rs — replaces stub with working subgraph reset
   - Computes downstream transitive closure via BFS (`reachable_node_ids`)

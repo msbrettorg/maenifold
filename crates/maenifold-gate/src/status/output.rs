@@ -15,14 +15,6 @@ pub(super) struct StatusOutput {
     pub location: String,
     pub status: String,
     pub stages: Vec<StageOutput>,
-    /// Deprecated: use `stages` instead.
-    pub swe: bool,
-    /// Deprecated: use `stages` instead.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub red: Option<String>,
-    /// Deprecated: use `stages` instead.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub blue: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -116,14 +108,6 @@ fn stage_outputs(state: Option<&TaskState>) -> Vec<StageOutput> {
         .unwrap_or_default()
 }
 
-fn legacy_stage_verdict(stages: &[StageOutput], stage_name: &str) -> Option<String> {
-    stages
-        .iter()
-        .rev()
-        .find(|stage| stage.name == stage_name)
-        .and_then(|stage| stage.verdict.clone())
-}
-
 pub(super) fn json_output(
     file: &str,
     location: &str,
@@ -139,9 +123,6 @@ pub(super) fn json_output(
             || "error".to_string(),
             |item| item.effective_status().to_string(),
         ),
-        swe: stages.iter().any(|stage| stage.name == "swe"),
-        red: legacy_stage_verdict(&stages, "red"),
-        blue: legacy_stage_verdict(&stages, "blue"),
         stages,
         error,
         db_drift,

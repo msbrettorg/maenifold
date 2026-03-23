@@ -455,9 +455,10 @@ fn test_status_json_reports_dynamic_pipeline_stages() {
             { "name": "implement", "verdict": "PASS" }
         ])
     );
-    assert_eq!(status["swe"], false);
-    assert_eq!(status["red"], Value::Null);
-    assert_eq!(status["blue"], Value::Null);
+    let object = status.as_object().unwrap();
+    assert!(!object.contains_key("swe"));
+    assert!(!object.contains_key("red"));
+    assert!(!object.contains_key("blue"));
 }
 
 #[test]

@@ -160,7 +160,6 @@ fn upsert_rejects_id_collision() {
     );
     assert_eq!(db.get_task("T-55.1-bar.md").unwrap(), None);
 }
-
 #[test]
 fn insert_work_log_appends_entries() {
     let db = GateDb::open_memory().unwrap();
@@ -188,7 +187,6 @@ fn insert_work_log_appends_entries() {
         2
     );
 }
-
 #[test]
 fn get_task_handles_missing_and_existing() {
     let db = GateDb::open_memory().unwrap();
@@ -197,7 +195,6 @@ fn get_task_handles_missing_and_existing() {
         .unwrap();
     assert!(db.get_task("a.md").unwrap().is_some());
 }
-
 #[test]
 fn get_task_by_id_returns_none_for_missing() {
     assert_eq!(
@@ -208,7 +205,6 @@ fn get_task_by_id_returns_none_for_missing() {
         None
     );
 }
-
 #[test]
 fn get_task_by_id_finds_inserted_task() {
     let db = GateDb::open_memory().unwrap();
@@ -227,7 +223,6 @@ fn get_task_by_id_finds_inserted_task() {
         Some("T-55.2-db-id-column.md".into())
     );
 }
-
 #[test]
 fn resolve_id_to_file_works() {
     let db = GateDb::open_memory().unwrap();
@@ -246,7 +241,6 @@ fn resolve_id_to_file_works() {
         Some("T-55.2-db-id-column.md".into())
     );
 }
-
 #[test]
 fn get_all_tasks_returns_sorted_rows() {
     let db = GateDb::open_memory().unwrap();
@@ -263,7 +257,6 @@ fn get_all_tasks_returns_sorted_rows() {
         vec!["a.md", "b.md"]
     );
 }
-
 #[test]
 fn delete_all_tasks_clears_tasks_and_logs() {
     let db = GateDb::open_memory().unwrap();
@@ -280,7 +273,6 @@ fn delete_all_tasks_clears_tasks_and_logs() {
         0
     );
 }
-
 #[test]
 fn update_task_status_changes_status() {
     let db = GateDb::open_memory().unwrap();
@@ -289,7 +281,6 @@ fn update_task_status_changes_status() {
     db.update_task_status("a.md", "red", "todo").unwrap();
     assert_eq!(db.get_task("a.md").unwrap().unwrap().status, "red");
 }
-
 #[test]
 fn increment_attempts_bumps_counter() {
     let db = GateDb::open_memory().unwrap();

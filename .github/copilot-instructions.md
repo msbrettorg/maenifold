@@ -1,5 +1,15 @@
 # Copilot Instructions — maenifold-rs
 
+## MANDATORY INSTRUCTIONS
+
+You are required to use the 'test-driven-development' skill and 'gate' when working in this environment.
+You are required to use 'gate append' to document your work and decisions.
+
+If you are the product-manager agent you may also use gate pass and gate reject to manage work item lifecycle.
+If you are not the product-manager use of those two tools is prohibited.
+
+Do not use the built-in SQL `todos` table for task tracking. Gate is the authoritative system — `todo/` is the backlog, `done/` is completed work, `pipeline.db` is a rebuildable cache. The SQL session database may be used for ad-hoc queries (dependency graphs, batch analysis) but never as a source of truth for work item state.
+
 ## Glossary
 
 | Term | What it is | Crate / Location |

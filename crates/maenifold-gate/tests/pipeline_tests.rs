@@ -219,7 +219,7 @@ fn append_logs_without_state_change() {
     .unwrap();
 
     let row = read_task_by_id(&db_path, id);
-    assert_eq!(row.status, "swe");
+    assert_eq!(row.status, "test");
     assert_eq!(row.location, "todo");
 
     let content = fs::read_to_string(root.join("todo").join(file)).unwrap();
@@ -276,7 +276,8 @@ fn reject_at_swe_errors() {
 
     assert!(
         err.to_string()
-            .contains("stage 'swe' has no reject transition")
+            .contains("stage 'test' has no reject transition"),
+        "unexpected error: {err}"
     );
 }
 

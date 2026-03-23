@@ -1,6 +1,9 @@
 use petgraph::stable_graph::StableGraph;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
+
+const EXPECTED_TYPES: &str = "workflow, prompt, sequentialThinking, tool";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -32,15 +35,6 @@ impl PipelineDefinition {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
-#[serde(rename_all = "camelCase")]
-pub enum PipelineNodeKind {
-    #[default]
-    Workflow,
-    Prompt,
-    SequentialThinking,
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(try_from = "PipelineNodeWire", into = "PipelineNodeWire")]
 pub enum PipelineNode {
@@ -63,13 +57,19 @@ pub enum PipelineNode {
         analysis_type: Option<String>,
         agent: String,
     },
+    Tool {
+        id: String,
+        tool_name: String,
+        tool_args: Option<Value>,
+        agent: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 struct PipelineNodeWire {
-    #[serde(rename = "type", default)]
-    kind: PipelineNodeKind,
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    kind: Option<String>,
     id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     workflow_id: Option<String>,
@@ -93,6 +93,10 @@ struct PipelineNodeWire {
     total_thoughts: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     analysis_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_name: Option<String>,
+    #[serde(rename = "toolArgs", skip_serializing_if = "Option::is_none")]
+    tool_args: Option<Value>,
 }
 
 impl PipelineNode {
@@ -100,21 +104,24 @@ impl PipelineNode {
         match self {
             Self::Workflow { id, .. }
             | Self::Prompt { id, .. }
-            | Self::SequentialThinking { id, .. } => id,
+            | Self::SequentialThinking { id, .. }
+            | Self::Tool { id, .. } => id,
         }
     }
 
     pub fn workflow_id(&self) -> Option<&str> {
         match self {
             Self::Workflow { workflow_id, .. } => Some(workflow_id),
-            Self::Prompt { .. } | Self::SequentialThinking { .. } => None,
+            Self::Prompt { .. } | Self::SequentialThinking { .. } | Self::Tool { .. } => None,
         }
     }
 
     pub fn acp_client(&self) -> Option<&str> {
         match self {
             Self::Workflow { acp_client, .. } => acp_client.as_deref(),
-            Self::Prompt { agent, .. } | Self::SequentialThinking { agent, .. } => Some(agent),
+            Self::Prompt { agent, .. }
+            | Self::SequentialThinking { agent, .. }
+            | Self::Tool { agent, .. } => Some(agent),
         }
     }
 
@@ -122,7 +129,7 @@ impl PipelineNode {
         match self {
             Self::Workflow { prompt, .. } => prompt.as_deref(),
             Self::Prompt { prompt, .. } => Some(prompt),
-            Self::SequentialThinking { .. } => None,
+            Self::SequentialThinking { .. } | Self::Tool { .. } => None,
         }
     }
 
@@ -131,6 +138,7 @@ impl PipelineNode {
             Self::Workflow { .. } => "workflow",
             Self::Prompt { .. } => "prompt",
             Self::SequentialThinking { .. } => "sequentialThinking",
+            Self::Tool { .. } => "tool",
         }
     }
 }
@@ -139,29 +147,60 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
     type Error = String;
 
     fn try_from(wire: PipelineNodeWire) -> Result<Self, Self::Error> {
-        let required =
-            |value: Option<String>, name: &str| value.ok_or_else(|| format!("missing {name}"));
+        let node_id = wire.id.clone();
 
-        Ok(match wire.kind {
-            PipelineNodeKind::Workflow => Self::Workflow {
+        let required = |value: Option<String>, name: &str| -> Result<String, String> {
+            value.ok_or_else(|| format!("Node '{node_id}': missing '{name}' field"))
+        };
+
+        // Resolve node kind: detect missing `type` with backward-compat for old workflow JSON
+        // (old JSON has no `type` field but always carries `workflowId`).
+        let kind_owned = wire.kind.clone();
+        let kind: &str = match kind_owned.as_deref() {
+            None => {
+                if wire.workflow_id.is_some() {
+                    // Legacy workflow node submitted without `type` — accept as workflow.
+                    "workflow"
+                } else {
+                    return Err(format!(
+                        "Node '{node_id}': missing 'type' field. Expected one of: {EXPECTED_TYPES}"
+                    ));
+                }
+            }
+            Some(k) => k,
+        };
+
+        Ok(match kind {
+            "workflow" => Self::Workflow {
                 id: wire.id,
                 workflow_id: required(wire.workflow_id, "workflowId")?,
                 acp_client: wire.acp_client,
                 prompt: wire.prompt,
             },
-            PipelineNodeKind::Prompt => Self::Prompt {
+            "prompt" => Self::Prompt {
                 id: wire.id,
                 prompt: required(wire.prompt, "prompt")?,
                 agent: required(wire.agent, "agent")?,
                 tool_mode: wire.tool_mode,
             },
-            PipelineNodeKind::SequentialThinking => Self::SequentialThinking {
+            "sequentialThinking" => Self::SequentialThinking {
                 id: wire.id,
                 topic: required(wire.topic, "topic")?,
                 total_thoughts: wire.total_thoughts,
                 analysis_type: wire.analysis_type,
                 agent: required(wire.agent, "agent")?,
             },
+            "tool" => Self::Tool {
+                id: wire.id,
+                tool_name: required(wire.tool_name, "toolName")?,
+                tool_args: wire.tool_args,
+                agent: required(wire.agent, "agent")?,
+            },
+            other => {
+                return Err(format!(
+                    "Node '{node_id}': unknown type '{other}'. Expected one of: {EXPECTED_TYPES}"
+                ));
+            }
         })
     }
 }
@@ -175,7 +214,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 acp_client,
                 prompt,
             } => Self {
-                kind: PipelineNodeKind::Workflow,
+                kind: Some("workflow".to_string()),
                 id,
                 workflow_id: Some(workflow_id),
                 acp_client,
@@ -185,6 +224,8 @@ impl From<PipelineNode> for PipelineNodeWire {
                 topic: None,
                 total_thoughts: default_total_thoughts(),
                 analysis_type: None,
+                tool_name: None,
+                tool_args: None,
             },
             PipelineNode::Prompt {
                 id,
@@ -192,7 +233,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 agent,
                 tool_mode,
             } => Self {
-                kind: PipelineNodeKind::Prompt,
+                kind: Some("prompt".to_string()),
                 id,
                 workflow_id: None,
                 acp_client: None,
@@ -202,6 +243,8 @@ impl From<PipelineNode> for PipelineNodeWire {
                 topic: None,
                 total_thoughts: default_total_thoughts(),
                 analysis_type: None,
+                tool_name: None,
+                tool_args: None,
             },
             PipelineNode::SequentialThinking {
                 id,
@@ -210,7 +253,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 analysis_type,
                 agent,
             } => Self {
-                kind: PipelineNodeKind::SequentialThinking,
+                kind: Some("sequentialThinking".to_string()),
                 id,
                 workflow_id: None,
                 acp_client: None,
@@ -220,6 +263,27 @@ impl From<PipelineNode> for PipelineNodeWire {
                 topic: Some(topic),
                 total_thoughts,
                 analysis_type,
+                tool_name: None,
+                tool_args: None,
+            },
+            PipelineNode::Tool {
+                id,
+                tool_name,
+                tool_args,
+                agent,
+            } => Self {
+                kind: Some("tool".to_string()),
+                id,
+                workflow_id: None,
+                acp_client: None,
+                prompt: None,
+                agent: Some(agent),
+                tool_mode: default_prompt_tool_mode(),
+                topic: None,
+                total_thoughts: default_total_thoughts(),
+                analysis_type: None,
+                tool_name: Some(tool_name),
+                tool_args,
             },
         }
     }
@@ -345,6 +409,81 @@ mod tests {
         assert_eq!(
             serde_json::to_value(node).unwrap(),
             json!({"type":"sequentialThinking","id":"n3","topic":"Tradeoffs","analysisType":"architecture","agent":"claude"})
+        );
+    }
+
+    #[test]
+    fn node_without_type_and_without_workflow_id_gives_clear_error() {
+        let err =
+            serde_json::from_value::<PipelineNode>(json!({"id": "n99"})).expect_err("should fail");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("n99"),
+            "error should mention node id, got: {msg}"
+        );
+        assert!(
+            msg.contains("missing 'type' field"),
+            "error should mention missing type, got: {msg}"
+        );
+        assert!(
+            msg.contains("workflow") && msg.contains("prompt") && msg.contains("tool"),
+            "error should list expected types, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn node_with_unknown_type_gives_clear_error() {
+        let err = serde_json::from_value::<PipelineNode>(json!({"id": "n42", "type": "badType"}))
+            .expect_err("should fail");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("n42"),
+            "error should mention node id, got: {msg}"
+        );
+        assert!(
+            msg.contains("unknown type") && msg.contains("badType"),
+            "error should mention unknown type value, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn tool_node_deserializes() {
+        let node: PipelineNode = serde_json::from_value(json!({
+            "type": "tool",
+            "id": "t1",
+            "toolName": "pipeline",
+            "toolArgs": { "sessionId": "pipeline-42" },
+            "agent": "claude"
+        }))
+        .unwrap();
+        assert_eq!(
+            node,
+            PipelineNode::Tool {
+                id: "t1".into(),
+                tool_name: "pipeline".into(),
+                tool_args: Some(json!({"sessionId": "pipeline-42"})),
+                agent: "claude".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn tool_node_serializes() {
+        let node = PipelineNode::Tool {
+            id: "t1".into(),
+            tool_name: "pipeline".into(),
+            tool_args: Some(json!({"sessionId": "pipeline-42"})),
+            agent: "claude".into(),
+        };
+        assert_eq!(
+            serde_json::to_value(node).unwrap(),
+            json!({
+                "type": "tool",
+                "id": "t1",
+                "toolName": "pipeline",
+                "toolArgs": {"sessionId": "pipeline-42"},
+                "agent": "claude"
+            })
         );
     }
 }

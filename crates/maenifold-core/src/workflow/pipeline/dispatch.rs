@@ -91,7 +91,9 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
                         .then(|| build_dispatched_node_response(node, &node_session_id))
                         .transpose()?
                 }
-                PipelineNode::Prompt { .. } | PipelineNode::SequentialThinking { .. } => {
+                PipelineNode::Prompt { .. }
+                | PipelineNode::SequentialThinking { .. }
+                | PipelineNode::Tool { .. } => {
                     let activated = activate_non_workflow_node_session(context, &node_session_id)?;
                     state.status = NodeStatus::Active;
                     activated
@@ -261,6 +263,27 @@ fn build_dispatched_node_response(
                 "sessionId": session_id,
                 "type": node.node_type_name(),
                 "agent": agent,
+            }))
+        }
+        PipelineNode::Tool {
+            tool_name,
+            tool_args,
+            ..
+        } => {
+            let agent = node.acp_client().ok_or_else(|| {
+                MaenifoldError::Message(format!(
+                    "ERROR: Pipeline node '{}' of type '{}' does not have an agent",
+                    node.id(),
+                    node.node_type_name()
+                ))
+            })?;
+            Ok(json!({
+                "nodeId": node.id(),
+                "sessionId": session_id,
+                "type": node.node_type_name(),
+                "agent": agent,
+                "toolName": tool_name,
+                "toolArgs": tool_args,
             }))
         }
     }
@@ -1294,6 +1317,60 @@ mod tests {
         assert!(
             !session_content.contains("## Step"),
             "sequential-thinking nodes should not render workflow steps"
+        );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_dispatch_returns_tool_metadata_without_workflow_activation() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600495";
+        let definition = PipelineDefinition {
+            nodes: vec![crate::workflow::pipeline::PipelineNode::Tool {
+                id: "tool-node".to_string(),
+                tool_name: "ReadMemory".to_string(),
+                tool_args: Some(json!({"identifier": "memory://build/test"})),
+                agent: "prompt-agent".to_string(),
+            }],
+            edges: vec![],
+        };
+        let node_states = HashMap::from([(
+            "tool-node".to_string(),
+            NodeState {
+                session_id: "tool-tool-node-1735689600495".to_string(),
+                status: NodeStatus::Pending,
+                attempts: 0,
+                output: None,
+            },
+        )]);
+        seed_pipeline_session_with_node_sessions(&context, pipeline_id, definition, node_states, 8);
+
+        let output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "dispatch": true }),
+        )
+        .expect("dispatch pipeline");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+        let dispatched = data
+            .get("dispatched")
+            .and_then(Value::as_array)
+            .expect("dispatched array");
+
+        assert_eq!(
+            dispatched,
+            &vec![json!({
+                "nodeId": "tool-node",
+                "sessionId": "tool-tool-node-1735689600495",
+                "type": "tool",
+                "agent": "prompt-agent",
+                "toolName": "ReadMemory",
+                "toolArgs": {"identifier": "memory://build/test"},
+            })]
+        );
+        assert!(
+            dispatched[0].get("workflowId").is_none(),
+            "tool nodes should not expose workflow metadata"
         );
     }
 }

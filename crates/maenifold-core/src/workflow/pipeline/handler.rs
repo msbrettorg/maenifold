@@ -837,6 +837,17 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
                 analysis_type: analysis_type.clone(),
                 agent: agent.clone(),
             },
+            super::PipelineNode::Tool {
+                tool_name,
+                tool_args,
+                agent,
+                ..
+            } => super::PipelineNode::Tool {
+                id: node_id_map[node.id()].clone(),
+                tool_name: tool_name.clone(),
+                tool_args: tool_args.clone(),
+                agent: agent.clone(),
+            },
         })
         .collect::<Vec<_>>();
     let forked_edges = definition
@@ -2475,11 +2486,19 @@ mod tests {
                         "topic": "Review the workflow output",
                         "totalThoughts": 3,
                         "agent": "thinking-agent"
+                    },
+                    {
+                        "id": "tool",
+                        "type": "tool",
+                        "toolName": "ReadMemory",
+                        "toolArgs": { "identifier": "memory://build/test" },
+                        "agent": "prompt-agent"
                     }
                 ],
                 "edges": [
                     { "source": "root", "target": "prompt" },
-                    { "source": "prompt", "target": "thinking" }
+                    { "source": "prompt", "target": "thinking" },
+                    { "source": "thinking", "target": "tool" }
                 ]
             }
         });
@@ -2496,7 +2515,7 @@ mod tests {
             .and_then(Value::as_array)
             .expect("nodes array");
 
-        assert_eq!(nodes.len(), 3);
+        assert_eq!(nodes.len(), 4);
         assert!(nodes.iter().any(|node| {
             node.get("nodeId") == Some(&Value::String("root".to_string()))
                 && node.get("workflowId") == Some(&Value::String("test-workflow-a".to_string()))
@@ -2509,6 +2528,10 @@ mod tests {
             node.get("nodeId") == Some(&Value::String("thinking".to_string()))
                 && node.get("workflowId") == Some(&Value::Null)
         }));
+        assert!(nodes.iter().any(|node| {
+            node.get("nodeId") == Some(&Value::String("tool".to_string()))
+                && node.get("workflowId") == Some(&Value::Null)
+        }));
 
         let (frontmatter, _, _) =
             read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
@@ -2517,7 +2540,7 @@ mod tests {
         let definition: PipelineDefinition =
             frontmatter_value(&frontmatter, "definition").expect("pipeline definition");
 
-        assert_eq!(definition.nodes.len(), 3);
+        assert_eq!(definition.nodes.len(), 4);
         assert!(definition.nodes.iter().any(
             |node| matches!(node, super::super::PipelineNode::Prompt { id, .. } if id == "prompt")
         ));
@@ -2525,6 +2548,13 @@ mod tests {
             node,
             super::super::PipelineNode::SequentialThinking { id, total_thoughts, .. }
                 if id == "thinking" && *total_thoughts == 3
+        )));
+        assert!(definition.nodes.iter().any(|node| matches!(
+            node,
+            super::super::PipelineNode::Tool { id, tool_name, tool_args, .. }
+                if id == "tool"
+                    && tool_name == "ReadMemory"
+                    && tool_args.as_ref() == Some(&json!({"identifier": "memory://build/test"}))
         )));
     }
 
@@ -2648,6 +2678,31 @@ mod tests {
             "unexpected error: {message}"
         );
         assert!(message.contains("prompt"), "unexpected error: {message}");
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_create_rejects_tool_node_with_empty_tool_name() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let payload = json!({
+            "definition": {
+                "nodes": [
+                    {
+                        "id": "bad-tool",
+                        "type": "tool",
+                        "toolName": "   ",
+                        "agent": "prompt-agent"
+                    }
+                ],
+                "edges": []
+            }
+        });
+
+        let error = pipeline(&context, &payload).expect_err("invalid tool node should fail");
+        let message = error.to_string();
+
+        assert!(message.contains("bad-tool"), "unexpected error: {message}");
+        assert!(message.contains("toolName"), "unexpected error: {message}");
     }
 
     #[test]
@@ -2783,11 +2838,19 @@ mod tests {
                             "topic": "Review the root result",
                             "totalThoughts": 2,
                             "agent": "thinking-agent"
+                        },
+                        {
+                            "id": "tool",
+                            "type": "tool",
+                            "toolName": "ReadMemory",
+                            "toolArgs": { "identifier": "memory://build/test" },
+                            "agent": "prompt-agent"
                         }
                     ],
                     "edges": [
                         { "source": "root", "target": "prompt" },
-                        { "source": "prompt", "target": "thinking" }
+                        { "source": "prompt", "target": "thinking" },
+                        { "source": "thinking", "target": "tool" }
                     ]
                 }
             }),
@@ -2800,7 +2863,7 @@ mod tests {
             .and_then(Value::as_array)
             .expect("nodes array");
 
-        assert_eq!(nodes.len(), 3);
+        assert_eq!(nodes.len(), 4);
         assert!(nodes.iter().any(|node| {
             node.get("nodeId") == Some(&Value::String("prompt".to_string()))
                 && node.get("agent") == Some(&Value::String("prompt-agent".to_string()))
@@ -2810,6 +2873,12 @@ mod tests {
                 && node.get("agent") == Some(&Value::String("thinking-agent".to_string()))
                 && node.get("topic") == Some(&Value::String("Review the root result".to_string()))
         }));
+        assert!(nodes.iter().any(|node| {
+            node.get("nodeId") == Some(&Value::String("tool".to_string()))
+                && node.get("agent") == Some(&Value::String("prompt-agent".to_string()))
+                && node.get("toolName") == Some(&Value::String("ReadMemory".to_string()))
+                && node.get("toolArgs") == Some(&json!({"identifier": "memory://build/test"}))
+        }));
 
         let (frontmatter, _, _) =
             read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
@@ -2818,7 +2887,7 @@ mod tests {
         let definition: PipelineDefinition =
             frontmatter_value(&frontmatter, "definition").expect("pipeline definition");
 
-        assert_eq!(definition.nodes.len(), 3);
+        assert_eq!(definition.nodes.len(), 4);
         assert!(definition.nodes.iter().any(
             |node| matches!(node, super::super::PipelineNode::Prompt { id, .. } if id == "prompt")
         ));
@@ -2826,6 +2895,13 @@ mod tests {
             node,
             super::super::PipelineNode::SequentialThinking { id, total_thoughts, .. }
                 if id == "thinking" && *total_thoughts == 2
+        )));
+        assert!(definition.nodes.iter().any(|node| matches!(
+            node,
+            super::super::PipelineNode::Tool { id, tool_name, tool_args, .. }
+                if id == "tool"
+                    && tool_name == "ReadMemory"
+                    && tool_args.as_ref() == Some(&json!({"identifier": "memory://build/test"}))
         )));
     }
 

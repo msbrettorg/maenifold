@@ -41,8 +41,17 @@ fn validate_non_empty_node_field(node_id: &str, field: &str, value: &str) -> Res
 fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
     match node {
         PipelineNode::Workflow {
-            id, workflow_id, ..
-        } => validate_non_empty_node_field(id, "workflowId", workflow_id),
+            id,
+            workflow_id,
+            acp_client,
+            ..
+        } => {
+            validate_non_empty_node_field(id, "workflowId", workflow_id)?;
+            if let Some(agent) = acp_client {
+                validate_non_empty_node_field(id, "agent", agent)?;
+            }
+            Ok(())
+        }
         PipelineNode::Prompt {
             id, prompt, agent, ..
         } => {
@@ -66,6 +75,15 @@ fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
             }
 
             Ok(())
+        }
+        PipelineNode::Tool {
+            id,
+            tool_name,
+            agent,
+            ..
+        } => {
+            validate_non_empty_node_field(id, "toolName", tool_name)?;
+            validate_non_empty_node_field(id, "agent", agent)
         }
     }
 }

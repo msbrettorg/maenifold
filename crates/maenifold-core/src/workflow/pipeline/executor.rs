@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde::Deserialize;
+use serde_json::Value as JsonValue;
 use serde_yaml::Value as YamlValue;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
@@ -10,6 +11,7 @@ use tokio_util::sync::CancellationToken;
 use crate::acpx_driver::AcpxDriver;
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::read_markdown;
+use crate::registry::ToolRegistry;
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
@@ -161,6 +163,12 @@ pub(super) async fn execute_pipeline(
                         )
                         .await,
                     ),
+                    NodeExecutionRequest::Tool {
+                        tool_name,
+                        tool_args,
+                    } => NodeTaskResult::Tool(
+                        run_tool_node(&ctx, &agent, &tool_name, tool_args.as_ref()).await,
+                    ),
                 };
                 (node_id, result)
             });
@@ -242,6 +250,10 @@ enum NodeExecutionRequest {
         topic: String,
         total_thoughts: u32,
     },
+    Tool {
+        tool_name: String,
+        tool_args: Option<JsonValue>,
+    },
 }
 
 fn build_node_execution_request(
@@ -252,14 +264,15 @@ fn build_node_execution_request(
     dispatch: &DispatchedNode,
     ambient_prompt: &str,
 ) -> Result<NodeExecutionRequest> {
-    let assembled_prompt =
-        assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?;
-
     Ok(match node {
-        PipelineNode::Workflow { workflow_id, .. } => NodeExecutionRequest::Workflow {
-            workflow_id: workflow_id.clone(),
-            prompt: assembled_prompt,
-        },
+        PipelineNode::Workflow { workflow_id, .. } => {
+            let assembled_prompt =
+                assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?;
+            NodeExecutionRequest::Workflow {
+                workflow_id: workflow_id.clone(),
+                prompt: assembled_prompt,
+            }
+        }
         PipelineNode::Prompt { tool_mode, .. } => NodeExecutionRequest::Prompt {
             session_id: dispatch.session_id.clone().unwrap_or_else(|| {
                 node_states
@@ -267,15 +280,29 @@ fn build_node_execution_request(
                     .map(|state| state.session_id.clone())
                     .unwrap_or_else(|| format!("pipeline-{}", node.id()))
             }),
-            prompt: assembled_prompt,
+            prompt: assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?,
             tool_mode: tool_mode.clone(),
         },
         PipelineNode::SequentialThinking { total_thoughts, .. } => {
             NodeExecutionRequest::SequentialThinking {
-            topic: assembled_prompt,
-            total_thoughts: *total_thoughts,
+                topic: assemble_node_prompt(
+                    context,
+                    definition,
+                    node_states,
+                    node,
+                    ambient_prompt,
+                )?,
+                total_thoughts: *total_thoughts,
             }
         }
+        PipelineNode::Tool {
+            tool_name,
+            tool_args,
+            ..
+        } => NodeExecutionRequest::Tool {
+            tool_name: tool_name.clone(),
+            tool_args: tool_args.clone(),
+        },
     })
 }
 
@@ -293,6 +320,7 @@ fn assemble_node_prompt(
         PipelineNode::Workflow { prompt, .. } => prompt.as_deref(),
         PipelineNode::Prompt { prompt, .. } => Some(prompt.as_str()),
         PipelineNode::SequentialThinking { topic, .. } => Some(topic.as_str()),
+        PipelineNode::Tool { .. } => None,
     }
     .map(str::trim)
     .filter(|value| !value.is_empty());
@@ -359,6 +387,7 @@ enum NodeTaskResult {
     Workflow(Result<runner::WorkflowResult>),
     Prompt(Result<String>),
     SequentialThinking(Result<runner::ThinkResult>),
+    Tool(Result<String>),
 }
 
 fn classify_node_result(result: NodeTaskResult) -> NodeOutcome {
@@ -366,6 +395,7 @@ fn classify_node_result(result: NodeTaskResult) -> NodeOutcome {
         NodeTaskResult::Workflow(result) => classify_workflow_result(result),
         NodeTaskResult::Prompt(result) => classify_prompt_result(result),
         NodeTaskResult::SequentialThinking(result) => classify_think_result(result),
+        NodeTaskResult::Tool(result) => classify_prompt_result(result),
     }
 }
 
@@ -424,6 +454,38 @@ async fn run_prompt_node(
     }
 
     Ok(response.text.trim().to_string())
+}
+
+async fn run_tool_node(
+    _context: &ToolContext,
+    agent: &str,
+    tool_name: &str,
+    tool_args: Option<&JsonValue>,
+) -> Result<String> {
+    let arguments = tool_args
+        .cloned()
+        .unwrap_or_else(|| JsonValue::Object(Default::default()));
+
+    ToolRegistry::global()
+        .try_invoke(tool_name, &arguments, OutputFormat::Json)
+        .map_err(|error| {
+            if matches!(
+                error,
+                MaenifoldError::UnknownTool(_)
+                    | MaenifoldError::InvalidPayload(_)
+                    | MaenifoldError::InvalidArgument(_)
+                    | MaenifoldError::InvalidResourceUri(_)
+                    | MaenifoldError::AssetNotFound(_, _)
+                    | MaenifoldError::PathTraversal(_)
+                    | MaenifoldError::MissingProperty(_)
+            ) {
+                error
+            } else {
+                MaenifoldError::Message(format!(
+                    "Error invoking {tool_name} for agent {agent}: {error}"
+                ))
+            }
+        })
 }
 
 fn predecessor_context_content(
@@ -837,6 +899,61 @@ mod pipeline_executor_tests {
 
     #[tokio::test]
     #[serial(config)]
+    async fn executor_runs_tool_nodes_and_captures_tool_output() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-executor-tool";
+
+        seed_pipeline_session_with_nodes(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![PipelineNode::Tool {
+                    id: "tool".to_string(),
+                    tool_name: "GetConfig".to_string(),
+                    tool_args: Some(json!({})),
+                    agent: "prompt-agent".to_string(),
+                }],
+                edges: vec![],
+            },
+            HashMap::from([pending_node_state("tool", "workflow-executor-tool-node")]),
+            1,
+        );
+
+        let result = execute_pipeline(
+            &context,
+            pipeline_id,
+            "Ambient context should not affect tool execution",
+            CancellationToken::new(),
+        )
+        .await
+        .expect("executor should run tool node");
+
+        assert_eq!(
+            result,
+            ExecutionResult {
+                completed: 1,
+                abandoned: 0,
+                status: "completed".to_string(),
+            }
+        );
+
+        let node_states = read_pipeline_node_states(&context, pipeline_id);
+        let output = node_states["tool"]
+            .output
+            .as_deref()
+            .expect("tool node output");
+        let envelope: Value = serde_json::from_str(output).expect("tool output JSON");
+        assert_eq!(envelope["success"].as_bool(), Some(true));
+        assert!(
+            envelope["data"]
+                .as_str()
+                .is_some_and(|text| text.contains("Maenifold Configuration:")),
+            "unexpected tool output: {output}"
+        );
+    }
+
+    #[tokio::test]
+    #[serial(config)]
     async fn executor_handles_node_failure() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let _path_guard = install_acpx_stub(&context.config.maenifold_root);
@@ -1245,10 +1362,7 @@ mod pipeline_executor_tests {
                 "nodeId".to_string(),
                 YamlValue::String(node.id().to_string()),
             );
-            workflow_frontmatter.insert(
-                "workflowId".to_string(),
-                YamlValue::String(workflow_ref),
-            );
+            workflow_frontmatter.insert("workflowId".to_string(), YamlValue::String(workflow_ref));
 
             write_markdown(
                 &workflow_session_uri(&state.session_id),

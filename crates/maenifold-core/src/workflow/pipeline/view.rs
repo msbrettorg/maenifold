@@ -159,6 +159,15 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             "agent": node.acp_client(),
             "topic": topic,
         }),
+        PipelineNode::Tool {
+            tool_name,
+            tool_args,
+            ..
+        } => json!({
+            "agent": node.acp_client(),
+            "toolName": tool_name,
+            "toolArgs": tool_args,
+        }),
     };
 
     if let (Some(node_object), Some(additional_object)) =
@@ -174,6 +183,7 @@ fn render_pipeline_mermaid_node(node: &PipelineNode, status: &NodeStatus) -> Str
         PipelineNode::Workflow { .. } => format!("[\"{label}\"]"),
         PipelineNode::Prompt { .. } => format!("(\"{label}\")"),
         PipelineNode::SequentialThinking { .. } => format!("{{{{\"{label}\"}}}}"),
+        PipelineNode::Tool { .. } => format!(">{label}]"),
     };
 
     format!("  {}{}", node.id(), wrapped_label)
@@ -193,6 +203,7 @@ fn mermaid_node_label(node: &PipelineNode, status: &NodeStatus) -> String {
             )
         }
         PipelineNode::SequentialThinking { topic, .. } => format!("think: {topic}"),
+        PipelineNode::Tool { tool_name, .. } => format!("tool: {tool_name}"),
     };
 
     format!("{} {}", status_emoji(status), node_label)
@@ -322,6 +333,12 @@ mod tests {
                     analysis_type: Some("diagnostic".to_string()),
                     agent: "agent-think".to_string(),
                 },
+                PipelineNode::Tool {
+                    id: "tool-node".to_string(),
+                    tool_name: "ReadMemory".to_string(),
+                    tool_args: Some(json!({"identifier": "memory://build/test"})),
+                    agent: "agent-tool".to_string(),
+                },
             ],
             edges: vec![
                 super::super::PipelineEdge {
@@ -333,6 +350,11 @@ mod tests {
                     source: "prompt-node".to_string(),
                     target: "thinking-node".to_string(),
                     edge_type: EdgeType::Always,
+                },
+                super::super::PipelineEdge {
+                    source: "thinking-node".to_string(),
+                    target: "tool-node".to_string(),
+                    edge_type: EdgeType::Success,
                 },
             ],
         };
@@ -364,6 +386,15 @@ mod tests {
                     output: None,
                 },
             ),
+            (
+                "tool-node".to_string(),
+                NodeState {
+                    session_id: "tool-session".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                    output: None,
+                },
+            ),
         ]);
 
         let result = build_pipeline_view_result("pipeline-mixed-nodes", &definition, &node_states)
@@ -388,6 +419,15 @@ mod tests {
         assert_eq!(nodes[2]["topic"], "pipeline triage");
         assert!(nodes[2].get("workflowId").is_none());
 
+        assert_eq!(nodes[3]["type"], "tool");
+        assert_eq!(nodes[3]["agent"], "agent-tool");
+        assert_eq!(nodes[3]["toolName"], "ReadMemory");
+        assert_eq!(
+            nodes[3]["toolArgs"],
+            json!({"identifier": "memory://build/test"})
+        );
+        assert!(nodes[3].get("workflowId").is_none());
+
         let mermaid = result
             .get("mermaid")
             .and_then(Value::as_str)
@@ -399,7 +439,9 @@ mod tests {
             )
         );
         assert!(mermaid.contains("thinking-node{{\"🟡 think: pipeline triage\"}}"));
+        assert!(mermaid.contains("tool-node>⏳ tool: ReadMemory]"));
         assert!(mermaid.contains("workflow-node --> prompt-node"));
         assert!(mermaid.contains("prompt-node -.-> thinking-node"));
+        assert!(mermaid.contains("thinking-node --> tool-node"));
     }
 }

@@ -41,7 +41,7 @@ pub fn load_pipeline_def(explicit_path: Option<&Path>, root: &Path) -> Result<Pi
         if root_pipeline.is_file() {
             load_pipeline(&root_pipeline)
         } else {
-            load_pipeline_from_str(include_str!("../../../assets/pipelines/tdd.json"))
+            load_pipeline_from_str(include_str!("../../../assets/pipelines/sdd.json"))
         }
     }
 }
@@ -75,45 +75,11 @@ fn validate(def: &PipelineDef) -> Result<()> {
         .iter()
         .map(|stage| (stage.name.as_str(), stage))
         .collect::<HashMap<_, _>>();
-    if has_cycle(&stages) {
-        bail!("pipeline must not contain cycles");
-    }
     let start = def.stages[0].name.as_str();
     if !can_reach_done(start, &stages, &mut HashSet::new()) {
         bail!("pipeline must have a path from '{}' to 'done'", start);
     }
     Ok(())
-}
-
-fn has_cycle<'a>(stages: &HashMap<&'a str, &'a StageDef>) -> bool {
-    let mut marks = HashMap::new();
-    stages
-        .keys()
-        .copied()
-        .any(|stage| visit(stage, stages, &mut marks))
-}
-
-fn visit<'a>(
-    stage: &'a str,
-    stages: &HashMap<&'a str, &'a StageDef>,
-    marks: &mut HashMap<&'a str, u8>,
-) -> bool {
-    match marks.get(stage).copied().unwrap_or_default() {
-        1 => return true,
-        2 => return false,
-        _ => {}
-    }
-    marks.insert(stage, 1);
-    let cyclic = stages[stage]
-        .transitions
-        .values()
-        .filter_map(|target| match target.as_str() {
-            "done" | "pending" => None,
-            next => Some(next),
-        })
-        .any(|next| visit(next, stages, marks));
-    marks.insert(stage, 2);
-    cyclic
 }
 
 fn can_reach_done<'a>(
@@ -148,6 +114,22 @@ mod tests {
         let def = load_pipeline(&asset("tdd.json"))?;
         assert_eq!(def.name, "tdd");
         assert_eq!(def.stages.len(), 3);
+        Ok(())
+    }
+
+    #[test]
+    fn load_valid_sdd_json() -> Result<()> {
+        let def = load_pipeline(&asset("sdd.json"))?;
+        assert_eq!(def.name, "sdd");
+        assert_eq!(def.stages.len(), 3);
+        Ok(())
+    }
+
+    #[test]
+    fn load_valid_gsd_json() -> Result<()> {
+        let def = load_pipeline(&asset("gsd.json"))?;
+        assert_eq!(def.name, "gsd");
+        assert_eq!(def.stages.len(), 4);
         Ok(())
     }
 
@@ -192,12 +174,12 @@ mod tests {
     }
 
     #[test]
-    fn reject_cycle_with_escape_path() {
-        let err = load_pipeline_from_str(
+    fn allow_cycle_with_escape_path() -> Result<()> {
+        let def = load_pipeline_from_str(
             r#"{"name":"cyclic","stages":[{"name":"swe","verdicts":[],"transitions":{"pass":"blue","loop":"swe"}},{"name":"blue","verdicts":["pass"],"transitions":{"pass":"done"}}]}"#,
-        )
-        .unwrap_err();
-        assert!(err.to_string().contains("cycles"));
+        )?;
+        assert_eq!(def.name, "cyclic");
+        Ok(())
     }
 
     #[test]

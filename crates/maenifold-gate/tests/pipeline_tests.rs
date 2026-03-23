@@ -106,6 +106,7 @@ fn sync_db(root: &Path, db_path: &Path) {
             db: Some(db_path.to_path_buf()),
             root: root.to_path_buf(),
             rebuild: true,
+            pipeline_path: None,
         },
         root,
     )
@@ -365,6 +366,7 @@ fn status_unknown_id_errors() {
             root,
             json: false,
             id: Some("T-99.99".to_string()),
+            pipeline_path: None,
         },
         Path::new("."),
     )

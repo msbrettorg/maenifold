@@ -85,6 +85,19 @@ fn status_accepts_optional_id() {
             assert_eq!(args.id.as_deref(), Some("T-1.1"));
             assert!(!args.json);
             assert_eq!(args.db, None);
+            assert_eq!(args.pipeline_path, None);
+        }
+        _ => panic!("expected status command"),
+    }
+}
+
+#[test]
+fn status_accepts_pipeline_flag() {
+    let cli = parse_from(["gate", "status", "--pipeline", "tdd"]).unwrap();
+    match cli.command {
+        Some(Command::Status(args)) => {
+            assert_eq!(args.id, None);
+            assert_eq!(args.pipeline_path, Some(PathBuf::from("tdd")));
         }
         _ => panic!("expected status command"),
     }
@@ -119,8 +132,23 @@ fn sync_parses_root_and_rebuild_flag() {
                     db: None,
                     root: PathBuf::from("."),
                     rebuild: true,
+                    pipeline_path: None,
                 }
             );
+        }
+        _ => panic!("expected sync command"),
+    }
+}
+
+#[test]
+fn sync_accepts_pipeline_flag() {
+    let cli = parse_from(["gate", "sync", "--pipeline", "tdd", "."]).unwrap();
+    match cli.command {
+        Some(Command::Sync(args)) => {
+            assert_eq!(args.root, PathBuf::from("."));
+            assert!(!args.rebuild);
+            assert_eq!(args.db, None);
+            assert_eq!(args.pipeline_path, Some(PathBuf::from("tdd")));
         }
         _ => panic!("expected sync command"),
     }

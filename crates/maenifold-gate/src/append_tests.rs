@@ -76,6 +76,7 @@ fn sync_task(root: &Path, file: &str) -> Result<std::path::PathBuf> {
             db: Some(db_path.clone()),
             root: root.to_path_buf(),
             rebuild: false,
+            pipeline_path: None,
         },
         root,
     )?;

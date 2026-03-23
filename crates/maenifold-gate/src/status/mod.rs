@@ -18,7 +18,7 @@ pub fn run(args: &StatusArgs) -> Result<(), CommandStubError> {
 }
 
 pub fn run_status(args: &StatusArgs, root: &Path) -> Result<()> {
-    let pipeline = load_pipeline_def(None, root)?;
+    let pipeline = load_pipeline_def(args.pipeline_path.as_deref(), root)?;
     let db = open_db(args, root)?;
     let check_drift = db.is_some();
     if let Some(id) = args.id.as_deref() {

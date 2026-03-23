@@ -61,6 +61,7 @@ fn rebuild_cache(root: &Path) -> PathBuf {
         db: Some(db_path.clone()),
         root: root.to_path_buf(),
         rebuild: true,
+        pipeline_path: None,
     };
     sync::run_sync(&args, root).unwrap();
     db_path
@@ -187,6 +188,7 @@ fn test_sync_reconcile_detects_drift() {
         db: Some(db_path.clone()),
         root: root.path().to_path_buf(),
         rebuild: false,
+        pipeline_path: None,
     };
     sync::run_sync(&args, root.path()).unwrap();
 
@@ -218,6 +220,7 @@ fn test_status_single_id() {
         root: root.path().to_path_buf(),
         json: false,
         id: Some(extract_task_id(&file)),
+        pipeline_path: None,
     };
 
     status::run_status(&args, root.path()).unwrap();
@@ -251,6 +254,7 @@ fn test_status_all_files_summary() {
         root: root.path().to_path_buf(),
         json: false,
         id: None,
+        pipeline_path: None,
     };
 
     status::run_status(&args, root.path()).unwrap();
@@ -284,6 +288,7 @@ fn test_pass_then_sync_roundtrip() {
         db: Some(db_path.clone()),
         root: root.path().to_path_buf(),
         rebuild: false,
+        pipeline_path: None,
     };
     sync::run_sync(&sync_args, root.path()).unwrap();
 

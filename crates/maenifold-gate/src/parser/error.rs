@@ -1,6 +1,6 @@
 use std::{error::Error, fmt};
 
-use crate::{StageVerdict, TaskLocation, TaskStage, TaskStatus};
+use crate::{StageVerdict, TaskLocation};
 
 /// T-53.2: RTM FR-41 — parser errors for file-authoritative task derivation.
 #[derive(Debug)]
@@ -13,21 +13,21 @@ pub enum ParseTaskError {
         path: std::path::PathBuf,
     },
     OutOfOrderHeading {
-        previous: TaskStage,
-        current: TaskStage,
+        previous: String,
+        current: String,
         line: usize,
     },
     DuplicateVerdict {
-        stage: TaskStage,
+        stage: String,
         line: usize,
     },
     UnknownVerdict {
-        stage: TaskStage,
+        stage: String,
         line: usize,
         value: String,
     },
     InvalidVerdictForStage {
-        stage: TaskStage,
+        stage: String,
         verdict: StageVerdict,
         line: usize,
     },
@@ -38,7 +38,7 @@ pub enum ParseTaskError {
     LocationStatusMismatch {
         path: std::path::PathBuf,
         location: TaskLocation,
-        status: TaskStatus,
+        status: String,
     },
 }
 
@@ -60,22 +60,17 @@ impl fmt::Display for ParseTaskError {
             } => write!(
                 f,
                 "out-of-order heading '{}' at line {}; it cannot appear after '{}'",
-                current.canonical_heading(),
-                line,
-                previous.canonical_heading()
+                current, line, previous
             ),
             Self::DuplicateVerdict { stage, line } => write!(
                 f,
                 "duplicate verdict in {} section at line {}",
-                stage.as_str(),
-                line
+                stage, line
             ),
             Self::UnknownVerdict { stage, line, value } => write!(
                 f,
                 "unknown verdict '{}' for {} section at line {}",
-                value,
-                stage.as_str(),
-                line
+                value, stage, line
             ),
             Self::InvalidVerdictForStage {
                 stage,
@@ -85,7 +80,7 @@ impl fmt::Display for ParseTaskError {
                 f,
                 "invalid verdict '{}' for {} section at line {}",
                 verdict.as_str(),
-                stage.as_str(),
+                stage,
                 line
             ),
             Self::InvalidStatusFlow { message, line } => {
@@ -100,7 +95,7 @@ impl fmt::Display for ParseTaskError {
                 "task file {} in {}/ cannot represent '{}' status",
                 path.display(),
                 location.as_str(),
-                status.as_str()
+                status
             ),
         }
     }

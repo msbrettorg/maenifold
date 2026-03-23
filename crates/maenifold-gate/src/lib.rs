@@ -14,7 +14,7 @@ pub mod types;
 pub use parser::{
     ParseTaskError, ParsedSection, extract_sections, parse_task_content, parse_task_file,
 };
-pub use types::{StageState, StageVerdict, TaskLocation, TaskStage, TaskState, TaskStatus};
+pub use types::{StageState, StageVerdict, TaskLocation, TaskState};
 
 pub struct Cli {
     pub command: Option<Command>,

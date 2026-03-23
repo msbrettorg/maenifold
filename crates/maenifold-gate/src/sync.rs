@@ -33,7 +33,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
             Err(parser::ParseTaskError::LocationStatusMismatch {
                 location: TaskLocation::Done,
                 ..
-            }) => TaskState::done_override_from_content(&task.path, &content),
+            }) => TaskState::done_override(task.path.clone()),
             Err(error) => {
                 eprintln!("warning: {}: {error}", task.path.display());
                 errors += 1;
@@ -70,7 +70,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
                 file,
                 title.as_deref(),
                 requirement,
-                state.effective_status().as_str(),
+                state.effective_status(),
                 state.location.as_str(),
                 state.attempts as i32,
             )?;
@@ -81,7 +81,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
 
     let (mut updated, mut unchanged) = (0, 0);
     for (file, title, requirement, state) in rows {
-        let status = state.effective_status().as_str();
+        let status = state.effective_status();
         let location = state.location.as_str();
         let changed = match db.get_task(&file)? {
             Some(existing) => {

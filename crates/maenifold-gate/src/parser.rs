@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use crate::types::{StageState, StageVerdict, TaskLocation, TaskStage, TaskState, TaskStatus};
+use crate::types::{StageState, StageVerdict, TaskLocation, TaskState};
 
 mod error;
 mod sections;
@@ -8,6 +8,32 @@ mod sections;
 pub use error::ParseTaskError;
 pub use sections::{ParsedSection, extract_sections};
 use sections::{RawSection, scan_sections};
+
+/// Normalize a markdown heading to a canonical stage name string.
+///
+/// Compatibility behavior:
+/// - lowercased heading
+/// - starts_with("swe") => "swe"
+/// - starts_with("red") => "red"
+/// - starts_with("blue") => "blue"
+/// - otherwise first whitespace-delimited word lowercased, or whole heading lowercased.
+pub fn normalize_stage_name(heading: &str) -> String {
+    let lower = heading.to_lowercase();
+    if lower.starts_with("swe") {
+        return "swe".to_string();
+    }
+    if lower.starts_with("red") {
+        return "red".to_string();
+    }
+    if lower.starts_with("blue") {
+        return "blue".to_string();
+    }
+    lower
+        .split_whitespace()
+        .next()
+        .unwrap_or(&lower)
+        .to_string()
+}
 
 /// T-53.2: RTM FR-41 — parse an authoritative task file from disk.
 pub fn parse_task_file(path: impl AsRef<Path>) -> Result<TaskState, ParseTaskError> {
@@ -31,34 +57,37 @@ pub fn parse_task_content(
             path: path.to_path_buf(),
         })?;
 
-    let sections = scan_sections(content)?;
-    let sections = sections
+    let raw_sections = scan_sections(content)?;
+    let sections: Vec<(String, RawSection)> = raw_sections
         .into_iter()
-        .filter_map(|section| stage_from_heading(&section.heading).map(|stage| (stage, section)))
-        .collect::<Vec<_>>();
+        .map(|section| {
+            let stage = normalize_stage_name(&section.heading);
+            (stage, section)
+        })
+        .collect();
 
     let mut history = Vec::with_capacity(sections.len());
     let mut attempts = 0u32;
 
-    for (index, section) in sections.iter().enumerate() {
+    for (index, (stage, section)) in sections.iter().enumerate() {
         let has_later_same_stage = sections[index + 1..]
             .iter()
-            .any(|other| other.0 == section.0);
+            .any(|other| other.0 == *stage);
         let verdict =
-            parse_section_verdict(section.0, &section.1, location, has_later_same_stage, path)?;
+            parse_section_verdict(stage, section, location, has_later_same_stage, path)?;
         if verdict.is_some_and(StageVerdict::counts_as_attempt) {
             attempts += 1;
         }
 
         history.push(StageState {
-            stage: section.0,
-            heading_line: section.1.heading_line,
+            stage: stage.clone(),
+            heading_line: section.heading_line,
             verdict,
         });
     }
 
     let (derived, stages) = derive_status(history.as_slice(), location)?;
-    let status = reconcile_location(location, derived, path)?;
+    let status = reconcile_location(location, &derived, path)?;
 
     Ok(TaskState::new(
         path.to_path_buf(),
@@ -71,103 +100,49 @@ pub fn parse_task_content(
 
 fn derive_status(
     history: &[StageState],
-    location: TaskLocation,
-) -> Result<(TaskStatus, Vec<StageState>), ParseTaskError> {
+    _location: TaskLocation,
+) -> Result<(String, Vec<StageState>), ParseTaskError> {
     if history.is_empty() {
-        return Ok((TaskStatus::Pending, vec![]));
+        return Ok(("pending".to_string(), vec![]));
     }
 
-    let swe = history
-        .iter()
-        .rfind(|stage| stage.stage == TaskStage::Swe)
-        .cloned();
+    let mut status = "pending".to_string();
 
-    // T-54.1: done/ files tolerate missing SWE — treat as implicit completion.
-    // todo/ files still require SWE before Red/Blue.
-    if swe.is_none() && location != TaskLocation::Done {
-        let first = history
-            .first()
-            .expect("non-empty stage list should have a first element");
-        return Err(ParseTaskError::OutOfOrderHeading {
-            previous: TaskStage::Swe,
-            current: first.stage,
-            line: first.heading_line,
-        });
+    for (index, stage) in history.iter().enumerate() {
+        let next_stage = history.get(index + 1).map(|next| next.stage.as_str());
+        status = match stage.verdict {
+            Some(StageVerdict::Pass) => next_stage.unwrap_or("done").to_string(),
+            Some(StageVerdict::Reject | StageVerdict::Fail) => "pending".to_string(),
+            None => next_stage.unwrap_or(stage.stage.as_str()).to_string(),
+        };
     }
 
-    let red = if let Some(ref swe) = swe {
-        history
-            .iter()
-            .rfind(|stage| stage.stage == TaskStage::Red && stage.heading_line > swe.heading_line)
-            .cloned()
-    } else {
-        history
-            .iter()
-            .rfind(|stage| stage.stage == TaskStage::Red)
-            .cloned()
-    };
-
-    let blue = red
-        .as_ref()
-        .filter(|stage| stage.verdict == Some(StageVerdict::Pass))
-        .and_then(|red| {
-            history
-                .iter()
-                .rfind(|stage| {
-                    stage.stage == TaskStage::Blue && stage.heading_line > red.heading_line
-                })
-                .cloned()
-        });
-
-    let stages = [swe.clone(), red.clone(), blue.clone()]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
-
-    let status = match (
-        red.as_ref().and_then(|stage: &StageState| stage.verdict),
-        blue.as_ref().and_then(|stage: &StageState| stage.verdict),
-    ) {
-        (None, None) => TaskStatus::Red,
-        (Some(StageVerdict::Reject), None) => TaskStatus::Pending,
-        (Some(StageVerdict::Reject), Some(_)) => TaskStatus::Pending,
-        (Some(StageVerdict::Pass), None) => TaskStatus::Blue,
-        (Some(StageVerdict::Pass), Some(StageVerdict::Pass)) => TaskStatus::Done,
-        (Some(StageVerdict::Pass), Some(StageVerdict::Fail | StageVerdict::Reject)) => {
-            TaskStatus::Pending
-        }
-        (Some(StageVerdict::Fail), _) => {
-            unreachable!("red FAIL verdicts are rejected during parse")
-        }
-        (None, Some(_)) => unreachable!("blue is only selected after a PASS red section"),
-    };
-
-    Ok((status, stages))
+    Ok((status, history.to_vec()))
 }
 
 fn reconcile_location(
     location: TaskLocation,
-    status: TaskStatus,
+    status: &str,
     path: &Path,
-) -> Result<TaskStatus, ParseTaskError> {
+) -> Result<String, ParseTaskError> {
     match (location, status) {
-        (TaskLocation::Todo, TaskStatus::Done) => Err(ParseTaskError::LocationStatusMismatch {
+        (TaskLocation::Todo, "done") => Err(ParseTaskError::LocationStatusMismatch {
             path: path.to_path_buf(),
             location,
-            status,
+            status: status.to_string(),
         }),
-        (TaskLocation::Done, TaskStatus::Done) => Ok(TaskStatus::Done),
+        (TaskLocation::Done, "done") => Ok("done".to_string()),
         (TaskLocation::Done, _) => Err(ParseTaskError::LocationStatusMismatch {
             path: path.to_path_buf(),
             location,
-            status,
+            status: status.to_string(),
         }),
-        (TaskLocation::Todo, status) => Ok(status),
+        (TaskLocation::Todo, _) => Ok(status.to_string()),
     }
 }
 
 fn parse_section_verdict(
-    stage: TaskStage,
+    stage: &str,
     section: &RawSection,
     location: TaskLocation,
     has_later_same_stage: bool,
@@ -175,44 +150,44 @@ fn parse_section_verdict(
 ) -> Result<Option<StageVerdict>, ParseTaskError> {
     let verdict = parse_detected_verdict(stage, section)?;
 
-    match stage {
-        TaskStage::Swe => Ok(None),
-        TaskStage::Red | TaskStage::Blue => {
-            if let Some(verdict) = verdict {
-                Ok(Some(verdict))
-            } else if has_later_same_stage {
-                Ok(Some(StageVerdict::Reject))
-            } else if location == TaskLocation::Done {
-                Ok(Some(StageVerdict::Pass))
-            } else {
-                eprintln!(
-                    "warning: {}: missing verdict for {} section starting at line {}",
-                    path.display(),
-                    stage.as_str(),
-                    section.heading_line
-                );
-                Ok(None)
-            }
-        }
+    if stage == "swe" {
+        return Ok(None);
+    }
+
+    // For red/blue and other review stages
+    if let Some(verdict) = verdict {
+        Ok(Some(verdict))
+    } else if has_later_same_stage {
+        Ok(Some(StageVerdict::Reject))
+    } else if location == TaskLocation::Done {
+        Ok(Some(StageVerdict::Pass))
+    } else {
+        eprintln!(
+            "warning: {}: missing verdict for {} section starting at line {}",
+            path.display(),
+            stage,
+            section.heading_line
+        );
+        Ok(None)
     }
 }
 
 fn parse_detected_verdict(
-    stage: TaskStage,
+    stage: &str,
     section: &RawSection,
 ) -> Result<Option<StageVerdict>, ParseTaskError> {
     let mut verdict = None;
 
     for raw in &section.verdicts {
         let parsed = raw.parsed.ok_or_else(|| ParseTaskError::UnknownVerdict {
-            stage,
+            stage: stage.to_string(),
             line: raw.line,
             value: raw.value.clone(),
         })?;
         validate_stage_verdict(stage, parsed, raw.line)?;
         if verdict.is_some() {
             return Err(ParseTaskError::DuplicateVerdict {
-                stage,
+                stage: stage.to_string(),
                 line: raw.line,
             });
         }
@@ -223,29 +198,25 @@ fn parse_detected_verdict(
 }
 
 fn validate_stage_verdict(
-    stage: TaskStage,
+    stage: &str,
     verdict: StageVerdict,
     line_number: usize,
 ) -> Result<(), ParseTaskError> {
     let allowed = match stage {
-        TaskStage::Swe => false,
-        TaskStage::Red => matches!(verdict, StageVerdict::Pass | StageVerdict::Reject),
-        TaskStage::Blue => matches!(verdict, StageVerdict::Pass | StageVerdict::Fail),
+        "swe" => false,
+        "red" => matches!(verdict, StageVerdict::Pass | StageVerdict::Reject),
+        "blue" => matches!(verdict, StageVerdict::Pass | StageVerdict::Fail),
+        // For unknown stages, allow all verdicts
+        _ => true,
     };
 
     if !allowed {
         return Err(ParseTaskError::InvalidVerdictForStage {
-            stage,
+            stage: stage.to_string(),
             verdict,
             line: line_number,
         });
     }
 
     Ok(())
-}
-
-fn stage_from_heading(heading: &str) -> Option<TaskStage> {
-    TaskStage::ALL
-        .into_iter()
-        .find(|stage| heading == stage.canonical_heading().trim_start_matches('#').trim())
 }

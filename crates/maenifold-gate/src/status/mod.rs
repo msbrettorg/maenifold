@@ -1,28 +1,16 @@
 use crate::{
     CommandStubError, StatusArgs,
-    db::{GateDb, TaskRow},
+    db::GateDb,
     fs, parser,
-    types::{TaskLocation, TaskStage, TaskState},
+    types::{TaskLocation, TaskState},
 };
 use anyhow::{Result, anyhow};
-use serde::Serialize;
 use std::{collections::BTreeMap, path::Path};
 
-const INCOMPLETE_AUDIT_TRAIL_NOTE: &str = "incomplete audit trail (location override)";
+mod output;
+use output::{discovered_stages, json_output, maybe_drift, print_summary, stage_text};
 
-#[derive(Serialize)]
-struct StatusOutput {
-    file: String,
-    location: String,
-    status: &'static str,
-    swe: bool,
-    red: Option<&'static str>,
-    blue: Option<&'static str>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    db_drift: Vec<String>,
-}
+const INCOMPLETE_AUDIT_TRAIL_NOTE: &str = "incomplete audit trail (location override)";
 
 pub fn run(args: &StatusArgs) -> Result<(), CommandStubError> {
     run_status(args, &args.root).map_err(|e| CommandStubError::new(e.to_string()))
@@ -102,7 +90,7 @@ fn run_all(root: &Path, json: bool, db: Option<&GateDb>, check_drift: bool) -> R
         .into_iter()
         .map(|row| (row.file.clone(), row))
         .collect::<BTreeMap<_, _>>();
-    let mut counts = BTreeMap::<&str, usize>::new();
+    let mut counts = BTreeMap::<String, usize>::new();
     let mut out = Vec::new();
     tasks.sort_by(|a, b| a.path.cmp(&b.path));
     for task in tasks {
@@ -114,7 +102,7 @@ fn run_all(root: &Path, json: bool, db: Option<&GateDb>, check_drift: bool) -> R
         let content = match fs::read_task(&task.path) {
             Ok(content) => content,
             Err(err) => {
-                *counts.entry("error").or_default() += 1;
+                *counts.entry("error".to_string()).or_default() += 1;
                 let message = err.to_string();
                 if json {
                     out.push(json_output(
@@ -140,7 +128,7 @@ fn run_all(root: &Path, json: bool, db: Option<&GateDb>, check_drift: bool) -> R
                 Some(INCOMPLETE_AUDIT_TRAIL_NOTE.to_string()),
             ),
             Err(err) => {
-                *counts.entry("error").or_default() += 1;
+                *counts.entry("error".to_string()).or_default() += 1;
                 let message = err.to_string();
                 if json {
                     out.push(json_output(
@@ -156,7 +144,9 @@ fn run_all(root: &Path, json: bool, db: Option<&GateDb>, check_drift: bool) -> R
                 continue;
             }
         };
-        *counts.entry(state.effective_status().as_str()).or_default() += 1;
+        *counts
+            .entry(state.effective_status().to_string())
+            .or_default() += 1;
         let db_drift = maybe_drift(check_drift, &state, rows.get(file));
         if json {
             out.push(json_output(
@@ -200,14 +190,14 @@ fn output_one(
     println!(
         "{:<9} {}",
         "STATUS",
-        state.map_or("error", |s| s.effective_status().as_str())
+        state.map_or("error", |s| s.effective_status())
     );
     if let Some(state) = state {
-        for stage in TaskStage::ALL {
+        for stage_name in discovered_stages(state) {
             println!(
                 "{:<9} {}",
-                stage.as_str().to_ascii_uppercase(),
-                stage_text(state, stage)
+                stage_name.to_ascii_uppercase(),
+                stage_text(state, &stage_name)
             );
         }
     }
@@ -219,84 +209,4 @@ fn output_one(
         eprintln!("warning: {file}: {item}");
     }
     Ok(())
-}
-
-fn print_summary(counts: &BTreeMap<&str, usize>) {
-    println!("{:<8} {:>5}", "STATUS", "COUNT");
-    for key in ["pending", "red", "blue", "done"] {
-        println!("{:<8} {:>5}", key, counts.get(key).copied().unwrap_or(0));
-    }
-    if let Some(errors) = counts.get("error") {
-        println!("{:<8} {:>5}", "error", errors);
-    }
-    println!("---");
-    println!("{:<8} {:>5}", "total", counts.values().sum::<usize>());
-}
-
-fn stage_value(state: &TaskState, stage: TaskStage) -> Option<Option<&'static str>> {
-    state
-        .stages
-        .iter()
-        .find(|item| item.stage == stage)
-        .map(|item| item.verdict.map(|verdict| verdict.as_str()))
-}
-
-fn stage_text(state: &TaskState, stage: TaskStage) -> &'static str {
-    match stage_value(state, stage) {
-        Some(Some(verdict)) => verdict,
-        Some(None) if stage == TaskStage::Swe => "yes",
-        Some(None) => "-",
-        None => "no",
-    }
-}
-
-fn maybe_drift(check_drift: bool, state: &TaskState, row: Option<&TaskRow>) -> Vec<String> {
-    check_drift.then(|| drift(state, row)).unwrap_or_default()
-}
-
-fn drift(state: &TaskState, row: Option<&TaskRow>) -> Vec<String> {
-    let mut out = Vec::new();
-    match row {
-        Some(row) => {
-            if row.status != state.effective_status().as_str() {
-                out.push(format!(
-                    "db status={} but file status={}",
-                    row.status,
-                    state.effective_status().as_str()
-                ));
-            }
-            if row.location != state.location.as_str() {
-                out.push(format!(
-                    "db location={} but file location={}",
-                    row.location,
-                    state.location.as_str()
-                ));
-            }
-        }
-        None => out.push("missing from db cache".into()),
-    }
-    out
-}
-
-fn json_output(
-    file: &str,
-    location: &str,
-    state: Option<&TaskState>,
-    error: Option<String>,
-    db_drift: Vec<String>,
-) -> StatusOutput {
-    StatusOutput {
-        file: file.into(),
-        location: location.into(),
-        status: state.map_or("error", |item| item.effective_status().as_str()),
-        swe: state.is_some_and(|item| stage_value(item, TaskStage::Swe).is_some()),
-        red: state
-            .and_then(|item| stage_value(item, TaskStage::Red))
-            .flatten(),
-        blue: state
-            .and_then(|item| stage_value(item, TaskStage::Blue))
-            .flatten(),
-        error,
-        db_drift,
-    }
 }

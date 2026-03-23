@@ -149,22 +149,39 @@ fn render_pipeline_mermaid(
 
 fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
     let additional_fields = match node {
-        PipelineNode::Workflow { .. } => json!({
-            "workflowId": node.workflow_id(),
+        PipelineNode::Workflow {
+            workflow_id,
+            acp_client,
+            prompt,
+            ..
+        } => json!({
+            "workflowId": workflow_id,
+            "agent": acp_client,
+            "prompt": prompt,
         }),
-        PipelineNode::Prompt { .. } => json!({
-            "agent": node.acp_client(),
+        PipelineNode::Prompt { prompt, agent, .. } => json!({
+            "prompt": prompt,
+            "agent": agent,
         }),
-        PipelineNode::SequentialThinking { topic, .. } => json!({
-            "agent": node.acp_client(),
+        PipelineNode::SequentialThinking {
+            topic,
+            total_thoughts,
+            analysis_type,
+            agent,
+            ..
+        } => json!({
             "topic": topic,
+            "agent": agent,
+            "totalThoughts": total_thoughts,
+            "analysisType": analysis_type,
         }),
         PipelineNode::Tool {
             tool_name,
             tool_args,
+            agent,
             ..
         } => json!({
-            "agent": node.acp_client(),
+            "agent": agent,
             "toolName": tool_name,
             "toolArgs": tool_args,
         }),
@@ -406,18 +423,34 @@ mod tests {
 
         assert_eq!(nodes[0]["type"], "workflow");
         assert_eq!(nodes[0]["workflowId"], "test-workflow-a");
-        assert!(nodes[0].get("agent").is_none());
+        assert_eq!(nodes[0]["agent"], Value::Null);
+        assert_eq!(nodes[0]["prompt"], Value::Null);
         assert!(nodes[0].get("topic").is_none());
+        assert_eq!(nodes[0]["status"], "completed");
+        assert_eq!(nodes[0]["attempts"], 1);
+        assert_eq!(nodes[0]["output"], Value::Null);
 
         assert_eq!(nodes[1]["type"], "prompt");
         assert_eq!(nodes[1]["agent"], "agent-prompt");
+        assert_eq!(
+            nodes[1]["prompt"],
+            "Summarize the pipeline status and propose next steps for the operator"
+        );
         assert!(nodes[1].get("workflowId").is_none());
         assert!(nodes[1].get("topic").is_none());
+        assert_eq!(nodes[1]["status"], "active");
+        assert_eq!(nodes[1]["attempts"], 2);
+        assert_eq!(nodes[1]["output"], "prompt output");
 
         assert_eq!(nodes[2]["type"], "sequentialThinking");
         assert_eq!(nodes[2]["agent"], "agent-think");
         assert_eq!(nodes[2]["topic"], "pipeline triage");
+        assert_eq!(nodes[2]["totalThoughts"], 3);
+        assert_eq!(nodes[2]["analysisType"], "diagnostic");
         assert!(nodes[2].get("workflowId").is_none());
+        assert_eq!(nodes[2]["status"], "ready");
+        assert_eq!(nodes[2]["attempts"], 0);
+        assert_eq!(nodes[2]["output"], Value::Null);
 
         assert_eq!(nodes[3]["type"], "tool");
         assert_eq!(nodes[3]["agent"], "agent-tool");
@@ -427,6 +460,9 @@ mod tests {
             json!({"identifier": "memory://build/test"})
         );
         assert!(nodes[3].get("workflowId").is_none());
+        assert_eq!(nodes[3]["status"], "pending");
+        assert_eq!(nodes[3]["attempts"], 0);
+        assert_eq!(nodes[3]["output"], Value::Null);
 
         let mermaid = result
             .get("mermaid")

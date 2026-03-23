@@ -2560,6 +2560,91 @@ mod tests {
 
     #[test]
     #[serial(config)]
+    fn pipeline_view_includes_prompt_node_prompt_and_agent_fields() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600053";
+        let prompt_session_id = "workflow-1735689600053-prompt";
+        let definition = PipelineDefinition {
+            nodes: vec![super::super::PipelineNode::Prompt {
+                id: "prompt".to_string(),
+                prompt: "Summarize the workflow result".to_string(),
+                agent: "prompt-agent".to_string(),
+                tool_mode: "default".to_string(),
+            }],
+            edges: vec![],
+        };
+        let node_state = NodeState {
+            session_id: prompt_session_id.to_string(),
+            status: NodeStatus::Pending,
+            attempts: 0,
+            output: None,
+        };
+        let node_states = BTreeMap::from([(
+            "prompt".to_string(),
+            serde_yaml::to_value(&node_state).expect("serialize node state"),
+        )]);
+        write_pipeline_session(&context, pipeline_id, &definition, &node_states, 1)
+            .expect("write prompt pipeline session");
+
+        let mut workflow_frontmatter =
+            crate::workflow::initial_workflow_frontmatter(prompt_session_id, &[], "pending");
+        workflow_frontmatter.insert(
+            "pipelineId".to_string(),
+            YamlValue::String(pipeline_id.to_string()),
+        );
+        workflow_frontmatter.insert(
+            "nodeId".to_string(),
+            YamlValue::String("prompt".to_string()),
+        );
+        write_markdown(
+            &workflow_session_uri(prompt_session_id),
+            Some(&workflow_frontmatter),
+            "# Workflow Session\n",
+            &context.config,
+        )
+        .expect("write prompt workflow session");
+        assert!(
+            file_exists(&workflow_session_uri(prompt_session_id), &context.config)
+                .expect("check prompt workflow session"),
+            "expected prompt workflow session to exist"
+        );
+
+        let view_output = pipeline(&context, &json!({ "sessionId": pipeline_id, "view": true }))
+            .expect("view prompt pipeline");
+        let view_response: Value = serde_json::from_str(&view_output).expect("parse view response");
+        let prompt_node = view_response
+            .get("data")
+            .and_then(|data| data.get("nodes"))
+            .and_then(Value::as_array)
+            .and_then(|nodes| {
+                nodes
+                    .iter()
+                    .find(|node| node.get("nodeId") == Some(&Value::String("prompt".to_string())))
+            })
+            .expect("prompt node");
+
+        assert_eq!(
+            prompt_node.get("type").and_then(Value::as_str),
+            Some("prompt")
+        );
+        assert_eq!(
+            prompt_node.get("prompt").and_then(Value::as_str),
+            Some("Summarize the workflow result")
+        );
+        assert_eq!(
+            prompt_node.get("agent").and_then(Value::as_str),
+            Some("prompt-agent")
+        );
+        assert_eq!(
+            prompt_node.get("status").and_then(Value::as_str),
+            Some("pending")
+        );
+        assert_eq!(prompt_node.get("attempts").and_then(Value::as_u64), Some(0));
+        assert_eq!(prompt_node.get("output"), Some(&Value::Null));
+    }
+
+    #[test]
+    #[serial(config)]
     fn pipeline_create_defaults_max_concurrency_to_eight() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let payload = json!({

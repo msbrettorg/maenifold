@@ -1,8 +1,13 @@
-use std::{error::Error, fmt, fs, path::Path};
+use std::{fs, path::Path};
 
 use crate::types::{StageState, StageVerdict, TaskLocation, TaskStage, TaskState, TaskStatus};
 
-const VERDICT_PREFIX: &str = "**Verdict**:";
+mod error;
+mod sections;
+
+pub use error::ParseTaskError;
+pub use sections::{ParsedSection, extract_sections};
+use sections::{RawSection, scan_sections};
 
 /// T-53.2: RTM FR-41 — parse an authoritative task file from disk.
 pub fn parse_task_file(path: impl AsRef<Path>) -> Result<TaskState, ParseTaskError> {
@@ -26,25 +31,11 @@ pub fn parse_task_content(
             path: path.to_path_buf(),
         })?;
 
-    let lines: Vec<&str> = content.lines().collect();
-    let mut sections = Vec::new();
-
-    for (index, line) in lines.iter().enumerate() {
-        if let Some(stage) = match_stage_heading(line)? {
-            let heading_line = index + 1;
-            sections.push(Section {
-                stage,
-                heading_line,
-                start_index: index + 1,
-                end_index: lines.len(),
-            });
-
-            if sections.len() > 1 {
-                let previous = sections.len() - 2;
-                sections[previous].end_index = index;
-            }
-        }
-    }
+    let sections = scan_sections(content)?;
+    let sections = sections
+        .into_iter()
+        .filter_map(|section| stage_from_heading(&section.heading).map(|stage| (stage, section)))
+        .collect::<Vec<_>>();
 
     let mut history = Vec::with_capacity(sections.len());
     let mut attempts = 0u32;
@@ -52,15 +43,16 @@ pub fn parse_task_content(
     for (index, section) in sections.iter().enumerate() {
         let has_later_same_stage = sections[index + 1..]
             .iter()
-            .any(|other| other.stage == section.stage);
-        let verdict = parse_section_verdict(&lines, section, location, has_later_same_stage, path)?;
+            .any(|other| other.0 == section.0);
+        let verdict =
+            parse_section_verdict(section.0, &section.1, location, has_later_same_stage, path)?;
         if verdict.is_some_and(StageVerdict::counts_as_attempt) {
             attempts += 1;
         }
 
         history.push(StageState {
-            stage: section.stage,
-            heading_line: section.heading_line,
+            stage: section.0,
+            heading_line: section.1.heading_line,
             verdict,
         });
     }
@@ -175,35 +167,15 @@ fn reconcile_location(
 }
 
 fn parse_section_verdict(
-    lines: &[&str],
-    section: &Section,
+    stage: TaskStage,
+    section: &RawSection,
     location: TaskLocation,
     has_later_same_stage: bool,
     path: &Path,
 ) -> Result<Option<StageVerdict>, ParseTaskError> {
-    let mut verdict = None;
+    let verdict = parse_detected_verdict(stage, section)?;
 
-    for (index, line) in lines[section.start_index..section.end_index]
-        .iter()
-        .enumerate()
-    {
-        let trimmed = line.trim();
-        if !trimmed.starts_with(VERDICT_PREFIX) {
-            continue;
-        }
-
-        let parsed = parse_verdict(trimmed, section.stage, section.start_index + index + 1)?;
-        if verdict.is_some() {
-            return Err(ParseTaskError::DuplicateVerdict {
-                stage: section.stage,
-                line: section.start_index + index + 1,
-            });
-        }
-
-        verdict = Some(parsed);
-    }
-
-    match section.stage {
+    match stage {
         TaskStage::Swe => Ok(None),
         TaskStage::Red | TaskStage::Blue => {
             if let Some(verdict) = verdict {
@@ -216,7 +188,7 @@ fn parse_section_verdict(
                 eprintln!(
                     "warning: {}: missing verdict for {} section starting at line {}",
                     path.display(),
-                    section.stage.as_str(),
+                    stage.as_str(),
                     section.heading_line
                 );
                 Ok(None)
@@ -225,32 +197,36 @@ fn parse_section_verdict(
     }
 }
 
-fn parse_verdict(
-    line: &str,
+fn parse_detected_verdict(
     stage: TaskStage,
-    line_number: usize,
-) -> Result<StageVerdict, ParseTaskError> {
-    let raw = line
-        .split_once(':')
-        .map(|(_, verdict)| verdict.trim())
-        .unwrap_or_default();
+    section: &RawSection,
+) -> Result<Option<StageVerdict>, ParseTaskError> {
+    let mut verdict = None;
 
-    let verdict = match raw
-        .split(|ch: char| !ch.is_alphanumeric())
-        .find(|token| matches!(*token, "PASS" | "REJECT" | "FAIL"))
-    {
-        Some("PASS") => StageVerdict::Pass,
-        Some("REJECT") => StageVerdict::Reject,
-        Some("FAIL") => StageVerdict::Fail,
-        _ => {
-            return Err(ParseTaskError::UnknownVerdict {
+    for raw in &section.verdicts {
+        let parsed = raw.parsed.ok_or_else(|| ParseTaskError::UnknownVerdict {
+            stage,
+            line: raw.line,
+            value: raw.value.clone(),
+        })?;
+        validate_stage_verdict(stage, parsed, raw.line)?;
+        if verdict.is_some() {
+            return Err(ParseTaskError::DuplicateVerdict {
                 stage,
-                line: line_number,
-                value: raw.to_string(),
+                line: raw.line,
             });
         }
-    };
+        verdict = Some(parsed);
+    }
 
+    Ok(verdict)
+}
+
+fn validate_stage_verdict(
+    stage: TaskStage,
+    verdict: StageVerdict,
+    line_number: usize,
+) -> Result<(), ParseTaskError> {
     let allowed = match stage {
         TaskStage::Swe => false,
         TaskStage::Red => matches!(verdict, StageVerdict::Pass | StageVerdict::Reject),
@@ -265,137 +241,11 @@ fn parse_verdict(
         });
     }
 
-    Ok(verdict)
+    Ok(())
 }
 
-fn match_stage_heading(line: &str) -> Result<Option<TaskStage>, ParseTaskError> {
-    let trimmed = line.trim();
-    for stage in TaskStage::ALL {
-        if trimmed.starts_with(stage.canonical_heading()) {
-            return Ok(Some(stage));
-        }
-    }
-
-    Ok(None)
-}
-
-#[derive(Debug, Clone)]
-struct Section {
-    stage: TaskStage,
-    heading_line: usize,
-    start_index: usize,
-    end_index: usize,
-}
-
-/// T-53.2: RTM FR-41 — parser errors for file-authoritative task derivation.
-#[derive(Debug)]
-pub enum ParseTaskError {
-    ReadFailed {
-        path: std::path::PathBuf,
-        source: std::io::Error,
-    },
-    UnknownTaskLocation {
-        path: std::path::PathBuf,
-    },
-    OutOfOrderHeading {
-        previous: TaskStage,
-        current: TaskStage,
-        line: usize,
-    },
-    DuplicateVerdict {
-        stage: TaskStage,
-        line: usize,
-    },
-    UnknownVerdict {
-        stage: TaskStage,
-        line: usize,
-        value: String,
-    },
-    InvalidVerdictForStage {
-        stage: TaskStage,
-        verdict: StageVerdict,
-        line: usize,
-    },
-    InvalidStatusFlow {
-        message: String,
-        line: usize,
-    },
-    LocationStatusMismatch {
-        path: std::path::PathBuf,
-        location: TaskLocation,
-        status: TaskStatus,
-    },
-}
-
-impl fmt::Display for ParseTaskError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ReadFailed { path, source } => {
-                write!(f, "failed to read task file {}: {source}", path.display())
-            }
-            Self::UnknownTaskLocation { path } => write!(
-                f,
-                "task file {} must live under todo/ or done/",
-                path.display()
-            ),
-            Self::OutOfOrderHeading {
-                previous,
-                current,
-                line,
-            } => write!(
-                f,
-                "out-of-order heading '{}' at line {}; it cannot appear after '{}'",
-                current.canonical_heading(),
-                line,
-                previous.canonical_heading()
-            ),
-            Self::DuplicateVerdict { stage, line } => write!(
-                f,
-                "duplicate verdict in {} section at line {}",
-                stage.as_str(),
-                line
-            ),
-            Self::UnknownVerdict { stage, line, value } => write!(
-                f,
-                "unknown verdict '{}' for {} section at line {}",
-                value,
-                stage.as_str(),
-                line
-            ),
-            Self::InvalidVerdictForStage {
-                stage,
-                verdict,
-                line,
-            } => write!(
-                f,
-                "invalid verdict '{}' for {} section at line {}",
-                verdict.as_str(),
-                stage.as_str(),
-                line
-            ),
-            Self::InvalidStatusFlow { message, line } => {
-                write!(f, "invalid task flow at line {}: {message}", line)
-            }
-            Self::LocationStatusMismatch {
-                path,
-                location,
-                status,
-            } => write!(
-                f,
-                "task file {} in {}/ cannot represent '{}' status",
-                path.display(),
-                location.as_str(),
-                status.as_str()
-            ),
-        }
-    }
-}
-
-impl Error for ParseTaskError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::ReadFailed { source, .. } => Some(source),
-            _ => None,
-        }
-    }
+fn stage_from_heading(heading: &str) -> Option<TaskStage> {
+    TaskStage::ALL
+        .into_iter()
+        .find(|stage| heading == stage.canonical_heading().trim_start_matches('#').trim())
 }

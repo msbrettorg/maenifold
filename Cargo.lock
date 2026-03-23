@@ -2081,6 +2081,7 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "predicates",
+ "pulldown-cmark",
  "rusqlite",
  "serde",
  "serde_json",

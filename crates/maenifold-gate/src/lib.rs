@@ -11,7 +11,9 @@ pub mod status;
 pub mod sync;
 pub mod types;
 
-pub use parser::{ParseTaskError, parse_task_content, parse_task_file};
+pub use parser::{
+    ParseTaskError, ParsedSection, extract_sections, parse_task_content, parse_task_file,
+};
 pub use types::{StageState, StageVerdict, TaskLocation, TaskStage, TaskState, TaskStatus};
 
 pub struct Cli {

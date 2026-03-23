@@ -14,7 +14,7 @@ use super::session_io::{
 #[cfg(test)]
 use super::test_support;
 use super::view::build_pipeline_view_result;
-use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition};
+use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, workflow_id_for_node};
 
 pub(super) fn update_pipeline_node_status(
     context: &ToolContext,
@@ -30,7 +30,7 @@ pub(super) fn update_pipeline_node_status(
     definition
         .nodes
         .iter()
-        .find(|node| node.id == node_id)
+        .find(|node| node.id() == node_id)
         .ok_or_else(|| {
             MaenifoldError::Message(format!(
                 "ERROR: Pipeline definition missing node '{node_id}'"
@@ -69,12 +69,14 @@ pub(super) fn update_pipeline_node_status(
             )?;
             let state = node_states.get_mut(node_id).expect("checked above");
             state.status = NodeStatus::Completed;
+            state.output = Some(conclusion.to_string());
             inject_predecessor_context(context, &definition, &node_states, node_id)?;
         }
         "abandoned" => {
             update_workflow_node_frontmatter(context, &workflow_session_id, "abandoned", None)?;
             let state = node_states.get_mut(node_id).expect("checked above");
             state.status = NodeStatus::Abandoned;
+            state.output = None;
         }
         _ => {
             return Err(MaenifoldError::InvalidArgument(format!(
@@ -114,7 +116,7 @@ pub(super) fn restart_pipeline_node(
     let node = definition
         .nodes
         .iter()
-        .find(|node| node.id == node_id)
+        .find(|node| node.id() == node_id)
         .ok_or_else(|| {
             MaenifoldError::Message(format!(
                 "ERROR: Pipeline definition missing node '{node_id}'"
@@ -152,6 +154,7 @@ pub(super) fn restart_pipeline_node(
         state.session_id = allocate_node_session_id(context, node_id)?;
         state.status = NodeStatus::Pending;
         state.attempts += 1;
+        state.output = None;
     }
 
     let state = node_states.get(node_id).expect("node state checked above");
@@ -160,8 +163,8 @@ pub(super) fn restart_pipeline_node(
         session_id,
         &NodeFile {
             session_id: state.session_id.clone(),
-            node_id: node.id.clone(),
-            workflow_id: node.workflow_id.clone(),
+            node_id: node.id().to_string(),
+            workflow_id: workflow_id_for_node(node)?.to_string(),
         },
     )?;
     inject_predecessor_context_for_node(context, &definition, &node_states, node_id)?;
@@ -272,21 +275,13 @@ fn predecessor_context_content(
             continue;
         }
 
-        let (frontmatter, _, _) = read_markdown(
-            &workflow_session_uri(&upstream_state.session_id),
-            &context.config,
-        )?;
-        let Some(last) = frontmatter
-            .as_ref()
-            .and_then(|frontmatter| frontmatter.get("last"))
-            .and_then(YamlValue::as_str)
-            .map(str::trim)
-            .filter(|last| !last.is_empty())
+        let Some(content) =
+            predecessor_context_source(context, definition, &edge.source, upstream_state)?
         else {
             continue;
         };
 
-        sections.push(format!("### From {}\n\n{}", edge.source, last));
+        sections.push(format!("### From {}\n\n{}", edge.source, content));
     }
 
     if sections.is_empty() {
@@ -294,6 +289,46 @@ fn predecessor_context_content(
     } else {
         Ok(Some(sections.join("\n\n")))
     }
+}
+
+fn predecessor_context_source(
+    context: &ToolContext,
+    definition: &PipelineDefinition,
+    upstream_node_id: &str,
+    upstream_state: &NodeState,
+) -> Result<Option<String>> {
+    if let Some(output) = upstream_state
+        .output
+        .as_deref()
+        .map(str::trim)
+        .filter(|output| !output.is_empty())
+    {
+        return Ok(Some(output.to_string()));
+    }
+
+    let Some(upstream_node) = definition
+        .nodes
+        .iter()
+        .find(|node| node.id() == upstream_node_id)
+    else {
+        return Ok(None);
+    };
+
+    if upstream_node.workflow_id().is_none() {
+        return Ok(None);
+    }
+
+    let (frontmatter, _, _) = read_markdown(
+        &workflow_session_uri(&upstream_state.session_id),
+        &context.config,
+    )?;
+    Ok(frontmatter
+        .as_ref()
+        .and_then(|frontmatter| frontmatter.get("last"))
+        .and_then(YamlValue::as_str)
+        .map(str::trim)
+        .filter(|last| !last.is_empty())
+        .map(ToOwned::to_owned))
 }
 
 fn upsert_h2_section(context: &ToolContext, uri: &str, heading: &str, content: &str) -> Result<()> {
@@ -362,6 +397,7 @@ mod tests {
     use super::test_support::*;
 
     #[test]
+    #[serial(config)]
     fn pipeline_status_completed_updates_node_and_returns_pipeline_view() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600500";
@@ -372,6 +408,7 @@ mod tests {
                     session_id: "workflow-1735689600500-root".to_string(),
                     status: NodeStatus::Active,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -380,6 +417,7 @@ mod tests {
                     session_id: "workflow-1735689600500-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -460,6 +498,7 @@ mod tests {
                     session_id: "workflow-1735689600550-root".to_string(),
                     status: NodeStatus::Active,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -468,6 +507,7 @@ mod tests {
                     session_id: "workflow-1735689600550-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -486,20 +526,23 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_status_abandoned_enables_always_edge_ready_set() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600600";
         let definition = PipelineDefinition {
             nodes: vec![
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "cleanup".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
             ],
             edges: vec![crate::workflow::pipeline::PipelineEdge {
@@ -515,6 +558,7 @@ mod tests {
                     session_id: "workflow-1735689600600-root".to_string(),
                     status: NodeStatus::Active,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -523,6 +567,7 @@ mod tests {
                     session_id: "workflow-1735689600600-cleanup".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -569,6 +614,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_status_rejects_non_active_transitions() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600700";
@@ -579,6 +625,7 @@ mod tests {
                     session_id: "workflow-1735689600700-root".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -587,6 +634,7 @@ mod tests {
                     session_id: "workflow-1735689600700-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -612,25 +660,29 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn predecessor_context_replaces_existing_section_with_all_completed_upstreams() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600800";
         let definition = PipelineDefinition {
             nodes: vec![
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "root-a".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "root-b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "child".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
             ],
             edges: vec![
@@ -653,6 +705,7 @@ mod tests {
                     session_id: "workflow-1735689600800-root-a".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -661,6 +714,7 @@ mod tests {
                     session_id: "workflow-1735689600800-root-b".to_string(),
                     status: NodeStatus::Active,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -669,6 +723,7 @@ mod tests {
                     session_id: "workflow-1735689600800-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -729,12 +784,121 @@ mod tests {
         assert!(child_content.contains("### From root-a"));
         assert!(child_content.contains("Step 1 Response: Alpha [[context]]"));
         assert!(child_content.contains("### From root-b"));
-        assert!(child_content.contains("Step 1 Response: Beta [[context]]"));
+        assert!(child_content.contains("Beta [[context]] conclusion"));
         assert!(
             !child_content.contains("Old [[context]] only"),
             "stale content should be gone"
         );
         assert!(child_content.contains("## Step 1/1"));
+    }
+
+    #[test]
+    #[serial(config)]
+    fn predecessor_context_prefers_node_output_before_workflow_last() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600840";
+        let definition = PipelineDefinition {
+            nodes: vec![
+                crate::workflow::pipeline::PipelineNode::Workflow {
+                    id: "root-a".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                    prompt: None,
+                },
+                crate::workflow::pipeline::PipelineNode::Workflow {
+                    id: "root-b".to_string(),
+                    workflow_id: "test-workflow-b".to_string(),
+                    acp_client: None,
+                    prompt: None,
+                },
+                crate::workflow::pipeline::PipelineNode::Workflow {
+                    id: "child".to_string(),
+                    workflow_id: "test-workflow-c".to_string(),
+                    acp_client: None,
+                    prompt: None,
+                },
+            ],
+            edges: vec![
+                crate::workflow::pipeline::PipelineEdge {
+                    source: "root-a".to_string(),
+                    target: "child".to_string(),
+                    edge_type: EdgeType::Success,
+                },
+                crate::workflow::pipeline::PipelineEdge {
+                    source: "root-b".to_string(),
+                    target: "child".to_string(),
+                    edge_type: EdgeType::Always,
+                },
+            ],
+        };
+        let node_states = HashMap::from([
+            (
+                "root-a".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600840-root-a".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                    output: Some("Alpha [[context]] conclusion".to_string()),
+                },
+            ),
+            (
+                "root-b".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600840-root-b".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                    output: None,
+                },
+            ),
+            (
+                "child".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600840-child".to_string(),
+                    status: NodeStatus::Pending,
+                    attempts: 0,
+                    output: None,
+                },
+            ),
+        ]);
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            definition.clone(),
+            node_states.clone(),
+            8,
+        );
+
+        for (session_id, last_value) in [
+            (
+                "workflow-1735689600840-root-a",
+                "Step 1 Response: Alpha [[context]]",
+            ),
+            (
+                "workflow-1735689600840-root-b",
+                "Step 1 Response: Beta [[context]]",
+            ),
+        ] {
+            let uri = workflow_session_uri(session_id);
+            let (frontmatter, content, _) =
+                read_markdown(&uri, &context.config).expect("read upstream session");
+            let mut frontmatter = frontmatter.expect("upstream frontmatter");
+            frontmatter.insert(
+                "last".to_string(),
+                YamlValue::String(last_value.to_string()),
+            );
+            write_markdown(&uri, Some(&frontmatter), &content, &context.config)
+                .expect("write upstream last");
+        }
+
+        let content = predecessor_context_content(&context, &definition, &node_states, "child")
+            .expect("predecessor context lookup")
+            .expect("predecessor context content");
+
+        assert!(content.contains("### From root-a"));
+        assert!(content.contains("Alpha [[context]] conclusion"));
+        assert!(!content.contains("Step 1 Response: Alpha [[context]]"));
+        assert!(content.contains("### From root-b"));
+        assert!(content.contains("Step 1 Response: Beta [[context]]"));
     }
 
     #[test]
@@ -749,6 +913,7 @@ mod tests {
                     session_id: "workflow-1735689600850-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -757,6 +922,7 @@ mod tests {
                     session_id: "workflow-1735689600850-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -792,6 +958,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_restart_recreates_abandoned_node_session() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600900";
@@ -803,6 +970,7 @@ mod tests {
                     session_id: "workflow-1735689600900-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -811,6 +979,7 @@ mod tests {
                     session_id: original_child_session.to_string(),
                     status: NodeStatus::Abandoned,
                     attempts: 1,
+                    output: None,
                 },
             ),
         ]);
@@ -928,6 +1097,7 @@ mod tests {
                     session_id: "workflow-1735689600950-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -936,6 +1106,7 @@ mod tests {
                     session_id: original_child_session.to_string(),
                     status: NodeStatus::Stuck,
                     attempts: 2,
+                    output: None,
                 },
             ),
         ]);
@@ -973,6 +1144,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_restart_rejects_when_max_attempts_reached() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689601000";
@@ -983,6 +1155,7 @@ mod tests {
                     session_id: "workflow-1735689601000-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -991,6 +1164,7 @@ mod tests {
                     session_id: "workflow-1735689601000-child".to_string(),
                     status: NodeStatus::Abandoned,
                     attempts: 3,
+                    output: None,
                 },
             ),
         ]);

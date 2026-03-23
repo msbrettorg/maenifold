@@ -18,6 +18,58 @@ pub use engine::{compute_pipeline_status, compute_ready_set};
 pub use handler::pipeline;
 pub use types::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode};
 
+pub(super) fn workflow_id_for_node(node: &PipelineNode) -> Result<&str> {
+    node.workflow_id().ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "ERROR: Pipeline node '{}' of type '{}' does not have a workflowId",
+            node.id(),
+            node.node_type_name()
+        ))
+    })
+}
+
+fn validate_non_empty_node_field(node_id: &str, field: &str, value: &str) -> Result<()> {
+    if value.trim().is_empty() {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Pipeline node '{node_id}' field '{field}' must not be empty"
+        )));
+    }
+
+    Ok(())
+}
+
+fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
+    match node {
+        PipelineNode::Workflow {
+            id, workflow_id, ..
+        } => validate_non_empty_node_field(id, "workflowId", workflow_id),
+        PipelineNode::Prompt {
+            id, prompt, agent, ..
+        } => {
+            validate_non_empty_node_field(id, "prompt", prompt)?;
+            validate_non_empty_node_field(id, "agent", agent)
+        }
+        PipelineNode::SequentialThinking {
+            id,
+            topic,
+            total_thoughts,
+            agent,
+            ..
+        } => {
+            validate_non_empty_node_field(id, "topic", topic)?;
+            validate_non_empty_node_field(id, "agent", agent)?;
+
+            if *total_thoughts == 0 {
+                return Err(MaenifoldError::InvalidArgument(format!(
+                    "Pipeline node '{id}' field 'totalThoughts' must be greater than 0"
+                )));
+            }
+
+            Ok(())
+        }
+    }
+}
+
 pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
     if definition.nodes.is_empty() {
         return Err(MaenifoldError::InvalidArgument(
@@ -28,12 +80,14 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
     let mut node_ids = HashSet::with_capacity(definition.nodes.len());
 
     for node in &definition.nodes {
-        if !node_ids.insert(node.id.as_str()) {
+        if !node_ids.insert(node.id()) {
             return Err(MaenifoldError::InvalidArgument(format!(
                 "Pipeline contains duplicate node ID '{}'",
-                node.id
+                node.id()
             )));
         }
+
+        validate_node_semantics(node)?;
     }
 
     let mut edge_pairs = HashSet::with_capacity(definition.edges.len());
@@ -78,20 +132,23 @@ mod tests {
     fn sample_definition() -> PipelineDefinition {
         PipelineDefinition {
             nodes: vec![
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "a".to_string(),
                     workflow_id: "workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "workflow-b".to_string(),
                     acp_client: Some("client-b".to_string()),
+                    prompt: None,
                 },
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "c".to_string(),
                     workflow_id: "workflow-c".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
             ],
             edges: vec![
@@ -104,6 +161,44 @@ mod tests {
                     source: "b".to_string(),
                     target: "c".to_string(),
                     edge_type: EdgeType::Always,
+                },
+            ],
+        }
+    }
+
+    fn mixed_definition() -> PipelineDefinition {
+        PipelineDefinition {
+            nodes: vec![
+                PipelineNode::Workflow {
+                    id: "workflow".to_string(),
+                    workflow_id: "workflow-a".to_string(),
+                    acp_client: None,
+                    prompt: None,
+                },
+                PipelineNode::Prompt {
+                    id: "prompt".to_string(),
+                    prompt: "Summarize the workflow output".to_string(),
+                    agent: "prompt-agent".to_string(),
+                    tool_mode: "normal".to_string(),
+                },
+                PipelineNode::SequentialThinking {
+                    id: "thinking".to_string(),
+                    topic: "Pipeline validation".to_string(),
+                    total_thoughts: 3,
+                    analysis_type: Some("analysis".to_string()),
+                    agent: "thinking-agent".to_string(),
+                },
+            ],
+            edges: vec![
+                PipelineEdge {
+                    source: "workflow".to_string(),
+                    target: "prompt".to_string(),
+                    edge_type: EdgeType::Success,
+                },
+                PipelineEdge {
+                    source: "prompt".to_string(),
+                    target: "thinking".to_string(),
+                    edge_type: EdgeType::Success,
                 },
             ],
         }
@@ -124,15 +219,17 @@ mod tests {
     fn validate_pipeline_rejects_duplicate_node_ids() {
         let definition = PipelineDefinition {
             nodes: vec![
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "dup".to_string(),
                     workflow_id: "workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "dup".to_string(),
                     workflow_id: "workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
             ],
             edges: vec![],
@@ -172,15 +269,17 @@ mod tests {
     fn validate_pipeline_detects_cycle() {
         let definition = PipelineDefinition {
             nodes: vec![
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "a".to_string(),
                     workflow_id: "workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
             ],
             edges: vec![
@@ -205,15 +304,17 @@ mod tests {
     fn validate_pipeline_rejects_duplicate_edge_pair() {
         let definition = PipelineDefinition {
             nodes: vec![
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "a".to_string(),
                     workflow_id: "workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
             ],
             edges: vec![
@@ -240,6 +341,100 @@ mod tests {
         let definition = sample_definition();
 
         validate_pipeline(&definition).expect("valid pipeline should pass validation");
+    }
+
+    #[test]
+    fn validate_pipeline_accepts_all_supported_node_types() {
+        let definition = mixed_definition();
+
+        validate_pipeline(&definition).expect("mixed valid node types should pass validation");
+    }
+
+    #[test]
+    fn validate_pipeline_rejects_invalid_type_specific_fields() {
+        let cases = vec![
+            (
+                PipelineNode::Workflow {
+                    id: "workflow-node".to_string(),
+                    workflow_id: "   ".to_string(),
+                    acp_client: None,
+                    prompt: None,
+                },
+                "workflow-node",
+                "workflowId",
+            ),
+            (
+                PipelineNode::Prompt {
+                    id: "prompt-node".to_string(),
+                    prompt: "   ".to_string(),
+                    agent: "prompt-agent".to_string(),
+                    tool_mode: "normal".to_string(),
+                },
+                "prompt-node",
+                "prompt",
+            ),
+            (
+                PipelineNode::Prompt {
+                    id: "prompt-agent-node".to_string(),
+                    prompt: "Prompt text".to_string(),
+                    agent: "\n\t".to_string(),
+                    tool_mode: "normal".to_string(),
+                },
+                "prompt-agent-node",
+                "agent",
+            ),
+            (
+                PipelineNode::SequentialThinking {
+                    id: "thinking-topic-node".to_string(),
+                    topic: "   ".to_string(),
+                    total_thoughts: 2,
+                    analysis_type: None,
+                    agent: "thinking-agent".to_string(),
+                },
+                "thinking-topic-node",
+                "topic",
+            ),
+            (
+                PipelineNode::SequentialThinking {
+                    id: "thinking-agent-node".to_string(),
+                    topic: "Topic".to_string(),
+                    total_thoughts: 2,
+                    analysis_type: None,
+                    agent: "   ".to_string(),
+                },
+                "thinking-agent-node",
+                "agent",
+            ),
+            (
+                PipelineNode::SequentialThinking {
+                    id: "thinking-count-node".to_string(),
+                    topic: "Topic".to_string(),
+                    total_thoughts: 0,
+                    analysis_type: None,
+                    agent: "thinking-agent".to_string(),
+                },
+                "thinking-count-node",
+                "totalThoughts",
+            ),
+        ];
+
+        for (node, node_id, field) in cases {
+            let definition = PipelineDefinition {
+                nodes: vec![node],
+                edges: vec![],
+            };
+
+            let error = validate_pipeline(&definition).expect_err("invalid node should fail");
+            let message = error.to_string();
+            assert!(
+                message.contains(node_id),
+                "expected error to mention node ID '{node_id}', got: {message}"
+            );
+            assert!(
+                message.contains(field),
+                "expected error to mention field '{field}', got: {message}"
+            );
+        }
     }
 
     #[test]

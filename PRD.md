@@ -110,3 +110,17 @@ FR-44: The PipelineComposer SHALL provide a node creation toolbar in design mode
 FR-45: The pipeline-ui test suite SHALL use ONLY real integration tests against a live maenifold --http server. No mocked fetch, no mocked composables, no fake responses. Per TESTING_PHILOSOPHY.md.
 
 FR-46: The pipeline-ui SHALL include functional smoke tests that verify UI components render, respond to user interaction, and display real data from the MCP server.
+
+### FR-47: Pipeline Dataflow Architecture
+
+The Pipeline tool SHALL support three distinct node types with per-node prompts and predecessor context propagation, replacing the current flat prompt model where every node receives the same run-level prompt.
+
+- **Node types**: `PipelineNode` SHALL be a serde-tagged enum (`#[serde(tag = "type")]`) with three variants: `Workflow` (existing, extended with per-node `prompt`), `Prompt` (new — single prompt to ACP agent), and `SequentialThinking` (new — drives a thinking session to completion).
+- **Backwards compatibility**: Existing pipeline JSON (`{ "id", "workflowId", "acpClient" }`) without a `type` field SHALL deserialize as a Workflow node via `#[default]` on the `PipelineNodeKind` enum.
+- **Per-node prompt**: Each node SHALL carry its own prompt/topic. The run-level prompt becomes optional ambient context. Prompt assembly order: predecessor context → ambient prompt → node prompt → (workflow step text for workflow nodes only).
+- **Output capture**: `NodeState` SHALL include `output: Option<String>`. On node completion, the executor SHALL capture the agent's conclusion/response into `NodeState.output` for downstream consumption.
+- **Predecessor context**: The executor SHALL build predecessor context from upstream `NodeState.output` values (not from session files). The existing `predecessor_context_content()` pattern is preserved but reads from in-memory output.
+- **Type-based dispatch**: `dispatch.rs` SHALL branch on node type — `activate_workflow_node_session` for workflow nodes only. Prompt and SequentialThinking nodes SHALL create appropriate sessions without workflow activation.
+- **Type-based execution**: `executor.rs` SHALL branch on node type — workflow → `run_workflow()`, prompt → single ACP agent prompt, sequentialThinking → `drive_think_session()`.
+- **Validation**: `validate_definition()` SHALL enforce type-specific required fields (workflow needs `workflowId`, prompt needs `prompt`+`agent`, sequentialThinking needs `topic`+`agent`).
+- **Mermaid display**: `view.rs` SHALL render different node shapes/styles per type in the Mermaid DAG diagram.

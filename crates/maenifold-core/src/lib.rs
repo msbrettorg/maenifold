@@ -3,7 +3,6 @@
 
 #[path = "acp/driver.rs"]
 pub mod acpx_driver;
-pub mod api;
 pub mod assets;
 pub mod benchmark;
 pub mod cli;

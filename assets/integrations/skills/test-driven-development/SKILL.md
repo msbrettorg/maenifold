@@ -280,6 +280,31 @@ The PM never tells the agent what's in the spec. Never reads the spec itself. Ne
 
 At steady state: a **mix** of SWE + red + blue running concurrently. All same type = batching regression.
 
+### Fleet mode integration
+
+When `/fleet` mode is available (Copilot CLI), the PM should leverage it for parallel subagent dispatch. Fleet provides native subagent spawning which is faster and more resource-efficient than sequential `task` tool calls.
+
+**Detection:** If the system prompt contains fleet mode instructions (e.g., "You are now in fleet mode" or mentions dispatching sub-agents via the task tool in parallel), use fleet-style parallel dispatch.
+
+**How to use fleet with TDD:**
+
+1. **Dispatch is parallel, gates are serial.** Fleet parallelizes dispatch across *independent* specs. Within a single spec, stages still flow SWE → red → blue sequentially.
+2. **Maximize heterogeneous concurrency.** Use fleet to dispatch a mix of SWE, red-team, and blue-team agents simultaneously — each working on a *different* spec at its current stage. Never dispatch all-SWE or all-red batches.
+3. **Respect stage dependencies.** A red-team agent for spec T-1 cannot start until T-1's SWE completes. But T-1's red-team and T-2's SWE can run in parallel via fleet.
+4. **Gate commands remain the PM's responsibility.** Fleet subagents do not run `gate append/pass/reject`. The PM reads each subagent's result, then runs the appropriate `gate` command before dispatching the next stage.
+
+**Fleet dispatch pattern:**
+
+```
+# Instead of dispatching one agent at a time:
+task(swe, T-1)  →  wait  →  task(red, T-1)  →  wait  →  ...
+
+# Dispatch all independent work in one fleet turn:
+task(swe, T-1) + task(red, T-2) + task(blue, T-3)  →  process results  →  next wave
+```
+
+**When fleet is NOT available:** Fall back to the standard `task` tool dispatch below. The pipeline logic is identical; only the dispatch mechanism changes.
+
 ### Slot management
 
 Target 8 concurrent agents. When one finishes:

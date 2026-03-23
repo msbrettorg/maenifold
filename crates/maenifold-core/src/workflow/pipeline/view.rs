@@ -9,7 +9,8 @@ use super::supervisor::supervisor_status;
 #[cfg(test)]
 use super::test_support;
 use super::{
-    EdgeType, NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status, compute_ready_set,
+    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode, compute_pipeline_status,
+    compute_ready_set,
 };
 
 pub(super) fn view_pipeline_session(context: &ToolContext, session_id: &str) -> Result<String> {
@@ -34,13 +35,13 @@ pub(super) fn node_ids_with_status(
         .nodes
         .iter()
         .map(|node| {
-            let state = node_states.get(&node.id).ok_or_else(|| {
+            let state = node_states.get(node.id()).ok_or_else(|| {
                 MaenifoldError::Message(format!(
                     "ERROR: Pipeline session missing node state for '{}'",
-                    node.id
+                    node.id()
                 ))
             })?;
-            Ok((node.id.clone(), state.status == expected_status))
+            Ok((node.id().to_string(), state.status == expected_status))
         })
         .filter_map(|entry| match entry {
             Ok((node_id, true)) => Some(Ok(node_id)),
@@ -85,19 +86,22 @@ fn pipeline_nodes_json(
         .nodes
         .iter()
         .map(|node| {
-            let state = node_states.get(&node.id).ok_or_else(|| {
+            let state = node_states.get(node.id()).ok_or_else(|| {
                 MaenifoldError::Message(format!(
                     "ERROR: Pipeline session missing node state for '{}'",
-                    node.id
+                    node.id()
                 ))
             })?;
-            Ok(json!({
-                "nodeId": node.id,
-                "workflowId": node.workflow_id,
+            let mut node_json = json!({
+                "nodeId": node.id(),
                 "sessionId": state.session_id,
                 "status": state.status,
                 "attempts": state.attempts,
-            }))
+                "output": state.output,
+                "type": node.node_type_name(),
+            });
+            add_pipeline_node_view_fields(&mut node_json, node);
+            Ok(node_json)
         })
         .collect()
 }
@@ -123,18 +127,13 @@ fn render_pipeline_mermaid(
     let mut lines = vec!["graph LR".to_string()];
 
     for node in &definition.nodes {
-        let state = node_states.get(&node.id).ok_or_else(|| {
+        let state = node_states.get(node.id()).ok_or_else(|| {
             MaenifoldError::Message(format!(
                 "ERROR: Pipeline session missing node state for '{}'",
-                node.id
+                node.id()
             ))
         })?;
-        lines.push(format!(
-            "  {}[\"{} {}\"]",
-            node.id,
-            status_emoji(&state.status),
-            node.id
-        ));
+        lines.push(render_pipeline_mermaid_node(node, &state.status));
     }
 
     for edge in &definition.edges {
@@ -146,6 +145,62 @@ fn render_pipeline_mermaid(
     }
 
     Ok(lines.join("\n"))
+}
+
+fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
+    let additional_fields = match node {
+        PipelineNode::Workflow { .. } => json!({
+            "workflowId": node.workflow_id(),
+        }),
+        PipelineNode::Prompt { .. } => json!({
+            "agent": node.acp_client(),
+        }),
+        PipelineNode::SequentialThinking { topic, .. } => json!({
+            "agent": node.acp_client(),
+            "topic": topic,
+        }),
+    };
+
+    if let (Some(node_object), Some(additional_object)) =
+        (node_json.as_object_mut(), additional_fields.as_object())
+    {
+        node_object.extend(additional_object.clone());
+    }
+}
+
+fn render_pipeline_mermaid_node(node: &PipelineNode, status: &NodeStatus) -> String {
+    let label = mermaid_node_label(node, status);
+    let wrapped_label = match node {
+        PipelineNode::Workflow { .. } => format!("[\"{label}\"]"),
+        PipelineNode::Prompt { .. } => format!("(\"{label}\")"),
+        PipelineNode::SequentialThinking { .. } => format!("{{{{\"{label}\"}}}}"),
+    };
+
+    format!("  {}{}", node.id(), wrapped_label)
+}
+
+fn mermaid_node_label(node: &PipelineNode, status: &NodeStatus) -> String {
+    let node_label = match node {
+        PipelineNode::Workflow { .. } => format!(
+            "wf: {}",
+            node.workflow_id()
+                .expect("workflow nodes always have workflow ids")
+        ),
+        PipelineNode::Prompt { .. } => {
+            format!(
+                "prompt: {}",
+                truncated_prompt_label(node.prompt().unwrap_or_default())
+            )
+        }
+        PipelineNode::SequentialThinking { topic, .. } => format!("think: {topic}"),
+    };
+
+    format!("{} {}", status_emoji(status), node_label)
+}
+
+fn truncated_prompt_label(prompt: &str) -> String {
+    let preview: String = prompt.chars().take(40).collect();
+    format!("{preview}...")
 }
 
 fn status_emoji(status: &NodeStatus) -> &'static str {
@@ -172,6 +227,7 @@ mod tests {
     use super::*;
     use serde_json::Value;
     use serial_test::serial;
+    use std::collections::HashMap;
 
     use super::test_support::*;
 
@@ -211,6 +267,7 @@ mod tests {
             .expect("nodes array");
         assert_eq!(nodes.len(), definition.nodes.len());
         assert_eq!(nodes[0]["nodeId"], "root");
+        assert_eq!(nodes[0]["type"], "workflow");
         assert_eq!(nodes[0]["workflowId"], "test-workflow-a");
         assert_eq!(nodes[0]["sessionId"], "workflow-1735689600000-root");
         assert_eq!(nodes[0]["status"], "completed");
@@ -231,13 +288,118 @@ mod tests {
             .and_then(Value::as_str)
             .expect("mermaid string");
         assert!(mermaid.starts_with("graph LR\n"));
-        assert!(mermaid.contains("root[\"✅ root\"]"));
-        assert!(mermaid.contains("cleanup[\"🔄 cleanup\"]"));
-        assert!(mermaid.contains("child[\"⏳ child\"]"));
+        assert!(mermaid.contains("root[\"✅ wf: test-workflow-a\"]"));
+        assert!(mermaid.contains("cleanup[\"🔄 wf: test-workflow-b\"]"));
+        assert!(mermaid.contains("child[\"⏳ wf: test-workflow-b\"]"));
         assert!(mermaid.contains("root --> child"));
         assert!(mermaid.contains("root -.-> cleanup"));
         assert_eq!(data.get("running").and_then(Value::as_bool), Some(false));
         assert!(data.get("pid").is_none() || data.get("pid") == Some(&Value::Null));
         assert!(data.get("attempts").is_none() || data.get("attempts") == Some(&Value::Null));
+    }
+
+    #[test]
+    fn pipeline_view_renders_mixed_node_types() {
+        let definition = PipelineDefinition {
+            nodes: vec![
+                PipelineNode::Workflow {
+                    id: "workflow-node".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                    prompt: None,
+                },
+                PipelineNode::Prompt {
+                    id: "prompt-node".to_string(),
+                    prompt: "Summarize the pipeline status and propose next steps for the operator"
+                        .to_string(),
+                    agent: "agent-prompt".to_string(),
+                    tool_mode: "default".to_string(),
+                },
+                PipelineNode::SequentialThinking {
+                    id: "thinking-node".to_string(),
+                    topic: "pipeline triage".to_string(),
+                    total_thoughts: 3,
+                    analysis_type: Some("diagnostic".to_string()),
+                    agent: "agent-think".to_string(),
+                },
+            ],
+            edges: vec![
+                super::super::PipelineEdge {
+                    source: "workflow-node".to_string(),
+                    target: "prompt-node".to_string(),
+                    edge_type: EdgeType::Success,
+                },
+                super::super::PipelineEdge {
+                    source: "prompt-node".to_string(),
+                    target: "thinking-node".to_string(),
+                    edge_type: EdgeType::Always,
+                },
+            ],
+        };
+        let node_states = HashMap::from([
+            (
+                "workflow-node".to_string(),
+                NodeState {
+                    session_id: "workflow-session".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                    output: None,
+                },
+            ),
+            (
+                "prompt-node".to_string(),
+                NodeState {
+                    session_id: "prompt-session".to_string(),
+                    status: NodeStatus::Active,
+                    attempts: 2,
+                    output: Some("prompt output".to_string()),
+                },
+            ),
+            (
+                "thinking-node".to_string(),
+                NodeState {
+                    session_id: "thinking-session".to_string(),
+                    status: NodeStatus::Ready,
+                    attempts: 0,
+                    output: None,
+                },
+            ),
+        ]);
+
+        let result = build_pipeline_view_result("pipeline-mixed-nodes", &definition, &node_states)
+            .expect("build pipeline view");
+        let nodes = result
+            .get("nodes")
+            .and_then(Value::as_array)
+            .expect("nodes array");
+
+        assert_eq!(nodes[0]["type"], "workflow");
+        assert_eq!(nodes[0]["workflowId"], "test-workflow-a");
+        assert!(nodes[0].get("agent").is_none());
+        assert!(nodes[0].get("topic").is_none());
+
+        assert_eq!(nodes[1]["type"], "prompt");
+        assert_eq!(nodes[1]["agent"], "agent-prompt");
+        assert!(nodes[1].get("workflowId").is_none());
+        assert!(nodes[1].get("topic").is_none());
+
+        assert_eq!(nodes[2]["type"], "sequentialThinking");
+        assert_eq!(nodes[2]["agent"], "agent-think");
+        assert_eq!(nodes[2]["topic"], "pipeline triage");
+        assert!(nodes[2].get("workflowId").is_none());
+
+        let mermaid = result
+            .get("mermaid")
+            .and_then(Value::as_str)
+            .expect("mermaid string");
+        assert!(mermaid.contains("workflow-node[\"✅ wf: test-workflow-a\"]"));
+        assert!(
+            mermaid.contains(
+                "prompt-node(\"🔄 prompt: Summarize the pipeline status and propos...\")"
+            )
+        );
+        assert!(mermaid.contains("thinking-node{{\"🟡 think: pipeline triage\"}}"));
+        assert!(mermaid.contains("workflow-node --> prompt-node"));
+        assert!(mermaid.contains("prompt-node -.-> thinking-node"));
     }
 }

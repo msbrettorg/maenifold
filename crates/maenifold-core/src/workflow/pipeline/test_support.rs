@@ -11,7 +11,7 @@ use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
 
-use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition};
+use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, workflow_id_for_node};
 
 pub(super) struct ConfigResetGuard;
 
@@ -71,20 +71,23 @@ pub(super) fn seed_pipeline_view_session(
 ) -> PipelineDefinition {
     let definition = PipelineDefinition {
         nodes: vec![
-            crate::workflow::pipeline::PipelineNode {
+            crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
+                prompt: None,
             },
-            crate::workflow::pipeline::PipelineNode {
+            crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "cleanup".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: Some("agent-b".to_string()),
+                prompt: None,
             },
-            crate::workflow::pipeline::PipelineNode {
+            crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "child".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: None,
+                prompt: None,
             },
         ],
         edges: vec![
@@ -107,6 +110,7 @@ pub(super) fn seed_pipeline_view_session(
                 session_id: "workflow-1735689600000-root".to_string(),
                 status: NodeStatus::Completed,
                 attempts: 1,
+                output: None,
             },
         ),
         (
@@ -115,6 +119,7 @@ pub(super) fn seed_pipeline_view_session(
                 session_id: "workflow-1735689600000-cleanup".to_string(),
                 status: NodeStatus::Active,
                 attempts: 2,
+                output: None,
             },
         ),
         (
@@ -123,6 +128,7 @@ pub(super) fn seed_pipeline_view_session(
                 session_id: "workflow-1735689600000-child".to_string(),
                 status: NodeStatus::Pending,
                 attempts: 0,
+                output: None,
             },
         ),
     ]);
@@ -161,10 +167,11 @@ pub(super) fn seed_pipeline_view_session(
         let workflow_id = definition
             .nodes
             .iter()
-            .find(|node| node.id == *node_id)
+            .find(|node| node.id() == *node_id)
             .expect("workflow node")
-            .workflow_id
-            .clone();
+            .workflow_id()
+            .expect("workflow node")
+            .to_string();
         let mut workflow_frontmatter = crate::workflow::initial_workflow_frontmatter(
             &state.session_id,
             std::slice::from_ref(&workflow_id),
@@ -203,15 +210,17 @@ pub(super) fn seed_dispatch_pipeline(
 ) -> PipelineDefinition {
     let definition = PipelineDefinition {
         nodes: vec![
-            crate::workflow::pipeline::PipelineNode {
+            crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
+                prompt: None,
             },
-            crate::workflow::pipeline::PipelineNode {
+            crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "child".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: None,
+                prompt: None,
             },
         ],
         edges: vec![crate::workflow::pipeline::PipelineEdge {
@@ -296,21 +305,25 @@ pub(super) fn seed_pipeline_session_with_workflows(
     .expect("write pipeline session");
 
     for node in &definition.nodes {
-        let state = node_states.get(&node.id).expect("node state");
+        let state = node_states.get(node.id()).expect("node state");
         let uri = workflow_session_uri(&state.session_id);
+        let workflow_id = workflow_id_for_node(node).expect("workflow node");
         let mut wf_fm = crate::workflow::initial_workflow_frontmatter(
             &state.session_id,
-            std::slice::from_ref(&node.workflow_id),
+            std::slice::from_ref(&workflow_id.to_string()),
             node_status_string(&state.status),
         );
         wf_fm.insert(
             "pipelineId".to_string(),
             YamlValue::String(pipeline_id.to_string()),
         );
-        wf_fm.insert("nodeId".to_string(), YamlValue::String(node.id.to_string()));
+        wf_fm.insert(
+            "nodeId".to_string(),
+            YamlValue::String(node.id().to_string()),
+        );
         wf_fm.insert(
             "workflowId".to_string(),
-            YamlValue::String(node.workflow_id.to_string()),
+            YamlValue::String(workflow_id.to_string()),
         );
         write_markdown(&uri, Some(&wf_fm), "# Workflow Session\n", &context.config)
             .expect("write workflow session");

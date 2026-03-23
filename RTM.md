@@ -79,3 +79,14 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 | RTM-197 | FR-45 | pipeline-ui/src/composables/__tests__/ | TC-197: MCP client integration tests against live server | integration |
 | RTM-198 | FR-45 | pipeline-ui/src/composables/__tests__/ | TC-198: Composable integration tests against live server | integration |
 | RTM-199 | FR-46 | pipeline-ui/src/components/__tests__/ | TC-199: Component smoke tests with real rendering | integration |
+
+## Sprint 61 — Pipeline Dataflow Architecture (FR-47)
+
+| RTM | Requirement | Component | Test Case | Type |
+|-----|-------------|-----------|-----------|------|
+| RTM-200 | FR-47 | `crates/maenifold-core/src/workflow/pipeline/types.rs` | TC-200: T-61.4 — PipelineNode tagged enum (Workflow/Prompt/SequentialThinking), NodeState.output, backwards-compatible serde with wire-type adapter; `old_workflow_json_still_deserializes`, `workflow_round_trip`, `prompt_round_trip`, `thinking_round_trip` | unit |
+| RTM-201 | FR-47 | `crates/maenifold-core/src/workflow/pipeline/dispatch.rs` | TC-201: T-61.5 — Type-based dispatch branches on node type; workflow→activate_workflow_node_session, prompt→create prompt session, thinking→create thinking session; `dispatch_workflow_node`, `dispatch_prompt_node`, `dispatch_thinking_node` | unit |
+| RTM-202 | FR-47 | `crates/maenifold-core/src/workflow/pipeline/update.rs` | TC-202: T-61.6 — Predecessor context reads from NodeState.output; `predecessor_context_from_output`, `predecessor_context_empty_when_no_output`, `predecessor_context_multiple_predecessors` | unit |
+| RTM-203 | FR-47 | `crates/maenifold-core/src/workflow/pipeline/executor.rs` | TC-203: T-61.7 — Per-node prompt assembly + type-based execution; `executor_prompt_node_single_shot`, `executor_thinking_node_drives_session`, `executor_captures_output`, `executor_assembles_predecessor_context` | unit |
+| RTM-204 | FR-47 | `crates/maenifold-core/src/workflow/pipeline/handler.rs` | TC-204: T-61.8 — Validate new node types on create/graft; `create_pipeline_with_prompt_node`, `create_pipeline_with_thinking_node`, `reject_prompt_node_missing_agent`, `reject_thinking_node_missing_topic` | unit |
+| RTM-205 | FR-47 | `crates/maenifold-core/src/workflow/pipeline/view.rs` | TC-205: T-61.9 — Mermaid display differentiates node types; `mermaid_shows_prompt_node_style`, `mermaid_shows_thinking_node_style`, `mermaid_shows_workflow_node_style` | unit |

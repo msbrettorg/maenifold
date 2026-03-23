@@ -419,6 +419,7 @@ mod tests {
                     session_id: "workflow-1735689600002-root".to_string(),
                     status: NodeStatus::Active,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -427,6 +428,7 @@ mod tests {
                     session_id: "workflow-1735689600002-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);

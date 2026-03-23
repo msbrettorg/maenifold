@@ -62,6 +62,27 @@ struct GraftRequest {
     edges: Vec<super::PipelineEdge>,
 }
 
+fn validate_workflow_node_definitions(
+    context: &ToolContext,
+    nodes: &[super::PipelineNode],
+) -> Result<()> {
+    for node in nodes {
+        if let Some(workflow_id) = node.workflow_id() {
+            read_workflow_definition(&context.config, workflow_id)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn workflow_node_file(node: &super::PipelineNode, session_id: String) -> Option<NodeFile> {
+    node.workflow_id().map(|workflow_id| NodeFile {
+        session_id,
+        node_id: node.id().to_string(),
+        workflow_id: workflow_id.to_string(),
+    })
+}
+
 // T-45.6a: RTM-333 / RTM-334 / RTM-314 / RTM-315 / RTM-316 / RTM-317
 // Pipeline create validates graph structure, persists pipeline state, and pre-creates node sessions.
 pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
@@ -112,6 +133,14 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
         .get("delete")
         .and_then(Value::as_bool)
         .unwrap_or(false);
+
+    if payload
+        .get("list")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return list_pipelines(context);
+    }
 
     if let (Some(session_id), Some(join_value)) = (session_id, payload.get("join")) {
         let join: JoinRequest = serde_json::from_value(join_value.clone())?;
@@ -184,6 +213,7 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
             "Invalid parameter combination.\n\n\
              VALID OPERATIONS:\n  \
               Create pipeline: definition\n  \
+              List pipelines: list=true\n  \
               Run pipeline: sessionId + run=true\n  \
               Pause pipeline: sessionId + pause=true\n  \
               Resume pipeline: sessionId + resume=true\n  \
@@ -217,26 +247,25 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
     let mut node_files = Vec::with_capacity(definition.nodes.len());
     let mut response_nodes = Vec::with_capacity(definition.nodes.len());
 
-    for node in &definition.nodes {
-        read_workflow_definition(&context.config, &node.workflow_id)?;
+    validate_workflow_node_definitions(context, &definition.nodes)?;
 
-        let session_id = generate_pipeline_node_session_id(timestamp_millis, &node.id);
+    for node in &definition.nodes {
+        let session_id = generate_pipeline_node_session_id(timestamp_millis, node.id());
         let state = NodeState {
             session_id: session_id.clone(),
             status: NodeStatus::Pending,
             attempts: 0,
+            output: None,
         };
 
-        node_states.insert(node.id.clone(), state.clone());
-        node_states_frontmatter.insert(node.id.clone(), serde_yaml::to_value(&state)?);
-        node_files.push(NodeFile {
-            session_id: session_id.clone(),
-            node_id: node.id.clone(),
-            workflow_id: node.workflow_id.clone(),
-        });
+        node_states.insert(node.id().to_string(), state.clone());
+        node_states_frontmatter.insert(node.id().to_string(), serde_yaml::to_value(&state)?);
+        if let Some(node_file) = workflow_node_file(node, session_id.clone()) {
+            node_files.push(node_file);
+        }
         response_nodes.push(json!({
-            "nodeId": node.id,
-            "workflowId": node.workflow_id,
+            "nodeId": node.id(),
+            "workflowId": node.workflow_id(),
             "sessionId": session_id,
         }));
     }
@@ -260,6 +289,80 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
         "nodes": response_nodes,
     });
 
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
+}
+
+fn list_pipelines(context: &ToolContext) -> Result<String> {
+    let pipelines_dir = context.config.memory_path.join("pipelines");
+    let mut pipelines = Vec::new();
+
+    if pipelines_dir.is_dir() {
+        for entry in walkdir::WalkDir::new(&pipelines_dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            if path.extension().is_some_and(|ext| ext == "md") {
+                let Some(session_id) = path.file_stem().and_then(|name| name.to_str()) else {
+                    continue;
+                };
+
+                let uri = pipeline_session_uri(session_id);
+                let Ok((Some(frontmatter), _, _)) = read_markdown(&uri, &context.config) else {
+                    continue;
+                };
+
+                if frontmatter.get("type").and_then(YamlValue::as_str) != Some("pipeline") {
+                    continue;
+                }
+
+                let node_states = frontmatter
+                    .get("nodeStates")
+                    .and_then(|value| {
+                        serde_yaml::from_value::<HashMap<String, NodeState>>(value.clone()).ok()
+                    })
+                    .unwrap_or_default();
+                let completed_count = node_states
+                    .values()
+                    .filter(|state| matches!(state.status, NodeStatus::Completed))
+                    .count();
+                let status = frontmatter
+                    .get("status")
+                    .and_then(YamlValue::as_str)
+                    .map(str::to_owned)
+                    .unwrap_or_else(|| super::compute_pipeline_status(&node_states).to_string());
+                let node_count = frontmatter
+                    .get("definition")
+                    .and_then(|value| {
+                        serde_yaml::from_value::<PipelineDefinition>(value.clone()).ok()
+                    })
+                    .map(|definition| definition.nodes.len())
+                    .unwrap_or(0);
+
+                pipelines.push(json!({
+                    "pipelineId": frontmatter
+                        .get("permalink")
+                        .and_then(YamlValue::as_str)
+                        .unwrap_or(session_id),
+                    "status": status,
+                    "nodeCount": node_count,
+                    "completedCount": completed_count,
+                }));
+            }
+        }
+    }
+
+    // Sort by pipelineId for deterministic output.
+    pipelines.sort_by(|a, b| {
+        let a_id = a.get("pipelineId").and_then(Value::as_str).unwrap_or("");
+        let b_id = b.get("pipelineId").and_then(Value::as_str).unwrap_or("");
+        a_id.cmp(b_id)
+    });
+
+    let result = json!({ "pipelines": pipelines });
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
@@ -400,13 +503,11 @@ fn resume_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
         )));
     }
 
-    if !supervisor_is_running(session_id) {
-        return Err(MaenifoldError::InvalidArgument(
-            "Pipeline process is no longer running; use run to restart".to_string(),
-        ));
+    if supervisor_is_running(session_id) {
+        supervisor_resume(session_id)?;
+    } else {
+        supervisor_run(context.config.maenifold_root.as_path(), session_id, "")?;
     }
-
-    supervisor_resume(session_id)?;
     persist_pipeline_state_with_status(
         &mut frontmatter,
         &node_states,
@@ -491,23 +592,22 @@ fn rewind_pipeline(
     for node in definition
         .nodes
         .iter()
-        .filter(|node| reset_node_ids.contains(&node.id))
+        .filter(|node| reset_node_ids.contains(node.id()))
     {
-        let workflow_session_id = allocate_node_session_id(context, &node.id)?;
-        let state = node_states.get_mut(&node.id).ok_or_else(|| {
+        let workflow_session_id = allocate_node_session_id(context, node.id())?;
+        let state = node_states.get_mut(node.id()).ok_or_else(|| {
             MaenifoldError::Message(format!(
                 "ERROR: Pipeline session missing node state for '{}'",
-                node.id
+                node.id()
             ))
         })?;
         state.session_id = workflow_session_id.clone();
         state.status = NodeStatus::Pending;
         state.attempts = 0;
-        new_node_files.push(NodeFile {
-            session_id: workflow_session_id,
-            node_id: node.id.clone(),
-            workflow_id: node.workflow_id.clone(),
-        });
+        state.output = None;
+        if let Some(node_file) = workflow_node_file(node, workflow_session_id) {
+            new_node_files.push(node_file);
+        }
     }
 
     for node_file in &new_node_files {
@@ -576,12 +676,12 @@ fn join_pipeline(
     let target_node_ids = target_definition
         .nodes
         .iter()
-        .map(|node| node.id.clone())
+        .map(|node| node.id().to_string())
         .collect::<HashSet<_>>();
     let source_node_ids = source_definition
         .nodes
         .iter()
-        .map(|node| node.id.clone())
+        .map(|node| node.id().to_string())
         .collect::<HashSet<_>>();
     let mut collisions = target_node_ids
         .intersection(&source_node_ids)
@@ -700,11 +800,43 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
     let forked_nodes = definition
         .nodes
         .iter()
-        .filter(|node| reachable.contains(&node.id))
-        .map(|node| super::PipelineNode {
-            id: node_id_map[&node.id].clone(),
-            workflow_id: node.workflow_id.clone(),
-            acp_client: node.acp_client.clone(),
+        .filter(|node| reachable.contains(node.id()))
+        .map(|node| match node {
+            super::PipelineNode::Workflow {
+                workflow_id,
+                acp_client,
+                prompt,
+                ..
+            } => super::PipelineNode::Workflow {
+                id: node_id_map[node.id()].clone(),
+                workflow_id: workflow_id.clone(),
+                acp_client: acp_client.clone(),
+                prompt: prompt.clone(),
+            },
+            super::PipelineNode::Prompt {
+                prompt,
+                agent,
+                tool_mode,
+                ..
+            } => super::PipelineNode::Prompt {
+                id: node_id_map[node.id()].clone(),
+                prompt: prompt.clone(),
+                agent: agent.clone(),
+                tool_mode: tool_mode.clone(),
+            },
+            super::PipelineNode::SequentialThinking {
+                topic,
+                total_thoughts,
+                analysis_type,
+                agent,
+                ..
+            } => super::PipelineNode::SequentialThinking {
+                id: node_id_map[node.id()].clone(),
+                topic: topic.clone(),
+                total_thoughts: *total_thoughts,
+                analysis_type: analysis_type.clone(),
+                agent: agent.clone(),
+            },
         })
         .collect::<Vec<_>>();
     let forked_edges = definition
@@ -727,26 +859,22 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
     let mut node_states = HashMap::with_capacity(forked_definition.nodes.len());
     let mut node_states_frontmatter = BTreeMap::new();
     for node in &forked_definition.nodes {
-        let workflow_session_id = allocate_node_session_id(context, &node.id)?;
+        let workflow_session_id = allocate_node_session_id(context, node.id())?;
         let state = NodeState {
             session_id: workflow_session_id.clone(),
             status: NodeStatus::Pending,
             attempts: 0,
+            output: None,
         };
-        node_states.insert(node.id.clone(), state.clone());
-        node_states_frontmatter.insert(node.id.clone(), serde_yaml::to_value(&state)?);
+        node_states.insert(node.id().to_string(), state.clone());
+        node_states_frontmatter.insert(node.id().to_string(), serde_yaml::to_value(&state)?);
     }
 
     for node in &forked_definition.nodes {
-        write_workflow_node_session(
-            context,
-            &new_session_id,
-            &NodeFile {
-                session_id: node_states[&node.id].session_id.clone(),
-                node_id: node.id.clone(),
-                workflow_id: node.workflow_id.clone(),
-            },
-        )?;
+        if let Some(node_file) = workflow_node_file(node, node_states[node.id()].session_id.clone())
+        {
+            write_workflow_node_session(context, &new_session_id, &node_file)?;
+        }
     }
 
     write_pipeline_session(
@@ -805,24 +933,21 @@ fn graft_pipeline(context: &ToolContext, session_id: &str, graft: GraftRequest) 
 
     let merged_definition = merge_graft_definition(&definition, &graft)?;
 
-    for node in &graft.nodes {
-        read_workflow_definition(&context.config, &node.workflow_id)?;
-    }
+    validate_workflow_node_definitions(context, &graft.nodes)?;
 
     let mut new_node_files = Vec::with_capacity(graft.nodes.len());
     for node in &graft.nodes {
-        let workflow_session_id = allocate_node_session_id(context, &node.id)?;
+        let workflow_session_id = allocate_node_session_id(context, node.id())?;
         let state = NodeState {
             session_id: workflow_session_id.clone(),
             status: NodeStatus::Pending,
             attempts: 0,
+            output: None,
         };
-        node_states.insert(node.id.clone(), state);
-        new_node_files.push(NodeFile {
-            session_id: workflow_session_id,
-            node_id: node.id.clone(),
-            workflow_id: node.workflow_id.clone(),
-        });
+        node_states.insert(node.id().to_string(), state);
+        if let Some(node_file) = workflow_node_file(node, workflow_session_id) {
+            new_node_files.push(node_file);
+        }
     }
 
     frontmatter.insert(
@@ -861,16 +986,15 @@ fn merge_graft_definition(
     let existing_node_ids = existing_definition
         .nodes
         .iter()
-        .map(|node| node.id.as_str())
+        .map(|node| node.id())
         .collect::<HashSet<_>>();
     let mut graft_node_ids = HashSet::with_capacity(graft.nodes.len());
 
     for node in &graft.nodes {
-        if existing_node_ids.contains(node.id.as_str()) || !graft_node_ids.insert(node.id.as_str())
-        {
+        if existing_node_ids.contains(node.id()) || !graft_node_ids.insert(node.id()) {
             return Err(MaenifoldError::InvalidArgument(format!(
                 "Pipeline graft contains duplicate node ID '{}'",
-                node.id
+                node.id()
             )));
         }
     }
@@ -889,29 +1013,19 @@ fn merge_graft_definition(
             .chain(graft.edges.iter().cloned())
             .collect(),
     };
-    let merged_node_ids = merged_definition
-        .nodes
-        .iter()
-        .map(|node| node.id.as_str())
-        .collect::<HashSet<_>>();
-
-    for edge in &merged_definition.edges {
-        if !merged_node_ids.contains(edge.source.as_str()) {
+    let graph = merged_definition.build_graph();
+    if let Err(error) = validate_pipeline(&merged_definition) {
+        if is_cyclic_directed(&graph) {
+            let cycle = find_cycle_nodes(&graph).unwrap_or_else(|| vec!["<unknown>".to_string()]);
             return Err(MaenifoldError::InvalidArgument(format!(
-                "Pipeline edge references unknown source node '{}'",
-                edge.source
+                "Pipeline graft would create a cycle: {}",
+                cycle.join(" -> ")
             )));
         }
 
-        if !merged_node_ids.contains(edge.target.as_str()) {
-            return Err(MaenifoldError::InvalidArgument(format!(
-                "Pipeline edge references unknown target node '{}'",
-                edge.target
-            )));
-        }
+        return Err(error);
     }
 
-    let graph = merged_definition.build_graph();
     if is_cyclic_directed(&graph) {
         let cycle = find_cycle_nodes(&graph).unwrap_or_else(|| vec!["<unknown>".to_string()]);
         return Err(MaenifoldError::InvalidArgument(format!(
@@ -987,12 +1101,15 @@ fn ensure_workflow_sessions(
     node_states: &HashMap<String, NodeState>,
 ) -> Result<()> {
     for node in &definition.nodes {
-        let state = node_states.get(&node.id).ok_or_else(|| {
+        let state = node_states.get(node.id()).ok_or_else(|| {
             MaenifoldError::Message(format!(
                 "ERROR: Pipeline session missing node state for '{}'",
-                node.id
+                node.id()
             ))
         })?;
+        let Some(node_file) = workflow_node_file(node, state.session_id.clone()) else {
+            continue;
+        };
         let workflow_uri = workflow_session_uri(&state.session_id);
         if file_exists(&workflow_uri, &context.config)? {
             continue;
@@ -1001,11 +1118,7 @@ fn ensure_workflow_sessions(
         write_workflow_node_session_with_status(
             context,
             pipeline_id,
-            &NodeFile {
-                session_id: state.session_id.clone(),
-                node_id: node.id.clone(),
-                workflow_id: node.workflow_id.clone(),
-            },
+            &node_file,
             node_status_name(&state.status),
         )?;
     }
@@ -1128,6 +1241,7 @@ mod tests {
                     session_id: "workflow-1735689600200-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -1136,6 +1250,7 @@ mod tests {
                     session_id: "workflow-1735689600200-child".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
         ]);
@@ -1177,6 +1292,50 @@ mod tests {
 
     #[test]
     #[serial(config)]
+    fn list_pipelines_returns_empty_when_no_pipelines() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+
+        let output = pipeline(&context, &json!({ "list": true })).expect("list should succeed");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+        let pipelines = data
+            .get("pipelines")
+            .and_then(Value::as_array)
+            .expect("pipelines array");
+
+        assert!(
+            pipelines.is_empty(),
+            "expected empty list, got {pipelines:?}"
+        );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn list_pipelines_returns_seeded_sessions() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let session_id = "pipeline-1735689600001";
+        seed_pipeline_view_session(&context, session_id, "pipeline");
+
+        let output = pipeline(&context, &json!({ "list": true })).expect("list should succeed");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+        let pipelines = data
+            .get("pipelines")
+            .and_then(Value::as_array)
+            .expect("pipelines array");
+
+        assert_eq!(pipelines.len(), 1);
+        let entry = &pipelines[0];
+        assert_eq!(
+            entry.get("pipelineId").and_then(Value::as_str),
+            Some(session_id)
+        );
+        assert_eq!(entry.get("nodeCount").and_then(Value::as_u64), Some(3));
+        assert_eq!(entry.get("completedCount").and_then(Value::as_u64), Some(1));
+    }
+
+    #[test]
+    #[serial(config)]
     fn pipeline_delete_running_pipeline_rejects_active_nodes() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600201";
@@ -1187,6 +1346,7 @@ mod tests {
                     session_id: "workflow-1735689600201-root".to_string(),
                     status: NodeStatus::Active,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -1195,6 +1355,7 @@ mod tests {
                     session_id: "workflow-1735689600201-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -1227,6 +1388,7 @@ mod tests {
                     session_id: "workflow-1735689600202-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -1235,6 +1397,7 @@ mod tests {
                     session_id: missing_workflow_id.to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
         ]);
@@ -1329,6 +1492,7 @@ mod tests {
                     session_id: "workflow-1735689600202-root".to_string(),
                     status: NodeStatus::Active,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -1337,6 +1501,7 @@ mod tests {
                     session_id: "workflow-1735689600202-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -1367,6 +1532,7 @@ mod tests {
                     session_id: "workflow-1735689600203-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -1375,6 +1541,7 @@ mod tests {
                     session_id: "workflow-1735689600203-child".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
         ]);
@@ -1385,6 +1552,7 @@ mod tests {
                     session_id: "workflow-1735689600204-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -1393,6 +1561,7 @@ mod tests {
                     session_id: "workflow-1735689600204-child".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
         ]);
@@ -1423,6 +1592,7 @@ mod tests {
                     session_id: "workflow-1735689600205-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
             (
@@ -1431,6 +1601,7 @@ mod tests {
                     session_id: "workflow-1735689600205-child".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             ),
         ]);
@@ -1477,20 +1648,23 @@ mod tests {
             pipeline_id,
             PipelineDefinition {
                 nodes: vec![
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "a".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "b".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "c".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
                 ],
                 edges: vec![
@@ -1513,6 +1687,7 @@ mod tests {
                         session_id: root_session_id.clone(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
                 (
@@ -1521,6 +1696,7 @@ mod tests {
                         session_id: middle_session_id.clone(),
                         status: NodeStatus::Completed,
                         attempts: 2,
+                        output: None,
                     },
                 ),
                 (
@@ -1529,6 +1705,7 @@ mod tests {
                         session_id: leaf_session_id.clone(),
                         status: NodeStatus::Pending,
                         attempts: 3,
+                        output: None,
                     },
                 ),
             ]),
@@ -1588,20 +1765,23 @@ mod tests {
             pipeline_id,
             PipelineDefinition {
                 nodes: vec![
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "a".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "b".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "c".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
                 ],
                 edges: vec![
@@ -1624,6 +1804,7 @@ mod tests {
                         session_id: old_session_ids["a"].clone(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
                 (
@@ -1632,6 +1813,7 @@ mod tests {
                         session_id: old_session_ids["b"].clone(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
                 (
@@ -1640,6 +1822,7 @@ mod tests {
                         session_id: old_session_ids["c"].clone(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
             ]),
@@ -1692,10 +1875,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("runner-agent".to_string()),
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -1705,6 +1889,7 @@ mod tests {
                     session_id: workflow_session_id.to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             1,
@@ -1748,10 +1933,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -1761,6 +1947,7 @@ mod tests {
                     session_id: "workflow-1735689600064-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             1,
@@ -1788,15 +1975,17 @@ mod tests {
             pipeline_id,
             PipelineDefinition {
                 nodes: vec![
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "root".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "child".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
                 ],
                 edges: vec![super::super::PipelineEdge {
@@ -1812,6 +2001,7 @@ mod tests {
                         session_id: "workflow-1735689600990-root".to_string(),
                         status: NodeStatus::Active,
                         attempts: 1,
+                        output: None,
                     },
                 ),
                 (
@@ -1820,6 +2010,7 @@ mod tests {
                         session_id: "workflow-1735689600990-child".to_string(),
                         status: NodeStatus::Pending,
                         attempts: 0,
+                        output: None,
                     },
                 ),
             ]),
@@ -1853,10 +2044,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -1866,6 +2058,7 @@ mod tests {
                     session_id: workflow_session_id.to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             1,
@@ -1922,10 +2115,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -1935,6 +2129,7 @@ mod tests {
                     session_id: workflow_session_id.to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             1,
@@ -1990,10 +2185,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -2003,6 +2199,7 @@ mod tests {
                     session_id: workflow_session_id.to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             1,
@@ -2029,13 +2226,22 @@ mod tests {
         );
         assert!(pause_data.get("pid").is_none() || pause_data.get("pid") == Some(&Value::Null));
 
-        let (frontmatter, _, _) =
-            read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read file");
-        let frontmatter = frontmatter.expect("frontmatter");
-        assert_eq!(
-            frontmatter.get("status").and_then(YamlValue::as_str),
-            Some("paused")
-        );
+        let read_pipeline_status = || {
+            for _ in 0..20 {
+                let (frontmatter, _, _) =
+                    read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
+                        .expect("read file");
+                if let Some(frontmatter) = frontmatter {
+                    return frontmatter
+                        .get("status")
+                        .and_then(YamlValue::as_str)
+                        .map(str::to_string);
+                }
+                std::thread::sleep(std::time::Duration::from_millis(25));
+            }
+            None
+        };
+        assert_eq!(read_pipeline_status().as_deref(), Some("paused"));
 
         let resume_output = pipeline(
             &context,
@@ -2055,13 +2261,7 @@ mod tests {
         );
         assert!(resume_data.get("pid").is_none() || resume_data.get("pid") == Some(&Value::Null));
 
-        let (frontmatter, _, _) =
-            read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read file");
-        let frontmatter = frontmatter.expect("frontmatter");
-        assert_eq!(
-            frontmatter.get("status").and_then(YamlValue::as_str),
-            Some("active")
-        );
+        assert_eq!(read_pipeline_status().as_deref(), Some("active"));
 
         super::super::supervisor::supervisor_cancel(pipeline_id).expect("cleanup running process");
     }
@@ -2257,6 +2457,79 @@ mod tests {
 
     #[test]
     #[serial(config)]
+    fn pipeline_create_accepts_mixed_node_types() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let payload = json!({
+            "definition": {
+                "nodes": [
+                    { "id": "root", "workflowId": "test-workflow-a" },
+                    {
+                        "id": "prompt",
+                        "type": "prompt",
+                        "prompt": "Summarize the workflow result",
+                        "agent": "prompt-agent"
+                    },
+                    {
+                        "id": "thinking",
+                        "type": "sequentialThinking",
+                        "topic": "Review the workflow output",
+                        "totalThoughts": 3,
+                        "agent": "thinking-agent"
+                    }
+                ],
+                "edges": [
+                    { "source": "root", "target": "prompt" },
+                    { "source": "prompt", "target": "thinking" }
+                ]
+            }
+        });
+
+        let output = pipeline(&context, &payload).expect("create mixed pipeline");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+        let pipeline_id = data
+            .get("pipelineId")
+            .and_then(Value::as_str)
+            .expect("pipeline id");
+        let nodes = data
+            .get("nodes")
+            .and_then(Value::as_array)
+            .expect("nodes array");
+
+        assert_eq!(nodes.len(), 3);
+        assert!(nodes.iter().any(|node| {
+            node.get("nodeId") == Some(&Value::String("root".to_string()))
+                && node.get("workflowId") == Some(&Value::String("test-workflow-a".to_string()))
+        }));
+        assert!(nodes.iter().any(|node| {
+            node.get("nodeId") == Some(&Value::String("prompt".to_string()))
+                && node.get("workflowId") == Some(&Value::Null)
+        }));
+        assert!(nodes.iter().any(|node| {
+            node.get("nodeId") == Some(&Value::String("thinking".to_string()))
+                && node.get("workflowId") == Some(&Value::Null)
+        }));
+
+        let (frontmatter, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
+                .expect("read pipeline");
+        let frontmatter = frontmatter.expect("pipeline frontmatter");
+        let definition: PipelineDefinition =
+            frontmatter_value(&frontmatter, "definition").expect("pipeline definition");
+
+        assert_eq!(definition.nodes.len(), 3);
+        assert!(definition.nodes.iter().any(
+            |node| matches!(node, super::super::PipelineNode::Prompt { id, .. } if id == "prompt")
+        ));
+        assert!(definition.nodes.iter().any(|node| matches!(
+            node,
+            super::super::PipelineNode::SequentialThinking { id, total_thoughts, .. }
+                if id == "thinking" && *total_thoughts == 3
+        )));
+    }
+
+    #[test]
+    #[serial(config)]
     fn pipeline_create_defaults_max_concurrency_to_eight() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let payload = json!({
@@ -2351,6 +2624,34 @@ mod tests {
 
     #[test]
     #[serial(config)]
+    fn pipeline_create_surfaces_type_specific_validation_errors() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let payload = json!({
+            "definition": {
+                "nodes": [
+                    {
+                        "id": "bad-prompt",
+                        "type": "prompt",
+                        "prompt": "   ",
+                        "agent": "prompt-agent"
+                    }
+                ],
+                "edges": []
+            }
+        });
+
+        let error = pipeline(&context, &payload).expect_err("invalid prompt node should fail");
+        let message = error.to_string();
+
+        assert!(
+            message.contains("bad-prompt"),
+            "unexpected error: {message}"
+        );
+        assert!(message.contains("prompt"), "unexpected error: {message}");
+    }
+
+    #[test]
+    #[serial(config)]
     fn pipeline_graft_completed_pipeline_adds_node_and_persists_sessions() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600051";
@@ -2358,10 +2659,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -2371,6 +2673,7 @@ mod tests {
                     session_id: "workflow-1735689600051-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             2,
@@ -2434,6 +2737,100 @@ mod tests {
 
     #[test]
     #[serial(config)]
+    fn pipeline_graft_accepts_new_node_types() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600051-mixed";
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![super::super::PipelineNode::Workflow {
+                    id: "root".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: None,
+                    prompt: None,
+                }],
+                edges: vec![],
+            },
+            HashMap::from([(
+                "root".to_string(),
+                NodeState {
+                    session_id: "workflow-1735689600051-mixed-root".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                    output: None,
+                },
+            )]),
+            2,
+        );
+        set_pipeline_status(&context, pipeline_id, "completed");
+
+        let output = pipeline(
+            &context,
+            &json!({
+                "sessionId": pipeline_id,
+                "graft": {
+                    "nodes": [
+                        {
+                            "id": "prompt",
+                            "type": "prompt",
+                            "prompt": "Summarize the root output",
+                            "agent": "prompt-agent"
+                        },
+                        {
+                            "id": "thinking",
+                            "type": "sequentialThinking",
+                            "topic": "Review the root result",
+                            "totalThoughts": 2,
+                            "agent": "thinking-agent"
+                        }
+                    ],
+                    "edges": [
+                        { "source": "root", "target": "prompt" },
+                        { "source": "prompt", "target": "thinking" }
+                    ]
+                }
+            }),
+        )
+        .expect("graft mixed nodes succeeds");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let nodes = response
+            .get("data")
+            .and_then(|data| data.get("nodes"))
+            .and_then(Value::as_array)
+            .expect("nodes array");
+
+        assert_eq!(nodes.len(), 3);
+        assert!(nodes.iter().any(|node| {
+            node.get("nodeId") == Some(&Value::String("prompt".to_string()))
+                && node.get("agent") == Some(&Value::String("prompt-agent".to_string()))
+        }));
+        assert!(nodes.iter().any(|node| {
+            node.get("nodeId") == Some(&Value::String("thinking".to_string()))
+                && node.get("agent") == Some(&Value::String("thinking-agent".to_string()))
+                && node.get("topic") == Some(&Value::String("Review the root result".to_string()))
+        }));
+
+        let (frontmatter, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
+                .expect("read pipeline");
+        let frontmatter = frontmatter.expect("pipeline frontmatter");
+        let definition: PipelineDefinition =
+            frontmatter_value(&frontmatter, "definition").expect("pipeline definition");
+
+        assert_eq!(definition.nodes.len(), 3);
+        assert!(definition.nodes.iter().any(
+            |node| matches!(node, super::super::PipelineNode::Prompt { id, .. } if id == "prompt")
+        ));
+        assert!(definition.nodes.iter().any(|node| matches!(
+            node,
+            super::super::PipelineNode::SequentialThinking { id, total_thoughts, .. }
+                if id == "thinking" && *total_thoughts == 2
+        )));
+    }
+
+    #[test]
+    #[serial(config)]
     fn pipeline_graft_rejects_cycles_without_mutation() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         let pipeline_id = "pipeline-1735689600052";
@@ -2442,15 +2839,17 @@ mod tests {
             pipeline_id,
             PipelineDefinition {
                 nodes: vec![
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "a".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "b".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
                 ],
                 edges: vec![super::super::PipelineEdge {
@@ -2466,6 +2865,7 @@ mod tests {
                         session_id: "workflow-1735689600052-a".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
                 (
@@ -2474,6 +2874,7 @@ mod tests {
                         session_id: "workflow-1735689600052-b".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
             ]),
@@ -2529,10 +2930,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -2542,6 +2944,7 @@ mod tests {
                     session_id: "workflow-1735689600053-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             2,
@@ -2582,10 +2985,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -2595,6 +2999,7 @@ mod tests {
                     session_id: "workflow-1735689600054-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             2,
@@ -2634,10 +3039,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -2647,6 +3053,7 @@ mod tests {
                     session_id: "workflow-1735689600055-root".to_string(),
                     status: NodeStatus::Active,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             2,
@@ -2689,10 +3096,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -2702,6 +3110,7 @@ mod tests {
                     session_id: "workflow-1735689600056-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             2,
@@ -2743,10 +3152,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -2756,6 +3166,7 @@ mod tests {
                     session_id: "workflow-1735689600057-root".to_string(),
                     status: NodeStatus::Stuck,
                     attempts: 2,
+                    output: None,
                 },
             )]),
             2,
@@ -2806,6 +3217,7 @@ mod tests {
                         session_id: "workflow-1735689600058-root".to_string(),
                         status: NodeStatus::Pending,
                         attempts: 0,
+                        output: None,
                     },
                 ),
                 (
@@ -2814,6 +3226,7 @@ mod tests {
                         session_id: "workflow-1735689600058-child".to_string(),
                         status: NodeStatus::Pending,
                         attempts: 0,
+                        output: None,
                     },
                 ),
             ]),
@@ -2858,10 +3271,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -2871,6 +3285,7 @@ mod tests {
                     session_id: "workflow-1735689600059-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             2,
@@ -2904,10 +3319,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -2917,6 +3333,7 @@ mod tests {
                     session_id: "workflow-1735689600060-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             2,
@@ -2975,10 +3392,11 @@ mod tests {
             &context,
             target_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "target-root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -2988,6 +3406,7 @@ mod tests {
                     session_id: "workflow-1735689600100-target-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             3,
@@ -2997,15 +3416,17 @@ mod tests {
             source_id,
             PipelineDefinition {
                 nodes: vec![
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "source-root".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "source-leaf".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
                 ],
                 edges: vec![super::super::PipelineEdge {
@@ -3021,6 +3442,7 @@ mod tests {
                         session_id: "workflow-1735689600200-source-root".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 2,
+                        output: None,
                     },
                 ),
                 (
@@ -3029,6 +3451,7 @@ mod tests {
                         session_id: "workflow-1735689600200-source-leaf".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
             ]),
@@ -3101,10 +3524,11 @@ mod tests {
                 &context,
                 session_id,
                 PipelineDefinition {
-                    nodes: vec![super::super::PipelineNode {
+                    nodes: vec![super::super::PipelineNode::Workflow {
                         id: "shared".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     }],
                     edges: vec![],
                 },
@@ -3114,6 +3538,7 @@ mod tests {
                         session_id: format!("workflow-{session_id}-shared"),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 )]),
                 2,
@@ -3147,15 +3572,17 @@ mod tests {
             target_id,
             PipelineDefinition {
                 nodes: vec![
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "a".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "b".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
                 ],
                 edges: vec![super::super::PipelineEdge {
@@ -3171,6 +3598,7 @@ mod tests {
                         session_id: "workflow-1735689600500-a".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 0,
+                        output: None,
                     },
                 ),
                 (
@@ -3179,6 +3607,7 @@ mod tests {
                         session_id: "workflow-1735689600500-b".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
             ]),
@@ -3188,10 +3617,11 @@ mod tests {
             &context,
             source_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "c".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -3201,6 +3631,7 @@ mod tests {
                     session_id: "workflow-1735689600600-c".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             2,
@@ -3235,10 +3666,11 @@ mod tests {
             &context,
             target_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "target-root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -3248,6 +3680,7 @@ mod tests {
                     session_id: "workflow-1735689600601-target-root".to_string(),
                     status: NodeStatus::Ready,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             2,
@@ -3256,10 +3689,11 @@ mod tests {
             &context,
             source_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "source-root".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -3269,6 +3703,7 @@ mod tests {
                     session_id: "workflow-1735689600602-source-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             2,
@@ -3301,10 +3736,11 @@ mod tests {
             &context,
             target_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "target-root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -3314,6 +3750,7 @@ mod tests {
                     session_id: "workflow-1735689600603-target-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             2,
@@ -3322,10 +3759,11 @@ mod tests {
             &context,
             source_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "source-root".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -3335,6 +3773,7 @@ mod tests {
                     session_id: "workflow-1735689600604-source-root".to_string(),
                     status: NodeStatus::Active,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             2,
@@ -3367,10 +3806,11 @@ mod tests {
             &context,
             target_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "target-root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -3380,6 +3820,7 @@ mod tests {
                     session_id: "workflow-1735689600605-target-root".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             2,
@@ -3389,15 +3830,17 @@ mod tests {
             source_id,
             PipelineDefinition {
                 nodes: vec![
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "source-root".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "source-leaf".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
                 ],
                 edges: vec![super::super::PipelineEdge {
@@ -3413,6 +3856,7 @@ mod tests {
                         session_id: "workflow-1735689600606-source-root".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
                 (
@@ -3421,6 +3865,7 @@ mod tests {
                         session_id: "workflow-1735689600606-source-leaf".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
             ]),
@@ -3460,15 +3905,17 @@ mod tests {
             source_id,
             PipelineDefinition {
                 nodes: vec![
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "root".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "child".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
                 ],
                 edges: vec![super::super::PipelineEdge {
@@ -3484,6 +3931,7 @@ mod tests {
                         session_id: "workflow-1735689600698-root".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
                 (
@@ -3492,6 +3940,7 @@ mod tests {
                         session_id: "workflow-1735689600698-child".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
             ]),
@@ -3501,10 +3950,11 @@ mod tests {
             &context,
             existing_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "existing".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -3514,6 +3964,7 @@ mod tests {
                     session_id: "workflow-1735689600699-existing".to_string(),
                     status: NodeStatus::Completed,
                     attempts: 1,
+                    output: None,
                 },
             )]),
             1,
@@ -3549,25 +4000,29 @@ mod tests {
             source_id,
             PipelineDefinition {
                 nodes: vec![
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "root".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "middle".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "left".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "right".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
                 ],
                 edges: vec![
@@ -3595,6 +4050,7 @@ mod tests {
                         session_id: "workflow-1735689600700-root".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
                 (
@@ -3603,6 +4059,7 @@ mod tests {
                         session_id: "workflow-1735689600700-middle".to_string(),
                         status: NodeStatus::Active,
                         attempts: 2,
+                        output: None,
                     },
                 ),
                 (
@@ -3611,6 +4068,7 @@ mod tests {
                         session_id: "workflow-1735689600700-left".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 3,
+                        output: None,
                     },
                 ),
                 (
@@ -3619,6 +4077,7 @@ mod tests {
                         session_id: "workflow-1735689600700-right".to_string(),
                         status: NodeStatus::Stuck,
                         attempts: 4,
+                        output: None,
                     },
                 ),
             ]),
@@ -3677,7 +4136,7 @@ mod tests {
             definition
                 .nodes
                 .iter()
-                .all(|node| node.id.starts_with(&format!("fork-{new_id}-")))
+                .all(|node| node.id().starts_with(&format!("fork-{new_id}-")))
         );
     }
 
@@ -3693,15 +4152,17 @@ mod tests {
             source_id,
             PipelineDefinition {
                 nodes: vec![
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "root".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
-                    super::super::PipelineNode {
+                    super::super::PipelineNode::Workflow {
                         id: "leaf".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: None,
+                        prompt: None,
                     },
                 ],
                 edges: vec![super::super::PipelineEdge {
@@ -3717,6 +4178,7 @@ mod tests {
                         session_id: "workflow-1735689600800-root".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
                 (
@@ -3725,6 +4187,7 @@ mod tests {
                         session_id: "workflow-1735689600800-leaf".to_string(),
                         status: NodeStatus::Completed,
                         attempts: 1,
+                        output: None,
                     },
                 ),
             ]),
@@ -3772,10 +4235,11 @@ mod tests {
             &context,
             source_id,
             PipelineDefinition {
-                nodes: vec![super::super::PipelineNode {
+                nodes: vec![super::super::PipelineNode::Workflow {
                     id: "solo".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -3785,6 +4249,7 @@ mod tests {
                     session_id: "workflow-1735689600900-solo".to_string(),
                     status: NodeStatus::Active,
                     attempts: 9,
+                    output: None,
                 },
             )]),
             1,

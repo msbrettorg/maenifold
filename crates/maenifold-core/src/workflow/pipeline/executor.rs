@@ -7,7 +7,10 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
+use crate::acpx_driver::AcpxDriver;
 use crate::error::{MaenifoldError, Result};
+use crate::markdown::read_markdown;
+use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
@@ -16,7 +19,7 @@ use super::dispatch::dispatch_pipeline;
 use super::session_io::{derive_pipeline_node_states, frontmatter_value, read_pipeline_session};
 use super::supervisor::supervisor_wait_if_paused;
 use super::update::update_pipeline_node_status;
-use super::{NodeStatus, PipelineDefinition};
+use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
 const DEFAULT_MAX_CONCURRENCY: usize = 8;
 const MAX_CONCLUSION_CHARS: usize = 4096;
@@ -51,7 +54,7 @@ struct DispatchResult {
 struct DispatchedNode {
     node_id: String,
     #[allow(dead_code)]
-    workflow_id: String,
+    session_id: Option<String>,
 }
 
 pub(super) async fn execute_pipeline(
@@ -64,8 +67,9 @@ pub(super) async fn execute_pipeline(
     let (definition, max_concurrency) = load_execution_config(&json_context, session_id)?;
     let nodes_by_id = definition
         .nodes
-        .into_iter()
-        .map(|node| (node.id.clone(), node))
+        .iter()
+        .cloned()
+        .map(|node| (node.id().to_string(), node))
         .collect::<HashMap<_, _>>();
     let semaphore = Arc::new(Semaphore::new(max_concurrency));
     let mut join_set = JoinSet::new();
@@ -84,6 +88,11 @@ pub(super) async fn execute_pipeline(
         }
 
         let dispatched = parse_dispatch_result(dispatch_pipeline(&json_context, session_id)?)?;
+        let node_states = if dispatched.is_empty() {
+            None
+        } else {
+            Some(load_pipeline_node_states(&json_context, session_id)?)
+        };
         for dispatch in &dispatched {
             let permit = semaphore.clone().acquire_owned().await.map_err(|_| {
                 MaenifoldError::Message(
@@ -97,8 +106,8 @@ pub(super) async fn execute_pipeline(
                 ))
             })?;
             let node_id = dispatch.node_id.clone();
-            let agent = match &node.acp_client {
-                Some(client) => client.clone(),
+            let agent = match node.acp_client() {
+                Some(client) => client.to_string(),
                 None => {
                     drop(permit);
                     update_pipeline_node_status(
@@ -112,12 +121,47 @@ pub(super) async fn execute_pipeline(
                     continue;
                 }
             };
-            let workflow_id = node.workflow_id.clone();
-            let prompt = prompt.clone();
+            let execution = build_node_execution_request(
+                &json_context,
+                &definition,
+                node_states.as_ref().expect("loaded for dispatched nodes"),
+                node,
+                dispatch,
+                &prompt,
+            )?;
             let ctx = ToolContext::new(context.config.clone(), context.output_format);
             join_set.spawn(async move {
                 let _permit = permit;
-                let result = runner::run_workflow(&ctx, &workflow_id, &agent, &prompt).await;
+                let result = match execution {
+                    NodeExecutionRequest::Workflow {
+                        workflow_id,
+                        prompt,
+                    } => NodeTaskResult::Workflow(
+                        runner::run_workflow(&ctx, &workflow_id, &agent, &prompt).await,
+                    ),
+                    NodeExecutionRequest::Prompt {
+                        session_id,
+                        prompt,
+                        tool_mode,
+                    } => NodeTaskResult::Prompt(
+                        run_prompt_node(&ctx, &agent, &session_id, &prompt, &tool_mode).await,
+                    ),
+                    NodeExecutionRequest::SequentialThinking {
+                        topic,
+                        total_thoughts,
+                    } => NodeTaskResult::SequentialThinking(
+                        runner::run_think(
+                            &ctx,
+                            &agent,
+                            &topic,
+                            runner::ThinkOptions {
+                                total_thoughts,
+                                parent_workflow_id: None,
+                            },
+                        )
+                        .await,
+                    ),
+                };
                 (node_id, result)
             });
         }
@@ -138,7 +182,7 @@ pub(super) async fn execute_pipeline(
             MaenifoldError::Message(format!("ERROR: Node task failed: {error}"))
         })?;
 
-        match classify_workflow_result(result) {
+        match classify_node_result(result) {
             NodeOutcome::Completed(conclusion) => {
                 update_pipeline_node_status(
                     &json_context,
@@ -176,6 +220,108 @@ pub(super) async fn execute_pipeline(
     })
 }
 
+fn load_pipeline_node_states(
+    context: &ToolContext,
+    session_id: &str,
+) -> Result<HashMap<String, NodeState>> {
+    let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
+    derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)
+}
+
+enum NodeExecutionRequest {
+    Workflow {
+        workflow_id: String,
+        prompt: String,
+    },
+    Prompt {
+        session_id: String,
+        prompt: String,
+        tool_mode: String,
+    },
+    SequentialThinking {
+        topic: String,
+        total_thoughts: u32,
+    },
+}
+
+fn build_node_execution_request(
+    context: &ToolContext,
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+    node: &PipelineNode,
+    dispatch: &DispatchedNode,
+    ambient_prompt: &str,
+) -> Result<NodeExecutionRequest> {
+    let assembled_prompt =
+        assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?;
+
+    Ok(match node {
+        PipelineNode::Workflow { workflow_id, .. } => NodeExecutionRequest::Workflow {
+            workflow_id: workflow_id.clone(),
+            prompt: assembled_prompt,
+        },
+        PipelineNode::Prompt { tool_mode, .. } => NodeExecutionRequest::Prompt {
+            session_id: dispatch.session_id.clone().unwrap_or_else(|| {
+                node_states
+                    .get(node.id())
+                    .map(|state| state.session_id.clone())
+                    .unwrap_or_else(|| format!("pipeline-{}", node.id()))
+            }),
+            prompt: assembled_prompt,
+            tool_mode: tool_mode.clone(),
+        },
+        PipelineNode::SequentialThinking { total_thoughts, .. } => {
+            NodeExecutionRequest::SequentialThinking {
+            topic: assembled_prompt,
+            total_thoughts: *total_thoughts,
+            }
+        }
+    })
+}
+
+fn assemble_node_prompt(
+    context: &ToolContext,
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+    node: &PipelineNode,
+    ambient_prompt: &str,
+) -> Result<String> {
+    let predecessor_context =
+        predecessor_context_content(context, definition, node_states, node.id())?;
+    let ambient_prompt = ambient_prompt.trim();
+    let node_instruction = match node {
+        PipelineNode::Workflow { prompt, .. } => prompt.as_deref(),
+        PipelineNode::Prompt { prompt, .. } => Some(prompt.as_str()),
+        PipelineNode::SequentialThinking { topic, .. } => Some(topic.as_str()),
+    }
+    .map(str::trim)
+    .filter(|value| !value.is_empty());
+
+    let workflow_fallback =
+        matches!(node, PipelineNode::Workflow { .. }) && node_instruction.is_none();
+    let mut parts = Vec::new();
+
+    if let Some(context) = predecessor_context
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        parts.push(context.to_string());
+    }
+
+    if !ambient_prompt.is_empty() {
+        parts.push(ambient_prompt.to_string());
+    }
+
+    if !workflow_fallback {
+        if let Some(instruction) = node_instruction {
+            parts.push(instruction.to_string());
+        }
+    }
+
+    Ok(parts.join("\n\n"))
+}
+
 fn load_execution_config(
     context: &ToolContext,
     session_id: &str,
@@ -209,6 +355,20 @@ enum NodeOutcome {
     Abandoned,
 }
 
+enum NodeTaskResult {
+    Workflow(Result<runner::WorkflowResult>),
+    Prompt(Result<String>),
+    SequentialThinking(Result<runner::ThinkResult>),
+}
+
+fn classify_node_result(result: NodeTaskResult) -> NodeOutcome {
+    match result {
+        NodeTaskResult::Workflow(result) => classify_workflow_result(result),
+        NodeTaskResult::Prompt(result) => classify_prompt_result(result),
+        NodeTaskResult::SequentialThinking(result) => classify_think_result(result),
+    }
+}
+
 fn classify_workflow_result(result: Result<runner::WorkflowResult>) -> NodeOutcome {
     match result {
         Ok(wf) => match wf.status {
@@ -220,6 +380,125 @@ fn classify_workflow_result(result: Result<runner::WorkflowResult>) -> NodeOutco
         },
         Err(_) => NodeOutcome::Abandoned,
     }
+}
+
+fn classify_prompt_result(result: Result<String>) -> NodeOutcome {
+    match result {
+        Ok(response) if !response.trim().is_empty() => NodeOutcome::Completed(response),
+        Ok(_) | Err(_) => NodeOutcome::Abandoned,
+    }
+}
+
+fn classify_think_result(result: Result<runner::ThinkResult>) -> NodeOutcome {
+    match result {
+        Ok(think) => think
+            .conclusion
+            .map(|conclusion| conclusion.trim().to_string())
+            .filter(|conclusion| !conclusion.is_empty())
+            .map(NodeOutcome::Completed)
+            .unwrap_or(NodeOutcome::Abandoned),
+        Err(_) => NodeOutcome::Abandoned,
+    }
+}
+
+async fn run_prompt_node(
+    context: &ToolContext,
+    agent: &str,
+    session_id: &str,
+    prompt: &str,
+    _tool_mode: &str,
+) -> Result<String> {
+    let driver = AcpxDriver::new(agent.to_string(), 0, context.config.maenifold_root.clone())
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    driver
+        .create_session(session_id)
+        .await
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+
+    let response = driver
+        .prompt(session_id, prompt)
+        .await
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
+        return Err(MaenifoldError::Message(error));
+    }
+
+    Ok(response.text.trim().to_string())
+}
+
+fn predecessor_context_content(
+    context: &ToolContext,
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+    downstream_node_id: &str,
+) -> Result<Option<String>> {
+    let mut sections = Vec::new();
+
+    for edge in definition.edges.iter().filter(|edge| {
+        edge.target == downstream_node_id
+            && matches!(edge.edge_type, EdgeType::Success | EdgeType::Always)
+    }) {
+        let Some(upstream_state) = node_states.get(&edge.source) else {
+            continue;
+        };
+        if upstream_state.status != NodeStatus::Completed {
+            continue;
+        }
+
+        let Some(content) =
+            predecessor_context_source(context, definition, &edge.source, upstream_state)?
+        else {
+            continue;
+        };
+
+        sections.push(format!("### From {}\n\n{}", edge.source, content));
+    }
+
+    if sections.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(sections.join("\n\n")))
+    }
+}
+
+fn predecessor_context_source(
+    context: &ToolContext,
+    definition: &PipelineDefinition,
+    upstream_node_id: &str,
+    upstream_state: &NodeState,
+) -> Result<Option<String>> {
+    if let Some(output) = upstream_state
+        .output
+        .as_deref()
+        .map(str::trim)
+        .filter(|output| !output.is_empty())
+    {
+        return Ok(Some(output.to_string()));
+    }
+
+    let Some(upstream_node) = definition
+        .nodes
+        .iter()
+        .find(|node| node.id() == upstream_node_id)
+    else {
+        return Ok(None);
+    };
+
+    if upstream_node.workflow_id().is_none() {
+        return Ok(None);
+    }
+
+    let (frontmatter, _, _) = read_markdown(
+        &workflow_session_uri(&upstream_state.session_id),
+        &context.config,
+    )?;
+    Ok(frontmatter
+        .as_ref()
+        .and_then(|frontmatter| frontmatter.get("last"))
+        .and_then(YamlValue::as_str)
+        .map(str::trim)
+        .filter(|last| !last.is_empty())
+        .map(ToOwned::to_owned))
 }
 
 fn truncate_chars(text: &str, max_chars: usize) -> String {
@@ -279,9 +558,10 @@ fn derive_execution_status(
 #[cfg(test)]
 mod pipeline_executor_tests {
     use super::*;
-    use crate::markdown::read_markdown;
+    use crate::markdown::{Frontmatter, read_markdown, write_markdown};
     use crate::sessions::{pipeline_session_uri, workflow_session_uri};
     use crate::util::json::OutputFormat;
+    use crate::workflow::initial_workflow_frontmatter;
     use crate::workflow::pipeline::test_support::{
         pipeline_test_context, seed_pipeline_session_with_workflows,
     };
@@ -317,10 +597,11 @@ mod pipeline_executor_tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![PipelineNode {
+                nodes: vec![PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: Some("test-agent-root".to_string()),
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -330,6 +611,7 @@ mod pipeline_executor_tests {
                     session_id: workflow_session_id.to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             8,
@@ -356,6 +638,10 @@ mod pipeline_executor_tests {
         let node_states = read_pipeline_node_states(&context, pipeline_id);
         assert_eq!(node_states["root"].status, NodeStatus::Completed);
         assert_eq!(
+            node_states["root"].output.as_deref(),
+            Some("Single node completed [[step]]")
+        );
+        assert_eq!(
             read_workflow_status(&context, workflow_session_id),
             Some("completed".to_string())
         );
@@ -363,6 +649,190 @@ mod pipeline_executor_tests {
             read_workflow_conclusion(&context, workflow_session_id),
             Some("Single node completed [[step]]".to_string())
         );
+        let prompts = read_stub_prompts(&context.config.maenifold_root, "test-agent-root");
+        assert_eq!(prompts.len(), 1);
+        assert!(prompts[0].contains("Execute the workflow"));
+        assert!(prompts[0].contains("Step 1/1"));
+    }
+
+    #[tokio::test]
+    #[serial(config)]
+    async fn executor_assembles_workflow_prompt_with_predecessor_context() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let _path_guard = install_acpx_stub(&context.config.maenifold_root);
+        let pipeline_id = "pipeline-executor-workflow-prompt";
+
+        write_workflow_definition(&context.config.assets_path, "test-workflow-a");
+        write_workflow_definition(&context.config.assets_path, "test-workflow-b");
+
+        write_stub_config(
+            &context.config.maenifold_root,
+            json!({
+                "test-agent-a": { "text": "Upstream conclusion [[step]]" },
+                "test-agent-b": { "text": "Downstream conclusion [[step]]" }
+            }),
+        );
+
+        seed_pipeline_session_with_workflows(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![
+                    PipelineNode::Workflow {
+                        id: "a".to_string(),
+                        workflow_id: "test-workflow-a".to_string(),
+                        acp_client: Some("test-agent-a".to_string()),
+                        prompt: None,
+                    },
+                    PipelineNode::Workflow {
+                        id: "b".to_string(),
+                        workflow_id: "test-workflow-b".to_string(),
+                        acp_client: Some("test-agent-b".to_string()),
+                        prompt: Some("Node-specific instruction".to_string()),
+                    },
+                ],
+                edges: vec![PipelineEdge {
+                    source: "a".to_string(),
+                    target: "b".to_string(),
+                    edge_type: EdgeType::Success,
+                }],
+            },
+            HashMap::from([
+                pending_node_state("a", "workflow-executor-workflow-prompt-a"),
+                pending_node_state("b", "workflow-executor-workflow-prompt-b"),
+            ]),
+            2,
+        );
+
+        let result = execute_pipeline(
+            &context,
+            pipeline_id,
+            "Ambient context",
+            CancellationToken::new(),
+        )
+        .await
+        .expect("executor should succeed");
+
+        assert_eq!(result.completed, 2);
+        assert_eq!(result.abandoned, 0);
+        assert_eq!(result.status, "completed");
+
+        let prompts = read_stub_prompts(&context.config.maenifold_root, "test-agent-b");
+        assert_eq!(prompts.len(), 1);
+        assert!(prompts[0].contains("### From a\n\nUpstream conclusion [[step]]"));
+        assert!(prompts[0].contains("Ambient context\n\nNode-specific instruction"));
+        assert!(prompts[0].contains("Step 1/1"));
+    }
+
+    #[tokio::test]
+    #[serial(config)]
+    async fn executor_runs_prompt_and_thinking_nodes_and_captures_output() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let _path_guard = install_acpx_stub(&context.config.maenifold_root);
+        let pipeline_id = "pipeline-executor-mixed";
+
+        write_workflow_definition(&context.config.assets_path, "test-workflow-a");
+
+        write_stub_config(
+            &context.config.maenifold_root,
+            json!({
+                "test-agent-a": { "text": "Workflow output [[step]]" },
+                "prompt-agent": { "text": "Prompt output [[note]]" },
+                "think-agent": { "text": "DONE Thinking output [[idea]]" }
+            }),
+        );
+
+        seed_pipeline_session_with_nodes(
+            &context,
+            pipeline_id,
+            PipelineDefinition {
+                nodes: vec![
+                    PipelineNode::Workflow {
+                        id: "a".to_string(),
+                        workflow_id: "test-workflow-a".to_string(),
+                        acp_client: Some("test-agent-a".to_string()),
+                        prompt: None,
+                    },
+                    PipelineNode::Prompt {
+                        id: "prompt".to_string(),
+                        prompt: "Draft next action".to_string(),
+                        agent: "prompt-agent".to_string(),
+                        tool_mode: "default".to_string(),
+                    },
+                    PipelineNode::SequentialThinking {
+                        id: "think".to_string(),
+                        topic: "Plan follow-up".to_string(),
+                        total_thoughts: 2,
+                        analysis_type: Some("architecture".to_string()),
+                        agent: "think-agent".to_string(),
+                    },
+                ],
+                edges: vec![
+                    PipelineEdge {
+                        source: "a".to_string(),
+                        target: "prompt".to_string(),
+                        edge_type: EdgeType::Success,
+                    },
+                    PipelineEdge {
+                        source: "prompt".to_string(),
+                        target: "think".to_string(),
+                        edge_type: EdgeType::Success,
+                    },
+                ],
+            },
+            HashMap::from([
+                pending_node_state("a", "workflow-executor-mixed-a"),
+                pending_node_state("prompt", "workflow-executor-mixed-prompt"),
+                pending_node_state("think", "workflow-executor-mixed-think"),
+            ]),
+            3,
+        );
+
+        let result = execute_pipeline(
+            &context,
+            pipeline_id,
+            "Ambient context",
+            CancellationToken::new(),
+        )
+        .await
+        .expect("executor should succeed");
+
+        assert_eq!(
+            result,
+            ExecutionResult {
+                completed: 3,
+                abandoned: 0,
+                status: "completed".to_string(),
+            }
+        );
+
+        let node_states = read_pipeline_node_states(&context, pipeline_id);
+        assert_eq!(
+            node_states["a"].output.as_deref(),
+            Some("Workflow output [[step]]")
+        );
+        assert_eq!(
+            node_states["prompt"].output.as_deref(),
+            Some("Prompt output [[note]]")
+        );
+        assert_eq!(
+            node_states["think"].output.as_deref(),
+            Some("DONE Thinking output [[idea]]")
+        );
+
+        let prompt_prompts = read_stub_prompts(&context.config.maenifold_root, "prompt-agent");
+        assert_eq!(prompt_prompts.len(), 1);
+        assert_eq!(
+            prompt_prompts[0],
+            "### From a\n\nWorkflow output [[step]]\n\nAmbient context\n\nDraft next action"
+        );
+
+        let think_prompts = read_stub_prompts(&context.config.maenifold_root, "think-agent");
+        assert_eq!(think_prompts.len(), 1);
+        assert!(think_prompts[0].starts_with(
+            "Thought 1/~2 on: ### From prompt\n\nPrompt output [[note]]\n\nAmbient context\n\nPlan follow-up."
+        ));
+        assert!(think_prompts[0].contains("Include [[WikiLinks]]. Say DONE when complete."));
     }
 
     #[tokio::test]
@@ -386,10 +856,11 @@ mod pipeline_executor_tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![PipelineNode {
+                nodes: vec![PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: Some("failing-agent".to_string()),
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -399,6 +870,7 @@ mod pipeline_executor_tests {
                     session_id: workflow_session_id.to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             )]),
             8,
@@ -453,15 +925,17 @@ mod pipeline_executor_tests {
             pipeline_id,
             PipelineDefinition {
                 nodes: vec![
-                    PipelineNode {
+                    PipelineNode::Workflow {
                         id: "a".to_string(),
                         workflow_id: "test-workflow-a".to_string(),
                         acp_client: Some("test-agent-a".to_string()),
+                        prompt: None,
                     },
-                    PipelineNode {
+                    PipelineNode::Workflow {
                         id: "b".to_string(),
                         workflow_id: "test-workflow-b".to_string(),
                         acp_client: Some("test-agent-b".to_string()),
+                        prompt: None,
                     },
                 ],
                 edges: vec![],
@@ -473,6 +947,7 @@ mod pipeline_executor_tests {
                         session_id: "workflow-executor-cancel-a".to_string(),
                         status: NodeStatus::Pending,
                         attempts: 0,
+                        output: None,
                     },
                 ),
                 (
@@ -481,6 +956,7 @@ mod pipeline_executor_tests {
                         session_id: "workflow-executor-cancel-b".to_string(),
                         status: NodeStatus::Pending,
                         attempts: 0,
+                        output: None,
                     },
                 ),
             ]),
@@ -657,10 +1133,11 @@ mod pipeline_executor_tests {
     }
 
     fn pipeline_node(id: &str, workflow_id: &str) -> PipelineNode {
-        PipelineNode {
+        PipelineNode::Workflow {
             id: id.to_string(),
             workflow_id: workflow_id.to_string(),
             acp_client: Some(format!("test-agent-{id}")),
+            prompt: None,
         }
     }
 
@@ -688,8 +1165,99 @@ mod pipeline_executor_tests {
                 session_id: session_id.to_string(),
                 status: NodeStatus::Pending,
                 attempts: 0,
+                output: None,
             },
         )
+    }
+
+    fn node_status_name(status: &NodeStatus) -> &'static str {
+        match status {
+            NodeStatus::Pending => "pending",
+            NodeStatus::Ready => "ready",
+            NodeStatus::Active => "active",
+            NodeStatus::Completed => "completed",
+            NodeStatus::Abandoned => "abandoned",
+            NodeStatus::Stuck => "stuck",
+        }
+    }
+
+    fn seed_pipeline_session_with_nodes(
+        context: &ToolContext,
+        pipeline_id: &str,
+        definition: PipelineDefinition,
+        node_states: HashMap<String, NodeState>,
+        max_concurrency: u64,
+    ) {
+        let mut frontmatter = Frontmatter::new();
+        frontmatter.insert(
+            "title".to_string(),
+            YamlValue::String(format!("Pipeline Session {pipeline_id}")),
+        );
+        frontmatter.insert(
+            "permalink".to_string(),
+            YamlValue::String(pipeline_id.to_string()),
+        );
+        frontmatter.insert(
+            "type".to_string(),
+            YamlValue::String("pipeline".to_string()),
+        );
+        frontmatter.insert(
+            "status".to_string(),
+            YamlValue::String("active".to_string()),
+        );
+        frontmatter.insert(
+            "definition".to_string(),
+            serde_yaml::to_value(&definition).expect("serialize definition"),
+        );
+        frontmatter.insert(
+            "nodeStates".to_string(),
+            serde_yaml::to_value(&node_states).expect("serialize node states"),
+        );
+        frontmatter.insert(
+            "maxConcurrency".to_string(),
+            serde_yaml::to_value(max_concurrency).expect("serialize concurrency"),
+        );
+
+        write_markdown(
+            &pipeline_session_uri(pipeline_id),
+            Some(&frontmatter),
+            "# Pipeline Session\n",
+            &context.config,
+        )
+        .expect("write pipeline session");
+
+        for node in &definition.nodes {
+            let state = node_states.get(node.id()).expect("node state");
+            let workflow_ref = node
+                .workflow_id()
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("pipeline-{}-{}", node.node_type_name(), node.id()));
+            let mut workflow_frontmatter = initial_workflow_frontmatter(
+                &state.session_id,
+                std::slice::from_ref(&workflow_ref),
+                node_status_name(&state.status),
+            );
+            workflow_frontmatter.insert(
+                "pipelineId".to_string(),
+                YamlValue::String(pipeline_id.to_string()),
+            );
+            workflow_frontmatter.insert(
+                "nodeId".to_string(),
+                YamlValue::String(node.id().to_string()),
+            );
+            workflow_frontmatter.insert(
+                "workflowId".to_string(),
+                YamlValue::String(workflow_ref),
+            );
+
+            write_markdown(
+                &workflow_session_uri(&state.session_id),
+                Some(&workflow_frontmatter),
+                "# Workflow Session\n",
+                &context.config,
+            )
+            .expect("write node session");
+        }
     }
 
     fn install_acpx_stub(root: &Path) -> PathGuard {
@@ -836,6 +1404,24 @@ finally:
                     .get("agent")
                     .and_then(Value::as_str)
                     .filter(|agent| !agent.is_empty())
+                    .map(str::to_string)
+            })
+            .collect()
+    }
+
+    fn read_stub_prompts(root: &Path, agent: &str) -> Vec<String> {
+        read_stub_state(root)
+            .get("events")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter(|event| event.get("event").and_then(Value::as_str) == Some("start"))
+            .filter(|event| event.get("agent").and_then(Value::as_str) == Some(agent))
+            .filter_map(|event| {
+                event
+                    .get("prompt")
+                    .and_then(Value::as_str)
+                    .filter(|prompt| !prompt.is_empty())
                     .map(str::to_string)
             })
             .collect()

@@ -3,7 +3,6 @@
 pub mod http;
 pub mod resources;
 pub mod schema;
-mod web;
 pub use resources::*;
 
 // FR-32-SEC: Shared CORS factory restricting origins to localhost variants
@@ -18,8 +17,6 @@ pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
             };
             s == "http://localhost"
                 || s.starts_with("http://localhost:")
-                || s == "tauri://localhost"
-                || s == "https://tauri.localhost"
                 || s == "http://127.0.0.1"
                 || s.starts_with("http://127.0.0.1:")
                 || s == "http://[::1]"

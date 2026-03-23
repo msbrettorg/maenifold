@@ -17,7 +17,7 @@ pub fn compute_ready_set(
         .iter()
         .filter(|node| {
             matches!(
-                node_states.get(&node.id),
+                node_states.get(node.id()),
                 Some(NodeState {
                     status: NodeStatus::Pending,
                     ..
@@ -25,7 +25,7 @@ pub fn compute_ready_set(
             )
         })
         .filter(|node| {
-            let Some(&node_index) = node_indices.get(&node.id) else {
+            let Some(&node_index) = node_indices.get(node.id()) else {
                 return false;
             };
 
@@ -39,7 +39,7 @@ pub fn compute_ready_set(
                             .all(|edge| is_edge_satisfied(edge.weight(), source_id, node_states))
                     })
         })
-        .map(|node| node.id.clone())
+        .map(|node| node.id().to_string())
         .collect()
 }
 
@@ -112,20 +112,23 @@ mod tests {
     fn pipeline_definition(edges: Vec<PipelineEdge>) -> PipelineDefinition {
         PipelineDefinition {
             nodes: vec![
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "workflow-root".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "middle".to_string(),
                     workflow_id: "workflow-middle".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                PipelineNode {
+                PipelineNode::Workflow {
                     id: "tail".to_string(),
                     workflow_id: "workflow-tail".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
             ],
             edges,
@@ -137,6 +140,7 @@ mod tests {
             session_id: format!("session-{status:?}"),
             status,
             attempts: 0,
+            output: None,
         }
     }
 
@@ -321,6 +325,7 @@ mod tests {
                 session_id: "ws-1".to_string(),
                 status: NodeStatus::Stuck,
                 attempts: 3,
+                output: None,
             },
         );
         node_states.insert(
@@ -329,6 +334,7 @@ mod tests {
                 session_id: "ws-2".to_string(),
                 status: NodeStatus::Stuck,
                 attempts: 3,
+                output: None,
             },
         );
 

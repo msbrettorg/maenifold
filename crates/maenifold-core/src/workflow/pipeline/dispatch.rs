@@ -13,7 +13,9 @@ use super::session_io::{
 #[cfg(test)]
 use super::test_support;
 use super::view::node_ids_with_status;
-use super::{NodeStatus, PipelineDefinition, compute_ready_set};
+use super::{
+    NodeStatus, PipelineDefinition, PipelineNode, compute_ready_set, workflow_id_for_node,
+};
 
 // T-45.7: RTM-337 / RTM-342 / RTM-343 / RTM-344
 // Dispatch computes the ready set, atomically claims eligible nodes (pending→active),
@@ -49,7 +51,7 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
     // progress after each node so retries observe already-activated sessions.
     let mut dispatched = Vec::with_capacity(to_dispatch.len());
     for node_id in &to_dispatch {
-        let workflow_session_id = node_states
+        let node_session_id = node_states
             .get(node_id)
             .ok_or_else(|| {
                 MaenifoldError::Message(format!(
@@ -62,25 +64,41 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
         let node = definition
             .nodes
             .iter()
-            .find(|n| n.id == *node_id)
+            .find(|n| n.id() == *node_id)
             .ok_or_else(|| {
                 MaenifoldError::Message(format!(
                     "ERROR: Pipeline definition missing node '{node_id}'"
                 ))
             })?;
 
-        // Activate the workflow session: atomically update status to active and render first step.
-        let activated =
-            activate_workflow_node_session(context, &node.workflow_id, &workflow_session_id)?;
-
-        let workflow_id = {
+        let dispatched_node = {
             let state = node_states.get_mut(node_id).ok_or_else(|| {
                 MaenifoldError::Message(format!(
                     "ERROR: Pipeline session missing node state for '{node_id}'"
                 ))
             })?;
-            state.status = NodeStatus::Active;
-            node.workflow_id.clone()
+
+            match node {
+                PipelineNode::Workflow { .. } => {
+                    // Activate the workflow session: atomically update status to active and render first step.
+                    let activated = activate_workflow_node_session(
+                        context,
+                        workflow_id_for_node(node)?,
+                        &node_session_id,
+                    )?;
+                    state.status = NodeStatus::Active;
+                    activated
+                        .then(|| build_dispatched_node_response(node, &node_session_id))
+                        .transpose()?
+                }
+                PipelineNode::Prompt { .. } | PipelineNode::SequentialThinking { .. } => {
+                    let activated = activate_non_workflow_node_session(context, &node_session_id)?;
+                    state.status = NodeStatus::Active;
+                    activated
+                        .then(|| build_dispatched_node_response(node, &node_session_id))
+                        .transpose()?
+                }
+            }
         };
 
         persist_pipeline_state(
@@ -91,12 +109,8 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
             context,
         )?;
 
-        if activated {
-            dispatched.push(json!({
-                "nodeId": node_id,
-                "sessionId": workflow_session_id,
-                "workflowId": workflow_id,
-            }));
+        if let Some(dispatched_node) = dispatched_node {
+            dispatched.push(dispatched_node);
         }
     }
 
@@ -193,6 +207,65 @@ pub(super) fn activate_workflow_node_session(
     Ok(true)
 }
 
+fn activate_non_workflow_node_session(context: &ToolContext, session_id: &str) -> Result<bool> {
+    let workflow_uri = workflow_session_uri(session_id);
+    let (session_frontmatter, existing_content, _) = read_markdown(&workflow_uri, &context.config)?;
+    let mut session_frontmatter = session_frontmatter.ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "ERROR: Workflow session {session_id} has invalid format"
+        ))
+    })?;
+
+    if session_frontmatter
+        .get("status")
+        .and_then(YamlValue::as_str)
+        == Some("active")
+    {
+        return Ok(false);
+    }
+
+    session_frontmatter.insert(
+        "status".to_string(),
+        YamlValue::String("active".to_string()),
+    );
+    write_markdown(
+        &workflow_uri,
+        Some(&session_frontmatter),
+        &existing_content,
+        &context.config,
+    )?;
+
+    Ok(true)
+}
+
+fn build_dispatched_node_response(
+    node: &PipelineNode,
+    session_id: &str,
+) -> Result<serde_json::Value> {
+    match node {
+        PipelineNode::Workflow { .. } => Ok(json!({
+            "nodeId": node.id(),
+            "sessionId": session_id,
+            "workflowId": workflow_id_for_node(node)?,
+        })),
+        PipelineNode::Prompt { .. } | PipelineNode::SequentialThinking { .. } => {
+            let agent = node.acp_client().ok_or_else(|| {
+                MaenifoldError::Message(format!(
+                    "ERROR: Pipeline node '{}' of type '{}' does not have an agent",
+                    node.id(),
+                    node.node_type_name()
+                ))
+            })?;
+            Ok(json!({
+                "nodeId": node.id(),
+                "sessionId": session_id,
+                "type": node.node_type_name(),
+                "agent": agent,
+            }))
+        }
+    }
+}
+
 fn append_step_section(existing_content: &str, heading: &str, content: &str) -> String {
     let mut new_content = existing_content.to_string();
     if !new_content.is_empty() && !new_content.ends_with('\n') {
@@ -232,6 +305,115 @@ mod tests {
     use serial_test::serial;
     use std::collections::{BTreeMap, HashMap};
 
+    fn node_status_string(status: &NodeStatus) -> &'static str {
+        match status {
+            NodeStatus::Pending => "pending",
+            NodeStatus::Active => "active",
+            NodeStatus::Completed => "completed",
+            NodeStatus::Abandoned => "abandoned",
+            NodeStatus::Ready => "ready",
+            NodeStatus::Stuck => "stuck",
+        }
+    }
+
+    fn seed_pipeline_session_with_node_sessions(
+        context: &ToolContext,
+        pipeline_id: &str,
+        definition: PipelineDefinition,
+        node_states: HashMap<String, NodeState>,
+        max_concurrency: u64,
+    ) {
+        let node_states_yaml: BTreeMap<String, YamlValue> = node_states
+            .iter()
+            .map(|(key, value)| (key.clone(), serde_yaml::to_value(value).expect("yaml")))
+            .collect();
+        let mut frontmatter = Frontmatter::new();
+        frontmatter.insert(
+            "title".to_string(),
+            YamlValue::String(format!("Pipeline Session {pipeline_id}")),
+        );
+        frontmatter.insert(
+            "permalink".to_string(),
+            YamlValue::String(pipeline_id.to_string()),
+        );
+        frontmatter.insert(
+            "type".to_string(),
+            YamlValue::String("pipeline".to_string()),
+        );
+        frontmatter.insert(
+            "status".to_string(),
+            YamlValue::String("active".to_string()),
+        );
+        frontmatter.insert(
+            "definition".to_string(),
+            serde_yaml::to_value(&definition).expect("serialize definition"),
+        );
+        frontmatter.insert(
+            "nodeStates".to_string(),
+            YamlValue::Mapping(
+                node_states_yaml
+                    .iter()
+                    .map(|(key, value)| (YamlValue::String(key.clone()), value.clone()))
+                    .collect(),
+            ),
+        );
+        frontmatter.insert(
+            "maxConcurrency".to_string(),
+            serde_yaml::to_value(max_concurrency).expect("yaml"),
+        );
+
+        write_markdown(
+            &pipeline_session_uri(pipeline_id),
+            Some(&frontmatter),
+            "# Pipeline Session\n",
+            &context.config,
+        )
+        .expect("write pipeline session");
+
+        for node in &definition.nodes {
+            let state = node_states.get(node.id()).expect("node state");
+            let mut session_frontmatter = Frontmatter::new();
+            session_frontmatter.insert(
+                "title".to_string(),
+                YamlValue::String(format!("Workflow Session {}", state.session_id)),
+            );
+            session_frontmatter.insert(
+                "permalink".to_string(),
+                YamlValue::String(state.session_id.clone()),
+            );
+            session_frontmatter.insert(
+                "type".to_string(),
+                YamlValue::String("workflow".to_string()),
+            );
+            session_frontmatter.insert(
+                "status".to_string(),
+                YamlValue::String(node_status_string(&state.status).to_string()),
+            );
+            session_frontmatter.insert(
+                "pipelineId".to_string(),
+                YamlValue::String(pipeline_id.to_string()),
+            );
+            session_frontmatter.insert(
+                "nodeId".to_string(),
+                YamlValue::String(node.id().to_string()),
+            );
+            if let Some(workflow_id) = node.workflow_id() {
+                session_frontmatter.insert(
+                    "workflowId".to_string(),
+                    YamlValue::String(workflow_id.to_string()),
+                );
+            }
+
+            write_markdown(
+                &workflow_session_uri(&state.session_id),
+                Some(&session_frontmatter),
+                "# Workflow Session\n",
+                &context.config,
+            )
+            .expect("write node session");
+        }
+    }
+
     #[test]
     #[serial(config)]
     fn pipeline_dispatch_transitions_ready_nodes_to_active() {
@@ -244,6 +426,7 @@ mod tests {
                     session_id: "workflow-1735689600000-root".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -252,6 +435,7 @@ mod tests {
                     session_id: "workflow-1735689600000-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -335,20 +519,23 @@ mod tests {
         // Create a 3-node pipeline (root→child, plus a sibling with no deps).
         let definition = PipelineDefinition {
             nodes: vec![
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "sibling".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "child".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
             ],
             edges: vec![crate::workflow::pipeline::PipelineEdge {
@@ -365,6 +552,7 @@ mod tests {
                     session_id: "workflow-1735689600100-root".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -373,6 +561,7 @@ mod tests {
                     session_id: "workflow-1735689600100-sibling".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -381,6 +570,7 @@ mod tests {
                     session_id: "workflow-1735689600100-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -435,21 +625,25 @@ mod tests {
 
         // Write workflow sessions for all nodes.
         for node in &definition.nodes {
-            let state = node_states.get(&node.id).expect("state");
+            let state = node_states.get(node.id()).expect("state");
             let uri = workflow_session_uri(&state.session_id);
+            let workflow_id = workflow_id_for_node(node).expect("workflow node");
             let mut wf_fm = crate::workflow::initial_workflow_frontmatter(
                 &state.session_id,
-                std::slice::from_ref(&node.workflow_id),
+                std::slice::from_ref(&workflow_id.to_string()),
                 "pending",
             );
             wf_fm.insert(
                 "pipelineId".to_string(),
                 YamlValue::String(pipeline_id.to_string()),
             );
-            wf_fm.insert("nodeId".to_string(), YamlValue::String(node.id.to_string()));
+            wf_fm.insert(
+                "nodeId".to_string(),
+                YamlValue::String(node.id().to_string()),
+            );
             wf_fm.insert(
                 "workflowId".to_string(),
-                YamlValue::String(node.workflow_id.to_string()),
+                YamlValue::String(workflow_id.to_string()),
             );
             write_markdown(&uri, Some(&wf_fm), "# Workflow Session\n", &context.config)
                 .expect("write workflow session");
@@ -482,15 +676,17 @@ mod tests {
         let pipeline_id = "pipeline-1735689600150";
         let definition = PipelineDefinition {
             nodes: vec![
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "sibling".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
             ],
             edges: vec![],
@@ -502,6 +698,7 @@ mod tests {
                     session_id: "workflow-1735689600150-root".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -510,6 +707,7 @@ mod tests {
                     session_id: "workflow-1735689600150-sibling".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -571,6 +769,7 @@ mod tests {
                     session_id: "workflow-1735689600200-root".to_string(),
                     status: NodeStatus::Active,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -579,6 +778,7 @@ mod tests {
                     session_id: "workflow-1735689600200-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -623,6 +823,7 @@ mod tests {
                     session_id: "workflow-1735689600300-root".to_string(),
                     status: NodeStatus::Active,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -631,6 +832,7 @@ mod tests {
                     session_id: "workflow-1735689600300-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -666,6 +868,7 @@ mod tests {
                     session_id: "workflow-1735689600400-root".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -674,6 +877,7 @@ mod tests {
                     session_id: "workflow-1735689600400-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -737,15 +941,17 @@ mod tests {
         let pipeline_id = "pipeline-1735689600460";
         let definition = PipelineDefinition {
             nodes: vec![
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
-                crate::workflow::pipeline::PipelineNode {
+                crate::workflow::pipeline::PipelineNode::Workflow {
                     id: "broken".to_string(),
                     workflow_id: "missing-workflow".to_string(),
                     acp_client: None,
+                    prompt: None,
                 },
             ],
             edges: vec![],
@@ -757,6 +963,7 @@ mod tests {
                     session_id: "workflow-1735689600460-root".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -765,6 +972,7 @@ mod tests {
                     session_id: "workflow-1735689600460-broken".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -815,6 +1023,7 @@ mod tests {
                     session_id: "workflow-1735689600450-root".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -823,6 +1032,7 @@ mod tests {
                     session_id: "workflow-1735689600450-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -876,6 +1086,7 @@ mod tests {
                     session_id: "workflow-1735689600475-root".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
             (
@@ -884,6 +1095,7 @@ mod tests {
                     session_id: "workflow-1735689600475-child".to_string(),
                     status: NodeStatus::Pending,
                     attempts: 0,
+                    output: None,
                 },
             ),
         ]);
@@ -937,6 +1149,151 @@ mod tests {
             wf_content.matches("## Step 1/1").count(),
             1,
             "dispatch retry must not append duplicate first steps"
+        );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_dispatch_returns_prompt_node_metadata_without_workflow_activation() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600480";
+        let definition = PipelineDefinition {
+            nodes: vec![crate::workflow::pipeline::PipelineNode::Prompt {
+                id: "prompt-node".to_string(),
+                prompt: "Summarize the dispatch result".to_string(),
+                agent: "prompt-agent".to_string(),
+                tool_mode: "default".to_string(),
+            }],
+            edges: vec![],
+        };
+        let node_states = HashMap::from([(
+            "prompt-node".to_string(),
+            NodeState {
+                session_id: "prompt-prompt-node-1735689600480".to_string(),
+                status: NodeStatus::Pending,
+                attempts: 0,
+                output: None,
+            },
+        )]);
+        seed_pipeline_session_with_node_sessions(&context, pipeline_id, definition, node_states, 8);
+
+        let output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "dispatch": true }),
+        )
+        .expect("dispatch pipeline");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+        let dispatched = data
+            .get("dispatched")
+            .and_then(Value::as_array)
+            .expect("dispatched array");
+
+        assert_eq!(
+            dispatched,
+            &vec![json!({
+                "nodeId": "prompt-node",
+                "sessionId": "prompt-prompt-node-1735689600480",
+                "type": "prompt",
+                "agent": "prompt-agent",
+            })]
+        );
+        assert!(
+            dispatched[0].get("workflowId").is_none(),
+            "prompt nodes should not expose workflow metadata"
+        );
+
+        let (pipeline_fm, _, _) =
+            read_markdown(&pipeline_session_uri(pipeline_id), &context.config)
+                .expect("read pipeline");
+        let pipeline_fm = pipeline_fm.expect("pipeline frontmatter");
+        let updated_states: HashMap<String, NodeState> =
+            frontmatter_value(&pipeline_fm, "nodeStates").expect("node states");
+        assert_eq!(updated_states["prompt-node"].status, NodeStatus::Active);
+
+        let (session_fm, session_content, _) = read_markdown(
+            &workflow_session_uri("prompt-prompt-node-1735689600480"),
+            &context.config,
+        )
+        .expect("read prompt session");
+        let session_fm = session_fm.expect("prompt frontmatter");
+        assert_eq!(
+            session_fm.get("status").and_then(YamlValue::as_str),
+            Some("active")
+        );
+        assert!(
+            !session_content.contains("## Step"),
+            "prompt nodes should not render workflow steps"
+        );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_dispatch_returns_sequential_thinking_metadata_without_workflow_activation() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let pipeline_id = "pipeline-1735689600490";
+        let definition = PipelineDefinition {
+            nodes: vec![
+                crate::workflow::pipeline::PipelineNode::SequentialThinking {
+                    id: "thought-node".to_string(),
+                    topic: "Dispatch branching".to_string(),
+                    total_thoughts: 3,
+                    analysis_type: Some("architecture".to_string()),
+                    agent: "thinking-agent".to_string(),
+                },
+            ],
+            edges: vec![],
+        };
+        let node_states = HashMap::from([(
+            "thought-node".to_string(),
+            NodeState {
+                session_id: "sequentialThinking-thought-node-1735689600490".to_string(),
+                status: NodeStatus::Pending,
+                attempts: 0,
+                output: None,
+            },
+        )]);
+        seed_pipeline_session_with_node_sessions(&context, pipeline_id, definition, node_states, 8);
+
+        let output = pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "dispatch": true }),
+        )
+        .expect("dispatch pipeline");
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+        let dispatched = data
+            .get("dispatched")
+            .and_then(Value::as_array)
+            .expect("dispatched array");
+
+        assert_eq!(
+            dispatched,
+            &vec![json!({
+                "nodeId": "thought-node",
+                "sessionId": "sequentialThinking-thought-node-1735689600490",
+                "type": "sequentialThinking",
+                "agent": "thinking-agent",
+            })]
+        );
+        assert!(
+            dispatched[0].get("workflowId").is_none(),
+            "sequential-thinking nodes should not expose workflow metadata"
+        );
+
+        let (session_fm, session_content, _) = read_markdown(
+            &workflow_session_uri("sequentialThinking-thought-node-1735689600490"),
+            &context.config,
+        )
+        .expect("read sequential-thinking session");
+        let session_fm = session_fm.expect("sequential-thinking frontmatter");
+        assert_eq!(
+            session_fm.get("status").and_then(YamlValue::as_str),
+            Some("active")
+        );
+        assert!(
+            !session_content.contains("## Step"),
+            "sequential-thinking nodes should not render workflow steps"
         );
     }
 }

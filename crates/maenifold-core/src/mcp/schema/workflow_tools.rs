@@ -198,6 +198,10 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
                         bool_property("Claim ready nodes as active", false),
                     ),
                     (
+                        "list",
+                        bool_property("List all pipeline sessions with status summaries", false),
+                    ),
+                    (
                         "rewind",
                         json!({
                             "type": "object",
@@ -479,7 +483,7 @@ mod tests {
             .and_then(Value::as_object)
             .expect("pipeline properties");
 
-        for field in ["run", "pause", "resume", "cancel", "delete"] {
+        for field in ["run", "pause", "resume", "cancel", "delete", "list"] {
             let property = properties
                 .get(field)
                 .and_then(Value::as_object)

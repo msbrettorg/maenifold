@@ -437,6 +437,7 @@ mod tests {
                 session_id: session_id.to_string(),
                 status: NodeStatus::Pending,
                 attempts: 0,
+                output: None,
             },
         )
     }
@@ -459,10 +460,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![PipelineNode {
+                nodes: vec![PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -523,10 +525,11 @@ mod tests {
             &context,
             pipeline_id,
             PipelineDefinition {
-                nodes: vec![PipelineNode {
+                nodes: vec![PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
+                    prompt: None,
                 }],
                 edges: vec![],
             },
@@ -570,10 +573,11 @@ mod tests {
         let _reset = reset_supervisor();
         let pipeline_id = "pipeline-1735689600999";
         let definition = PipelineDefinition {
-            nodes: vec![PipelineNode {
+            nodes: vec![PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
+                prompt: None,
             }],
             edges: vec![],
         };
@@ -583,6 +587,7 @@ mod tests {
                 session_id: "workflow-1735689600999-root".to_string(),
                 status: NodeStatus::Active,
                 attempts: 0,
+                output: None,
             },
         )]);
         seed_pipeline_session_with_workflows(&context, pipeline_id, definition, node_states, 1);
@@ -620,10 +625,11 @@ mod tests {
         let pipeline_id = "pipeline-1735689601000";
         let workflow_id = "workflow-1735689601000-root";
         let definition = PipelineDefinition {
-            nodes: vec![PipelineNode {
+            nodes: vec![PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
+                prompt: None,
             }],
             edges: vec![],
         };
@@ -633,6 +639,7 @@ mod tests {
                 session_id: workflow_id.to_string(),
                 status: NodeStatus::Active,
                 attempts: 0,
+                output: None,
             },
         )]);
         seed_pipeline_session_with_workflows(&context, pipeline_id, definition, node_states, 1);
@@ -671,10 +678,11 @@ mod tests {
         let pipeline_id = "pipeline-1735689601001";
         let workflow_id = "workflow-1735689601001-root";
         let definition = PipelineDefinition {
-            nodes: vec![PipelineNode {
+            nodes: vec![PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
+                prompt: None,
             }],
             edges: vec![],
         };
@@ -684,6 +692,7 @@ mod tests {
                 session_id: workflow_id.to_string(),
                 status: NodeStatus::Pending,
                 attempts: 0,
+                output: None,
             },
         )]);
         seed_pipeline_session_with_workflows(&context, pipeline_id, definition, node_states, 1);

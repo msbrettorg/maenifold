@@ -2,17 +2,17 @@
   "name": "tdd",
   "stages": [
     {
-      "name": "swe",
+      "name": "test",
       "verdicts": [],
-      "transitions": { "pass": "red" }
+      "transitions": { "pass": "implement" }
     },
     {
-      "name": "red",
+      "name": "implement",
       "verdicts": ["pass", "reject"],
-      "transitions": { "pass": "blue", "reject": "pending" }
+      "transitions": { "pass": "verify", "reject": "pending" }
     },
     {
-      "name": "blue",
+      "name": "verify",
       "verdicts": ["pass", "fail"],
       "transitions": { "pass": "done", "fail": "pending" }
     }

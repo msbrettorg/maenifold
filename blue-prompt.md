@@ -1,3 +1,4 @@
+<!-- SDD pipeline agent prompt -->
 # Blue-Team Agent Prompt — maenifold-rs
 
 You are a blue-team verification agent. You run scoped tests to validate SWE work.

@@ -6,6 +6,7 @@ use crate::{
     CommandStubError, SyncArgs,
     db::{GateDb, extract_task_id},
     fs, parser,
+    pipeline::load_pipeline_def,
     types::{TaskLocation, TaskState},
 };
 
@@ -14,6 +15,7 @@ pub fn run(args: &SyncArgs) -> Result<(), CommandStubError> {
 }
 
 pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
+    let pipeline = load_pipeline_def(args.pipeline_path.as_deref(), root)?;
     let db_path = args.db.clone().unwrap_or_else(|| root.join("pipeline.db"));
     let mut found = fs::discover_tasks(root)?;
     let mut rows = Vec::new();
@@ -28,12 +30,15 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
                 continue;
             }
         };
-        let state = match parser::parse_task_content(&task.path, &content) {
+        let state = match parser::parse_task_content_with_pipeline(&task.path, &content, &pipeline)
+        {
             Ok(state) => state,
             Err(parser::ParseTaskError::LocationStatusMismatch {
                 location: TaskLocation::Done,
                 ..
-            }) => TaskState::done_override_from_content(&task.path, &content),
+            }) => {
+                TaskState::done_override_from_content_with_pipeline(&task.path, &content, &pipeline)
+            }
             Err(error) => {
                 eprintln!("warning: {}: {error}", task.path.display());
                 errors += 1;
@@ -70,7 +75,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
                 file,
                 title.as_deref(),
                 requirement,
-                state.effective_status().as_str(),
+                state.effective_status(),
                 state.location.as_str(),
                 state.attempts as i32,
             )?;
@@ -81,7 +86,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
 
     let (mut updated, mut unchanged) = (0, 0);
     for (file, title, requirement, state) in rows {
-        let status = state.effective_status().as_str();
+        let status = state.effective_status();
         let location = state.location.as_str();
         let changed = match db.get_task(&file)? {
             Some(existing) => {

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use assert_cmd::Command;
 use assert_cmd::cargo::cargo_bin_cmd;
 use maenifold_gate::{
-    StatusArgs, SyncArgs, TaskLocation, TaskState, TaskStatus,
+    StatusArgs, SyncArgs, TaskLocation, TaskState,
     db::{GateDb, extract_task_id},
     parser,
     pass::{self, PassArgs},
@@ -30,9 +30,13 @@ fn write_task(root: &Path, location: TaskLocation, file: &str, content: &str) ->
     path
 }
 
+fn write_pipeline(root: &Path, content: &str) {
+    fs::write(root.join("pipeline.json"), content).unwrap();
+}
+
 fn base_task(n: u32) -> String {
     format!(
-        "# T-99.{n} — Test Task {n}\n\n**Requirement**: FR-41\n\n## Acceptance Criteria\n\n1. Test criterion\n"
+        "# T-99.{n} — Test Task {n}\n\n**Requirement**: FR-41\n\nAcceptance Criteria:\n\n1. Test criterion\n"
     )
 }
 
@@ -42,12 +46,12 @@ fn with_swe(mut content: String) -> String {
 }
 
 fn with_red_pass(mut content: String) -> String {
-    content.push_str("\n## Red-team Audit\n\n**Verdict**: PASS\n\nNo issues found.\n");
+    content.push_str("\n## Red Team Audit\n\n**Verdict**: PASS\n\nNo issues found.\n");
     content
 }
 
 fn with_blue_pass(mut content: String) -> String {
-    content.push_str("\n## Blue-team Verification\n\n**Verdict**: PASS\n\nAll tests pass.\n");
+    content.push_str("\n## Blue Team Verification\n\n**Verdict**: PASS\n\nAll tests pass.\n");
     content
 }
 
@@ -57,6 +61,7 @@ fn rebuild_cache(root: &Path) -> PathBuf {
         db: Some(db_path.clone()),
         root: root.to_path_buf(),
         rebuild: true,
+        pipeline_path: None,
     };
     sync::run_sync(&args, root).unwrap();
     db_path
@@ -183,6 +188,7 @@ fn test_sync_reconcile_detects_drift() {
         db: Some(db_path.clone()),
         root: root.path().to_path_buf(),
         rebuild: false,
+        pipeline_path: None,
     };
     sync::run_sync(&args, root.path()).unwrap();
 
@@ -198,21 +204,23 @@ fn test_sync_reconcile_detects_drift() {
 fn test_status_single_id() {
     let root = setup_root();
     let file = task_file_name(1);
-    let path = write_task(
+    write_task(
         root.path(),
         TaskLocation::Todo,
         &file,
         &with_red_pass(with_swe(base_task(1))),
     );
-    let state = parser::parse_task_file(&path).unwrap();
-    assert_eq!(state.status, TaskStatus::Blue);
 
     let db_path = rebuild_cache(root.path());
+    let row = read_row(&db_path, &file);
+    assert_eq!(row.status, "blue");
+
     let args = StatusArgs {
         db: Some(db_path),
         root: root.path().to_path_buf(),
         json: false,
         id: Some(extract_task_id(&file)),
+        pipeline_path: None,
     };
 
     status::run_status(&args, root.path()).unwrap();
@@ -246,12 +254,14 @@ fn test_status_all_files_summary() {
         root: root.path().to_path_buf(),
         json: false,
         id: None,
+        pipeline_path: None,
     };
 
     status::run_status(&args, root.path()).unwrap();
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_pass_then_sync_roundtrip() {
     let root = setup_root();
     let file = task_file_name(1);
@@ -271,15 +281,15 @@ fn test_pass_then_sync_roundtrip() {
     let done_path = root.path().join("done").join(&file);
     assert!(!root.path().join("todo").join(&file).exists());
     assert!(done_path.exists());
-    assert!(parser::parse_task_file(&done_path).is_err());
-    let final_state = TaskState::done_override(done_path.clone());
-    assert_eq!(final_state.effective_status(), TaskStatus::Done);
+    let final_state = parser::parse_task_file(&done_path).unwrap();
+    assert_eq!(final_state.effective_status(), "done");
     assert_eq!(final_state.location, TaskLocation::Done);
 
     let sync_args = SyncArgs {
         db: Some(db_path.clone()),
         root: root.path().to_path_buf(),
         rebuild: false,
+        pipeline_path: None,
     };
     sync::run_sync(&sync_args, root.path()).unwrap();
 
@@ -293,13 +303,14 @@ fn test_pass_then_sync_roundtrip() {
 // T-54.2: Location-authoritative fallback tests
 
 #[test]
+#[allow(deprecated)]
 fn test_done_zero_sections_effective_done() {
     let root = setup_root();
     let file = task_file_name(10);
     let path = write_task(root.path(), TaskLocation::Done, &file, &base_task(10));
     assert!(parser::parse_task_file(&path).is_err());
     let state = TaskState::done_override(path);
-    assert_eq!(state.effective_status(), TaskStatus::Done);
+    assert_eq!(state.effective_status(), "done");
     let db_path = rebuild_cache(root.path());
     let row = read_row(&db_path, &file);
     assert_eq!(row.status, "done");
@@ -307,6 +318,7 @@ fn test_done_zero_sections_effective_done() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_done_swe_only_effective_done() {
     let root = setup_root();
     let file = task_file_name(11);
@@ -316,9 +328,10 @@ fn test_done_swe_only_effective_done() {
         &file,
         &with_swe(base_task(11)),
     );
-    assert!(parser::parse_task_file(&path).is_err());
+    let parsed = parser::parse_task_file(&path).unwrap();
+    assert_eq!(parsed.effective_status(), "done");
     let state = TaskState::done_override(path);
-    assert_eq!(state.effective_status(), TaskStatus::Done);
+    assert_eq!(state.effective_status(), "done");
     let db_path = rebuild_cache(root.path());
     let row = read_row(&db_path, &file);
     assert_eq!(row.status, "done");
@@ -326,6 +339,7 @@ fn test_done_swe_only_effective_done() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_done_swe_red_pass_no_blue_effective_done() {
     let root = setup_root();
     let file = task_file_name(12);
@@ -335,9 +349,8 @@ fn test_done_swe_red_pass_no_blue_effective_done() {
         &file,
         &with_red_pass(with_swe(base_task(12))),
     );
-    assert!(parser::parse_task_file(&path).is_err());
-    let state = TaskState::done_override(path);
-    assert_eq!(state.effective_status(), TaskStatus::Done);
+    let state = parser::parse_task_file(&path).unwrap();
+    assert_eq!(state.effective_status(), "done");
     let db_path = rebuild_cache(root.path());
     let row = read_row(&db_path, &file);
     assert_eq!(row.status, "done");
@@ -345,13 +358,14 @@ fn test_done_swe_red_pass_no_blue_effective_done() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_todo_zero_sections_stays_pending() {
     let root = setup_root();
     let file = task_file_name(13);
     let path = write_task(root.path(), TaskLocation::Todo, &file, &base_task(13));
     let state = parser::parse_task_file(&path).unwrap();
-    assert_eq!(state.status, TaskStatus::Pending);
-    assert_eq!(state.effective_status(), TaskStatus::Pending);
+    assert_eq!(state.status, "pending");
+    assert_eq!(state.effective_status(), "pending");
     assert_eq!(state.location, TaskLocation::Todo);
 }
 
@@ -408,7 +422,54 @@ fn test_status_json_reports_done_override_for_legacy_done_file() {
     assert_eq!(json["file"], file);
     assert_eq!(json["location"], "done");
     assert_eq!(json["status"], "done");
+    assert_eq!(json["stages"], Value::Array(vec![]));
     assert_eq!(json["error"], "incomplete audit trail (location override)");
+}
+
+#[test]
+fn test_status_json_reports_dynamic_pipeline_stages() {
+    let root = setup_root();
+    write_pipeline(
+        root.path(),
+        include_str!("../../../assets/pipelines/tdd.json"),
+    );
+    let file = task_file_name(19);
+    write_task(
+        root.path(),
+        TaskLocation::Todo,
+        &file,
+        &format!(
+            "{}\n## Test\n\nWrote failing coverage.\n\n## Implement\n\n**Verdict**: PASS\n\nImplementation complete.\n",
+            base_task(19)
+        ),
+    );
+
+    let output = gate_command()
+        .args(["status", "--root"])
+        .arg(root.path())
+        .arg("--json")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: Value = serde_json::from_slice(&output).unwrap();
+    let items = json.as_array().unwrap();
+    let status = items.iter().find(|item| item["file"] == file).unwrap();
+
+    assert_eq!(status["location"], "todo");
+    assert_eq!(status["status"], "verify");
+    assert_eq!(
+        status["stages"],
+        serde_json::json!([
+            { "name": "test", "verdict": null },
+            { "name": "implement", "verdict": "PASS" }
+        ])
+    );
+    let object = status.as_object().unwrap();
+    assert!(!object.contains_key("swe"));
+    assert!(!object.contains_key("red"));
+    assert!(!object.contains_key("blue"));
 }
 
 #[test]

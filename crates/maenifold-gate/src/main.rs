@@ -1,6 +1,8 @@
 use std::process::ExitCode;
 
+use maenifold_gate::cli::run_from;
+
 fn main() -> ExitCode {
-    let code = maenifold_gate::run_from(std::env::args_os());
+    let code = run_from(std::env::args_os());
     ExitCode::from(code as u8)
 }

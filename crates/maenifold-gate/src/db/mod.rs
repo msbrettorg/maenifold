@@ -3,6 +3,8 @@ use std::path::Path;
 use anyhow::{Context, Result, bail};
 use rusqlite::{Connection, OptionalExtension, params};
 
+mod migration;
+
 const TASK_SELECT: &str =
     "SELECT id, file, title, requirement, status, location, attempts FROM tasks";
 
@@ -79,13 +81,17 @@ impl GateDb {
     }
 
     pub fn ensure_schema(&self) -> Result<()> {
-        self.conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS tasks (
+        self.conn
+            .execute_batch(
+                // CHECK constraints on status/stage are intentionally omitted to support
+                // arbitrary pipeline stage names. Existing databases with old constraints
+                // may reject novel stage names — use `gate sync --rebuild` to recreate.
+                "CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT UNIQUE NOT NULL,
                 file TEXT PRIMARY KEY,
                 title TEXT,
                 requirement TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','swe','red','blue','done','stuck')),
+                status TEXT NOT NULL DEFAULT 'pending',
                 location TEXT NOT NULL DEFAULT 'todo' CHECK(location IN ('todo','done')),
                 attempts INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -94,7 +100,7 @@ impl GateDb {
              CREATE TABLE IF NOT EXISTS work_log (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  file TEXT NOT NULL REFERENCES tasks(file),
-                 stage TEXT NOT NULL CHECK(stage IN ('swe','red','blue','orchestrator')),
+                 stage TEXT NOT NULL,
                  agent_model TEXT,
                  verdict TEXT,
                  duration_seconds INTEGER,
@@ -104,8 +110,9 @@ impl GateDb {
             CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
             CREATE INDEX IF NOT EXISTS idx_tasks_requirement ON tasks(requirement);
             CREATE INDEX IF NOT EXISTS idx_work_log_file ON work_log(file);",
-        ).context("failed to ensure gate cache schema")?;
-        self.ensure_task_ids()
+            )
+            .context("failed to ensure gate cache schema")?;
+        migration::ensure_task_ids(&self.conn)
     }
 
     pub fn upsert_task(
@@ -249,49 +256,6 @@ impl GateDb {
             .context("failed to delete tasks")?;
         Ok(tasks + logs)
     }
-
-    fn ensure_task_ids(&self) -> Result<()> {
-        let has_id = self
-            .conn
-            .query_row(
-                "SELECT 1 FROM pragma_table_info('tasks') WHERE name = 'id' LIMIT 1",
-                [],
-                |_| Ok(()),
-            )
-            .optional()
-            .context("failed to inspect tasks schema")?
-            .is_some();
-        if !has_id {
-            self.conn
-                .execute("ALTER TABLE tasks ADD COLUMN id TEXT", [])
-                .context("failed to add tasks.id column")?;
-            self.conn
-                .execute(
-                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_id ON tasks(id)",
-                    [],
-                )
-                .context("failed to create unique task id index")?;
-        }
-        let mut stmt = self
-            .conn
-            .prepare("SELECT file FROM tasks WHERE id IS NULL OR id = ''")
-            .context("failed to prepare task id backfill query")?;
-        let files = stmt
-            .query_map([], |row| row.get::<_, String>(0))
-            .context("failed to load tasks missing ids")?
-            .collect::<rusqlite::Result<Vec<_>>>()
-            .context("failed to decode files missing ids")?;
-        drop(stmt);
-        for file in files {
-            self.conn
-                .execute(
-                    "UPDATE tasks SET id = ?1 WHERE file = ?2",
-                    params![extract_task_id(&file), file],
-                )
-                .with_context(|| format!("failed to backfill task id for '{file}'"))?;
-        }
-        Ok(())
-    }
 }
 
 fn enable_foreign_keys(conn: &Connection) -> Result<()> {
@@ -323,5 +287,5 @@ pub fn map_task_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<TaskRow> {
 }
 
 #[cfg(test)]
-#[path = "db_tests.rs"]
+#[path = "../db_tests.rs"]
 mod tests;

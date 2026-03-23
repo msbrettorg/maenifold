@@ -1,13 +1,13 @@
 # Pipeline Dispatch — DEPRECATED
 
-> **This document is deprecated.** Pipeline dispatch is now handled by the `gate` CLI tool and the `test-driven-development` skill.
+> **This document is deprecated.** Pipeline dispatch is now handled by the `gate` CLI tool and the `gate` skill.
 
 ## Quick Reference
 
 - **Status**: `gate status --root .`
 - **Advance**: `gate advance <FILE> --root . --stage <STAGE> [--verdict <VERDICT>]`
 - **Rebuild cache**: `gate sync --rebuild .`
-- **Full process**: See `assets/integrations/skills/test-driven-development/SKILL.md`
+- **Full process**: See `assets/integrations/skills/gate/SKILL.md`
 
 ## History
 

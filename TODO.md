@@ -180,7 +180,7 @@ Replace the Unix-only `dup2`-based stderr redirection in quiet parsing with an e
 - **Status**: pending
 - **Depends on**: T-54.2
 
-### T-56.4: Align test-driven-development skill assets with shipped `gate` behavior | RTM: FR-41, RTM-185
+### T-56.4: Align gate skill assets with shipped `gate` behavior | RTM: FR-41, RTM-185
 
 Bring the skill package, scaffold, and prompt templates back into agreement with the current `gate` CLI and the intended file-authoritative workflow.
 
@@ -190,7 +190,7 @@ Bring the skill package, scaffold, and prompt templates back into agreement with
   AC-4: Prompt templates and scaffold examples use canonical section names and verdict formatting consistent with `maenifold-gate` parser expectations
   AC-5: Repository noise files such as `.DS_Store` are removed from the skill asset tree
 
-- **Files**: `assets/integrations/skills/test-driven-development/SKILL.md`, `assets/integrations/skills/test-driven-development/references/setup-template.md`, `assets/integrations/skills/test-driven-development/references/scaffold/README.md`, `assets/integrations/skills/test-driven-development/references/{swe,red,blue}-prompt-template.md`, `assets/integrations/skills/test-driven-development/.DS_Store`
+- **Files**: `assets/integrations/skills/gate/SKILL.md`, `assets/integrations/skills/gate/references/setup-template.md`, `assets/integrations/skills/gate/references/scaffold/README.md`, `assets/integrations/skills/gate/references/{swe,red,blue}-prompt-template.md`, `assets/integrations/skills/gate/.DS_Store`
 - **Status**: pending
 - **Depends on**: T-56.1
 

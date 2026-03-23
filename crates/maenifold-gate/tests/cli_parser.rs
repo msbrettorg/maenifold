@@ -45,6 +45,29 @@ fn reject_parses_pipeline_and_notes() {
 }
 
 #[test]
+fn pass_parses_embedded_pipeline_name() {
+    let cli = parse_from([
+        "gate",
+        "pass",
+        "--root",
+        ".",
+        "--pipeline",
+        "tdd",
+        "T-1.1",
+    ])
+    .unwrap();
+    match cli.command {
+        Some(Command::Pass(args)) => {
+            assert_eq!(args.id, "T-1.1");
+            assert_eq!(args.pipeline_path, Some(PathBuf::from("tdd")));
+            assert_eq!(args.root, PathBuf::from("."));
+            assert_eq!(args.db_path, PathBuf::from(".").join("pipeline.db"));
+        }
+        _ => panic!("expected pass command"),
+    }
+}
+
+#[test]
 fn append_requires_agent() {
     let error = match parse_from(["gate", "append", "--notes", "hello", "T-1.1"]) {
         Ok(_) => panic!("expected parse error"),
@@ -62,6 +85,19 @@ fn status_accepts_optional_id() {
             assert_eq!(args.id.as_deref(), Some("T-1.1"));
             assert!(!args.json);
             assert_eq!(args.db, None);
+            assert_eq!(args.pipeline_path, None);
+        }
+        _ => panic!("expected status command"),
+    }
+}
+
+#[test]
+fn status_accepts_pipeline_flag() {
+    let cli = parse_from(["gate", "status", "--pipeline", "tdd"]).unwrap();
+    match cli.command {
+        Some(Command::Status(args)) => {
+            assert_eq!(args.id, None);
+            assert_eq!(args.pipeline_path, Some(PathBuf::from("tdd")));
         }
         _ => panic!("expected status command"),
     }
@@ -96,8 +132,23 @@ fn sync_parses_root_and_rebuild_flag() {
                     db: None,
                     root: PathBuf::from("."),
                     rebuild: true,
+                    pipeline_path: None,
                 }
             );
+        }
+        _ => panic!("expected sync command"),
+    }
+}
+
+#[test]
+fn sync_accepts_pipeline_flag() {
+    let cli = parse_from(["gate", "sync", "--pipeline", "tdd", "."]).unwrap();
+    match cli.command {
+        Some(Command::Sync(args)) => {
+            assert_eq!(args.root, PathBuf::from("."));
+            assert!(!args.rebuild);
+            assert_eq!(args.db, None);
+            assert_eq!(args.pipeline_path, Some(PathBuf::from("tdd")));
         }
         _ => panic!("expected sync command"),
     }

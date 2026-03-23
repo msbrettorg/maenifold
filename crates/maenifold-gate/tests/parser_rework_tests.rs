@@ -2,6 +2,7 @@ use std::{fs, path::Path};
 
 use assert_cmd::Command;
 use assert_cmd::cargo::cargo_bin_cmd;
+#[allow(deprecated)]
 use maenifold_gate::{
     parse_task_content,
     parser::{normalize_stage_name, parse_task_content_with_pipeline},
@@ -17,6 +18,7 @@ fn base_task() -> String {
     "# T-54.1 — Parser Rework Tolerance\n\n**Requirement**: FR-41\n".to_string()
 }
 
+#[allow(deprecated)]
 fn parse_task(location: &str, body: &str) -> maenifold_gate::TaskState {
     let path = Path::new(location).join("T-54.1-parser-rework-tolerance.md");
     parse_task_content(path, body).expect("task should parse")

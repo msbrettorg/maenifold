@@ -261,6 +261,7 @@ fn test_status_all_files_summary() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_pass_then_sync_roundtrip() {
     let root = setup_root();
     let file = task_file_name(1);
@@ -302,6 +303,7 @@ fn test_pass_then_sync_roundtrip() {
 // T-54.2: Location-authoritative fallback tests
 
 #[test]
+#[allow(deprecated)]
 fn test_done_zero_sections_effective_done() {
     let root = setup_root();
     let file = task_file_name(10);
@@ -316,6 +318,7 @@ fn test_done_zero_sections_effective_done() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_done_swe_only_effective_done() {
     let root = setup_root();
     let file = task_file_name(11);
@@ -336,6 +339,7 @@ fn test_done_swe_only_effective_done() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_done_swe_red_pass_no_blue_effective_done() {
     let root = setup_root();
     let file = task_file_name(12);
@@ -354,6 +358,7 @@ fn test_done_swe_red_pass_no_blue_effective_done() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn test_todo_zero_sections_stays_pending() {
     let root = setup_root();
     let file = task_file_name(13);

@@ -14,6 +14,7 @@ pub use cli::{
     Cli, CliError, Command, CommandStubError, HelpTopic, StatusArgs, SyncArgs, parse_from, run,
     run_from,
 };
+#[allow(deprecated)]
 pub use parser::{
     ParseTaskError, ParsedSection, extract_sections, parse_task_content, parse_task_file,
 };

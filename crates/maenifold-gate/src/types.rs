@@ -89,6 +89,7 @@ impl TaskState {
     #[deprecated(
         note = "use parse_quietly_with_pipeline; this path uses SDD-hardcoded stage rules"
     )]
+    #[allow(deprecated)]
     pub fn parse_quietly(
         path: &Path,
         content: &str,
@@ -114,6 +115,8 @@ impl TaskState {
     /// T-54.2: recover partial stage data for legacy done/ files when only the
     /// location/status reconciliation failed. Delegates to the main parser then
     /// forces done-override on the result.
+    #[deprecated(note = "use done_override_from_content_with_pipeline")]
+    #[allow(deprecated)]
     pub fn done_override_from_content(path: &Path, content: &str) -> Self {
         match crate::parser::parse_task_content(path, content) {
             Ok(state) => state.with_done_override(),

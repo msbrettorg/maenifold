@@ -26,6 +26,8 @@ pub fn normalize_stage_name(heading: &str) -> String {
 }
 
 /// T-53.2: RTM FR-41 — parse an authoritative task file from disk.
+#[deprecated(note = "use parse_task_file with a pipeline; this path has no pipeline awareness")]
+#[allow(deprecated)]
 pub fn parse_task_file(path: impl AsRef<Path>) -> Result<TaskState, ParseTaskError> {
     let path = path.as_ref();
     let content = fs::read_to_string(path).map_err(|source| ParseTaskError::ReadFailed {
@@ -37,6 +39,7 @@ pub fn parse_task_file(path: impl AsRef<Path>) -> Result<TaskState, ParseTaskErr
 }
 
 /// T-53.2: RTM FR-41 — parse authoritative task state from path + markdown content.
+#[deprecated(note = "use parse_task_content_with_pipeline; this path has no pipeline awareness")]
 pub fn parse_task_content(
     path: impl AsRef<Path>,
     content: &str,

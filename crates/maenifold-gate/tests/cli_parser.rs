@@ -45,6 +45,29 @@ fn reject_parses_pipeline_and_notes() {
 }
 
 #[test]
+fn pass_parses_embedded_pipeline_name() {
+    let cli = parse_from([
+        "gate",
+        "pass",
+        "--root",
+        ".",
+        "--pipeline",
+        "tdd",
+        "T-1.1",
+    ])
+    .unwrap();
+    match cli.command {
+        Some(Command::Pass(args)) => {
+            assert_eq!(args.id, "T-1.1");
+            assert_eq!(args.pipeline_path, Some(PathBuf::from("tdd")));
+            assert_eq!(args.root, PathBuf::from("."));
+            assert_eq!(args.db_path, PathBuf::from(".").join("pipeline.db"));
+        }
+        _ => panic!("expected pass command"),
+    }
+}
+
+#[test]
 fn append_requires_agent() {
     let error = match parse_from(["gate", "append", "--notes", "hello", "T-1.1"]) {
         Ok(_) => panic!("expected parse error"),

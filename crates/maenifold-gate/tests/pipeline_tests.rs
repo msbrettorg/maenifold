@@ -66,6 +66,16 @@ fn setup_test_env(pipeline_json: &str) -> (TempDir, PathBuf, PathBuf) {
     (tmp, root, db_path)
 }
 
+fn setup_test_env_without_pipeline() -> (TempDir, PathBuf, PathBuf) {
+    let tmp = TempDir::new().unwrap();
+    let root = tmp.path().to_path_buf();
+    fs::create_dir_all(root.join("todo")).unwrap();
+    fs::create_dir_all(root.join("done")).unwrap();
+
+    let db_path = root.join("pipeline.db");
+    (tmp, root, db_path)
+}
+
 fn create_task(root: &Path, filename: &str) {
     let id = filename
         .trim_end_matches(".md")
@@ -157,6 +167,30 @@ fn full_tdd_pipeline_pass_through() {
     assert_eq!(row.status, "done");
     assert_eq!(row.location, "done");
     assert!(!root.join("todo").join(file).exists());
+    assert!(root.join("done").join(file).exists());
+}
+
+#[test]
+fn embedded_pipeline_name_works_end_to_end() {
+    let (_tmp, root, db_path) = setup_test_env_without_pipeline();
+    let file = "T-55.7-embedded-name.md";
+    let id = "T-55.7";
+    create_task(&root, file);
+    sync_db(&root, &db_path);
+
+    run_pass(&root, &db_path, id, Some(Path::new("tdd"))).unwrap();
+    assert_eq!(read_task_by_id(&db_path, id).status, "test");
+
+    run_pass(&root, &db_path, id, Some(Path::new("tdd"))).unwrap();
+    assert_eq!(read_task_by_id(&db_path, id).status, "implement");
+
+    run_pass(&root, &db_path, id, Some(Path::new("tdd"))).unwrap();
+    assert_eq!(read_task_by_id(&db_path, id).status, "verify");
+
+    run_pass(&root, &db_path, id, Some(Path::new("tdd"))).unwrap();
+    let row = read_task_by_id(&db_path, id);
+    assert_eq!(row.status, "done");
+    assert_eq!(row.location, "done");
     assert!(root.join("done").join(file).exists());
 }
 

@@ -33,15 +33,41 @@ pub fn load_pipeline_from_str(json: &str) -> Result<PipelineDef> {
     Ok(def)
 }
 
+pub fn load_embedded_pipeline(name: &str) -> Result<PipelineDef> {
+    match name {
+        "sdd" => load_pipeline_from_str(include_str!("../../../assets/pipelines/sdd.json")),
+        "tdd" => load_pipeline_from_str(include_str!("../../../assets/pipelines/tdd.json")),
+        "gsd" => load_pipeline_from_str(include_str!("../../../assets/pipelines/gsd.json")),
+        "lightweight" => {
+            load_pipeline_from_str(include_str!("../../../assets/pipelines/lightweight.json"))
+        }
+        _ => anyhow::bail!(
+            "unknown embedded pipeline '{}'; available: sdd, tdd, gsd, lightweight",
+            name
+        ),
+    }
+}
+
 pub fn load_pipeline_def(explicit_path: Option<&Path>, root: &Path) -> Result<PipelineDef> {
     if let Some(path) = explicit_path {
+        if path.extension().is_none() && path.components().count() == 1 {
+            if let Some(name) = path.to_str() {
+                if let Ok(pipeline) = load_embedded_pipeline(name) {
+                    return Ok(pipeline);
+                }
+            }
+        }
         load_pipeline(path)
     } else {
         let root_pipeline = root.join("pipeline.json");
         if root_pipeline.is_file() {
             load_pipeline(&root_pipeline)
         } else {
-            load_pipeline_from_str(include_str!("../../../assets/pipelines/sdd.json"))
+            eprintln!(
+                "note: no pipeline.json found in {}, using default SDD pipeline",
+                root.display()
+            );
+            load_embedded_pipeline("sdd")
         }
     }
 }
@@ -139,6 +165,31 @@ mod tests {
         assert_eq!(def.name, "lightweight");
         assert_eq!(def.stages.len(), 2);
         Ok(())
+    }
+
+    #[test]
+    fn load_named_embedded_pipeline() -> Result<()> {
+        let def = load_embedded_pipeline("tdd")?;
+        assert_eq!(def.name, "tdd");
+        assert_eq!(def.stages.len(), 3);
+        Ok(())
+    }
+
+    #[test]
+    fn explicit_simple_name_loads_embedded_pipeline() -> Result<()> {
+        let def = load_pipeline_def(Some(Path::new("gsd")), Path::new("."))?;
+        assert_eq!(def.name, "gsd");
+        assert_eq!(def.stages.len(), 4);
+        Ok(())
+    }
+
+    #[test]
+    fn unknown_embedded_pipeline_name_errors() {
+        let err = load_embedded_pipeline("unknown").unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("unknown embedded pipeline 'unknown'")
+        );
     }
 
     #[test]

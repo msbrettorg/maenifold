@@ -1,4 +1,5 @@
 {
+  "_comment": "verify→fail→execute is intentional: failed verification retries execution rather than requeueing to pending",
   "name": "gsd",
   "stages": [
     {

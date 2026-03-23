@@ -3,13 +3,25 @@ use std::collections::BTreeMap;
 
 use crate::{db::TaskRow, types::TaskState};
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub(super) struct StageOutput {
+    pub name: String,
+    pub verdict: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 pub(super) struct StatusOutput {
     pub file: String,
     pub location: String,
     pub status: String,
+    pub stages: Vec<StageOutput>,
+    /// Deprecated: use `stages` instead.
     pub swe: bool,
+    /// Deprecated: use `stages` instead.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub red: Option<String>,
+    /// Deprecated: use `stages` instead.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub blue: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
@@ -90,6 +102,28 @@ fn drift(state: &TaskState, row: Option<&TaskRow>) -> Vec<String> {
     out
 }
 
+fn stage_outputs(state: Option<&TaskState>) -> Vec<StageOutput> {
+    state
+        .map(|item| {
+            item.stages
+                .iter()
+                .map(|stage| StageOutput {
+                    name: stage.stage.clone(),
+                    verdict: stage.verdict.map(|verdict| verdict.as_str().to_string()),
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn legacy_stage_verdict(stages: &[StageOutput], stage_name: &str) -> Option<String> {
+    stages
+        .iter()
+        .rev()
+        .find(|stage| stage.name == stage_name)
+        .and_then(|stage| stage.verdict.clone())
+}
+
 pub(super) fn json_output(
     file: &str,
     location: &str,
@@ -97,20 +131,18 @@ pub(super) fn json_output(
     error: Option<String>,
     db_drift: Vec<String>,
 ) -> StatusOutput {
+    let stages = stage_outputs(state);
     StatusOutput {
         file: file.into(),
         location: location.into(),
-        status: state
-            .map_or_else(|| "error".to_string(), |item| item.effective_status().to_string()),
-        swe: state.is_some_and(|item| stage_value(item, "swe").is_some()),
-        red: state
-            .and_then(|item| stage_value(item, "red"))
-            .flatten()
-            .map(|s| s.to_string()),
-        blue: state
-            .and_then(|item| stage_value(item, "blue"))
-            .flatten()
-            .map(|s| s.to_string()),
+        status: state.map_or_else(
+            || "error".to_string(),
+            |item| item.effective_status().to_string(),
+        ),
+        swe: stages.iter().any(|stage| stage.name == "swe"),
+        red: legacy_stage_verdict(&stages, "red"),
+        blue: legacy_stage_verdict(&stages, "blue"),
+        stages,
         error,
         db_drift,
     }

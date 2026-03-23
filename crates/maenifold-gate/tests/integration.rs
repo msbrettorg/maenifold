@@ -30,6 +30,10 @@ fn write_task(root: &Path, location: TaskLocation, file: &str, content: &str) ->
     path
 }
 
+fn write_pipeline(root: &Path, content: &str) {
+    fs::write(root.join("pipeline.json"), content).unwrap();
+}
+
 fn base_task(n: u32) -> String {
     format!(
         "# T-99.{n} — Test Task {n}\n\n**Requirement**: FR-41\n\nAcceptance Criteria:\n\n1. Test criterion\n"
@@ -407,7 +411,53 @@ fn test_status_json_reports_done_override_for_legacy_done_file() {
     assert_eq!(json["file"], file);
     assert_eq!(json["location"], "done");
     assert_eq!(json["status"], "done");
+    assert_eq!(json["stages"], Value::Array(vec![]));
     assert_eq!(json["error"], "incomplete audit trail (location override)");
+}
+
+#[test]
+fn test_status_json_reports_dynamic_pipeline_stages() {
+    let root = setup_root();
+    write_pipeline(
+        root.path(),
+        include_str!("../../../assets/pipelines/tdd.json"),
+    );
+    let file = task_file_name(19);
+    write_task(
+        root.path(),
+        TaskLocation::Todo,
+        &file,
+        &format!(
+            "{}\n## Test\n\nWrote failing coverage.\n\n## Implement\n\n**Verdict**: PASS\n\nImplementation complete.\n",
+            base_task(19)
+        ),
+    );
+
+    let output = gate_command()
+        .args(["status", "--root"])
+        .arg(root.path())
+        .arg("--json")
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: Value = serde_json::from_slice(&output).unwrap();
+    let items = json.as_array().unwrap();
+    let status = items.iter().find(|item| item["file"] == file).unwrap();
+
+    assert_eq!(status["location"], "todo");
+    assert_eq!(status["status"], "verify");
+    assert_eq!(
+        status["stages"],
+        serde_json::json!([
+            { "name": "test", "verdict": null },
+            { "name": "implement", "verdict": "PASS" }
+        ])
+    );
+    assert_eq!(status["swe"], false);
+    assert_eq!(status["red"], Value::Null);
+    assert_eq!(status["blue"], Value::Null);
 }
 
 #[test]

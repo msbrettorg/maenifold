@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use assert_cmd::Command;
 use assert_cmd::cargo::cargo_bin_cmd;
 use maenifold_gate::{
-    StatusArgs, SyncArgs, TaskLocation, TaskState, TaskStatus,
+    StatusArgs, SyncArgs, TaskLocation, TaskState,
     db::{GateDb, extract_task_id},
     parser,
     pass::{self, PassArgs},
@@ -32,7 +32,7 @@ fn write_task(root: &Path, location: TaskLocation, file: &str, content: &str) ->
 
 fn base_task(n: u32) -> String {
     format!(
-        "# T-99.{n} — Test Task {n}\n\n**Requirement**: FR-41\n\n## Acceptance Criteria\n\n1. Test criterion\n"
+        "# T-99.{n} — Test Task {n}\n\n**Requirement**: FR-41\n\nAcceptance Criteria:\n\n1. Test criterion\n"
     )
 }
 
@@ -198,16 +198,17 @@ fn test_sync_reconcile_detects_drift() {
 fn test_status_single_id() {
     let root = setup_root();
     let file = task_file_name(1);
-    let path = write_task(
+    write_task(
         root.path(),
         TaskLocation::Todo,
         &file,
         &with_red_pass(with_swe(base_task(1))),
     );
-    let state = parser::parse_task_file(&path).unwrap();
-    assert_eq!(state.status, TaskStatus::Blue);
 
     let db_path = rebuild_cache(root.path());
+    let row = read_row(&db_path, &file);
+    assert_eq!(row.status, "blue");
+
     let args = StatusArgs {
         db: Some(db_path),
         root: root.path().to_path_buf(),
@@ -271,9 +272,8 @@ fn test_pass_then_sync_roundtrip() {
     let done_path = root.path().join("done").join(&file);
     assert!(!root.path().join("todo").join(&file).exists());
     assert!(done_path.exists());
-    assert!(parser::parse_task_file(&done_path).is_err());
-    let final_state = TaskState::done_override(done_path.clone());
-    assert_eq!(final_state.effective_status(), TaskStatus::Done);
+    let final_state = parser::parse_task_file(&done_path).unwrap();
+    assert_eq!(final_state.effective_status(), "done");
     assert_eq!(final_state.location, TaskLocation::Done);
 
     let sync_args = SyncArgs {
@@ -299,7 +299,7 @@ fn test_done_zero_sections_effective_done() {
     let path = write_task(root.path(), TaskLocation::Done, &file, &base_task(10));
     assert!(parser::parse_task_file(&path).is_err());
     let state = TaskState::done_override(path);
-    assert_eq!(state.effective_status(), TaskStatus::Done);
+    assert_eq!(state.effective_status(), "done");
     let db_path = rebuild_cache(root.path());
     let row = read_row(&db_path, &file);
     assert_eq!(row.status, "done");
@@ -318,7 +318,7 @@ fn test_done_swe_only_effective_done() {
     );
     assert!(parser::parse_task_file(&path).is_err());
     let state = TaskState::done_override(path);
-    assert_eq!(state.effective_status(), TaskStatus::Done);
+    assert_eq!(state.effective_status(), "done");
     let db_path = rebuild_cache(root.path());
     let row = read_row(&db_path, &file);
     assert_eq!(row.status, "done");
@@ -335,9 +335,8 @@ fn test_done_swe_red_pass_no_blue_effective_done() {
         &file,
         &with_red_pass(with_swe(base_task(12))),
     );
-    assert!(parser::parse_task_file(&path).is_err());
-    let state = TaskState::done_override(path);
-    assert_eq!(state.effective_status(), TaskStatus::Done);
+    let state = parser::parse_task_file(&path).unwrap();
+    assert_eq!(state.effective_status(), "done");
     let db_path = rebuild_cache(root.path());
     let row = read_row(&db_path, &file);
     assert_eq!(row.status, "done");
@@ -350,8 +349,8 @@ fn test_todo_zero_sections_stays_pending() {
     let file = task_file_name(13);
     let path = write_task(root.path(), TaskLocation::Todo, &file, &base_task(13));
     let state = parser::parse_task_file(&path).unwrap();
-    assert_eq!(state.status, TaskStatus::Pending);
-    assert_eq!(state.effective_status(), TaskStatus::Pending);
+    assert_eq!(state.status, "pending");
+    assert_eq!(state.effective_status(), "pending");
     assert_eq!(state.location, TaskLocation::Todo);
 }
 

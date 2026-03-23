@@ -114,6 +114,13 @@ impl TaskState {
     pub fn done_override_from_content(path: &Path, content: &str) -> Self {
         match crate::parser::parse_task_content(path, content) {
             Ok(state) => state.with_done_override(),
+            Err(crate::parser::ParseTaskError::LocationStatusMismatch { .. }) => {
+                let todo_path = todo_shadow_path(path);
+                match crate::parser::parse_task_content(&todo_path, content) {
+                    Ok(state) => state.with_done_override(),
+                    Err(_) => Self::done_override(path.to_path_buf()),
+                }
+            }
             Err(_) => Self::done_override(path.to_path_buf()),
         }
     }
@@ -125,6 +132,14 @@ impl TaskState {
     ) -> Self {
         match crate::parser::parse_task_content_with_pipeline(path, content, pipeline) {
             Ok(state) => state.with_done_override(),
+            Err(crate::parser::ParseTaskError::LocationStatusMismatch { .. }) => {
+                let todo_path = todo_shadow_path(path);
+                match crate::parser::parse_task_content_with_pipeline(&todo_path, content, pipeline)
+                {
+                    Ok(state) => state.with_done_override(),
+                    Err(_) => Self::done_override(path.to_path_buf()),
+                }
+            }
             Err(_) => Self::done_override(path.to_path_buf()),
         }
     }
@@ -141,5 +156,16 @@ impl TaskState {
     /// Returns true when the task status is terminal ("done").
     pub fn is_terminal(&self) -> bool {
         self.status == "done"
+    }
+}
+
+fn todo_shadow_path(path: &Path) -> PathBuf {
+    match (path.parent(), path.file_name()) {
+        (Some(location_dir), Some(file_name)) => location_dir
+            .parent()
+            .unwrap_or(location_dir)
+            .join("todo")
+            .join(file_name),
+        _ => path.to_path_buf(),
     }
 }

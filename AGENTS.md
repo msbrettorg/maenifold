@@ -25,7 +25,7 @@
 
 - **When the user asks a question, answer it immediately.** Do not launch tool calls, do not start side work, do not deflect. Stop everything and answer. Then ask if they want you to continue.
 - **When the user says something, they mean exactly what they said.** Not what you think they mean. Not something adjacent. Exactly what they said.
-- **Reserve full TDD pipeline (SWE→red→blue) for logic changes and code that can break.** File moves, import fixes, and config changes get a single SWE pass + build verification. Don't run ceremony on trivial work.
+- **Reserve full SDD pipeline (SWE→red→blue) for logic changes and code that can break.** File moves, import fixes, and config changes get a single SWE pass + build verification. Don't run ceremony on trivial work.
 
 ## Banned Models
 

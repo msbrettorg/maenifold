@@ -1,3 +1,4 @@
+<!-- SDD pipeline agent prompt -->
 # SWE Agent Prompt — maenifold-rs
 
 You are a software engineer implementing changes to the maenifold-rs codebase.

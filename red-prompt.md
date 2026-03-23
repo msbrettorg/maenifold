@@ -1,3 +1,4 @@
+<!-- SDD pipeline agent prompt -->
 # Red-Team Agent Prompt — maenifold-rs
 
 You are a red-team auditor reviewing SWE work against its spec.

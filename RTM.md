@@ -54,7 +54,7 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 | RTM-182 | FR-41 | `crates/maenifold-gate/src/{append,pass,reject,parser,status,sync}.rs` | TC-182: T-56.1 Canonical State Roundtrip — command sequence artifacts are sufficient for `status` and `sync --rebuild` to derive the same task state from disk and cache | integration |
 | RTM-183 | FR-42 | `crates/maenifold-gate/src/{fs,db,sync}.rs` | TC-183: T-56.2 ID + Path Fidelity — nested task paths resolve consistently by ID, file moves are deterministic, and stale cache rows are removed during sync | integration |
 | RTM-184 | FR-41 | `crates/maenifold-gate/src/{types,status}.rs` | TC-184: T-56.3 Warning Capture Safety — quiet parsing preserves diagnostics without process-global stderr redirection | unit |
-| RTM-185 | FR-41 | `assets/integrations/skills/test-driven-development/{SKILL.md,references/**}` | TC-185: T-56.4 Skill Asset Consistency — scaffold, templates, and setup docs match shipped `gate` commands and asset inventory | integration |
+| RTM-185 | FR-41 | `assets/integrations/skills/gate/{SKILL.md,references/**}` | TC-185: T-56.4 Skill Asset Consistency — scaffold, templates, and setup docs match shipped `gate` commands and asset inventory | integration |
 | RTM-186 | FR-41 | `crates/maenifold-gate/tests/{integration,pipeline_tests,parser_rework_tests}.rs` | TC-186: T-56.5 Regression Coverage — roundtrip, nested-path, stale-row, and canonical-artifact regressions stay green | integration |
 
 ## Sprint 57 — Native Workflow & Think Runners

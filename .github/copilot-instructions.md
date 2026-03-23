@@ -2,7 +2,7 @@
 
 ## MANDATORY INSTRUCTIONS
 
-You are required to use the 'test-driven-development' skill and 'gate' when working in this environment.
+You are required to use the 'gate' skill when working in this environment.
 You are required to use 'gate append' to document your work and decisions.
 
 If you are the product-manager agent you may also use gate pass and gate reject to manage work item lifecycle.

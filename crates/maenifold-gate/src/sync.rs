@@ -36,11 +36,9 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
             Err(parser::ParseTaskError::LocationStatusMismatch {
                 location: TaskLocation::Done,
                 ..
-            }) => TaskState::done_override_from_content_with_pipeline(
-                &task.path,
-                &content,
-                &pipeline,
-            ),
+            }) => {
+                TaskState::done_override_from_content_with_pipeline(&task.path, &content, &pipeline)
+            }
             Err(error) => {
                 eprintln!("warning: {}: {error}", task.path.display());
                 errors += 1;

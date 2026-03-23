@@ -86,7 +86,9 @@ impl TaskState {
         Self::new(path, TaskLocation::Done, "done".to_string(), 0, vec![])
     }
 
-    #[deprecated(note = "use parse_quietly_with_pipeline; this path uses SDD-hardcoded stage rules")]
+    #[deprecated(
+        note = "use parse_quietly_with_pipeline; this path uses SDD-hardcoded stage rules"
+    )]
     pub fn parse_quietly(
         path: &Path,
         content: &str,

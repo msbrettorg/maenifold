@@ -16,7 +16,10 @@ fn parse_task(location: &str, body: &str) -> maenifold_gate::TaskState {
     parse_task_content(path, body).expect("task should parse")
 }
 
-fn parse_task_result(location: &str, body: &str) -> Result<maenifold_gate::TaskState, ParseTaskError> {
+fn parse_task_result(
+    location: &str,
+    body: &str,
+) -> Result<maenifold_gate::TaskState, ParseTaskError> {
     let path = Path::new(location).join("T-54.1-parser-rework-tolerance.md");
     parse_task_content(path, body)
 }
@@ -48,7 +51,8 @@ fn re_audit_without_initial_verdict_becomes_blue_ready() {
         base_task()
     );
 
-    let error = parse_task_result("todo", &content).expect_err("todo task should reject done status");
+    let error =
+        parse_task_result("todo", &content).expect_err("todo task should reject done status");
 
     assert!(matches!(
         error,
@@ -88,7 +92,8 @@ fn round_suffix_red_heading_is_recognized() {
         base_task()
     );
 
-    let error = parse_task_result("todo", &content).expect_err("todo task should reject done status");
+    let error =
+        parse_task_result("todo", &content).expect_err("todo task should reject done status");
 
     assert!(matches!(
         error,
@@ -139,7 +144,8 @@ fn stale_blue_section_before_reaudit_pass_is_ignored() {
         base_task()
     );
 
-    let error = parse_task_result("todo", &content).expect_err("todo task should reject done status");
+    let error =
+        parse_task_result("todo", &content).expect_err("todo task should reject done status");
 
     assert!(matches!(
         error,

@@ -48,11 +48,9 @@ impl fmt::Display for ParseTaskError {
                 "task file {} must live under todo/ or done/",
                 path.display()
             ),
-            Self::DuplicateVerdict { stage, line } => write!(
-                f,
-                "duplicate verdict in {} section at line {}",
-                stage, line
-            ),
+            Self::DuplicateVerdict { stage, line } => {
+                write!(f, "duplicate verdict in {} section at line {}", stage, line)
+            }
             Self::UnknownVerdict { stage, line, value } => write!(
                 f,
                 "unknown verdict '{}' for {} section at line {}",

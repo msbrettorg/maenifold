@@ -362,16 +362,19 @@ mod tests {
                     source: "workflow-node".to_string(),
                     target: "prompt-node".to_string(),
                     edge_type: EdgeType::Success,
+                    mapping: None,
                 },
                 super::super::PipelineEdge {
                     source: "prompt-node".to_string(),
                     target: "thinking-node".to_string(),
                     edge_type: EdgeType::Always,
+                    mapping: None,
                 },
                 super::super::PipelineEdge {
                     source: "thinking-node".to_string(),
                     target: "tool-node".to_string(),
                     edge_type: EdgeType::Success,
+                    mapping: None,
                 },
             ],
         };

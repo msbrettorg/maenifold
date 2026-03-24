@@ -76,11 +76,7 @@ fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
 
             Ok(())
         }
-        PipelineNode::Tool {
-            id,
-            tool_name,
-            ..
-        } => {
+        PipelineNode::Tool { id, tool_name, .. } => {
             validate_non_empty_node_field(id, "toolName", tool_name)
         }
     }
@@ -172,11 +168,13 @@ mod tests {
                     source: "a".to_string(),
                     target: "b".to_string(),
                     edge_type: EdgeType::Success,
+                    mapping: None,
                 },
                 PipelineEdge {
                     source: "b".to_string(),
                     target: "c".to_string(),
                     edge_type: EdgeType::Always,
+                    mapping: None,
                 },
             ],
         }
@@ -210,11 +208,13 @@ mod tests {
                     source: "workflow".to_string(),
                     target: "prompt".to_string(),
                     edge_type: EdgeType::Success,
+                    mapping: None,
                 },
                 PipelineEdge {
                     source: "prompt".to_string(),
                     target: "thinking".to_string(),
                     edge_type: EdgeType::Success,
+                    mapping: None,
                 },
             ],
         }
@@ -262,6 +262,7 @@ mod tests {
             source: "missing".to_string(),
             target: "a".to_string(),
             edge_type: EdgeType::Success,
+            mapping: None,
         });
 
         let error = validate_pipeline(&definition).expect_err("expected missing source to fail");
@@ -275,6 +276,7 @@ mod tests {
             source: "a".to_string(),
             target: "missing".to_string(),
             edge_type: EdgeType::Always,
+            mapping: None,
         });
 
         let error = validate_pipeline(&definition).expect_err("expected missing target to fail");
@@ -303,11 +305,13 @@ mod tests {
                     source: "a".to_string(),
                     target: "b".to_string(),
                     edge_type: EdgeType::Success,
+                    mapping: None,
                 },
                 PipelineEdge {
                     source: "b".to_string(),
                     target: "a".to_string(),
                     edge_type: EdgeType::Always,
+                    mapping: None,
                 },
             ],
         };
@@ -338,11 +342,13 @@ mod tests {
                     source: "a".to_string(),
                     target: "b".to_string(),
                     edge_type: EdgeType::Success,
+                    mapping: None,
                 },
                 PipelineEdge {
                     source: "a".to_string(),
                     target: "b".to_string(),
                     edge_type: EdgeType::Always,
+                    mapping: None,
                 },
             ],
         };

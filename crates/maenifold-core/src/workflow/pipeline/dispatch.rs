@@ -561,6 +561,7 @@ mod tests {
                 source: "root".to_string(),
                 target: "child".to_string(),
                 edge_type: EdgeType::Success,
+                mapping: None,
             }],
         };
 

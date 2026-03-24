@@ -247,6 +247,7 @@ fn load_pipeline_node_states(
     derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)
 }
 
+#[derive(Debug)]
 enum NodeExecutionRequest {
     Workflow {
         workflow_id: String,
@@ -265,6 +266,155 @@ enum NodeExecutionRequest {
         tool_name: String,
         tool_args: Option<JsonValue>,
     },
+}
+
+/// Resolve a dot-path expression against a JSON value.
+///
+/// Supports `a.b`, `results.0.title`, and `results[0].title` syntax.
+/// Returns [`JsonValue::Null`] for any unresolved segment.
+fn resolve_dot_path(value: &JsonValue, path: &str) -> JsonValue {
+    let segments = match parse_dot_path(path) {
+        Some(segments) => segments,
+        None => return JsonValue::Null,
+    };
+
+    let mut current = value;
+    for segment in segments {
+        current = match current {
+            JsonValue::Object(map) => match map.get(segment.as_str()) {
+                Some(value) => value,
+                None => return JsonValue::Null,
+            },
+            JsonValue::Array(items) => {
+                match segment
+                    .parse::<usize>()
+                    .ok()
+                    .and_then(|index| items.get(index))
+                {
+                    Some(value) => value,
+                    None => return JsonValue::Null,
+                }
+            }
+            _ => return JsonValue::Null,
+        };
+    }
+
+    current.clone()
+}
+
+fn parse_dot_path(path: &str) -> Option<Vec<String>> {
+    if path.is_empty() {
+        return Some(Vec::new());
+    }
+
+    let mut segments = Vec::new();
+    let mut chars = path.chars().peekable();
+    let mut current = String::new();
+    let mut allow_empty_dot = false;
+
+    while let Some(ch) = chars.next() {
+        match ch {
+            '.' => {
+                if !current.is_empty() {
+                    segments.push(std::mem::take(&mut current));
+                    allow_empty_dot = false;
+                } else if allow_empty_dot {
+                    allow_empty_dot = false;
+                } else {
+                    return None;
+                }
+            }
+            '[' => {
+                if !current.is_empty() {
+                    segments.push(std::mem::take(&mut current));
+                }
+
+                let mut index = String::new();
+                let mut closed = false;
+                for next in chars.by_ref() {
+                    if next == ']' {
+                        closed = true;
+                        break;
+                    }
+                    index.push(next);
+                }
+
+                if !closed || index.is_empty() {
+                    return None;
+                }
+
+                segments.push(index);
+                allow_empty_dot = true;
+            }
+            ']' => return None,
+            other => {
+                current.push(other);
+                allow_empty_dot = false;
+            }
+        }
+    }
+
+    if !current.is_empty() {
+        segments.push(current);
+    }
+
+    Some(segments)
+}
+
+/// Apply edge mappings for a target tool node.
+///
+/// Collects incoming edges with `mapping` from completed source nodes, resolves
+/// each dot-path against the source node's output JSON, and merges the resolved
+/// values into `static_args`. Mapped values override static values.
+///
+/// Returns `static_args` unchanged when no incoming edges carry mappings.
+fn mapped_tool_args(
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+    target_node_id: &str,
+    static_args: Option<JsonValue>,
+) -> Option<JsonValue> {
+    let mut merged_args = match static_args.clone() {
+        Some(JsonValue::Object(map)) => map,
+        _ => serde_json::Map::new(),
+    };
+    let mut applied_mapping = false;
+
+    for edge in definition
+        .edges
+        .iter()
+        .filter(|edge| edge.target == target_node_id)
+    {
+        let Some(mapping) = edge.mapping.as_ref() else {
+            continue;
+        };
+        let Some(source_state) = node_states.get(&edge.source) else {
+            continue;
+        };
+        if source_state.status != NodeStatus::Completed {
+            continue;
+        }
+
+        let source_output = source_state
+            .output
+            .as_deref()
+            .and_then(|value| serde_json::from_str::<JsonValue>(value).ok())
+            .unwrap_or(JsonValue::Null);
+
+        for (target_key, source_path) in mapping {
+            applied_mapping = true;
+            merged_args.insert(
+                target_key.clone(),
+                resolve_dot_path(&source_output, source_path),
+            );
+        }
+    }
+
+    if applied_mapping {
+        Some(JsonValue::Object(merged_args))
+    } else {
+        static_args
+    }
 }
 
 fn build_node_execution_request(
@@ -312,7 +462,7 @@ fn build_node_execution_request(
             ..
         } => NodeExecutionRequest::Tool {
             tool_name: tool_name.clone(),
-            tool_args: tool_args.clone(),
+            tool_args: mapped_tool_args(definition, node_states, node.id(), tool_args.clone()),
         },
     })
 }
@@ -491,9 +641,7 @@ async fn run_tool_node(
             ) {
                 error
             } else {
-                MaenifoldError::Message(format!(
-                    "Error invoking {tool_name}: {error}"
-                ))
+                MaenifoldError::Message(format!("Error invoking {tool_name}: {error}"))
             }
         })
 }
@@ -648,6 +796,223 @@ mod pipeline_executor_tests {
     use std::time::Duration;
     use tokio::time::{Instant, sleep};
 
+    #[test]
+    fn resolve_dot_path_handles_nested_object_and_arrays() {
+        let value = json!({
+            "results": [{"title": "First"}],
+            "data": {"content": "Body"}
+        });
+
+        assert_eq!(resolve_dot_path(&value, "results.0.title"), json!("First"));
+        assert_eq!(resolve_dot_path(&value, "results[0].title"), json!("First"));
+        assert_eq!(resolve_dot_path(&value, "data.content"), json!("Body"));
+    }
+
+    #[test]
+    #[serial(config)]
+    fn build_tool_request_applies_mapped_args_from_completed_source() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let tool_args = build_tool_request_args(
+            &context,
+            PipelineDefinition {
+                nodes: vec![
+                    source_tool_node("source"),
+                    target_tool_node(Some(json!({"static": "keep"}))),
+                ],
+                edges: vec![PipelineEdge {
+                    source: "source".to_string(),
+                    target: "tool".to_string(),
+                    edge_type: EdgeType::Success,
+                    mapping: Some(HashMap::from([
+                        ("title".to_string(), "results.0.title".to_string()),
+                        ("count".to_string(), "meta.count".to_string()),
+                    ])),
+                }],
+            },
+            HashMap::from([
+                completed_node_state(
+                    "source",
+                    "pipeline-executor-mapped-source",
+                    json!({
+                        "results": [{"title": "Resolved"}],
+                        "meta": {"count": 2}
+                    }),
+                ),
+                pending_node_state("tool", "pipeline-executor-mapped-tool"),
+            ]),
+        );
+
+        assert_eq!(
+            tool_args,
+            Some(json!({
+                "static": "keep",
+                "title": "Resolved",
+                "count": 2
+            }))
+        );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn build_tool_request_keeps_static_args_when_edge_has_no_mapping() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let tool_args = build_tool_request_args(
+            &context,
+            PipelineDefinition {
+                nodes: vec![
+                    source_tool_node("source"),
+                    target_tool_node(Some(json!({"query": "static"}))),
+                ],
+                edges: vec![PipelineEdge {
+                    source: "source".to_string(),
+                    target: "tool".to_string(),
+                    edge_type: EdgeType::Success,
+                    mapping: None,
+                }],
+            },
+            HashMap::from([
+                completed_node_state(
+                    "source",
+                    "pipeline-executor-static-source",
+                    json!({"query": "mapped"}),
+                ),
+                pending_node_state("tool", "pipeline-executor-static-tool"),
+            ]),
+        );
+
+        assert_eq!(tool_args, Some(json!({"query": "static"})));
+    }
+
+    #[test]
+    #[serial(config)]
+    fn build_tool_request_sets_null_for_unresolved_paths() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let tool_args = build_tool_request_args(
+            &context,
+            PipelineDefinition {
+                nodes: vec![source_tool_node("source"), target_tool_node(None)],
+                edges: vec![PipelineEdge {
+                    source: "source".to_string(),
+                    target: "tool".to_string(),
+                    edge_type: EdgeType::Success,
+                    mapping: Some(HashMap::from([(
+                        "missing".to_string(),
+                        "results[9].title".to_string(),
+                    )])),
+                }],
+            },
+            HashMap::from([
+                completed_node_state(
+                    "source",
+                    "pipeline-executor-null-source",
+                    json!({"results": [{"title": "Resolved"}]}),
+                ),
+                pending_node_state("tool", "pipeline-executor-null-tool"),
+            ]),
+        );
+
+        assert_eq!(tool_args, Some(json!({"missing": Value::Null})));
+    }
+
+    #[test]
+    #[serial(config)]
+    fn build_tool_request_mapping_overrides_static_values() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let tool_args = build_tool_request_args(
+            &context,
+            PipelineDefinition {
+                nodes: vec![
+                    source_tool_node("source"),
+                    target_tool_node(Some(json!({"title": "Static", "mode": "keep"}))),
+                ],
+                edges: vec![PipelineEdge {
+                    source: "source".to_string(),
+                    target: "tool".to_string(),
+                    edge_type: EdgeType::Success,
+                    mapping: Some(HashMap::from([(
+                        "title".to_string(),
+                        "results[0].title".to_string(),
+                    )])),
+                }],
+            },
+            HashMap::from([
+                completed_node_state(
+                    "source",
+                    "pipeline-executor-override-source",
+                    json!({"results": [{"title": "Resolved"}]}),
+                ),
+                pending_node_state("tool", "pipeline-executor-override-tool"),
+            ]),
+        );
+
+        assert_eq!(
+            tool_args,
+            Some(json!({
+                "title": "Resolved",
+                "mode": "keep"
+            }))
+        );
+    }
+
+    fn build_tool_request_args(
+        context: &ToolContext,
+        definition: PipelineDefinition,
+        node_states: HashMap<String, NodeState>,
+    ) -> Option<JsonValue> {
+        let tool_node = definition
+            .nodes
+            .iter()
+            .find(|node| node.id() == "tool")
+            .expect("tool node");
+
+        match build_node_execution_request(
+            context,
+            &definition,
+            &node_states,
+            tool_node,
+            &DispatchedNode {
+                node_id: "tool".to_string(),
+                session_id: None,
+            },
+            "Ambient context",
+        )
+        .expect("build node execution request")
+        {
+            NodeExecutionRequest::Tool { tool_args, .. } => tool_args,
+            other => panic!("expected tool execution request, got {other:?}"),
+        }
+    }
+
+    fn source_tool_node(id: &str) -> PipelineNode {
+        PipelineNode::Tool {
+            id: id.to_string(),
+            tool_name: "GetConfig".to_string(),
+            tool_args: None,
+            agent: None,
+        }
+    }
+
+    fn target_tool_node(tool_args: Option<JsonValue>) -> PipelineNode {
+        PipelineNode::Tool {
+            id: "tool".to_string(),
+            tool_name: "GetConfig".to_string(),
+            tool_args,
+            agent: None,
+        }
+    }
+
+    fn completed_node_state(id: &str, session_id: &str, output: JsonValue) -> (String, NodeState) {
+        (
+            id.to_string(),
+            NodeState {
+                session_id: session_id.to_string(),
+                status: NodeStatus::Completed,
+                attempts: 1,
+                output: Some(output.to_string()),
+            },
+        )
+    }
+
     #[tokio::test]
     #[serial(config)]
     async fn executor_completes_single_node_pipeline() {
@@ -767,6 +1132,7 @@ mod pipeline_executor_tests {
                     source: "a".to_string(),
                     target: "b".to_string(),
                     edge_type: EdgeType::Success,
+                    mapping: None,
                 }],
             },
             HashMap::from([
@@ -844,11 +1210,13 @@ mod pipeline_executor_tests {
                         source: "a".to_string(),
                         target: "prompt".to_string(),
                         edge_type: EdgeType::Success,
+                        mapping: None,
                     },
                     PipelineEdge {
                         source: "prompt".to_string(),
                         target: "think".to_string(),
                         edge_type: EdgeType::Success,
+                        mapping: None,
                     },
                 ],
             },
@@ -1212,11 +1580,13 @@ mod pipeline_executor_tests {
                         source: "a".to_string(),
                         target: "b".to_string(),
                         edge_type: EdgeType::Success,
+                        mapping: None,
                     },
                     PipelineEdge {
                         source: "b".to_string(),
                         target: "c".to_string(),
                         edge_type: EdgeType::Success,
+                        mapping: None,
                     },
                 ],
             },

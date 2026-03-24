@@ -549,6 +549,7 @@ mod tests {
                 source: "root".to_string(),
                 target: "cleanup".to_string(),
                 edge_type: EdgeType::Always,
+                mapping: None,
             }],
         };
         let node_states = HashMap::from([
@@ -690,11 +691,13 @@ mod tests {
                     source: "root-a".to_string(),
                     target: "child".to_string(),
                     edge_type: EdgeType::Success,
+                    mapping: None,
                 },
                 crate::workflow::pipeline::PipelineEdge {
                     source: "root-b".to_string(),
                     target: "child".to_string(),
                     edge_type: EdgeType::Always,
+                    mapping: None,
                 },
             ],
         };
@@ -823,11 +826,13 @@ mod tests {
                     source: "root-a".to_string(),
                     target: "child".to_string(),
                     edge_type: EdgeType::Success,
+                    mapping: None,
                 },
                 crate::workflow::pipeline::PipelineEdge {
                     source: "root-b".to_string(),
                     target: "child".to_string(),
                     edge_type: EdgeType::Always,
+                    mapping: None,
                 },
             ],
         };

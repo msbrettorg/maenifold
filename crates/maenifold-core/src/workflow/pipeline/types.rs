@@ -119,8 +119,7 @@ impl PipelineNode {
     pub fn acp_client(&self) -> Option<&str> {
         match self {
             Self::Workflow { acp_client, .. } => acp_client.as_deref(),
-            Self::Prompt { agent, .. }
-            | Self::SequentialThinking { agent, .. } => Some(agent),
+            Self::Prompt { agent, .. } | Self::SequentialThinking { agent, .. } => Some(agent),
             Self::Tool { agent, .. } => agent.as_deref(),
         }
     }
@@ -289,13 +288,15 @@ impl From<PipelineNode> for PipelineNodeWire {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PipelineEdge {
     pub source: String,
     pub target: String,
     #[serde(rename = "type", default)]
     pub edge_type: EdgeType,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mapping: Option<HashMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -524,5 +525,45 @@ mod tests {
                 "toolArgs": {"sessionId": "pipeline-42"}
             })
         );
+    }
+
+    #[test]
+    fn pipeline_edge_deserializes_without_mapping() {
+        let edge: PipelineEdge = serde_json::from_value(json!({
+            "source": "a",
+            "target": "b",
+            "type": "success"
+        }))
+        .unwrap();
+
+        assert_eq!(
+            edge,
+            PipelineEdge {
+                source: "a".into(),
+                target: "b".into(),
+                edge_type: EdgeType::Success,
+                mapping: None,
+            }
+        );
+    }
+
+    #[test]
+    fn pipeline_edge_serializes_with_mapping() {
+        let edge = PipelineEdge {
+            source: "a".into(),
+            target: "b".into(),
+            edge_type: EdgeType::Always,
+            mapping: Some(HashMap::from([
+                ("title".into(), "results[0].title".into()),
+                ("content".into(), "data.content".into()),
+            ])),
+        };
+
+        let value = serde_json::to_value(edge).unwrap();
+        assert_eq!(value["source"], "a");
+        assert_eq!(value["target"], "b");
+        assert_eq!(value["type"], "always");
+        assert_eq!(value["mapping"]["title"], "results[0].title");
+        assert_eq!(value["mapping"]["content"], "data.content");
     }
 }

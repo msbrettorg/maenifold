@@ -95,11 +95,13 @@ pub(super) fn seed_pipeline_view_session(
                 source: "root".to_string(),
                 target: "child".to_string(),
                 edge_type: EdgeType::Success,
+                mapping: None,
             },
             crate::workflow::pipeline::PipelineEdge {
                 source: "root".to_string(),
                 target: "cleanup".to_string(),
                 edge_type: EdgeType::Always,
+                mapping: None,
             },
         ],
     };
@@ -227,6 +229,7 @@ pub(super) fn seed_dispatch_pipeline(
             source: "root".to_string(),
             target: "child".to_string(),
             edge_type: EdgeType::Success,
+            mapping: None,
         }],
     };
 

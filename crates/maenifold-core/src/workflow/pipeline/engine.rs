@@ -164,6 +164,7 @@ mod tests {
             source: "root".to_string(),
             target: "middle".to_string(),
             edge_type: EdgeType::Success,
+            mapping: None,
         }]);
 
         let blocked_states = HashMap::from([
@@ -195,6 +196,7 @@ mod tests {
             source: "root".to_string(),
             target: "middle".to_string(),
             edge_type: EdgeType::Always,
+            mapping: None,
         }]);
         let node_states = HashMap::from([
             ("root".to_string(), node_state(NodeStatus::Completed)),
@@ -213,6 +215,7 @@ mod tests {
             source: "root".to_string(),
             target: "middle".to_string(),
             edge_type: EdgeType::Always,
+            mapping: None,
         }]);
         let node_states = HashMap::from([
             ("root".to_string(), node_state(NodeStatus::Abandoned)),
@@ -231,6 +234,7 @@ mod tests {
             source: "root".to_string(),
             target: "middle".to_string(),
             edge_type: EdgeType::Always,
+            mapping: None,
         }]);
         let node_states = HashMap::from([
             ("root".to_string(), node_state(NodeStatus::Stuck)),
@@ -250,11 +254,13 @@ mod tests {
                 source: "root".to_string(),
                 target: "middle".to_string(),
                 edge_type: EdgeType::Success,
+                mapping: None,
             },
             PipelineEdge {
                 source: "middle".to_string(),
                 target: "tail".to_string(),
                 edge_type: EdgeType::Success,
+                mapping: None,
             },
         ]);
 
@@ -285,6 +291,7 @@ mod tests {
             source: "root".to_string(),
             target: "middle".to_string(),
             edge_type: EdgeType::Success,
+            mapping: None,
         }]);
         let node_states = HashMap::from([
             ("root".to_string(), node_state(NodeStatus::Completed)),

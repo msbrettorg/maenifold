@@ -858,6 +858,7 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
             source: node_id_map[&edge.source].clone(),
             target: node_id_map[&edge.target].clone(),
             edge_type: edge.edge_type.clone(),
+            mapping: edge.mapping.clone(),
         })
         .collect::<Vec<_>>();
 
@@ -1683,11 +1684,13 @@ mod tests {
                         source: "a".to_string(),
                         target: "b".to_string(),
                         edge_type: super::super::EdgeType::Success,
+                        mapping: None,
                     },
                     super::super::PipelineEdge {
                         source: "b".to_string(),
                         target: "c".to_string(),
                         edge_type: super::super::EdgeType::Success,
+                        mapping: None,
                     },
                 ],
             },
@@ -1800,11 +1803,13 @@ mod tests {
                         source: "a".to_string(),
                         target: "b".to_string(),
                         edge_type: super::super::EdgeType::Success,
+                        mapping: None,
                     },
                     super::super::PipelineEdge {
                         source: "b".to_string(),
                         target: "c".to_string(),
                         edge_type: super::super::EdgeType::Success,
+                        mapping: None,
                     },
                 ],
             },
@@ -2003,6 +2008,7 @@ mod tests {
                     source: "root".to_string(),
                     target: "child".to_string(),
                     edge_type: super::super::EdgeType::Success,
+                    mapping: None,
                 }],
             },
             HashMap::from([
@@ -3017,6 +3023,7 @@ mod tests {
                     source: "a".to_string(),
                     target: "b".to_string(),
                     edge_type: super::super::EdgeType::Success,
+                    mapping: None,
                 }],
             },
             HashMap::from([
@@ -3594,6 +3601,7 @@ mod tests {
                     source: "source-root".to_string(),
                     target: "source-leaf".to_string(),
                     edge_type: super::super::EdgeType::Success,
+                    mapping: None,
                 }],
             },
             HashMap::from([
@@ -3750,6 +3758,7 @@ mod tests {
                     source: "a".to_string(),
                     target: "b".to_string(),
                     edge_type: super::super::EdgeType::Success,
+                    mapping: None,
                 }],
             },
             HashMap::from([
@@ -4008,6 +4017,7 @@ mod tests {
                     source: "source-root".to_string(),
                     target: "source-leaf".to_string(),
                     edge_type: super::super::EdgeType::Success,
+                    mapping: None,
                 }],
             },
             HashMap::from([
@@ -4083,6 +4093,7 @@ mod tests {
                     source: "root".to_string(),
                     target: "child".to_string(),
                     edge_type: super::super::EdgeType::Success,
+                    mapping: None,
                 }],
             },
             HashMap::from([
@@ -4191,16 +4202,19 @@ mod tests {
                         source: "root".to_string(),
                         target: "middle".to_string(),
                         edge_type: super::super::EdgeType::Success,
+                        mapping: None,
                     },
                     super::super::PipelineEdge {
                         source: "middle".to_string(),
                         target: "left".to_string(),
                         edge_type: super::super::EdgeType::Success,
+                        mapping: None,
                     },
                     super::super::PipelineEdge {
                         source: "middle".to_string(),
                         target: "right".to_string(),
                         edge_type: super::super::EdgeType::Always,
+                        mapping: None,
                     },
                 ],
             },
@@ -4330,6 +4344,7 @@ mod tests {
                     source: "root".to_string(),
                     target: "leaf".to_string(),
                     edge_type: super::super::EdgeType::Success,
+                    mapping: None,
                 }],
             },
             HashMap::from([

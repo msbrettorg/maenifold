@@ -304,7 +304,7 @@ fn resolve_dot_path(value: &JsonValue, path: &str) -> JsonValue {
 
 fn parse_dot_path(path: &str) -> Option<Vec<String>> {
     if path.is_empty() {
-        return Some(Vec::new());
+        return None;
     }
 
     let mut segments = Vec::new();
@@ -467,7 +467,7 @@ fn build_node_execution_request(
     })
 }
 
-fn assemble_node_prompt(
+pub(super) fn assemble_node_prompt(
     context: &ToolContext,
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
@@ -646,7 +646,7 @@ async fn run_tool_node(
         })
 }
 
-fn predecessor_context_content(
+pub(super) fn predecessor_context_content(
     context: &ToolContext,
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,

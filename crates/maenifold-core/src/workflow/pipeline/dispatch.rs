@@ -647,7 +647,7 @@ mod tests {
         for node in &definition.nodes {
             let state = node_states.get(node.id()).expect("state");
             let uri = workflow_session_uri(&state.session_id);
-            let workflow_id = workflow_id_for_node(node).expect("workflow node");
+            let workflow_id = node.effective_workflow_id();
             let mut wf_fm = crate::workflow::initial_workflow_frontmatter(
                 &state.session_id,
                 std::slice::from_ref(&workflow_id.to_string()),

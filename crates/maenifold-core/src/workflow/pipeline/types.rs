@@ -140,6 +140,15 @@ impl PipelineNode {
             Self::Tool { .. } => "tool",
         }
     }
+
+    /// Returns the workflow_id for Workflow nodes, or a synthetic
+    /// `__<nodeType>__` identifier for non-Workflow node types.
+    pub fn effective_workflow_id(&self) -> String {
+        match self.workflow_id() {
+            Some(id) => id.to_string(),
+            None => format!("__{}__", self.node_type_name()),
+        }
+    }
 }
 
 impl TryFrom<PipelineNodeWire> for PipelineNode {

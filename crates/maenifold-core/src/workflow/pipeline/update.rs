@@ -14,7 +14,7 @@ use super::session_io::{
 #[cfg(test)]
 use super::test_support;
 use super::view::build_pipeline_view_result;
-use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, workflow_id_for_node};
+use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition};
 
 pub(super) fn update_pipeline_node_status(
     context: &ToolContext,
@@ -94,8 +94,13 @@ pub(super) fn update_pipeline_node_status(
     )?;
 
     let ambient_prompt = frontmatter.get("prompt").and_then(YamlValue::as_str);
-    let result =
-        build_pipeline_view_result(context, session_id, &definition, &node_states, ambient_prompt)?;
+    let result = build_pipeline_view_result(
+        context,
+        session_id,
+        &definition,
+        &node_states,
+        ambient_prompt,
+    )?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
@@ -166,7 +171,7 @@ pub(super) fn restart_pipeline_node(
         &NodeFile {
             session_id: state.session_id.clone(),
             node_id: node.id().to_string(),
-            workflow_id: workflow_id_for_node(node)?.to_string(),
+            workflow_id: node.effective_workflow_id(),
         },
     )?;
     inject_predecessor_context_for_node(context, &definition, &node_states, node_id)?;
@@ -179,8 +184,13 @@ pub(super) fn restart_pipeline_node(
     )?;
 
     let ambient_prompt = frontmatter.get("prompt").and_then(YamlValue::as_str);
-    let result =
-        build_pipeline_view_result(context, session_id, &definition, &node_states, ambient_prompt)?;
+    let result = build_pipeline_view_result(
+        context,
+        session_id,
+        &definition,
+        &node_states,
+        ambient_prompt,
+    )?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,

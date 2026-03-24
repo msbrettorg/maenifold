@@ -75,12 +75,12 @@ fn validate_workflow_node_definitions(
     Ok(())
 }
 
-fn workflow_node_file(node: &super::PipelineNode, session_id: String) -> Option<NodeFile> {
-    node.workflow_id().map(|workflow_id| NodeFile {
+fn workflow_node_file(node: &super::PipelineNode, session_id: String) -> NodeFile {
+    NodeFile {
         session_id,
         node_id: node.id().to_string(),
-        workflow_id: workflow_id.to_string(),
-    })
+        workflow_id: node.effective_workflow_id(),
+    }
 }
 
 // T-45.6a: RTM-333 / RTM-334 / RTM-314 / RTM-315 / RTM-316 / RTM-317
@@ -260,9 +260,7 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
 
         node_states.insert(node.id().to_string(), state.clone());
         node_states_frontmatter.insert(node.id().to_string(), serde_yaml::to_value(&state)?);
-        if let Some(node_file) = workflow_node_file(node, session_id.clone()) {
-            node_files.push(node_file);
-        }
+        node_files.push(workflow_node_file(node, session_id.clone()));
         response_nodes.push(json!({
             "nodeId": node.id(),
             "workflowId": node.workflow_id(),
@@ -621,9 +619,7 @@ fn rewind_pipeline(
         state.status = NodeStatus::Pending;
         state.attempts = 0;
         state.output = None;
-        if let Some(node_file) = workflow_node_file(node, workflow_session_id) {
-            new_node_files.push(node_file);
-        }
+        new_node_files.push(workflow_node_file(node, workflow_session_id));
     }
 
     for node_file in &new_node_files {
@@ -640,8 +636,13 @@ fn rewind_pipeline(
     )?;
 
     let ambient_prompt = frontmatter.get("prompt").and_then(YamlValue::as_str);
-    let result =
-        build_pipeline_view_result(context, session_id, &definition, &node_states, ambient_prompt)?;
+    let result = build_pipeline_view_result(
+        context,
+        session_id,
+        &definition,
+        &node_states,
+        ambient_prompt,
+    )?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
@@ -828,11 +829,8 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
     // within the reachable set.  For each fork root, collect completed
     // predecessor outputs from the source pipeline so the fork begins with
     // the same reasoning context.
-    let fork_root_predecessor_context = collect_fork_predecessor_context(
-        &graph,
-        &reachable,
-        &source_node_states,
-    );
+    let fork_root_predecessor_context =
+        collect_fork_predecessor_context(&graph, &reachable, &source_node_states);
 
     let forked_nodes = definition
         .nodes
@@ -935,10 +933,8 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
     }
 
     for node in &forked_definition.nodes {
-        if let Some(node_file) = workflow_node_file(node, node_states[node.id()].session_id.clone())
-        {
-            write_workflow_node_session(context, &new_session_id, &node_file)?;
-        }
+        let node_file = workflow_node_file(node, node_states[node.id()].session_id.clone());
+        write_workflow_node_session(context, &new_session_id, &node_file)?;
     }
 
     for (original_node_id, predecessor_outputs) in &fork_root_predecessor_context {
@@ -967,8 +963,13 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
         max_concurrency,
     )?;
 
-    let result =
-        build_pipeline_view_result(context, &new_session_id, &forked_definition, &node_states, None)?;
+    let result = build_pipeline_view_result(
+        context,
+        &new_session_id,
+        &forked_definition,
+        &node_states,
+        None,
+    )?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
@@ -1028,9 +1029,7 @@ fn graft_pipeline(context: &ToolContext, session_id: &str, graft: GraftRequest) 
             output: None,
         };
         node_states.insert(node.id().to_string(), state);
-        if let Some(node_file) = workflow_node_file(node, workflow_session_id) {
-            new_node_files.push(node_file);
-        }
+        new_node_files.push(workflow_node_file(node, workflow_session_id));
     }
 
     frontmatter.insert(
@@ -1197,9 +1196,7 @@ fn ensure_workflow_sessions(
                 node.id()
             ))
         })?;
-        let Some(node_file) = workflow_node_file(node, state.session_id.clone()) else {
-            continue;
-        };
+        let node_file = workflow_node_file(node, state.session_id.clone());
         let workflow_uri = workflow_session_uri(&state.session_id);
         if file_exists(&workflow_uri, &context.config)? {
             continue;
@@ -1337,9 +1334,7 @@ fn collect_fork_predecessor_context(
     result
 }
 
-fn format_predecessor_context_content(
-    predecessor_outputs: &[super::PredecessorOutput],
-) -> String {
+fn format_predecessor_context_content(predecessor_outputs: &[super::PredecessorOutput]) -> String {
     predecessor_outputs
         .iter()
         .map(|predecessor| format!("### From {}\n\n{}", predecessor.node_id, predecessor.output))
@@ -4747,7 +4742,9 @@ mod tests {
         let pred_context = fork_root_state
             .get("predecessorContext")
             .expect("fork root should have predecessorContext");
-        let pred_list = pred_context.as_sequence().expect("predecessorContext should be a list");
+        let pred_list = pred_context
+            .as_sequence()
+            .expect("predecessorContext should be a list");
         assert_eq!(pred_list.len(), 1, "B had one completed predecessor (A)");
         let pred = &pred_list[0];
         assert_eq!(
@@ -4765,11 +4762,9 @@ mod tests {
             .get("sessionId")
             .and_then(YamlValue::as_str)
             .expect("fork root session id");
-        let (_, fork_root_content, _) = read_markdown(
-            &workflow_session_uri(fork_root_session_id),
-            &context.config,
-        )
-        .expect("read fork root workflow");
+        let (_, fork_root_content, _) =
+            read_markdown(&workflow_session_uri(fork_root_session_id), &context.config)
+                .expect("read fork root workflow");
         assert!(
             fork_root_content.contains("## Predecessor Context"),
             "fork root workflow session should materialize predecessor context"

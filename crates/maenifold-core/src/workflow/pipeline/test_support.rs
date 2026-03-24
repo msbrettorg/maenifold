@@ -11,7 +11,7 @@ use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
 
-use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, workflow_id_for_node};
+use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition};
 
 pub(super) struct ConfigResetGuard;
 
@@ -170,10 +170,8 @@ pub(super) fn seed_pipeline_view_session(
             .nodes
             .iter()
             .find(|node| node.id() == *node_id)
-            .expect("workflow node")
-            .workflow_id()
-            .expect("workflow node")
-            .to_string();
+            .expect("node in definition")
+            .effective_workflow_id();
         let mut workflow_frontmatter = crate::workflow::initial_workflow_frontmatter(
             &state.session_id,
             std::slice::from_ref(&workflow_id),
@@ -310,7 +308,7 @@ pub(super) fn seed_pipeline_session_with_workflows(
     for node in &definition.nodes {
         let state = node_states.get(node.id()).expect("node state");
         let uri = workflow_session_uri(&state.session_id);
-        let workflow_id = workflow_id_for_node(node).expect("workflow node");
+        let workflow_id = node.effective_workflow_id();
         let mut wf_fm = crate::workflow::initial_workflow_frontmatter(
             &state.session_id,
             std::slice::from_ref(&workflow_id.to_string()),

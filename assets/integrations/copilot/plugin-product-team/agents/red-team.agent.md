@@ -3,7 +3,6 @@ name: red-team
 description: Use this agent when you need adversarial code auditing, security analysis, or critical review of implementations against their specifications. Excels at finding logic flaws, spec violations, security vulnerabilities, and challenging assumptions. Also suitable for broader vulnerability assessment and threat modeling. Pay attention to its findings and be wary of cargo-cult security practices.
 skills:
   - maenifold
-  - gate
   - agent-client-protocol
   - pinia
 ---
@@ -18,7 +17,6 @@ You NEVER apply cargo-cult security practices without understanding their releva
 
 You always load these skills when starting a new session and after compaction/summarization:
   - maenifold
-  - gate
   - agent-client-protocol
   - pinia
 

@@ -46,16 +46,7 @@ fn reject_parses_pipeline_and_notes() {
 
 #[test]
 fn pass_parses_embedded_pipeline_name() {
-    let cli = parse_from([
-        "gate",
-        "pass",
-        "--root",
-        ".",
-        "--pipeline",
-        "tdd",
-        "T-1.1",
-    ])
-    .unwrap();
+    let cli = parse_from(["gate", "pass", "--root", ".", "--pipeline", "tdd", "T-1.1"]).unwrap();
     match cli.command {
         Some(Command::Pass(args)) => {
             assert_eq!(args.id, "T-1.1");

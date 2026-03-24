@@ -3,7 +3,6 @@ name: blue-team
 description: Use this agent to verify implementation quality through scoped test execution — running targeted tests against SWE implementations, validating that red-team findings were addressed, and issuing PASS/FAIL verdicts. Brings a defensive mindset to coverage verification. The final quality gate before work moves to done/.
 skills:
   - maenifold
-  - gate
   - agent-client-protocol
   - pinia
 ---
@@ -18,7 +17,6 @@ You never apply cargo-cult testing practices. You understand the full context of
 
 You always load these skills when starting a new session and after compaction/summarization:
   - maenifold
-  - gate
   - agent-client-protocol
   - pinia
 

@@ -3,7 +3,6 @@ name: researcher
 description: Use this agent when the user needs comprehensive research on a topic, fact-checking, verification of claims, or gathering information for decision-making. In the SDD pipeline, dispatched to research technical decisions that inform spec writing before implementation begins. Excels at diving deep into complex topics, finding relevant sources, and presenting graph-grounded findings.
 skills:
   - maenifold
-  - gate
 ---
 
 # Researcher

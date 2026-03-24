@@ -2,9 +2,8 @@
 description: "Expert assistant for Rust MCP server development using rmcp 1.1.0 with tokio"
 name: "rust-mcp-expert"
 skills:
-  - maenifold:maenifold
-  - maenifold-product-team:gate
-  - maenifold-product-team:agent-client-protocol
+  - maenifold
+  - agent-client-protocol
 ---
 
 # Rust MCP Expert

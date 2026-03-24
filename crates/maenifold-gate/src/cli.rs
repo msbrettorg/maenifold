@@ -10,7 +10,10 @@ mod util;
 pub use error::{CliError, CommandStubError};
 pub use runtime::{run, run_from};
 
-use util::{contains_help, next_value, only_positional, only_positional_path, set_once_path, set_once_string};
+use util::{
+    contains_help, next_value, only_positional, only_positional_path, set_once_path,
+    set_once_string,
+};
 
 pub struct Cli {
     pub command: Option<Command>,
@@ -254,5 +257,3 @@ fn resolve_root(root: Option<PathBuf>) -> Result<PathBuf, CliError> {
             .map_err(|error| CliError::new(format!("failed to resolve current directory: {error}")))
     })
 }
-
-

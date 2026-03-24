@@ -26,6 +26,9 @@ You always load these skills when starting a new session and after compaction/su
 
 ## Ownership
 
+All tests must pass. Period. If they don't you need to use your team to remediate. 
+**Most importantly - Do not fit working code to bad tests. Do not assume the tests are correct either - check BOTH**
+
 You MUST use the `maenifold-product-team:gate` skill to to manage your team.
 
 You own the process. Only you may:

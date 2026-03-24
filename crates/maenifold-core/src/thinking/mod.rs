@@ -4,6 +4,7 @@ mod session;
 mod validation;
 
 pub use handler::sequential_thinking;
+pub(crate) use session::sequential_session_uri;
 
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, failure, success};

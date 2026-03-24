@@ -2,12 +2,14 @@ use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use serde_json::{Value, json};
+use serde_yaml::Value as YamlValue;
 use std::collections::HashMap;
 
 use super::session_io::{derive_pipeline_node_states, frontmatter_value, read_pipeline_session};
 use super::supervisor::supervisor_status;
 #[cfg(test)]
 use super::test_support;
+use super::{executor::assemble_node_prompt, executor::predecessor_context_content};
 use super::{
     EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode, compute_pipeline_status,
     compute_ready_set,
@@ -18,7 +20,13 @@ pub(super) fn view_pipeline_session(context: &ToolContext, session_id: &str) -> 
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
     let node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
-    let result = build_pipeline_view_result(session_id, &definition, &node_states)?;
+    let ambient_prompt = frontmatter
+        .get("prompt")
+        .and_then(YamlValue::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let result =
+        build_pipeline_view_result(context, session_id, &definition, &node_states, ambient_prompt)?;
 
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
@@ -52,15 +60,17 @@ pub(super) fn node_ids_with_status(
 }
 
 pub(super) fn build_pipeline_view_result(
+    context: &ToolContext,
     session_id: &str,
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
+    ambient_prompt: Option<&str>,
 ) -> Result<Value> {
     let ready = compute_ready_set(definition, node_states);
     let status = compute_pipeline_status(node_states);
     let active = node_ids_with_status(definition, node_states, NodeStatus::Active)?;
     let completed = node_ids_with_status(definition, node_states, NodeStatus::Completed)?;
-    let nodes = pipeline_nodes_json(definition, node_states)?;
+    let nodes = pipeline_nodes_json(context, definition, node_states, ambient_prompt.unwrap_or(""))?;
     let edges = pipeline_edges_json(definition);
     let mermaid = render_pipeline_mermaid(definition, node_states)?;
     let running = supervisor_status(session_id).is_some();
@@ -79,8 +89,10 @@ pub(super) fn build_pipeline_view_result(
 }
 
 fn pipeline_nodes_json(
+    context: &ToolContext,
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
+    ambient_prompt: &str,
 ) -> Result<Vec<Value>> {
     definition
         .nodes
@@ -100,10 +112,56 @@ fn pipeline_nodes_json(
                 "output": state.output,
                 "type": node.node_type_name(),
             });
-            add_pipeline_node_view_fields(&mut node_json, node);
+            add_pipeline_node_view_fields(&mut node_json, node, state, context);
+            let assembled_prompt =
+                assembled_prompt_for_view(context, definition, node_states, node, state, ambient_prompt)?;
+            if let Some(node_object) = node_json.as_object_mut() {
+                node_object.insert(
+                    "assembled_prompt".to_string(),
+                    assembled_prompt.map(Value::String).unwrap_or(Value::Null),
+                );
+            }
             Ok(node_json)
         })
         .collect()
+}
+
+fn assembled_prompt_for_view(
+    context: &ToolContext,
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+    node: &PipelineNode,
+    state: &NodeState,
+    ambient_prompt: &str,
+) -> Result<Option<String>> {
+    if !matches!(state.status, NodeStatus::Active | NodeStatus::Completed) {
+        return Ok(None);
+    }
+
+    if matches!(node, PipelineNode::Tool { .. }) {
+        return Ok(None);
+    }
+
+    let predecessor_context = match predecessor_context_content(context, definition, node_states, node.id()) {
+        Ok(context) => context,
+        Err(_) => return Ok(None),
+    };
+    let has_predecessor_context = predecessor_context
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .is_some();
+    if !has_predecessor_context {
+        return Ok(None);
+    }
+
+    Ok(Some(assemble_node_prompt(
+        context,
+        definition,
+        node_states,
+        node,
+        ambient_prompt,
+    )?))
 }
 
 fn pipeline_edges_json(definition: &PipelineDefinition) -> Vec<Value> {
@@ -147,7 +205,12 @@ fn render_pipeline_mermaid(
     Ok(lines.join("\n"))
 }
 
-fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
+fn add_pipeline_node_view_fields(
+    node_json: &mut Value,
+    node: &PipelineNode,
+    _state: &NodeState,
+    _context: &ToolContext,
+) {
     let additional_fields = match node {
         PipelineNode::Workflow {
             workflow_id,
@@ -327,6 +390,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn pipeline_view_renders_mixed_node_types() {
         let definition = PipelineDefinition {
             nodes: vec![
@@ -417,8 +481,15 @@ mod tests {
             ),
         ]);
 
-        let result = build_pipeline_view_result("pipeline-mixed-nodes", &definition, &node_states)
-            .expect("build pipeline view");
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let result = build_pipeline_view_result(
+            &context,
+            "pipeline-mixed-nodes",
+            &definition,
+            &node_states,
+            Some("stay focused"),
+        )
+        .expect("build pipeline view");
         let nodes = result
             .get("nodes")
             .and_then(Value::as_array)
@@ -444,6 +515,7 @@ mod tests {
         assert_eq!(nodes[1]["status"], "active");
         assert_eq!(nodes[1]["attempts"], 2);
         assert_eq!(nodes[1]["output"], "prompt output");
+        assert_eq!(nodes[1]["assembled_prompt"], Value::Null);
 
         assert_eq!(nodes[2]["type"], "sequentialThinking");
         assert_eq!(nodes[2]["agent"], "agent-think");
@@ -454,6 +526,7 @@ mod tests {
         assert_eq!(nodes[2]["status"], "ready");
         assert_eq!(nodes[2]["attempts"], 0);
         assert_eq!(nodes[2]["output"], Value::Null);
+        assert_eq!(nodes[2]["assembled_prompt"], Value::Null);
 
         assert_eq!(nodes[3]["type"], "tool");
         assert_eq!(nodes[3]["agent"], Value::Null);
@@ -466,6 +539,7 @@ mod tests {
         assert_eq!(nodes[3]["status"], "pending");
         assert_eq!(nodes[3]["attempts"], 0);
         assert_eq!(nodes[3]["output"], Value::Null);
+        assert_eq!(nodes[3]["assembled_prompt"], Value::Null);
 
         let mermaid = result
             .get("mermaid")
@@ -482,5 +556,122 @@ mod tests {
         assert!(mermaid.contains("workflow-node --> prompt-node"));
         assert!(mermaid.contains("prompt-node -.-> thinking-node"));
         assert!(mermaid.contains("thinking-node --> tool-node"));
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_view_includes_assembled_prompt_for_active_and_completed_acp_nodes() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let definition = PipelineDefinition {
+            nodes: vec![
+                PipelineNode::Workflow {
+                    id: "workflow-node".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: Some("agent-workflow".to_string()),
+                    prompt: Some("Summarize the upstream output".to_string()),
+                },
+                PipelineNode::Prompt {
+                    id: "prompt-node".to_string(),
+                    prompt: "Draft operator guidance".to_string(),
+                    agent: "agent-prompt".to_string(),
+                    tool_mode: "default".to_string(),
+                },
+                PipelineNode::SequentialThinking {
+                    id: "thinking-node".to_string(),
+                    topic: "diagnose what happened".to_string(),
+                    total_thoughts: 4,
+                    analysis_type: Some("diagnostic".to_string()),
+                    agent: "agent-think".to_string(),
+                },
+                PipelineNode::Tool {
+                    id: "tool-node".to_string(),
+                    tool_name: "ReadMemory".to_string(),
+                    tool_args: None,
+                    agent: None,
+                },
+            ],
+            edges: vec![
+                super::super::PipelineEdge {
+                    source: "workflow-node".to_string(),
+                    target: "prompt-node".to_string(),
+                    edge_type: EdgeType::Success,
+                    mapping: None,
+                },
+                super::super::PipelineEdge {
+                    source: "prompt-node".to_string(),
+                    target: "thinking-node".to_string(),
+                    edge_type: EdgeType::Success,
+                    mapping: None,
+                },
+                super::super::PipelineEdge {
+                    source: "thinking-node".to_string(),
+                    target: "tool-node".to_string(),
+                    edge_type: EdgeType::Success,
+                    mapping: None,
+                },
+            ],
+        };
+        let node_states = HashMap::from([
+            (
+                "workflow-node".to_string(),
+                NodeState {
+                    session_id: "workflow-session".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                    output: Some("workflow conclusion".to_string()),
+                },
+            ),
+            (
+                "prompt-node".to_string(),
+                NodeState {
+                    session_id: "prompt-session".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                    output: Some("prompt answer".to_string()),
+                },
+            ),
+            (
+                "thinking-node".to_string(),
+                NodeState {
+                    session_id: "thinking-session".to_string(),
+                    status: NodeStatus::Active,
+                    attempts: 1,
+                    output: None,
+                },
+            ),
+            (
+                "tool-node".to_string(),
+                NodeState {
+                    session_id: "tool-session".to_string(),
+                    status: NodeStatus::Completed,
+                    attempts: 1,
+                    output: Some("tool output".to_string()),
+                },
+            ),
+        ]);
+
+        let result = build_pipeline_view_result(
+            &context,
+            "pipeline-assembled-prompt",
+            &definition,
+            &node_states,
+            Some("Keep the response concise"),
+        )
+        .expect("build pipeline view");
+        let nodes = result
+            .get("nodes")
+            .and_then(Value::as_array)
+            .expect("nodes array");
+
+        assert_eq!(nodes[0]["assembled_prompt"], Value::Null);
+        assert_eq!(
+            nodes[1]["assembled_prompt"],
+            "### From workflow-node\n\nworkflow conclusion\n\nKeep the response concise\n\nDraft operator guidance"
+        );
+        assert_eq!(
+            nodes[2]["assembled_prompt"],
+            "### From prompt-node\n\nprompt answer\n\nKeep the response concise\n\ndiagnose what happened"
+        );
+        assert_eq!(nodes[3]["assembled_prompt"], Value::Null);
     }
 }

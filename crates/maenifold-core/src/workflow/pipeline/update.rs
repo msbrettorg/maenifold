@@ -93,7 +93,9 @@ pub(super) fn update_pipeline_node_status(
         context,
     )?;
 
-    let result = build_pipeline_view_result(session_id, &definition, &node_states)?;
+    let ambient_prompt = frontmatter.get("prompt").and_then(YamlValue::as_str);
+    let result =
+        build_pipeline_view_result(context, session_id, &definition, &node_states, ambient_prompt)?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
@@ -176,7 +178,9 @@ pub(super) fn restart_pipeline_node(
         context,
     )?;
 
-    let result = build_pipeline_view_result(session_id, &definition, &node_states)?;
+    let ambient_prompt = frontmatter.get("prompt").and_then(YamlValue::as_str);
+    let result =
+        build_pipeline_view_result(context, session_id, &definition, &node_states, ambient_prompt)?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,

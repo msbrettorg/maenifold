@@ -402,6 +402,7 @@ fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
     let node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    let ambient_prompt = prompt.map(str::trim).filter(|value| !value.is_empty());
     let previous_status = frontmatter
         .get("status")
         .and_then(YamlValue::as_str)
@@ -422,6 +423,11 @@ fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -
         )));
     }
 
+    if let Some(prompt) = ambient_prompt {
+        frontmatter.insert("prompt".to_string(), YamlValue::String(prompt.to_string()));
+    } else {
+        frontmatter.remove("prompt");
+    }
     persist_pipeline_state_with_status(
         &mut frontmatter,
         &node_states,
@@ -433,7 +439,7 @@ fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -
     if let Err(error) = supervisor_run(
         context.config.maenifold_root.as_path(),
         session_id,
-        prompt.unwrap_or(""),
+        ambient_prompt.unwrap_or(""),
     ) {
         persist_pipeline_state_with_status(
             &mut frontmatter,
@@ -492,6 +498,12 @@ fn resume_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
     let node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    let ambient_prompt = frontmatter
+        .get("prompt")
+        .and_then(YamlValue::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("");
     let pipeline_status = frontmatter
         .get("status")
         .and_then(YamlValue::as_str)
@@ -506,7 +518,11 @@ fn resume_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     if supervisor_is_running(session_id) {
         supervisor_resume(session_id)?;
     } else {
-        supervisor_run(context.config.maenifold_root.as_path(), session_id, "")?;
+        supervisor_run(
+            context.config.maenifold_root.as_path(),
+            session_id,
+            ambient_prompt,
+        )?;
     }
     persist_pipeline_state_with_status(
         &mut frontmatter,
@@ -623,7 +639,9 @@ fn rewind_pipeline(
         context,
     )?;
 
-    let result = build_pipeline_view_result(session_id, &definition, &node_states)?;
+    let ambient_prompt = frontmatter.get("prompt").and_then(YamlValue::as_str);
+    let result =
+        build_pipeline_view_result(context, session_id, &definition, &node_states, ambient_prompt)?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
@@ -748,7 +766,14 @@ fn join_pipeline(
         &context.config,
     )?;
 
-    let result = build_pipeline_view_result(target_session_id, &merged_definition, &merged_states)?;
+    let ambient_prompt = target_frontmatter.get("prompt").and_then(YamlValue::as_str);
+    let result = build_pipeline_view_result(
+        context,
+        target_session_id,
+        &merged_definition,
+        &merged_states,
+        ambient_prompt,
+    )?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
@@ -897,7 +922,8 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
         max_concurrency,
     )?;
 
-    let result = build_pipeline_view_result(&new_session_id, &forked_definition, &node_states)?;
+    let result =
+        build_pipeline_view_result(context, &new_session_id, &forked_definition, &node_states, None)?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
@@ -984,7 +1010,14 @@ fn graft_pipeline(context: &ToolContext, session_id: &str, graft: GraftRequest) 
         context,
     )?;
 
-    let result = build_pipeline_view_result(session_id, &merged_definition, &node_states)?;
+    let ambient_prompt = frontmatter.get("prompt").and_then(YamlValue::as_str);
+    let result = build_pipeline_view_result(
+        context,
+        session_id,
+        &merged_definition,
+        &node_states,
+        ambient_prompt,
+    )?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,

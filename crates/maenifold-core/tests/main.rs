@@ -21,7 +21,12 @@ pub(crate) static GLOBAL_CONFIG_TEST_MUTEX: once_cell::sync::Lazy<parking_lot::M
 #[ctor::ctor]
 fn guard_full_suite_run() {
     let args: Vec<String> = std::env::args().collect();
-    let has_filter = args.iter().any(|arg| arg.contains("::"))
+    let has_positional_filter = args
+        .iter()
+        .skip(1)
+        .any(|arg| !arg.is_empty() && !arg.starts_with('-'));
+    let has_filter = has_positional_filter
+        || args.iter().any(|arg| arg.contains("::"))
         || args
             .windows(2)
             .any(|window| window[0] == "--" && !window[1].is_empty());

@@ -2019,7 +2019,7 @@ mod tests {
         write_acpx_stub_config(
             &context.config.maenifold_root,
             json!({
-                workflow_session_id: { "delay": 30.0, "text": "still running" }
+                "runner-agent": { "delay": 30.0, "text": "still running" }
             }),
         );
         seed_pipeline_session_with_workflows(
@@ -2045,6 +2045,7 @@ mod tests {
             )]),
             1,
         );
+        set_pipeline_status(&context, pipeline_id, "pending");
 
         pipeline(
             &context,
@@ -2087,7 +2088,7 @@ mod tests {
                 nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("runner-agent".to_string()),
                     prompt: None,
                 }],
                 edges: vec![],
@@ -2189,7 +2190,7 @@ mod tests {
         write_acpx_stub_config(
             &context.config.maenifold_root,
             json!({
-                workflow_session_id: { "delay": 30.0, "text": "still running" }
+                "runner-agent": { "delay": 30.0, "text": "still running" }
             }),
         );
         seed_pipeline_session_with_workflows(
@@ -2199,7 +2200,7 @@ mod tests {
                 nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("runner-agent".to_string()),
                     prompt: None,
                 }],
                 edges: vec![],
@@ -2215,6 +2216,7 @@ mod tests {
             )]),
             1,
         );
+        set_pipeline_status(&context, pipeline_id, "pending");
 
         let output = pipeline(
             &context,
@@ -2260,7 +2262,7 @@ mod tests {
         write_acpx_stub_config(
             &context.config.maenifold_root,
             json!({
-                workflow_session_id: { "delay": 30.0, "text": "still running" }
+                "runner-agent": { "delay": 30.0, "text": "still running" }
             }),
         );
         seed_pipeline_session_with_workflows(
@@ -2270,7 +2272,7 @@ mod tests {
                 nodes: vec![super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("runner-agent".to_string()),
                     prompt: None,
                 }],
                 edges: vec![],
@@ -2286,6 +2288,7 @@ mod tests {
             )]),
             1,
         );
+        set_pipeline_status(&context, pipeline_id, "pending");
 
         pipeline(&context, &json!({ "sessionId": pipeline_id, "run": true }))
             .expect("start pipeline");
@@ -2323,16 +2326,9 @@ mod tests {
     fn pipeline_pause_and_pipeline_resume_updates_status() {
         let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
         super::super::supervisor::supervisor_clear_all();
-        let _path_guard = install_acpx_stub(&context.config.maenifold_root);
 
         let pipeline_id = "pipeline-1735689600993";
         let workflow_session_id = "workflow-1735689600993-root";
-        write_acpx_stub_config(
-            &context.config.maenifold_root,
-            json!({
-                workflow_session_id: { "delay": 30.0, "text": "still running" }
-            }),
-        );
         seed_pipeline_session_with_workflows(
             &context,
             pipeline_id,
@@ -2356,9 +2352,9 @@ mod tests {
             )]),
             1,
         );
-
-        pipeline(&context, &json!({ "sessionId": pipeline_id, "run": true }))
-            .expect("start pipeline");
+        super::super::supervisor::supervisor_spawn_test_task(pipeline_id)
+            .expect("spawn tracked task");
+        assert!(super::super::supervisor::supervisor_is_running(pipeline_id));
 
         let pause_output = pipeline(
             &context,

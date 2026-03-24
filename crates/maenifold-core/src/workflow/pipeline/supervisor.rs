@@ -44,7 +44,7 @@ struct TrackedPipeline {
 }
 
 pub(super) fn supervisor_run(root: &Path, session_id: &str, prompt: &str) -> Result<()> {
-    let _ = supervisor_detect_orphans(root);
+    let _ = supervisor_detect_orphans_excluding(root, Some(session_id));
 
     {
         let guard = TRACKED_PIPELINES.lock();
@@ -110,6 +110,10 @@ pub(super) fn supervisor_run(root: &Path, session_id: &str, prompt: &str) -> Res
 }
 
 pub(super) fn supervisor_detect_orphans(root: &Path) -> usize {
+    supervisor_detect_orphans_excluding(root, None)
+}
+
+fn supervisor_detect_orphans_excluding(root: &Path, excluded_session_id: Option<&str>) -> usize {
     let context = supervisor_context(root);
     let Ok(session_uris) = get_memory_files(&context.config, Some("memory://pipelines")) else {
         eprintln!("[pipeline-supervisor] failed to list pipeline sessions for orphan detection");
@@ -148,7 +152,7 @@ pub(super) fn supervisor_detect_orphans(root: &Path) -> usize {
             let Some(session_id) = uri.split('/').next_back() else {
                 return None;
             };
-            if running.contains(session_id) {
+            if running.contains(session_id) || excluded_session_id == Some(session_id) {
                 return None;
             }
 
@@ -258,7 +262,7 @@ pub(super) fn supervisor_is_paused(session_id: &str) -> Option<bool> {
 }
 
 #[cfg(test)]
-fn supervisor_spawn_test_task(session_id: &str) -> Result<()> {
+pub(super) fn supervisor_spawn_test_task(session_id: &str) -> Result<()> {
     {
         let guard = TRACKED_PIPELINES.lock();
         if guard.contains_key(session_id) {
@@ -453,7 +457,7 @@ mod tests {
         write_acpx_stub_config(
             &context.config.maenifold_root,
             json!({
-                "workflow-supervisor-duplicate-root": { "delay": 30.0, "text": "still running" }
+                "runner-agent": { "delay": 30.0, "text": "still running" }
             }),
         );
         seed_pipeline_session_with_workflows(
@@ -463,7 +467,7 @@ mod tests {
                 nodes: vec![PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("runner-agent".to_string()),
                     prompt: None,
                 }],
                 edges: vec![],
@@ -518,7 +522,7 @@ mod tests {
         write_acpx_stub_config(
             &context.config.maenifold_root,
             json!({
-                "workflow-supervisor-running-state-root": { "delay": 0.5, "text": "done" }
+                "runner-agent": { "delay": 0.5, "text": "done" }
             }),
         );
         seed_pipeline_session_with_workflows(
@@ -528,7 +532,7 @@ mod tests {
                 nodes: vec![PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("runner-agent".to_string()),
                     prompt: None,
                 }],
                 edges: vec![],

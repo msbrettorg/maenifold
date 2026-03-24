@@ -39,6 +39,9 @@ impl AssetManager {
                 Ok(relative) if !relative.as_os_str().is_empty() => relative,
                 _ => continue,
             };
+            if should_skip_packaged_symlink_entry(src)? {
+                continue;
+            }
             let dst = config.assets_path.join(relative);
             if entry.file_type().is_dir() {
                 fs::create_dir_all(&dst)?;
@@ -219,16 +222,71 @@ impl AssetManager {
     }
 }
 
+fn should_skip_packaged_symlink_entry(src: &Path) -> Result<bool> {
+    if !src.is_symlink() {
+        return Ok(false);
+    }
+
+    match fs::metadata(src) {
+        Ok(metadata) => Ok(metadata.is_dir()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(true),
+        Err(error) => Err(error.into()),
+    }
+}
+
 fn should_skip_initialize_asset_copy(src: &Path, error: &std::io::Error) -> bool {
-    if error.kind() != std::io::ErrorKind::InvalidInput {
+    if !src.is_symlink() {
         return false;
     }
 
-    if !src.is_symlink() {
+    if error.kind() == std::io::ErrorKind::NotFound {
+        return true;
+    }
+
+    if error.kind() != std::io::ErrorKind::InvalidInput {
         return false;
     }
 
     fs::metadata(src)
         .map(|metadata| metadata.is_dir())
         .unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::ErrorKind;
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
+    use tempfile::TempDir;
+
+    #[cfg(unix)]
+    #[test]
+    fn initialize_assets_skips_broken_symlink_copy_errors() {
+        let tmp = TempDir::new().expect("temp dir");
+        let src = tmp.path().join("broken-symlink");
+        symlink("missing-target", &src).expect("create broken symlink");
+
+        assert!(should_skip_packaged_symlink_entry(&src).expect("helper result"));
+        assert!(should_skip_initialize_asset_copy(
+            &src,
+            &std::io::Error::from(ErrorKind::NotFound)
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn initialize_assets_skips_directory_symlink_copy_errors() {
+        let tmp = TempDir::new().expect("temp dir");
+        let target = tmp.path().join("skill-dir");
+        fs::create_dir_all(&target).expect("create target dir");
+        let src = tmp.path().join("skill-link");
+        symlink(&target, &src).expect("create dir symlink");
+
+        assert!(should_skip_packaged_symlink_entry(&src).expect("helper result"));
+        assert!(should_skip_initialize_asset_copy(
+            &src,
+            &std::io::Error::from(ErrorKind::InvalidInput)
+        ));
+    }
 }

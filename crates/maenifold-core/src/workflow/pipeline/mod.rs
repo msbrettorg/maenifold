@@ -16,7 +16,10 @@ mod view;
 
 pub use engine::{compute_pipeline_status, compute_ready_set};
 pub use handler::pipeline;
-pub use types::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode};
+pub use types::{
+    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
+    PredecessorOutput,
+};
 
 pub(super) fn workflow_id_for_node(node: &PipelineNode) -> Result<&str> {
     node.workflow_id().ok_or_else(|| {

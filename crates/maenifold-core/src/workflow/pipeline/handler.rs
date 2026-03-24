@@ -2,14 +2,14 @@ use crate::assets::AssetManager;
 
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::read_markdown;
-use crate::markdown::{file_exists, write_markdown};
+use crate::markdown::{append_h2_section, file_exists, write_markdown};
 use crate::sessions::load_help_doc;
 use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use crate::workflow::read_workflow_definition;
 use chrono::Utc;
-use petgraph::Direction::Outgoing;
+use petgraph::Direction::{Incoming, Outgoing};
 use petgraph::algo::is_cyclic_directed;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -800,6 +800,8 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
     let graph = definition.build_graph();
     let max_concurrency: u64 = frontmatter_value(&frontmatter, "maxConcurrency")?;
+    let source_node_states: HashMap<String, NodeState> =
+        frontmatter_value(&frontmatter, "nodeStates")?;
 
     let node_index = graph
         .node_indices()
@@ -821,6 +823,16 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
             )
         })
         .collect::<HashMap<_, _>>();
+
+    // Identify fork root nodes: reachable nodes with no incoming edges from
+    // within the reachable set.  For each fork root, collect completed
+    // predecessor outputs from the source pipeline so the fork begins with
+    // the same reasoning context.
+    let fork_root_predecessor_context = collect_fork_predecessor_context(
+        &graph,
+        &reachable,
+        &source_node_states,
+    );
 
     let forked_nodes = definition
         .nodes
@@ -907,11 +919,44 @@ fn fork_pipeline(context: &ToolContext, session_id: &str, fork: ForkRequest) -> 
         node_states_frontmatter.insert(node.id().to_string(), serde_yaml::to_value(&state)?);
     }
 
+    // Inject predecessor context into node_states_frontmatter for fork root nodes.
+    // This stores completed predecessor outputs from the source pipeline alongside
+    // each fork root's node state so the fork begins with reasoning context intact.
+    for (original_node_id, predecessor_outputs) in &fork_root_predecessor_context {
+        let forked_node_id = &node_id_map[original_node_id];
+        if let Some(serde_yaml::Value::Mapping(map)) =
+            node_states_frontmatter.get_mut(forked_node_id)
+        {
+            map.insert(
+                serde_yaml::Value::String("predecessorContext".to_string()),
+                serde_yaml::to_value(predecessor_outputs)?,
+            );
+        }
+    }
+
     for node in &forked_definition.nodes {
         if let Some(node_file) = workflow_node_file(node, node_states[node.id()].session_id.clone())
         {
             write_workflow_node_session(context, &new_session_id, &node_file)?;
         }
+    }
+
+    for (original_node_id, predecessor_outputs) in &fork_root_predecessor_context {
+        let forked_node_id = &node_id_map[original_node_id];
+        let Some(state) = node_states.get(forked_node_id) else {
+            continue;
+        };
+        let workflow_uri = workflow_session_uri(&state.session_id);
+        if !file_exists(&workflow_uri, &context.config)? {
+            continue;
+        }
+
+        append_h2_section(
+            &workflow_uri,
+            "Predecessor Context",
+            &format_predecessor_context_content(predecessor_outputs),
+            &context.config,
+        )?;
     }
 
     write_pipeline_session(
@@ -1238,6 +1283,68 @@ fn reachable_node_ids(
     }
 
     visited
+}
+
+/// For each fork root node (a reachable node with no incoming edges from within
+/// the reachable set), collect the completed outputs of its predecessors in the
+/// source pipeline. Returns a map from original node ID → Vec<PredecessorOutput>.
+/// Nodes that are not fork roots or whose predecessors have no output are absent.
+fn collect_fork_predecessor_context(
+    graph: &petgraph::stable_graph::StableGraph<String, super::EdgeType>,
+    reachable: &HashSet<String>,
+    source_node_states: &HashMap<String, NodeState>,
+) -> HashMap<String, Vec<super::PredecessorOutput>> {
+    let mut result = HashMap::new();
+
+    for node_index in graph.node_indices() {
+        let node_id = &graph[node_index];
+        if !reachable.contains(node_id.as_str()) {
+            continue;
+        }
+
+        // A fork root has no incoming edges from other reachable nodes.
+        let has_reachable_predecessor = graph
+            .neighbors_directed(node_index, Incoming)
+            .any(|pred_index| reachable.contains(graph[pred_index].as_str()));
+        if has_reachable_predecessor {
+            continue;
+        }
+
+        // This is a fork root. Collect completed predecessor outputs from
+        // the source pipeline (predecessors outside the reachable set).
+        let mut predecessor_outputs = Vec::new();
+        for pred_index in graph.neighbors_directed(node_index, Incoming) {
+            let pred_id = &graph[pred_index];
+            if let Some(state) = source_node_states.get(pred_id.as_str()) {
+                if matches!(state.status, super::NodeStatus::Completed) {
+                    if let Some(output) = &state.output {
+                        predecessor_outputs.push(super::PredecessorOutput {
+                            node_id: pred_id.clone(),
+                            output: output.clone(),
+                        });
+                    }
+                }
+            }
+        }
+
+        if !predecessor_outputs.is_empty() {
+            // Sort for deterministic ordering in tests and serialized output.
+            predecessor_outputs.sort_by(|a, b| a.node_id.cmp(&b.node_id));
+            result.insert(node_id.clone(), predecessor_outputs);
+        }
+    }
+
+    result
+}
+
+fn format_predecessor_context_content(
+    predecessor_outputs: &[super::PredecessorOutput],
+) -> String {
+    predecessor_outputs
+        .iter()
+        .map(|predecessor| format!("### From {}\n\n{}", predecessor.node_id, predecessor.output))
+        .collect::<Vec<_>>()
+        .join("\n\n")
 }
 
 fn parse_max_concurrency(payload: &Value) -> Result<u64> {
@@ -4517,6 +4624,170 @@ mod tests {
                 .get("status")
                 .and_then(YamlValue::as_str),
             Some("pending")
+        );
+    }
+
+    #[test]
+    #[serial(config)]
+    fn pipeline_fork_inherits_predecessor_context() {
+        let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+        let source_id = "pipeline-1735689601000";
+        let new_id = "pipeline-1735689601001";
+
+        // Source pipeline: A → B → C
+        // A is completed with output, B is active, C is pending.
+        // Forking from B should give B' the output of A as predecessor context.
+        seed_pipeline_session_with_workflows(
+            &context,
+            source_id,
+            PipelineDefinition {
+                nodes: vec![
+                    super::super::PipelineNode::Workflow {
+                        id: "A".to_string(),
+                        workflow_id: "test-workflow-a".to_string(),
+                        acp_client: None,
+                        prompt: None,
+                    },
+                    super::super::PipelineNode::Workflow {
+                        id: "B".to_string(),
+                        workflow_id: "test-workflow-b".to_string(),
+                        acp_client: None,
+                        prompt: None,
+                    },
+                    super::super::PipelineNode::Workflow {
+                        id: "C".to_string(),
+                        workflow_id: "test-workflow-a".to_string(),
+                        acp_client: None,
+                        prompt: None,
+                    },
+                ],
+                edges: vec![
+                    super::super::PipelineEdge {
+                        source: "A".to_string(),
+                        target: "B".to_string(),
+                        edge_type: super::super::EdgeType::Success,
+                        mapping: None,
+                    },
+                    super::super::PipelineEdge {
+                        source: "B".to_string(),
+                        target: "C".to_string(),
+                        edge_type: super::super::EdgeType::Success,
+                        mapping: None,
+                    },
+                ],
+            },
+            HashMap::from([
+                (
+                    "A".to_string(),
+                    NodeState {
+                        session_id: "workflow-1735689601000-A".to_string(),
+                        status: NodeStatus::Completed,
+                        attempts: 1,
+                        output: Some("A produced this reasoning output".to_string()),
+                    },
+                ),
+                (
+                    "B".to_string(),
+                    NodeState {
+                        session_id: "workflow-1735689601000-B".to_string(),
+                        status: NodeStatus::Active,
+                        attempts: 1,
+                        output: None,
+                    },
+                ),
+                (
+                    "C".to_string(),
+                    NodeState {
+                        session_id: "workflow-1735689601000-C".to_string(),
+                        status: NodeStatus::Pending,
+                        attempts: 0,
+                        output: None,
+                    },
+                ),
+            ]),
+            5,
+        );
+
+        let output = pipeline(
+            &context,
+            &json!({
+                "sessionId": source_id,
+                "fork": {
+                    "fromNodeId": "B",
+                    "newSessionId": new_id
+                }
+            }),
+        )
+        .expect("fork succeeds");
+
+        // Parse the fork response — should contain B' and C' (not A).
+        let response: Value = serde_json::from_str(&output).expect("parse response");
+        let data = response.get("data").expect("response data");
+        let nodes = data
+            .get("nodes")
+            .and_then(Value::as_array)
+            .expect("nodes array");
+        assert_eq!(nodes.len(), 2, "forked subgraph should have B and C");
+
+        // Read the forked pipeline session's YAML and verify predecessor context
+        // was injected into B' (the fork root).
+        let (frontmatter, _, _) = read_markdown(&pipeline_session_uri(new_id), &context.config)
+            .expect("read forked pipeline");
+        let frontmatter = frontmatter.expect("frontmatter");
+        let node_states_yaml = frontmatter
+            .get("nodeStates")
+            .expect("nodeStates in frontmatter");
+
+        // The fork root is B' (remapped as fork-{new_id}-B).
+        let fork_root_id = format!("fork-{new_id}-B");
+        let fork_root_state = node_states_yaml
+            .get(YamlValue::String(fork_root_id.clone()))
+            .unwrap_or_else(|| panic!("node state for {fork_root_id} should exist"));
+
+        let pred_context = fork_root_state
+            .get("predecessorContext")
+            .expect("fork root should have predecessorContext");
+        let pred_list = pred_context.as_sequence().expect("predecessorContext should be a list");
+        assert_eq!(pred_list.len(), 1, "B had one completed predecessor (A)");
+        let pred = &pred_list[0];
+        assert_eq!(
+            pred.get("nodeId").and_then(YamlValue::as_str),
+            Some("A"),
+            "predecessor should reference source node A"
+        );
+        assert_eq!(
+            pred.get("output").and_then(YamlValue::as_str),
+            Some("A produced this reasoning output"),
+            "predecessor should carry A's output"
+        );
+
+        let fork_root_session_id = fork_root_state
+            .get("sessionId")
+            .and_then(YamlValue::as_str)
+            .expect("fork root session id");
+        let (_, fork_root_content, _) = read_markdown(
+            &workflow_session_uri(fork_root_session_id),
+            &context.config,
+        )
+        .expect("read fork root workflow");
+        assert!(
+            fork_root_content.contains("## Predecessor Context"),
+            "fork root workflow session should materialize predecessor context"
+        );
+        assert!(
+            fork_root_content.contains("### From A\n\nA produced this reasoning output"),
+            "fork root workflow session should include inherited predecessor output"
+        );
+
+        // C' (not a fork root — has B' as predecessor in the forked subgraph)
+        // should NOT have predecessorContext.
+        let fork_child_id = format!("fork-{new_id}-C");
+        let fork_child_state = node_states_yaml
+            .get(YamlValue::String(fork_child_id.clone()))
+            .unwrap_or_else(|| panic!("node state for {fork_child_id} should exist"));
+        assert!(
+            fork_child_state.get("predecessorContext").is_none(),
+            "non-root node C' should not have predecessorContext"
         );
     }
 }

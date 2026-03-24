@@ -322,6 +322,18 @@ pub struct NodeState {
     pub output: Option<String>,
 }
 
+/// A snapshot of a completed predecessor node's output, captured at fork time
+/// so the fork root begins with the same reasoning context it had in the
+/// original pipeline.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PredecessorOutput {
+    /// The node ID from the source pipeline (pre-fork naming).
+    pub node_id: String,
+    /// The output produced by the predecessor node.
+    pub output: String,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum NodeStatus {

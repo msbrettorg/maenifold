@@ -85,6 +85,16 @@ pub fn align_to_second_boundary() {
 }
 
 pub fn write_session_markdown(cfg: &Config, file_uri: &str, status: &str, body: &str) {
+    write_session_markdown_with_pipeline(cfg, file_uri, status, body, None)
+}
+
+pub fn write_session_markdown_with_pipeline(
+    cfg: &Config,
+    file_uri: &str,
+    status: &str,
+    body: &str,
+    pipeline_id: Option<&str>,
+) {
     let mut frontmatter = Frontmatter::new();
     let title = file_uri
         .trim_start_matches("memory://")
@@ -102,6 +112,12 @@ pub fn write_session_markdown(cfg: &Config, file_uri: &str, status: &str, body: 
         "type".to_string(),
         YamlValue::String(session_type.to_string()),
     );
+    if let Some(pid) = pipeline_id {
+        frontmatter.insert(
+            "pipelineId".to_string(),
+            YamlValue::String(pid.to_string()),
+        );
+    }
     write_markdown(file_uri, Some(&frontmatter), body, cfg).expect("write markdown");
 }
 
@@ -136,6 +152,18 @@ pub fn seed_file_content(
 
 pub fn create_session(cfg: &Config, file_uri: &str, status: &str, minutes_ago: i64, body: &str) {
     write_session_markdown(cfg, file_uri, status, body);
+    seed_file_content(cfg, file_uri, status, body, &iso_minutes_ago(minutes_ago));
+}
+
+pub fn create_pipeline_session(
+    cfg: &Config,
+    file_uri: &str,
+    status: &str,
+    minutes_ago: i64,
+    body: &str,
+    pipeline_id: &str,
+) {
+    write_session_markdown_with_pipeline(cfg, file_uri, status, body, Some(pipeline_id));
     seed_file_content(cfg, file_uri, status, body, &iso_minutes_ago(minutes_ago));
 }
 

@@ -74,6 +74,14 @@ fn abandon_session_candidate(
 
     let (frontmatter, content, _) = read_markdown(file_uri, config)?;
     let mut frontmatter = frontmatter.unwrap_or_default();
+
+    // Pipeline-owned workflow sessions have their own lifecycle management.
+    // The pipeline engine controls state transitions with guards (e.g. must be Active
+    // to transition to Abandoned). Session cleanup must not bypass those guards.
+    if frontmatter.contains_key("pipelineId") {
+        return Ok(false);
+    }
+
     frontmatter.insert(
         "status".to_string(),
         YamlValue::String("abandoned".to_string()),

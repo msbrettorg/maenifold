@@ -8,10 +8,10 @@ use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 use notify::{Event, EventKind, RecursiveMode, Watcher};
 use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use serde_json::Value;
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::thread::{self, JoinHandle};
@@ -22,6 +22,17 @@ static WATCHER: Lazy<Mutex<Option<WatcherState>>> = Lazy::new(|| Mutex::new(None
 // T-15.21: RTM FR-15 — Accumulated file changes since last FTS optimize.
 // Mirrors C# `IncrementalSyncTools._changesSinceOptimize` counter.
 static CHANGES_SINCE_OPTIMIZE: AtomicU32 = AtomicU32::new(0);
+static SYNC_FAILURES: AtomicU32 = AtomicU32::new(0);
+static CONSECUTIVE_FAILURES: AtomicU32 = AtomicU32::new(0);
+static LAST_FAILURE_MSG: Mutex<Option<String>> = Mutex::new(None);
+
+pub struct WatcherHealth {
+    pub is_running: bool,
+    pub total_failures: u32,
+    pub consecutive_failures: u32,
+    pub last_error: Option<String>,
+    pub changes_processed: u32,
+}
 
 struct WatcherState {
     watcher: notify::RecommendedWatcher,
@@ -54,7 +65,7 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
     let config = context.config.clone();
     let holder_id = generate_sync_holder_id();
 
-    if WATCHER.lock().is_some() {
+    if WATCHER.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
         return Ok("Watcher already running".to_string());
     }
 
@@ -82,7 +93,10 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
         return Err(map_notify_error(error));
     }
 
-    WATCHER.lock().replace(WatcherState {
+    WATCHER
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .replace(WatcherState {
         watcher,
         control_tx: event_tx,
         worker: Some(worker),
@@ -96,7 +110,7 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
 }
 
 pub fn stop_watcher(_context: &ToolContext, _payload: &Value) -> Result<String> {
-    if let Some(state) = WATCHER.lock().take() {
+    if let Some(state) = WATCHER.lock().unwrap_or_else(|e| e.into_inner()).take() {
         state.stop();
         return Ok("Stopped incremental sync watcher".to_string());
     }
@@ -106,13 +120,32 @@ pub fn stop_watcher(_context: &ToolContext, _payload: &Value) -> Result<String> 
 // T-COV-001.3: RTM FR-17.5 — expose watcher state so integration tests can verify lifecycle guards.
 #[doc(hidden)]
 pub fn watcher_is_running() -> bool {
-    WATCHER.lock().is_some()
+    WATCHER.lock().unwrap_or_else(|e| e.into_inner()).is_some()
 }
 
 // T-15.21: RTM FR-15 — expose optimize counter for integration tests to verify FTS maintenance scheduling.
 #[doc(hidden)]
 pub fn changes_since_last_optimize() -> u32 {
     CHANGES_SINCE_OPTIMIZE.load(Ordering::Relaxed)
+}
+
+pub fn watcher_health() -> WatcherHealth {
+    WatcherHealth {
+        is_running: watcher_is_running(),
+        total_failures: SYNC_FAILURES.load(Ordering::Relaxed),
+        consecutive_failures: CONSECUTIVE_FAILURES.load(Ordering::Relaxed),
+        last_error: LAST_FAILURE_MSG
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone(),
+        changes_processed: CHANGES_SINCE_OPTIMIZE.load(Ordering::Relaxed),
+    }
+}
+
+pub fn reset_health_counters() {
+    SYNC_FAILURES.store(0, Ordering::Relaxed);
+    CONSECUTIVE_FAILURES.store(0, Ordering::Relaxed);
+    *LAST_FAILURE_MSG.lock().unwrap_or_else(|e| e.into_inner()) = None;
 }
 
 // T-15.21: RTM FR-15 — reset optimize counter for test isolation.
@@ -237,6 +270,9 @@ fn flush_pending_paths(config: &Config, holder_id: &str, pending_paths: &mut Has
 
     let paths = pending_paths.drain().collect::<Vec<_>>();
     if let Err(error) = process_pending_paths(config, holder_id, &paths) {
+        SYNC_FAILURES.fetch_add(1, Ordering::Relaxed);
+        CONSECUTIVE_FAILURES.fetch_add(1, Ordering::Relaxed);
+        *LAST_FAILURE_MSG.lock().unwrap_or_else(|e| e.into_inner()) = Some(error.to_string());
         eprintln!("maenifold watcher incremental sync failed: {error}");
     }
 }
@@ -279,16 +315,52 @@ fn process_incremental_batch(config: &Config, paths: &[PathBuf]) -> Result<()> {
     let mut sorted_paths = paths.to_vec();
     sorted_paths.sort();
     let context = ToolContext::new(config.clone(), OutputFormat::Markdown);
+    let mut had_file_error = false;
 
     for path in &sorted_paths {
         match crate::sync::sync_single_file(&context, path) {
             Ok(_) => {}
             Err(error) => {
+                had_file_error = true;
+                SYNC_FAILURES.fetch_add(1, Ordering::Relaxed);
+                CONSECUTIVE_FAILURES.fetch_add(1, Ordering::Relaxed);
+                *LAST_FAILURE_MSG.lock().unwrap_or_else(|e| e.into_inner()) =
+                    Some(format!("{}: {error}", path.display()));
                 // T-5.8: RTM NFR-3, NFR-4 isolates watcher batch failures per file.
                 eprintln!(
                     "maenifold watcher failed to process {}: {error}",
                     path.display()
                 );
+            }
+        }
+    }
+
+    let orphan_paths = sorted_paths
+        .iter()
+        .filter(|path| !path.exists())
+        .filter_map(|path| path_to_memory_uri(config, path).ok().flatten())
+        .collect::<BTreeSet<_>>();
+    if !orphan_paths.is_empty() {
+        match db::open_connection(&config.database_path) {
+            Ok(connection) => {
+                let table_exists: bool = connection
+                    .query_row(
+                        "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'vec_memory_files'",
+                        [],
+                        |row| row.get::<_, i64>(0),
+                    )
+                    .map(|count| count > 0)
+                    .unwrap_or(false);
+                if table_exists {
+                    if let Err(error) =
+                        crate::search::cleanup_orphan_vec_memory_files(&connection, &orphan_paths)
+                    {
+                        eprintln!("[SYNC] orphan vector cleanup failed: {error}");
+                    }
+                }
+            }
+            Err(error) => {
+                eprintln!("[SYNC] failed to open database for orphan cleanup: {error}");
             }
         }
     }
@@ -301,6 +373,9 @@ fn process_incremental_batch(config: &Config, paths: &[PathBuf]) -> Result<()> {
     // DatabaseMaintenance.RunLight() (FTS optimize + passive WAL checkpoint) after
     // Config.IncrementalOptimizeEvery accumulated file changes.
     schedule_maintenance_if_needed(config, sorted_paths.len() as u32);
+    if !had_file_error {
+        CONSECUTIVE_FAILURES.store(0, Ordering::Relaxed);
+    }
 
     Ok(())
 }

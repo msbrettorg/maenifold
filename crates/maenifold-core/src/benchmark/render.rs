@@ -1,5 +1,6 @@
 use crate::db;
 use crate::error::Result;
+use crate::markdown::drain_frontmatter_warnings;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
@@ -39,7 +40,7 @@ pub(crate) fn render_system_health(context: &ToolContext) -> Result<String> {
         None => "unavailable".to_string(),
     };
 
-    Ok(format!(
+    let mut report = format!(
         "System Health Report\n\
 --------------------\n\
 Database health:\n\
@@ -49,7 +50,33 @@ Database health:\n\
   Vector embeddings: {vector_embeddings}\n\
   Database size: {}\n\n",
         human_bytes(database_size),
-    ))
+    );
+
+    let health = crate::sync::watchers::watcher_health();
+    report.push_str(&format!(
+        "Watcher health:\n\
+         \x20 Status: {}\n\
+         \x20 Total sync failures: {}\n\
+         \x20 Consecutive failures: {}\n\
+         \x20 Last error: {}\n\
+         \x20 Changes processed: {}\n\n",
+        if health.is_running { "running" } else { "stopped" },
+        health.total_failures,
+        health.consecutive_failures,
+        health.last_error.as_deref().unwrap_or("none"),
+        health.changes_processed,
+    ));
+
+    let warnings = drain_frontmatter_warnings();
+    if !warnings.is_empty() {
+        report.push_str(&format!("Frontmatter warnings: {} files\n", warnings.len()));
+        for (uri, error) in &warnings {
+            report.push_str(&format!("  {uri}: {error}\n"));
+        }
+        report.push('\n');
+    }
+
+    Ok(report)
 }
 
 fn query_vector_counts(connection: &Connection) -> Option<(i64, i64)> {

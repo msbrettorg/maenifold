@@ -191,7 +191,13 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
 
     if let Some(tags) = requested_tags.as_deref() {
         text_results.retain(|(path, _, _, _, _, _, _)| {
-            file_matches_all_tags(context, path, tags).unwrap_or(false)
+            match file_matches_all_tags(context, path, tags) {
+                Ok(matches) => matches,
+                Err(error) => {
+                    eprintln!("[TAG FILTER] Error filtering '{}': {error}", path);
+                    false
+                }
+            }
         });
     }
 
@@ -207,8 +213,13 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
 
     if let Some(ref mut vec_results) = vector_results {
         if let Some(tags) = requested_tags.as_deref() {
-            vec_results
-                .retain(|(path, _)| file_matches_all_tags(context, path, tags).unwrap_or(false));
+            vec_results.retain(|(path, _)| match file_matches_all_tags(context, path, tags) {
+                Ok(matches) => matches,
+                Err(error) => {
+                    eprintln!("[TAG FILTER] Error filtering '{}': {error}", path);
+                    false
+                }
+            });
         }
     }
 
@@ -371,7 +382,13 @@ fn perform_semantic_search(
     if let Some(ref mut vec_results) = vector_results
         && let Some(tags) = requested_tags
     {
-        vec_results.retain(|(path, _)| file_matches_all_tags(context, path, tags).unwrap_or(false));
+        vec_results.retain(|(path, _)| match file_matches_all_tags(context, path, tags) {
+            Ok(matches) => matches,
+            Err(error) => {
+                eprintln!("[TAG FILTER] Error filtering '{}': {error}", path);
+                false
+            }
+        });
     }
 
     let mut vec_results = vector_results.unwrap_or_default();
@@ -526,7 +543,13 @@ fn perform_fulltext_search(
 
     if let Some(tags) = requested_tags {
         text_results.retain(|(path, _, _, _, _, _, _)| {
-            file_matches_all_tags(context, path, tags).unwrap_or(false)
+            match file_matches_all_tags(context, path, tags) {
+                Ok(matches) => matches,
+                Err(error) => {
+                    eprintln!("[TAG FILTER] Error filtering '{}': {error}", path);
+                    false
+                }
+            }
         });
     }
 

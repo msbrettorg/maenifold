@@ -12,13 +12,13 @@ use crate::community;
 use crate::db::{self, GraphDatabase};
 use crate::error::Result;
 use crate::graph;
-use crate::markdown::{WikiLinkFilter, get_memory_files, path_to_uri, read_markdown};
+use crate::markdown::{WikiLinkFilter, get_memory_files, path_to_uri, read_markdown, uri_to_path};
 use crate::sessions;
 use crate::sync::leader::LeaderElection;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use serde_json::Value;
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -396,6 +396,34 @@ fn run_sync(context: &ToolContext) -> Result<String> {
     let embeddings_elapsed = embeddings_start.elapsed();
 
     tx.commit()?;
+    let vec_memory_files_exists = connection
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'vec_memory_files'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map(|count| count > 0)?;
+    if vec_memory_files_exists {
+        let orphan_paths = {
+            let mut statement = connection.prepare("SELECT file_path FROM vec_memory_files")?;
+            let paths = statement.query_map([], |row| row.get::<_, String>(0))?;
+            let mut orphan_paths = BTreeSet::new();
+            for path in paths {
+                let path = path?;
+                let exists_on_disk = uri_to_path(&path, &context.config.memory_path)
+                    .map(|file_path| file_path.exists())
+                    .unwrap_or(false);
+                if !exists_on_disk {
+                    orphan_paths.insert(path);
+                }
+            }
+            orphan_paths
+        };
+        if !orphan_paths.is_empty() {
+            crate::search::cleanup_orphan_vec_memory_files(&connection, &orphan_paths)?;
+        }
+    }
+
     // T-21.7: RTM FR-21.7 community detection timing includes cleanup and incremental-state reset.
     let community_start = Instant::now();
     let abandoned_sessions = sessions::cleanup_abandoned_sessions(&context.config)? as i64;

@@ -6,7 +6,10 @@ use serde_yaml::{Mapping as YamlMapping, Value as YamlValue};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
+use std::sync::Mutex;
 use std::time::SystemTime;
+
+static FRONTMATTER_WARNINGS: Mutex<Vec<(String, String)>> = Mutex::new(Vec::new());
 
 pub type Frontmatter = BTreeMap<String, YamlValue>;
 
@@ -150,11 +153,26 @@ fn parse_frontmatter(full_text: &str, uri: &str) -> (Option<Frontmatter>, String
             Err(error) => {
                 // T-14.2: RTM FR-10 — Match C# oracle: warn and continue with null frontmatter.
                 eprintln!("[YAML WARNING] Failed to parse frontmatter in '{uri}': {error}");
+                let mut warnings = FRONTMATTER_WARNINGS
+                    .lock()
+                    .unwrap_or_else(|error| error.into_inner());
+                warnings.push((uri.to_string(), error.to_string()));
+                if warnings.len() > 100 {
+                    let excess = warnings.len() - 100;
+                    warnings.drain(..excess);
+                }
                 return (None, content);
             }
         }
     }
     (None, full_text.to_string())
+}
+
+pub fn drain_frontmatter_warnings() -> Vec<(String, String)> {
+    FRONTMATTER_WARNINGS
+        .lock()
+        .map(|mut w| w.drain(..).collect())
+        .unwrap_or_default()
 }
 
 fn split_frontmatter(full_text: &str) -> Option<(&str, String)> {

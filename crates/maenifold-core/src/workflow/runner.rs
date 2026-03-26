@@ -3,10 +3,15 @@ use crate::error::{MaenifoldError, Result};
 use crate::thinking::sequential_thinking;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
+
+static WIKILINKS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
+static WORKFLOW_SESSION_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"workflow-\d+").unwrap());
+static STEP_PROGRESS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ThinkResult {
@@ -102,7 +107,6 @@ pub(crate) async fn drive_think_session(
         .create_session(&acpx_session)
         .await
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    let wikilinks = Regex::new(r"\[\[.*?\]\]").expect("wikilink regex");
     let mut n = 1u32;
     loop {
         let prompt = format!(
@@ -113,7 +117,7 @@ pub(crate) async fn drive_think_session(
             .prompt(&acpx_session, &prompt)
             .await
             .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-        let response = tag_response(&response.text, &wikilinks);
+        let response = tag_response(&response.text, &WIKILINKS_RE);
         let done = response.trim().to_ascii_lowercase().starts_with("done")
             || n >= opts.total_thoughts + 3;
         let payload = if done {
@@ -159,8 +163,6 @@ pub async fn run_workflow(
         .create_session(&session_id)
         .await
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    let wikilinks = Regex::new(r"\[\[.*?\]\]").expect("wikilink regex");
-
     let mut step = workflow_text(&start);
     let mut steps_completed = 0u32;
     let mut conclusion = None;
@@ -204,7 +206,7 @@ pub async fn run_workflow(
             return Err(MaenifoldError::Message(error));
         }
 
-        let agent_text = tag_response(response.text.trim(), &wikilinks);
+        let agent_text = tag_response(response.text.trim(), &WIKILINKS_RE);
         let final_step =
             matches!(parse_step_progress(&step), Some((current, total)) if current == total);
         let payload = if final_step {
@@ -248,16 +250,13 @@ fn workflow_text(raw: &str) -> String {
 }
 
 fn extract_workflow_session_id(text: &str) -> Option<String> {
-    Regex::new(r"workflow-\d+")
-        .expect("workflow session regex")
+    WORKFLOW_SESSION_RE
         .find(text)
         .map(|m| m.as_str().to_string())
 }
 
 fn parse_step_progress(text: &str) -> Option<(u32, u32)> {
-    let captures = Regex::new(r"Step (\d+)/(\d+)")
-        .expect("workflow step regex")
-        .captures(text)?;
+    let captures = STEP_PROGRESS_RE.captures(text)?;
     let current = captures.get(1)?.as_str().parse().ok()?;
     let total = captures.get(2)?.as_str().parse().ok()?;
     Some((current, total))

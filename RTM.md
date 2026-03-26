@@ -2,6 +2,16 @@
 
 For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), see [CHANGELOG.md](CHANGELOG.md).
 
+## Sprint 63 — Silent Failure Remediation (NFR-3, NFR-4)
+
+| RTM | Requirement | Component | Test Case | Test Type |
+|-----|-------------|-----------|-----------|-----------|
+| RTM-189 | NFR-3 | `crates/maenifold-core/src/sync/watchers.rs` | TC-189: T-63.1 Watcher health counters — `WatcherHealth` struct, failure tracking in batch and per-file error branches, consecutive failure reset on success, poison-safe mutex access. 10 watcher tests pass. | unit |
+| RTM-190 | NFR-4 | `crates/maenifold-core/src/workflow/runner.rs` | TC-190: T-63.2 Regex static compilation — 3 `Lazy<Regex>` statics replace 4 `.expect()` calls, zero runtime panic risk. 11 regex tests pass. | unit |
+| RTM-191 | NFR-3 | `crates/maenifold-core/src/markdown/storage.rs` | TC-191: T-63.3 YAML frontmatter warning accumulator — `drain_frontmatter_warnings()` with cap at 100, poison-safe mutex. 36 frontmatter tests pass. | unit |
+| RTM-192 | NFR-3 | `crates/maenifold-core/src/search/api.rs` | TC-192: T-63.4 Tag filtering error propagation — 4 `[TAG FILTER]` log sites replace silent `.unwrap_or(false)` | unit |
+| RTM-193 | NFR-4 | `crates/maenifold-core/src/sync/{watchers,mod}.rs` | TC-193: T-63.5 Orphan vector cleanup in both watcher batch and full sync paths with `sqlite_master` table guard | integration |
+
 ## Sprint 51 — Pipeline Active Executor (FR-40)
 
 | RTM | Requirement | Component | Test Case | Test Type |

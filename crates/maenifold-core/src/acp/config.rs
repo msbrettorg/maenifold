@@ -79,6 +79,53 @@ impl AgentsConfig {
     }
 }
 
+/// Generate `.acpxrc.json` in `root` from `agents.json` so `acpx` resolves the
+/// same agents as maenifold and pipeline-ui. The acpx format stores the full
+/// command string (binary + args) under each agent's `command` key.
+pub fn sync_acpx_config(root: &Path) {
+    let config = AgentsConfig::load(root);
+    if config.agents.is_empty() {
+        return;
+    }
+
+    let acpx_agents: HashMap<String, serde_json::Value> = config
+        .agents
+        .iter()
+        .map(|(name, entry)| {
+            let full_command = if entry.args.is_empty() {
+                entry.command.clone()
+            } else {
+                format!("{} {}", entry.command, entry.args.join(" "))
+            };
+            (
+                name.clone(),
+                serde_json::json!({ "command": full_command }),
+            )
+        })
+        .collect();
+
+    let payload = serde_json::json!({ "agents": acpx_agents });
+    let target = root.join(".acpxrc.json");
+    let tmp = root.join(".acpxrc.json.tmp");
+
+    match serde_json::to_string_pretty(&payload) {
+        Ok(content) => {
+            if let Err(error) = fs::write(&tmp, format!("{content}\n"))
+                .and_then(|()| fs::rename(&tmp, &target))
+            {
+                eprintln!(
+                    "Warning: failed to sync .acpxrc.json at '{}': {error}",
+                    target.display()
+                );
+                let _ = fs::remove_file(&tmp);
+            }
+        }
+        Err(error) => {
+            eprintln!("Warning: failed to serialize .acpxrc.json: {error}");
+        }
+    }
+}
+
 fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
     let command_path = Path::new(&entry.command);
     if !command_path.is_absolute() {
@@ -132,4 +179,80 @@ fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
     }
 
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn write_agents_json(root: &Path, content: &str) {
+        fs::write(root.join("agents.json"), content).expect("write agents.json");
+    }
+
+    #[test]
+    fn sync_acpx_config_generates_acpxrc_from_agents_json() {
+        let tmp = tempdir().expect("tempdir");
+        let root = tmp.path();
+        write_agents_json(
+            root,
+            r#"{
+                "agents": {
+                    "TestAgent": {
+                        "command": "/usr/bin/test-agent",
+                        "args": ["serve", "--acp"],
+                        "env": {}
+                    }
+                }
+            }"#,
+        );
+
+        // Create a dummy executable so AgentsConfig::load validates it
+        let dummy = root.join("test-agent");
+        fs::write(&dummy, "#!/bin/sh\n").expect("write dummy");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&dummy, fs::Permissions::from_mode(0o755)).expect("chmod");
+        }
+
+        // Rewrite agents.json with the dummy path
+        let json = serde_json::json!({
+            "agents": {
+                "TestAgent": {
+                    "command": dummy.display().to_string(),
+                    "args": ["serve", "--acp"],
+                    "env": {}
+                }
+            }
+        });
+        write_agents_json(root, &serde_json::to_string_pretty(&json).unwrap());
+
+        sync_acpx_config(root);
+
+        let acpxrc = root.join(".acpxrc.json");
+        assert!(acpxrc.exists(), ".acpxrc.json must be created");
+
+        let content: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&acpxrc).expect("read"))
+                .expect("parse .acpxrc.json");
+
+        let expected_cmd = format!("{} serve --acp", dummy.display());
+        assert_eq!(
+            content["agents"]["TestAgent"]["command"]
+                .as_str()
+                .expect("command"),
+            expected_cmd
+        );
+    }
+
+    #[test]
+    fn sync_acpx_config_skips_when_no_agents() {
+        let tmp = tempdir().expect("tempdir");
+        sync_acpx_config(tmp.path());
+        assert!(
+            !tmp.path().join(".acpxrc.json").exists(),
+            ".acpxrc.json must not be created when agents.json is absent"
+        );
+    }
 }

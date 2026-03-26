@@ -8,6 +8,7 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
+use crate::acp_config::sync_acpx_config;
 use crate::acpx_driver::AcpxDriver;
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::read_markdown;
@@ -65,6 +66,7 @@ pub(super) async fn execute_pipeline(
     prompt: &str,
     cancel: CancellationToken,
 ) -> Result<ExecutionResult> {
+    sync_acpx_config(&context.config.maenifold_root);
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
     let (definition, max_concurrency) = load_execution_config(&json_context, session_id)?;
     let nodes_by_id = definition

@@ -3,6 +3,8 @@
 
 #[path = "acp/driver.rs"]
 pub mod acpx_driver;
+#[path = "acp/config.rs"]
+pub(crate) mod acp_config;
 pub mod assets;
 pub mod benchmark;
 pub mod cli;

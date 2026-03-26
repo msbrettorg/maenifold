@@ -5,6 +5,21 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 63 — Silent Failure Remediation
+
+Remediated 5 instances of the same anti-pattern from the legacy C# codebase: errors that hide from users via stderr logging, `.expect()` panics, `.unwrap_or(false)`, or missing cleanup paths.
+
+### Added
+- **Watcher health counters** (T-63.1): `WatcherHealth` struct with `SYNC_FAILURES`, `CONSECUTIVE_FAILURES`, `LAST_FAILURE_MSG` statics. `watcher_health()` accessor wired into `render_system_health()` for MemoryStatus visibility.
+- **Frontmatter warning accumulator** (T-63.3): `FRONTMATTER_WARNINGS` mutex with `drain_frontmatter_warnings()` exposing corrupt files. Capped at 100 entries, drain semantics. Wired into `render_system_health()`.
+- **Orphan vector cleanup in sync path** (T-63.5): `cleanup_orphan_vec_memory_files()` now runs in both watcher batch and full sync paths with `sqlite_master` table existence guard.
+
+### Changed
+- **Regex static compilation** (T-63.2): 3 `once_cell::Lazy<Regex>` statics replace 4 `.expect()` calls in `workflow/runner.rs`. Compiled once at module load.
+- **Tag filtering error propagation** (T-63.4): 4 `.unwrap_or(false)` sites replaced with `match` arms that log `[TAG FILTER]` errors with file URI.
+
+---
+
 ## Sprint 62 — Gate Generalization
 
 Generalized `maenifold-gate` to support arbitrary development pipelines (SDD, TDD, GSD) instead of hardcoded SWE→Red→Blue stages.

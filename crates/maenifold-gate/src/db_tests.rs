@@ -125,7 +125,7 @@ fn open_handles_existing_schema_variants() {
 #[test]
 fn upsert_task_inserts_and_updates() {
     let db = GateDb::open_memory().unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "b",
         "b.md",
         Some("First"),
@@ -135,7 +135,7 @@ fn upsert_task_inserts_and_updates() {
         0,
     ))
     .unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "b",
         "b.md",
         Some("Updated"),
@@ -162,7 +162,7 @@ fn upsert_task_inserts_and_updates() {
 #[test]
 fn upsert_rejects_id_collision() {
     let db = GateDb::open_memory().unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "T-55.1",
         "T-55.1-foo.md",
         Some("First"),
@@ -174,7 +174,7 @@ fn upsert_rejects_id_collision() {
     .unwrap();
 
     let err = db
-        .upsert_task(&task_upsert!(
+        .upsert_task(task_upsert!(
             "T-55.1",
             "T-55.1-bar.md",
             Some("Second"),
@@ -206,11 +206,11 @@ fn upsert_rejects_id_collision() {
 #[test]
 fn insert_work_log_appends_entries() {
     let db = GateDb::open_memory().unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "a", "a.md", None, "FR-41", "pending", "todo", 0,
     ))
     .unwrap();
-    db.insert_work_log(&work_log!(
+    db.insert_work_log(work_log!(
         "a.md",
         "swe",
         Some("gpt-5.4"),
@@ -219,7 +219,7 @@ fn insert_work_log_appends_entries() {
         Some("first"),
     ))
     .unwrap();
-    db.insert_work_log(&work_log!(
+    db.insert_work_log(work_log!(
         "a.md",
         "red",
         Some("gpt-5.4"),
@@ -243,7 +243,7 @@ fn insert_work_log_appends_entries() {
 fn get_task_handles_missing_and_existing() {
     let db = GateDb::open_memory().unwrap();
     assert_eq!(db.get_task("missing.md").unwrap(), None);
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "a", "a.md", None, "FR-41", "pending", "todo", 0,
     ))
     .unwrap();
@@ -262,7 +262,7 @@ fn get_task_by_id_returns_none_for_missing() {
 #[test]
 fn get_task_by_id_finds_inserted_task() {
     let db = GateDb::open_memory().unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "T-55.2",
         "T-55.2-db-id-column.md",
         None,
@@ -280,7 +280,7 @@ fn get_task_by_id_finds_inserted_task() {
 #[test]
 fn resolve_id_to_file_works() {
     let db = GateDb::open_memory().unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "T-55.2",
         "T-55.2-db-id-column.md",
         None,
@@ -298,11 +298,11 @@ fn resolve_id_to_file_works() {
 #[test]
 fn get_all_tasks_returns_sorted_rows() {
     let db = GateDb::open_memory().unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "b", "b.md", None, "FR-41", "pending", "todo", 0,
     ))
     .unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "a",
         "a.md",
         Some("Alpha"),
@@ -324,11 +324,11 @@ fn get_all_tasks_returns_sorted_rows() {
 #[test]
 fn delete_all_tasks_clears_tasks_and_logs() {
     let db = GateDb::open_memory().unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "a", "a.md", None, "FR-41", "pending", "todo", 0,
     ))
     .unwrap();
-    db.insert_work_log(&work_log!("a.md", "swe", None, None, None, None))
+    db.insert_work_log(work_log!("a.md", "swe", None, None, None, None))
         .unwrap();
     assert_eq!(db.delete_all_tasks().unwrap(), 2);
     assert!(db.get_all_tasks().unwrap().is_empty());
@@ -342,7 +342,7 @@ fn delete_all_tasks_clears_tasks_and_logs() {
 #[test]
 fn update_task_status_changes_status() {
     let db = GateDb::open_memory().unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "a", "a.md", None, "FR-41", "pending", "todo", 0,
     ))
     .unwrap();
@@ -352,7 +352,7 @@ fn update_task_status_changes_status() {
 #[test]
 fn increment_attempts_bumps_counter() {
     let db = GateDb::open_memory().unwrap();
-    db.upsert_task(&task_upsert!(
+    db.upsert_task(task_upsert!(
         "a", "a.md", None, "FR-41", "pending", "todo", 2,
     ))
     .unwrap();

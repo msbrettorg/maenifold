@@ -12,7 +12,7 @@ fn pass_uses_current_dir_defaults() {
             assert_eq!(args.notes, None);
             assert_eq!(args.pipeline_path, None);
             assert_eq!(args.root, cwd);
-            assert_eq!(args.db_path, args.root.join("pipeline.db"));
+            assert_eq!(args.db_path, args.root.join("gate.db"));
         }
         _ => panic!("expected pass command"),
     }
@@ -38,7 +38,7 @@ fn reject_parses_pipeline_and_notes() {
             assert_eq!(args.notes.as_deref(), Some("needs work"));
             assert_eq!(args.pipeline_path, Some(PathBuf::from("custom.json")));
             assert_eq!(args.root, PathBuf::from("."));
-            assert_eq!(args.db_path, PathBuf::from(".").join("pipeline.db"));
+            assert_eq!(args.db_path, PathBuf::from(".").join("gate.db"));
         }
         _ => panic!("expected reject command"),
     }
@@ -52,7 +52,7 @@ fn pass_parses_embedded_pipeline_name() {
             assert_eq!(args.id, "T-1.1");
             assert_eq!(args.pipeline_path, Some(PathBuf::from("tdd")));
             assert_eq!(args.root, PathBuf::from("."));
-            assert_eq!(args.db_path, PathBuf::from(".").join("pipeline.db"));
+            assert_eq!(args.db_path, PathBuf::from(".").join("gate.db"));
         }
         _ => panic!("expected pass command"),
     }

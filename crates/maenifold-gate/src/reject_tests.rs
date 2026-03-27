@@ -28,7 +28,7 @@ fn setup(status: &str) -> TestEnv {
 {"name":"blue","verdicts":["pass","reject"],"transitions":{"pass":"done","reject":"pending"}}]}"#,
     )
     .unwrap();
-    let db = root.join("pipeline.db");
+    let db = root.join("gate.db");
     GateDb::open(&db)
         .unwrap()
         .upsert_task("T-55.5", &file, Some("Task"), "FR-42", status, "todo", 0)

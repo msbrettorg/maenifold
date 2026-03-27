@@ -16,7 +16,7 @@ pub fn run(args: &SyncArgs) -> Result<(), CommandStubError> {
 
 pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
     let pipeline = load_pipeline_def(args.pipeline_path.as_deref(), root)?;
-    let db_path = args.db.clone().unwrap_or_else(|| root.join("pipeline.db"));
+    let db_path = args.db.clone().unwrap_or_else(|| root.join("gate.db"));
     let mut found = fs::discover_tasks(root)?;
     let mut rows = Vec::new();
     let mut errors = 0;

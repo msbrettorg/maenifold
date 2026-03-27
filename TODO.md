@@ -95,7 +95,7 @@ Implement canonical task parsing from `todo/`/`done/` files and derive effective
 
 ### T-53.3: Implement `gate advance` with disk-first cache updates | RTM: FR-41
 
-Implement legal transition enforcement using task files as the source of truth, append canonical stage sections, and update `pipeline.db` only after durable file mutation succeeds.
+Implement legal transition enforcement using task files as the source of truth, append canonical stage sections, and update `gate.db` only after durable file mutation succeeds.
 
 CLI contract:
 - `gate advance [--db <DB>] [--root <ROOT>] --stage swe <TASK>`
@@ -114,7 +114,7 @@ CLI contract:
 
 ### T-53.4: Implement `gate sync` cache rebuild from disk | RTM: FR-41
 
-Implement cache regeneration that scans authoritative task files and repopulates `pipeline.db` as a performance index.
+Implement cache regeneration that scans authoritative task files and repopulates `gate.db` as a performance index.
 
   AC-1: `gate sync` recreates task cache rows for files in both `todo/` and `done/`
   AC-2: Sync derives status/location/attempts from file contents and directory location
@@ -157,7 +157,7 @@ Align `gate append`, `gate pass`, and `gate reject` with the file-authoritative 
 
 ### T-56.2: Reconcile task path semantics and stale cache cleanup in `gate sync` | RTM: FR-42, RTM-183
 
-Fix the mismatch between recursive task discovery and flat path resolution, and make non-rebuild sync remove stale cache rows so `pipeline.db` behaves like a true derived index.
+Fix the mismatch between recursive task discovery and flat path resolution, and make non-rebuild sync remove stale cache rows so `gate.db` behaves like a true derived index.
 
   AC-1: If nested task files are supported, `append`, `pass`, `reject`, `status <ID>`, and `move_to_done` all resolve the same discovered file path deterministically
   AC-2: If nested task files are not supported, discovery and sync reject nested tasks with a clear error instead of accepting them and breaking later commands
@@ -185,7 +185,7 @@ Replace the Unix-only `dup2`-based stderr redirection in quiet parsing with an e
 Bring the skill package, scaffold, and prompt templates back into agreement with the current `gate` CLI and the intended file-authoritative workflow.
 
   AC-1: No skill document or scaffold file references obsolete `gate advance` commands
-  AC-2: Skill docs do not claim the scaffold contains a seeded `pipeline.db` unless such a file is actually shipped
+  AC-2: Skill docs do not claim the scaffold contains a seeded `gate.db` unless such a file is actually shipped
   AC-3: `setup-template.md`, scaffold README, and prompt templates refer only to shipped skills/assets and current command names
   AC-4: Prompt templates and scaffold examples use canonical section names and verdict formatting consistent with `maenifold-gate` parser expectations
   AC-5: Repository noise files such as `.DS_Store` are removed from the skill asset tree

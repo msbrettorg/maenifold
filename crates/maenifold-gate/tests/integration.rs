@@ -56,7 +56,7 @@ fn with_blue_pass(mut content: String) -> String {
 }
 
 fn rebuild_cache(root: &Path) -> PathBuf {
-    let db_path = root.join("pipeline.db");
+    let db_path = root.join("gate.db");
     let args = SyncArgs {
         db: Some(db_path.clone()),
         root: root.to_path_buf(),

@@ -27,7 +27,7 @@ fn append_writes_section_to_file() -> Result<()> {
 fn append_unknown_id_errors() -> Result<()> {
     let dir = tempdir()?;
     let root = dir.path();
-    let db_path = root.join("pipeline.db");
+    let db_path = root.join("gate.db");
     let err = run(&AppendArgs {
         id: "T-404".into(),
         notes: "missing".into(),
@@ -70,7 +70,7 @@ fn sync_task(root: &Path, file: &str) -> Result<std::path::PathBuf> {
         root.join("todo").join(file),
         "# T-55.3 — gate append\n\n**Requirement**: FR-42\n",
     )?;
-    let db_path = root.join("pipeline.db");
+    let db_path = root.join("gate.db");
     run_sync(
         &SyncArgs {
             db: Some(db_path.clone()),

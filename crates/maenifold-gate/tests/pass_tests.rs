@@ -18,7 +18,7 @@ fn setup() -> (TempDir, std::path::PathBuf, String, String) {
         "# T-55.4 — Pass\n\n**Requirement**: FR-42\n",
     )
     .unwrap();
-    let db_path = dir.path().join("pipeline.db");
+    let db_path = dir.path().join("gate.db");
     GateDb::open(&db_path)
         .unwrap()
         .upsert_task(&id, &file, Some("Pass"), "FR-42", "pending", "todo", 0)

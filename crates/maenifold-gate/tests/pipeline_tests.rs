@@ -62,7 +62,7 @@ fn setup_test_env(pipeline_json: &str) -> (TempDir, PathBuf, PathBuf) {
     fs::create_dir_all(root.join("done")).unwrap();
     fs::write(root.join("pipeline.json"), pipeline_json).unwrap();
 
-    let db_path = root.join("pipeline.db");
+    let db_path = root.join("gate.db");
     (tmp, root, db_path)
 }
 
@@ -72,7 +72,7 @@ fn setup_test_env_without_pipeline() -> (TempDir, PathBuf, PathBuf) {
     fs::create_dir_all(root.join("todo")).unwrap();
     fs::create_dir_all(root.join("done")).unwrap();
 
-    let db_path = root.join("pipeline.db");
+    let db_path = root.join("gate.db");
     (tmp, root, db_path)
 }
 

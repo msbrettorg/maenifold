@@ -11,4 +11,4 @@
 
 ## History
 
-This file previously documented the raw `sqlite3 pipeline.db` workflow. As of Sprint 53 (FR-41), pipeline state is file-authoritative — markdown task files in `todo/` and `done/` are the source of truth, and `pipeline.db` is a rebuildable cache managed by the `gate` CLI.
+This file previously documented the raw `sqlite3 gate.db` workflow. As of Sprint 53 (FR-41), pipeline state is file-authoritative — markdown task files in `todo/` and `done/` are the source of truth, and `gate.db` is a rebuildable cache managed by the `gate` CLI.

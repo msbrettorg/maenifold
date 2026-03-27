@@ -1,20 +1,20 @@
 ---
 name: gate
-description: "The team's gated delivery process. Use this skill when the user asks to \"start a sprint\", \"run pipeline\", \"set up a pipeline\", \"dispatch agents\", \"coordinate parallel work\", \"run eval specs\", \"process specs through agents\", mentions \"pipeline.db\", \"eval_queue\", \"tasks table\", \"work_log\", \"pipeline\", \"sprint planning\", \"requirements traceability\", or wants to orchestrate subagents through a staged pipeline workflow. Also use when the user says \"gate\", \"SDD\", \"TDD\", \"GSD\", or references PRD/RTM/TODO traceability."
+description: "The team's gated delivery process. Use this skill when the user asks to \"start a sprint\", \"run pipeline\", \"set up a pipeline\", \"dispatch agents\", \"coordinate parallel work\", \"run eval specs\", \"process specs through agents\", mentions \"gate.db\", \"eval_queue\", \"tasks table\", \"work_log\", \"pipeline\", \"sprint planning\", \"requirements traceability\", or wants to orchestrate subagents through a staged pipeline workflow. Also use when the user says \"gate\", \"SDD\", \"TDD\", \"GSD\", or references PRD/RTM/TODO traceability."
 ---
 
 # Gate
 
 Everything is a file. The database is a rebuildable cache.
 
-A spec file is a unit of work. It lives in `todo/`. Agents read it, do the work for the current stage, and append their results. When the pipeline finishes with it, a final-stage `gate pass` moves it to `done/`. Markdown task files under `todo/` and `done/` are authoritative. `pipeline.db` is only a fast query cache rebuilt from disk whenever needed.
+A spec file is a unit of work. It lives in `todo/`. Agents read it, do the work for the current stage, and append their results. When the pipeline finishes with it, a final-stage `gate pass` moves it to `done/`. Markdown task files under `todo/` and `done/` are authoritative. `gate.db` is only a fast query cache rebuilt from disk whenever needed.
 
 ## Philosophy
 
 The unix view: small files, each representing one task, flowing through a pipeline of transforms. The cache is `ps` — it gives you fast queryability into what's running and where. The files are the filesystem — they hold the actual content and accumulate history. `todo/` is the inbox. `done/` is the archive. Agents are processes.
 
 - **Files are authoritative.** Task state lives in markdown files under `todo/` and `done/`.
-- **`pipeline.db` is a rebuildable cache.** Use it for fast queries, but treat it as disposable; `gate sync --rebuild .` recreates it from disk at any time.
+- **`gate.db` is a rebuildable cache.** Use it for fast queries, but treat it as disposable; `gate sync --rebuild .` recreates it from disk at any time.
 - **The `gate append`, `gate pass`, and `gate reject` subcommands enforce legal transitions** and append the canonical section for the active stage before updating the cache.
 - **`gate status` reports effective state derived from files,** with optional cache cross-checks when you pass `--db`.
 - **`gate sync` rebuilds or reconciles the cache from disk.**
@@ -186,14 +186,14 @@ The PM is the only writer. Agents never touch the cache directly; the PM uses th
 ├── RTM.md                # Traceability matrix (FR-* → TC-*)
 ├── todo/                 # Backlog — pending spec files
 ├── done/                 # Archive — completed specs with audit trails
-├── pipeline.db           # Rebuildable cache/index (gitignored)
+├── gate.db           # Rebuildable cache/index (gitignored)
 ├── pipeline.json         # Optional custom pipeline definition
 ├── swe-prompt.md         # SDD example prompt file
 ├── red-prompt.md         # SDD example prompt file
 └── blue-prompt.md        # SDD example prompt file
 ```
 
-`PRD.md` and `RTM.md` are the contracts — what to build and how to trace it. `todo/` and `done/` are the work. All four are committed. `pipeline.db` is a rebuildable cache, gitignored.
+`PRD.md` and `RTM.md` are the contracts — what to build and how to trace it. `todo/` and `done/` are the work. All four are committed. `gate.db` is a rebuildable cache, gitignored.
 
 Sprint planning = write spec files into `todo/`, each referencing FR-* from PRD.md. Sprint progress = `ls todo/ | wc -l` remaining, `ls done/ | wc -l` complete. Sprint close = `todo/` is empty.
 
@@ -217,11 +217,11 @@ gate status --root . --pipeline tdd
 # Optional: define your own pipeline stages/transitions
 # by creating pipeline.json in the pipeline root
 
-# Rebuild pipeline.db from the authoritative files on disk
+# Rebuild gate.db from the authoritative files on disk
 gate sync --rebuild .
 
 # Write stage prompts (copy SDD examples from references/, or author your own)
-echo "pipeline.db" >> .gitignore
+echo "gate.db" >> .gitignore
 ```
 
 ### Gate binary location
@@ -295,7 +295,7 @@ From the JSON output: `done = count(status == "done")`, `remaining = count(statu
 gate status --root . --json
 ```
 
-`gate status` gives you the live per-file state derived from disk. Correlate that JSON with `PRD.md`, `RTM.md`, and the task files themselves to answer requirement-coverage questions. If you need a relational traceability report, query `./pipeline.db` as a cache-backed convenience — never as the source of truth.
+`gate status` gives you the live per-file state derived from disk. Correlate that JSON with `PRD.md`, `RTM.md`, and the task files themselves to answer requirement-coverage questions. If you need a relational traceability report, query `./gate.db` as a cache-backed convenience — never as the source of truth.
 
 #### Health and analytics
 
@@ -313,22 +313,22 @@ Detailed analytics still require raw SQLite against the cache because `gate` doe
 
 ```bash
 # Reject rate for an audit stage (SDD example)
-sqlite3 ./pipeline.db "SELECT \
+sqlite3 ./gate.db "SELECT \
     printf('%.1f%%', 100.0 * sum(CASE WHEN verdict = 'REJECT' THEN 1 ELSE 0 END) \
         / count(*)) as reject_rate \
 FROM work_log WHERE stage = 'red';"
 
 # Average time per stage
-sqlite3 ./pipeline.db "SELECT stage, count(*) as runs, \
+sqlite3 ./gate.db "SELECT stage, count(*) as runs, \
     printf('%.0fs', avg(duration_seconds)) as avg_duration \
 FROM work_log GROUP BY stage;"
 
 # Work log for a specific task (full audit trail)
-sqlite3 ./pipeline.db "SELECT stage, agent_model, verdict, duration_seconds, notes, created_at \
+sqlite3 ./gate.db "SELECT stage, agent_model, verdict, duration_seconds, notes, created_at \
 FROM work_log WHERE file = 'T-1.1-auth-login-jwt.md' ORDER BY id;"
 
 # Tasks with most attempts (trouble spots)
-sqlite3 ./pipeline.db "SELECT file, attempts, status FROM tasks \
+sqlite3 ./gate.db "SELECT file, attempts, status FROM tasks \
 WHERE attempts > 0 ORDER BY attempts DESC;"
 ```
 
@@ -416,13 +416,13 @@ The prompt templates in `references/` are SDD-specific (`swe`, `red`, `blue`). I
 If the cache is lost, rebuild it from the filesystem:
 
 ```bash
-# Rebuild pipeline.db from authoritative files on disk
+# Rebuild gate.db from authoritative files on disk
 gate sync --rebuild .
 ```
 
 `gate sync --rebuild .` reparses `todo/` and `done/`, reconstructs cached task/work-log rows, and re-derives status/location from the canonical markdown sections. Manual `grep` + `sqlite3` reconstruction is no longer the recovery path.
 
-The filesystem IS the backup. `done/` is authoritative for completed work. `todo/` file contents reveal in-progress state. `pipeline.db` is disposable.
+The filesystem IS the backup. `done/` is authoritative for completed work. `todo/` file contents reveal in-progress state. `gate.db` is disposable.
 
 ## Health Signals
 
@@ -441,7 +441,7 @@ Ready-to-use templates in `references/`:
 | File | What It Is |
 |------|-----------|
 | `references/scaffold/` | **Complete working pipeline scaffold** — copy and adapt |
-| `references/scaffold/README.md` | Scaffold usage notes — rebuild `pipeline.db` with `gate sync --rebuild .` |
+| `references/scaffold/README.md` | Scaffold usage notes — rebuild `gate.db` with `gate sync --rebuild .` |
 | `references/scaffold/PRD.md` | Sample requirements doc |
 | `references/scaffold/RTM.md` | Sample traceability matrix |
 | `references/scaffold/todo/` | Sample pending spec |

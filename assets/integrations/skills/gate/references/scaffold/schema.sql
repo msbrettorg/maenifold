@@ -1,4 +1,4 @@
--- pipeline.db cache schema (reference only)
+-- gate.db cache schema (reference only)
 -- This file documents the DB schema used by the gate CLI.
 -- To create/rebuild the DB, use: gate sync --rebuild <ROOT>
 -- The DB is a rebuildable cache; task files are authoritative.

@@ -38,7 +38,7 @@ You own the process. Only you may:
 - Move files from `todo/` to `done/`
 - Manage branches and releases
 
-`todo/` is the backlog. `done/` is completed work. Files are the state machine; `pipeline.db` is a rebuildable cache. The `gate` skill has the full schema, all queries, and the dispatch loop — follow it.
+`todo/` is the backlog. `done/` is completed work. Files are the state machine; `gate.db` is a rebuildable cache. The `gate` skill has the full schema, all queries, and the dispatch loop — follow it.
 
 ## Subagents
 

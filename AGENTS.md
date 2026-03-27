@@ -4,7 +4,7 @@
 
 | Role | Purpose | Model |
 |------|---------|-------|
-| **PM** | Sprint orchestration, pipeline.db state, PRD/RTM ownership, branch/release management | `claude-opus-4.6-1m` |
+| **PM** | Sprint orchestration, gate.db state, PRD/RTM ownership, branch/release management | `claude-opus-4.6-1m` |
 | **SWE** | Focused implementation — code edits, features, bug fixes, refactoring | `gpt-5.4` |
 | **Red-team** | Adversarial code audit — logic flaws, spec violations, drift detection | `claude-sonnet-4.6` |
 | **Blue-team** | Verification — scoped test execution, coverage gates, PASS/FAIL verdicts | `gpt-5.4` |
@@ -78,7 +78,7 @@ maenifold --mcp            # Headless MCP mode (no UI)
 Every sprint **must** complete ALL of the following before handoff:
 
 1. ✅ All spec files moved from `todo/` to `done/`
-2. ✅ `pipeline.db` shows all tasks in terminal state
+2. ✅ `gate.db` shows all tasks in terminal state
 3. ✅ Targeted tests pass for all changed code
 4. ✅ **Release binary rebuilt**: full rebuild (frontend + `cargo build --release -p maenifold-cli`)
 5. ✅ **Verify installed binary**: `maenifold --help` reflects all new features

@@ -13,7 +13,7 @@ Step-by-step instructions for initializing a new dispatch pipeline.
 │   ├── T-1.2-feature-b.md
 │   └── T-1.3-bug-fix-c.md
 ├── done/               # Archive — completed specs with audit trails
-├── pipeline.db         # SQLite state tracker (gitignored)
+├── gate.db         # SQLite state tracker (gitignored)
 ├── swe-prompt.md       # SWE agent instructions (from template)
 ├── red-prompt.md       # Red-team agent instructions (from template)
 └── blue-prompt.md      # Blue-team agent instructions (from template)
@@ -47,7 +47,7 @@ The scoped test command is the single most important thing to get right. If agen
 ## 5. Gitignore the DB
 
 ```bash
-echo "pipeline.db" >> .gitignore
+echo "gate.db" >> .gitignore
 ```
 
 The cache is rebuildable operational state, not source code. The spec files with their accumulated audit trails are the persistent record.

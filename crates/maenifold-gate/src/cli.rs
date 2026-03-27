@@ -92,7 +92,7 @@ fn parse_pass(args: Vec<String>) -> Result<Command, CliError> {
     }
     let args = parse_transition_args(args)?;
     Ok(Command::Pass(pass::PassArgs {
-        db_path: args.db.unwrap_or_else(|| args.root.join("pipeline.db")),
+        db_path: args.db.unwrap_or_else(|| args.root.join("gate.db")),
         id: args.id,
         notes: args.notes,
         pipeline_path: args.pipeline,
@@ -106,7 +106,7 @@ fn parse_reject(args: Vec<String>) -> Result<Command, CliError> {
     }
     let args = parse_transition_args(args)?;
     Ok(Command::Reject(reject::RejectArgs {
-        db_path: args.db.unwrap_or_else(|| args.root.join("pipeline.db")),
+        db_path: args.db.unwrap_or_else(|| args.root.join("gate.db")),
         id: args.id,
         notes: args.notes,
         pipeline_path: args.pipeline,
@@ -137,7 +137,7 @@ fn parse_append(args: Vec<String>) -> Result<Command, CliError> {
 
     let root = resolve_root(root)?;
     Ok(Command::Append(append::AppendArgs {
-        db_path: db.unwrap_or_else(|| root.join("pipeline.db")),
+        db_path: db.unwrap_or_else(|| root.join("gate.db")),
         id: only_positional("ID", positional)?,
         notes: notes.ok_or_else(|| CliError::new("missing required option --notes"))?,
         agent: agent.ok_or_else(|| CliError::new("missing required option --agent"))?,

@@ -30,7 +30,7 @@ pub fn run_status(args: &StatusArgs, root: &Path) -> Result<()> {
 fn open_db(args: &StatusArgs, root: &Path) -> Result<Option<GateDb>> {
     match (args.db.as_deref(), args.id.as_ref()) {
         (Some(path), _) => Ok(Some(GateDb::open(path)?)),
-        (None, Some(_)) => Ok(Some(GateDb::open(&root.join("pipeline.db"))?)),
+        (None, Some(_)) => Ok(Some(GateDb::open(&root.join("gate.db"))?)),
         (None, None) => Ok(None),
     }
 }

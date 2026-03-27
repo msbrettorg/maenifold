@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::{Result, anyhow, bail};
 
 use crate::{
-    db::GateDb,
+    db::{GateDb, WorkLogEntry},
     fs::{append_orchestrator_section, resolve_file_path},
     pipeline::load_pipeline_def,
 };
@@ -48,14 +48,14 @@ pub fn run(args: &RejectArgs) -> Result<()> {
     )?;
     db.update_task_status(&task.file, &target, "todo")?;
     db.increment_attempts(&task.file)?;
-    db.insert_work_log(
-        &task.file,
-        "orchestrator",
-        None,
-        Some("REJECT"),
-        None,
-        args.notes.as_deref(),
-    )?;
+    db.insert_work_log(&WorkLogEntry {
+        file: &task.file,
+        stage: "orchestrator",
+        agent_model: None,
+        verdict: Some("REJECT"),
+        duration_secs: None,
+        notes: args.notes.as_deref(),
+    })?;
     println!("{}: {} → {} [REJECT]", task.id, stage_name, target);
     Ok(())
 }

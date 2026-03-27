@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 
 use crate::{
     CommandStubError, SyncArgs,
-    db::{GateDb, extract_task_id},
+    db::{GateDb, TaskUpsert, extract_task_id},
     fs, parser,
     pipeline::load_pipeline_def,
     types::{TaskLocation, TaskState},
@@ -70,15 +70,16 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
     if args.rebuild {
         db.delete_all_tasks()?;
         for (file, title, requirement, state) in &rows {
-            db.upsert_task(
-                &extract_task_id(file),
+            let id = extract_task_id(file);
+            db.upsert_task(&TaskUpsert {
+                id: &id,
                 file,
-                title.as_deref(),
+                title: title.as_deref(),
                 requirement,
-                state.effective_status(),
-                state.location.as_str(),
-                state.attempts as i32,
-            )?;
+                status: state.effective_status(),
+                location: state.location.as_str(),
+                attempts: state.attempts as i32,
+            })?;
         }
         println!("Rebuilt {} tasks from disk ({} errors)", rows.len(), errors);
         return Ok(());
@@ -104,15 +105,16 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
             }
             None => true,
         };
-        db.upsert_task(
-            &extract_task_id(&file),
-            &file,
-            title.as_deref(),
-            &requirement,
+        let id = extract_task_id(&file);
+        db.upsert_task(&TaskUpsert {
+            id: &id,
+            file: &file,
+            title: title.as_deref(),
+            requirement: &requirement,
             status,
             location,
-            state.attempts as i32,
-        )?;
+            attempts: state.attempts as i32,
+        })?;
         if changed {
             updated += 1;
         } else {

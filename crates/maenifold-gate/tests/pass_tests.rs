@@ -1,7 +1,7 @@
 use std::{fs, path::Path};
 
 use maenifold_gate::{
-    db::GateDb,
+    db::{GateDb, TaskUpsert},
     pass::{self, PassArgs},
 };
 use rusqlite::Connection;
@@ -19,9 +19,18 @@ fn setup() -> (TempDir, std::path::PathBuf, String, String) {
     )
     .unwrap();
     let db_path = dir.path().join("gate.db");
+    let task = TaskUpsert {
+        id: &id,
+        file: &file,
+        title: Some("Pass"),
+        requirement: "FR-42",
+        status: "pending",
+        location: "todo",
+        attempts: 0,
+    };
     GateDb::open(&db_path)
         .unwrap()
-        .upsert_task(&id, &file, Some("Pass"), "FR-42", "pending", "todo", 0)
+        .upsert_task(&task)
         .unwrap();
     (dir, db_path, id, file)
 }

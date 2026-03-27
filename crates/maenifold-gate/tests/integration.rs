@@ -5,7 +5,7 @@ use assert_cmd::Command;
 use assert_cmd::cargo::cargo_bin_cmd;
 use maenifold_gate::{
     StatusArgs, SyncArgs, TaskLocation, TaskState,
-    db::{GateDb, extract_task_id},
+    db::{GateDb, TaskUpsert, extract_task_id},
     parser,
     pass::{self, PassArgs},
     status, sync,
@@ -172,15 +172,16 @@ fn test_sync_reconcile_detects_drift() {
 
     let db_path = rebuild_cache(root.path());
     let db = GateDb::open(&db_path).unwrap();
-    db.upsert_task(
-        &extract_task_id(&blue_file),
-        &blue_file,
-        Some("Corrupted"),
-        "FR-99",
-        "pending",
-        "done",
-        7,
-    )
+    let task_id = extract_task_id(&blue_file);
+    db.upsert_task(&TaskUpsert {
+        id: &task_id,
+        file: &blue_file,
+        title: Some("Corrupted"),
+        requirement: "FR-99",
+        status: "pending",
+        location: "done",
+        attempts: 7,
+    })
     .unwrap();
     drop(db);
 

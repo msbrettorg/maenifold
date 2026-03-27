@@ -31,7 +31,15 @@ fn setup(status: &str) -> TestEnv {
     let db = root.join("gate.db");
     GateDb::open(&db)
         .unwrap()
-        .upsert_task("T-55.5", &file, Some("Task"), "FR-42", status, "todo", 0)
+        .upsert_task(&crate::db::TaskUpsert {
+            id: "T-55.5",
+            file: &file,
+            title: Some("Task"),
+            requirement: "FR-42",
+            status,
+            location: "todo",
+            attempts: 0,
+        })
         .unwrap();
     TestEnv {
         _dir: dir,

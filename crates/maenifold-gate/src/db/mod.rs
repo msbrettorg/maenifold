@@ -23,6 +23,25 @@ pub struct TaskRow {
     pub attempts: i32,
 }
 
+pub struct TaskUpsert<'a> {
+    pub id: &'a str,
+    pub file: &'a str,
+    pub title: Option<&'a str>,
+    pub requirement: &'a str,
+    pub status: &'a str,
+    pub location: &'a str,
+    pub attempts: i32,
+}
+
+pub struct WorkLogEntry<'a> {
+    pub file: &'a str,
+    pub stage: &'a str,
+    pub agent_model: Option<&'a str>,
+    pub verdict: Option<&'a str>,
+    pub duration_secs: Option<i64>,
+    pub notes: Option<&'a str>,
+}
+
 /// Extracts task ID from filename.
 /// "T-55.1-pipeline-definition-schema.md" → "T-55.1"
 /// "some-other-file.md" → "some-other-file"
@@ -115,31 +134,27 @@ impl GateDb {
         migration::ensure_task_ids(&self.conn)
     }
 
-    pub fn upsert_task(
-        &self,
-        id: &str,
-        file: &str,
-        title: Option<&str>,
-        requirement: &str,
-        status: &str,
-        location: &str,
-        attempts: i32,
-    ) -> Result<()> {
+    pub fn upsert_task(&self, task: &TaskUpsert<'_>) -> Result<()> {
         let existing: Option<String> = self
             .conn
             .query_row(
                 "SELECT file FROM tasks WHERE id = ?1 AND file != ?2",
-                params![id, file],
+                params![task.id, task.file],
                 |row| row.get(0),
             )
             .optional()
-            .with_context(|| format!("failed to validate task id '{id}' for '{file}'"))?;
+            .with_context(|| {
+                format!(
+                    "failed to validate task id '{}' for '{}'",
+                    task.id, task.file
+                )
+            })?;
         if let Some(other_file) = existing {
             bail!(
                 "task ID '{}' is already used by '{}', cannot assign to '{}'",
-                id,
+                task.id,
                 other_file,
-                file
+                task.file
             );
         }
         self.conn
@@ -155,28 +170,35 @@ impl GateDb {
                  location = excluded.location,
                  attempts = excluded.attempts,
                  updated_at = datetime('now')",
-                params![id, file, title, requirement, status, location, attempts],
+                params![
+                    task.id,
+                    task.file,
+                    task.title,
+                    task.requirement,
+                    task.status,
+                    task.location,
+                    task.attempts
+                ],
             )
-            .with_context(|| format!("failed to upsert task '{file}'"))?;
+            .with_context(|| format!("failed to upsert task '{}'", task.file))?;
         Ok(())
     }
 
-    pub fn insert_work_log(
-        &self,
-        file: &str,
-        stage: &str,
-        agent_model: Option<&str>,
-        verdict: Option<&str>,
-        duration_secs: Option<i64>,
-        notes: Option<&str>,
-    ) -> Result<()> {
+    pub fn insert_work_log(&self, entry: &WorkLogEntry<'_>) -> Result<()> {
         self.conn
             .execute(
                 "INSERT INTO work_log (file, stage, agent_model, verdict, duration_seconds, notes)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                params![file, stage, agent_model, verdict, duration_secs, notes],
+                params![
+                    entry.file,
+                    entry.stage,
+                    entry.agent_model,
+                    entry.verdict,
+                    entry.duration_secs,
+                    entry.notes
+                ],
             )
-            .with_context(|| format!("failed to insert work log for '{file}'"))?;
+            .with_context(|| format!("failed to insert work log for '{}'", entry.file))?;
         Ok(())
     }
 

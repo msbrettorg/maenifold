@@ -1,12 +1,13 @@
 # Pipeline
 
-Creates and manages pipeline sessions composed of workflow nodes.
+Creates and manages pipeline sessions composed of DAG nodes.
 
 ## Parameters
 
 - `sessionId` (string, optional): Existing pipeline session identifier for lifecycle, topology, or inspection operations.
 - `definition` (object, optional): Pipeline definition to create. Must include `nodes` and `edges`.
 - `maxConcurrency` (integer, optional, default: `8`): Maximum number of nodes the scheduler may activate concurrently.
+- `prompt` (string, optional): Ambient prompt passed to all agent-dispatched nodes during autonomous execution.
 - `learn` (bool, default: false): Return this help text.
 
 ## Create
@@ -19,13 +20,26 @@ Provide `definition` to validate the directed graph, create a persistent pipelin
 {
   "nodes": [
     { "id": "root", "workflowId": "workflow-a" },
-    { "id": "child", "workflowId": "workflow-b", "acpClient": "agent-b" }
+    { "id": "child", "type": "workflow", "workflowId": "workflow-b", "acpClient": "agent-b" },
+    { "id": "draft", "type": "prompt", "prompt": "Summarize {{input}}", "agent": "agent-c", "toolMode": "disabled" },
+    { "id": "analyze", "type": "sequentialThinking", "topic": "Evaluate tradeoffs", "agent": "agent-d", "totalThoughts": 5 },
+    { "id": "publish", "type": "tool", "toolName": "pipeline", "toolArgs": {} }
   ],
   "edges": [
-    { "source": "root", "target": "child", "type": "success" }
+    { "source": "root", "target": "child", "type": "success" },
+    { "source": "child", "target": "draft", "type": "success" },
+    { "source": "draft", "target": "analyze", "type": "success" },
+    { "source": "analyze", "target": "publish", "type": "success" }
   ]
 }
 ```
+
+Supported node shapes:
+
+- Workflow: `{ "id": "...", "workflowId": "...", "acpClient": "..." }`
+- Prompt: `{ "id": "...", "type": "prompt", "prompt": "...", "agent": "...", "toolMode": "disabled" }`
+- SequentialThinking: `{ "id": "...", "type": "sequentialThinking", "topic": "...", "agent": "...", "totalThoughts": 5 }`
+- Tool: `{ "id": "...", "type": "tool", "toolName": "...", "toolArgs": {} }`
 
 ### Returns
 
@@ -35,7 +49,7 @@ Provide `definition` to validate the directed graph, create a persistent pipelin
 
 ## Lifecycle operations
 
-- `sessionId + run=true`: Start autonomous execution for an existing pipeline session.
+- `sessionId + run=true (+ prompt)`: Start autonomous execution for an existing pipeline session. When provided, `prompt` is passed through as ambient context for agent-dispatched nodes.
 - `sessionId + pause=true`: Pause a running pipeline after active work drains.
 - `sessionId + resume=true`: Resume a paused pipeline.
 - `sessionId + cancel=true`: Cancel a running pipeline and prevent further work from starting.

@@ -158,7 +158,7 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         ),
         "Pipeline" => tool_definition(
             registry_name,
-            "Creates and manages pipeline sessions composed of workflow nodes.",
+            "Creates and manages pipeline sessions composed of DAG nodes.",
             object_schema(
                 vec![
                     (
@@ -179,6 +179,10 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
                     (
                         "run",
                         bool_property("Start autonomous execution for an existing pipeline", false),
+                    ),
+                    (
+                        "prompt",
+                        string_property("Ambient prompt for autonomous pipeline execution"),
                     ),
                     (
                         "pause",
@@ -242,15 +246,46 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
                                             },
                                             "workflowId": {
                                                 "type": "string",
-                                                "description": "Workflow definition to run for the new node"
+                                                "description": "Workflow definition to run"
                                             },
                                             "acpClient": {
                                                 "type": "string",
-                                                "description": "Optional ACP client assigned to the new node"
+                                                "description": "Optional ACP client"
+                                            },
+                                            "prompt": {
+                                                "type": "string",
+                                                "description": "Prompt text for prompt nodes"
+                                            },
+                                            "agent": {
+                                                "type": "string",
+                                                "description": "ACP agent for prompt/thinking nodes"
+                                            },
+                                            "toolMode": {
+                                                "type": "string",
+                                                "description": "Tool mode for prompt nodes"
+                                            },
+                                            "topic": {
+                                                "type": "string",
+                                                "description": "Topic for sequential thinking nodes"
+                                            },
+                                            "totalThoughts": {
+                                                "type": "integer",
+                                                "description": "Thought count for thinking nodes"
+                                            },
+                                            "analysisType": {
+                                                "type": "string",
+                                                "description": "Analysis type for thinking nodes"
+                                            },
+                                            "toolName": {
+                                                "type": "string",
+                                                "description": "MCP tool name for tool nodes"
+                                            },
+                                            "toolArgs": {
+                                                "type": "object",
+                                                "description": "Tool arguments for tool nodes"
                                             }
                                         },
-                                        "required": ["id", "workflowId"],
-                                        "additionalProperties": false
+                                        "required": ["id"]
                                     }
                                 },
                                 "edges": {

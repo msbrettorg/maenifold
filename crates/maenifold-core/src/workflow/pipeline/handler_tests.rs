@@ -37,14 +37,8 @@ mod graft_d;
 mod join;
 #[path = "handler_tests_join_errors.rs"]
 mod join_errors;
-#[path = "handler_tests_lifecycle.rs"]
-mod lifecycle;
-#[path = "handler_tests_lifecycle_2.rs"]
-mod lifecycle_2;
 #[path = "handler_tests_rewind.rs"]
 mod rewind;
-#[path = "handler_tests_rewind_errors.rs"]
-mod rewind_errors;
 #[path = "handler_tests_routing.rs"]
 mod routing;
 

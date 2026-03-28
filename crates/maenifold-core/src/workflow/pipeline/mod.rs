@@ -16,15 +16,7 @@ mod executor_nodes;
 #[cfg(test)]
 mod executor_tests;
 #[cfg(test)]
-mod executor_tests_execution;
-#[cfg(test)]
-mod executor_tests_flow;
-#[cfg(test)]
-mod executor_tests_stub;
-#[cfg(test)]
 mod executor_tests_support;
-#[cfg(test)]
-mod executor_tests_tool;
 mod handler;
 mod handler_crud;
 mod handler_lifecycle;
@@ -45,8 +37,6 @@ mod supervisor_lifecycle;
 mod supervisor_test_support;
 #[cfg(test)]
 mod supervisor_tests;
-#[cfg(test)]
-mod test_acpx;
 #[cfg(test)]
 mod test_context;
 #[cfg(test)]

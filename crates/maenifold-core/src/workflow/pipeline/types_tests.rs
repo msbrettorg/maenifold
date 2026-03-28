@@ -39,6 +39,10 @@ fn prompt_serialization_is_tagged() {
         prompt: "Review {{input}}".into(),
         agent: "claude".into(),
         tool_mode: "disabled".into(),
+        model: None,
+        thought_level: None,
+        allowed_tools: None,
+        max_turns: None,
     };
     assert_eq!(
         serde_json::to_value(node).unwrap(),
@@ -54,6 +58,10 @@ fn sequential_thinking_serialization_is_tagged() {
         total_thoughts: 5,
         analysis_type: Some("architecture".into()),
         agent: "claude".into(),
+        model: None,
+        thought_level: None,
+        allowed_tools: None,
+        max_turns: None,
     };
     assert_eq!(
         serde_json::to_value(node).unwrap(),
@@ -112,6 +120,10 @@ fn tool_node_deserializes() {
             tool_name: "pipeline".into(),
             tool_args: Some(json!({"sessionId": "pipeline-42"})),
             agent: Some("claude".into()),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
         }
     );
 }
@@ -132,6 +144,10 @@ fn tool_node_deserializes_without_agent() {
             tool_name: "pipeline".into(),
             tool_args: Some(json!({"sessionId": "pipeline-42"})),
             agent: None,
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
         }
     );
 }
@@ -143,6 +159,10 @@ fn tool_node_serializes() {
         tool_name: "pipeline".into(),
         tool_args: Some(json!({"sessionId": "pipeline-42"})),
         agent: Some("claude".into()),
+        model: None,
+        thought_level: None,
+        allowed_tools: None,
+        max_turns: None,
     };
     assert_eq!(
         serde_json::to_value(node).unwrap(),
@@ -163,6 +183,10 @@ fn tool_node_serializes_without_agent() {
         tool_name: "pipeline".into(),
         tool_args: Some(json!({"sessionId": "pipeline-42"})),
         agent: None,
+        model: None,
+        thought_level: None,
+        allowed_tools: None,
+        max_turns: None,
     };
     assert_eq!(
         serde_json::to_value(node).unwrap(),

@@ -20,6 +20,10 @@ fn pipeline_dispatch_returns_prompt_node_metadata_without_workflow_activation() 
             prompt: "Summarize the dispatch result".into(),
             agent: "prompt-agent".into(),
             tool_mode: "default".into(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
         }],
         edges: vec![],
     };
@@ -63,6 +67,10 @@ fn pipeline_dispatch_returns_sequential_thinking_metadata_without_workflow_activ
             total_thoughts: 3,
             analysis_type: Some("architecture".into()),
             agent: "thinking-agent".into(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
         }],
         edges: vec![],
     };
@@ -101,6 +109,10 @@ fn pipeline_dispatch_returns_tool_metadata_without_workflow_activation() {
             tool_name: "ReadMemory".into(),
             tool_args: Some(json!({"identifier": "memory://build/test"})),
             agent: None,
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
         }],
         edges: vec![],
     };

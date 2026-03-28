@@ -1,4 +1,6 @@
-use crate::acpx_driver::AcpxDriver;
+use std::sync::Arc;
+
+use crate::acp_native::AgentPool;
 use crate::error::{MaenifoldError, Result};
 use crate::thinking::sequential_thinking;
 use crate::tools::ToolContext;
@@ -7,6 +9,7 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
+use super::agent_session::{AgentSession, open_agent_session};
 use super::output_parser::parse_output;
 use super::output_types::ThinkingOutput;
 use super::runner_helpers::{Envelope, slug};
@@ -56,40 +59,48 @@ pub(crate) async fn drive_think_session(
     session_id: &str,
     topic: &str,
     opts: &ThinkOptions,
+    pool: &AgentPool,
 ) -> Result<ThinkResult> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
     let acpx_session = format!("think-{session_id}");
-    let driver = AcpxDriver::new(agent.to_string(), 0, context.config.maenifold_root.clone())
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    driver
-        .create_session(&acpx_session)
-        .await
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let driver =
+        open_agent_session(pool, &context.config.maenifold_root, agent, &acpx_session).await?;
 
     let mut thought_number = 1u32;
-    loop {
-        let prompt = think_prompt(thought_number, opts.total_thoughts, topic);
-        let response = driver
-            .prompt(&acpx_session, &prompt)
-            .await
-            .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-        let thinking_output = parse_with_retry(&driver, &acpx_session, &response.text, 3).await?;
-        let capped_output = if !thinking_output.done && thought_number >= opts.total_thoughts + 3 {
-            force_completion_output(&thinking_output)
-        } else {
-            thinking_output
-        };
-        let payload =
-            think_progress_payload_from_output(session_id, &capped_output, thought_number, opts);
-        let _: Value = think_call(&json_context, &payload)?;
-        if capped_output.done {
-            return Ok(ThinkResult {
-                session_id: session_id.to_string(),
-                conclusion: capped_output.conclusion,
-                thoughts_completed: thought_number,
-            });
+    let result: Result<ThinkResult> = async {
+        loop {
+            let prompt = think_prompt(thought_number, opts.total_thoughts, topic);
+            let response = driver.prompt(&prompt).await?;
+            let thinking_output = parse_with_retry(&driver, &response.text, 3).await?;
+            let capped_output =
+                if !thinking_output.done && thought_number >= opts.total_thoughts + 3 {
+                    force_completion_output(&thinking_output)
+                } else {
+                    thinking_output
+                };
+            let payload = think_progress_payload_from_output(
+                session_id,
+                &capped_output,
+                thought_number,
+                opts,
+            );
+            let _: Value = think_call(&json_context, &payload)?;
+            if capped_output.done {
+                break Ok(ThinkResult {
+                    session_id: session_id.to_string(),
+                    conclusion: capped_output.conclusion,
+                    thoughts_completed: thought_number,
+                });
+            }
+            thought_number += 1;
         }
-        thought_number += 1;
+    }
+    .await;
+    let close_result = driver.close().await;
+    match (result, close_result) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Ok(_), Err(error)) | (Err(_), Err(error)) => Err(error),
+        (Err(error), Ok(())) => Err(error),
     }
 }
 
@@ -99,8 +110,18 @@ pub async fn run_think(
     topic: &str,
     opts: ThinkOptions,
 ) -> Result<ThinkResult> {
+    run_think_with_pool(context, agent, topic, opts, Arc::new(AgentPool::new())).await
+}
+
+pub(crate) async fn run_think_with_pool(
+    context: &ToolContext,
+    agent: &str,
+    topic: &str,
+    opts: ThinkOptions,
+    pool: Arc<AgentPool>,
+) -> Result<ThinkResult> {
     let session_id = seed_think_session(context, topic, &opts).await?;
-    drive_think_session(context, agent, &session_id, topic, &opts).await
+    drive_think_session(context, agent, &session_id, topic, &opts, pool.as_ref()).await
 }
 
 fn think_seed_payload(topic: &str, opts: &ThinkOptions) -> Value {
@@ -166,8 +187,7 @@ fn think_prompt(thought_number: u32, total_thoughts: u32, topic: &str) -> String
 }
 
 async fn parse_with_retry(
-    driver: &AcpxDriver,
-    session: &str,
+    driver: &AgentSession,
     initial_text: &str,
     max_retries: u32,
 ) -> Result<ThinkingOutput> {
@@ -181,10 +201,7 @@ async fn parse_with_retry(
                     parse_error.message,
                     ThinkingOutput::expected_shape()
                 );
-                let retry_response = driver
-                    .prompt(session, &retry_prompt)
-                    .await
-                    .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+                let retry_response = driver.prompt(&retry_prompt).await?;
                 text = retry_response.text;
             }
             Err(_) => {

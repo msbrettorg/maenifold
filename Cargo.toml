@@ -13,6 +13,7 @@ authors = ["MSBrett"]
 repository = "https://github.com/msbrettorg/maenifold"
 
 [workspace.dependencies]
+agent-client-protocol = { version = "0.10", features = ["unstable_session_close", "unstable_session_model"] }
 anyhow = "1.0.100"
 axum = "0.8"
 chrono = { version = "0.4.42", features = ["serde"] }
@@ -27,10 +28,11 @@ serde_json = { version = "1.0.145", features = ["preserve_order"] }
 serde_yaml = "0.9.34"
 slug = "0.1.6"
 thiserror = "2.0.17"
+tracing = "0.1"
 # T-17.2: RTM FR-23 (RTM-127, RTM-129, RTM-130) - HTTP transport needs networking and
 # SIGINT handling for graceful shutdown.
 tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "io-std", "sync", "net", "signal"] }
-tokio-util = { version = "0.7", features = ["rt"] }
+tokio-util = { version = "0.7", features = ["rt", "compat"] }
 tower-http = { version = "0.6", features = ["cors"] }
 walkdir = "2.5.0"
 gray_matter = "0.3.2"
@@ -46,6 +48,7 @@ predicates = "3.1.3"
 similar-asserts = "1.7.0"
 urlencoding = "2.1.3"
 libc = "0.2"
+async-trait = "0.1"
 
 [package]
 name = "maenifold-rs-workspace"

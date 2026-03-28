@@ -53,6 +53,10 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 prompt: "Summarize the workflow output".to_string(),
                 agent: "prompt-agent".to_string(),
                 tool_mode: "normal".to_string(),
+                model: None,
+                thought_level: None,
+                allowed_tools: None,
+                max_turns: None,
             },
             PipelineNode::SequentialThinking {
                 id: "thinking".to_string(),
@@ -60,6 +64,10 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 total_thoughts: 3,
                 analysis_type: Some("analysis".to_string()),
                 agent: "thinking-agent".to_string(),
+                model: None,
+                thought_level: None,
+                allowed_tools: None,
+                max_turns: None,
             },
         ],
         edges: vec![

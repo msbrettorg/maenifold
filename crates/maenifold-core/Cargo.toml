@@ -24,8 +24,11 @@ serde_yaml.workspace = true
 sha2.workspace = true
 slug.workspace = true
 thiserror.workspace = true
+tracing.workspace = true
 tokio = { workspace = true, features = ["process", "time"] }
 tokio-util = { workspace = true, features = ["compat"] }
+agent-client-protocol = { workspace = true }
+async-trait = { workspace = true }
 rmcp = { workspace = true, features = ["transport-streamable-http-server"] }
 tower-http.workspace = true
 uuid.workspace = true

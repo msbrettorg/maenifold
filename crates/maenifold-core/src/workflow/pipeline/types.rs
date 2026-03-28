@@ -49,6 +49,10 @@ pub enum PipelineNode {
         prompt: String,
         agent: String,
         tool_mode: String,
+        model: Option<String>,
+        thought_level: Option<String>,
+        allowed_tools: Option<Vec<String>>,
+        max_turns: Option<u32>,
     },
     SequentialThinking {
         id: String,
@@ -56,12 +60,20 @@ pub enum PipelineNode {
         total_thoughts: u32,
         analysis_type: Option<String>,
         agent: String,
+        model: Option<String>,
+        thought_level: Option<String>,
+        allowed_tools: Option<Vec<String>>,
+        max_turns: Option<u32>,
     },
     Tool {
         id: String,
         tool_name: String,
         tool_args: Option<Value>,
         agent: Option<String>,
+        model: Option<String>,
+        thought_level: Option<String>,
+        allowed_tools: Option<Vec<String>>,
+        max_turns: Option<u32>,
     },
 }
 

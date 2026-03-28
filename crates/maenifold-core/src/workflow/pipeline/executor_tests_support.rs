@@ -21,6 +21,10 @@ pub(super) fn source_tool_node(id: &str) -> PipelineNode {
         tool_name: "GetConfig".to_string(),
         tool_args: None,
         agent: None,
+        model: None,
+        thought_level: None,
+        allowed_tools: None,
+        max_turns: None,
     }
 }
 
@@ -30,6 +34,10 @@ pub(super) fn target_tool_node(tool_args: Option<Value>) -> PipelineNode {
         tool_name: "GetConfig".to_string(),
         tool_args,
         agent: None,
+        model: None,
+        thought_level: None,
+        allowed_tools: None,
+        max_turns: None,
     }
 }
 

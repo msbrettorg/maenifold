@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 use std::error::Error as StdError;
+use std::sync::Arc;
 
 use serde_json::Value as JsonValue;
 
-use crate::acpx_driver::AcpxDriver;
+use crate::acp_native::AgentPool;
 use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
+use super::super::agent_session::open_agent_session;
 use super::super::runner::{self, WorkflowRunStatus};
 use super::executor_helpers::{
     DispatchedNode, MAX_CONCLUSION_CHARS, assemble_node_prompt, truncate_chars,
@@ -111,6 +113,7 @@ pub(super) async fn execute_node_request(
     node_id: String,
     execution: NodeExecutionRequest,
     agent: Option<String>,
+    pool: Arc<AgentPool>,
 ) -> (String, NodeTaskResult) {
     let result = match execution {
         NodeExecutionRequest::Workflow {
@@ -119,7 +122,14 @@ pub(super) async fn execute_node_request(
         } => {
             let agent = agent.as_deref().expect("agent required for workflow nodes");
             NodeTaskResult::Workflow(
-                runner::run_workflow(&context, &workflow_id, agent, &prompt).await,
+                runner::run_workflow_with_pool(
+                    &context,
+                    &workflow_id,
+                    agent,
+                    &prompt,
+                    pool.clone(),
+                )
+                .await,
             )
         }
         NodeExecutionRequest::Prompt {
@@ -129,7 +139,15 @@ pub(super) async fn execute_node_request(
         } => {
             let agent = agent.as_deref().expect("agent required for prompt nodes");
             NodeTaskResult::Prompt(
-                run_prompt_node(&context, agent, &session_id, &prompt, &tool_mode).await,
+                run_prompt_node(
+                    &context,
+                    pool.as_ref(),
+                    agent,
+                    &session_id,
+                    &prompt,
+                    &tool_mode,
+                )
+                .await,
             )
         }
         NodeExecutionRequest::SequentialThinking {
@@ -139,7 +157,7 @@ pub(super) async fn execute_node_request(
         } => {
             let agent = agent.as_deref().expect("agent required for thinking nodes");
             NodeTaskResult::SequentialThinking(
-                runner::run_think(
+                runner::run_think_with_pool(
                     &context,
                     agent,
                     &topic,
@@ -147,6 +165,7 @@ pub(super) async fn execute_node_request(
                         total_thoughts,
                         parent_workflow_id: Some(node_session_id),
                     },
+                    pool,
                 )
                 .await,
             )
@@ -243,21 +262,17 @@ fn log_node_execution_error(node_id: &str, error: &dyn StdError) {
 
 async fn run_prompt_node(
     context: &ToolContext,
+    pool: &AgentPool,
     agent: &str,
     session_id: &str,
     prompt: &str,
     _tool_mode: &str,
 ) -> Result<String> {
-    let driver = AcpxDriver::new(agent.to_string(), 0, context.config.maenifold_root.clone())
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    driver
-        .create_session(session_id)
-        .await
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    let response = driver
-        .prompt(session_id, prompt)
-        .await
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let session =
+        open_agent_session(pool, &context.config.maenifold_root, agent, session_id).await?;
+    let response = session.prompt(prompt).await;
+    let _ = session.close().await;
+    let response = response?;
     if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
         return Err(MaenifoldError::Message(error));
     }

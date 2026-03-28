@@ -23,6 +23,10 @@ fn prompt_node(id: &str, prompt: &str, agent: &str) -> PipelineNode {
         prompt: prompt.to_string(),
         agent: agent.to_string(),
         tool_mode: "default".to_string(),
+        model: None,
+        thought_level: None,
+        allowed_tools: None,
+        max_turns: None,
     }
 }
 
@@ -39,6 +43,10 @@ fn thinking_node(
         total_thoughts,
         analysis_type: analysis_type.map(str::to_string),
         agent: agent.to_string(),
+        model: None,
+        thought_level: None,
+        allowed_tools: None,
+        max_turns: None,
     }
 }
 
@@ -53,6 +61,10 @@ fn tool_node(
         tool_name: tool_name.to_string(),
         tool_args,
         agent: agent.map(str::to_string),
+        model: None,
+        thought_level: None,
+        allowed_tools: None,
+        max_turns: None,
     }
 }
 

@@ -1,4 +1,3 @@
-pub(super) use super::test_acpx::{install_acpx_stub, write_acpx_stub_config};
 pub(super) use super::test_context::pipeline_test_context;
 pub(super) use super::test_fixtures::{
     seed_dispatch_pipeline, seed_pipeline_session_with_node_sessions,

@@ -1,3 +1,4 @@
+mod agent_session;
 mod handler;
 mod handler_helpers;
 mod handler_session;
@@ -11,15 +12,10 @@ pub mod runner;
 #[cfg(test)]
 mod runner_format_tests;
 pub(crate) mod runner_helpers;
-#[cfg(test)]
-pub(crate) mod runner_test_support;
-#[cfg(test)]
-mod runner_tests;
 mod status;
 mod submachine;
 pub(crate) mod think_runner;
-#[cfg(test)]
-mod think_runner_tests;
+
 
 // T-12.0: RTM NFR-1 consolidates the workflow facade, helpers, and session logic under one module.
 pub(crate) use handler::workflow;

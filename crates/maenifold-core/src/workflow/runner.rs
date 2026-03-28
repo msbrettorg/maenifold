@@ -1,8 +1,12 @@
-use crate::acpx_driver::{AcpxDriver, AcpxResponse};
+use std::sync::Arc;
+
+use crate::acp_native::AgentPool;
+use crate::acpx_driver::AcpxResponse;
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use serde_json::json;
 
+use super::agent_session::{AgentSession, open_agent_session};
 use super::output_parser::parse_output;
 use super::output_types::WorkflowOutput;
 use super::runner_helpers::{
@@ -11,6 +15,7 @@ use super::runner_helpers::{
 };
 use super::think_runner::{drive_think_session, seed_think_session};
 
+pub(crate) use super::think_runner::run_think_with_pool;
 pub use super::think_runner::{ThinkOptions, ThinkResult, run_think};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,55 +39,67 @@ pub async fn run_workflow(
     agent: &str,
     prompt: &str,
 ) -> Result<WorkflowResult> {
+    run_workflow_with_pool(
+        context,
+        workflow_id,
+        agent,
+        prompt,
+        Arc::new(AgentPool::new()),
+    )
+    .await
+}
+
+pub(crate) async fn run_workflow_with_pool(
+    context: &ToolContext,
+    workflow_id: &str,
+    agent: &str,
+    prompt: &str,
+    pool: Arc<AgentPool>,
+) -> Result<WorkflowResult> {
     let start = super::handler::workflow(context, &json!({ "workflowId": workflow_id }))?;
     let session_id = extract_workflow_session_id(&start).ok_or_else(|| {
         MaenifoldError::Message("Workflow session ID missing from response".to_string())
     })?;
-    let driver = create_workflow_driver(context, agent, &session_id).await?;
+    let driver =
+        open_agent_session(&pool, &context.config.maenifold_root, agent, &session_id).await?;
     let mut step = workflow_text(&start);
     let mut steps_completed = 0u32;
     let mut conclusion = None;
 
-    loop {
-        if let Some(status) = terminal_workflow_status(&step) {
-            return Ok(WorkflowResult {
-                session_id,
-                conclusion,
-                steps_completed,
-                status,
-            });
-        }
-        if step.starts_with("ERROR:") {
-            return Err(MaenifoldError::Message(step));
-        }
+    let result: Result<WorkflowResult> = async {
+        loop {
+            if let Some(status) = terminal_workflow_status(&step) {
+                break Ok(WorkflowResult {
+                    session_id,
+                    conclusion,
+                    steps_completed,
+                    status,
+                });
+            }
+            if step.starts_with("ERROR:") {
+                break Err(MaenifoldError::Message(step));
+            }
 
-        maybe_run_step_thinking(context, agent, &session_id, &step).await?;
-        let final_step =
-            matches!(parse_step_progress(&step), Some((current, total)) if current == total);
-        let response =
-            prompt_workflow_agent(&driver, &session_id, prompt, &step, final_step).await?;
-        if let Some(value) = workflow_completion_text(&response, final_step) {
-            conclusion = Some(value);
-        }
+            maybe_run_step_thinking(context, agent, &session_id, &step, pool.as_ref()).await?;
+            let final_step =
+                matches!(parse_step_progress(&step), Some((current, total)) if current == total);
+            let response = prompt_workflow_agent(&driver, prompt, &step, final_step).await?;
+            if let Some(value) = workflow_completion_text(&response, final_step) {
+                conclusion = Some(value);
+            }
 
-        let payload = workflow_step_payload(&session_id, &response, final_step);
-        step = workflow_text(&super::handler::workflow(context, &payload)?);
-        steps_completed += 1;
+            let payload = workflow_step_payload(&session_id, &response, final_step);
+            step = workflow_text(&super::handler::workflow(context, &payload)?);
+            steps_completed += 1;
+        }
     }
-}
-
-async fn create_workflow_driver(
-    context: &ToolContext,
-    agent: &str,
-    session_id: &str,
-) -> Result<AcpxDriver> {
-    let driver = AcpxDriver::new(agent.to_string(), 0, context.config.maenifold_root.clone())
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    driver
-        .create_session(session_id)
-        .await
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    Ok(driver)
+    .await;
+    let close_result = driver.close().await;
+    match (result, close_result) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Ok(_), Err(error)) | (Err(_), Err(error)) => Err(error),
+        (Err(error), Ok(())) => Err(error),
+    }
 }
 
 async fn maybe_run_step_thinking(
@@ -90,6 +107,7 @@ async fn maybe_run_step_thinking(
     agent: &str,
     workflow_session_id: &str,
     step: &str,
+    pool: &AgentPool,
 ) -> Result<()> {
     let Some((topic, total_thoughts)) = step_think_config(step) else {
         return Ok(());
@@ -108,13 +126,13 @@ async fn maybe_run_step_thinking(
             "submachineSessionId": &think_session_id
         }),
     )?;
-    let _ = drive_think_session(context, agent, &think_session_id, &topic, &think_opts).await?;
+    let _ =
+        drive_think_session(context, agent, &think_session_id, &topic, &think_opts, pool).await?;
     Ok(())
 }
 
 async fn prompt_workflow_agent(
-    driver: &AcpxDriver,
-    session_id: &str,
+    driver: &AgentSession,
     prompt: &str,
     step: &str,
     final_step: bool,
@@ -124,12 +142,9 @@ async fn prompt_workflow_agent(
         "{actual_prompt}\n\nWrap your response in <output> tags:\n{}\n\nYour thinking can appear outside the tags. Only the <output> block is parsed.",
         WorkflowOutput::expected_shape()
     );
-    let response = driver
-        .prompt(session_id, &prompt_with_shape)
-        .await
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let response = driver.prompt(&prompt_with_shape).await?;
     let text = workflow_response_text(response)?;
-    parse_workflow_with_retry(driver, session_id, &text, 3, final_step).await
+    parse_workflow_with_retry(driver, &text, 3, final_step).await
 }
 
 struct WorkflowAgentResponse {
@@ -138,8 +153,7 @@ struct WorkflowAgentResponse {
 }
 
 async fn parse_workflow_with_retry(
-    driver: &AcpxDriver,
-    session_id: &str,
+    driver: &AgentSession,
     initial_text: &str,
     max_retries: usize,
     final_step: bool,
@@ -156,10 +170,7 @@ async fn parse_workflow_with_retry(
             }
             Err(error) if attempt < max_retries && !final_step => {
                 let retry_prompt = workflow_retry_prompt(&error);
-                let response = driver
-                    .prompt(session_id, &retry_prompt)
-                    .await
-                    .map_err(|retry_error| MaenifoldError::Message(retry_error.to_string()))?;
+                let response = driver.prompt(&retry_prompt).await?;
                 text = workflow_response_text(response)?.trim().to_string();
             }
             Err(error) => {

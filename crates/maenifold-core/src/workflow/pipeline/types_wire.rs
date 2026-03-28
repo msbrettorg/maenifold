@@ -37,6 +37,22 @@ pub(super) struct PipelineNodeWire {
     tool_name: Option<String>,
     #[serde(rename = "toolArgs", skip_serializing_if = "Option::is_none")]
     tool_args: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    model: Option<String>,
+    #[serde(
+        default,
+        rename = "thoughtLevel",
+        skip_serializing_if = "Option::is_none"
+    )]
+    thought_level: Option<String>,
+    #[serde(
+        default,
+        rename = "allowedTools",
+        skip_serializing_if = "Option::is_none"
+    )]
+    allowed_tools: Option<Vec<String>>,
+    #[serde(default, rename = "maxTurns", skip_serializing_if = "Option::is_none")]
+    max_turns: Option<u32>,
 }
 
 impl TryFrom<PipelineNodeWire> for PipelineNode {
@@ -76,6 +92,10 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 prompt: required(wire.prompt, "prompt")?,
                 agent: required(wire.agent, "agent")?,
                 tool_mode: wire.tool_mode,
+                model: wire.model,
+                thought_level: wire.thought_level,
+                allowed_tools: wire.allowed_tools,
+                max_turns: wire.max_turns,
             },
             "sequentialThinking" => Self::SequentialThinking {
                 id: wire.id,
@@ -83,12 +103,20 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 total_thoughts: wire.total_thoughts,
                 analysis_type: wire.analysis_type,
                 agent: required(wire.agent, "agent")?,
+                model: wire.model,
+                thought_level: wire.thought_level,
+                allowed_tools: wire.allowed_tools,
+                max_turns: wire.max_turns,
             },
             "tool" => Self::Tool {
                 id: wire.id,
                 tool_name: required(wire.tool_name, "toolName")?,
                 tool_args: wire.tool_args,
                 agent: wire.agent,
+                model: wire.model,
+                thought_level: wire.thought_level,
+                allowed_tools: wire.allowed_tools,
+                max_turns: wire.max_turns,
             },
             other => {
                 return Err(format!(
@@ -121,12 +149,20 @@ impl From<PipelineNode> for PipelineNodeWire {
                 analysis_type: None,
                 tool_name: None,
                 tool_args: None,
+                model: None,
+                thought_level: None,
+                allowed_tools: None,
+                max_turns: None,
             },
             PipelineNode::Prompt {
                 id,
                 prompt,
                 agent,
                 tool_mode,
+                model,
+                thought_level,
+                allowed_tools,
+                max_turns,
             } => Self {
                 kind: Some("prompt".to_string()),
                 id,
@@ -140,6 +176,10 @@ impl From<PipelineNode> for PipelineNodeWire {
                 analysis_type: None,
                 tool_name: None,
                 tool_args: None,
+                model,
+                thought_level,
+                allowed_tools,
+                max_turns,
             },
             PipelineNode::SequentialThinking {
                 id,
@@ -147,6 +187,10 @@ impl From<PipelineNode> for PipelineNodeWire {
                 total_thoughts,
                 analysis_type,
                 agent,
+                model,
+                thought_level,
+                allowed_tools,
+                max_turns,
             } => Self {
                 kind: Some("sequentialThinking".to_string()),
                 id,
@@ -160,12 +204,20 @@ impl From<PipelineNode> for PipelineNodeWire {
                 analysis_type,
                 tool_name: None,
                 tool_args: None,
+                model,
+                thought_level,
+                allowed_tools,
+                max_turns,
             },
             PipelineNode::Tool {
                 id,
                 tool_name,
                 tool_args,
                 agent,
+                model,
+                thought_level,
+                allowed_tools,
+                max_turns,
             } => Self {
                 kind: Some("tool".to_string()),
                 id,
@@ -179,6 +231,10 @@ impl From<PipelineNode> for PipelineNodeWire {
                 analysis_type: None,
                 tool_name: Some(tool_name),
                 tool_args,
+                model,
+                thought_level,
+                allowed_tools,
+                max_turns,
             },
         }
     }

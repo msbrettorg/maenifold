@@ -5,6 +5,7 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
+use crate::acp_native::AgentPool;
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
@@ -41,6 +42,21 @@ pub(super) async fn execute_pipeline(
     prompt: &str,
     cancel: CancellationToken,
 ) -> Result<ExecutionResult> {
+    let pool = Arc::new(AgentPool::new());
+    let result = execute_pipeline_inner(context, session_id, prompt, cancel, pool.clone()).await;
+    pool.close_all().await;
+    result
+}
+
+#[allow(clippy::cognitive_complexity)]
+#[allow(clippy::too_many_lines)]
+async fn execute_pipeline_inner(
+    context: &ToolContext,
+    session_id: &str,
+    prompt: &str,
+    cancel: CancellationToken,
+    pool: Arc<AgentPool>,
+) -> Result<ExecutionResult> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
     let (definition, max_concurrency) = load_execution_config(&json_context, session_id)?;
     let nodes_by_id = build_node_index(&definition);
@@ -75,6 +91,7 @@ pub(super) async fn execute_pipeline(
                 &node_states,
                 &nodes_by_id,
                 &prompt,
+                pool.clone(),
                 semaphore.clone(),
                 &mut join_set,
                 dispatch,
@@ -174,6 +191,7 @@ async fn schedule_dispatched_node(
     node_states: &HashMap<String, NodeState>,
     nodes_by_id: &HashMap<String, PipelineNode>,
     ambient_prompt: &str,
+    pool: Arc<AgentPool>,
     semaphore: Arc<Semaphore>,
     join_set: &mut JoinSet<NodeJoinResult>,
     dispatch: &DispatchedNode,
@@ -219,7 +237,7 @@ async fn schedule_dispatched_node(
     let ctx = ToolContext::new(output_context.config.clone(), output_context.output_format);
     join_set.spawn(async move {
         let _permit = permit;
-        execute_node_request(ctx, node_id, execution, agent).await
+        execute_node_request(ctx, node_id, execution, agent, pool).await
     });
     Ok(())
 }

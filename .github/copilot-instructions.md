@@ -94,3 +94,14 @@ make release
 ```
 
 Files must stay under 300 lines of code.
+
+## Runtime Configuration
+
+The maenifold root directory is `~/maenifold/` (not `~/.maenifold/`). Key runtime files:
+
+- **`~/maenifold/agents.json`** — ACP agent definitions (Copilot, OpenCode, Goose, etc.). Loaded by `AgentsConfig::load()` from `Config::current().maenifold_root`.
+- **`~/maenifold/memory/`** — Knowledge graph corpus
+- **`~/maenifold/assets/`** — Workflow definitions, skills, integrations
+- **`~/maenifold/memory.db`** — SQLite memory database
+
+The root path can be overridden via `MAENIFOLD_ROOT` env var.

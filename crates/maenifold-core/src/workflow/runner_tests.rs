@@ -6,6 +6,29 @@ use serde_json::json;
 use serial_test::serial;
 use std::fs;
 
+fn thinking_xml(
+    response: &str,
+    done: bool,
+    needs_more: bool,
+    revision_of: Option<u32>,
+    conclusion: Option<&str>,
+) -> String {
+    format!(
+        "<output><response>{response}</response><done>{done}</done><needs_more>{needs_more}</needs_more><revision_of>{}</revision_of><conclusion>{}</conclusion></output>",
+        revision_of
+            .map(|value| value.to_string())
+            .unwrap_or_default(),
+        conclusion.unwrap_or_default()
+    )
+}
+
+fn workflow_xml(response: &str, done: bool, conclusion: Option<&str>) -> String {
+    format!(
+        "<output><response>{response}</response><done>{done}</done><conclusion>{}</conclusion></output>",
+        conclusion.unwrap_or_default()
+    )
+}
+
 #[tokio::test]
 #[serial(config)]
 async fn workflow_runner_completes_multi_step_workflow() {
@@ -87,7 +110,7 @@ async fn workflow_runner_tags_response_without_wikilinks() {
     assert_eq!(
         result.conclusion.as_deref(),
         Some("plain text no links [[step]]"),
-        "tag_response should append [[step]] to wikilink-free agent responses"
+        "fallback_step_tag should append [[step]] to wikilink-free agent responses"
     );
 }
 
@@ -113,22 +136,63 @@ async fn workflow_runner_thinks_before_agent_prompt_when_required() {
     let _path = install_acpx_stub(&context.config.maenifold_root);
     write_stub_config(
         &context.config.maenifold_root,
-        json!({ "runner-agent": { "responses": [{ "text": "DONE [[thought]]" }, { "text": "Done [[conclusion]]" }] } }),
+        json!({
+            "runner-agent": {
+                "responses": [
+                    {
+                        "text": thinking_xml(
+                            "DONE [[thought]]",
+                            true,
+                            false,
+                            None,
+                            Some("DONE [[thought]]"),
+                        )
+                    },
+                    {
+                        "text": workflow_xml(
+                            "Done [[conclusion]]",
+                            true,
+                            Some("Done [[conclusion]]"),
+                        )
+                    }
+                ]
+            }
+        }),
     );
 
     run_workflow(&context, "thinking", "runner-agent", "Prompt")
         .await
         .expect("workflow runner");
     let state = read_stub_state(&context.config.maenifold_root);
+    let prompts = state["prompts"].as_array().expect("prompts");
+    let first_workflow_prompt = prompts
+        .iter()
+        .position(|prompt| {
+            prompt["session"]
+                .as_str()
+                .map(|session| session.starts_with("workflow-"))
+                .unwrap_or(false)
+        })
+        .expect("workflow prompt");
 
     assert!(
-        state["prompts"][0]["session"]
+        prompts[0]["session"]
             .as_str()
             .unwrap()
             .starts_with("think-")
     );
     assert!(
-        state["prompts"][1]["session"]
+        first_workflow_prompt > 0,
+        "workflow prompt should be preceded by at least one thinking prompt"
+    );
+    assert!(prompts[..first_workflow_prompt].iter().all(|prompt| {
+        prompt["session"]
+            .as_str()
+            .map(|session| session.starts_with("think-"))
+            .unwrap_or(false)
+    }));
+    assert!(
+        prompts[first_workflow_prompt]["session"]
             .as_str()
             .unwrap()
             .starts_with("workflow-")
@@ -146,7 +210,7 @@ async fn workflow_runner_thinks_before_agent_prompt_when_required() {
     );
     assert_eq!(
         state["observations"][0]["parentWorkflowSession"].as_str(),
-        state["prompts"][1]["session"].as_str()
+        prompts[first_workflow_prompt]["session"].as_str()
     );
 }
 

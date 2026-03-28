@@ -4,7 +4,6 @@ use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value;
 
-static WIKILINKS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
 static WORKFLOW_SESSION_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"workflow-\d+").unwrap());
 static STEP_PROGRESS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
 
@@ -94,14 +93,6 @@ pub(crate) fn terminal_workflow_status(step: &str) -> Option<WorkflowRunStatus> 
         })
     } else {
         None
-    }
-}
-
-pub(crate) fn tag_response(response: &str) -> String {
-    if WIKILINKS_RE.is_match(response) {
-        response.to_string()
-    } else {
-        format!("{response} [[step]]")
     }
 }
 

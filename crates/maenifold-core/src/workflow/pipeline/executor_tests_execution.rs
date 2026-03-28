@@ -20,6 +20,22 @@ use super::executor_tests_support::{
     write_workflow_definition,
 };
 
+fn thinking_xml(
+    response: &str,
+    done: bool,
+    needs_more: bool,
+    revision_of: Option<u32>,
+    conclusion: Option<&str>,
+) -> String {
+    format!(
+        "<output><response>{response}</response><done>{done}</done><needs_more>{needs_more}</needs_more><revision_of>{}</revision_of><conclusion>{}</conclusion></output>",
+        revision_of
+            .map(|value| value.to_string())
+            .unwrap_or_default(),
+        conclusion.unwrap_or_default()
+    )
+}
+
 #[tokio::test]
 #[serial(config)]
 async fn executor_completes_single_node_pipeline() {
@@ -166,7 +182,15 @@ async fn executor_runs_prompt_and_thinking_nodes_and_captures_output() {
         json!({
             "test-agent-a": { "text": "Workflow output [[step]]" },
             "prompt-agent": { "text": "Prompt output [[note]]" },
-            "think-agent": { "text": "DONE Thinking output [[idea]]" }
+            "think-agent": {
+                "text": thinking_xml(
+                    "DONE Thinking output [[idea]]",
+                    true,
+                    false,
+                    None,
+                    Some("DONE Thinking output [[idea]]")
+                )
+            }
         }),
     );
     seed_pipeline_session_with_nodes(
@@ -271,8 +295,11 @@ async fn executor_runs_prompt_and_thinking_nodes_and_captures_output() {
         "### From a\n\nWorkflow output [[step]]\n\nAmbient context\n\nDraft next action"
     );
     let think_prompts = read_stub_prompts(&context.config.maenifold_root, "think-agent");
+    assert_eq!(think_prompts.len(), 1);
     assert!(think_prompts[0].starts_with(
         "Thought 1/~2 on: ### From prompt\n\nPrompt output [[note]]\n\nAmbient context\n\nPlan follow-up."
     ));
-    assert!(think_prompts[0].contains("Include [[WikiLinks]]. Say DONE when complete."));
+    assert!(think_prompts[0].contains("Include [[WikiLinks]]."));
+    assert!(think_prompts[0].contains("Wrap your response in <output> tags:"));
+    assert!(think_prompts[0].contains("Only the <output> block is parsed."));
 }

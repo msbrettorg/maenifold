@@ -48,16 +48,20 @@ fn pipeline_delete_completed_pipeline_removes_session_and_workflow_files() {
         !file_exists(&pipeline_session_uri(pipeline_id), &context.config)
             .expect("pipeline removed")
     );
-    assert!(!file_exists(
-        &workflow_session_uri("workflow-1735689600200-root"),
-        &context.config,
-    )
-    .expect("root workflow removed"));
-    assert!(!file_exists(
-        &workflow_session_uri("workflow-1735689600200-child"),
-        &context.config,
-    )
-    .expect("child workflow removed"));
+    assert!(
+        !file_exists(
+            &workflow_session_uri("workflow-1735689600200-root"),
+            &context.config,
+        )
+        .expect("root workflow removed")
+    );
+    assert!(
+        !file_exists(
+            &workflow_session_uri("workflow-1735689600200-child"),
+            &context.config,
+        )
+        .expect("child workflow removed")
+    );
 }
 
 #[test]
@@ -197,11 +201,13 @@ fn pipeline_delete_skips_missing_workflow_session_files() {
         !file_exists(&pipeline_session_uri(pipeline_id), &context.config)
             .expect("pipeline removed")
     );
-    assert!(!file_exists(
-        &workflow_session_uri("workflow-1735689600202-root"),
-        &context.config,
-    )
-    .expect("root workflow removed"));
+    assert!(
+        !file_exists(
+            &workflow_session_uri("workflow-1735689600202-root"),
+            &context.config,
+        )
+        .expect("root workflow removed")
+    );
     assert!(
         !file_exists(&workflow_session_uri(missing_workflow_id), &context.config)
             .expect("missing workflow still absent")

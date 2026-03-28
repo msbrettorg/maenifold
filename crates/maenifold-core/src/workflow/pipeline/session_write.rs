@@ -1,5 +1,5 @@
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{delete_file, file_exists, read_markdown, write_markdown, Frontmatter};
+use crate::markdown::{Frontmatter, delete_file, file_exists, read_markdown, write_markdown};
 use crate::sessions::{date_parts_from_session_id, pipeline_session_uri, workflow_session_uri};
 use crate::thinking::sequential_session_uri;
 use crate::tools::ToolContext;
@@ -9,7 +9,7 @@ use serde_yaml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 
-use super::{compute_pipeline_status, NodeState, NodeStatus, PipelineDefinition};
+use super::{NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status};
 
 pub(super) struct NodeFile {
     pub(super) session_id: String,

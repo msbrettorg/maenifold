@@ -3,6 +3,8 @@ mod handler_helpers;
 mod handler_session;
 #[cfg(test)]
 mod handler_session_tests;
+pub mod output_parser;
+pub mod output_types;
 pub mod pipeline;
 mod queue;
 pub mod runner;

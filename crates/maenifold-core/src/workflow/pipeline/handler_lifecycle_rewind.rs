@@ -1,7 +1,7 @@
 use crate::assets::AssetManager;
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
-use crate::util::json::{success, OutputFormat};
+use crate::util::json::{OutputFormat, success};
 use petgraph::Direction::Outgoing;
 use serde::Deserialize;
 use serde_json::Value;

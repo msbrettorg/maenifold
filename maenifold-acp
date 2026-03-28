@@ -26,7 +26,31 @@ for l in sys.stdin:
 mf() { maenifold --tool "$1" --payload "$2" --json | jv; }
 acp() { local a="$1" s="$2" p="$3"; shift 3; acpx --format text --timeout 300 "$@" "$a" -s "$s" "$p" 2>/dev/null | strip || echo "Agent error [[step]]"; }
 tag() { grep -q '\[\[' <<< "$1" && echo "$1" || echo "$1 [[step]]"; }
-
+parse_field() { python3 -c "import re,sys;text=sys.stdin.read();outer=re.search(r'<output>(.*)</output>',text,re.DOTALL);text=outer.group(1) if outer else text;m=re.search(r'<$1>(.*?)</$1>',text,re.DOTALL);print(m.group(1).strip() if m else '')"; }
+parse_output_block() { python3 -c "import re,sys;m=re.search(r'<output>(.*)</output>',sys.stdin.read(),re.DOTALL);print(m.group(1).strip() if m else '')"; }
+# Parse <output> block with up to 3 retries; sets PARSED_* globals. Returns 1 on fallback.
+parse_with_retry() {
+  local agent="$1" session="$2" raw="$3"; shift 3
+  local try=0 block=""
+  PARSED_RESPONSE="" PARSED_DONE="" PARSED_NEEDS_MORE="" PARSED_REVISION_OF="" PARSED_CONCLUSION=""
+  while (( try <= 3 )); do
+    block=$(parse_output_block <<< "$raw")
+    if [[ -n "$block" ]]; then
+      PARSED_RESPONSE=$(parse_field response <<< "$block")
+      PARSED_DONE=$(parse_field done <<< "$block")
+      PARSED_NEEDS_MORE=$(parse_field needs_more <<< "$block")
+      PARSED_REVISION_OF=$(parse_field revision_of <<< "$block")
+      PARSED_CONCLUSION=$(parse_field conclusion <<< "$block")
+      return 0
+    fi
+    (( try >= 3 )) && break
+    try=$((try + 1))
+    log "parse retry $try/3"
+    raw=$(acp "$agent" "$session" "Rewrite your previous answer wrapped in <output> with <response>, <done>, <needs_more>, <revision_of>, <conclusion> fields." "$@")
+  done
+  return 1
+}
+OUTPUT_FMT='Wrap response in <output>: <response>answer with [[WikiLinks]]</response> <done>true|false</done> <needs_more>true|false</needs_more> <revision_of>N or empty</revision_of> <conclusion>summary if done</conclusion>.'
 # ── think: drive a sequential thinking submachine ──
 # $1=agent $2=acpx-session $3=mf-session-id $4=topic $5=total, rest=acpx-flags
 run_think() {
@@ -34,13 +58,28 @@ run_think() {
   local n=1
   while true; do
     log "thought $n/$total"
-    local r; r=$(acp "$agent" "$acpx_s" "Thought $n/~$total on: $topic. Include [[WikiLinks]]. Say DONE when complete." "$@")
+    local r; r=$(acp "$agent" "$acpx_s" "Thought $n/~$total on: $topic. Include [[WikiLinks]]. $OUTPUT_FMT" "$@")
+    local is_done=false rev_args="" more_args="" revision_of=""
+    if parse_with_retry "$agent" "$acpx_s" "$r" "$@"; then
+      [[ "$PARSED_DONE" =~ ^[Tt]rue$ ]] && is_done=true
+      [[ -n "$PARSED_RESPONSE" ]] && r="$PARSED_RESPONSE"
+      revision_of="$PARSED_REVISION_OF"
+      if [[ -n "$revision_of" && "$revision_of" =~ ^[0-9]+$ ]]; then
+        rev_args=",\"isRevision\":true,\"revisesThought\":$revision_of"
+      fi
+      [[ "$PARSED_NEEDS_MORE" =~ ^[Tt]rue$ ]] && more_args=",\"needsMoreThoughts\":true"
+    fi
     r=$(tag "$r"); local e; e=$(je <<< "$r")
-    if grep -qi '^DONE' <<< "$r" || [[ $n -ge $((total + 3)) ]]; then
-      mf SequentialThinking "{\"sessionId\":\"$mf_s\",\"response\":$e,\"thoughtNumber\":$n,\"totalThoughts\":$total,\"nextThoughtNeeded\":false,\"conclusion\":$e}" >/dev/null
+    if [[ "$is_done" != "true" ]] && (( n >= total + 3 )); then
+      is_done=true
+      [[ -n "$PARSED_CONCLUSION" ]] || PARSED_CONCLUSION="$r"
+    fi
+    if [[ "$is_done" == "true" ]]; then
+      local ce; if [[ -n "$PARSED_CONCLUSION" ]]; then ce=$(je <<< "$PARSED_CONCLUSION"); else ce="$e"; fi
+      mf SequentialThinking "{\"sessionId\":\"$mf_s\",\"response\":$e,\"thoughtNumber\":$n,\"totalThoughts\":$total,\"nextThoughtNeeded\":false,\"conclusion\":$ce${rev_args}}" >/dev/null
       break
     fi
-    mf SequentialThinking "{\"sessionId\":\"$mf_s\",\"response\":$e,\"thoughtNumber\":$n,\"totalThoughts\":$total,\"nextThoughtNeeded\":true}" >/dev/null
+    mf SequentialThinking "{\"sessionId\":\"$mf_s\",\"response\":$e,\"thoughtNumber\":$n,\"totalThoughts\":$total,\"nextThoughtNeeded\":true${rev_args}${more_args}}" >/dev/null
     n=$((n + 1))
   done
 }
@@ -59,43 +98,34 @@ run_workflow() {
     log "${info:-step}"
 
     # Does this step need a thinking submachine?
-    if grep -q '"requiresSequentialThinking": true' <<< "$step"; then
+    if grep -qE '"requiresSequentialThinking"[[:space:]]*:[[:space:]]*true' <<< "$step"; then
       local est; est=$(python3 -c "import re,json,sys;m=re.search(r'\{.*\}',sys.stdin.read(),re.DOTALL);d=json.loads(m.group());print(d.get('metadata',{}).get('toolHints',{}).get('SequentialThinking',{}).get('estimated_thoughts',5))" <<< "$step" 2>/dev/null || echo 5)
       log "submachine: thinking ($est thoughts)"
-
-      # Start thinking session linked to workflow
       local tseed; tseed=$(maenifold --tool SequentialThinking --payload "{\"response\":\"[[analysis]] for workflow step\",\"thoughtNumber\":0,\"totalThoughts\":$est,\"nextThoughtNeeded\":true,\"parentWorkflowId\":\"$sid\"}" --json | jv)
       local tsid; tsid=$(jk sessionId <<< "$tseed")
-
-      # Register submachine — workflow blocks
       mf Workflow "{\"sessionId\":\"$sid\",\"response\":\"Spawning [[thinking]] submachine\",\"submachineSessionId\":\"$tsid\"}" >/dev/null
-
-      # Drive the submachine (acpx session = workflow session, mf session = thinking session)
       run_think "$agent" "$sid" "$tsid" "$(python3 -c "import re,json,sys;m=re.search(r'\{.*\}',sys.stdin.read(),re.DOTALL);print(json.loads(m.group()).get('description',''))" <<< "$step")" "$est" "$@"
-
-      # Workflow auto-resumes — continue with agent response
-      local r; r=$(acp "$agent" "$sid" "$prompt
-$step" "$@")
-      r=$(tag "$r"); local e; e=$(je <<< "$r")
-    else
-      local r; r=$(acp "$agent" "$sid" "$prompt
-$step" "$@")
-      r=$(tag "$r"); local e; e=$(je <<< "$r")
     fi
 
-    # Advance workflow
-    local cur tot
-    cur=$(sed -n 's/Step \([0-9]*\)\/.*/\1/p' <<< "$info")
-    tot=$(sed -n 's/Step [0-9]*\/\([0-9]*\)/\1/p' <<< "$info")
-    if [[ "$cur" == "$tot" && -n "$cur" ]]; then
-      step=$(mf Workflow "{\"sessionId\":\"$sid\",\"response\":$e,\"status\":\"completed\",\"conclusion\":$e}")
+    local r; r=$(acp "$agent" "$sid" "$prompt
+$step
+$OUTPUT_FMT" "$@")
+    local is_done=false
+    if parse_with_retry "$agent" "$sid" "$r" "$@"; then
+      [[ "$PARSED_DONE" =~ ^[Tt]rue$ ]] && is_done=true
+      [[ -n "$PARSED_RESPONSE" ]] && r="$PARSED_RESPONSE"
+    fi
+    r=$(tag "$r"); local e; e=$(je <<< "$r")
+
+    if [[ "$is_done" == "true" ]]; then
+      local ce; if [[ -n "$PARSED_CONCLUSION" ]]; then ce=$(je <<< "$PARSED_CONCLUSION"); else ce="$e"; fi
+      step=$(mf Workflow "{\"sessionId\":\"$sid\",\"response\":$e,\"status\":\"completed\",\"conclusion\":$ce}")
     else
       step=$(mf Workflow "{\"sessionId\":\"$sid\",\"response\":$e}")
     fi
   done
   log "done $sid"
 }
-
 declare -A PIPELINE_PID_TO_NODE_ID=()
 declare -A PIPELINE_NODE_TO_PID=()
 declare -A PIPELINE_PID_TO_AGENT=()

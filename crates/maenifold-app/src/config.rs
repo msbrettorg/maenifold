@@ -10,9 +10,6 @@ use tauri::{AppHandle, Emitter};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
     pub command: String,
-    pub args: Vec<String>,
-    #[serde(default)]
-    pub env: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,90 +23,55 @@ impl Default for AgentsConfig {
         agents.insert(
             "GitHub Copilot".to_string(),
             AgentConfig {
-                command: "npx".to_string(),
-                args: vec![
-                    "@github/copilot-language-server@latest".to_string(),
-                    "--acp".to_string(),
-                ],
-                env: std::collections::HashMap::new(),
+                command: "npx @github/copilot-language-server@latest --acp".to_string(),
             },
         );
         agents.insert(
             "Claude Code".to_string(),
             AgentConfig {
-                command: "npx".to_string(),
-                args: vec!["@zed-industries/claude-code-acp@latest".to_string()],
-                env: std::collections::HashMap::new(),
+                command: "npx @zed-industries/claude-code-acp@latest".to_string(),
             },
         );
         agents.insert(
             "Gemini CLI".to_string(),
             AgentConfig {
-                command: "npx".to_string(),
-                args: vec![
-                    "@google/gemini-cli@latest".to_string(),
-                    "--experimental-acp".to_string(),
-                ],
-                env: std::collections::HashMap::new(),
+                command: "npx @google/gemini-cli@latest --experimental-acp".to_string(),
             },
         );
         agents.insert(
             "Qwen Code".to_string(),
             AgentConfig {
-                command: "npx".to_string(),
-                args: vec![
-                    "@qwen-code/qwen-code@latest".to_string(),
-                    "--acp".to_string(),
-                    "--experimental-skills".to_string(),
-                ],
-                env: std::collections::HashMap::new(),
+                command: "npx @qwen-code/qwen-code@latest --acp --experimental-skills".to_string(),
             },
         );
         agents.insert(
             "Auggie CLI".to_string(),
             AgentConfig {
-                command: "npx".to_string(),
-                args: vec![
-                    "@augmentcode/auggie@latest".to_string(),
-                    "--acp".to_string(),
-                ],
-                env: {
-                    let mut env = std::collections::HashMap::new();
-                    env.insert("AUGMENT_DISABLE_AUTO_UPDATE".to_string(), "1".to_string());
-                    env
-                },
+                command: "npx @augmentcode/auggie@latest --acp".to_string(),
             },
         );
         agents.insert(
             "Qoder CLI".to_string(),
             AgentConfig {
-                command: "npx".to_string(),
-                args: vec!["@qoder-ai/qodercli@latest".to_string(), "--acp".to_string()],
-                env: std::collections::HashMap::new(),
+                command: "npx @qoder-ai/qodercli@latest --acp".to_string(),
             },
         );
         agents.insert(
             "Codex CLI".to_string(),
             AgentConfig {
-                command: "npx".to_string(),
-                args: vec!["@zed-industries/codex-acp@latest".to_string()],
-                env: std::collections::HashMap::new(),
+                command: "npx @zed-industries/codex-acp@latest".to_string(),
             },
         );
         agents.insert(
             "OpenCode".to_string(),
             AgentConfig {
-                command: "npx".to_string(),
-                args: vec!["opencode-ai@latest".to_string(), "acp".to_string()],
-                env: std::collections::HashMap::new(),
+                command: "npx opencode-ai@latest acp".to_string(),
             },
         );
         agents.insert(
             "OpenClaw".to_string(),
             AgentConfig {
-                command: "npx".to_string(),
-                args: vec!["openclaw".to_string(), "acp".to_string()],
-                env: std::collections::HashMap::new(),
+                command: "npx openclaw acp".to_string(),
             },
         );
         AgentsConfig { agents }

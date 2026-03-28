@@ -3,7 +3,6 @@ use crate::{
     agent::AgentInstance,
     config::{AgentConfig, AgentsConfig, ConfigManager},
 };
-use std::collections::HashMap;
 use tauri::{AppHandle, State};
 
 fn with_config_manager<T>(
@@ -77,12 +76,10 @@ pub(crate) fn list_running_agents(state: State<AppState>) -> Vec<String> {
 pub(crate) fn add_agent(
     name: String,
     command: String,
-    args: Vec<String>,
-    env: HashMap<String, String>,
     state: State<AppState>,
 ) -> Result<AgentsConfig, String> {
     with_config_manager(&state, |config_manager| {
-        config_manager.add_agent(name, AgentConfig { command, args, env })
+        config_manager.add_agent(name, AgentConfig { command })
     })
 }
 
@@ -95,12 +92,10 @@ pub(crate) fn remove_agent(name: String, state: State<AppState>) -> Result<Agent
 pub(crate) fn update_agent(
     name: String,
     command: String,
-    args: Vec<String>,
-    env: HashMap<String, String>,
     state: State<AppState>,
 ) -> Result<AgentsConfig, String> {
     with_config_manager(&state, |config_manager| {
-        config_manager.update_agent(name, AgentConfig { command, args, env })
+        config_manager.update_agent(name, AgentConfig { command })
     })
 }
 

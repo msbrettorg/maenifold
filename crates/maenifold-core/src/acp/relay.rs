@@ -253,10 +253,15 @@ struct RelayProcess {
 
 impl RelayProcess {
     async fn spawn(agent_name: &str, agent_entry: &AgentEntry, cwd: &Path) -> Result<Self> {
-        let mut command = Command::new(&agent_entry.command);
+        let (binary, args) = agent_entry.command_parts();
+        if binary.is_empty() {
+            return Err(MaenifoldError::Message(format!(
+                "failed to spawn agent subprocess '{agent_name}': command is empty"
+            )));
+        }
+        let mut command = Command::new(binary);
         command
-            .args(&agent_entry.args)
-            .envs(&agent_entry.env)
+            .args(args)
             .current_dir(cwd)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
@@ -322,16 +327,12 @@ mod tests {
                     "zebra".to_string(),
                     AgentEntry {
                         command: "/bin/echo".to_string(),
-                        args: Vec::new(),
-                        env: HashMap::new(),
                     },
                 ),
                 (
                     "alpha".to_string(),
                     AgentEntry {
                         command: "/bin/cat".to_string(),
-                        args: Vec::new(),
-                        env: HashMap::new(),
                     },
                 ),
             ]),

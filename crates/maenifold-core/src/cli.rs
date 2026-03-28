@@ -4,7 +4,7 @@ use crate::config::Config;
 use crate::error::MaenifoldError;
 use crate::mcp;
 use crate::registry::ToolRegistry;
-use crate::util::json::{failure, from_str_safe, success, OutputFormat};
+use crate::util::json::{OutputFormat, failure, from_str_safe, success};
 use handlers::{parse_http_port, run_http, run_mcp, run_script_command};
 use serde_json::Value;
 

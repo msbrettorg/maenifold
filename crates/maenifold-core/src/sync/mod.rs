@@ -10,6 +10,8 @@ mod sync_state;
 mod vector_diagnostics;
 mod vector_embeddings;
 mod watcher_batch;
+// T-64.4: RTM NFR-1 extracted watcher health tracking into a dedicated submodule.
+mod watcher_health;
 pub mod watchers;
 
 // T-12.0: RTM NFR-1 — shared guard marker constants prevent silent test rot on message refactoring.

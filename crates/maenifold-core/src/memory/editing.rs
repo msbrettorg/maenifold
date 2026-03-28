@@ -60,12 +60,12 @@ pub fn edit_memory(context: &ToolContext, payload: &Value) -> Result<String> {
 
     // PARITY-VAL005-ORDER: RTM NFR-1 — checksum validation BEFORE WikiLink checks,
     // matching C# order.  Error includes both expected and actual checksums.
-    if let Some(expected) = checksum {
-        if actual_checksum != expected {
-            return Ok(format!(
-                "ERROR: Checksum mismatch. Expected: {expected}, Actual: {actual_checksum}"
-            ));
-        }
+    if let Some(expected) = checksum
+        && actual_checksum != expected
+    {
+        return Ok(format!(
+            "ERROR: Checksum mismatch. Expected: {expected}, Actual: {actual_checksum}"
+        ));
     }
 
     // T-15.2: RTM FR-15 case-insensitive operation matching (C# uses .ToLowerInvariant())

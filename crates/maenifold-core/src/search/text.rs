@@ -53,6 +53,7 @@ pub(crate) fn build_snippet(content: &str, query_terms: &[String], query_slug: &
 
 // T-13.7: RTM FR-21 — render search results in C#-parity markdown format with
 // emoji headers, per-mode score display, and paged result count.
+#[allow(clippy::too_many_lines)]
 pub(crate) fn render_search_markdown(data: &Value) -> String {
     let mode = data.get("mode").and_then(Value::as_str).unwrap_or("Hybrid");
     let page = data.get("page").and_then(Value::as_u64).unwrap_or(1);

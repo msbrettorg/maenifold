@@ -1,8 +1,6 @@
 use crate::config::env_bool;
-use crate::error::Result;
-use crate::markdown::extract_wikilinks;
 use rusqlite::Connection;
-use std::{collections::{BTreeMap, BTreeSet}, fs, path::PathBuf};
+use std::collections::BTreeMap;
 
 // T-QUAL-002.6b: RTM FR-25.2
 pub struct VectorFailureReasonCodes;
@@ -150,7 +148,10 @@ pub fn build_vector_failure_report(diagnostics: &VectorSyncDiagnostics) -> Vec<S
 }
 
 // T-QUAL-002.6b: RTM FR-25.2
-pub fn build_vector_unavailable_report(diagnostics: &VectorSyncDiagnostics, reason: &str) -> Vec<String> {
+pub fn build_vector_unavailable_report(
+    diagnostics: &VectorSyncDiagnostics,
+    reason: &str,
+) -> Vec<String> {
     vec![
         "Vector sync diagnostics:".to_string(),
         "- STATUS: unavailable".to_string(),
@@ -220,21 +221,6 @@ pub(crate) fn vector_sync_disabled_by_config() -> bool {
     // T-11.2: RTM FR-15
     env_bool("MAENIFOLD_DISABLE_VECTOR", false)
 }
-
-pub(crate) fn collect_vector_skip_diagnostics_for_paths(file_paths: &[PathBuf]) -> Result<VectorSyncDiagnostics> {
-    let mut diagnostics = VectorSyncDiagnostics::default();
-    let mut concepts = BTreeSet::new();
-
-    for file_path in file_paths {
-        let content = fs::read_to_string(file_path)?;
-        diagnostics.record_file_skipped();
-        concepts.extend(extract_wikilinks(&content));
-    }
-
-    diagnostics.record_concept_skipped(concepts.len());
-    Ok(diagnostics)
-}
-
 fn normalize_vector_unavailable_reason(reason: &str) -> &'static str {
     let normalized = reason.trim().to_ascii_uppercase();
     if normalized == VectorUnavailableReasonCodes::DISABLED_BY_CONFIG {
@@ -244,7 +230,8 @@ fn normalize_vector_unavailable_reason(reason: &str) -> &'static str {
     }
 }
 
-const MAX_CONCEPT_FAILURE_DETAILS: usize = 3; const MAX_FAILURE_DETAIL_CHARS: usize = 240;
+const MAX_CONCEPT_FAILURE_DETAILS: usize = 3;
+const MAX_FAILURE_DETAIL_CHARS: usize = 240;
 
 fn format_embedding_verification_line(
     connection: &Connection,

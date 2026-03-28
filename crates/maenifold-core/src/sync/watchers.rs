@@ -1,8 +1,8 @@
-use super::watcher_batch::{flush_pending_paths, is_watchable_markdown_path};
+use super::watcher_batch::{collect_pending_paths, flush_pending_paths, is_relevant_event_kind};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
-use notify::{Event, EventKind, RecursiveMode, Watcher};
+use notify::{Event, RecursiveMode, Watcher};
 use once_cell::sync::Lazy;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -12,9 +12,10 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
-static WATCHER: Lazy<Mutex<Option<WatcherState>>> = Lazy::new(|| Mutex::new(None));
+// T-64.4: RTM NFR-1 re-export WatcherHealth from the dedicated health submodule.
+pub use super::watcher_health::WatcherHealth;
 
-pub use super::watcher_batch::WatcherHealth;
+static WATCHER: Lazy<Mutex<Option<WatcherState>>> = Lazy::new(|| Mutex::new(None));
 
 struct WatcherState {
     watcher: notify::RecommendedWatcher,
@@ -42,7 +43,6 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
         .get("debounceMs")
         .and_then(Value::as_u64)
         .or_else(read_debounce_ms_from_env)
-        // T-11.2: RTM FR-15
         .unwrap_or(150);
     let config = context.config.clone();
     let holder_id = generate_sync_holder_id();
@@ -107,20 +107,20 @@ pub fn watcher_is_running() -> bool {
 
 #[doc(hidden)]
 pub fn changes_since_last_optimize() -> u32 {
-    super::watcher_batch::changes_since_last_optimize()
+    super::watcher_health::changes_since_last_optimize()
 }
 
 pub fn watcher_health() -> WatcherHealth {
-    super::watcher_batch::watcher_health(watcher_is_running())
+    super::watcher_health::snapshot(watcher_is_running())
 }
 
 pub fn reset_health_counters() {
-    super::watcher_batch::reset_health_counters();
+    super::watcher_health::reset_health_counters();
 }
 
 #[doc(hidden)]
 pub fn reset_optimize_counter() {
-    super::watcher_batch::reset_optimize_counter();
+    super::watcher_health::reset_optimize_counter();
 }
 
 #[doc(hidden)]
@@ -169,7 +169,8 @@ fn spawn_worker(
                         flush_pending_paths(&config, &holder_id, &mut pending_paths);
                         return;
                     }
-                    Err(RecvTimeoutError::Timeout) => match event_rx.recv_timeout(flush_grace_window)
+                    Err(RecvTimeoutError::Timeout) => match event_rx
+                        .recv_timeout(flush_grace_window)
                     {
                         Ok(WatcherSignal::Event(event)) => {
                             collect_pending_paths(&config.memory_path, &event, &mut pending_paths);
@@ -199,22 +200,6 @@ fn spawn_worker(
 
 fn debounce_grace_window(debounce_window: Duration) -> Duration {
     debounce_window.min(Duration::from_millis(50))
-}
-
-fn collect_pending_paths(memory_path: &Path, event: &Event, pending_paths: &mut HashSet<PathBuf>) {
-    for path in &event.paths {
-        if !is_watchable_markdown_path(memory_path, path) {
-            continue;
-        }
-        pending_paths.insert(path.clone());
-    }
-}
-
-fn is_relevant_event_kind(kind: &EventKind) -> bool {
-    matches!(
-        kind,
-        EventKind::Any | EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
-    )
 }
 
 fn read_debounce_ms_from_env() -> Option<u64> {

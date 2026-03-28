@@ -1,18 +1,14 @@
 mod agent;
 mod commands;
 mod config;
-mod support;
 
 use agent::AgentManager;
 use config::ConfigManager;
 use parking_lot::{Mutex, RwLock};
 use std::sync::Arc;
-use support::{
-    build_icon, hide_main_window, is_login_enabled, remove_launch_agent, show_main_window,
-    update_login_menu_item, write_launch_agent,
-};
 use tauri::{
-    Manager, State, WindowEvent,
+    Manager, State, Window, WindowEvent,
+    image::Image,
     menu::{CheckMenuItem, MenuBuilder, MenuEvent, MenuId},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
@@ -32,9 +28,78 @@ pub(crate) struct AppState {
     tray_icon: Arc<Mutex<Option<tauri::tray::TrayIcon<tauri::Wry>>>>,
 }
 
-fn spawn_relay_server(
-    port: u16,
-) -> std::io::Result<(CancellationToken, std::thread::JoinHandle<i32>)> {
+fn build_icon() -> Image<'static> { Image::new_owned(include_bytes!("../../maenifold-core/src/tray_icon.rgba").to_vec(), 64, 64) }
+fn launch_agent_path() -> std::path::PathBuf {
+    std::env::var_os("HOME").map(std::path::PathBuf::from).unwrap_or_else(|| std::path::PathBuf::from(".")).join(
+        "Library/LaunchAgents/com.ma-collective.maenifold.plist",
+    )
+}
+fn is_login_enabled() -> bool { launch_agent_path().exists() }
+fn xml_escape(value: &str) -> String { value.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&apos;") }
+fn write_launch_agent(port: u16) -> std::io::Result<()> {
+    let path = launch_agent_path();
+    if let Some(parent) = path.parent() { std::fs::create_dir_all(parent)?; }
+
+    let exe_path = std::env::current_exe()?;
+    let plist = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ma-collective.maenifold</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{exe_path}</string>
+        <string>--app</string>
+        <string>--port</string>
+        <string>{port}</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>
+"#,
+        exe_path = xml_escape(&exe_path.display().to_string()),
+        port = port,
+    );
+
+    std::fs::write(path, plist)
+}
+fn remove_launch_agent() -> std::io::Result<()> {
+    let path = launch_agent_path();
+    match std::fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(err) => Err(err),
+    }
+}
+fn update_login_menu_item(item: &CheckMenuItem<tauri::Wry>) { if let Err(err) = item.set_checked(is_login_enabled()) { eprintln!("Failed to update Open at Login menu state: {err}"); } }
+fn show_main_window<R: tauri::Runtime, M: Manager<R>>(manager: &M) {
+    #[cfg(target_os = "macos")]
+    if let Err(err) = manager.app_handle().set_activation_policy(tauri::ActivationPolicy::Regular) {
+        eprintln!("Failed to show dock icon: {err}");
+    }
+    match manager.get_webview_window(MAIN_WINDOW_LABEL) {
+        Some(window) => {
+            if let Err(err) = window.unminimize() { eprintln!("Failed to unminimize main window: {err}"); }
+            if let Err(err) = window.show() { eprintln!("Failed to show main window: {err}"); }
+            if let Err(err) = window.set_focus() { eprintln!("Failed to focus main window: {err}"); }
+        }
+        None => eprintln!("Main window '{MAIN_WINDOW_LABEL}' not found"),
+    }
+}
+fn hide_main_window<R: tauri::Runtime>(window: &Window<R>) {
+    if let Err(err) = window.hide() { eprintln!("Failed to hide main window: {err}"); }
+    #[cfg(target_os = "macos")]
+    if let Err(err) = window.app_handle().set_activation_policy(tauri::ActivationPolicy::Accessory) {
+        eprintln!("Failed to hide dock icon: {err}");
+    }
+}
+
+fn spawn_relay_server(port: u16) -> std::io::Result<(CancellationToken, std::thread::JoinHandle<i32>)> {
     let shutdown_token = CancellationToken::new();
     let server_shutdown_token = shutdown_token.clone();
     let server_handle = std::thread::Builder::new()
@@ -56,7 +121,6 @@ fn spawn_relay_server(
                     _ = server_shutdown_token.cancelled() => Ok(()),
                 }
             });
-
             match result {
                 Ok(()) => 0,
                 Err(err) => {
@@ -71,19 +135,9 @@ fn spawn_relay_server(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run_app(port: u16) -> i32 {
-    let (server_shutdown_token, server_handle) = match spawn_relay_server(port) {
-        Ok(server) => server,
-        Err(err) => {
-            eprintln!("Failed to spawn relay server thread: {err}");
-            return 1;
-        }
-    };
+    let (server_shutdown_token, server_handle) = match spawn_relay_server(port) { Ok(server) => server, Err(err) => { eprintln!("Failed to spawn relay server thread: {err}"); return 1; } };
 
-    let app_state = AppState {
-        config_manager: Arc::new(RwLock::new(None)),
-        agent_manager: AgentManager::new(),
-        tray_icon: Arc::new(Mutex::new(None)),
-    };
+    let app_state = AppState { config_manager: Arc::new(RwLock::new(None)), agent_manager: AgentManager::new(), tray_icon: Arc::new(Mutex::new(None)) };
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -92,12 +146,8 @@ pub fn run_app(port: u16) -> i32 {
         .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
         .on_window_event(|window, event| {
-            if window.label() == MAIN_WINDOW_LABEL
-                && matches!(event, WindowEvent::CloseRequested { .. })
-            {
-                if let WindowEvent::CloseRequested { api, .. } = event {
-                    api.prevent_close();
-                }
+            if window.label() == MAIN_WINDOW_LABEL && matches!(event, WindowEvent::CloseRequested { .. }) {
+                if let WindowEvent::CloseRequested { api, .. } = event { api.prevent_close(); }
                 hide_main_window(window);
             }
         })
@@ -110,14 +160,7 @@ pub fn run_app(port: u16) -> i32 {
                 Err(err) => eprintln!("Failed to initialize config manager: {err}"),
             }
 
-            let open_at_login = CheckMenuItem::with_id(
-                app,
-                OPEN_AT_LOGIN_MENU_ID,
-                "Open at Login",
-                true,
-                is_login_enabled(),
-                None::<&str>,
-            )?;
+            let open_at_login = CheckMenuItem::with_id(app, OPEN_AT_LOGIN_MENU_ID, "Open at Login", true, is_login_enabled(), None::<&str>)?;
 
             let menu = MenuBuilder::new(app)
                 .item(&tauri::menu::MenuItem::with_id(
@@ -155,16 +198,8 @@ pub fn run_app(port: u16) -> i32 {
                 .on_menu_event(move |app, event: MenuEvent| match event.id() {
                     id if *id == MenuId::from(OPEN_WINDOW_MENU_ID) => show_main_window(app),
                     id if *id == MenuId::from(OPEN_AT_LOGIN_MENU_ID) => {
-                        let result = if is_login_enabled() {
-                            remove_launch_agent()
-                        } else {
-                            write_launch_agent(port)
-                        };
-
-                        if let Err(err) = result {
-                            eprintln!("Failed to toggle Open at Login: {err}");
-                        }
-
+                        let result = if is_login_enabled() { remove_launch_agent() } else { write_launch_agent(port) };
+                        if let Err(err) = result { eprintln!("Failed to toggle Open at Login: {err}"); }
                         update_login_menu_item(&login_toggle_item);
                     }
                     id if *id == MenuId::from(HELP_MENU_ID) => {
@@ -209,23 +244,10 @@ pub fn run_app(port: u16) -> i32 {
         ])
         .build(tauri::generate_context!());
 
-    let exit_code = match app {
-        Ok(app) => {
-            app.run(|_, _| {});
-            0
-        }
-        Err(err) => {
-            eprintln!("error while running tauri application: {err}");
-            1
-        }
-    };
+    let exit_code = match app { Ok(app) => { app.run(|_, _| {}); 0 } Err(err) => { eprintln!("error while running tauri application: {err}"); 1 } };
 
     server_shutdown_token.cancel();
     let server_exit_code = server_handle.join().unwrap_or(1);
 
-    if exit_code != 0 {
-        exit_code
-    } else {
-        server_exit_code
-    }
+    if exit_code != 0 { exit_code } else { server_exit_code }
 }

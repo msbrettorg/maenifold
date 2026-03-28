@@ -30,6 +30,26 @@ pub(super) fn parse_ndjson_response(stdout: &str) -> Result<AcpxResponse> {
         let event: Value = serde_json::from_str(line)
             .map_err(|error| AcpxError::InvalidEvent(format!("{error}; line={line}")))?;
 
+        // JSON-RPC session/update envelopes from acpx
+        if event.get("jsonrpc").is_some() {
+            if let Some("session/update") = event.get("method").and_then(Value::as_str) {
+                handle_session_update(&event, &mut response);
+                continue;
+            }
+            if let Some(error_obj) = event.get("error") {
+                response.error = Some(
+                    error_obj
+                        .get("message")
+                        .and_then(Value::as_str)
+                        .unwrap_or("Unknown JSON-RPC error")
+                        .to_string(),
+                );
+                continue;
+            }
+            continue;
+        }
+
+        // Flat events: {"type":"text"}, {"type":"tool_call"}, {"type":"error"}
         match event.get("type").and_then(Value::as_str) {
             Some("text") => {
                 if let Some(chunk) = extract_text_chunk(&event) {
@@ -45,6 +65,24 @@ pub(super) fn parse_ndjson_response(stdout: &str) -> Result<AcpxResponse> {
     }
 
     Ok(response)
+}
+
+fn handle_session_update(event: &Value, response: &mut AcpxResponse) {
+    let Some(update) = event.pointer("/params/update") else {
+        return;
+    };
+    match update.get("sessionUpdate").and_then(Value::as_str) {
+        Some("agent_message" | "agent_message_chunk" | "agent_thought_chunk") => {
+            if let Some(text) = update.pointer("/content/text").and_then(Value::as_str) {
+                response.text.push_str(text);
+            }
+        }
+        Some("agent_error") => {
+            response.error =
+                update.pointer("/content/text").and_then(Value::as_str).map(String::from);
+        }
+        _ => {}
+    }
 }
 
 fn parse_tool_call_record(event: &Value) -> ToolCallRecord {
@@ -127,5 +165,46 @@ mod tests {
     fn acpx_driver_rejects_invalid_ndjson_lines() {
         let error = parse_ndjson_response("not-json\n").expect_err("invalid NDJSON must fail");
         assert!(matches!(error, AcpxError::InvalidEvent(_)));
+    }
+
+    #[test]
+    fn acpx_driver_parses_jsonrpc_agent_message() {
+        let stdout = r#"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message","content":{"type":"text","text":"Hello from RPC"}}}}"#;
+        let response = parse_ndjson_response(stdout).expect("should parse");
+        assert_eq!(response.text, "Hello from RPC");
+        assert!(response.error.is_none());
+    }
+
+    #[test]
+    fn acpx_driver_parses_jsonrpc_agent_thought_chunk() {
+        let stdout = concat!(
+            r#"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_thought_chunk","content":{"type":"text","text":"Thinking..."}}}}"#,
+            "\n",
+            r#"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message","content":{"type":"text","text":" Done."}}}}"#,
+        );
+        let response = parse_ndjson_response(stdout).expect("should parse");
+        assert_eq!(response.text, "Thinking... Done.");
+    }
+
+    #[test]
+    fn acpx_driver_parses_jsonrpc_error() {
+        let stdout =
+            r#"{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":1}"#;
+        let response = parse_ndjson_response(stdout).expect("should parse");
+        assert_eq!(response.error.as_deref(), Some("Invalid request"));
+        assert!(response.text.is_empty());
+    }
+
+    #[test]
+    fn acpx_driver_parses_mixed_flat_and_jsonrpc_events() {
+        let stdout = concat!(
+            "{\"type\":\"text\",\"text\":\"Flat hello\"}\n",
+            r#"{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message","content":{"type":"text","text":" RPC hello"}}}}"#,
+            "\n",
+            "{\"type\":\"text\",\"text\":\" again\"}\n",
+        );
+        let response = parse_ndjson_response(stdout).expect("should parse");
+        assert_eq!(response.text, "Flat hello RPC hello again");
+        assert!(response.error.is_none());
     }
 }

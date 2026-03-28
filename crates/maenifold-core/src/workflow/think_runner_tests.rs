@@ -1,11 +1,11 @@
 use crate::markdown::read_markdown;
 use crate::sessions::{date_parts_from_session_id, workflow_session_uri};
 use crate::workflow::handler;
+use crate::workflow::output_types::ThinkingOutput;
 use crate::workflow::runner_helpers::extract_workflow_session_id;
 use crate::workflow::runner_test_support::{
     install_acpx_stub, read_stub_state, think_context, workflow_context, write_stub_config,
 };
-use crate::workflow::output_types::ThinkingOutput;
 use crate::workflow::think_runner::{ThinkOptions, run_think, think_progress_payload_from_output};
 use serde_json::json;
 use serial_test::serial;

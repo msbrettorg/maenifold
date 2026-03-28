@@ -117,17 +117,50 @@ impl AcpxDriver {
     async fn run_command(&self, spec: &CommandSpec) -> Result<CommandOutput> {
         let mut command = build_command(&self.acpx_path, &self.cwd, spec);
         let command_display = spec.shell_string(&self.acpx_path);
-        let output = command
-            .output()
-            .await
-            .map_err(|source| AcpxError::SpawnFailed {
-                command: command_display,
+        let env_summary = inherited_env_summary();
+
+        eprintln!(
+            "[acpx] running: {command_display} (cwd: {}, env: {env_summary})",
+            self.cwd.display()
+        );
+
+        let output = command.output().await.map_err(|source| {
+            eprintln!(
+                "[acpx] spawn failed: {command_display} (cwd: {}, env: {env_summary}): {source}",
+                self.cwd.display()
+            );
+            AcpxError::SpawnFailed {
+                command: command_display.clone(),
                 source,
-            })?;
+            }
+        })?;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+        let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+
+        if !output.status.success() {
+            eprintln!(
+                "[acpx] command failed: {command_display} (cwd: {}, env: {env_summary}, status: {:?})",
+                self.cwd.display(),
+                output.status.code()
+            );
+            let stdout_trimmed = stdout.trim();
+            let stderr_trimmed = stderr.trim();
+            if !stdout_trimmed.is_empty() {
+                eprintln!("[acpx] stdout: {stdout_trimmed}");
+            }
+            if !stderr_trimmed.is_empty() {
+                eprintln!("[acpx] stderr: {stderr_trimmed}");
+            }
+            if stdout_trimmed.is_empty() && stderr_trimmed.is_empty() {
+                eprintln!("[acpx] (no stdout or stderr output)");
+            }
+        }
+
         Ok(CommandOutput {
             status: output.status,
-            stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
-            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+            stdout,
+            stderr,
         })
     }
 
@@ -196,6 +229,19 @@ fn merge_process_output(stdout: &str, stderr: &str) -> String {
 fn output_indicates_timeout(details: &str) -> bool {
     let normalized = details.to_ascii_lowercase();
     normalized.contains("timed out") || normalized.contains("timeout")
+}
+
+fn inherited_env_summary() -> String {
+    format!(
+        "PATH={}; HOME={}; XDG_CONFIG_HOME={}",
+        env_var("PATH"),
+        env_var("HOME"),
+        env_var("XDG_CONFIG_HOME")
+    )
+}
+
+fn env_var(name: &str) -> String {
+    std::env::var(name).unwrap_or_else(|_| "<unset>".to_string())
 }
 
 #[cfg(test)]

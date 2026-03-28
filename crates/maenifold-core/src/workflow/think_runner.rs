@@ -74,8 +74,13 @@ pub(crate) async fn drive_think_session(
             .await
             .map_err(|error| MaenifoldError::Message(error.to_string()))?;
         let thinking_output = parse_with_retry(&driver, &acpx_session, &response.text, 3).await?;
-        let capped_output = if !thinking_output.done && thought_number >= opts.total_thoughts + 3 { force_completion_output(&thinking_output) } else { thinking_output };
-        let payload = think_progress_payload_from_output(session_id, &capped_output, thought_number, opts);
+        let capped_output = if !thinking_output.done && thought_number >= opts.total_thoughts + 3 {
+            force_completion_output(&thinking_output)
+        } else {
+            thinking_output
+        };
+        let payload =
+            think_progress_payload_from_output(session_id, &capped_output, thought_number, opts);
         let _: Value = think_call(&json_context, &payload)?;
         if capped_output.done {
             return Ok(ThinkResult {
@@ -124,7 +129,9 @@ pub(crate) fn think_progress_payload_from_output(
         "totalThoughts": opts.total_thoughts,
         "nextThoughtNeeded": !output.done,
     });
-    if output.done && let Some(conclusion) = &output.conclusion {
+    if output.done
+        && let Some(conclusion) = &output.conclusion
+    {
         payload["conclusion"] = json!(conclusion);
     }
     if output.needs_more {

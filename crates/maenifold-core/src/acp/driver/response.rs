@@ -78,8 +78,10 @@ fn handle_session_update(event: &Value, response: &mut AcpxResponse) {
             }
         }
         Some("agent_error") => {
-            response.error =
-                update.pointer("/content/text").and_then(Value::as_str).map(String::from);
+            response.error = update
+                .pointer("/content/text")
+                .and_then(Value::as_str)
+                .map(String::from);
         }
         _ => {}
     }

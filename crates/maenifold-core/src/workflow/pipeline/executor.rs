@@ -20,7 +20,7 @@ use super::executor_nodes::{
 };
 use super::supervisor::supervisor_wait_if_paused;
 use super::update::update_pipeline_node_status;
-use super::{NodeState, PipelineDefinition, PipelineNode};
+use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
 pub(super) use super::executor_mapping::{assemble_node_prompt, predecessor_context_content};
 
@@ -94,7 +94,7 @@ pub(super) async fn execute_pipeline(
             &json_context,
             session_id,
             &node_id,
-            classify_node_result(result),
+            classify_node_result(&node_id, result),
             &mut counts,
         )?;
     }
@@ -105,12 +105,49 @@ pub(super) async fn execute_pipeline(
         drop(join_set);
         counts.abandoned += abandon_active_nodes(&json_context, session_id)?;
     }
+    log_incomplete_execution(&json_context, session_id)?;
 
     Ok(ExecutionResult {
         completed: counts.completed,
         abandoned: counts.abandoned,
         status: derive_execution_status(&json_context, session_id, cancelled)?,
     })
+}
+
+fn log_incomplete_execution(context: &ToolContext, session_id: &str) -> Result<()> {
+    let non_terminal = load_pipeline_node_states(context, session_id)?
+        .into_iter()
+        .filter_map(|(node_id, state)| {
+            is_non_terminal(&state.status)
+                .then(|| format!("{node_id} ({})", node_status_name(&state.status)))
+        })
+        .collect::<Vec<_>>();
+    if !non_terminal.is_empty() {
+        eprintln!(
+            "[pipeline] executor exited before all nodes reached terminal states for session \
+             {session_id}: {}",
+            non_terminal.join(", ")
+        );
+    }
+    Ok(())
+}
+
+fn is_non_terminal(status: &NodeStatus) -> bool {
+    matches!(
+        status,
+        NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active
+    )
+}
+
+fn node_status_name(status: &NodeStatus) -> &'static str {
+    match status {
+        NodeStatus::Pending => "pending",
+        NodeStatus::Ready => "ready",
+        NodeStatus::Active => "active",
+        NodeStatus::Completed => "completed",
+        NodeStatus::Abandoned => "abandoned",
+        NodeStatus::Stuck => "stuck",
+    }
 }
 
 #[derive(Default)]

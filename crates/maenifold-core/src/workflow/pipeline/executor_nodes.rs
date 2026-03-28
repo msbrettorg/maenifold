@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::error::Error as StdError;
 
 use serde_json::Value as JsonValue;
 
@@ -159,16 +160,16 @@ pub(super) async fn execute_node_request(
     (node_id, result)
 }
 
-pub(super) fn classify_node_result(result: NodeTaskResult) -> NodeOutcome {
+pub(super) fn classify_node_result(node_id: &str, result: NodeTaskResult) -> NodeOutcome {
     match result {
-        NodeTaskResult::Workflow(result) => classify_workflow_result(result),
-        NodeTaskResult::Prompt(result) => classify_prompt_result(result),
-        NodeTaskResult::SequentialThinking(result) => classify_think_result(result),
-        NodeTaskResult::Tool(result) => classify_prompt_result(result),
+        NodeTaskResult::Workflow(result) => classify_workflow_result(node_id, result),
+        NodeTaskResult::Prompt(result) => classify_prompt_result(node_id, result),
+        NodeTaskResult::SequentialThinking(result) => classify_think_result(node_id, result),
+        NodeTaskResult::Tool(result) => classify_prompt_result(node_id, result),
     }
 }
 
-fn classify_workflow_result(result: Result<runner::WorkflowResult>) -> NodeOutcome {
+fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult>) -> NodeOutcome {
     match result {
         Ok(workflow) => match workflow.status {
             WorkflowRunStatus::Completed => NodeOutcome::Completed {
@@ -178,23 +179,37 @@ fn classify_workflow_result(result: Result<runner::WorkflowResult>) -> NodeOutco
                 ),
                 thinking_session_id: None,
             },
-            WorkflowRunStatus::Failed(_) | WorkflowRunStatus::Cancelled => NodeOutcome::Abandoned,
+            WorkflowRunStatus::Failed(ref msg) => {
+                eprintln!("[pipeline] node {node_id} workflow failed: {msg}");
+                NodeOutcome::Abandoned
+            }
+            WorkflowRunStatus::Cancelled => {
+                eprintln!("[pipeline] node {node_id} workflow was cancelled, marking abandoned");
+                NodeOutcome::Abandoned
+            }
         },
-        Err(_) => NodeOutcome::Abandoned,
+        Err(error) => {
+            log_node_execution_error(node_id, &error);
+            NodeOutcome::Abandoned
+        }
     }
 }
 
-fn classify_prompt_result(result: Result<String>) -> NodeOutcome {
+fn classify_prompt_result(node_id: &str, result: Result<String>) -> NodeOutcome {
     match result {
         Ok(response) if !response.trim().is_empty() => NodeOutcome::Completed {
             conclusion: response,
             thinking_session_id: None,
         },
-        Ok(_) | Err(_) => NodeOutcome::Abandoned,
+        Ok(_) => NodeOutcome::Abandoned,
+        Err(error) => {
+            log_node_execution_error(node_id, &error);
+            NodeOutcome::Abandoned
+        }
     }
 }
 
-fn classify_think_result(result: Result<runner::ThinkResult>) -> NodeOutcome {
+fn classify_think_result(node_id: &str, result: Result<runner::ThinkResult>) -> NodeOutcome {
     match result {
         Ok(think) => think
             .conclusion
@@ -205,8 +220,25 @@ fn classify_think_result(result: Result<runner::ThinkResult>) -> NodeOutcome {
                 thinking_session_id: Some(think.session_id),
             })
             .unwrap_or(NodeOutcome::Abandoned),
-        Err(_) => NodeOutcome::Abandoned,
+        Err(error) => {
+            log_node_execution_error(node_id, &error);
+            NodeOutcome::Abandoned
+        }
     }
+}
+
+fn log_node_execution_error(node_id: &str, error: &dyn StdError) {
+    let mut rendered = error.to_string();
+    let mut source = error.source();
+    while let Some(next) = source {
+        let next_rendered = next.to_string();
+        if !rendered.contains(&next_rendered) {
+            rendered.push_str(": ");
+            rendered.push_str(&next_rendered);
+        }
+        source = next.source();
+    }
+    eprintln!("[pipeline] node {node_id} failed: {rendered}");
 }
 
 async fn run_prompt_node(

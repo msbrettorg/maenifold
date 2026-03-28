@@ -1,6 +1,6 @@
 use super::*;
-use serial_test::serial;
 use crate::Config;
+use serial_test::serial;
 
 fn reset_vector_test_state() {
     Config::reset_overrides();

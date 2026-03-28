@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "vector_tools/support.rs"]
 mod vector_tools_support;
 

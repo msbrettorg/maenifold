@@ -2,6 +2,7 @@
 //! before setting `vector_ready=true`, matching the `run_sync` pattern and C#
 //! `TryEnsureVectorSupport` contract.
 
+#[allow(clippy::duplicate_mod)]
 #[path = "sync_unification/support.rs"]
 mod sync_unification_support;
 

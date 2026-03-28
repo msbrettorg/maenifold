@@ -28,10 +28,7 @@ fn setup() -> (TempDir, std::path::PathBuf, String, String) {
         location: "todo",
         attempts: 0,
     };
-    GateDb::open(&db_path)
-        .unwrap()
-        .upsert_task(&task)
-        .unwrap();
+    GateDb::open(&db_path).unwrap().upsert_task(&task).unwrap();
     (dir, db_path, id, file)
 }
 

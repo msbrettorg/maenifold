@@ -62,6 +62,7 @@ pub(super) fn replace_wikilink_variants(
 }
 
 // T-3.1: RTM FR-6
+#[allow(clippy::too_many_lines)]
 pub(super) fn create_wikilinks_for_plain_text_variants(
     content: &str,
     variants: &[String],
@@ -75,6 +76,14 @@ pub(super) fn create_wikilinks_for_plain_text_variants(
         .collect::<Vec<_>>();
     let mut edits = Vec::<RepairEdit>::new();
     let mut variant_counts = HashMap::<String, usize>::new();
+    let mut repair_context = PlainTextRepairContext {
+        body,
+        body_offset,
+        variant_patterns: &variant_patterns,
+        existing_wikilink_ranges: &existing_wikilink_ranges,
+        edits: &mut edits,
+        variant_counts: &mut variant_counts,
+    };
     let mut paragraph_depth = 0usize;
     let mut heading_depth = 0usize;
     let mut item_depth = 0usize;
@@ -104,15 +113,7 @@ pub(super) fn create_wikilinks_for_plain_text_variants(
                     && link_depth == 0
                     && (paragraph_depth > 0 || heading_depth > 0 || item_depth > 0)
                 {
-                    collect_plain_text_repair_edits(
-                        body,
-                        range,
-                        body_offset,
-                        &variant_patterns,
-                        &existing_wikilink_ranges,
-                        &mut edits,
-                        &mut variant_counts,
-                    );
+                    collect_plain_text_repair_edits(&mut repair_context, range);
                 }
             }
             _ => {}
@@ -146,16 +147,21 @@ pub(super) fn create_wikilinks_for_plain_text_variants(
     Ok((updated_content, matched_variants, total_replacements))
 }
 
-fn collect_plain_text_repair_edits(
-    body: &str,
-    range: std::ops::Range<usize>,
+#[allow(clippy::too_many_arguments)]
+struct PlainTextRepairContext<'a> {
+    body: &'a str,
     body_offset: usize,
-    variant_patterns: &[(String, String)],
-    existing_wikilink_ranges: &[std::ops::Range<usize>],
-    edits: &mut Vec<RepairEdit>,
-    variant_counts: &mut HashMap<String, usize>,
+    variant_patterns: &'a [(String, String)],
+    existing_wikilink_ranges: &'a [std::ops::Range<usize>],
+    edits: &'a mut Vec<RepairEdit>,
+    variant_counts: &'a mut HashMap<String, usize>,
+}
+
+fn collect_plain_text_repair_edits(
+    context: &mut PlainTextRepairContext<'_>,
+    range: std::ops::Range<usize>,
 ) {
-    let segment = &body[range.clone()];
+    let segment = &context.body[range.clone()];
     if segment.is_empty() {
         return;
     }
@@ -163,19 +169,19 @@ fn collect_plain_text_repair_edits(
     let lower_segment = segment.to_ascii_lowercase();
     let mut candidates = Vec::<(usize, usize, &str)>::new();
 
-    for (variant, variant_lower) in variant_patterns {
+    for (variant, variant_lower) in context.variant_patterns {
         for (local_start, _) in lower_segment.match_indices(variant_lower) {
             let local_end = local_start + variant_lower.len();
             if !is_whole_word_match(segment, local_start, local_end) {
                 continue;
             }
 
-            let absolute_start = body_offset + range.start + local_start;
-            let absolute_end = body_offset + range.start + local_end;
+            let absolute_start = context.body_offset + range.start + local_start;
+            let absolute_end = context.body_offset + range.start + local_end;
             if overlaps_existing_wikilink(
-                absolute_start - body_offset,
-                absolute_end - body_offset,
-                existing_wikilink_ranges,
+                absolute_start - context.body_offset,
+                absolute_end - context.body_offset,
+                context.existing_wikilink_ranges,
             ) {
                 continue;
             }
@@ -196,26 +202,29 @@ fn collect_plain_text_repair_edits(
         if start < last_end {
             continue;
         }
-        edits.push(RepairEdit { start, end });
-        *variant_counts.entry(variant.to_string()).or_default() += 1;
+        context.edits.push(RepairEdit { start, end });
+        *context
+            .variant_counts
+            .entry(variant.to_string())
+            .or_default() += 1;
         last_end = end;
     }
 }
 
 // T-3.1: RTM FR-6
 pub(crate) fn split_frontmatter_for_repair(content: &str) -> (&str, &str, usize) {
-    if let Some(rest) = content.strip_prefix("---\n") {
-        if let Some(index) = rest.find("\n---\n") {
-            let mut body_start = 4 + index + 5;
-            while let Some(next) = content.as_bytes().get(body_start) {
-                if *next == b'\n' || *next == b'\r' {
-                    body_start += 1;
-                } else {
-                    break;
-                }
+    if let Some(rest) = content.strip_prefix("---\n")
+        && let Some(index) = rest.find("\n---\n")
+    {
+        let mut body_start = 4 + index + 5;
+        while let Some(next) = content.as_bytes().get(body_start) {
+            if *next == b'\n' || *next == b'\r' {
+                body_start += 1;
+            } else {
+                break;
             }
-            return (&content[..body_start], &content[body_start..], body_start);
         }
+        return (&content[..body_start], &content[body_start..], body_start);
     }
 
     ("", content, 0)

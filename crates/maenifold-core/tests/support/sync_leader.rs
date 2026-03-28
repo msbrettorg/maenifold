@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 // T-12.7: RTM NFR-1 - share sync leader fixtures while splitting regression coverage into themed files.
 use maenifold_core::sync::leader::LeaderElection;
 use maenifold_core::{AssetManager, Config, GraphDatabase, db};

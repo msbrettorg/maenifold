@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use maenifold_core::json::OutputFormat;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};

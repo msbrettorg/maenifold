@@ -122,18 +122,15 @@ impl ServerHandler for MaenifoldHandler {
     }
 
     // T-10.2: RTM FR-11 / RTM-069 — resources/list exposes discoverable asset URIs across all 4 types.
-    fn list_resources(
+    async fn list_resources(
         &self,
         _request: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-    ) -> impl Future<Output = std::result::Result<ListResourcesResult, rmcp::ErrorData>> + Send + '_
-    {
-        async move {
-            tokio::task::spawn_blocking(self::resources::handle_list_resources)
-                .await
-                .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
-                .map_err(self::resources::map_resource_error)
-        }
+    ) -> std::result::Result<ListResourcesResult, rmcp::ErrorData> {
+        tokio::task::spawn_blocking(self::resources::handle_list_resources)
+            .await
+            .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
+            .map_err(self::resources::map_resource_error)
     }
 
     // T-10.2: RTM FR-11 / RTM-070 — resources/read resolves asset://{type}/{id} URIs to JSON payloads.

@@ -67,7 +67,11 @@ pub(super) fn maybe_drift(
     state: &TaskState,
     row: Option<&TaskRow>,
 ) -> Vec<String> {
-    check_drift.then(|| drift(state, row)).unwrap_or_default()
+    if check_drift {
+        drift(state, row)
+    } else {
+        Vec::new()
+    }
 }
 
 fn drift(state: &TaskState, row: Option<&TaskRow>) -> Vec<String> {

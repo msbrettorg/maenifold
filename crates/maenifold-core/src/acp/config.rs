@@ -20,12 +20,6 @@ pub struct AgentsConfig {
     pub agents: HashMap<String, AgentEntry>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct AgentInfo {
-    pub name: String,
-    pub status: String,
-}
-
 impl AgentsConfig {
     pub fn load(root: &Path) -> AgentsConfig {
         let config_path: PathBuf = root.join("agents.json");
@@ -63,20 +57,6 @@ impl AgentsConfig {
 
         Self { agents }
     }
-
-    pub fn list_agents(&self) -> Vec<AgentInfo> {
-        let mut agents = self
-            .agents
-            .keys()
-            .cloned()
-            .map(|name| AgentInfo {
-                name,
-                status: "available".to_string(),
-            })
-            .collect::<Vec<_>>();
-        agents.sort_by(|left, right| left.name.cmp(&right.name));
-        agents
-    }
 }
 
 /// Generate `.acpxrc.json` in `root` from `agents.json` so `acpx` resolves the
@@ -97,10 +77,7 @@ pub fn sync_acpx_config(root: &Path) {
             } else {
                 format!("{} {}", entry.command, entry.args.join(" "))
             };
-            (
-                name.clone(),
-                serde_json::json!({ "command": full_command }),
-            )
+            (name.clone(), serde_json::json!({ "command": full_command }))
         })
         .collect();
 
@@ -110,8 +87,8 @@ pub fn sync_acpx_config(root: &Path) {
 
     match serde_json::to_string_pretty(&payload) {
         Ok(content) => {
-            if let Err(error) = fs::write(&tmp, format!("{content}\n"))
-                .and_then(|()| fs::rename(&tmp, &target))
+            if let Err(error) =
+                fs::write(&tmp, format!("{content}\n")).and_then(|()| fs::rename(&tmp, &target))
             {
                 eprintln!(
                     "Warning: failed to sync .acpxrc.json at '{}': {error}",

@@ -124,3 +124,45 @@ The Pipeline tool SHALL support three distinct node types with per-node prompts 
 - **Type-based execution**: `executor.rs` SHALL branch on node type — workflow → `run_workflow()`, prompt → single ACP agent prompt, sequentialThinking → `drive_think_session()`.
 - **Validation**: `validate_definition()` SHALL enforce type-specific required fields (workflow needs `workflowId`, prompt needs `prompt`+`agent`, sequentialThinking needs `topic`+`agent`).
 - **Mermaid display**: `view.rs` SHALL render different node shapes/styles per type in the Mermaid DAG diagram.
+
+### FR-49: File Size Remediation — 300 LOC Limit Enforcement
+
+All production source files SHALL be refactored to comply with the 300 LOC maximum established in AGENTS.md. The following 22 files exceed 1.5x the limit and SHALL be split into focused, single-responsibility modules without changing external behavior.
+
+**maenifold-rs (Rust):**
+
+| File | Current LOC | Over by |
+|------|-------------|---------|
+| `workflow/pipeline/handler.rs` | 4,784 | 16x |
+| `workflow/pipeline/executor.rs` | 1,998 | 6.7x |
+| `workflow/pipeline/dispatch.rs` | 1,372 | 4.6x |
+| `workflow/pipeline/update.rs` | 1,224 | 4.1x |
+| `workflow/pipeline/view.rs` | 1,170 | 3.9x |
+| `workflow/runner.rs` | 839 | 2.8x |
+| `workflow/pipeline/supervisor.rs` | 732 | 2.4x |
+| `search/api.rs` | 627 | 2.1x |
+| `mcp/schema/workflow_tools.rs` | 621 | 2.1x |
+| `workflow/pipeline/types.rs` | 590 | 2.0x |
+| `workflow/handler.rs` | 532 | 1.8x |
+| `workflow/pipeline/mod.rs` | 525 | 1.8x |
+| `acp/driver.rs` | 514 | 1.7x |
+| `sync/mod.rs` | 498 | 1.7x |
+| `workflow/pipeline/session_io.rs` | 486 | 1.6x |
+| `sync/watchers.rs` | 478 | 1.6x |
+| `workflow/pipeline/test_support.rs` | 474 | 1.6x |
+| `memory/editing.rs` | 464 | 1.5x |
+| `cli.rs` | 456 | 1.5x |
+| `maenifold-app/lib.rs` | 450 | 1.5x |
+
+**pipeline-ui (Vue/TypeScript):**
+
+| File | Current LOC | Over by |
+|------|-------------|---------|
+| `App.vue` | 1,024 | 3.4x |
+| `lib/acp-bridge.ts` | 590 | 2.0x |
+
+**Constraints:**
+- Pure refactoring — no behavioral changes, no new features.
+- All existing tests MUST pass before and after.
+- Inline `#[cfg(test)]` blocks count toward file LOC and should be extracted to dedicated test files where they push a file over the limit.
+- Each extracted module SHALL have a clear single responsibility documented in a module-level comment.

@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "decay_calculator/support.rs"]
 mod decay_calculator_support;
 

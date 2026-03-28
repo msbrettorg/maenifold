@@ -9,6 +9,7 @@ use serde_json::Value;
 use std::fs;
 
 // T-3.1: RTM FR-6
+#[allow(clippy::too_many_lines)]
 pub fn repair_concepts(context: &ToolContext, payload: &Value) -> Result<String> {
     let learn = payload
         .get("learn")

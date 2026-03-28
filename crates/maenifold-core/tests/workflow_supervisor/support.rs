@@ -7,8 +7,6 @@ use maenifold_core::json::OutputFormat;
 use maenifold_core::markdown::{Frontmatter, read_markdown, uri_to_path, write_markdown};
 
 use maenifold_core::{AssetManager, Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::{Connection, params};
 use serde_json::json;
 use serde_yaml::{Number as YamlNumber, Value as YamlValue};
@@ -17,7 +15,8 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tempfile::TempDir;
 
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+// Re-export the process-wide mutex so tests across all modules are serialised on the same lock.
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 static SESSION_COUNTER: AtomicU64 = AtomicU64::new(10_000);
 pub(crate) const WIKILINK_ERROR_HINT: &str = "[[WikiLink]]";
 

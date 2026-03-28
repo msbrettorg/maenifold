@@ -179,6 +179,34 @@ pub(crate) fn render_sync_markdown(summary: SyncSummary, vector_section: Option<
     output
 }
 
+pub(crate) fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<String> {
+    fs::read_to_string(
+        assets_path
+            .join("usage")
+            .join("tools")
+            .join(format!("{}.md", tool_name.to_ascii_lowercase())),
+    )
+    .ok()
+}
+
+fn set_incremental_state(connection: &Connection, key: &str, value: &str) -> Result<()> {
+    connection.execute(
+        "INSERT INTO incremental_sync_state (key, value) VALUES (?1, ?2)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![key, value],
+    )?;
+    Ok(())
+}
+
+pub(crate) fn current_iso_timestamp() -> String {
+    let now = chrono::Utc::now();
+    format!(
+        "{}.{:07}+00:00",
+        now.format("%Y-%m-%dT%H:%M:%S"),
+        now.timestamp_subsec_nanos() / 100,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::{SyncSummary, render_sync_markdown};
@@ -210,32 +238,4 @@ mod tests {
         assert!(output.contains("- `memory://broken.md`: bad file"));
         assert!(output.contains("- STATUS: partial"));
     }
-}
-
-pub(crate) fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<String> {
-    fs::read_to_string(
-        assets_path
-            .join("usage")
-            .join("tools")
-            .join(format!("{}.md", tool_name.to_ascii_lowercase())),
-    )
-    .ok()
-}
-
-fn set_incremental_state(connection: &Connection, key: &str, value: &str) -> Result<()> {
-    connection.execute(
-        "INSERT INTO incremental_sync_state (key, value) VALUES (?1, ?2)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-        params![key, value],
-    )?;
-    Ok(())
-}
-
-pub(crate) fn current_iso_timestamp() -> String {
-    let now = chrono::Utc::now();
-    format!(
-        "{}.{:07}+00:00",
-        now.format("%Y-%m-%dT%H:%M:%S"),
-        now.timestamp_subsec_nanos() / 100,
-    )
 }

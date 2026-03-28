@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use chrono::{DateTime, Utc};
 use filetime::{FileTime, set_file_mtime};
 use maenifold_core::db;

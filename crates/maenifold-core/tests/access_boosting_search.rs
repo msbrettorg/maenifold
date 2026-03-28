@@ -42,7 +42,7 @@ fn assert_search_does_not_mutate_last_accessed(
 
     let has_results = search_result["data"]["results"]
         .as_array()
-        .map_or(false, |r| !r.is_empty());
+        .is_some_and(|r| !r.is_empty());
 
     if has_results {
         assert_search_contains_title(&search_result, title);

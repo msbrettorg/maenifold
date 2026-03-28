@@ -1,4 +1,5 @@
 // T-12.0: RTM NFR-1
+#[allow(clippy::duplicate_mod)]
 #[path = "access_boosting/support.rs"]
 mod support;
 

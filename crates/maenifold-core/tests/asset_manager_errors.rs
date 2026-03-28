@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "asset_manager_support/mod.rs"]
 mod asset_manager_support;
 

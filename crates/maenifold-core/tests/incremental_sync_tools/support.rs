@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use maenifold_core::db;
 use maenifold_core::json::OutputFormat;
 // T-12.6: RTM NFR-1 - Re-export split watcher helpers directly for regression tests.

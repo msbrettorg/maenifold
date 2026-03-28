@@ -426,7 +426,7 @@ fn page_size_bounds_respected_across_all_modes() {
                 "minScore": 0.0,
             }),
         )
-        .expect(&format!("{mode} search should not error"));
+        .unwrap_or_else(|_| panic!("{mode} search should not error"));
 
         let json: Value = serde_json::from_str(&raw).expect("parse JSON");
         let data = &json["data"];

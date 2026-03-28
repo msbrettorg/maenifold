@@ -117,10 +117,10 @@ impl AssetManager {
         let target = id.to_ascii_lowercase();
         for path in &candidates {
             // T-0.3g: RTM FR-3, RTM-047 - keep asset lookup behavior while satisfying clippy.
-            if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                if stem.eq_ignore_ascii_case(&target) {
-                    return Ok(serde_json::from_str(&fs::read_to_string(path)?)?);
-                }
+            if let Some(stem) = path.file_stem().and_then(|s| s.to_str())
+                && stem.eq_ignore_ascii_case(&target)
+            {
+                return Ok(serde_json::from_str(&fs::read_to_string(path)?)?);
             }
         }
 

@@ -230,7 +230,7 @@ fn flush_asset_notifications(
 
     pending_paths.clear();
     let notification_peer = peer.clone();
-    let _ = runtime.block_on(async move {
+    runtime.block_on(async move {
         let _ = notification_peer.notify_resource_list_changed().await;
     });
 }

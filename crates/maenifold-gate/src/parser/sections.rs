@@ -152,16 +152,16 @@ fn update_verdict_state(
 }
 
 fn finalize_verdict_state(state: &mut VerdictState, section: &mut RawSection) {
-    if let VerdictState::AfterStrong { line, text } = state {
-        if let Some((_, raw)) = text.split_once(':') {
-            let value = raw.trim().to_string();
-            if !value.is_empty() {
-                section.verdicts.push(RawVerdict {
-                    line: *line,
-                    parsed: parse_generic_verdict(&value),
-                    value,
-                });
-            }
+    if let VerdictState::AfterStrong { line, text } = state
+        && let Some((_, raw)) = text.split_once(':')
+    {
+        let value = raw.trim().to_string();
+        if !value.is_empty() {
+            section.verdicts.push(RawVerdict {
+                line: *line,
+                parsed: parse_generic_verdict(&value),
+                value,
+            });
         }
     }
     *state = VerdictState::Idle;

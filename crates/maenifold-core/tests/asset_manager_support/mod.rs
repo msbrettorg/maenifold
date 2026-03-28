@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use maenifold_core::assets::update_assets;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::tools::ToolContext;

@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "incremental_sync_boundary/support.rs"]
 mod support;
 
@@ -44,7 +45,7 @@ fn sync_single_file_skips_unchanged_file_with_mtime_guard() {
     );
     // T-5.7: RTM FR-5.7 — pin exact file-scoped concept set (not just whole-DB snapshot)
     let expected: std::collections::BTreeSet<String> =
-        ["alpha", "beta"].iter().map(|s| s.to_string()).collect();
+        ["alpha", "beta"].iter().map(ToString::to_string).collect();
     assert_eq!(
         file_concepts(&cfg, &target_uri),
         expected,

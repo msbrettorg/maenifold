@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports, clippy::duplicate_mod)]
+
 // T-HOTFIX: RTM NFR-3
 // Consolidates maenifold-core integration tests into a single binary.
 
@@ -31,7 +33,7 @@ fn guard_full_suite_run() {
             .windows(2)
             .any(|window| window[0] == "--" && !window[1].is_empty());
     let has_skip = args.iter().any(|a| a == "--skip" || a == "--exact");
-    let opted_in = std::env::var("MAENIFOLD_FULL_SUITE").map_or(false, |v| v == "1");
+    let opted_in = std::env::var("MAENIFOLD_FULL_SUITE").is_ok_and(|v| v == "1");
 
     if !has_filter && !has_skip && !opted_in {
         eprintln!("\n\x1b[1;31m╔══════════════════════════════════════════════════════════════╗");
@@ -70,6 +72,7 @@ mod community_sync;
 mod concept_analysis_classification;
 mod concept_analysis_core;
 mod concept_analysis_counting;
+#[allow(clippy::duplicate_mod)]
 mod concept_analysis_support;
 mod concept_graph_context;
 mod concept_graph_sections;
@@ -186,6 +189,7 @@ mod sync_perf_baseline;
 mod sync_perf_coordination;
 mod sync_perf_graph;
 mod sync_perf_indexing;
+#[allow(dead_code, unused_imports)]
 mod sync_perf_support;
 mod sync_single_file_vec0_readiness;
 mod sync_unification_batch;

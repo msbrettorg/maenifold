@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 // T-12.0: RTM NFR-1
 use chrono::{Duration, Utc};
 use maenifold_core::json::OutputFormat;

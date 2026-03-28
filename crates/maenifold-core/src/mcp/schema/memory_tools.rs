@@ -6,6 +6,7 @@ use super::support::{
 use crate::mcp::McpToolDefinition;
 use serde_json::json;
 
+#[allow(clippy::too_many_lines)]
 pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     let tool = match registry_name {
         "WriteMemory" => tool_definition(

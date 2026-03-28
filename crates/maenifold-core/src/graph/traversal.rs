@@ -76,6 +76,7 @@ pub(crate) fn load_concept_community_id(
         .map_err(Into::into)
 }
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn load_community_siblings(
     connection: &Connection,
     concept_name: &str,

@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
-    ParseTaskError, normalize_stage_name, parse_section_verdict, reconcile_location, scan_sections,
-    verdict_key,
+    ParseTaskError, SectionVerdictContext, normalize_stage_name, parse_section_verdict,
+    reconcile_location, scan_sections, verdict_key,
 };
 
 pub fn parse_task_content_with_pipeline(
@@ -41,12 +41,14 @@ pub fn parse_task_content_with_pipeline(
             .iter()
             .any(|other| other.as_deref() == Some(stage));
         let verdict = parse_section_verdict(
-            stage,
-            allowed,
             section,
-            location,
-            has_later_same_stage,
-            path,
+            SectionVerdictContext {
+                stage,
+                allowed_verdicts: allowed,
+                location,
+                has_later_same_stage,
+                path,
+            },
         )?;
         if verdict.is_some_and(StageVerdict::counts_as_attempt) {
             attempts += 1;

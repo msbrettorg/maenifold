@@ -77,10 +77,10 @@ fn find_model_path() -> Result<PathBuf> {
     for ancestor in base_dir.ancestors() {
         let workspace_manifest = ancestor.join("Cargo.toml");
         let models_dir = ancestor.join("assets").join("models");
-        if workspace_manifest.exists() {
-            if let Some(model_path) = discover_model(&models_dir) {
-                return Ok(model_path);
-            }
+        if workspace_manifest.exists()
+            && let Some(model_path) = discover_model(&models_dir)
+        {
+            return Ok(model_path);
         }
     }
 

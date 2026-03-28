@@ -28,20 +28,20 @@ pub(crate) fn compute_decay_weight_with_created(
     let normalized_path = normalize_decay_path(file_path, config);
     let is_assumption_path = normalized_path.contains("/assumptions/");
 
-    if is_assumption_path || normalized_path.contains("/chat/") {
-        if let Some(status) = status {
-            match status.trim().to_ascii_lowercase().as_str() {
-                "validated" => return 1.0,
-                "invalidated" => {
-                    grace_period_days = 7;
-                    half_life_days = 14;
-                }
-                "active" | "refined" => {
-                    grace_period_days = 14;
-                    half_life_days = 30;
-                }
-                _ => {}
+    if (is_assumption_path || normalized_path.contains("/chat/"))
+        && let Some(status) = status
+    {
+        match status.trim().to_ascii_lowercase().as_str() {
+            "validated" => return 1.0,
+            "invalidated" => {
+                grace_period_days = 7;
+                half_life_days = 14;
             }
+            "active" | "refined" => {
+                grace_period_days = 14;
+                half_life_days = 30;
+            }
+            _ => {}
         }
     }
 
@@ -77,6 +77,36 @@ pub(crate) fn compute_decay_weight_with_created(
     }
     let exponent = (age_days - grace_period_days) as f64 / half_life_days as f64;
     (0.5f64.powf(exponent)).clamp(0.0, 1.0)
+}
+
+fn grace_period_for_path(file_path: &str, config: &Config) -> i64 {
+    let normalized = normalize_decay_path(file_path, config);
+    if normalized.contains("/thinking/sequential/")
+        || normalized.contains("/sequential/")
+        || normalized.contains("/thinking/compaction/")
+        || normalized.contains("/compaction/")
+    {
+        return config.decay_grace_days_sequential();
+    }
+    if normalized.contains("/thinking/workflow/") || normalized.contains("/thinking/workflows/") {
+        return config.decay_grace_days_workflows();
+    }
+    config.decay_grace_days_default()
+}
+
+fn normalize_decay_path(file_path: &str, config: &Config) -> String {
+    let normalized = file_path.replace('\\', "/").to_ascii_lowercase();
+    let memory_root = config
+        .memory_path
+        .to_string_lossy()
+        .replace('\\', "/")
+        .to_ascii_lowercase();
+
+    if normalized.starts_with("memory://") {
+        return normalized.replacen("memory://", &format!("{memory_root}/"), 1);
+    }
+
+    normalized
 }
 
 #[cfg(test)]
@@ -151,34 +181,4 @@ mod tests {
 
         assert_eq!(weight, 1.0);
     }
-}
-
-fn grace_period_for_path(file_path: &str, config: &Config) -> i64 {
-    let normalized = normalize_decay_path(file_path, config);
-    if normalized.contains("/thinking/sequential/")
-        || normalized.contains("/sequential/")
-        || normalized.contains("/thinking/compaction/")
-        || normalized.contains("/compaction/")
-    {
-        return config.decay_grace_days_sequential();
-    }
-    if normalized.contains("/thinking/workflow/") || normalized.contains("/thinking/workflows/") {
-        return config.decay_grace_days_workflows();
-    }
-    config.decay_grace_days_default()
-}
-
-fn normalize_decay_path(file_path: &str, config: &Config) -> String {
-    let normalized = file_path.replace('\\', "/").to_ascii_lowercase();
-    let memory_root = config
-        .memory_path
-        .to_string_lossy()
-        .replace('\\', "/")
-        .to_ascii_lowercase();
-
-    if normalized.starts_with("memory://") {
-        return normalized.replacen("memory://", &format!("{memory_root}/"), 1);
-    }
-
-    normalized
 }

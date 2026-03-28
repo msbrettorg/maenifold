@@ -14,6 +14,7 @@ pub(crate) enum ResumeWorkflowResult {
     Waiting(String),
 }
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn maybe_resume_workflow_submachine(
     context: &ToolContext,
     workflow_uri: &str,
@@ -101,6 +102,7 @@ pub(crate) fn maybe_resume_workflow_submachine(
     )))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn register_workflow_submachine(
     context: &ToolContext,
     workflow_uri: &str,

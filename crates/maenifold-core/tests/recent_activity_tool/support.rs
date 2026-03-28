@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 //! T-2.3: RTM FR-4 — shared RecentActivity test support.
 
 // T-2.3: RTM FR-4 — shared helpers for RecentActivity split tests.

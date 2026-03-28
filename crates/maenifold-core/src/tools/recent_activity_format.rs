@@ -100,6 +100,7 @@ fn format_recent_activity_entry(
 /// Filters out "Completion" and "Cancellation" sections from meaningful sections.
 /// Sequential uses "First"/"Last" labels; workflow uses "First"/"Current" labels.
 // PARITY-A01-FMT: RTM FR-4 / RTM-020
+#[allow(clippy::too_many_lines)]
 fn format_thinking_entry(
     row: &RecentActivityRecord,
     file_type: RecentActivityType,

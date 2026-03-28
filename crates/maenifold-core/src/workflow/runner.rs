@@ -147,6 +147,7 @@ pub async fn run_think(
     drive_think_session(context, agent, &session_id, topic, &opts).await
 }
 
+#[allow(clippy::too_many_lines)]
 pub async fn run_workflow(
     context: &ToolContext,
     workflow_id: &str,
@@ -238,12 +239,12 @@ fn workflow_text(raw: &str) -> String {
                 .unwrap_or_else(|| trimmed.to_string())
         };
     }
-    if trimmed.starts_with('{') {
-        if let Some(end) = json_prefix_end(trimmed) {
-            let rest = trimmed[end..].trim();
-            if !rest.is_empty() {
-                return rest.to_string();
-            }
+    if trimmed.starts_with('{')
+        && let Some(end) = json_prefix_end(trimmed)
+    {
+        let rest = trimmed[end..].trim();
+        if !rest.is_empty() {
+            return rest.to_string();
         }
     }
     trimmed.to_string()
@@ -727,6 +728,7 @@ mod tests {
         prepend_path(&bin)
     }
 
+    #[allow(clippy::too_many_lines)]
     fn acpx_stub() -> &'static str {
         r#"#!/usr/bin/env python3
 import json, os, re, sys

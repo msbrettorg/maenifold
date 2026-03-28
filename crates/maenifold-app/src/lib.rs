@@ -1,13 +1,18 @@
 mod agent;
+mod commands;
 mod config;
+mod support;
 
-use agent::{AgentInstance, AgentManager};
-use config::{AgentConfig, AgentsConfig, ConfigManager};
+use agent::AgentManager;
+use config::ConfigManager;
 use parking_lot::{Mutex, RwLock};
 use std::sync::Arc;
+use support::{
+    build_icon, hide_main_window, is_login_enabled, remove_launch_agent, show_main_window,
+    update_login_menu_item, write_launch_agent,
+};
 use tauri::{
-    AppHandle, Manager, State, Window, WindowEvent,
-    image::Image,
+    Manager, State, WindowEvent,
     menu::{CheckMenuItem, MenuBuilder, MenuEvent, MenuId},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
@@ -21,124 +26,10 @@ const HELP_MENU_ID: &str = "tray-help";
 const QUIT_MENU_ID: &str = "tray-quit";
 const HELP_URL: &str = "https://github.com/ma-collective/maenifold-rs/issues";
 
-struct AppState {
+pub(crate) struct AppState {
     config_manager: Arc<RwLock<Option<ConfigManager>>>,
     agent_manager: AgentManager,
     tray_icon: Arc<Mutex<Option<tauri::tray::TrayIcon<tauri::Wry>>>>,
-}
-
-fn build_icon() -> Image<'static> {
-    let rgba = include_bytes!("../../maenifold-core/src/tray_icon.rgba");
-    Image::new_owned(rgba.to_vec(), 64, 64)
-}
-
-fn launch_agent_path() -> std::path::PathBuf {
-    std::env::var_os("HOME")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("Library/LaunchAgents/com.ma-collective.maenifold.plist")
-}
-
-fn is_login_enabled() -> bool {
-    launch_agent_path().exists()
-}
-
-fn xml_escape(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
-}
-
-fn write_launch_agent(port: u16) -> std::io::Result<()> {
-    let path = launch_agent_path();
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-
-    let exe_path = std::env::current_exe()?;
-    let plist = format!(
-        r#"<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.ma-collective.maenifold</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>{exe_path}</string>
-        <string>--app</string>
-        <string>--port</string>
-        <string>{port}</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <false/>
-</dict>
-</plist>
-"#,
-        exe_path = xml_escape(&exe_path.display().to_string()),
-        port = port,
-    );
-
-    std::fs::write(path, plist)
-}
-
-fn remove_launch_agent() -> std::io::Result<()> {
-    let path = launch_agent_path();
-    match std::fs::remove_file(path) {
-        Ok(()) => Ok(()),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(err) => Err(err),
-    }
-}
-
-fn update_login_menu_item(item: &CheckMenuItem<tauri::Wry>) {
-    if let Err(err) = item.set_checked(is_login_enabled()) {
-        eprintln!("Failed to update Open at Login menu state: {err}");
-    }
-}
-
-fn show_main_window<R: tauri::Runtime, M: Manager<R>>(manager: &M) {
-    #[cfg(target_os = "macos")]
-    if let Err(err) = manager
-        .app_handle()
-        .set_activation_policy(tauri::ActivationPolicy::Regular)
-    {
-        eprintln!("Failed to show dock icon: {err}");
-    }
-
-    match manager.get_webview_window(MAIN_WINDOW_LABEL) {
-        Some(window) => {
-            if let Err(err) = window.unminimize() {
-                eprintln!("Failed to unminimize main window: {err}");
-            }
-            if let Err(err) = window.show() {
-                eprintln!("Failed to show main window: {err}");
-            }
-            if let Err(err) = window.set_focus() {
-                eprintln!("Failed to focus main window: {err}");
-            }
-        }
-        None => eprintln!("Main window '{MAIN_WINDOW_LABEL}' not found"),
-    }
-}
-
-fn hide_main_window<R: tauri::Runtime>(window: &Window<R>) {
-    if let Err(err) = window.hide() {
-        eprintln!("Failed to hide main window: {err}");
-    }
-
-    #[cfg(target_os = "macos")]
-    if let Err(err) = window
-        .app_handle()
-        .set_activation_policy(tauri::ActivationPolicy::Accessory)
-    {
-        eprintln!("Failed to hide dock icon: {err}");
-    }
 }
 
 fn spawn_relay_server(
@@ -156,6 +47,7 @@ fn spawn_relay_server(
                     return 1i32;
                 }
             };
+
             let result = rt.block_on(async move {
                 tokio::select! {
                     result = async {
@@ -164,6 +56,7 @@ fn spawn_relay_server(
                     _ = server_shutdown_token.cancelled() => Ok(()),
                 }
             });
+
             match result {
                 Ok(()) => 0,
                 Err(err) => {
@@ -174,114 +67,6 @@ fn spawn_relay_server(
         })?;
 
     Ok((shutdown_token, server_handle))
-}
-
-#[tauri::command]
-fn get_config(state: State<AppState>) -> Result<AgentsConfig, String> {
-    let config_manager = state.config_manager.read();
-    config_manager
-        .as_ref()
-        .map(|cm| cm.get_config())
-        .ok_or_else(|| "Config manager not initialized".to_string())
-}
-
-#[tauri::command]
-fn reload_config(state: State<AppState>) -> Result<AgentsConfig, String> {
-    let config_manager = state.config_manager.read();
-    config_manager
-        .as_ref()
-        .map(|cm| cm.reload())
-        .ok_or_else(|| "Config manager not initialized".to_string())?
-}
-
-#[tauri::command]
-fn get_config_path(state: State<AppState>) -> Result<String, String> {
-    let config_manager = state.config_manager.read();
-    config_manager
-        .as_ref()
-        .map(|cm| cm.get_config_path().to_string_lossy().to_string())
-        .ok_or_else(|| "Config manager not initialized".to_string())
-}
-
-#[tauri::command]
-fn spawn_agent(
-    name: String,
-    state: State<AppState>,
-    app_handle: AppHandle,
-) -> Result<AgentInstance, String> {
-    let config_manager = state.config_manager.read();
-    let config = config_manager
-        .as_ref()
-        .ok_or_else(|| "Config manager not initialized".to_string())?
-        .get_config();
-
-    let agent_config = config
-        .agents
-        .get(&name)
-        .ok_or_else(|| format!("Agent '{name}' not found in config"))?;
-
-    state
-        .agent_manager
-        .spawn_agent(name, agent_config, app_handle)
-}
-
-#[tauri::command]
-fn send_to_agent(agent_id: String, message: String, state: State<AppState>) -> Result<(), String> {
-    state.agent_manager.send_message(&agent_id, &message)
-}
-
-#[tauri::command]
-fn kill_agent(agent_id: String, state: State<AppState>) -> Result<(), String> {
-    state.agent_manager.kill_agent(&agent_id)
-}
-
-#[tauri::command]
-fn list_running_agents(state: State<AppState>) -> Vec<String> {
-    state.agent_manager.list_running_agents()
-}
-
-#[tauri::command]
-fn add_agent(
-    name: String,
-    command: String,
-    args: Vec<String>,
-    env: std::collections::HashMap<String, String>,
-    state: State<AppState>,
-) -> Result<AgentsConfig, String> {
-    let config_manager = state.config_manager.read();
-    config_manager
-        .as_ref()
-        .ok_or_else(|| "Config manager not initialized".to_string())?
-        .add_agent(name, AgentConfig { command, args, env })
-}
-
-#[tauri::command]
-fn remove_agent(name: String, state: State<AppState>) -> Result<AgentsConfig, String> {
-    let config_manager = state.config_manager.read();
-    config_manager
-        .as_ref()
-        .ok_or_else(|| "Config manager not initialized".to_string())?
-        .remove_agent(&name)
-}
-
-#[tauri::command]
-fn update_agent(
-    name: String,
-    command: String,
-    args: Vec<String>,
-    env: std::collections::HashMap<String, String>,
-    state: State<AppState>,
-) -> Result<AgentsConfig, String> {
-    let config_manager = state.config_manager.read();
-    config_manager
-        .as_ref()
-        .ok_or_else(|| "Config manager not initialized".to_string())?
-        .update_agent(name, AgentConfig { command, args, env })
-}
-
-#[tauri::command]
-fn get_machine_id() -> Result<String, String> {
-    machine_uid::get().map_err(|e| format!("Failed to get machine ID: {e}"))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -321,12 +106,8 @@ pub fn run_app(port: u16) -> i32 {
             let state: State<AppState> = app.state();
 
             match ConfigManager::new(&app_handle) {
-                Ok(config_manager) => {
-                    *state.config_manager.write() = Some(config_manager);
-                }
-                Err(err) => {
-                    eprintln!("Failed to initialize config manager: {err}");
-                }
+                Ok(config_manager) => *state.config_manager.write() = Some(config_manager),
+                Err(err) => eprintln!("Failed to initialize config manager: {err}"),
             }
 
             let open_at_login = CheckMenuItem::with_id(
@@ -414,17 +195,17 @@ pub fn run_app(port: u16) -> i32 {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_config,
-            reload_config,
-            get_config_path,
-            spawn_agent,
-            send_to_agent,
-            kill_agent,
-            list_running_agents,
-            add_agent,
-            remove_agent,
-            update_agent,
-            get_machine_id
+            commands::get_config,
+            commands::reload_config,
+            commands::get_config_path,
+            commands::spawn_agent,
+            commands::send_to_agent,
+            commands::kill_agent,
+            commands::list_running_agents,
+            commands::add_agent,
+            commands::remove_agent,
+            commands::update_agent,
+            commands::get_machine_id
         ])
         .build(tauri::generate_context!());
 

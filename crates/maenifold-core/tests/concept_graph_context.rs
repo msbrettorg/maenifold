@@ -1,4 +1,5 @@
 // T-12.7: RTM NFR-1
+#[allow(clippy::duplicate_mod)]
 #[path = "concept_graph/support.rs"]
 mod support;
 
@@ -110,7 +111,11 @@ fn build_context_with_content_test() {
     // using a permissive OR that passes even when most files are missing.
     let total_preview_count: usize = direct
         .iter()
-        .map(|r| r["ContentPreview"].as_object().map_or(0, |map| map.len()))
+        .map(|r| {
+            r["ContentPreview"]
+                .as_object()
+                .map_or(0, serde_json::Map::len)
+        })
         .sum();
 
     assert!(

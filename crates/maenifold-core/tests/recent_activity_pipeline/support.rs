@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 // T-2.3: RTM FR-4
 use chrono::Utc;
 use maenifold_core::json::OutputFormat;
@@ -119,6 +121,7 @@ pub(crate) fn sample_record(
     sample_record_with_summaries(file_path, title, last_indexed, content, status, None, None)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn sample_record_with_summaries(
     file_path: &str,
     title: &str,

@@ -60,7 +60,11 @@ Database health:\n\
          \x20 Consecutive failures: {}\n\
          \x20 Last error: {}\n\
          \x20 Changes processed: {}\n\n",
-        if health.is_running { "running" } else { "stopped" },
+        if health.is_running {
+            "running"
+        } else {
+            "stopped"
+        },
         health.total_failures,
         health.consecutive_failures,
         health.last_error.as_deref().unwrap_or("none"),

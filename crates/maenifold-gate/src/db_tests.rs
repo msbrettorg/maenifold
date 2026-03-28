@@ -33,7 +33,7 @@ fn extract_id_dot_md_only() {
 
 macro_rules! task_upsert {
     ($id:expr, $file:expr, $title:expr, $requirement:expr, $status:expr, $location:expr, $attempts:expr $(,)?) => {
-        TaskUpsert {
+        &TaskUpsert {
             id: $id,
             file: $file,
             title: $title,
@@ -47,7 +47,7 @@ macro_rules! task_upsert {
 
 macro_rules! work_log {
     ($file:expr, $stage:expr, $agent_model:expr, $verdict:expr, $duration_secs:expr, $notes:expr $(,)?) => {
-        WorkLogEntry {
+        &WorkLogEntry {
             file: $file,
             stage: $stage,
             agent_model: $agent_model,

@@ -16,12 +16,12 @@ pub fn create_smart_preview(content: &str, target_length: usize, tolerance: usiz
     let search_space = truncate_chars(content, max_length);
     let minimum_acceptable_boundary = target_length.saturating_sub(tolerance);
 
-    if let Some(sentence_end) = find_last_sentence_boundary(&search_space) {
-        if sentence_end >= minimum_acceptable_boundary {
-            return truncate_chars(content, sentence_end + 1)
-                .trim_end()
-                .to_string();
-        }
+    if let Some(sentence_end) = find_last_sentence_boundary(search_space)
+        && sentence_end >= minimum_acceptable_boundary
+    {
+        return truncate_chars(content, sentence_end + 1)
+            .trim_end()
+            .to_string();
     }
 
     if let Some(paragraph_end) = search_space.rfind("\n\n") {
@@ -31,10 +31,10 @@ pub fn create_smart_preview(content: &str, target_length: usize, tolerance: usiz
         }
     }
 
-    if let Some(word_end) = search_space.rfind(' ') {
-        if word_end > 0 {
-            return format!("{}...", search_space[..word_end].trim_end());
-        }
+    if let Some(word_end) = search_space.rfind(' ')
+        && word_end > 0
+    {
+        return format!("{}...", search_space[..word_end].trim_end());
     }
 
     format!("{}...", truncate_chars(content, target_length))
@@ -60,11 +60,7 @@ fn find_last_sentence_boundary(text: &str) -> Option<usize> {
             continue;
         }
 
-        let is_boundary = match chars.get(index + 1) {
-            Some(' ' | '\n') => true,
-            None => true,
-            _ => false,
-        };
+        let is_boundary = matches!(chars.get(index + 1), Some(' ' | '\n') | None);
 
         if is_boundary {
             last_index = Some(index);

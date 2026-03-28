@@ -13,6 +13,22 @@ use output::{discovered_stages, json_output, maybe_drift, print_summary, stage_t
 
 const INCOMPLETE_AUDIT_TRAIL_NOTE: &str = "incomplete audit trail (location override)";
 
+struct StatusContext<'a> {
+    root: &'a Path,
+    pipeline: &'a crate::pipeline::PipelineDef,
+    json: bool,
+    db: Option<&'a GateDb>,
+    check_drift: bool,
+}
+
+struct OutputEntry<'a> {
+    file: &'a str,
+    location: &'a str,
+    state: Option<&'a TaskState>,
+    error: Option<String>,
+    db_drift: Vec<String>,
+}
+
 pub fn run(args: &StatusArgs) -> Result<(), CommandStubError> {
     run_status(args, &args.root).map_err(|e| CommandStubError::new(e.to_string()))
 }
@@ -20,11 +36,17 @@ pub fn run(args: &StatusArgs) -> Result<(), CommandStubError> {
 pub fn run_status(args: &StatusArgs, root: &Path) -> Result<()> {
     let pipeline = load_pipeline_def(args.pipeline_path.as_deref(), root)?;
     let db = open_db(args, root)?;
-    let check_drift = db.is_some();
+    let context = StatusContext {
+        root,
+        pipeline: &pipeline,
+        json: args.json,
+        db: db.as_ref(),
+        check_drift: db.is_some(),
+    };
     if let Some(id) = args.id.as_deref() {
-        return run_one_by_id(root, &pipeline, id, args.json, db.as_ref(), check_drift);
+        return run_one_by_id(&context, id);
     }
-    run_all(root, &pipeline, args.json, db.as_ref(), check_drift)
+    run_all(&context)
 }
 
 fn open_db(args: &StatusArgs, root: &Path) -> Result<Option<GateDb>> {
@@ -35,65 +57,64 @@ fn open_db(args: &StatusArgs, root: &Path) -> Result<Option<GateDb>> {
     }
 }
 
-fn run_one_by_id(
-    root: &Path,
-    pipeline: &crate::pipeline::PipelineDef,
-    id: &str,
-    json: bool,
-    db: Option<&GateDb>,
-    check_drift: bool,
-) -> Result<()> {
-    let db = db.ok_or_else(|| anyhow!("task ID lookup requires a database"))?;
+fn run_one_by_id(context: &StatusContext<'_>, id: &str) -> Result<()> {
+    let db = context
+        .db
+        .ok_or_else(|| anyhow!("task ID lookup requires a database"))?;
     let row = db
         .get_task_by_id(id)?
         .ok_or_else(|| anyhow!("unknown task ID: {id}"))?;
-    let (path, location) = fs::resolve_task_path(root, &row.file)?;
+    let (path, location) = fs::resolve_task_path(context.root, &row.file)?;
     let content = fs::read_task(&path)?;
-    match parser::parse_task_content_with_pipeline(&path, &content, pipeline) {
+    match parser::parse_task_content_with_pipeline(&path, &content, context.pipeline) {
         Ok(state) => output_one(
-            &row.file,
-            location.as_str(),
-            Some(&state),
-            None,
-            maybe_drift(check_drift, &state, Some(&row)),
-            json,
+            context,
+            OutputEntry {
+                file: &row.file,
+                location: location.as_str(),
+                state: Some(&state),
+                error: None,
+                db_drift: maybe_drift(context.check_drift, &state, Some(&row)),
+            },
         )?,
         Err(parser::ParseTaskError::LocationStatusMismatch {
             location: TaskLocation::Done,
             ..
         }) => {
-            let state =
-                TaskState::done_override_from_content_with_pipeline(&path, &content, pipeline);
+            let state = TaskState::done_override_from_content_with_pipeline(
+                &path,
+                &content,
+                context.pipeline,
+            );
             output_one(
-                &row.file,
-                location.as_str(),
-                Some(&state),
-                Some(INCOMPLETE_AUDIT_TRAIL_NOTE.into()),
-                maybe_drift(check_drift, &state, Some(&row)),
-                json,
+                context,
+                OutputEntry {
+                    file: &row.file,
+                    location: location.as_str(),
+                    state: Some(&state),
+                    error: Some(INCOMPLETE_AUDIT_TRAIL_NOTE.into()),
+                    db_drift: maybe_drift(context.check_drift, &state, Some(&row)),
+                },
             )?
         }
         Err(err) => output_one(
-            &row.file,
-            location.as_str(),
-            None,
-            Some(err.to_string()),
-            vec![],
-            json,
+            context,
+            OutputEntry {
+                file: &row.file,
+                location: location.as_str(),
+                state: None,
+                error: Some(err.to_string()),
+                db_drift: vec![],
+            },
         )?,
     }
     Ok(())
 }
 
-fn run_all(
-    root: &Path,
-    pipeline: &crate::pipeline::PipelineDef,
-    json: bool,
-    db: Option<&GateDb>,
-    check_drift: bool,
-) -> Result<()> {
-    let mut tasks = fs::discover_tasks(root)?;
-    let rows = db
+fn run_all(context: &StatusContext<'_>) -> Result<()> {
+    let mut tasks = fs::discover_tasks(context.root)?;
+    let rows = context
+        .db
         .map(GateDb::get_all_tasks)
         .transpose()?
         .unwrap_or_default()
@@ -114,7 +135,7 @@ fn run_all(
             Err(err) => {
                 *counts.entry("error".to_string()).or_default() += 1;
                 let message = err.to_string();
-                if json {
+                if context.json {
                     out.push(json_output(
                         file,
                         task.location.as_str(),
@@ -129,21 +150,23 @@ fn run_all(
             }
         };
         let (state, note) =
-            match TaskState::parse_quietly_with_pipeline(&task.path, &content, pipeline) {
+            match TaskState::parse_quietly_with_pipeline(&task.path, &content, context.pipeline) {
                 Ok(state) => (state, None),
                 Err(parser::ParseTaskError::LocationStatusMismatch {
                     location: TaskLocation::Done,
                     ..
                 }) => (
                     TaskState::done_override_from_content_with_pipeline(
-                        &task.path, &content, pipeline,
+                        &task.path,
+                        &content,
+                        context.pipeline,
                     ),
                     Some(INCOMPLETE_AUDIT_TRAIL_NOTE.to_string()),
                 ),
                 Err(err) => {
                     *counts.entry("error".to_string()).or_default() += 1;
                     let message = err.to_string();
-                    if json {
+                    if context.json {
                         out.push(json_output(
                             file,
                             task.location.as_str(),
@@ -160,8 +183,8 @@ fn run_all(
         *counts
             .entry(state.effective_status().to_string())
             .or_default() += 1;
-        let db_drift = maybe_drift(check_drift, &state, rows.get(file));
-        if json {
+        let db_drift = maybe_drift(context.check_drift, &state, rows.get(file));
+        if context.json {
             out.push(json_output(
                 file,
                 task.location.as_str(),
@@ -175,7 +198,7 @@ fn run_all(
             }
         }
     }
-    if json {
+    if context.json {
         println!("{}", serde_json::to_string_pretty(&out)?);
     } else {
         print_summary(&counts);
@@ -183,29 +206,28 @@ fn run_all(
     Ok(())
 }
 
-fn output_one(
-    file: &str,
-    location: &str,
-    state: Option<&TaskState>,
-    error: Option<String>,
-    db_drift: Vec<String>,
-    json: bool,
-) -> Result<()> {
-    if json {
+fn output_one(context: &StatusContext<'_>, entry: OutputEntry<'_>) -> Result<()> {
+    if context.json {
         println!(
             "{}",
-            serde_json::to_string_pretty(&json_output(file, location, state, error, db_drift))?
+            serde_json::to_string_pretty(&json_output(
+                entry.file,
+                entry.location,
+                entry.state,
+                entry.error,
+                entry.db_drift,
+            ))?
         );
         return Ok(());
     }
-    println!("{:<9} {}", "FILE", file);
-    println!("{:<9} {}", "LOCATION", location);
+    println!("{:<9} {}", "FILE", entry.file);
+    println!("{:<9} {}", "LOCATION", entry.location);
     println!(
         "{:<9} {}",
         "STATUS",
-        state.map_or("error", |s| s.effective_status())
+        entry.state.map_or("error", |s| s.effective_status())
     );
-    if let Some(state) = state {
+    if let Some(state) = entry.state {
         for stage_name in discovered_stages(state) {
             println!(
                 "{:<9} {}",
@@ -214,12 +236,12 @@ fn output_one(
             );
         }
     }
-    if let Some(error) = error.as_deref() {
+    if let Some(error) = entry.error.as_deref() {
         println!("{:<9} {}", "ERROR", error);
-        eprintln!("warning: {file}: {error}");
+        eprintln!("warning: {}: {error}", entry.file);
     }
-    for item in db_drift {
-        eprintln!("warning: {file}: {item}");
+    for item in entry.db_drift {
+        eprintln!("warning: {}: {item}", entry.file);
     }
     Ok(())
 }

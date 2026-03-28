@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 
 use chrono::{Duration, Utc};
 use maenifold_core::json::OutputFormat;
@@ -50,6 +50,7 @@ pub fn timestamp_days_ago(days_ago: i64) -> String {
         .to_string()
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn seed_activity(
     conn: &Connection,
     file_path: &str,

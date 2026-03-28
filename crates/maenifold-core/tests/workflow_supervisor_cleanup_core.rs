@@ -1,4 +1,5 @@
 // T-12.7: RTM NFR-1
+#[allow(clippy::duplicate_mod)]
 #[path = "workflow_supervisor/support.rs"]
 mod support;
 

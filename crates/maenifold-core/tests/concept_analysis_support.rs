@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, Config, ToolRegistry};
 use once_cell::sync::Lazy;
@@ -59,8 +61,7 @@ pub(crate) fn report_body_before_repairs(output: &str) -> &str {
     // (e.g., "=== SUGGESTED REPAIRS ===" → "=== SUGGESTED FIXES ===").
     output
         .find("=== SUGGESTED")
-        .map(|idx| &output[..idx])
-        .unwrap_or(output)
+        .map_or(output, |idx| &output[..idx])
 }
 
 pub(crate) fn bullet_count(output: &str) -> usize {

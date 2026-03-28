@@ -50,12 +50,12 @@ pub fn load_embedded_pipeline(name: &str) -> Result<PipelineDef> {
 
 pub fn load_pipeline_def(explicit_path: Option<&Path>, root: &Path) -> Result<PipelineDef> {
     if let Some(path) = explicit_path {
-        if path.extension().is_none() && path.components().count() == 1 {
-            if let Some(name) = path.to_str() {
-                if let Ok(pipeline) = load_embedded_pipeline(name) {
-                    return Ok(pipeline);
-                }
-            }
+        if path.extension().is_none()
+            && path.components().count() == 1
+            && let Some(name) = path.to_str()
+            && let Ok(pipeline) = load_embedded_pipeline(name)
+        {
+            return Ok(pipeline);
         }
         load_pipeline(path)
     } else {

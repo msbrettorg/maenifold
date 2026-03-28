@@ -13,6 +13,7 @@ use super::session::{
 use super::validation::{SequentialThinkingInput, validate_completion, validate_payload};
 
 // T-12.0: RTM NFR-1 - preserve SequentialThinking behavior while delegating cohesive helper groups.
+#[allow(clippy::too_many_lines)]
 pub fn sequential_thinking(context: &ToolContext, payload: &Value) -> Result<String> {
     if payload
         .get("learn")

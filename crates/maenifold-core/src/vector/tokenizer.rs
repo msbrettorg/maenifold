@@ -11,6 +11,7 @@ use tokenizers::{
     pre_tokenizers::bert::BertPreTokenizer, processors::template::TemplateProcessing,
 };
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn load_tokenizer_assets(model_dir: &Path) -> Result<(TokenizerAssets, usize)> {
     let tokenizer_config_path = model_dir.join(TOKENIZER_CONFIG_FILENAME);
     let config = load_tokenizer_config(&tokenizer_config_path)?;

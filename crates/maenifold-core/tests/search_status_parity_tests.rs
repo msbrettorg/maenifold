@@ -63,7 +63,7 @@ fn isolated_env() -> TestEnv {
 fn invoke_json(name: &str, payload: Value) -> String {
     ToolRegistry::global()
         .try_invoke(name, &payload, OutputFormat::Json)
-        .expect(&format!("{name} should succeed"))
+        .unwrap_or_else(|_| panic!("{name} should succeed"))
 }
 
 fn seed_search_data(env: &TestEnv) {

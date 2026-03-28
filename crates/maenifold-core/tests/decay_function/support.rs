@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use chrono::{DateTime, Duration, Utc};
 use maenifold_core::{Config, memory::compute_decay_weight};
 use once_cell::sync::Lazy;

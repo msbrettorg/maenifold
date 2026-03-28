@@ -56,8 +56,7 @@ fn read_memory_rejects_path_traversal_attempts() {
         "memory://folder/../../../system-file",
     ] {
         // T-W1-4: RTM NFR-2 — Normalize Ok("ERROR: ...")/Err(...) into a single message
-        let error_msg =
-            read_memory_output(&env, malicious_uri).map_or_else(|e| e.to_string(), |s| s);
+        let error_msg = read_memory_output(&env, malicious_uri).unwrap_or_else(|e| e.to_string());
 
         assert!(
             error_msg.to_lowercase().contains("path traversal"),
@@ -98,7 +97,7 @@ fn move_memory_rejects_path_traversal_in_destination() {
             "memory://memory-path-tests/valid-source",
             malicious_destination,
         )
-        .map_or_else(|e| e.to_string(), |s| s);
+        .unwrap_or_else(|e| e.to_string());
 
         assert!(
             error_msg.to_lowercase().contains("path traversal"),

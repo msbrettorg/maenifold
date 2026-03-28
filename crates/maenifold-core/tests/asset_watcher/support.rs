@@ -1,4 +1,7 @@
+#![allow(dead_code, unused_imports)]
+
 // T-12.7: RTM NFR-1 - shared asset watcher harness extracted so themed test files stay focused.
+#[allow(clippy::duplicate_mod)]
 #[path = "runtime.rs"]
 mod asset_watcher_runtime;
 

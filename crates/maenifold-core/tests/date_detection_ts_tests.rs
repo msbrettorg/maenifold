@@ -2,6 +2,7 @@
 // NOTE: FR-005 and FR-006 are legacy C# oracle IDs not present in the current RTM.md.
 // These map to behavioral contracts in thinking/formatting.rs and thinking/session.rs.
 
+#[allow(clippy::duplicate_mod)]
 #[path = "session/support.rs"]
 mod support;
 

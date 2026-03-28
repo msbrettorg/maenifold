@@ -1,4 +1,5 @@
 // T-12.0: RTM NFR-1
+#[allow(clippy::duplicate_mod)]
 #[path = "proximity_weight/support.rs"]
 mod support;
 

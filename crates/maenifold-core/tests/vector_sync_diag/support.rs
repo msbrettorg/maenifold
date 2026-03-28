@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 //! T-9.6: RTM FR-7, FR-8 — shared vector sync diagnostics test support.
 
 // T-9.6: RTM FR-7, FR-8 — shared helpers for vector sync diagnostics split tests.

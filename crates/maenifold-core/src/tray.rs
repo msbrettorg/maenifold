@@ -283,6 +283,7 @@ impl ApplicationHandler for TrayApp {
 /// 3. Builds a winit `EventLoop` and drives the tray icon via `ApplicationHandler`.
 /// 4. On "Quit", cancels the shared shutdown token so the server thread exits.
 /// 5. Joins the server thread and returns its exit code.
+#[allow(clippy::too_many_lines)]
 pub fn run_with_tray(mode: ServerMode) -> i32 {
     let config = crate::config::Config::current();
     if let Err(err) = crate::mcp::initialize_runtime(&config) {

@@ -11,6 +11,14 @@ pub use pipeline_aware::parse_task_content_with_pipeline;
 pub use sections::{ParsedSection, extract_sections};
 use sections::{RawSection, scan_sections};
 
+pub(super) struct SectionVerdictContext<'a> {
+    pub(super) stage: &'a str,
+    pub(super) allowed_verdicts: Option<&'a [String]>,
+    pub(super) location: TaskLocation,
+    pub(super) has_later_same_stage: bool,
+    pub(super) path: &'a Path,
+}
+
 /// Normalize a markdown heading to a canonical stage name string.
 ///
 /// Compatibility behavior:
@@ -64,8 +72,16 @@ pub fn parse_task_content(
 
     for (index, (stage, section)) in sections.iter().enumerate() {
         let has_later_same_stage = sections[index + 1..].iter().any(|other| other.0 == *stage);
-        let verdict =
-            parse_section_verdict(stage, None, section, location, has_later_same_stage, path)?;
+        let verdict = parse_section_verdict(
+            section,
+            SectionVerdictContext {
+                stage,
+                allowed_verdicts: None,
+                location,
+                has_later_same_stage,
+                path,
+            },
+        )?;
         if verdict.is_some_and(StageVerdict::counts_as_attempt) {
             attempts += 1;
         }
@@ -133,32 +149,31 @@ fn reconcile_location(
 }
 
 fn parse_section_verdict(
-    stage: &str,
-    allowed_verdicts: Option<&[String]>,
     section: &RawSection,
-    location: TaskLocation,
-    has_later_same_stage: bool,
-    path: &Path,
+    context: SectionVerdictContext<'_>,
 ) -> Result<Option<StageVerdict>, ParseTaskError> {
-    let verdict = parse_detected_verdict(stage, allowed_verdicts, section)?;
+    let verdict = parse_detected_verdict(context.stage, context.allowed_verdicts, section)?;
 
-    if allowed_verdicts.is_some_and(|verdicts| verdicts.is_empty()) {
+    if context
+        .allowed_verdicts
+        .is_some_and(|verdicts| verdicts.is_empty())
+    {
         return Ok(None);
     }
 
     if let Some(verdict) = verdict {
         Ok(Some(verdict))
-    } else if has_later_same_stage {
+    } else if context.has_later_same_stage {
         Ok(Some(
-            infer_retry_verdict(allowed_verdicts).unwrap_or(StageVerdict::Reject),
+            infer_retry_verdict(context.allowed_verdicts).unwrap_or(StageVerdict::Reject),
         ))
-    } else if location == TaskLocation::Done {
+    } else if context.location == TaskLocation::Done {
         Ok(Some(StageVerdict::Pass))
     } else {
         eprintln!(
             "warning: {}: missing verdict for {} section starting at line {}",
-            path.display(),
-            stage,
+            context.path.display(),
+            context.stage,
             section.heading_line
         );
         Ok(None)

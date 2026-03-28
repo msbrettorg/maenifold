@@ -129,6 +129,7 @@ pub(crate) fn indexed_timestamp_for_metadata(metadata: &fs::Metadata) -> String 
         .unwrap_or_else(current_iso_timestamp)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn upsert_processed_file(
     connection: &Connection,
     uri: &str,
@@ -180,11 +181,11 @@ pub(crate) fn upsert_processed_file(
     let mut filtered_count = 0i64;
     for concept in extract_wikilinks(content) {
         let normalized = concept.to_ascii_lowercase();
-        if let Some(f) = filter {
-            if f.is_concept_blocked(&normalized) {
-                filtered_count += 1;
-                continue;
-            }
+        if let Some(f) = filter
+            && f.is_concept_blocked(&normalized)
+        {
+            filtered_count += 1;
+            continue;
         }
         *per_file.entry(normalized).or_default() += 1;
     }

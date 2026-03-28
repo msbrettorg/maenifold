@@ -43,6 +43,7 @@ pub fn random_walk(
 }
 
 // T-1.6: RTM NFR-1 - mirror the C# GraphAnalyzer.Visualize contract for Mermaid output.
+#[allow(clippy::too_many_lines)]
 pub fn visualize(context: &ToolContext, payload: &Value) -> Result<String> {
     let learn = payload
         .get("learn")

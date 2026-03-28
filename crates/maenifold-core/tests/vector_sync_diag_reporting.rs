@@ -4,6 +4,7 @@
 //! requirement. In the current RTM, FR-25 maps to Azure Deployment Manifests (RTM-137–140).
 //! The prefix is retained for historical traceability but does not reference the active FR-25.
 
+#[allow(clippy::duplicate_mod)]
 #[path = "vector_sync_diag/support.rs"]
 mod support;
 
@@ -300,7 +301,7 @@ fn fr7_t20_1_concept_embedding_failure_details_are_sampled_and_rendered() {
         diagnostics
             .concept_failure_details()
             .get(VectorFailureReasonCodes::CONCEPT_EMBEDDING_FAILED)
-            .map(|v| v.len()),
+            .map(Vec::len),
         Some(3),
         "duplicate detail strings should be deduplicated, cap should hold at 3"
     );

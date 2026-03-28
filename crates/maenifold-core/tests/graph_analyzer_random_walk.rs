@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "graph_analyzer_support/mod.rs"]
 mod graph_analyzer_support;
 

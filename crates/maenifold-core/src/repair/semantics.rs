@@ -8,6 +8,7 @@ use rusqlite::{
 };
 
 // T-3.1: RTM FR-6
+#[allow(clippy::too_many_lines)]
 pub(super) fn validate_repair_concepts_semantics(
     context: &ToolContext,
     variants: &[String],

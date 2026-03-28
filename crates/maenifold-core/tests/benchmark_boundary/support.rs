@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, Config, GraphDatabase, ToolRegistry};
 use once_cell::sync::Lazy;

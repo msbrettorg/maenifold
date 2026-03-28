@@ -1,0 +1,268 @@
+use crate::assets::AssetManager;
+use crate::error::{MaenifoldError, Result};
+use crate::markdown::{append_h2_section, file_exists};
+use crate::sessions::{pipeline_session_uri, workflow_session_uri};
+use crate::tools::ToolContext;
+use crate::util::json::{OutputFormat, success};
+use chrono::Utc;
+use petgraph::Direction::{Incoming, Outgoing};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+
+use super::super::handler_validation::workflow_node_file;
+use super::super::session_io::{
+    allocate_node_session_id, frontmatter_value, read_pipeline_session, write_pipeline_session,
+    write_workflow_node_session,
+};
+use super::super::view::build_pipeline_view_result;
+use super::super::{
+    NodeState, NodeStatus, PipelineDefinition, PredecessorOutput, validate_pipeline,
+};
+use super::ForkRequest;
+
+#[allow(clippy::too_many_lines)]
+pub(super) fn fork_pipeline(
+    context: &ToolContext,
+    session_id: &str,
+    fork: ForkRequest,
+) -> Result<String> {
+    AssetManager::initialize_assets(&context.config)?;
+    let new_session_id = fork
+        .new_session_id
+        .clone()
+        .unwrap_or_else(|| format!("pipeline-{}", Utc::now().timestamp_millis()));
+
+    let new_pipeline_uri = pipeline_session_uri(&new_session_id);
+    if file_exists(&new_pipeline_uri, &context.config)? {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Session {} already exists",
+            new_session_id
+        )));
+    }
+
+    let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
+    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let graph = definition.build_graph();
+    let max_concurrency: u64 = frontmatter_value(&frontmatter, "maxConcurrency")?;
+    let source_node_states: HashMap<String, NodeState> =
+        frontmatter_value(&frontmatter, "nodeStates")?;
+    let node_index = graph
+        .node_indices()
+        .find(|index| graph[*index] == fork.from_node_id)
+        .ok_or_else(|| {
+            MaenifoldError::InvalidArgument(format!(
+                "Pipeline doesn't contain node '{}'",
+                fork.from_node_id
+            ))
+        })?;
+
+    let reachable = reachable_node_ids(&graph, node_index);
+    let node_id_map = reachable
+        .iter()
+        .map(|node_id| {
+            (
+                node_id.clone(),
+                format!("fork-{}-{}", new_session_id, node_id),
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    let fork_root_predecessor_context =
+        collect_fork_predecessor_context(&graph, &reachable, &source_node_states);
+
+    let forked_definition = PipelineDefinition {
+        nodes: definition
+            .nodes
+            .iter()
+            .filter(|node| reachable.contains(node.id()))
+            .map(|node| match node {
+                super::super::PipelineNode::Workflow {
+                    workflow_id,
+                    acp_client,
+                    prompt,
+                    ..
+                } => super::super::PipelineNode::Workflow {
+                    id: node_id_map[node.id()].clone(),
+                    workflow_id: workflow_id.clone(),
+                    acp_client: acp_client.clone(),
+                    prompt: prompt.clone(),
+                },
+                super::super::PipelineNode::Prompt {
+                    prompt,
+                    agent,
+                    tool_mode,
+                    ..
+                } => super::super::PipelineNode::Prompt {
+                    id: node_id_map[node.id()].clone(),
+                    prompt: prompt.clone(),
+                    agent: agent.clone(),
+                    tool_mode: tool_mode.clone(),
+                },
+                super::super::PipelineNode::SequentialThinking {
+                    topic,
+                    total_thoughts,
+                    analysis_type,
+                    agent,
+                    ..
+                } => super::super::PipelineNode::SequentialThinking {
+                    id: node_id_map[node.id()].clone(),
+                    topic: topic.clone(),
+                    total_thoughts: *total_thoughts,
+                    analysis_type: analysis_type.clone(),
+                    agent: agent.clone(),
+                },
+                super::super::PipelineNode::Tool {
+                    tool_name,
+                    tool_args,
+                    agent,
+                    ..
+                } => super::super::PipelineNode::Tool {
+                    id: node_id_map[node.id()].clone(),
+                    tool_name: tool_name.clone(),
+                    tool_args: tool_args.clone(),
+                    agent: agent.clone(),
+                },
+            })
+            .collect(),
+        edges: definition
+            .edges
+            .iter()
+            .filter(|edge| reachable.contains(&edge.source) && reachable.contains(&edge.target))
+            .map(|edge| super::super::PipelineEdge {
+                source: node_id_map[&edge.source].clone(),
+                target: node_id_map[&edge.target].clone(),
+                edge_type: edge.edge_type.clone(),
+                mapping: edge.mapping.clone(),
+            })
+            .collect(),
+    };
+    validate_pipeline(&forked_definition)?;
+
+    let mut node_states = HashMap::with_capacity(forked_definition.nodes.len());
+    let mut node_states_frontmatter = BTreeMap::new();
+    for node in &forked_definition.nodes {
+        let workflow_session_id = allocate_node_session_id(context, node.id())?;
+        let state = NodeState {
+            session_id: workflow_session_id.clone(),
+            status: NodeStatus::Pending,
+            attempts: 0,
+            thinking_session_id: None,
+            output: None,
+        };
+        node_states.insert(node.id().to_string(), state.clone());
+        node_states_frontmatter.insert(node.id().to_string(), serde_yaml::to_value(&state)?);
+    }
+    for (original_node_id, predecessor_outputs) in &fork_root_predecessor_context {
+        let forked_node_id = &node_id_map[original_node_id];
+        if let Some(serde_yaml::Value::Mapping(map)) =
+            node_states_frontmatter.get_mut(forked_node_id)
+        {
+            map.insert(
+                serde_yaml::Value::String("predecessorContext".to_string()),
+                serde_yaml::to_value(predecessor_outputs)?,
+            );
+        }
+    }
+
+    for node in &forked_definition.nodes {
+        let node_file = workflow_node_file(node, node_states[node.id()].session_id.clone());
+        write_workflow_node_session(context, &new_session_id, &node_file)?;
+    }
+    for (original_node_id, predecessor_outputs) in &fork_root_predecessor_context {
+        let forked_node_id = &node_id_map[original_node_id];
+        let Some(state) = node_states.get(forked_node_id) else {
+            continue;
+        };
+        let workflow_uri = workflow_session_uri(&state.session_id);
+        if file_exists(&workflow_uri, &context.config)? {
+            append_h2_section(
+                &workflow_uri,
+                "Predecessor Context",
+                &format_predecessor_context_content(predecessor_outputs),
+                &context.config,
+            )?;
+        }
+    }
+
+    write_pipeline_session(
+        context,
+        &new_session_id,
+        &forked_definition,
+        &node_states_frontmatter,
+        max_concurrency,
+    )?;
+    let result = build_pipeline_view_result(
+        context,
+        &new_session_id,
+        &forked_definition,
+        &node_states,
+        None,
+    )?;
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
+}
+
+fn reachable_node_ids(
+    graph: &petgraph::stable_graph::StableGraph<String, super::super::EdgeType>,
+    start: petgraph::prelude::NodeIndex,
+) -> HashSet<String> {
+    let mut visited = HashSet::new();
+    let mut queue = VecDeque::from([start]);
+    while let Some(node_index) = queue.pop_front() {
+        let node_id = graph[node_index].clone();
+        if !visited.insert(node_id) {
+            continue;
+        }
+        queue.extend(graph.neighbors_directed(node_index, Outgoing));
+    }
+    visited
+}
+
+fn collect_fork_predecessor_context(
+    graph: &petgraph::stable_graph::StableGraph<String, super::super::EdgeType>,
+    reachable: &HashSet<String>,
+    source_node_states: &HashMap<String, NodeState>,
+) -> HashMap<String, Vec<PredecessorOutput>> {
+    let mut result = HashMap::new();
+
+    for node_index in graph.node_indices() {
+        let node_id = &graph[node_index];
+        if !reachable.contains(node_id.as_str()) {
+            continue;
+        }
+        let has_reachable_predecessor = graph
+            .neighbors_directed(node_index, Incoming)
+            .any(|pred_index| reachable.contains(graph[pred_index].as_str()));
+        if has_reachable_predecessor {
+            continue;
+        }
+
+        let mut predecessor_outputs = Vec::new();
+        for pred_index in graph.neighbors_directed(node_index, Incoming) {
+            let pred_id = &graph[pred_index];
+            if let Some(state) = source_node_states.get(pred_id.as_str())
+                && matches!(state.status, NodeStatus::Completed)
+                && let Some(output) = &state.output
+            {
+                predecessor_outputs.push(PredecessorOutput {
+                    node_id: pred_id.clone(),
+                    output: output.clone(),
+                });
+            }
+        }
+        if !predecessor_outputs.is_empty() {
+            predecessor_outputs.sort_by(|a, b| a.node_id.cmp(&b.node_id));
+            result.insert(node_id.clone(), predecessor_outputs);
+        }
+    }
+
+    result
+}
+
+fn format_predecessor_context_content(predecessor_outputs: &[PredecessorOutput]) -> String {
+    predecessor_outputs
+        .iter()
+        .map(|output| format!("### From {}\n\n{}", output.node_id, output.output))
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}

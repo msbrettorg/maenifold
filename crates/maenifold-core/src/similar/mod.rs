@@ -20,6 +20,7 @@ use self::validation::{
 };
 use self::vector_query::{query_vec_similar_concepts, similarity_plateau_warning};
 
+#[allow(clippy::too_many_lines)]
 pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<String> {
     let learn = payload
         .get("learn")

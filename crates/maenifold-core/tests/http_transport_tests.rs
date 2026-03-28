@@ -2,22 +2,23 @@
 use maenifold_core::Config;
 use maenifold_core::mcp::MaenifoldMcpServer;
 use once_cell::sync::Lazy;
-use parking_lot::{Mutex, MutexGuard};
 use reqwest::{Client, Response, StatusCode};
 use serde_json::{Value, json};
+use std::sync::Arc;
 use tempfile::TempDir;
 use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::{Mutex, OwnedMutexGuard};
 use tokio::task::JoinHandle;
 use tokio::time::{Duration, sleep};
 
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+static TEST_MUTEX: Lazy<Arc<Mutex<()>>> = Lazy::new(|| Arc::new(Mutex::new(())));
 
 const ACCEPT_HEADER: &str = "application/json, text/event-stream";
 const MCP_ENDPOINT: &str = "/mcp";
 const INIT_REQUEST_ID: i64 = 1;
 
 struct HttpTestServer {
-    _guard: MutexGuard<'static, ()>,
+    _guard: OwnedMutexGuard<()>,
     _tmp: TempDir,
     config: Config,
     client: Client,
@@ -30,7 +31,7 @@ impl HttpTestServer {
     // end-to-end against an isolated on-disk runtime so each integration test drives the
     // real rmcp/axum server with predictable config state.
     async fn start() -> Self {
-        let guard = TEST_MUTEX.lock();
+        let guard = TEST_MUTEX.clone().lock_owned().await;
         let tmp = TempDir::new().expect("temporary test root");
         Config::override_root(tmp.path());
         Config::set_database_path(tmp.path().join("memory.db"));

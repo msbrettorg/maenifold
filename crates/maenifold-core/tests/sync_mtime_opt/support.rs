@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 // T-12.0: RTM NFR-1
 use chrono::{DateTime, Utc};
 use filetime::{FileTime, set_file_mtime};

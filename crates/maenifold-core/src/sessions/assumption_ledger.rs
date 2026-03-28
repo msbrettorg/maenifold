@@ -48,6 +48,7 @@ pub fn assumption_ledger(context: &ToolContext, payload: &Value) -> Result<Strin
     ))
 }
 
+#[allow(clippy::too_many_lines)]
 fn append_assumption(context: &ToolContext, payload: &Value) -> Result<String> {
     // T-W1-5: RTM FR-17.9 - preserve C# assumption ledger validation contracts.
     let assumption = payload.get("assumption").and_then(Value::as_str);

@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 use maenifold_core::db;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::repair;

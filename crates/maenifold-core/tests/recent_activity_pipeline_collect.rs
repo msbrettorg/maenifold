@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "recent_activity_pipeline/support.rs"]
 mod recent_activity_pipeline_support;
 

@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_imports)]
+
 // T-5.7: FR archived — see CHANGELOG.md § FR-14 (RTM-080). Incremental sync DB-coherence
 // test support. Shared by both lifecycle and guards test files.
 use chrono::{DateTime, Utc};

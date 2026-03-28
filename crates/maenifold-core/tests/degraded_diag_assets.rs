@@ -1,6 +1,7 @@
 #![cfg(unix)]
 
 // T-12.7: RTM NFR-1
+#[allow(clippy::duplicate_mod)]
 #[path = "degraded_diag/support.rs"]
 mod support;
 

@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "session/session_cleanup_support.rs"]
 mod session_cleanup_support;
 
@@ -179,7 +180,10 @@ fn pipeline_owned_workflow_sessions_are_not_abandoned() {
 
     let abandoned = cleanup_abandoned_sessions(&env.cfg);
 
-    assert_eq!(abandoned, 1, "only the standalone session should be abandoned");
+    assert_eq!(
+        abandoned, 1,
+        "only the standalone session should be abandoned"
+    );
     assert_eq!(
         read_frontmatter_status(&env.cfg, pipeline_uri),
         "active",

@@ -51,7 +51,7 @@ fn status_transition_active_to_completed() {
         Some("completed")
     );
     assert!(
-        frontmatter.get("completed").is_some(),
+        frontmatter.contains_key("completed"),
         "missing completed timestamp"
     );
     assert!(
@@ -136,7 +136,7 @@ fn status_transition_active_to_cancelled() {
         Some("cancelled")
     );
     assert!(
-        frontmatter.get("cancelled").is_some(),
+        frontmatter.contains_key("cancelled"),
         "missing cancelled timestamp"
     );
 }
@@ -167,7 +167,7 @@ fn completion_after_intermediate_step_persists_state() {
         Some("completed")
     );
     assert!(
-        frontmatter.get("completed").is_some(),
+        frontmatter.contains_key("completed"),
         "missing completed timestamp"
     );
     assert!(

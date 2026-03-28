@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "repair_concepts/support.rs"]
 mod repair_concepts_support;
 

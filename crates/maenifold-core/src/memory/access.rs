@@ -18,6 +18,7 @@ use std::collections::BTreeMap;
 
 // T-12.5: RTM FR-25.2 keeps create/read memory tool behavior stable while
 // extracting the large flat [[memory.rs]] handler into focused modules.
+#[allow(clippy::too_many_lines)]
 pub fn write_memory(context: &ToolContext, payload: &Value) -> Result<String> {
     if learn_requested(payload) {
         // T-11.5: RTM FR-25.2 / NFR-1 short-circuits WriteMemory I/O with inline learn content.
@@ -45,23 +46,24 @@ pub fn write_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         .and_then(Value::as_str)
         .ok_or(MaenifoldError::MissingProperty("content"))?;
     // PARITY-VAL003: RTM NFR-1 — reject non-string folder type to match C# type checking.
-    if let Some(folder_val) = payload.get("folder") {
-        if !folder_val.is_string() && !folder_val.is_null() {
-            let actual_type = match folder_val {
-                Value::Number(_) => "Number",
-                Value::Bool(_) => "Boolean",
-                Value::Array(_) => "Array",
-                Value::Object(_) => "Object",
-                _ => "Unknown",
-            };
-            let msg = format!(
-                "The requested operation requires an element of type 'String', but the target element has type '{actual_type}'."
-            );
-            return Ok(match context.output_format {
-                OutputFormat::Json => failure("TYPE_ERROR", &msg),
-                OutputFormat::Markdown => format!("ERROR: {msg}"),
-            });
-        }
+    if let Some(folder_val) = payload.get("folder")
+        && !folder_val.is_string()
+        && !folder_val.is_null()
+    {
+        let actual_type = match folder_val {
+            Value::Number(_) => "Number",
+            Value::Bool(_) => "Boolean",
+            Value::Array(_) => "Array",
+            Value::Object(_) => "Object",
+            _ => "Unknown",
+        };
+        let msg = format!(
+            "The requested operation requires an element of type 'String', but the target element has type '{actual_type}'."
+        );
+        return Ok(match context.output_format {
+            OutputFormat::Json => failure("TYPE_ERROR", &msg),
+            OutputFormat::Markdown => format!("ERROR: {msg}"),
+        });
     }
     let folder = payload.get("folder").and_then(Value::as_str);
     let tags = payload.get("tags").and_then(Value::as_array).cloned();
@@ -151,6 +153,7 @@ This ensures your note is connected to the knowledge graph and not orphaned.".to
     })
 }
 
+#[allow(clippy::too_many_lines)]
 pub fn read_memory(context: &ToolContext, payload: &Value) -> Result<String> {
     if learn_requested(payload) {
         // T-11.5: RTM FR-25.2 / NFR-1 short-circuits ReadMemory I/O with inline learn content.

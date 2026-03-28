@@ -20,6 +20,7 @@ use super::{
 
 // T-12.0: RTM NFR-1 keeps Workflow request dispatch and step advancement in a focused handler.
 
+#[allow(clippy::too_many_lines)]
 pub fn workflow(context: &ToolContext, payload: &Value) -> Result<String> {
     if payload
         .get("learn")
@@ -97,6 +98,8 @@ pub fn workflow(context: &ToolContext, payload: &Value) -> Result<String> {
     ))
 }
 
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 fn continue_workflow_session(
     context: &ToolContext,
     session_id: &str,
@@ -239,6 +242,7 @@ fn gate_workflow_session_status(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn advance_to_next_workflow_step(
     context: &ToolContext,
     workflow_uri: &str,

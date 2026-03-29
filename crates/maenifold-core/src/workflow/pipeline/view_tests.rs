@@ -14,7 +14,8 @@ fn workflow_node(id: &str, workflow_id: &str) -> PipelineNode {
         workflow_id: workflow_id.to_string(),
         acp_client: None,
         prompt: None,
-    }
+    
+        timeout: None}
 }
 
 fn prompt_node(id: &str, prompt: &str, agent: &str) -> PipelineNode {
@@ -27,7 +28,8 @@ fn prompt_node(id: &str, prompt: &str, agent: &str) -> PipelineNode {
         thought_level: None,
         allowed_tools: None,
         max_turns: None,
-    }
+    
+        timeout: None}
 }
 
 fn thinking_node(
@@ -47,7 +49,8 @@ fn thinking_node(
         thought_level: None,
         allowed_tools: None,
         max_turns: None,
-    }
+    
+        timeout: None}
 }
 
 fn tool_node(

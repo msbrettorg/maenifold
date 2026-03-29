@@ -77,7 +77,8 @@ pub(super) fn pipeline_node(id: &str, workflow_id: &str) -> PipelineNode {
         workflow_id: workflow_id.to_string(),
         acp_client: Some(format!("test-agent-{id}")),
         prompt: None,
-    }
+    
+        timeout: None}
 }
 
 pub(super) fn write_workflow_definition(assets_path: &Path, workflow_id: &str) {

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use serde_json::Value as JsonValue;
 
-use crate::acp_native::AgentPool;
+use crate::acp_native::{AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
 use crate::tools::ToolContext;
@@ -23,16 +23,19 @@ pub(super) enum NodeExecutionRequest {
     Workflow {
         workflow_id: String,
         prompt: String,
+        timeout_seconds: Option<u64>,
     },
     Prompt {
         session_id: String,
         prompt: String,
         tool_mode: String,
+        session_opts: SessionOpts,
     },
     SequentialThinking {
         node_session_id: String,
         topic: String,
         total_thoughts: u32,
+        session_opts: SessionOpts,
     },
     Tool {
         tool_name: String,
@@ -65,11 +68,24 @@ pub(super) fn build_node_execution_request(
     ambient_prompt: &str,
 ) -> Result<NodeExecutionRequest> {
     Ok(match node {
-        PipelineNode::Workflow { workflow_id, .. } => NodeExecutionRequest::Workflow {
+        PipelineNode::Workflow {
+            workflow_id,
+            timeout,
+            ..
+        } => NodeExecutionRequest::Workflow {
             workflow_id: workflow_id.clone(),
             prompt: assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?,
+            timeout_seconds: *timeout,
         },
-        PipelineNode::Prompt { tool_mode, .. } => NodeExecutionRequest::Prompt {
+        PipelineNode::Prompt {
+            tool_mode,
+            model,
+            thought_level,
+            allowed_tools,
+            max_turns,
+            timeout,
+            ..
+        } => NodeExecutionRequest::Prompt {
             session_id: dispatch.session_id.clone().unwrap_or_else(|| {
                 node_states
                     .get(node.id())
@@ -78,8 +94,24 @@ pub(super) fn build_node_execution_request(
             }),
             prompt: assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?,
             tool_mode: tool_mode.clone(),
+            session_opts: SessionOpts {
+                cwd: context.config.maenifold_root.clone(),
+                model: model.clone(),
+                thought_level: thought_level.clone(),
+                allowed_tools: allowed_tools.clone(),
+                max_turns: *max_turns,
+                timeout_seconds: *timeout,
+            },
         },
-        PipelineNode::SequentialThinking { total_thoughts, .. } => {
+        PipelineNode::SequentialThinking {
+            total_thoughts,
+            model,
+            thought_level,
+            allowed_tools,
+            max_turns,
+            timeout,
+            ..
+        } => {
             NodeExecutionRequest::SequentialThinking {
                 node_session_id: dispatch.session_id.clone().unwrap_or_else(|| {
                     node_states
@@ -95,6 +127,14 @@ pub(super) fn build_node_execution_request(
                     ambient_prompt,
                 )?,
                 total_thoughts: *total_thoughts,
+                session_opts: SessionOpts {
+                    cwd: context.config.maenifold_root.clone(),
+                    model: model.clone(),
+                    thought_level: thought_level.clone(),
+                    allowed_tools: allowed_tools.clone(),
+                    max_turns: *max_turns,
+                    timeout_seconds: *timeout,
+                },
             }
         }
         PipelineNode::Tool {
@@ -119,6 +159,7 @@ pub(super) async fn execute_node_request(
         NodeExecutionRequest::Workflow {
             workflow_id,
             prompt,
+            timeout_seconds,
         } => {
             let agent = agent.as_deref().expect("agent required for workflow nodes");
             NodeTaskResult::Workflow(
@@ -127,6 +168,7 @@ pub(super) async fn execute_node_request(
                     &workflow_id,
                     agent,
                     &prompt,
+                    timeout_seconds,
                     pool.clone(),
                 )
                 .await,
@@ -136,6 +178,7 @@ pub(super) async fn execute_node_request(
             session_id,
             prompt,
             tool_mode,
+            session_opts,
         } => {
             let agent = agent.as_deref().expect("agent required for prompt nodes");
             NodeTaskResult::Prompt(
@@ -146,6 +189,7 @@ pub(super) async fn execute_node_request(
                     &session_id,
                     &prompt,
                     &tool_mode,
+                    session_opts,
                 )
                 .await,
             )
@@ -154,6 +198,7 @@ pub(super) async fn execute_node_request(
             node_session_id,
             topic,
             total_thoughts,
+            session_opts,
         } => {
             let agent = agent.as_deref().expect("agent required for thinking nodes");
             NodeTaskResult::SequentialThinking(
@@ -165,6 +210,7 @@ pub(super) async fn execute_node_request(
                         total_thoughts,
                         parent_workflow_id: Some(node_session_id),
                     },
+                    session_opts,
                     pool,
                 )
                 .await,
@@ -261,15 +307,15 @@ fn log_node_execution_error(node_id: &str, error: &dyn StdError) {
 }
 
 async fn run_prompt_node(
-    context: &ToolContext,
+    _context: &ToolContext,
     pool: &AgentPool,
     agent: &str,
     session_id: &str,
     prompt: &str,
     _tool_mode: &str,
+    session_opts: SessionOpts,
 ) -> Result<String> {
-    let session =
-        open_agent_session(pool, &context.config.maenifold_root, agent, session_id).await?;
+    let session = open_agent_session(pool, agent, session_id, session_opts).await?;
     let response = session.prompt(prompt).await;
     let _ = session.close().await;
     let response = response?;

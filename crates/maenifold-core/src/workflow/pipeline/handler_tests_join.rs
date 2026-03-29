@@ -16,7 +16,8 @@ fn pipeline_join_fork_join_merges_two_simple_dags() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            }],
+            
+                timeout: None}],
             edges: vec![],
         },
         HashMap::from([(
@@ -41,13 +42,15 @@ fn pipeline_join_fork_join_merges_two_simple_dags() {
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
                     prompt: None,
-                },
+                
+                    timeout: None},
                 super::super::PipelineNode::Workflow {
                     id: "source-leaf".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                },
+                
+                    timeout: None},
             ],
             edges: vec![super::super::PipelineEdge {
                 source: "source-root".to_string(),
@@ -152,7 +155,8 @@ fn pipeline_join_fork_join_rejects_node_id_collision() {
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                }],
+                
+                    timeout: None}],
                 edges: vec![],
             },
             HashMap::from([(
@@ -201,13 +205,15 @@ fn pipeline_join_fork_join_rejects_cycle() {
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                },
+                
+                    timeout: None},
                 super::super::PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
                     prompt: None,
-                },
+                
+                    timeout: None},
             ],
             edges: vec![super::super::PipelineEdge {
                 source: "a".to_string(),
@@ -249,7 +255,8 @@ fn pipeline_join_fork_join_rejects_cycle() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            }],
+            
+                timeout: None}],
             edges: vec![],
         },
         HashMap::from([(

@@ -17,13 +17,15 @@ fn pipeline_join_fork_fork_from_leaf_creates_single_node_pipeline() {
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                },
+                
+                    timeout: None},
                 super::super::PipelineNode::Workflow {
                     id: "leaf".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
                     prompt: None,
-                },
+                
+                    timeout: None},
             ],
             edges: vec![super::super::PipelineEdge {
                 source: "root".to_string(),
@@ -103,7 +105,8 @@ fn pipeline_join_fork_fork_prefixes_ids_and_creates_workflow_sessions() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            }],
+            
+                timeout: None}],
             edges: vec![],
         },
         HashMap::from([(

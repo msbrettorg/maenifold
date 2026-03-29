@@ -56,11 +56,7 @@ fn watcher_cli_start_and_stop_should_return_lifecycle_messages() {
     let tmp = isolated_root();
 
     let start = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "StartWatcher",
-            r#"{"debounceMs":250}"#,
-        ])
+        .args(["tool", "StartWatcher", r#"{"debounceMs":250}"#])
         .assert()
         .code(0)
         .get_output()

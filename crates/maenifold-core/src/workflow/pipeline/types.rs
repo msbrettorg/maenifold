@@ -43,6 +43,7 @@ pub enum PipelineNode {
         workflow_id: String,
         acp_client: Option<String>,
         prompt: Option<String>,
+        timeout: Option<u64>,
     },
     Prompt {
         id: String,
@@ -53,6 +54,7 @@ pub enum PipelineNode {
         thought_level: Option<String>,
         allowed_tools: Option<Vec<String>>,
         max_turns: Option<u32>,
+        timeout: Option<u64>,
     },
     SequentialThinking {
         id: String,
@@ -64,6 +66,7 @@ pub enum PipelineNode {
         thought_level: Option<String>,
         allowed_tools: Option<Vec<String>>,
         max_turns: Option<u32>,
+        timeout: Option<u64>,
     },
     Tool {
         id: String,

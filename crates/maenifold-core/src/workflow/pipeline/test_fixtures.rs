@@ -22,19 +22,22 @@ pub(super) fn seed_pipeline_view_session(
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
             crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "cleanup".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: Some("agent-b".to_string()),
                 prompt: None,
-            },
+            
+                timeout: None},
             crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "child".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
         ],
         edges: vec![
             crate::workflow::pipeline::PipelineEdge {
@@ -111,13 +114,15 @@ pub(super) fn seed_dispatch_pipeline(
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
             crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "child".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
         ],
         edges: vec![crate::workflow::pipeline::PipelineEdge {
             source: "root".to_string(),

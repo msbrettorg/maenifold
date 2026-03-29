@@ -14,7 +14,8 @@ fn pipeline_graft_completed_pipeline_adds_node_and_persists_sessions() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            }],
+            
+                timeout: None}],
             edges: vec![],
         },
         HashMap::from([(
@@ -99,7 +100,8 @@ fn pipeline_graft_accepts_new_node_types() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            }],
+            
+                timeout: None}],
             edges: vec![],
         },
         HashMap::from([(

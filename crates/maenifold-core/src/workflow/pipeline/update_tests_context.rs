@@ -21,19 +21,22 @@ fn predecessor_context_replaces_existing_section_with_all_completed_upstreams() 
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
             PipelineNode::Workflow {
                 id: "root-b".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
             PipelineNode::Workflow {
                 id: "child".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
         ],
         edges: vec![
             PipelineEdge {
@@ -158,19 +161,22 @@ fn predecessor_context_prefers_node_output_before_workflow_last() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
             PipelineNode::Workflow {
                 id: "root-b".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
             PipelineNode::Workflow {
                 id: "child".to_string(),
                 workflow_id: "test-workflow-c".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
         ],
         edges: vec![
             PipelineEdge {

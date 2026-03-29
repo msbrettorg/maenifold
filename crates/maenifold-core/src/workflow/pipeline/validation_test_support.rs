@@ -8,19 +8,22 @@ pub(super) fn sample_definition() -> PipelineDefinition {
                 workflow_id: "workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
             PipelineNode::Workflow {
                 id: "b".to_string(),
                 workflow_id: "workflow-b".to_string(),
                 acp_client: Some("client-b".to_string()),
                 prompt: None,
-            },
+            
+                timeout: None},
             PipelineNode::Workflow {
                 id: "c".to_string(),
                 workflow_id: "workflow-c".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
         ],
         edges: vec![
             PipelineEdge {
@@ -47,7 +50,8 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 workflow_id: "workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
             PipelineNode::Prompt {
                 id: "prompt".to_string(),
                 prompt: "Summarize the workflow output".to_string(),
@@ -57,7 +61,8 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
-            },
+            
+                timeout: None},
             PipelineNode::SequentialThinking {
                 id: "thinking".to_string(),
                 topic: "Pipeline validation".to_string(),
@@ -68,7 +73,8 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
-            },
+            
+                timeout: None},
         ],
         edges: vec![
             PipelineEdge {

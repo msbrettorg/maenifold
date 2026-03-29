@@ -158,7 +158,8 @@ fn delete_pipeline_session_files_removes_sequential_thinking_sessions() {
             workflow_id: "test-workflow-a".to_string(),
             acp_client: None,
             prompt: None,
-        }],
+        
+            timeout: None}],
         edges: vec![],
     };
     seed_pipeline_session_with_workflows(&context, pipeline_id, definition, node_states.clone(), 1);

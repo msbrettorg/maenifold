@@ -24,7 +24,8 @@ fn pipeline_dispatch_returns_prompt_node_metadata_without_workflow_activation() 
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
-        }],
+        
+            timeout: None}],
         edges: vec![],
     };
     let node_states = HashMap::from([node_state(
@@ -71,7 +72,8 @@ fn pipeline_dispatch_returns_sequential_thinking_metadata_without_workflow_activ
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
-        }],
+        
+            timeout: None}],
         edges: vec![],
     };
     let node_states = HashMap::from([node_state(

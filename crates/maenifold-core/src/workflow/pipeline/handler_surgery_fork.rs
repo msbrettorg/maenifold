@@ -78,12 +78,14 @@ pub(super) fn fork_pipeline(
                     workflow_id,
                     acp_client,
                     prompt,
+                    timeout,
                     ..
                 } => super::super::PipelineNode::Workflow {
                     id: node_id_map[node.id()].clone(),
                     workflow_id: workflow_id.clone(),
                     acp_client: acp_client.clone(),
                     prompt: prompt.clone(),
+                    timeout: *timeout,
                 },
                 super::super::PipelineNode::Prompt {
                     prompt,
@@ -93,6 +95,7 @@ pub(super) fn fork_pipeline(
                     thought_level,
                     allowed_tools,
                     max_turns,
+                    timeout,
                     ..
                 } => super::super::PipelineNode::Prompt {
                     id: node_id_map[node.id()].clone(),
@@ -103,6 +106,7 @@ pub(super) fn fork_pipeline(
                     thought_level: thought_level.clone(),
                     allowed_tools: allowed_tools.clone(),
                     max_turns: *max_turns,
+                    timeout: *timeout,
                 },
                 super::super::PipelineNode::SequentialThinking {
                     topic,
@@ -113,6 +117,7 @@ pub(super) fn fork_pipeline(
                     thought_level,
                     allowed_tools,
                     max_turns,
+                    timeout,
                     ..
                 } => super::super::PipelineNode::SequentialThinking {
                     id: node_id_map[node.id()].clone(),
@@ -124,6 +129,7 @@ pub(super) fn fork_pipeline(
                     thought_level: thought_level.clone(),
                     allowed_tools: allowed_tools.clone(),
                     max_turns: *max_turns,
+                    timeout: *timeout,
                 },
                 super::super::PipelineNode::Tool {
                     tool_name,

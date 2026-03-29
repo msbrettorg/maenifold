@@ -133,12 +133,7 @@ fn update_assets_json_flag_learn_true_returns_help_documentation() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "UpdateAssets",
-            r#"{"learn":true}"#,
-            "--json",
-        ])
+        .args(["tool", "UpdateAssets", r#"{"learn":true}"#, "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -177,12 +172,7 @@ fn update_assets_json_flag_dry_run_reports_changed_files() {
     write_file(source.path(), r#"{"id":"t14c-cli-updated","version":2}"#);
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "UpdateAssets",
-            r#"{"dryRun":true}"#,
-            "--json",
-        ])
+        .args(["tool", "UpdateAssets", r#"{"dryRun":true}"#, "--json"])
         .assert()
         .code(0)
         .get_output()

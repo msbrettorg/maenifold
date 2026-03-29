@@ -11,7 +11,8 @@ fn pipeline_view_includes_assembled_prompt_for_active_and_completed_acp_nodes() 
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: Some("agent-workflow".to_string()),
                 prompt: Some("Summarize the upstream output".to_string()),
-            },
+            
+                timeout: None},
             prompt_node("prompt-node", "Draft operator guidance", "agent-prompt"),
             thinking_node(
                 "thinking-node",

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::acp_native::AgentPool;
+use crate::acp_native::{AgentPool, SessionOpts};
 use crate::acpx_driver::AcpxResponse;
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
@@ -44,6 +44,7 @@ pub async fn run_workflow(
         workflow_id,
         agent,
         prompt,
+        None,
         Arc::new(AgentPool::new()),
     )
     .await
@@ -54,14 +55,27 @@ pub(crate) async fn run_workflow_with_pool(
     workflow_id: &str,
     agent: &str,
     prompt: &str,
+    timeout_seconds: Option<u64>,
     pool: Arc<AgentPool>,
 ) -> Result<WorkflowResult> {
     let start = super::handler::workflow(context, &json!({ "workflowId": workflow_id }))?;
     let session_id = extract_workflow_session_id(&start).ok_or_else(|| {
         MaenifoldError::Message("Workflow session ID missing from response".to_string())
     })?;
-    let driver =
-        open_agent_session(&pool, &context.config.maenifold_root, agent, &session_id).await?;
+    let driver = open_agent_session(
+        &pool,
+        agent,
+        &session_id,
+        SessionOpts {
+            cwd: context.config.maenifold_root.clone(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout_seconds,
+        },
+    )
+    .await?;
     let mut step = workflow_text(&start);
     let mut steps_completed = 0u32;
     let mut conclusion = None;
@@ -126,8 +140,23 @@ async fn maybe_run_step_thinking(
             "submachineSessionId": &think_session_id
         }),
     )?;
-    let _ =
-        drive_think_session(context, agent, &think_session_id, &topic, &think_opts, pool).await?;
+    let _ = drive_think_session(
+        context,
+        agent,
+        &think_session_id,
+        &topic,
+        &think_opts,
+        SessionOpts {
+            cwd: context.config.maenifold_root.clone(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout_seconds: None,
+        },
+        pool,
+    )
+    .await?;
     Ok(())
 }
 

@@ -73,11 +73,7 @@ fn list_memories_includes_decay_metadata_and_top_level_folders() {
     );
 
     let parent_output = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "ListMemories",
-            r#"{"path":"decay-metadata-tests"}"#,
-        ])
+        .args(["tool", "ListMemories", r#"{"path":"decay-metadata-tests"}"#])
         .assert()
         .code(0)
         .get_output()
@@ -113,11 +109,7 @@ fn get_help_invalid_tool_lists_available_tools() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "GetHelp",
-            r#"{"toolName":"non-existent-tool-xyz"}"#,
-        ])
+        .args(["tool", "GetHelp", r#"{"toolName":"non-existent-tool-xyz"}"#])
         .assert()
         .code(0)
         .get_output()
@@ -138,33 +130,21 @@ fn get_help_is_case_insensitive() {
     let tmp = isolated_root();
 
     let lower = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "GetHelp",
-            r#"{"toolName":"writememory"}"#,
-        ])
+        .args(["tool", "GetHelp", r#"{"toolName":"writememory"}"#])
         .assert()
         .code(0)
         .get_output()
         .stdout
         .clone();
     let upper = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "GetHelp",
-            r#"{"toolName":"WRITEMEMORY"}"#,
-        ])
+        .args(["tool", "GetHelp", r#"{"toolName":"WRITEMEMORY"}"#])
         .assert()
         .code(0)
         .get_output()
         .stdout
         .clone();
     let mixed = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "GetHelp",
-            r#"{"toolName":"WriteMemory"}"#,
-        ])
+        .args(["tool", "GetHelp", r#"{"toolName":"WriteMemory"}"#])
         .assert()
         .code(0)
         .get_output()

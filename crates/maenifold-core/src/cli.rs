@@ -268,7 +268,7 @@ fn usage() -> String {
         "Usage:",
         "  MCP Server mode:   maenifold --mcp",
         "  HTTP Server mode:  maenifold --http [--port <PORT>]",
-        "  Prompt mode:       maenifold prompt <agent> <message>",
+        "  Prompt mode:       maenifold prompt <agent> <message> [--model <model>]",
         "  Think mode:        maenifold think <agent> <topic>",
         "  Workflow mode:     maenifold workflow <workflow-id> <agent> <prompt>",
         "  Tool mode:         maenifold tool <name> '<json-payload>' [--json]",

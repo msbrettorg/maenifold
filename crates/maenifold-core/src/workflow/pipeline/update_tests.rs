@@ -154,13 +154,15 @@ fn pipeline_status_abandoned_enables_always_edge_ready_set() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
             PipelineNode::Workflow {
                 id: "cleanup".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
         ],
         edges: vec![PipelineEdge {
             source: "root".to_string(),

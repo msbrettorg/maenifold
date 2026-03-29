@@ -5,6 +5,22 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 67 — Native ACP Client Hardening (FR-50)
+
+Hardened the native ACP client with init capture, session config passthrough, full session-update handling, crash recovery, and prompt timeout/cancel support.
+
+### Added
+- **Init capture and capabilities** (T-67.1): `InitInfo` struct captures `InitializeResponse` fields. `AgentHandle` exposes `agent_info()`, `capabilities()`, `auth_methods()` accessors. Protocol version check with mismatch warning.
+- **Session config passthrough** (T-67.2): `SessionOpts` carries model, thought_level, allowed_tools, max_turns. Pipeline nodes thread config through `open_agent_session()`. CLI `prompt` command accepts `--model` flag.
+- **Session update handling** (T-67.3): `SessionAccumulator` handles all 11 `SessionUpdate` variants. `AgentResponse` now includes `tool_calls` and `thought` fields. `ToolCallRecord` captures tool call metadata.
+- **Agent crash recovery** (T-67.4): `AgentHandle::is_alive()` via `AtomicBool` alive flag. `tokio::select!` on io_task detects agent death. `AgentPool::get_or_create()` evicts dead handles and respawns. Agent stderr piped to `tracing::debug!`. Child process reaped via `start_kill()` + `child.wait()`.
+- **Prompt timeout and cancel** (T-67.5): `SessionOpts::timeout_seconds` with 300s default. `run_with_timeout` wraps prompt calls. On timeout: `CancelNotification` → `close_session` → error. Pipeline nodes carry optional `timeout` field. `AcpxDriver` timeout parameter wired through.
+
+### Changed
+- **Module structure**: `acp/native.rs` split into `acp/native/` directory with 5 files: `mod.rs` (248 LOC), `types.rs` (166), `session.rs` (202), `client.rs` (235), `pool.rs` (170). All under 300 LOC limit.
+
+---
+
 ## Sprint 63 — Silent Failure Remediation
 
 Remediated 5 instances of the same anti-pattern from the legacy C# codebase: errors that hide from users via stderr logging, `.expect()` panics, `.unwrap_or(false)`, or missing cleanup paths.

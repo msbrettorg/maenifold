@@ -48,10 +48,7 @@ fn run_text(tmp: &TempDir, args: &[&str]) -> String {
 #[test]
 fn sequential_thinking_invalid_payload_returns_cli_json_error_envelope() {
     let tmp = isolated_root();
-    let value = run_json(
-        &tmp,
-        &["tool", "SequentialThinking", "{", "--json"],
-    );
+    let value = run_json(&tmp, &["tool", "SequentialThinking", "{", "--json"]);
     assert_eq!(value["success"], false);
     assert_eq!(value["error"]["code"], "INVALID_PAYLOAD");
 }
@@ -67,10 +64,7 @@ fn workflow_invalid_payload_returns_cli_json_error_envelope() {
 #[test]
 fn assumption_ledger_invalid_payload_returns_cli_json_error_envelope() {
     let tmp = isolated_root();
-    let value = run_json(
-        &tmp,
-        &["tool", "AssumptionLedger", "{", "--json"],
-    );
+    let value = run_json(&tmp, &["tool", "AssumptionLedger", "{", "--json"]);
     assert_eq!(value["success"], false);
     assert_eq!(value["error"]["code"], "INVALID_PAYLOAD");
 }
@@ -184,10 +178,7 @@ fn sequential_thinking_without_wikilinks_should_return_csharp_validation_error()
 #[test]
 fn workflow_learn_mode_should_return_help_without_creating_session() {
     let tmp = isolated_root();
-    let text = run_text(
-        &tmp,
-        &["tool", "Workflow", r#"{"learn":true}"#],
-    );
+    let text = run_text(&tmp, &["tool", "Workflow", r#"{"learn":true}"#]);
     assert!(text.contains("# Workflow"), "unexpected output: {text}");
     assert!(
         !text.contains("Created session:"),

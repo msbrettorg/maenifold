@@ -11,12 +11,7 @@ fn recent_activity_json_flag_learn_true_returns_help_documentation() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "RecentActivity",
-            r#"{"learn":true}"#,
-            "--json",
-        ])
+        .args(["tool", "RecentActivity", r#"{"learn":true}"#, "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -45,12 +40,7 @@ fn recent_activity_json_flag_empty_database_reports_no_recent_activity() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "RecentActivity",
-            r#"{"limit":10}"#,
-            "--json",
-        ])
+        .args(["tool", "RecentActivity", r#"{"limit":10}"#, "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -68,12 +58,7 @@ fn run_full_benchmark_json_flag_learn_true_returns_help_documentation() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "RunFullBenchmark",
-            r#"{"learn":true}"#,
-            "--json",
-        ])
+        .args(["tool", "RunFullBenchmark", r#"{"learn":true}"#, "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -103,12 +88,7 @@ fn run_full_benchmark_json_flag_iterations_zero_returns_error_envelope() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "RunFullBenchmark",
-            r#"{"iterations":0}"#,
-            "--json",
-        ])
+        .args(["tool", "RunFullBenchmark", r#"{"iterations":0}"#, "--json"])
         .assert()
         .code(1)
         .get_output()

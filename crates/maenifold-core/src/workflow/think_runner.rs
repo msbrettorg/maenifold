@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::acp_native::AgentPool;
+use crate::acp_native::{AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
 use crate::thinking::sequential_thinking;
 use crate::tools::ToolContext;
@@ -59,12 +59,12 @@ pub(crate) async fn drive_think_session(
     session_id: &str,
     topic: &str,
     opts: &ThinkOptions,
+    session_opts: SessionOpts,
     pool: &AgentPool,
 ) -> Result<ThinkResult> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
     let acpx_session = format!("think-{session_id}");
-    let driver =
-        open_agent_session(pool, &context.config.maenifold_root, agent, &acpx_session).await?;
+    let driver = open_agent_session(pool, agent, &acpx_session, session_opts).await?;
 
     let mut thought_number = 1u32;
     let result: Result<ThinkResult> = async {
@@ -110,7 +110,22 @@ pub async fn run_think(
     topic: &str,
     opts: ThinkOptions,
 ) -> Result<ThinkResult> {
-    run_think_with_pool(context, agent, topic, opts, Arc::new(AgentPool::new())).await
+    run_think_with_pool(
+        context,
+        agent,
+        topic,
+        opts,
+        SessionOpts {
+            cwd: context.config.maenifold_root.clone(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout_seconds: None,
+        },
+        Arc::new(AgentPool::new()),
+    )
+    .await
 }
 
 pub(crate) async fn run_think_with_pool(
@@ -118,10 +133,20 @@ pub(crate) async fn run_think_with_pool(
     agent: &str,
     topic: &str,
     opts: ThinkOptions,
+    session_opts: SessionOpts,
     pool: Arc<AgentPool>,
 ) -> Result<ThinkResult> {
     let session_id = seed_think_session(context, topic, &opts).await?;
-    drive_think_session(context, agent, &session_id, topic, &opts, pool.as_ref()).await
+    drive_think_session(
+        context,
+        agent,
+        &session_id,
+        topic,
+        &opts,
+        session_opts,
+        pool.as_ref(),
+    )
+    .await
 }
 
 fn think_seed_payload(topic: &str, opts: &ThinkOptions) -> Value {

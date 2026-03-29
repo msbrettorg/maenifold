@@ -3,7 +3,7 @@
 
 #[path = "acp/config.rs"]
 pub(crate) mod acp_config;
-#[path = "acp/native.rs"]
+#[path = "acp/native/mod.rs"]
 pub mod acp_native;
 pub use acp_native as acpx_driver;
 pub mod assets;

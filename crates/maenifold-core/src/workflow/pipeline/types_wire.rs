@@ -53,6 +53,8 @@ pub(super) struct PipelineNodeWire {
     allowed_tools: Option<Vec<String>>,
     #[serde(default, rename = "maxTurns", skip_serializing_if = "Option::is_none")]
     max_turns: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    timeout: Option<u64>,
 }
 
 impl TryFrom<PipelineNodeWire> for PipelineNode {
@@ -86,6 +88,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 workflow_id: required(wire.workflow_id, "workflowId")?,
                 acp_client: wire.acp_client,
                 prompt: wire.prompt,
+                timeout: wire.timeout,
             },
             "prompt" => Self::Prompt {
                 id: wire.id,
@@ -96,6 +99,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 thought_level: wire.thought_level,
                 allowed_tools: wire.allowed_tools,
                 max_turns: wire.max_turns,
+                timeout: wire.timeout,
             },
             "sequentialThinking" => Self::SequentialThinking {
                 id: wire.id,
@@ -107,6 +111,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 thought_level: wire.thought_level,
                 allowed_tools: wire.allowed_tools,
                 max_turns: wire.max_turns,
+                timeout: wire.timeout,
             },
             "tool" => Self::Tool {
                 id: wire.id,
@@ -136,6 +141,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 workflow_id,
                 acp_client,
                 prompt,
+                timeout,
             } => Self {
                 kind: Some("workflow".to_string()),
                 id,
@@ -153,6 +159,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
+                timeout,
             },
             PipelineNode::Prompt {
                 id,
@@ -163,6 +170,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
+                timeout,
             } => Self {
                 kind: Some("prompt".to_string()),
                 id,
@@ -180,6 +188,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
+                timeout,
             },
             PipelineNode::SequentialThinking {
                 id,
@@ -191,6 +200,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
+                timeout,
             } => Self {
                 kind: Some("sequentialThinking".to_string()),
                 id,
@@ -208,6 +218,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
+                timeout,
             },
             PipelineNode::Tool {
                 id,
@@ -235,6 +246,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
+                timeout: None,
             },
         }
     }

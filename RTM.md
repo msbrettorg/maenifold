@@ -113,3 +113,13 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 | RTM-215 | FR-48: dynamic JSON status | `crates/maenifold-gate/src/status/output.rs` | TC-215: `StatusOutput.stages: Vec<StageOutput>` — deprecated swe/red/blue fields removed; `test_status_json_reports_dynamic_pipeline_stages` | integration |
 | RTM-216 | FR-48: DB schema generalization | `crates/maenifold-gate/src/db/mod.rs` | TC-216: CHECK constraints removed from status/stage columns; `open_handles_existing_schema_variants`, `upsert_task_inserts_and_updates` | unit |
 | RTM-217 | FR-48: deprecated no-pipeline API | `crates/maenifold-gate/src/parser.rs`, `types.rs` | TC-217: `#[deprecated]` on parse_task_content, parse_task_file, done_override_from_content; zero compiler warnings | refactor |
+
+## Sprint 67 — Native ACP Client Hardening (FR-50)
+
+| RTM | Requirement | Component | Test Case | Type |
+|-----|-------------|-----------|-----------|------|
+| RTM-220 | FR-50: capability capture | `crates/maenifold-core/src/acp/native.rs` | TC-220: T-67.1 — `AgentHandle` exposes `agent_info()`, `capabilities()`, `auth_methods`; InitializeResponse stored; protocol version warning logged | integration |
+| RTM-221 | FR-50: session config passthrough | `crates/maenifold-core/src/workflow/agent_session.rs` | TC-221: T-67.2 — `open_agent_session()` accepts `SessionOpts`; pipeline node model/thought_level reach ACP session | integration |
+| RTM-222 | FR-50: session update handling | `crates/maenifold-core/src/acp/native.rs` | TC-222: T-67.3 — `HeadlessClient` accumulates ToolCall/AgentThought; `AcpxResponse.tool_calls` populated; `thought` field added | unit |
+| RTM-223 | FR-50: crash recovery | `crates/maenifold-core/src/acp/native.rs` | TC-223: T-67.4 — dead agent evicted from pool; `is_alive()` exposed; stderr captured; no zombie processes | integration |
+| RTM-224 | FR-50: prompt timeout | `crates/maenifold-core/src/acp/native.rs` | TC-224: T-67.5 — `prompt()` wrapped with timeout; cancel sent on timeout; dead `_timeout` removed from `AcpxDriver` | unit |

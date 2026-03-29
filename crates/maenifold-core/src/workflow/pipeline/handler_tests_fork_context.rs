@@ -20,19 +20,22 @@ fn pipeline_fork_inherits_predecessor_context() {
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                },
+                
+                    timeout: None},
                 super::super::PipelineNode::Workflow {
                     id: "B".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
                     prompt: None,
-                },
+                
+                    timeout: None},
                 super::super::PipelineNode::Workflow {
                     id: "C".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                },
+                
+                    timeout: None},
             ],
             edges: vec![
                 super::super::PipelineEdge {

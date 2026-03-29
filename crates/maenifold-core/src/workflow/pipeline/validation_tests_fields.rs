@@ -10,7 +10,8 @@ fn validate_pipeline_rejects_invalid_type_specific_fields() {
                 workflow_id: "   ".to_string(),
                 acp_client: None,
                 prompt: None,
-            },
+            
+                timeout: None},
             "workflow-node",
             "workflowId",
         ),
@@ -24,7 +25,8 @@ fn validate_pipeline_rejects_invalid_type_specific_fields() {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
-            },
+            
+                timeout: None},
             "prompt-node",
             "prompt",
         ),
@@ -38,7 +40,8 @@ fn validate_pipeline_rejects_invalid_type_specific_fields() {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
-            },
+            
+                timeout: None},
             "prompt-agent-node",
             "agent",
         ),
@@ -53,7 +56,8 @@ fn validate_pipeline_rejects_invalid_type_specific_fields() {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
-            },
+            
+                timeout: None},
             "thinking-topic-node",
             "topic",
         ),
@@ -68,7 +72,8 @@ fn validate_pipeline_rejects_invalid_type_specific_fields() {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
-            },
+            
+                timeout: None},
             "thinking-agent-node",
             "agent",
         ),
@@ -83,7 +88,8 @@ fn validate_pipeline_rejects_invalid_type_specific_fields() {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
-            },
+            
+                timeout: None},
             "thinking-count-node",
             "totalThoughts",
         ),

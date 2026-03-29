@@ -1,0 +1,202 @@
+/// ACP session management — new session, prompt, timeout, and cleanup.
+use acp::Agent;
+use agent_client_protocol as acp;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::{
+    sync::Mutex,
+    time::{Duration, timeout},
+};
+
+use super::types::{AgentError, AgentResponse, Result, SessionInfo, SessionOpts};
+use crate::acp_native::client::SessionAccumulator;
+
+pub(super) async fn handle_new_session(
+    conn: &acp::ClientSideConnection,
+    opts: SessionOpts,
+) -> Result<SessionInfo> {
+    let response = conn
+        .new_session(acp::NewSessionRequest::new(opts.cwd))
+        .await
+        .map_err(|error| AgentError::Acp(error.to_string()))?;
+    let sid = response.session_id.clone();
+    let session_info = SessionInfo {
+        session_id: sid.to_string(),
+        modes: response
+            .modes
+            .as_ref()
+            .map(|state| state.available_modes.clone())
+            .unwrap_or_default(),
+        models: response
+            .models
+            .as_ref()
+            .map(|state| state.available_models.clone())
+            .unwrap_or_default(),
+        config_options: response.config_options.clone().unwrap_or_default(),
+    };
+    if let Some(model) = opts.model
+        && let Err(error) = conn
+            .set_session_model(acp::SetSessionModelRequest::new(sid.clone(), model))
+            .await
+    {
+        tracing::warn!("Failed to set ACP session model: {error}");
+    }
+    set_option(conn, sid.clone(), "thought_level", opts.thought_level).await;
+    set_option(
+        conn,
+        sid.clone(),
+        "allowed_tools",
+        opts.allowed_tools
+            .map(|tools| serde_json::to_string(&tools).unwrap_or_else(|_| "[]".to_string())),
+    )
+    .await;
+    set_option(
+        conn,
+        sid.clone(),
+        "max_turns",
+        opts.max_turns.map(|turns| turns.to_string()),
+    )
+    .await;
+    Ok(session_info)
+}
+
+async fn set_option(
+    conn: &acp::ClientSideConnection,
+    session_id: acp::SessionId,
+    config_id: &str,
+    value: Option<String>,
+) {
+    if let Some(value) = value
+        && let Err(error) = conn
+            .set_session_config_option(acp::SetSessionConfigOptionRequest::new(
+                session_id,
+                config_id.to_string(),
+                value,
+            ))
+            .await
+    {
+        tracing::warn!("Failed to set ACP session config {config_id}: {error}");
+    }
+}
+
+pub(super) async fn handle_prompt(
+    conn: &acp::ClientSideConnection,
+    sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>,
+    session_id: &str,
+    prompt: &str,
+) -> Result<AgentResponse> {
+    sessions
+        .lock()
+        .await
+        .insert(session_id.to_string(), SessionAccumulator::default());
+    let response = conn
+        .prompt(acp::PromptRequest::new(
+            acp::SessionId::new(session_id.to_string()),
+            vec![acp::ContentBlock::Text(acp::TextContent::new(prompt))],
+        ))
+        .await
+        .map_err(|error| AgentError::Acp(error.to_string()));
+    let mut result = sessions
+        .lock()
+        .await
+        .remove(session_id)
+        .unwrap_or_default()
+        .into_response();
+    let response = response?;
+    result.stop_reason = Some(format!("{:?}", response.stop_reason));
+    Ok(result)
+}
+
+pub(super) async fn cleanup_timed_out_prompt(
+    conn: &acp::ClientSideConnection,
+    sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>,
+    session_id: &str,
+) {
+    sessions.lock().await.remove(session_id);
+    let session_id = acp::SessionId::new(session_id.to_string());
+    if let Err(error) = conn
+        .cancel(acp::CancelNotification::new(session_id.clone()))
+        .await
+    {
+        tracing::warn!("Failed to cancel timed out ACP prompt: {error}");
+    }
+    if let Err(error) = conn
+        .close_session(acp::CloseSessionRequest::new(session_id))
+        .await
+    {
+        tracing::warn!("Failed to close timed out ACP session: {error}");
+    }
+}
+
+pub(super) async fn run_with_timeout<T, O, C>(
+    duration: Duration,
+    operation: O,
+    on_timeout: C,
+    timeout_message: String,
+) -> Result<T>
+where
+    O: std::future::Future<Output = Result<T>>,
+    C: std::future::Future<Output = ()>,
+{
+    match timeout(duration, operation).await {
+        Ok(result) => result,
+        Err(_) => {
+            on_timeout.await;
+            Err(AgentError::Acp(timeout_message))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AgentError, run_with_timeout};
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+    use tokio::time::{Duration, sleep};
+
+    #[tokio::test]
+    async fn run_with_timeout_returns_operation_result_before_deadline() {
+        let cleanups = Arc::new(AtomicUsize::new(0));
+        let result = run_with_timeout(
+            Duration::from_millis(50),
+            async { Ok::<_, AgentError>("ok") },
+            {
+                let cleanups = Arc::clone(&cleanups);
+                async move {
+                    cleanups.fetch_add(1, Ordering::SeqCst);
+                }
+            },
+            "prompt timed out".to_string(),
+        )
+        .await
+        .expect("operation should complete");
+
+        assert_eq!(result, "ok");
+        assert_eq!(cleanups.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn run_with_timeout_runs_cleanup_when_operation_times_out() {
+        let cleanups = Arc::new(AtomicUsize::new(0));
+        let result = run_with_timeout(
+            Duration::from_millis(10),
+            async {
+                sleep(Duration::from_millis(50)).await;
+                Ok::<_, AgentError>("late")
+            },
+            {
+                let cleanups = Arc::clone(&cleanups);
+                async move {
+                    cleanups.fetch_add(1, Ordering::SeqCst);
+                }
+            },
+            "prompt timed out".to_string(),
+        )
+        .await;
+
+        assert!(matches!(result, Err(AgentError::Acp(message)) if message == "prompt timed out"));
+        assert_eq!(cleanups.load(Ordering::SeqCst), 1);
+    }
+}

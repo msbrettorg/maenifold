@@ -14,7 +14,8 @@ fn old_workflow_json_still_deserializes() {
             workflow_id: "wf".into(),
             acp_client: Some("agent".into()),
             prompt: None,
-        }
+        
+            timeout: None}
     );
 }
 
@@ -25,7 +26,8 @@ fn workflow_serialization_is_tagged() {
         workflow_id: "wf".into(),
         acp_client: None,
         prompt: Some("Summarize".into()),
-    };
+    
+        timeout: None};
     assert_eq!(
         serde_json::to_value(node).unwrap(),
         json!({"type":"workflow","id":"n1","workflowId":"wf","prompt":"Summarize"})
@@ -43,7 +45,8 @@ fn prompt_serialization_is_tagged() {
         thought_level: None,
         allowed_tools: None,
         max_turns: None,
-    };
+    
+        timeout: None};
     assert_eq!(
         serde_json::to_value(node).unwrap(),
         json!({"type":"prompt","id":"n2","prompt":"Review {{input}}","agent":"claude"})
@@ -62,7 +65,8 @@ fn sequential_thinking_serialization_is_tagged() {
         thought_level: None,
         allowed_tools: None,
         max_turns: None,
-    };
+    
+        timeout: None};
     assert_eq!(
         serde_json::to_value(node).unwrap(),
         json!({"type":"sequentialThinking","id":"n3","topic":"Tradeoffs","analysisType":"architecture","agent":"claude"})

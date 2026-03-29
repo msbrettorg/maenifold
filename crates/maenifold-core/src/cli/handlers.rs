@@ -1,7 +1,7 @@
 use crate::acp_config::AgentsConfig;
+use crate::acp_native::{AgentPool, SessionOpts};
 use crate::config::Config;
 use crate::error::MaenifoldError;
-use crate::acp_native::{AgentPool, SessionOpts};
 use crate::mcp::{self, MaenifoldMcpServer};
 use crate::sync::watchers;
 use crate::tools::ToolContext;
@@ -9,10 +9,11 @@ use crate::util::json::OutputFormat;
 use crate::workflow::runner::{ThinkOptions, run_think, run_workflow};
 use serde_json::json;
 
-const PROMPT_USAGE: &str = "Usage: maenifold prompt <agent> <message>\n\nSends a single prompt to an ACP agent and prints the response.";
+const PROMPT_USAGE: &str = "Usage: maenifold prompt <agent> <message> [--model <model>]\n\nSends a single prompt to an ACP agent and prints the response.";
 const WORKFLOW_USAGE: &str = "Usage: maenifold workflow <workflow-id> <agent> <prompt>\n\nRuns a workflow session through the configured ACP agent and prints the conclusion.";
 const THINK_USAGE: &str = "Usage: maenifold think <agent> <topic>\n\nRuns a sequential thinking session through the configured ACP agent and prints the conclusion.";
-const TOOL_USAGE: &str = "Usage: maenifold tool <name> '<json-payload>' [--json]\n\nInvokes a maenifold tool directly.";
+const TOOL_USAGE: &str =
+    "Usage: maenifold tool <name> '<json-payload>' [--json]\n\nInvokes a maenifold tool directly.";
 
 pub(super) fn run_mcp() -> i32 {
     let config = Config::current();
@@ -128,13 +129,44 @@ fn run_prompt_command(args: &[String]) -> i32 {
         println!("{PROMPT_USAGE}");
         return 0;
     }
-    let (agent, message) = match args {
-        [agent, message] => (agent.clone(), message.clone()),
-        _ => {
-            eprintln!("{PROMPT_USAGE}");
-            return 1;
-        }
+    let Some((agent, rest)) = args.split_first() else {
+        eprintln!("{PROMPT_USAGE}");
+        return 1;
     };
+    let mut model = None;
+    let mut message = None;
+    let mut index = 0usize;
+    while index < rest.len() {
+        match rest[index].as_str() {
+            "--model" => {
+                let Some(value) = rest.get(index + 1) else {
+                    eprintln!("{PROMPT_USAGE}");
+                    return 1;
+                };
+                model = Some(value.clone());
+                index += 2;
+            }
+            arg if arg.starts_with("--model=") => {
+                model = Some(arg["--model=".len()..].to_string());
+                index += 1;
+            }
+            arg if arg.starts_with("--") || message.is_some() => {
+                eprintln!("{PROMPT_USAGE}");
+                return 1;
+            }
+            value => {
+                message = Some(value.to_string());
+                index += 1;
+            }
+        }
+    }
+    let Some(message) = message else {
+        eprintln!("{PROMPT_USAGE}");
+        return 1;
+    };
+    let agent = agent.clone();
+    let model = model.clone();
+    let message = message.clone();
     run_async_command(move |context| async move {
         let pool = AgentPool::new();
         let command = AgentsConfig::load(&context.config.maenifold_root)
@@ -142,10 +174,7 @@ fn run_prompt_command(args: &[String]) -> i32 {
             .get(&agent)
             .map(|entry| entry.command.clone())
             .ok_or_else(|| {
-                MaenifoldError::Message(format!(
-                    "agent '{}' not configured in agents.json",
-                    agent
-                ))
+                MaenifoldError::Message(format!("agent '{}' not configured in agents.json", agent))
             })?;
         let handle = pool
             .get_or_create(&agent, &command, &context.config.maenifold_root)
@@ -153,13 +182,15 @@ fn run_prompt_command(args: &[String]) -> i32 {
         let remote_id = handle
             .new_session(SessionOpts {
                 cwd: context.config.maenifold_root.clone(),
-                model: None,
+                model: model.clone(),
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
+                timeout_seconds: None,
             })
             .await
-            .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+            .map_err(|error| MaenifoldError::Message(error.to_string()))?
+            .session_id;
         let response = handle.prompt(&remote_id, &message).await;
         handle.close_session(&remote_id).await;
         let response = response.map_err(|error| MaenifoldError::Message(error.to_string()))?;

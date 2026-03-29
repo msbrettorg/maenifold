@@ -98,12 +98,7 @@ fn read_memory_json_returns_content_uri_and_checksum_after_write() {
     let write_payload =
         r#"{"title":"Read Test","content":"Content with [[read-memory]] concept."}"#;
     let write_output = maenifold_cmd(&tmp)
-        .args([
-            "tool",
-            "WriteMemory",
-            write_payload,
-            "--json",
-        ])
+        .args(["tool", "WriteMemory", write_payload, "--json"])
         .assert()
         .code(0)
         .get_output()

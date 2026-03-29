@@ -166,3 +166,15 @@ All production source files SHALL be refactored to comply with the 300 LOC maxim
 - All existing tests MUST pass before and after.
 - Inline `#[cfg(test)]` blocks count toward file LOC and should be extracted to dedicated test files where they push a file over the limit.
 - Each extracted module SHALL have a clear single responsibility documented in a module-level comment.
+
+### FR-50: Native ACP Client Hardening
+
+The native ACP client (`acp/native.rs`) SHALL be hardened to capture full protocol state, propagate pipeline configuration, and handle agent lifecycle failures gracefully.
+
+- **Capability capture**: `spawn_agent` SHALL capture `InitializeResponse` and store `AgentCapabilities`, `Implementation` (agent info), and `auth_methods` on the `AgentHandle` for downstream use.
+- **Protocol version check**: The client SHALL log a warning on protocol version mismatch (no hard disconnect).
+- **Session config passthrough**: `open_agent_session()` SHALL accept `SessionOpts` with model, thought_level, allowed_tools, max_turns — pipeline node config SHALL flow through to ACP sessions.
+- **Session update handling**: `HeadlessClient::session_notification` SHALL handle `ToolCall`, `AgentThoughtChunk`, `Plan`, `AvailableCommandsUpdate`, and non-Text `AgentMessageChunk` variants (not just text). `AcpxResponse` SHALL return populated `tool_calls` and `thought` fields.
+- **Crash recovery**: When the ACP I/O task exits, the command loop SHALL terminate, `AgentPool` SHALL evict the dead handle, and `get_or_create()` SHALL spawn a fresh agent. Agent `stderr` SHALL be captured via a spawned reader task.
+- **Prompt timeout**: `AgentHandle::prompt()` SHALL wrap with `tokio::time::timeout` (configurable, default 300s). On timeout, `cancel()` SHALL be sent and the session closed.
+- **File extraction**: If `native.rs` exceeds 300 LOC, client and pool logic SHALL be extracted to `client.rs` and `pool.rs`.

@@ -12,9 +12,8 @@ fn recent_activity_json_flag_learn_true_returns_help_documentation() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "RecentActivity",
-            "--payload",
             r#"{"learn":true}"#,
             "--json",
         ])
@@ -47,9 +46,8 @@ fn recent_activity_json_flag_empty_database_reports_no_recent_activity() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "RecentActivity",
-            "--payload",
             r#"{"limit":10}"#,
             "--json",
         ])
@@ -71,9 +69,8 @@ fn run_full_benchmark_json_flag_learn_true_returns_help_documentation() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "RunFullBenchmark",
-            "--payload",
             r#"{"learn":true}"#,
             "--json",
         ])
@@ -107,9 +104,8 @@ fn run_full_benchmark_json_flag_iterations_zero_returns_error_envelope() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "RunFullBenchmark",
-            "--payload",
             r#"{"iterations":0}"#,
             "--json",
         ])
@@ -154,9 +150,8 @@ Using [[tools]] and [[coding-tool]].
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "RepairConcepts",
-            "--payload",
             r#"{"conceptsToReplace":"tools","canonicalConcept":"tool","dryRun":false,"minSemanticSimilarity":0.0}"#,
             "--json",
         ])
@@ -203,9 +198,8 @@ Using [[tools]] for a dry-run.
     let original = fs::read_to_string(tmp.path().join("memory/repair/dry-run.md")).expect("read");
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "RepairConcepts",
-            "--payload",
             r#"{"conceptsToReplace":"tools","canonicalConcept":"tool","dryRun":true,"minSemanticSimilarity":0.0}"#,
             "--json",
         ])
@@ -236,9 +230,8 @@ fn repair_concepts_json_flag_learn_true_returns_help_documentation() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "RepairConcepts",
-            "--payload",
             r#"{"conceptsToReplace":"tools","canonicalConcept":"tool","learn":true}"#,
             "--json",
         ])

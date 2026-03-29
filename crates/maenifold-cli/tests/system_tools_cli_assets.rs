@@ -12,9 +12,8 @@ fn analyze_concept_corruption_json_flag_learn_true_returns_help_documentation() 
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "AnalyzeConceptCorruption",
-            "--payload",
             r#"{"conceptFamily":"tool","learn":true}"#,
             "--json",
         ])
@@ -45,9 +44,8 @@ fn analyze_concept_corruption_json_flag_reports_zero_variants_for_unknown_family
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "AnalyzeConceptCorruption",
-            "--payload",
             r#"{"conceptFamily":"zzz_nonexistent"}"#,
             "--json",
         ])
@@ -76,9 +74,8 @@ fn adopt_learn_true_json_returns_success_envelope() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "Adopt",
-            "--payload",
             r#"{"type":"role","identifier":"test","learn":true}"#,
             "--json",
         ])
@@ -106,9 +103,8 @@ fn adopt_invalid_type_json_returns_error_envelope() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "Adopt",
-            "--payload",
             r#"{"type":"invalid","identifier":"x"}"#,
             "--json",
         ])
@@ -138,9 +134,8 @@ fn update_assets_json_flag_learn_true_returns_help_documentation() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "UpdateAssets",
-            "--payload",
             r#"{"learn":true}"#,
             "--json",
         ])
@@ -175,7 +170,7 @@ fn update_assets_json_flag_dry_run_reports_changed_files() {
     let source = PackagedAssetGuard::create(&relative, r#"{"id":"t14c-cli-updated","version":1}"#);
 
     maenifold_cmd(&tmp)
-        .args(["--tool", "GetConfig", "--payload", "{}", "--json"])
+        .args(["tool", "GetConfig", "{}", "--json"])
         .assert()
         .code(0);
 
@@ -183,9 +178,8 @@ fn update_assets_json_flag_dry_run_reports_changed_files() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "UpdateAssets",
-            "--payload",
             r#"{"dryRun":true}"#,
             "--json",
         ])

@@ -108,6 +108,13 @@ impl CliApp {
     }
 
     fn run_inner(args: &[String]) -> std::result::Result<String, (String, i32)> {
+        Self::run_tool_inner(args, true)
+    }
+
+    fn run_tool_inner(
+        args: &[String],
+        warn_deprecated: bool,
+    ) -> std::result::Result<String, (String, i32)> {
         let config = Config::current();
         if let Err(err) = mcp::initialize_runtime(&config) {
             return Err((format!("Error initializing storage: {err}"), 1));
@@ -117,6 +124,11 @@ impl CliApp {
             // T-12.7: RTM NFR-1 - invalid direct CLI invocations must keep the established C#-parity exit code.
             return Err(usage_error());
         };
+        if warn_deprecated {
+            eprintln!(
+                "warning: --tool is deprecated, use: maenifold tool <name> '<payload>' [--json]"
+            );
+        }
         let Some(tool_name) = args.get(tool_index + 1) else {
             // T-12.7: RTM NFR-1 - invalid direct CLI invocations must keep the established C#-parity exit code.
             return Err(usage_error());
@@ -256,19 +268,20 @@ fn usage() -> String {
         "Usage:",
         "  MCP Server mode:   maenifold --mcp",
         "  HTTP Server mode:  maenifold --http [--port <PORT>]",
-        "  Direct tool mode:  maenifold --tool <name> --payload '<json>' [--json]",
-        "  Workflow mode:     maenifold workflow <workflow-id> <agent> <prompt>",
+        "  Prompt mode:       maenifold prompt <agent> <message>",
         "  Think mode:        maenifold think <agent> <topic>",
+        "  Workflow mode:     maenifold workflow <workflow-id> <agent> <prompt>",
+        "  Tool mode:         maenifold tool <name> '<json-payload>' [--json]",
         "",
-        "  (For development from source: cargo run -p maenifold-cli -- --tool <name> --payload '<json>')",
+        "  (For development from source: cargo run -p maenifold-cli -- tool <name> '<json>')",
         "",
         "Options:",
         "  --json             Output structured JSON instead of markdown (FR-8.1)",
         "",
         "Examples:",
-        "  maenifold --tool WriteMemory --payload '{\"title\":\"Test\",\"content\":\"Content with [[WikiLink]]\"}'",
-        "  maenifold --tool SearchMemories --payload '{\"query\":\"authentication\",\"mode\":\"Hybrid\"}'",
-        "  maenifold --tool BuildContext --payload '{\"conceptName\":\"Machine Learning\",\"depth\":2}'",
+        "  maenifold tool WriteMemory '{\"title\":\"Test\",\"content\":\"Content with [[WikiLink]]\"}'",
+        "  maenifold tool SearchMemories '{\"query\":\"authentication\",\"mode\":\"Hybrid\"}'",
+        "  maenifold tool BuildContext '{\"conceptName\":\"Machine Learning\",\"depth\":2}'",
         "",
         "Available tools:",
         "  Memory: WriteMemory, ReadMemory, EditMemory, DeleteMemory, MoveMemory",

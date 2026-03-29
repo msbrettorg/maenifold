@@ -18,9 +18,8 @@ fn search_memories_json_returns_seeded_result_after_sync() {
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
         .args([
-            "--tool",
+            "tool",
             "WriteMemory",
-            "--payload",
             r#"{"title":"Search Seed","content":"Testing [[search-index]] and [[machine-learning]]."}"#,
             "--json",
         ])
@@ -30,7 +29,7 @@ fn search_memories_json_returns_seeded_result_after_sync() {
     maenifold_cmd()
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
-        .args(["--tool", "Sync", "--payload", "{}", "--json"])
+        .args(["tool", "Sync", "{}", "--json"])
         .assert()
         .code(0);
 
@@ -38,9 +37,8 @@ fn search_memories_json_returns_seeded_result_after_sync() {
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
         .args([
-            "--tool",
+            "tool",
             "SearchMemories",
-            "--payload",
             r#"{"query":"machine learning","mode":"Hybrid","pageSize":5,"page":1}"#,
             "--json",
         ])
@@ -65,9 +63,8 @@ fn build_context_cli_returns_neighboring_concepts() {
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
         .args([
-            "--tool",
+            "tool",
             "WriteMemory",
-            "--payload",
             r#"{"title":"Context Seed A","content":"This links [[authentication]] and [[oauth2]]."}"#,
             "--json",
         ])
@@ -78,9 +75,8 @@ fn build_context_cli_returns_neighboring_concepts() {
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
         .args([
-            "--tool",
+            "tool",
             "WriteMemory",
-            "--payload",
             r#"{"title":"Context Seed B","content":"This links [[authentication]] and [[jwt]]."}"#,
             "--json",
         ])
@@ -90,7 +86,7 @@ fn build_context_cli_returns_neighboring_concepts() {
     maenifold_cmd()
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
-        .args(["--tool", "Sync", "--payload", "{}", "--json"])
+        .args(["tool", "Sync", "{}", "--json"])
         .assert()
         .code(0);
 
@@ -98,9 +94,8 @@ fn build_context_cli_returns_neighboring_concepts() {
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
         .args([
-            "--tool",
+            "tool",
             "BuildContext",
-            "--payload",
             r#"{"conceptName":"authentication","depth":1}"#,
             "--json",
         ])

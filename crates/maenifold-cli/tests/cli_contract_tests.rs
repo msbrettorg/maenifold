@@ -19,7 +19,7 @@ fn unknown_tool_returns_json_error_envelope() {
     let output = cmd
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
-        .args(["--tool", "Nope", "--payload", "{}", "--json"])
+        .args(["tool", "Nope", "{}", "--json"])
         .assert()
         .code(1)
         .get_output()
@@ -37,7 +37,7 @@ fn invalid_payload_returns_json_error_envelope() {
     let output = cmd
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
-        .args(["--tool", "ListAssets", "--payload", "{", "--json"])
+        .args(["tool", "ListAssets", "{", "--json"])
         .assert()
         .code(1)
         .get_output()
@@ -55,7 +55,7 @@ fn list_assets_returns_json_array() {
     let output = cmd
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
-        .args(["--tool", "ListAssets", "--payload", "{}", "--json"])
+        .args(["tool", "ListAssets", "{}", "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -88,7 +88,7 @@ fn missing_payload_prints_usage_and_exits_1() {
     maenifold_cmd()
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
-        .args(["--tool", "GetConfig", "--json"])
+        .args(["tool", "GetConfig", "--json"])
         .assert()
         .code(1)
         .stdout(contains("maenifold CLI"));
@@ -100,7 +100,7 @@ fn memory_status_allows_omitted_payload() {
     let output = maenifold_cmd()
         .env("MAENIFOLD_ROOT", tmp.path())
         .env("MAENIFOLD_DATABASE_PATH", tmp.path().join("memory.db"))
-        .args(["--tool", "MemoryStatus", "--json"])
+        .args(["tool", "MemoryStatus", "--json"])
         .assert()
         .code(0)
         .get_output()

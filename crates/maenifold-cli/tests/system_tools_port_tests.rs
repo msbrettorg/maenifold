@@ -18,7 +18,7 @@ fn maenifold_cmd(tmp: &TempDir) -> Command {
 
 fn run_tool_text(tmp: &TempDir, tool: &str, payload: &str) -> String {
     let output = maenifold_cmd(tmp)
-        .args(["--tool", tool, "--payload", payload])
+        .args(["tool", tool, payload])
         .assert()
         .code(0)
         .get_output()

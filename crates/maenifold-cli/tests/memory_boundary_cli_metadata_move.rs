@@ -12,7 +12,7 @@ fn write_memory_with_existing_h1_does_not_duplicate_heading() {
     let payload = r##"{"title":"Duplicate H1 Test","content":"# Existing Heading\n\nContent with [[concept]]"}"##;
 
     maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", payload])
+        .args(["tool", "WriteMemory", payload])
         .assert()
         .code(0);
 
@@ -48,7 +48,7 @@ fn read_memory_handles_missing_title_in_frontmatter() {
     let payload =
         r#"{"identifier":"memory://memory-tools-tests/no-title-test","includeChecksum":true}"#;
     let output = maenifold_cmd(&tmp)
-        .args(["--tool", "ReadMemory", "--payload", payload])
+        .args(["tool", "ReadMemory", payload])
         .assert()
         .code(0)
         .get_output()
@@ -78,7 +78,7 @@ fn read_memory_handles_empty_frontmatter() {
 
     let payload = r#"{"identifier":"memory://memory-tools-tests/no-frontmatter-test","includeChecksum":true}"#;
     let output = maenifold_cmd(&tmp)
-        .args(["--tool", "ReadMemory", "--payload", payload])
+        .args(["tool", "ReadMemory", payload])
         .assert()
         .code(0)
         .get_output()
@@ -96,7 +96,7 @@ fn write_memory_does_not_write_embedding_fields() {
     let payload = r#"{"title":"Embedding Removal Test","content":"Content with [[vector-embeddings]] concept to ensure write path works."}"#;
 
     maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", payload])
+        .args(["tool", "WriteMemory", payload])
         .assert()
         .code(0)
         .stdout(predicate::str::contains("Created memory FILE:"));
@@ -114,7 +114,7 @@ fn move_memory_with_path_based_destination_preserves_markdown_extension_contract
     let tmp = isolated_root();
     let write_payload = r##"{"title":"Move Extension Test","content":"# Move Extension Test\n\nTesting [[file-operations]] preserves .md extension."}"##;
     maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", write_payload])
+        .args(["tool", "WriteMemory", write_payload])
         .assert()
         .code(0)
         .stdout(predicate::str::contains(
@@ -123,7 +123,7 @@ fn move_memory_with_path_based_destination_preserves_markdown_extension_contract
 
     let move_payload = r#"{"source":"memory://move-extension-test","destination":"regression-test/Moved Extension Test"}"#;
     maenifold_cmd(&tmp)
-        .args(["--tool", "MoveMemory", "--payload", move_payload])
+        .args(["tool", "MoveMemory", move_payload])
         .assert()
         .code(0)
         .stdout(predicate::str::contains(
@@ -143,7 +143,7 @@ fn move_memory_with_path_based_destination_preserves_markdown_extension_contract
     let read_payload =
         r#"{"identifier":"memory://regression-test/moved-extension-test","includeChecksum":true}"#;
     let read_output = maenifold_cmd(&tmp)
-        .args(["--tool", "ReadMemory", "--payload", read_payload])
+        .args(["tool", "ReadMemory", read_payload])
         .assert()
         .code(0)
         .get_output()
@@ -158,7 +158,7 @@ fn move_memory_with_simple_destination_preserves_existing_behavior() {
     let tmp = isolated_root();
     let write_payload = r##"{"title":"Simple Move Test","content":"# Simple Move Test\n\nTesting [[refactoring]] functionality."}"##;
     maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", write_payload])
+        .args(["tool", "WriteMemory", write_payload])
         .assert()
         .code(0)
         .stdout(predicate::str::contains(
@@ -168,7 +168,7 @@ fn move_memory_with_simple_destination_preserves_existing_behavior() {
     let move_payload =
         r#"{"source":"memory://simple-move-test","destination":"Simple Move Renamed"}"#;
     maenifold_cmd(&tmp)
-        .args(["--tool", "MoveMemory", "--payload", move_payload])
+        .args(["tool", "MoveMemory", move_payload])
         .assert()
         .code(0)
         .stdout(predicate::str::contains(
@@ -178,7 +178,7 @@ fn move_memory_with_simple_destination_preserves_existing_behavior() {
 
     let read_payload = r#"{"identifier":"memory://simple-move-renamed","includeChecksum":true}"#;
     let read_output = maenifold_cmd(&tmp)
-        .args(["--tool", "ReadMemory", "--payload", read_payload])
+        .args(["tool", "ReadMemory", read_payload])
         .assert()
         .code(0)
         .get_output()

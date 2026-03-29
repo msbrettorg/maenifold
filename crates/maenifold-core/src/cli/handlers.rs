@@ -1,5 +1,7 @@
+use crate::acp_config::AgentsConfig;
 use crate::config::Config;
 use crate::error::MaenifoldError;
+use crate::acp_native::{AgentPool, SessionOpts};
 use crate::mcp::{self, MaenifoldMcpServer};
 use crate::sync::watchers;
 use crate::tools::ToolContext;
@@ -7,8 +9,10 @@ use crate::util::json::OutputFormat;
 use crate::workflow::runner::{ThinkOptions, run_think, run_workflow};
 use serde_json::json;
 
+const PROMPT_USAGE: &str = "Usage: maenifold prompt <agent> <message>\n\nSends a single prompt to an ACP agent and prints the response.";
 const WORKFLOW_USAGE: &str = "Usage: maenifold workflow <workflow-id> <agent> <prompt>\n\nRuns a workflow session through the configured ACP agent and prints the conclusion.";
 const THINK_USAGE: &str = "Usage: maenifold think <agent> <topic>\n\nRuns a sequential thinking session through the configured ACP agent and prints the conclusion.";
+const TOOL_USAGE: &str = "Usage: maenifold tool <name> '<json-payload>' [--json]\n\nInvokes a maenifold tool directly.";
 
 pub(super) fn run_mcp() -> i32 {
     let config = Config::current();
@@ -75,8 +79,10 @@ pub(super) fn run_script_command(args: &[String]) -> Option<i32> {
         return None;
     }
     match command.as_str() {
-        "workflow" => Some(run_workflow_command(rest)),
+        "prompt" => Some(run_prompt_command(rest)),
         "think" => Some(run_think_command(rest)),
+        "workflow" => Some(run_workflow_command(rest)),
+        "tool" => Some(run_tool_command(rest)),
         _ => None,
     }
 }
@@ -117,6 +123,50 @@ fn run_workflow_command(args: &[String]) -> i32 {
     })
 }
 
+fn run_prompt_command(args: &[String]) -> i32 {
+    if matches!(args, [help] if help == "--help") {
+        println!("{PROMPT_USAGE}");
+        return 0;
+    }
+    let (agent, message) = match args {
+        [agent, message] => (agent.clone(), message.clone()),
+        _ => {
+            eprintln!("{PROMPT_USAGE}");
+            return 1;
+        }
+    };
+    run_async_command(move |context| async move {
+        let pool = AgentPool::new();
+        let command = AgentsConfig::load(&context.config.maenifold_root)
+            .agents
+            .get(&agent)
+            .map(|entry| entry.command.clone())
+            .ok_or_else(|| {
+                MaenifoldError::Message(format!(
+                    "agent '{}' not configured in agents.json",
+                    agent
+                ))
+            })?;
+        let handle = pool
+            .get_or_create(&agent, &command, &context.config.maenifold_root)
+            .await;
+        let remote_id = handle
+            .new_session(SessionOpts {
+                cwd: context.config.maenifold_root.clone(),
+                model: None,
+                thought_level: None,
+                allowed_tools: None,
+                max_turns: None,
+            })
+            .await
+            .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+        let response = handle.prompt(&remote_id, &message).await;
+        handle.close_session(&remote_id).await;
+        let response = response.map_err(|error| MaenifoldError::Message(error.to_string()))?;
+        Ok(response.text)
+    })
+}
+
 fn run_think_command(args: &[String]) -> i32 {
     if matches!(args, [help] if help == "--help") {
         println!("{THINK_USAGE}");
@@ -134,6 +184,43 @@ fn run_think_command(args: &[String]) -> i32 {
             .await
             .map(|result| result.conclusion.unwrap_or_default())
     })
+}
+
+fn run_tool_command(args: &[String]) -> i32 {
+    if matches!(args, [help] if help == "--help") {
+        println!("{TOOL_USAGE}");
+        return 0;
+    }
+    if args.is_empty() {
+        eprintln!("{TOOL_USAGE}");
+        return 1;
+    }
+
+    let mut translated = Vec::new();
+    let mut iter = args.iter().peekable();
+
+    if let Some(name) = iter.next() {
+        translated.push("--tool".to_string());
+        translated.push(name.clone());
+    }
+    if let Some(payload) = iter.peek() {
+        if !payload.starts_with("--") {
+            translated.push("--payload".to_string());
+            translated.push(iter.next().unwrap().clone());
+        }
+    }
+    translated.extend(iter.cloned());
+
+    match super::CliApp::run_tool_inner(&translated, false) {
+        Ok(output) => {
+            println!("{output}");
+            0
+        }
+        Err((output, code)) => {
+            println!("{output}");
+            code
+        }
+    }
 }
 
 fn run_async_command<F, Fut>(f: F) -> i32

@@ -11,7 +11,7 @@ fn list_memories_json_mode_returns_envelope_with_markdown_data() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args(["--tool", "ListMemories", "--payload", "{}", "--json"])
+        .args(["tool", "ListMemories", "{}", "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -36,9 +36,8 @@ fn list_memories_nonexistent_path_returns_directory_not_found() {
 
     maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "ListMemories",
-            "--payload",
             r#"{"path":"non-existent-directory-xyz"}"#,
         ])
         .assert()
@@ -53,7 +52,7 @@ fn list_memories_includes_decay_metadata_and_top_level_folders() {
     let tmp = isolated_root();
     let root_payload = r#"{"title":"Seed Root","content":"Testing [[system-tools]]."}"#;
     maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", root_payload])
+        .args(["tool", "WriteMemory", root_payload])
         .assert()
         .code(0);
 
@@ -75,9 +74,8 @@ fn list_memories_includes_decay_metadata_and_top_level_folders() {
 
     let parent_output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "ListMemories",
-            "--payload",
             r#"{"path":"decay-metadata-tests"}"#,
         ])
         .assert()
@@ -94,9 +92,8 @@ fn list_memories_includes_decay_metadata_and_top_level_folders() {
 
     let child_output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "ListMemories",
-            "--payload",
             r#"{"path":"decay-metadata-tests/standard"}"#,
         ])
         .assert()
@@ -117,9 +114,8 @@ fn get_help_invalid_tool_lists_available_tools() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "GetHelp",
-            "--payload",
             r#"{"toolName":"non-existent-tool-xyz"}"#,
         ])
         .assert()
@@ -143,9 +139,8 @@ fn get_help_is_case_insensitive() {
 
     let lower = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "GetHelp",
-            "--payload",
             r#"{"toolName":"writememory"}"#,
         ])
         .assert()
@@ -155,9 +150,8 @@ fn get_help_is_case_insensitive() {
         .clone();
     let upper = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "GetHelp",
-            "--payload",
             r#"{"toolName":"WRITEMEMORY"}"#,
         ])
         .assert()
@@ -167,9 +161,8 @@ fn get_help_is_case_insensitive() {
         .clone();
     let mixed = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "GetHelp",
-            "--payload",
             r#"{"toolName":"WriteMemory"}"#,
         ])
         .assert()

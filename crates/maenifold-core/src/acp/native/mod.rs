@@ -1,3 +1,4 @@
+mod accumulator;
 mod client;
 mod pool;
 mod session;
@@ -8,7 +9,8 @@ pub use types::*;
 
 use acp::Agent;
 use agent_client_protocol as acp;
-use client::{HeadlessClient, SessionAccumulator};
+use accumulator::SessionAccumulator;
+use client::HeadlessClient;
 use session::{cleanup_timed_out_prompt, handle_new_session, handle_prompt, run_with_timeout};
 use std::{
     collections::HashMap,
@@ -105,6 +107,7 @@ pub fn spawn_agent(command: String, cwd: PathBuf) -> AgentHandle {
             let session_timeouts = Arc::new(Mutex::new(HashMap::<String, u64>::new()));
             let (conn, io_task) = acp::ClientSideConnection::new(
                 HeadlessClient {
+                    cwd: cwd.clone(),
                     sessions: Arc::clone(&sessions),
                 },
                 stdin,
@@ -116,9 +119,20 @@ pub fn spawn_agent(command: String, cwd: PathBuf) -> AgentHandle {
             let mut io_task = Some(tokio::task::spawn_local(io_task));
             let init_response = match conn
                 .initialize(
-                    acp::InitializeRequest::new(acp::ProtocolVersion::V1).client_info(
-                        acp::Implementation::new("maenifold", env!("CARGO_PKG_VERSION")),
-                    ),
+                    acp::InitializeRequest::new(acp::ProtocolVersion::V1)
+                        .client_info(acp::Implementation::new(
+                            "maenifold",
+                            env!("CARGO_PKG_VERSION"),
+                        ))
+                        .client_capabilities(
+                            acp::ClientCapabilities::new()
+                                .fs(
+                                    acp::FileSystemCapabilities::new()
+                                        .read_text_file(true)
+                                        .write_text_file(true),
+                                )
+                                .terminal(false),
+                        ),
                 )
                 .await
             {
@@ -180,6 +194,39 @@ pub fn spawn_agent(command: String, cwd: PathBuf) -> AgentHandle {
                                         .await
                                         .insert(session_info.session_id.clone(), timeout_seconds);
                                 }
+                                let _ = reply.send(result);
+                            }
+                            AgentCommand::ListSessions { cwd, reply } => {
+                                let caps = init_task.lock().ok().and_then(|i| i.as_ref().map(|i| i.capabilities.clone()));
+                                let has_list = caps.as_ref().and_then(|c| c.session_capabilities.list.as_ref()).is_some();
+                                let result = if !has_list {
+                                    Err(AgentError::Acp("agent does not support session/list".to_string()))
+                                } else {
+                                    conn.list_sessions(acp::ListSessionsRequest::new().cwd(cwd)).await
+                                        .map(|resp| resp.sessions.into_iter().map(|s| AcpxSessionInfo { session_id: s.session_id.to_string(), title: s.title, updated_at: s.updated_at }).collect())
+                                        .map_err(|error| AgentError::Acp(error.to_string()))
+                                };
+                                let _ = reply.send(result);
+                            }
+                            AgentCommand::LoadSession { session_id, opts, reply } => {
+                                let caps = init_task.lock().ok().and_then(|i| i.as_ref().map(|i| i.capabilities.clone()));
+                                let has_load = caps.as_ref().is_some_and(|c| c.load_session);
+                                let timeout_seconds = opts.resolved_timeout_seconds();
+                                let result = if !has_load {
+                                    Err(AgentError::Acp("agent does not support load_session".to_string()))
+                                } else {
+                                    let request = acp::LoadSessionRequest::new(acp::SessionId::new(session_id.clone()), opts.cwd)
+                                        .mcp_servers(opts.mcp_servers);
+                                    conn.load_session(request).await
+                                        .map(|resp| SessionInfo {
+                                            session_id: session_id.clone(),
+                                            modes: resp.modes.as_ref().map(|s| s.available_modes.clone()).unwrap_or_default(),
+                                            models: resp.models.as_ref().map(|s| s.available_models.clone()).unwrap_or_default(),
+                                            config_options: resp.config_options.unwrap_or_default(),
+                                        })
+                                        .map_err(|error| AgentError::Acp(error.to_string()))
+                                };
+                                if result.is_ok() { session_timeouts.lock().await.insert(session_id, timeout_seconds); }
                                 let _ = reply.send(result);
                             }
                             AgentCommand::Prompt {

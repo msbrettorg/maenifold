@@ -14,8 +14,9 @@ fn workflow_node(id: &str, workflow_id: &str) -> PipelineNode {
         workflow_id: workflow_id.to_string(),
         acp_client: None,
         prompt: None,
-    
-        timeout: None}
+
+        timeout: None,
+    }
 }
 
 fn prompt_node(id: &str, prompt: &str, agent: &str) -> PipelineNode {
@@ -24,12 +25,14 @@ fn prompt_node(id: &str, prompt: &str, agent: &str) -> PipelineNode {
         prompt: prompt.to_string(),
         agent: agent.to_string(),
         tool_mode: "default".to_string(),
+        agent_config: None,
         model: None,
         thought_level: None,
         allowed_tools: None,
         max_turns: None,
-    
-        timeout: None}
+
+        timeout: None,
+    }
 }
 
 fn thinking_node(
@@ -45,12 +48,14 @@ fn thinking_node(
         total_thoughts,
         analysis_type: analysis_type.map(str::to_string),
         agent: agent.to_string(),
+        agent_config: None,
         model: None,
         thought_level: None,
         allowed_tools: None,
         max_turns: None,
-    
-        timeout: None}
+
+        timeout: None,
+    }
 }
 
 fn tool_node(
@@ -64,6 +69,7 @@ fn tool_node(
         tool_name: tool_name.to_string(),
         tool_args,
         agent: agent.map(str::to_string),
+        agent_config: None,
         model: None,
         thought_level: None,
         allowed_tools: None,

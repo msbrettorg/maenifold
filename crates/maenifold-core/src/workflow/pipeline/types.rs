@@ -12,6 +12,19 @@ pub struct PipelineDefinition {
     pub edges: Vec<PipelineEdge>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thought_level: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub config_options: Option<serde_json::Map<String, serde_json::Value>>,
+}
+
 impl PipelineDefinition {
     pub(crate) fn build_graph(&self) -> StableGraph<String, EdgeType> {
         let mut graph = StableGraph::with_capacity(self.nodes.len(), self.edges.len());
@@ -55,6 +68,7 @@ pub enum PipelineNode {
         allowed_tools: Option<Vec<String>>,
         max_turns: Option<u32>,
         timeout: Option<u64>,
+        agent_config: Option<AgentConfig>,
     },
     SequentialThinking {
         id: String,
@@ -67,6 +81,7 @@ pub enum PipelineNode {
         allowed_tools: Option<Vec<String>>,
         max_turns: Option<u32>,
         timeout: Option<u64>,
+        agent_config: Option<AgentConfig>,
     },
     Tool {
         id: String,
@@ -77,6 +92,7 @@ pub enum PipelineNode {
         thought_level: Option<String>,
         allowed_tools: Option<Vec<String>>,
         max_turns: Option<u32>,
+        agent_config: Option<AgentConfig>,
     },
 }
 

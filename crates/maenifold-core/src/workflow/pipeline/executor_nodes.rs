@@ -1,72 +1,36 @@
 use std::collections::HashMap;
-use std::error::Error as StdError;
 use std::sync::Arc;
 
 use serde_json::Value as JsonValue;
 
 use crate::acp_native::{AgentPool, SessionOpts};
-use crate::error::{MaenifoldError, Result};
-use crate::registry::ToolRegistry;
+use crate::error::Result;
 use crate::tools::ToolContext;
-use crate::util::json::OutputFormat;
 
-use super::super::agent_session::open_agent_session;
-use super::super::runner::{self, WorkflowRunStatus};
-use super::executor_helpers::{
-    DispatchedNode, MAX_CONCLUSION_CHARS, assemble_node_prompt, truncate_chars,
-};
+use super::super::runner;
+use super::executor_helpers::{DispatchedNode, assemble_node_prompt};
 use super::executor_mapping::mapped_tool_args;
+use super::executor_run::{run_prompt_node, run_tool_node};
+use super::types::AgentConfig;
 use super::{NodeState, PipelineDefinition, PipelineNode};
+
+pub(super) use super::executor_run::{NodeOutcome, NodeTaskResult, classify_node_result};
 
 #[derive(Debug)]
 pub(super) enum NodeExecutionRequest {
-    Workflow {
-        workflow_id: String,
-        prompt: String,
-        timeout_seconds: Option<u64>,
-    },
-    Prompt {
-        session_id: String,
-        prompt: String,
-        tool_mode: String,
-        session_opts: SessionOpts,
-    },
+    Workflow { workflow_id: String, prompt: String, timeout_seconds: Option<u64> },
+    Prompt { session_id: String, prompt: String, tool_mode: String, session_opts: SessionOpts },
     SequentialThinking {
         node_session_id: String,
         topic: String,
         total_thoughts: u32,
         session_opts: SessionOpts,
     },
-    Tool {
-        tool_name: String,
-        tool_args: Option<JsonValue>,
-    },
-}
-
-pub(super) enum NodeTaskResult {
-    Workflow(Result<runner::WorkflowResult>),
-    Prompt(Result<String>),
-    SequentialThinking(Result<runner::ThinkResult>),
-    Tool(Result<String>),
-}
-
-pub(super) enum NodeOutcome {
-    Completed {
-        conclusion: String,
-        thinking_session_id: Option<String>,
-    },
-    Abandoned,
+    Tool { tool_name: String, tool_args: Option<JsonValue> },
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn build_node_execution_request(
-    context: &ToolContext,
-    definition: &PipelineDefinition,
-    node_states: &HashMap<String, NodeState>,
-    node: &PipelineNode,
-    dispatch: &DispatchedNode,
-    ambient_prompt: &str,
-) -> Result<NodeExecutionRequest> {
+pub(super) fn build_node_execution_request(context: &ToolContext, definition: &PipelineDefinition, node_states: &HashMap<String, NodeState>, node: &PipelineNode, dispatch: &DispatchedNode, ambient_prompt: &str) -> Result<NodeExecutionRequest> {
     Ok(match node {
         PipelineNode::Workflow {
             workflow_id,
@@ -79,6 +43,7 @@ pub(super) fn build_node_execution_request(
         },
         PipelineNode::Prompt {
             tool_mode,
+            agent_config,
             model,
             thought_level,
             allowed_tools,
@@ -86,57 +51,44 @@ pub(super) fn build_node_execution_request(
             timeout,
             ..
         } => NodeExecutionRequest::Prompt {
-            session_id: dispatch.session_id.clone().unwrap_or_else(|| {
-                node_states
-                    .get(node.id())
-                    .map(|state| state.session_id.clone())
-                    .unwrap_or_else(|| format!("pipeline-{}", node.id()))
-            }),
+            session_id: node_session_id(node_states, node.id(), dispatch),
             prompt: assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?,
             tool_mode: tool_mode.clone(),
-            session_opts: SessionOpts {
-                cwd: context.config.maenifold_root.clone(),
-                model: model.clone(),
-                thought_level: thought_level.clone(),
-                allowed_tools: allowed_tools.clone(),
-                max_turns: *max_turns,
-                timeout_seconds: *timeout,
-            },
+            session_opts: merged_session_opts(
+                context,
+                node.id(),
+                agent_config.as_ref(),
+                model,
+                thought_level,
+                allowed_tools,
+                *max_turns,
+                *timeout,
+            ),
         },
         PipelineNode::SequentialThinking {
             total_thoughts,
+            agent_config,
             model,
             thought_level,
             allowed_tools,
             max_turns,
             timeout,
             ..
-        } => {
-            NodeExecutionRequest::SequentialThinking {
-                node_session_id: dispatch.session_id.clone().unwrap_or_else(|| {
-                    node_states
-                        .get(node.id())
-                        .map(|state| state.session_id.clone())
-                        .unwrap_or_else(|| format!("pipeline-{}", node.id()))
-                }),
-                topic: assemble_node_prompt(
-                    context,
-                    definition,
-                    node_states,
-                    node,
-                    ambient_prompt,
-                )?,
-                total_thoughts: *total_thoughts,
-                session_opts: SessionOpts {
-                    cwd: context.config.maenifold_root.clone(),
-                    model: model.clone(),
-                    thought_level: thought_level.clone(),
-                    allowed_tools: allowed_tools.clone(),
-                    max_turns: *max_turns,
-                    timeout_seconds: *timeout,
-                },
-            }
-        }
+        } => NodeExecutionRequest::SequentialThinking {
+            node_session_id: node_session_id(node_states, node.id(), dispatch),
+            topic: assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?,
+            total_thoughts: *total_thoughts,
+            session_opts: merged_session_opts(
+                context,
+                node.id(),
+                agent_config.as_ref(),
+                model,
+                thought_level,
+                allowed_tools,
+                *max_turns,
+                *timeout,
+            ),
+        },
         PipelineNode::Tool {
             tool_name,
             tool_args,
@@ -148,13 +100,40 @@ pub(super) fn build_node_execution_request(
     })
 }
 
-pub(super) async fn execute_node_request(
-    context: ToolContext,
-    node_id: String,
-    execution: NodeExecutionRequest,
-    agent: Option<String>,
-    pool: Arc<AgentPool>,
-) -> (String, NodeTaskResult) {
+fn node_session_id(node_states: &HashMap<String, NodeState>, node_id: &str, dispatch: &DispatchedNode) -> String {
+    dispatch.session_id.clone().unwrap_or_else(|| {
+        node_states
+            .get(node_id)
+            .map(|state| state.session_id.clone())
+            .unwrap_or_else(|| format!("pipeline-{node_id}"))
+    })
+}
+
+fn merged_session_opts(context: &ToolContext, node_id: &str, agent_config: Option<&AgentConfig>, model: &Option<String>, thought_level: &Option<String>, allowed_tools: &Option<Vec<String>>, max_turns: Option<u32>, timeout_seconds: Option<u64>) -> SessionOpts {
+    if let Some(mode) = agent_config.and_then(|config| config.mode.as_deref()) {
+        tracing::warn!(node_id, mode, "pipeline agent_config.mode is not used yet");
+    }
+    if let Some(opts) = agent_config.and_then(|config| config.config_options.as_ref()) {
+        if !opts.is_empty() {
+            tracing::warn!(node_id, keys = ?opts.keys().collect::<Vec<_>>(), "pipeline agent_config.configOptions is not used yet");
+        }
+    }
+    SessionOpts {
+        cwd: context.config.maenifold_root.clone(),
+        model: model
+            .clone()
+            .or_else(|| agent_config.and_then(|config| config.model.clone())),
+        thought_level: thought_level
+            .clone()
+            .or_else(|| agent_config.and_then(|config| config.thought_level.clone())),
+        allowed_tools: allowed_tools.clone(),
+        max_turns,
+        timeout_seconds,
+        mcp_servers: vec![],
+    }
+}
+
+pub(super) async fn execute_node_request(context: ToolContext, node_id: String, execution: NodeExecutionRequest, agent: Option<String>, pool: Arc<AgentPool>) -> (String, NodeTaskResult) {
     let result = match execution {
         NodeExecutionRequest::Workflow {
             workflow_id,
@@ -223,132 +202,4 @@ pub(super) async fn execute_node_request(
     };
 
     (node_id, result)
-}
-
-pub(super) fn classify_node_result(node_id: &str, result: NodeTaskResult) -> NodeOutcome {
-    match result {
-        NodeTaskResult::Workflow(result) => classify_workflow_result(node_id, result),
-        NodeTaskResult::Prompt(result) => classify_prompt_result(node_id, result),
-        NodeTaskResult::SequentialThinking(result) => classify_think_result(node_id, result),
-        NodeTaskResult::Tool(result) => classify_prompt_result(node_id, result),
-    }
-}
-
-fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult>) -> NodeOutcome {
-    match result {
-        Ok(workflow) => match workflow.status {
-            WorkflowRunStatus::Completed => NodeOutcome::Completed {
-                conclusion: truncate_chars(
-                    &workflow.conclusion.unwrap_or_default(),
-                    MAX_CONCLUSION_CHARS,
-                ),
-                thinking_session_id: None,
-            },
-            WorkflowRunStatus::Failed(ref msg) => {
-                eprintln!("[pipeline] node {node_id} workflow failed: {msg}");
-                NodeOutcome::Abandoned
-            }
-            WorkflowRunStatus::Cancelled => {
-                eprintln!("[pipeline] node {node_id} workflow was cancelled, marking abandoned");
-                NodeOutcome::Abandoned
-            }
-        },
-        Err(error) => {
-            log_node_execution_error(node_id, &error);
-            NodeOutcome::Abandoned
-        }
-    }
-}
-
-fn classify_prompt_result(node_id: &str, result: Result<String>) -> NodeOutcome {
-    match result {
-        Ok(response) if !response.trim().is_empty() => NodeOutcome::Completed {
-            conclusion: response,
-            thinking_session_id: None,
-        },
-        Ok(_) => NodeOutcome::Abandoned,
-        Err(error) => {
-            log_node_execution_error(node_id, &error);
-            NodeOutcome::Abandoned
-        }
-    }
-}
-
-fn classify_think_result(node_id: &str, result: Result<runner::ThinkResult>) -> NodeOutcome {
-    match result {
-        Ok(think) => think
-            .conclusion
-            .map(|conclusion| conclusion.trim().to_string())
-            .filter(|conclusion| !conclusion.is_empty())
-            .map(|conclusion| NodeOutcome::Completed {
-                conclusion,
-                thinking_session_id: Some(think.session_id),
-            })
-            .unwrap_or(NodeOutcome::Abandoned),
-        Err(error) => {
-            log_node_execution_error(node_id, &error);
-            NodeOutcome::Abandoned
-        }
-    }
-}
-
-fn log_node_execution_error(node_id: &str, error: &dyn StdError) {
-    let mut rendered = error.to_string();
-    let mut source = error.source();
-    while let Some(next) = source {
-        let next_rendered = next.to_string();
-        if !rendered.contains(&next_rendered) {
-            rendered.push_str(": ");
-            rendered.push_str(&next_rendered);
-        }
-        source = next.source();
-    }
-    eprintln!("[pipeline] node {node_id} failed: {rendered}");
-}
-
-async fn run_prompt_node(
-    _context: &ToolContext,
-    pool: &AgentPool,
-    agent: &str,
-    session_id: &str,
-    prompt: &str,
-    _tool_mode: &str,
-    session_opts: SessionOpts,
-) -> Result<String> {
-    let session = open_agent_session(pool, agent, session_id, session_opts).await?;
-    let response = session.prompt(prompt).await;
-    let _ = session.close().await;
-    let response = response?;
-    if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
-        return Err(MaenifoldError::Message(error));
-    }
-    Ok(response.text.trim().to_string())
-}
-
-async fn run_tool_node(
-    _context: &ToolContext,
-    tool_name: &str,
-    tool_args: Option<&JsonValue>,
-) -> Result<String> {
-    let arguments = tool_args
-        .cloned()
-        .unwrap_or_else(|| JsonValue::Object(Default::default()));
-    ToolRegistry::global()
-        .try_invoke(tool_name, &arguments, OutputFormat::Json)
-        .map_err(|error| {
-            if matches!(
-                error,
-                MaenifoldError::UnknownTool(_)
-                    | MaenifoldError::InvalidPayload(_)
-                    | MaenifoldError::InvalidArgument(_)
-                    | MaenifoldError::InvalidResourceUri(_)
-                    | MaenifoldError::AssetNotFound(_, _)
-                    | MaenifoldError::PathTraversal(_)
-                    | MaenifoldError::MissingProperty(_)
-            ) {
-                error
-            } else {
-                MaenifoldError::Message(format!("Error invoking {tool_name}: {error}"))
-            }
-        })
 }

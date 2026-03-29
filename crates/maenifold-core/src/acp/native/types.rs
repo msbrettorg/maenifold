@@ -34,6 +34,7 @@ pub struct SessionOpts {
     pub allowed_tools: Option<Vec<String>>,
     pub max_turns: Option<u32>,
     pub timeout_seconds: Option<u64>,
+    pub mcp_servers: Vec<acp::McpServer>,
 }
 
 impl SessionOpts {
@@ -51,11 +52,19 @@ pub struct SessionInfo {
     pub config_options: Vec<acp::SessionConfigOption>,
 }
 
+#[derive(Debug, Clone)]
+pub struct AcpxSessionInfo {
+    pub session_id: String,
+    pub title: Option<String>,
+    pub updated_at: Option<String>,
+}
+
 pub struct AgentResponse {
     pub text: String,
     pub tool_calls: Vec<ToolCallRecord>,
     pub thought: Option<String>,
     pub stop_reason: Option<String>,
+    pub usage: Option<AcpxUsage>,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -64,6 +73,16 @@ pub struct AcpxResponse {
     pub tool_calls: Vec<ToolCallRecord>,
     pub thought: Option<String>,
     pub error: Option<String>,
+    pub usage: Option<AcpxUsage>,
+}
+
+/// Token usage summary for an ACP prompt turn.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct AcpxUsage {
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    pub total_tokens: u64,
+    pub thought_tokens: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -77,6 +96,15 @@ pub struct ToolCallRecord {
 
 pub enum AgentCommand {
     NewSession {
+        opts: SessionOpts,
+        reply: oneshot::Sender<Result<SessionInfo>>,
+    },
+    ListSessions {
+        cwd: Option<PathBuf>,
+        reply: oneshot::Sender<Result<Vec<AcpxSessionInfo>>>,
+    },
+    LoadSession {
+        session_id: String,
         opts: SessionOpts,
         reply: oneshot::Sender<Result<SessionInfo>>,
     },
@@ -134,6 +162,24 @@ impl AgentHandle {
         let (tx, rx) = oneshot::channel();
         self.cmd_tx
             .send(AgentCommand::NewSession { opts, reply: tx })
+            .map_err(|_| AgentError::ChannelClosed)?;
+        rx.await.map_err(|_| AgentError::ChannelClosed)?
+    }
+    pub async fn list_sessions(&self, cwd: Option<PathBuf>) -> Result<Vec<AcpxSessionInfo>> {
+        let (tx, rx) = oneshot::channel();
+        self.cmd_tx
+            .send(AgentCommand::ListSessions { cwd, reply: tx })
+            .map_err(|_| AgentError::ChannelClosed)?;
+        rx.await.map_err(|_| AgentError::ChannelClosed)?
+    }
+    pub async fn load_session(&self, session_id: &str, opts: SessionOpts) -> Result<SessionInfo> {
+        let (tx, rx) = oneshot::channel();
+        self.cmd_tx
+            .send(AgentCommand::LoadSession {
+                session_id: session_id.to_string(),
+                opts,
+                reply: tx,
+            })
             .map_err(|_| AgentError::ChannelClosed)?;
         rx.await.map_err(|_| AgentError::ChannelClosed)?
     }

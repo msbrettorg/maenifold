@@ -73,6 +73,7 @@ pub(crate) async fn run_workflow_with_pool(
             allowed_tools: None,
             max_turns: None,
             timeout_seconds,
+            mcp_servers: vec![],
         },
     )
     .await?;
@@ -153,6 +154,7 @@ async fn maybe_run_step_thinking(
             allowed_tools: None,
             max_turns: None,
             timeout_seconds: None,
+            mcp_servers: vec![],
         },
         pool,
     )

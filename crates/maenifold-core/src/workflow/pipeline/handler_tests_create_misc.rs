@@ -12,12 +12,14 @@ fn pipeline_view_includes_prompt_node_prompt_and_agent_fields() {
             prompt: "Summarize the workflow result".to_string(),
             agent: "prompt-agent".to_string(),
             tool_mode: "default".to_string(),
+            agent_config: None,
             model: None,
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
-        
-            timeout: None}],
+
+            timeout: None,
+        }],
         edges: vec![],
     };
     let node_state = NodeState {

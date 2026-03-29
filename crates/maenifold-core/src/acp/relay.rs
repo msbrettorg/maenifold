@@ -327,12 +327,14 @@ mod tests {
                     "zebra".to_string(),
                     AgentEntry {
                         command: "/bin/echo".to_string(),
+                        mcp_servers: vec![],
                     },
                 ),
                 (
                     "alpha".to_string(),
                     AgentEntry {
                         command: "/bin/cat".to_string(),
+                        mcp_servers: vec![],
                     },
                 ),
             ]),

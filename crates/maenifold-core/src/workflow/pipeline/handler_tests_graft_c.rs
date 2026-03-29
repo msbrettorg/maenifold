@@ -14,8 +14,9 @@ fn pipeline_graft_completed_dependency_is_immediately_ready() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(
@@ -70,8 +71,9 @@ fn pipeline_graft_rejects_running_pipeline() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(
@@ -128,8 +130,9 @@ fn pipeline_graft_paused_pipeline_is_allowed_and_preserves_status() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(
@@ -185,8 +188,9 @@ fn pipeline_graft_stuck_pipeline_is_allowed() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::types::PipelineNode;
+use super::types::{AgentConfig, PipelineNode};
 
 const EXPECTED_TYPES: &str = "workflow, prompt, sequentialThinking, tool";
 
@@ -19,6 +19,12 @@ pub(super) struct PipelineNodeWire {
     prompt: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     agent: Option<String>,
+    #[serde(
+        default,
+        rename = "agentConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
+    agent_config: Option<AgentConfig>,
     #[serde(
         default = "default_prompt_tool_mode",
         skip_serializing_if = "is_default_prompt_tool_mode"
@@ -100,6 +106,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 allowed_tools: wire.allowed_tools,
                 max_turns: wire.max_turns,
                 timeout: wire.timeout,
+                agent_config: wire.agent_config,
             },
             "sequentialThinking" => Self::SequentialThinking {
                 id: wire.id,
@@ -112,6 +119,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 allowed_tools: wire.allowed_tools,
                 max_turns: wire.max_turns,
                 timeout: wire.timeout,
+                agent_config: wire.agent_config,
             },
             "tool" => Self::Tool {
                 id: wire.id,
@@ -122,6 +130,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 thought_level: wire.thought_level,
                 allowed_tools: wire.allowed_tools,
                 max_turns: wire.max_turns,
+                agent_config: wire.agent_config,
             },
             other => {
                 return Err(format!(
@@ -149,6 +158,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 acp_client,
                 prompt,
                 agent: None,
+                agent_config: None,
                 tool_mode: default_prompt_tool_mode(),
                 topic: None,
                 total_thoughts: default_total_thoughts(),
@@ -171,6 +181,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools,
                 max_turns,
                 timeout,
+                agent_config,
             } => Self {
                 kind: Some("prompt".to_string()),
                 id,
@@ -178,6 +189,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 acp_client: None,
                 prompt: Some(prompt),
                 agent: Some(agent),
+                agent_config,
                 tool_mode,
                 topic: None,
                 total_thoughts: default_total_thoughts(),
@@ -201,6 +213,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools,
                 max_turns,
                 timeout,
+                agent_config,
             } => Self {
                 kind: Some("sequentialThinking".to_string()),
                 id,
@@ -208,6 +221,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 acp_client: None,
                 prompt: None,
                 agent: Some(agent),
+                agent_config,
                 tool_mode: default_prompt_tool_mode(),
                 topic: Some(topic),
                 total_thoughts,
@@ -229,6 +243,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
+                agent_config,
             } => Self {
                 kind: Some("tool".to_string()),
                 id,
@@ -236,6 +251,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 acp_client: None,
                 prompt: None,
                 agent,
+                agent_config,
                 tool_mode: default_prompt_tool_mode(),
                 topic: None,
                 total_thoughts: default_total_thoughts(),

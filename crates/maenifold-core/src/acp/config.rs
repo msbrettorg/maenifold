@@ -1,3 +1,4 @@
+use agent_client_protocol as acp;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fs;
@@ -5,9 +6,45 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", tag = "type")]
+pub enum McpServerEntry {
+    #[serde(rename = "stdio")]
+    Stdio {
+        name: String,
+        command: String,
+        #[serde(default)]
+        args: Vec<String>,
+    },
+    #[serde(rename = "http")]
+    Http {
+        name: String,
+        url: String,
+    },
+}
+
+impl McpServerEntry {
+    pub fn to_acp(&self) -> acp::McpServer {
+        match self {
+            McpServerEntry::Stdio {
+                name,
+                command,
+                args,
+            } => acp::McpServer::Stdio(
+                acp::McpServerStdio::new(name.clone(), command.clone()).args(args.clone()),
+            ),
+            McpServerEntry::Http { name, url } => {
+                acp::McpServer::Http(acp::McpServerHttp::new(name.clone(), url.clone()))
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentEntry {
     pub command: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mcp_servers: Vec<McpServerEntry>,
 }
 
 impl AgentEntry {
@@ -185,6 +222,7 @@ mod tests {
     fn command_parts_splits_binary_and_args() {
         let entry = AgentEntry {
             command: "/usr/bin/test-agent serve --acp".to_string(),
+            mcp_servers: vec![],
         };
 
         let (binary, args) = entry.command_parts();

@@ -10,22 +10,25 @@ fn pipeline_definition(edges: Vec<PipelineEdge>) -> PipelineDefinition {
                 workflow_id: "workflow-root".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None},
+
+                timeout: None,
+            },
             PipelineNode::Workflow {
                 id: "middle".to_string(),
                 workflow_id: "workflow-middle".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None},
+
+                timeout: None,
+            },
             PipelineNode::Workflow {
                 id: "tail".to_string(),
                 workflow_id: "workflow-tail".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None},
+
+                timeout: None,
+            },
         ],
         edges,
     }

@@ -218,8 +218,9 @@ fn workflow_node(id: &str, workflow_id: &str) -> PipelineNode {
         workflow_id: workflow_id.into(),
         acp_client: None,
         prompt: None,
-    
-        timeout: None}
+
+        timeout: None,
+    }
 }
 
 fn node_state(id: &str, session_id: &str, status: NodeStatus) -> (String, NodeState) {

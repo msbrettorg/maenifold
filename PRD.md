@@ -178,3 +178,13 @@ The native ACP client (`acp/native.rs`) SHALL be hardened to capture full protoc
 - **Crash recovery**: When the ACP I/O task exits, the command loop SHALL terminate, `AgentPool` SHALL evict the dead handle, and `get_or_create()` SHALL spawn a fresh agent. Agent `stderr` SHALL be captured via a spawned reader task.
 - **Prompt timeout**: `AgentHandle::prompt()` SHALL wrap with `tokio::time::timeout` (configurable, default 300s). On timeout, `cancel()` SHALL be sent and the session closed.
 - **File extraction**: If `native.rs` exceeds 300 LOC, client and pool logic SHALL be extracted to `client.rs` and `pool.rs`.
+
+### FR-51: ACP Client Hardening Phase 2
+
+The native ACP client SHALL be extended with client capabilities, MCP server passthrough, session persistence, pipeline capability-aware configuration, and usage tracking.
+
+- **Client capabilities**: `spawn_agent` SHALL advertise `ClientCapabilities` with filesystem read/write support. `HeadlessClient` SHALL implement `read_text_file`/`write_text_file` with CWD jail (parent-dir traversal guard + canonical path containment).
+- **MCP server passthrough**: `AgentEntry` SHALL carry `mcp_servers` (Stdio/Http variants). `SessionOpts` SHALL thread `mcp_servers` to `NewSessionRequest` for agent-side tool access.
+- **Session list and load**: `AgentCommand::ListSessions`/`LoadSession` SHALL be capability-guarded via `AgentCapabilities`. `AcpxSessionInfo` SHALL map from ACP `SessionInfo`.
+- **Pipeline capability-aware config**: `AgentConfig` struct SHALL allow pipeline nodes to carry model, thought_level, mode, and config_options. Flat node fields SHALL take precedence. Forward-compat warnings for unsupported fields.
+- **ACP feature flags**: `unstable_session_usage` SHALL be enabled. `UsageUpdate` SHALL be handled in `session_notification`. `AcpxUsage` SHALL surface usage metrics in responses.

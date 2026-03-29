@@ -14,8 +14,9 @@ fn old_workflow_json_still_deserializes() {
             workflow_id: "wf".into(),
             acp_client: Some("agent".into()),
             prompt: None,
-        
-            timeout: None}
+
+            timeout: None
+        }
     );
 }
 
@@ -26,8 +27,9 @@ fn workflow_serialization_is_tagged() {
         workflow_id: "wf".into(),
         acp_client: None,
         prompt: Some("Summarize".into()),
-    
-        timeout: None};
+
+        timeout: None,
+    };
     assert_eq!(
         serde_json::to_value(node).unwrap(),
         json!({"type":"workflow","id":"n1","workflowId":"wf","prompt":"Summarize"})
@@ -41,12 +43,14 @@ fn prompt_serialization_is_tagged() {
         prompt: "Review {{input}}".into(),
         agent: "claude".into(),
         tool_mode: "disabled".into(),
+        agent_config: None,
         model: None,
         thought_level: None,
         allowed_tools: None,
         max_turns: None,
-    
-        timeout: None};
+
+        timeout: None,
+    };
     assert_eq!(
         serde_json::to_value(node).unwrap(),
         json!({"type":"prompt","id":"n2","prompt":"Review {{input}}","agent":"claude"})
@@ -61,12 +65,14 @@ fn sequential_thinking_serialization_is_tagged() {
         total_thoughts: 5,
         analysis_type: Some("architecture".into()),
         agent: "claude".into(),
+        agent_config: None,
         model: None,
         thought_level: None,
         allowed_tools: None,
         max_turns: None,
-    
-        timeout: None};
+
+        timeout: None,
+    };
     assert_eq!(
         serde_json::to_value(node).unwrap(),
         json!({"type":"sequentialThinking","id":"n3","topic":"Tradeoffs","analysisType":"architecture","agent":"claude"})
@@ -124,6 +130,7 @@ fn tool_node_deserializes() {
             tool_name: "pipeline".into(),
             tool_args: Some(json!({"sessionId": "pipeline-42"})),
             agent: Some("claude".into()),
+            agent_config: None,
             model: None,
             thought_level: None,
             allowed_tools: None,
@@ -148,6 +155,7 @@ fn tool_node_deserializes_without_agent() {
             tool_name: "pipeline".into(),
             tool_args: Some(json!({"sessionId": "pipeline-42"})),
             agent: None,
+            agent_config: None,
             model: None,
             thought_level: None,
             allowed_tools: None,
@@ -163,6 +171,7 @@ fn tool_node_serializes() {
         tool_name: "pipeline".into(),
         tool_args: Some(json!({"sessionId": "pipeline-42"})),
         agent: Some("claude".into()),
+        agent_config: None,
         model: None,
         thought_level: None,
         allowed_tools: None,
@@ -187,6 +196,7 @@ fn tool_node_serializes_without_agent() {
         tool_name: "pipeline".into(),
         tool_args: Some(json!({"sessionId": "pipeline-42"})),
         agent: None,
+        agent_config: None,
         model: None,
         thought_level: None,
         allowed_tools: None,

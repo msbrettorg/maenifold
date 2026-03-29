@@ -106,6 +106,7 @@ impl AcpxDriver {
                 allowed_tools: None,
                 max_turns: None,
                 timeout_seconds: Some(self.timeout_seconds),
+                mcp_servers: vec![],
             })
             .await?
             .session_id;
@@ -134,6 +135,7 @@ impl AcpxDriver {
             tool_calls: response.tool_calls,
             thought: response.thought,
             error: None,
+            usage: response.usage,
         })
     }
     pub async fn close_session(&self, name: &str) -> Result<()> {

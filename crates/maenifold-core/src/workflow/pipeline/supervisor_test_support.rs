@@ -51,8 +51,9 @@ pub(super) fn single_workflow_definition(
             workflow_id: workflow_id.to_string(),
             acp_client: acp_client.map(ToString::to_string),
             prompt: None,
-        
-            timeout: None}],
+
+            timeout: None,
+        }],
         edges: vec![],
     }
 }

@@ -8,15 +8,15 @@ use tokio::{
     time::{Duration, timeout},
 };
 
-use super::types::{AgentError, AgentResponse, Result, SessionInfo, SessionOpts};
-use crate::acp_native::client::SessionAccumulator;
+use super::accumulator::SessionAccumulator;
+use super::types::{AcpxUsage, AgentError, AgentResponse, Result, SessionInfo, SessionOpts};
 
 pub(super) async fn handle_new_session(
     conn: &acp::ClientSideConnection,
     opts: SessionOpts,
 ) -> Result<SessionInfo> {
     let response = conn
-        .new_session(acp::NewSessionRequest::new(opts.cwd))
+        .new_session(acp::NewSessionRequest::new(opts.cwd).mcp_servers(opts.mcp_servers))
         .await
         .map_err(|error| AgentError::Acp(error.to_string()))?;
     let sid = response.session_id.clone();
@@ -104,6 +104,12 @@ pub(super) async fn handle_prompt(
         .into_response();
     let response = response?;
     result.stop_reason = Some(format!("{:?}", response.stop_reason));
+    result.usage = response.usage.map(|u| AcpxUsage {
+        input_tokens: u.input_tokens,
+        output_tokens: u.output_tokens,
+        total_tokens: u.total_tokens,
+        thought_tokens: u.thought_tokens,
+    });
     Ok(result)
 }
 

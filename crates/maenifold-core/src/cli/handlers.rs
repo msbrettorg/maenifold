@@ -187,6 +187,7 @@ fn run_prompt_command(args: &[String]) -> i32 {
                 allowed_tools: None,
                 max_turns: None,
                 timeout_seconds: None,
+                mcp_servers: vec![],
             })
             .await
             .map_err(|error| MaenifoldError::Message(error.to_string()))?

@@ -5,6 +5,22 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 68 — ACP Client Hardening Phase 2 (FR-50, FR-51)
+
+Continued native ACP client hardening with client capabilities, MCP server passthrough, session persistence, pipeline capability-aware configuration, and usage tracking.
+
+### Added
+- **Client capabilities** (T-68.2): `spawn_agent` advertises `ClientCapabilities` with `fs.read=true`, `fs.write=true`, `terminal=false`. `HeadlessClient` implements `read_text_file`/`write_text_file` with CWD jail (`resolve_and_jail` — parent-dir traversal guard + canonical path containment).
+- **MCP server passthrough** (T-68.3): `McpServerEntry` enum (Stdio/Http) on `AgentEntry`. `SessionOpts` carries `mcp_servers` through to `NewSessionRequest`. Config loaded from `agents.json`.
+- **Session list and load** (T-68.4): `ListSessions`/`LoadSession` `AgentCommand` variants with capability guards (`session_capabilities.list` and `load_session`). `AcpxSessionInfo` maps from ACP `SessionInfo`.
+- **Pipeline capability-aware config** (T-68.5): `AgentConfig` struct on `Prompt`/`SequentialThinking`/`Tool` pipeline node variants. Flat node fields (model, thought_level) take precedence via `.or_else()`. Forward-compat warnings for `mode` and `config_options`.
+- **ACP feature flags** (T-68.6): Enabled `unstable_session_usage` feature. `UsageUpdate` handled in `session_notification`. `AcpxUsage` type surfaces usage in `AgentResponse`/`AcpxResponse`.
+
+### Changed
+- **Module extraction**: `SessionAccumulator` and helpers extracted from `client.rs` to `accumulator.rs`. Classify/run functions extracted from `executor_nodes.rs` to `executor_run.rs`. All files under 300 LOC.
+
+---
+
 ## Sprint 67 — Native ACP Client Hardening (FR-50)
 
 Hardened the native ACP client with init capture, session config passthrough, full session-update handling, crash recovery, and prompt timeout/cancel support.

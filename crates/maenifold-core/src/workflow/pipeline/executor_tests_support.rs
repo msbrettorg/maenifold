@@ -21,6 +21,7 @@ pub(super) fn source_tool_node(id: &str) -> PipelineNode {
         tool_name: "GetConfig".to_string(),
         tool_args: None,
         agent: None,
+        agent_config: None,
         model: None,
         thought_level: None,
         allowed_tools: None,
@@ -34,6 +35,7 @@ pub(super) fn target_tool_node(tool_args: Option<Value>) -> PipelineNode {
         tool_name: "GetConfig".to_string(),
         tool_args,
         agent: None,
+        agent_config: None,
         model: None,
         thought_level: None,
         allowed_tools: None,
@@ -77,8 +79,9 @@ pub(super) fn pipeline_node(id: &str, workflow_id: &str) -> PipelineNode {
         workflow_id: workflow_id.to_string(),
         acp_client: Some(format!("test-agent-{id}")),
         prompt: None,
-    
-        timeout: None}
+
+        timeout: None,
+    }
 }
 
 pub(super) fn write_workflow_definition(assets_path: &Path, workflow_id: &str) {

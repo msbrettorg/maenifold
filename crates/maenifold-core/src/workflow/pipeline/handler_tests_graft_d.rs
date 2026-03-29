@@ -76,8 +76,9 @@ fn pipeline_graft_duplicate_node_id_wins_over_missing_workflow_definition() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(
@@ -126,8 +127,9 @@ fn pipeline_graft_persists_pipeline_only_after_new_workflow_sessions_exist() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(

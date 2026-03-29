@@ -23,15 +23,17 @@ fn validate_pipeline_rejects_duplicate_node_ids() {
                 workflow_id: "workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None},
+
+                timeout: None,
+            },
             PipelineNode::Workflow {
                 id: "dup".to_string(),
                 workflow_id: "workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None},
+
+                timeout: None,
+            },
         ],
         edges: vec![],
     };
@@ -77,15 +79,17 @@ fn validate_pipeline_detects_cycle() {
                 workflow_id: "workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None},
+
+                timeout: None,
+            },
             PipelineNode::Workflow {
                 id: "b".to_string(),
                 workflow_id: "workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None},
+
+                timeout: None,
+            },
         ],
         edges: vec![
             PipelineEdge {
@@ -116,15 +120,17 @@ fn validate_pipeline_rejects_duplicate_edge_pair() {
                 workflow_id: "workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None},
+
+                timeout: None,
+            },
             PipelineNode::Workflow {
                 id: "b".to_string(),
                 workflow_id: "workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None},
+
+                timeout: None,
+            },
         ],
         edges: vec![
             PipelineEdge {

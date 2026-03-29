@@ -13,18 +13,19 @@ pub(crate) async fn open_agent_session(
     pool: &AgentPool,
     agent_name: &str,
     _session_name: &str,
-    opts: SessionOpts,
+    mut opts: SessionOpts,
 ) -> Result<AgentSession> {
-    let command = AgentsConfig::load(&opts.cwd)
-        .agents
-        .get(agent_name)
-        .map(|entry| entry.command.clone())
-        .ok_or_else(|| {
-            MaenifoldError::Message(format!(
-                "agent '{}' not configured in agents.json",
-                agent_name
-            ))
-        })?;
+    let config = AgentsConfig::load(&opts.cwd);
+    let config_entry = config.agents.get(agent_name).ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "agent '{}' not configured in agents.json",
+            agent_name
+        ))
+    })?;
+    let command = config_entry.command.clone();
+    if opts.mcp_servers.is_empty() && !config_entry.mcp_servers.is_empty() {
+        opts.mcp_servers = config_entry.mcp_servers.iter().map(|s| s.to_acp()).collect();
+    }
     let handle = pool.get_or_create(agent_name, &command, &opts.cwd).await;
     let remote_id = handle
         .new_session(opts)
@@ -46,6 +47,7 @@ impl AgentSession {
             tool_calls: response.tool_calls,
             thought: response.thought,
             error: None,
+            usage: response.usage,
         })
     }
 

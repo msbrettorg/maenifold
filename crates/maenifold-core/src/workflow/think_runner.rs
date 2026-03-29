@@ -122,6 +122,7 @@ pub async fn run_think(
             allowed_tools: None,
             max_turns: None,
             timeout_seconds: None,
+            mcp_servers: vec![],
         },
         Arc::new(AgentPool::new()),
     )

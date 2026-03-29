@@ -96,6 +96,7 @@ pub(super) fn fork_pipeline(
                     allowed_tools,
                     max_turns,
                     timeout,
+                    agent_config,
                     ..
                 } => super::super::PipelineNode::Prompt {
                     id: node_id_map[node.id()].clone(),
@@ -107,6 +108,7 @@ pub(super) fn fork_pipeline(
                     allowed_tools: allowed_tools.clone(),
                     max_turns: *max_turns,
                     timeout: *timeout,
+                    agent_config: agent_config.clone(),
                 },
                 super::super::PipelineNode::SequentialThinking {
                     topic,
@@ -118,6 +120,7 @@ pub(super) fn fork_pipeline(
                     allowed_tools,
                     max_turns,
                     timeout,
+                    agent_config,
                     ..
                 } => super::super::PipelineNode::SequentialThinking {
                     id: node_id_map[node.id()].clone(),
@@ -130,6 +133,7 @@ pub(super) fn fork_pipeline(
                     allowed_tools: allowed_tools.clone(),
                     max_turns: *max_turns,
                     timeout: *timeout,
+                    agent_config: agent_config.clone(),
                 },
                 super::super::PipelineNode::Tool {
                     tool_name,
@@ -139,6 +143,7 @@ pub(super) fn fork_pipeline(
                     thought_level,
                     allowed_tools,
                     max_turns,
+                    agent_config,
                     ..
                 } => super::super::PipelineNode::Tool {
                     id: node_id_map[node.id()].clone(),
@@ -149,6 +154,7 @@ pub(super) fn fork_pipeline(
                     thought_level: thought_level.clone(),
                     allowed_tools: allowed_tools.clone(),
                     max_turns: *max_turns,
+                    agent_config: agent_config.clone(),
                 },
             })
             .collect(),

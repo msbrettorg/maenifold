@@ -18,22 +18,25 @@ fn pipeline_rewind_resets_specified_node_to_pending() {
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
                 super::super::PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
                 super::super::PipelineNode::Workflow {
                     id: "c".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
             ],
             edges: vec![
                 super::super::PipelineEdge {
@@ -139,22 +142,25 @@ fn pipeline_rewind_cascades_downstream() {
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
                 super::super::PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
                 super::super::PipelineNode::Workflow {
                     id: "c".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
             ],
             edges: vec![
                 super::super::PipelineEdge {
@@ -248,15 +254,17 @@ fn pipeline_rewind_clears_thinking_session_id() {
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
                 super::super::PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
             ],
             edges: vec![super::super::PipelineEdge {
                 source: "a".to_string(),

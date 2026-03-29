@@ -16,8 +16,9 @@ fn pipeline_join_fork_join_rejects_running_target_pipeline() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(
@@ -41,8 +42,9 @@ fn pipeline_join_fork_join_rejects_running_target_pipeline() {
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(
@@ -90,8 +92,9 @@ fn pipeline_join_fork_join_rejects_running_source_pipeline() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(
@@ -115,8 +118,9 @@ fn pipeline_join_fork_join_rejects_running_source_pipeline() {
                 workflow_id: "test-workflow-b".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(
@@ -164,8 +168,9 @@ fn pipeline_join_fork_join_rejects_duplicate_bridge_edge() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(
@@ -190,15 +195,17 @@ fn pipeline_join_fork_join_rejects_duplicate_bridge_edge() {
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
                 super::super::PipelineNode::Workflow {
                     id: "source-leaf".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
             ],
             edges: vec![super::super::PipelineEdge {
                 source: "source-root".to_string(),

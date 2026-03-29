@@ -123,3 +123,13 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 | RTM-222 | FR-50: session update handling | `crates/maenifold-core/src/acp/native.rs` | TC-222: T-67.3 — `HeadlessClient` accumulates ToolCall/AgentThought; `AcpxResponse.tool_calls` populated; `thought` field added | unit |
 | RTM-223 | FR-50: crash recovery | `crates/maenifold-core/src/acp/native.rs` | TC-223: T-67.4 — dead agent evicted from pool; `is_alive()` exposed; stderr captured; no zombie processes | integration |
 | RTM-224 | FR-50: prompt timeout | `crates/maenifold-core/src/acp/native.rs` | TC-224: T-67.5 — `prompt()` wrapped with timeout; cancel sent on timeout; dead `_timeout` removed from `AcpxDriver` | unit |
+
+## Sprint 68 — ACP Client Hardening Phase 2 (FR-50, FR-51)
+
+| RTM | Requirement | Component | Test Case | Type |
+|-----|-------------|-----------|-----------|------|
+| RTM-225 | FR-51: client capabilities | `crates/maenifold-core/src/acp/native/{mod,client}.rs` | TC-225: T-68.2 — `ClientCapabilities` advertised with fs.read/write=true; `resolve_and_jail` rejects parent-dir traversal and paths outside CWD; `read_text_file`/`write_text_file` implemented | unit |
+| RTM-226 | FR-51: MCP server passthrough | `crates/maenifold-core/src/acp/{config,native/session,native/types}.rs` | TC-226: T-68.3 — `McpServerEntry` enum (Stdio/Http); `mcp_servers` on `AgentEntry` and `SessionOpts`; threaded through `NewSessionRequest` | unit |
+| RTM-227 | FR-51: session list & load | `crates/maenifold-core/src/acp/native/{mod,types}.rs` | TC-227: T-68.4 — `ListSessions`/`LoadSession` commands; capability-guarded via `AgentCapabilities`; `AcpxSessionInfo` mapping | unit |
+| RTM-228 | FR-51: pipeline config | `crates/maenifold-core/src/workflow/pipeline/{types,types_wire,executor_nodes}.rs` | TC-228: T-68.5 — `AgentConfig` struct on node variants; flat field precedence via `.or_else()`; forward-compat warnings for mode/config_options | unit |
+| RTM-229 | FR-51: feature flags | `Cargo.toml`, `crates/maenifold-core/src/acp/native/{client,types}.rs` | TC-229: T-68.6 — `unstable_session_usage` enabled; `UsageUpdate` handled; `AcpxUsage` surfaces usage in responses | unit |

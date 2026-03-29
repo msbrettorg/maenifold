@@ -13,7 +13,8 @@ authors = ["MSBrett"]
 repository = "https://github.com/msbrettorg/maenifold"
 
 [workspace.dependencies]
-agent-client-protocol = { version = "0.10", features = ["unstable_session_close", "unstable_session_model"] }
+# Evaluated but deferred: unstable_session_fork (needs pipeline integration), unstable_message_id (needs prompt correlation)
+agent-client-protocol = { version = "0.10", features = ["unstable_session_close", "unstable_session_model", "unstable_session_usage"] }
 anyhow = "1.0.100"
 axum = "0.8"
 chrono = { version = "0.4.42", features = ["serde"] }

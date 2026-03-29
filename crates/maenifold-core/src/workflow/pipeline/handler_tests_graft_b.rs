@@ -15,15 +15,17 @@ fn pipeline_graft_rejects_cycles_without_mutation() {
                     workflow_id: "test-workflow-a".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
                 super::super::PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
                     acp_client: None,
                     prompt: None,
-                
-                    timeout: None},
+
+                    timeout: None,
+                },
             ],
             edges: vec![super::super::PipelineEdge {
                 source: "a".to_string(),
@@ -110,8 +112,9 @@ fn pipeline_graft_rejects_duplicate_node_ids() {
                 workflow_id: "test-workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
-            
-                timeout: None}],
+
+                timeout: None,
+            }],
             edges: vec![],
         },
         HashMap::from([(

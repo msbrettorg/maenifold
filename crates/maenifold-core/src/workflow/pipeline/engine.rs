@@ -43,6 +43,15 @@ pub fn compute_ready_set(
         .collect()
 }
 
+pub fn has_remaining_work(node_states: &HashMap<String, NodeState>) -> bool {
+    node_states.values().any(|state| {
+        matches!(
+            state.status,
+            NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active
+        )
+    })
+}
+
 pub fn compute_pipeline_status(node_states: &HashMap<String, NodeState>) -> &'static str {
     if !node_states.is_empty()
         && node_states

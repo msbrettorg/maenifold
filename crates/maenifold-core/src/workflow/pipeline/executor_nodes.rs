@@ -109,23 +109,17 @@ fn node_session_id(node_states: &HashMap<String, NodeState>, node_id: &str, disp
     })
 }
 
-fn merged_session_opts(context: &ToolContext, node_id: &str, agent_config: Option<&AgentConfig>, model: &Option<String>, thought_level: &Option<String>, allowed_tools: &Option<Vec<String>>, max_turns: Option<u32>, timeout_seconds: Option<u64>) -> SessionOpts {
-    if let Some(mode) = agent_config.and_then(|config| config.mode.as_deref()) {
-        tracing::warn!(node_id, mode, "pipeline agent_config.mode is not used yet");
-    }
-    if let Some(opts) = agent_config.and_then(|config| config.config_options.as_ref()) {
-        if !opts.is_empty() {
-            tracing::warn!(node_id, keys = ?opts.keys().collect::<Vec<_>>(), "pipeline agent_config.configOptions is not used yet");
-        }
-    }
+fn merged_session_opts(context: &ToolContext, _node_id: &str, agent_config: Option<&AgentConfig>, model: &Option<String>, thought_level: &Option<String>, allowed_tools: &Option<Vec<String>>, max_turns: Option<u32>, timeout_seconds: Option<u64>) -> SessionOpts {
     SessionOpts {
         cwd: context.config.maenifold_root.clone(),
         model: model
             .clone()
             .or_else(|| agent_config.and_then(|config| config.model.clone())),
+        mode: agent_config.and_then(|config| config.mode.clone()),
         thought_level: thought_level
             .clone()
             .or_else(|| agent_config.and_then(|config| config.thought_level.clone())),
+        config_options: agent_config.and_then(|config| config.config_options.clone()),
         allowed_tools: allowed_tools.clone(),
         max_turns,
         timeout_seconds,

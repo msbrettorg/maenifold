@@ -118,7 +118,9 @@ pub async fn run_think(
         SessionOpts {
             cwd: context.config.maenifold_root.clone(),
             model: None,
+            mode: None,
             thought_level: None,
+            config_options: None,
             allowed_tools: None,
             max_turns: None,
             timeout_seconds: None,

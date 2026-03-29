@@ -1,3 +1,4 @@
+mod agents;
 mod catalog;
 mod context;
 mod diagnostics;
@@ -5,6 +6,7 @@ mod recent_activity;
 mod recent_activity_format;
 mod response;
 
+pub use agents::list_agents;
 pub use catalog::{list_assets, read_mcp_resource};
 pub use context::{ToolContext, not_yet_implemented, render};
 pub use diagnostics::{get_config, memory_status};

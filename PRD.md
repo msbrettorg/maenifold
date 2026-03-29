@@ -188,3 +188,15 @@ The native ACP client SHALL be extended with client capabilities, MCP server pas
 - **Session list and load**: `AgentCommand::ListSessions`/`LoadSession` SHALL be capability-guarded via `AgentCapabilities`. `AcpxSessionInfo` SHALL map from ACP `SessionInfo`.
 - **Pipeline capability-aware config**: `AgentConfig` struct SHALL allow pipeline nodes to carry model, thought_level, mode, and config_options. Flat node fields SHALL take precedence. Forward-compat warnings for unsupported fields.
 - **ACP feature flags**: `unstable_session_usage` SHALL be enabled. `UsageUpdate` SHALL be handled in `session_notification`. `AcpxUsage` SHALL surface usage metrics in responses.
+
+### FR-52: Pipeline Node Configuration Parity
+
+The pipeline node schema SHALL fully expose and preserve all ACP session configuration fields, enabling UI-driven pipeline composition with agent/model/reasoning selection.
+
+- **View serialization**: Pipeline view SHALL emit all node config fields (`model`, `thoughtLevel`, `allowedTools`, `maxTurns`, `timeout`, `toolMode`, `agentConfig`) when set. Null fields SHALL be omitted.
+- **MCP schema**: The Pipeline tool schema SHALL advertise all config fields with descriptions, enabling LLM tool-calling discoverability.
+- **Mode passthrough**: `AgentConfig.mode` SHALL be wired to `session/set_mode` via `SessionOpts`. The warning-and-drop pattern SHALL be removed.
+- **Config options passthrough**: `AgentConfig.config_options` SHALL be forwarded as `session/set_config_option` calls. Built-in keys (`thought_level`, `allowed_tools`, `max_turns`) SHALL take precedence over duplicates in `config_options`.
+- **Agent enumeration**: A `ListAgents` MCP tool SHALL enumerate configured agents with their capabilities, supported models, and MCP servers. Capabilities SHALL be sourced from the ACP pool when agents are initialized, falling back to static config.
+- **Graft guard**: Pipeline graft precondition SHALL check actual active node count, not frontmatter status string.
+- **Stuck transition**: Restart max-attempts exhaustion SHALL transition node to `Stuck` status before returning error.

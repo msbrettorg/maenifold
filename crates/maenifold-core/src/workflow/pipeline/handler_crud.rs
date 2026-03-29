@@ -15,7 +15,10 @@ use super::session_io::{
     read_pipeline_session, write_pipeline_session, write_workflow_node_session,
 };
 use super::view::view_pipeline_session;
-use super::{NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline};
+use super::{
+    NodeState, NodeStatus, PipelineDefinition, compute_ready_set, has_remaining_work,
+    validate_pipeline,
+};
 
 pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
     let Some(definition_value) = payload.get("definition") else {
@@ -156,12 +159,9 @@ pub(super) fn list_pipelines(context: &ToolContext) -> Result<String> {
 pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
     let node_states: HashMap<String, NodeState> = frontmatter_value(&frontmatter, "nodeStates")?;
-    if node_states
-        .values()
-        .any(|state| matches!(state.status, NodeStatus::Active))
-    {
+    if has_remaining_work(&node_states) {
         return Err(MaenifoldError::InvalidArgument(format!(
-            "Pipeline {session_id} is currently running; pause or cancel it before deleting"
+            "Pipeline {session_id} has remaining work; pause or cancel it before deleting"
         )));
     }
 

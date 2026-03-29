@@ -102,7 +102,9 @@ impl AcpxDriver {
             .new_session(SessionOpts {
                 cwd: self.cwd.clone(),
                 model: None,
+                mode: None,
                 thought_level: None,
+                config_options: None,
                 allowed_tools: None,
                 max_turns: None,
                 timeout_seconds: Some(self.timeout_seconds),

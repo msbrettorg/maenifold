@@ -19,6 +19,8 @@ mod create;
 mod create_misc;
 #[path = "handler_tests_crud.rs"]
 mod crud;
+#[path = "handler_tests_crud_b.rs"]
+mod crud_b;
 #[path = "handler_tests_fork_a.rs"]
 mod fork_a;
 #[path = "handler_tests_fork_b.rs"]
@@ -33,6 +35,8 @@ mod graft_b;
 mod graft_c;
 #[path = "handler_tests_graft_d.rs"]
 mod graft_d;
+#[path = "handler_tests_graft_e.rs"]
+mod graft_e;
 #[path = "handler_tests_join.rs"]
 mod join;
 #[path = "handler_tests_join_errors.rs"]

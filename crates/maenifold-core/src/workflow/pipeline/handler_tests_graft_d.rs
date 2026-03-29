@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 #[serial(config)]
-fn pipeline_graft_all_pending_pipeline_is_allowed_despite_active_frontmatter() {
+fn pipeline_graft_pending_pipeline_rejects_remaining_work() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
     let pipeline_id = "pipeline-1735689600058";
     seed_dispatch_pipeline(
@@ -33,7 +33,7 @@ fn pipeline_graft_all_pending_pipeline_is_allowed_despite_active_frontmatter() {
         2,
     );
 
-    let output = pipeline(
+    let error = pipeline(
         &context,
         &json!({
             "sessionId": pipeline_id,
@@ -47,19 +47,9 @@ fn pipeline_graft_all_pending_pipeline_is_allowed_despite_active_frontmatter() {
             }
         }),
     )
-    .expect("all-pending graft succeeds");
-    let response: Value = serde_json::from_str(&output).expect("parse response");
-    let nodes = response
-        .get("data")
-        .and_then(|data| data.get("nodes"))
-        .and_then(Value::as_array)
-        .expect("nodes array");
+    .expect_err("pending graft should fail");
 
-    assert_eq!(nodes.len(), 3);
-    assert!(nodes.iter().any(|node| {
-        node.get("nodeId") == Some(&Value::String("tail".to_string()))
-            && node.get("status") == Some(&Value::String("pending".to_string()))
-    }));
+    assert!(error.to_string().contains("running pipelines"));
 }
 
 #[test]

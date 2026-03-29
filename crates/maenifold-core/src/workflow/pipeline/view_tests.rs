@@ -113,6 +113,8 @@ fn node_state_with_thinking_session(
 
 #[path = "view_tests_prompt.rs"]
 mod prompt;
+#[path = "view_tests_config.rs"]
+mod config;
 #[path = "view_tests_render.rs"]
 mod render;
 #[path = "view_tests_thinking.rs"]

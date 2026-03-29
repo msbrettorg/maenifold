@@ -1,17 +1,15 @@
 use std::sync::Arc;
 
 use crate::acp_native::{AgentPool, SessionOpts};
-use crate::acpx_driver::AcpxResponse;
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use serde_json::json;
 
 use super::agent_session::{AgentSession, open_agent_session};
-use super::output_parser::parse_output;
-use super::output_types::WorkflowOutput;
 use super::runner_helpers::{
-    extract_workflow_session_id, parse_step_progress, step_think_config, terminal_workflow_status,
-    workflow_prompt, workflow_text,
+    extract_workflow_session_id, parse_step_progress, prompt_workflow_agent, step_think_config,
+    terminal_workflow_status, workflow_completion_text, workflow_prompt, workflow_step_payload,
+    workflow_text,
 };
 use super::think_runner::{drive_think_session, seed_think_session};
 
@@ -69,7 +67,9 @@ pub(crate) async fn run_workflow_with_pool(
         SessionOpts {
             cwd: context.config.maenifold_root.clone(),
             model: None,
+            mode: None,
             thought_level: None,
+            config_options: None,
             allowed_tools: None,
             max_turns: None,
             timeout_seconds,
@@ -150,7 +150,9 @@ async fn maybe_run_step_thinking(
         SessionOpts {
             cwd: context.config.maenifold_root.clone(),
             model: None,
+            mode: None,
             thought_level: None,
+            config_options: None,
             allowed_tools: None,
             max_turns: None,
             timeout_seconds: None,
@@ -160,147 +162,4 @@ async fn maybe_run_step_thinking(
     )
     .await?;
     Ok(())
-}
-
-async fn prompt_workflow_agent(
-    driver: &AgentSession,
-    prompt: &str,
-    step: &str,
-    final_step: bool,
-) -> Result<WorkflowAgentResponse> {
-    let actual_prompt = workflow_prompt(prompt, step);
-    let prompt_with_shape = format!(
-        "{actual_prompt}\n\nWrap your response in <output> tags:\n{}\n\nYour thinking can appear outside the tags. Only the <output> block is parsed.",
-        WorkflowOutput::expected_shape()
-    );
-    let response = driver.prompt(&prompt_with_shape).await?;
-    let text = workflow_response_text(response)?;
-    parse_workflow_with_retry(driver, &text, 3, final_step).await
-}
-
-struct WorkflowAgentResponse {
-    output: WorkflowOutput,
-    used_fallback: bool,
-}
-
-async fn parse_workflow_with_retry(
-    driver: &AgentSession,
-    initial_text: &str,
-    max_retries: usize,
-    final_step: bool,
-) -> Result<WorkflowAgentResponse> {
-    let mut text = initial_text.trim().to_string();
-
-    for attempt in 0..=max_retries {
-        match parse_workflow_output(&text) {
-            Ok(output) => {
-                return Ok(WorkflowAgentResponse {
-                    output,
-                    used_fallback: false,
-                });
-            }
-            Err(error) if attempt < max_retries && !final_step => {
-                let retry_prompt = workflow_retry_prompt(&error);
-                let response = driver.prompt(&retry_prompt).await?;
-                text = workflow_response_text(response)?.trim().to_string();
-            }
-            Err(error) => {
-                eprintln!("workflow output parse failed after retries: {error}");
-                return Ok(WorkflowAgentResponse {
-                    output: WorkflowOutput {
-                        response: text,
-                        done: false,
-                        conclusion: None,
-                    },
-                    used_fallback: true,
-                });
-            }
-        }
-    }
-
-    Err(MaenifoldError::Message(
-        "workflow parsing retry loop exhausted unexpectedly".to_string(),
-    ))
-}
-
-fn parse_workflow_output(text: &str) -> std::result::Result<WorkflowOutput, String> {
-    let parsed = parse_output(text).map_err(|error| error.to_string())?;
-    let output = WorkflowOutput::from_parsed(&parsed).map_err(|error| error.to_string())?;
-    let conclusion = output
-        .conclusion
-        .clone()
-        .filter(|value| !value.trim().is_empty());
-    if output.done && conclusion.is_none() {
-        return Err("missing required <conclusion> when <done>true</done>".to_string());
-    }
-    Ok(WorkflowOutput {
-        response: output.response,
-        done: output.done,
-        conclusion,
-    })
-}
-
-fn workflow_response_text(response: AcpxResponse) -> Result<String> {
-    if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
-        return Err(MaenifoldError::Message(error));
-    }
-    Ok(response.text)
-}
-
-fn workflow_step_payload(
-    session_id: &str,
-    response: &WorkflowAgentResponse,
-    final_step: bool,
-) -> serde_json::Value {
-    let response_text = workflow_response_text_for_step(response, final_step);
-    if response.output.done || final_step {
-        json!({
-            "sessionId": session_id,
-            "response": response_text,
-            "status": "completed",
-            "conclusion": workflow_conclusion_text(response, final_step)
-        })
-    } else {
-        json!({ "sessionId": session_id, "response": response.output.response })
-    }
-}
-
-fn workflow_completion_text(response: &WorkflowAgentResponse, final_step: bool) -> Option<String> {
-    if response.output.done || final_step {
-        Some(workflow_conclusion_text(response, final_step))
-    } else {
-        None
-    }
-}
-
-fn workflow_conclusion_text(response: &WorkflowAgentResponse, final_step: bool) -> String {
-    response
-        .output
-        .conclusion
-        .clone()
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| workflow_response_text_for_step(response, final_step))
-}
-
-fn workflow_response_text_for_step(response: &WorkflowAgentResponse, final_step: bool) -> String {
-    if response.used_fallback && final_step {
-        fallback_step_tag(&response.output.response)
-    } else {
-        response.output.response.clone()
-    }
-}
-
-fn workflow_retry_prompt(error: &str) -> String {
-    format!(
-        "Your response could not be parsed. Error: {error}\nExpected format:\n{}\n\nPlease rewrite your response with the correct <output> tags.",
-        WorkflowOutput::expected_shape()
-    )
-}
-
-fn fallback_step_tag(response: &str) -> String {
-    if response.contains("[[") && response.contains("]]") {
-        response.to_string()
-    } else {
-        format!("{response} [[step]]")
-    }
 }

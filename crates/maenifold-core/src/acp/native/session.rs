@@ -15,8 +15,19 @@ pub(super) async fn handle_new_session(
     conn: &acp::ClientSideConnection,
     opts: SessionOpts,
 ) -> Result<SessionInfo> {
+    let SessionOpts {
+        cwd,
+        model,
+        mode,
+        thought_level,
+        config_options,
+        allowed_tools,
+        max_turns,
+        timeout_seconds: _,
+        mcp_servers,
+    } = opts;
     let response = conn
-        .new_session(acp::NewSessionRequest::new(opts.cwd).mcp_servers(opts.mcp_servers))
+        .new_session(acp::NewSessionRequest::new(cwd).mcp_servers(mcp_servers))
         .await
         .map_err(|error| AgentError::Acp(error.to_string()))?;
     let sid = response.session_id.clone();
@@ -34,19 +45,21 @@ pub(super) async fn handle_new_session(
             .unwrap_or_default(),
         config_options: response.config_options.clone().unwrap_or_default(),
     };
-    if let Some(model) = opts.model
+    if let Some(model) = model
         && let Err(error) = conn
             .set_session_model(acp::SetSessionModelRequest::new(sid.clone(), model))
             .await
     {
         tracing::warn!("Failed to set ACP session model: {error}");
     }
-    set_option(conn, sid.clone(), "thought_level", opts.thought_level).await;
+    set_mode(conn, sid.clone(), mode).await;
+    set_config_options(conn, sid.clone(), config_options).await;
+    set_option(conn, sid.clone(), "thought_level", thought_level).await;
     set_option(
         conn,
         sid.clone(),
         "allowed_tools",
-        opts.allowed_tools
+        allowed_tools
             .map(|tools| serde_json::to_string(&tools).unwrap_or_else(|_| "[]".to_string())),
     )
     .await;
@@ -54,10 +67,42 @@ pub(super) async fn handle_new_session(
         conn,
         sid.clone(),
         "max_turns",
-        opts.max_turns.map(|turns| turns.to_string()),
+        max_turns.map(|turns| turns.to_string()),
     )
     .await;
     Ok(session_info)
+}
+
+async fn set_config_options(
+    conn: &acp::ClientSideConnection,
+    session_id: acp::SessionId,
+    config_options: Option<serde_json::Map<String, serde_json::Value>>,
+) {
+    if let Some(config_options) = config_options {
+        for (config_id, value) in config_options {
+            if is_built_in_config_option(&config_id) {
+                continue;
+            }
+            set_option(
+                conn,
+                session_id.clone(),
+                &config_id,
+                Some(config_option_value(value)),
+            )
+            .await;
+        }
+    }
+}
+
+fn is_built_in_config_option(config_id: &str) -> bool {
+    matches!(config_id, "thought_level" | "allowed_tools" | "max_turns")
+}
+
+fn config_option_value(value: serde_json::Value) -> String {
+    match value {
+        serde_json::Value::String(value) => value,
+        value => value.to_string(),
+    }
 }
 
 async fn set_option(
@@ -76,6 +121,20 @@ async fn set_option(
             .await
     {
         tracing::warn!("Failed to set ACP session config {config_id}: {error}");
+    }
+}
+
+async fn set_mode(
+    conn: &acp::ClientSideConnection,
+    session_id: acp::SessionId,
+    mode: Option<String>,
+) {
+    if let Some(mode) = mode
+        && let Err(error) = conn
+            .set_session_mode(acp::SetSessionModeRequest::new(session_id, mode))
+            .await
+    {
+        tracing::warn!("Failed to set ACP session mode: {error}");
     }
 }
 
@@ -204,5 +263,27 @@ mod tests {
 
         assert!(matches!(result, Err(AgentError::Acp(message)) if message == "prompt timed out"));
         assert_eq!(cleanups.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn config_option_value_preserves_string_values() {
+        assert_eq!(
+            super::config_option_value(serde_json::Value::String("4096".to_string())),
+            "4096"
+        );
+    }
+
+    #[test]
+    fn config_option_value_stringifies_non_string_values() {
+        assert_eq!(super::config_option_value(serde_json::json!(true)), "true");
+        assert_eq!(super::config_option_value(serde_json::json!(42)), "42");
+    }
+
+    #[test]
+    fn built_in_config_options_are_filtered_from_custom_entries() {
+        assert!(super::is_built_in_config_option("thought_level"));
+        assert!(super::is_built_in_config_option("allowed_tools"));
+        assert!(super::is_built_in_config_option("max_turns"));
+        assert!(!super::is_built_in_config_option("sandbox"));
     }
 }

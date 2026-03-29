@@ -1,9 +1,10 @@
+use super::pipeline_node_schema::pipeline_node_schema;
 use super::support::{
     bool_property, enum_string_property, integer_property_with_default, object_schema,
     string_property, tool_definition,
 };
 use crate::mcp::McpToolDefinition;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     let tool = match registry_name {
@@ -96,7 +97,17 @@ fn pipeline_tool(registry_name: &str) -> McpToolDefinition {
 fn definition_schema() -> Value {
     json!({
         "type": "object",
-        "description": "Pipeline definition with nodes[] and edges[]"
+        "description": "Pipeline definition with nodes[] and edges[]",
+        "properties": {
+            "nodes": {
+                "type": "array",
+                "description": "Pipeline nodes to execute",
+                "items": pipeline_node_schema()
+            },
+            "edges": pipeline_edges_schema("Pipeline edges connecting nodes")
+        },
+        "required": ["nodes", "edges"],
+        "additionalProperties": false
     })
 }
 
@@ -130,59 +141,6 @@ fn graft_schema() -> Value {
         },
         "required": ["nodes", "edges"],
         "additionalProperties": false
-    })
-}
-
-fn pipeline_node_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "id": {
-                "type": "string",
-                "description": "New node identifier"
-            },
-            "workflowId": {
-                "type": "string",
-                "description": "Workflow definition to run"
-            },
-            "acpClient": {
-                "type": "string",
-                "description": "Optional ACP client"
-            },
-            "prompt": {
-                "type": "string",
-                "description": "Prompt text for prompt nodes"
-            },
-            "agent": {
-                "type": "string",
-                "description": "ACP agent for prompt/thinking nodes"
-            },
-            "toolMode": {
-                "type": "string",
-                "description": "Tool mode for prompt nodes"
-            },
-            "topic": {
-                "type": "string",
-                "description": "Topic for sequential thinking nodes"
-            },
-            "totalThoughts": {
-                "type": "integer",
-                "description": "Thought count for thinking nodes"
-            },
-            "analysisType": {
-                "type": "string",
-                "description": "Analysis type for thinking nodes"
-            },
-            "toolName": {
-                "type": "string",
-                "description": "MCP tool name for tool nodes"
-            },
-            "toolArgs": {
-                "type": "object",
-                "description": "Tool arguments for tool nodes"
-            }
-        },
-        "required": ["id"]
     })
 }
 

@@ -12,6 +12,7 @@ use super::executor_tests_support::{
     completed_node_state, pending_node_state, pipeline_test_context, source_tool_node,
     target_tool_node,
 };
+use super::types::{AgentConfig, PipelineNode};
 
 #[test]
 fn resolve_dot_path_handles_nested_object_and_arrays() {
@@ -157,6 +158,97 @@ fn build_tool_request_mapping_overrides_static_values() {
     );
 }
 
+#[test]
+fn build_prompt_request_includes_agent_config_mode_in_session_opts() {
+    let (_tmp, context, _reset) = pipeline_test_context(crate::util::json::OutputFormat::Json);
+    let definition = PipelineDefinition {
+        nodes: vec![PipelineNode::Prompt {
+            id: "prompt".to_string(),
+            prompt: "Draft operator guidance".to_string(),
+            agent: "agent-prompt".to_string(),
+            tool_mode: "required".to_string(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: Some(90),
+            agent_config: Some(AgentConfig {
+                model: None,
+                mode: Some("planning".to_string()),
+                thought_level: None,
+                config_options: None,
+            }),
+        }],
+        edges: vec![],
+    };
+    let node = definition.nodes.first().expect("prompt node");
+
+    match build_node_execution_request(
+        &context,
+        &definition,
+        &HashMap::from([pending_node_state("prompt", "pipeline-executor-prompt")]),
+        node,
+        &DispatchedNode {
+            node_id: "prompt".to_string(),
+            session_id: None,
+        },
+        "Ambient context",
+    )
+    .expect("build node execution request")
+    {
+        NodeExecutionRequest::Prompt { session_opts, .. } => {
+            assert_eq!(session_opts.mode.as_deref(), Some("planning"));
+        }
+        other => panic!("expected prompt execution request, got {other:?}"),
+    }
+}
+
+#[test]
+fn build_prompt_request_includes_agent_config_options_in_session_opts() {
+    let (_tmp, context, _reset) = pipeline_test_context(crate::util::json::OutputFormat::Json);
+    let config_options = config_options();
+    let definition = PipelineDefinition {
+        nodes: vec![PipelineNode::Prompt {
+            id: "prompt".to_string(),
+            prompt: "Draft operator guidance".to_string(),
+            agent: "agent-prompt".to_string(),
+            tool_mode: "required".to_string(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: Some(90),
+            agent_config: Some(AgentConfig {
+                model: None,
+                mode: None,
+                thought_level: None,
+                config_options: Some(config_options.clone()),
+            }),
+        }],
+        edges: vec![],
+    };
+    let node = definition.nodes.first().expect("prompt node");
+
+    match build_node_execution_request(
+        &context,
+        &definition,
+        &HashMap::from([pending_node_state("prompt", "pipeline-executor-prompt")]),
+        node,
+        &DispatchedNode {
+            node_id: "prompt".to_string(),
+            session_id: None,
+        },
+        "Ambient context",
+    )
+    .expect("build node execution request")
+    {
+        NodeExecutionRequest::Prompt { session_opts, .. } => {
+            assert_eq!(session_opts.config_options, Some(config_options));
+        }
+        other => panic!("expected prompt execution request, got {other:?}"),
+    }
+}
+
 fn build_tool_request_args(
     context: &ToolContext,
     definition: PipelineDefinition,
@@ -184,4 +276,14 @@ fn build_tool_request_args(
         NodeExecutionRequest::Tool { tool_args, .. } => tool_args,
         other => panic!("expected tool execution request, got {other:?}"),
     }
+}
+
+fn config_options() -> serde_json::Map<String, Value> {
+    json!({
+        "sandbox": "workspace-write",
+        "max_tokens": "4096"
+    })
+    .as_object()
+    .cloned()
+    .expect("config options object")
 }

@@ -5,6 +5,26 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 69 — Pipeline Node Configuration Parity (FR-52)
+
+Closed the gap between pipeline node config fields accepted at creation time and what is actually wired, visible, and discoverable at runtime.
+
+### Fixed
+- **View config fields** (T-69.2): Pipeline `view` operation now serializes all 7 config fields (`model`, `thoughtLevel`, `allowedTools`, `maxTurns`, `timeout`, `toolMode`, `agentConfig`) for each node type that supports them.
+- **Graft guard** (T-69.4): Graft and delete guards now check actual node statuses (`Pending`/`Active`/`Ready`) via `has_remaining_work()` instead of stale frontmatter status string. Completed/abandoned pipelines can now be grafted onto or deleted.
+- **Stuck transition** (T-69.5): Restart rejection due to max-attempts now transitions node to `Stuck` status (persisted before error return) with clear error message.
+
+### Added
+- **Schema config fields** (T-69.3): MCP Pipeline tool schema uses `oneOf` discriminator per node type, advertising all config fields with correct required arrays. LLMs can now discover `model`, `thoughtLevel`, `allowedTools`, `maxTurns`, `timeout`, `toolMode`, and `agentConfig` via the schema.
+- **Wire agent mode** (T-69.6): `AgentConfig.mode` flows end-to-end from pipeline node → `SessionOpts` → ACP `session/set_mode`. Warning log removed.
+- **Wire config options** (T-69.7): `AgentConfig.config_options` flows to ACP `session/set_config_option` calls. Built-in keys (`thought_level`, `allowed_tools`, `max_turns`) filtered to avoid double-setting. Warning log removed.
+- **ListAgents MCP tool** (T-69.8): New tool enumerates ACP agents from `agents.json` with name, command, args, and mcp_servers. Registered as `ListAgents`/`listagents`/`list_agents`.
+
+### Changed
+- **Module extractions**: Tests extracted from `mcp/mod.rs` to `mcp/tests.rs`. Workflow helpers extracted from `runner.rs` to `runner_helpers.rs`. All files under 300 LOC.
+
+---
+
 ## Sprint 68 — ACP Client Hardening Phase 2 (FR-50, FR-51)
 
 Continued native ACP client hardening with client capabilities, MCP server passthrough, session persistence, pipeline capability-aware configuration, and usage tracking.

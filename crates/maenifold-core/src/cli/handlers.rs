@@ -14,7 +14,6 @@ const WORKFLOW_USAGE: &str = "Usage: maenifold workflow <workflow-id> <agent> <p
 const THINK_USAGE: &str = "Usage: maenifold think <agent> <topic>\n\nRuns a sequential thinking session through the configured ACP agent and prints the conclusion.";
 const TOOL_USAGE: &str =
     "Usage: maenifold tool <name> '<json-payload>' [--json]\n\nInvokes a maenifold tool directly.";
-
 pub(super) fn run_mcp() -> i32 {
     let config = Config::current();
     if let Err(err) = mcp::initialize_runtime(&config) {
@@ -183,7 +182,9 @@ fn run_prompt_command(args: &[String]) -> i32 {
             .new_session(SessionOpts {
                 cwd: context.config.maenifold_root.clone(),
                 model: model.clone(),
+                mode: None,
                 thought_level: None,
+                config_options: None,
                 allowed_tools: None,
                 max_turns: None,
                 timeout_seconds: None,

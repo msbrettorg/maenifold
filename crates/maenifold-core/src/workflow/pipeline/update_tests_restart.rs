@@ -166,6 +166,7 @@ fn pipeline_restart_recreates_stuck_node_session() {
     let output = restart_pipeline_node(&context, pipeline_id, "child").expect("restart node");
     let response: Value = serde_json::from_str(&output).expect("parse response");
     let data = response.get("data").expect("response data");
+    assert_eq!(data.get("status").and_then(Value::as_str), Some("active"));
     let nodes = data
         .get("nodes")
         .and_then(Value::as_array)
@@ -239,7 +240,10 @@ fn pipeline_restart_rejects_when_max_attempts_reached() {
     )
     .expect_err("restart must fail at max attempts");
 
-    assert_eq!(error.to_string(), "Node child has reached max attempts (3)");
+    assert_eq!(
+        error.to_string(),
+        "Node child has reached max attempts (3) and is now stuck"
+    );
 
     let (pipeline_frontmatter, _, _) =
         read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read pipeline");
@@ -252,56 +256,4 @@ fn pipeline_restart_rejects_when_max_attempts_reached() {
         "workflow-1735689601000-child"
     );
     assert_eq!(updated_states["child"].attempts, 3);
-}
-
-#[test]
-#[serial(config)]
-fn pipeline_restart_clears_thinking_session_id() {
-    let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
-    let pipeline_id = "pipeline-1735689601050";
-    let original_child_session = "workflow-1735689601050-child";
-    let node_states = HashMap::from([
-        (
-            "root".to_string(),
-            NodeState {
-                session_id: "workflow-1735689601050-root".to_string(),
-                status: NodeStatus::Completed,
-                attempts: 1,
-                thinking_session_id: None,
-                output: None,
-            },
-        ),
-        (
-            "child".to_string(),
-            NodeState {
-                session_id: original_child_session.to_string(),
-                status: NodeStatus::Abandoned,
-                attempts: 1,
-                thinking_session_id: Some("thinking-stale-xyz".to_string()),
-                output: Some("stale output".to_string()),
-            },
-        ),
-    ]);
-    seed_dispatch_pipeline(&context, pipeline_id, node_states, 8);
-
-    let output = restart_pipeline_node(&context, pipeline_id, "child").expect("restart succeeds");
-    let response: Value = serde_json::from_str(&output).expect("parse response");
-    let _ = response; // result shape verified in other tests
-
-    let (pipeline_frontmatter, _, _) =
-        read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read pipeline");
-    let pipeline_frontmatter = pipeline_frontmatter.expect("pipeline frontmatter");
-    let updated_states: HashMap<String, NodeState> =
-        frontmatter_value(&pipeline_frontmatter, "nodeStates").expect("node states");
-
-    assert!(
-        updated_states["child"].thinking_session_id.is_none(),
-        "thinking_session_id must be cleared on restart"
-    );
-    assert!(
-        updated_states["child"].output.is_none(),
-        "output must be cleared on restart"
-    );
-    assert_eq!(updated_states["child"].status, NodeStatus::Pending);
-    assert_eq!(updated_states["child"].attempts, 2);
 }

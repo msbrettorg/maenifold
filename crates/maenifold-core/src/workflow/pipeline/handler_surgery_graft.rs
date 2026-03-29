@@ -32,30 +32,12 @@ pub(super) fn graft_pipeline(
         .and_then(YamlValue::as_str)
         .unwrap_or_else(|| super::super::compute_pipeline_status(&node_states))
         .to_string();
-    let has_active_nodes = node_states
-        .values()
-        .any(|state| matches!(state.status, NodeStatus::Active));
-    let all_nodes_pending = !node_states.is_empty()
-        && node_states
-            .values()
-            .all(|state| matches!(state.status, NodeStatus::Pending));
-    let running_frontmatter = matches!(pipeline_status.as_str(), "active" | "running");
 
-    if has_active_nodes || (running_frontmatter && !all_nodes_pending) {
+    if super::super::has_remaining_work(&node_states) {
         return Err(MaenifoldError::Message(
             "Pipeline graft rejected: running pipelines must be paused, completed, or cancelled before graft."
                 .to_string(),
         ));
-    }
-    if !all_nodes_pending
-        && !matches!(
-            pipeline_status.as_str(),
-            "paused" | "completed" | "cancelled" | "stuck"
-        )
-    {
-        return Err(MaenifoldError::Message(format!(
-            "Pipeline graft rejected: pipeline status must be paused, completed, cancelled, or stuck; current status is {pipeline_status}."
-        )));
     }
 
     let merged_definition = merge_graft_definition(&definition, &graft)?;

@@ -133,3 +133,15 @@ For completed requirements (RTM-001 through RTM-114, RTM-147 through RTM-156), s
 | RTM-227 | FR-51: session list & load | `crates/maenifold-core/src/acp/native/{mod,types}.rs` | TC-227: T-68.4 — `ListSessions`/`LoadSession` commands; capability-guarded via `AgentCapabilities`; `AcpxSessionInfo` mapping | unit |
 | RTM-228 | FR-51: pipeline config | `crates/maenifold-core/src/workflow/pipeline/{types,types_wire,executor_nodes}.rs` | TC-228: T-68.5 — `AgentConfig` struct on node variants; flat field precedence via `.or_else()`; forward-compat warnings for mode/config_options | unit |
 | RTM-229 | FR-51: feature flags | `Cargo.toml`, `crates/maenifold-core/src/acp/native/{client,types}.rs` | TC-229: T-68.6 — `unstable_session_usage` enabled; `UsageUpdate` handled; `AcpxUsage` surfaces usage in responses | unit |
+
+## Sprint 69 — Pipeline Node Configuration Parity (FR-52)
+
+| RTM | Requirement | Component | Test Case | Type |
+|-----|-------------|-----------|-----------|------|
+| RTM-230 | FR-52: view config fields | `crates/maenifold-core/src/workflow/pipeline/view_nodes.rs` | TC-230: T-69.2 — `add_pipeline_node_view_fields` serializes model/thoughtLevel/allowedTools/maxTurns/timeout/toolMode/agentConfig per node type. 12 view tests pass. | unit |
+| RTM-231 | FR-52: schema config fields | `crates/maenifold-core/src/mcp/schema/pipeline_node_schema.rs` | TC-231: T-69.3 — oneOf schema per node type with correct required arrays (totalThoughts, type). 6 schema tests pass. | unit |
+| RTM-232 | FR-52: graft guard fix | `crates/maenifold-core/src/workflow/pipeline/{engine,handler_surgery_graft,handler_crud}.rs` | TC-232: T-69.4 — `has_remaining_work()` checks Pending/Active/Ready node statuses. Graft+delete guards use node state not frontmatter. 20 graft+delete tests pass. | unit |
+| RTM-233 | FR-52: stuck transition | `crates/maenifold-core/src/workflow/pipeline/update_restart.rs` | TC-233: T-69.5 — max-attempts rejection sets NodeStatus::Stuck and persists before error. 4 restart tests pass. | unit |
+| RTM-234 | FR-52: wire agent mode | `crates/maenifold-core/src/acp/native/{types,session}.rs` | TC-234: T-69.6 — AgentConfig.mode → SessionOpts.mode → session/set_mode. Warning removed. | unit |
+| RTM-235 | FR-52: wire config options | `crates/maenifold-core/src/acp/native/{types,session}.rs` | TC-235: T-69.7 — config_options → set_config_option calls with built-in key filtering. 5 config tests pass. | unit |
+| RTM-236 | FR-52: list agents tool | `crates/maenifold-core/src/tools/agents.rs` | TC-236: T-69.8 — ListAgents MCP tool enumerates agents.json entries. 3 aliases registered. 11 agent tests pass. | unit |

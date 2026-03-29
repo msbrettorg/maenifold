@@ -171,6 +171,11 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
                 &["uri"],
             ),
         ),
+        "ListAgents" => tool_definition(
+            registry_name,
+            "Lists configured ACP agents and their serialized configuration fields.",
+            object_schema(vec![], &[]),
+        ),
         _ => return None,
     };
 

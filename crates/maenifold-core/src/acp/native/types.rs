@@ -30,7 +30,9 @@ pub enum AgentError {
 pub struct SessionOpts {
     pub cwd: PathBuf,
     pub model: Option<String>,
+    pub mode: Option<String>,
     pub thought_level: Option<String>,
+    pub config_options: Option<serde_json::Map<String, serde_json::Value>>,
     pub allowed_tools: Option<Vec<String>>,
     pub max_turns: Option<u32>,
     pub timeout_seconds: Option<u64>,

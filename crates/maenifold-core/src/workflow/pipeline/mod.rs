@@ -61,6 +61,8 @@ mod update_tests_context;
 #[cfg(test)]
 mod update_tests_restart;
 #[cfg(test)]
+mod update_tests_restart_cleanup;
+#[cfg(test)]
 mod update_tests_sections;
 mod validation;
 #[cfg(test)]
@@ -77,7 +79,7 @@ mod view_nodes;
 mod view_tests;
 mod workflow_id;
 
-pub use engine::{compute_pipeline_status, compute_ready_set};
+pub use engine::{compute_pipeline_status, compute_ready_set, has_remaining_work};
 pub use handler::pipeline;
 pub use types::{
     EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,

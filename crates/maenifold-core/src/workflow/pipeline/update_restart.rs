@@ -59,7 +59,7 @@ pub(super) fn restart_pipeline_node(
                 context,
             )?;
             return Err(MaenifoldError::Message(format!(
-                "Node {node_id} has reached max attempts ({max_attempts})"
+                "Node {node_id} has reached max attempts ({max_attempts}) and is now stuck"
             )));
         }
 

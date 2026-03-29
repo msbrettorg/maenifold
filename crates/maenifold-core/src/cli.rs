@@ -23,9 +23,7 @@ pub enum CliAction {
     /// --http mode with the resolved port.
     Http(u16),
 }
-
 pub struct CliApp;
-
 impl CliApp {
     /// T-29.2: Classify CLI arguments *before* blocking on any runtime.
     ///
@@ -239,7 +237,6 @@ fn render_error(output_format: OutputFormat, tool_name: &str, err: MaenifoldErro
 fn usage_error() -> (String, i32) {
     (usage(), 1)
 }
-
 fn normalize_json_output(output: String) -> (String, i32) {
     match serde_json::from_str::<Value>(&output) {
         Ok(Value::Object(object))
@@ -295,7 +292,7 @@ fn usage() -> String {
         "  Sync:   StartWatcher, StopWatcher",
         "  Repair: RepairConcepts, AnalyzeConceptCorruption",
         // T-16.1: RTM FR-8.1 — C# groups ListAssets + ReadMcpResource under MCP, not Adopt.
-        "  MCP:    ListAssets, ReadMcpResource",
+        "  MCP:    ListAssets, ReadMcpResource, ListAgents",
         "  Bench:  RunFullBenchmark",
     ]
     .join("\n")

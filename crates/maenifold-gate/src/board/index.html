@@ -163,6 +163,7 @@
   </div>
   <script>
     const COLUMNS = ["pending", "swe", "red", "blue", "done"];
+    const SESSION_INIT_ERROR = "No gate bound to this session";
     const state = {
       gates: [],
       tasks: [],
@@ -191,11 +192,16 @@
       });
       const data = await resp.json();
       if (data.error) throw new Error(data.error.message || "MCP request failed");
-      const text = data.result && data.result.content && data.result.content[0] && data.result.content[0].text;
+      const result = data.result || {};
+      const text = result.content && result.content[0] && result.content[0].text;
+      if (result.isError) {
+        throw new Error(text || `${toolName} failed`);
+      }
+      if (!text) return null;
       try {
         return JSON.parse(text);
       } catch {
-        throw new Error(text || "Invalid MCP response");
+        return text;
       }
     }
 
@@ -237,8 +243,73 @@
       };
     }
 
+    function summarizeTask(task, gateName) {
+      const { sections, ...summary } = task || {};
+      return normalizeTask(summary, gateName);
+    }
+
     async function loadRegistry() {
       state.gates = (await callGateTool("gate_list_gates")).gates || [];
+    }
+
+    function selectedGateEntry() {
+      if (!state.selectedGate) return null;
+      const gate = state.gates.find(item => item.name === state.selectedGate);
+      if (!gate) throw new Error(`Unknown gate '${state.selectedGate}'`);
+      return gate;
+    }
+
+    function isUnboundGateError(error) {
+      const message = error && error.message ? error.message : String(error);
+      return message.includes(SESSION_INIT_ERROR);
+    }
+
+    async function ensureBoundGate() {
+      const selectedGate = selectedGateEntry();
+      if (selectedGate) {
+        await callGateTool("gate_sync", { root: selectedGate.root });
+        return { gate: selectedGate, tasks: null };
+      }
+
+      try {
+        return { gate: null, tasks: await callGateTool("gate_status") };
+      } catch (error) {
+        if (!isUnboundGateError(error)) throw error;
+      }
+
+      const fallbackGate = state.gates[0];
+      if (!fallbackGate) {
+        throw new Error("No registered gates available to bind.");
+      }
+
+      await callGateTool("gate_sync", { root: fallbackGate.root });
+      return { gate: fallbackGate, tasks: null };
+    }
+
+    async function loadTaskDetail(taskId) {
+      const summaryTask = state.tasks.find(task => task.id === taskId);
+      if (!summaryTask) return;
+
+      state.selectedTask = { ...summaryTask, detailLoading: true };
+      render();
+
+      try {
+        const gate = state.gates.find(item => item.name === summaryTask.gateName);
+        if (gate) {
+          await callGateTool("gate_sync", { root: gate.root });
+        }
+
+        const detail = await callGateTool("gate_status", { id: summaryTask.id });
+        if (!state.selectedTask || state.selectedTask.id !== summaryTask.id) return;
+        state.selectedTask = { ...normalizeTask(detail, summaryTask.gateName), detailLoading: false };
+        render();
+      } catch (error) {
+        if (state.selectedTask && state.selectedTask.id === summaryTask.id) {
+          state.selectedTask = { ...summaryTask, detailLoading: false };
+        }
+        setMessage(error.message || String(error), true);
+        render();
+      }
     }
 
     async function loadTasks() {
@@ -251,20 +322,25 @@
         if (state.showAll) {
           const batches = await Promise.all(state.gates.map(async gate => {
             const items = await callGateTool("gate_status", { root: gate.root });
-            return items.map(item => normalizeTask(item, gate.name));
+            return items.map(item => summarizeTask(item, gate.name));
           }));
           tasks = batches.flat();
-        } else if (state.selectedGate) {
-          const gate = state.gates.find(item => item.name === state.selectedGate);
-          if (!gate) throw new Error(`Unknown gate '${state.selectedGate}'`);
-          tasks = (await callGateTool("gate_status", { root: gate.root }))
-            .map(item => normalizeTask(item, gate.name));
         } else {
-          tasks = (await callGateTool("gate_status")).map(item => normalizeTask(item, "Bound Gate"));
+          const { gate, tasks: boundTasks } = await ensureBoundGate();
+          const gateName = gate ? gate.name : "Bound Gate";
+          const items = boundTasks || await callGateTool("gate_status");
+          tasks = items.map(item => summarizeTask(item, gateName));
         }
         state.tasks = tasks;
         if (state.selectedTask) {
-          state.selectedTask = tasks.find(task => task.id === state.selectedTask.id) || null;
+          const summaryTask = tasks.find(task => task.id === state.selectedTask.id);
+          state.selectedTask = summaryTask
+            ? {
+                ...summaryTask,
+                sections: state.selectedTask.sections,
+                detailLoading: !!state.selectedTask.detailLoading,
+              }
+            : null;
         }
         setMessage(`Loaded ${tasks.length} tasks.`, false);
       } catch (error) {
@@ -316,11 +392,7 @@
       const board = document.getElementById("board");
       board.innerHTML = COLUMNS.map(renderColumn).join("");
       board.querySelectorAll("[data-task-id]").forEach(node => {
-        node.addEventListener("click", () => {
-          state.selectedTask = state.tasks.find(task => task.id === node.dataset.taskId) || null;
-          renderDetail();
-          renderBoard();
-        });
+        node.addEventListener("click", () => loadTaskDetail(node.dataset.taskId));
       });
       board.querySelectorAll("[data-sprint]").forEach(node => {
         node.addEventListener("click", () => {
@@ -399,6 +471,9 @@
       document.getElementById("detail-gate").textContent = task.gateName;
       document.getElementById("detail-stage").textContent = String(task.status || "pending").toUpperCase();
       const sections = (task.sections || []).filter(section => section.body);
+      const sectionsMarkup = task.detailLoading
+        ? '<div class="empty">Loading task details…</div>'
+        : (sections.length ? sections.map(renderSection).join("") : '<div class="empty">No task sections available</div>');
       document.getElementById("detail-body").innerHTML = `
         <section>
           <h2 class="detail-title">${escapeHtml(task.title)}</h2>
@@ -417,7 +492,7 @@
         <section>
           <div class="column-header"><span>Agent Notes</span><span>${sections.length}</span></div>
           <div class="section-list">
-            ${sections.length ? sections.map(renderSection).join("") : '<div class="empty">No task sections available</div>'}
+            ${sectionsMarkup}
           </div>
         </section>
       `;

@@ -3,6 +3,8 @@ use std::collections::BTreeMap;
 
 use crate::{db::TaskRow, types::TaskState};
 
+use super::details::{SectionOutput, TaskDetails, parse_details};
+
 #[derive(Debug, Serialize, PartialEq, Eq)]
 pub(super) struct StageOutput {
     pub name: String,
@@ -11,10 +13,17 @@ pub(super) struct StageOutput {
 
 #[derive(Debug, Serialize)]
 pub(super) struct StatusOutput {
+    pub id: String,
+    pub title: String,
     pub file: String,
     pub location: String,
     pub status: String,
+    pub attempts: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub requirement: Option<String>,
     pub stages: Vec<StageOutput>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub sections: Vec<SectionOutput>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -116,18 +125,31 @@ pub(super) fn json_output(
     file: &str,
     location: &str,
     state: Option<&TaskState>,
+    content: Option<&str>,
     error: Option<String>,
     db_drift: Vec<String>,
 ) -> StatusOutput {
+    let TaskDetails {
+        id,
+        title,
+        attempts,
+        requirement,
+        sections,
+    } = parse_details(file, content, state);
     let stages = stage_outputs(state);
     StatusOutput {
+        id,
+        title,
         file: file.into(),
         location: location.into(),
         status: state.map_or_else(
             || "error".to_string(),
             |item| item.effective_status().to_string(),
         ),
+        attempts,
+        requirement,
         stages,
+        sections,
         error,
         db_drift,
     }

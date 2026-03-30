@@ -8,8 +8,8 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
 fn build_icon() -> Icon {
-    let rgba = include_bytes!("tray_icon.rgba");
-    Icon::from_rgba(rgba.to_vec(), 64, 64).expect("valid 64x64 RGBA icon")
+    Icon::from_rgba(include_bytes!("tray_icon.rgba").to_vec(), 64, 64)
+        .expect("valid 64x64 RGBA icon")
 }
 
 fn launch_agent_path() -> std::path::PathBuf {
@@ -41,6 +41,45 @@ fn xml_escape(value: &str) -> String {
         .replace('\'', "&apos;")
 }
 
+fn restart_daemon(service_label: &str) {
+    #[cfg(target_os = "macos")]
+    {
+        let output = match std::process::Command::new("id").arg("-u").output() {
+            Ok(output) if output.status.success() => output,
+            Ok(output) => {
+                eprintln!(
+                    "Warning: failed to resolve uid for restart (status {}): {}",
+                    output.status,
+                    String::from_utf8_lossy(&output.stderr).trim()
+                );
+                return;
+            }
+            Err(err) => {
+                eprintln!("Warning: failed to resolve uid for restart: {err}");
+                return;
+            }
+        };
+
+        let uid = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+        if uid.is_empty() {
+            eprintln!("Warning: restart aborted because uid lookup returned empty output");
+            return;
+        }
+
+        let target = format!("gui/{uid}/{service_label}");
+        if let Err(err) = std::process::Command::new("launchctl")
+            .args(["kickstart", "-k", &target])
+            .spawn()
+        {
+            eprintln!("Warning: failed to restart {service_label}: {err}");
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = service_label;
+    }
+}
+
 struct TrayApp {
     port: u16,
     shutdown_token: CancellationToken,
@@ -48,6 +87,7 @@ struct TrayApp {
     tray_icon: Option<tray_icon::TrayIcon>,
     quit_id: Option<MenuId>,
     login_id: Option<MenuId>,
+    restart_id: Option<MenuId>,
     login_item: Option<MenuItem>,
     exit_code: i32,
 }
@@ -115,11 +155,21 @@ impl TrayApp {
         let _ = menu.append(&login_item);
         let _ = menu.append(&PredefinedMenuItem::separator());
 
+        #[cfg(target_os = "macos")]
+        let restart_item = {
+            let item = MenuItem::new("Restart", true, None);
+            let _ = menu.append(&item);
+            Some(item)
+        };
+        #[cfg(not(target_os = "macos"))]
+        let restart_item: Option<MenuItem> = None;
+
         let quit_item = MenuItem::new("Quit", true, None);
         let _ = menu.append(&quit_item);
 
         self.quit_id = Some(quit_item.id().clone());
         self.login_id = Some(login_item.id().clone());
+        self.restart_id = restart_item.map(|item| item.id().clone());
         self.login_item = Some(login_item);
 
         match TrayIconBuilder::new()
@@ -152,6 +202,10 @@ impl TrayApp {
             self.tray_icon.take();
             event_loop.exit();
             return;
+        }
+
+        if self.restart_id.as_ref().is_some_and(|id| event.id == *id) {
+            restart_daemon("com.ma-collective.gate");
         }
 
         if self.login_id.as_ref().is_some_and(|id| event.id == *id) {
@@ -242,6 +296,7 @@ pub fn run_with_tray(port: u16) -> i32 {
         tray_icon: None,
         quit_id: None,
         login_id: None,
+        restart_id: None,
         login_item: None,
         exit_code: 0,
     };

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gate Board</title>
+  <style>
+    :root {
+      --canvas: #252525;
+      --card: #1e2028;
+      --card-inner: #252836;
+      --blue: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --text: #e0e0e0;
+      --muted: #a0a0a0;
+      --border: #404040;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--text);
+      font: 13px/1.4 "SF Mono", "Fira Code", monospace;
+    }
+    button, select, input { font: inherit; }
+    button, select {
+      background: var(--card-inner);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; display: flex; flex-direction: column; }
+    .topbar {
+      display: flex; justify-content: space-between; gap: 16px; align-items: center;
+      padding: 12px 16px; border-bottom: 1px solid var(--border); background: #1d1d1d;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .topbar h1 { margin: 0; font-size: 18px; }
+    .toolbar, .toolbar-left { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .toggle { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); }
+    .toggle input { accent-color: var(--blue); }
+    .badge, .count {
+      display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px;
+      border-radius: 999px; background: var(--card-inner); color: var(--muted); font-size: 11px;
+      border: 1px solid var(--border);
+    }
+    .status { text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
+    .status.pending { color: var(--muted); }
+    .status.swe { color: var(--blue); }
+    .status.red { color: var(--red); }
+    .status.blue, .status.done { color: var(--green); }
+    .layout { display: flex; min-height: calc(100vh - 62px); }
+    .board {
+      flex: 1; display: grid; grid-template-columns: repeat(5, minmax(240px, 1fr));
+      gap: 12px; padding: 16px; overflow-x: auto;
+    }
+    .column { min-width: 240px; display: flex; flex-direction: column; gap: 10px; }
+    .column-header {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-size: 11px;
+    }
+    .card, .empty, .sprint-group {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md);
+      box-shadow: var(--shadow);
+    }
+    .card {
+      border-left: 3px solid var(--border); padding: 12px; display: flex; flex-direction: column;
+      gap: 8px; cursor: pointer; transition: transform 0.12s ease, border-color 0.12s ease;
+    }
+    .card:hover { transform: translateY(-1px); }
+    .card.selected { outline: 1px solid var(--blue); }
+    .card.pending { border-left-color: var(--muted); }
+    .card.swe { border-left-color: var(--blue); }
+    .card.red { border-left-color: var(--red); }
+    .card.blue, .card.done { border-left-color: var(--green); }
+    .card-id { color: #93c5fd; font-size: 12px; }
+    .card-title { font-size: 13px; color: var(--text); }
+    .card-meta, .badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .meta-chip, .verdict-chip {
+      background: var(--card-inner); border-radius: var(--radius-sm); padding: 2px 6px;
+      color: var(--muted); border: 1px solid var(--border); font-size: 10px; text-transform: uppercase;
+    }
+    .verdict-chip.pass { color: var(--green); }
+    .verdict-chip.reject, .verdict-chip.fail { color: var(--red); }
+    .empty { padding: 16px; color: #6c6c6c; text-align: center; }
+    .sprint-toggle {
+      width: 100%; background: var(--card-inner); border: 0; color: var(--muted);
+      display: flex; align-items: center; justify-content: space-between; padding: 10px 12px;
+    }
+    .sprint-items { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 10px; }
+    .detail {
+      width: 360px; max-width: 42vw; border-left: 1px solid var(--border); background: #1d1d1d;
+      display: flex; flex-direction: column;
+    }
+    .detail.hidden { display: none; }
+    .detail-head, .detail-foot {
+      padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex;
+      justify-content: space-between; align-items: center; gap: 12px;
+    }
+    .detail-foot { border-bottom: 0; border-top: 1px solid var(--border); }
+    .detail-body { padding: 16px; overflow: auto; display: flex; flex-direction: column; gap: 18px; }
+    .detail-title { margin: 0; font-size: 18px; }
+    .kv { display: grid; grid-template-columns: 90px 1fr; gap: 8px; color: var(--muted); }
+    .kv strong { color: var(--text); }
+    .section-list { display: flex; flex-direction: column; gap: 12px; }
+    .section-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; }
+    .section-card h4 { margin: 0 0 8px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .section-card pre {
+      margin: 0; white-space: pre-wrap; word-break: break-word; color: var(--text);
+      font: inherit;
+    }
+    .message { padding: 12px 16px 0; color: var(--muted); }
+    .message.error { color: #fca5a5; }
+    .spinner {
+      width: 12px; height: 12px; border-radius: 999px; border: 2px solid var(--border);
+      border-top-color: var(--blue); display: inline-block; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1080px) {
+      .layout { flex-direction: column; }
+      .detail { width: 100%; max-width: 100%; border-left: 0; border-top: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="toolbar-left">
+        <h1>Gate</h1>
+        <span class="count" id="summary-count">0 tasks</span>
+        <span class="count" id="refresh-state">idle</span>
+      </div>
+      <div class="toolbar">
+        <label class="toggle">
+          <input type="checkbox" id="show-all-toggle">
+          <span>Show All</span>
+        </label>
+        <select id="gate-select"></select>
+        <button id="refresh-button">Refresh</button>
+      </div>
+    </header>
+    <div id="message" class="message"></div>
+    <div class="layout">
+      <main class="board" id="board"></main>
+      <aside class="detail hidden" id="detail-panel">
+        <div class="detail-head">
+          <strong id="detail-id">Task</strong>
+          <button id="close-detail">Close</button>
+        </div>
+        <div class="detail-body" id="detail-body"></div>
+        <div class="detail-foot">
+          <span id="detail-gate" class="count">Bound Gate</span>
+          <span id="detail-stage" class="count">Pending</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <script>
+    const COLUMNS = ["pending", "swe", "red", "blue", "done"];
+    const state = {
+      gates: [],
+      tasks: [],
+      selectedTask: null,
+      selectedGate: new URLSearchParams(window.location.search).get("gate") || "",
+      showAll: false,
+      loading: false,
+      message: "",
+      error: false,
+    };
+
+    async function callGateTool(toolName, args = {}) {
+      const resp = await fetch("/board/api", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json, text/event-stream",
+          "Mcp-Protocol-Version": "2025-03-26"
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: Date.now(),
+          method: "tools/call",
+          params: { name: toolName, arguments: args }
+        })
+      });
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error.message || "MCP request failed");
+      const text = data.result && data.result.content && data.result.content[0] && data.result.content[0].text;
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error(text || "Invalid MCP response");
+      }
+    }
+
+    function taskId(task) {
+      return task.id || String(task.file || "").replace(/\.md$/, "");
+    }
+
+    function cardStage(task) {
+      const status = String(task.status || "pending").toLowerCase();
+      return COLUMNS.includes(status) ? status : "pending";
+    }
+
+    function sprintName(task) {
+      const match = taskId(task).match(/^T-(\d+)/);
+      return match ? `Sprint ${match[1]}` : "Unsorted";
+    }
+
+    function latestVerdicts(task) {
+      const verdicts = new Map();
+      for (const stage of task.stages || []) {
+        if (stage.verdict) verdicts.set(stage.name, stage.verdict);
+      }
+      return [...verdicts.entries()];
+    }
+
+    function safeVerdictClass(verdict) {
+      const normalized = String(verdict).toLowerCase();
+      return ["pass", "fail", "reject"].includes(normalized) ? normalized : "";
+    }
+
+    function normalizeTask(task, gateName) {
+      return {
+        ...task,
+        id: taskId(task),
+        title: task.title || taskId(task),
+        attempts: task.attempts || 0,
+        gateName: gateName || "Bound Gate",
+        column: cardStage(task),
+      };
+    }
+
+    async function loadRegistry() {
+      state.gates = (await callGateTool("gate_list_gates")).gates || [];
+    }
+
+    async function loadTasks() {
+      state.loading = true;
+      setMessage("Loading board data…", false);
+      render();
+      try {
+        await loadRegistry();
+        let tasks = [];
+        if (state.showAll) {
+          const batches = await Promise.all(state.gates.map(async gate => {
+            const items = await callGateTool("gate_status", { root: gate.root });
+            return items.map(item => normalizeTask(item, gate.name));
+          }));
+          tasks = batches.flat();
+        } else if (state.selectedGate) {
+          const gate = state.gates.find(item => item.name === state.selectedGate);
+          if (!gate) throw new Error(`Unknown gate '${state.selectedGate}'`);
+          tasks = (await callGateTool("gate_status", { root: gate.root }))
+            .map(item => normalizeTask(item, gate.name));
+        } else {
+          tasks = (await callGateTool("gate_status")).map(item => normalizeTask(item, "Bound Gate"));
+        }
+        state.tasks = tasks;
+        if (state.selectedTask) {
+          state.selectedTask = tasks.find(task => task.id === state.selectedTask.id) || null;
+        }
+        setMessage(`Loaded ${tasks.length} tasks.`, false);
+      } catch (error) {
+        state.tasks = [];
+        setMessage(error.message || String(error), true);
+      } finally {
+        state.loading = false;
+        render();
+      }
+    }
+
+    function setMessage(message, error) {
+      state.message = message;
+      state.error = !!error;
+    }
+
+    function updateUrl() {
+      const url = new URL(window.location.href);
+      if (state.showAll || !state.selectedGate) {
+        url.searchParams.delete("gate");
+      } else {
+        url.searchParams.set("gate", state.selectedGate);
+      }
+      history.replaceState({}, "", url);
+    }
+
+    function render() {
+      renderToolbar();
+      renderBoard();
+      renderDetail();
+      const message = document.getElementById("message");
+      message.textContent = state.message;
+      message.className = `message${state.error ? " error" : ""}`;
+      document.getElementById("summary-count").textContent = `${state.tasks.length} tasks`;
+      document.getElementById("refresh-state").innerHTML = state.loading ? '<span class="spinner"></span> refreshing' : 'idle';
+    }
+
+    function renderToolbar() {
+      const select = document.getElementById("gate-select");
+      select.disabled = state.showAll;
+      const options = ['<option value="">Bound Gate</option>']
+        .concat(state.gates.map(gate => `<option value="${escapeHtml(gate.name)}">${escapeHtml(gate.name)}</option>`));
+      select.innerHTML = options.join("");
+      select.value = state.selectedGate;
+      document.getElementById("show-all-toggle").checked = state.showAll;
+    }
+
+    function renderBoard() {
+      const board = document.getElementById("board");
+      board.innerHTML = COLUMNS.map(renderColumn).join("");
+      board.querySelectorAll("[data-task-id]").forEach(node => {
+        node.addEventListener("click", () => {
+          state.selectedTask = state.tasks.find(task => task.id === node.dataset.taskId) || null;
+          renderDetail();
+          renderBoard();
+        });
+      });
+      board.querySelectorAll("[data-sprint]").forEach(node => {
+        node.addEventListener("click", () => {
+          node.parentElement.classList.toggle("collapsed");
+          node.nextElementSibling.hidden = !node.nextElementSibling.hidden;
+        });
+      });
+    }
+
+    function renderColumn(column) {
+      const tasks = state.tasks.filter(task => task.column === column);
+      const body = column === "done" ? renderDone(tasks) : renderCards(tasks);
+      return `
+        <section class="column">
+          <div class="column-header">
+            <span>${column.toUpperCase()}</span>
+            <span class="count">${tasks.length}</span>
+          </div>
+          ${body}
+        </section>
+      `;
+    }
+
+    function renderDone(tasks) {
+      if (!tasks.length) return '<div class="empty">No completed tasks</div>';
+      const groups = new Map();
+      for (const task of tasks) {
+        const key = sprintName(task);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(task);
+      }
+      return [...groups.entries()].map(([sprint, items], index) => `
+        <div class="sprint-group">
+          <button class="sprint-toggle" data-sprint="${escapeHtml(sprint)}">
+            <span>${escapeHtml(sprint)}</span>
+            <span>${items.length} tasks</span>
+          </button>
+          <div class="sprint-items" ${index ? "hidden" : ""}>
+            ${renderCards(items)}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderCards(tasks) {
+      if (!tasks.length) return '<div class="empty">No tasks</div>';
+      return tasks.map(task => {
+        const verdicts = latestVerdicts(task).map(([stage, verdict]) =>
+          `<span class="verdict-chip ${safeVerdictClass(verdict)}">${escapeHtml(stage)}:${escapeHtml(verdict)}</span>`
+        ).join("");
+        return `
+          <article class="card ${task.column}${state.selectedTask && state.selectedTask.id === task.id ? " selected" : ""}" data-task-id="${escapeHtml(task.id)}">
+            <div class="card-id">${escapeHtml(task.id)}</div>
+            <div class="card-title">${escapeHtml(task.title)}</div>
+            <div class="card-meta">
+              <span class="meta-chip status ${task.column}">${escapeHtml(task.status)}</span>
+              <span class="meta-chip">${escapeHtml(task.location)}</span>
+              <span class="meta-chip">attempts:${task.attempts}</span>
+            </div>
+            <div class="badges">${verdicts || '<span class="meta-chip">no verdicts</span>'}</div>
+            <div class="meta-chip">${escapeHtml(task.gateName)}</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderDetail() {
+      const panel = document.getElementById("detail-panel");
+      const task = state.selectedTask;
+      if (!task) {
+        panel.classList.add("hidden");
+        return;
+      }
+      panel.classList.remove("hidden");
+      document.getElementById("detail-id").textContent = task.id;
+      document.getElementById("detail-gate").textContent = task.gateName;
+      document.getElementById("detail-stage").textContent = String(task.status || "pending").toUpperCase();
+      const sections = (task.sections || []).filter(section => section.body);
+      document.getElementById("detail-body").innerHTML = `
+        <section>
+          <h2 class="detail-title">${escapeHtml(task.title)}</h2>
+          <div class="card-meta" style="margin-top:10px">
+            <span class="meta-chip">${escapeHtml(task.location)}</span>
+            <span class="meta-chip">attempts:${task.attempts}</span>
+            ${task.requirement ? `<span class="meta-chip">${escapeHtml(task.requirement)}</span>` : ""}
+          </div>
+        </section>
+        <section class="kv">
+          <span>ID</span><strong>${escapeHtml(task.id)}</strong>
+          <span>Stage</span><strong>${escapeHtml(task.status)}</strong>
+          <span>Sprint</span><strong>${escapeHtml(sprintName(task))}</strong>
+          <span>Gate</span><strong>${escapeHtml(task.gateName)}</strong>
+        </section>
+        <section>
+          <div class="column-header"><span>Agent Notes</span><span>${sections.length}</span></div>
+          <div class="section-list">
+            ${sections.length ? sections.map(renderSection).join("") : '<div class="empty">No task sections available</div>'}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderSection(section) {
+      const verdict = section.verdict ? `<span class="verdict-chip ${safeVerdictClass(section.verdict)}">${escapeHtml(section.verdict)}</span>` : "";
+      return `
+        <article class="section-card">
+          <h4>${escapeHtml(section.heading)}</h4>
+          <div class="card-meta" style="margin-bottom:8px">
+            <span class="meta-chip">${escapeHtml(section.stage)}</span>
+            ${verdict}
+          </div>
+          <pre>${escapeHtml(section.body)}</pre>
+        </article>
+      `;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"]/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[ch]));
+    }
+
+    document.getElementById("refresh-button").addEventListener("click", loadTasks);
+    document.getElementById("close-detail").addEventListener("click", () => {
+      state.selectedTask = null;
+      render();
+    });
+    document.getElementById("show-all-toggle").addEventListener("change", event => {
+      state.showAll = event.target.checked;
+      if (state.showAll) state.selectedGate = "";
+      updateUrl();
+      loadTasks();
+    });
+    document.getElementById("gate-select").addEventListener("change", event => {
+      state.selectedGate = event.target.value;
+      state.showAll = false;
+      updateUrl();
+      loadTasks();
+    });
+
+    render();
+    loadTasks();
+    setInterval(loadTasks, 30000);
+  </script>
+</body>
+</html>

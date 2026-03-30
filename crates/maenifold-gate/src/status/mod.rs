@@ -8,6 +8,7 @@ use crate::{
 use anyhow::{Result, anyhow};
 use std::{collections::BTreeMap, path::Path};
 
+mod details;
 mod output;
 use output::{discovered_stages, json_output, maybe_drift, print_summary, stage_text};
 
@@ -25,6 +26,7 @@ struct OutputEntry<'a> {
     file: &'a str,
     location: &'a str,
     state: Option<&'a TaskState>,
+    content: Option<&'a str>,
     error: Option<String>,
     db_drift: Vec<String>,
 }
@@ -73,6 +75,7 @@ fn run_one_by_id(context: &StatusContext<'_>, id: &str) -> Result<()> {
                 file: &row.file,
                 location: location.as_str(),
                 state: Some(&state),
+                content: Some(&content),
                 error: None,
                 db_drift: maybe_drift(context.check_drift, &state, Some(&row)),
             },
@@ -92,6 +95,7 @@ fn run_one_by_id(context: &StatusContext<'_>, id: &str) -> Result<()> {
                     file: &row.file,
                     location: location.as_str(),
                     state: Some(&state),
+                    content: Some(&content),
                     error: Some(INCOMPLETE_AUDIT_TRAIL_NOTE.into()),
                     db_drift: maybe_drift(context.check_drift, &state, Some(&row)),
                 },
@@ -103,6 +107,7 @@ fn run_one_by_id(context: &StatusContext<'_>, id: &str) -> Result<()> {
                 file: &row.file,
                 location: location.as_str(),
                 state: None,
+                content: Some(&content),
                 error: Some(err.to_string()),
                 db_drift: vec![],
             },
@@ -140,6 +145,7 @@ fn run_all(context: &StatusContext<'_>) -> Result<()> {
                         file,
                         task.location.as_str(),
                         None,
+                        None,
                         Some(message),
                         vec![],
                     ));
@@ -171,6 +177,7 @@ fn run_all(context: &StatusContext<'_>) -> Result<()> {
                             file,
                             task.location.as_str(),
                             None,
+                            Some(&content),
                             Some(message),
                             vec![],
                         ));
@@ -189,6 +196,7 @@ fn run_all(context: &StatusContext<'_>) -> Result<()> {
                 file,
                 task.location.as_str(),
                 Some(&state),
+                Some(&content),
                 note,
                 db_drift,
             ));
@@ -214,6 +222,7 @@ fn output_one(context: &StatusContext<'_>, entry: OutputEntry<'_>) -> Result<()>
                 entry.file,
                 entry.location,
                 entry.state,
+                entry.content,
                 entry.error,
                 entry.db_drift,
             ))?

@@ -25,6 +25,10 @@ pub enum Command {
     Append(append::AppendArgs),
     Status(StatusArgs),
     Sync(SyncArgs),
+    #[cfg(feature = "app")]
+    Mcp,
+    #[cfg(feature = "app")]
+    Http(u16),
     Help(HelpTopic),
 }
 
@@ -70,6 +74,10 @@ where
 
     let command = match first.as_str() {
         "-h" | "--help" => Command::Help(HelpTopic::TopLevel),
+        #[cfg(feature = "app")]
+        "--mcp" => parse_mcp(args.collect())?,
+        #[cfg(feature = "app")]
+        "--http" => parse_http(args.collect())?,
         "pass" => parse_pass(args.collect())?,
         "reject" => parse_reject(args.collect())?,
         "append" => parse_append(args.collect())?,
@@ -84,6 +92,28 @@ where
     Ok(Cli {
         command: Some(command),
     })
+}
+
+#[cfg(feature = "app")]
+fn parse_mcp(args: Vec<String>) -> Result<Command, CliError> {
+    if args.is_empty() {
+        return Ok(Command::Mcp);
+    }
+    Err(CliError::new("unexpected extra arguments for --mcp"))
+}
+
+#[cfg(feature = "app")]
+fn parse_http(args: Vec<String>) -> Result<Command, CliError> {
+    match args.as_slice() {
+        [] => Ok(Command::Http(9879)),
+        [port] => port
+            .parse::<u16>()
+            .map(Command::Http)
+            .map_err(|_| CliError::new(format!("invalid port '{port}'"))),
+        _ => Err(CliError::new(
+            "unexpected extra arguments for --http [PORT]",
+        )),
+    }
 }
 
 fn parse_pass(args: Vec<String>) -> Result<Command, CliError> {

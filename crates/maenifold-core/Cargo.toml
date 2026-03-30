@@ -58,3 +58,8 @@ filetime = "0.2.25"
 # T-HOTFIX: RTM NFR-3
 name = "integration_tests"
 path = "tests/main.rs"
+
+[[test]]
+# T-HOTFIX: RTM NFR-3
+name = "vector_integration_tests"
+path = "tests/vector_integration_tests.rs"

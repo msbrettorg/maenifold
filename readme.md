@@ -169,8 +169,10 @@ See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the full guide.
 ```bash
 cargo build --workspace                                  # build
 cargo fmt --all --check                                  # format check
-cargo clippy --workspace --all-targets -- -D warnings    # lint
-cargo test                                               # full test suite
+make quality-lint                                        # correctness-focused lint
+MAENIFOLD_FULL_SUITE=1 cargo test                        # full test suite
+MAENIFOLD_VECTOR_SUITE=1 cargo test --test vector_integration_tests  # vector/embedding suite
+make quality-report                                      # coverage + quality artifacts
 ```
 
 ### Workspace Structure
@@ -186,7 +188,7 @@ maenifold-rs/
 └── docs/                      # Development guide
 ```
 
-CI runs `fmt` → `clippy` → `build` → `test` on every push/PR to `dev` and `main`. Releases are built for macOS ARM64, Linux x64, and Windows x64 on `v*` tags.
+CI runs `fmt` → `clippy` → `build` → `test` on every push/PR to `dev` and `main`. A dedicated Quality Metrics workflow now publishes coverage, dead/unused findings, duplicate-code reports, `rust-code-analysis` metrics, and an approximate file-level CRAP summary as CI artifacts. Releases are built for macOS ARM64, Linux x64, and Windows x64 on `v*` tags.
 
 ## License
 

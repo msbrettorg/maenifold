@@ -1,5 +1,7 @@
 use std::ffi::OsString;
 
+#[cfg(feature = "app")]
+use crate::mcp::GateMcpServer;
 use crate::{append, pass, reject, status, sync};
 
 use super::{
@@ -35,6 +37,10 @@ pub fn run(cli: Cli) -> i32 {
         Some(Command::Append(args)) => run_anyhow_command(append::run(&args)),
         Some(Command::Status(args)) => run_stubbed_command(status::run(&args)),
         Some(Command::Sync(args)) => run_stubbed_command(sync::run(&args)),
+        #[cfg(feature = "app")]
+        Some(Command::Mcp) => run_mcp_stdio(),
+        #[cfg(feature = "app")]
+        Some(Command::Http(port)) => crate::tray::run_with_tray(port),
     }
 }
 
@@ -58,6 +64,25 @@ fn run_stubbed_command(result: Result<(), CommandStubError>) -> i32 {
         Ok(()) => 0,
         Err(error) => {
             eprintln!("{error}");
+            1
+        }
+    }
+}
+
+#[cfg(feature = "app")]
+fn run_mcp_stdio() -> i32 {
+    let rt = match tokio::runtime::Runtime::new() {
+        Ok(rt) => rt,
+        Err(err) => {
+            eprintln!("Error creating async runtime: {err}");
+            return 1;
+        }
+    };
+
+    match rt.block_on(GateMcpServer::serve_stdio()) {
+        Ok(()) => 0,
+        Err(err) => {
+            eprintln!("Error running MCP stdio server: {err}");
             1
         }
     }

@@ -10,6 +10,18 @@ repository.workspace = true
 name = "gate"
 path = "src/main.rs"
 
+[features]
+default = []
+app = [
+  "dep:axum",
+  "dep:rmcp",
+  "dep:tokio",
+  "dep:tokio-util",
+  "dep:tower-http",
+  "dep:tray-icon",
+  "dep:winit",
+]
+
 [dependencies]
 anyhow.workspace = true
 pulldown-cmark.workspace = true
@@ -17,6 +29,16 @@ rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 walkdir.workspace = true
+axum = { workspace = true, optional = true }
+rmcp = { workspace = true, optional = true, features = ["transport-streamable-http-server"] }
+tokio = { workspace = true, optional = true }
+tokio-util = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
+tray-icon = { workspace = true, optional = true }
+winit = { version = "0.30", default-features = false, features = ["rwh_06"], optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFRunLoop"] }
 
 [dev-dependencies]
 tempfile.workspace = true

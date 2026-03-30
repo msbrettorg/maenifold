@@ -37,11 +37,11 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: make quality-lint
 
       - name: Build
         run: cargo build --workspace
 
       # T-10.8: RTM FR-14 (RTM-080)
       - name: Test
-        run: cargo test
+        run: MAENIFOLD_FULL_SUITE=1 cargo test

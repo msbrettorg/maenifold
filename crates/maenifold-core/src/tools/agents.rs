@@ -1,7 +1,6 @@
 use super::context::{ToolContext, render};
 use crate::acp_config::AgentsConfig;
 use crate::error::Result;
-use crate::util::json::OutputFormat;
 use serde_json::{Map, Value, json};
 
 pub fn list_agents(context: &ToolContext, _payload: &Value) -> Result<String> {
@@ -49,6 +48,7 @@ mod tests {
     use crate::config::Config;
     use crate::mcp::schema::mcp_tool_from_registry_name;
     use crate::registry::ToolRegistry;
+    use crate::util::json::OutputFormat;
     use std::fs;
     use std::path::{Path, PathBuf};
     use tempfile::tempdir;

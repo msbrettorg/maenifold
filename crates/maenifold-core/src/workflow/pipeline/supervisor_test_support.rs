@@ -2,7 +2,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use super::supervisor::supervisor_clear_all;
-use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
+use super::{PipelineDefinition, PipelineNode};
 
 pub(super) struct SupervisorReset;
 
@@ -26,19 +26,6 @@ pub(super) fn wait_for(condition: impl Fn() -> bool) {
         thread::sleep(Duration::from_millis(25));
     }
     panic!("condition was not met before timeout");
-}
-
-pub(super) fn pending_node_state(id: &str, session_id: &str) -> (String, NodeState) {
-    (
-        id.to_string(),
-        NodeState {
-            session_id: session_id.to_string(),
-            status: NodeStatus::Pending,
-            attempts: 0,
-            thinking_session_id: None,
-            output: None,
-        },
-    )
 }
 
 pub(super) fn single_workflow_definition(

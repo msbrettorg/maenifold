@@ -2,12 +2,16 @@ pub mod append;
 pub mod cli;
 pub mod db;
 pub mod fs;
+#[cfg(feature = "app")]
+pub mod mcp;
 pub mod parser;
 pub mod pass;
 pub mod pipeline;
 pub mod reject;
 pub mod status;
 pub mod sync;
+#[cfg(feature = "app")]
+pub mod tray;
 pub mod types;
 
 pub use cli::{

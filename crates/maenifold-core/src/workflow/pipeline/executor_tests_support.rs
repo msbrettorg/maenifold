@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -11,7 +13,7 @@ use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::workflow::initial_workflow_frontmatter;
 pub(super) use crate::workflow::pipeline::test_support::{
-    pipeline_test_context, seed_pipeline_session_with_workflows,
+    pipeline_test_context,
 };
 use crate::workflow::pipeline::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 

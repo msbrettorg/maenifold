@@ -1,6 +1,3 @@
-#![warn(clippy::too_many_lines)]
-#![warn(clippy::cognitive_complexity)]
-
 #[path = "acp/config.rs"]
 pub(crate) mod acp_config;
 #[path = "acp/native/mod.rs"]

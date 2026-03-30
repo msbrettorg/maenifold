@@ -1,5 +1,5 @@
 // T-17.5: RTM FR-23 (RTM-127, RTM-129, RTM-130)
-use maenifold_core::Config;
+use maenifold_core::{Config, ToolRegistry};
 use maenifold_core::mcp::MaenifoldMcpServer;
 use once_cell::sync::Lazy;
 use reqwest::{Client, Response, StatusCode};
@@ -196,11 +196,12 @@ async fn http_transport_validates_session_ids_on_follow_up_requests() {
         .iter()
         .filter_map(|tool| tool["name"].as_str())
         .collect::<Vec<_>>();
-    // T-17.5: RTM FR-23 (RTM-130) — assert the full 29-tool registry is exposed over HTTP.
+    let expected_tool_count = ToolRegistry::new().canonical_names().len();
+    // T-17.5: RTM FR-23 (RTM-130) — assert the full canonical registry is exposed over HTTP.
     assert_eq!(
         tool_names.len(),
-        29,
-        "RTM-130: all 29 tools must be registered over HTTP"
+        expected_tool_count,
+        "RTM-130: all registered tools must be exposed over HTTP"
     );
     assert!(
         tool_names.contains(&"GetConfig"),

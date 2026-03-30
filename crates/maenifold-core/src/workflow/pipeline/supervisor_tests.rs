@@ -10,9 +10,7 @@ use super::supervisor::{
     supervisor_is_running, supervisor_pause, supervisor_resume, supervisor_spawn_test_task,
     supervisor_status,
 };
-use super::supervisor_test_support::{
-    pending_node_state, reset_supervisor, single_workflow_definition, wait_for,
-};
+use super::supervisor_test_support::{reset_supervisor, single_workflow_definition, wait_for};
 use super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
 use super::{NodeState, NodeStatus};
 

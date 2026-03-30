@@ -5,11 +5,10 @@ use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use serde_json::json;
 
-use super::agent_session::{AgentSession, open_agent_session};
+use super::agent_session::open_agent_session;
 use super::runner_helpers::{
     extract_workflow_session_id, parse_step_progress, prompt_workflow_agent, step_think_config,
-    terminal_workflow_status, workflow_completion_text, workflow_prompt, workflow_step_payload,
-    workflow_text,
+    terminal_workflow_status, workflow_completion_text, workflow_step_payload, workflow_text,
 };
 use super::think_runner::{drive_think_session, seed_think_session};
 

@@ -9,9 +9,10 @@ fn t_5_2_registry_mapping_covers_all_tools() {
         .iter()
         .map(|tool| tool.name.as_str())
         .collect::<BTreeSet<_>>();
+    let expected_tool_count = ToolRegistry::new().canonical_names().len();
 
-    assert_eq!(tools.len(), 30);
-    assert_eq!(names.len(), 30);
+    assert_eq!(tools.len(), expected_tool_count);
+    assert_eq!(names.len(), expected_tool_count);
     assert!(names.contains("WriteMemory"));
     assert!(names.contains("ListAgents"));
     assert!(names.contains("ReadMcpResource"));
@@ -77,11 +78,12 @@ fn t_5_1_handler_server_info_matches_expected() {
     );
 }
 
-// T-5.1: RTM FR-22.1 — handler converts all McpToolDefinitions into rmcp Tools.
+// T-5.1: RTM FR-22.1 — handler converts all registered McpToolDefinitions into rmcp Tools.
 #[test]
-fn t_5_1_handler_builds_29_rmcp_tools() {
+fn t_5_1_handler_builds_all_rmcp_tools() {
     let handler = MaenifoldHandler::new(TransportKind::Stdio).expect("handler should build");
-    assert_eq!(handler.tools.len(), 30);
+    let expected_tool_count = ToolRegistry::new().canonical_names().len();
+    assert_eq!(handler.tools.len(), expected_tool_count);
 
     let names: BTreeSet<&str> = handler.tools.iter().map(|t| t.name.as_ref()).collect();
     assert!(names.contains("ListAgents"));

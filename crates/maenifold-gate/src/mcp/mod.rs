@@ -30,12 +30,14 @@ use rmcp::model::{
     ServerCapabilities, ServerInfo, Tool,
 };
 use rmcp::{ServerHandler, ServiceExt};
+use std::{path::PathBuf, sync::Mutex};
 
 pub struct GateMcpServer;
 
 struct GateHandler {
     transport: TransportKind,
     tools: Vec<Tool>,
+    bound_root: Mutex<Option<PathBuf>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,6 +51,7 @@ impl GateHandler {
         Self {
             transport,
             tools: self::tools::build_tool_list(),
+            bound_root: Mutex::new(None),
         }
     }
 }
@@ -65,8 +68,9 @@ impl ServerHandler for GateHandler {
             .with_server_info(Implementation::new("gate", env!("CARGO_PKG_VERSION")))
             .with_instructions(
                 "Use gate tools to inspect task state, append agent notes, and move tasks \
-                 through pass/reject transitions. Prefer exact tool names from tools/list \
-                 and pass JSON arguments that match each tool schema.",
+                 through pass/reject transitions. Call gate_sync with a root path to bind \
+                 the session before relying on rootless tool calls. Prefer exact tool names \
+                 from tools/list and pass JSON arguments that match each tool schema.",
             )
     }
 
@@ -90,24 +94,64 @@ impl ServerHandler for GateHandler {
     ) -> impl Future<Output = std::result::Result<CallToolResult, rmcp::ErrorData>> + Send + '_
     {
         let tool_name = request.name.to_string();
-        let arguments = request.arguments.unwrap_or_default();
+        let mut arguments = request.arguments.unwrap_or_default();
         let tool_name_for_dispatch = tool_name.clone();
+        let bound_root = self
+            .bound_root
+            .lock()
+            .map(|guard| guard.clone())
+            .map_err(|err| {
+                rmcp::ErrorData::internal_error(
+                    format!("failed to read bound gate root: {err}"),
+                    None,
+                )
+            });
 
         async move {
+            let bound_root = bound_root?;
+            if requires_bound_root(&tool_name)
+                && !arguments.contains_key("root")
+                && bound_root.is_none()
+            {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    self::tools::SESSION_INIT_ERROR.to_string(),
+                )]));
+            }
             let result = tokio::task::spawn_blocking(move || {
-                self::tools::dispatch(&tool_name_for_dispatch, arguments)
+                self::tools::dispatch(
+                    &tool_name_for_dispatch,
+                    &mut arguments,
+                    bound_root.as_deref(),
+                )
             })
             .await
             .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?;
 
             match result {
-                Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
-                Err(err) => Ok(CallToolResult::error(vec![Content::text(format!(
-                    "{tool_name} failed: {err}"
-                ))])),
+                Ok(result) => {
+                    if let Some(root) = result.synced_root {
+                        let mut guard = self.bound_root.lock().map_err(|err| {
+                            rmcp::ErrorData::internal_error(
+                                format!("failed to update bound gate root: {err}"),
+                                None,
+                            )
+                        })?;
+                        *guard = Some(root);
+                    }
+
+                    Ok(CallToolResult::success(vec![Content::text(result.output)]))
+                }
+                Err(err) => Ok(CallToolResult::error(vec![Content::text(err.to_string())])),
             }
         }
     }
+}
+
+fn requires_bound_root(tool_name: &str) -> bool {
+    matches!(
+        tool_name,
+        "gate_pass" | "gate_reject" | "gate_append" | "gate_status"
+    )
 }
 
 impl GateMcpServer {

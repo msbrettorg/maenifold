@@ -7,6 +7,7 @@ pub mod mcp;
 pub mod parser;
 pub mod pass;
 pub mod pipeline;
+pub mod registry;
 pub mod reject;
 pub mod status;
 pub mod sync;

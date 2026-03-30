@@ -7,6 +7,7 @@ use crate::{
     db::{GateDb, TaskUpsert, extract_task_id},
     fs, parser,
     pipeline::load_pipeline_def,
+    registry,
     types::{TaskLocation, TaskState},
 };
 
@@ -82,6 +83,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
             })?;
         }
         println!("Rebuilt {} tasks from disk ({} errors)", rows.len(), errors);
+        warn_auto_register(root);
         return Ok(());
     }
 
@@ -128,7 +130,17 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
         unchanged,
         errors
     );
+    warn_auto_register(root);
     Ok(())
+}
+
+fn warn_auto_register(root: &Path) {
+    if let Err(error) = registry::auto_register(root) {
+        eprintln!(
+            "warning: failed to auto-register gate root {}: {error}",
+            root.display()
+        );
+    }
 }
 
 fn extract_title(content: &str) -> Option<String> {

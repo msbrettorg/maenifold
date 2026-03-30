@@ -1,6 +1,19 @@
+use crate::registry;
 use rmcp::model::Tool;
 use serde_json::{Map, Value, json};
-use std::{process::Command, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+    sync::Arc,
+};
+
+pub const SESSION_INIT_ERROR: &str =
+    "No gate bound to this session. Run gate_sync with a root path first to initialize.";
+
+pub struct DispatchResult {
+    pub output: String,
+    pub synced_root: Option<PathBuf>,
+}
 
 pub fn build_tool_list() -> Vec<Tool> {
     vec![
@@ -76,76 +89,86 @@ pub fn build_tool_list() -> Vec<Tool> {
                 "required": ["root"]
             }),
         ),
+        tool(
+            "gate_list_gates",
+            "Return the system-wide gate registry as JSON.",
+            json!({"type": "object", "properties": {}}),
+        ),
     ]
 }
 
-pub fn dispatch(name: &str, mut args: Map<String, Value>) -> anyhow::Result<String> {
+pub fn dispatch(
+    name: &str,
+    args: &mut Map<String, Value>,
+    bound_root: Option<&Path>,
+) -> Result<DispatchResult, String> {
+    dispatch_impl(name, args, bound_root).map_err(|err| err.to_string())
+}
+
+fn dispatch_impl(
+    name: &str,
+    args: &mut Map<String, Value>,
+    bound_root: Option<&Path>,
+) -> anyhow::Result<DispatchResult> {
+    let synced_root = prepare_args(name, args, bound_root)?;
+
+    if name == "gate_list_gates" {
+        if !args.is_empty() {
+            let extras = args.keys().cloned().collect::<Vec<_>>().join(", ");
+            anyhow::bail!("unknown arguments: {extras}");
+        }
+        return Ok(DispatchResult {
+            output: serde_json::to_string(&registry::load()?)?,
+            synced_root,
+        });
+    }
+
     let exe = std::env::current_exe()?;
     let mut command = Command::new(exe);
 
     match name {
         "gate_pass" => {
             command.arg("pass");
-            push_opt(&mut command, "--db", take_string(&mut args, "db")?);
-            push_opt(&mut command, "--root", take_string(&mut args, "root")?);
-            push_opt(
-                &mut command,
-                "--pipeline",
-                take_string(&mut args, "pipeline")?,
-            );
-            push_opt(&mut command, "--notes", take_string(&mut args, "notes")?);
-            command.arg(required_string(&mut args, "id")?);
+            push_opt(&mut command, "--db", take_string(args, "db")?);
+            push_opt(&mut command, "--root", take_string(args, "root")?);
+            push_opt(&mut command, "--pipeline", take_string(args, "pipeline")?);
+            push_opt(&mut command, "--notes", take_string(args, "notes")?);
+            command.arg(required_string(args, "id")?);
         }
         "gate_reject" => {
             command.arg("reject");
-            push_opt(&mut command, "--db", take_string(&mut args, "db")?);
-            push_opt(&mut command, "--root", take_string(&mut args, "root")?);
-            push_opt(
-                &mut command,
-                "--pipeline",
-                take_string(&mut args, "pipeline")?,
-            );
-            push_opt(&mut command, "--notes", take_string(&mut args, "notes")?);
-            command.arg(required_string(&mut args, "id")?);
+            push_opt(&mut command, "--db", take_string(args, "db")?);
+            push_opt(&mut command, "--root", take_string(args, "root")?);
+            push_opt(&mut command, "--pipeline", take_string(args, "pipeline")?);
+            push_opt(&mut command, "--notes", take_string(args, "notes")?);
+            command.arg(required_string(args, "id")?);
         }
         "gate_append" => {
             command.arg("append");
-            push_opt(&mut command, "--db", take_string(&mut args, "db")?);
-            push_opt(&mut command, "--root", take_string(&mut args, "root")?);
-            command
-                .arg("--notes")
-                .arg(required_string(&mut args, "notes")?);
-            command
-                .arg("--agent")
-                .arg(required_string(&mut args, "agent")?);
-            command.arg(required_string(&mut args, "id")?);
+            push_opt(&mut command, "--db", take_string(args, "db")?);
+            push_opt(&mut command, "--root", take_string(args, "root")?);
+            command.arg("--notes").arg(required_string(args, "notes")?);
+            command.arg("--agent").arg(required_string(args, "agent")?);
+            command.arg(required_string(args, "id")?);
         }
         "gate_status" => {
             command.arg("status");
-            push_opt(&mut command, "--db", take_string(&mut args, "db")?);
-            push_opt(&mut command, "--root", take_string(&mut args, "root")?);
-            push_opt(
-                &mut command,
-                "--pipeline",
-                take_string(&mut args, "pipeline")?,
-            );
+            push_opt(&mut command, "--db", take_string(args, "db")?);
+            push_opt(&mut command, "--root", take_string(args, "root")?);
+            push_opt(&mut command, "--pipeline", take_string(args, "pipeline")?);
             command.arg("--json");
-            if let Some(id) = take_string(&mut args, "id")? {
+            if let Some(id) = take_string(args, "id")? {
                 command.arg(id);
             }
         }
         "gate_sync" => {
             command.arg("sync");
-            push_opt(&mut command, "--db", take_string(&mut args, "db")?);
-            push_opt(
-                &mut command,
-                "--pipeline",
-                take_string(&mut args, "pipeline")?,
-            );
-            if take_bool(&mut args, "rebuild")?.unwrap_or(false) {
+            push_opt(&mut command, "--db", take_string(args, "db")?);
+            push_opt(&mut command, "--pipeline", take_string(args, "pipeline")?);
+            if take_bool(args, "rebuild")?.unwrap_or(false) {
                 command.arg("--rebuild");
             }
-            command.arg(required_string(&mut args, "root")?);
+            command.arg(required_string(args, "root")?);
         }
         other => anyhow::bail!("unknown tool: {other}"),
     }
@@ -166,12 +189,55 @@ pub fn dispatch(name: &str, mut args: Map<String, Value>) -> anyhow::Result<Stri
     };
 
     if output.status.success() {
-        Ok(text)
+        Ok(DispatchResult {
+            output: text,
+            synced_root,
+        })
     } else if text.is_empty() {
         anyhow::bail!("process exited with status {}", output.status);
     } else {
         anyhow::bail!("{text}");
     }
+}
+
+fn prepare_args(
+    name: &str,
+    args: &mut Map<String, Value>,
+    bound_root: Option<&Path>,
+) -> anyhow::Result<Option<PathBuf>> {
+    match name {
+        "gate_sync" => {
+            let root = required_string(args, "root")?;
+            args.insert("root".into(), Value::String(root.clone()));
+            Ok(Some(
+                std::fs::canonicalize(&root).unwrap_or_else(|_| PathBuf::from(&root)),
+            ))
+        }
+        "gate_pass" | "gate_reject" | "gate_append" | "gate_status" => {
+            inject_bound_root(args, bound_root)?;
+            Ok(None)
+        }
+        "gate_list_gates" => Ok(None),
+        _ => Ok(None),
+    }
+}
+
+fn inject_bound_root(
+    args: &mut Map<String, Value>,
+    bound_root: Option<&Path>,
+) -> anyhow::Result<()> {
+    if matches!(args.get("root"), Some(Value::String(_))) {
+        return Ok(());
+    }
+    if matches!(args.get("root"), Some(_)) {
+        anyhow::bail!("argument 'root' must be a string");
+    }
+    let root = bound_root.ok_or_else(|| anyhow::anyhow!(SESSION_INIT_ERROR))?;
+    args.insert(
+        "root".into(),
+        Value::String(root.to_string_lossy().into_owned()),
+    );
+    Ok(())
 }
 
 fn tool(name: &str, description: &str, schema: Value) -> Tool {

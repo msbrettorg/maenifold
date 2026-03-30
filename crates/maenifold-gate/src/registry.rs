@@ -118,6 +118,8 @@ fn normalize_root(root: &Path) -> Result<PathBuf> {
 fn is_temp_root(root: &Path) -> bool {
     root.starts_with(Path::new("/tmp"))
         || root.starts_with(Path::new("/var/folders"))
+        || root.starts_with(Path::new("/private/tmp"))
+        || root.starts_with(Path::new("/private/var/folders"))
         || std::env::var_os("TMPDIR")
             .is_some_and(|tmp_dir| !tmp_dir.is_empty() && root.starts_with(Path::new(&tmp_dir)))
 }

@@ -181,11 +181,13 @@ fn dispatch_impl(
     let output = command.output()?;
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    let text = match (stdout.is_empty(), stderr.is_empty()) {
-        (false, true) => stdout,
-        (true, false) => stderr,
-        (false, false) => format!("{stdout}\n{stderr}"),
-        (true, true) => String::new(),
+    let text = if !stdout.is_empty() {
+        if !stderr.is_empty() {
+            eprintln!("[gate] subprocess stderr: {stderr}");
+        }
+        stdout
+    } else {
+        stderr
     };
 
     if output.status.success() {

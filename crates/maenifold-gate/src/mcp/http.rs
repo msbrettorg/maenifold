@@ -65,6 +65,35 @@ fn jsonrpc_error(id: Value, message: impl Into<String>) -> Json<Value> {
     }))
 }
 
+fn should_strip_gate_status_sections(tool_name: &str, arguments: &Map<String, Value>) -> bool {
+    if tool_name != "gate_status" {
+        return false;
+    }
+
+    match arguments.get("id") {
+        None | Some(Value::Null) => true,
+        Some(Value::String(id)) => id.trim().is_empty(),
+        _ => false,
+    }
+}
+
+fn strip_sections_from_gate_status_list(text: String) -> String {
+    let Ok(mut value) = serde_json::from_str::<Value>(&text) else {
+        return text;
+    };
+    let Value::Array(tasks) = &mut value else {
+        return text;
+    };
+
+    for task in tasks {
+        if let Value::Object(task) = task {
+            task.remove("sections");
+        }
+    }
+
+    serde_json::to_string(&value).unwrap_or(text)
+}
+
 async fn board_api(State(state): State<AppState>, Json(body): Json<Value>) -> Json<Value> {
     let id = body.get("id").cloned().unwrap_or(Value::Null);
     let method = body.get("method").and_then(Value::as_str).unwrap_or_default();
@@ -112,6 +141,7 @@ async fn board_api(State(state): State<AppState>, Json(body): Json<Value>) -> Js
     {
         Ok(tool_result(super::tools::SESSION_INIT_ERROR.to_string(), true))
     } else {
+        let strip_gate_status_sections = should_strip_gate_status_sections(&tool_name, &arguments);
         let tool_name_for_dispatch = tool_name.clone();
         match tokio::task::spawn_blocking(move || {
             super::tools::dispatch(&tool_name_for_dispatch, &mut arguments, bound_root.as_deref())
@@ -131,7 +161,12 @@ async fn board_api(State(state): State<AppState>, Json(body): Json<Value>) -> Js
                     };
                     *guard = Some(root);
                 }
-                Ok(tool_result(dispatch.output, false))
+                let output = if strip_gate_status_sections {
+                    strip_sections_from_gate_status_list(dispatch.output)
+                } else {
+                    dispatch.output
+                };
+                Ok(tool_result(output, false))
             }
             Ok(Err(err)) => Ok(tool_result(err, true)),
             Err(err) => Err(format!("tool execution failed: {err}")),

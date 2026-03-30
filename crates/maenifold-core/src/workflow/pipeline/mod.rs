@@ -3,12 +3,16 @@ mod dispatch_non_workflow;
 mod dispatch_prompt;
 #[cfg(test)]
 mod dispatch_tests;
+#[cfg(test)]
+mod dispatch_tests_concurrency;
 mod dispatch_thinking;
 mod dispatch_tool;
 mod dispatch_workflow;
 mod engine;
 #[cfg(test)]
 mod engine_tests;
+#[cfg(test)]
+mod engine_tests_edges_smoke;
 pub(super) mod executor;
 mod executor_helpers;
 mod executor_mapping;
@@ -25,6 +29,32 @@ mod handler_nodes;
 mod handler_surgery;
 #[cfg(test)]
 mod handler_tests;
+#[cfg(test)]
+mod handler_tests_create_smoke;
+#[cfg(test)]
+mod handler_tests_create_smoke_b;
+#[cfg(test)]
+mod handler_tests_create_smoke_nodeid;
+#[cfg(test)]
+mod handler_tests_delete_smoke;
+#[cfg(test)]
+mod handler_tests_e2e_smoke;
+#[cfg(test)]
+mod handler_tests_graft_smoke;
+#[cfg(test)]
+mod handler_tests_lifecycle_smoke;
+#[cfg(test)]
+mod handler_tests_param_smoke;
+#[cfg(test)]
+mod handler_tests_param_smoke_b;
+#[cfg(test)]
+mod handler_tests_param_smoke_c;
+#[cfg(test)]
+mod handler_tests_rewind_smoke;
+#[cfg(test)]
+mod handler_tests_state_matrix;
+#[cfg(test)]
+mod handler_tests_surgery_smoke;
 mod handler_validation;
 mod session_io;
 #[cfg(test)]
@@ -59,6 +89,8 @@ mod update_tests;
 #[cfg(test)]
 mod update_tests_context;
 #[cfg(test)]
+mod update_tests_status_smoke;
+#[cfg(test)]
 mod update_tests_restart;
 #[cfg(test)]
 mod update_tests_restart_cleanup;
@@ -71,12 +103,22 @@ mod validation_test_support;
 mod validation_tests;
 #[cfg(test)]
 mod validation_tests_fields;
+#[cfg(test)]
+mod validation_tests_fields_smoke;
+#[cfg(test)]
+mod validation_tests_fields_smoke_b;
+#[cfg(test)]
+mod validation_tests_fields_smoke_c;
+#[cfg(test)]
+mod validation_tests_fields_smoke_d;
 mod view;
 mod view_cognitive;
 mod view_mermaid;
 mod view_nodes;
 #[cfg(test)]
 mod view_tests;
+#[cfg(test)]
+mod view_tests_smoke_extra;
 mod workflow_id;
 
 pub use engine::{compute_pipeline_status, compute_ready_set, has_remaining_work};

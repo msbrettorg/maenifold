@@ -5,6 +5,12 @@ mod dispatch_prompt;
 mod dispatch_tests;
 #[cfg(test)]
 mod dispatch_tests_concurrency;
+#[cfg(test)]
+mod e2e_tests_lifecycle;
+#[cfg(test)]
+mod e2e_tests_surgery_live;
+#[cfg(test)]
+mod e2e_tests_tool_chain;
 mod dispatch_thinking;
 mod dispatch_tool;
 mod dispatch_workflow;

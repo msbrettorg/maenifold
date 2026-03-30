@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 //! Shared helpers for MCP stdio integration tests split from `mcp_tests.rs`.
 
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc;
@@ -11,7 +11,7 @@ use tempfile::TempDir;
 
 // T-10.18: RTM NFR-3 — expected tool count must stay in sync with
 // registry.rs DESCRIPTORS (currently 29 tools).
-pub const EXPECTED_TOOL_COUNT: usize = 29;
+pub const EXPECTED_TOOL_COUNT: usize = 30;
 
 /// Timeout for receiving a single MCP JSON-RPC response frame.
 const READ_TIMEOUT: Duration = Duration::from_secs(10);

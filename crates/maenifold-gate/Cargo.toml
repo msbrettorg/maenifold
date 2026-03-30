@@ -17,6 +17,7 @@ app = [
   "dep:chrono",
   "dep:rust-embed",
   "dep:rmcp",
+  "dep:open",
   "dep:tokio",
   "dep:tokio-util",
   "dep:tower-http",
@@ -36,6 +37,7 @@ axum = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 rust-embed = { workspace = true, optional = true }
 rmcp = { workspace = true, optional = true, features = ["transport-streamable-http-server"] }
+open = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 tokio-util = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }

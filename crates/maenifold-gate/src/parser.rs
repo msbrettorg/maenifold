@@ -4,7 +4,7 @@ use crate::types::{StageState, StageVerdict, TaskLocation, TaskState};
 
 mod error;
 mod pipeline_aware;
-mod sections;
+pub mod sections;
 
 pub use error::ParseTaskError;
 pub use pipeline_aware::parse_task_content_with_pipeline;
@@ -117,11 +117,17 @@ fn derive_status(
 
     for (index, stage) in history.iter().enumerate() {
         let next_stage = history.get(index + 1).map(|next| next.stage.as_str());
-        status = match stage.verdict {
-            Some(StageVerdict::Pass) => next_stage.unwrap_or("done").to_string(),
-            Some(StageVerdict::Reject | StageVerdict::Fail) => "pending".to_string(),
-            None => next_stage.unwrap_or(stage.stage.as_str()).to_string(),
-        };
+        match stage.verdict {
+            Some(StageVerdict::Pass) => {
+                status = next_stage.unwrap_or("done").to_string();
+            }
+            Some(StageVerdict::Reject | StageVerdict::Fail) => {
+                status = "pending".to_string();
+            }
+            None => {
+                status = next_stage.unwrap_or(stage.stage.as_str()).to_string();
+            }
+        }
     }
 
     Ok((status, history.to_vec()))

@@ -143,6 +143,33 @@ fn run_append(root: &Path, db_path: &Path, id: &str, agent: &str, notes: &str) -
     })
 }
 
+fn append_verdict(root: &Path, db_path: &Path, id: &str, agent: &str, verdict: &str) {
+    run_append(
+        root,
+        db_path,
+        id,
+        agent,
+        &format!("- **Verdict**: {verdict}"),
+    )
+    .unwrap();
+}
+
+fn append_verdict_and_update_status(
+    root: &Path,
+    db_path: &Path,
+    id: &str,
+    file: &str,
+    agent: &str,
+    verdict: &str,
+    next_status: &str,
+) {
+    append_verdict(root, db_path, id, agent, verdict);
+    GateDb::open(db_path)
+        .unwrap()
+        .update_task_status(file, next_status, "todo")
+        .unwrap();
+}
+
 fn read_task_by_id(db_path: &Path, id: &str) -> TaskRow {
     GateDb::open(db_path)
         .unwrap()
@@ -161,7 +188,8 @@ fn full_tdd_pipeline_pass_through() {
 
     run_pass(&root, &db_path, id, None).unwrap();
     run_pass(&root, &db_path, id, None).unwrap();
-    run_pass(&root, &db_path, id, None).unwrap();
+    append_verdict_and_update_status(&root, &db_path, id, file, "implement", "PASS", "verify");
+    append_verdict(&root, &db_path, id, "verify", "PASS");
     run_pass(&root, &db_path, id, None).unwrap();
 
     let row = read_task_by_id(&db_path, id);
@@ -185,9 +213,10 @@ fn embedded_pipeline_name_works_end_to_end() {
     run_pass(&root, &db_path, id, Some(Path::new("tdd"))).unwrap();
     assert_eq!(read_task_by_id(&db_path, id).status, "implement");
 
-    run_pass(&root, &db_path, id, Some(Path::new("tdd"))).unwrap();
+    append_verdict_and_update_status(&root, &db_path, id, file, "implement", "PASS", "verify");
     assert_eq!(read_task_by_id(&db_path, id).status, "verify");
 
+    append_verdict(&root, &db_path, id, "verify", "PASS");
     run_pass(&root, &db_path, id, Some(Path::new("tdd"))).unwrap();
     let row = read_task_by_id(&db_path, id);
     assert_eq!(row.status, "done");
@@ -225,7 +254,8 @@ fn reject_at_blue_returns_to_pending() {
 
     run_pass(&root, &db_path, id, None).unwrap();
     run_pass(&root, &db_path, id, None).unwrap();
-    run_pass(&root, &db_path, id, None).unwrap();
+    append_verdict_and_update_status(&root, &db_path, id, file, "red", "PASS", "blue");
+    assert_eq!(read_task_by_id(&db_path, id).status, "blue");
     run_reject(&root, &db_path, id, None).unwrap();
 
     let row = read_task_by_id(&db_path, id);
@@ -276,6 +306,7 @@ fn lightweight_pipeline_skips_red() {
     run_pass(&root, &db_path, id, None).unwrap();
     assert_eq!(read_task_by_id(&db_path, id).status, "blue");
 
+    append_verdict(&root, &db_path, id, "blue", "PASS");
     run_pass(&root, &db_path, id, None).unwrap();
     let row = read_task_by_id(&db_path, id);
     assert_eq!(row.status, "done");
@@ -350,6 +381,7 @@ fn custom_pipeline_json() {
     run_pass(&root, &db_path, id, Some(&custom_path)).unwrap();
     assert_eq!(read_task_by_id(&db_path, id).status, "red");
 
+    append_verdict(&root, &db_path, id, "red", "PASS");
     run_pass(&root, &db_path, id, Some(&custom_path)).unwrap();
     let row = read_task_by_id(&db_path, id);
     assert_eq!(row.status, "done");

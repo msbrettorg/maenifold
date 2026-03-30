@@ -5,6 +5,7 @@ use assert_cmd::Command;
 use assert_cmd::cargo::cargo_bin_cmd;
 use maenifold_gate::{
     StatusArgs, SyncArgs, TaskLocation, TaskState,
+    append::{self, AppendArgs},
     db::{GateDb, TaskUpsert, extract_task_id},
     parser,
     pass::{self, PassArgs},
@@ -84,6 +85,27 @@ fn run_pass(root: &Path, db_path: &Path, id: &str, notes: Option<&str>) {
         root: root.into(),
     })
     .unwrap();
+}
+
+fn run_append(root: &Path, db_path: &Path, id: &str, agent: &str, notes: &str) {
+    append::run(&AppendArgs {
+        id: id.into(),
+        notes: notes.into(),
+        agent: agent.into(),
+        db_path: db_path.into(),
+        root: root.into(),
+    })
+    .unwrap();
+}
+
+fn resync(root: &Path, db_path: &Path) {
+    let sync_args = SyncArgs {
+        db: Some(db_path.to_path_buf()),
+        root: root.to_path_buf(),
+        rebuild: false,
+        pipeline_path: None,
+    };
+    sync::run_sync(&sync_args, root).unwrap();
 }
 
 fn gate_command() -> Command {
@@ -270,14 +292,21 @@ fn test_pass_then_sync_roundtrip() {
 
     let db_path = rebuild_cache(root.path());
     let id = extract_task_id(&file);
-    for note in [
-        "Implementation done.",
-        "Ready for red.",
-        "Ready for blue.",
-        "All tests pass.",
-    ] {
-        run_pass(root.path(), &db_path, &id, Some(note));
-    }
+
+    // pending → swe (swe has verdicts: [], auto-advances)
+    run_pass(root.path(), &db_path, &id, Some("Implementation done."));
+    // swe → red (swe requires no verdict)
+    run_pass(root.path(), &db_path, &id, Some("Ready for red."));
+
+    // Add red verdict; resync computes status → blue
+    run_append(root.path(), &db_path, &id, "red", "**Verdict**: PASS\n\nNo issues found.");
+    resync(root.path(), &db_path);
+
+    // Add blue verdict then pass immediately (no resync — file is still
+    // in todo/ and a "done" status there is invalid for the parser).
+    run_append(root.path(), &db_path, &id, "blue", "**Verdict**: PASS\n\nAll tests pass.");
+    // blue → done (moves file to done/)
+    run_pass(root.path(), &db_path, &id, Some("All tests pass."));
 
     let done_path = root.path().join("done").join(&file);
     assert!(!root.path().join("todo").join(&file).exists());
@@ -286,13 +315,7 @@ fn test_pass_then_sync_roundtrip() {
     assert_eq!(final_state.effective_status(), "done");
     assert_eq!(final_state.location, TaskLocation::Done);
 
-    let sync_args = SyncArgs {
-        db: Some(db_path.clone()),
-        root: root.path().to_path_buf(),
-        rebuild: false,
-        pipeline_path: None,
-    };
-    sync::run_sync(&sync_args, root.path()).unwrap();
+    resync(root.path(), &db_path);
 
     let row = read_row(&db_path, &file);
     assert_eq!(row.requirement, "FR-41");

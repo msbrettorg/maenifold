@@ -209,6 +209,10 @@ impl super::GateMcpServer {
             },
             ..Default::default()
         });
+        // Serve both HTTP entrypoints in stateless JSON-response mode so daemon restarts do not
+        // reject clients that resend a stale `Mcp-Session-Id`. In this mode MCP remains POST-only;
+        // clients should continue sending `MCP-Protocol-Version`, but the server no longer requires
+        // session affinity via `Mcp-Session-Id` and responds with JSON instead of SSE setup.
 
         let root_service = StreamableHttpService::new(
             {
@@ -222,6 +226,8 @@ impl super::GateMcpServer {
             },
             session_manager.clone(),
             StreamableHttpServerConfig {
+                stateful_mode: false,
+                json_response: true,
                 cancellation_token: ct.child_token(),
                 ..Default::default()
             },
@@ -238,6 +244,8 @@ impl super::GateMcpServer {
             },
             session_manager,
             StreamableHttpServerConfig {
+                stateful_mode: false,
+                json_response: true,
                 cancellation_token: ct.child_token(),
                 ..Default::default()
             },

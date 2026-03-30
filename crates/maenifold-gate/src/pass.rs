@@ -4,7 +4,7 @@ use anyhow::{Result, anyhow, bail};
 
 use crate::{
     db::{GateDb, WorkLogEntry},
-    fs::{append_orchestrator_section, move_to_done, resolve_file_path},
+    fs::{append_orchestrator_section, move_to_done, read_task, resolve_file_path},
     pipeline::load_pipeline_def,
 };
 
@@ -25,6 +25,7 @@ pub fn run(args: &PassArgs) -> Result<()> {
     if task.location != "todo" {
         bail!("task file '{}' is not in todo/", task.file);
     }
+    let file_path = resolve_file_path(&args.root, &task.file)?;
 
     let next = if task.status == "pending" {
         pipeline
@@ -33,7 +34,7 @@ pub fn run(args: &PassArgs) -> Result<()> {
             .map(|stage| stage.name.clone())
             .ok_or_else(|| anyhow!("pipeline has no stages"))?
     } else {
-        pipeline
+        let stage = pipeline
             .stages
             .iter()
             .find(|stage| stage.name == task.status)
@@ -42,14 +43,32 @@ pub fn run(args: &PassArgs) -> Result<()> {
                     "task status '{}' is not a valid pipeline stage",
                     task.status
                 )
-            })?
+            })?;
+
+        if !stage.verdicts.is_empty() {
+            let content = read_task(&file_path)?;
+            let sections = crate::parser::sections::extract_sections(&content)
+                .map_err(|err| anyhow!("failed to parse task file '{}': {err}", task.file))?;
+            let has_verdict = sections
+                .iter()
+                .rev()
+                .find(|s| crate::parser::normalize_stage_name(&s.heading) == task.status)
+                .is_some_and(|s| s.verdict.is_some());
+            if !has_verdict {
+                bail!(
+                    "cannot advance: stage '{}' has no verdict yet. Use 'gate append' to record a verdict first.",
+                    task.status
+                );
+            }
+        }
+
+        stage
             .transitions
             .get("pass")
             .ok_or_else(|| anyhow!("stage '{}' has no 'pass' transition", task.status))?
             .clone()
     };
 
-    let file_path = resolve_file_path(&args.root, &task.file)?;
     append_orchestrator_section(&file_path, "PASS", args.notes.as_deref())?;
     if next == "done" {
         move_to_done(&args.root, &task.file)?;

@@ -1,6 +1,7 @@
 use std::{fs, path::Path};
 
 use maenifold_gate::{
+    append::{self, AppendArgs},
     db::{GateDb, TaskUpsert},
     pass::{self, PassArgs},
 };
@@ -59,9 +60,36 @@ fn pass_advances_pending_to_first_stage() {
 #[test]
 fn pass_advances_through_full_pipeline() {
     let (dir, db_path, id, file) = setup();
-    for note in ["to swe", "to red", "to blue", "to done"] {
-        run_pass(dir.path(), &db_path, &id, Some(note));
-    }
+
+    // pending → swe
+    run_pass(dir.path(), &db_path, &id, Some("to swe"));
+    // swe → red (swe has verdicts: [], no verdict needed)
+    run_pass(dir.path(), &db_path, &id, Some("to red"));
+
+    // Add red verdict, then update DB status to blue (simulates sync)
+    append::run(&AppendArgs {
+        id: id.clone(),
+        agent: "red".into(),
+        notes: "**Verdict**: PASS\n\nNo issues.".into(),
+        db_path: db_path.clone().into(),
+        root: dir.path().into(),
+    })
+    .unwrap();
+    GateDb::open(&db_path).unwrap().update_task_status(&file, "blue", "todo").unwrap();
+
+    // Add blue verdict
+    append::run(&AppendArgs {
+        id: id.clone(),
+        agent: "blue".into(),
+        notes: "**Verdict**: PASS\n\nAll tests pass.".into(),
+        db_path: db_path.clone().into(),
+        root: dir.path().into(),
+    })
+    .unwrap();
+
+    // blue → done
+    run_pass(dir.path(), &db_path, &id, Some("to done"));
+
     let task = GateDb::open(&db_path)
         .unwrap()
         .get_task(&file)
@@ -80,7 +108,7 @@ fn pass_advances_through_full_pipeline() {
                 |row| { row.get::<_, i64>(0) }
             )
             .unwrap(),
-        4
+        3  // 3 passes (pending→swe, swe→red, blue→done)
     );
 }
 

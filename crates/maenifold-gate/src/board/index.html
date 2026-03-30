@@ -18,6 +18,8 @@
       --radius-sm: 4px;
       --radius-md: 8px;
       --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      --detail-width: min(360px, 42vw);
+      --topbar-offset: 62px;
     }
 
     * { box-sizing: border-box; }
@@ -55,11 +57,12 @@
     .status.swe { color: var(--blue); }
     .status.red { color: var(--red); }
     .status.blue, .status.done { color: var(--green); }
-    .layout { display: flex; min-height: calc(100vh - 62px); }
+    .layout { display: flex; min-height: calc(100vh - var(--topbar-offset)); }
     .board {
       flex: 1; display: grid; grid-template-columns: repeat(5, minmax(240px, 1fr));
       gap: 12px; padding: 16px; overflow-x: auto;
     }
+    .layout.detail-open .board { margin-right: var(--detail-width); }
     .column { min-width: 240px; display: flex; flex-direction: column; gap: 10px; }
     .column-header {
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
@@ -95,8 +98,9 @@
     }
     .sprint-items { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 10px; }
     .detail {
-      width: 360px; max-width: 42vw; border-left: 1px solid var(--border); background: #1d1d1d;
-      display: flex; flex-direction: column;
+      position: fixed; top: var(--topbar-offset); right: 0; height: calc(100vh - var(--topbar-offset));
+      width: var(--detail-width); border-left: 1px solid var(--border); background: #1d1d1d;
+      display: flex; flex-direction: column; overflow-y: auto; z-index: 9;
     }
     .detail.hidden { display: none; }
     .detail-head, .detail-foot {
@@ -104,7 +108,10 @@
       justify-content: space-between; align-items: center; gap: 12px;
     }
     .detail-foot { border-bottom: 0; border-top: 1px solid var(--border); }
-    .detail-body { padding: 16px; overflow: auto; display: flex; flex-direction: column; gap: 18px; }
+    .detail-body {
+      flex: 1; min-height: 0; padding: 16px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 18px;
+    }
     .detail-title { margin: 0; font-size: 18px; }
     .kv { display: grid; grid-template-columns: 90px 1fr; gap: 8px; color: var(--muted); }
     .kv strong { color: var(--text); }
@@ -124,7 +131,11 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 1080px) {
       .layout { flex-direction: column; }
-      .detail { width: 100%; max-width: 100%; border-left: 0; border-top: 1px solid var(--border); }
+      .layout.detail-open .board { margin-right: 0; }
+      .detail {
+        top: var(--topbar-offset); right: 0; left: 0; height: calc(100vh - var(--topbar-offset));
+        width: auto; max-width: 100%; border-left: 0; border-top: 1px solid var(--border);
+      }
     }
   </style>
 </head>
@@ -143,6 +154,7 @@
         </label>
         <select id="gate-select"></select>
         <button id="refresh-button">Refresh</button>
+        <button id="sort-button">Sort ↕</button>
       </div>
     </header>
     <div id="message" class="message"></div>
@@ -219,6 +231,23 @@
       return match ? `Sprint ${match[1]}` : "Unsorted";
     }
 
+    function naturalSort(a, b) {
+      const re = /(\d+)/g;
+      const aParts = String(a).split(re);
+      const bParts = String(b).split(re);
+      for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+        const an = Number.parseInt(aParts[i], 10);
+        const bn = Number.parseInt(bParts[i], 10);
+        if (!Number.isNaN(an) && !Number.isNaN(bn)) {
+          if (an !== bn) return an - bn;
+        } else {
+          const cmp = aParts[i].localeCompare(bParts[i]);
+          if (cmp !== 0) return cmp;
+        }
+      }
+      return aParts.length - bParts.length;
+    }
+
     function latestVerdicts(task) {
       const verdicts = new Map();
       for (const stage of task.stages || []) {
@@ -246,6 +275,16 @@
     function summarizeTask(task, gateName) {
       const { sections, ...summary } = task || {};
       return normalizeTask(summary, gateName);
+    }
+
+    function sortTasksById() {
+      state.tasks = [...state.tasks].sort((a, b) => naturalSort(taskId(a), taskId(b)));
+    }
+
+    function syncLayoutMetrics() {
+      const topbar = document.querySelector(".topbar");
+      if (!topbar) return;
+      document.documentElement.style.setProperty("--topbar-offset", `${topbar.offsetHeight}px`);
     }
 
     async function loadRegistry() {
@@ -332,6 +371,7 @@
           tasks = items.map(item => summarizeTask(item, gateName));
         }
         state.tasks = tasks;
+        sortTasksById();
         if (state.selectedTask) {
           const summaryTask = tasks.find(task => task.id === state.selectedTask.id);
           state.selectedTask = summaryTask
@@ -368,6 +408,7 @@
     }
 
     function render() {
+      syncLayoutMetrics();
       renderToolbar();
       renderBoard();
       renderDetail();
@@ -460,8 +501,10 @@
     }
 
     function renderDetail() {
+      const layout = document.querySelector(".layout");
       const panel = document.getElementById("detail-panel");
       const task = state.selectedTask;
+      layout.classList.toggle("detail-open", !!task);
       if (!task) {
         panel.classList.add("hidden");
         return;
@@ -517,6 +560,10 @@
     }
 
     document.getElementById("refresh-button").addEventListener("click", loadTasks);
+    document.getElementById("sort-button").addEventListener("click", () => {
+      sortTasksById();
+      render();
+    });
     document.getElementById("close-detail").addEventListener("click", () => {
       state.selectedTask = null;
       render();
@@ -533,6 +580,7 @@
       updateUrl();
       loadTasks();
     });
+    window.addEventListener("resize", syncLayoutMetrics);
 
     render();
     loadTasks();

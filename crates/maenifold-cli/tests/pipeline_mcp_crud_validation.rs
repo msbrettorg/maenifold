@@ -11,24 +11,24 @@ fn err_create(p: &mut PipelineHarness, definition: serde_json::Value) -> String 
 }
 
 #[test]
-fn tc_1_7_reject_empty_nodes() {
+fn tc_1_07_reject_empty_nodes() {
     let (_tmp, mut p) = PipelineHarness::new();
     let err = err_create(&mut p, json!({ "nodes": [], "edges": [] }));
     assert!(err.contains("must contain at least one node"));
 }
 
 #[test]
-fn tc_1_8_reject_duplicate_ids() {
+fn tc_1_08_reject_duplicate_ids() {
     let (_tmp, mut p) = PipelineHarness::new();
     let err = err_create(
         &mut p,
         json!({ "nodes": [wf("dup"), wf("dup")], "edges": [] }),
     );
-    assert!(err.to_lowercase().contains("duplicate"));
+    assert!(err.to_lowercase().contains("duplicate node"));
 }
 
 #[test]
-fn tc_1_9_reject_cycle() {
+fn tc_1_09_reject_cycle() {
     let (_tmp, mut p) = PipelineHarness::new();
     let err = err_create(
         &mut p,
@@ -163,6 +163,9 @@ fn tc_1_19_delete_while_active() {
 
     let err = p.pipeline_err(json!({ "sessionId": id, "delete": true }));
     assert!(err.to_lowercase().contains("before deleting"));
+
+    p.abandon(&id, "root");
+    p.delete(&id);
 }
 
 #[test]

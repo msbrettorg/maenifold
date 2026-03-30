@@ -10,17 +10,11 @@ fn chain() -> serde_json::Value {
         .collect::<Vec<_>>();
     json!({
         "nodes": nodes,
-        "edges": [
-            PipelineHarness::edge("A", "B"),
-            PipelineHarness::edge("B", "C"),
-        ]
+        "edges": [PipelineHarness::edge("A", "B"), PipelineHarness::edge("B", "C")]
     })
 }
 
-fn single(id: &str) -> serde_json::Value {
-    json!({ "nodes": [PipelineHarness::tool_node(id)], "edges": [] })
-}
-
+fn single(id: &str) -> serde_json::Value { json!({ "nodes": [PipelineHarness::tool_node(id)], "edges": [] }) }
 fn diamond() -> serde_json::Value {
     let nodes = ["A", "B", "C", "D"]
         .into_iter()
@@ -60,17 +54,8 @@ fn edge_pairs(data: &serde_json::Value) -> BTreeSet<(String, String)> {
         .collect()
 }
 
-fn statuses(data: &serde_json::Value) -> Vec<String> {
-    data["nodes"]
-        .as_array()
-        .expect("nodes array")
-        .iter()
-        .map(|n| n["status"].as_str().expect("status").to_string())
-        .collect()
-}
-
 fn all_pending(data: &serde_json::Value) -> bool {
-    statuses(data).into_iter().all(|s| s == "pending")
+    data["nodes"].as_array().expect("nodes array").iter().all(|n| n["status"] == "pending")
 }
 
 fn status_of(data: &serde_json::Value, node_id: &str) -> String {
@@ -114,6 +99,30 @@ fn fork_err(p: &mut PipelineHarness, session_id: &str, fork: serde_json::Value) 
     p.pipeline_err(json!({ "sessionId": session_id, "fork": fork }))
 }
 
+fn drain_and_delete(p: &mut PipelineHarness, session_id: &str) {
+    loop {
+        let view = p.view(session_id);
+        let active = view["active"]
+            .as_array()
+            .expect("active array")
+            .iter()
+            .filter_map(|node| node.as_str().map(str::to_owned))
+            .collect::<Vec<_>>();
+        if !active.is_empty() {
+            for node_id in active {
+                p.complete(session_id, &node_id, &format!("cleanup-{node_id}"));
+            }
+            continue;
+        }
+        if view["ready"].as_array().is_some_and(|ready| !ready.is_empty()) {
+            p.dispatch(session_id);
+            continue;
+        }
+        break;
+    }
+    p.delete(session_id);
+}
+
 #[test]
 fn tc_6_01_fork_from_root_creates_complete_copy() {
     let (_tmp, mut p) = PipelineHarness::new();
@@ -131,6 +140,8 @@ fn tc_6_01_fork_from_root_creates_complete_copy() {
     assert!(all_pending(&fork));
     assert_eq!(node_ids(&p.view(&sid)).len(), 3);
     assert!(all_pending(&p.view(&sid)));
+    drain_and_delete(&mut p, &sid);
+    drain_and_delete(&mut p, &fork_id);
 }
 
 #[test]
@@ -150,6 +161,8 @@ fn tc_6_02_fork_from_middle_downstream_subgraph_only() {
     assert_eq!(status_of(&original, "A"), "completed");
     assert_eq!(status_of(&original, "B"), "pending");
     assert_eq!(status_of(&original, "C"), "pending");
+    drain_and_delete(&mut p, &sid);
+    drain_and_delete(&mut p, &PipelineHarness::id(&fork));
 }
 
 #[test]
@@ -167,6 +180,8 @@ fn tc_6_03_fork_from_leaf_single_node() {
     assert!(node_ids(&fork).iter().all(|id| id.ends_with('C')));
     assert!(fork["edges"].as_array().expect("edges").is_empty());
     assert!(all_pending(&fork));
+    drain_and_delete(&mut p, &sid);
+    drain_and_delete(&mut p, &PipelineHarness::id(&fork));
 }
 
 #[test]
@@ -181,6 +196,8 @@ fn tc_6_04_fork_with_explicit_new_session_id() {
 
     assert_eq!(PipelineHarness::id(&fork), "my-custom-fork");
     assert_eq!(node_ids(&p.view("my-custom-fork")).len(), 1);
+    drain_and_delete(&mut p, &sid);
+    drain_and_delete(&mut p, "my-custom-fork");
 }
 
 #[test]
@@ -189,6 +206,7 @@ fn tc_6_05_fork_rejects_nonexistent_node() {
     let sid = PipelineHarness::id(&p.create(single("A")));
     let err = fork_err(&mut p, &sid, json!({ "fromNodeId": "nonexistent" }));
     assert!(err.contains("doesn't contain node") || err.contains("not found"));
+    drain_and_delete(&mut p, &sid);
 }
 
 #[test]
@@ -203,6 +221,8 @@ fn tc_6_06_fork_rejects_duplicate_session_id() {
         json!({ "fromNodeId": "A", "newSessionId": sid_y }),
     );
     assert!(err.contains("already exists"));
+    drain_and_delete(&mut p, &sid_x);
+    drain_and_delete(&mut p, &sid_y);
 }
 
 #[test]
@@ -224,6 +244,8 @@ fn tc_6_07_fork_preserves_branching_topology() {
             (format!("{prefix}C"), format!("{prefix}D")),
         ])
     );
+    drain_and_delete(&mut p, &sid);
+    drain_and_delete(&mut p, &fork_id);
 }
 
 #[test]
@@ -251,6 +273,8 @@ fn tc_6_08_fork_from_node_with_completed_predecessors_captures_context() {
         status_of(&p.view(&fork_id), &format!("fork-{fork_id}-B")),
         "active"
     );
+    drain_and_delete(&mut p, &sid);
+    drain_and_delete(&mut p, &fork_id);
 }
 
 #[test]
@@ -270,4 +294,6 @@ fn tc_6_09_source_pipeline_unaffected_by_fork_operations() {
 
     assert_eq!(status_of(&p.view(&sid), "B"), "completed");
     assert!(all_pending(&p.view(&fork_id)));
+    drain_and_delete(&mut p, &sid);
+    drain_and_delete(&mut p, &fork_id);
 }

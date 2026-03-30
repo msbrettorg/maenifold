@@ -71,7 +71,7 @@ fn tc_4_02_graft_multiple_nodes_with_internal_edges() {
 }
 
 #[test]
-fn tc_4_03_graft_fan_in_node_from_completed_existing_nodes() {
+fn tc_4_03_graft_fan_in_from_completed_predecessors() {
     let (_tmp, mut p) = PipelineHarness::new();
     let id = create_id(
         &mut p,
@@ -150,6 +150,11 @@ fn tc_4_06_validation_reject_while_nodes_are_active() {
         json!({"nodes":[PipelineHarness::tool_node("C")],"edges":[PipelineHarness::edge("B","C")]}),
     );
     assert!(err.contains("running pipelines"));
+    p.abandon(&id, "A");
+    let deleted = p.pipeline(json!({ "sessionId": id, "delete": true }));
+    if deleted["result"]["isError"] == true {
+        // NOTE: cleanup deferred to TempDir drop because B remains blocked pending after A is abandoned.
+    }
 }
 
 #[test]

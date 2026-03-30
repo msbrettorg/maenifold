@@ -7,7 +7,6 @@
 
 use serde_json::{json, Value};
 
-// Re-export the harness from the existing mcp_test_support module.
 #[path = "../mcp_test_support/mod.rs"]
 mod mcp_test_support;
 pub use mcp_test_support::{isolated_root, McpTestHarness};
@@ -25,8 +24,6 @@ impl PipelineHarness {
         h.initialize();
         (tmp, Self { h })
     }
-
-    // ── Core Pipeline calls ──────────────────────────────────────────
 
     /// Raw call to the Pipeline tool. Returns the parsed JSON response.
     pub fn pipeline(&mut self, args: Value) -> Value {
@@ -64,7 +61,20 @@ impl PipelineHarness {
         Self::extract_text(result)
     }
 
-    // ── Convenience operations ───────────────────────────────────────
+    fn session_args(session_id: &str, field: &str, value: Value) -> Value {
+        let mut args = serde_json::Map::new();
+        args.insert("sessionId".to_string(), json!(session_id));
+        args.insert(field.to_string(), value);
+        Value::Object(args)
+    }
+
+    fn session_value(&mut self, session_id: &str, field: &str, value: Value) -> Value {
+        self.pipeline_ok(Self::session_args(session_id, field, value))
+    }
+
+    fn session_err(&mut self, session_id: &str, field: &str, value: Value) -> String {
+        self.pipeline_err(Self::session_args(session_id, field, value))
+    }
 
     /// Create a pipeline from a definition. Returns the parsed data.
     pub fn create(&mut self, definition: Value) -> Value {
@@ -131,34 +141,22 @@ impl PipelineHarness {
 
     /// Graft nodes/edges onto an existing pipeline.
     pub fn graft(&mut self, session_id: &str, graft: Value) -> Value {
-        self.pipeline_ok(json!({
-            "sessionId": session_id,
-            "graft": graft
-        }))
+        self.session_value(session_id, "graft", graft)
     }
 
     /// Graft expecting an error.
     pub fn graft_err(&mut self, session_id: &str, graft: Value) -> String {
-        self.pipeline_err(json!({
-            "sessionId": session_id,
-            "graft": graft
-        }))
+        self.session_err(session_id, "graft", graft)
     }
 
     /// Join another pipeline into this one.
     pub fn join(&mut self, session_id: &str, join: Value) -> Value {
-        self.pipeline_ok(json!({
-            "sessionId": session_id,
-            "join": join
-        }))
+        self.session_value(session_id, "join", join)
     }
 
     /// Join expecting an error.
     pub fn join_err(&mut self, session_id: &str, join: Value) -> String {
-        self.pipeline_err(json!({
-            "sessionId": session_id,
-            "join": join
-        }))
+        self.session_err(session_id, "join", join)
     }
 
     /// Fork from a node.
@@ -171,18 +169,12 @@ impl PipelineHarness {
 
     /// Rewind nodes.
     pub fn rewind(&mut self, session_id: &str, rewind: Value) -> Value {
-        self.pipeline_ok(json!({
-            "sessionId": session_id,
-            "rewind": rewind
-        }))
+        self.session_value(session_id, "rewind", rewind)
     }
 
     /// Rewind expecting an error.
     pub fn rewind_err(&mut self, session_id: &str, rewind: Value) -> String {
-        self.pipeline_err(json!({
-            "sessionId": session_id,
-            "rewind": rewind
-        }))
+        self.session_err(session_id, "rewind", rewind)
     }
 
     /// Restart a node.
@@ -202,8 +194,6 @@ impl PipelineHarness {
             "restart": true
         }))
     }
-
-    // ── Helpers ──────────────────────────────────────────────────────
 
     /// Extract the text content from an MCP result envelope.
     pub fn extract_text(result: &Value) -> String {
@@ -243,7 +233,7 @@ impl PipelineHarness {
             .as_array()
             .expect("view must have nodes array");
         for node in nodes {
-            if node["id"].as_str() == Some(node_id) {
+            if node["nodeId"].as_str() == Some(node_id) {
                 return node["status"].as_str().unwrap_or("unknown").to_string();
             }
         }
@@ -280,15 +270,6 @@ impl PipelineHarness {
         })
     }
 
-    /// Tool node with a specific tool.
-    pub fn tool_node_with(id: &str, tool: &str) -> Value {
-        json!({
-            "id": id,
-            "type": "tool",
-            "toolName": tool
-        })
-    }
-
     /// Success edge.
     pub fn edge(source: &str, target: &str) -> Value {
         json!({ "source": source, "target": target, "type": "success" })
@@ -304,16 +285,4 @@ impl PipelineHarness {
         json!({ "source": source, "target": target })
     }
 
-    /// Dispatch a node, complete it, return the view.
-    /// Convenience for linear chain execution.
-    pub fn dispatch_and_complete(
-        &mut self,
-        session_id: &str,
-        node_id: &str,
-        conclusion: &str,
-    ) -> Value {
-        self.dispatch(session_id);
-        self.complete(session_id, node_id, conclusion);
-        self.view(session_id)
-    }
 }

@@ -1,3 +1,8 @@
+---
+id: proximity_weight_communities
+status: done
+---
+
 # Test Evaluation: proximity_weight_communities
 
 **File:** `crates/maenifold-core/tests/proximity_weight_communities.rs`

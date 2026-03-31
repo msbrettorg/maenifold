@@ -1,3 +1,8 @@
+---
+id: T-ST-4-graft
+status: done
+---
+
 # ST-4 — Graft (Topology Surgery)
 
 **Requirement**: FR-45 (Pipeline Orchestration)

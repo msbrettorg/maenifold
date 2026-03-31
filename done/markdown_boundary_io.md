@@ -1,3 +1,8 @@
+---
+id: markdown_boundary_io
+status: done
+---
+
 # Test Evaluation: markdown_boundary_io
 
 **File:** `crates/maenifold-core/tests/markdown_boundary_io.rs`

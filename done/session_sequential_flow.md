@@ -1,3 +1,8 @@
+---
+id: session_sequential_flow
+status: done
+---
+
 # Test Evaluation: session_sequential_flow.rs
 
 **Traceability**: T-12.7 | NFR-1 (C# Oracle Parity) | NFR-2 (Test Coverage)  

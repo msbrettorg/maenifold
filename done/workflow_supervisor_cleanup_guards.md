@@ -1,3 +1,8 @@
+---
+id: workflow_supervisor_cleanup_guards
+status: done
+---
+
 # Test Evaluation: workflow_supervisor_cleanup_guards
 **File:** `crates/maenifold-core/tests/workflow_supervisor_cleanup_guards.rs`
 **Traceability:** T-W1-7 · T-12.7 · RTM FR-17.7 · RTM NFR-1

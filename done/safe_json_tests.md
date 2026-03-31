@@ -1,3 +1,8 @@
+---
+id: safe_json_tests
+status: done
+---
+
 # Test Evaluation: safe_json_tests
 
 **File**: `crates/maenifold-core/tests/safe_json_tests.rs`  

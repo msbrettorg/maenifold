@@ -1,3 +1,8 @@
+---
+id: component-promotion-phase1
+status: done
+---
+
 # Component Promotion Phase 1 — Zero-Dep AI Elements
 
 **Requirement**: FR-32 (Web UI)

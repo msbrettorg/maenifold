@@ -1,3 +1,8 @@
+---
+id: adopt_tools_tests
+status: done
+---
+
 # Test Evaluation: adopt_tools_tests
 **File:** `crates/maenifold-core/tests/adopt_tools_tests.rs`
 **Test count:** 5

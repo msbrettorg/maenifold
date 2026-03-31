@@ -1,3 +1,8 @@
+---
+id: asset_watcher_events
+status: done
+---
+
 # Test Evaluation: asset_watcher_events.rs
 
 > **Traceability**: T-0.1 · NFR-1 (C# Oracle Parity) · NFR-2 (Test Coverage) · NFR-3 (No Regressions)

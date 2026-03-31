@@ -1,3 +1,8 @@
+---
+id: asset_hot_loading_tests
+status: done
+---
+
 # Test Evaluation: asset_hot_loading_tests.rs
 
 **Traceability**: T-0.1 · NFR-3 · NFR-2  

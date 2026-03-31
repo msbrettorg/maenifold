@@ -1,3 +1,8 @@
+---
+id: markdown_adversarial_code
+status: done
+---
+
 # Test Evaluation: markdown_adversarial_code
 
 **File:** `crates/maenifold-core/tests/markdown_adversarial_code.rs`

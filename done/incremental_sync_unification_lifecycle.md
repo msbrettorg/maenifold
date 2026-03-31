@@ -1,3 +1,8 @@
+---
+id: incremental_sync_unification_lifecycle
+status: done
+---
+
 # Test Evaluation: incremental_sync_unification_lifecycle
 
 **File:** `crates/maenifold-core/tests/incremental_sync_unification_lifecycle.rs`

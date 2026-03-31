@@ -1,3 +1,8 @@
+---
+id: decay_benchmark_weights
+status: done
+---
+
 # Test Evaluation: decay_benchmark_weights
 
 **File:** `crates/maenifold-core/tests/decay_benchmark_weights.rs`

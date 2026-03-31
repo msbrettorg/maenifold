@@ -1,3 +1,8 @@
+---
+id: T-ST-2-node-types-dispatch
+status: done
+---
+
 # ST-2 — All Node Types & Dispatch Cycle
 
 **Requirement**: FR-45 (Pipeline Orchestration)

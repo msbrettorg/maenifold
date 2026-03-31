@@ -1,3 +1,8 @@
+---
+id: sync_single_file_vec0_readiness
+status: done
+---
+
 # Test Evaluation: sync_single_file_vec0_readiness
 
 **Traceability**: T-15.20 · FR-8  

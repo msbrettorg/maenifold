@@ -1,3 +1,8 @@
+---
+id: decay_calculator_validated_invalidated
+status: done
+---
+
 # Test Evaluation: decay_calculator_validated_invalidated
 **File:** `crates/maenifold-core/tests/decay_calculator_validated_invalidated.rs`
 **Test count:** 8

@@ -1,3 +1,8 @@
+---
+id: sync_unification_batch
+status: done
+---
+
 # Test Evaluation: sync_unification_batch
 
 **File:** `crates/maenifold-core/tests/sync_unification_batch.rs`

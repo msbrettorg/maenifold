@@ -1,3 +1,8 @@
+---
+id: decay_function_boundaries
+status: done
+---
+
 # Test Evaluation: decay_function_boundaries
 **File:** `crates/maenifold-core/tests/decay_function_boundaries.rs`
 **Test count:** 8

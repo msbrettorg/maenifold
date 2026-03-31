@@ -1,3 +1,8 @@
+---
+id: memory_tools_move_read_write
+status: done
+---
+
 # Test Evaluation: memory_tools_move_read_write.rs
 
 **Traceability**: T-12.6 · NFR-1 · NFR-2  

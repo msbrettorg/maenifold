@@ -1,3 +1,8 @@
+---
+id: recent_activity_pipeline_helpers
+status: done
+---
+
 # Test Evaluation: recent_activity_pipeline_helpers
 
 **File:** `crates/maenifold-core/tests/recent_activity_pipeline_helpers.rs`

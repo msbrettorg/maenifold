@@ -1,3 +1,8 @@
+---
+id: proximity_decay_relations
+status: done
+---
+
 # Test Evaluation: proximity_decay_relations
 
 **File:** `crates/maenifold-core/tests/proximity_decay_relations.rs`

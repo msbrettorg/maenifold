@@ -1,3 +1,8 @@
+---
+id: asset_manager_update_detection
+status: done
+---
+
 # Test Evaluation: asset_manager_update_detection
 
 **Traceability:** T-12.7 | RTM: NFR-1 (C# Oracle Parity), NFR-2 (Test Coverage)

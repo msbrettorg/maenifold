@@ -1,3 +1,8 @@
+---
+id: incremental_sync_tools_watcher
+status: done
+---
+
 # Test Evaluation: `incremental_sync_tools_watcher.rs`
 
 **Traceability**: T-12.7 · RTM NFR-1  

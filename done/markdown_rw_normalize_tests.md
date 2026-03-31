@@ -1,3 +1,8 @@
+---
+id: markdown_rw_normalize_tests
+status: done
+---
+
 # Test Evaluation: markdown_rw_normalize_tests
 
 **File:** `crates/maenifold-core/tests/markdown_rw_normalize_tests.rs`

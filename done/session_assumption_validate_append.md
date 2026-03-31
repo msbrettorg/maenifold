@@ -1,3 +1,8 @@
+---
+id: session_assumption_validate_append
+status: done
+---
+
 # Test Evaluation: session_assumption_validate_append
 
 **File:** `crates/maenifold-core/tests/session_assumption_validate_append.rs`

@@ -1,3 +1,8 @@
+---
+id: markdown_rw_write_tests
+status: done
+---
+
 # Test Evaluation: markdown_rw_write_tests
 
 **File:** `crates/maenifold-core/tests/markdown_rw_write_tests.rs`

@@ -1,3 +1,8 @@
+---
+id: path_symlink_canonicalization
+status: done
+---
+
 # Test Evaluation: path_symlink_canonicalization
 
 **File**: `crates/maenifold-core/tests/path_symlink_canonicalization.rs`

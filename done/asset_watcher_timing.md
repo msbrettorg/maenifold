@@ -1,3 +1,8 @@
+---
+id: asset_watcher_timing
+status: done
+---
+
 # Test Evaluation: asset_watcher_timing.rs
 
 **File**: `crates/maenifold-core/tests/asset_watcher_timing.rs`

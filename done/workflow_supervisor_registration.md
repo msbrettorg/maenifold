@@ -1,3 +1,8 @@
+---
+id: workflow_supervisor_registration
+status: done
+---
+
 # Test Evaluation: workflow_supervisor_registration
 **File:** `crates/maenifold-core/tests/workflow_supervisor_registration.rs`
 **Test count:** 6

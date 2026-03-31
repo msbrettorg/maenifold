@@ -1,3 +1,8 @@
+---
+id: resource-notifications
+status: done
+---
+
 # T-27.4: Stop Advertising resources/list_changed on HTTP/Web
 
 **Requirement:** FR-37 (RTM-233)

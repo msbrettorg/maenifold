@@ -1,3 +1,8 @@
+---
+id: frontmatter_sessions
+status: done
+---
+
 # Test Evaluation: frontmatter_sessions
 **File:** `crates/maenifold-core/tests/frontmatter_sessions.rs`
 **Test count:** 4

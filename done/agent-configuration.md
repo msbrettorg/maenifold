@@ -1,3 +1,8 @@
+---
+id: agent-configuration
+status: done
+---
+
 # agent-configuration
 
 **Requirement**: FR-32

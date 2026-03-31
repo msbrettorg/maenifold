@@ -1,3 +1,8 @@
+---
+id: component-promotion-phase3
+status: done
+---
+
 # Component Promotion Phase 3 — Carousel + Citation
 
 **Requirement**: FR-32 (Web UI)

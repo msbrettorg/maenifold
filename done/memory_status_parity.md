@@ -1,3 +1,8 @@
+---
+id: memory_status_parity
+status: done
+---
+
 # Test Evaluation: memory_status_parity
 **File:** `crates/maenifold-core/tests/memory_status_parity.rs`
 **Test count:** 7

@@ -1,3 +1,8 @@
+---
+id: incremental_sync_boundary_guards
+status: done
+---
+
 # Test Evaluation: `incremental_sync_boundary_guards.rs`
 
 > **Color**: 🔘 Gray — Skeptical Inquiry

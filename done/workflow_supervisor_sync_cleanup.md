@@ -1,3 +1,8 @@
+---
+id: workflow_supervisor_sync_cleanup
+status: done
+---
+
 # Test Evaluation: workflow_supervisor_sync_cleanup.rs
 
 > **Traceability**: T-W1-7 · RTM FR-14.6 · file header cites T-12.7 / NFR-1 (see §Observations)

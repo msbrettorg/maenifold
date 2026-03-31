@@ -1,3 +1,8 @@
+---
+id: markdown_boundary_redteam
+status: done
+---
+
 # Test Evaluation: markdown_boundary_redteam
 **File:** `crates/maenifold-core/tests/markdown_boundary_redteam.rs`
 **Test count:** 3

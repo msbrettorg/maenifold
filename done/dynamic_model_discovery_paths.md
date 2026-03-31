@@ -1,3 +1,8 @@
+---
+id: dynamic_model_discovery_paths
+status: done
+---
+
 # Test Evaluation: dynamic_model_discovery_paths
 
 **File**: `crates/maenifold-core/tests/dynamic_model_discovery_paths.rs`

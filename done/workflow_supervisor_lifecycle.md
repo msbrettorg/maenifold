@@ -1,3 +1,8 @@
+---
+id: workflow_supervisor_lifecycle
+status: done
+---
+
 # Test Evaluation: workflow_supervisor_lifecycle
 **File:** `crates/maenifold-core/tests/workflow_supervisor_lifecycle.rs`
 **Test count:** 6

@@ -1,3 +1,8 @@
+---
+id: search_graph_boundary
+status: done
+---
+
 # Test Evaluation: search_graph_boundary
 **File:** `crates/maenifold-core/tests/search_graph_boundary.rs`
 **Test count:** 7

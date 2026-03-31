@@ -1,3 +1,8 @@
+---
+id: recent_activity_boundary_rendering
+status: done
+---
+
 # Test Evaluation: recent_activity_boundary_rendering
 
 **File**: `crates/maenifold-core/tests/recent_activity_boundary_rendering.rs`

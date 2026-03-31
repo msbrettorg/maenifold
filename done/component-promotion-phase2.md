@@ -1,3 +1,8 @@
+---
+id: component-promotion-phase2
+status: done
+---
+
 # Component Promotion Phase 2 — @xyflow/react Components
 
 **Requirement**: FR-32 (Web UI)

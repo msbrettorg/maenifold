@@ -1,3 +1,8 @@
+---
+id: access_boosting_reads
+status: done
+---
+
 # Test Evaluation: access_boosting_reads
 
 **File:** `crates/maenifold-core/tests/access_boosting_reads.rs`

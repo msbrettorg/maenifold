@@ -1,3 +1,8 @@
+---
+id: session_sequential_status
+status: done
+---
+
 # Test Evaluation: session_sequential_status
 
 **File**: `crates/maenifold-core/tests/session_sequential_status.rs`

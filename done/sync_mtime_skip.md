@@ -1,3 +1,8 @@
+---
+id: sync_mtime_skip
+status: done
+---
+
 # Test Evaluation: sync_mtime_skip.rs
 
 **Traceability**: T-2.3 · FR-14.1 · FR-14.2 · FR-14.3  

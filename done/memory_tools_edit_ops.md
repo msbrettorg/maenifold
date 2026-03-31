@@ -1,3 +1,8 @@
+---
+id: memory_tools_edit_ops
+status: done
+---
+
 # Test Evaluation: memory_tools_edit_ops
 
 **File:** `crates/maenifold-core/tests/memory_tools_edit_ops.rs`

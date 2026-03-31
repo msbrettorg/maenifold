@@ -1,3 +1,8 @@
+---
+id: asset_manager_initialize
+status: done
+---
+
 # Test Evaluation: asset_manager_initialize
 
 **File**: `crates/maenifold-core/tests/asset_manager_initialize.rs`

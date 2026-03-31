@@ -1,3 +1,8 @@
+---
+id: session_sequential_errors
+status: done
+---
+
 # Test Evaluation: session_sequential_errors
 
 > **Traceability**: `T-12.7 / RTM NFR-1` (file header), `T-14.10 / RTM FR-16` (inline on test 4)

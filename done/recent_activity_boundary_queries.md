@@ -1,3 +1,8 @@
+---
+id: recent_activity_boundary_queries
+status: done
+---
+
 # Test Evaluation: recent_activity_boundary_queries
 
 **File**: `crates/maenifold-core/tests/recent_activity_boundary_queries.rs`

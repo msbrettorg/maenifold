@@ -1,3 +1,8 @@
+---
+id: community_louvain_persistence
+status: done
+---
+
 # Test Evaluation: community_louvain_persistence
 
 > **Traceability**: T-12.7, T-W1-8 · FR-23.7 · NFR-1, NFR-2  

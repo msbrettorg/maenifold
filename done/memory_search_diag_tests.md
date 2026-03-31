@@ -1,3 +1,8 @@
+---
+id: memory_search_diag_tests
+status: done
+---
+
 # Test Evaluation: `memory_search_diag_tests.rs`
 
 > **Reviewer perspective:** 🔘 Gray — Skeptical Inquiry

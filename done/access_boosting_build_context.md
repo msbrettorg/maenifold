@@ -1,3 +1,8 @@
+---
+id: access_boosting_build_context
+status: done
+---
+
 # Test Evaluation: access_boosting_build_context.rs
 
 > **Traceability**: T-12.0 (RTM NFR-1), T-GRAPH-DECAY-002.1-3 (RTM NFR-7.6.1/7.6.2/7.6.3)

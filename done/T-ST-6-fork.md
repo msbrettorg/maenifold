@@ -1,3 +1,8 @@
+---
+id: T-ST-6-fork
+status: done
+---
+
 # ST-6 — Fork (Pipeline Cloning)
 
 **Requirement**: FR-45 (Pipeline Orchestration)

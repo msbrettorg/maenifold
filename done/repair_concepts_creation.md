@@ -1,3 +1,8 @@
+---
+id: repair_concepts_creation
+status: done
+---
+
 # Test Evaluation: repair_concepts_creation
 **File:** `crates/maenifold-core/tests/repair_concepts_creation.rs`
 **Test count:** 5

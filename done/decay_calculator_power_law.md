@@ -1,3 +1,8 @@
+---
+id: decay_calculator_power_law
+status: done
+---
+
 # Test Evaluation: decay_calculator_power_law
 
 **File:** `crates/maenifold-core/tests/decay_calculator_power_law.rs`

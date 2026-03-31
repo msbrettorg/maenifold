@@ -1,3 +1,8 @@
+---
+id: wikilink_regex_tests
+status: done
+---
+
 # Test Evaluation: wikilink_regex_tests.rs
 
 **File:** `crates/maenifold-core/tests/wikilink_regex_tests.rs`

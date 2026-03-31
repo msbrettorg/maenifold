@@ -1,3 +1,8 @@
+---
+id: community_build_context_degradation
+status: done
+---
+
 # Test Evaluation: community_build_context_degradation
 
 > **Reviewer perspective:** 🔘 Gray — Skeptical Inquiry  

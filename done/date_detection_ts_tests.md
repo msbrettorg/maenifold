@@ -1,3 +1,8 @@
+---
+id: date_detection_ts_tests
+status: done
+---
+
 # Test Evaluation: date_detection_ts_tests.rs
 
 **File**: `crates/maenifold-core/tests/date_detection_ts_tests.rs`  

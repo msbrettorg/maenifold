@@ -1,3 +1,8 @@
+---
+id: decay_benchmark_search
+status: done
+---
+
 # Test Evaluation: decay_benchmark_search
 
 **File**: `crates/maenifold-core/tests/decay_benchmark_search.rs`

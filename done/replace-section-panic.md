@@ -1,3 +1,8 @@
+---
+id: replace-section-panic
+status: done
+---
+
 # T-27.6: Eliminate Panic in replace_section
 
 **Requirement:** FR-37 (RTM-235)

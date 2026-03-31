@@ -1,3 +1,8 @@
+---
+id: memory_lifecycle_validation
+status: done
+---
+
 # Test Evaluation: memory_lifecycle_validation
 
 **File:** `crates/maenifold-core/tests/memory_lifecycle_validation.rs`

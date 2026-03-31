@@ -1,3 +1,8 @@
+---
+id: sync_leader_gating
+status: done
+---
+
 # Test Evaluation: sync_leader_gating
 
 **File:** `crates/maenifold-core/tests/sync_leader_gating.rs`

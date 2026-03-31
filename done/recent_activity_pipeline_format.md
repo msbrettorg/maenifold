@@ -1,3 +1,8 @@
+---
+id: recent_activity_pipeline_format
+status: done
+---
+
 # Test Evaluation: recent_activity_pipeline_format
 **File:** `crates/maenifold-core/tests/recent_activity_pipeline_format.rs`
 **Test count:** 8

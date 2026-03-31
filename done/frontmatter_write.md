@@ -1,3 +1,8 @@
+---
+id: frontmatter_write
+status: done
+---
+
 # Test Evaluation: frontmatter_write.rs
 
 **File**: `crates/maenifold-core/tests/frontmatter_write.rs`

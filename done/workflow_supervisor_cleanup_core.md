@@ -1,3 +1,8 @@
+---
+id: workflow_supervisor_cleanup_core
+status: done
+---
+
 # Test Evaluation: workflow_supervisor_cleanup_core
 
 **File:** `crates/maenifold-core/tests/workflow_supervisor_cleanup_core.rs`

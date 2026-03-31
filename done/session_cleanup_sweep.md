@@ -1,3 +1,8 @@
+---
+id: session_cleanup_sweep
+status: done
+---
+
 # Test Evaluation: session_cleanup_sweep
 
 **File:** `crates/maenifold-core/tests/session_cleanup_sweep.rs`

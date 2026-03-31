@@ -1,3 +1,8 @@
+---
+id: spawn-blocking-tools
+status: done
+---
+
 # T-27.1: Offload Blocking Tool/Resource Handlers to spawn_blocking
 
 **Requirement:** FR-37 (RTM-227, RTM-228, RTM-229)

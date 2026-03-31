@@ -1,3 +1,8 @@
+---
+id: graph_decay_search
+status: done
+---
+
 # Test Evaluation: graph_decay_search
 **File:** `crates/maenifold-core/tests/graph_decay_search.rs`
 **Support:** `crates/maenifold-core/tests/graph_decay/support.rs`

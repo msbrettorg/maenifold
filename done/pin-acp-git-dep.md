@@ -1,3 +1,8 @@
+---
+id: pin-acp-git-dep
+status: done
+---
+
 # Pin agent-client-protocol Git Dependency
 
 **Requirement**: FR-32-SEC

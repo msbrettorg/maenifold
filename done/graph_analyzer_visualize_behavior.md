@@ -1,3 +1,8 @@
+---
+id: graph_analyzer_visualize_behavior
+status: done
+---
+
 # Test Evaluation: graph_analyzer_visualize_behavior.rs
 
 **File**: `crates/maenifold-core/tests/graph_analyzer_visualize_behavior.rs`

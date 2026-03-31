@@ -1,3 +1,8 @@
+---
+id: T-ST-7-rewind
+status: done
+---
+
 # ST-7 — Rewind (Node Reset & Cascade)
 
 **Requirement**: FR-45 (Pipeline Orchestration)

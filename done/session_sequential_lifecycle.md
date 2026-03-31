@@ -1,3 +1,8 @@
+---
+id: session_sequential_lifecycle
+status: done
+---
+
 # Test Evaluation: session_sequential_lifecycle
 
 **File**: `crates/maenifold-core/tests/session_sequential_lifecycle.rs`

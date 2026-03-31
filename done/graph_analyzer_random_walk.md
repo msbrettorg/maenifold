@@ -1,3 +1,8 @@
+---
+id: graph_analyzer_random_walk
+status: done
+---
+
 # Test Evaluation: graph_analyzer_random_walk
 
 **File**: `crates/maenifold-core/tests/graph_analyzer_random_walk.rs`

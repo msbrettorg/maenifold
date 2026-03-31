@@ -1,3 +1,8 @@
+---
+id: concept_graph_context
+status: done
+---
+
 # Test Evaluation: concept_graph_context.rs
 
 > **Evaluator**: Gray 🔘 (Skeptical Inquiry)

@@ -1,3 +1,8 @@
+---
+id: dynamic_model_db
+status: done
+---
+
 # Test Evaluation: dynamic_model_db
 **File:** `crates/maenifold-core/tests/dynamic_model_db.rs`
 **Test count:** 2

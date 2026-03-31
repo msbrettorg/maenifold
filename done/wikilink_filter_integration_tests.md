@@ -1,3 +1,8 @@
+---
+id: wikilink_filter_integration_tests
+status: done
+---
+
 # Test Evaluation: wikilink_filter_integration_tests
 
 **File:** `crates/maenifold-core/tests/wikilink_filter_integration_tests.rs`

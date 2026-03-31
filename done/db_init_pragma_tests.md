@@ -1,3 +1,8 @@
+---
+id: db_init_pragma_tests
+status: done
+---
+
 # Test Evaluation: db_init_pragma_tests
 **File:** `crates/maenifold-core/tests/db_init_pragma_tests.rs`
 **Test count:** 8

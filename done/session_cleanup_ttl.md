@@ -1,3 +1,8 @@
+---
+id: session_cleanup_ttl
+status: done
+---
+
 # Test Evaluation: `session_cleanup_ttl`
 
 **File**: `crates/maenifold-core/tests/session_cleanup_ttl.rs`  

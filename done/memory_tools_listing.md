@@ -1,3 +1,8 @@
+---
+id: memory_tools_listing
+status: done
+---
+
 # Test Evaluation: memory_tools_listing
 
 **File:** `crates/maenifold-core/tests/memory_tools_listing.rs`

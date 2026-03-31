@@ -1,3 +1,8 @@
+---
+id: session_workflow_boundary
+status: done
+---
+
 # Test Evaluation: session_workflow_boundary
 
 **File**: `crates/maenifold-core/tests/session_workflow_boundary.rs`

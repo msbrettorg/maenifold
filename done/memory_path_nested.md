@@ -1,3 +1,8 @@
+---
+id: memory_path_nested
+status: done
+---
+
 # Test Evaluation: memory_path_nested
 
 **File**: `crates/maenifold-core/tests/memory_path_nested.rs`

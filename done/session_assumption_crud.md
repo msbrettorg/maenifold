@@ -1,3 +1,8 @@
+---
+id: session_assumption_crud
+status: done
+---
+
 # Test Evaluation: session_assumption_crud
 **File:** `crates/maenifold-core/tests/session_assumption_crud.rs`
 **Test count:** 6

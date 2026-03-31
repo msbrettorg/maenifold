@@ -1,3 +1,8 @@
+---
+id: community_sync
+status: done
+---
+
 # Test Evaluation: community_sync.rs
 
 **File**: `crates/maenifold-core/tests/community_sync.rs`

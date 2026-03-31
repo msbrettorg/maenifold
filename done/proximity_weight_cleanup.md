@@ -1,3 +1,8 @@
+---
+id: proximity_weight_cleanup
+status: done
+---
+
 # Test Evaluation: proximity_weight_cleanup
 
 **File:** `crates/maenifold-core/tests/proximity_weight_cleanup.rs`

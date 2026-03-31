@@ -1,3 +1,8 @@
+---
+id: vector_tools_batch
+status: done
+---
+
 # Test Evaluation: vector_tools_batch.rs
 
 **Traceability:** T-8.4 (FR-33.1, FR-33.2), T-12.6 (NFR-1)

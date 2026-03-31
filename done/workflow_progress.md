@@ -1,3 +1,8 @@
+---
+id: workflow_progress
+status: done
+---
+
 # Test Evaluation: workflow_progress.rs
 
 **File**: `crates/maenifold-core/tests/workflow_progress.rs`

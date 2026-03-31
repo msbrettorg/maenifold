@@ -1,3 +1,8 @@
+---
+id: vector_sync_diag_unavailable
+status: done
+---
+
 # Test Evaluation: `vector_sync_diag_unavailable.rs`
 
 > **Traceability**: T-9.6 | FR-7, FR-8 (module comment) / `fr25_2_ac3`, `fr25_2_ac4` (test names — see [Naming Inconsistency](#naming-inconsistency))

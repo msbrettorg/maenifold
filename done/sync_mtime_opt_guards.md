@@ -1,3 +1,8 @@
+---
+id: sync_mtime_opt_guards
+status: done
+---
+
 # Test Evaluation: `sync_mtime_opt_guards.rs`
 
 > **Color**: 🔘 Gray — Skeptical Inquiry

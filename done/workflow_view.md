@@ -1,3 +1,8 @@
+---
+id: workflow_view
+status: done
+---
+
 # Test Evaluation: `workflow_view.rs`
 
 > **Reviewer mode**: 🔘 Gray — Skeptical Inquiry

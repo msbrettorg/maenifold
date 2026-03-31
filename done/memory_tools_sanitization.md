@@ -1,3 +1,8 @@
+---
+id: memory_tools_sanitization
+status: done
+---
+
 # Test Evaluation: memory_tools_sanitization
 **File:** `crates/maenifold-core/tests/memory_tools_sanitization.rs`
 **Test count:** 8

@@ -1,3 +1,8 @@
+---
+id: sync_wikilink_filter
+status: done
+---
+
 # Test Evaluation: sync_wikilink_filter
 
 **File:** `crates/maenifold-core/tests/sync_wikilink_filter.rs`

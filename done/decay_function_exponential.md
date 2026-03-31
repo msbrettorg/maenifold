@@ -1,3 +1,8 @@
+---
+id: decay_function_exponential
+status: done
+---
+
 # Test Evaluation: decay_function_exponential
 **File:** `crates/maenifold-core/tests/decay_function_exponential.rs`
 **Test count:** 8

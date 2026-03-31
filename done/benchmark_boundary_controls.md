@@ -1,3 +1,8 @@
+---
+id: benchmark_boundary_controls
+status: done
+---
+
 # Test Evaluation: benchmark_boundary_controls.rs
 
 **Traceability**: T-12.7 · RTM-032 · RTM-033 · RTM-034 · NFR-1  

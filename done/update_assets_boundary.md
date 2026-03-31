@@ -1,3 +1,8 @@
+---
+id: update_assets_boundary
+status: done
+---
+
 # Test Evaluation: `update_assets_boundary.rs`
 
 **Evaluator color:** 🔘 Gray — Skeptical Inquiry

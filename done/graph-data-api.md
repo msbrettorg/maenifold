@@ -1,3 +1,8 @@
+---
+id: graph-data-api
+status: done
+---
+
 # graph-data-api
 
 **Requirement**: FR-32

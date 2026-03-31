@@ -1,3 +1,8 @@
+---
+id: memory_tools_replace_sections
+status: done
+---
+
 # Test Evaluation: memory_tools_replace_sections.rs
 
 **Traceability**: T-12.6 | NFR-2 (test coverage) | NFR-1 (C# oracle parity)

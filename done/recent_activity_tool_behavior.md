@@ -1,3 +1,8 @@
+---
+id: recent_activity_tool_behavior
+status: done
+---
+
 # Test Evaluation: `recent_activity_tool_behavior.rs`
 
 > Evaluated under **Gray (Skeptical Inquiry)** — question assumptions, demand evidence, challenge

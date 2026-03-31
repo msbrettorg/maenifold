@@ -1,3 +1,8 @@
+---
+id: restrict-cors
+status: done
+---
+
 # Restrict CORS to Localhost
 
 **Requirement**: FR-32-SEC

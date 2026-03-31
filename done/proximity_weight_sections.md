@@ -1,3 +1,8 @@
+---
+id: proximity_weight_sections
+status: done
+---
+
 # Test Evaluation: proximity_weight_sections
 
 **File:** `crates/maenifold-core/tests/proximity_weight_sections.rs`

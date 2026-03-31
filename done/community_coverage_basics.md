@@ -1,3 +1,8 @@
+---
+id: community_coverage_basics
+status: done
+---
+
 # Test Evaluation: community_coverage_basics.rs
 
 **Traceability**: T-12.7 · RTM NFR-1 · NFR-2  

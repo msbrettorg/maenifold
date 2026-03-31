@@ -1,3 +1,8 @@
+---
+id: graph_decay_graph
+status: done
+---
+
 # Test Evaluation: graph_decay_graph
 **File:** `crates/maenifold-core/tests/graph_decay_graph.rs`
 **Test count:** 4

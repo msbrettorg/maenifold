@@ -1,3 +1,8 @@
+---
+id: nfr8-access-boosting
+status: done
+---
+
 # nfr8-access-boosting
 
 **Requirement**: NFR-8

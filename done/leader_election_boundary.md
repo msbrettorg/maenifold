@@ -1,3 +1,8 @@
+---
+id: leader_election_boundary
+status: done
+---
+
 # Test Evaluation: leader_election_boundary
 
 **File:** `crates/maenifold-core/tests/leader_election_boundary.rs`

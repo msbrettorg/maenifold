@@ -1,3 +1,8 @@
+---
+id: vector_tools_semantic
+status: done
+---
+
 # Test Evaluation: vector_tools_semantic.rs
 
 **Traceability**: T-12.6, T-12.7, T-14.9, T-0.1 | FR-6 (RTM-042, RTM-043) | NFR-1, NFR-3  

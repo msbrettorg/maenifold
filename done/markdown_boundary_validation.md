@@ -1,3 +1,8 @@
+---
+id: markdown_boundary_validation
+status: done
+---
+
 # Test Evaluation: markdown_boundary_validation
 
 **File:** `crates/maenifold-core/tests/markdown_boundary_validation.rs`

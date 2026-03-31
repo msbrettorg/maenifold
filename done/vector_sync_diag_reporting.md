@@ -1,3 +1,8 @@
+---
+id: vector_sync_diag_reporting
+status: done
+---
+
 # Test Evaluation: `vector_sync_diag_reporting.rs`
 
 > **Reviewer perspective:** 🔘 Gray — Skeptical Inquiry

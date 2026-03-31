@@ -1,3 +1,8 @@
+---
+id: memory_tools_edit_sections
+status: done
+---
+
 # Test Evaluation: memory_tools_edit_sections
 
 **File:** `crates/maenifold-core/tests/memory_tools_edit_sections.rs`

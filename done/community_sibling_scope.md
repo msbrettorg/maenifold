@@ -1,3 +1,8 @@
+---
+id: community_sibling_scope
+status: done
+---
+
 # Test Evaluation: community_sibling_scope.rs
 
 **File**: `crates/maenifold-core/tests/community_sibling_scope.rs`

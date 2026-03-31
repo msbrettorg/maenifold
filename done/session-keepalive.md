@@ -1,3 +1,8 @@
+---
+id: session-keepalive
+status: done
+---
+
 # T-27.2: Set keep_alive on HTTP Session Manager
 
 **Requirement:** FR-37 (RTM-230)

@@ -1,3 +1,8 @@
+---
+id: T-ST-3-edge-semantics
+status: done
+---
+
 # ST-3 — Edge Semantics (Success vs Always)
 
 **Requirement**: FR-45 (Pipeline Orchestration)

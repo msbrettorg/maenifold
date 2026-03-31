@@ -1,3 +1,8 @@
+---
+id: markdown_rw_read_tests
+status: done
+---
+
 # Test Evaluation: markdown_rw_read_tests
 **File:** `crates/maenifold-core/tests/markdown_rw_read_tests.rs`
 **Test count:** 8

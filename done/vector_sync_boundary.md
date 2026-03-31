@@ -1,3 +1,8 @@
+---
+id: vector_sync_boundary
+status: done
+---
+
 # Test Evaluation: vector_sync_boundary
 
 **File**: `crates/maenifold-core/tests/vector_sync_boundary.rs`

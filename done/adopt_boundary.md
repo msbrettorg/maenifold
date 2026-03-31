@@ -1,3 +1,8 @@
+---
+id: adopt_boundary
+status: done
+---
+
 # Test Evaluation: adopt_boundary
 **File:** `crates/maenifold-core/tests/adopt_boundary.rs`
 **Test count:** 7

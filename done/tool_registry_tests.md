@@ -1,3 +1,8 @@
+---
+id: tool_registry_tests
+status: done
+---
+
 # Test Evaluation: tool_registry_tests
 
 **File:** `crates/maenifold-core/tests/tool_registry_tests.rs`

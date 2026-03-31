@@ -1,3 +1,8 @@
+---
+id: concept_analysis_classification
+status: done
+---
+
 # Test Evaluation: concept_analysis_classification
 **File:** `crates/maenifold-core/tests/concept_analysis_classification.rs`
 **Test count:** 6

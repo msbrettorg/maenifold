@@ -1,3 +1,8 @@
+---
+id: repair_concepts_batch
+status: done
+---
+
 # Test Evaluation: repair_concepts_batch
 **File:** `crates/maenifold-core/tests/repair_concepts_batch.rs`
 **Test count:** 7

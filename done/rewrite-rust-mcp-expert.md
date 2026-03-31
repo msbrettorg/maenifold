@@ -1,3 +1,8 @@
+---
+id: rewrite-rust-mcp-expert
+status: done
+---
+
 # T-27.8: Rewrite rust-mcp-expert.agent.md for rmcp 1.1.0
 
 **Requirement:** FR-38 (RTM-237, RTM-238, RTM-239)

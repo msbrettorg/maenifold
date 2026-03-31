@@ -1,3 +1,8 @@
+---
+id: web-client-integration
+status: done
+---
+
 # Web-Client Integration — Full Component Experience
 
 **Requirement**: FR-32 (Web UI)

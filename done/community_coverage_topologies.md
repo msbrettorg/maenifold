@@ -1,3 +1,8 @@
+---
+id: community_coverage_topologies
+status: done
+---
+
 # Test Evaluation: community_coverage_topologies
 
 **Traceability**: T-12.7 (community detection implementation) · T-W1-8 (NFR-2 test coverage)

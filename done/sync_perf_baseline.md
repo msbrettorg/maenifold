@@ -1,3 +1,8 @@
+---
+id: sync_perf_baseline
+status: done
+---
+
 # Test Evaluation: sync_perf_baseline
 **File:** `crates/maenifold-core/tests/sync_perf_baseline.rs`
 **Test count:** 8

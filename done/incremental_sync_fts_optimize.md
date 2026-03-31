@@ -1,3 +1,8 @@
+---
+id: incremental_sync_fts_optimize
+status: done
+---
+
 # Test Evaluation: incremental_sync_fts_optimize
 
 **Source file**: `crates/maenifold-core/tests/incremental_sync_fts_optimize.rs`

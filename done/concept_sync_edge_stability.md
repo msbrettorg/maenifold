@@ -1,3 +1,8 @@
+---
+id: concept_sync_edge_stability
+status: done
+---
+
 # Test Evaluation: concept_sync_edge_stability
 
 **File:** `crates/maenifold-core/tests/concept_sync_edge_stability.rs`

@@ -1,3 +1,8 @@
+---
+id: community_build_context_siblings
+status: done
+---
+
 # Test Evaluation: community_build_context_siblings.rs
 
 **Traceability**: T-W1-8 | NFR-2 | FR-13.7 | FR-13.8 | FR-13.9  

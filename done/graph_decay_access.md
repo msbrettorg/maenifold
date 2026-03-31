@@ -1,3 +1,8 @@
+---
+id: graph_decay_access
+status: done
+---
+
 # Test Evaluation: graph_decay_access.rs
 
 **Evaluator:** Red Team — Gray (Skeptical Inquiry)  

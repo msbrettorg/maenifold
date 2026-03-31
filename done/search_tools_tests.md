@@ -1,3 +1,8 @@
+---
+id: search_tools_tests
+status: done
+---
+
 # Test Evaluation: search_tools_tests
 **File:** `crates/maenifold-core/tests/search_tools_tests.rs`
 **Test count:** 8

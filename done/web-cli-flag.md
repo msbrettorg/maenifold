@@ -1,3 +1,8 @@
+---
+id: web-cli-flag
+status: done
+---
+
 # web-cli-flag
 
 **Requirement**: FR-32

@@ -1,3 +1,8 @@
+---
+id: path_security_tests
+status: done
+---
+
 # Test Evaluation: path_security_tests
 
 **File**: `crates/maenifold-core/tests/path_security_tests.rs`  

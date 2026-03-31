@@ -1,3 +1,8 @@
+---
+id: community_runner
+status: done
+---
+
 # Test Evaluation: community_runner.rs
 
 **Traceability**: T-12.7 (NFR-1 oracle parity), T-W1-8 (NFR-2 coverage)  

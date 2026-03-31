@@ -1,3 +1,8 @@
+---
+id: config_decay_weights
+status: done
+---
+
 # Test Evaluation: config_decay_weights
 **File:** `crates/maenifold-core/tests/config_decay_weights.rs`
 **Support:** `crates/maenifold-core/tests/config_decay/support.rs`

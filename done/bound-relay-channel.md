@@ -1,3 +1,8 @@
+---
+id: bound-relay-channel
+status: done
+---
+
 # Bound Relay MPSC Channel
 
 **Requirement**: FR-32-SEC

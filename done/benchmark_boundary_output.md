@@ -1,3 +1,8 @@
+---
+id: benchmark_boundary_output
+status: done
+---
+
 # Test Evaluation: benchmark_boundary_output.rs
 
 **Traceability**: T-12.7 | NFR-2 (Test Coverage)

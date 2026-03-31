@@ -1,3 +1,8 @@
+---
+id: acp-websocket-relay
+status: done
+---
+
 # acp-websocket-relay
 
 **Requirement**: FR-32

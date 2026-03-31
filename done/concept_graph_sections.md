@@ -1,3 +1,8 @@
+---
+id: concept_graph_sections
+status: done
+---
+
 # Test Evaluation: concept_graph_sections.rs
 
 **Evaluator**: Red Team (Gray — Skeptical Inquiry)  

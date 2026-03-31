@@ -1,3 +1,8 @@
+---
+id: fix-exec-validation
+status: done
+---
+
 # Fix Executable Validation to Use access()
 
 **Requirement**: FR-32-SEC

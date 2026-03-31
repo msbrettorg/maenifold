@@ -1,3 +1,8 @@
+---
+id: repair_concepts_communities
+status: done
+---
+
 # Test Evaluation: repair_concepts_communities
 
 **File**: `crates/maenifold-core/tests/repair_concepts_communities.rs`  

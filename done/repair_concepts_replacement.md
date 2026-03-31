@@ -1,3 +1,8 @@
+---
+id: repair_concepts_replacement
+status: done
+---
+
 # Test Evaluation: repair_concepts_replacement
 **File:** `crates/maenifold-core/tests/repair_concepts_replacement.rs`
 **Test count:** 8

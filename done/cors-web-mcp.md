@@ -1,3 +1,8 @@
+---
+id: cors-web-mcp
+status: done
+---
+
 # T-27.3: Fix CORS in Web Mode + Expose Mcp-Session-Id
 
 **Requirement:** FR-37 (RTM-231, RTM-232)

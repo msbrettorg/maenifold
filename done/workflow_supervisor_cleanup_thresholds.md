@@ -1,3 +1,8 @@
+---
+id: workflow_supervisor_cleanup_thresholds
+status: done
+---
+
 # Test Evaluation: workflow_supervisor_cleanup_thresholds
 **File:** `crates/maenifold-core/tests/workflow_supervisor_cleanup_thresholds.rs`
 **Traceability:** T-12.7 · FR-17.7 · RTM NFR-1

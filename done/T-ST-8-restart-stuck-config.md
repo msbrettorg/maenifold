@@ -1,3 +1,8 @@
+---
+id: T-ST-8-restart-stuck-config
+status: done
+---
+
 # ST-8 — Restart, Stuck Detection & Node Config
 
 **Requirement**: FR-45 (Pipeline Orchestration), FR-50/FR-51 (ACP Client Hardening)

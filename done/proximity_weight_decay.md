@@ -1,3 +1,8 @@
+---
+id: proximity_weight_decay
+status: done
+---
+
 # Test Evaluation: proximity_weight_decay.rs
 
 > **Traceability**: T-4.3 · FR-23.4 · NFR-1 · NFR-2  

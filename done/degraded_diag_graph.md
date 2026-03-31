@@ -1,3 +1,8 @@
+---
+id: degraded_diag_graph
+status: done
+---
+
 # Test Evaluation: degraded_diag_graph
 
 > **Reviewer perspective:** 🔘 Gray — Skeptical Inquiry

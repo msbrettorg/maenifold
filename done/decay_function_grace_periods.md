@@ -1,3 +1,8 @@
+---
+id: decay_function_grace_periods
+status: done
+---
+
 # Test Evaluation: decay_function_grace_periods
 
 **File**: `crates/maenifold-core/tests/decay_function_grace_periods.rs`

@@ -1,3 +1,8 @@
+---
+id: frontmatter_repair
+status: done
+---
+
 # Test Evaluation: frontmatter_repair
 **File:** `crates/maenifold-core/tests/frontmatter_repair.rs`
 **Test count:** 3

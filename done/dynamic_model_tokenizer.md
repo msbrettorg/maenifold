@@ -1,3 +1,8 @@
+---
+id: dynamic_model_tokenizer
+status: done
+---
+
 # Test Evaluation: dynamic_model_tokenizer.rs
 
 **Traceability**: T-10.11 | FR-18 | RTM-098, RTM-099  

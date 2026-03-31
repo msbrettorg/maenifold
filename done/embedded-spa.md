@@ -1,3 +1,8 @@
+---
+id: embedded-spa
+status: done
+---
+
 # embedded-spa
 
 **Requirement**: FR-32

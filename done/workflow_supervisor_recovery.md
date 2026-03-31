@@ -1,3 +1,8 @@
+---
+id: workflow_supervisor_recovery
+status: done
+---
+
 # Test Evaluation: workflow_supervisor_recovery
 **File:** `crates/maenifold-core/tests/workflow_supervisor_recovery.rs`
 **Test count:** 4

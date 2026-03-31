@@ -1,3 +1,8 @@
+---
+id: db_maintenance_tests
+status: done
+---
+
 # Test Evaluation: db_maintenance_tests
 **File:** `crates/maenifold-core/tests/db_maintenance_tests.rs`
 **Test count:** 7

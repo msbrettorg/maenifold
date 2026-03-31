@@ -1,3 +1,8 @@
+---
+id: sync_unification_single_file
+status: done
+---
+
 # Test Evaluation: sync_unification_single_file.rs
 
 **Evaluator**: Red Team (🔘 Gray — Skeptical Inquiry)

@@ -1,3 +1,8 @@
+---
+id: degraded_diag_assets
+status: done
+---
+
 # Test Evaluation: `degraded_diag_assets.rs`
 
 **Evaluator:** Gray 🔘 (Skeptical Inquiry)

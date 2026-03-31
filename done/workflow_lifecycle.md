@@ -1,3 +1,8 @@
+---
+id: workflow_lifecycle
+status: done
+---
+
 # Test Evaluation: workflow_lifecycle
 **File:** `crates/maenifold-core/tests/workflow_lifecycle.rs`
 **Test count:** 8

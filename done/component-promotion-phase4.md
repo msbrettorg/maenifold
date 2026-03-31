@@ -1,3 +1,8 @@
+---
+id: component-promotion-phase4
+status: done
+---
+
 # Component Promotion Phase 4 — Progress + Confirmation + Context
 
 **Requirement**: FR-32 (Web UI)

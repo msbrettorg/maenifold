@@ -1,3 +1,8 @@
+---
+id: sync_perf_indexing
+status: done
+---
+
 # Test Evaluation: sync_perf_indexing
 **File:** `crates/maenifold-core/tests/sync_perf_indexing.rs`
 **Traceability:** T-0.1 · T-8.4 · RTM NFR-3 · FR-25.2 · FR-33.3

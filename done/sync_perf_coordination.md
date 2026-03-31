@@ -1,3 +1,8 @@
+---
+id: sync_perf_coordination
+status: done
+---
+
 # Test Evaluation: sync_perf_coordination
 
 **File**: `crates/maenifold-core/tests/sync_perf_coordination.rs`

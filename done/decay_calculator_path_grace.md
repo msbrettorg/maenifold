@@ -1,3 +1,8 @@
+---
+id: decay_calculator_path_grace
+status: done
+---
+
 # Test Evaluation: decay_calculator_path_grace
 
 **File**: `crates/maenifold-core/tests/decay_calculator_path_grace.rs`

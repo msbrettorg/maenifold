@@ -1,3 +1,8 @@
+---
+id: asset_manager_errors
+status: done
+---
+
 # Test Evaluation: `asset_manager_errors.rs`
 
 **Evaluator:** Gray (Skeptical Inquiry)

@@ -1,3 +1,8 @@
+---
+id: search_status_parity_tests
+status: done
+---
+
 # Test Evaluation: search_status_parity_tests
 
 **File:** `crates/maenifold-core/tests/search_status_parity_tests.rs`

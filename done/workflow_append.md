@@ -1,3 +1,8 @@
+---
+id: workflow_append
+status: done
+---
+
 # Test Evaluation: workflow_append
 **File:** `crates/maenifold-core/tests/workflow_append.rs`
 **Traceability:** T-12.0 · RTM NFR-1

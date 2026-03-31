@@ -1,3 +1,8 @@
+---
+id: T-ST-1-pipeline-crud-validation
+status: done
+---
+
 # ST-1 — Pipeline CRUD & Validation
 
 **Requirement**: FR-45 (Pipeline Orchestration)

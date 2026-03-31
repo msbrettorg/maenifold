@@ -1,3 +1,8 @@
+---
+id: graph_analyzer_visualize_validation
+status: done
+---
+
 # Test Evaluation: graph_analyzer_visualize_validation
 **File:** `crates/maenifold-core/tests/graph_analyzer_visualize_validation.rs`
 **Test count:** 7

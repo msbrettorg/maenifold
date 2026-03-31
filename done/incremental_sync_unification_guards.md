@@ -1,3 +1,8 @@
+---
+id: incremental_sync_unification_guards
+status: done
+---
+
 # Test Evaluation: incremental_sync_unification_guards.rs
 
 **Evaluator**: Red Team (🔘 Gray — Skeptical Inquiry)  

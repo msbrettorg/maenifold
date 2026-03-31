@@ -1,3 +1,8 @@
+---
+id: contracts
+status: done
+---
+
 # Test Evaluation: contracts.rs
 
 > **Traceability**: NFR-2 (test coverage), NFR-3 (no regressions)  

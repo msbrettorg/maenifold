@@ -1,3 +1,8 @@
+---
+id: sync_leader_lifecycle
+status: done
+---
+
 # Test Evaluation: sync_leader_lifecycle
 
 **File:** `crates/maenifold-core/tests/sync_leader_lifecycle.rs`

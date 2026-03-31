@@ -1,3 +1,8 @@
+---
+id: frontmatter_tool_flows
+status: done
+---
+
 # Test Evaluation: `frontmatter_tool_flows`
 
 **File**: `crates/maenifold-core/tests/frontmatter_tool_flows.rs`

@@ -1,3 +1,8 @@
+---
+id: dynamic_model_loading
+status: done
+---
+
 # Test Evaluation: dynamic_model_loading
 
 **File**: `crates/maenifold-core/tests/dynamic_model_loading.rs`

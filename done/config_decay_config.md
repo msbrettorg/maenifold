@@ -1,3 +1,8 @@
+---
+id: config_decay_config
+status: done
+---
+
 # Test Evaluation: config_decay_config
 **File:** `crates/maenifold-core/tests/config_decay_config.rs`
 **Support:** `crates/maenifold-core/tests/config_decay/support.rs`

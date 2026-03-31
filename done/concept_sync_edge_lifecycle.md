@@ -1,3 +1,8 @@
+---
+id: concept_sync_edge_lifecycle
+status: done
+---
+
 # Test Evaluation: concept_sync_edge_lifecycle
 
 **File**: `crates/maenifold-core/tests/concept_sync_edge_lifecycle.rs`

@@ -1,3 +1,8 @@
+---
+id: sync_perf_graph
+status: done
+---
+
 # Test Evaluation: sync_perf_graph
 **File:** `crates/maenifold-core/tests/sync_perf_graph.rs`
 **Test count:** 4

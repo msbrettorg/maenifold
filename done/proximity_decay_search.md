@@ -1,3 +1,8 @@
+---
+id: proximity_decay_search
+status: done
+---
+
 # Test Evaluation: proximity_decay_search
 
 **File**: `crates/maenifold-core/tests/proximity_decay_search.rs`

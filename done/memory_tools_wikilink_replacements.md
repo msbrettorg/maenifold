@@ -1,3 +1,8 @@
+---
+id: memory_tools_wikilink_replacements
+status: done
+---
+
 # Test Evaluation: memory_tools_wikilink_replacements
 
 **File**: `crates/maenifold-core/tests/memory_tools_wikilink_replacements.rs`

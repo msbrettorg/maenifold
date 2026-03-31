@@ -1,3 +1,8 @@
+---
+id: vector_tools_runtime
+status: done
+---
+
 # Test Evaluation: `vector_tools_runtime.rs`
 
 > **Traceability**: T-12.6 · T-12.7 · T-8.4 · FR-33.1 · NFR-1 · NFR-2  

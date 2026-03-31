@@ -1,3 +1,8 @@
+---
+id: initialize-runtime-dedup
+status: done
+---
+
 # T-27.7: Remove Redundant initialize_runtime from Resource Handlers
 
 **Requirement:** FR-37 (RTM-236)

@@ -1,3 +1,8 @@
+---
+id: T-ST-5-join
+status: done
+---
+
 # ST-5 — Join (Pipeline Merge)
 
 **Requirement**: FR-45 (Pipeline Orchestration)

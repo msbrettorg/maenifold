@@ -1,3 +1,8 @@
+---
+id: session_assumption_misc
+status: done
+---
+
 # Test Evaluation: session_assumption_misc
 **File:** `crates/maenifold-core/tests/session_assumption_misc.rs`
 **Test count:** 7

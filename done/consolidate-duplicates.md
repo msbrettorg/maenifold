@@ -1,3 +1,8 @@
+---
+id: consolidate-duplicates
+status: done
+---
+
 # Consolidate Shimmer + Reasoning Duplicates
 
 **Requirement**: FR-32 (Web UI)

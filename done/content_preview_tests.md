@@ -1,3 +1,8 @@
+---
+id: content_preview_tests
+status: done
+---
+
 # Test Evaluation: content_preview_tests.rs
 
 > **Traceability**: T-1.6 (RTM NFR-1 — C# oracle parity for `create_smart_preview`)

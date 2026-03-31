@@ -1,3 +1,8 @@
+---
+id: community_louvain_basics
+status: done
+---
+
 # Test Evaluation: community_louvain_basics.rs
 
 **Traceability**: T-12.7 · T-W1-8 · RTM NFR-1 · RTM NFR-2  

@@ -1,3 +1,8 @@
+---
+id: error-classification
+status: done
+---
+
 # T-27.5: Fix Error Classification
 
 **Requirement:** FR-37 (RTM-234)

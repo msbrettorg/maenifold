@@ -1,6 +1,7 @@
 ---
 id: community_build_context_degradation
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: community_build_context_degradation

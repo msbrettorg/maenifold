@@ -1,6 +1,7 @@
 ---
 id: path_symlink_canonicalization
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: path_symlink_canonicalization

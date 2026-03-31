@@ -1,6 +1,7 @@
 ---
 id: sync_mtime_opt_guards
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: `sync_mtime_opt_guards.rs`

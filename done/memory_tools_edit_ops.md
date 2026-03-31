@@ -1,6 +1,7 @@
 ---
 id: memory_tools_edit_ops
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: memory_tools_edit_ops

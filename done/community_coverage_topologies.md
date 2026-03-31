@@ -1,6 +1,7 @@
 ---
 id: community_coverage_topologies
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: community_coverage_topologies

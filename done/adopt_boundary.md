@@ -1,6 +1,7 @@
 ---
 id: adopt_boundary
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: adopt_boundary

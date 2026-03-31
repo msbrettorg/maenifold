@@ -1,6 +1,7 @@
 ---
 id: proximity_weight_sections
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: proximity_weight_sections

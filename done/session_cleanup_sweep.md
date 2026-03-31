@@ -1,6 +1,7 @@
 ---
 id: session_cleanup_sweep
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: session_cleanup_sweep

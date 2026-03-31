@@ -1,6 +1,7 @@
 ---
 id: T-ST-6-fork
 status: done
+pipeline: sdd
 ---
 
 # ST-6 — Fork (Pipeline Cloning)

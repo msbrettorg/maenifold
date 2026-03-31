@@ -1,6 +1,7 @@
 ---
 id: frontmatter_write
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: frontmatter_write.rs

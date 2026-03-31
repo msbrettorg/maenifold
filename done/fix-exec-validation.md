@@ -1,6 +1,7 @@
 ---
 id: fix-exec-validation
 status: done
+pipeline: sdd
 ---
 
 # Fix Executable Validation to Use access()

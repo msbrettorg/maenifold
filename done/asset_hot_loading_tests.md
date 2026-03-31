@@ -1,6 +1,7 @@
 ---
 id: asset_hot_loading_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: asset_hot_loading_tests.rs

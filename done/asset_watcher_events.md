@@ -1,6 +1,7 @@
 ---
 id: asset_watcher_events
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: asset_watcher_events.rs

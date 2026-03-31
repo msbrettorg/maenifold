@@ -1,6 +1,7 @@
 ---
 id: restrict-cors
 status: done
+pipeline: sdd
 ---
 
 # Restrict CORS to Localhost

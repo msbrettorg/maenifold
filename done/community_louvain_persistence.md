@@ -1,6 +1,7 @@
 ---
 id: community_louvain_persistence
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: community_louvain_persistence

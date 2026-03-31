@@ -1,6 +1,7 @@
 ---
 id: decay_calculator_validated_invalidated
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: decay_calculator_validated_invalidated

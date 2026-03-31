@@ -1,6 +1,7 @@
 ---
 id: T-ST-5-join
 status: done
+pipeline: sdd
 ---
 
 # ST-5 — Join (Pipeline Merge)

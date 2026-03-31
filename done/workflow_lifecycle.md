@@ -1,6 +1,7 @@
 ---
 id: workflow_lifecycle
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: workflow_lifecycle

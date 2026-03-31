@@ -1,6 +1,7 @@
 ---
 id: incremental_sync_fts_optimize
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: incremental_sync_fts_optimize

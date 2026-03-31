@@ -1,6 +1,7 @@
 ---
 id: decay_function_exponential
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: decay_function_exponential

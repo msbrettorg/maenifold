@@ -1,6 +1,7 @@
 ---
 id: search_tools_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: search_tools_tests

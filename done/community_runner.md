@@ -1,6 +1,7 @@
 ---
 id: community_runner
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: community_runner.rs

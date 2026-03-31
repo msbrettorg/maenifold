@@ -1,6 +1,7 @@
 ---
 id: workflow_queue
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: workflow_queue

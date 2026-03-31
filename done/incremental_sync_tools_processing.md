@@ -1,6 +1,7 @@
 ---
 id: incremental_sync_tools_processing
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: incremental_sync_tools_processing

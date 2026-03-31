@@ -1,6 +1,7 @@
 ---
 id: concept_analysis_core
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: concept_analysis_core

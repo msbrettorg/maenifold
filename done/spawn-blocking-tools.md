@@ -1,6 +1,7 @@
 ---
 id: spawn-blocking-tools
 status: done
+pipeline: sdd
 ---
 
 # T-27.1: Offload Blocking Tool/Resource Handlers to spawn_blocking

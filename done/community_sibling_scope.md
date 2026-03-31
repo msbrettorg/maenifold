@@ -1,6 +1,7 @@
 ---
 id: community_sibling_scope
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: community_sibling_scope.rs

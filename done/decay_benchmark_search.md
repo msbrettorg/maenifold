@@ -1,6 +1,7 @@
 ---
 id: decay_benchmark_search
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: decay_benchmark_search

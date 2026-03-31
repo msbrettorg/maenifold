@@ -1,6 +1,7 @@
 ---
 id: leader_election_boundary
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: leader_election_boundary

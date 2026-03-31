@@ -1,6 +1,7 @@
 ---
 id: cors-web-mcp
 status: done
+pipeline: sdd
 ---
 
 # T-27.3: Fix CORS in Web Mode + Expose Mcp-Session-Id

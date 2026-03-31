@@ -1,6 +1,7 @@
 ---
 id: benchmark_boundary_controls
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: benchmark_boundary_controls.rs

@@ -1,6 +1,7 @@
 ---
 id: consolidate-duplicates
 status: done
+pipeline: sdd
 ---
 
 # Consolidate Shimmer + Reasoning Duplicates

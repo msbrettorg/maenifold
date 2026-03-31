@@ -1,6 +1,7 @@
 ---
 id: component-promotion-phase1
 status: done
+pipeline: sdd
 ---
 
 # Component Promotion Phase 1 — Zero-Dep AI Elements

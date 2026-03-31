@@ -1,6 +1,7 @@
 ---
 id: incremental_sync_unification_lifecycle
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: incremental_sync_unification_lifecycle

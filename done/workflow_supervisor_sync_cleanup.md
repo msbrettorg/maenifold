@@ -1,6 +1,7 @@
 ---
 id: workflow_supervisor_sync_cleanup
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: workflow_supervisor_sync_cleanup.rs

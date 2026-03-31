@@ -1,6 +1,7 @@
 ---
 id: update_assets_boundary
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: `update_assets_boundary.rs`

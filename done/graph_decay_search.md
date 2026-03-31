@@ -1,6 +1,7 @@
 ---
 id: graph_decay_search
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: graph_decay_search

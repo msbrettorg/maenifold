@@ -1,6 +1,7 @@
 ---
 id: memory_lifecycle_validation
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: memory_lifecycle_validation

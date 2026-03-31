@@ -1,6 +1,7 @@
 ---
 id: memory_path_nested
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: memory_path_nested

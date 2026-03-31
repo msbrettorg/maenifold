@@ -1,6 +1,7 @@
 ---
 id: vector_sync_diag_reporting
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: `vector_sync_diag_reporting.rs`

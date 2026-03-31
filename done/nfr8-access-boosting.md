@@ -1,6 +1,7 @@
 ---
 id: nfr8-access-boosting
 status: done
+pipeline: sdd
 ---
 
 # nfr8-access-boosting

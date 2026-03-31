@@ -1,6 +1,7 @@
 ---
 id: error-classification
 status: done
+pipeline: sdd
 ---
 
 # T-27.5: Fix Error Classification

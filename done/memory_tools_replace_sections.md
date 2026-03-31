@@ -1,6 +1,7 @@
 ---
 id: memory_tools_replace_sections
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: memory_tools_replace_sections.rs

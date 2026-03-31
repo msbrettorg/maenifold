@@ -1,6 +1,7 @@
 ---
 id: db_init_pragma_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: db_init_pragma_tests

@@ -1,6 +1,7 @@
 ---
 id: session_assumption_validate_append
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: session_assumption_validate_append

@@ -1,6 +1,7 @@
 ---
 id: workflow_supervisor_registration
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: workflow_supervisor_registration

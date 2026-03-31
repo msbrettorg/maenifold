@@ -1,6 +1,7 @@
 ---
 id: memory_tools_editing_parity
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: memory_tools_editing_parity

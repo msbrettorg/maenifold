@@ -1,6 +1,7 @@
 ---
 id: concept_sync_edge_stability
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: concept_sync_edge_stability

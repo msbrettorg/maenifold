@@ -1,6 +1,7 @@
 ---
 id: markdown_boundary_redteam
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: markdown_boundary_redteam

@@ -1,6 +1,7 @@
 ---
 id: workflow_progress
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: workflow_progress.rs

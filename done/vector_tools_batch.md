@@ -1,6 +1,7 @@
 ---
 id: vector_tools_batch
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: vector_tools_batch.rs

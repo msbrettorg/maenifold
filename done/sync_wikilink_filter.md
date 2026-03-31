@@ -1,6 +1,7 @@
 ---
 id: sync_wikilink_filter
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: sync_wikilink_filter

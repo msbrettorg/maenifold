@@ -1,6 +1,7 @@
 ---
 id: markdown_rw_sync_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: markdown_rw_sync_tests

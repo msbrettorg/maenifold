@@ -1,6 +1,7 @@
 ---
 id: degraded_diag_graph
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: degraded_diag_graph

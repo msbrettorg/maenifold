@@ -1,6 +1,7 @@
 ---
 id: graph-data-api
 status: done
+pipeline: sdd
 ---
 
 # graph-data-api

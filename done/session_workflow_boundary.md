@@ -1,6 +1,7 @@
 ---
 id: session_workflow_boundary
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: session_workflow_boundary

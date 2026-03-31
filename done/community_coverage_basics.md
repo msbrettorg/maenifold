@@ -1,6 +1,7 @@
 ---
 id: community_coverage_basics
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: community_coverage_basics.rs

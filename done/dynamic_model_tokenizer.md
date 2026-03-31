@@ -1,6 +1,7 @@
 ---
 id: dynamic_model_tokenizer
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: dynamic_model_tokenizer.rs

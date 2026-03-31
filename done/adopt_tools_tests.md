@@ -1,6 +1,7 @@
 ---
 id: adopt_tools_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: adopt_tools_tests

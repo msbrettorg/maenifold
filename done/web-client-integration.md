@@ -1,6 +1,7 @@
 ---
 id: web-client-integration
 status: done
+pipeline: sdd
 ---
 
 # Web-Client Integration — Full Component Experience

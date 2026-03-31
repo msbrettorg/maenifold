@@ -1,6 +1,7 @@
 ---
 id: vector_tools_runtime
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: `vector_tools_runtime.rs`

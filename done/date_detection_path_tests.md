@@ -1,6 +1,7 @@
 ---
 id: date_detection_path_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: date_detection_path_tests

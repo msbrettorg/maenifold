@@ -1,6 +1,7 @@
 ---
 id: acp-websocket-relay
 status: done
+pipeline: sdd
 ---
 
 # acp-websocket-relay

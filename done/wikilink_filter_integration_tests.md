@@ -1,6 +1,7 @@
 ---
 id: wikilink_filter_integration_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: wikilink_filter_integration_tests

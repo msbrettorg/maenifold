@@ -1,6 +1,7 @@
 ---
 id: vector_tools_semantic
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: vector_tools_semantic.rs

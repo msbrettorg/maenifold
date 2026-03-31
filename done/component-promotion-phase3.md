@@ -1,6 +1,7 @@
 ---
 id: component-promotion-phase3
 status: done
+pipeline: sdd
 ---
 
 # Component Promotion Phase 3 — Carousel + Citation

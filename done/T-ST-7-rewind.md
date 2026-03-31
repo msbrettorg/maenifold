@@ -1,6 +1,7 @@
 ---
 id: T-ST-7-rewind
 status: done
+pipeline: sdd
 ---
 
 # ST-7 — Rewind (Node Reset & Cascade)

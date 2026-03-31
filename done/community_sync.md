@@ -1,6 +1,7 @@
 ---
 id: community_sync
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: community_sync.rs

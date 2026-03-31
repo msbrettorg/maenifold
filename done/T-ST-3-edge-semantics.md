@@ -1,6 +1,7 @@
 ---
 id: T-ST-3-edge-semantics
 status: done
+pipeline: sdd
 ---
 
 # ST-3 — Edge Semantics (Success vs Always)

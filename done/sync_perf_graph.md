@@ -1,6 +1,7 @@
 ---
 id: sync_perf_graph
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: sync_perf_graph

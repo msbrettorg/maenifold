@@ -1,6 +1,7 @@
 ---
 id: decay_calculator_path_grace
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: decay_calculator_path_grace

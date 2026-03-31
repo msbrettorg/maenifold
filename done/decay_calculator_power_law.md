@@ -1,6 +1,7 @@
 ---
 id: decay_calculator_power_law
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: decay_calculator_power_law

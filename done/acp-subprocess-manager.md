@@ -1,6 +1,7 @@
 ---
 id: acp-subprocess-manager
 status: done
+pipeline: sdd
 ---
 
 # acp-subprocess-manager

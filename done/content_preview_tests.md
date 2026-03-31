@@ -1,6 +1,7 @@
 ---
 id: content_preview_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: content_preview_tests.rs

@@ -1,6 +1,7 @@
 ---
 id: markdown_adversarial_code
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: markdown_adversarial_code

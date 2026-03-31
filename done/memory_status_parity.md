@@ -1,6 +1,7 @@
 ---
 id: memory_status_parity
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: memory_status_parity

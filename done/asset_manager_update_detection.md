@@ -1,6 +1,7 @@
 ---
 id: asset_manager_update_detection
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: asset_manager_update_detection

@@ -1,6 +1,7 @@
 ---
 id: wikilink_regex_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: wikilink_regex_tests.rs

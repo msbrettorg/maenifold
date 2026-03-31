@@ -1,6 +1,7 @@
 ---
 id: T-ST-2-node-types-dispatch
 status: done
+pipeline: sdd
 ---
 
 # ST-2 — All Node Types & Dispatch Cycle

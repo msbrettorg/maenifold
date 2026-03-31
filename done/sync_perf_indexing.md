@@ -1,6 +1,7 @@
 ---
 id: sync_perf_indexing
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: sync_perf_indexing

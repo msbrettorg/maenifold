@@ -1,6 +1,7 @@
 ---
 id: config_decay_weights
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: config_decay_weights

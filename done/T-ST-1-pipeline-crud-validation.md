@@ -1,6 +1,7 @@
 ---
 id: T-ST-1-pipeline-crud-validation
 status: done
+pipeline: sdd
 ---
 
 # ST-1 — Pipeline CRUD & Validation

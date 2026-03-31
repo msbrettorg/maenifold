@@ -1,6 +1,7 @@
 ---
 id: pin-acp-git-dep
 status: done
+pipeline: sdd
 ---
 
 # Pin agent-client-protocol Git Dependency

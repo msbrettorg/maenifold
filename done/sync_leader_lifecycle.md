@@ -1,6 +1,7 @@
 ---
 id: sync_leader_lifecycle
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: sync_leader_lifecycle

@@ -1,6 +1,7 @@
 ---
 id: memory_search_diag_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: `memory_search_diag_tests.rs`

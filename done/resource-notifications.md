@@ -1,6 +1,7 @@
 ---
 id: resource-notifications
 status: done
+pipeline: sdd
 ---
 
 # T-27.4: Stop Advertising resources/list_changed on HTTP/Web

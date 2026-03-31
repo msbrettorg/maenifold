@@ -1,6 +1,7 @@
 ---
 id: graph_analyzer_random_walk
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: graph_analyzer_random_walk

@@ -1,6 +1,7 @@
 ---
 id: workflow_view
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: `workflow_view.rs`

@@ -1,6 +1,7 @@
 ---
 id: session_sequential_flow
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: session_sequential_flow.rs

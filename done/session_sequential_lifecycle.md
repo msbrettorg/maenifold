@@ -1,6 +1,7 @@
 ---
 id: session_sequential_lifecycle
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: session_sequential_lifecycle

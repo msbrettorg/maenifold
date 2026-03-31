@@ -1,6 +1,7 @@
 ---
 id: dynamic_model_discovery_paths
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: dynamic_model_discovery_paths

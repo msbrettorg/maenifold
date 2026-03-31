@@ -1,6 +1,7 @@
 ---
 id: repair_concepts_communities
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: repair_concepts_communities

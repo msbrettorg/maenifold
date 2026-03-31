@@ -1,6 +1,7 @@
 ---
 id: memory_tools_sanitization
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: memory_tools_sanitization

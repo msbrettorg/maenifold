@@ -1,6 +1,7 @@
 ---
 id: web-cli-flag
 status: done
+pipeline: sdd
 ---
 
 # web-cli-flag

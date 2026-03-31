@@ -1,6 +1,7 @@
 ---
 id: recent_activity_tool_behavior
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: `recent_activity_tool_behavior.rs`

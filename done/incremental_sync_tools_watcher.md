@@ -1,6 +1,7 @@
 ---
 id: incremental_sync_tools_watcher
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: `incremental_sync_tools_watcher.rs`

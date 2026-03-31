@@ -1,6 +1,7 @@
 ---
 id: graph-visualization
 status: done
+pipeline: sdd
 ---
 
 # graph-visualization

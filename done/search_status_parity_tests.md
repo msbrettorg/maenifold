@@ -1,6 +1,7 @@
 ---
 id: search_status_parity_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: search_status_parity_tests

@@ -1,6 +1,7 @@
 ---
 id: sync_single_file_vec0_readiness
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: sync_single_file_vec0_readiness

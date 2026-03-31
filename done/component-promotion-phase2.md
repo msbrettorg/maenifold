@@ -1,6 +1,7 @@
 ---
 id: component-promotion-phase2
 status: done
+pipeline: sdd
 ---
 
 # Component Promotion Phase 2 — @xyflow/react Components

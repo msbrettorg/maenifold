@@ -1,6 +1,7 @@
 ---
 id: replace-section-panic
 status: done
+pipeline: sdd
 ---
 
 # T-27.6: Eliminate Panic in replace_section

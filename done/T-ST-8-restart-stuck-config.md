@@ -1,6 +1,7 @@
 ---
 id: T-ST-8-restart-stuck-config
 status: done
+pipeline: sdd
 ---
 
 # ST-8 — Restart, Stuck Detection & Node Config

@@ -1,6 +1,7 @@
 ---
 id: asset_manager_errors
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: `asset_manager_errors.rs`

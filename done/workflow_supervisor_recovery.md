@@ -1,6 +1,7 @@
 ---
 id: workflow_supervisor_recovery
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: workflow_supervisor_recovery

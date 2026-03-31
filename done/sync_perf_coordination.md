@@ -1,6 +1,7 @@
 ---
 id: sync_perf_coordination
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: sync_perf_coordination

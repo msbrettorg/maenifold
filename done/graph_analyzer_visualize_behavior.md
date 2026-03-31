@@ -1,6 +1,7 @@
 ---
 id: graph_analyzer_visualize_behavior
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: graph_analyzer_visualize_behavior.rs

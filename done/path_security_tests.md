@@ -1,6 +1,7 @@
 ---
 id: path_security_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: path_security_tests

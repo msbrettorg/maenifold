@@ -1,6 +1,7 @@
 ---
 id: incremental_sync_boundary_guards
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: `incremental_sync_boundary_guards.rs`

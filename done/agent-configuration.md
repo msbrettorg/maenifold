@@ -1,6 +1,7 @@
 ---
 id: agent-configuration
 status: done
+pipeline: sdd
 ---
 
 # agent-configuration

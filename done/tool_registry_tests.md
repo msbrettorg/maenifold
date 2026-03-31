@@ -1,6 +1,7 @@
 ---
 id: tool_registry_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: tool_registry_tests

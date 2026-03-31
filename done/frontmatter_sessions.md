@@ -1,6 +1,7 @@
 ---
 id: frontmatter_sessions
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: frontmatter_sessions

@@ -1,6 +1,7 @@
 ---
 id: date_detection_val_tests
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: date_detection_val_tests

@@ -1,6 +1,7 @@
 ---
 id: session-keepalive
 status: done
+pipeline: sdd
 ---
 
 # T-27.2: Set keep_alive on HTTP Session Manager

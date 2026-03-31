@@ -1,5 +1,6 @@
 ---
 status: done
+pipeline: sdd
 created: 2026-03-31T18:07:37.6150000+00:00
 modified: 2026-03-31T20:00:10.9728040+00:00
 ---

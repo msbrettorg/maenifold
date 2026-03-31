@@ -1,6 +1,7 @@
 ---
 id: proximity_weight_decay
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: proximity_weight_decay.rs

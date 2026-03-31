@@ -1,6 +1,7 @@
 ---
 id: recent_activity_boundary_queries
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: recent_activity_boundary_queries

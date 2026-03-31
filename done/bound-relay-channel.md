@@ -1,6 +1,7 @@
 ---
 id: bound-relay-channel
 status: done
+pipeline: sdd
 ---
 
 # Bound Relay MPSC Channel

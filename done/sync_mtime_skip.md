@@ -1,6 +1,7 @@
 ---
 id: sync_mtime_skip
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: sync_mtime_skip.rs

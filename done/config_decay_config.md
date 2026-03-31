@@ -1,6 +1,7 @@
 ---
 id: config_decay_config
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: config_decay_config

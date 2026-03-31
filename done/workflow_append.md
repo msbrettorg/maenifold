@@ -1,6 +1,7 @@
 ---
 id: workflow_append
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: workflow_append

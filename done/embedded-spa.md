@@ -1,6 +1,7 @@
 ---
 id: embedded-spa
 status: done
+pipeline: sdd
 ---
 
 # embedded-spa

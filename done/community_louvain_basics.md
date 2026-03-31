@@ -1,6 +1,7 @@
 ---
 id: community_louvain_basics
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: community_louvain_basics.rs

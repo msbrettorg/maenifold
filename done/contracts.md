@@ -1,6 +1,7 @@
 ---
 id: contracts
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: contracts.rs

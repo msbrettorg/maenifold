@@ -1,6 +1,7 @@
 ---
 id: proximity_decay_search
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: proximity_decay_search

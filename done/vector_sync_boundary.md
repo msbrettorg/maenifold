@@ -1,6 +1,7 @@
 ---
 id: vector_sync_boundary
 status: done
+pipeline: tdd
 ---
 
 # Test Evaluation: vector_sync_boundary

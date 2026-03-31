@@ -215,6 +215,13 @@ where
     write_task_with_frontmatter(path, Some(&fm), &body)
 }
 
+/// Update the status field in a task file's frontmatter.
+pub fn write_frontmatter_status(path: &Path, status: &str) -> anyhow::Result<()> {
+    update_task_frontmatter(path, |fm| {
+        fm.insert("status".to_string(), YamlValue::String(status.to_string()));
+    })
+}
+
 #[cfg(test)]
 #[path = "frontmatter_tests.rs"]
 mod tests;

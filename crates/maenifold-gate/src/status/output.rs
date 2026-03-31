@@ -87,11 +87,10 @@ fn drift(state: &TaskState, row: Option<&TaskRow>) -> Vec<String> {
     let mut out = Vec::new();
     match row {
         Some(row) => {
-            if row.status != state.effective_status() {
+            if row.status != state.status {
                 out.push(format!(
                     "db status={} but file status={}",
-                    row.status,
-                    state.effective_status()
+                    row.status, state.status
                 ));
             }
             if row.location != state.location.as_str() {
@@ -144,7 +143,7 @@ pub(super) fn json_output(
         location: location.into(),
         status: state.map_or_else(
             || "error".to_string(),
-            |item| item.effective_status().to_string(),
+            |item| item.status.clone(),
         ),
         attempts,
         requirement,

@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{TaskState, parser};
+use crate::TaskState;
 
 #[derive(Debug, Default)]
 pub(super) struct TaskDetails {
@@ -84,14 +84,13 @@ fn extract_requirement(content: &str) -> Option<String> {
 }
 
 fn extract_sections(content: &str) -> Vec<SectionOutput> {
-    let verdicts = parser::extract_sections(content).unwrap_or_default();
     let mut sections = Vec::new();
     let mut current = None::<(String, Vec<String>)>;
 
     for line in content.lines() {
         if let Some(heading) = line.strip_prefix("## ") {
             if let Some((heading, body)) = current.take() {
-                sections.push(build_section(&heading, &body, &verdicts, sections.len()));
+                sections.push(build_section(&heading, &body));
             }
             current = Some((heading.trim().to_string(), Vec::new()));
             continue;
@@ -102,26 +101,39 @@ fn extract_sections(content: &str) -> Vec<SectionOutput> {
     }
 
     if let Some((heading, body)) = current.take() {
-        sections.push(build_section(&heading, &body, &verdicts, sections.len()));
+        sections.push(build_section(&heading, &body));
     }
 
     sections
 }
 
-fn build_section(
-    heading: &str,
-    body: &[String],
-    verdicts: &[parser::ParsedSection],
-    index: usize,
-) -> SectionOutput {
+fn extract_verdict(body: &str) -> Option<String> {
+    body.lines().find_map(|line| {
+        let trimmed = line.trim();
+        let after = trimmed.strip_prefix("**Verdict**:")?;
+        let word = after.trim().split_whitespace().next()?;
+        match word {
+            "PASS" | "REJECT" | "FAIL" => Some(word.to_string()),
+            _ => None,
+        }
+    })
+}
+
+fn normalize_stage_name(heading: &str) -> String {
+    heading
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn build_section(heading: &str, body: &[String]) -> SectionOutput {
+    let body_text = trim_body(body);
+    let verdict = extract_verdict(&body_text);
     SectionOutput {
         heading: heading.to_string(),
-        stage: parser::normalize_stage_name(heading),
-        verdict: verdicts
-            .get(index)
-            .filter(|section| section.heading == heading)
-            .and_then(|section| section.verdict.map(|verdict| verdict.as_str().to_string())),
-        body: trim_body(body),
+        stage: normalize_stage_name(heading),
+        verdict,
+        body: body_text,
     }
 }
 

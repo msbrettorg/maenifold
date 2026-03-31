@@ -10,6 +10,7 @@ use std::{
 pub const SESSION_INIT_ERROR: &str =
     "No gate bound to this session. Run gate_sync with a root path first to initialize.";
 
+#[derive(Debug)]
 pub struct DispatchResult {
     pub output: String,
     pub synced_root: Option<PathBuf>,

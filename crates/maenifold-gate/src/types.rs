@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
+use strum::{Display, EnumString};
 
-/// T-53.2: RTM FR-41 — canonical pipeline location for an authoritative task file.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display, EnumString)]
+#[strum(serialize_all = "lowercase")]
 pub enum TaskLocation {
     Todo,
     Done,
@@ -9,11 +10,7 @@ pub enum TaskLocation {
 
 impl TaskLocation {
     pub fn from_path(path: &Path) -> Option<Self> {
-        match path.parent()?.file_name()?.to_str()? {
-            "todo" => Some(Self::Todo),
-            "done" => Some(Self::Done),
-            _ => None,
-        }
+        path.parent()?.file_name()?.to_str()?.parse().ok()
     }
 
     pub fn as_str(self) -> &'static str {
@@ -24,8 +21,8 @@ impl TaskLocation {
     }
 }
 
-/// T-53.2: RTM FR-41 — canonical review verdicts recorded in task files.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display, EnumString)]
+#[strum(serialize_all = "UPPERCASE", ascii_case_insensitive)]
 pub enum StageVerdict {
     Pass,
     Reject,
@@ -46,7 +43,6 @@ impl StageVerdict {
     }
 }
 
-/// T-53.2: RTM FR-41 — parsed stage metadata from an authoritative task file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StageState {
     pub stage: String,
@@ -54,7 +50,6 @@ pub struct StageState {
     pub verdict: Option<StageVerdict>,
 }
 
-/// T-53.2: RTM FR-41 — file-authoritative state derived from markdown + location.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskState {
     pub path: PathBuf,
@@ -72,106 +67,10 @@ impl TaskState {
         attempts: u32,
         stages: Vec<StageState>,
     ) -> Self {
-        Self {
-            path,
-            location,
-            status,
-            attempts,
-            stages,
-        }
+        Self { path, location, status, attempts, stages }
     }
 
-    /// T-54.2: location-authoritative fallback for legacy done/ files.
-    pub fn done_override(path: PathBuf) -> Self {
-        Self::new(path, TaskLocation::Done, "done".to_string(), 0, vec![])
-    }
-
-    #[deprecated(
-        note = "use parse_quietly_with_pipeline; this path uses SDD-hardcoded stage rules"
-    )]
-    #[allow(deprecated)]
-    pub fn parse_quietly(
-        path: &Path,
-        content: &str,
-    ) -> Result<Self, crate::parser::ParseTaskError> {
-        crate::parser::parse_task_content(path, content)
-    }
-
-    pub fn parse_quietly_with_pipeline(
-        path: &Path,
-        content: &str,
-        pipeline: &crate::pipeline::PipelineDef,
-    ) -> Result<Self, crate::parser::ParseTaskError> {
-        crate::parser::parse_task_content_with_pipeline(path, content, pipeline)
-    }
-
-    /// T-54.2: preserve parsed attempts/stages while enforcing done/ as terminal.
-    pub fn with_done_override(mut self) -> Self {
-        self.location = TaskLocation::Done;
-        self.status = "done".to_string();
-        self
-    }
-
-    /// T-54.2: recover partial stage data for legacy done/ files when only the
-    /// location/status reconciliation failed. Delegates to the main parser then
-    /// forces done-override on the result.
-    #[deprecated(note = "use done_override_from_content_with_pipeline")]
-    #[allow(deprecated)]
-    pub fn done_override_from_content(path: &Path, content: &str) -> Self {
-        match crate::parser::parse_task_content(path, content) {
-            Ok(state) => state.with_done_override(),
-            Err(crate::parser::ParseTaskError::LocationStatusMismatch { .. }) => {
-                let todo_path = todo_shadow_path(path);
-                match crate::parser::parse_task_content(&todo_path, content) {
-                    Ok(state) => state.with_done_override(),
-                    Err(_) => Self::done_override(path.to_path_buf()),
-                }
-            }
-            Err(_) => Self::done_override(path.to_path_buf()),
-        }
-    }
-
-    pub fn done_override_from_content_with_pipeline(
-        path: &Path,
-        content: &str,
-        pipeline: &crate::pipeline::PipelineDef,
-    ) -> Self {
-        match crate::parser::parse_task_content_with_pipeline(path, content, pipeline) {
-            Ok(state) => state.with_done_override(),
-            Err(crate::parser::ParseTaskError::LocationStatusMismatch { .. }) => {
-                let todo_path = todo_shadow_path(path);
-                match crate::parser::parse_task_content_with_pipeline(&todo_path, content, pipeline)
-                {
-                    Ok(state) => state.with_done_override(),
-                    Err(_) => Self::done_override(path.to_path_buf()),
-                }
-            }
-            Err(_) => Self::done_override(path.to_path_buf()),
-        }
-    }
-
-    /// T-54.2: effective status considering location-authoritative fallback.
-    /// Files in done/ always resolve to "done"; files in todo/ use parsed status.
-    pub fn effective_status(&self) -> &str {
-        match self.location {
-            TaskLocation::Done => "done",
-            _ => &self.status,
-        }
-    }
-
-    /// Returns true when the task status is terminal ("done").
     pub fn is_terminal(&self) -> bool {
         self.status == "done"
-    }
-}
-
-fn todo_shadow_path(path: &Path) -> PathBuf {
-    match (path.parent(), path.file_name()) {
-        (Some(location_dir), Some(file_name)) => location_dir
-            .parent()
-            .unwrap_or(location_dir)
-            .join("todo")
-            .join(file_name),
-        _ => path.to_path_buf(),
     }
 }

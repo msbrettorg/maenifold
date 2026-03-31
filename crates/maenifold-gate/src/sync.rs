@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 use crate::{
     CommandStubError, SyncArgs,
     db::{GateDb, TaskUpsert, extract_task_id},
-    fs, parser,
+    fs,
     pipeline::load_pipeline_def,
     registry,
     types::{TaskLocation, TaskState},
@@ -31,21 +31,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
                 continue;
             }
         };
-        let state = match parser::parse_task_content_with_pipeline(&task.path, &content, &pipeline)
-        {
-            Ok(state) => state,
-            Err(parser::ParseTaskError::LocationStatusMismatch {
-                location: TaskLocation::Done,
-                ..
-            }) => {
-                TaskState::done_override_from_content_with_pipeline(&task.path, &content, &pipeline)
-            }
-            Err(error) => {
-                eprintln!("warning: {}: {error}", task.path.display());
-                errors += 1;
-                continue;
-            }
-        };
+        let state = resolve_task_state(&task.path, &content, &pipeline)?;
         let requirement = extract_requirement(&content).unwrap_or_else(|| {
             if task.location == TaskLocation::Todo {
                 eprintln!(
@@ -77,7 +63,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
                 file,
                 title: title.as_deref(),
                 requirement,
-                status: state.effective_status(),
+                status: state.status.as_str(),
                 location: state.location.as_str(),
                 attempts: state.attempts as i32,
             })?;
@@ -89,7 +75,7 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
 
     let (mut updated, mut unchanged) = (0, 0);
     for (file, title, requirement, state) in rows {
-        let status = state.effective_status();
+        let status = state.status.as_str();
         let location = state.location.as_str();
         let changed = match db.get_task(&file)? {
             Some(existing) => {
@@ -143,7 +129,7 @@ fn warn_auto_register(root: &Path) {
     }
 }
 
-fn extract_title(content: &str) -> Option<String> {
+pub fn extract_title(content: &str) -> Option<String> {
     let body = content
         .lines()
         .find_map(|line| line.trim().strip_prefix("# "))?
@@ -157,7 +143,7 @@ fn extract_title(content: &str) -> Option<String> {
     )
 }
 
-fn extract_requirement(content: &str) -> Option<String> {
+pub fn extract_requirement(content: &str) -> Option<String> {
     content.lines().find_map(|line| {
         let value = line.trim().strip_prefix("**Requirement**:")?.trim();
         let id = value.split_whitespace().next()?;
@@ -170,4 +156,29 @@ fn valid_requirement(id: &str) -> bool {
         id.strip_prefix(prefix)
             .is_some_and(|digits| !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()))
     })
+}
+
+/// Resolve task state from frontmatter. No frontmatter = pending.
+pub fn resolve_task_state(
+    path: &Path,
+    content: &str,
+    pipeline: &crate::pipeline::PipelineDef,
+) -> Result<TaskState> {
+    let location = if path.components().any(|c| c.as_os_str() == "done") {
+        TaskLocation::Done
+    } else {
+        TaskLocation::Todo
+    };
+
+    if let Some((yaml_str, _body)) = crate::frontmatter::split_frontmatter(content) {
+        let fm: std::collections::BTreeMap<String, serde_yaml::Value> =
+            serde_yaml::from_str(yaml_str).unwrap_or_default();
+        let status = fm.get("status").and_then(|v| v.as_str()).unwrap_or("pending").to_string();
+        let attempts = fm.get("attempts").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        return Ok(TaskState::new(path.to_path_buf(), location, status, attempts, Vec::new()));
+    }
+
+    // No frontmatter: file hasn't been migrated yet. Store raw "pending" status
+    // regardless of location — the location field tracks where the file lives.
+    Ok(TaskState::new(path.to_path_buf(), location, "pending".into(), 0, Vec::new()))
 }

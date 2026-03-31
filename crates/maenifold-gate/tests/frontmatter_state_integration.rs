@@ -64,7 +64,6 @@ fn rebuild_cache(root: &Path) -> PathBuf {
         db: Some(db_path.clone()),
         root: root.to_path_buf(),
         rebuild: true,
-        migrate: false,
         pipeline_path: None,
     };
     sync::run_sync(&args, root).unwrap();
@@ -95,7 +94,6 @@ fn resync(root: &Path, db_path: &Path) {
         db: Some(db_path.to_path_buf()),
         root: root.to_path_buf(),
         rebuild: false,
-        migrate: false,
         pipeline_path: None,
     };
     sync::run_sync(&sync_args, root).unwrap();
@@ -180,7 +178,6 @@ fn test_todo_zero_sections_stays_pending() {
     let state =
         sync::resolve_task_state(&path, &fs::read_to_string(&path).unwrap(), &pipeline).unwrap();
     assert_eq!(state.status, "pending");
-    assert_eq!(state.effective_status(), "pending");
     assert_eq!(state.location, TaskLocation::Todo);
 }
 

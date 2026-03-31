@@ -15,7 +15,7 @@ pub struct DiscoveredTask {
 fn is_task(path: &Path) -> bool {
     path.file_name()
         .and_then(|n| n.to_str())
-        .is_some_and(|n| n.starts_with("T-") && n.ends_with(".md"))
+        .is_some_and(|n| n.starts_with("T-") && n.ends_with(".md") && n.len() > 5)
 }
 
 pub fn discover_tasks(root: &Path) -> Result<Vec<DiscoveredTask>> {

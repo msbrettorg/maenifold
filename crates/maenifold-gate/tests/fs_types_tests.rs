@@ -203,7 +203,7 @@ fn stage_state_and_task_state_cover_construction_and_defaults() {
     assert_eq!(task.status, "red");
     assert_eq!(task.attempts, 2);
     assert_eq!(task.stages, vec![stage]);
-    assert_eq!(task.effective_status(), "red");
+    assert_eq!(task.status, "red");
     assert!(!task.is_terminal());
 
     let done = TaskState::new(
@@ -217,7 +217,6 @@ fn stage_state_and_task_state_cover_construction_and_defaults() {
     assert_eq!(done.status, "done");
     assert_eq!(done.attempts, 0);
     assert!(done.stages.is_empty());
-    assert_eq!(done.effective_status(), "done");
     assert!(done.is_terminal());
 }
 
@@ -230,7 +229,7 @@ fn discover_tasks_empty_dirs_returns_empty_vec() -> Result<()> {
 }
 
 #[test]
-fn task_state_effective_status_uses_frontmatter_status_even_in_done() {
+fn task_state_frontmatter_status_in_done() {
     let ts = TaskState::new(
         PathBuf::from("done/T-1.md"),
         TaskLocation::Done,
@@ -242,7 +241,7 @@ fn task_state_effective_status_uses_frontmatter_status_even_in_done() {
             verdict: None,
         }],
     );
-    assert_eq!(ts.effective_status(), "pending");
+    assert_eq!(ts.status, "pending");
     assert_eq!(ts.attempts, 3);
     assert_eq!(ts.stages.len(), 1);
 }

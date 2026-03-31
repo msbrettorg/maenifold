@@ -3,10 +3,10 @@ pub mod append;
 pub mod board;
 pub mod cli;
 pub mod db;
+pub mod frontmatter;
 pub mod fs;
 #[cfg(feature = "app")]
 pub mod mcp;
-pub mod parser;
 pub mod pass;
 pub mod pipeline;
 pub mod registry;
@@ -17,14 +17,12 @@ pub mod sync;
 pub mod trace;
 #[cfg(feature = "app")]
 pub mod tray;
+#[cfg(feature = "app")]
+pub mod tray_helpers;
 pub mod types;
 
 pub use cli::{
     Cli, CliError, Command, CommandStubError, HelpTopic, StatusArgs, SyncArgs, parse_from, run,
     run_from,
-};
-#[allow(deprecated)]
-pub use parser::{
-    ParseTaskError, ParsedSection, extract_sections, parse_task_content, parse_task_file,
 };
 pub use types::{StageState, StageVerdict, TaskLocation, TaskState};

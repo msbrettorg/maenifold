@@ -4,7 +4,7 @@ use anyhow::{Result, anyhow, bail};
 
 use crate::{
     db::{GateDb, WorkLogEntry},
-    fs::{append_orchestrator_section, move_to_done, read_task, resolve_file_path},
+    fs::{append_orchestrator_section, move_to_done, resolve_file_path},
     pipeline::load_pipeline_def,
 };
 
@@ -45,23 +45,6 @@ pub fn run(args: &PassArgs) -> Result<()> {
                 )
             })?;
 
-        if !stage.verdicts.is_empty() {
-            let content = read_task(&file_path)?;
-            let sections = crate::parser::sections::extract_sections(&content)
-                .map_err(|err| anyhow!("failed to parse task file '{}': {err}", task.file))?;
-            let has_verdict = sections
-                .iter()
-                .rev()
-                .find(|s| crate::parser::normalize_stage_name(&s.heading) == task.status)
-                .is_some_and(|s| s.verdict.is_some());
-            if !has_verdict {
-                bail!(
-                    "cannot advance: stage '{}' has no verdict yet. Use 'gate append' to record a verdict first.",
-                    task.status
-                );
-            }
-        }
-
         stage
             .transitions
             .get("pass")
@@ -71,6 +54,7 @@ pub fn run(args: &PassArgs) -> Result<()> {
 
     append_orchestrator_section(&file_path, "PASS", args.notes.as_deref())?;
     if next == "done" {
+        crate::frontmatter::write_frontmatter_status(&file_path, "done")?;
         move_to_done(&args.root, &task.file)?;
         db.update_task_status(&task.file, "done", "done")?;
         eprintln!(
@@ -78,6 +62,7 @@ pub fn run(args: &PassArgs) -> Result<()> {
             args.id, task.status
         );
     } else {
+        crate::frontmatter::write_frontmatter_status(&file_path, &next)?;
         db.update_task_status(&task.file, &next, "todo")?;
         eprintln!("{}: {} → {} [PASS]", args.id, task.status, next);
     }

@@ -1,18 +1,16 @@
 use crate::{
     CommandStubError, StatusArgs,
     db::GateDb,
-    fs, parser,
+    fs,
     pipeline::load_pipeline_def,
-    types::{TaskLocation, TaskState},
+    types::TaskState,
 };
 use anyhow::{Result, anyhow};
 use std::{collections::BTreeMap, path::Path};
 
 mod details;
 mod output;
-use output::{discovered_stages, json_output, maybe_drift, print_summary, stage_text};
-
-const INCOMPLETE_AUDIT_TRAIL_NOTE: &str = "incomplete audit trail (location override)";
+use output::{json_output, maybe_drift, print_summary};
 
 struct StatusContext<'a> {
     root: &'a Path,
@@ -68,51 +66,18 @@ fn run_one_by_id(context: &StatusContext<'_>, id: &str) -> Result<()> {
         .ok_or_else(|| anyhow!("unknown task ID: {id}"))?;
     let (path, location) = fs::resolve_task_path(context.root, &row.file)?;
     let content = fs::read_task(&path)?;
-    match parser::parse_task_content_with_pipeline(&path, &content, context.pipeline) {
-        Ok(state) => output_one(
-            context,
-            OutputEntry {
-                file: &row.file,
-                location: location.as_str(),
-                state: Some(&state),
-                content: Some(&content),
-                error: None,
-                db_drift: maybe_drift(context.check_drift, &state, Some(&row)),
-            },
-        )?,
-        Err(parser::ParseTaskError::LocationStatusMismatch {
-            location: TaskLocation::Done,
-            ..
-        }) => {
-            let state = TaskState::done_override_from_content_with_pipeline(
-                &path,
-                &content,
-                context.pipeline,
-            );
-            output_one(
-                context,
-                OutputEntry {
-                    file: &row.file,
-                    location: location.as_str(),
-                    state: Some(&state),
-                    content: Some(&content),
-                    error: Some(INCOMPLETE_AUDIT_TRAIL_NOTE.into()),
-                    db_drift: maybe_drift(context.check_drift, &state, Some(&row)),
-                },
-            )?
-        }
-        Err(err) => output_one(
-            context,
-            OutputEntry {
-                file: &row.file,
-                location: location.as_str(),
-                state: None,
-                content: Some(&content),
-                error: Some(err.to_string()),
-                db_drift: vec![],
-            },
-        )?,
-    }
+    let state = crate::sync::resolve_task_state(&path, &content, context.pipeline)?;
+    output_one(
+        context,
+        OutputEntry {
+            file: &row.file,
+            location: location.as_str(),
+            state: Some(&state),
+            content: Some(&content),
+            error: None,
+            db_drift: maybe_drift(context.check_drift, &state, Some(&row)),
+        },
+    )?;
     Ok(())
 }
 
@@ -155,41 +120,28 @@ fn run_all(context: &StatusContext<'_>) -> Result<()> {
                 continue;
             }
         };
-        let (state, note) =
-            match TaskState::parse_quietly_with_pipeline(&task.path, &content, context.pipeline) {
-                Ok(state) => (state, None),
-                Err(parser::ParseTaskError::LocationStatusMismatch {
-                    location: TaskLocation::Done,
-                    ..
-                }) => (
-                    TaskState::done_override_from_content_with_pipeline(
-                        &task.path,
-                        &content,
-                        context.pipeline,
-                    ),
-                    Some(INCOMPLETE_AUDIT_TRAIL_NOTE.to_string()),
-                ),
-                Err(err) => {
-                    *counts.entry("error".to_string()).or_default() += 1;
-                    let message = err.to_string();
-                    if context.json {
-                        out.push(json_output(
-                            file,
-                            task.location.as_str(),
-                            None,
-                            Some(&content),
-                            Some(message),
-                            vec![],
-                        ));
-                    } else {
-                        eprintln!("warning: {file}: status=error: {message}");
-                    }
-                    continue;
+        let state = match crate::sync::resolve_task_state(&task.path, &content, context.pipeline) {
+            Ok(state) => state,
+            Err(err) => {
+                *counts.entry("error".to_string()).or_default() += 1;
+                let message = err.to_string();
+                if context.json {
+                    out.push(json_output(
+                        file,
+                        task.location.as_str(),
+                        None,
+                        Some(&content),
+                        Some(message),
+                        vec![],
+                    ));
+                } else {
+                    eprintln!("warning: {file}: status=error: {message}");
                 }
-            };
-        *counts
-            .entry(state.effective_status().to_string())
-            .or_default() += 1;
+                continue;
+            }
+        };
+        let status_key = state.status.clone();
+        *counts.entry(status_key).or_default() += 1;
         let db_drift = maybe_drift(context.check_drift, &state, rows.get(file));
         if context.json {
             out.push(json_output(
@@ -197,7 +149,7 @@ fn run_all(context: &StatusContext<'_>) -> Result<()> {
                 task.location.as_str(),
                 Some(&state),
                 Some(&content),
-                note,
+                None,
                 db_drift,
             ));
         } else {
@@ -234,17 +186,8 @@ fn output_one(context: &StatusContext<'_>, entry: OutputEntry<'_>) -> Result<()>
     println!(
         "{:<9} {}",
         "STATUS",
-        entry.state.map_or("error", |s| s.effective_status())
+        entry.state.map_or("error", |s| &s.status)
     );
-    if let Some(state) = entry.state {
-        for stage_name in discovered_stages(state) {
-            println!(
-                "{:<9} {}",
-                stage_name.to_ascii_uppercase(),
-                stage_text(state, &stage_name)
-            );
-        }
-    }
     if let Some(error) = entry.error.as_deref() {
         println!("{:<9} {}", "ERROR", error);
         eprintln!("warning: {}: {error}", entry.file);

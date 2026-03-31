@@ -14,7 +14,6 @@ path = "src/main.rs"
 default = []
 app = [
   "dep:axum",
-  "dep:chrono",
   "dep:rust-embed",
   "dep:rmcp",
   "dep:open",
@@ -27,14 +26,17 @@ app = [
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 pulldown-cmark.workspace = true
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+serde_yaml.workspace = true
+strum.workspace = true
+thiserror.workspace = true
 walkdir.workspace = true
 directories.workspace = true
 axum = { workspace = true, optional = true }
-chrono = { workspace = true, optional = true }
 rust-embed = { workspace = true, optional = true }
 rmcp = { workspace = true, optional = true, features = ["transport-streamable-http-server"] }
 open = { workspace = true, optional = true }

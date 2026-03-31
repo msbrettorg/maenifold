@@ -2,12 +2,12 @@
 
 use axum::body::to_bytes;
 use axum::http::{StatusCode, header};
-use maenifold_gate::{board, tray};
+use maenifold_gate::{board, tray_helpers};
 use tray_icon::Icon;
 
 const BOARD_HTML: &str = include_str!("../src/board/index.html");
 const TRACE_HTML: &str = include_str!("../src/board/trace.html");
-const TRAY_SOURCE: &str = include_str!("../src/tray.rs");
+const TRAY_SOURCE: &str = include_str!("../src/tray_helpers.rs");
 const TRAY_ICON_RGBA: &[u8] = include_bytes!("../src/tray_icon.rgba");
 
 #[tokio::test]
@@ -105,14 +105,14 @@ fn tray_icon_rgba_is_valid_for_icon_generation() {
 
 #[test]
 fn tray_menu_specs_cover_expected_labels() {
-    let disabled_login = tray::tray_menu_specs(false);
+    let disabled_login = tray_helpers::tray_menu_specs(false);
     assert_eq!(disabled_login[0].label, "Kanban Board");
     assert_eq!(disabled_login[1].label, "Trace");
     assert_eq!(disabled_login.last().unwrap().label, "Quit");
     assert_eq!(disabled_login[2].label, "Open at Login");
     assert_eq!(disabled_login[2].enabled, cfg!(target_os = "macos"));
 
-    let enabled_login = tray::tray_menu_specs(true);
+    let enabled_login = tray_helpers::tray_menu_specs(true);
     assert_eq!(enabled_login[2].label, "✓ Open at Login");
     assert_eq!(
         enabled_login.iter().any(|item| item.label == "Restart"),
@@ -123,21 +123,20 @@ fn tray_menu_specs_cover_expected_labels() {
 #[test]
 fn tray_launch_agent_path_generation_is_stable() {
     let home = std::path::Path::new("/tmp/example-home");
-    let path = tray::launch_agent_path_from(Some(home));
+    let path = tray_helpers::launch_agent_path_from(Some(home));
     assert_eq!(
         path,
         home.join("Library/LaunchAgents/com.ma-collective.gate.plist")
     );
     assert_eq!(
-        tray::launch_agent_path_from(None),
+        tray_helpers::launch_agent_path_from(None),
         std::path::Path::new(".").join("Library/LaunchAgents/com.ma-collective.gate.plist")
     );
 }
 
 #[test]
 fn tray_source_keeps_pure_utility_hooks_for_login_and_restart() {
-    assert!(TRAY_SOURCE.contains("fn build_icon() -> Icon"));
     assert!(TRAY_SOURCE.contains("pub fn launch_agent_path_from"));
     assert!(TRAY_SOURCE.contains("pub fn login_menu_text(enabled: bool) -> &'static str"));
-    assert!(TRAY_SOURCE.contains("fn restart_daemon(service_label: &str)"));
+    assert!(TRAY_SOURCE.contains("pub fn tray_menu_specs"));
 }

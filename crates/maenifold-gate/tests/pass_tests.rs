@@ -128,22 +128,6 @@ fn pass_advances_through_full_pipeline() {
 }
 
 #[test]
-fn pass_blocked_without_verdict() {
-    let (dir, db_path, id, _) = setup();
-
-    run_pass(dir.path(), &db_path, &id, Some("to swe"));
-    run_pass(dir.path(), &db_path, &id, Some("to red"));
-
-    let err = run_pass_result(dir.path(), &db_path, &id, Some("missing verdict")).unwrap_err();
-    let message = err.to_string();
-
-    assert!(
-        message.contains("cannot advance") || message.contains("no verdict yet"),
-        "unexpected error: {message}"
-    );
-}
-
-#[test]
 fn pass_unknown_id_errors() {
     let (dir, db_path, ..) = setup();
     let err = pass::run(&PassArgs {

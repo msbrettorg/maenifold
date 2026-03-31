@@ -1,10 +1,6 @@
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{HashMap, HashSet},
-    fs,
-    path::Path,
-};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PipelineDef {
@@ -17,13 +13,6 @@ pub struct StageDef {
     pub name: String,
     pub verdicts: Vec<String>,
     pub transitions: HashMap<String, String>,
-}
-
-pub fn load_pipeline(path: &Path) -> Result<PipelineDef> {
-    load_pipeline_from_str(
-        &fs::read_to_string(path)
-            .with_context(|| format!("reading pipeline definition {}", path.display()))?,
-    )
 }
 
 pub fn load_pipeline_from_str(json: &str) -> Result<PipelineDef> {
@@ -45,30 +34,6 @@ pub fn load_embedded_pipeline(name: &str) -> Result<PipelineDef> {
             "unknown embedded pipeline '{}'; available: sdd, tdd, gsd, lightweight",
             name
         ),
-    }
-}
-
-pub fn load_pipeline_def(explicit_path: Option<&Path>, root: &Path) -> Result<PipelineDef> {
-    if let Some(path) = explicit_path {
-        if path.extension().is_none()
-            && path.components().count() == 1
-            && let Some(name) = path.to_str()
-            && let Ok(pipeline) = load_embedded_pipeline(name)
-        {
-            return Ok(pipeline);
-        }
-        load_pipeline(path)
-    } else {
-        let root_pipeline = root.join("pipeline.json");
-        if root_pipeline.is_file() {
-            load_pipeline(&root_pipeline)
-        } else {
-            eprintln!(
-                "note: no pipeline.json found in {}, using default SDD pipeline",
-                root.display()
-            );
-            load_embedded_pipeline("sdd")
-        }
     }
 }
 
@@ -127,17 +92,10 @@ fn can_reach_done<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
-
-    fn asset(name: &str) -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../assets/pipelines")
-            .join(name)
-    }
 
     #[test]
     fn load_valid_tdd_json() -> Result<()> {
-        let def = load_pipeline(&asset("tdd.json"))?;
+        let def = load_pipeline_from_str(include_str!("../../../assets/pipelines/tdd.json"))?;
         assert_eq!(def.name, "tdd");
         assert_eq!(def.stages.len(), 3);
         Ok(())
@@ -145,7 +103,7 @@ mod tests {
 
     #[test]
     fn load_valid_sdd_json() -> Result<()> {
-        let def = load_pipeline(&asset("sdd.json"))?;
+        let def = load_pipeline_from_str(include_str!("../../../assets/pipelines/sdd.json"))?;
         assert_eq!(def.name, "sdd");
         assert_eq!(def.stages.len(), 3);
         Ok(())
@@ -153,7 +111,7 @@ mod tests {
 
     #[test]
     fn load_valid_gsd_json() -> Result<()> {
-        let def = load_pipeline(&asset("gsd.json"))?;
+        let def = load_pipeline_from_str(include_str!("../../../assets/pipelines/gsd.json"))?;
         assert_eq!(def.name, "gsd");
         assert_eq!(def.stages.len(), 4);
         Ok(())
@@ -161,7 +119,8 @@ mod tests {
 
     #[test]
     fn load_valid_lightweight_json() -> Result<()> {
-        let def = load_pipeline(&asset("lightweight.json"))?;
+        let def =
+            load_pipeline_from_str(include_str!("../../../assets/pipelines/lightweight.json"))?;
         assert_eq!(def.name, "lightweight");
         assert_eq!(def.stages.len(), 2);
         Ok(())
@@ -172,14 +131,6 @@ mod tests {
         let def = load_embedded_pipeline("tdd")?;
         assert_eq!(def.name, "tdd");
         assert_eq!(def.stages.len(), 3);
-        Ok(())
-    }
-
-    #[test]
-    fn explicit_simple_name_loads_embedded_pipeline() -> Result<()> {
-        let def = load_pipeline_def(Some(Path::new("gsd")), Path::new("."))?;
-        assert_eq!(def.name, "gsd");
-        assert_eq!(def.stages.len(), 4);
         Ok(())
     }
 

@@ -16,7 +16,7 @@ fn setup() -> (TempDir, std::path::PathBuf, String, String) {
     let id = "T-55.4".to_string();
     fs::write(
         dir.path().join("todo").join(&file),
-        "# T-55.4 — Pass\n\n**Requirement**: FR-42\n",
+        "---\npipeline: sdd\n---\n\n# T-55.4 — Pass\n\n**Requirement**: FR-42\n",
     )
     .unwrap();
     let db_path = dir.path().join("gate.db");
@@ -37,26 +37,10 @@ fn run_pass(root: &Path, db_path: &Path, id: &str, notes: Option<&str>) {
     pass::run(&PassArgs {
         id: id.into(),
         notes: notes.map(str::to_owned),
-        pipeline_path: None,
         db_path: db_path.into(),
         root: root.into(),
     })
     .unwrap();
-}
-
-fn run_pass_result(
-    root: &Path,
-    db_path: &Path,
-    id: &str,
-    notes: Option<&str>,
-) -> anyhow::Result<()> {
-    pass::run(&PassArgs {
-        id: id.into(),
-        notes: notes.map(str::to_owned),
-        pipeline_path: None,
-        db_path: db_path.into(),
-        root: root.into(),
-    })
 }
 
 #[test]
@@ -76,12 +60,9 @@ fn pass_advances_pending_to_first_stage() {
 fn pass_advances_through_full_pipeline() {
     let (dir, db_path, id, file) = setup();
 
-    // pending → swe
     run_pass(dir.path(), &db_path, &id, Some("to swe"));
-    // swe → red (swe has verdicts: [], no verdict needed)
     run_pass(dir.path(), &db_path, &id, Some("to red"));
 
-    // Add red verdict, then use gate pass to advance from red → blue.
     append::run(&AppendArgs {
         id: id.clone(),
         agent: "red".into(),
@@ -92,7 +73,6 @@ fn pass_advances_through_full_pipeline() {
     .unwrap();
     run_pass(dir.path(), &db_path, &id, Some("to blue"));
 
-    // Add blue verdict
     append::run(&AppendArgs {
         id: id.clone(),
         agent: "blue".into(),
@@ -102,7 +82,6 @@ fn pass_advances_through_full_pipeline() {
     })
     .unwrap();
 
-    // blue → done
     run_pass(dir.path(), &db_path, &id, Some("to done"));
 
     let task = GateDb::open(&db_path)
@@ -123,7 +102,7 @@ fn pass_advances_through_full_pipeline() {
                 |row| { row.get::<_, i64>(0) }
             )
             .unwrap(),
-        4 // 4 passes (pending→swe, swe→red, red→blue, blue→done)
+        4
     );
 }
 
@@ -133,7 +112,6 @@ fn pass_unknown_id_errors() {
     let err = pass::run(&PassArgs {
         id: "T-0".into(),
         notes: None,
-        pipeline_path: None,
         db_path,
         root: dir.path().into(),
     })
@@ -148,4 +126,26 @@ fn pass_appends_orchestrator_section() {
     let content = fs::read_to_string(dir.path().join("todo").join(file)).unwrap();
     assert!(content.contains("## Orchestrator — PASS"));
     assert!(content.contains("Ship it"));
+}
+
+#[test]
+fn pass_requires_pipeline_frontmatter() {
+    let (dir, db_path, id, file) = setup();
+    fs::write(
+        dir.path().join("todo").join(&file),
+        "# T-55.4 — Pass\n\n**Requirement**: FR-42\n",
+    )
+    .unwrap();
+
+    let err = pass::run(&PassArgs {
+        id,
+        notes: None,
+        db_path,
+        root: dir.path().into(),
+    })
+    .unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("task 'T-55.4' has no 'pipeline' field in frontmatter")
+    );
 }

@@ -68,7 +68,7 @@ fn sync_task(root: &Path, file: &str) -> Result<std::path::PathBuf> {
     fs::create_dir_all(root.join("todo"))?;
     fs::write(
         root.join("todo").join(file),
-        "# T-55.3 — gate append\n\n**Requirement**: FR-42\n",
+        "---\npipeline: sdd\n---\n\n# T-55.3 — gate append\n\n**Requirement**: FR-42\n",
     )?;
     let db_path = root.join("gate.db");
     run_sync(
@@ -76,7 +76,6 @@ fn sync_task(root: &Path, file: &str) -> Result<std::path::PathBuf> {
             db: Some(db_path.clone()),
             root: root.to_path_buf(),
             rebuild: false,
-            pipeline_path: None,
         },
         root,
     )?;

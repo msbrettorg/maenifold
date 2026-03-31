@@ -140,8 +140,8 @@ impl TrayApp {
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
         let menu = Menu::new();
         let login_enabled = is_login_enabled();
-        let kanban_item = MenuItem::new("Kanban Board", true, None);
-        let trace_item = MenuItem::new("Trace", true, None);
+        let kanban_item = MenuItem::new(format!("Kanban Board :{}", self.port), true, None);
+        let trace_item = MenuItem::new(format!("Trace :{}", self.port), true, None);
         #[cfg(target_os = "macos")]
         let login_item = MenuItem::new(login_menu_text(login_enabled), true, None);
         #[cfg(not(target_os = "macos"))]
@@ -169,7 +169,7 @@ impl TrayApp {
         self.login_item = Some(login_item);
         match TrayIconBuilder::new()
             .with_menu(Box::new(menu))
-            .with_tooltip("gate")
+            .with_tooltip(format!("gate :{}", self.port))
             .with_icon(build_icon())
             .build()
         {

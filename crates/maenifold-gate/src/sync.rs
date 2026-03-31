@@ -6,7 +6,7 @@ use crate::{
     CommandStubError, SyncArgs,
     db::{GateDb, TaskUpsert, extract_task_id},
     fs,
-    pipeline::load_pipeline_def,
+    pipeline::{PipelineDef, load_embedded_pipeline},
     registry,
     types::{TaskLocation, TaskState},
 };
@@ -16,7 +16,6 @@ pub fn run(args: &SyncArgs) -> Result<(), CommandStubError> {
 }
 
 pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
-    let pipeline = load_pipeline_def(args.pipeline_path.as_deref(), root)?;
     let db_path = args.db.clone().unwrap_or_else(|| root.join("gate.db"));
     let mut found = fs::discover_tasks(root)?;
     let mut rows = Vec::new();
@@ -31,7 +30,22 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
                 continue;
             }
         };
-        let state = resolve_task_state(&task.path, &content, &pipeline)?;
+        let pipeline = match load_task_pipeline(&task.path, &content) {
+            Ok(pipeline) => pipeline,
+            Err(error) => {
+                eprintln!("warning: {}: {error}", task.path.display());
+                errors += 1;
+                continue;
+            }
+        };
+        let state = match resolve_task_state(&task.path, &content, &pipeline) {
+            Ok(state) => state,
+            Err(error) => {
+                eprintln!("warning: {}: {error}", task.path.display());
+                errors += 1;
+                continue;
+            }
+        };
         let requirement = extract_requirement(&content).unwrap_or_else(|| {
             if task.location == TaskLocation::Todo {
                 eprintln!(
@@ -120,6 +134,25 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
     Ok(())
 }
 
+pub(crate) fn load_task_pipeline(
+    path: &Path,
+    content: &str,
+) -> Result<PipelineDef> {
+    if let Some((yaml_str, _body)) = crate::frontmatter::split_frontmatter(content)
+        && let Ok(frontmatter) = serde_yaml::from_str::<crate::frontmatter::Frontmatter>(yaml_str)
+        && let Some(name) = frontmatter
+            .get("pipeline")
+            .and_then(serde_yaml::Value::as_str)
+    {
+        return load_embedded_pipeline(name);
+    }
+
+    anyhow::bail!(
+        "{}: missing 'pipeline' field in frontmatter",
+        path.display()
+    )
+}
+
 fn warn_auto_register(root: &Path) {
     if let Err(error) = registry::auto_register(root) {
         eprintln!(
@@ -162,7 +195,7 @@ fn valid_requirement(id: &str) -> bool {
 pub fn resolve_task_state(
     path: &Path,
     content: &str,
-    pipeline: &crate::pipeline::PipelineDef,
+    _pipeline: &crate::pipeline::PipelineDef,
 ) -> Result<TaskState> {
     let location = if path.components().any(|c| c.as_os_str() == "done") {
         TaskLocation::Done
@@ -173,12 +206,28 @@ pub fn resolve_task_state(
     if let Some((yaml_str, _body)) = crate::frontmatter::split_frontmatter(content) {
         let fm: std::collections::BTreeMap<String, serde_yaml::Value> =
             serde_yaml::from_str(yaml_str).unwrap_or_default();
-        let status = fm.get("status").and_then(|v| v.as_str()).unwrap_or("pending").to_string();
+        let status = fm
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or("pending")
+            .to_string();
         let attempts = fm.get("attempts").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        return Ok(TaskState::new(path.to_path_buf(), location, status, attempts, Vec::new()));
+        return Ok(TaskState::new(
+            path.to_path_buf(),
+            location,
+            status,
+            attempts,
+            Vec::new(),
+        ));
     }
 
     // No frontmatter: file hasn't been migrated yet. Store raw "pending" status
     // regardless of location — the location field tracks where the file lives.
-    Ok(TaskState::new(path.to_path_buf(), location, "pending".into(), 0, Vec::new()))
+    Ok(TaskState::new(
+        path.to_path_buf(),
+        location,
+        "pending".into(),
+        0,
+        Vec::new(),
+    ))
 }

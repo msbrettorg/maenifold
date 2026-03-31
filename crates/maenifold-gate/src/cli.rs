@@ -48,7 +48,6 @@ pub struct StatusArgs {
     pub root: PathBuf,
     pub json: bool,
     pub id: Option<String>,
-    pub pipeline_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,7 +55,6 @@ pub struct SyncArgs {
     pub db: Option<PathBuf>,
     pub root: PathBuf,
     pub rebuild: bool,
-    pub pipeline_path: Option<PathBuf>,
 }
 
 pub fn parse_from<I, T>(args: I) -> Result<Cli, CliError>
@@ -125,7 +123,6 @@ fn parse_pass(args: Vec<String>) -> Result<Command, CliError> {
         db_path: args.db.unwrap_or_else(|| args.root.join("gate.db")),
         id: args.id,
         notes: args.notes,
-        pipeline_path: args.pipeline,
         root: args.root,
     }))
 }
@@ -139,7 +136,6 @@ fn parse_reject(args: Vec<String>) -> Result<Command, CliError> {
         db_path: args.db.unwrap_or_else(|| args.root.join("gate.db")),
         id: args.id,
         notes: args.notes,
-        pipeline_path: args.pipeline,
         root: args.root,
     }))
 }
@@ -180,18 +176,13 @@ fn parse_status(args: Vec<String>) -> Result<Command, CliError> {
         return Ok(Command::Help(HelpTopic::Status));
     }
 
-    let (mut db, mut root, mut pipeline_path, mut json) = (None, None, None, false);
+    let (mut db, mut root, mut json) = (None, None, false);
     let mut positional = Vec::new();
     let mut iter = args.into_iter();
     while let Some(arg) = iter.next() {
         match arg.as_str() {
             "--db" => set_once_path(&mut db, "--db", next_value(&mut iter, "--db")?)?,
             "--root" => set_once_path(&mut root, "--root", next_value(&mut iter, "--root")?)?,
-            "--pipeline" => set_once_path(
-                &mut pipeline_path,
-                "--pipeline",
-                next_value(&mut iter, "--pipeline")?,
-            )?,
             "--json" => json = true,
             other if other.starts_with('-') => {
                 return Err(CliError::new(format!("unknown option '{other}'")));
@@ -209,7 +200,6 @@ fn parse_status(args: Vec<String>) -> Result<Command, CliError> {
         root: resolve_root(root)?,
         json,
         id: positional.into_iter().next(),
-        pipeline_path,
     }))
 }
 
@@ -218,17 +208,12 @@ fn parse_sync(args: Vec<String>) -> Result<Command, CliError> {
         return Ok(Command::Help(HelpTopic::Sync));
     }
 
-    let (mut db, mut pipeline_path, mut rebuild) = (None, None, false);
+    let (mut db, mut rebuild) = (None, false);
     let mut positional = Vec::new();
     let mut iter = args.into_iter();
     while let Some(arg) = iter.next() {
         match arg.as_str() {
             "--db" => set_once_path(&mut db, "--db", next_value(&mut iter, "--db")?)?,
-            "--pipeline" => set_once_path(
-                &mut pipeline_path,
-                "--pipeline",
-                next_value(&mut iter, "--pipeline")?,
-            )?,
             "--rebuild" => rebuild = true,
             other if other.starts_with('-') => {
                 return Err(CliError::new(format!("unknown option '{other}'")));
@@ -240,20 +225,18 @@ fn parse_sync(args: Vec<String>) -> Result<Command, CliError> {
         db,
         root: only_positional_path("ROOT", positional)?,
         rebuild,
-        pipeline_path,
     }))
 }
 
 struct TransitionArgs {
     id: String,
     notes: Option<String>,
-    pipeline: Option<PathBuf>,
     db: Option<PathBuf>,
     root: PathBuf,
 }
 
 fn parse_transition_args(args: Vec<String>) -> Result<TransitionArgs, CliError> {
-    let (mut db, mut root, mut notes, mut pipeline) = (None, None, None, None);
+    let (mut db, mut root, mut notes) = (None, None, None);
     let mut positional = Vec::new();
     let mut iter = args.into_iter();
     while let Some(arg) = iter.next() {
@@ -261,11 +244,6 @@ fn parse_transition_args(args: Vec<String>) -> Result<TransitionArgs, CliError> 
             "--db" => set_once_path(&mut db, "--db", next_value(&mut iter, "--db")?)?,
             "--root" => set_once_path(&mut root, "--root", next_value(&mut iter, "--root")?)?,
             "--notes" => set_once_string(&mut notes, "--notes", next_value(&mut iter, "--notes")?)?,
-            "--pipeline" => set_once_path(
-                &mut pipeline,
-                "--pipeline",
-                next_value(&mut iter, "--pipeline")?,
-            )?,
             other if other.starts_with('-') => {
                 return Err(CliError::new(format!("unknown option '{other}'")));
             }
@@ -275,7 +253,6 @@ fn parse_transition_args(args: Vec<String>) -> Result<TransitionArgs, CliError> 
     Ok(TransitionArgs {
         id: only_positional("ID", positional)?,
         notes,
-        pipeline,
         db,
         root: resolve_root(root)?,
     })

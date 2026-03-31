@@ -67,7 +67,13 @@ impl TaskState {
         attempts: u32,
         stages: Vec<StageState>,
     ) -> Self {
-        Self { path, location, status, attempts, stages }
+        Self {
+            path,
+            location,
+            status,
+            attempts,
+            stages,
+        }
     }
 
     pub fn is_terminal(&self) -> bool {

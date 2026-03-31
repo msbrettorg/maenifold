@@ -10,7 +10,6 @@ fn pass_uses_current_dir_defaults() {
             let cwd = env::current_dir().unwrap();
             assert_eq!(args.id, "T-1.1");
             assert_eq!(args.notes, None);
-            assert_eq!(args.pipeline_path, None);
             assert_eq!(args.root, cwd);
             assert_eq!(args.db_path, args.root.join("gate.db"));
         }
@@ -19,14 +18,12 @@ fn pass_uses_current_dir_defaults() {
 }
 
 #[test]
-fn reject_parses_pipeline_and_notes() {
+fn reject_parses_root_and_notes() {
     let cli = parse_from([
         "gate",
         "reject",
         "--root",
         ".",
-        "--pipeline",
-        "custom.json",
         "--notes",
         "needs work",
         "T-1.1",
@@ -36,25 +33,10 @@ fn reject_parses_pipeline_and_notes() {
         Some(Command::Reject(args)) => {
             assert_eq!(args.id, "T-1.1");
             assert_eq!(args.notes.as_deref(), Some("needs work"));
-            assert_eq!(args.pipeline_path, Some(PathBuf::from("custom.json")));
             assert_eq!(args.root, PathBuf::from("."));
             assert_eq!(args.db_path, PathBuf::from(".").join("gate.db"));
         }
         _ => panic!("expected reject command"),
-    }
-}
-
-#[test]
-fn pass_parses_embedded_pipeline_name() {
-    let cli = parse_from(["gate", "pass", "--root", ".", "--pipeline", "tdd", "T-1.1"]).unwrap();
-    match cli.command {
-        Some(Command::Pass(args)) => {
-            assert_eq!(args.id, "T-1.1");
-            assert_eq!(args.pipeline_path, Some(PathBuf::from("tdd")));
-            assert_eq!(args.root, PathBuf::from("."));
-            assert_eq!(args.db_path, PathBuf::from(".").join("gate.db"));
-        }
-        _ => panic!("expected pass command"),
     }
 }
 
@@ -76,22 +58,18 @@ fn status_accepts_optional_id() {
             assert_eq!(args.id.as_deref(), Some("T-1.1"));
             assert!(!args.json);
             assert_eq!(args.db, None);
-            assert_eq!(args.pipeline_path, None);
         }
         _ => panic!("expected status command"),
     }
 }
 
 #[test]
-fn status_accepts_pipeline_flag() {
-    let cli = parse_from(["gate", "status", "--pipeline", "tdd"]).unwrap();
-    match cli.command {
-        Some(Command::Status(args)) => {
-            assert_eq!(args.id, None);
-            assert_eq!(args.pipeline_path, Some(PathBuf::from("tdd")));
-        }
-        _ => panic!("expected status command"),
-    }
+fn status_rejects_unknown_flag() {
+    let error = match parse_from(["gate", "status", "--bogus"]) {
+        Ok(_) => panic!("expected parse error"),
+        Err(error) => error.to_string(),
+    };
+    assert_eq!(error, "unknown option '--bogus'");
 }
 
 #[test]
@@ -123,7 +101,6 @@ fn sync_parses_root_and_rebuild_flag() {
                     db: None,
                     root: PathBuf::from("."),
                     rebuild: true,
-                    pipeline_path: None,
                 }
             );
         }
@@ -132,15 +109,10 @@ fn sync_parses_root_and_rebuild_flag() {
 }
 
 #[test]
-fn sync_accepts_pipeline_flag() {
-    let cli = parse_from(["gate", "sync", "--pipeline", "tdd", "."]).unwrap();
-    match cli.command {
-        Some(Command::Sync(args)) => {
-            assert_eq!(args.root, PathBuf::from("."));
-            assert!(!args.rebuild);
-            assert_eq!(args.db, None);
-            assert_eq!(args.pipeline_path, Some(PathBuf::from("tdd")));
-        }
-        _ => panic!("expected sync command"),
-    }
+fn sync_rejects_unknown_flag() {
+    let error = match parse_from(["gate", "sync", "--bogus", "."]) {
+        Ok(_) => panic!("expected parse error"),
+        Err(error) => error.to_string(),
+    };
+    assert_eq!(error, "unknown option '--bogus'");
 }

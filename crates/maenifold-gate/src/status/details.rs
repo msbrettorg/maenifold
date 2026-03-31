@@ -120,10 +120,7 @@ fn extract_verdict(body: &str) -> Option<String> {
 }
 
 fn normalize_stage_name(heading: &str) -> String {
-    heading
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
+    heading.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn build_section(heading: &str, body: &[String]) -> SectionOutput {

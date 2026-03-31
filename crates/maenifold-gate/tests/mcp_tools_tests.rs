@@ -19,7 +19,7 @@ mod tools_tests {
     #[test]
     fn gate_list_gates_returns_registry_json_with_expected_fields() {
         let mut args = Map::new();
-        let result = dispatch("gate_list_gates", &mut args, None).unwrap();
+        let result = dispatch("gate_list_gates", &mut args).unwrap();
         let value: Value = serde_json::from_str(&result.output).unwrap();
         let gates = value
             .get("gates")
@@ -37,7 +37,6 @@ mod tools_tests {
         }
 
         assert!(args.is_empty());
-        assert!(result.synced_root.is_none());
     }
 
     #[test]
@@ -55,6 +54,20 @@ mod tools_tests {
                 .and_then(Value::as_object)
                 .expect("tool should serialize inputSchema");
             assert_eq!(schema.get("type").and_then(Value::as_str), Some("object"));
+            let properties = schema
+                .get("properties")
+                .and_then(Value::as_object)
+                .expect("tool schema should expose properties");
+            if matches!(
+                value.get("name").and_then(Value::as_str),
+                Some("gate_pass" | "gate_reject" | "gate_status" | "gate_sync")
+            ) {
+                assert!(
+                    !properties.contains_key("pipeline"),
+                    "pipeline should not be exposed in {:?}",
+                    value.get("name")
+                );
+            }
         }
     }
 
@@ -69,20 +82,29 @@ mod tools_tests {
     fn required_string_rejects_missing_values() {
         let mut args = Map::new();
         let error = required_string(&mut args, "id").unwrap_err().to_string();
-        assert!(error.contains("missing required argument 'id'"), "got: {error}");
+        assert!(
+            error.contains("missing required argument 'id'"),
+            "got: {error}"
+        );
     }
 
     #[test]
     fn required_string_rejects_wrong_types() {
         let mut args = arg_map([("id", json!(7))]);
         let error = required_string(&mut args, "id").unwrap_err().to_string();
-        assert!(error.contains("argument 'id' must be a string"), "got: {error}");
+        assert!(
+            error.contains("argument 'id' must be a string"),
+            "got: {error}"
+        );
     }
 
     #[test]
     fn take_string_handles_optional_presence_and_absence() {
         let mut present = arg_map([("notes", json!("hello"))]);
-        assert_eq!(take_string(&mut present, "notes").unwrap(), Some("hello".into()));
+        assert_eq!(
+            take_string(&mut present, "notes").unwrap(),
+            Some("hello".into())
+        );
         assert!(present.is_empty());
 
         let mut absent = Map::new();
@@ -106,7 +128,7 @@ mod tools_tests {
     #[test]
     fn unknown_tool_name_returns_error() {
         let mut args = Map::new();
-        let error = dispatch("gate_unknown", &mut args, None).unwrap_err();
+        let error = dispatch("gate_unknown", &mut args).unwrap_err();
         assert!(error.contains("unknown tool: gate_unknown"), "got: {error}");
     }
 
@@ -123,7 +145,7 @@ mod tools_tests {
     #[test]
     fn tool_argument_validation_rejects_unknown_args() {
         let mut args = arg_map([("extra", json!(true))]);
-        let error = dispatch("gate_list_gates", &mut args, None).unwrap_err();
+        let error = dispatch("gate_list_gates", &mut args).unwrap_err();
         assert!(error.contains("unknown arguments: extra"), "got: {error}");
     }
 }

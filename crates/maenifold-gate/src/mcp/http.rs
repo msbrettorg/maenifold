@@ -9,20 +9,11 @@ use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };
 use serde_json::{Map, Value, json};
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use std::sync::Arc;
 
 #[derive(Clone)]
 struct AppState {
     trace_buffer: crate::trace::TraceBuffer,
-    board_api: BoardApiState,
-}
-
-#[derive(Clone)]
-struct BoardApiState {
-    bound_root: Arc<Mutex<Option<PathBuf>>>,
 }
 
 async fn trace_data(State(state): State<AppState>) -> Json<Vec<crate::trace::TraceEntry>> {
@@ -129,54 +120,23 @@ async fn board_api(State(state): State<AppState>, Json(body): Json<Value>) -> Js
         }),
     );
 
-    let bound_root = match state.board_api.bound_root.lock() {
-        Ok(guard) => guard.clone(),
-        Err(err) => return jsonrpc_error(id, format!("failed to read bound gate root: {err}")),
-    };
-
-    let result = if super::requires_bound_root(&tool_name)
-        && !arguments.contains_key("root")
-        && bound_root.is_none()
+    let strip_gate_status_sections = should_strip_gate_status_sections(&tool_name, &arguments);
+    let tool_name_for_dispatch = tool_name.clone();
+    let result = match tokio::task::spawn_blocking(move || {
+        super::tools::dispatch(&tool_name_for_dispatch, &mut arguments)
+    })
+    .await
     {
-        Ok(tool_result(
-            super::tools::SESSION_INIT_ERROR.to_string(),
-            true,
-        ))
-    } else {
-        let strip_gate_status_sections = should_strip_gate_status_sections(&tool_name, &arguments);
-        let tool_name_for_dispatch = tool_name.clone();
-        match tokio::task::spawn_blocking(move || {
-            super::tools::dispatch(
-                &tool_name_for_dispatch,
-                &mut arguments,
-                bound_root.as_deref(),
-            )
-        })
-        .await
-        {
-            Ok(Ok(dispatch)) => {
-                if let Some(root) = dispatch.synced_root {
-                    let mut guard = match state.board_api.bound_root.lock() {
-                        Ok(guard) => guard,
-                        Err(err) => {
-                            return jsonrpc_error(
-                                id,
-                                format!("failed to update bound gate root: {err}"),
-                            );
-                        }
-                    };
-                    *guard = Some(root);
-                }
-                let output = if strip_gate_status_sections {
-                    strip_sections_from_gate_status_list(dispatch.output)
-                } else {
-                    dispatch.output
-                };
-                Ok(tool_result(output, false))
-            }
-            Ok(Err(err)) => Ok(tool_result(err, true)),
-            Err(err) => Err(format!("tool execution failed: {err}")),
+        Ok(Ok(dispatch)) => {
+            let output = if strip_gate_status_sections {
+                strip_sections_from_gate_status_list(dispatch.output)
+            } else {
+                dispatch.output
+            };
+            Ok(tool_result(output, false))
         }
+        Ok(Err(err)) => Ok(tool_result(err, true)),
+        Err(err) => Err(format!("tool execution failed: {err}")),
     };
 
     let response = match result {
@@ -204,11 +164,7 @@ impl super::GateMcpServer {
         let trace_buffer = crate::trace::TraceBuffer::new(20);
         let app_state = AppState {
             trace_buffer: trace_buffer.clone(),
-            board_api: BoardApiState {
-                bound_root: Arc::new(Mutex::new(super::initial_bound_root(TransportKind::Http))),
-            },
         };
-        let bound_root = app_state.board_api.bound_root.clone();
         let session_manager = Arc::new(NeverSessionManager::default());
         // Serve both HTTP entrypoints in stateless JSON-response mode so daemon restarts do not
         // reject clients that resend a stale `Mcp-Session-Id`. In this mode MCP remains POST-only;
@@ -218,11 +174,9 @@ impl super::GateMcpServer {
         let root_service = StreamableHttpService::new(
             {
                 let trace_buffer = trace_buffer.clone();
-                let bound_root = bound_root.clone();
                 move || {
                     Ok::<_, std::io::Error>(GateHandler::new(
                         TransportKind::Http,
-                        Some(bound_root.clone()),
                         Some(trace_buffer.clone()),
                     ))
                 }
@@ -238,11 +192,9 @@ impl super::GateMcpServer {
         let mcp_service = StreamableHttpService::new(
             {
                 let trace_buffer = trace_buffer.clone();
-                let bound_root = bound_root.clone();
                 move || {
                     Ok::<_, std::io::Error>(GateHandler::new(
                         TransportKind::Http,
-                        Some(bound_root.clone()),
                         Some(trace_buffer.clone()),
                     ))
                 }

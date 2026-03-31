@@ -4,20 +4,19 @@ use anyhow::{Result, anyhow, bail};
 
 use crate::{
     db::{GateDb, WorkLogEntry},
+    frontmatter::read_task_frontmatter,
     fs::{append_orchestrator_section, move_to_done, resolve_file_path},
-    pipeline::load_pipeline_def,
+    pipeline::load_embedded_pipeline,
 };
 
 pub struct PassArgs {
     pub id: String,
     pub notes: Option<String>,
-    pub pipeline_path: Option<PathBuf>,
     pub db_path: PathBuf,
     pub root: PathBuf,
 }
 
 pub fn run(args: &PassArgs) -> Result<()> {
-    let pipeline = load_pipeline_def(args.pipeline_path.as_deref(), &args.root)?;
     let db = GateDb::open(&args.db_path)?;
     let task = db
         .get_task_by_id(&args.id)?
@@ -26,6 +25,16 @@ pub fn run(args: &PassArgs) -> Result<()> {
         bail!("task file '{}' is not in todo/", task.file);
     }
     let file_path = resolve_file_path(&args.root, &task.file)?;
+    let pipeline_name = read_task_frontmatter(&file_path)?
+        .0
+        .and_then(|frontmatter| {
+            frontmatter
+                .get("pipeline")
+                .and_then(serde_yaml::Value::as_str)
+                .map(str::to_owned)
+        })
+        .ok_or_else(|| anyhow!("task '{}' has no 'pipeline' field in frontmatter", args.id))?;
+    let pipeline = load_embedded_pipeline(&pipeline_name)?;
 
     let next = if task.status == "pending" {
         pipeline

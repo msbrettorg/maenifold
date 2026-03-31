@@ -44,33 +44,6 @@ pub(super) fn print_summary(counts: &BTreeMap<String, usize>) {
     println!("{:<8} {:>5}", "total", counts.values().sum::<usize>());
 }
 
-/// Discover the unique ordered list of stage names from a task's stages.
-pub(super) fn discovered_stages(state: &TaskState) -> Vec<String> {
-    let mut seen = Vec::new();
-    for stage in &state.stages {
-        if !seen.contains(&stage.stage) {
-            seen.push(stage.stage.clone());
-        }
-    }
-    seen
-}
-
-pub(super) fn stage_value(state: &TaskState, stage_name: &str) -> Option<Option<&'static str>> {
-    state
-        .stages
-        .iter()
-        .find(|item| item.stage == stage_name)
-        .map(|item| item.verdict.map(|verdict| verdict.as_str()))
-}
-
-pub(super) fn stage_text(state: &TaskState, stage_name: &str) -> &'static str {
-    match stage_value(state, stage_name) {
-        Some(Some(verdict)) => verdict,
-        Some(None) => "yes",
-        None => "no",
-    }
-}
-
 pub(super) fn maybe_drift(
     check_drift: bool,
     state: &TaskState,
@@ -141,10 +114,7 @@ pub(super) fn json_output(
         title,
         file: file.into(),
         location: location.into(),
-        status: state.map_or_else(
-            || "error".to_string(),
-            |item| item.status.clone(),
-        ),
+        status: state.map_or_else(|| "error".to_string(), |item| item.status.clone()),
         attempts,
         requirement,
         stages,

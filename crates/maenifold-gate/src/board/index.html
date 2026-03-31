@@ -167,7 +167,7 @@
         </div>
         <div class="detail-body" id="detail-body"></div>
         <div class="detail-foot">
-          <span id="detail-gate" class="count">Bound Gate</span>
+          <span id="detail-gate" class="count">Default Gate</span>
           <span id="detail-stage" class="count">Pending</span>
         </div>
       </aside>
@@ -175,7 +175,6 @@
   </div>
   <script>
     const COLUMNS = ["pending", "swe", "red", "blue", "done"];
-    const SESSION_INIT_ERROR = "No gate bound to this session";
     const state = {
       gates: [],
       tasks: [],
@@ -267,7 +266,7 @@
         id: taskId(task),
         title: task.title || taskId(task),
         attempts: task.attempts || 0,
-        gateName: gateName || "Bound Gate",
+        gateName: gateName || "Default Gate",
         column: cardStage(task),
       };
     }
@@ -298,33 +297,6 @@
       return gate;
     }
 
-    function isUnboundGateError(error) {
-      const message = error && error.message ? error.message : String(error);
-      return message.includes(SESSION_INIT_ERROR);
-    }
-
-    async function ensureBoundGate() {
-      const selectedGate = selectedGateEntry();
-      if (selectedGate) {
-        await callGateTool("gate_sync", { root: selectedGate.root });
-        return { gate: selectedGate, tasks: null };
-      }
-
-      try {
-        return { gate: null, tasks: await callGateTool("gate_status") };
-      } catch (error) {
-        if (!isUnboundGateError(error)) throw error;
-      }
-
-      const fallbackGate = state.gates[0];
-      if (!fallbackGate) {
-        throw new Error("No registered gates available to bind.");
-      }
-
-      await callGateTool("gate_sync", { root: fallbackGate.root });
-      return { gate: fallbackGate, tasks: null };
-    }
-
     async function loadTaskDetail(taskId) {
       const summaryTask = state.tasks.find(task => task.id === taskId);
       if (!summaryTask) return;
@@ -334,11 +306,10 @@
 
       try {
         const gate = state.gates.find(item => item.name === summaryTask.gateName);
-        if (gate) {
-          await callGateTool("gate_sync", { root: gate.root });
-        }
-
-        const detail = await callGateTool("gate_status", { id: summaryTask.id });
+        const detail = await callGateTool("gate_status", {
+          id: summaryTask.id,
+          root: gate ? gate.root : undefined
+        });
         if (!state.selectedTask || state.selectedTask.id !== summaryTask.id) return;
         state.selectedTask = { ...normalizeTask(detail, summaryTask.gateName), detailLoading: false };
         render();
@@ -365,9 +336,10 @@
           }));
           tasks = batches.flat();
         } else {
-          const { gate, tasks: boundTasks } = await ensureBoundGate();
-          const gateName = gate ? gate.name : "Bound Gate";
-          const items = boundTasks || await callGateTool("gate_status");
+          const gate = selectedGateEntry() || state.gates[0];
+          if (!gate) throw new Error("No registered gates available.");
+          const items = await callGateTool("gate_status", { root: gate.root });
+          const gateName = gate.name;
           tasks = items.map(item => summarizeTask(item, gateName));
         }
         state.tasks = tasks;
@@ -422,7 +394,7 @@
     function renderToolbar() {
       const select = document.getElementById("gate-select");
       select.disabled = state.showAll;
-      const options = ['<option value="">Bound Gate</option>']
+      const options = ['<option value="">Default Gate</option>']
         .concat(state.gates.map(gate => `<option value="${escapeHtml(gate.name)}">${escapeHtml(gate.name)}</option>`));
       select.innerHTML = options.join("");
       select.value = state.selectedGate;

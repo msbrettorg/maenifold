@@ -1,19 +1,11 @@
 use crate::registry;
 use rmcp::model::Tool;
 use serde_json::{Map, Value, json};
-use std::{
-    path::{Path, PathBuf},
-    process::Command,
-    sync::Arc,
-};
-
-pub const SESSION_INIT_ERROR: &str =
-    "No gate bound to this session. Run gate_sync with a root path first to initialize.";
+use std::{process::Command, sync::Arc};
 
 #[derive(Debug)]
 pub struct DispatchResult {
     pub output: String,
-    pub synced_root: Option<PathBuf>,
 }
 
 pub fn build_tool_list() -> Vec<Tool> {
@@ -27,7 +19,6 @@ pub fn build_tool_list() -> Vec<Tool> {
                     "id": string_prop("Task ID to advance via the pass transition (for example, T-68.1)."),
                     "db": string_prop("Path to the gate.db cache file."),
                     "root": string_prop("Project root directory containing the todo/ and done/ task folders."),
-                    "pipeline": string_prop("Optional path to the pipeline.json definition file."),
                     "notes": string_prop("Optional notes to attach to the transition.")
                 },
                 "required": ["id"]
@@ -42,7 +33,6 @@ pub fn build_tool_list() -> Vec<Tool> {
                     "id": string_prop("Task ID to reject via the reject transition (for example, T-68.1)."),
                     "db": string_prop("Path to the gate.db cache file."),
                     "root": string_prop("Project root directory containing the todo/ and done/ task folders."),
-                    "pipeline": string_prop("Optional path to the pipeline.json definition file."),
                     "notes": string_prop("Optional notes to attach to the transition.")
                 },
                 "required": ["id"]
@@ -71,7 +61,6 @@ pub fn build_tool_list() -> Vec<Tool> {
                 "properties": {
                     "db": string_prop("Path to the gate.db cache file."),
                     "root": string_prop("Project root directory containing the todo/ and done/ task folders."),
-                    "pipeline": string_prop("Optional path to the pipeline.json definition file."),
                     "id": string_prop("Optional task ID to inspect; omit to list all tracked tasks.")
                 }
             }),
@@ -83,7 +72,6 @@ pub fn build_tool_list() -> Vec<Tool> {
                 "type": "object",
                 "properties": {
                     "db": string_prop("Path to the gate.db cache file."),
-                    "pipeline": string_prop("Optional path to the pipeline.json definition file."),
                     "root": string_prop("Project root directory containing the todo/ and done/ task folders."),
                     "rebuild": bool_prop("If true, delete and rebuild the gate cache from scratch.")
                 },
@@ -98,20 +86,12 @@ pub fn build_tool_list() -> Vec<Tool> {
     ]
 }
 
-pub fn dispatch(
-    name: &str,
-    args: &mut Map<String, Value>,
-    bound_root: Option<&Path>,
-) -> Result<DispatchResult, String> {
-    dispatch_impl(name, args, bound_root).map_err(|err| err.to_string())
+pub fn dispatch(name: &str, args: &mut Map<String, Value>) -> Result<DispatchResult, String> {
+    dispatch_impl(name, args).map_err(|err| err.to_string())
 }
 
-fn dispatch_impl(
-    name: &str,
-    args: &mut Map<String, Value>,
-    bound_root: Option<&Path>,
-) -> anyhow::Result<DispatchResult> {
-    let synced_root = prepare_args(name, args, bound_root)?;
+fn dispatch_impl(name: &str, args: &mut Map<String, Value>) -> anyhow::Result<DispatchResult> {
+    prepare_args(name, args)?;
 
     if name == "gate_list_gates" {
         if !args.is_empty() {
@@ -120,7 +100,6 @@ fn dispatch_impl(
         }
         return Ok(DispatchResult {
             output: serde_json::to_string(&registry::load()?)?,
-            synced_root,
         });
     }
 
@@ -132,7 +111,6 @@ fn dispatch_impl(
             command.arg("pass");
             push_opt(&mut command, "--db", take_string(args, "db")?);
             push_opt(&mut command, "--root", take_string(args, "root")?);
-            push_opt(&mut command, "--pipeline", take_string(args, "pipeline")?);
             push_opt(&mut command, "--notes", take_string(args, "notes")?);
             command.arg(required_string(args, "id")?);
         }
@@ -140,7 +118,6 @@ fn dispatch_impl(
             command.arg("reject");
             push_opt(&mut command, "--db", take_string(args, "db")?);
             push_opt(&mut command, "--root", take_string(args, "root")?);
-            push_opt(&mut command, "--pipeline", take_string(args, "pipeline")?);
             push_opt(&mut command, "--notes", take_string(args, "notes")?);
             command.arg(required_string(args, "id")?);
         }
@@ -156,7 +133,6 @@ fn dispatch_impl(
             command.arg("status");
             push_opt(&mut command, "--db", take_string(args, "db")?);
             push_opt(&mut command, "--root", take_string(args, "root")?);
-            push_opt(&mut command, "--pipeline", take_string(args, "pipeline")?);
             command.arg("--json");
             if let Some(id) = take_string(args, "id")? {
                 command.arg(id);
@@ -165,7 +141,6 @@ fn dispatch_impl(
         "gate_sync" => {
             command.arg("sync");
             push_opt(&mut command, "--db", take_string(args, "db")?);
-            push_opt(&mut command, "--pipeline", take_string(args, "pipeline")?);
             if take_bool(args, "rebuild")?.unwrap_or(false) {
                 command.arg("--rebuild");
             }
@@ -192,10 +167,7 @@ fn dispatch_impl(
     };
 
     if output.status.success() {
-        Ok(DispatchResult {
-            output: text,
-            synced_root,
-        })
+        Ok(DispatchResult { output: text })
     } else if text.is_empty() {
         anyhow::bail!("process exited with status {}", output.status);
     } else {
@@ -203,44 +175,16 @@ fn dispatch_impl(
     }
 }
 
-fn prepare_args(
-    name: &str,
-    args: &mut Map<String, Value>,
-    bound_root: Option<&Path>,
-) -> anyhow::Result<Option<PathBuf>> {
+fn prepare_args(name: &str, args: &mut Map<String, Value>) -> anyhow::Result<()> {
     match name {
         "gate_sync" => {
             let root = required_string(args, "root")?;
             args.insert("root".into(), Value::String(root.clone()));
-            Ok(Some(
-                std::fs::canonicalize(&root).unwrap_or_else(|_| PathBuf::from(&root)),
-            ))
+            Ok(())
         }
-        "gate_pass" | "gate_reject" | "gate_append" | "gate_status" => {
-            inject_bound_root(args, bound_root)?;
-            Ok(None)
-        }
-        "gate_list_gates" => Ok(None),
-        _ => Ok(None),
+        "gate_pass" | "gate_reject" | "gate_append" | "gate_status" | "gate_list_gates" => Ok(()),
+        _ => Ok(()),
     }
-}
-
-fn inject_bound_root(
-    args: &mut Map<String, Value>,
-    bound_root: Option<&Path>,
-) -> anyhow::Result<()> {
-    if matches!(args.get("root"), Some(Value::String(_))) {
-        return Ok(());
-    }
-    if matches!(args.get("root"), Some(_)) {
-        anyhow::bail!("argument 'root' must be a string");
-    }
-    let root = bound_root.ok_or_else(|| anyhow::anyhow!(SESSION_INIT_ERROR))?;
-    args.insert(
-        "root".into(),
-        Value::String(root.to_string_lossy().into_owned()),
-    );
-    Ok(())
 }
 
 fn tool(name: &str, description: &str, schema: Value) -> Tool {

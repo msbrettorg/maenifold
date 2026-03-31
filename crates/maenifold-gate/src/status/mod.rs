@@ -1,10 +1,4 @@
-use crate::{
-    CommandStubError, StatusArgs,
-    db::GateDb,
-    fs,
-    pipeline::load_pipeline_def,
-    types::TaskState,
-};
+use crate::{CommandStubError, StatusArgs, db::GateDb, fs, types::TaskState};
 use anyhow::{Result, anyhow};
 use std::{collections::BTreeMap, path::Path};
 
@@ -14,7 +8,6 @@ use output::{json_output, maybe_drift, print_summary};
 
 struct StatusContext<'a> {
     root: &'a Path,
-    pipeline: &'a crate::pipeline::PipelineDef,
     json: bool,
     db: Option<&'a GateDb>,
     check_drift: bool,
@@ -34,11 +27,9 @@ pub fn run(args: &StatusArgs) -> Result<(), CommandStubError> {
 }
 
 pub fn run_status(args: &StatusArgs, root: &Path) -> Result<()> {
-    let pipeline = load_pipeline_def(args.pipeline_path.as_deref(), root)?;
     let db = open_db(args, root)?;
     let context = StatusContext {
         root,
-        pipeline: &pipeline,
         json: args.json,
         db: db.as_ref(),
         check_drift: db.is_some(),
@@ -66,7 +57,8 @@ fn run_one_by_id(context: &StatusContext<'_>, id: &str) -> Result<()> {
         .ok_or_else(|| anyhow!("unknown task ID: {id}"))?;
     let (path, location) = fs::resolve_task_path(context.root, &row.file)?;
     let content = fs::read_task(&path)?;
-    let state = crate::sync::resolve_task_state(&path, &content, context.pipeline)?;
+    let pipeline = crate::sync::load_task_pipeline(&path, &content)?;
+    let state = crate::sync::resolve_task_state(&path, &content, &pipeline)?;
     output_one(
         context,
         OutputEntry {
@@ -120,7 +112,27 @@ fn run_all(context: &StatusContext<'_>) -> Result<()> {
                 continue;
             }
         };
-        let state = match crate::sync::resolve_task_state(&task.path, &content, context.pipeline) {
+        let pipeline = match crate::sync::load_task_pipeline(&task.path, &content) {
+            Ok(pipeline) => pipeline,
+            Err(err) => {
+                *counts.entry("error".to_string()).or_default() += 1;
+                let message = err.to_string();
+                if context.json {
+                    out.push(json_output(
+                        file,
+                        task.location.as_str(),
+                        None,
+                        Some(&content),
+                        Some(message),
+                        vec![],
+                    ));
+                } else {
+                    eprintln!("warning: {file}: status=error: {message}");
+                }
+                continue;
+            }
+        };
+        let state = match crate::sync::resolve_task_state(&task.path, &content, &pipeline) {
             Ok(state) => state,
             Err(err) => {
                 *counts.entry("error".to_string()).or_default() += 1;

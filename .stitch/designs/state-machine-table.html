@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>gate :9879 | State Machine Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            font-size: 18px;
+        }
+        .active-glow {
+            box-shadow: 0 0 15px -2px rgba(216, 226, 255, 0.15);
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #131313; }
+        ::-webkit-scrollbar-thumb { background: #353534; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #44474f; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed": "#d8e2ff",
+                        "surface-dim": "#131313",
+                        "outline": "#8e909a",
+                        "on-background": "#e5e2e1",
+                        "on-surface-variant": "#c4c6d0",
+                        "secondary": "#d0bcff",
+                        "on-primary": "#122f5f",
+                        "inverse-primary": "#455e90",
+                        "surface-container": "#201f1f",
+                        "surface-variant": "#353534",
+                        "inverse-on-surface": "#313030",
+                        "on-secondary-fixed-variant": "#4d3d76",
+                        "surface-container-low": "#1c1b1b",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-tertiary-fixed": "#002114",
+                        "surface-container-lowest": "#0e0e0e",
+                        "tertiary": "#6ffbbe",
+                        "tertiary-container": "#4edea3",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-primary-fixed": "#001a42",
+                        "on-tertiary": "#003824",
+                        "surface": "#131313",
+                        "primary": "#d8e2ff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed": "#6ffbbe",
+                        "error-container": "#93000a",
+                        "on-error": "#690005",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "inverse-surface": "#e5e2e1",
+                        "on-secondary-container": "#c2aef0",
+                        "secondary-container": "#503f79",
+                        "primary-container": "#adc6ff",
+                        "outline-variant": "#44474f",
+                        "surface-bright": "#393939",
+                        "surface-container-highest": "#353534",
+                        "on-tertiary-container": "#005f40",
+                        "on-primary-fixed-variant": "#2c4677",
+                        "on-primary-container": "#385283",
+                        "secondary-fixed": "#e9ddff",
+                        "surface-tint": "#adc6ff",
+                        "error": "#ffb4ab",
+                        "on-secondary-fixed": "#210f48",
+                        "on-surface": "#e5e2e1",
+                        "surface-container-high": "#2a2a2a",
+                        "on-secondary": "#37265e",
+                        "background": "#131313"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary/30">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-50 bg-surface-container-low flex justify-between items-center w-full px-6 py-3">
+<div class="flex items-center gap-8">
+<div class="text-xl font-bold text-primary font-headline tracking-tighter">
+                gate <span class="text-primary-container opacity-60">:9879</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-sm border border-outline-variant/15 cursor-pointer hover:bg-surface-variant transition-colors group">
+<span class="text-[10px] uppercase tracking-widest text-outline font-mono">Project</span>
+<span class="text-primary font-mono text-sm">maenifold-rs</span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">unfold_more</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<!-- Micro-beacons -->
+<div class="flex items-center gap-4 font-mono text-[11px] tracking-tight">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span class="text-on-surface-variant">5 <span class="opacity-40">PENDING</span></span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+<span class="text-primary">2 <span class="opacity-40">IN-FLIGHT</span></span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="text-tertiary">223 <span class="opacity-40">DONE</span></span>
+</div>
+</div>
+<div class="h-6 w-[1px] bg-outline-variant/20"></div>
+<div class="flex gap-3">
+<button class="p-1.5 text-outline hover:text-primary hover:bg-surface-container-highest rounded-sm transition-all">
+<span class="material-symbols-outlined">sensors</span>
+</button>
+<button class="p-1.5 text-outline hover:text-primary hover:bg-surface-container-highest rounded-sm transition-all">
+<span class="material-symbols-outlined">memory</span>
+</button>
+<button class="p-1.5 text-primary hover:bg-surface-container-highest rounded-sm transition-all">
+<span class="material-symbols-outlined">terminal</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/30">
+<img alt="User" data-alt="Technical Lead Avatar in high-contrast low-key lighting, focused professional expression, dark studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAX0Ha4xYk055waXzxW-4yb69s0Pebb4t2k8TV24vGZn0wE9j3DculdvJ2eEihQQtxYmj8lYqDprWibmsfOm1sjvjDyA9oR6zbVcRCnjs4ca6H1GbCaZKSdDKzdJAJyfNH1Kj0fakvw-zxZsIE8yeOhrY1XpNBcO5a2NqEjtWeJuzS3iVONfTWBFllRIGb72Tktl1VQ6blXNWDZce0veQkLbCdMTIbYPXzF6mbgZKF-woUNEqzvWZlKrMrKLVNwnxX_kRsh9gdSSlg"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex h-[calc(100vh-56px)]">
+<!-- SideNavBar (Suppressed for Main Dashboard Focus) -->
+<aside class="hidden md:flex flex-col w-64 bg-surface-container-low border-r border-outline-variant/10 py-6 font-mono text-xs tracking-wider">
+<div class="px-6 mb-8">
+<div class="flex flex-col gap-1">
+<span class="text-primary font-bold">gate_admin</span>
+<span class="text-outline/60 text-[10px]">0x44F_NODE</span>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-6 py-2.5 text-outline hover:bg-surface-variant hover:text-primary transition-colors border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center gap-3 px-6 py-2.5 bg-surface-container text-primary border-l-4 border-primary-container" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+                    State Machine
+                </a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-outline hover:bg-surface-variant hover:text-primary transition-colors border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">rebase_edit</span>
+                    Pipelines
+                </a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-outline hover:bg-surface-variant hover:text-primary transition-colors border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">terminal</span>
+                    Logs
+                </a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-outline hover:bg-surface-variant hover:text-primary transition-colors border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+                    Telemetry
+                </a>
+</nav>
+<div class="px-6 mt-auto space-y-1 pt-4">
+<a class="flex items-center gap-3 py-2 text-outline hover:text-primary" href="#">
+<span class="material-symbols-outlined">settings</span>
+                    Settings
+                </a>
+<a class="flex items-center gap-3 py-2 text-outline hover:text-primary" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+                    Support
+                </a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col overflow-hidden bg-surface">
+<!-- Filter/Group Bar -->
+<div class="bg-surface-container flex items-center justify-between px-6 py-2 gap-6">
+<div class="flex items-center gap-4">
+<!-- Segmented Toggle -->
+<div class="flex bg-surface-container-lowest p-1 rounded-sm">
+<button class="px-3 py-1 text-[11px] font-mono bg-surface-variant text-primary rounded-sm">All</button>
+<button class="px-3 py-1 text-[11px] font-mono text-outline hover:text-on-surface">Backlog</button>
+<button class="px-3 py-1 text-[11px] font-mono text-outline hover:text-on-surface">In-Flight</button>
+<button class="px-3 py-1 text-[11px] font-mono text-outline hover:text-on-surface">Done</button>
+</div>
+<!-- Pipeline Chips -->
+<div class="flex gap-2">
+<button class="px-2 py-0.5 rounded-full border border-primary-container/30 text-primary-container text-[10px] font-mono uppercase">SDD</button>
+<button class="px-2 py-0.5 rounded-full border border-secondary/30 text-secondary text-[10px] font-mono uppercase">TDD</button>
+<button class="px-2 py-0.5 rounded-full border border-tertiary-container/30 text-tertiary-container text-[10px] font-mono uppercase">GSD</button>
+<button class="px-2 py-0.5 rounded-full border border-outline-variant/30 text-outline text-[10px] font-mono uppercase">L-Weight</button>
+</div>
+</div>
+<div class="flex-1 max-w-md">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-0 top-1/2 -translate-y-1/2 text-outline text-sm">search</span>
+<input class="w-full bg-transparent border-t-0 border-x-0 border-b border-outline-variant/30 focus:border-primary focus:ring-0 text-sm font-mono py-1.5 pl-7 placeholder:text-outline/40" placeholder="Filter tasks..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] uppercase text-outline font-mono">Group By</span>
+<select class="bg-surface-container-lowest border-none text-[11px] font-mono text-primary py-1 pl-2 pr-8 rounded-sm focus:ring-1 focus:ring-primary/30">
+<option>None</option>
+<option>Pipeline</option>
+<option>Requirement</option>
+<option>Status</option>
+</select>
+</div>
+</div>
+<!-- Table Container -->
+<div class="flex-1 overflow-auto">
+<table class="w-full border-collapse text-left">
+<thead class="sticky top-0 z-20 bg-surface text-outline font-mono text-[10px] uppercase tracking-widest border-b border-outline-variant/10">
+<tr>
+<th class="px-6 py-4 font-medium">ID</th>
+<th class="px-6 py-4 font-medium">Title</th>
+<th class="px-6 py-4 font-medium">Pipeline</th>
+<th class="px-6 py-4 font-medium w-[450px]">State Machine</th>
+<th class="px-6 py-4 font-medium">Requirement</th>
+<th class="px-6 py-4 font-medium">Modified</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<!-- Row 1: In-Flight SDD -->
+<tr class="group hover:bg-surface-container-high transition-colors cursor-pointer bg-surface-container-low">
+<td class="px-6 py-4 font-mono text-xs text-primary">T-77.2</td>
+<td class="px-6 py-4 text-sm font-medium truncate max-w-xs">Auth microservice lateral propagation fix</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 bg-primary-container/10 text-primary-container text-[10px] font-mono border border-primary-container/20 uppercase">sdd</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1">
+<div class="flex items-center bg-surface-variant/40 rounded-sm p-1 gap-1">
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-primary/20 text-primary rounded-sm flex items-center gap-1">pend <span class="material-symbols-outlined text-[10px] leading-none">check</span></div>
+<div class="w-2 h-[1px] bg-outline-variant/30"></div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-primary/20 text-primary rounded-sm flex items-center gap-1">swe <span class="material-symbols-outlined text-[10px] leading-none">check</span></div>
+<div class="w-2 h-[1px] bg-outline-variant/30"></div>
+<div class="px-2 py-0.5 text-[9px] font-mono bg-error/20 text-error rounded-sm flex items-center gap-1 active-glow border border-error/30 animate-pulse">RED <span class="w-1 h-1 rounded-full bg-error"></span></div>
+<div class="w-2 h-[1px] bg-outline-variant/30"></div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono text-outline/40">blue <span class="w-1 h-1 rounded-full border border-outline-variant/40 inline-block"></span></div>
+<div class="w-2 h-[1px] bg-outline-variant/30"></div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono text-outline/40">done <span class="w-1 h-1 rounded-full border border-outline-variant/40 inline-block"></span></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline">SEC-PROP-09</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline/60">2m ago</td>
+</tr>
+<!-- Row 2: In-Flight TDD -->
+<tr class="group hover:bg-surface-container-high transition-colors cursor-pointer border-l-2 border-primary">
+<td class="px-6 py-4 font-mono text-xs text-primary">T-81.4</td>
+<td class="px-6 py-4 text-sm font-medium truncate max-w-xs">Kernel-level trace aggregation unit</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 bg-secondary-container/10 text-secondary text-[10px] font-mono border border-secondary/20 uppercase">tdd</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1">
+<div class="flex items-center bg-surface-variant/40 rounded-sm p-1 gap-1">
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-secondary/20 text-secondary rounded-sm flex items-center gap-1">pend <span class="material-symbols-outlined text-[10px] leading-none">check</span></div>
+<div class="w-2 h-[1px] bg-outline-variant/30"></div>
+<div class="px-2 py-0.5 text-[9px] font-mono bg-secondary/40 text-primary-fixed rounded-sm flex items-center gap-1 active-glow border border-secondary/50 animate-pulse">TEST <span class="w-1 h-1 rounded-full bg-secondary"></span></div>
+<div class="w-2 h-[1px] bg-outline-variant/30"></div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono text-outline/40">swe <span class="w-1 h-1 rounded-full border border-outline-variant/40 inline-block"></span></div>
+<div class="w-2 h-[1px] bg-outline-variant/30"></div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono text-outline/40">veri <span class="w-1 h-1 rounded-full border border-outline-variant/40 inline-block"></span></div>
+<div class="w-2 h-[1px] bg-outline-variant/30"></div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono text-outline/40">done <span class="w-1 h-1 rounded-full border border-outline-variant/40 inline-block"></span></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline">KRNL-001</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline/60">5m ago</td>
+</tr>
+<!-- Row 3: Done TDD -->
+<tr class="group hover:bg-surface-container-high transition-colors cursor-pointer bg-surface-container-low">
+<td class="px-6 py-4 font-mono text-xs text-primary">T-65.0</td>
+<td class="px-6 py-4 text-sm font-medium truncate max-w-xs text-on-surface/40">Refactor IO dispatcher to use async-ring</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 bg-secondary-container/10 text-secondary/40 text-[10px] font-mono border border-secondary/10 uppercase">tdd</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1 opacity-50">
+<div class="flex items-center bg-surface-variant/20 rounded-sm p-1 gap-1">
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary/20 text-tertiary rounded-sm">pend ✓</div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary/20 text-tertiary rounded-sm">test ✓</div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary/20 text-tertiary rounded-sm">swe ✓</div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary/20 text-tertiary rounded-sm">veri ✓</div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary text-on-tertiary font-bold rounded-sm">DONE</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline/40">CORE-22</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline/40">2h ago</td>
+</tr>
+<!-- Row 4-12 Loop (Data Mix) -->
+<tr class="group hover:bg-surface-container-high transition-colors cursor-pointer">
+<td class="px-6 py-4 font-mono text-xs text-primary">T-64.2</td>
+<td class="px-6 py-4 text-sm font-medium truncate max-w-xs text-on-surface/40">Audit logging for sensitive path access</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 bg-primary-container/10 text-primary-container/40 text-[10px] font-mono border border-primary-container/10 uppercase">sdd</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1 opacity-50">
+<div class="flex items-center bg-surface-variant/20 rounded-sm p-1 gap-1">
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary/20 text-tertiary rounded-sm">pend ✓</div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary/20 text-tertiary rounded-sm">swe ✓</div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary/20 text-tertiary rounded-sm">RED ✓</div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary/20 text-tertiary rounded-sm">blue ✓</div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary text-on-tertiary font-bold rounded-sm">DONE</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline/40">AUD-001</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline/40">4h ago</td>
+</tr>
+<!-- More Done Rows... -->
+<tr class="group hover:bg-surface-container-high transition-colors cursor-pointer bg-surface-container-low">
+<td class="px-6 py-4 font-mono text-xs text-primary">T-61.9</td>
+<td class="px-6 py-4 text-sm font-medium truncate max-w-xs text-on-surface/40">CI/CD Pipeline saturation fix</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 border border-outline-variant/20 text-outline/60 text-[10px] font-mono uppercase">L-weight</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1 opacity-50">
+<div class="flex items-center bg-surface-variant/20 rounded-sm p-1 gap-1">
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary/20 text-tertiary rounded-sm">pend ✓</div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono bg-tertiary text-on-tertiary font-bold rounded-sm">DONE</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline/40">INFRA-9</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline/40">Yesterday</td>
+</tr>
+<!-- Pending Row -->
+<tr class="group hover:bg-surface-container-high transition-colors cursor-pointer">
+<td class="px-6 py-4 font-mono text-xs text-primary">T-82.1</td>
+<td class="px-6 py-4 text-sm font-medium truncate max-w-xs">Memory safety audit on crypto crate</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 bg-primary-container/10 text-primary-container text-[10px] font-mono border border-primary-container/20 uppercase">sdd</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1">
+<div class="flex items-center bg-surface-variant/40 rounded-sm p-1 gap-1">
+<div class="px-2 py-0.5 text-[9px] font-mono bg-outline/20 text-on-surface rounded-sm flex items-center gap-1 active-glow border border-outline/30">PENDING <span class="w-1 h-1 rounded-full bg-outline"></span></div>
+<div class="w-2 h-[1px] bg-outline-variant/30"></div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono text-outline/40">swe <span class="w-1 h-1 rounded-full border border-outline-variant/40 inline-block"></span></div>
+<div class="w-2 h-[1px] bg-outline-variant/30"></div>
+<div class="px-1.5 py-0.5 text-[9px] font-mono text-outline/40">RED <span class="w-1 h-1 rounded-full border border-outline-variant/40 inline-block"></span></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline">SEC-MEM-01</td>
+<td class="px-6 py-4 text-[10px] font-mono text-outline/60">New</td>
+</tr>
+</tbody>
+</table>
+</div>
+</main>
+<!-- Detail Drawer -->
+<aside class="w-[400px] bg-surface-container border-l border-outline-variant/20 flex flex-col shadow-2xl relative z-[60]">
+<div class="p-6 border-b border-outline-variant/10">
+<div class="flex items-center justify-between mb-4">
+<span class="text-[10px] font-mono text-primary bg-primary/10 px-2 py-0.5 rounded-sm">IN-FLIGHT</span>
+<button class="text-outline hover:text-on-surface">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<h2 class="text-xl font-headline font-bold text-on-surface leading-tight mb-2">Auth microservice lateral propagation fix</h2>
+<div class="flex items-center gap-3 text-[11px] font-mono text-outline">
+<span>ID: <span class="text-primary">T-77.2</span></span>
+<span>•</span>
+<span>REQ: <span class="text-on-surface">SEC-PROP-09</span></span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-6 space-y-8">
+<!-- Transition Logs -->
+<div>
+<h3 class="text-[10px] uppercase font-mono tracking-widest text-outline mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">history</span>
+                        State Transitions
+                    </h3>
+<div class="space-y-4 relative before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[1px] before:bg-outline-variant/20">
+<div class="relative pl-6">
+<div class="absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full bg-surface-container border-2 border-tertiary"></div>
+<div class="text-[11px] font-mono text-tertiary">SDD:pending → swe</div>
+<div class="text-[10px] text-outline/60 mt-1">at 14:22:11 by <span class="text-on-surface">system_auto</span></div>
+</div>
+<div class="relative pl-6">
+<div class="absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full bg-surface-container border-2 border-tertiary"></div>
+<div class="text-[11px] font-mono text-tertiary">SDD:swe → RED</div>
+<div class="text-[10px] text-outline/60 mt-1">at 15:01:45 by <span class="text-on-surface">red_agent_v3</span></div>
+</div>
+<div class="relative pl-6">
+<div class="absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full bg-surface-container border-2 border-primary animate-pulse"></div>
+<div class="text-[11px] font-mono text-primary">CURRENT STATE: RED</div>
+<div class="text-[10px] text-outline/60 mt-1">Active for <span class="text-primary">42m 12s</span></div>
+</div>
+</div>
+</div>
+<!-- Agent Notes -->
+<div>
+<h3 class="text-[10px] uppercase font-mono tracking-widest text-outline mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-xs">notes</span>
+                        Agent Context
+                    </h3>
+<div class="space-y-3">
+<div class="bg-surface-container-lowest p-3 rounded-sm border border-outline-variant/5">
+<div class="flex items-center justify-between mb-2">
+<span class="text-[9px] font-mono text-primary-container bg-primary-container/10 px-1.5 py-0.5 rounded-sm uppercase tracking-tighter">ROLE: SWE</span>
+<span class="text-[9px] font-mono text-outline/40">14:55</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Patch applied to session validator. Middleware now enforces origin-binding for cross-zone requests.</p>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-sm border border-outline-variant/5">
+<div class="flex items-center justify-between mb-2">
+<span class="text-[9px] font-mono text-error bg-error/10 px-1.5 py-0.5 rounded-sm uppercase tracking-tighter">ROLE: RED-TEAM</span>
+<span class="text-[9px] font-mono text-outline/40">15:01</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Executing fuzzing suite against zone boundaries. Monitoring for unauthorized propagation bypasses.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="p-6 bg-surface-container-lowest grid grid-cols-2 gap-4 border-t border-outline-variant/10">
+<button class="flex items-center justify-center gap-2 py-2.5 bg-error-container text-on-error-container text-xs font-bold rounded-sm hover:brightness-110 transition-all uppercase tracking-tight">
+<span class="material-symbols-outlined text-sm">block</span>
+                    Reject Task
+                </button>
+<button class="flex items-center justify-center gap-2 py-2.5 bg-tertiary-container text-on-tertiary-container text-xs font-bold rounded-sm hover:brightness-110 transition-all uppercase tracking-tight">
+<span class="material-symbols-outlined text-sm">verified</span>
+                    Pass Stage
+                </button>
+</div>
+</aside>
+</div>
+</body></html>

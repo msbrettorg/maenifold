@@ -18,6 +18,7 @@ pub(super) struct StatusOutput {
     pub file: String,
     pub location: String,
     pub status: String,
+    pub pipeline: String,
     pub attempts: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub requirement: Option<String>,
@@ -96,6 +97,7 @@ fn stage_outputs(state: Option<&TaskState>) -> Vec<StageOutput> {
 pub(super) fn json_output(
     file: &str,
     location: &str,
+    pipeline: &str,
     state: Option<&TaskState>,
     content: Option<&str>,
     error: Option<String>,
@@ -115,6 +117,7 @@ pub(super) fn json_output(
         file: file.into(),
         location: location.into(),
         status: state.map_or_else(|| "error".to_string(), |item| item.status.clone()),
+        pipeline: pipeline.to_string(),
         attempts,
         requirement,
         stages,

@@ -51,6 +51,7 @@ fn json_output_serializes_expected_structure() {
     let output = json_output(
         "T-42.1-sample.md",
         "todo",
+        "sdd",
         Some(&state),
         Some("# T-42.1 — Sample Task\n\n**Requirement**: FR-42\n\n## SWE\n\nDone.\n"),
         None,
@@ -63,6 +64,7 @@ fn json_output_serializes_expected_structure() {
     assert_eq!(value["file"], "T-42.1-sample.md");
     assert_eq!(value["location"], "todo");
     assert_eq!(value["status"], "red");
+    assert_eq!(value["pipeline"], "sdd");
     assert_eq!(value["attempts"], 3);
     assert_eq!(value["requirement"], "FR-42");
     assert_eq!(

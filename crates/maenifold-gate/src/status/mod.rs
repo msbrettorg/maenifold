@@ -16,6 +16,7 @@ struct StatusContext<'a> {
 struct OutputEntry<'a> {
     file: &'a str,
     location: &'a str,
+    pipeline: &'a str,
     state: Option<&'a TaskState>,
     content: Option<&'a str>,
     error: Option<String>,
@@ -64,6 +65,7 @@ fn run_one_by_id(context: &StatusContext<'_>, id: &str) -> Result<()> {
         OutputEntry {
             file: &row.file,
             location: location.as_str(),
+            pipeline: &pipeline.name,
             state: Some(&state),
             content: Some(&content),
             error: None,
@@ -101,6 +103,7 @@ fn run_all(context: &StatusContext<'_>) -> Result<()> {
                     out.push(json_output(
                         file,
                         task.location.as_str(),
+                        "unknown",
                         None,
                         None,
                         Some(message),
@@ -121,6 +124,7 @@ fn run_all(context: &StatusContext<'_>) -> Result<()> {
                     out.push(json_output(
                         file,
                         task.location.as_str(),
+                        "unknown",
                         None,
                         Some(&content),
                         Some(message),
@@ -141,6 +145,7 @@ fn run_all(context: &StatusContext<'_>) -> Result<()> {
                     out.push(json_output(
                         file,
                         task.location.as_str(),
+                        &pipeline.name,
                         None,
                         Some(&content),
                         Some(message),
@@ -159,6 +164,7 @@ fn run_all(context: &StatusContext<'_>) -> Result<()> {
             out.push(json_output(
                 file,
                 task.location.as_str(),
+                &pipeline.name,
                 Some(&state),
                 Some(&content),
                 None,
@@ -185,6 +191,7 @@ fn output_one(context: &StatusContext<'_>, entry: OutputEntry<'_>) -> Result<()>
             serde_json::to_string_pretty(&json_output(
                 entry.file,
                 entry.location,
+                entry.pipeline,
                 entry.state,
                 entry.content,
                 entry.error,

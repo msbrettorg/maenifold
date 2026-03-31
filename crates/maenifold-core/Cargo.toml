@@ -60,10 +60,65 @@ filetime = "0.2.25"
 
 [[test]]
 # T-HOTFIX: RTM NFR-3
-name = "integration_tests"
-path = "tests/main.rs"
-
-[[test]]
-# T-HOTFIX: RTM NFR-3
 name = "vector_integration_tests"
 path = "tests/vector_integration_tests.rs"
+
+[[test]]
+name = "asset_tests"
+path = "tests/asset_tests.rs"
+
+[[test]]
+name = "community_tests"
+path = "tests/community_tests.rs"
+
+[[test]]
+name = "concept_tests"
+path = "tests/concept_tests.rs"
+
+[[test]]
+name = "sync_tests"
+path = "tests/sync_tests.rs"
+
+[[test]]
+name = "memory_tests"
+path = "tests/memory_tests.rs"
+
+[[test]]
+name = "decay_tests"
+path = "tests/decay_tests.rs"
+
+[[test]]
+name = "workflow_tests"
+path = "tests/workflow_tests.rs"
+
+[[test]]
+name = "session_tests"
+path = "tests/session_tests.rs"
+
+[[test]]
+name = "markdown_tests"
+path = "tests/markdown_tests.rs"
+
+[[test]]
+name = "search_tests"
+path = "tests/search_tests.rs"
+
+[[test]]
+name = "graph_tests"
+path = "tests/graph_tests.rs"
+
+[[test]]
+name = "recent_activity_tests"
+path = "tests/recent_activity_tests.rs"
+
+[[test]]
+name = "repair_tests"
+path = "tests/repair_tests.rs"
+
+[[test]]
+name = "frontmatter_tests"
+path = "tests/frontmatter_tests.rs"
+
+[[test]]
+name = "misc_tests"
+path = "tests/misc_tests.rs"

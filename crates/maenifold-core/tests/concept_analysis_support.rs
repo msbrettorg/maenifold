@@ -1,7 +1,8 @@
 #![allow(dead_code, unused_imports)]
 
 use maenifold_core::json::OutputFormat;
-use maenifold_core::{AssetManager, Config, ToolRegistry};
+use maenifold_core::tools::ToolContext;
+use maenifold_core::{AssetManager, Config, repair};
 use std::fs;
 use tempfile::TempDir;
 
@@ -41,17 +42,24 @@ pub(crate) fn write_memory_fixture(cfg: &Config, relative_path: &str, content: &
     fs::write(path, content).expect("write memory fixture");
 }
 
-pub(crate) fn analyze_concept_corruption(payload: serde_json::Value) -> String {
-    ToolRegistry::global()
-        .try_invoke("AnalyzeConceptCorruption", &payload, OutputFormat::Markdown)
-        .expect("registry invoke")
+pub(crate) fn analyze_concept_corruption(cfg: &Config, payload: serde_json::Value) -> String {
+    repair::analyze_concept_corruption(
+        &ToolContext::new(cfg.clone(), OutputFormat::Markdown),
+        &payload,
+    )
+    .expect("analyze concept corruption")
 }
 
 /// Fallible variant for testing error paths (missing/empty params, invalid maxResults).
-pub(crate) fn try_analyze_concept_corruption(payload: serde_json::Value) -> Result<String, String> {
-    ToolRegistry::global()
-        .try_invoke("AnalyzeConceptCorruption", &payload, OutputFormat::Markdown)
-        .map_err(|e| e.to_string())
+pub(crate) fn try_analyze_concept_corruption(
+    cfg: &Config,
+    payload: serde_json::Value,
+) -> Result<String, String> {
+    repair::analyze_concept_corruption(
+        &ToolContext::new(cfg.clone(), OutputFormat::Markdown),
+        &payload,
+    )
+    .map_err(|e| e.to_string())
 }
 
 pub(crate) fn report_body_before_repairs(output: &str) -> &str {

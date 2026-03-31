@@ -56,9 +56,12 @@ fn analyze_concept_corruption_classifies_file_path_pattern_variants() {
         let (_tmp, cfg) = isolated_config();
         write_memory_fixture(&cfg, fixture_path, content);
 
-        let output = analyze_concept_corruption(json!({
-            "conceptFamily": "workflow"
-        }));
+        let output = analyze_concept_corruption(
+            &cfg,
+            json!({
+                "conceptFamily": "workflow"
+            }),
+        );
 
         assert!(
             output.contains("File Paths:"),
@@ -86,9 +89,12 @@ fn analyze_concept_corruption_classifies_canonical_form_as_other() {
         "The [[workflow]] definition.\n",
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow"
+        }),
+    );
 
     assert!(
         output.contains("Other:"),
@@ -114,9 +120,12 @@ fn analyze_concept_corruption_produces_plural_repair_suggestions() {
         "Using [[workflows]] in the pipeline.\n",
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow"
+        }),
+    );
 
     assert!(
         output.contains("Fix plural forms:"),
@@ -147,9 +156,12 @@ fn analyze_concept_corruption_produces_compound_repair_suggestions() {
         "The [[workflow-dispatch]] event is fired.\n",
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow"
+        }),
+    );
 
     assert!(
         output.contains("Fix compound forms:"),
@@ -181,9 +193,12 @@ fn analyze_concept_corruption_prefers_path_classification_over_plural_classifica
         "See [[/workflows]] for the path.\n",
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow"
+        }),
+    );
 
     // Positive: File Paths section exists and contains /workflows.
     assert!(

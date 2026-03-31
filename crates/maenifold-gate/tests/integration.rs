@@ -293,19 +293,31 @@ fn test_pass_then_sync_roundtrip() {
     let db_path = rebuild_cache(root.path());
     let id = extract_task_id(&file);
 
-    // pending → swe (swe has verdicts: [], auto-advances)
+    // 1. pending → swe (swe has verdicts: []; no verdict required)
     run_pass(root.path(), &db_path, &id, Some("Implementation done."));
-    // swe → red (swe requires no verdict)
+    // 2. swe → red (swe has no required verdicts)
     run_pass(root.path(), &db_path, &id, Some("Ready for red."));
 
-    // Add red verdict; resync computes status → blue
-    run_append(root.path(), &db_path, &id, "red", "**Verdict**: PASS\n\nNo issues found.");
-    resync(root.path(), &db_path);
+    // 3. red requires a verdict before pass can advance; record it
+    run_append(
+        root.path(),
+        &db_path,
+        &id,
+        "red",
+        "**Verdict**: PASS\n\nNo issues found.",
+    );
+    // 4. red → blue (pass reads the verdict directly from the file)
+    run_pass(root.path(), &db_path, &id, Some("Ready for blue."));
 
-    // Add blue verdict then pass immediately (no resync — file is still
-    // in todo/ and a "done" status there is invalid for the parser).
-    run_append(root.path(), &db_path, &id, "blue", "**Verdict**: PASS\n\nAll tests pass.");
-    // blue → done (moves file to done/)
+    // 5. blue requires a verdict before pass can advance; record it
+    run_append(
+        root.path(),
+        &db_path,
+        &id,
+        "blue",
+        "**Verdict**: PASS\n\nAll tests pass.",
+    );
+    // 6. blue → done (moves file to done/)
     run_pass(root.path(), &db_path, &id, Some("All tests pass."));
 
     let done_path = root.path().join("done").join(&file);

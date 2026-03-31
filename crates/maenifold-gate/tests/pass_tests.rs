@@ -44,6 +44,21 @@ fn run_pass(root: &Path, db_path: &Path, id: &str, notes: Option<&str>) {
     .unwrap();
 }
 
+fn run_pass_result(
+    root: &Path,
+    db_path: &Path,
+    id: &str,
+    notes: Option<&str>,
+) -> anyhow::Result<()> {
+    pass::run(&PassArgs {
+        id: id.into(),
+        notes: notes.map(str::to_owned),
+        pipeline_path: None,
+        db_path: db_path.into(),
+        root: root.into(),
+    })
+}
+
 #[test]
 fn pass_advances_pending_to_first_stage() {
     let (dir, db_path, id, file) = setup();
@@ -66,7 +81,7 @@ fn pass_advances_through_full_pipeline() {
     // swe → red (swe has verdicts: [], no verdict needed)
     run_pass(dir.path(), &db_path, &id, Some("to red"));
 
-    // Add red verdict, then update DB status to blue (simulates sync)
+    // Add red verdict, then use gate pass to advance from red → blue.
     append::run(&AppendArgs {
         id: id.clone(),
         agent: "red".into(),
@@ -75,7 +90,7 @@ fn pass_advances_through_full_pipeline() {
         root: dir.path().into(),
     })
     .unwrap();
-    GateDb::open(&db_path).unwrap().update_task_status(&file, "blue", "todo").unwrap();
+    run_pass(dir.path(), &db_path, &id, Some("to blue"));
 
     // Add blue verdict
     append::run(&AppendArgs {
@@ -108,7 +123,23 @@ fn pass_advances_through_full_pipeline() {
                 |row| { row.get::<_, i64>(0) }
             )
             .unwrap(),
-        3  // 3 passes (pending→swe, swe→red, blue→done)
+        4 // 4 passes (pending→swe, swe→red, red→blue, blue→done)
+    );
+}
+
+#[test]
+fn pass_blocked_without_verdict() {
+    let (dir, db_path, id, _) = setup();
+
+    run_pass(dir.path(), &db_path, &id, Some("to swe"));
+    run_pass(dir.path(), &db_path, &id, Some("to red"));
+
+    let err = run_pass_result(dir.path(), &db_path, &id, Some("missing verdict")).unwrap_err();
+    let message = err.to_string();
+
+    assert!(
+        message.contains("cannot advance") || message.contains("no verdict yet"),
+        "unexpected error: {message}"
     );
 }
 

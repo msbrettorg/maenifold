@@ -34,14 +34,17 @@ use rmcp::model::{
 use rmcp::service::RequestContext;
 use rmcp::{RoleServer, ServerHandler, ServiceExt};
 use serde_json::{Value, json};
-use std::{path::PathBuf, sync::Mutex};
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 pub struct GateMcpServer;
 
 struct GateHandler {
     transport: TransportKind,
     tools: Vec<Tool>,
-    bound_root: Mutex<Option<PathBuf>>,
+    bound_root: Arc<Mutex<Option<PathBuf>>>,
     trace_buffer: Option<TraceBuffer>,
 }
 
@@ -52,11 +55,16 @@ enum TransportKind {
 }
 
 impl GateHandler {
-    fn new(transport: TransportKind, trace_buffer: Option<TraceBuffer>) -> Self {
+    fn new(
+        transport: TransportKind,
+        bound_root: Option<Arc<Mutex<Option<PathBuf>>>>,
+        trace_buffer: Option<TraceBuffer>,
+    ) -> Self {
         Self {
             transport,
             tools: self::tools::build_tool_list(),
-            bound_root: Mutex::new(initial_bound_root(transport)),
+            bound_root: bound_root
+                .unwrap_or_else(|| Arc::new(Mutex::new(initial_bound_root(transport)))),
             trace_buffer,
         }
     }
@@ -275,7 +283,7 @@ fn requires_bound_root(tool_name: &str) -> bool {
 
 impl GateMcpServer {
     pub async fn serve_stdio() -> anyhow::Result<()> {
-        let handler = GateHandler::new(TransportKind::Stdio, None);
+        let handler = GateHandler::new(TransportKind::Stdio, None, None);
         let transport = rmcp::transport::io::stdio();
         let service = handler
             .serve(transport)

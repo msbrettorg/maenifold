@@ -6,14 +6,12 @@ use axum::{
 };
 use chrono::Utc;
 use rmcp::transport::streamable_http_server::{
-    StreamableHttpServerConfig, StreamableHttpService,
-    session::local::{LocalSessionManager, SessionConfig},
+    StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };
 use serde_json::{Map, Value, json};
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
-    time::Duration,
 };
 
 #[derive(Clone)]
@@ -27,9 +25,7 @@ struct BoardApiState {
     bound_root: Arc<Mutex<Option<PathBuf>>>,
 }
 
-async fn trace_data(
-    State(state): State<AppState>,
-) -> Json<Vec<crate::trace::TraceEntry>> {
+async fn trace_data(State(state): State<AppState>) -> Json<Vec<crate::trace::TraceEntry>> {
     Json(state.trace_buffer.snapshot())
 }
 
@@ -96,7 +92,10 @@ fn strip_sections_from_gate_status_list(text: String) -> String {
 
 async fn board_api(State(state): State<AppState>, Json(body): Json<Value>) -> Json<Value> {
     let id = body.get("id").cloned().unwrap_or(Value::Null);
-    let method = body.get("method").and_then(Value::as_str).unwrap_or_default();
+    let method = body
+        .get("method")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     if method != "tools/call" {
         return jsonrpc_error(id, format!("unsupported method: {method}"));
     }
@@ -139,12 +138,19 @@ async fn board_api(State(state): State<AppState>, Json(body): Json<Value>) -> Js
         && !arguments.contains_key("root")
         && bound_root.is_none()
     {
-        Ok(tool_result(super::tools::SESSION_INIT_ERROR.to_string(), true))
+        Ok(tool_result(
+            super::tools::SESSION_INIT_ERROR.to_string(),
+            true,
+        ))
     } else {
         let strip_gate_status_sections = should_strip_gate_status_sections(&tool_name, &arguments);
         let tool_name_for_dispatch = tool_name.clone();
         match tokio::task::spawn_blocking(move || {
-            super::tools::dispatch(&tool_name_for_dispatch, &mut arguments, bound_root.as_deref())
+            super::tools::dispatch(
+                &tool_name_for_dispatch,
+                &mut arguments,
+                bound_root.as_deref(),
+            )
         })
         .await
         {
@@ -202,13 +208,8 @@ impl super::GateMcpServer {
                 bound_root: Arc::new(Mutex::new(super::initial_bound_root(TransportKind::Http))),
             },
         };
-        let session_manager = Arc::new(LocalSessionManager {
-            session_config: SessionConfig {
-                keep_alive: Some(Duration::from_secs(300)),
-                ..Default::default()
-            },
-            ..Default::default()
-        });
+        let bound_root = app_state.board_api.bound_root.clone();
+        let session_manager = Arc::new(NeverSessionManager::default());
         // Serve both HTTP entrypoints in stateless JSON-response mode so daemon restarts do not
         // reject clients that resend a stale `Mcp-Session-Id`. In this mode MCP remains POST-only;
         // clients should continue sending `MCP-Protocol-Version`, but the server no longer requires
@@ -217,9 +218,11 @@ impl super::GateMcpServer {
         let root_service = StreamableHttpService::new(
             {
                 let trace_buffer = trace_buffer.clone();
+                let bound_root = bound_root.clone();
                 move || {
                     Ok::<_, std::io::Error>(GateHandler::new(
                         TransportKind::Http,
+                        Some(bound_root.clone()),
                         Some(trace_buffer.clone()),
                     ))
                 }
@@ -235,9 +238,11 @@ impl super::GateMcpServer {
         let mcp_service = StreamableHttpService::new(
             {
                 let trace_buffer = trace_buffer.clone();
+                let bound_root = bound_root.clone();
                 move || {
                     Ok::<_, std::io::Error>(GateHandler::new(
                         TransportKind::Http,
+                        Some(bound_root.clone()),
                         Some(trace_buffer.clone()),
                     ))
                 }

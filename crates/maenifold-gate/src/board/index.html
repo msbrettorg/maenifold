@@ -4,559 +4,74 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gate Board</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --canvas: #252525;
-      --card: #1e2028;
-      --card-inner: #252836;
-      --blue: #3b82f6;
-      --green: #22c55e;
-      --red: #ef4444;
-      --text: #e0e0e0;
-      --muted: #a0a0a0;
-      --border: #404040;
-      --radius-sm: 4px;
-      --radius-md: 8px;
-      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-      --detail-width: min(360px, 42vw);
-      --topbar-offset: 62px;
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--canvas);
-      color: var(--text);
-      font: 13px/1.4 "SF Mono", "Fira Code", monospace;
-    }
-    button, select, input { font: inherit; }
-    button, select {
-      background: var(--card-inner);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-    }
-    button { cursor: pointer; }
-    .app { min-height: 100vh; display: flex; flex-direction: column; }
-    .topbar {
-      display: flex; justify-content: space-between; gap: 16px; align-items: center;
-      padding: 12px 16px; border-bottom: 1px solid var(--border); background: #1d1d1d;
-      position: sticky; top: 0; z-index: 10;
-    }
-    .topbar h1 { margin: 0; font-size: 18px; }
-    .toolbar, .toolbar-left { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .toggle { display: inline-flex; gap: 8px; align-items: center; color: var(--muted); }
-    .toggle input { accent-color: var(--blue); }
-    .badge, .count {
-      display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px;
-      border-radius: 999px; background: var(--card-inner); color: var(--muted); font-size: 11px;
-      border: 1px solid var(--border);
-    }
-    .status { text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; }
-    .status.pending { color: var(--muted); }
-    .status.swe { color: var(--blue); }
-    .status.red { color: var(--red); }
-    .status.blue, .status.done { color: var(--green); }
-    .layout { display: flex; min-height: calc(100vh - var(--topbar-offset)); }
-    .board {
-      flex: 1; display: grid; grid-template-columns: repeat(5, minmax(240px, 1fr));
-      gap: 12px; padding: 16px; overflow-x: auto;
-    }
-    .layout.detail-open .board { margin-right: var(--detail-width); }
-    .column { min-width: 240px; display: flex; flex-direction: column; gap: 10px; }
-    .column-header {
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
-      color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-size: 11px;
-    }
-    .card, .empty, .sprint-group {
-      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md);
-      box-shadow: var(--shadow);
-    }
-    .card {
-      border-left: 3px solid var(--border); padding: 12px; display: flex; flex-direction: column;
-      gap: 8px; cursor: pointer; transition: transform 0.12s ease, border-color 0.12s ease;
-    }
-    .card:hover { transform: translateY(-1px); }
-    .card.selected { outline: 1px solid var(--blue); }
-    .card.pending { border-left-color: var(--muted); }
-    .card.swe { border-left-color: var(--blue); }
-    .card.red { border-left-color: var(--red); }
-    .card.blue, .card.done { border-left-color: var(--green); }
-    .card-id { color: #93c5fd; font-size: 12px; }
-    .card-title { font-size: 13px; color: var(--text); }
-    .card-meta, .badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .meta-chip, .verdict-chip {
-      background: var(--card-inner); border-radius: var(--radius-sm); padding: 2px 6px;
-      color: var(--muted); border: 1px solid var(--border); font-size: 10px; text-transform: uppercase;
-    }
-    .verdict-chip.pass { color: var(--green); }
-    .verdict-chip.reject, .verdict-chip.fail { color: var(--red); }
-    .empty { padding: 16px; color: #6c6c6c; text-align: center; }
-    .sprint-toggle {
-      width: 100%; background: var(--card-inner); border: 0; color: var(--muted);
-      display: flex; align-items: center; justify-content: space-between; padding: 10px 12px;
-    }
-    .sprint-items { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 10px; }
-    .detail {
-      position: fixed; top: var(--topbar-offset); right: 0; height: calc(100vh - var(--topbar-offset));
-      width: var(--detail-width); border-left: 1px solid var(--border); background: #1d1d1d;
-      display: flex; flex-direction: column; overflow-y: auto; z-index: 9;
-    }
-    .detail.hidden { display: none; }
-    .detail-head, .detail-foot {
-      padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex;
-      justify-content: space-between; align-items: center; gap: 12px;
-    }
-    .detail-foot { border-bottom: 0; border-top: 1px solid var(--border); }
-    .detail-body {
-      flex: 1; min-height: 0; padding: 16px; overflow-y: auto;
-      display: flex; flex-direction: column; gap: 18px;
-    }
-    .detail-title { margin: 0; font-size: 18px; }
-    .kv { display: grid; grid-template-columns: 90px 1fr; gap: 8px; color: var(--muted); }
-    .kv strong { color: var(--text); }
-    .section-list { display: flex; flex-direction: column; gap: 12px; }
-    .section-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; }
-    .section-card h4 { margin: 0 0 8px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-    .section-card pre {
-      margin: 0; white-space: pre-wrap; word-break: break-word; color: var(--text);
-      font: inherit;
-    }
-    .message { padding: 12px 16px 0; color: var(--muted); }
-    .message.error { color: #fca5a5; }
-    .spinner {
-      width: 12px; height: 12px; border-radius: 999px; border: 2px solid var(--border);
-      border-top-color: var(--blue); display: inline-block; animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @media (max-width: 1080px) {
-      .layout { flex-direction: column; }
-      .layout.detail-open .board { margin-right: 0; }
-      .detail {
-        top: var(--topbar-offset); right: 0; left: 0; height: calc(100vh - var(--topbar-offset));
-        width: auto; max-width: 100%; border-left: 0; border-top: 1px solid var(--border);
-      }
-    }
+    :root{--surface:#131313;--surface-low:#1c1b1b;--surface-container:#201f1f;--surface-high:#2a2a2a;--surface-highest:#353534;--on-surface:#e5e2e1;--on-surface-var:#c4c6d0;--outline-variant:#44474f;--primary:#d8e2ff;--primary-container:#adc6ff;--secondary:#d0bcff;--tertiary:#4edea3;--error:#ffb4ab;--radius:4px}
+    *{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--on-surface);font:14px/1.4 Inter,sans-serif}button,input,select{font:inherit}button,input,select{background:none;color:inherit;border:0}button{cursor:pointer}
+    .topbar,.filters,.drawer-head,.drawer-actions{display:flex;align-items:center}.topbar{position:sticky;top:0;z-index:4;justify-content:space-between;gap:16px;padding:12px 16px;background:var(--surface-low);border-bottom:1px solid var(--outline-variant)}.brand{font:700 22px/1 "Space Grotesk",sans-serif}.brand span{color:var(--primary-container)}.project{min-width:220px;padding:8px 10px;border:1px solid var(--outline-variant);border-radius:var(--radius);background:var(--surface-container)}.stats,.filters,.toggles,.pills,.layout,.machine,.stage-row,.drawer-meta{display:flex;gap:12px}.stat,.pill,.badge,.seg{display:inline-flex;align-items:center;gap:8px;font:500 12px/1 "JetBrains Mono",monospace}.pulse,.swatch,.node-dot{width:8px;height:8px;border-radius:50%}.pulse{background:var(--outline-variant)}.pulse.live{background:var(--primary-container);animation:pulse 1.4s infinite}.pulse.done{background:var(--tertiary)}
+    .filters{position:sticky;top:61px;z-index:3;justify-content:space-between;flex-wrap:wrap;padding:12px 16px;background:var(--surface-container);border-bottom:1px solid var(--outline-variant)}.toggles{gap:8px}.seg{padding:8px 10px;border:1px solid var(--outline-variant);border-radius:var(--radius);color:#8e909a}.seg.active{color:var(--primary);background:var(--surface-high)}.pills{flex-wrap:wrap}.pill{padding:6px 9px;border:1px solid var(--outline-variant);border-radius:var(--radius);color:#8e909a;text-transform:uppercase}.pill.active.sdd{color:var(--primary-container);background:#1c2d5a;border-color:#adc6ff55}.pill.active.tdd{color:var(--secondary);background:#2d2050;border-color:#d0bcff55}.pill.active.gsd{color:var(--tertiary);background:#002d20;border-color:#4edea355}.pill.active.lightweight{color:var(--on-surface-var);background:var(--surface-high)}.search{width:min(320px,100%);padding:8px 0;border-bottom:1px solid var(--outline-variant);font-family:"JetBrains Mono",monospace}
+    .message{padding:10px 16px;color:#8e909a;font:12px/1.3 "JetBrains Mono",monospace}.message.error{color:var(--error)}.layout{align-items:flex-start}.main{flex:1;min-width:0}.table-wrap{overflow:auto}.board{width:100%;border-collapse:collapse;table-layout:fixed}.board th,.board td{padding:14px 16px;border-bottom:1px solid #26282d;text-align:left;vertical-align:middle}.board th{position:sticky;top:121px;z-index:2;background:var(--surface);font:500 11px/1 "JetBrains Mono",monospace;color:#8e909a;text-transform:uppercase;letter-spacing:.08em}.board tr:nth-child(odd){background:var(--surface)}.board tr:nth-child(even){background:var(--surface-low)}.board tr:hover{background:var(--surface-container)}.board tr.selected{outline:1px solid var(--outline-variant);outline-offset:-1px}.id,.req,.modified,.meta{font-family:"JetBrains Mono",monospace;color:#8e909a}.title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .badge{padding:4px 8px;border-radius:var(--radius);text-transform:uppercase}.badge.sdd{color:var(--primary-container);background:#1c2d5a}.badge.tdd{color:var(--secondary);background:#2d2050}.badge.gsd{color:var(--tertiary);background:#002d20}.badge.lightweight,.badge.unknown{color:var(--on-surface-var);background:var(--surface-high)}
+    .machine{align-items:flex-start;gap:8px;min-width:max-content}.node{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:44px}.node-dot{border:1px solid var(--outline-variant);background:transparent}.node.done .node-dot{background:var(--primary-container);border-color:var(--primary-container)}.node.current .node-dot{background:var(--primary-container);border-color:var(--primary-container);box-shadow:0 0 6px #adc6ff80}.node-label{font:11px/1 "JetBrains Mono",monospace;color:#8e909a}.node.done .node-label,.node.current .node-label{color:var(--on-surface-var)}.link{width:22px;height:1px;margin-top:4px;background:var(--outline-variant)}.link.done{background:var(--primary-container)}.unknown-machine .node{min-width:auto}
+    .drawer{position:fixed;top:121px;right:0;width:400px;height:calc(100vh - 121px);transform:translateX(100%);transition:transform .18s ease;background:var(--surface-container);border-left:1px solid var(--outline-variant);overflow:auto}.drawer.open{transform:translateX(0)}.drawer-head{position:sticky;top:0;justify-content:space-between;padding:16px;background:var(--surface-container);border-bottom:1px solid var(--outline-variant)}.drawer-title{display:grid;gap:4px}.drawer-title strong{font:700 20px/1 "Space Grotesk",sans-serif}.close{font-size:24px;line-height:1;color:#8e909a}.drawer-body{display:grid;gap:18px;padding:16px}.drawer-meta{flex-wrap:wrap;gap:8px}.meta{padding:6px 8px;border:1px solid var(--outline-variant);border-radius:var(--radius)}.notes{display:grid;gap:10px}.note{padding:12px;border:1px solid var(--outline-variant);border-radius:var(--radius);background:var(--surface-low)}.note h4,.section-title{margin:0 0 8px;font:500 11px/1 "JetBrains Mono",monospace;color:#8e909a;text-transform:uppercase;letter-spacing:.08em}.note pre{margin:0;white-space:pre-wrap;font:13px/1.45 Inter,sans-serif}.stage-list{display:grid;gap:10px}.stage-row{justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #2b2d33}.stage-row:last-child{border-bottom:0}.drawer-actions{position:sticky;bottom:0;justify-content:space-between;padding:16px;background:var(--surface-container);border-top:1px solid var(--outline-variant)}.action{padding:9px 12px;border:1px solid var(--outline-variant);border-radius:var(--radius);font:500 12px/1 "JetBrains Mono",monospace;text-transform:uppercase}.pass{color:#002114;background:var(--tertiary)}.reject{color:#690005;background:var(--error)}.action[disabled]{opacity:.45;cursor:not-allowed}
+    @keyframes pulse{50%{opacity:.45}}@media (max-width:920px){.layout{display:block}.drawer{width:min(400px,100vw)}.board th:nth-child(5),.board td:nth-child(5){display:none}}@media (max-width:700px){.topbar,.filters{top:0;position:static}.board th{top:0}.stats{display:none}.drawer{top:0;height:100vh}}
   </style>
 </head>
 <body>
-  <div class="app">
-    <header class="topbar">
-      <div class="toolbar-left">
-        <h1>Gate</h1>
-        <span class="count" id="summary-count">0 tasks</span>
-        <span class="count" id="refresh-state">idle</span>
-      </div>
-      <div class="toolbar">
-        <label class="toggle">
-          <input type="checkbox" id="show-all-toggle">
-          <span>Show All</span>
-        </label>
-        <select id="gate-select"></select>
-        <button id="refresh-button">Refresh</button>
-        <button id="sort-button">Sort ↕</button>
-      </div>
-    </header>
-    <div id="message" class="message"></div>
-    <div class="layout">
-      <main class="board" id="board"></main>
-      <aside class="detail hidden" id="detail-panel">
-        <div class="detail-head">
-          <strong id="detail-id">Task</strong>
-          <button id="close-detail">Close</button>
-        </div>
-        <div class="detail-body" id="detail-body"></div>
-        <div class="detail-foot">
-          <span id="detail-gate" class="count">Default Gate</span>
-          <span id="detail-stage" class="count">Pending</span>
-        </div>
-      </aside>
+  <header class="topbar">
+    <div class="brand">gate <span id="port-label">:--</span></div>
+    <select id="project" class="project" aria-label="Project selector"></select>
+    <div class="stats">
+      <span class="stat"><span class="pulse"></span><span id="stat-pending">0 pending</span></span>
+      <span class="stat"><span class="pulse live"></span><span id="stat-flight">0 in-flight</span></span>
+      <span class="stat"><span class="pulse done"></span><span id="stat-done">0 done</span></span>
     </div>
+  </header>
+  <section class="filters">
+    <div class="toggles" id="scope"></div>
+    <div class="pills" id="pipelines"></div>
+    <input id="search" class="search" type="search" placeholder="search tasks">
+  </section>
+  <div id="message" class="message">Connecting…</div>
+  <div class="layout">
+    <main class="main">
+      <div class="table-wrap">
+        <table class="board">
+          <thead><tr><th>ID</th><th>Title</th><th>Pipeline</th><th>Progress</th><th>Requirement</th><th>Modified</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </main>
+    <aside id="drawer" class="drawer" aria-live="polite"></aside>
   </div>
-  <script>
-    const COLUMNS = ["pending", "swe", "red", "blue", "done"];
-    const state = {
-      gates: [],
-      tasks: [],
-      selectedTask: null,
-      selectedGate: new URLSearchParams(window.location.search).get("gate") || "",
-      showAll: false,
-      loading: false,
-      message: "",
-      error: false,
-    };
-
-    async function callGateTool(toolName, args = {}) {
-      const resp = await fetch("/board/api", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json, text/event-stream",
-          "Mcp-Protocol-Version": "2025-03-26"
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: Date.now(),
-          method: "tools/call",
-          params: { name: toolName, arguments: args }
-        })
-      });
-      const data = await resp.json();
-      if (data.error) throw new Error(data.error.message || "MCP request failed");
-      const result = data.result || {};
-      const text = result.content && result.content[0] && result.content[0].text;
-      if (result.isError) {
-        throw new Error(text || `${toolName} failed`);
-      }
-      if (!text) return null;
-      try {
-        return JSON.parse(text);
-      } catch {
-        return text;
-      }
-    }
-
-    function taskId(task) {
-      return task.id || String(task.file || "").replace(/\.md$/, "");
-    }
-
-    function cardStage(task) {
-      const status = String(task.status || "pending").toLowerCase();
-      return COLUMNS.includes(status) ? status : "pending";
-    }
-
-    function sprintName(task) {
-      const match = taskId(task).match(/^T-(\d+)/);
-      return match ? `Sprint ${match[1]}` : "Unsorted";
-    }
-
-    function naturalSort(a, b) {
-      const re = /(\d+)/g;
-      const aParts = String(a).split(re);
-      const bParts = String(b).split(re);
-      for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
-        const an = Number.parseInt(aParts[i], 10);
-        const bn = Number.parseInt(bParts[i], 10);
-        if (!Number.isNaN(an) && !Number.isNaN(bn)) {
-          if (an !== bn) return an - bn;
-        } else {
-          const cmp = aParts[i].localeCompare(bParts[i]);
-          if (cmp !== 0) return cmp;
-        }
-      }
-      return aParts.length - bParts.length;
-    }
-
-    function latestVerdicts(task) {
-      const verdicts = new Map();
-      for (const stage of task.stages || []) {
-        if (stage.verdict) verdicts.set(stage.name, stage.verdict);
-      }
-      return [...verdicts.entries()];
-    }
-
-    function safeVerdictClass(verdict) {
-      const normalized = String(verdict).toLowerCase();
-      return ["pass", "fail", "reject"].includes(normalized) ? normalized : "";
-    }
-
-    function normalizeTask(task, gateName) {
-      return {
-        ...task,
-        id: taskId(task),
-        title: task.title || taskId(task),
-        attempts: task.attempts || 0,
-        gateName: gateName || "Default Gate",
-        column: cardStage(task),
-      };
-    }
-
-    function summarizeTask(task, gateName) {
-      const { sections, ...summary } = task || {};
-      return normalizeTask(summary, gateName);
-    }
-
-    function sortTasksById() {
-      state.tasks = [...state.tasks].sort((a, b) => naturalSort(taskId(a), taskId(b)));
-    }
-
-    function syncLayoutMetrics() {
-      const topbar = document.querySelector(".topbar");
-      if (!topbar) return;
-      document.documentElement.style.setProperty("--topbar-offset", `${topbar.offsetHeight}px`);
-    }
-
-    async function loadRegistry() {
-      state.gates = (await callGateTool("gate_list_gates")).gates || [];
-    }
-
-    function selectedGateEntry() {
-      if (!state.selectedGate) return null;
-      const gate = state.gates.find(item => item.name === state.selectedGate);
-      if (!gate) throw new Error(`Unknown gate '${state.selectedGate}'`);
-      return gate;
-    }
-
-    async function loadTaskDetail(taskId) {
-      const summaryTask = state.tasks.find(task => task.id === taskId);
-      if (!summaryTask) return;
-
-      state.selectedTask = { ...summaryTask, detailLoading: true };
-      render();
-
-      try {
-        const gate = state.gates.find(item => item.name === summaryTask.gateName);
-        const detail = await callGateTool("gate_status", {
-          id: summaryTask.id,
-          root: gate ? gate.root : undefined
-        });
-        if (!state.selectedTask || state.selectedTask.id !== summaryTask.id) return;
-        state.selectedTask = { ...normalizeTask(detail, summaryTask.gateName), detailLoading: false };
-        render();
-      } catch (error) {
-        if (state.selectedTask && state.selectedTask.id === summaryTask.id) {
-          state.selectedTask = { ...summaryTask, detailLoading: false };
-        }
-        setMessage(error.message || String(error), true);
-        render();
-      }
-    }
-
-    async function loadTasks() {
-      state.loading = true;
-      setMessage("Loading board data…", false);
-      render();
-      try {
-        await loadRegistry();
-        let tasks = [];
-        if (state.showAll) {
-          const batches = await Promise.all(state.gates.map(async gate => {
-            const items = await callGateTool("gate_status", { root: gate.root });
-            return items.map(item => summarizeTask(item, gate.name));
-          }));
-          tasks = batches.flat();
-        } else {
-          const gate = selectedGateEntry() || state.gates[0];
-          if (!gate) throw new Error("No registered gates available.");
-          const items = await callGateTool("gate_status", { root: gate.root });
-          const gateName = gate.name;
-          tasks = items.map(item => summarizeTask(item, gateName));
-        }
-        state.tasks = tasks;
-        sortTasksById();
-        if (state.selectedTask) {
-          const summaryTask = tasks.find(task => task.id === state.selectedTask.id);
-          state.selectedTask = summaryTask
-            ? {
-                ...summaryTask,
-                sections: state.selectedTask.sections,
-                detailLoading: !!state.selectedTask.detailLoading,
-              }
-            : null;
-        }
-        setMessage(`Loaded ${tasks.length} tasks.`, false);
-      } catch (error) {
-        state.tasks = [];
-        setMessage(error.message || String(error), true);
-      } finally {
-        state.loading = false;
-        render();
-      }
-    }
-
-    function setMessage(message, error) {
-      state.message = message;
-      state.error = !!error;
-    }
-
-    function updateUrl() {
-      const url = new URL(window.location.href);
-      if (state.showAll || !state.selectedGate) {
-        url.searchParams.delete("gate");
-      } else {
-        url.searchParams.set("gate", state.selectedGate);
-      }
-      history.replaceState({}, "", url);
-    }
-
-    function render() {
-      syncLayoutMetrics();
-      renderToolbar();
-      renderBoard();
-      renderDetail();
-      const message = document.getElementById("message");
-      message.textContent = state.message;
-      message.className = `message${state.error ? " error" : ""}`;
-      document.getElementById("summary-count").textContent = `${state.tasks.length} tasks`;
-      document.getElementById("refresh-state").innerHTML = state.loading ? '<span class="spinner"></span> refreshing' : 'idle';
-    }
-
-    function renderToolbar() {
-      const select = document.getElementById("gate-select");
-      select.disabled = state.showAll;
-      const options = ['<option value="">Default Gate</option>']
-        .concat(state.gates.map(gate => `<option value="${escapeHtml(gate.name)}">${escapeHtml(gate.name)}</option>`));
-      select.innerHTML = options.join("");
-      select.value = state.selectedGate;
-      document.getElementById("show-all-toggle").checked = state.showAll;
-    }
-
-    function renderBoard() {
-      const board = document.getElementById("board");
-      board.innerHTML = COLUMNS.map(renderColumn).join("");
-      board.querySelectorAll("[data-task-id]").forEach(node => {
-        node.addEventListener("click", () => loadTaskDetail(node.dataset.taskId));
-      });
-      board.querySelectorAll("[data-sprint]").forEach(node => {
-        node.addEventListener("click", () => {
-          node.parentElement.classList.toggle("collapsed");
-          node.nextElementSibling.hidden = !node.nextElementSibling.hidden;
-        });
-      });
-    }
-
-    function renderColumn(column) {
-      const tasks = state.tasks.filter(task => task.column === column);
-      const body = column === "done" ? renderDone(tasks) : renderCards(tasks);
-      return `
-        <section class="column">
-          <div class="column-header">
-            <span>${column.toUpperCase()}</span>
-            <span class="count">${tasks.length}</span>
-          </div>
-          ${body}
-        </section>
-      `;
-    }
-
-    function renderDone(tasks) {
-      if (!tasks.length) return '<div class="empty">No completed tasks</div>';
-      const groups = new Map();
-      for (const task of tasks) {
-        const key = sprintName(task);
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(task);
-      }
-      return [...groups.entries()].map(([sprint, items], index) => `
-        <div class="sprint-group">
-          <button class="sprint-toggle" data-sprint="${escapeHtml(sprint)}">
-            <span>${escapeHtml(sprint)}</span>
-            <span>${items.length} tasks</span>
-          </button>
-          <div class="sprint-items" ${index ? "hidden" : ""}>
-            ${renderCards(items)}
-          </div>
-        </div>
-      `).join("");
-    }
-
-    function renderCards(tasks) {
-      if (!tasks.length) return '<div class="empty">No tasks</div>';
-      return tasks.map(task => {
-        const verdicts = latestVerdicts(task).map(([stage, verdict]) =>
-          `<span class="verdict-chip ${safeVerdictClass(verdict)}">${escapeHtml(stage)}:${escapeHtml(verdict)}</span>`
-        ).join("");
-        return `
-          <article class="card ${task.column}${state.selectedTask && state.selectedTask.id === task.id ? " selected" : ""}" data-task-id="${escapeHtml(task.id)}">
-            <div class="card-id">${escapeHtml(task.id)}</div>
-            <div class="card-title">${escapeHtml(task.title)}</div>
-            <div class="card-meta">
-              <span class="meta-chip status ${task.column}">${escapeHtml(task.status)}</span>
-              <span class="meta-chip">${escapeHtml(task.location)}</span>
-              <span class="meta-chip">attempts:${task.attempts}</span>
-            </div>
-            <div class="badges">${verdicts || '<span class="meta-chip">no verdicts</span>'}</div>
-            <div class="meta-chip">${escapeHtml(task.gateName)}</div>
-          </article>
-        `;
-      }).join("");
-    }
-
-    function renderDetail() {
-      const layout = document.querySelector(".layout");
-      const panel = document.getElementById("detail-panel");
-      const task = state.selectedTask;
-      layout.classList.toggle("detail-open", !!task);
-      if (!task) {
-        panel.classList.add("hidden");
-        return;
-      }
-      panel.classList.remove("hidden");
-      document.getElementById("detail-id").textContent = task.id;
-      document.getElementById("detail-gate").textContent = task.gateName;
-      document.getElementById("detail-stage").textContent = String(task.status || "pending").toUpperCase();
-      const sections = (task.sections || []).filter(section => section.body);
-      const sectionsMarkup = task.detailLoading
-        ? '<div class="empty">Loading task details…</div>'
-        : (sections.length ? sections.map(renderSection).join("") : '<div class="empty">No task sections available</div>');
-      document.getElementById("detail-body").innerHTML = `
-        <section>
-          <h2 class="detail-title">${escapeHtml(task.title)}</h2>
-          <div class="card-meta" style="margin-top:10px">
-            <span class="meta-chip">${escapeHtml(task.location)}</span>
-            <span class="meta-chip">attempts:${task.attempts}</span>
-            ${task.requirement ? `<span class="meta-chip">${escapeHtml(task.requirement)}</span>` : ""}
-          </div>
-        </section>
-        <section class="kv">
-          <span>ID</span><strong>${escapeHtml(task.id)}</strong>
-          <span>Stage</span><strong>${escapeHtml(task.status)}</strong>
-          <span>Sprint</span><strong>${escapeHtml(sprintName(task))}</strong>
-          <span>Gate</span><strong>${escapeHtml(task.gateName)}</strong>
-        </section>
-        <section>
-          <div class="column-header"><span>Agent Notes</span><span>${sections.length}</span></div>
-          <div class="section-list">
-            ${sectionsMarkup}
-          </div>
-        </section>
-      `;
-    }
-
-    function renderSection(section) {
-      const verdict = section.verdict ? `<span class="verdict-chip ${safeVerdictClass(section.verdict)}">${escapeHtml(section.verdict)}</span>` : "";
-      return `
-        <article class="section-card">
-          <h4>${escapeHtml(section.heading)}</h4>
-          <div class="card-meta" style="margin-bottom:8px">
-            <span class="meta-chip">${escapeHtml(section.stage)}</span>
-            ${verdict}
-          </div>
-          <pre>${escapeHtml(section.body)}</pre>
-        </article>
-      `;
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? "").replace(/[&<>"]/g, ch => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[ch]));
-    }
-
-    document.getElementById("refresh-button").addEventListener("click", loadTasks);
-    document.getElementById("sort-button").addEventListener("click", () => {
-      sortTasksById();
-      render();
-    });
-    document.getElementById("close-detail").addEventListener("click", () => {
-      state.selectedTask = null;
-      render();
-    });
-    document.getElementById("show-all-toggle").addEventListener("change", event => {
-      state.showAll = event.target.checked;
-      if (state.showAll) state.selectedGate = "";
-      updateUrl();
-      loadTasks();
-    });
-    document.getElementById("gate-select").addEventListener("change", event => {
-      state.selectedGate = event.target.value;
-      state.showAll = false;
-      updateUrl();
-      loadTasks();
-    });
-    window.addEventListener("resize", syncLayoutMetrics);
-
-    render();
-    loadTasks();
-    setInterval(loadTasks, 30000);
+  <template id="empty-row"><tr><td colspan="6" class="meta">No matching tasks.</td></tr></template>
+  <script type="module">
+    const PORT=(document.querySelector('meta[name="gate-port"]')?.content)||'--',SCOPE=['all','backlog','in-flight','done'],PIPES=['sdd','tdd','gsd','lightweight'],PIPELINES={sdd:{steps:['pending','swe','red','blue','done']},tdd:{steps:['pending','test','swe','verify','done'],map:s=>s==='implement'?'swe':s},gsd:{steps:['pending','swe','done'],map:s=>['research','plan','execute','verify'].includes(s)?'swe':s},lightweight:{steps:['pending','done'],map:s=>s==='done'?'done':'pending'}},state={client:null,gates:[],tasks:[],scope:'all',search:'',selectedGate:new URLSearchParams(location.search).get('gate')||'',selectedTask:null,pipelines:Object.fromEntries(PIPES.map(p=>[p,true]))};
+    document.getElementById('port-label').textContent=`:${PORT}`;
+    const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])),qs=id=>document.getElementById(id),msg=(t,e=false)=>{const n=qs('message');n.textContent=t;n.className=`message${e?' error':''}`},rel=iso=>{if(!iso)return'—';const d=new Date(iso),s=Math.max(1,Math.floor((Date.now()-d.getTime())/1000)),u=[[31536000,'y'],[86400,'d'],[3600,'h'],[60,'m']].find(([n])=>s>=n);return u?`${Math.floor(s/u[0])}${u[1]} ago`:'just now'},json=result=>{const text=result?.content?.find(c=>c.type==='text')?.text;if(!text)return null;try{return JSON.parse(text)}catch{return text}};
+    class FallbackClient{async connect(){} async callTool({name,arguments:args={}}){const r=await fetch('/mcp',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream','MCP-Protocol-Version':'2025-03-26'},body:JSON.stringify({jsonrpc:'2.0',id:crypto.randomUUID(),method:'tools/call',params:{name,arguments:args}})}),data=await r.json();if(data.error)throw new Error(data.error.message||'MCP request failed');if(data.result?.isError)throw new Error(json(data.result)||`${name} failed`);return data.result}}
+    async function connect(){try{const[{Client},{StreamableHTTPClientTransport}]=await Promise.all([import('https://esm.sh/@modelcontextprotocol/sdk/client/index.js'),import('https://esm.sh/@modelcontextprotocol/sdk/client/streamableHttp.js')]);const client=new Client({name:'gate-board',version:'1.0'});await client.connect(new StreamableHTTPClientTransport(new URL('/mcp',location.origin)));state.client=client}catch(err){console.warn('Falling back to minimal MCP client',err);state.client=new FallbackClient();await state.client.connect()}}
+    async function tool(name,args={}){return json(await state.client.callTool({name,arguments:args}))}
+    const taskId=t=>t.id||String(t.file||'').replace(/\.md$/,''),statusOf=t=>String(t.status||'pending').toLowerCase(),directPipe=t=>{const seen=new Set([statusOf(t),...(t.stages||[]).map(s=>String(s.name||'').toLowerCase())]);if([...seen].some(s=>['test','implement','verify'].includes(s)))return'tdd';if([...seen].some(s=>['research','plan','execute'].includes(s)))return'gsd';if(seen.has('red'))return'sdd';if(seen.has('blue')&&!seen.has('red'))return'lightweight';return null},gatePipe=tasks=>tasks.map(directPipe).find(Boolean)||'sdd',pipeOf=(t,fallback)=>directPipe(t)||fallback||'unknown',pipeLabel=p=>p==='lightweight'?'lightweight':p,pipeNorm=(p,s)=>((PIPELINES[p]?.map||((x)=>x))(s)),currentStep=t=>{const p=t.pipeline,steps=PIPELINES[p]?.steps;if(!steps)return statusOf(t);const raw=pipeNorm(p,statusOf(t));if(p==='lightweight'&&statusOf(t)!=='done'&&statusOf(t)!=='pending')return'done';return steps.includes(raw)?raw:steps[0]};
+    function summarize(task,gate,fallback){delete task.sections;return{...task,id:taskId(task),root:gate.root,gate:gate.name,pipeline:pipeOf(task,fallback),modifiedAt:task.modified||gate.registered_at||null}}
+    function updateQuery(){const url=new URL(location.href);state.selectedGate?url.searchParams.set('gate',state.selectedGate):url.searchParams.delete('gate');history.replaceState({},'',url)}
+    function renderControls(){qs('scope').innerHTML=SCOPE.map(s=>`<button class="seg${state.scope===s?' active':''}" data-scope="${s}">${s}</button>`).join('');qs('pipelines').innerHTML=PIPES.map(p=>`<button class="pill ${p}${state.pipelines[p]?' active':''}" data-pipe="${p}">${pipeLabel(p)}</button>`).join('');qs('project').innerHTML=state.gates.map(g=>`<option value="${esc(g.name)}">${esc(g.name)}</option>`).join('')||'<option value="">No gates</option>';if(!state.selectedGate&&state.gates[0])state.selectedGate=state.gates[0].name;qs('project').value=state.selectedGate}
+    function renderStats(){const items=state.tasks,flight=items.filter(t=>!['pending','done'].includes(statusOf(t))).length;qs('stat-pending').textContent=`${items.filter(t=>statusOf(t)==='pending').length} pending`;qs('stat-flight').textContent=`${flight} in-flight`;qs('stat-done').textContent=`${items.filter(t=>statusOf(t)==='done').length} done`}
+    function visible(){return state.tasks.filter(t=>state.pipelines[t.pipeline]&&({all:1,backlog:statusOf(t)==='pending','in-flight':!['pending','done'].includes(statusOf(t)),done:statusOf(t)==='done'})[state.scope]&&(state.search.trim()===''||[t.id,t.title,t.requirement,t.pipeline].some(v=>String(v||'').toLowerCase().includes(state.search.toLowerCase())))).sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true}))}
+    function machine(task,full=false){const spec=PIPELINES[task.pipeline];if(!spec)return`<div class="machine unknown-machine"><div class="node current"><span class="node-dot"></span><span class="node-label">${esc(statusOf(task))}</span></div></div>`;const current=currentStep(task),steps=spec.steps;return`<div class="machine">${steps.map((step,i)=>{const ix=steps.indexOf(current),done=i<ix||statusOf(task)==='done'&&i<=ix,cur=i===ix;return`<div class="node${done?' done':''}${cur?' current':''}"><span class="node-dot"></span><span class="node-label">${esc(step)}</span></div>${i<steps.length-1?`<span class="link${i<ix?' done':''}"></span>`:''}`}).join('')}</div>`}
+    function renderRows(){const items=visible(),body=qs('rows');if(!items.length){body.innerHTML=qs('empty-row').innerHTML;return}body.innerHTML=items.map(t=>`<tr data-id="${esc(t.id)}" class="${state.selectedTask?.id===t.id?'selected':''}"><td class="id">${esc(t.id)}</td><td class="title">${esc(t.title||t.id)}</td><td><span class="badge ${t.pipeline}">${esc(pipeLabel(t.pipeline))}</span></td><td>${machine(t)}</td><td class="req">${esc(t.requirement||'—')}</td><td class="modified">${esc(rel(t.modifiedAt))}</td></tr>`).join('')}
+    function transitions(task){const seen=(task.stages||[]).map(s=>({name:String(s.name||'').toLowerCase(),verdict:s.verdict||'—'}));const current=statusOf(task);return machine(task,true)+`<div class="stage-list">${(PIPELINES[task.pipeline]?.steps||[current]).map(step=>{const hit=seen.find(s=>pipeNorm(task.pipeline,s.name)===step)||null,active=currentStep(task)===step,label=hit?.verdict||(active?'active':'pending');return`<div class="stage-row"><span class="meta">${esc(step)}</span><span class="meta">${esc(label)}</span><span class="modified">—</span></div>`}).join('')}</div>`}
+    function renderDrawer(){const d=qs('drawer'),t=state.selectedTask;if(!t){d.className='drawer';d.innerHTML='';return}const locked=t.location==='done';d.className='drawer open';d.innerHTML=`<div class="drawer-head"><div class="drawer-title"><strong>${esc(t.id)}</strong><span>${esc(t.title||t.id)}</span></div><button class="close" id="close-drawer" aria-label="Close">×</button></div><div class="drawer-body"><div class="drawer-meta"><span class="meta">${esc(pipeLabel(t.pipeline))}</span><span class="meta">${esc(t.requirement||'—')}</span><span class="meta">${esc(statusOf(t))}</span></div><section><h3 class="section-title">State machine</h3>${transitions(t)}</section><section><h3 class="section-title">Agent notes</h3><div class="notes">${(t.sections||[]).filter(s=>s.body).map(s=>`<article class="note"><h4>${esc(s.heading)}</h4><div class="drawer-meta"><span class="meta">${esc(s.stage)}</span>${s.verdict?`<span class="meta">${esc(s.verdict)}</span>`:''}</div><pre>${esc(s.body)}</pre></article>`).join('')||'<div class="meta">No notes available.</div>'}</div></section></div><div class="drawer-actions"><button class="action reject" id="reject-task" ${locked?'disabled':''}>Reject</button><button class="action pass" id="pass-task" ${locked?'disabled':''}>Pass</button></div>`;qs('close-drawer').onclick=()=>{state.selectedTask=null;render()};if(!locked){qs('pass-task').onclick=()=>transition('gate_pass');qs('reject-task').onclick=()=>transition('gate_reject')}}
+    function render(){renderControls();renderStats();renderRows();renderDrawer()}
+    async function loadGates(){state.gates=(await tool('gate_list_gates'))?.gates||[];if(!state.selectedGate&&state.gates[0])state.selectedGate=state.gates[0].name}
+    async function loadTasks(){const gate=state.gates.find(g=>g.name===state.selectedGate);if(!gate)return state.tasks=[];const raw=await tool('gate_status',{root:gate.root})||[],fallback=gatePipe(raw);state.tasks=raw.map(t=>summarize(t,gate,fallback));if(state.selectedTask){const next=state.tasks.find(t=>t.id===state.selectedTask.id);state.selectedTask=next?{...next,...state.selectedTask}:null}}
+    async function loadDetail(id){const task=state.tasks.find(t=>t.id===id);if(!task)return;state.selectedTask={...task,sections:state.selectedTask?.sections||[]};render();try{const detail=await tool('gate_status',{root:task.root,id})||task;state.selectedTask={...task,...detail,id:taskId(detail),pipeline:pipeOf(detail,task.pipeline),root:task.root,gate:task.gate}}catch(err){msg(err.message||String(err),true)}render()}
+    async function transition(name){const t=state.selectedTask;if(!t)return;const notes=prompt(`${name==='gate_pass'?'Pass':'Reject'} notes (optional):`);if(notes===null)return;try{await tool(name,{id:t.id,root:t.root,notes:notes||undefined});await loadTasks();await loadDetail(t.id);msg(`${t.id}: ${name==='gate_pass'?'pass':'reject'} recorded.`)}catch(err){msg(err.message||String(err),true)}render()}
+    async function refresh(){try{msg('Loading board…');await loadGates();updateQuery();await loadTasks();render();msg(`Loaded ${visible().length} tasks.`)}catch(err){msg(err.message||String(err),true)}}
+    qs('project').onchange=e=>{state.selectedGate=e.target.value;updateQuery();refresh()};qs('search').oninput=e=>{state.search=e.target.value;render()};qs('scope').onclick=e=>{const b=e.target.closest('[data-scope]');if(!b)return;state.scope=b.dataset.scope;render()};qs('pipelines').onclick=e=>{const b=e.target.closest('[data-pipe]');if(!b)return;state.pipelines[b.dataset.pipe]=!state.pipelines[b.dataset.pipe];render()};qs('rows').onclick=e=>{const row=e.target.closest('[data-id]');if(row)loadDetail(row.dataset.id)};
+    await connect();await refresh();setInterval(refresh,30000);
   </script>
 </body>
 </html>

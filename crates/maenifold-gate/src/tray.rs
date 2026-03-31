@@ -77,7 +77,7 @@ struct TrayApp {
     server_handle: Option<std::thread::JoinHandle<i32>>,
     tray_icon: Option<tray_icon::TrayIcon>,
     quit_id: Option<MenuId>,
-    kanban_id: Option<MenuId>,
+    board_id: Option<MenuId>,
     trace_id: Option<MenuId>,
     login_id: Option<MenuId>,
     restart_id: Option<MenuId>,
@@ -140,13 +140,13 @@ impl TrayApp {
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
         let menu = Menu::new();
         let login_enabled = is_login_enabled();
-        let kanban_item = MenuItem::new(format!("Kanban Board :{}", self.port), true, None);
+        let board_item = MenuItem::new(format!("Gate Board :{}", self.port), true, None);
         let trace_item = MenuItem::new(format!("Trace :{}", self.port), true, None);
         #[cfg(target_os = "macos")]
         let login_item = MenuItem::new(login_menu_text(login_enabled), true, None);
         #[cfg(not(target_os = "macos"))]
         let login_item = MenuItem::new(login_menu_text(login_enabled), false, None);
-        let _ = menu.append(&kanban_item);
+        let _ = menu.append(&board_item);
         let _ = menu.append(&trace_item);
         let _ = menu.append(&PredefinedMenuItem::separator());
         let _ = menu.append(&login_item);
@@ -162,7 +162,7 @@ impl TrayApp {
         let quit_item = MenuItem::new("Quit", true, None);
         let _ = menu.append(&quit_item);
         self.quit_id = Some(quit_item.id().clone());
-        self.kanban_id = Some(kanban_item.id().clone());
+        self.board_id = Some(board_item.id().clone());
         self.trace_id = Some(trace_item.id().clone());
         self.login_id = Some(login_item.id().clone());
         self.restart_id = restart_item.map(|item| item.id().clone());
@@ -195,7 +195,7 @@ impl TrayApp {
             event_loop.exit();
             return;
         }
-        if self.kanban_id.as_ref().is_some_and(|id| event.id == *id) {
+        if self.board_id.as_ref().is_some_and(|id| event.id == *id) {
             self.open_local("/");
         }
         if self.trace_id.as_ref().is_some_and(|id| event.id == *id) {
@@ -284,7 +284,7 @@ pub fn run_with_tray(port: u16) -> i32 {
         server_handle: Some(server_handle),
         tray_icon: None,
         quit_id: None,
-        kanban_id: None,
+        board_id: None,
         trace_id: None,
         login_id: None,
         restart_id: None,

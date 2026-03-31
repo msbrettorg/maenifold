@@ -1,4 +1,5 @@
 use axum::{
+    extract::Extension,
     http::header,
     response::{Html, IntoResponse, Response},
 };
@@ -8,8 +9,24 @@ use rust_embed::Embed;
 #[folder = "src/board"]
 struct BoardAssets;
 
-pub async fn index() -> Response {
-    asset_response("index.html", "Gate board assets not found.")
+pub async fn index(Extension(port): Extension<u16>) -> Response {
+    match BoardAssets::get("index.html") {
+        Some(asset) => {
+            let html = String::from_utf8_lossy(&asset.data);
+            let injected = html.replacen(
+                "<head>",
+                &format!("<head>\n  <meta name=\"gate-port\" content=\"{port}\">"),
+                1,
+            );
+            let mut response = Html(injected).into_response();
+            response.headers_mut().insert(
+                header::CACHE_CONTROL,
+                header::HeaderValue::from_static("no-cache"),
+            );
+            response
+        }
+        None => (axum::http::StatusCode::NOT_FOUND, "Gate board assets not found.").into_response(),
+    }
 }
 
 pub async fn trace() -> Response {
@@ -42,3 +59,4 @@ mod tests {
         assert!(super::BoardAssets::get("trace.html").is_some());
     }
 }
+

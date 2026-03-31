@@ -18,10 +18,7 @@ impl HeadlessClient {
     /// Resolve and jail a path within the cwd. Rejects parent-dir traversal
     /// and ensures the canonical result stays under `self.cwd`.
     fn resolve_and_jail(&self, path: PathBuf) -> std::result::Result<PathBuf, acp::Error> {
-        if path
-            .components()
-            .any(|c| matches!(c, Component::ParentDir))
-        {
+        if path.components().any(|c| matches!(c, Component::ParentDir)) {
             return Err(acp::Error::new(
                 -32602,
                 format!("path contains parent traversal: {}", path.display()),
@@ -33,8 +30,7 @@ impl HeadlessClient {
             self.cwd.join(path)
         };
         let canonical_cwd = fs::canonicalize(&self.cwd).unwrap_or_else(|_| self.cwd.clone());
-        let canonical_path =
-            fs::canonicalize(&resolved).unwrap_or_else(|_| resolved.clone());
+        let canonical_path = fs::canonicalize(&resolved).unwrap_or_else(|_| resolved.clone());
         if !canonical_path.starts_with(&canonical_cwd) {
             return Err(acp::Error::new(
                 -32602,

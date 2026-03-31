@@ -28,7 +28,10 @@ fn node<'a>(view: &'a serde_json::Value, node_id: &str) -> &'a serde_json::Value
         .unwrap_or_else(|| panic!("missing node {node_id}"))
 }
 fn status(view: &serde_json::Value, node_id: &str) -> String {
-    node(view, node_id)["status"].as_str().expect("node status").to_string()
+    node(view, node_id)["status"]
+        .as_str()
+        .expect("node status")
+        .to_string()
 }
 fn active_ids(data: &serde_json::Value) -> Vec<&str> {
     data["active"]
@@ -53,7 +56,10 @@ fn dispatch_complete_cycle(
     if let Some(kind) = kind {
         assert_eq!(dispatch["dispatched"][0]["type"], kind);
     } else {
-        assert_eq!(dispatch["dispatched"][0]["workflowId"], "abductive-reasoning");
+        assert_eq!(
+            dispatch["dispatched"][0]["workflowId"],
+            "abductive-reasoning"
+        );
     }
     assert_eq!(active_ids(&dispatch), vec![node_id]);
     p.complete(&session_id, node_id, conclusion);
@@ -215,7 +221,10 @@ fn tc_2_10_parallel_roots_multiple_nodes_ready_at_once() {
     assert!(PipelineHarness::is_ready(&create, "b"));
     assert!(PipelineHarness::is_ready(&create, "c"));
     let dispatch = p.dispatch(&session_id);
-    assert_eq!(dispatch["dispatched"].as_array().expect("dispatched").len(), 3);
+    assert_eq!(
+        dispatch["dispatched"].as_array().expect("dispatched").len(),
+        3
+    );
     assert_eq!(active_ids(&dispatch).len(), 3);
     for id in ["a", "b", "c"] {
         p.complete(&session_id, id, &format!("Output from {id}"));
@@ -229,15 +238,18 @@ fn tc_2_10_parallel_roots_multiple_nodes_ready_at_once() {
 #[test]
 fn tc_2_11_max_concurrency_limits_dispatch_count() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let create = p.create_with_concurrency(json!({
-        "nodes": [
-            PipelineHarness::tool_node("a"),
-            PipelineHarness::tool_node("b"),
-            PipelineHarness::tool_node("c"),
-            PipelineHarness::tool_node("d")
-        ],
-        "edges": []
-    }), 2);
+    let create = p.create_with_concurrency(
+        json!({
+            "nodes": [
+                PipelineHarness::tool_node("a"),
+                PipelineHarness::tool_node("b"),
+                PipelineHarness::tool_node("c"),
+                PipelineHarness::tool_node("d")
+            ],
+            "edges": []
+        }),
+        2,
+    );
     let session_id = PipelineHarness::id(&create);
     let first = p.dispatch(&session_id);
     let first_ids: Vec<String> = first["dispatched"]
@@ -250,16 +262,32 @@ fn tc_2_11_max_concurrency_limits_dispatch_count() {
     assert_eq!(active_ids(&first).len(), 2);
     p.complete(&session_id, &first_ids[0], "done one");
     let second = p.dispatch(&session_id);
-    assert_eq!(second["dispatched"].as_array().expect("second dispatch").len(), 1);
+    assert_eq!(
+        second["dispatched"]
+            .as_array()
+            .expect("second dispatch")
+            .len(),
+        1
+    );
     assert_eq!(active_ids(&second).len(), 2);
-    let second_new = second["dispatched"][0]["nodeId"].as_str().expect("new node");
+    let second_new = second["dispatched"][0]["nodeId"]
+        .as_str()
+        .expect("new node");
     p.complete(&session_id, &first_ids[1], "done two");
     p.complete(&session_id, second_new, "done three");
     let third = p.dispatch(&session_id);
-    assert_eq!(third["dispatched"].as_array().expect("third dispatch").len(), 1);
+    assert_eq!(
+        third["dispatched"]
+            .as_array()
+            .expect("third dispatch")
+            .len(),
+        1
+    );
     p.complete(
         &session_id,
-        third["dispatched"][0]["nodeId"].as_str().expect("final node"),
+        third["dispatched"][0]["nodeId"]
+            .as_str()
+            .expect("final node"),
         "done four",
     );
     let view = p.view(&session_id);

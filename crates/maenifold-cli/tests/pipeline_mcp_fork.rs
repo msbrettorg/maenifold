@@ -14,7 +14,9 @@ fn chain() -> serde_json::Value {
     })
 }
 
-fn single(id: &str) -> serde_json::Value { json!({ "nodes": [PipelineHarness::tool_node(id)], "edges": [] }) }
+fn single(id: &str) -> serde_json::Value {
+    json!({ "nodes": [PipelineHarness::tool_node(id)], "edges": [] })
+}
 fn diamond() -> serde_json::Value {
     let nodes = ["A", "B", "C", "D"]
         .into_iter()
@@ -55,7 +57,11 @@ fn edge_pairs(data: &serde_json::Value) -> BTreeSet<(String, String)> {
 }
 
 fn all_pending(data: &serde_json::Value) -> bool {
-    data["nodes"].as_array().expect("nodes array").iter().all(|n| n["status"] == "pending")
+    data["nodes"]
+        .as_array()
+        .expect("nodes array")
+        .iter()
+        .all(|n| n["status"] == "pending")
 }
 
 fn status_of(data: &serde_json::Value, node_id: &str) -> String {
@@ -114,7 +120,10 @@ fn drain_and_delete(p: &mut PipelineHarness, session_id: &str) {
             }
             continue;
         }
-        if view["ready"].as_array().is_some_and(|ready| !ready.is_empty()) {
+        if view["ready"]
+            .as_array()
+            .is_some_and(|ready| !ready.is_empty())
+        {
             p.dispatch(session_id);
             continue;
         }
@@ -134,9 +143,11 @@ fn tc_6_01_fork_from_root_creates_complete_copy() {
 
     assert_ne!(fork_id, sid);
     assert_eq!(node_ids(&fork).len(), 3);
-    assert!(node_ids(&fork)
-        .iter()
-        .all(|id| id.ends_with('A') || id.ends_with('B') || id.ends_with('C')));
+    assert!(
+        node_ids(&fork)
+            .iter()
+            .all(|id| id.ends_with('A') || id.ends_with('B') || id.ends_with('C'))
+    );
     assert!(all_pending(&fork));
     assert_eq!(node_ids(&p.view(&sid)).len(), 3);
     assert!(all_pending(&p.view(&sid)));

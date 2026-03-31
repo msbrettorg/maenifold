@@ -23,7 +23,10 @@ fn create_id(p: &mut PipelineHarness, definition: Value) -> String {
 #[test]
 fn tc_4_01_graft_single_node_onto_completed_pipeline() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let id = create_id(&mut p, json!({"nodes":[PipelineHarness::tool_node("A")],"edges":[]}));
+    let id = create_id(
+        &mut p,
+        json!({"nodes":[PipelineHarness::tool_node("A")],"edges":[]}),
+    );
     p.dispatch(&id);
     p.complete(&id, "A", "done-A");
 
@@ -45,7 +48,10 @@ fn tc_4_01_graft_single_node_onto_completed_pipeline() {
 #[test]
 fn tc_4_02_graft_multiple_nodes_with_internal_edges() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let id = create_id(&mut p, json!({"nodes":[PipelineHarness::tool_node("A")],"edges":[]}));
+    let id = create_id(
+        &mut p,
+        json!({"nodes":[PipelineHarness::tool_node("A")],"edges":[]}),
+    );
     p.dispatch(&id);
     p.complete(&id, "A", "done-A");
 
@@ -100,11 +106,17 @@ fn tc_4_03_graft_fan_in_from_completed_predecessors() {
 #[test]
 fn tc_4_04_validation_reject_duplicate_node_id() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let id = create_id(&mut p, json!({"nodes":[PipelineHarness::tool_node("A")],"edges":[]}));
+    let id = create_id(
+        &mut p,
+        json!({"nodes":[PipelineHarness::tool_node("A")],"edges":[]}),
+    );
     p.dispatch(&id);
     p.complete(&id, "A", "done-A");
 
-    let err = p.graft_err(&id, json!({"nodes":[PipelineHarness::tool_node("A")],"edges":[]}));
+    let err = p.graft_err(
+        &id,
+        json!({"nodes":[PipelineHarness::tool_node("A")],"edges":[]}),
+    );
     assert!(err.contains("duplicate node ID"));
     assert!(err.contains("'A'") || err.contains("A"));
     p.delete(&id);
@@ -125,7 +137,10 @@ fn tc_4_05_validation_reject_cycle_creation() {
     p.dispatch(&id);
     p.complete(&id, "B", "done-B");
 
-    let err = p.graft_err(&id, json!({"nodes":[],"edges":[PipelineHarness::edge("B","A")]}));
+    let err = p.graft_err(
+        &id,
+        json!({"nodes":[],"edges":[PipelineHarness::edge("B","A")]}),
+    );
     assert!(err.contains("cycle"));
     let view = p.view(&id);
     assert_eq!(view["edges"].as_array().expect("edges").len(), 1);
@@ -160,7 +175,10 @@ fn tc_4_06_validation_reject_while_nodes_are_active() {
 #[test]
 fn tc_4_07_graft_onto_stuck_pipeline() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let id = create_id(&mut p, json!({"nodes":[PipelineHarness::tool_node("A")],"edges":[]}));
+    let id = create_id(
+        &mut p,
+        json!({"nodes":[PipelineHarness::tool_node("A")],"edges":[]}),
+    );
     p.dispatch(&id);
     p.abandon(&id, "A");
     assert_eq!(node_status(&p.view(&id), "A"), "abandoned");

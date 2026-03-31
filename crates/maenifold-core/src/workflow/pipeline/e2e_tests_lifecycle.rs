@@ -1,10 +1,10 @@
 use super::handler::pipeline;
-use super::test_support::*;
-use super::supervisor::{supervisor_is_running, supervisor_is_paused};
+use super::supervisor::{supervisor_is_paused, supervisor_is_running};
 use super::supervisor_test_support::{reset_supervisor, wait_for};
+use super::test_support::*;
 use super::{EdgeType, NodeStatus};
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 
 fn data(output: String) -> Value {
@@ -154,7 +154,10 @@ fn e2e_pipeline_auto_completes_when_all_nodes_done() {
     let view = view_pipeline(&context, &id);
 
     assert_eq!(view["status"], "completed");
-    assert_eq!(frontmatter_status(&context, &id).as_deref(), Some("completed"));
+    assert_eq!(
+        frontmatter_status(&context, &id).as_deref(),
+        Some("completed")
+    );
 }
 
 #[test]

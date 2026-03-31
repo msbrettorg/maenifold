@@ -5,15 +5,15 @@ mod dispatch_prompt;
 mod dispatch_tests;
 #[cfg(test)]
 mod dispatch_tests_concurrency;
+mod dispatch_thinking;
+mod dispatch_tool;
+mod dispatch_workflow;
 #[cfg(test)]
 mod e2e_tests_lifecycle;
 #[cfg(test)]
 mod e2e_tests_surgery_live;
 #[cfg(test)]
 mod e2e_tests_tool_chain;
-mod dispatch_thinking;
-mod dispatch_tool;
-mod dispatch_workflow;
 mod engine;
 #[cfg(test)]
 mod engine_tests;
@@ -95,13 +95,13 @@ mod update_tests;
 #[cfg(test)]
 mod update_tests_context;
 #[cfg(test)]
-mod update_tests_status_smoke;
-#[cfg(test)]
 mod update_tests_restart;
 #[cfg(test)]
 mod update_tests_restart_cleanup;
 #[cfg(test)]
 mod update_tests_sections;
+#[cfg(test)]
+mod update_tests_status_smoke;
 mod validation;
 #[cfg(test)]
 mod validation_test_support;

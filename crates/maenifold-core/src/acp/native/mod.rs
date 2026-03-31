@@ -7,9 +7,9 @@ mod types;
 pub use pool::{AcpxDriver, AgentPool};
 pub use types::*;
 
+use accumulator::SessionAccumulator;
 use acp::Agent;
 use agent_client_protocol as acp;
-use accumulator::SessionAccumulator;
 use client::HeadlessClient;
 use session::{cleanup_timed_out_prompt, handle_new_session, handle_prompt, run_with_timeout};
 use std::{

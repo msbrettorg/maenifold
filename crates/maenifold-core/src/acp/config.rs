@@ -17,10 +17,7 @@ pub enum McpServerEntry {
         args: Vec<String>,
     },
     #[serde(rename = "http")]
-    Http {
-        name: String,
-        url: String,
-    },
+    Http { name: String, url: String },
 }
 
 impl McpServerEntry {

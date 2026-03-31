@@ -4,7 +4,7 @@ use crate::markdown::{read_markdown, write_markdown};
 use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serde_yaml::Value as YamlValue;
 use serial_test::serial;
 
@@ -185,9 +185,7 @@ fn test_smoke_pi12_max_concurrency_very_large() {
     )
     .expect("large maxConcurrency should succeed");
     let parsed: Value = serde_json::from_str(&output).expect("parse");
-    let pipeline_id = parsed["data"]["pipelineId"]
-        .as_str()
-        .expect("pipeline id");
+    let pipeline_id = parsed["data"]["pipelineId"].as_str().expect("pipeline id");
     let (frontmatter, _, _) =
         read_markdown(&pipeline_session_uri(pipeline_id), &context.config).expect("read pipeline");
     assert_eq!(

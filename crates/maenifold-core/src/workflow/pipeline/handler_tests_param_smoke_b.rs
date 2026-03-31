@@ -7,7 +7,7 @@ use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 use crate::markdown::read_markdown;
 use crate::sessions::pipeline_session_uri;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serde_yaml::Value as YamlValue;
 use serial_test::serial;
 use std::collections::HashMap;

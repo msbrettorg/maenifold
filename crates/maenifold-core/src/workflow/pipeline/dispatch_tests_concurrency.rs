@@ -1,7 +1,7 @@
-use crate::markdown::{read_markdown, Frontmatter};
+use crate::markdown::{Frontmatter, read_markdown};
 use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serde_yaml::Value as YamlValue;
 use serial_test::serial;
 use std::collections::HashMap;
@@ -113,10 +113,12 @@ fn pipeline_dispatch_returns_empty_when_nothing_is_eligible() {
             max_concurrency,
         );
 
-        assert!(dispatch_data(&context, pipeline_id)["dispatched"]
-            .as_array()
-            .expect("dispatched")
-            .is_empty());
+        assert!(
+            dispatch_data(&context, pipeline_id)["dispatched"]
+                .as_array()
+                .expect("dispatched")
+                .is_empty()
+        );
     }
 }
 
@@ -240,10 +242,12 @@ fn pipeline_dispatch_is_idempotent_and_noops_after_completion() {
     let (_, content) = read_session(&context, "workflow-1735689600630-root");
     assert_eq!(content.matches("## Step 1/1").count(), 1);
 
-    assert!(dispatch_data(&context, pipeline_id)["dispatched"]
-        .as_array()
-        .expect("dispatched")
-        .is_empty());
+    assert!(
+        dispatch_data(&context, pipeline_id)["dispatched"]
+            .as_array()
+            .expect("dispatched")
+            .is_empty()
+    );
 
     pipeline(
         &context,
@@ -257,10 +261,12 @@ fn pipeline_dispatch_is_idempotent_and_noops_after_completion() {
     .expect("complete node");
 
     let completed_dispatch = dispatch_data(&context, pipeline_id);
-    assert!(completed_dispatch["dispatched"]
-        .as_array()
-        .expect("dispatched")
-        .is_empty());
+    assert!(
+        completed_dispatch["dispatched"]
+            .as_array()
+            .expect("dispatched")
+            .is_empty()
+    );
     assert_eq!(completed_dispatch["remaining"], Value::from(0));
     assert_eq!(completed_dispatch["completed"], json!(["root"]));
 }

@@ -1,6 +1,6 @@
 // T-17.5: RTM FR-23 (RTM-127, RTM-129, RTM-130)
-use maenifold_core::{Config, ToolRegistry};
 use maenifold_core::mcp::MaenifoldMcpServer;
+use maenifold_core::{Config, ToolRegistry};
 use once_cell::sync::Lazy;
 use reqwest::{Client, Response, StatusCode};
 use serde_json::{Value, json};

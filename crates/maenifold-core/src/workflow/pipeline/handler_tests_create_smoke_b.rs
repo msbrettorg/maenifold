@@ -2,7 +2,7 @@ use super::handler::pipeline;
 use super::test_support::*;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 
 fn payload(nodes: Vec<Value>, edges: Vec<Value>) -> Value {

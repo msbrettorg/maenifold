@@ -24,7 +24,11 @@ pub(crate) async fn open_agent_session(
     })?;
     let command = config_entry.command.clone();
     if opts.mcp_servers.is_empty() && !config_entry.mcp_servers.is_empty() {
-        opts.mcp_servers = config_entry.mcp_servers.iter().map(|s| s.to_acp()).collect();
+        opts.mcp_servers = config_entry
+            .mcp_servers
+            .iter()
+            .map(|s| s.to_acp())
+            .collect();
     }
     let handle = pool.get_or_create(agent_name, &command, &opts.cwd).await;
     let remote_id = handle

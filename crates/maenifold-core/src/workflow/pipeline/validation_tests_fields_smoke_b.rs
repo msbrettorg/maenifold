@@ -1,7 +1,7 @@
 use super::handler::pipeline;
 use super::test_support::*;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 
 fn view_node(node: Value) -> Value {

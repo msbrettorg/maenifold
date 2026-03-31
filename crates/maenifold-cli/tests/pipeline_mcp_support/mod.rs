@@ -5,11 +5,11 @@
 
 #![allow(dead_code)]
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[path = "../mcp_test_support/mod.rs"]
 mod mcp_test_support;
-pub use mcp_test_support::{isolated_root, McpTestHarness};
+pub use mcp_test_support::{McpTestHarness, isolated_root};
 
 /// Wrapper around [`McpTestHarness`] with Pipeline-specific convenience methods.
 pub struct PipelineHarness {
@@ -284,5 +284,4 @@ impl PipelineHarness {
     pub fn bare_edge(source: &str, target: &str) -> Value {
         json!({ "source": source, "target": target })
     }
-
 }

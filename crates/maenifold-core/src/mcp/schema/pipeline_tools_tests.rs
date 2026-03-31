@@ -20,10 +20,12 @@ fn pipeline_schema_includes_all_new_operation_fields_with_expected_types() {
             property.get("type").and_then(Value::as_str),
             Some("boolean")
         );
-        assert!(property
-            .get("description")
-            .and_then(Value::as_str)
-            .is_some_and(|description| !description.is_empty()));
+        assert!(
+            property
+                .get("description")
+                .and_then(Value::as_str)
+                .is_some_and(|description| !description.is_empty())
+        );
     }
 
     let rewind = properties
@@ -115,9 +117,42 @@ fn pipeline_schema_definition_nodes_advertise_supported_config_fields() {
     let definition = definition_node_schema();
     let variants = node_variants(&definition);
 
-    assert_variant_supports_fields(&variants, "prompt", &["model", "thoughtLevel", "allowedTools", "maxTurns", "timeout", "toolMode", "agentConfig"]);
-    assert_variant_supports_fields(&variants, "sequentialThinking", &["model", "thoughtLevel", "allowedTools", "maxTurns", "timeout", "agentConfig"]);
-    assert_variant_supports_fields(&variants, "tool", &["model", "thoughtLevel", "allowedTools", "maxTurns", "agentConfig"]);
+    assert_variant_supports_fields(
+        &variants,
+        "prompt",
+        &[
+            "model",
+            "thoughtLevel",
+            "allowedTools",
+            "maxTurns",
+            "timeout",
+            "toolMode",
+            "agentConfig",
+        ],
+    );
+    assert_variant_supports_fields(
+        &variants,
+        "sequentialThinking",
+        &[
+            "model",
+            "thoughtLevel",
+            "allowedTools",
+            "maxTurns",
+            "timeout",
+            "agentConfig",
+        ],
+    );
+    assert_variant_supports_fields(
+        &variants,
+        "tool",
+        &[
+            "model",
+            "thoughtLevel",
+            "allowedTools",
+            "maxTurns",
+            "agentConfig",
+        ],
+    );
     assert_variant_required_fields(&variants);
     assert_agent_config_fields(&variants, "prompt");
     assert_agent_config_fields(&variants, "sequentialThinking");
@@ -128,9 +163,42 @@ fn pipeline_schema_graft_nodes_advertise_supported_config_fields() {
     let graft = graft_node_schema();
     let variants = node_variants(&graft);
 
-    assert_variant_supports_fields(&variants, "prompt", &["model", "thoughtLevel", "allowedTools", "maxTurns", "timeout", "toolMode", "agentConfig"]);
-    assert_variant_supports_fields(&variants, "sequentialThinking", &["model", "thoughtLevel", "allowedTools", "maxTurns", "timeout", "agentConfig"]);
-    assert_variant_supports_fields(&variants, "tool", &["model", "thoughtLevel", "allowedTools", "maxTurns", "agentConfig"]);
+    assert_variant_supports_fields(
+        &variants,
+        "prompt",
+        &[
+            "model",
+            "thoughtLevel",
+            "allowedTools",
+            "maxTurns",
+            "timeout",
+            "toolMode",
+            "agentConfig",
+        ],
+    );
+    assert_variant_supports_fields(
+        &variants,
+        "sequentialThinking",
+        &[
+            "model",
+            "thoughtLevel",
+            "allowedTools",
+            "maxTurns",
+            "timeout",
+            "agentConfig",
+        ],
+    );
+    assert_variant_supports_fields(
+        &variants,
+        "tool",
+        &[
+            "model",
+            "thoughtLevel",
+            "allowedTools",
+            "maxTurns",
+            "agentConfig",
+        ],
+    );
     assert_variant_required_fields(&variants);
     assert_agent_config_fields(&variants, "prompt");
     assert_agent_config_fields(&variants, "sequentialThinking");
@@ -188,7 +256,10 @@ fn assert_variant_required_fields(variants: &[&Value]) {
         ("sequentialThinking", "totalThoughts"),
         ("tool", "type"),
     ] {
-        assert!(variant_required(variants, node_type).contains(&field), "{node_type} required missing {field}");
+        assert!(
+            variant_required(variants, node_type).contains(&field),
+            "{node_type} required missing {field}"
+        );
     }
 }
 fn assert_agent_config_fields(variants: &[&Value], node_type: &str) {

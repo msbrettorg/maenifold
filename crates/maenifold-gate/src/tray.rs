@@ -20,7 +20,11 @@ fn is_login_enabled() -> bool {
     launch_agent_path().exists()
 }
 fn login_menu_text(enabled: bool) -> &'static str {
-    if enabled { "✓ Open at Login" } else { "Open at Login" }
+    if enabled {
+        "✓ Open at Login"
+    } else {
+        "Open at Login"
+    }
 }
 #[cfg(target_os = "macos")]
 fn xml_escape(value: &str) -> String {
@@ -129,7 +133,9 @@ impl TrayApp {
     }
     #[cfg(target_os = "macos")]
     fn refresh_login_item(&self) {
-        if let Some(item) = &self.login_item { item.set_text(login_menu_text(is_login_enabled())); }
+        if let Some(item) = &self.login_item {
+            item.set_text(login_menu_text(is_login_enabled()));
+        }
     }
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
         let menu = Menu::new();
@@ -189,8 +195,12 @@ impl TrayApp {
             event_loop.exit();
             return;
         }
-        if self.kanban_id.as_ref().is_some_and(|id| event.id == *id) { self.open_local("/"); }
-        if self.trace_id.as_ref().is_some_and(|id| event.id == *id) { self.open_local("/trace"); }
+        if self.kanban_id.as_ref().is_some_and(|id| event.id == *id) {
+            self.open_local("/");
+        }
+        if self.trace_id.as_ref().is_some_and(|id| event.id == *id) {
+            self.open_local("/trace");
+        }
         if self.restart_id.as_ref().is_some_and(|id| event.id == *id) {
             restart_daemon("com.ma-collective.gate");
         }
@@ -228,7 +238,13 @@ impl ApplicationHandler for TrayApp {
         }
     }
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {}
-    fn window_event(&mut self, _: &ActiveEventLoop, _: winit::window::WindowId, _: winit::event::WindowEvent) {}
+    fn window_event(
+        &mut self,
+        _: &ActiveEventLoop,
+        _: winit::window::WindowId,
+        _: winit::event::WindowEvent,
+    ) {
+    }
 }
 pub fn run_with_tray(port: u16) -> i32 {
     let shutdown_token = CancellationToken::new();
@@ -284,5 +300,9 @@ pub fn run_with_tray(port: u16) -> i32 {
         Some(handle) => handle.join().unwrap_or(1),
         None => 1,
     };
-    if app.exit_code != 0 { app.exit_code } else { server_exit_code }
+    if app.exit_code != 0 {
+        app.exit_code
+    } else {
+        server_exit_code
+    }
 }

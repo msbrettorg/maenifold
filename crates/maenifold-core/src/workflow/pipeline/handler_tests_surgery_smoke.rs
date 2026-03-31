@@ -7,7 +7,7 @@ use crate::markdown::{file_exists, read_markdown};
 use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 use std::collections::HashMap;
 
@@ -120,16 +120,20 @@ fn j_02_join_preserves_node_states_from_both_pipelines() {
         &c,
         json!({"sessionId":"j-02-t","join":{"sourceSessionId":"j-02-s","edges":[]}}),
     );
-    assert!(d["nodes"]
-        .as_array()
-        .expect("nodes")
-        .iter()
-        .any(|n| n["nodeId"] == "a" && n["status"] == "abandoned"));
-    assert!(d["nodes"]
-        .as_array()
-        .expect("nodes")
-        .iter()
-        .any(|n| n["nodeId"] == "b" && n["status"] == "stuck"));
+    assert!(
+        d["nodes"]
+            .as_array()
+            .expect("nodes")
+            .iter()
+            .any(|n| n["nodeId"] == "a" && n["status"] == "abandoned")
+    );
+    assert!(
+        d["nodes"]
+            .as_array()
+            .expect("nodes")
+            .iter()
+            .any(|n| n["nodeId"] == "b" && n["status"] == "stuck")
+    );
 }
 #[test]
 #[serial(config)]
@@ -195,13 +199,15 @@ fn j_04_join_rejected_when_target_pipeline_running() {
         HashMap::from([state("j-04-s", "b", NodeStatus::Completed, None)]),
         "completed",
     );
-    assert!(pipeline(
-        &c,
-        &json!({"sessionId":"j-04-t","join":{"sourceSessionId":"j-04-s","edges":[]}})
-    )
-    .expect_err("err")
-    .to_string()
-    .contains("target pipeline"));
+    assert!(
+        pipeline(
+            &c,
+            &json!({"sessionId":"j-04-t","join":{"sourceSessionId":"j-04-s","edges":[]}})
+        )
+        .expect_err("err")
+        .to_string()
+        .contains("target pipeline")
+    );
 }
 #[test]
 #[serial(config)]
@@ -227,13 +233,15 @@ fn j_05_join_rejected_when_source_pipeline_running() {
         HashMap::from([state("j-05-s", "b", NodeStatus::Active, None)]),
         "active",
     );
-    assert!(pipeline(
-        &c,
-        &json!({"sessionId":"j-05-t","join":{"sourceSessionId":"j-05-s","edges":[]}})
-    )
-    .expect_err("err")
-    .to_string()
-    .contains("source pipeline"));
+    assert!(
+        pipeline(
+            &c,
+            &json!({"sessionId":"j-05-t","join":{"sourceSessionId":"j-05-s","edges":[]}})
+        )
+        .expect_err("err")
+        .to_string()
+        .contains("source pipeline")
+    );
 }
 #[test]
 #[serial(config)]
@@ -251,13 +259,15 @@ fn j_06_join_rejected_on_conflicting_node_ids() {
             "completed",
         );
     }
-    assert!(pipeline(
-        &c,
-        &json!({"sessionId":"j-06-t","join":{"sourceSessionId":"j-06-s","edges":[]}})
-    )
-    .expect_err("err")
-    .to_string()
-    .contains("conflicting node IDs"));
+    assert!(
+        pipeline(
+            &c,
+            &json!({"sessionId":"j-06-t","join":{"sourceSessionId":"j-06-s","edges":[]}})
+        )
+        .expect_err("err")
+        .to_string()
+        .contains("conflicting node IDs")
+    );
 }
 #[test]
 #[serial(config)]
@@ -328,11 +338,13 @@ fn j_09_join_nonexistent_source_pipeline() {
         HashMap::from([state("j-09-t", "a", NodeStatus::Completed, None)]),
         "completed",
     );
-    assert!(pipeline(
-        &c,
-        &json!({"sessionId":"j-09-t","join":{"sourceSessionId":"missing","edges":[]}})
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &c,
+            &json!({"sessionId":"j-09-t","join":{"sourceSessionId":"missing","edges":[]}})
+        )
+        .is_err()
+    );
 }
 #[test]
 #[serial(config)]
@@ -348,13 +360,15 @@ fn j_10_join_pipeline_with_itself_rejected() {
         HashMap::from([state("j-10", "a", NodeStatus::Completed, None)]),
         "completed",
     );
-    assert!(pipeline(
-        &c,
-        &json!({"sessionId":"j-10","join":{"sourceSessionId":"j-10","edges":[]}})
-    )
-    .expect_err("err")
-    .to_string()
-    .contains("conflicting node IDs"));
+    assert!(
+        pipeline(
+            &c,
+            &json!({"sessionId":"j-10","join":{"sourceSessionId":"j-10","edges":[]}})
+        )
+        .expect_err("err")
+        .to_string()
+        .contains("conflicting node IDs")
+    );
 }
 #[test]
 #[serial(config)]
@@ -502,9 +516,11 @@ fn f_04_fork_inherits_predecessor_context() {
         .clone();
     let (_, body, _) =
         read_markdown(&workflow_session_uri(&sid), &c.config).expect("read workflow");
-    assert!(serde_yaml::to_string(&fm)
-        .expect("yaml")
-        .contains("predecessorContext"));
+    assert!(
+        serde_yaml::to_string(&fm)
+            .expect("yaml")
+            .contains("predecessorContext")
+    );
     assert!(body.contains("## Predecessor Context"));
 }
 #[test]
@@ -547,14 +563,16 @@ fn f_06_fork_all_nodes_start_pending() {
         ]),
         "stuck",
     );
-    assert!(data(
-        &c,
-        json!({"sessionId":"f-06","fork":{"fromNodeId":"a","newSessionId":"f-06-new"}})
-    )["nodes"]
-        .as_array()
-        .expect("nodes")
-        .iter()
-        .all(|n| n["status"] == "pending"));
+    assert!(
+        data(
+            &c,
+            json!({"sessionId":"f-06","fork":{"fromNodeId":"a","newSessionId":"f-06-new"}})
+        )["nodes"]
+            .as_array()
+            .expect("nodes")
+            .iter()
+            .all(|n| n["status"] == "pending")
+    );
 }
 #[test]
 #[serial(config)]
@@ -602,13 +620,15 @@ fn f_08_fork_from_nonexistent_node_rejected() {
         HashMap::from([state("f-08", "solo", NodeStatus::Completed, None)]),
         "completed",
     );
-    assert!(pipeline(
-        &c,
-        &json!({"sessionId":"f-08","fork":{"fromNodeId":"missing","newSessionId":"f-08-new"}})
-    )
-    .expect_err("err")
-    .to_string()
-    .contains("doesn't contain"));
+    assert!(
+        pipeline(
+            &c,
+            &json!({"sessionId":"f-08","fork":{"fromNodeId":"missing","newSessionId":"f-08-new"}})
+        )
+        .expect_err("err")
+        .to_string()
+        .contains("doesn't contain")
+    );
 }
 #[test]
 #[serial(config)]

@@ -2,7 +2,7 @@ use super::handler::pipeline;
 use super::test_support::*;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 
 fn payload(node: Value) -> Value {
@@ -37,9 +37,11 @@ fn pipeline_create_smoke_nid01_nid02_nid03_accepts_common_node_id_formats() {
 
         assert_eq!(response["data"]["ready"], json!([node_id]));
         assert_eq!(node["nodeId"], node_id);
-        assert!(node["sessionId"]
-            .as_str()
-            .is_some_and(|id| id.ends_with(&format!("-{node_id}"))));
+        assert!(
+            node["sessionId"]
+                .as_str()
+                .is_some_and(|id| id.ends_with(&format!("-{node_id}")))
+        );
     }
 }
 

@@ -10,11 +10,11 @@ use super::executor_tests_support::{
     target_tool_node,
 };
 use super::{
-    validate_pipeline, EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge,
-    PipelineNode,
+    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
+    validate_pipeline,
 };
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 use std::collections::HashMap;
 
@@ -61,14 +61,16 @@ fn e_01_success_edge_blocks_on_abandoned_predecessor() {
         vec![wf("a"), wf("b")],
         vec![edge("a", "b", EdgeType::Success)],
     );
-    assert!(compute_ready_set(
-        &d,
-        &HashMap::from([
-            state("a", NodeStatus::Abandoned),
-            state("b", NodeStatus::Pending)
-        ])
-    )
-    .is_empty());
+    assert!(
+        compute_ready_set(
+            &d,
+            &HashMap::from([
+                state("a", NodeStatus::Abandoned),
+                state("b", NodeStatus::Pending)
+            ])
+        )
+        .is_empty()
+    );
 }
 #[test]
 #[serial(config)]
@@ -77,14 +79,16 @@ fn e_02_success_edge_blocks_on_stuck_predecessor() {
         vec![wf("a"), wf("b")],
         vec![edge("a", "b", EdgeType::Success)],
     );
-    assert!(compute_ready_set(
-        &d,
-        &HashMap::from([
-            state("a", NodeStatus::Stuck),
-            state("b", NodeStatus::Pending)
-        ])
-    )
-    .is_empty());
+    assert!(
+        compute_ready_set(
+            &d,
+            &HashMap::from([
+                state("a", NodeStatus::Stuck),
+                state("b", NodeStatus::Pending)
+            ])
+        )
+        .is_empty()
+    );
 }
 #[test]
 #[serial(config)]
@@ -165,14 +169,16 @@ fn e_07_default_edge_type_is_success() {
         vec![wf("a"), wf("b")],
         vec![parse_edge(json!({"source":"a","target":"b"})).expect("edge")],
     );
-    assert!(compute_ready_set(
-        &d,
-        &HashMap::from([
-            state("a", NodeStatus::Active),
-            state("b", NodeStatus::Pending)
-        ])
-    )
-    .is_empty());
+    assert!(
+        compute_ready_set(
+            &d,
+            &HashMap::from([
+                state("a", NodeStatus::Active),
+                state("b", NodeStatus::Pending)
+            ])
+        )
+        .is_empty()
+    );
 }
 #[test]
 #[serial(config)]
@@ -362,35 +368,41 @@ fn ef_10_mapping_array_index_resolution() {
 #[test]
 #[serial(config)]
 fn ef_11_source_empty_string_rejected() {
-    assert!(validate_pipeline(&def(
-        vec![wf("a"), wf("b")],
-        vec![parse_edge(json!({"source":"","target":"b"})).expect("edge")]
-    ))
-    .expect_err("err")
-    .to_string()
-    .contains("unknown source node"));
+    assert!(
+        validate_pipeline(&def(
+            vec![wf("a"), wf("b")],
+            vec![parse_edge(json!({"source":"","target":"b"})).expect("edge")]
+        ))
+        .expect_err("err")
+        .to_string()
+        .contains("unknown source node")
+    );
 }
 #[test]
 #[serial(config)]
 fn ef_12_target_empty_string_rejected() {
-    assert!(validate_pipeline(&def(
-        vec![wf("a"), wf("b")],
-        vec![parse_edge(json!({"source":"a","target":""})).expect("edge")]
-    ))
-    .expect_err("err")
-    .to_string()
-    .contains("unknown target node"));
+    assert!(
+        validate_pipeline(&def(
+            vec![wf("a"), wf("b")],
+            vec![parse_edge(json!({"source":"a","target":""})).expect("edge")]
+        ))
+        .expect_err("err")
+        .to_string()
+        .contains("unknown target node")
+    );
 }
 #[test]
 #[serial(config)]
 fn ef_13_source_equals_target_rejected() {
-    assert!(validate_pipeline(&def(
-        vec![wf("a")],
-        vec![parse_edge(json!({"source":"a","target":"a"})).expect("edge")]
-    ))
-    .expect_err("err")
-    .to_string()
-    .contains("cycle"));
+    assert!(
+        validate_pipeline(&def(
+            vec![wf("a")],
+            vec![parse_edge(json!({"source":"a","target":"a"})).expect("edge")]
+        ))
+        .expect_err("err")
+        .to_string()
+        .contains("cycle")
+    );
 }
 #[test]
 #[serial(config)]

@@ -5,7 +5,7 @@ use super::supervisor_test_support::reset_supervisor;
 use super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
 use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode};
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 use std::collections::HashMap;
 

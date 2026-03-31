@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 autotests = false
 
+[features]
+default = ["app"]
+app = []
+
 [dependencies]
 anyhow.workspace = true
 axum.workspace = true

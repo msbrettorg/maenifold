@@ -6,7 +6,7 @@ use super::test_support::{
 };
 use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode};
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 use std::collections::HashMap;
 
@@ -103,11 +103,13 @@ fn e2e_01_create_dispatch_complete_all_delete() {
     )
     .expect("dispatch b");
     pipeline(&context, &json!({ "sessionId": pipeline_id, "nodeId": "b", "status": "completed", "conclusion": "b done [[pipeline]]" })).expect("complete b");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": pipeline_id, "delete": true })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "delete": true })
+        )
+        .is_ok()
+    );
 }
 
 #[test]
@@ -137,11 +139,13 @@ fn e2e_02_create_dispatch_abandon_restart_complete_delete() {
     )
     .expect("dispatch again");
     pipeline(&context, &json!({ "sessionId": pipeline_id, "nodeId": "a", "status": "completed", "conclusion": "done [[pipeline]]" })).expect("complete");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": pipeline_id, "delete": true })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": pipeline_id, "delete": true })
+        )
+        .is_ok()
+    );
 }
 
 #[test]
@@ -246,7 +250,8 @@ fn e2e_04_diamond_dag_with_all_4_node_types_end_to_end() {
 }
 
 #[test]
-#[ignore] // BUG: delete-from-completed-state — has_remaining_work() guard blocks terminal pipeline deletion
+#[ignore]
+// BUG: delete-from-completed-state — has_remaining_work() guard blocks terminal pipeline deletion
 #[serial(config)]
 fn e2e_05_complete_graft_dispatch_complete_fork_rewind_delete() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
@@ -283,11 +288,13 @@ fn e2e_05_complete_graft_dispatch_complete_fork_rewind_delete() {
         &json!({ "sessionId": "pipeline-e2e-05", "rewind": { "nodeIds": ["a"] } }),
     )
     .expect("rewind");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-e2e-05-fork", "delete": true })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-e2e-05-fork", "delete": true })
+        )
+        .is_ok()
+    );
 }
 
 #[test]
@@ -335,18 +342,26 @@ fn e2e_06_complete_two_pipelines_join_delete_merged() {
     set_pipeline_status(&context, "pipeline-e2e-06-a", "completed");
     set_pipeline_status(&context, "pipeline-e2e-06-b", "completed");
     pipeline(&context, &json!({ "sessionId": "pipeline-e2e-06-a", "join": { "sourceSessionId": "pipeline-e2e-06-b", "edges": [json!({"source":"a","target":"b"})] } })).expect("join");
-    let view_result = pipeline(&context, &json!({
-        "sessionId": "pipeline-e2e-06-a", "view": true
-    }))
+    let view_result = pipeline(
+        &context,
+        &json!({
+            "sessionId": "pipeline-e2e-06-a", "view": true
+        }),
+    )
     .expect("view merged");
     let view_data: Value = serde_json::from_str(&view_result).expect("parse");
     let nodes = view_data["data"]["nodes"].as_array().expect("nodes array");
-    assert!(nodes.len() > 1, "join should merge nodes from source pipeline");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-e2e-06-a", "delete": true })
-    )
-    .is_ok());
+    assert!(
+        nodes.len() > 1,
+        "join should merge nodes from source pipeline"
+    );
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-e2e-06-a", "delete": true })
+        )
+        .is_ok()
+    );
 }
 
 #[test]
@@ -393,11 +408,13 @@ fn e2e_08_node_exhausts_retries_stuck_rewind_complete() {
         )]),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-e2e-08", "nodeId": "a", "restart": true })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-e2e-08", "nodeId": "a", "restart": true })
+        )
+        .is_err()
+    );
     pipeline(
         &context,
         &json!({ "sessionId": "pipeline-e2e-08", "rewind": { "nodeIds": ["a"] } }),
@@ -412,7 +429,8 @@ fn e2e_08_node_exhausts_retries_stuck_rewind_complete() {
 }
 
 #[test]
-#[ignore] // BUG: delete-from-completed-state — has_remaining_work() guard blocks terminal pipeline deletion
+#[ignore]
+// BUG: delete-from-completed-state — has_remaining_work() guard blocks terminal pipeline deletion
 #[serial(config)]
 fn e2e_09_graft_join_fork_rewind_delete_chain() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
@@ -464,11 +482,13 @@ fn e2e_09_graft_join_fork_rewind_delete_chain() {
         &json!({ "sessionId": "pipeline-e2e-09-a", "rewind": { "nodeIds": ["a"] } }),
     )
     .expect("rewind");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-e2e-09-fork", "delete": true })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-e2e-09-fork", "delete": true })
+        )
+        .is_ok()
+    );
 }
 
 #[test]

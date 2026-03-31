@@ -1,5 +1,5 @@
 use super::support::{integer_property, object_schema, string_array_property, string_property};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 pub(super) fn pipeline_node_schema() -> Value {
     json!({

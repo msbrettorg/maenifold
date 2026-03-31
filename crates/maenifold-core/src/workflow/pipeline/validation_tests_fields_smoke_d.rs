@@ -1,7 +1,7 @@
 use super::handler::pipeline;
 use super::test_support::*;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 
 fn view_node(node: Value) -> Value {
@@ -142,11 +142,15 @@ fn test_smoke_nc03_tool_args_complex_nested_object_preserved() {
             "tags": ["a", "b"]
         }
     });
-    assert_view_field(node, "toolArgs", json!({
-        "identifier": "memory://test",
-        "options": { "depth": 3, "includeContent": true },
-        "tags": ["a", "b"]
-    }));
+    assert_view_field(
+        node,
+        "toolArgs",
+        json!({
+            "identifier": "memory://test",
+            "options": { "depth": 3, "includeContent": true },
+            "tags": ["a", "b"]
+        }),
+    );
 }
 
 #[test]

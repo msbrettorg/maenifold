@@ -32,7 +32,10 @@ fn pause_after_run(p: &mut PipelineHarness, id: &str) -> Value {
             return PipelineHarness::parse_data(result);
         }
         let text = PipelineHarness::extract_text(result);
-        assert!(text.contains("isn't running"), "unexpected pause error: {text}");
+        assert!(
+            text.contains("isn't running"),
+            "unexpected pause error: {text}"
+        );
         sleep(Duration::from_millis(50));
     }
     panic!("pipeline never became pausable");
@@ -52,7 +55,10 @@ fn tc_8_01_restart_abandoned_node() {
     let after = node(&restarted, "A");
     assert_eq!(after["status"], "pending");
     assert_eq!(after["attempts"], 1);
-    assert_ne!(after["sessionId"], before, "restart must allocate a fresh sessionId");
+    assert_ne!(
+        after["sessionId"], before,
+        "restart must allocate a fresh sessionId"
+    );
 }
 
 // Spec TC-8.4.
@@ -222,7 +228,10 @@ fn tc_8_09_prompt_node_with_all_optional_fields() {
     assert_eq!(n["thoughtLevel"], "high");
     assert_eq!(n["maxTurns"], 7);
     assert_eq!(n["toolMode"], "auto");
-    assert_eq!(n["agentConfig"], json!({ "model": "config-level-model", "mode": "interactive" }));
+    assert_eq!(
+        n["agentConfig"],
+        json!({ "model": "config-level-model", "mode": "interactive" })
+    );
 }
 
 // Spec TC-8.11.

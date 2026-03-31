@@ -1,7 +1,7 @@
 use crate::mcp::schema::mcp_tool_from_registry_name;
 use crate::registry::ToolRegistry;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 use std::collections::HashMap;
 
@@ -192,10 +192,12 @@ fn pipeline_list_and_learn_smoke_empty_then_seeded_sessions() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
     let empty = pipeline(&context, &json!({ "list": true })).expect("empty list");
     let empty_response: Value = serde_json::from_str(&empty).expect("parse empty list");
-    assert!(empty_response["data"]["pipelines"]
-        .as_array()
-        .expect("pipelines")
-        .is_empty());
+    assert!(
+        empty_response["data"]["pipelines"]
+            .as_array()
+            .expect("pipelines")
+            .is_empty()
+    );
 
     let completed_states = HashMap::from([(
         "root".to_string(),
@@ -226,10 +228,12 @@ fn pipeline_list_and_learn_smoke_empty_then_seeded_sessions() {
 
     let learn = pipeline(&context, &json!({ "learn": true })).expect("learn output");
     let learn_response: Value = serde_json::from_str(&learn).expect("parse learn response");
-    assert!(learn_response["data"]
-        .as_str()
-        .expect("help")
-        .contains("claim ready nodes for execution"));
+    assert!(
+        learn_response["data"]
+            .as_str()
+            .expect("help")
+            .contains("claim ready nodes for execution")
+    );
 }
 
 #[test]

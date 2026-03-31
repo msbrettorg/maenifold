@@ -34,8 +34,14 @@ fn complete_chain(p: &mut PipelineHarness, sid: &str, nodes: &[&str]) {
 
 /// Build a linear chain definition: A→B→C→...
 fn linear_chain(ids: &[&str]) -> Value {
-    let nodes: Vec<Value> = ids.iter().map(|id| PipelineHarness::tool_node(id)).collect();
-    let edges: Vec<Value> = ids.windows(2).map(|w| PipelineHarness::edge(w[0], w[1])).collect();
+    let nodes: Vec<Value> = ids
+        .iter()
+        .map(|id| PipelineHarness::tool_node(id))
+        .collect();
+    let edges: Vec<Value> = ids
+        .windows(2)
+        .map(|w| PipelineHarness::edge(w[0], w[1]))
+        .collect();
     json!({ "nodes": nodes, "edges": edges })
 }
 
@@ -83,10 +89,13 @@ fn tc_7_03_rewind_root_resets_everything() {
 #[test]
 fn tc_7_04_rewind_resets_attempts_counter() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let sid = create_id(&mut p, json!({
-        "nodes": [PipelineHarness::tool_node("A")],
-        "edges": []
-    }));
+    let sid = create_id(
+        &mut p,
+        json!({
+            "nodes": [PipelineHarness::tool_node("A")],
+            "edges": []
+        }),
+    );
 
     // Dispatch and abandon → attempts=1
     p.dispatch(&sid);
@@ -105,10 +114,13 @@ fn tc_7_04_rewind_resets_attempts_counter() {
 #[test]
 fn tc_7_05_rewind_clears_output() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let sid = create_id(&mut p, json!({
-        "nodes": [PipelineHarness::tool_node("A")],
-        "edges": []
-    }));
+    let sid = create_id(
+        &mut p,
+        json!({
+            "nodes": [PipelineHarness::tool_node("A")],
+            "edges": []
+        }),
+    );
 
     p.dispatch(&sid);
     p.complete(&sid, "A", "my-output");
@@ -119,8 +131,7 @@ fn tc_7_05_rewind_clears_output() {
     let v = p.view(&sid);
     assert_eq!(status(&v, "A"), "pending");
     assert!(
-        node(&v, "A")["output"].is_null()
-            || node(&v, "A")["output"].as_str() == Some(""),
+        node(&v, "A")["output"].is_null() || node(&v, "A")["output"].as_str() == Some(""),
         "output should be null or empty after rewind"
     );
 }
@@ -128,10 +139,13 @@ fn tc_7_05_rewind_clears_output() {
 #[test]
 fn tc_7_06_rewind_allocates_new_session_id() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let sid = create_id(&mut p, json!({
-        "nodes": [PipelineHarness::tool_node("A")],
-        "edges": []
-    }));
+    let sid = create_id(
+        &mut p,
+        json!({
+            "nodes": [PipelineHarness::tool_node("A")],
+            "edges": []
+        }),
+    );
 
     let v_before = p.view(&sid);
     let session_before = node(&v_before, "A")["sessionId"]
@@ -157,17 +171,20 @@ fn tc_7_06_rewind_allocates_new_session_id() {
 fn tc_7_07_rewind_multiple_nodes_simultaneously() {
     let (_tmp, mut p) = PipelineHarness::new();
     // A→C, B→C (two roots, one sink)
-    let sid = create_id(&mut p, json!({
-        "nodes": [
-            PipelineHarness::tool_node("A"),
-            PipelineHarness::tool_node("B"),
-            PipelineHarness::tool_node("C"),
-        ],
-        "edges": [
-            PipelineHarness::edge("A", "C"),
-            PipelineHarness::edge("B", "C"),
-        ]
-    }));
+    let sid = create_id(
+        &mut p,
+        json!({
+            "nodes": [
+                PipelineHarness::tool_node("A"),
+                PipelineHarness::tool_node("B"),
+                PipelineHarness::tool_node("C"),
+            ],
+            "edges": [
+                PipelineHarness::edge("A", "C"),
+                PipelineHarness::edge("B", "C"),
+            ]
+        }),
+    );
 
     // Complete A and B (both roots ready), then C
     p.dispatch(&sid);
@@ -187,20 +204,23 @@ fn tc_7_07_rewind_multiple_nodes_simultaneously() {
 fn tc_7_08_rewind_diamond_partial_reset() {
     let (_tmp, mut p) = PipelineHarness::new();
     // Diamond: A→B, A→C, B→D, C→D
-    let sid = create_id(&mut p, json!({
-        "nodes": [
-            PipelineHarness::tool_node("A"),
-            PipelineHarness::tool_node("B"),
-            PipelineHarness::tool_node("C"),
-            PipelineHarness::tool_node("D"),
-        ],
-        "edges": [
-            PipelineHarness::edge("A", "B"),
-            PipelineHarness::edge("A", "C"),
-            PipelineHarness::edge("B", "D"),
-            PipelineHarness::edge("C", "D"),
-        ]
-    }));
+    let sid = create_id(
+        &mut p,
+        json!({
+            "nodes": [
+                PipelineHarness::tool_node("A"),
+                PipelineHarness::tool_node("B"),
+                PipelineHarness::tool_node("C"),
+                PipelineHarness::tool_node("D"),
+            ],
+            "edges": [
+                PipelineHarness::edge("A", "B"),
+                PipelineHarness::edge("A", "C"),
+                PipelineHarness::edge("B", "D"),
+                PipelineHarness::edge("C", "D"),
+            ]
+        }),
+    );
 
     // Complete A, then B and C in parallel, then D
     p.dispatch(&sid);
@@ -242,8 +262,7 @@ fn tc_7_09_rewind_preserves_upstream_state() {
     assert_eq!(node(&v, "B")["output"], "outB");
     assert_eq!(status(&v, "C"), "pending");
     assert!(
-        node(&v, "C")["output"].is_null()
-            || node(&v, "C")["output"].as_str() == Some(""),
+        node(&v, "C")["output"].is_null() || node(&v, "C")["output"].as_str() == Some(""),
         "C output should be cleared"
     );
 }
@@ -251,10 +270,13 @@ fn tc_7_09_rewind_preserves_upstream_state() {
 #[test]
 fn tc_7_10_validation_rewind_nonexistent_node() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let sid = create_id(&mut p, json!({
-        "nodes": [PipelineHarness::tool_node("A")],
-        "edges": []
-    }));
+    let sid = create_id(
+        &mut p,
+        json!({
+            "nodes": [PipelineHarness::tool_node("A")],
+            "edges": []
+        }),
+    );
 
     let err = p.rewind_err(&sid, json!({ "nodeIds": ["nonexistent"] }));
     assert!(

@@ -32,7 +32,10 @@ fn drain_and_delete(p: &mut PipelineHarness, pipeline_id: &str) {
             continue;
         }
 
-        if view["ready"].as_array().is_some_and(|ready| !ready.is_empty()) {
+        if view["ready"]
+            .as_array()
+            .is_some_and(|ready| !ready.is_empty())
+        {
             p.dispatch(pipeline_id);
             continue;
         }

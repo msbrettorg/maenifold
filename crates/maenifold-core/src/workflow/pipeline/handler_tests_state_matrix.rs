@@ -5,7 +5,7 @@ use super::supervisor_test_support::reset_supervisor;
 use super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
 use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 use std::collections::HashMap;
 
@@ -61,11 +61,13 @@ fn stm_02_delete_from_stuck_state() {
         one("a", NodeStatus::Stuck),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-02", "delete": true })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-02", "delete": true })
+        )
+        .is_ok()
+    );
 }
 #[test]
 #[serial(config)]
@@ -81,11 +83,13 @@ fn stm_03_delete_from_all_abandoned_state() {
         one("a", NodeStatus::Abandoned),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-03", "delete": true })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-03", "delete": true })
+        )
+        .is_ok()
+    );
 }
 #[test]
 #[serial(config)]
@@ -101,11 +105,13 @@ fn stm_04_delete_from_active_state_rejected() {
         one("a", NodeStatus::Active),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-04", "delete": true })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-04", "delete": true })
+        )
+        .is_err()
+    );
 }
 #[test]
 #[serial(config)]
@@ -121,11 +127,13 @@ fn stm_05_delete_from_pending_state_rejected() {
         one("a", NodeStatus::Pending),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-05", "delete": true })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-05", "delete": true })
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -226,11 +234,13 @@ fn stm_11_rewind_completed_node() {
         one("a", NodeStatus::Completed),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-11", "rewind": { "nodeIds": ["a"] } })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-11", "rewind": { "nodeIds": ["a"] } })
+        )
+        .is_ok()
+    );
 }
 #[test]
 #[serial(config)]
@@ -246,11 +256,13 @@ fn stm_12_rewind_abandoned_node() {
         one("a", NodeStatus::Abandoned),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-12", "rewind": { "nodeIds": ["a"] } })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-12", "rewind": { "nodeIds": ["a"] } })
+        )
+        .is_ok()
+    );
 }
 #[test]
 #[serial(config)]
@@ -266,11 +278,13 @@ fn stm_13_rewind_stuck_node() {
         one("a", NodeStatus::Stuck),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-13", "rewind": { "nodeIds": ["a"] } })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-13", "rewind": { "nodeIds": ["a"] } })
+        )
+        .is_ok()
+    );
 }
 
 #[test]
@@ -287,11 +301,13 @@ fn stm_14_restart_completed_node_rejected() {
         one("a", NodeStatus::Completed),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-14", "nodeId": "a", "restart": true })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-14", "nodeId": "a", "restart": true })
+        )
+        .is_err()
+    );
 }
 #[test]
 #[serial(config)]
@@ -307,11 +323,13 @@ fn stm_15_restart_pending_node_rejected() {
         one("a", NodeStatus::Pending),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-15", "nodeId": "a", "restart": true })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-15", "nodeId": "a", "restart": true })
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -512,11 +530,13 @@ fn stm_26_delete_paused_pipeline_with_no_remaining_work() {
         1,
     );
     set_pipeline_status(&context, "pipeline-stm-26", "paused");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-26", "delete": true })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-26", "delete": true })
+        )
+        .is_ok()
+    );
 }
 #[test]
 #[serial(config)]
@@ -533,11 +553,13 @@ fn stm_27_delete_paused_pipeline_with_remaining_work() {
         1,
     );
     set_pipeline_status(&context, "pipeline-stm-27", "paused");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-27", "delete": true })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-27", "delete": true })
+        )
+        .is_err()
+    );
 }
 #[test]
 #[serial(config)]
@@ -554,11 +576,13 @@ fn stm_28_delete_cancelled_pipeline() {
         1,
     );
     set_pipeline_status(&context, "pipeline-stm-28", "cancelled");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-28", "delete": true })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-28", "delete": true })
+        )
+        .is_ok()
+    );
 }
 
 #[test]
@@ -578,11 +602,13 @@ fn stm_29_pause_already_paused_pipeline() {
     );
     supervisor_spawn_test_task("pipeline-stm-29").expect("spawn");
     set_pipeline_status(&context, "pipeline-stm-29", "paused");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-29", "pause": true })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-29", "pause": true })
+        )
+        .is_ok()
+    );
 }
 
 #[test]
@@ -600,11 +626,13 @@ fn stm_30_resume_completed_pipeline() {
         1,
     );
     set_pipeline_status(&context, "pipeline-stm-30", "completed");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-30", "resume": true })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-30", "resume": true })
+        )
+        .is_err()
+    );
 }
 #[test]
 #[serial(config)]
@@ -621,11 +649,13 @@ fn stm_31_cancel_completed_pipeline() {
         1,
     );
     set_pipeline_status(&context, "pipeline-stm-31", "completed");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-31", "cancel": true })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-31", "cancel": true })
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -645,11 +675,13 @@ fn stm_32_cancel_paused_pipeline() {
     );
     supervisor_spawn_test_task("pipeline-stm-32").expect("spawn");
     set_pipeline_status(&context, "pipeline-stm-32", "paused");
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-32", "cancel": true })
-    )
-    .is_ok());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-32", "cancel": true })
+        )
+        .is_ok()
+    );
 }
 
 #[test]
@@ -698,11 +730,13 @@ fn stm_35_abandon_a_pending_node() {
         one("a", NodeStatus::Pending),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-35", "nodeId": "a", "status": "abandoned" })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-35", "nodeId": "a", "status": "abandoned" })
+        )
+        .is_err()
+    );
 }
 #[test]
 #[serial(config)]
@@ -718,11 +752,13 @@ fn stm_36_abandon_an_already_abandoned_node() {
         one("a", NodeStatus::Abandoned),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-36", "nodeId": "a", "status": "abandoned" })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-36", "nodeId": "a", "status": "abandoned" })
+        )
+        .is_err()
+    );
 }
 #[test]
 #[serial(config)]
@@ -738,9 +774,11 @@ fn stm_37_restart_an_active_node() {
         one("a", NodeStatus::Active),
         1,
     );
-    assert!(pipeline(
-        &context,
-        &json!({ "sessionId": "pipeline-stm-37", "nodeId": "a", "restart": true })
-    )
-    .is_err());
+    assert!(
+        pipeline(
+            &context,
+            &json!({ "sessionId": "pipeline-stm-37", "nodeId": "a", "restart": true })
+        )
+        .is_err()
+    );
 }

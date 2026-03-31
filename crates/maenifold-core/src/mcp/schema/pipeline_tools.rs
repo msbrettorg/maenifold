@@ -4,7 +4,7 @@ use super::support::{
     string_property, tool_definition,
 };
 use crate::mcp::McpToolDefinition;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     let tool = match registry_name {

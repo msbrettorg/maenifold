@@ -1,7 +1,7 @@
 use super::handler::pipeline;
 use super::test_support::*;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 
 fn view_node(node: Value) -> Value {
@@ -117,8 +117,7 @@ fn test_smoke_nf07_workflow_prompt_absent_defaults_null() {
 #[serial(config)]
 fn test_smoke_nf08_workflow_timeout_present_positive() {
     assert_eq!(
-        view_node(json!({ "id": "wf-timeout", "workflowId": "test-workflow-a", "timeout": 30 }))
-            ["timeout"],
+        view_node(json!({ "id": "wf-timeout", "workflowId": "test-workflow-a", "timeout": 30 }))["timeout"],
         30
     );
 }

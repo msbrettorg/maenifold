@@ -6,7 +6,7 @@ use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, P
 use crate::markdown::read_markdown;
 use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 use std::collections::HashMap;
 

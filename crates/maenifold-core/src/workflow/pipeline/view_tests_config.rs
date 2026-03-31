@@ -78,7 +78,8 @@ fn pipeline_view_includes_node_config_fields_for_all_supported_variants() {
     });
 
     let create_output = pipeline(&context, &payload).expect("create pipeline");
-    let create_response: Value = serde_json::from_str(&create_output).expect("parse create response");
+    let create_response: Value =
+        serde_json::from_str(&create_output).expect("parse create response");
     let pipeline_id = create_response["data"]["pipelineId"]
         .as_str()
         .expect("pipeline id");
@@ -144,7 +145,10 @@ fn pipeline_view_includes_node_config_fields_for_all_supported_variants() {
         .expect("tool node");
     assert_eq!(tool_node["model"], "gpt-5.2");
     assert_eq!(tool_node["thoughtLevel"], "low");
-    assert_eq!(tool_node["allowedTools"], json!(["ReadMemory", "ListMemories"]));
+    assert_eq!(
+        tool_node["allowedTools"],
+        json!(["ReadMemory", "ListMemories"])
+    );
     assert_eq!(tool_node["maxTurns"], 3);
     assert_eq!(
         tool_node["agentConfig"],

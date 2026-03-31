@@ -3,7 +3,7 @@ use super::supervisor::supervisor_is_running;
 use super::supervisor_test_support::{reset_supervisor, wait_for};
 use super::test_support::*;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 
 fn tool(id: &str) -> Value {
@@ -21,7 +21,10 @@ fn create_and_get_id(
     )
     .expect("create");
     let parsed: Value = serde_json::from_str(&result).expect("parse");
-    parsed["data"]["pipelineId"].as_str().expect("id").to_string()
+    parsed["data"]["pipelineId"]
+        .as_str()
+        .expect("id")
+        .to_string()
 }
 
 fn run_to_completion(context: &crate::tools::ToolContext, id: &str) {

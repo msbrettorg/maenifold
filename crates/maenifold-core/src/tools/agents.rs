@@ -132,10 +132,16 @@ mod tests {
         let agent = &agents.as_array().expect("array output")[0];
 
         assert_eq!(agent.get("name"), Some(&json!("TestAgent")));
-        assert_eq!(agent.get("command"), Some(&json!(command.display().to_string())));
+        assert_eq!(
+            agent.get("command"),
+            Some(&json!(command.display().to_string()))
+        );
         assert_eq!(agent.get("args"), Some(&json!(["serve", "--acp"])));
         assert_eq!(
-            agent.get("mcp_servers").and_then(Value::as_array).map(Vec::len),
+            agent
+                .get("mcp_servers")
+                .and_then(Value::as_array)
+                .map(Vec::len),
             Some(1)
         );
     }

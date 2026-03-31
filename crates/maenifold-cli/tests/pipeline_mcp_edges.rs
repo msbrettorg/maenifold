@@ -45,7 +45,10 @@ fn delete_ok(p: &mut PipelineHarness, session_id: &str) {
 #[test]
 fn tc_3_01_success_edge_completed_predecessor_unblocks_downstream() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let created = p.create(definition(&["a", "b"], vec![PipelineHarness::edge("a", "b")]));
+    let created = p.create(definition(
+        &["a", "b"],
+        vec![PipelineHarness::edge("a", "b")],
+    ));
     let id = PipelineHarness::id(&created);
     assert_ready(&created, &["a"]);
     p.dispatch(&id);
@@ -62,11 +65,19 @@ fn tc_3_01_success_edge_completed_predecessor_unblocks_downstream() {
 #[test]
 fn tc_3_02_success_edge_abandoned_predecessor_blocks_downstream() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let created = p.create(definition(&["a", "b"], vec![PipelineHarness::edge("a", "b")]));
+    let created = p.create(definition(
+        &["a", "b"],
+        vec![PipelineHarness::edge("a", "b")],
+    ));
     let id = PipelineHarness::id(&created);
     p.dispatch(&id);
     p.abandon(&id, "a");
-    assert!(p.dispatch(&id)["dispatched"].as_array().expect("dispatched").is_empty());
+    assert!(
+        p.dispatch(&id)["dispatched"]
+            .as_array()
+            .expect("dispatched")
+            .is_empty()
+    );
     let view = p.view(&id);
     assert_eq!(node_status(&view, "b"), "pending");
     assert!(!PipelineHarness::is_ready(&view, "b"));
@@ -81,7 +92,10 @@ fn tc_3_02_success_edge_abandoned_predecessor_blocks_downstream() {
 #[test]
 fn tc_3_03_always_edge_completed_predecessor_unblocks_downstream() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let created = p.create(definition(&["a", "b"], vec![PipelineHarness::always_edge("a", "b")]));
+    let created = p.create(definition(
+        &["a", "b"],
+        vec![PipelineHarness::always_edge("a", "b")],
+    ));
     let id = PipelineHarness::id(&created);
     p.dispatch(&id);
     p.complete(&id, "a", "done");
@@ -94,7 +108,10 @@ fn tc_3_03_always_edge_completed_predecessor_unblocks_downstream() {
 #[test]
 fn tc_3_04_always_edge_abandoned_predecessor_still_unblocks() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let created = p.create(definition(&["a", "b"], vec![PipelineHarness::always_edge("a", "b")]));
+    let created = p.create(definition(
+        &["a", "b"],
+        vec![PipelineHarness::always_edge("a", "b")],
+    ));
     let id = PipelineHarness::id(&created);
     p.dispatch(&id);
     p.abandon(&id, "a");
@@ -165,7 +182,10 @@ fn tc_3_07_chain_with_abandoned_middle_downstream_blocked_on_success() {
     let (_tmp, mut p) = PipelineHarness::new();
     let created = p.create(definition(
         &["a", "b", "c"],
-        vec![PipelineHarness::edge("a", "b"), PipelineHarness::edge("b", "c")],
+        vec![
+            PipelineHarness::edge("a", "b"),
+            PipelineHarness::edge("b", "c"),
+        ],
     ));
     let id = PipelineHarness::id(&created);
     p.dispatch(&id);
@@ -187,7 +207,10 @@ fn tc_3_07_chain_with_abandoned_middle_downstream_blocked_on_success() {
 #[test]
 fn tc_3_08_default_edge_type_is_success() {
     let (_tmp, mut p) = PipelineHarness::new();
-    let created = p.create(definition(&["a", "b"], vec![PipelineHarness::bare_edge("a", "b")]));
+    let created = p.create(definition(
+        &["a", "b"],
+        vec![PipelineHarness::bare_edge("a", "b")],
+    ));
     let id = PipelineHarness::id(&created);
     p.dispatch(&id);
     p.abandon(&id, "a");

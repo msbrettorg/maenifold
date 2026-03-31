@@ -3,7 +3,7 @@ use super::supervisor::supervisor_is_running;
 use super::supervisor_test_support::{reset_supervisor, wait_for};
 use super::test_support::*;
 use crate::util::json::OutputFormat;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serial_test::serial;
 
 fn tool(id: &str, tool_name: &str) -> Value {
@@ -85,9 +85,11 @@ fn e2e_two_tool_nodes_in_chain() {
     assert_eq!(data["status"], "completed");
     assert_eq!(node(&data, "a")["status"], "completed");
     assert_eq!(node(&data, "b")["status"], "completed");
-    assert!(node(&data, "b")["output"]
-        .as_str()
-        .is_some_and(|output| !output.is_empty()));
+    assert!(
+        node(&data, "b")["output"]
+            .as_str()
+            .is_some_and(|output| !output.is_empty())
+    );
 }
 
 #[test]

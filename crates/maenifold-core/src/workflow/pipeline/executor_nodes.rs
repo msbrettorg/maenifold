@@ -18,19 +18,38 @@ pub(super) use super::executor_run::{NodeOutcome, NodeTaskResult, classify_node_
 
 #[derive(Debug)]
 pub(super) enum NodeExecutionRequest {
-    Workflow { workflow_id: String, prompt: String, timeout_seconds: Option<u64> },
-    Prompt { session_id: String, prompt: String, tool_mode: String, session_opts: SessionOpts },
+    Workflow {
+        workflow_id: String,
+        prompt: String,
+        timeout_seconds: Option<u64>,
+    },
+    Prompt {
+        session_id: String,
+        prompt: String,
+        tool_mode: String,
+        session_opts: SessionOpts,
+    },
     SequentialThinking {
         node_session_id: String,
         topic: String,
         total_thoughts: u32,
         session_opts: SessionOpts,
     },
-    Tool { tool_name: String, tool_args: Option<JsonValue> },
+    Tool {
+        tool_name: String,
+        tool_args: Option<JsonValue>,
+    },
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn build_node_execution_request(context: &ToolContext, definition: &PipelineDefinition, node_states: &HashMap<String, NodeState>, node: &PipelineNode, dispatch: &DispatchedNode, ambient_prompt: &str) -> Result<NodeExecutionRequest> {
+pub(super) fn build_node_execution_request(
+    context: &ToolContext,
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+    node: &PipelineNode,
+    dispatch: &DispatchedNode,
+    ambient_prompt: &str,
+) -> Result<NodeExecutionRequest> {
     Ok(match node {
         PipelineNode::Workflow {
             workflow_id,
@@ -100,7 +119,11 @@ pub(super) fn build_node_execution_request(context: &ToolContext, definition: &P
     })
 }
 
-fn node_session_id(node_states: &HashMap<String, NodeState>, node_id: &str, dispatch: &DispatchedNode) -> String {
+fn node_session_id(
+    node_states: &HashMap<String, NodeState>,
+    node_id: &str,
+    dispatch: &DispatchedNode,
+) -> String {
     dispatch.session_id.clone().unwrap_or_else(|| {
         node_states
             .get(node_id)
@@ -109,7 +132,16 @@ fn node_session_id(node_states: &HashMap<String, NodeState>, node_id: &str, disp
     })
 }
 
-fn merged_session_opts(context: &ToolContext, _node_id: &str, agent_config: Option<&AgentConfig>, model: &Option<String>, thought_level: &Option<String>, allowed_tools: &Option<Vec<String>>, max_turns: Option<u32>, timeout_seconds: Option<u64>) -> SessionOpts {
+fn merged_session_opts(
+    context: &ToolContext,
+    _node_id: &str,
+    agent_config: Option<&AgentConfig>,
+    model: &Option<String>,
+    thought_level: &Option<String>,
+    allowed_tools: &Option<Vec<String>>,
+    max_turns: Option<u32>,
+    timeout_seconds: Option<u64>,
+) -> SessionOpts {
     SessionOpts {
         cwd: context.config.maenifold_root.clone(),
         model: model
@@ -127,7 +159,13 @@ fn merged_session_opts(context: &ToolContext, _node_id: &str, agent_config: Opti
     }
 }
 
-pub(super) async fn execute_node_request(context: ToolContext, node_id: String, execution: NodeExecutionRequest, agent: Option<String>, pool: Arc<AgentPool>) -> (String, NodeTaskResult) {
+pub(super) async fn execute_node_request(
+    context: ToolContext,
+    node_id: String,
+    execution: NodeExecutionRequest,
+    agent: Option<String>,
+    pool: Arc<AgentPool>,
+) -> (String, NodeTaskResult) {
     let result = match execution {
         NodeExecutionRequest::Workflow {
             workflow_id,

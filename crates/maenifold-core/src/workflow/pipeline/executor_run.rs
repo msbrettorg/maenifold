@@ -20,7 +20,10 @@ pub(super) enum NodeTaskResult {
 }
 
 pub(super) enum NodeOutcome {
-    Completed { conclusion: String, thinking_session_id: Option<String> },
+    Completed {
+        conclusion: String,
+        thinking_session_id: Option<String>,
+    },
     Abandoned,
 }
 
@@ -48,9 +51,7 @@ fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult
                 NodeOutcome::Abandoned
             }
             WorkflowRunStatus::Cancelled => {
-                eprintln!(
-                    "[pipeline] node {node_id} workflow was cancelled, marking abandoned"
-                );
+                eprintln!("[pipeline] node {node_id} workflow was cancelled, marking abandoned");
                 NodeOutcome::Abandoned
             }
         },

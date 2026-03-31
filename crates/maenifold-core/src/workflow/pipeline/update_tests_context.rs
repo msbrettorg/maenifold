@@ -19,7 +19,7 @@ fn predecessor_context_replaces_existing_section_with_all_completed_upstreams() 
             PipelineNode::Workflow {
                 id: "root-a".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -27,7 +27,7 @@ fn predecessor_context_replaces_existing_section_with_all_completed_upstreams() 
             PipelineNode::Workflow {
                 id: "root-b".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -35,7 +35,7 @@ fn predecessor_context_replaces_existing_section_with_all_completed_upstreams() 
             PipelineNode::Workflow {
                 id: "child".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -162,7 +162,7 @@ fn predecessor_context_prefers_node_output_before_workflow_last() {
             PipelineNode::Workflow {
                 id: "root-a".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -170,7 +170,7 @@ fn predecessor_context_prefers_node_output_before_workflow_last() {
             PipelineNode::Workflow {
                 id: "root-b".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -178,7 +178,7 @@ fn predecessor_context_prefers_node_output_before_workflow_last() {
             PipelineNode::Workflow {
                 id: "child".to_string(),
                 workflow_id: "test-workflow-c".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,

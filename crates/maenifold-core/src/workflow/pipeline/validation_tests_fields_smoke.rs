@@ -50,7 +50,9 @@ fn assert_error_contains(node: Value, parts: &[&str]) {
 #[serial(config)]
 fn test_smoke_nf01_workflow_valid_id() {
     assert_eq!(
-        view_node(json!({ "id": "wf-valid", "workflowId": "test-workflow-a" }))["workflowId"],
+        view_node(
+            json!({ "id": "wf-valid", "workflowId": "test-workflow-a", "acpClient": "workflow-agent" })
+        )["workflowId"],
         "test-workflow-a"
     );
 }
@@ -59,7 +61,7 @@ fn test_smoke_nf01_workflow_valid_id() {
 #[serial(config)]
 fn test_smoke_nf02_workflow_nonexistent_id() {
     assert_error_contains(
-        json!({ "id": "wf-missing", "workflowId": "missing-workflow" }),
+        json!({ "id": "wf-missing", "workflowId": "missing-workflow", "acpClient": "workflow-agent" }),
         &["Workflow 'missing-workflow' not found"],
     );
 }
@@ -68,7 +70,7 @@ fn test_smoke_nf02_workflow_nonexistent_id() {
 #[serial(config)]
 fn test_smoke_nf03_workflow_empty_id() {
     assert_error_contains(
-        json!({ "id": "wf-empty", "workflowId": "" }),
+        json!({ "id": "wf-empty", "workflowId": "", "acpClient": "workflow-agent" }),
         &["wf-empty", "workflowId", "must not be empty"],
     );
 }
@@ -86,10 +88,10 @@ fn test_smoke_nf04_workflow_acp_client_present() {
 
 #[test]
 #[serial(config)]
-fn test_smoke_nf05_workflow_acp_client_absent_defaults_null() {
-    assert_eq!(
-        view_node(json!({ "id": "wf-no-agent", "workflowId": "test-workflow-a" }))["agent"],
-        Value::Null
+fn test_smoke_nf05_workflow_acp_client_absent_rejected() {
+    assert_error_contains(
+        json!({ "id": "wf-no-agent", "workflowId": "test-workflow-a" }),
+        &["wf-no-agent", "acpClient"],
     );
 }
 
@@ -98,7 +100,7 @@ fn test_smoke_nf05_workflow_acp_client_absent_defaults_null() {
 fn test_smoke_nf06_workflow_prompt_present() {
     assert_eq!(
         view_node(
-            json!({ "id": "wf-prompt", "workflowId": "test-workflow-a", "prompt": "Summarize upstream output" })
+            json!({ "id": "wf-prompt", "workflowId": "test-workflow-a", "acpClient": "workflow-agent", "prompt": "Summarize upstream output" })
         )["prompt"],
         "Summarize upstream output"
     );
@@ -108,7 +110,9 @@ fn test_smoke_nf06_workflow_prompt_present() {
 #[serial(config)]
 fn test_smoke_nf07_workflow_prompt_absent_defaults_null() {
     assert_eq!(
-        view_node(json!({ "id": "wf-no-prompt", "workflowId": "test-workflow-a" }))["prompt"],
+        view_node(
+            json!({ "id": "wf-no-prompt", "workflowId": "test-workflow-a", "acpClient": "workflow-agent" })
+        )["prompt"],
         Value::Null
     );
 }
@@ -117,7 +121,9 @@ fn test_smoke_nf07_workflow_prompt_absent_defaults_null() {
 #[serial(config)]
 fn test_smoke_nf08_workflow_timeout_present_positive() {
     assert_eq!(
-        view_node(json!({ "id": "wf-timeout", "workflowId": "test-workflow-a", "timeout": 30 }))["timeout"],
+        view_node(
+            json!({ "id": "wf-timeout", "workflowId": "test-workflow-a", "acpClient": "workflow-agent", "timeout": 30 })
+        )["timeout"],
         30
     );
 }
@@ -126,7 +132,9 @@ fn test_smoke_nf08_workflow_timeout_present_positive() {
 #[serial(config)]
 fn test_smoke_nf09_workflow_timeout_absent_defaults_null() {
     assert_eq!(
-        view_node(json!({ "id": "wf-timeout-null", "workflowId": "test-workflow-a" }))["timeout"],
+        view_node(
+            json!({ "id": "wf-timeout-null", "workflowId": "test-workflow-a", "acpClient": "workflow-agent" })
+        )["timeout"],
         Value::Null
     );
 }
@@ -139,6 +147,7 @@ fn test_smoke_nf10_workflow_timeout_zero() {
     let message = create_error(json!({
         "id": "wf-timeout-zero",
         "workflowId": "test-workflow-a",
+        "acpClient": "workflow-agent",
         "timeout": 0
     }));
     assert!(
@@ -152,7 +161,7 @@ fn test_smoke_nf10_workflow_timeout_zero() {
 #[serial(config)]
 fn test_smoke_nf11_workflow_timeout_negative() {
     assert_error_contains(
-        json!({ "id": "wf-timeout-neg", "workflowId": "test-workflow-a", "timeout": -1 }),
+        json!({ "id": "wf-timeout-neg", "workflowId": "test-workflow-a", "acpClient": "workflow-agent", "timeout": -1 }),
         &["JSON error", "u64"],
     );
 }
@@ -200,6 +209,15 @@ fn test_smoke_nf15_prompt_agent_empty_string() {
     assert_error_contains(
         json!({ "id": "prompt-no-agent", "type": "prompt", "prompt": "Hello", "agent": "" }),
         &["prompt-no-agent", "agent", "must not be empty"],
+    );
+}
+
+#[test]
+#[serial(config)]
+fn test_smoke_nf15b_prompt_agent_absent_rejected() {
+    assert_error_contains(
+        json!({ "id": "prompt-missing-agent", "type": "prompt", "prompt": "Hello" }),
+        &["prompt-missing-agent", "missing 'agent' field"],
     );
 }
 

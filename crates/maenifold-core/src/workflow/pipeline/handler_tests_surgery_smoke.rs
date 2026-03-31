@@ -15,7 +15,7 @@ fn wf(id: &str, workflow_id: &str) -> PipelineNode {
     PipelineNode::Workflow {
         id: id.into(),
         workflow_id: workflow_id.into(),
-        acp_client: None,
+        acp_client: Some("workflow-agent".to_string()),
         prompt: None,
         timeout: None,
     }

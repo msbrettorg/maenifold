@@ -28,7 +28,9 @@ fn pipeline_create_smoke_nid01_nid02_nid03_accepts_common_node_id_formats() {
     for node_id in ["alpha1", "node-1_alpha", "release.v1.2"] {
         let response = create_response(
             &context,
-            payload(json!({ "id": node_id, "workflowId": "test-workflow-a" })),
+            payload(
+                json!({ "id": node_id, "workflowId": "test-workflow-a", "acpClient": "agent-node" }),
+            ),
         );
         let node = response["data"]["nodes"]
             .as_array()
@@ -52,7 +54,9 @@ fn pipeline_create_smoke_nid06_accepts_node_id_with_spaces() {
     let node_id = "node with spaces";
     let response = create_response(
         &context,
-        payload(json!({ "id": node_id, "workflowId": "test-workflow-a" })),
+        payload(
+            json!({ "id": node_id, "workflowId": "test-workflow-a", "acpClient": "agent-node" }),
+        ),
     );
 
     assert_eq!(response["data"]["ready"], json!([node_id]));
@@ -65,7 +69,7 @@ fn pipeline_create_smoke_nid08_rejects_absent_node_id() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
     let error = create_error(
         &context,
-        payload(json!({ "workflowId": "test-workflow-a" })),
+        payload(json!({ "workflowId": "test-workflow-a", "acpClient": "agent-node" })),
     );
 
     assert!(
@@ -82,7 +86,7 @@ fn pipeline_create_smoke_nid04_rejects_empty_node_id() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
     let error = create_error(
         &context,
-        payload(json!({ "id": "", "workflowId": "test-workflow-a" })),
+        payload(json!({ "id": "", "workflowId": "test-workflow-a", "acpClient": "agent-node" })),
     );
     assert!(error.contains("id"), "unexpected error: {error}");
 }
@@ -96,7 +100,9 @@ fn pipeline_create_smoke_nid05_rejects_very_long_node_id_gracefully() {
     let node_id = "n".repeat(1000);
     let error = create_error(
         &context,
-        payload(json!({ "id": node_id, "workflowId": "test-workflow-a" })),
+        payload(
+            json!({ "id": node_id, "workflowId": "test-workflow-a", "acpClient": "agent-node" }),
+        ),
     );
 
     assert!(

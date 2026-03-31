@@ -4,17 +4,14 @@ use super::test_support::{
     pipeline_test_context, seed_dispatch_pipeline, seed_pipeline_session_with_workflows,
 };
 use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
-use crate::markdown::read_markdown;
-use crate::sessions::pipeline_session_uri;
 use crate::util::json::OutputFormat;
 use serde_json::{Value, json};
-use serde_yaml::Value as YamlValue;
 use serial_test::serial;
 use std::collections::HashMap;
 
 // NOTE: duplicated across param_smoke files for test isolation
 fn solo_definition() -> Value {
-    json!({ "nodes": [{ "id": "solo", "workflowId": "test-workflow-a" }], "edges": [] })
+    json!({ "nodes": [{ "id": "solo", "workflowId": "test-workflow-a", "acpClient": "agent-solo" }], "edges": [] })
 }
 
 // NOTE: duplicated across param_smoke files for test isolation
@@ -82,7 +79,7 @@ fn one_node_definition(id: &str, workflow_id: &str) -> PipelineDefinition {
         nodes: vec![PipelineNode::Workflow {
             id: id.to_string(),
             workflow_id: workflow_id.to_string(),
-            acp_client: None,
+            acp_client: Some(format!("agent-{id}")),
             prompt: None,
             timeout: None,
         }],

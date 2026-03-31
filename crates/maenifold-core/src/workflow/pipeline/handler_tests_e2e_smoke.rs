@@ -14,7 +14,7 @@ fn wf(id: &str, workflow_id: &str) -> PipelineNode {
     PipelineNode::Workflow {
         id: id.to_string(),
         workflow_id: workflow_id.to_string(),
-        acp_client: None,
+        acp_client: Some("workflow-agent".to_string()),
         prompt: None,
         timeout: None,
     }
@@ -89,7 +89,7 @@ fn pipeline_id(output: &str) -> String {
 #[serial(config)]
 fn e2e_01_create_dispatch_complete_all_delete() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
-    let created = pipeline(&context, &json!({ "definition": { "nodes": [json!({"id":"a","workflowId":"test-workflow-a"}), json!({"id":"b","workflowId":"test-workflow-b"})], "edges": [json!({"source":"a","target":"b"})] } })).expect("create");
+    let created = pipeline(&context, &json!({ "definition": { "nodes": [json!({"id":"a","workflowId":"test-workflow-a","acpClient":"agent-a"}), json!({"id":"b","workflowId":"test-workflow-b","acpClient":"agent-b"})], "edges": [json!({"source":"a","target":"b"})] } })).expect("create");
     let pipeline_id = pipeline_id(&created);
     pipeline(
         &context,
@@ -116,7 +116,7 @@ fn e2e_01_create_dispatch_complete_all_delete() {
 #[serial(config)]
 fn e2e_02_create_dispatch_abandon_restart_complete_delete() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
-    let created = pipeline(&context, &json!({ "definition": { "nodes": [json!({"id":"a","workflowId":"test-workflow-a"})], "edges": [] } })).expect("create");
+    let created = pipeline(&context, &json!({ "definition": { "nodes": [json!({"id":"a","workflowId":"test-workflow-a","acpClient":"agent-a"})], "edges": [] } })).expect("create");
     let pipeline_id = pipeline_id(&created);
     pipeline(
         &context,
@@ -275,7 +275,7 @@ fn e2e_05_complete_graft_dispatch_complete_fork_rewind_delete() {
         1,
     );
     set_pipeline_status(&context, "pipeline-e2e-05", "completed");
-    pipeline(&context, &json!({ "sessionId": "pipeline-e2e-05", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b"})], "edges": [json!({"source":"a","target":"b"})] } })).expect("graft");
+    pipeline(&context, &json!({ "sessionId": "pipeline-e2e-05", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b","acpClient":"agent-b"})], "edges": [json!({"source":"a","target":"b"})] } })).expect("graft");
     pipeline(
         &context,
         &json!({ "sessionId": "pipeline-e2e-05", "dispatch": true }),
@@ -368,7 +368,7 @@ fn e2e_06_complete_two_pipelines_join_delete_merged() {
 #[serial(config)]
 fn e2e_07_linear_chain_with_always_edges_first_node_abandoned() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
-    let created = pipeline(&context, &json!({ "definition": { "nodes": [json!({"id":"a","workflowId":"test-workflow-a"}), json!({"id":"b","workflowId":"test-workflow-b"})], "edges": [json!({"source":"a","target":"b","type":"always"})] } })).expect("create");
+    let created = pipeline(&context, &json!({ "definition": { "nodes": [json!({"id":"a","workflowId":"test-workflow-a","acpClient":"agent-a"}), json!({"id":"b","workflowId":"test-workflow-b","acpClient":"agent-b"})], "edges": [json!({"source":"a","target":"b","type":"always"})] } })).expect("create");
     let pipeline_id = pipeline_id(&created);
     pipeline(
         &context,
@@ -474,7 +474,7 @@ fn e2e_09_graft_join_fork_rewind_delete_chain() {
     );
     set_pipeline_status(&context, "pipeline-e2e-09-a", "completed");
     set_pipeline_status(&context, "pipeline-e2e-09-b", "completed");
-    pipeline(&context, &json!({ "sessionId": "pipeline-e2e-09-a", "graft": { "nodes": [json!({"id":"c","workflowId":"test-workflow-a"})], "edges": [json!({"source":"a","target":"c"})] } })).expect("graft");
+    pipeline(&context, &json!({ "sessionId": "pipeline-e2e-09-a", "graft": { "nodes": [json!({"id":"c","workflowId":"test-workflow-a","acpClient":"agent-c"})], "edges": [json!({"source":"a","target":"c"})] } })).expect("graft");
     pipeline(&context, &json!({ "sessionId": "pipeline-e2e-09-a", "join": { "sourceSessionId": "pipeline-e2e-09-b", "edges": [json!({"source":"c","target":"b"})] } })).expect("join");
     pipeline(&context, &json!({ "sessionId": "pipeline-e2e-09-a", "fork": { "fromNodeId": "c", "newSessionId": "pipeline-e2e-09-fork" } })).expect("fork");
     pipeline(

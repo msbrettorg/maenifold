@@ -10,7 +10,7 @@ use serial_test::serial;
 
 // NOTE: duplicated across param_smoke files for test isolation
 fn solo_definition() -> Value {
-    json!({ "nodes": [{ "id": "solo", "workflowId": "test-workflow-a" }], "edges": [] })
+    json!({ "nodes": [{ "id": "solo", "workflowId": "test-workflow-a", "acpClient": "agent-solo" }], "edges": [] })
 }
 
 fn create_pipeline_id(context: &ToolContext) -> String {

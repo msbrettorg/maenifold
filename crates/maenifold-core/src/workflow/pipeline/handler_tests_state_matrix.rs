@@ -18,7 +18,7 @@ fn wf(id: &str) -> PipelineNode {
             "test-workflow-a"
         }
         .to_string(),
-        acp_client: None,
+        acp_client: Some("workflow-agent".to_string()),
         prompt: None,
         timeout: None,
     }
@@ -151,7 +151,7 @@ fn stm_06_graft_onto_completed_pipeline() {
         1,
     );
     set_pipeline_status(&context, "pipeline-stm-06", "completed");
-    assert!(pipeline(&context, &json!({ "sessionId": "pipeline-stm-06", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b"})], "edges": [json!({"source":"a","target":"b"})] } })).is_ok());
+    assert!(pipeline(&context, &json!({ "sessionId": "pipeline-stm-06", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b","acpClient":"agent-b"})], "edges": [json!({"source":"a","target":"b"})] } })).is_ok());
 }
 #[test]
 #[serial(config)]
@@ -168,7 +168,7 @@ fn stm_07_graft_onto_stuck_pipeline() {
         1,
     );
     set_pipeline_status(&context, "pipeline-stm-07", "stuck");
-    assert!(pipeline(&context, &json!({ "sessionId": "pipeline-stm-07", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b"})], "edges": [json!({"source":"a","target":"b"})] } })).is_ok());
+    assert!(pipeline(&context, &json!({ "sessionId": "pipeline-stm-07", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b","acpClient":"agent-b"})], "edges": [json!({"source":"a","target":"b"})] } })).is_ok());
 }
 #[test]
 #[serial(config)]
@@ -185,7 +185,7 @@ fn stm_08_graft_onto_paused_pipeline() {
         1,
     );
     set_pipeline_status(&context, "pipeline-stm-08", "paused");
-    assert!(pipeline(&context, &json!({ "sessionId": "pipeline-stm-08", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b"})], "edges": [json!({"source":"a","target":"b"})] } })).is_ok());
+    assert!(pipeline(&context, &json!({ "sessionId": "pipeline-stm-08", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b","acpClient":"agent-b"})], "edges": [json!({"source":"a","target":"b"})] } })).is_ok());
 }
 #[test]
 #[serial(config)]
@@ -201,7 +201,7 @@ fn stm_09_graft_onto_active_pipeline_rejected() {
         one("a", NodeStatus::Active),
         1,
     );
-    assert!(pipeline(&context, &json!({ "sessionId": "pipeline-stm-09", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b"})], "edges": [json!({"source":"a","target":"b"})] } })).is_err());
+    assert!(pipeline(&context, &json!({ "sessionId": "pipeline-stm-09", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b","acpClient":"agent-b"})], "edges": [json!({"source":"a","target":"b"})] } })).is_err());
 }
 #[test]
 #[serial(config)]
@@ -217,7 +217,7 @@ fn stm_10_graft_onto_pending_pipeline_rejected() {
         one("a", NodeStatus::Pending),
         1,
     );
-    assert!(pipeline(&context, &json!({ "sessionId": "pipeline-stm-10", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b"})], "edges": [json!({"source":"a","target":"b"})] } })).is_err());
+    assert!(pipeline(&context, &json!({ "sessionId": "pipeline-stm-10", "graft": { "nodes": [json!({"id":"b","workflowId":"test-workflow-b","acpClient":"agent-b"})], "edges": [json!({"source":"a","target":"b"})] } })).is_err());
 }
 
 #[test]

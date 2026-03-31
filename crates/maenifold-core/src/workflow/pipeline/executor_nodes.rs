@@ -171,9 +171,8 @@ pub(super) async fn execute_node_request(
             workflow_id,
             prompt,
             timeout_seconds,
-        } => {
-            let agent = agent.as_deref().expect("agent required for workflow nodes");
-            NodeTaskResult::Workflow(
+        } => match agent.as_deref() {
+            Some(agent) => NodeTaskResult::Workflow(
                 runner::run_workflow_with_pool(
                     &context,
                     &workflow_id,
@@ -183,16 +182,18 @@ pub(super) async fn execute_node_request(
                     pool.clone(),
                 )
                 .await,
-            )
-        }
+            ),
+            None => {
+                NodeTaskResult::Workflow(Err(missing_agent_configuration(&node_id, "workflow")))
+            }
+        },
         NodeExecutionRequest::Prompt {
             session_id,
             prompt,
             tool_mode,
             session_opts,
-        } => {
-            let agent = agent.as_deref().expect("agent required for prompt nodes");
-            NodeTaskResult::Prompt(
+        } => match agent.as_deref() {
+            Some(agent) => NodeTaskResult::Prompt(
                 run_prompt_node(
                     &context,
                     pool.as_ref(),
@@ -203,16 +204,16 @@ pub(super) async fn execute_node_request(
                     session_opts,
                 )
                 .await,
-            )
-        }
+            ),
+            None => NodeTaskResult::Prompt(Err(missing_agent_configuration(&node_id, "prompt"))),
+        },
         NodeExecutionRequest::SequentialThinking {
             node_session_id,
             topic,
             total_thoughts,
             session_opts,
-        } => {
-            let agent = agent.as_deref().expect("agent required for thinking nodes");
-            NodeTaskResult::SequentialThinking(
+        } => match agent.as_deref() {
+            Some(agent) => NodeTaskResult::SequentialThinking(
                 runner::run_think_with_pool(
                     &context,
                     agent,
@@ -225,8 +226,12 @@ pub(super) async fn execute_node_request(
                     pool,
                 )
                 .await,
-            )
-        }
+            ),
+            None => NodeTaskResult::SequentialThinking(Err(missing_agent_configuration(
+                &node_id,
+                "sequentialThinking",
+            ))),
+        },
         NodeExecutionRequest::Tool {
             tool_name,
             tool_args,
@@ -234,4 +239,10 @@ pub(super) async fn execute_node_request(
     };
 
     (node_id, result)
+}
+
+fn missing_agent_configuration(node_id: &str, node_type: &str) -> crate::error::MaenifoldError {
+    crate::error::MaenifoldError::Message(format!(
+        "ERROR: Pipeline node '{node_id}' of type '{node_type}' is missing required agent configuration"
+    ))
 }

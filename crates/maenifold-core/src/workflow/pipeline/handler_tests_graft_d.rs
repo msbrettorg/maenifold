@@ -39,7 +39,7 @@ fn pipeline_graft_pending_pipeline_rejects_remaining_work() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "tail", "workflowId": "test-workflow-a" }
+                    { "id": "tail", "workflowId": "test-workflow-a", "acpClient": "agent-tail" }
                 ],
                 "edges": [
                     { "source": "child", "target": "tail" }
@@ -64,7 +64,7 @@ fn pipeline_graft_duplicate_node_id_wins_over_missing_workflow_definition() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -91,7 +91,7 @@ fn pipeline_graft_duplicate_node_id_wins_over_missing_workflow_definition() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "root", "workflowId": "missing-workflow" }
+                    { "id": "root", "workflowId": "missing-workflow", "acpClient": "agent-root" }
                 ],
                 "edges": []
             }
@@ -115,7 +115,7 @@ fn pipeline_graft_persists_pipeline_only_after_new_workflow_sessions_exist() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -151,7 +151,7 @@ fn pipeline_graft_persists_pipeline_only_after_new_workflow_sessions_exist() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "child", "workflowId": "test-workflow-b" }
+                    { "id": "child", "workflowId": "test-workflow-b", "acpClient": "agent-child" }
                 ],
                 "edges": [
                     { "source": "root", "target": "child" }

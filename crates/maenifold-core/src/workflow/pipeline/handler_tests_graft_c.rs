@@ -12,7 +12,7 @@ fn pipeline_graft_completed_dependency_is_immediately_ready() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -39,7 +39,7 @@ fn pipeline_graft_completed_dependency_is_immediately_ready() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "downstream", "workflowId": "test-workflow-b" }
+                    { "id": "downstream", "workflowId": "test-workflow-b", "acpClient": "agent-downstream" }
                 ],
                 "edges": [
                     { "source": "root", "target": "downstream" }
@@ -69,7 +69,7 @@ fn pipeline_graft_rejects_running_pipeline() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -96,7 +96,7 @@ fn pipeline_graft_rejects_running_pipeline() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "child", "workflowId": "test-workflow-b" }
+                    { "id": "child", "workflowId": "test-workflow-b", "acpClient": "agent-child" }
                 ],
                 "edges": [
                     { "source": "root", "target": "child" }
@@ -128,7 +128,7 @@ fn pipeline_graft_paused_pipeline_is_allowed_and_preserves_status() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -155,7 +155,7 @@ fn pipeline_graft_paused_pipeline_is_allowed_and_preserves_status() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "child", "workflowId": "test-workflow-b" }
+                    { "id": "child", "workflowId": "test-workflow-b", "acpClient": "agent-child" }
                 ],
                 "edges": [
                     { "source": "root", "target": "child" }
@@ -186,7 +186,7 @@ fn pipeline_graft_stuck_pipeline_is_allowed() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -213,7 +213,7 @@ fn pipeline_graft_stuck_pipeline_is_allowed() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "recovery", "workflowId": "test-workflow-b" }
+                    { "id": "recovery", "workflowId": "test-workflow-b", "acpClient": "agent-recovery" }
                 ],
                 "edges": [
                     { "source": "root", "target": "recovery", "type": "always" }

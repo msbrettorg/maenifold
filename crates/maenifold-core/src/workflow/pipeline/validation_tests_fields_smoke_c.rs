@@ -90,6 +90,15 @@ fn test_smoke_nf39_thinking_agent_empty_string() {
 
 #[test]
 #[serial(config)]
+fn test_smoke_nf39b_thinking_agent_absent_rejected() {
+    assert_error_contains(
+        json!({ "id": "think-agent-missing", "type": "sequentialThinking", "topic": "Review execution path" }),
+        &["think-agent-missing", "missing 'agent' field"],
+    );
+}
+
+#[test]
+#[serial(config)]
 fn test_smoke_nf40_thinking_total_thoughts_minimum() {
     assert_view_field(
         json!({ "id": "think-min", "type": "sequentialThinking", "topic": "Review execution path", "agent": "think-agent", "totalThoughts": 1 }),

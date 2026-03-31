@@ -23,9 +23,15 @@ fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
             ..
         } => {
             validate_non_empty_node_field(id, "workflowId", workflow_id)?;
-            if let Some(agent) = acp_client {
-                validate_non_empty_node_field(id, "agent", agent)?;
-            }
+            validate_non_empty_node_field(
+                id,
+                "acpClient",
+                acp_client.as_deref().ok_or_else(|| {
+                    MaenifoldError::InvalidArgument(format!(
+                        "Pipeline node '{id}' field 'acpClient' is required"
+                    ))
+                })?,
+            )?;
             Ok(())
         }
         PipelineNode::Prompt {

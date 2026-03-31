@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 // NOTE: duplicated across param_smoke files for test isolation
 fn solo_definition() -> Value {
-    json!({ "nodes": [{ "id": "solo", "workflowId": "test-workflow-a" }], "edges": [] })
+    json!({ "nodes": [{ "id": "solo", "workflowId": "test-workflow-a", "acpClient": "agent-solo" }], "edges": [] })
 }
 
 // NOTE: duplicated across param_smoke files for test isolation

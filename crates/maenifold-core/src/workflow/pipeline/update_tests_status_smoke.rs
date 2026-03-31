@@ -20,7 +20,7 @@ fn response_data(output: String) -> Value { serde_json::from_str::<Value>(&outpu
 
 #[rustfmt::skip]
 fn workflow_node(id: &str, workflow_id: &str) -> PipelineNode {
-    PipelineNode::Workflow { id: id.to_string(), workflow_id: workflow_id.to_string(), acp_client: None, prompt: None, timeout: None }
+    PipelineNode::Workflow { id: id.to_string(), workflow_id: workflow_id.to_string(), acp_client: Some("workflow-agent".to_string()), prompt: None, timeout: None }
 }
 
 #[rustfmt::skip]
@@ -67,7 +67,7 @@ fn s03_s16_long_conclusion_is_truncated_to_4096_chars() {
 fn s04_s05_abandon_blocks_success_downstream() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
     let view = response_data(pipeline(&context, &json!({"definition":{"nodes":[
-        {"id":"root","workflowId":"test-workflow-a"},{"id":"child","workflowId":"test-workflow-b"}],
+        {"id":"root","workflowId":"test-workflow-a","acpClient":"agent-root"},{"id":"child","workflowId":"test-workflow-b","acpClient":"agent-child"}],
         "edges":[{"source":"root","target":"child","type":"success"}]}})).expect("create"));
     let id = view["pipelineId"].as_str().expect("id").to_string();
     let dispatch = response_data(pipeline(&context, &json!({"sessionId":id,"dispatch":true})).expect("dispatch"));

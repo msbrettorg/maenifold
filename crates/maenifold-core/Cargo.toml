@@ -122,3 +122,7 @@ path = "tests/frontmatter_tests.rs"
 [[test]]
 name = "misc_tests"
 path = "tests/misc_tests.rs"
+
+[[test]]
+name = "http_session_restart_tests"
+path = "tests/http_session_restart_tests.rs"

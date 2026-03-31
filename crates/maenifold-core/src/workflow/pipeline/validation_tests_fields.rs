@@ -7,13 +7,25 @@ fn validate_pipeline_rejects_invalid_type_specific_fields() {
         (
             PipelineNode::Workflow {
                 id: "workflow-node".to_string(),
-                workflow_id: "   ".to_string(),
+                workflow_id: "workflow-a".to_string(),
                 acp_client: None,
                 prompt: None,
 
                 timeout: None,
             },
             "workflow-node",
+            "acpClient",
+        ),
+        (
+            PipelineNode::Workflow {
+                id: "workflow-id-node".to_string(),
+                workflow_id: "   ".to_string(),
+                acp_client: Some("workflow-agent".to_string()),
+                prompt: None,
+
+                timeout: None,
+            },
+            "workflow-id-node",
             "workflowId",
         ),
         (

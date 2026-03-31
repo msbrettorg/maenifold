@@ -17,7 +17,7 @@ fn payload_with_max(nodes: Vec<Value>, edges: Vec<Value>, max_concurrency: Value
 }
 
 fn workflow_node(id: &str, workflow_id: &str) -> Value {
-    json!({ "id": id, "workflowId": workflow_id })
+    json!({ "id": id, "workflowId": workflow_id, "acpClient": format!("agent-{id}") })
 }
 
 fn create_error(context: &ToolContext, payload: Value) -> String {
@@ -125,6 +125,41 @@ fn pipeline_create_smoke_c18_rejects_prompt_node_with_empty_agent() {
         error.contains("prompt") && error.contains("agent"),
         "unexpected error: {error}"
     );
+}
+
+#[test]
+#[serial(config)]
+fn pipeline_create_rejects_missing_execution_target_configuration() {
+    let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
+
+    for (node, node_id, field) in [
+        (
+            json!({ "id": "workflow", "workflowId": "test-workflow-a" }),
+            "workflow",
+            "acpClient",
+        ),
+        (
+            json!({ "id": "prompt", "type": "prompt", "prompt": "Summarize" }),
+            "prompt",
+            "agent",
+        ),
+        (
+            json!({
+                "id": "thinking",
+                "type": "sequentialThinking",
+                "topic": "Review output",
+                "totalThoughts": 2
+            }),
+            "thinking",
+            "agent",
+        ),
+    ] {
+        let error = create_error(&context, payload(vec![node], vec![]));
+        assert!(
+            error.contains(node_id) && error.contains(field),
+            "unexpected error: {error}"
+        );
+    }
 }
 
 #[test]

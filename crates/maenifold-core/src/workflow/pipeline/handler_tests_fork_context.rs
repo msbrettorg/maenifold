@@ -18,7 +18,7 @@ fn pipeline_fork_inherits_predecessor_context() {
                 super::super::PipelineNode::Workflow {
                     id: "A".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -26,7 +26,7 @@ fn pipeline_fork_inherits_predecessor_context() {
                 super::super::PipelineNode::Workflow {
                     id: "B".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -34,7 +34,7 @@ fn pipeline_fork_inherits_predecessor_context() {
                 super::super::PipelineNode::Workflow {
                     id: "C".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,

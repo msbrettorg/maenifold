@@ -7,7 +7,7 @@ fn pipeline_create_persists_pipeline_and_workflow_sessions() {
     let payload = json!({
         "definition": {
             "nodes": [
-                { "id": "root", "workflowId": "test-workflow-a" },
+                { "id": "root", "workflowId": "test-workflow-a", "acpClient": "agent-root" },
                 { "id": "child", "workflowId": "test-workflow-b", "acpClient": "agent-b" }
             ],
             "edges": [
@@ -196,7 +196,7 @@ fn pipeline_create_accepts_mixed_node_types() {
     let payload = json!({
         "definition": {
             "nodes": [
-                { "id": "root", "workflowId": "test-workflow-a" },
+                { "id": "root", "workflowId": "test-workflow-a", "acpClient": "agent-root" },
                 {
                     "id": "prompt",
                     "type": "prompt",

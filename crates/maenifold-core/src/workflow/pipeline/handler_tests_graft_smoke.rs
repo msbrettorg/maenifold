@@ -16,7 +16,7 @@ fn wf(id: &str, workflow_id: &str) -> PipelineNode {
     PipelineNode::Workflow {
         id: id.into(),
         workflow_id: workflow_id.into(),
-        acp_client: None,
+        acp_client: Some("workflow-agent".to_string()),
         prompt: None,
         timeout: None,
     }
@@ -89,7 +89,7 @@ fn g_01_graft_single_node_onto_completed_pipeline() {
     );
     let d = data(
         &c,
-        json!({"sessionId": id, "graft": {"nodes":[{"id":"child","workflowId":"test-workflow-b"}],"edges":[{"source":"root","target":"child"}]}}),
+        json!({"sessionId": id, "graft": {"nodes":[{"id":"child","workflowId":"test-workflow-b","acpClient":"agent-child"}],"edges":[{"source":"root","target":"child"}]}}),
     );
     assert_eq!(d["ready"], json!(["child"]));
     assert_eq!(read(&c, id).0.nodes.len(), 2);
@@ -111,7 +111,7 @@ fn g_02_graft_multiple_nodes_with_edges() {
     );
     let d = data(
         &c,
-        json!({"sessionId": id, "graft": {"nodes":[{"id":"a","workflowId":"test-workflow-b"},{"id":"b","workflowId":"test-workflow-a"}],"edges":[{"source":"root","target":"a"},{"source":"a","target":"b"}]}}),
+        json!({"sessionId": id, "graft": {"nodes":[{"id":"a","workflowId":"test-workflow-b","acpClient":"agent-a"},{"id":"b","workflowId":"test-workflow-a","acpClient":"agent-b"}],"edges":[{"source":"root","target":"a"},{"source":"a","target":"b"}]}}),
     );
     assert_eq!(d["ready"], json!(["a"]));
     assert_eq!(read(&c, id).0.edges.len(), 2);
@@ -133,7 +133,7 @@ fn g_03_graft_onto_paused_pipeline_preserves_paused_status() {
     );
     data(
         &c,
-        json!({"sessionId": id, "graft": {"nodes":[{"id":"child","workflowId":"test-workflow-b"}],"edges":[{"source":"root","target":"child"}]}}),
+        json!({"sessionId": id, "graft": {"nodes":[{"id":"child","workflowId":"test-workflow-b","acpClient":"agent-child"}],"edges":[{"source":"root","target":"child"}]}}),
     );
     assert_eq!(read(&c, id).2, "paused");
 }
@@ -154,7 +154,7 @@ fn g_04_graft_onto_stuck_pipeline_is_allowed() {
     );
     let d = data(
         &c,
-        json!({"sessionId": id, "graft": {"nodes":[{"id":"recovery","workflowId":"test-workflow-b"}],"edges":[{"source":"root","target":"recovery","type":"always"}]}}),
+        json!({"sessionId": id, "graft": {"nodes":[{"id":"recovery","workflowId":"test-workflow-b","acpClient":"agent-recovery"}],"edges":[{"source":"root","target":"recovery","type":"always"}]}}),
     );
     assert_eq!(d["nodes"].as_array().expect("nodes").len(), 2);
 }
@@ -175,7 +175,7 @@ fn g_05_graft_all_four_node_types() {
     );
     let d = data(
         &c,
-        json!({"sessionId": id, "graft": {"nodes":[{"id":"flow","workflowId":"test-workflow-b"},{"id":"prompt","type":"prompt","prompt":"Summarize","agent":"agent-a"},{"id":"think","type":"sequentialThinking","topic":"Review","totalThoughts":2,"agent":"agent-b"},{"id":"tool","type":"tool","toolName":"GetConfig","agent":"agent-c"}],"edges":[{"source":"root","target":"flow"},{"source":"flow","target":"prompt"},{"source":"prompt","target":"think"},{"source":"think","target":"tool"}]}}),
+        json!({"sessionId": id, "graft": {"nodes":[{"id":"flow","workflowId":"test-workflow-b","acpClient":"agent-flow"},{"id":"prompt","type":"prompt","prompt":"Summarize","agent":"agent-a"},{"id":"think","type":"sequentialThinking","topic":"Review","totalThoughts":2,"agent":"agent-b"},{"id":"tool","type":"tool","toolName":"GetConfig","agent":"agent-c"}],"edges":[{"source":"root","target":"flow"},{"source":"flow","target":"prompt"},{"source":"prompt","target":"think"},{"source":"think","target":"tool"}]}}),
     );
     assert_eq!(d["nodes"].as_array().expect("nodes").len(), 5);
 }
@@ -197,7 +197,7 @@ fn g_06_graft_completed_dependency_is_immediately_ready() {
     assert_eq!(
         data(
             &c,
-            json!({"sessionId": id, "graft": {"nodes":[{"id":"downstream","workflowId":"test-workflow-b"}],"edges":[{"source":"root","target":"downstream"}]}})
+            json!({"sessionId": id, "graft": {"nodes":[{"id":"downstream","workflowId":"test-workflow-b","acpClient":"agent-downstream"}],"edges":[{"source":"root","target":"downstream"}]}})
         )["ready"],
         json!(["downstream"])
     );
@@ -217,7 +217,7 @@ fn g_07_graft_rejected_on_running_pipeline() {
         HashMap::from([state(id, "root", NodeStatus::Active)]),
         "active",
     );
-    assert!(pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"x","workflowId":"test-workflow-b"}],"edges":[]}})).expect_err("err").to_string().contains("running pipelines"));
+    assert!(pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"x","workflowId":"test-workflow-b","acpClient":"agent-x"}],"edges":[]}})).expect_err("err").to_string().contains("running pipelines"));
 }
 #[test]
 #[serial(config)]
@@ -234,7 +234,7 @@ fn g_08_graft_rejected_on_active_pipeline_with_pending_node() {
         HashMap::from([state(id, "root", NodeStatus::Pending)]),
         "active",
     );
-    assert!(pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"x","workflowId":"test-workflow-b"}],"edges":[]}})).expect_err("err").to_string().contains("running pipelines"));
+    assert!(pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"x","workflowId":"test-workflow-b","acpClient":"agent-x"}],"edges":[]}})).expect_err("err").to_string().contains("running pipelines"));
 }
 #[test]
 #[serial(config)]
@@ -251,7 +251,7 @@ fn g_09_graft_with_duplicate_node_id_rejected() {
         HashMap::from([state(id, "root", NodeStatus::Completed)]),
         "completed",
     );
-    assert!(pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"root","workflowId":"test-workflow-b"}],"edges":[]}})).expect_err("err").to_string().contains("duplicate node ID"));
+    assert!(pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"root","workflowId":"test-workflow-b","acpClient":"agent-root"}],"edges":[]}})).expect_err("err").to_string().contains("duplicate node ID"));
 }
 #[test]
 #[serial(config)]
@@ -274,7 +274,7 @@ fn g_10_graft_creating_cycle_rejected() {
         ]),
         "completed",
     );
-    assert!(pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"loop","workflowId":"test-workflow-a"}],"edges":[{"source":"child","target":"loop"},{"source":"loop","target":"root"}]}})).expect_err("err").to_string().contains("cycle"));
+    assert!(pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"loop","workflowId":"test-workflow-a","acpClient":"agent-loop"}],"edges":[{"source":"child","target":"loop"},{"source":"loop","target":"root"}]}})).expect_err("err").to_string().contains("cycle"));
 }
 #[test]
 #[serial(config)]
@@ -291,7 +291,7 @@ fn g_11_graft_edge_referencing_unknown_node_rejected() {
         HashMap::from([state(id, "root", NodeStatus::Completed)]),
         "completed",
     );
-    assert!(pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"child","workflowId":"test-workflow-b"}],"edges":[{"source":"ghost","target":"child"}]}})).expect_err("err").to_string().contains("unknown source node"));
+    assert!(pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"child","workflowId":"test-workflow-b","acpClient":"agent-child"}],"edges":[{"source":"ghost","target":"child"}]}})).expect_err("err").to_string().contains("unknown source node"));
 }
 #[test]
 #[serial(config)]
@@ -308,7 +308,7 @@ fn g_12_graft_failure_is_atomic() {
         HashMap::from([state(id, "root", NodeStatus::Completed)]),
         "completed",
     );
-    let _ = pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"fresh","workflowId":"test-workflow-b"},{"id":"root","workflowId":"test-workflow-a"}],"edges":[]}})).expect_err("err");
+    let _ = pipeline(&c, &json!({"sessionId": id, "graft": {"nodes":[{"id":"fresh","workflowId":"test-workflow-b","acpClient":"agent-fresh"},{"id":"root","workflowId":"test-workflow-a","acpClient":"agent-root"}],"edges":[]}})).expect_err("err");
     let (_, states, _) = read(&c, id);
     assert_eq!(states.len(), 1);
     assert!(!states.contains_key("fresh"));
@@ -331,7 +331,7 @@ fn g_13_graft_with_zero_new_edges_allows_disconnected_node() {
     assert_eq!(
         data(
             &c,
-            json!({"sessionId": id, "graft": {"nodes":[{"id":"solo","workflowId":"test-workflow-b"}],"edges":[]}})
+            json!({"sessionId": id, "graft": {"nodes":[{"id":"solo","workflowId":"test-workflow-b","acpClient":"agent-solo"}],"edges":[]}})
         )["ready"],
         json!(["solo"])
     );
@@ -353,7 +353,7 @@ fn g_14_graft_backward_edge_new_to_existing_is_allowed() {
     );
     let d = data(
         &c,
-        json!({"sessionId": id, "graft": {"nodes":[{"id":"prep","workflowId":"test-workflow-b"}],"edges":[{"source":"prep","target":"root"}]}}),
+        json!({"sessionId": id, "graft": {"nodes":[{"id":"prep","workflowId":"test-workflow-b","acpClient":"agent-prep"}],"edges":[{"source":"prep","target":"root"}]}}),
     );
     assert_eq!(d["ready"], json!(["prep"]));
 }
@@ -374,7 +374,7 @@ fn g_15_double_graft_succeeds_sequentially() {
     );
     data(
         &c,
-        json!({"sessionId": id, "graft": {"nodes":[{"id":"a","workflowId":"test-workflow-b"}],"edges":[{"source":"root","target":"a"}]}}),
+        json!({"sessionId": id, "graft": {"nodes":[{"id":"a","workflowId":"test-workflow-b","acpClient":"agent-a"}],"edges":[{"source":"root","target":"a"}]}}),
     );
     data(&c, json!({"sessionId": id, "dispatch": true}));
     data(
@@ -383,7 +383,7 @@ fn g_15_double_graft_succeeds_sequentially() {
     );
     let d = data(
         &c,
-        json!({"sessionId": id, "graft": {"nodes":[{"id":"b","workflowId":"test-workflow-a"}],"edges":[{"source":"a","target":"b"}]}}),
+        json!({"sessionId": id, "graft": {"nodes":[{"id":"b","workflowId":"test-workflow-a","acpClient":"agent-b"}],"edges":[{"source":"a","target":"b"}]}}),
     );
     assert_eq!(d["ready"], json!(["b"]));
     assert_eq!(read(&c, id).0.nodes.len(), 3);

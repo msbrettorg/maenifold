@@ -13,7 +13,7 @@ fn pipeline_graft_rejects_cycles_without_mutation() {
                 super::super::PipelineNode::Workflow {
                     id: "a".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -21,7 +21,7 @@ fn pipeline_graft_rejects_cycles_without_mutation() {
                 super::super::PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -66,7 +66,7 @@ fn pipeline_graft_rejects_cycles_without_mutation() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "c", "workflowId": "test-workflow-a" }
+                    { "id": "c", "workflowId": "test-workflow-a", "acpClient": "agent-c" }
                 ],
                 "edges": [
                     { "source": "b", "target": "c" },
@@ -110,7 +110,7 @@ fn pipeline_graft_rejects_duplicate_node_ids() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -137,7 +137,7 @@ fn pipeline_graft_rejects_duplicate_node_ids() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "root", "workflowId": "test-workflow-b" }
+                    { "id": "root", "workflowId": "test-workflow-b", "acpClient": "agent-root" }
                 ],
                 "edges": []
             }

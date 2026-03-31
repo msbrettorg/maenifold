@@ -6,7 +6,7 @@ pub(super) fn sample_definition() -> PipelineDefinition {
             PipelineNode::Workflow {
                 id: "a".to_string(),
                 workflow_id: "workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("client-a".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -22,7 +22,7 @@ pub(super) fn sample_definition() -> PipelineDefinition {
             PipelineNode::Workflow {
                 id: "c".to_string(),
                 workflow_id: "workflow-c".to_string(),
-                acp_client: None,
+                acp_client: Some("client-c".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -51,7 +51,7 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
             PipelineNode::Workflow {
                 id: "workflow".to_string(),
                 workflow_id: "workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,

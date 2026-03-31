@@ -14,7 +14,7 @@ fn pipeline_join_fork_join_merges_two_simple_dags() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "target-root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -41,7 +41,7 @@ fn pipeline_join_fork_join_merges_two_simple_dags() {
                 super::super::PipelineNode::Workflow {
                     id: "source-root".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -49,7 +49,7 @@ fn pipeline_join_fork_join_merges_two_simple_dags() {
                 super::super::PipelineNode::Workflow {
                     id: "source-leaf".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -156,7 +156,7 @@ fn pipeline_join_fork_join_rejects_node_id_collision() {
                 nodes: vec![super::super::PipelineNode::Workflow {
                     id: "shared".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -207,7 +207,7 @@ fn pipeline_join_fork_join_rejects_cycle() {
                 super::super::PipelineNode::Workflow {
                     id: "a".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -215,7 +215,7 @@ fn pipeline_join_fork_join_rejects_cycle() {
                 super::super::PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -259,7 +259,7 @@ fn pipeline_join_fork_join_rejects_cycle() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "c".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,

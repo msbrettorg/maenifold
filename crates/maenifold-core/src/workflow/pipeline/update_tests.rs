@@ -152,7 +152,7 @@ fn pipeline_status_abandoned_enables_always_edge_ready_set() {
             PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -160,7 +160,7 @@ fn pipeline_status_abandoned_enables_always_edge_ready_set() {
             PipelineNode::Workflow {
                 id: "cleanup".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,

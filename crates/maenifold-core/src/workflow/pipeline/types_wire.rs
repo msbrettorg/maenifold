@@ -92,7 +92,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
             "workflow" => Self::Workflow {
                 id: wire.id,
                 workflow_id: required(wire.workflow_id, "workflowId")?,
-                acp_client: wire.acp_client,
+                acp_client: Some(required(wire.acp_client, "acpClient")?),
                 prompt: wire.prompt,
                 timeout: wire.timeout,
             },

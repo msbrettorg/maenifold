@@ -95,7 +95,6 @@ async fn execute_pipeline_inner(
                 semaphore.clone(),
                 &mut join_set,
                 dispatch,
-                &mut counts.abandoned,
             )
             .await?;
         }
@@ -186,7 +185,7 @@ fn build_node_index(definition: &PipelineDefinition) -> HashMap<String, Pipeline
 async fn schedule_dispatched_node(
     json_context: &ToolContext,
     output_context: &ToolContext,
-    session_id: &str,
+    _session_id: &str,
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
     nodes_by_id: &HashMap<String, PipelineNode>,
@@ -195,7 +194,6 @@ async fn schedule_dispatched_node(
     semaphore: Arc<Semaphore>,
     join_set: &mut JoinSet<NodeJoinResult>,
     dispatch: &DispatchedNode,
-    abandoned: &mut usize,
 ) -> Result<()> {
     let permit = semaphore.clone().acquire_owned().await.map_err(|_| {
         MaenifoldError::Message(
@@ -214,16 +212,11 @@ async fn schedule_dispatched_node(
         None if matches!(node, PipelineNode::Tool { .. }) => None,
         None => {
             drop(permit);
-            update_pipeline_node_status(
-                json_context,
-                session_id,
-                &node_id,
-                "abandoned",
-                None,
-                None,
-            )?;
-            *abandoned += 1;
-            return Ok(());
+            let field = node.required_execution_target_field().unwrap_or("agent");
+            return Err(MaenifoldError::Message(format!(
+                "ERROR: Pipeline node '{}' cannot execute: missing '{field}' configuration",
+                node_id
+            )));
         }
     };
     let execution = build_node_execution_request(

@@ -12,7 +12,7 @@ fn workflow_node(id: &str, workflow_id: &str) -> PipelineNode {
     PipelineNode::Workflow {
         id: id.to_string(),
         workflow_id: workflow_id.to_string(),
-        acp_client: None,
+        acp_client: Some("workflow-agent".to_string()),
         prompt: None,
 
         timeout: None,

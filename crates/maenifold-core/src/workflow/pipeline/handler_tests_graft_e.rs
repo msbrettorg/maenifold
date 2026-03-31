@@ -39,7 +39,7 @@ fn pipeline_graft_completed_nodes_succeed_despite_active_frontmatter() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "tail", "workflowId": "test-workflow-a" }
+                    { "id": "tail", "workflowId": "test-workflow-a", "acpClient": "agent-tail" }
                 ],
                 "edges": [
                     { "source": "child", "target": "tail" }

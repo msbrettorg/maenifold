@@ -23,7 +23,7 @@ fn payload_with_max(nodes: Vec<Value>, edges: Vec<Value>, max_concurrency: Value
 }
 
 fn workflow_node(id: &str, workflow_id: &str) -> Value {
-    json!({ "id": id, "workflowId": workflow_id })
+    json!({ "id": id, "workflowId": workflow_id, "acpClient": format!("agent-{id}") })
 }
 
 fn edge(source: &str, target: &str) -> Value {

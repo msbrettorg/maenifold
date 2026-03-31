@@ -21,7 +21,7 @@ fn validate_pipeline_rejects_duplicate_node_ids() {
             PipelineNode::Workflow {
                 id: "dup".to_string(),
                 workflow_id: "workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("agent-dup-a".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -29,7 +29,7 @@ fn validate_pipeline_rejects_duplicate_node_ids() {
             PipelineNode::Workflow {
                 id: "dup".to_string(),
                 workflow_id: "workflow-b".to_string(),
-                acp_client: None,
+                acp_client: Some("agent-dup-b".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -77,7 +77,7 @@ fn validate_pipeline_detects_cycle() {
             PipelineNode::Workflow {
                 id: "a".to_string(),
                 workflow_id: "workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("agent-a".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -85,7 +85,7 @@ fn validate_pipeline_detects_cycle() {
             PipelineNode::Workflow {
                 id: "b".to_string(),
                 workflow_id: "workflow-b".to_string(),
-                acp_client: None,
+                acp_client: Some("agent-b".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -118,7 +118,7 @@ fn validate_pipeline_rejects_duplicate_edge_pair() {
             PipelineNode::Workflow {
                 id: "a".to_string(),
                 workflow_id: "workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("agent-a".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -126,7 +126,7 @@ fn validate_pipeline_rejects_duplicate_edge_pair() {
             PipelineNode::Workflow {
                 id: "b".to_string(),
                 workflow_id: "workflow-b".to_string(),
-                acp_client: None,
+                acp_client: Some("agent-b".to_string()),
                 prompt: None,
 
                 timeout: None,

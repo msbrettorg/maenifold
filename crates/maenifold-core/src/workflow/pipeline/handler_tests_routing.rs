@@ -77,7 +77,7 @@ fn pipeline_schema_routes_new_operation_keywords_to_handlers() {
         &json!({
             "sessionId": graft_pipeline_id,
             "graft": {
-                "nodes": [{ "id": "new-node", "workflowId": "test-workflow-a" }],
+                "nodes": [{ "id": "new-node", "workflowId": "test-workflow-a", "acpClient": "agent-new-node" }],
                 "edges": []
             }
         }),

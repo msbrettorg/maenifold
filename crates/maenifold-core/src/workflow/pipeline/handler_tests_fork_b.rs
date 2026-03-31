@@ -15,7 +15,7 @@ fn pipeline_join_fork_fork_from_leaf_creates_single_node_pipeline() {
                 super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -23,7 +23,7 @@ fn pipeline_join_fork_fork_from_leaf_creates_single_node_pipeline() {
                 super::super::PipelineNode::Workflow {
                     id: "leaf".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -105,7 +105,7 @@ fn pipeline_join_fork_fork_prefixes_ids_and_creates_workflow_sessions() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "solo".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,

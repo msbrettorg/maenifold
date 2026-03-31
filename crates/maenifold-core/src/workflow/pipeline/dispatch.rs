@@ -101,53 +101,62 @@ fn dispatch_node(
     node_states: &mut HashMap<String, NodeState>,
     node_id: &str,
 ) -> Result<Option<serde_json::Value>> {
-    let node_session_id = node_states
-        .get(node_id)
-        .ok_or_else(|| missing_node_state(node_id))?
-        .session_id
-        .clone();
     let node = definition
         .nodes
         .iter()
         .find(|node| node.id() == node_id)
         .ok_or_else(|| missing_definition_node(node_id))?;
+    ensure_dispatchable(node)?;
+    let node_session_id = node_states
+        .get(node_id)
+        .ok_or_else(|| missing_node_state(node_id))?
+        .session_id
+        .clone();
     let state = node_states
         .get_mut(node_id)
         .ok_or_else(|| missing_node_state(node_id))?;
 
     match node {
         PipelineNode::Workflow { .. } => {
+            let response = build_workflow_dispatch_response(node, &node_session_id)?;
             let activated = activate_workflow_node_session(
                 context,
                 workflow_id_for_node(node)?,
                 &node_session_id,
             )?;
             state.status = NodeStatus::Active;
-            activated
-                .then(|| build_workflow_dispatch_response(node, &node_session_id))
-                .transpose()
+            Ok(activated.then_some(response))
         }
         PipelineNode::Prompt { .. } => {
+            let response = build_prompt_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
-            activated
-                .then(|| build_prompt_dispatch_response(node, &node_session_id))
-                .transpose()
+            Ok(activated.then_some(response))
         }
         PipelineNode::SequentialThinking { .. } => {
+            let response = build_thinking_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
-            activated
-                .then(|| build_thinking_dispatch_response(node, &node_session_id))
-                .transpose()
+            Ok(activated.then_some(response))
         }
         PipelineNode::Tool { .. } => {
+            let response = build_tool_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
-            activated
-                .then(|| build_tool_dispatch_response(node, &node_session_id))
-                .transpose()
+            Ok(activated.then_some(response))
         }
+    }
+}
+
+fn ensure_dispatchable(node: &PipelineNode) -> Result<()> {
+    match node.required_execution_target_field() {
+        Some(field) if !node.has_execution_target() => {
+            Err(MaenifoldError::InvalidArgument(format!(
+                "Pipeline node '{}' cannot dispatch: missing '{field}'",
+                node.id()
+            )))
+        }
+        _ => Ok(()),
     }
 }
 

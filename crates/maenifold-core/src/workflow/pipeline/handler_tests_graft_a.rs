@@ -12,7 +12,7 @@ fn pipeline_graft_completed_pipeline_adds_node_and_persists_sessions() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -39,7 +39,7 @@ fn pipeline_graft_completed_pipeline_adds_node_and_persists_sessions() {
             "sessionId": pipeline_id,
             "graft": {
                 "nodes": [
-                    { "id": "child", "workflowId": "test-workflow-b" }
+                    { "id": "child", "workflowId": "test-workflow-b", "acpClient": "agent-child" }
                 ],
                 "edges": [
                     { "source": "root", "target": "child" }
@@ -99,7 +99,7 @@ fn pipeline_graft_accepts_new_node_types() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,

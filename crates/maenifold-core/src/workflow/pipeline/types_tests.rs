@@ -25,14 +25,14 @@ fn workflow_serialization_is_tagged() {
     let node = PipelineNode::Workflow {
         id: "n1".into(),
         workflow_id: "wf".into(),
-        acp_client: None,
+        acp_client: Some("agent".into()),
         prompt: Some("Summarize".into()),
 
         timeout: None,
     };
     assert_eq!(
         serde_json::to_value(node).unwrap(),
-        json!({"type":"workflow","id":"n1","workflowId":"wf","prompt":"Summarize"})
+        json!({"type":"workflow","id":"n1","workflowId":"wf","acpClient":"agent","prompt":"Summarize"})
     );
 }
 

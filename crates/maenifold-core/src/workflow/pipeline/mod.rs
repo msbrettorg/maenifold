@@ -42,6 +42,8 @@ mod handler_tests_create_smoke_b;
 #[cfg(test)]
 mod handler_tests_create_smoke_nodeid;
 #[cfg(test)]
+mod handler_tests_create_validation;
+#[cfg(test)]
 mod handler_tests_delete_smoke;
 #[cfg(test)]
 mod handler_tests_e2e_smoke;

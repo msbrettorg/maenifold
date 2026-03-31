@@ -156,7 +156,7 @@ fn delete_pipeline_session_files_removes_sequential_thinking_sessions() {
         nodes: vec![PipelineNode::Workflow {
             id: "root".to_string(),
             workflow_id: "test-workflow-a".to_string(),
-            acp_client: None,
+            acp_client: Some("workflow-agent".to_string()),
             prompt: None,
 
             timeout: None,

@@ -157,7 +157,7 @@ fn test_smoke_nc03_tool_args_complex_nested_object_preserved() {
 #[serial(config)]
 fn test_smoke_nc04_workflow_timeout_field_preserved() {
     assert_view_field(
-        json!({ "id": "workflow-timeout", "workflowId": "test-workflow-a", "timeout": 120 }),
+        json!({ "id": "workflow-timeout", "workflowId": "test-workflow-a", "acpClient": "workflow-agent", "timeout": 120 }),
         "timeout",
         json!(120),
     );

@@ -121,6 +121,19 @@ impl PipelineNode {
         }
     }
 
+    pub fn required_execution_target_field(&self) -> Option<&'static str> {
+        match self {
+            Self::Workflow { .. } => Some("acpClient"),
+            Self::Prompt { .. } | Self::SequentialThinking { .. } => Some("agent"),
+            Self::Tool { .. } => None,
+        }
+    }
+
+    pub fn has_execution_target(&self) -> bool {
+        self.acp_client()
+            .is_some_and(|value| !value.trim().is_empty())
+    }
+
     pub fn prompt(&self) -> Option<&str> {
         match self {
             Self::Workflow { prompt, .. } => prompt.as_deref(),

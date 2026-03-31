@@ -14,35 +14,10 @@ impl super::MaenifoldMcpServer {
     // T-17.3: Serve embedded SPA assets alongside the MCP HTTP transport.
     pub async fn serve_web(port: u16) -> Result<()> {
         // Reuse the same MCP setup as serve_http.
-        use super::{MaenifoldHandler, TransportKind};
-        use rmcp::transport::streamable_http_server::{
-            StreamableHttpServerConfig, StreamableHttpService,
-            session::local::{LocalSessionManager, SessionConfig},
-        };
-        use std::{sync::Arc, time::Duration};
         let ct = tokio_util::sync::CancellationToken::new();
         let config = Config::current();
         super::initialize_runtime(&config)?;
         let api_state = ApiState::new(config.clone());
-        let session_manager = Arc::new(LocalSessionManager {
-            session_config: SessionConfig {
-                keep_alive: Some(Duration::from_secs(300)),
-                ..Default::default()
-            },
-            ..Default::default()
-        });
-
-        let service = StreamableHttpService::new(
-            || {
-                MaenifoldHandler::new(TransportKind::Http)
-                    .map_err(|e| std::io::Error::other(e.to_string()))
-            },
-            session_manager,
-            StreamableHttpServerConfig {
-                cancellation_token: ct.child_token(),
-                ..Default::default()
-            },
-        );
 
         // FR-32-SEC: restrict CORS to localhost origins only.
         let cors = super::localhost_cors();
@@ -52,8 +27,9 @@ impl super::MaenifoldMcpServer {
             .fallback(static_handler);
 
         let router = axum::Router::new()
-            .nest_service("/mcp", service)
+            .route("/mcp", axum::routing::any(super::http::handle_request))
             .merge(api)
+            .with_state(super::http::service(ct.child_token()))
             .layer(cors);
 
         let bind_addr = format!("127.0.0.1:{port}");

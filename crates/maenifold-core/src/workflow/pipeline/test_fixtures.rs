@@ -20,7 +20,7 @@ pub(super) fn seed_pipeline_view_session(
             crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("agent-root".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -36,7 +36,7 @@ pub(super) fn seed_pipeline_view_session(
             crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "child".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
-                acp_client: None,
+                acp_client: Some("agent-child".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -115,7 +115,7 @@ pub(super) fn seed_dispatch_pipeline(
             crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "root".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("agent-root".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -123,7 +123,7 @@ pub(super) fn seed_dispatch_pipeline(
             crate::workflow::pipeline::PipelineNode::Workflow {
                 id: "child".to_string(),
                 workflow_id: "test-workflow-b".to_string(),
-                acp_client: None,
+                acp_client: Some("agent-child".to_string()),
                 prompt: None,
 
                 timeout: None,

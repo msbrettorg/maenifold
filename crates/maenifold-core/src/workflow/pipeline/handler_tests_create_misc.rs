@@ -100,7 +100,7 @@ fn pipeline_create_defaults_max_concurrency_to_eight() {
     let payload = json!({
         "definition": {
             "nodes": [
-                { "id": "solo", "workflowId": "test-workflow-a" }
+                { "id": "solo", "workflowId": "test-workflow-a", "acpClient": "agent-solo" }
             ],
             "edges": []
         }
@@ -134,7 +134,7 @@ fn pipeline_create_rejects_non_positive_max_concurrency() {
         let payload = json!({
             "definition": {
                 "nodes": [
-                    { "id": "solo", "workflowId": "test-workflow-a" }
+                    { "id": "solo", "workflowId": "test-workflow-a", "acpClient": "agent-solo" }
                 ],
                 "edges": []
             },
@@ -169,8 +169,8 @@ fn pipeline_create_rejects_invalid_definition() {
     let payload = json!({
         "definition": {
             "nodes": [
-                { "id": "a", "workflowId": "test-workflow-a" },
-                { "id": "b", "workflowId": "test-workflow-b" }
+                { "id": "a", "workflowId": "test-workflow-a", "acpClient": "agent-a" },
+                { "id": "b", "workflowId": "test-workflow-b", "acpClient": "agent-b" }
             ],
             "edges": [
                 { "source": "a", "target": "b" },

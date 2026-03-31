@@ -138,7 +138,7 @@ fn pipeline_view_renders_mixed_node_types() {
 
     assert_eq!(nodes[0]["type"], "workflow");
     assert_eq!(nodes[0]["workflowId"], "test-workflow-a");
-    assert_eq!(nodes[0]["agent"], Value::Null);
+    assert_eq!(nodes[0]["agent"], "workflow-agent");
     assert_eq!(nodes[0]["prompt"], Value::Null);
     assert!(nodes[0].get("topic").is_none());
     assert_eq!(nodes[0]["status"], "completed");

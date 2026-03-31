@@ -16,7 +16,7 @@ fn pipeline_rewind_resets_specified_node_to_pending() {
                 super::super::PipelineNode::Workflow {
                     id: "a".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -24,7 +24,7 @@ fn pipeline_rewind_resets_specified_node_to_pending() {
                 super::super::PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -32,7 +32,7 @@ fn pipeline_rewind_resets_specified_node_to_pending() {
                 super::super::PipelineNode::Workflow {
                     id: "c".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -140,7 +140,7 @@ fn pipeline_rewind_cascades_downstream() {
                 super::super::PipelineNode::Workflow {
                     id: "a".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -148,7 +148,7 @@ fn pipeline_rewind_cascades_downstream() {
                 super::super::PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -156,7 +156,7 @@ fn pipeline_rewind_cascades_downstream() {
                 super::super::PipelineNode::Workflow {
                     id: "c".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -252,7 +252,7 @@ fn pipeline_rewind_clears_thinking_session_id() {
                 super::super::PipelineNode::Workflow {
                     id: "a".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -260,7 +260,7 @@ fn pipeline_rewind_clears_thinking_session_id() {
                 super::super::PipelineNode::Workflow {
                     id: "b".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,

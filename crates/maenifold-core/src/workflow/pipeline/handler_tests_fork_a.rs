@@ -15,7 +15,7 @@ fn pipeline_join_fork_fork_rejects_existing_new_session_id() {
                 super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -23,7 +23,7 @@ fn pipeline_join_fork_fork_rejects_existing_new_session_id() {
                 super::super::PipelineNode::Workflow {
                     id: "child".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -67,7 +67,7 @@ fn pipeline_join_fork_fork_rejects_existing_new_session_id() {
             nodes: vec![super::super::PipelineNode::Workflow {
                 id: "existing".to_string(),
                 workflow_id: "test-workflow-a".to_string(),
-                acp_client: None,
+                acp_client: Some("workflow-agent".to_string()),
                 prompt: None,
 
                 timeout: None,
@@ -120,7 +120,7 @@ fn pipeline_join_fork_fork_from_middle_includes_all_downstream() {
                 super::super::PipelineNode::Workflow {
                     id: "root".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -128,7 +128,7 @@ fn pipeline_join_fork_fork_from_middle_includes_all_downstream() {
                 super::super::PipelineNode::Workflow {
                     id: "middle".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -136,7 +136,7 @@ fn pipeline_join_fork_fork_from_middle_includes_all_downstream() {
                 super::super::PipelineNode::Workflow {
                     id: "left".to_string(),
                     workflow_id: "test-workflow-a".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,
@@ -144,7 +144,7 @@ fn pipeline_join_fork_fork_from_middle_includes_all_downstream() {
                 super::super::PipelineNode::Workflow {
                     id: "right".to_string(),
                     workflow_id: "test-workflow-b".to_string(),
-                    acp_client: None,
+                    acp_client: Some("workflow-agent".to_string()),
                     prompt: None,
 
                     timeout: None,

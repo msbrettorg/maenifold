@@ -3,12 +3,9 @@ use maenifold_core::memory;
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use serde_json::{Value, json};
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 const TEST_FOLDER: &str = "search-tools-tests";
 

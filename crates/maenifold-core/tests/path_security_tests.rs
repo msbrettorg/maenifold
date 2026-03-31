@@ -2,14 +2,11 @@ use maenifold_core::json::OutputFormat;
 use maenifold_core::memory;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use serde_json::json;
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 struct TestEnv {
     _tmp: TempDir,
@@ -47,11 +44,12 @@ fn write_memory_output(env: &TestEnv, title: &str, content: &str, folder: Option
             "folder": folder,
         }),
     )
-    .expect("write memory")
+    .unwrap_or_else(|error| format!("ERROR: {error}"))
 }
 
 fn list_memories_output(env: &TestEnv, path: &str) -> String {
-    memory::list_memories(&env.ctx(), &json!({ "path": path })).expect("list memories")
+    memory::list_memories(&env.ctx(), &json!({ "path": path }))
+        .unwrap_or_else(|error| format!("ERROR: {error}"))
 }
 
 #[cfg(unix)]

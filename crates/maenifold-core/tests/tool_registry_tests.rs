@@ -1,13 +1,10 @@
 use maenifold_core::error::MaenifoldError;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, Config, GraphDatabase, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use serde_json::json;
 use std::collections::BTreeSet;
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 struct TestEnv {
     _tmp: TempDir,
@@ -38,6 +35,7 @@ fn invoke_markdown(name: &str, payload: serde_json::Value) -> Result<String, Mae
 // T-0.2: RTM FR-1 / FR-2 / FR-3 / FR-4 / FR-5 / FR-6
 #[test]
 fn new_registry_registers_all_expected_tool_names() {
+    let _guard = TEST_MUTEX.lock();
     let registry = ToolRegistry::new();
     let expected = BTreeSet::from([
         "WriteMemory",
@@ -65,9 +63,11 @@ fn new_registry_registers_all_expected_tool_names() {
         "Adopt",
         "AssumptionLedger",
         "ListAssets",
+        "ListAgents",
         "ReadMcpResource",
         "Visualize",
         "ExtractConceptsFromFile",
+        "Pipeline",
     ]);
     let actual = registry
         .canonical_names()
@@ -234,6 +234,7 @@ fn try_invoke_list_memories_returns_non_null_result() {
 // T-0.2: RTM FR-1 / FR-2 / FR-3 / FR-4 / FR-5 / FR-6
 #[test]
 fn constructing_registry_twice_produces_the_same_registrations() {
+    let _guard = TEST_MUTEX.lock();
     let first = ToolRegistry::new();
     let second = ToolRegistry::new();
 
@@ -265,6 +266,7 @@ fn global_registry_invocation_works_without_explicit_setup_call() {
 // T-0.2: RTM FR-1 — ToolRegistry::contains resolves aliases, not only canonical names
 #[test]
 fn registry_contains_resolves_aliases_not_only_canonical_names() {
+    let _guard = TEST_MUTEX.lock();
     let registry = ToolRegistry::new();
 
     // Canonical name should work

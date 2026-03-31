@@ -1,7 +1,7 @@
 #[path = "dynamic_model/support.rs"]
 mod dynamic_model_support;
 
-use dynamic_model_support::{TEST_MUTEX, TestContext};
+use dynamic_model_support::{TEST_MUTEX, TestContext, packaged_model_fixture_available};
 use maenifold_core::vector;
 use maenifold_core::vector::DEFAULT_MAX_TOKENS;
 
@@ -10,6 +10,10 @@ use maenifold_core::vector::DEFAULT_MAX_TOKENS;
 #[test]
 fn t10_11_tokenizer_json_is_preferred_over_vocab_txt() {
     let _guard = TEST_MUTEX.lock();
+    if !packaged_model_fixture_available() {
+        eprintln!("Skipping dynamic model test: packaged ONNX fixture is unavailable");
+        return;
+    }
     let ctx = TestContext::new();
     ctx.install_valid_shadow_model_with_fallback_assets("preferred-tokenizer.onnx");
     ctx.write_vocab("this is intentionally not a valid wordpiece vocab");
@@ -38,6 +42,10 @@ fn t10_11_tokenizer_json_is_preferred_over_vocab_txt() {
 #[test]
 fn t10_11_max_tokens_reads_model_max_length_from_config() {
     let _guard = TEST_MUTEX.lock();
+    if !packaged_model_fixture_available() {
+        eprintln!("Skipping dynamic model test: packaged ONNX fixture is unavailable");
+        return;
+    }
     let ctx = TestContext::new();
     ctx.install_valid_shadow_model_with_fallback_assets("configured-max-tokens.onnx");
     ctx.write_tokenizer_config(r#"{"pad_token":"[PAD]","model_max_length":128}"#);
@@ -51,6 +59,10 @@ fn t10_11_max_tokens_reads_model_max_length_from_config() {
 #[test]
 fn t10_11_max_tokens_defaults_when_field_absent() {
     let _guard = TEST_MUTEX.lock();
+    if !packaged_model_fixture_available() {
+        eprintln!("Skipping dynamic model test: packaged ONNX fixture is unavailable");
+        return;
+    }
     let ctx = TestContext::new();
     ctx.install_valid_shadow_model_with_fallback_assets("default-max-tokens.onnx");
     ctx.write_tokenizer_config(r#"{"pad_token":"[PAD]"}"#);
@@ -66,6 +78,10 @@ fn t10_11_max_tokens_defaults_when_field_absent() {
 #[test]
 fn t10_11_max_tokens_treats_zero_as_absent() {
     let _guard = TEST_MUTEX.lock();
+    if !packaged_model_fixture_available() {
+        eprintln!("Skipping dynamic model test: packaged ONNX fixture is unavailable");
+        return;
+    }
     let ctx = TestContext::new();
     ctx.install_valid_shadow_model_with_fallback_assets("zero-max-tokens.onnx");
     ctx.write_tokenizer_config(r#"{"pad_token":"[PAD]","model_max_length":0}"#);

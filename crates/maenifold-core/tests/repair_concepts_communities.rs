@@ -78,7 +78,7 @@ fn build_context_with_community_data_shows_community_siblings_section() {
         .expect("invoke BuildContext");
 
     assert!(
-        context.contains("Community Siblings"),
+        context.contains("Community siblings"),
         "expected sibling section in BuildContext output: {context}"
     );
     assert!(
@@ -114,7 +114,7 @@ fn build_context_gracefully_degrades_with_empty_concept_communities_table() {
         "graceful degradation should omit absent community ids: {context}"
     );
     assert!(
-        !context.contains("Community Siblings"),
+        !context.contains("Community siblings"),
         "sibling section should be omitted when community table is empty: {context}"
     );
 }

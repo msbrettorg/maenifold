@@ -180,7 +180,15 @@ pub(crate) fn get_decay_weight_from_disk_with_status(
         Ok(created) => {
             compute_decay_weight(file_identifier, Some(&created.to_rfc3339()), config, status)
         }
-        Err(_) => 1.0,
+        Err(_) => {
+            emit_degraded_decay_diagnostic(
+                "GetDecayWeightFromDisk",
+                "Falling back to neutral decay weight",
+                file_identifier,
+                config,
+            );
+            1.0
+        }
     }
 }
 

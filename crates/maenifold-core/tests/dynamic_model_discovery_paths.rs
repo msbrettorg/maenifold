@@ -1,7 +1,9 @@
 #[path = "dynamic_model/support.rs"]
 mod dynamic_model_support;
 
-use dynamic_model_support::{TEST_MUTEX, TestContext, model_output_dimensions};
+use dynamic_model_support::{
+    TEST_MUTEX, TestContext, model_output_dimensions, packaged_model_fixture_available,
+};
 use maenifold_core::vector;
 use std::env;
 use std::ffi::OsStr;
@@ -58,6 +60,10 @@ fn t20_5_symlinked_model_discovery_uses_canonicalized_executable_path() {
     }
 
     let _guard = TEST_MUTEX.lock();
+    if !packaged_model_fixture_available() {
+        eprintln!("Skipping dynamic model test: packaged ONNX fixture is unavailable");
+        return;
+    }
     let mut ctx = TestContext::new();
     ctx.install_valid_shadow_model_with_fallback_assets("symlinked-shadow.onnx");
     ctx.hide_packaged_model();
@@ -100,6 +106,10 @@ fn t20_5_symlinked_model_discovery_uses_canonicalized_executable_path() {
 #[test]
 fn t20_5_model_discovery_falls_back_to_shared_runtime_root() {
     let _guard = TEST_MUTEX.lock();
+    if !packaged_model_fixture_available() {
+        eprintln!("Skipping dynamic model test: packaged ONNX fixture is unavailable");
+        return;
+    }
     let mut ctx = TestContext::new();
     // P1: install_valid_shared_model_with_fallback_assets copies from the packaged
     // model path. hide_packaged_model() renames that path. Install MUST come first;

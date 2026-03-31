@@ -2,11 +2,9 @@
 
 use maenifold_core::Config;
 use maenifold_core::paths::{dated_sequential_path, dated_thinking_path};
-use once_cell::sync::Lazy;
-use parking_lot::{Mutex, MutexGuard};
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
+use parking_lot::MutexGuard;
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 struct TestEnv {
     _guard: MutexGuard<'static, ()>,

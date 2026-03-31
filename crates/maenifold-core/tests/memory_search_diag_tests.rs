@@ -10,15 +10,12 @@ use maenifold_core::markdown::path_to_uri;
 use maenifold_core::memory::get_decay_weight_for_file;
 use maenifold_core::search::get_file_display_info;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use rusqlite::params;
 use std::fs;
 use std::io::{Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd};
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 struct TestEnv {
     _tmp: TempDir,

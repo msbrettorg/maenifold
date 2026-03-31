@@ -32,6 +32,10 @@ fn packaged_model_path() -> PathBuf {
     packaged_models_dir().join("all-MiniLM-L6-v2.onnx")
 }
 
+pub(crate) fn packaged_model_fixture_available() -> bool {
+    packaged_model_path().is_file()
+}
+
 pub(crate) fn packaged_assets_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../assets")

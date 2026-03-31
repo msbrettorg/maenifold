@@ -1,11 +1,8 @@
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{Config, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use serde_json::json;
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 // T-12.7: RTM NFR-1 — acceptance hygiene trims smoke-only sync boundary tests that under-assert runtime behavior.
 

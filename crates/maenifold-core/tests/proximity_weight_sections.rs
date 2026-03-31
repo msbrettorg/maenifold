@@ -5,14 +5,14 @@ mod support;
 use maenifold_core::markdown::extract_wikilinks_with_sections;
 use std::collections::BTreeMap;
 use support::{
-    TestEnv, acquire_test_lock, assert_approx_eq, invoke_sync, open_db, relation_source_files,
+    TEST_MUTEX, TestEnv, assert_approx_eq, invoke_sync, open_db, relation_source_files,
     relation_weight_for_uri, write_memory_file,
 };
 
 // T-4.3: RTM FR-23.1
 #[test]
 fn extract_wikilinks_with_sections_tags_multi_section_documents() {
-    let _guard = acquire_test_lock();
+    let _guard = TEST_MUTEX.lock();
 
     let content = "# Document Title\n\n## Section One\n\nDiscusses [[alpha]] and [[beta]].\n\n## Section Two\n\nIntroduces [[gamma]] and [[delta]].\n";
     let concepts = extract_wikilinks_with_sections(content);
@@ -27,7 +27,7 @@ fn extract_wikilinks_with_sections_tags_multi_section_documents() {
 // T-4.3: RTM FR-23.1
 #[test]
 fn extract_wikilinks_with_sections_uses_section_zero_for_flat_docs() {
-    let _guard = acquire_test_lock();
+    let _guard = TEST_MUTEX.lock();
 
     let content = "# Just a Title\n\nThis note references [[concepta]], [[conceptb]], and [[conceptc]].\nNo H2 headings anywhere.\n";
     let concepts = extract_wikilinks_with_sections(content);
@@ -44,7 +44,7 @@ fn extract_wikilinks_with_sections_uses_section_zero_for_flat_docs() {
 // T-4.3: RTM FR-23.1
 #[test]
 fn extract_wikilinks_with_sections_keeps_preamble_in_section_zero() {
-    let _guard = acquire_test_lock();
+    let _guard = TEST_MUTEX.lock();
 
     let content = "# Document\n\nThis preamble mentions [[preamble-concept]] before any heading.\n\n## First Section\n\nThis section has [[section-concept]].\n";
     let concepts = extract_wikilinks_with_sections(content);
@@ -57,7 +57,7 @@ fn extract_wikilinks_with_sections_keeps_preamble_in_section_zero() {
 // T-4.3: RTM FR-23.1
 #[test]
 fn extract_wikilinks_with_sections_deduplicates_per_section_not_globally() {
-    let _guard = acquire_test_lock();
+    let _guard = TEST_MUTEX.lock();
 
     let content = "## Section One\n\nReferences [[shared-concept]] here.\n\n## Section Two\n\nAlso references [[shared-concept]] here and again [[shared-concept]].\n\n## Section Three\n\nOnly [[unique-concept]] lives here.\n";
     let concepts = extract_wikilinks_with_sections(content);
@@ -79,7 +79,7 @@ fn extract_wikilinks_with_sections_deduplicates_per_section_not_globally() {
 // T-4.3: RTM FR-23.1
 #[test]
 fn extract_wikilinks_with_sections_reads_wikilinks_inside_h2_headings() {
-    let _guard = acquire_test_lock();
+    let _guard = TEST_MUTEX.lock();
 
     let content = "## Section about [[heading-concept]]\n\nBody text with [[body-concept]].\n\n## Another [[second-heading]] section\n\nMore body with [[second-body]].\n";
     let concepts = extract_wikilinks_with_sections(content);
@@ -94,7 +94,6 @@ fn extract_wikilinks_with_sections_reads_wikilinks_inside_h2_headings() {
 // T-4.3: RTM FR-23.2
 #[test]
 fn sync_same_section_pairs_store_weight_one() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
 
     let uri = write_memory_file(
@@ -116,7 +115,6 @@ fn sync_same_section_pairs_store_weight_one() {
 // T-4.3: RTM FR-23.2
 #[test]
 fn sync_cross_section_pairs_store_weight_half() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
 
     let uri = write_memory_file(
@@ -138,7 +136,6 @@ fn sync_cross_section_pairs_store_weight_half() {
 // T-4.3: RTM FR-23.2
 #[test]
 fn sync_flat_docs_store_half_weight_for_all_pairs() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
 
     let uri = write_memory_file(
@@ -162,7 +159,6 @@ fn sync_flat_docs_store_half_weight_for_all_pairs() {
 // T-4.3: RTM FR-23.2
 #[test]
 fn sync_prefers_named_section_overlap_over_preamble_overlap() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
 
     let uri = write_memory_file(
@@ -184,7 +180,6 @@ fn sync_prefers_named_section_overlap_over_preamble_overlap() {
 // T-4.3: RTM FR-23.2
 #[test]
 fn sync_serializes_source_files_as_weight_dictionary() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
 
     let uri = write_memory_file(
@@ -212,7 +207,7 @@ fn sync_serializes_source_files_as_weight_dictionary() {
 // T-4.3: RTM FR-23.1 — R1: H3 content attributed to surrounding H2 section
 #[test]
 fn extract_wikilinks_with_sections_ignores_h3_headings() {
-    let _guard = acquire_test_lock();
+    let _guard = TEST_MUTEX.lock();
 
     let content = "# Document\n\n## Main Section\n\nIntro mentions [[top-level]].\n\n### Subsection A\n\nDeep content with [[nested-concept]] and [[another-nested]].\n\n## Second Section\n\nBack to H2 with [[second-level]].\n";
     let concepts = extract_wikilinks_with_sections(content);
@@ -244,7 +239,7 @@ fn extract_wikilinks_with_sections_ignores_h3_headings() {
 // T-4.3: RTM FR-23.1 — R2: empty and title-only content returns empty vec
 #[test]
 fn extract_wikilinks_with_sections_empty_content_returns_empty_vec() {
-    let _guard = acquire_test_lock();
+    let _guard = TEST_MUTEX.lock();
 
     let empty = extract_wikilinks_with_sections("");
     assert!(
@@ -262,7 +257,6 @@ fn extract_wikilinks_with_sections_empty_content_returns_empty_vec() {
 // T-4.3: RTM FR-23.2 — R5: same pair across multiple files aggregates weights
 #[test]
 fn sync_same_pair_across_multiple_files_aggregates_source_weights() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
 
     let uri_a = write_memory_file(

@@ -6,7 +6,7 @@ use maenifold_core::community::{compute_nmi, detect_and_persist};
 use serde_json::json;
 use std::collections::BTreeMap;
 use support::{
-    EnvVarGuard, TestEnv, acquire_test_lock, community_id, insert_concept,
+    EnvVarGuard, TEST_MUTEX, TestEnv, community_id, insert_concept,
     insert_edge_raw_source_files, insert_edge_with_proximity, open_db,
 };
 
@@ -30,7 +30,6 @@ enum NmiExpectation {
 // T-4.3: RTM FR-23.6
 #[test]
 fn detect_and_persist_clusters_hubs_together_when_proximity_sum_is_strongest() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
     let conn = open_db(&env.cfg);
 
@@ -62,7 +61,6 @@ fn detect_and_persist_clusters_hubs_together_when_proximity_sum_is_strongest() {
 // T-4.3: RTM FR-23.6
 #[test]
 fn detect_and_persist_treats_empty_source_files_as_isolated_edges() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
     let conn = open_db(&env.cfg);
 
@@ -90,6 +88,7 @@ fn detect_and_persist_treats_empty_source_files_as_isolated_edges() {
 // R-1: Orthogonal partition now asserts ≈ 0.0 instead of the former weak `< 1.0`.
 #[test]
 fn compute_nmi_produces_correct_values_for_known_partitions() {
+    let _guard = TEST_MUTEX.lock();
     let cases = vec![
         // Case 1: Identical partition → NMI = 1.0 (mathematical identity)
         NmiCase {
@@ -187,7 +186,6 @@ fn compute_nmi_produces_correct_values_for_known_partitions() {
 #[test]
 #[cfg(unix)]
 fn detect_and_persist_logs_warning_when_community_drift_exceeds_threshold() {
-    let _guard = acquire_test_lock();
     let _threshold = EnvVarGuard::set("MAENIFOLD_COMMUNITY_NMI_THRESHOLD", "0.95");
     let env = TestEnv::isolated();
     let conn = open_db(&env.cfg);

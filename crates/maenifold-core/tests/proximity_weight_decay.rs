@@ -4,7 +4,7 @@ mod support;
 
 use maenifold_core::community::compute_edge_decay_weight;
 use support::{
-    TestEnv, acquire_test_lock, assert_approx_eq, direct_relation, insert_concept,
+    TEST_MUTEX, TestEnv, assert_approx_eq, direct_relation, insert_concept,
     insert_edge_raw_source_files, insert_edge_with_proximity, insert_file_content,
     invoke_build_context_json, open_db,
 };
@@ -13,6 +13,7 @@ use support::{
 // Exercises the sum/len path that is trivially identity for N=1.
 #[test]
 fn compute_edge_decay_weight_averages_multiple_proximity_weights() {
+    let _guard = TEST_MUTEX.lock();
     let result =
         compute_edge_decay_weight(r#"{"memory://a": 1.0, "memory://b": 0.5}"#).expect("valid json");
     assert_approx_eq(result, 0.75); // (1.0 + 0.5) / 2
@@ -21,6 +22,7 @@ fn compute_edge_decay_weight_averages_multiple_proximity_weights() {
 // T-4.3: RTM FR-23.4 — Single-entry passthrough returns the exact weight.
 #[test]
 fn compute_edge_decay_weight_single_entry_returns_that_weight() {
+    let _guard = TEST_MUTEX.lock();
     let result = compute_edge_decay_weight(r#"{"memory://x": 0.5}"#).expect("valid json");
     assert_approx_eq(result, 0.5);
 }
@@ -28,6 +30,7 @@ fn compute_edge_decay_weight_single_entry_returns_that_weight() {
 // T-4.3: RTM FR-23.4 — Error path: corrupt JSON propagates Err.
 #[test]
 fn compute_edge_decay_weight_rejects_corrupt_source_files_json() {
+    let _guard = TEST_MUTEX.lock();
     let result = compute_edge_decay_weight("this is not valid json {{{{");
     assert!(result.is_err(), "corrupt source_files must fail");
 }
@@ -36,6 +39,7 @@ fn compute_edge_decay_weight_rejects_corrupt_source_files_json() {
 // parse_source_file_weights returns an empty BTreeMap for these types.
 #[test]
 fn compute_edge_decay_weight_returns_zero_for_json_non_object() {
+    let _guard = TEST_MUTEX.lock();
     assert_approx_eq(compute_edge_decay_weight("null").expect("null"), 0.0);
     assert_approx_eq(compute_edge_decay_weight("42").expect("number"), 0.0);
     assert_approx_eq(compute_edge_decay_weight("true").expect("bool"), 0.0);
@@ -46,7 +50,6 @@ fn compute_edge_decay_weight_returns_zero_for_json_non_object() {
 // exists (neutral fallback 1.0), WeightedScore == DecayWeight numerically.
 #[test]
 fn build_context_decayweight_and_weightedscore_reflect_proximity_ordering() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
     let conn = open_db(&env.cfg);
 
@@ -79,7 +82,6 @@ fn build_context_decayweight_and_weightedscore_reflect_proximity_ordering() {
 // T-4.3: RTM FR-23.4
 #[test]
 fn build_context_treats_empty_source_files_as_zero_decay_weight() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
     let conn = open_db(&env.cfg);
 
@@ -100,7 +102,6 @@ fn build_context_treats_empty_source_files_as_zero_decay_weight() {
 // load_file_decay_weight returns the neutral fallback 1.0.
 #[test]
 fn build_context_decayweight_reduced_for_old_file() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
     let conn = open_db(&env.cfg);
 

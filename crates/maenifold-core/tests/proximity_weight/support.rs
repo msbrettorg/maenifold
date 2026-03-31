@@ -3,53 +3,24 @@
 
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, Config, GraphDatabase, ToolRegistry};
+use parking_lot::MutexGuard;
 use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Value, json};
-use std::fs::{self, File, OpenOptions};
+use std::fs;
 use std::io::Write;
-use std::path::PathBuf;
-use std::thread;
-use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
-pub struct TestProcessLock {
-    path: PathBuf,
-    _file: File,
-}
-
-impl Drop for TestProcessLock {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.path);
-    }
-}
-
-pub fn acquire_test_lock() -> TestProcessLock {
-    let path = std::env::temp_dir().join("maenifold-rs-proximity-weight-tests.lock");
-    let deadline = Instant::now() + Duration::from_secs(30);
-
-    loop {
-        match OpenOptions::new().write(true).create_new(true).open(&path) {
-            Ok(file) => return TestProcessLock { path, _file: file },
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                assert!(
-                    Instant::now() < deadline,
-                    "timed out waiting for split test lock at {}",
-                    path.display()
-                );
-                thread::sleep(Duration::from_millis(25));
-            }
-            Err(error) => panic!("failed to acquire split test lock: {error}"),
-        }
-    }
-}
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub struct TestEnv {
+    _guard: MutexGuard<'static, ()>,
     _tmp: TempDir,
     pub cfg: Config,
 }
 
 impl TestEnv {
     pub fn isolated() -> Self {
+        let guard = TEST_MUTEX.lock();
         let tmp = TempDir::new().expect("tmp");
         Config::override_root(tmp.path());
         Config::set_database_path(tmp.path().join("memory.db"));
@@ -57,7 +28,11 @@ impl TestEnv {
         cfg.ensure_directories().expect("dirs");
         AssetManager::initialize_assets(&cfg).expect("assets");
         GraphDatabase::initialize_database(&cfg).expect("db init");
-        Self { _tmp: tmp, cfg }
+        Self {
+            _guard: guard,
+            _tmp: tmp,
+            cfg,
+        }
     }
 }
 

@@ -14,8 +14,7 @@ use maenifold_core::sessions;
 use maenifold_core::sync::leader::LeaderElection;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{AssetManager, Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::MutexGuard;
 use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::{Value, json};
@@ -26,7 +25,7 @@ use std::time::Instant;
 use tempfile::TempDir;
 use uuid::Uuid;
 
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 struct TestEnv {
     _guard: MutexGuard<'static, ()>,

@@ -9,13 +9,12 @@ pub(crate) use maenifold_core::sessions::{
     validate_assumption_update_input,
 };
 pub(crate) use maenifold_core::{AssetManager, Config, ToolRegistry};
-pub(crate) use once_cell::sync::Lazy;
-pub(crate) use parking_lot::{Mutex, MutexGuard};
+pub(crate) use parking_lot::MutexGuard;
 pub(crate) use serde_json::Value;
 pub(crate) use serde_yaml::Value as YamlValue;
 pub(crate) use tempfile::TempDir;
 
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub(crate) struct TestHarness {
     _guard: MutexGuard<'static, ()>,

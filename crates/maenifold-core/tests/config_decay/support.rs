@@ -5,12 +5,11 @@ use chrono::{Duration, Utc};
 use maenifold_core::Config;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::tools::{self, ToolContext};
-use once_cell::sync::Lazy;
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::MutexGuard;
 use serde_json::json;
 use tempfile::TempDir;
 
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 const DECAY_ENV_KEYS: [&str; 5] = [
     "MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL",

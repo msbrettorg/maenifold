@@ -4,15 +4,13 @@ use maenifold_core::db;
 use maenifold_core::search::sync_single_file;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::from_str;
 use std::collections::BTreeMap;
 use std::fs;
 use tempfile::TempDir;
 
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub struct ConfigOverrideReset;
 

@@ -8,14 +8,12 @@ use maenifold_core::memory::{self, compute_decay_weight};
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{AssetManager, Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::params;
 use serde_json::{Value, json};
 use std::fs;
 use tempfile::TempDir;
 
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 pub const TEST_FOLDER: &str = "graph-decay-weighting-tests";
 
 pub struct TestEnv {

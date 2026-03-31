@@ -3,9 +3,8 @@
 mod asset_manager_support;
 
 use asset_manager_support::{
-    ConfigResetGuard, PackagedAssetGuard, hide_packaged_asset_roots, initialize_assets,
-    invoke_update_assets, isolated_config, test_mutex, unique_relative_path, unique_suffix,
-    write_file,
+    ConfigResetGuard, PackagedAssetGuard, TEST_MUTEX, hide_packaged_asset_roots, initialize_assets,
+    invoke_update_assets, isolated_config, unique_relative_path, unique_suffix, write_file,
 };
 use std::fs;
 use std::path::Path;
@@ -16,7 +15,7 @@ use std::os::unix::fs::symlink;
 // T-12.7: RTM NFR-1 - split error and summary coverage from legacy asset_manager_tests.rs.
 #[test]
 fn update_assets_when_target_dir_missing_returns_error() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     initialize_assets(&cfg);
@@ -35,7 +34,7 @@ fn update_assets_when_target_dir_missing_returns_error() {
 #[cfg(unix)]
 #[test]
 fn update_assets_summary_formats_combined_counts_and_sections() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     initialize_assets(&cfg);
@@ -125,7 +124,7 @@ fn update_assets_summary_formats_combined_counts_and_sections() {
 #[cfg(unix)]
 #[test]
 fn update_assets_parity_u01_omits_skipped_symlinks_count_and_section() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     initialize_assets(&cfg);
@@ -159,7 +158,7 @@ fn update_assets_parity_u01_omits_skipped_symlinks_count_and_section() {
 // removed update_assets_when_source_dir_missing_returns_error test.
 #[test]
 fn update_assets_source_dir_missing_errors_without_summary_counts() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     let _hidden_roots = hide_packaged_asset_roots();
@@ -179,7 +178,7 @@ fn update_assets_source_dir_missing_errors_without_summary_counts() {
 
 #[test]
 fn update_assets_source_target_mapping_scans_all_four_asset_catalog_subdirectories() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     initialize_assets(&cfg);

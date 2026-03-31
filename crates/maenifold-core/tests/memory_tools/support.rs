@@ -7,15 +7,13 @@ use maenifold_core::markdown;
 use maenifold_core::memory;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::params;
 use serde_json::json;
 use std::fs;
 use tempfile::TempDir;
 
 // T-12.6: RTM NFR-1
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub struct TestEnv {
     _tmp: TempDir,

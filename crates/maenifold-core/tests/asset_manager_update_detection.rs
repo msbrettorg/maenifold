@@ -2,8 +2,8 @@
 mod asset_manager_support;
 
 use asset_manager_support::{
-    ConfigResetGuard, PackagedAssetGuard, initialize_assets, invoke_update_assets, isolated_config,
-    test_mutex, unique_relative_path,
+    ConfigResetGuard, PackagedAssetGuard, TEST_MUTEX, initialize_assets, invoke_update_assets,
+    isolated_config, unique_relative_path,
 };
 use std::fs;
 use std::path::Path;
@@ -14,7 +14,7 @@ use std::path::Path;
 // layer: section heading, file name, count line, and "not copied" guard.
 #[test]
 fn update_assets_dry_run_emits_added_files_section_for_new_source_file() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     initialize_assets(&cfg);
@@ -52,7 +52,7 @@ fn update_assets_dry_run_emits_added_files_section_for_new_source_file() {
 // classification bug.
 #[test]
 fn update_assets_apply_copies_new_files_to_target() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     initialize_assets(&cfg);
@@ -79,7 +79,7 @@ fn update_assets_apply_copies_new_files_to_target() {
 // update_assets_boundary::update_assets_uses_sha256_not_file_size_for_equal_length_content.
 #[test]
 fn update_assets_changed_file_appears_in_updated_files() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
 
@@ -120,7 +120,7 @@ fn update_assets_changed_file_appears_in_updated_files() {
 // for Added/Updated categories to verify neither is emitted.
 #[test]
 fn update_assets_identical_file_is_not_reported_as_added_or_updated() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     initialize_assets(&cfg);

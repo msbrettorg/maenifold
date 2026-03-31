@@ -2,11 +2,10 @@
 
 use chrono::{DateTime, Duration, Utc};
 use maenifold_core::{Config, memory::compute_decay_weight};
-use once_cell::sync::Lazy;
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::MutexGuard;
 use tempfile::TempDir;
 
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub const DEFAULT_GRACE_PERIOD_DAYS: i64 = 28;
 pub const SEQUENTIAL_GRACE_PERIOD_DAYS: i64 = 7;

@@ -3,6 +3,10 @@
 // T-HOTFIX: RTM NFR-3
 // Keeps vector/embedding integration coverage out of the default integration binary.
 
+/// Process-wide mutex for tests that mutate global Config state.
+pub(crate) static GLOBAL_CONFIG_TEST_MUTEX: once_cell::sync::Lazy<parking_lot::Mutex<()>> =
+    once_cell::sync::Lazy::new(|| parking_lot::Mutex::new(()));
+
 /// Policy guard: vector-heavy integration tests are opt-in.
 /// Use an exact filter for a single test, `--list` for discovery, or
 /// `MAENIFOLD_VECTOR_SUITE=1` to run the whole binary.

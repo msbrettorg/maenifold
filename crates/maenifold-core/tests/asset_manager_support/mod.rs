@@ -8,7 +8,6 @@ use serde::de::DeserializeOwned;
 use serde_json::json;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tempfile::TempDir;
 
@@ -20,10 +19,7 @@ use tempfile::TempDir;
 // and HiddenDirGuard renames it, so cross-binary races are theoretically possible when `cargo test`
 // runs integration binaries in parallel. In practice the overlap probability is low, but callers
 // accept this risk. A cross-binary coordination mechanism (e.g. file lock) would eliminate it.
-pub fn test_mutex() -> &'static Mutex<()> {
-    static TEST_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
-    TEST_MUTEX.get_or_init(|| Mutex::new(()))
-}
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub fn isolated_config() -> (TempDir, Config) {
     let tmp = TempDir::new().expect("tmp");

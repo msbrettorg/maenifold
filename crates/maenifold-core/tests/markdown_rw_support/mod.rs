@@ -6,8 +6,6 @@ use maenifold_core::markdown::{Frontmatter, normalize_concept};
 use maenifold_core::search::sync_single_file;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use pulldown_cmark::{Event, LinkType, Options, Parser, Tag, TagEnd};
 use rusqlite::{Connection, params};
 use serde_yaml::Value as YamlValue;
@@ -16,7 +14,7 @@ use std::fs;
 use tempfile::TempDir;
 
 // T-12.7.1: RTM NFR-1 — Shared markdown reader/writer regression helpers split by theme.
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub(crate) struct TestEnv {
     _tmp: TempDir,

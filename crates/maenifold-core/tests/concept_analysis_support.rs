@@ -2,13 +2,11 @@
 
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, Config, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use std::fs;
 use tempfile::TempDir;
 
 // T-1.4: RTM FR-2
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub(crate) const CONCEPT_ANALYSIS_FIXTURE: &str = r#"---
 title: Test Note

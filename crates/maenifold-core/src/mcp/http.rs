@@ -1,54 +1,30 @@
 use super::{MaenifoldHandler, TransportKind};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
-use axum::{
-    Router,
-    body::{Body, to_bytes},
-    extract::{Request, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    routing::any,
-};
+use axum::Router;
 use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService,
-    session::local::{LocalSessionManager, SessionConfig},
+    session::never::NeverSessionManager,
 };
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
-pub(super) type MaenifoldHttpService = StreamableHttpService<MaenifoldHandler, LocalSessionManager>;
-
-const MCP_SESSION_ID_HEADER: &str = "mcp-session-id";
-
-// T-74.2: MCP spec (2025-03-26) says servers MUST return HTTP 404 for
-// unknown/terminated sessions.  Clients MUST re-initialize by sending a new
-// `initialize` request without the Mcp-Session-Id header.  rmcp's built-in
-// message is a bare plain-text string; we rewrite it to a JSON body with
-// clear recovery instructions so clients can act programmatically.
-const STALE_SESSION_JSON: &str = concat!(
-    r#"{"error":"session_expired","message":"#,
-    r#""MCP session not found. The session may have expired or the server was"#,
-    r#" restarted. Re-initialize the session by sending a new initialize"#,
-    r#" request without the Mcp-Session-Id header to create a fresh session."}"#,
-);
-
-const STALE_SESSION_BODY_LIMIT: usize = 8 * 1024;
+pub(super) type MaenifoldHttpService =
+    StreamableHttpService<MaenifoldHandler, NeverSessionManager>;
 
 pub(super) fn router(service: MaenifoldHttpService) -> Router {
-    Router::new()
-        .route("/mcp", any(handle_request))
-        .with_state(service)
+    Router::new().nest_service("/mcp", service)
 }
 
+// Stateless MCP service — no session affinity, no keepalive timeout, no
+// stale-session errors. Every tool call is independent. Clients may send
+// an `Mcp-Session-Id` header but the server ignores it and never rejects
+// requests for session reasons. This eliminates the entire class of
+// "session_expired" failures that occur when long-running AI workloads
+// idle beyond the keepalive window.
 pub(super) fn service(
     cancellation_token: tokio_util::sync::CancellationToken,
 ) -> MaenifoldHttpService {
-    let session_manager = Arc::new(LocalSessionManager {
-        session_config: SessionConfig {
-            keep_alive: Some(Duration::from_secs(300)),
-            ..Default::default()
-        },
-        ..Default::default()
-    });
+    let session_manager = Arc::new(NeverSessionManager::default());
 
     StreamableHttpService::new(
         || {
@@ -57,72 +33,12 @@ pub(super) fn service(
         },
         session_manager,
         StreamableHttpServerConfig {
+            stateful_mode: false,
+            json_response: true,
             cancellation_token,
             ..Default::default()
         },
     )
-}
-
-pub(super) async fn handle_request(
-    State(service): State<MaenifoldHttpService>,
-    request: Request,
-) -> Response {
-    let session_id = request
-        .headers()
-        .get(MCP_SESSION_ID_HEADER)
-        .and_then(|v| v.to_str().ok())
-        .map(str::to_owned);
-    let response = service.handle(request).await.map(Body::new);
-    rewrite_stale_session_response(session_id, response).await
-}
-
-// T-74.2: If the client sent an Mcp-Session-Id and rmcp returned 404
-// (session expired / server restarted), replace the plain-text body
-// with structured JSON carrying re-initialization instructions.
-pub(super) async fn rewrite_stale_session_response(
-    session_id: Option<String>,
-    response: axum::http::Response<Body>,
-) -> Response {
-    let Some(session_id) = session_id else {
-        return response;
-    };
-
-    if response.status() != StatusCode::NOT_FOUND {
-        return response;
-    }
-
-    let (parts, body) = response.into_parts();
-    let body_bytes = match to_bytes(body, STALE_SESSION_BODY_LIMIT).await {
-        Ok(bytes) => bytes,
-        Err(error) => {
-            tracing::warn!(
-                session_id = %session_id,
-                %error,
-                "Failed to inspect 404 response body for stale-session rewrite"
-            );
-            return axum::http::Response::from_parts(parts, Body::empty());
-        }
-    };
-
-    let body_text = String::from_utf8_lossy(&body_bytes);
-    let body_lower = body_text.to_ascii_lowercase();
-    let looks_like_stale_session =
-        body_lower.contains("not found") || body_lower.contains("session");
-
-    if looks_like_stale_session {
-        tracing::warn!(
-            session_id = %session_id,
-            "Stale Mcp-Session-Id — session expired or server restarted"
-        );
-        return (
-            StatusCode::NOT_FOUND,
-            [(axum::http::header::CONTENT_TYPE, "application/json")],
-            STALE_SESSION_JSON,
-        )
-            .into_response();
-    }
-
-    axum::http::Response::from_parts(parts, Body::from(body_bytes))
 }
 
 impl super::MaenifoldMcpServer {

@@ -27,9 +27,8 @@ impl super::MaenifoldMcpServer {
             .fallback(static_handler);
 
         let router = axum::Router::new()
-            .route("/mcp", axum::routing::any(super::http::handle_request))
+            .nest_service("/mcp", super::http::service(ct.child_token()))
             .merge(api)
-            .with_state(super::http::service(ct.child_token()))
             .layer(cors);
 
         let bind_addr = format!("127.0.0.1:{port}");

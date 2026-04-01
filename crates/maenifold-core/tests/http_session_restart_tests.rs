@@ -2,8 +2,8 @@ use maenifold_core::Config;
 use maenifold_core::mcp::MaenifoldMcpServer;
 use once_cell::sync::Lazy;
 use parking_lot::{Mutex, MutexGuard};
-use reqwest::{Client, Response, StatusCode};
-use serde_json::json;
+use reqwest::{Client, StatusCode};
+use serde_json::{Value, json};
 use tempfile::TempDir;
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -13,7 +13,6 @@ use tokio::{
 
 static GLOBAL_CONFIG_TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
-const ACCEPT_HEADER: &str = "application/json, text/event-stream";
 const MCP_ENDPOINT: &str = "/mcp";
 
 struct HttpTestServer {
@@ -66,12 +65,12 @@ impl HttpTestServer {
         wait_for_server(self.port).await;
     }
 
-    async fn initialize_session(&self) -> String {
+    async fn send_initialize(&self) -> Value {
         let response = self
             .client
             .post(self.endpoint())
             .header("Content-Type", "application/json")
-            .header("Accept", ACCEPT_HEADER)
+            .header("Accept", "application/json, text/event-stream")
             .json(&json!({
                 "jsonrpc": "2.0",
                 "id": 1,
@@ -91,21 +90,9 @@ impl HttpTestServer {
 
         assert_eq!(response.status(), StatusCode::OK);
         response
-            .headers()
-            .get("Mcp-Session-Id")
-            .and_then(|value| value.to_str().ok())
-            .map(str::to_owned)
-            .expect("initialize response should include Mcp-Session-Id")
-    }
-
-    async fn open_sse_session(&self, session_id: &str) -> Response {
-        self.client
-            .get(self.endpoint())
-            .header("Accept", "text/event-stream")
-            .header("Mcp-Session-Id", session_id)
-            .send()
+            .json()
             .await
-            .expect("HTTP GET /mcp should complete")
+            .expect("initialize response should parse as JSON")
     }
 
     async fn stop(&mut self) {
@@ -130,28 +117,21 @@ impl Drop for HttpTestServer {
     }
 }
 
+// Stateless mode: after a server restart, clients can immediately send new
+// requests without any session-expired error. This is the whole point of the
+// NeverSessionManager + stateful_mode: false configuration.
 #[tokio::test]
-async fn stale_streamable_http_session_after_restart_returns_reinitialize_hint() {
+async fn stateless_http_survives_server_restart() {
     let mut server = HttpTestServer::start().await;
-    let session_id = server.initialize_session().await;
+
+    let body_before = server.send_initialize().await;
+    assert_eq!(body_before["result"]["serverInfo"]["name"], "maenifold");
 
     server.restart().await;
 
-    let response = server.open_sse_session(&session_id).await;
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-
-    let body = response
-        .text()
-        .await
-        .expect("stale-session response body should be readable");
-    assert!(
-        body.contains("Re-initialize"),
-        "stale-session response should tell clients to re-initialize: {body}"
-    );
-    assert!(
-        body.contains("Mcp-Session-Id"),
-        "stale-session response should explain that a new session id is required: {body}"
-    );
+    // After restart, a fresh initialize must succeed — no stale session errors.
+    let body_after = server.send_initialize().await;
+    assert_eq!(body_after["result"]["serverInfo"]["name"], "maenifold");
 }
 
 fn spawn_server(listener: TcpListener) -> JoinHandle<maenifold_core::Result<()>> {

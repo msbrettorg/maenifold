@@ -27,6 +27,7 @@ impl AgentPool {
         agent_name: &str,
         command: &str,
         cwd: &Path,
+        env: HashMap<String, String>,
     ) -> Arc<AgentHandle> {
         let mut agents = self.agents.lock().await;
         if let Some(handle) = agents.get(agent_name) {
@@ -35,7 +36,7 @@ impl AgentPool {
             }
         }
         agents.remove(agent_name);
-        let handle = Arc::new(spawn_agent(command.to_string(), cwd.to_path_buf()));
+        let handle = Arc::new(spawn_agent(command.to_string(), cwd.to_path_buf(), env));
         agents.insert(agent_name.to_string(), Arc::clone(&handle));
         handle
     }
@@ -54,6 +55,7 @@ impl Default for AgentPool {
 
 pub struct AcpxDriver {
     command: String,
+    env: HashMap<String, String>,
     cwd: PathBuf,
     timeout_seconds: u64,
     pool: AgentPool,
@@ -65,6 +67,7 @@ impl std::fmt::Debug for AcpxDriver {
         formatter
             .debug_struct("AcpxDriver")
             .field("command", &self.command)
+            .field("env", &self.env)
             .field("cwd", &self.cwd)
             .field("timeout_seconds", &self.timeout_seconds)
             .finish_non_exhaustive()
@@ -78,15 +81,16 @@ struct SessionRef {
 
 impl AcpxDriver {
     pub fn new(agent: String, timeout_seconds: u64, cwd: PathBuf) -> Result<Self> {
-        let command = AgentsConfig::load(&cwd)
+        let config_entry = AgentsConfig::load(&cwd)
             .agents
             .get(&agent)
-            .map(|entry| entry.command.clone())
+            .cloned()
             .ok_or_else(|| {
                 AgentError::NotFound(format!("agent '{}' not configured in agents.json", agent))
             })?;
         Ok(Self {
-            command,
+            command: config_entry.command,
+            env: config_entry.env,
             cwd,
             timeout_seconds,
             pool: AgentPool::new(),
@@ -96,7 +100,7 @@ impl AcpxDriver {
     pub async fn create_session(&self, name: &str) -> Result<()> {
         let handle = self
             .pool
-            .get_or_create(&self.command, &self.command, &self.cwd)
+            .get_or_create(&self.command, &self.command, &self.cwd, self.env.clone())
             .await;
         let remote_id = handle
             .new_session(SessionOpts {

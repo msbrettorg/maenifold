@@ -40,6 +40,8 @@ impl McpServerEntry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentEntry {
     pub command: String,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub env: HashMap<String, String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mcp_servers: Vec<McpServerEntry>,
 }
@@ -219,6 +221,7 @@ mod tests {
     fn command_parts_splits_binary_and_args() {
         let entry = AgentEntry {
             command: "/usr/bin/test-agent serve --acp".to_string(),
+            env: HashMap::new(),
             mcp_servers: vec![],
         };
 

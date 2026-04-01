@@ -58,7 +58,7 @@ fn log_io_task_exit<E: std::fmt::Display>(
     }
 }
 
-pub fn spawn_agent(command: String, cwd: PathBuf) -> AgentHandle {
+pub fn spawn_agent(command: String, cwd: PathBuf, env: HashMap<String, String>) -> AgentHandle {
     let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel();
     let init = Arc::new(StdMutex::new(None));
     let init_task = Arc::clone(&init);
@@ -76,6 +76,7 @@ pub fn spawn_agent(command: String, cwd: PathBuf) -> AgentHandle {
                 .stdout(std::process::Stdio::piped())
                 .stderr(std::process::Stdio::piped())
                 .current_dir(&cwd)
+                .envs(&env)
                 .kill_on_drop(true)
                 .spawn()
             {

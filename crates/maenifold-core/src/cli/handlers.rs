@@ -168,15 +168,17 @@ fn run_prompt_command(args: &[String]) -> i32 {
     let message = message.clone();
     run_async_command(move |context| async move {
         let pool = AgentPool::new();
-        let command = AgentsConfig::load(&context.config.maenifold_root)
+        let config_entry = AgentsConfig::load(&context.config.maenifold_root)
             .agents
             .get(&agent)
-            .map(|entry| entry.command.clone())
+            .cloned()
             .ok_or_else(|| {
                 MaenifoldError::Message(format!("agent '{}' not configured in agents.json", agent))
             })?;
+        let command = config_entry.command;
+        let env = config_entry.env;
         let handle = pool
-            .get_or_create(&agent, &command, &context.config.maenifold_root)
+            .get_or_create(&agent, &command, &context.config.maenifold_root, env)
             .await;
         let remote_id = handle
             .new_session(SessionOpts {

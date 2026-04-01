@@ -23,6 +23,7 @@ pub(crate) async fn open_agent_session(
         ))
     })?;
     let command = config_entry.command.clone();
+    let env = config_entry.env.clone();
     if opts.mcp_servers.is_empty() && !config_entry.mcp_servers.is_empty() {
         opts.mcp_servers = config_entry
             .mcp_servers
@@ -30,7 +31,9 @@ pub(crate) async fn open_agent_session(
             .map(|s| s.to_acp())
             .collect();
     }
-    let handle = pool.get_or_create(agent_name, &command, &opts.cwd).await;
+    let handle = pool
+        .get_or_create(agent_name, &command, &opts.cwd, env)
+        .await;
     let remote_id = handle
         .new_session(opts)
         .await

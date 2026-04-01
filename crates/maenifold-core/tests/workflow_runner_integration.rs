@@ -140,6 +140,7 @@ async fn workflow_runner_executes_two_step_workflow() {
             WORKFLOW_ID,
             "Codex",
             "Complete each step concisely with [[WikiLinks]] where relevant.",
+            None,
         ),
     )
     .await
@@ -193,6 +194,7 @@ async fn workflow_runner_seeds_st_submachine_for_thinking_step() {
             WORKFLOW_ID,
             "Codex",
             "Think carefully. Use [[WikiLinks]] in every response.",
+            None,
         ),
     )
     .await

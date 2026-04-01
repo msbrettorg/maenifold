@@ -13,9 +13,8 @@ anyhow.workspace = true
 axum.workspace = true
 base64.workspace = true
 chrono.workspace = true
-gray_matter.workspace = true
 libc.workspace = true
-notify = { version = "7", features = ["macos_fsevent"] }
+notify.workspace = true
 once_cell.workspace = true
 parking_lot.workspace = true
 petgraph = { version = "0.8", features = ["stable_graph", "serde-1"] }

@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::db;
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 static CHANGES_SINCE_OPTIMIZE: AtomicU32 = AtomicU32::new(0);
 static SYNC_FAILURES: AtomicU32 = AtomicU32::new(0);
 static CONSECUTIVE_FAILURES: AtomicU32 = AtomicU32::new(0);
-static LAST_FAILURE_MSG: Lazy<Mutex<Option<String>>> = Lazy::new(|| Mutex::new(None));
+static LAST_FAILURE_MSG: LazyLock<Mutex<Option<String>>> = LazyLock::new(|| Mutex::new(None));
 
 pub struct WatcherHealth {
     pub is_running: bool,

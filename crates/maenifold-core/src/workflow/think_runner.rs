@@ -18,11 +18,11 @@ use super::runner_helpers::{slug, tag_fallback, Envelope};
 pub struct ThinkResult { pub session_id: String, pub conclusion: Option<String>, pub thoughts_completed: u32 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ThinkOptions { pub total_thoughts: u32, pub parent_workflow_id: Option<String>, pub timeout_seconds: Option<u64> }
+pub struct ThinkOptions { pub total_thoughts: u32, pub parent_workflow_id: Option<String>, pub timeout_seconds: Option<u64>, pub model: Option<String> }
 
 impl Default for ThinkOptions {
     fn default() -> Self {
-        Self { total_thoughts: 5, parent_workflow_id: None, timeout_seconds: None }
+        Self { total_thoughts: 5, parent_workflow_id: None, timeout_seconds: None, model: None }
     }
 }
 
@@ -112,13 +112,14 @@ pub async fn run_think(
     opts: ThinkOptions,
 ) -> Result<ThinkResult> {
     let timeout_seconds = opts.timeout_seconds;
+    let model = opts.model.clone();
     run_think_with_pool(
         context,
         agent,
         topic,
         topic,
         opts,
-        SessionOpts { cwd: context.config.maenifold_root.clone(), model: None, mode: None, thought_level: None, config_options: None, allowed_tools: None, max_turns: None, timeout_seconds, mcp_servers: vec![] },
+        SessionOpts { cwd: context.config.maenifold_root.clone(), model, mode: None, thought_level: None, config_options: None, allowed_tools: None, max_turns: None, timeout_seconds, mcp_servers: vec![] },
         Arc::new(AgentPool::new()),
     )
     .await

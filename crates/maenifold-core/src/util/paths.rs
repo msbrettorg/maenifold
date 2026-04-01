@@ -97,30 +97,11 @@ pub fn join_validated_path_buf(base_path: &Path, relative: &Path) -> Result<Path
 }
 
 pub fn slugify_title(title: &str) -> String {
-    let lower = title.to_lowercase();
-    let with_hyphens = lower.replace([' ', '_'], "-");
-    let filtered: String = with_hyphens
-        .chars()
-        .filter(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || *ch == '-')
-        .collect();
-    let mut collapsed = String::new();
-    let mut previous_dash = false;
-    for ch in filtered.chars() {
-        if ch == '-' {
-            if !previous_dash {
-                collapsed.push(ch);
-            }
-            previous_dash = true;
-        } else {
-            collapsed.push(ch);
-            previous_dash = false;
-        }
-    }
-    let collapsed = collapsed.trim_matches('-').to_string();
-    if collapsed.is_empty() {
+    let result = ::slug::slugify(title);
+    if result.is_empty() {
         "untitled".to_string()
     } else {
-        collapsed
+        result
     }
 }
 

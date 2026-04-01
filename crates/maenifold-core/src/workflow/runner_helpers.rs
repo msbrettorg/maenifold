@@ -4,12 +4,12 @@ use super::output_types::WorkflowOutput;
 use super::runner::WorkflowRunStatus;
 use crate::acpx_driver::AcpxResponse;
 use crate::error::{MaenifoldError, Result};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 use serde::Deserialize;
 use serde_json::{Value, json};
-static WORKFLOW_SESSION_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"workflow-\d+").unwrap());
-static STEP_PROGRESS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
+static WORKFLOW_SESSION_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"workflow-\d+").unwrap());
+static STEP_PROGRESS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
 
 /// Single source of truth for the XML output-block contract sent to workflow agents.
 const XML_FORMAT_INSTRUCTION: &str = "You MUST respond with exactly one XML <output> block using the exact tags shown below. Do NOT respond with JSON. Do NOT rename tags. Do NOT omit required tags. The parser only reads the final <output> block.\n\nRequired XML format:\n<output>\n  <response>What you did for this workflow step, with concrete detail.</response>\n  <done>true|false</done>\n  <conclusion>Leave empty until the workflow is complete. Required and non-empty only when done is true.</conclusion>\n</output>";

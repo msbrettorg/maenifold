@@ -27,7 +27,6 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.145", features = ["preserve_order"] }
 serde_yaml = "0.9.34"
 slug = "0.1.6"
-strum = { version = "0.27", features = ["derive"] }
 thiserror = "2.0.17"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
@@ -37,20 +36,15 @@ tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "io-std",
 tokio-util = { version = "0.7", features = ["rt", "compat"] }
 tower-http = { version = "0.6", features = ["cors"] }
 walkdir = "2.5.0"
-gray_matter = "0.3.2"
 pulldown-cmark = "0.13.0"
 sha2 = "0.10.9"
 base64 = "0.22.1"
 uuid = { version = "1.18.1", features = ["v4", "serde"] }
 ort = { version = "2.0.0-rc.12", default-features = false, features = ["std", "ndarray", "download-binaries", "copy-dylibs", "tls-rustls"] }
 tokenizers = "0.22.2"
-tao = "0.34"
 tray-icon = "0.19"
-wry = "0.48"
-notify = { version = "6", features = ["macos_fsevent"] }
+notify = { version = "7", features = ["macos_fsevent"] }
 rust-embed = "8"
-directories = "6"
-open = "5"
 tempfile = "3.23.0"
 assert_cmd = "2.1.1"
 predicates = "3.1.3"

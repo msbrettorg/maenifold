@@ -39,13 +39,14 @@ struct RunContext<'a> {
     agent: &'a str,
     session_id: String,
     pool: Arc<AgentPool>,
+    model: Option<String>,
 }
 
 impl RunContext<'_> {
     fn default_session_opts(&self) -> SessionOpts {
         SessionOpts {
             cwd: self.tool_context.config.maenifold_root.clone(),
-            model: None,
+            model: self.model.clone(),
             mode: None,
             thought_level: None,
             config_options: None,
@@ -62,6 +63,7 @@ pub async fn run_workflow(
     workflow_id: &str,
     agent: &str,
     prompt: &str,
+    model: Option<String>,
 ) -> Result<WorkflowResult> {
     run_workflow_with_pool(
         context,
@@ -70,6 +72,7 @@ pub async fn run_workflow(
         agent,
         prompt,
         None,
+        model,
         Arc::new(AgentPool::new()),
     )
     .await
@@ -82,6 +85,7 @@ pub(crate) async fn run_workflow_with_pool(
     agent: &str,
     prompt: &str,
     timeout_seconds: Option<u64>,
+    model: Option<String>,
     pool: Arc<AgentPool>,
 ) -> Result<WorkflowResult> {
     let (session_id, start_text) =
@@ -91,6 +95,7 @@ pub(crate) async fn run_workflow_with_pool(
         agent,
         session_id,
         pool,
+        model,
     };
     let mut driver_opts = run_ctx.default_session_opts();
     driver_opts.timeout_seconds = timeout_seconds;
@@ -212,6 +217,7 @@ async fn maybe_run_step_thinking(run_ctx: &RunContext<'_>, step: &str) -> Result
         total_thoughts,
         parent_workflow_id: Some(run_ctx.session_id.clone()),
         timeout_seconds: None,
+        model: run_ctx.model.clone(),
     };
     let think_session_id =
         seed_think_session(run_ctx.tool_context, &topic, &think_opts).await?;

@@ -122,7 +122,7 @@ fn run_workflow_command(args: &[String]) -> i32 {
         }
     };
     run_async_command(move |context| async move {
-        run_workflow(&context, &workflow_id, &agent, &prompt)
+        run_workflow(&context, &workflow_id, &agent, &prompt, Some("gpt-5.4".to_string()))
             .await
             .map(|result| result.conclusion.unwrap_or_default())
     })
@@ -137,7 +137,7 @@ fn run_prompt_command(args: &[String]) -> i32 {
         eprintln!("{PROMPT_USAGE}");
         return 1;
     };
-    let mut model = None;
+    let mut model = Some("gpt-5.4".to_string());
     let mut message = None;
     let mut index = 0usize;
     while index < rest.len() {
@@ -220,9 +220,14 @@ fn run_think_command(args: &[String]) -> i32 {
         }
     };
     run_async_command(move |context| async move {
-        run_think(&context, &agent, &topic, ThinkOptions::default())
-            .await
-            .map(|result| result.conclusion.unwrap_or_default())
+        run_think(
+            &context,
+            &agent,
+            &topic,
+            ThinkOptions { model: Some("gpt-5.4".to_string()), ..ThinkOptions::default() },
+        )
+        .await
+        .map(|result| result.conclusion.unwrap_or_default())
     })
 }
 

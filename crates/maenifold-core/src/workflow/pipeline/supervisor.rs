@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
-use once_cell::sync::Lazy;
 use parking_lot::Mutex;
+use std::sync::LazyLock;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::{Arc, atomic::AtomicBool};
@@ -22,17 +22,17 @@ pub(super) use super::supervisor_lifecycle::{
     supervisor_clear_all, supervisor_is_paused, supervisor_spawn_test_task,
 };
 
-pub(crate) static SUPERVISOR_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+pub(crate) static SUPERVISOR_RUNTIME: LazyLock<Runtime> = LazyLock::new(|| {
     Builder::new_multi_thread()
         .worker_threads(2)
         .enable_all()
         .build()
         .expect("build pipeline supervisor runtime")
 });
-pub(super) static RUNNING_PIPELINES: Lazy<Mutex<HashSet<String>>> =
-    Lazy::new(|| Mutex::new(HashSet::new()));
-pub(super) static TRACKED_PIPELINES: Lazy<Mutex<HashMap<String, TrackedPipeline>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+pub(super) static RUNNING_PIPELINES: LazyLock<Mutex<HashSet<String>>> =
+    LazyLock::new(|| Mutex::new(HashSet::new()));
+pub(super) static TRACKED_PIPELINES: LazyLock<Mutex<HashMap<String, TrackedPipeline>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub(super) struct TrackedPipeline {
     pub(super) started_at: Instant,

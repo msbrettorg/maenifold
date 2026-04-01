@@ -15,8 +15,8 @@ use crate::thinking;
 use crate::tools::{self, ToolContext};
 use crate::util::json::OutputFormat;
 use crate::workflow;
-use once_cell::sync::Lazy;
 use serde_json::Value;
+use std::sync::LazyLock;
 use std::collections::BTreeMap;
 
 pub type ToolFn = fn(&ToolContext, &Value) -> Result<String>;
@@ -41,7 +41,7 @@ impl Default for ToolRegistry {
 
 impl ToolRegistry {
     pub fn global() -> &'static Self {
-        static REGISTRY: Lazy<ToolRegistry> = Lazy::new(ToolRegistry::new);
+        static REGISTRY: LazyLock<ToolRegistry> = LazyLock::new(ToolRegistry::new);
         &REGISTRY
     }
 

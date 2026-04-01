@@ -1,7 +1,6 @@
 mod accumulator;
 mod client;
 mod pool;
-mod session;
 mod types;
 
 pub use pool::{AcpxDriver, AgentPool};
@@ -11,7 +10,6 @@ use accumulator::SessionAccumulator;
 use acp::Agent;
 use agent_client_protocol as acp;
 use client::HeadlessClient;
-use session::{apply_session_config, cleanup_timed_out_prompt, handle_new_session, handle_prompt};
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -23,7 +21,7 @@ use std::{
 };
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
-    sync::{Mutex, mpsc, oneshot},
+    sync::{Mutex, mpsc},
     task::JoinHandle,
     time::Duration,
 };
@@ -31,29 +29,6 @@ use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 use types::InitInfo;
 
 const DEFAULT_SESSION_TIMEOUT_SECONDS: u64 = 300;
-
-/// Runs an async operation with a timeout, invoking `on_timeout` and returning
-/// [`AgentError::Timeout`] when the deadline is exceeded.
-async fn run_with_timeout<T, O, C>(
-    duration: Duration,
-    operation: O,
-    on_timeout: C,
-    timeout_message: String,
-) -> Result<T>
-where
-    O: std::future::Future<Output = Result<T>>,
-    C: std::future::Future<Output = ()>,
-{
-    match tokio::time::timeout(duration, operation).await {
-        Ok(result) => result,
-        Err(_) => {
-            on_timeout.await;
-            Err(AgentError::Timeout {
-                message: timeout_message,
-            })
-        }
-    }
-}
 
 fn spawn_stderr_reader(stderr: tokio::process::ChildStderr) -> JoinHandle<()> {
     tokio::task::spawn_local(async move {
@@ -74,11 +49,7 @@ fn log_io_task_exit<E: std::fmt::Display>(
     }
 }
 
-/// Performs the ACP initialize handshake with a 30-second timeout and protocol
-/// version check.
-async fn initialize_connection(
-    conn: &acp::ClientSideConnection,
-) -> Result<acp::InitializeResponse> {
+async fn initialize_connection(conn: &acp::ClientSideConnection) -> Result<acp::InitializeResponse> {
     let request = acp::InitializeRequest::new(acp::ProtocolVersion::V1)
         .client_info(acp::Implementation::new(
             "maenifold",
@@ -93,12 +64,14 @@ async fn initialize_connection(
                 )
                 .terminal(false),
         );
+
     let response = tokio::time::timeout(Duration::from_secs(30), conn.initialize(request))
         .await
         .map_err(|_| AgentError::Timeout {
             message: "ACP initialize timed out after 30s".to_string(),
         })?
         .map_err(AgentError::from)?;
+
     if response.protocol_version != acp::ProtocolVersion::V1 {
         return Err(AgentError::Acp(format!(
             "ACP protocol mismatch: requested {}, got {}",
@@ -106,209 +79,295 @@ async fn initialize_connection(
             response.protocol_version
         )));
     }
+
     Ok(response)
 }
 
-/// Dispatches a single [`AgentCommand`], returning `true` when the command loop
-/// should exit.
-#[allow(clippy::too_many_arguments)]
-async fn handle_command(
-    cmd: AgentCommand,
-    conn: &Rc<acp::ClientSideConnection>,
+async fn new_session(conn: &acp::ClientSideConnection, opts: SessionOpts) -> Result<SessionInfo> {
+    let timeout_seconds = opts.resolved_timeout_seconds();
+    let cwd = opts.cwd.clone();
+    let mcp_servers = opts.mcp_servers.clone();
+    let response = tokio::time::timeout(
+        Duration::from_secs(timeout_seconds),
+        conn.new_session(acp::NewSessionRequest::new(cwd).mcp_servers(mcp_servers)),
+    )
+    .await
+    .map_err(|_| AgentError::Timeout {
+        message: format!("new_session timed out after {timeout_seconds}s"),
+    })?
+    .map_err(AgentError::from)?;
+
+    let session_id = response.session_id.clone();
+    let session_info = SessionInfo {
+        session_id: session_id.to_string(),
+        modes: response
+            .modes
+            .as_ref()
+            .map(|state| state.available_modes.clone())
+            .unwrap_or_default(),
+        models: response
+            .models
+            .as_ref()
+            .map(|state| state.available_models.clone())
+            .unwrap_or_default(),
+        config_options: response.config_options.clone().unwrap_or_default(),
+    };
+
+    apply_session_config(conn, session_id, &opts).await;
+    Ok(session_info)
+}
+
+async fn list_sessions(
+    conn: &acp::ClientSideConnection,
     init: &StdMutex<Option<InitInfo>>,
+    cwd: Option<PathBuf>,
+) -> Result<Vec<AcpxSessionInfo>> {
+    let has_list = init
+        .lock()
+        .ok()
+        .and_then(|info| info.as_ref().map(|info| info.capabilities.clone()))
+        .and_then(|caps| caps.session_capabilities.list)
+        .is_some();
+
+    if !has_list {
+        return Err(AgentError::Acp(
+            "agent does not support session/list".to_string(),
+        ));
+    }
+
+    conn.list_sessions(acp::ListSessionsRequest::new().cwd(cwd))
+        .await
+        .map(|response| {
+            response
+                .sessions
+                .into_iter()
+                .map(|session| AcpxSessionInfo {
+                    session_id: session.session_id.to_string(),
+                    title: session.title,
+                    updated_at: session.updated_at,
+                })
+                .collect()
+        })
+        .map_err(AgentError::from)
+}
+
+async fn load_session(
+    conn: &acp::ClientSideConnection,
+    init: &StdMutex<Option<InitInfo>>,
+    session_id: String,
+    opts: SessionOpts,
+) -> Result<SessionInfo> {
+    let has_load = init
+        .lock()
+        .ok()
+        .and_then(|info| info.as_ref().map(|info| info.capabilities.clone()))
+        .is_some_and(|caps| caps.load_session);
+
+    if !has_load {
+        return Err(AgentError::Acp(
+            "agent does not support load_session".to_string(),
+        ));
+    }
+
+    let timeout_seconds = opts.resolved_timeout_seconds();
+    let response = tokio::time::timeout(
+        Duration::from_secs(timeout_seconds),
+        conn.load_session(
+            acp::LoadSessionRequest::new(acp::SessionId::new(session_id.clone()), opts.cwd.clone())
+                .mcp_servers(opts.mcp_servers.clone()),
+        ),
+    )
+    .await
+    .map_err(|_| AgentError::Timeout {
+        message: format!("load_session timed out after {timeout_seconds}s"),
+    })?
+    .map_err(AgentError::from)?;
+
+    apply_session_config(conn, acp::SessionId::new(session_id.clone()), &opts).await;
+
+    Ok(SessionInfo {
+        session_id,
+        modes: response
+            .modes
+            .as_ref()
+            .map(|state| state.available_modes.clone())
+            .unwrap_or_default(),
+        models: response
+            .models
+            .as_ref()
+            .map(|state| state.available_models.clone())
+            .unwrap_or_default(),
+        config_options: response.config_options.unwrap_or_default(),
+    })
+}
+
+async fn apply_session_config(
+    conn: &acp::ClientSideConnection,
+    session_id: acp::SessionId,
+    opts: &SessionOpts,
+) {
+    apply_optional(opts.model.clone(), "ACP session model", |model| {
+        conn.set_session_model(acp::SetSessionModelRequest::new(session_id.clone(), model))
+    })
+    .await;
+
+    apply_optional(opts.mode.clone(), "ACP session mode", |mode| {
+        conn.set_session_mode(acp::SetSessionModeRequest::new(session_id.clone(), mode))
+    })
+    .await;
+
+    if let Some(config_options) = opts.config_options.clone() {
+        for (config_id, value) in config_options {
+            if matches!(config_id.as_str(), "thought_level" | "allowed_tools" | "max_turns") {
+                continue;
+            }
+            set_config_option(conn, session_id.clone(), config_id, config_option_value(value)).await;
+        }
+    }
+
+    if let Some(thought_level) = opts.thought_level.clone() {
+        set_config_option(
+            conn,
+            session_id.clone(),
+            "thought_level".to_string(),
+            thought_level,
+        )
+        .await;
+    }
+
+    if let Some(allowed_tools) = opts.allowed_tools.clone() {
+        set_config_option(
+            conn,
+            session_id.clone(),
+            "allowed_tools".to_string(),
+            serde_json::to_string(&allowed_tools).unwrap_or_else(|_| "[]".to_string()),
+        )
+        .await;
+    }
+
+    if let Some(max_turns) = opts.max_turns {
+        set_config_option(
+            conn,
+            session_id,
+            "max_turns".to_string(),
+            max_turns.to_string(),
+        )
+        .await;
+    }
+}
+
+fn config_option_value(value: serde_json::Value) -> String {
+    match value {
+        serde_json::Value::String(value) => value,
+        value => value.to_string(),
+    }
+}
+
+async fn apply_optional<T, F, Fut, R>(value: Option<T>, description: &str, apply: F)
+where
+    F: FnOnce(T) -> Fut,
+    Fut: std::future::Future<Output = acp::Result<R>>,
+{
+    if let Some(value) = value
+        && let Err(error) = apply(value).await
+    {
+        tracing::warn!("Failed to set {description}: {error}");
+    }
+}
+
+async fn set_config_option(
+    conn: &acp::ClientSideConnection,
+    session_id: acp::SessionId,
+    config_id: String,
+    value: String,
+) {
+    if let Err(error) = conn
+        .set_session_config_option(acp::SetSessionConfigOptionRequest::new(
+            session_id,
+            config_id.clone(),
+            value,
+        ))
+        .await
+    {
+        tracing::warn!("Failed to set ACP session config {config_id}: {error}");
+    }
+}
+
+fn format_stop_reason(stop_reason: acp::StopReason) -> String {
+    serde_json::to_value(stop_reason)
+        .ok()
+        .and_then(|value| value.as_str().map(ToOwned::to_owned))
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
+fn usage_to_response(usage: acp::Usage) -> AcpxUsage {
+    AcpxUsage {
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        total_tokens: usage.total_tokens,
+        thought_tokens: usage.thought_tokens,
+    }
+}
+
+async fn prompt_session(
+    conn: &acp::ClientSideConnection,
     sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>,
     session_timeouts: &Arc<Mutex<HashMap<String, u64>>>,
-    active_prompts: &mut HashMap<String, JoinHandle<()>>,
-    prompt_replies: &mut HashMap<String, oneshot::Sender<Result<AgentResponse>>>,
-    prompt_result_tx: &mpsc::UnboundedSender<(String, Result<AgentResponse>)>,
-) -> bool {
-    match cmd {
-        AgentCommand::Shutdown => return true,
-        AgentCommand::NewSession { opts, reply } => {
-            let timeout_seconds = opts.resolved_timeout_seconds();
-            let timeout_message = format!("new_session timed out after {timeout_seconds}s");
-            let result = run_with_timeout(
-                Duration::from_secs(timeout_seconds),
-                handle_new_session(conn, opts),
-                async {},
-                timeout_message,
-            )
-            .await;
-            if let Ok(info) = &result {
-                session_timeouts
-                    .lock()
-                    .await
-                    .insert(info.session_id.clone(), timeout_seconds);
-            }
-            let _ = reply.send(result);
+    session_id: String,
+    prompt: String,
+) -> Result<AgentResponse> {
+    let timeout_seconds = session_timeouts
+        .lock()
+        .await
+        .get(&session_id)
+        .copied()
+        .unwrap_or(DEFAULT_SESSION_TIMEOUT_SECONDS);
+
+    sessions
+        .lock()
+        .await
+        .insert(session_id.clone(), SessionAccumulator::default());
+
+    let result = tokio::time::timeout(
+        Duration::from_secs(timeout_seconds),
+        conn.prompt(acp::PromptRequest::new(
+            acp::SessionId::new(session_id.clone()),
+            vec![acp::ContentBlock::Text(acp::TextContent::new(prompt))],
+        )),
+    )
+    .await;
+
+    let mut response = sessions
+        .lock()
+        .await
+        .remove(&session_id)
+        .unwrap_or_default()
+        .into_response();
+
+    match result {
+        Ok(Ok(prompt_response)) => {
+            response.stop_reason = Some(format_stop_reason(prompt_response.stop_reason));
+            response.usage = prompt_response.usage.map(usage_to_response);
+            Ok(response)
         }
-        AgentCommand::ListSessions { cwd, reply } => {
-            let caps = init
-                .lock()
-                .ok()
-                .and_then(|i| i.as_ref().map(|i| i.capabilities.clone()));
-            let has_list = caps
-                .as_ref()
-                .and_then(|c| c.session_capabilities.list.as_ref())
-                .is_some();
-            let result = if !has_list {
-                Err(AgentError::Acp(
-                    "agent does not support session/list".to_string(),
-                ))
-            } else {
-                conn.list_sessions(acp::ListSessionsRequest::new().cwd(cwd))
-                    .await
-                    .map(|resp| {
-                        resp.sessions
-                            .into_iter()
-                            .map(|s| AcpxSessionInfo {
-                                session_id: s.session_id.to_string(),
-                                title: s.title,
-                                updated_at: s.updated_at,
-                            })
-                            .collect()
-                    })
-                    .map_err(AgentError::from)
-            };
-            let _ = reply.send(result);
-        }
-        AgentCommand::LoadSession {
-            session_id,
-            opts,
-            reply,
-        } => {
-            let has_load = init
-                .lock()
-                .ok()
-                .and_then(|i| i.as_ref().map(|i| i.capabilities.clone()))
-                .is_some_and(|c| c.load_session);
-            let timeout_seconds = opts.resolved_timeout_seconds();
-            let result = if !has_load {
-                Err(AgentError::Acp(
-                    "agent does not support load_session".to_string(),
-                ))
-            } else {
-                let SessionOpts {
-                    cwd, model, mode, thought_level, config_options,
-                    allowed_tools, max_turns, timeout_seconds: _, mcp_servers,
-                } = opts;
-                let timeout_message =
-                    format!("load_session timed out after {timeout_seconds}s");
-                run_with_timeout(
-                    Duration::from_secs(timeout_seconds),
-                    async {
-                        let resp = conn
-                            .load_session(
-                                acp::LoadSessionRequest::new(
-                                    acp::SessionId::new(session_id.clone()),
-                                    cwd,
-                                )
-                                .mcp_servers(mcp_servers),
-                            )
-                            .await
-                            .map_err(AgentError::from)?;
-                        apply_session_config(
-                            conn,
-                            acp::SessionId::new(session_id.clone()),
-                            model, mode, thought_level, config_options,
-                            allowed_tools, max_turns,
-                        )
-                        .await;
-                        Ok(SessionInfo {
-                            session_id: session_id.clone(),
-                            modes: resp.modes.as_ref()
-                                .map(|s| s.available_modes.clone())
-                                .unwrap_or_default(),
-                            models: resp.models.as_ref()
-                                .map(|s| s.available_models.clone())
-                                .unwrap_or_default(),
-                            config_options: resp.config_options.unwrap_or_default(),
-                        })
-                    },
-                    async {},
-                    timeout_message,
-                )
-                .await
-            };
-            if result.is_ok() {
-                session_timeouts.lock().await.insert(session_id, timeout_seconds);
-            }
-            let _ = reply.send(result);
-        }
-        AgentCommand::Prompt { session_id, prompt, reply } => {
-            if active_prompts.contains_key(&session_id) {
-                let _ = reply.send(Err(AgentError::Acp(format!(
-                    "prompt already in progress for session '{session_id}'"
-                ))));
-                return false;
-            }
-            prompt_replies.insert(session_id.clone(), reply);
-            let conn = Rc::clone(conn);
-            let sessions = Arc::clone(sessions);
-            let session_timeouts = Arc::clone(session_timeouts);
-            let prompt_result_tx = prompt_result_tx.clone();
-            let task_session_id = session_id.clone();
-            let handle = tokio::task::spawn_local(async move {
-                let timeout_seconds = session_timeouts
-                    .lock().await
-                    .get(&task_session_id).copied()
-                    .unwrap_or(DEFAULT_SESSION_TIMEOUT_SECONDS);
-                let timeout_message = format!("prompt timed out after {timeout_seconds}s");
-                let result = run_with_timeout(
-                    Duration::from_secs(timeout_seconds),
-                    handle_prompt(&conn, &sessions, &task_session_id, &prompt),
-                    cleanup_timed_out_prompt(&conn, &sessions, &task_session_id),
-                    timeout_message,
-                )
-                .await;
-                if matches!(result.as_ref(), Err(AgentError::Timeout { .. })) {
-                    session_timeouts.lock().await.remove(&task_session_id);
-                }
-                let _ = prompt_result_tx.send((task_session_id, result));
-            });
-            active_prompts.insert(session_id, handle);
-        }
-        AgentCommand::Cancel { session_id, reply } => {
-            if let Some(handle) = active_prompts.remove(&session_id) {
-                handle.abort();
-            }
-            if let Some(prompt_reply) = prompt_replies.remove(&session_id) {
-                let _ = prompt_reply.send(Err(AgentError::Acp(format!(
-                    "prompt cancelled for session '{session_id}'"
-                ))));
-            }
-            let result = conn
+        Ok(Err(error)) => Err(error.into()),
+        Err(_) => {
+            if let Err(error) = conn
                 .cancel(acp::CancelNotification::new(acp::SessionId::new(
                     session_id.clone(),
                 )))
                 .await
-                .map_err(AgentError::from);
-            if let Some(acc) = sessions.lock().await.get_mut(&session_id) {
-                acc.mark_in_progress_cancelled();
-            }
-            let _ = reply.send(result);
-        }
-        AgentCommand::CloseSession { session_id } => {
-            if let Some(handle) = active_prompts.remove(&session_id) {
-                handle.abort();
-            }
-            if let Some(prompt_reply) = prompt_replies.remove(&session_id) {
-                let _ = prompt_reply.send(Err(AgentError::Acp(format!(
-                    "prompt cancelled because session '{session_id}' was closed"
-                ))));
-            }
-            session_timeouts.lock().await.remove(&session_id);
-            if let Err(e) = conn
-                .close_session(acp::CloseSessionRequest::new(acp::SessionId::new(
-                    session_id,
-                )))
-                .await
             {
-                tracing::warn!("Failed to close ACP session: {e}");
+                tracing::warn!(
+                    session_id = %session_id,
+                    "Failed to cancel timed out ACP prompt: {error}"
+                );
             }
+            Err(AgentError::Timeout {
+                message: format!("prompt timed out after {timeout_seconds}s"),
+            })
         }
     }
-    false
 }
 
 async fn reap_child(
@@ -316,15 +375,15 @@ async fn reap_child(
     stderr_task: Option<JoinHandle<()>>,
     io_task: Option<JoinHandle<acp::Result<()>>>,
 ) {
-    if let Err(e) = child.start_kill() {
-        tracing::debug!("Failed to kill ACP child: {e}");
+    if let Err(error) = child.start_kill() {
+        tracing::debug!("Failed to kill ACP child: {error}");
     }
     let _ = child.wait().await;
-    if let Some(t) = stderr_task {
-        let _ = t.await;
+    if let Some(task) = stderr_task {
+        let _ = task.await;
     }
-    if let Some(t) = io_task {
-        log_io_task_exit(t.await);
+    if let Some(task) = io_task {
+        log_io_task_exit(task.await);
     }
 }
 
@@ -353,8 +412,8 @@ async fn run_agent(
             return;
         }
     };
+
     let stderr_task = child.stderr.take().map(spawn_stderr_reader);
-    // compat wrappers required: ACP crate expects futures::io traits.
     let stdin = match child.stdin.take() {
         Some(stdin) => stdin.compat_write(),
         None => {
@@ -373,17 +432,25 @@ async fn run_agent(
             return;
         }
     };
+
     let sessions = Arc::new(Mutex::new(HashMap::<String, SessionAccumulator>::new()));
     let session_timeouts = Arc::new(Mutex::new(HashMap::<String, u64>::new()));
     let (conn, io_future) = acp::ClientSideConnection::new(
-        HeadlessClient { cwd: cwd.clone(), sessions: Arc::clone(&sessions) },
-        stdin, stdout,
-        |fut| { tokio::task::spawn_local(fut); },
+        HeadlessClient {
+            cwd: cwd.clone(),
+            sessions: Arc::clone(&sessions),
+        },
+        stdin,
+        stdout,
+        |fut| {
+            tokio::task::spawn_local(fut);
+        },
     );
     let conn = Rc::new(conn);
-    let mut io_task: Option<JoinHandle<_>> = Some(tokio::task::spawn_local(io_future));
+    let mut io_task = Some(tokio::task::spawn_local(io_future));
+
     let response = match initialize_connection(&conn).await {
-        Ok(r) => r,
+        Ok(response) => response,
         Err(error) => {
             alive.store(false, Ordering::SeqCst);
             match &error {
@@ -395,6 +462,7 @@ async fn run_agent(
             return;
         }
     };
+
     if let Some(info) = response.agent_info.as_ref() {
         tracing::info!("Connected to {} v{}", info.name, info.version);
     }
@@ -405,12 +473,9 @@ async fn run_agent(
             auth_methods: response.auth_methods,
         });
     });
-    let (prompt_result_tx, mut prompt_result_rx) =
-        mpsc::unbounded_channel::<(String, Result<AgentResponse>)>();
-    let mut active_prompts = HashMap::<String, JoinHandle<()>>::new();
-    let mut prompt_replies = HashMap::<String, oneshot::Sender<Result<AgentResponse>>>::new();
+
     loop {
-        tokio::select! {
+        let cmd = tokio::select! {
             io_result = async {
                 match io_task.as_mut() {
                     Some(task) => task.await,
@@ -419,41 +484,80 @@ async fn run_agent(
             } => {
                 log_io_task_exit(io_result);
                 io_task = None;
-                for (_, h) in active_prompts.drain() { h.abort(); }
-                for (sid, reply) in prompt_replies.drain() {
-                    let _ = reply.send(Err(AgentError::AgentDied { session_id: sid }));
-                }
                 break;
             }
-            prompt_result = prompt_result_rx.recv() => {
-                if let Some((sid, result)) = prompt_result {
-                    active_prompts.remove(&sid);
-                    if let Some(reply) = prompt_replies.remove(&sid) {
-                        let _ = reply.send(result);
-                    }
+            cmd = cmd_rx.recv() => cmd,
+        };
+
+        let Some(cmd) = cmd else {
+            break;
+        };
+
+        match cmd {
+            AgentCommand::Shutdown => break,
+            AgentCommand::NewSession { opts, reply } => {
+                let timeout_seconds = opts.resolved_timeout_seconds();
+                let result = new_session(&conn, opts).await;
+                if let Ok(info) = &result {
+                    session_timeouts
+                        .lock()
+                        .await
+                        .insert(info.session_id.clone(), timeout_seconds);
                 }
+                let _ = reply.send(result);
             }
-            cmd = cmd_rx.recv() => {
-                let Some(cmd) = cmd else {
-                    for (_, h) in active_prompts.drain() { h.abort(); }
-                    for (sid, reply) in prompt_replies.drain() {
-                        let _ = reply.send(Err(AgentError::AgentDied { session_id: sid }));
-                    }
-                    break;
-                };
-                if handle_command(
-                    cmd, &conn, &init, &sessions, &session_timeouts,
-                    &mut active_prompts, &mut prompt_replies, &prompt_result_tx,
-                ).await {
-                    for (_, h) in active_prompts.drain() { h.abort(); }
-                    for (sid, reply) in prompt_replies.drain() {
-                        let _ = reply.send(Err(AgentError::AgentDied { session_id: sid }));
-                    }
-                    break;
+            AgentCommand::ListSessions { cwd, reply } => {
+                let _ = reply.send(list_sessions(&conn, &init, cwd).await);
+            }
+            AgentCommand::LoadSession {
+                session_id,
+                opts,
+                reply,
+            } => {
+                let timeout_seconds = opts.resolved_timeout_seconds();
+                let result = load_session(&conn, &init, session_id.clone(), opts).await;
+                if result.is_ok() {
+                    session_timeouts
+                        .lock()
+                        .await
+                        .insert(session_id, timeout_seconds);
+                }
+                let _ = reply.send(result);
+            }
+            AgentCommand::Prompt {
+                session_id,
+                prompt,
+                reply,
+            } => {
+                let result =
+                    prompt_session(&conn, &sessions, &session_timeouts, session_id, prompt).await;
+                let _ = reply.send(result);
+            }
+            AgentCommand::Cancel { session_id, reply } => {
+                if let Some(accumulator) = sessions.lock().await.get_mut(&session_id) {
+                    accumulator.mark_in_progress_cancelled();
+                }
+                let result = conn
+                    .cancel(acp::CancelNotification::new(acp::SessionId::new(session_id)))
+                    .await
+                    .map_err(AgentError::from);
+                let _ = reply.send(result);
+            }
+            AgentCommand::CloseSession { session_id } => {
+                sessions.lock().await.remove(&session_id);
+                session_timeouts.lock().await.remove(&session_id);
+                if let Err(error) = conn
+                    .close_session(acp::CloseSessionRequest::new(acp::SessionId::new(
+                        session_id,
+                    )))
+                    .await
+                {
+                    tracing::warn!("Failed to close ACP session: {error}");
                 }
             }
         }
     }
+
     alive.store(false, Ordering::SeqCst);
     drop(conn);
     reap_child(&mut child, stderr_task, io_task.take()).await;
@@ -463,25 +567,32 @@ pub fn spawn_agent(command: String, cwd: PathBuf, env: HashMap<String, String>) 
     let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
     let init = Arc::new(StdMutex::new(None));
     let alive = Arc::new(AtomicBool::new(true));
+
     tokio::task::spawn_blocking({
         let init = Arc::clone(&init);
         let alive = Arc::clone(&alive);
         move || {
-            let rt = match tokio::runtime::Builder::new_current_thread()
+            let runtime = match tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
             {
-                Ok(rt) => rt,
+                Ok(runtime) => runtime,
                 Err(error) => {
                     alive.store(false, Ordering::SeqCst);
                     tracing::error!("Failed to build ACP runtime: {error}");
                     return;
                 }
             };
-            tokio::task::LocalSet::new().block_on(&rt, async move {
+
+            tokio::task::LocalSet::new().block_on(&runtime, async move {
                 run_agent(command, cwd, env, init, alive, cmd_rx).await;
             });
         }
     });
-    AgentHandle { cmd_tx, init, alive }
+
+    AgentHandle {
+        cmd_tx,
+        init,
+        alive,
+    }
 }

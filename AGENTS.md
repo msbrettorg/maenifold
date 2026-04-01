@@ -52,6 +52,12 @@ Binary: `target/release/maenifold` → symlinked at `/usr/local/bin/maenifold`.
 
 **Words are not delivery. A rebuilt, runnable binary is delivery.**
 
+## ACP Model Policy
+
+All ACP agent interactions MUST specify `model: gpt-5.4` unless explicitly overridden. Never rely on agent defaults — different agents default to different models with wildly different latency and cost profiles.
+
+CLI commands (`think`, `prompt`, `workflow`) default to `gpt-5.4`. Pipeline nodes should specify model in their node definition.
+
 ## Web UI / ACP Rules
 
 - WebSocket URI must include `?agent=<name>`. Never connect without it.

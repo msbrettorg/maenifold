@@ -4,7 +4,7 @@ use crate::search::text::render_search_markdown;
 use crate::tools::ToolContext;
 use crate::tools::with_next_steps;
 use crate::util::json::{OutputFormat, normalize_whole_floats, success};
-use rusqlite::Connection;
+use rusqlite::{Connection, params};
 use serde_json::Value;
 
 pub(crate) type TextResult = (
@@ -22,50 +22,50 @@ pub(crate) fn fetch_text_results(
     query_terms: &[String],
     folder_prefix: Option<&str>,
 ) -> Result<Vec<TextResult>> {
+    if query_terms.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let match_expr = query_terms
+        .iter()
+        .map(|t| format!("\"{}\"", t.replace('"', "\"\"")))
+        .collect::<Vec<_>>()
+        .join(" OR ");
+
+    let limit: i64 = 200;
     let mut statement = connection.prepare(
-        "SELECT file_path, COALESCE(title, ''), COALESCE(content, ''), created, last_accessed, status FROM file_content",
+        "SELECT f.file_path, COALESCE(f.title, ''),
+                snippet(file_search, 2, '', '', '...', 64) AS snippet,
+                bm25(file_search, 1.0, 2.0) * -1 AS score,
+                f.created, f.last_accessed, f.status
+         FROM file_search
+         JOIN file_content f ON f.rowid = file_search.rowid
+         WHERE file_search MATCH ?1
+         ORDER BY score DESC
+         LIMIT ?2",
     )?;
-    let rows = statement.query_map([], |row| {
+
+    let rows = statement.query_map(params![match_expr, limit], |row| {
         Ok((
             row.get::<_, String>(0)?,
+            row.get::<_, f64>(3)?,
             row.get::<_, String>(1)?,
             row.get::<_, String>(2)?,
-            row.get::<_, Option<String>>(3)?,
             row.get::<_, Option<String>>(4)?,
             row.get::<_, Option<String>>(5)?,
+            row.get::<_, Option<String>>(6)?,
         ))
     })?;
 
     let mut text_results = Vec::new();
     for row in rows {
-        let (path, title, content, created, last_accessed, status) = row?;
-        if !path_in_scope(&path, folder_prefix) {
+        let result = row?;
+        if !path_in_scope(&result.0, folder_prefix) {
             continue;
         }
-
-        let text_score = score_text_match(
-            &title.to_ascii_lowercase(),
-            &content.to_ascii_lowercase(),
-            query_terms,
-        );
-        if text_score > 0.0 {
-            text_results.push((
-                path,
-                text_score,
-                title,
-                content,
-                created,
-                last_accessed,
-                status,
-            ));
-        }
+        text_results.push(result);
     }
 
-    text_results.sort_by(|a, b| {
-        b.1.partial_cmp(&a.1)
-            .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| a.0.cmp(&b.0))
-    });
     Ok(text_results)
 }
 
@@ -120,26 +120,6 @@ fn path_in_scope(path: &str, folder_prefix: Option<&str>) -> bool {
         }
         None => true,
     }
-}
-
-fn score_text_match(title_lower: &str, content_lower: &str, query_terms: &[String]) -> f64 {
-    if query_terms.is_empty() {
-        return 0.0;
-    }
-
-    let mut score = 0.0;
-    for term in query_terms {
-        let term_str = term.as_str();
-        let mut search_start = 0;
-        while let Some(pos) = content_lower[search_start..].find(term_str) {
-            score += 1.0;
-            search_start += pos + term_str.len();
-        }
-        if !title_lower.is_empty() && title_lower.contains(term_str) {
-            score += 5.0;
-        }
-    }
-    score
 }
 
 fn path_matches_requested_tags(context: &ToolContext, path: &str, tags: &[String]) -> bool {

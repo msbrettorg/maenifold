@@ -1,7 +1,7 @@
 use super::wikilinks::{extract_wikilinks, normalize_concept};
 use crate::error::Result;
-use once_cell::sync::Lazy;
 use parking_lot::Mutex;
+use std::sync::LazyLock;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -18,8 +18,8 @@ struct CachedWikiLinkFilter {
 }
 
 // T-10.16: RTM FR-19 keeps `.wikilink-filter.json` reads behind an mtime cache.
-static WIKILINK_FILTER_CACHE: Lazy<Mutex<BTreeMap<PathBuf, CachedWikiLinkFilter>>> =
-    Lazy::new(|| Mutex::new(BTreeMap::new()));
+static WIKILINK_FILTER_CACHE: LazyLock<Mutex<BTreeMap<PathBuf, CachedWikiLinkFilter>>> =
+    LazyLock::new(|| Mutex::new(BTreeMap::new()));
 
 #[derive(Debug, Clone)]
 pub struct WikiLinkFilter {

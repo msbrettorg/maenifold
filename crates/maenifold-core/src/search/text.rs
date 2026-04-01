@@ -2,13 +2,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 
 pub(crate) fn slugify_query(query: &str) -> String {
-    query
-        .to_ascii_lowercase()
-        .replace(|ch: char| !ch.is_ascii_alphanumeric(), "-")
-        .split('-')
-        .filter(|part| !part.is_empty())
-        .collect::<Vec<_>>()
-        .join("-")
+    ::slug::slugify(query)
 }
 
 pub(crate) fn informative_query_terms(query: &str) -> Vec<String> {

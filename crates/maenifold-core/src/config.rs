@@ -1,6 +1,6 @@
 use crate::error::{MaenifoldError, Result};
-use once_cell::sync::Lazy;
 use parking_lot::RwLock;
+use std::sync::LazyLock;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ struct Overrides {
     database_path: Option<PathBuf>,
 }
 
-static OVERRIDES: Lazy<RwLock<Overrides>> = Lazy::new(|| RwLock::new(Overrides::default()));
+static OVERRIDES: LazyLock<RwLock<Overrides>> = LazyLock::new(|| RwLock::new(Overrides::default()));
 
 #[derive(Debug, Clone)]
 pub struct Config {

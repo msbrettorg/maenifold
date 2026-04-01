@@ -192,6 +192,7 @@ pub(super) async fn execute_node_request(
                     agent,
                     &prompt,
                     timeout_seconds,
+                    None,
                     pool.clone(),
                 )
                 .await,
@@ -237,6 +238,7 @@ pub(super) async fn execute_node_request(
                         total_thoughts,
                         parent_workflow_id: Some(node_session_id),
                         timeout_seconds: None,
+                        model: None,
                     },
                     session_opts,
                     pool,

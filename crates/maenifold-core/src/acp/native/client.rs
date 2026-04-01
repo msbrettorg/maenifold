@@ -1,5 +1,3 @@
-/// ACP headless client — implements `agent_client_protocol::Client` for headless orchestration.
-/// Accumulates session updates (text, thoughts, tool calls) per session.
 use agent_client_protocol as acp;
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
@@ -14,14 +12,13 @@ pub(super) struct HeadlessClient {
 }
 
 impl HeadlessClient {
-    /// Resolve and jail a path within the cwd. Rejects parent-dir traversal
-    /// and ensures the canonical result stays under `self.cwd`.
     fn resolve_and_jail(&self, path: PathBuf) -> std::result::Result<PathBuf, acp::Error> {
         let resolved = if path.is_absolute() {
             path
         } else {
             self.cwd.join(path)
         };
+
         if resolved
             .components()
             .any(|component| matches!(component, Component::ParentDir))
@@ -31,6 +28,7 @@ impl HeadlessClient {
                 format!("path contains parent traversal: {}", resolved.display()),
             ));
         }
+
         let canonical_cwd = canonicalize_or_original(&self.cwd);
         let canonical_path = canonicalize_or_original(&resolved);
         if !canonical_path.starts_with(&canonical_cwd) {
@@ -39,9 +37,9 @@ impl HeadlessClient {
                 format!("path escapes working directory: {}", resolved.display()),
             ));
         }
+
         Ok(resolved)
     }
-
 }
 
 fn canonicalize_or_original(path: &Path) -> PathBuf {
@@ -56,15 +54,12 @@ impl acp::Client for HeadlessClient {
     ) -> acp::Result<acp::RequestPermissionResponse> {
         let session_id = args.session_id.to_string();
         if !self.sessions.lock().await.contains_key(&session_id) {
-            tracing::info!(
-                session_id = %session_id,
-                "Permission request cancelled - session already cancelled"
-            );
             return Ok(acp::RequestPermissionResponse::new(
                 acp::RequestPermissionOutcome::Cancelled,
             ));
         }
-        let selected_option = args
+
+        let option_id = args
             .options
             .iter()
             .find(|option| {
@@ -74,19 +69,13 @@ impl acp::Client for HeadlessClient {
                 )
             })
             .or_else(|| args.options.first())
-            .cloned();
-        let tool = args.tool_call.fields.title.as_deref().unwrap_or("unknown");
-        tracing::info!(
-            session_id = %args.session_id,
-            permission_kind = ?selected_option.as_ref().map(|option| option.kind),
-            tool,
-            "Auto-granting ACP permission in headless mode"
-        );
-        let option_id = selected_option
-            .map(|option| option.option_id)
+            .map(|option| option.option_id.clone())
             .unwrap_or_else(|| acp::PermissionOptionId::new("allow"));
+
         Ok(acp::RequestPermissionResponse::new(
-            acp::RequestPermissionOutcome::Selected(acp::SelectedPermissionOutcome::new(option_id)),
+            acp::RequestPermissionOutcome::Selected(acp::SelectedPermissionOutcome::new(
+                option_id,
+            )),
         ))
     }
 
@@ -147,114 +136,86 @@ impl acp::Client for HeadlessClient {
         Ok(acp::ReadTextFileResponse::new(content))
     }
 
+    async fn create_terminal(
+        &self,
+        _args: acp::CreateTerminalRequest,
+    ) -> acp::Result<acp::CreateTerminalResponse> {
+        Err(acp::Error::method_not_found())
+    }
+
+    async fn terminal_output(
+        &self,
+        _args: acp::TerminalOutputRequest,
+    ) -> acp::Result<acp::TerminalOutputResponse> {
+        Err(acp::Error::method_not_found())
+    }
+
+    async fn release_terminal(
+        &self,
+        _args: acp::ReleaseTerminalRequest,
+    ) -> acp::Result<acp::ReleaseTerminalResponse> {
+        Err(acp::Error::method_not_found())
+    }
+
+    async fn wait_for_terminal_exit(
+        &self,
+        _args: acp::WaitForTerminalExitRequest,
+    ) -> acp::Result<acp::WaitForTerminalExitResponse> {
+        Err(acp::Error::method_not_found())
+    }
+
+    async fn kill_terminal(
+        &self,
+        _args: acp::KillTerminalRequest,
+    ) -> acp::Result<acp::KillTerminalResponse> {
+        Err(acp::Error::method_not_found())
+    }
+
     async fn session_notification(&self, args: acp::SessionNotification) -> acp::Result<()> {
         let session_id = args.session_id.to_string();
+        let mut sessions = self.sessions.lock().await;
+        let Some(accumulator) = sessions.get_mut(&session_id) else {
+            tracing::debug!(
+                session_id = %session_id,
+                "Dropping ACP session update for inactive accumulator"
+            );
+            return Ok(());
+        };
+
         match args.update {
-            acp::SessionUpdate::UserMessageChunk(chunk) => {
-                tracing::debug!(session_id = %session_id, chunk = ?chunk, "Received ACP user message chunk");
+            acp::SessionUpdate::UserMessageChunk(_) => {}
+            acp::SessionUpdate::AgentMessageChunk(chunk) => {
+                if let acp::ContentBlock::Text(text) = chunk.content {
+                    accumulator.append_text(&text.text);
+                }
             }
-            acp::SessionUpdate::AgentMessageChunk(chunk) => match chunk.content {
-                acp::ContentBlock::Text(text) => {
-                    let mut sessions = self.sessions.lock().await;
-                    sessions
-                        .entry(session_id.clone())
-                        .or_default()
-                        .append_text(&text.text);
+            acp::SessionUpdate::AgentThoughtChunk(chunk) => {
+                if let acp::ContentBlock::Text(text) = chunk.content {
+                    accumulator.append_thought(&text.text);
                 }
-                content => {
-                    tracing::debug!(
-                        session_id = %session_id,
-                        content = ?content,
-                        "Received non-text ACP agent message chunk"
-                    );
-                }
-            },
-            acp::SessionUpdate::AgentThoughtChunk(chunk) => match chunk.content {
-                acp::ContentBlock::Text(text) => {
-                    let mut sessions = self.sessions.lock().await;
-                    sessions
-                        .entry(session_id.clone())
-                        .or_default()
-                        .append_thought(&text.text);
-                }
-                content => {
-                    tracing::debug!(
-                        session_id = %session_id,
-                        content = ?content,
-                        "Received non-text ACP thought chunk"
-                    );
-                }
-            },
+            }
             acp::SessionUpdate::ToolCall(tool_call) => {
-                let tool_call_id = tool_call.tool_call_id.to_string();
-                let mut sessions = self.sessions.lock().await;
-                sessions
-                    .entry(session_id.clone())
-                    .or_default()
-                    .push_tool_call(tool_call);
-                tracing::debug!(
-                    session_id = %session_id,
-                    tool_call_id = %tool_call_id,
-                    "Recorded ACP tool call"
-                );
+                accumulator.push_tool_call(tool_call);
             }
             acp::SessionUpdate::ToolCallUpdate(update) => {
-                let tool_call_id = update.tool_call_id.to_string();
-                let apply_result = {
-                    let mut sessions = self.sessions.lock().await;
-                    Some(
-                        sessions
-                            .entry(session_id.clone())
-                            .or_default()
-                            .apply_tool_call_update(update),
-                    )
-                };
-                if let Some(Err(error)) = apply_result {
+                if let Err(error) = accumulator.apply_tool_call_update(update) {
                     tracing::warn!(
                         session_id = %session_id,
-                        tool_call_id = %tool_call_id,
-                        error = %error,
-                        "Failed to reconstruct ACP tool call from update"
+                        "Failed to reconstruct ACP tool call from update: {error}"
                     );
                 }
-                tracing::debug!(
-                    session_id = %session_id,
-                    tool_call_id = %tool_call_id,
-                    "Processed ACP tool call update"
-                );
             }
-            acp::SessionUpdate::Plan(plan) => {
-                tracing::debug!(session_id = %session_id, plan = ?plan, "Received ACP plan update");
-            }
-            acp::SessionUpdate::AvailableCommandsUpdate(update) => {
-                tracing::info!(
-                    session_id = %session_id,
-                    command_count = update.available_commands.len(),
-                    "Received ACP available commands update"
-                );
-            }
-            acp::SessionUpdate::CurrentModeUpdate(update) => {
-                tracing::debug!(session_id = %session_id, update = ?update, "Received ACP current mode update");
-            }
-            acp::SessionUpdate::ConfigOptionUpdate(update) => {
-                tracing::debug!(session_id = %session_id, update = ?update, "Received ACP config option update");
-            }
-            acp::SessionUpdate::SessionInfoUpdate(update) => {
-                tracing::debug!(session_id = %session_id, update = ?update, "Received ACP session info update");
-            }
-            acp::SessionUpdate::UsageUpdate(update) => {
-                tracing::info!(
-                    session_id = %session_id,
-                    used = update.used,
-                    size = update.size,
-                    cost = ?update.cost,
-                    "ACP usage update"
-                );
-            }
-            _ => {
-                tracing::debug!(session_id = %session_id, "Received unhandled ACP session update");
-            }
+            _ => {}
         }
+
         Ok(())
+    }
+
+    async fn ext_method(&self, _args: acp::ExtRequest) -> acp::Result<acp::ExtResponse> {
+        Err(acp::Error::method_not_found())
+    }
+
+    async fn ext_notification(&self, _args: acp::ExtNotification) -> acp::Result<()> {
+        Err(acp::Error::method_not_found())
     }
 }

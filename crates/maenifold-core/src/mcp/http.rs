@@ -3,13 +3,11 @@ use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use axum::Router;
 use rmcp::transport::streamable_http_server::{
-    StreamableHttpServerConfig, StreamableHttpService,
-    session::never::NeverSessionManager,
+    StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };
 use std::sync::Arc;
 
-pub(super) type MaenifoldHttpService =
-    StreamableHttpService<MaenifoldHandler, NeverSessionManager>;
+pub(super) type MaenifoldHttpService = StreamableHttpService<MaenifoldHandler, NeverSessionManager>;
 
 pub(super) fn router(service: MaenifoldHttpService) -> Router {
     Router::new().nest_service("/mcp", service)

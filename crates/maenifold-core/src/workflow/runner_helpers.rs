@@ -121,7 +121,7 @@ pub(crate) fn workflow_step_payload(
     final_step: bool,
 ) -> serde_json::Value {
     let response_text = workflow_response_text_for_step(response, final_step);
-    if response.output.done || final_step {
+    if final_step {
         json!({
             "sessionId": session_id,
             "response": response_text,
@@ -136,7 +136,7 @@ pub(crate) fn workflow_completion_text(
     response: &WorkflowAgentResponse,
     final_step: bool,
 ) -> Option<String> {
-    if response.output.done || final_step {
+    if final_step {
         Some(workflow_conclusion_text(response, final_step))
     } else {
         None

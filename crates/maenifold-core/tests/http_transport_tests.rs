@@ -1,6 +1,6 @@
 // T-17.5: RTM FR-23 (RTM-127, RTM-129, RTM-130)
-use maenifold_core::mcp::MaenifoldMcpServer;
 use maenifold_core::Config;
+use maenifold_core::mcp::MaenifoldMcpServer;
 use parking_lot::MutexGuard;
 use reqwest::{Client, Response, StatusCode};
 use serde_json::{Value, json};
@@ -92,9 +92,7 @@ impl Drop for HttpTestServer {
 async fn http_transport_initialize_returns_server_info() {
     let server = HttpTestServer::start().await;
 
-    let response = server
-        .send_mcp_request(initialize_request(), None)
-        .await;
+    let response = server.send_mcp_request(initialize_request(), None).await;
     assert_eq!(
         response.status(),
         StatusCode::OK,
@@ -181,9 +179,7 @@ async fn http_transport_invokes_tools_over_http() {
     let server = HttpTestServer::start().await;
 
     // Initialize first (stateless but rmcp still expects the handshake)
-    let init_response = server
-        .send_mcp_request(initialize_request(), None)
-        .await;
+    let init_response = server.send_mcp_request(initialize_request(), None).await;
     assert_eq!(init_response.status(), StatusCode::OK);
     let init_body = parse_mcp_response(init_response).await;
     assert_eq!(init_body["result"]["serverInfo"]["name"], "maenifold");

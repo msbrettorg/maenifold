@@ -1,12 +1,11 @@
-use crate::acp_config::AgentsConfig;
-use crate::acp_native::{AgentPool, SessionOpts};
+use crate::acp_native::SessionOpts;
 use crate::config::Config;
 use crate::error::MaenifoldError;
 use crate::mcp::{self, MaenifoldMcpServer};
 use crate::sync::watchers;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
-use crate::workflow::runner::{ThinkOptions, run_think, run_workflow};
+use crate::workflow::runner::{ThinkOptions, run_prompt, run_think, run_workflow};
 use serde_json::json;
 
 pub(super) fn run_mcp() -> i32 {
@@ -72,9 +71,10 @@ pub(super) fn run_http(port: u16) -> i32 {
     }
 }
 
-pub(super) fn run_workflow_command(workflow_id: String, agent: String, prompt: String) -> i32 {
+pub(super) fn run_workflow_command(workflow_id: String, agent: String, prompt: String, model: Option<String>) -> i32 {
+    let model = model.or_else(|| Some("gpt-5.4".to_string()));
     run_async_command(move |context| async move {
-        run_workflow(&context, &workflow_id, &agent, &prompt, Some("gpt-5.4".to_string()))
+        run_workflow(&context, &workflow_id, &agent, &prompt, model)
             .await
             .map(|result| result.conclusion.unwrap_or_default())
     })
@@ -83,48 +83,29 @@ pub(super) fn run_workflow_command(workflow_id: String, agent: String, prompt: S
 pub(super) fn run_prompt_command(agent: String, message: String, model: Option<String>) -> i32 {
     let model = model.or_else(|| Some("gpt-5.4".to_string()));
     run_async_command(move |context| async move {
-        let pool = AgentPool::new();
-        let config_entry = AgentsConfig::load(&context.config.maenifold_root)
-            .agents
-            .get(&agent)
-            .cloned()
-            .ok_or_else(|| {
-                MaenifoldError::Message(format!("agent '{}' not configured in agents.json", agent))
-            })?;
-        let command = config_entry.command;
-        let env = config_entry.env;
-        let handle = pool
-            .get_or_create(&agent, &command, &context.config.maenifold_root, env)
-            .await;
-        let remote_id = handle
-            .new_session(SessionOpts {
-                cwd: context.config.maenifold_root.clone(),
-                model: model.clone(),
-                mode: None,
-                thought_level: None,
-                config_options: None,
-                allowed_tools: None,
-                max_turns: None,
-                timeout_seconds: None,
-                mcp_servers: vec![],
-            })
-            .await
-            .map_err(|error| MaenifoldError::Message(error.to_string()))?
-            .session_id;
-        let response = handle.prompt(&remote_id, &message).await;
-        handle.close_session(&remote_id).await;
-        let response = response.map_err(|error| MaenifoldError::Message(error.to_string()))?;
-        Ok(response.text)
+        let opts = SessionOpts {
+            cwd: context.config.maenifold_root.clone(),
+            model,
+            mode: None,
+            thought_level: None,
+            config_options: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout_seconds: None,
+            mcp_servers: vec![],
+        };
+        run_prompt(&agent, &message, opts).await
     })
 }
 
-pub(super) fn run_think_command(agent: String, topic: String) -> i32 {
+pub(super) fn run_think_command(agent: String, topic: String, model: Option<String>) -> i32 {
+    let model = model.or_else(|| Some("gpt-5.4".to_string()));
     run_async_command(move |context| async move {
         run_think(
             &context,
             &agent,
             &topic,
-            ThinkOptions { model: Some("gpt-5.4".to_string()), ..ThinkOptions::default() },
+            ThinkOptions { model, ..ThinkOptions::default() },
         )
         .await
         .map(|result| result.conclusion.unwrap_or_default())

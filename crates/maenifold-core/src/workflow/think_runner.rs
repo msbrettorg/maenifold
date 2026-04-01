@@ -12,7 +12,7 @@ use serde_json::Value;
 use super::agent_session::{open_agent_session, AgentSession};
 use super::output_parser::parse_output;
 use super::output_types::ThinkingOutput;
-use super::runner_helpers::{slug, tag_fallback, Envelope};
+use super::runner_helpers::{slug, Envelope};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ThinkResult { pub session_id: String, pub conclusion: Option<String>, pub thoughts_completed: u32 }
@@ -120,7 +120,7 @@ pub async fn run_think(
         topic,
         opts,
         SessionOpts { cwd: context.config.maenifold_root.clone(), model, mode: None, thought_level: None, config_options: None, allowed_tools: None, max_turns: None, timeout_seconds, mcp_servers: vec![] },
-        Arc::new(AgentPool::new()),
+        Arc::clone(&crate::acp_native::GLOBAL_AGENT_POOL),
     )
     .await
 }
@@ -201,20 +201,19 @@ async fn parse_with_retry(
         }
     }
 
-    let tagged = tag_fallback(&original_text);
     let done = thought_number >= total_thoughts;
     Ok(ThinkingOutput {
-        response: tagged.clone(),
+        response: original_text.clone(),
         done,
         needs_more: false,
         revision_of: None,
-        conclusion: done.then(|| tagged.clone()),
+        conclusion: done.then(|| original_text.clone()),
     })
 }
 
 fn force_completion_output(output: &ThinkingOutput) -> ThinkingOutput {
-    let response = tag_fallback(&output.response);
-    let conclusion = output.conclusion.as_deref().map(tag_fallback).unwrap_or(response.clone());
+    let response = output.response.clone();
+    let conclusion = output.conclusion.clone().unwrap_or_else(|| response.clone());
     ThinkingOutput { response, done: true, needs_more: false, revision_of: output.revision_of, conclusion: Some(conclusion) }
 }
 
@@ -238,7 +237,7 @@ fn synthesize_conclusion(response: &str) -> String {
         let boundary = prefix.rfind(char::is_whitespace).unwrap_or(prefix.len());
         format!("{}…", &prefix[..boundary])
     };
-    tag_fallback(&truncated)
+    truncated
 }
 
 fn serialize_payload<T: Serialize>(payload: T) -> Value {

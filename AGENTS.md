@@ -19,6 +19,14 @@
 - SWE and Red-team must not modify files outside their assigned scope.
 - No parallel agents on the same file. Commit before the next agent touches it.
 
+## File Mandate
+
+- Every file has exactly one responsibility. No mixed responsibilities in a single file.
+- File names and paths must describe exactly what the file is in plain English.
+- Files must be self-documenting by structure and naming. Do not rely on vague containers or catch-all files.
+- The moment a file is touched, this mandate applies in full to that file. Do not make partial compliance edits.
+- Old untouched files may remain as they are. Changed files must go the whole hog: single responsibility, explicit naming, exact placement.
+
 ## Test Execution Policy
 
 **SWE agents:** `cargo build -p <crate>` only. Never `cargo test`.

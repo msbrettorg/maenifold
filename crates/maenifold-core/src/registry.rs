@@ -243,8 +243,8 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: tools::list_agents,
     },
     ToolDescriptor {
-        name: "AcpPrompt",
-        aliases: &["acpprompt", "acp_prompt"],
-        invoke: tools::acp_prompt,
+        name: "AcpExec",
+        aliases: &["acpexec", "acp_exec"],
+        invoke: tools::acp_exec,
     },
 ];

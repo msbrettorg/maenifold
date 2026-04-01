@@ -54,11 +54,15 @@ pub enum CliCommand {
         workflow_id: String,
         agent: String,
         prompt: String,
+        #[arg(long)]
+        model: Option<String>,
     },
     /// Run a sequential thinking session
     Think {
         agent: String,
         topic: String,
+        #[arg(long)]
+        model: Option<String>,
     },
     /// Invoke a maenifold tool directly
     Tool {
@@ -140,10 +144,10 @@ impl CliApp {
             Some(CliCommand::Prompt { agent, message, model }) => {
                 run_prompt_command(agent, message, model)
             }
-            Some(CliCommand::Workflow { workflow_id, agent, prompt }) => {
-                run_workflow_command(workflow_id, agent, prompt)
+            Some(CliCommand::Workflow { workflow_id, agent, prompt, model }) => {
+                run_workflow_command(workflow_id, agent, prompt, model)
             }
-            Some(CliCommand::Think { agent, topic }) => run_think_command(agent, topic),
+            Some(CliCommand::Think { agent, topic, model }) => run_think_command(agent, topic, model),
             Some(CliCommand::Tool { name, payload, json }) => {
                 run_tool_command(name, payload, json, warn_deprecated_tool)
             }

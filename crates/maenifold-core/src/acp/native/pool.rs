@@ -2,7 +2,7 @@
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 use tokio::sync::Mutex;
 
@@ -11,6 +11,11 @@ use crate::acp_config::AgentsConfig;
 use super::{
     AcpxResponse, AgentCommand, AgentError, AgentHandle, Result, SessionOpts, spawn_agent,
 };
+
+/// Global agent pool shared across all ACP code paths (MCP tools, pipeline,
+/// CLI).  Agents are spawned on first use and reused until they die.
+pub static GLOBAL_AGENT_POOL: LazyLock<Arc<AgentPool>> =
+    LazyLock::new(|| Arc::new(AgentPool::new()));
 
 pub struct AgentPool {
     agents: Mutex<HashMap<String, Arc<AgentHandle>>>,

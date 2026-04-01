@@ -3,7 +3,7 @@ mod client;
 mod pool;
 mod types;
 
-pub use pool::{AcpxDriver, AgentPool};
+pub use pool::{AcpxDriver, AgentPool, GLOBAL_AGENT_POOL};
 pub use types::*;
 
 use accumulator::SessionAccumulator;
@@ -98,6 +98,8 @@ async fn new_session(conn: &acp::ClientSideConnection, opts: SessionOpts) -> Res
     .map_err(AgentError::from)?;
 
     let session_id = response.session_id.clone();
+    let has_config_options = response.config_options.is_some();
+    let config_options = response.config_options.clone().unwrap_or_default();
     let session_info = SessionInfo {
         session_id: session_id.to_string(),
         modes: response
@@ -110,10 +112,10 @@ async fn new_session(conn: &acp::ClientSideConnection, opts: SessionOpts) -> Res
             .as_ref()
             .map(|state| state.available_models.clone())
             .unwrap_or_default(),
-        config_options: response.config_options.clone().unwrap_or_default(),
+        config_options: config_options.clone(),
     };
 
-    apply_session_config(conn, session_id, &opts).await;
+    apply_session_config(conn, session_id, &opts, has_config_options, &config_options).await;
     Ok(session_info)
 }
 
@@ -183,7 +185,17 @@ async fn load_session(
     })?
     .map_err(AgentError::from)?;
 
-    apply_session_config(conn, acp::SessionId::new(session_id.clone()), &opts).await;
+    let has_config_options = response.config_options.is_some();
+    let config_options = response.config_options.unwrap_or_default();
+
+    apply_session_config(
+        conn,
+        acp::SessionId::new(session_id.clone()),
+        &opts,
+        has_config_options,
+        &config_options,
+    )
+    .await;
 
     Ok(SessionInfo {
         session_id,
@@ -197,11 +209,75 @@ async fn load_session(
             .as_ref()
             .map(|state| state.available_models.clone())
             .unwrap_or_default(),
-        config_options: response.config_options.unwrap_or_default(),
+        config_options,
     })
 }
 
+/// Apply session configuration based on agent capability path.
+///
+/// **Modern agents** (return `configOptions` from `newSession`): route model,
+/// mode, and thought-level through `session/set_config_option` using the
+/// config option's `category` field to find the right ID.
+///
+/// **Legacy agents** (return `modes`/`models`): use `session/set_mode` and
+/// the unstable `_session/set_model`.
 async fn apply_session_config(
+    conn: &acp::ClientSideConnection,
+    session_id: acp::SessionId,
+    opts: &SessionOpts,
+    has_config_options: bool,
+    config_options: &[acp::SessionConfigOption],
+) {
+    if has_config_options {
+        apply_modern_config(conn, session_id, opts, config_options).await;
+    } else {
+        apply_legacy_config(conn, session_id.clone(), opts).await;
+        apply_extra_config_options(conn, session_id, opts).await;
+    }
+}
+
+/// Modern path: find config option IDs by category and set via
+/// `session/set_config_option`.
+async fn apply_modern_config(
+    conn: &acp::ClientSideConnection,
+    session_id: acp::SessionId,
+    opts: &SessionOpts,
+    config_options: &[acp::SessionConfigOption],
+) {
+    if let Some(model) = opts.model.as_deref() {
+        if let Some(config_id) = find_config_id_by_category(config_options, "model") {
+            set_config_option(conn, session_id.clone(), config_id, model.to_string()).await;
+        }
+    }
+    if let Some(mode) = opts.mode.as_deref() {
+        if let Some(config_id) = find_config_id_by_category(config_options, "mode") {
+            set_config_option(conn, session_id.clone(), config_id, mode.to_string()).await;
+        } else {
+            // mode is a standard ACP method — safe to call even for modern agents
+            apply_optional(Some(mode.to_string()), "ACP session mode", |mode| {
+                conn.set_session_mode(acp::SetSessionModeRequest::new(session_id.clone(), mode))
+            })
+            .await;
+        }
+    }
+    if let Some(thought_level) = opts.thought_level.as_deref() {
+        if let Some(config_id) = find_config_id_by_category(config_options, "thought_level") {
+            set_config_option(conn, session_id.clone(), config_id, thought_level.to_string()).await;
+        } else {
+            set_config_option(
+                conn,
+                session_id.clone(),
+                "thought_level".to_string(),
+                thought_level.to_string(),
+            )
+            .await;
+        }
+    }
+    apply_extra_config_options(conn, session_id, opts).await;
+}
+
+/// Legacy path: use dedicated ACP methods for model and mode.
+async fn apply_legacy_config(
     conn: &acp::ClientSideConnection,
     session_id: acp::SessionId,
     opts: &SessionOpts,
@@ -216,23 +292,39 @@ async fn apply_session_config(
     })
     .await;
 
-    if let Some(config_options) = opts.config_options.clone() {
-        for (config_id, value) in config_options {
-            if matches!(config_id.as_str(), "thought_level" | "allowed_tools" | "max_turns") {
-                continue;
-            }
-            set_config_option(conn, session_id.clone(), config_id, config_option_value(value)).await;
-        }
-    }
-
     if let Some(thought_level) = opts.thought_level.clone() {
         set_config_option(
             conn,
-            session_id.clone(),
+            session_id,
             "thought_level".to_string(),
             thought_level,
         )
         .await;
+    }
+}
+
+/// Config options that apply regardless of modern/legacy path.
+async fn apply_extra_config_options(
+    conn: &acp::ClientSideConnection,
+    session_id: acp::SessionId,
+    opts: &SessionOpts,
+) {
+    if let Some(config_options) = opts.config_options.clone() {
+        for (config_id, value) in config_options {
+            if matches!(
+                config_id.as_str(),
+                "thought_level" | "allowed_tools" | "max_turns"
+            ) {
+                continue;
+            }
+            set_config_option(
+                conn,
+                session_id.clone(),
+                config_id,
+                config_option_value(value),
+            )
+            .await;
+        }
     }
 
     if let Some(allowed_tools) = opts.allowed_tools.clone() {
@@ -254,6 +346,23 @@ async fn apply_session_config(
         )
         .await;
     }
+}
+
+/// Find the config option ID for a given semantic category.
+fn find_config_id_by_category(
+    config_options: &[acp::SessionConfigOption],
+    category_name: &str,
+) -> Option<String> {
+    config_options.iter().find_map(|opt| {
+        let matches = match (&opt.category, category_name) {
+            (Some(acp::SessionConfigOptionCategory::Model), "model") => true,
+            (Some(acp::SessionConfigOptionCategory::Mode), "mode") => true,
+            (Some(acp::SessionConfigOptionCategory::ThoughtLevel), "thought_level") => true,
+            (Some(acp::SessionConfigOptionCategory::Other(value)), name) => value == name,
+            _ => false,
+        };
+        matches.then(|| opt.id.to_string())
+    })
 }
 
 fn config_option_value(value: serde_json::Value) -> String {

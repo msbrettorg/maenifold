@@ -26,7 +26,7 @@ pub(crate) use queue::{
     append_workflow_queue, frontmatter_usize, initial_workflow_frontmatter, read_workflow_queue,
     start_workflow_session, view_workflow_session,
 };
-pub use runner::{WorkflowResult, WorkflowRunStatus, run_workflow};
+pub use runner::{WorkflowResult, WorkflowRunStatus, run_prompt, run_workflow};
 #[allow(unused_imports)]
 pub(crate) use status::{
     handle_cancelled_workflow_status, handle_completed_workflow_status, handle_queue_exhaustion,

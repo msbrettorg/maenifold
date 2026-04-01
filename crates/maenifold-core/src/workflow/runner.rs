@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::acp_native::{AgentPool, SessionOpts};
+use crate::acp_native::{AgentPool, GLOBAL_AGENT_POOL, SessionOpts};
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::read_markdown;
 use crate::sessions::workflow_session_uri;
@@ -58,6 +58,29 @@ impl RunContext<'_> {
     }
 }
 
+/// Send a single prompt to an ACP agent and return the response text.
+/// Uses the global pool for agent reuse.
+pub async fn run_prompt(agent: &str, prompt: &str, opts: SessionOpts) -> Result<String> {
+    run_prompt_with_pool(&GLOBAL_AGENT_POOL, agent, prompt, opts).await
+}
+
+/// Send a single prompt to an ACP agent using a specific pool.
+pub(crate) async fn run_prompt_with_pool(
+    pool: &AgentPool,
+    agent: &str,
+    prompt: &str,
+    opts: SessionOpts,
+) -> Result<String> {
+    let session = open_agent_session(pool, agent, "prompt", opts).await?;
+    let response = session.prompt(prompt).await;
+    let _ = session.close().await;
+    let response = response?;
+    if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
+        return Err(MaenifoldError::Message(error));
+    }
+    Ok(response.text.trim().to_string())
+}
+
 pub async fn run_workflow(
     context: &ToolContext,
     workflow_id: &str,
@@ -73,7 +96,7 @@ pub async fn run_workflow(
         prompt,
         None,
         model,
-        Arc::new(AgentPool::new()),
+        Arc::clone(&GLOBAL_AGENT_POOL),
     )
     .await
 }

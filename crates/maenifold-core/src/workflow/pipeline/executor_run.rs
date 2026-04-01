@@ -8,7 +8,6 @@ use crate::registry::ToolRegistry;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
-use super::super::agent_session::open_agent_session;
 use super::super::runner::{self, WorkflowRunStatus};
 use super::executor_helpers::{MAX_CONCLUSION_CHARS, truncate_chars};
 
@@ -112,19 +111,12 @@ pub(super) async fn run_prompt_node(
     _context: &ToolContext,
     pool: &AgentPool,
     agent: &str,
-    session_id: &str,
+    _session_id: &str,
     prompt: &str,
     _tool_mode: &str,
     session_opts: SessionOpts,
 ) -> Result<String> {
-    let session = open_agent_session(pool, agent, session_id, session_opts).await?;
-    let response = session.prompt(prompt).await;
-    let _ = session.close().await;
-    let response = response?;
-    if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
-        return Err(MaenifoldError::Message(error));
-    }
-    Ok(response.text.trim().to_string())
+    super::super::runner::run_prompt_with_pool(pool, agent, prompt, session_opts).await
 }
 
 pub(super) async fn run_tool_node(

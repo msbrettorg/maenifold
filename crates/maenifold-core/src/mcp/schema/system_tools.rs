@@ -1,5 +1,5 @@
 use super::params::{
-    AcpPromptParams, AdoptParams, GetConfigParams, GetHelpParams, ListAgentsParams,
+    AcpExecParams, AdoptParams, GetConfigParams, GetHelpParams, ListAgentsParams,
     ListAssetsParams, MemoryStatusParams, ReadMcpResourceParams, RunFullBenchmarkParams,
     StartWatcherParams, StopWatcherParams, UpdateAssetsParams,
 };
@@ -52,9 +52,9 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
             registry_name,
             "Lists configured ACP agents and their serialized configuration fields.",
         ),
-        "AcpPrompt" => derived_tool_definition::<AcpPromptParams>(
+        "AcpExec" => derived_tool_definition::<AcpExecParams>(
             registry_name,
-            "Spawns an ACP agent, creates a session, sends a single prompt, and returns the response text.",
+            "Unified ACP agent invocation. Supports prompt (single message), think (sequential thinking), and workflow (structured workflow) modes. All modes share a global agent pool for process reuse.",
         ),
         _ => return None,
     };

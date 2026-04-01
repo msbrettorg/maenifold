@@ -141,6 +141,8 @@ async fn run_think_produces_real_thoughts_with_opencode() {
     let opts = ThinkOptions {
         total_thoughts: 3,
         parent_workflow_id: None,
+        model: None,
+        timeout_seconds: None,
     };
 
     let result: ThinkResult = run_think(

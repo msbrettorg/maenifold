@@ -1,0 +1,15 @@
+{
+  "name": "lightweight",
+  "stages": [
+    {
+      "name": "swe",
+      "verdicts": [],
+      "transitions": { "pass": "blue" }
+    },
+    {
+      "name": "blue",
+      "verdicts": ["pass", "fail"],
+      "transitions": { "pass": "done", "fail": "pending" }
+    }
+  ]
+}

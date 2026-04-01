@@ -5,7 +5,7 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
-use crate::acp_native::AgentPool;
+use crate::acp_native::{AgentPool, GLOBAL_AGENT_POOL};
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
@@ -42,10 +42,8 @@ pub(super) async fn execute_pipeline(
     prompt: &str,
     cancel: CancellationToken,
 ) -> Result<ExecutionResult> {
-    let pool = Arc::new(AgentPool::new());
-    let result = execute_pipeline_inner(context, session_id, prompt, cancel, pool.clone()).await;
-    pool.close_all().await;
-    result
+    let pool = Arc::clone(&GLOBAL_AGENT_POOL);
+    execute_pipeline_inner(context, session_id, prompt, cancel, pool).await
 }
 
 #[allow(clippy::cognitive_complexity)]

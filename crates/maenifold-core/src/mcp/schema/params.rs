@@ -635,24 +635,53 @@ pub struct ReadMcpResourceParams {
 
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ListAgentsParams {}
+pub struct ListAgentsParams {
+    /// Connect to each agent and report discovered capabilities (modes,
+    /// models, configOptions).  Slower — spawns agent processes.
+    #[serde(default)]
+    pub probe: bool,
+}
 
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AcpPromptParams {
+pub struct AcpExecParams {
     /// ACP agent name from agents.json
     pub agent: String,
-    /// Prompt text to send to the agent
-    pub prompt: String,
+    /// Execution mode
+    #[serde(default = "default_prompt_mode")]
+    #[schemars(default = "default_prompt_mode")]
+    pub mode: Option<String>,
+    /// Prompt text to send to the agent (required for prompt and workflow modes)
+    #[serde(default)]
+    pub prompt: Option<String>,
+    /// Topic for sequential thinking (required for think mode)
+    #[serde(default)]
+    pub topic: Option<String>,
+    /// Estimated number of thoughts for think mode
+    #[serde(default)]
+    pub total_thoughts: Option<u32>,
+    /// Workflow identifier (required for workflow mode)
+    #[serde(default)]
+    pub workflow_id: Option<String>,
     /// Optional model override for the session
     #[serde(default)]
     pub model: Option<String>,
     /// Optional session mode override
     #[serde(default)]
-    pub mode: Option<String>,
+    pub thought_level: Option<String>,
+    /// Optional allowed tools override
+    #[serde(default)]
+    pub allowed_tools: Option<Vec<String>>,
+    /// Optional max turns override
+    #[serde(default)]
+    pub max_turns: Option<u32>,
     /// Optional session timeout in seconds
     #[serde(default)]
     pub timeout_seconds: Option<u32>,
+}
+
+fn default_prompt_mode() -> Option<String> {
+    Some("prompt".to_string())
 }
 
 #[derive(Deserialize, JsonSchema)]

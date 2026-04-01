@@ -1,7 +1,9 @@
 ---
-id: T-ST-6-fork
+id: T-80.202
+title: Fork (Pipeline Cloning)
 status: done
 pipeline: sdd
+requirement: FR-45
 ---
 
 # ST-6 — Fork (Pipeline Cloning)

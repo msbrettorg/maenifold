@@ -1,5 +1,6 @@
 ---
-id: resource-notifications
+id: T-80.137
+title: Stop Advertising resources/list_changed on HTTP/Web
 status: done
 pipeline: sdd
 ---

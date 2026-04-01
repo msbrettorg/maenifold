@@ -36,6 +36,17 @@ fn base_task(n: u32) -> String {
     )
 }
 
+fn task_identity(body: &str) -> (String, String) {
+    let header = body
+        .lines()
+        .find_map(|line| line.trim().strip_prefix("# "))
+        .unwrap_or("Task");
+    header
+        .split_once(" — ")
+        .map(|(id, title)| (id.trim().to_string(), title.trim().to_string()))
+        .unwrap_or_else(|| ("T-unknown".into(), header.trim().to_string()))
+}
+
 fn with_swe(mut content: String) -> String {
     content.push_str("\n## SWE Remediation\n\nImplementation done.\n");
     content
@@ -52,11 +63,15 @@ fn with_blue_pass(mut content: String) -> String {
 }
 
 fn with_frontmatter(pipeline: &str, status: &str, attempts: u32, body: String) -> String {
-    format!("---\nstatus: {status}\npipeline: {pipeline}\nattempts: {attempts}\n---\n\n{body}")
+    let (id, title) = task_identity(&body);
+    format!(
+        "---\nid: {id}\ntitle: {title}\nstatus: {status}\npipeline: {pipeline}\nattempts: {attempts}\n---\n\n{body}"
+    )
 }
 
 fn with_pipeline(pipeline: &str, body: String) -> String {
-    format!("---\npipeline: {pipeline}\n---\n\n{body}")
+    let (id, title) = task_identity(&body);
+    format!("---\nid: {id}\ntitle: {title}\nstatus: pending\npipeline: {pipeline}\n---\n\n{body}")
 }
 
 fn rebuild_cache(root: &Path) -> PathBuf {
@@ -162,11 +177,13 @@ fn test_done_without_frontmatter_is_error() {
     write_task(root.path(), TaskLocation::Done, &file, &base_task(10));
     let db_path = rebuild_cache(root.path());
     // Task without pipeline: frontmatter is a data error — should not appear in DB
-    assert!(GateDb::open(&db_path)
-        .unwrap()
-        .get_task_by_id(&extract_task_id(&file))
-        .unwrap()
-        .is_none());
+    assert!(
+        GateDb::open(&db_path)
+            .unwrap()
+            .get_task_by_id(&extract_task_id(&file))
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[test]
@@ -220,16 +237,23 @@ fn test_sync_rebuild_skips_tasks_without_pipeline() {
         ),
     );
     let no_pipeline = task_file_name(16);
-    write_task(root.path(), TaskLocation::Todo, &no_pipeline, &base_task(16));
+    write_task(
+        root.path(),
+        TaskLocation::Todo,
+        &no_pipeline,
+        &base_task(16),
+    );
 
     let db_path = rebuild_cache(root.path());
 
     // Legacy done file without pipeline: is skipped (error), not in DB
-    assert!(GateDb::open(&db_path)
-        .unwrap()
-        .get_task_by_id(&extract_task_id(&legacy))
-        .unwrap()
-        .is_none());
+    assert!(
+        GateDb::open(&db_path)
+            .unwrap()
+            .get_task_by_id(&extract_task_id(&legacy))
+            .unwrap()
+            .is_none()
+    );
 
     // Modern done file with pipeline: is synced normally
     let modern_row = read_row(&db_path, &modern);
@@ -237,18 +261,25 @@ fn test_sync_rebuild_skips_tasks_without_pipeline() {
     assert_eq!(modern_row.location, "done");
 
     // Todo file without pipeline: is also skipped
-    assert!(GateDb::open(&db_path)
-        .unwrap()
-        .get_task_by_id(&extract_task_id(&no_pipeline))
-        .unwrap()
-        .is_none());
+    assert!(
+        GateDb::open(&db_path)
+            .unwrap()
+            .get_task_by_id(&extract_task_id(&no_pipeline))
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[test]
 fn test_status_json_reports_error_for_missing_pipeline() {
     let root = setup_root();
     let file = task_file_name(17);
-    write_task(root.path(), TaskLocation::Done, &file, &base_task(17));
+    write_task(
+        root.path(),
+        TaskLocation::Done,
+        &file,
+        "---\nid: T-99.17\ntitle: Test Task 17\nstatus: done\n---\n\n# T-99.17 — Test Task 17\n",
+    );
 
     // rebuild_cache calls gate sync — the task without pipeline should be reported as an error
     let assert = gate_command()
@@ -259,7 +290,7 @@ fn test_status_json_reports_error_for_missing_pipeline() {
     let output = assert.get_output();
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("missing 'pipeline' field in frontmatter"),
+        stderr.contains("missing required field 'pipeline'"),
         "expected pipeline error in stderr, got: {stderr}"
     );
 }

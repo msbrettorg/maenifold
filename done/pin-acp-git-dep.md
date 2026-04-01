@@ -1,7 +1,9 @@
 ---
-id: pin-acp-git-dep
+id: T-80.118
+title: Pin agent-client-protocol Git Dependency
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # Pin agent-client-protocol Git Dependency

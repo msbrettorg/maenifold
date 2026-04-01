@@ -1,7 +1,7 @@
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use chrono::Datelike;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, Config, ToolRegistry};
-use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 

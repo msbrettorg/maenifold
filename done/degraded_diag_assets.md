@@ -1,5 +1,6 @@
 ---
-id: degraded_diag_assets
+id: T-80.59
+title: "Test Evaluation: `degraded_diag_assets.rs`"
 status: done
 pipeline: tdd
 ---

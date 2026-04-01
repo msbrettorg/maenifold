@@ -1,6 +1,6 @@
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::db::{open_connection, run_full_maintenance, run_light_maintenance};
 use maenifold_core::{AssetManager, Config, GraphDatabase};
-use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use rusqlite::{Connection, params};
 use tempfile::TempDir;
 

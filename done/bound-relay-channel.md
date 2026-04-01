@@ -1,7 +1,9 @@
 ---
-id: bound-relay-channel
+id: T-80.17
+title: Bound Relay MPSC Channel
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # Bound Relay MPSC Channel

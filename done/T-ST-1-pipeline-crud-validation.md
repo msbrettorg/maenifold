@@ -1,7 +1,9 @@
 ---
-id: T-ST-1-pipeline-crud-validation
+id: T-80.197
+title: Pipeline CRUD & Validation
 status: done
 pipeline: sdd
+requirement: FR-45
 ---
 
 # ST-1 — Pipeline CRUD & Validation

@@ -1,5 +1,6 @@
 ---
-id: vector_sync_diag_unavailable
+id: T-80.174
+title: "Test Evaluation: `vector_sync_diag_unavailable.rs`"
 status: done
 pipeline: tdd
 ---

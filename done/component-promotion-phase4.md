@@ -1,7 +1,9 @@
 ---
-id: component-promotion-phase4
+id: T-80.30
+title: Component Promotion Phase 4 — Progress + Confirmation + Context
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # Component Promotion Phase 4 — Progress + Confirmation + Context

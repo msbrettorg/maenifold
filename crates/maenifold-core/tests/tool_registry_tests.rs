@@ -1,7 +1,7 @@
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::error::MaenifoldError;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, Config, GraphDatabase, ToolRegistry};
-use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use serde_json::json;
 use std::collections::BTreeSet;
 use tempfile::TempDir;

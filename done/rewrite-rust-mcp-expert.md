@@ -1,5 +1,6 @@
 ---
-id: rewrite-rust-mcp-expert
+id: T-80.139
+title: Rewrite rust-mcp-expert.agent.md for rmcp 1.1.0
 status: done
 pipeline: sdd
 ---

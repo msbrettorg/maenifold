@@ -1,5 +1,6 @@
 ---
-id: tool_registry_tests
+id: T-80.170
+title: "Test Evaluation: tool_registry_tests"
 status: done
 pipeline: tdd
 ---

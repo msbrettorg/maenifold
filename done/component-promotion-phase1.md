@@ -1,7 +1,9 @@
 ---
-id: component-promotion-phase1
+id: T-80.27
+title: Component Promotion Phase 1 — Zero-Dep AI Elements
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # Component Promotion Phase 1 — Zero-Dep AI Elements

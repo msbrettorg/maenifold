@@ -1,7 +1,9 @@
 ---
-id: component-promotion-phase2
+id: T-80.28
+title: Component Promotion Phase 2 — @xyflow/react Components
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # Component Promotion Phase 2 — @xyflow/react Components

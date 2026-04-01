@@ -1,5 +1,6 @@
 ---
-id: vector_sync_diag_reporting
+id: T-80.173
+title: "Test Evaluation: `vector_sync_diag_reporting.rs`"
 status: done
 pipeline: tdd
 ---

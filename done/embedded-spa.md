@@ -1,7 +1,9 @@
 ---
-id: embedded-spa
+id: T-80.65
+title: Embedded Spa
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # embedded-spa

@@ -7,9 +7,9 @@
 // T-15.23: Verify no query_only on standard connections
 // T-10.9:  Verify busy_timeout is set on every connection
 
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::db::open_connection;
 use maenifold_core::{Config, GraphDatabase};
-use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use rusqlite::params;
 use tempfile::TempDir;
 

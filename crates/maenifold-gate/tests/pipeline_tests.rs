@@ -37,7 +37,7 @@ fn create_task(root: &Path, filename: &str, pipeline_name: &str) {
         .collect::<Vec<_>>()
         .join("-");
     let content = format!(
-        "---\npipeline: {pipeline_name}\n---\n\n# {id} — Test Task\n\n**Requirement**: FR-42\n\n## Acceptance Criteria\n- test\n"
+        "---\nid: {id}\ntitle: Test Task\nstatus: pending\npipeline: {pipeline_name}\n---\n\n# {id} — Test Task\n\n**Requirement**: FR-42\n\n## Acceptance Criteria\n- test\n"
     );
     fs::write(root.join("todo").join(filename), content).unwrap();
 }
@@ -50,7 +50,7 @@ fn create_done_task(root: &Path, filename: &str, pipeline_name: &str) {
         .collect::<Vec<_>>()
         .join("-");
     let content = format!(
-        "---\nstatus: done\npipeline: {pipeline_name}\n---\n\n# {id} — Done Task\n\n**Requirement**: FR-42\n\n## Acceptance Criteria\n- done\n"
+        "---\nid: {id}\ntitle: Done Task\nstatus: done\npipeline: {pipeline_name}\n---\n\n# {id} — Done Task\n\n**Requirement**: FR-42\n\n## Acceptance Criteria\n- done\n"
     );
     fs::write(root.join("done").join(filename), content).unwrap();
 }

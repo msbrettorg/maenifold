@@ -97,7 +97,10 @@ This ensures your note is connected to the knowledge graph and not orphaned.".to
     // T-14.8: RTM FR-14 - truncate slugs to a safe filename stem length so the
     // persisted `{slug}.md` component remains within common 255-byte limits
     // while preserving the full sanitized title in frontmatter metadata.
-    let slug: String = slugify(&title).chars().take(MAX_MEMORY_SLUG_CHARS).collect();
+    let slug: String = slugify(&title)
+        .chars()
+        .take(MAX_MEMORY_SLUG_CHARS)
+        .collect();
     let uri = match folder {
         Some(folder) if !folder.is_empty() => format!("memory://{folder}/{slug}"),
         _ => format!("memory://{slug}"),

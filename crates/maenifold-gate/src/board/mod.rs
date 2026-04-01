@@ -25,7 +25,11 @@ pub async fn index(Extension(port): Extension<u16>) -> Response {
             );
             response
         }
-        None => (axum::http::StatusCode::NOT_FOUND, "Gate board assets not found.").into_response(),
+        None => (
+            axum::http::StatusCode::NOT_FOUND,
+            "Gate board assets not found.",
+        )
+            .into_response(),
     }
 }
 
@@ -59,4 +63,3 @@ mod tests {
         assert!(super::BoardAssets::get("trace.html").is_some());
     }
 }
-

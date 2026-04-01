@@ -1,5 +1,6 @@
 ---
-id: cors-web-mcp
+id: T-80.43
+title: Fix CORS in Web Mode + Expose Mcp-Session-Id
 status: done
 pipeline: sdd
 ---

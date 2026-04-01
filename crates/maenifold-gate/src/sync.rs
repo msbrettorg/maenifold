@@ -1,10 +1,11 @@
 use std::path::Path;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 
 use crate::{
     CommandStubError, SyncArgs,
     db::{GateDb, TaskUpsert, extract_task_id},
+    frontmatter::{Frontmatter, read_attempts, split_frontmatter, validate_frontmatter},
     fs,
     pipeline::{PipelineDef, load_embedded_pipeline},
     registry,
@@ -134,23 +135,13 @@ pub fn run_sync(args: &SyncArgs, root: &Path) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn load_task_pipeline(
-    path: &Path,
-    content: &str,
-) -> Result<PipelineDef> {
-    if let Some((yaml_str, _body)) = crate::frontmatter::split_frontmatter(content)
-        && let Ok(frontmatter) = serde_yaml::from_str::<crate::frontmatter::Frontmatter>(yaml_str)
-        && let Some(name) = frontmatter
-            .get("pipeline")
-            .and_then(serde_yaml::Value::as_str)
-    {
-        return load_embedded_pipeline(name);
-    }
-
-    anyhow::bail!(
-        "{}: missing 'pipeline' field in frontmatter",
-        path.display()
-    )
+pub(crate) fn load_task_pipeline(path: &Path, content: &str) -> Result<PipelineDef> {
+    let frontmatter = load_validated_frontmatter(path, content)?;
+    let name = frontmatter
+        .get("pipeline")
+        .and_then(serde_yaml::Value::as_str)
+        .context("validated frontmatter is missing 'pipeline'")?;
+    load_embedded_pipeline(name)
 }
 
 fn warn_auto_register(root: &Path) {
@@ -163,6 +154,12 @@ fn warn_auto_register(root: &Path) {
 }
 
 pub fn extract_title(content: &str) -> Option<String> {
+    if let Some((yaml_text, _)) = split_frontmatter(content)
+        && let Ok(frontmatter) = serde_yaml::from_str::<Frontmatter>(yaml_text)
+        && let Some(title) = frontmatter.get("title").and_then(serde_yaml::Value::as_str)
+    {
+        return Some(title.trim().to_string());
+    }
     let body = content
         .lines()
         .find_map(|line| line.trim().strip_prefix("# "))?
@@ -177,6 +174,14 @@ pub fn extract_title(content: &str) -> Option<String> {
 }
 
 pub fn extract_requirement(content: &str) -> Option<String> {
+    if let Some((yaml_text, _)) = split_frontmatter(content)
+        && let Ok(frontmatter) = serde_yaml::from_str::<Frontmatter>(yaml_text)
+        && let Some(requirement) = frontmatter
+            .get("requirement")
+            .and_then(serde_yaml::Value::as_str)
+    {
+        return Some(requirement.to_string());
+    }
     content.lines().find_map(|line| {
         let value = line.trim().strip_prefix("**Requirement**:")?.trim();
         let id = value.split_whitespace().next()?;
@@ -191,7 +196,7 @@ fn valid_requirement(id: &str) -> bool {
     })
 }
 
-/// Resolve task state from frontmatter. No frontmatter = pending.
+/// Resolve task state from validated frontmatter.
 pub fn resolve_task_state(
     path: &Path,
     content: &str,
@@ -203,31 +208,36 @@ pub fn resolve_task_state(
         TaskLocation::Todo
     };
 
-    if let Some((yaml_str, _body)) = crate::frontmatter::split_frontmatter(content) {
-        let fm: std::collections::BTreeMap<String, serde_yaml::Value> =
-            serde_yaml::from_str(yaml_str).unwrap_or_default();
-        let status = fm
-            .get("status")
-            .and_then(|v| v.as_str())
-            .unwrap_or("pending")
-            .to_string();
-        let attempts = fm.get("attempts").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        return Ok(TaskState::new(
-            path.to_path_buf(),
-            location,
-            status,
-            attempts,
-            Vec::new(),
-        ));
-    }
-
-    // No frontmatter: file hasn't been migrated yet. Store raw "pending" status
-    // regardless of location — the location field tracks where the file lives.
+    let fm = load_validated_frontmatter(path, content)?;
+    let status = fm
+        .get("status")
+        .and_then(serde_yaml::Value::as_str)
+        .context("validated frontmatter is missing 'status'")?
+        .to_string();
+    let attempts = read_attempts(&fm) as u32;
     Ok(TaskState::new(
         path.to_path_buf(),
         location,
-        "pending".into(),
-        0,
+        status,
+        attempts,
         Vec::new(),
     ))
+}
+
+fn load_validated_frontmatter(path: &Path, content: &str) -> Result<Frontmatter> {
+    let file = path.display().to_string();
+    let (yaml_text, _) =
+        split_frontmatter(content).ok_or_else(|| anyhow!("{}: missing YAML frontmatter", file))?;
+    let frontmatter = if yaml_text.trim().is_empty() {
+        Frontmatter::new()
+    } else {
+        serde_yaml::from_str::<Frontmatter>(yaml_text)
+            .map_err(|error| anyhow!("{}: malformed YAML frontmatter: {error}", file))?
+    };
+    let errors = validate_frontmatter(&file, &frontmatter);
+    if errors.is_empty() {
+        Ok(frontmatter)
+    } else {
+        anyhow::bail!("{}", errors.join("; "))
+    }
 }

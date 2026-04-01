@@ -1,7 +1,9 @@
 ---
-id: T-ST-3-edge-semantics
+id: T-80.199
+title: Edge Semantics (Success vs Always)
 status: done
 pipeline: sdd
+requirement: FR-45
 ---
 
 # ST-3 — Edge Semantics (Success vs Always)

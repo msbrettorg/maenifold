@@ -1,7 +1,9 @@
 ---
-id: T-ST-2-node-types-dispatch
+id: T-80.198
+title: All Node Types & Dispatch Cycle
 status: done
 pipeline: sdd
+requirement: FR-45
 ---
 
 # ST-2 — All Node Types & Dispatch Cycle

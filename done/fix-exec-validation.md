@@ -1,7 +1,9 @@
 ---
-id: fix-exec-validation
+id: T-80.67
+title: Fix Executable Validation to Use access()
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # Fix Executable Validation to Use access()

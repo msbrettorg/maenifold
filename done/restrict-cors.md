@@ -1,7 +1,9 @@
 ---
-id: restrict-cors
+id: T-80.138
+title: Restrict CORS to Localhost
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # Restrict CORS to Localhost

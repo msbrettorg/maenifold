@@ -5,12 +5,12 @@
 // and emits a structured [DEGRADED][MemorySearchTools.Fusion][Method] line to stderr.
 #![cfg(unix)]
 
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use chrono::Utc;
 use maenifold_core::markdown::path_to_uri;
 use maenifold_core::memory::get_decay_weight_for_file;
 use maenifold_core::search::get_file_display_info;
 use maenifold_core::{Config, GraphDatabase};
-use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use rusqlite::params;
 use std::fs;
 use std::io::{Read, Write};

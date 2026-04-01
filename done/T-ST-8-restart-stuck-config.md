@@ -1,7 +1,9 @@
 ---
-id: T-ST-8-restart-stuck-config
+id: T-80.204
+title: Restart, Stuck Detection & Node Config
 status: done
 pipeline: sdd
+requirement: FR-45
 ---
 
 # ST-8 — Restart, Stuck Detection & Node Config

@@ -1,7 +1,9 @@
 ---
-id: graph-data-api
+id: T-80.72
+title: Graph Data Api
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # graph-data-api

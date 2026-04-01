@@ -1,9 +1,5 @@
 use super::{GateHandler, TransportKind};
-use axum::{
-    Json,
-    extract::State,
-    routing::get,
-};
+use axum::{Json, extract::State, routing::get};
 use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };

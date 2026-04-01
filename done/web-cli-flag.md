@@ -1,7 +1,9 @@
 ---
-id: web-cli-flag
+id: T-80.178
+title: Web Cli Flag
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # web-cli-flag

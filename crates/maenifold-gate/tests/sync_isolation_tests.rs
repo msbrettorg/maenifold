@@ -115,7 +115,16 @@ fn resolve_task_state_prefers_frontmatter_status_and_attempts() -> Result<()> {
         root.path(),
         TaskLocation::Done,
         "T-1.md",
-        "---\nstatus: red\nattempts: 2\n---\n\n# T-1 — Title\n\n**Requirement**: FR-1\n",
+        concat!(
+            "---\n",
+            "id: T-1\n",
+            "title: Title\n",
+            "status: red\n",
+            "pipeline: sdd\n",
+            "attempts: 2\n",
+            "---\n\n",
+            "# T-1 — Title\n\n**Requirement**: FR-1\n"
+        ),
     );
 
     let state = resolve_task_state(&path, &fs::read_to_string(&path)?, &pipeline())?;
@@ -126,7 +135,7 @@ fn resolve_task_state_prefers_frontmatter_status_and_attempts() -> Result<()> {
 }
 
 #[test]
-fn resolve_task_state_without_frontmatter_uses_legacy_defaults() -> Result<()> {
+fn resolve_task_state_without_frontmatter_errors() {
     let root = setup_root();
     let path = write_task(
         root.path(),
@@ -135,9 +144,7 @@ fn resolve_task_state_without_frontmatter_uses_legacy_defaults() -> Result<()> {
         "# T-2 — Legacy Task\n\n**Requirement**: FR-2\n",
     );
 
-    let state = resolve_task_state(&path, &fs::read_to_string(&path)?, &pipeline())?;
-    assert_eq!(state.location, TaskLocation::Done);
-    assert_eq!(state.status, "pending");
-    assert_eq!(state.attempts, 0);
-    Ok(())
+    let err =
+        resolve_task_state(&path, &fs::read_to_string(&path).unwrap(), &pipeline()).unwrap_err();
+    assert!(err.to_string().contains("missing YAML frontmatter"));
 }

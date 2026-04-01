@@ -1,6 +1,6 @@
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use chrono::{Duration, Utc};
 use maenifold_core::{Config, memory, paths};
-use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use tempfile::TempDir;
 
 fn isolated_config() -> (TempDir, Config) {

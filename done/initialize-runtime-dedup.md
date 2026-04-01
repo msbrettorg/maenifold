@@ -1,5 +1,6 @@
 ---
-id: initialize-runtime-dedup
+id: T-80.87
+title: Remove Redundant initialize_runtime from Resource Handlers
 status: done
 pipeline: sdd
 ---

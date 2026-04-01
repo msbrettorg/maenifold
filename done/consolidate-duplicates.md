@@ -1,7 +1,9 @@
 ---
-id: consolidate-duplicates
+id: T-80.40
+title: Consolidate Shimmer + Reasoning Duplicates
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # Consolidate Shimmer + Reasoning Duplicates

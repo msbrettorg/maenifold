@@ -5,8 +5,8 @@ mod support;
 
 use std::fs;
 use support::{
-    TestEnv, assert_approx_eq, invoke_sync, open_db, relation_count,
-    relation_exists, relation_source_files, write_memory_file,
+    TestEnv, assert_approx_eq, invoke_sync, open_db, relation_count, relation_exists,
+    relation_source_files, write_memory_file,
 };
 
 // T-4.3: RTM FR-23.5 — NOTE: FR-23 in RTM.md is HTTP Transport (collision);

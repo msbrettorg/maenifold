@@ -14,12 +14,12 @@
 //   5. with_next_steps/with_hint don't corrupt original content in real tool calls (T-13.8)
 //   6. Fulltext + Hybrid return non-empty results for valid queries (T-13.7)
 
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::memory;
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{AssetManager, Config, GraphDatabase, ToolRegistry};
-use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 

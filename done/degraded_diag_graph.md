@@ -1,5 +1,6 @@
 ---
-id: degraded_diag_graph
+id: T-80.60
+title: "Test Evaluation: degraded_diag_graph"
 status: done
 pipeline: tdd
 ---

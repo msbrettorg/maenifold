@@ -1,5 +1,5 @@
-use maenifold_core::{Config, assets, paths};
 use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
+use maenifold_core::{Config, assets, paths};
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;

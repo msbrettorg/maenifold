@@ -168,3 +168,83 @@ fn read_attempts_accepts_number_and_string() {
     // Missing key falls back to 0
     assert_eq!(read_attempts(&Frontmatter::new()), 0);
 }
+
+fn valid_frontmatter() -> Frontmatter {
+    let mut fm = Frontmatter::new();
+    fm.insert("id".into(), YamlValue::String("T-28.2".into()));
+    fm.insert(
+        "title".into(),
+        YamlValue::String("Add strict validation".into()),
+    );
+    fm.insert("status".into(), YamlValue::String("pending".into()));
+    fm.insert("pipeline".into(), YamlValue::String("sdd".into()));
+    fm
+}
+
+#[test]
+fn validate_frontmatter_accepts_valid_schema() {
+    let file = "todo/T-28.2.md";
+    let mut fm = valid_frontmatter();
+    fm.insert(
+        "created".into(),
+        YamlValue::String("2026-01-01T00:00:00Z".into()),
+    );
+    fm.insert("attempts".into(), YamlValue::Number(1.into()));
+    assert!(validate_frontmatter(file, &fm).is_empty());
+}
+
+#[test]
+fn validate_frontmatter_rejects_missing_id() {
+    let file = "todo/T-28.2.md";
+    let mut fm = valid_frontmatter();
+    fm.remove("id");
+    assert_eq!(
+        validate_frontmatter(file, &fm),
+        vec![format!("{file}: missing required field 'id'")]
+    );
+}
+
+#[test]
+fn validate_frontmatter_rejects_bad_id() {
+    let file = "todo/T-28.2.md";
+    let mut fm = valid_frontmatter();
+    fm.insert("id".into(), YamlValue::String("T-28.2-strip-tauri".into()));
+    assert_eq!(
+        validate_frontmatter(file, &fm),
+        vec![format!(
+            "{file}: invalid id 'T-28.2-strip-tauri' — must match ^T-\\d+(\\.\\d+)?$"
+        )]
+    );
+}
+
+#[test]
+fn validate_frontmatter_rejects_missing_title() {
+    let file = "todo/T-28.2.md";
+    let mut fm = valid_frontmatter();
+    fm.remove("title");
+    assert_eq!(
+        validate_frontmatter(file, &fm),
+        vec![format!("{file}: missing required field 'title'")]
+    );
+}
+
+#[test]
+fn validate_frontmatter_rejects_bad_pipeline() {
+    let file = "todo/T-28.2.md";
+    let mut fm = valid_frontmatter();
+    fm.insert("pipeline".into(), YamlValue::String("unknown".into()));
+    assert_eq!(
+        validate_frontmatter(file, &fm),
+        vec![format!(
+            "{file}: invalid pipeline 'unknown' — must be sdd|tdd|gsd|lightweight"
+        )]
+    );
+}
+
+#[test]
+fn validate_frontmatter_allows_optional_requirement() {
+    let file = "todo/T-28.2.md";
+    let mut fm = valid_frontmatter();
+    fm.insert("requirement".into(), YamlValue::String("FR-1".into()));
+    assert!(validate_frontmatter(file, &fm).is_empty());
+}

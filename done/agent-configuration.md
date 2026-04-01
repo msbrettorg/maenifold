@@ -1,7 +1,9 @@
 ---
-id: agent-configuration
+id: T-80.8
+title: Agent Configuration
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # agent-configuration

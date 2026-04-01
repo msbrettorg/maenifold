@@ -68,7 +68,16 @@ fn sync_task(root: &Path, file: &str) -> Result<std::path::PathBuf> {
     fs::create_dir_all(root.join("todo"))?;
     fs::write(
         root.join("todo").join(file),
-        "---\npipeline: sdd\n---\n\n# T-55.3 — gate append\n\n**Requirement**: FR-42\n",
+        concat!(
+            "---\n",
+            "id: T-55.3\n",
+            "title: gate append\n",
+            "status: pending\n",
+            "pipeline: sdd\n",
+            "requirement: FR-42\n",
+            "---\n\n",
+            "# T-55.3 — gate append\n"
+        ),
     )?;
     let db_path = root.join("gate.db");
     run_sync(

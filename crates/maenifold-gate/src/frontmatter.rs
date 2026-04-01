@@ -127,6 +127,79 @@ pub fn read_attempts(fm: &Frontmatter) -> u64 {
         .unwrap_or(0)
 }
 
+pub fn validate_frontmatter(file: &str, fm: &Frontmatter) -> Vec<String> {
+    let mut errors = Vec::new();
+    match fm.get("id") {
+        None => errors.push(format!("{file}: missing required field 'id'")),
+        Some(value) => {
+            let id = value.as_str().unwrap_or_default();
+            if !is_valid_task_id(id) {
+                errors.push(format!(
+                    "{file}: invalid id '{id}' — must match ^T-\\d+(\\.\\d+)?$"
+                ));
+            }
+        }
+    }
+    validate_required_string(file, fm, "title", &mut errors);
+    validate_required_string(file, fm, "status", &mut errors);
+    match fm.get("pipeline") {
+        None => errors.push(format!("{file}: missing required field 'pipeline'")),
+        Some(value) => match value.as_str().unwrap_or_default() {
+            "sdd" | "tdd" | "gsd" | "lightweight" => {}
+            pipeline => errors.push(format!(
+                "{file}: invalid pipeline '{pipeline}' — must be sdd|tdd|gsd|lightweight"
+            )),
+        },
+    }
+    validate_optional_string(file, fm, "requirement", &mut errors);
+    if let Some(value) = fm.get("created")
+        && value
+            .as_str()
+            .is_none_or(|created| DateTime::parse_from_rfc3339(created).is_err())
+    {
+        errors.push(format!("{file}: 'created' must be an ISO 8601 datetime"));
+    }
+    if let Some(value) = fm.get("attempts")
+        && value.as_u64().is_none()
+    {
+        errors.push(format!("{file}: 'attempts' must be an integer"));
+    }
+    errors
+}
+
+fn validate_required_string(file: &str, fm: &Frontmatter, field: &str, errors: &mut Vec<String>) {
+    match fm.get(field) {
+        None => errors.push(format!("{file}: missing required field '{field}'")),
+        Some(value) if value.as_str().is_none_or(|s| s.trim().is_empty()) => {
+            errors.push(format!("{file}: '{field}' must be a non-empty string"))
+        }
+        Some(_) => {}
+    }
+}
+
+fn validate_optional_string(file: &str, fm: &Frontmatter, field: &str, errors: &mut Vec<String>) {
+    if let Some(value) = fm.get(field)
+        && value.as_str().is_none()
+    {
+        errors.push(format!("{file}: '{field}' must be a string"));
+    }
+}
+fn is_valid_task_id(id: &str) -> bool {
+    let rest = match id.strip_prefix("T-") {
+        Some(rest) => rest,
+        None => return false,
+    };
+    match rest.split_once('.') {
+        Some((major, minor)) => {
+            !major.is_empty()
+                && major.bytes().all(|byte| byte.is_ascii_digit())
+                && !minor.is_empty()
+                && minor.bytes().all(|byte| byte.is_ascii_digit())
+        }
+        None => !rest.is_empty() && rest.bytes().all(|byte| byte.is_ascii_digit()),
+    }
+}
+
 /// Write a task file with frontmatter + body content.
 /// Auto-manages `created` and `modified` timestamps.
 pub fn write_task_with_frontmatter(

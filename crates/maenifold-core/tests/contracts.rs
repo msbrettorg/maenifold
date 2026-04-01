@@ -1,6 +1,6 @@
 // NFR-2, NFR-3: Integration smoke tests for core subsystem contracts.
-use maenifold_core::{AssetManager, Config, GraphDatabase};
 use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
+use maenifold_core::{AssetManager, Config, GraphDatabase};
 use rusqlite::Connection;
 use std::fs;
 use tempfile::TempDir;

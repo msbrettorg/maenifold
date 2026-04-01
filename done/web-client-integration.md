@@ -1,7 +1,9 @@
 ---
-id: web-client-integration
+id: T-80.179
+title: Integration — Full Component Experience
 status: done
 pipeline: sdd
+requirement: FR-32
 ---
 
 # Web-Client Integration — Full Component Experience

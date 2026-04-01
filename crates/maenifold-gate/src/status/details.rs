@@ -1,6 +1,7 @@
 use serde::Serialize;
 
 use crate::TaskState;
+use crate::frontmatter::{Frontmatter, parse_frontmatter};
 
 #[derive(Debug, Default)]
 pub(super) struct TaskDetails {
@@ -20,23 +21,36 @@ pub(super) struct SectionOutput {
     pub body: String,
 }
 
+/// Parse task details from file content, preferring frontmatter `id`, `title`,
+/// and `requirement` over heading / body-text equivalents.
 pub(super) fn parse_details(
     file: &str,
     content: Option<&str>,
     state: Option<&TaskState>,
 ) -> TaskDetails {
     let content = content.unwrap_or_default();
-    let heading = content
+    let (fm, body) = parse_frontmatter(content);
+    let heading = body
         .lines()
         .find_map(|line| line.strip_prefix("# "))
         .map(str::trim);
+    let fm_ref = fm.as_ref();
     TaskDetails {
-        id: extract_id(file, heading),
-        title: extract_title(file, heading),
+        id: fm_str(fm_ref, "id").unwrap_or_else(|| extract_id(file, heading)),
+        title: fm_str(fm_ref, "title").unwrap_or_else(|| extract_title(file, heading)),
         attempts: state.map_or(0, |item| item.attempts),
-        requirement: extract_requirement(content),
-        sections: extract_sections(content),
+        requirement: fm_str(fm_ref, "requirement").or_else(|| extract_requirement(&body)),
+        sections: extract_sections(&body),
     }
+}
+
+/// Extract a trimmed, non-empty string value from frontmatter by key.
+fn fm_str(fm: Option<&Frontmatter>, key: &str) -> Option<String> {
+    fm?.get(key)?
+        .as_str()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
 }
 
 fn extract_id(file: &str, heading: Option<&str>) -> String {
@@ -74,8 +88,8 @@ fn clean_title(raw: &str) -> String {
         .unwrap_or_else(|| raw.trim().to_string())
 }
 
-fn extract_requirement(content: &str) -> Option<String> {
-    content.lines().find_map(|line| {
+fn extract_requirement(body: &str) -> Option<String> {
+    body.lines().find_map(|line| {
         line.strip_prefix("**Requirement**:")
             .map(str::trim)
             .filter(|value| !value.is_empty())
@@ -151,15 +165,57 @@ mod tests {
         let details = parse_details(
             "T-68.9-gate-kanban-board.md",
             Some(
-                "# T-68.9 — Gate Kanban Board\n\n**Requirement**: FR-68\n\n## Summary\n\nBoard.\n\n## Red Team Audit\n\n**Verdict**: PASS\n\nApproved.\n",
+                "# T-68.9 — Gate Kanban Board\n\n\
+                 **Requirement**: FR-68\n\n\
+                 ## Summary\n\nBoard.\n\n\
+                 ## Red Team Audit\n\n**Verdict**: PASS\n\nApproved.\n",
             ),
             None,
         );
-
         assert_eq!(details.id, "T-68.9");
         assert_eq!(details.title, "Gate Kanban Board");
         assert_eq!(details.requirement.as_deref(), Some("FR-68"));
         assert_eq!(details.sections.len(), 2);
         assert_eq!(details.sections[1].verdict.as_deref(), Some("PASS"));
+    }
+
+    #[test]
+    fn frontmatter_overrides_stale_heading() {
+        let content = "\
+            ---\nid: T-99.1\ntitle: Correct Title\nrequirement: FR-99\n---\n\n\
+            # T-99.0 — Stale Heading\n\n\
+            **Requirement**: FR-OLD\n\n\
+            ## Summary\n\nBody.\n";
+        let details = parse_details("T-99.1-task.md", Some(content), None);
+        assert_eq!(details.id, "T-99.1");
+        assert_eq!(details.title, "Correct Title");
+        assert_eq!(details.requirement.as_deref(), Some("FR-99"));
+    }
+
+    #[test]
+    fn falls_back_to_heading_without_frontmatter() {
+        let content = "# T-50 — Heading Title\n\n**Requirement**: FR-50\n\n## Summary\n\nBody.\n";
+        let details = parse_details("T-50-heading.md", Some(content), None);
+        assert_eq!(details.id, "T-50");
+        assert_eq!(details.title, "Heading Title");
+        assert_eq!(details.requirement.as_deref(), Some("FR-50"));
+    }
+
+    #[test]
+    fn partial_frontmatter_falls_back_for_missing_fields() {
+        let content = "---\nid: T-77\n---\n\n# T-77 — Fallback Title\n\n## Summary\n\nBody.\n";
+        let details = parse_details("T-77-task.md", Some(content), None);
+        assert_eq!(details.id, "T-77");
+        assert_eq!(details.title, "Fallback Title");
+        assert!(details.requirement.is_none());
+    }
+
+    #[test]
+    fn no_content_uses_filename() {
+        let details = parse_details("T-42-test.md", None, None);
+        assert_eq!(details.id, "T-42");
+        assert_eq!(details.title, "T-42-test");
+        assert!(details.requirement.is_none());
+        assert!(details.sections.is_empty());
     }
 }

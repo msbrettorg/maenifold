@@ -2,7 +2,6 @@ use chrono::{DateTime, Utc};
 use serde_yaml::{Mapping as YamlMapping, Value as YamlValue};
 use std::collections::BTreeMap;
 use std::path::Path;
-
 pub type Frontmatter = BTreeMap<String, YamlValue>;
 
 /// Split YAML frontmatter from markdown content.

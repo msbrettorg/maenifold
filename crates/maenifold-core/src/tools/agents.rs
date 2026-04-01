@@ -1,4 +1,5 @@
 use super::context::{ToolContext, render};
+use agent_client_protocol as acp;
 use crate::acp_config::AgentsConfig;
 use crate::acp_native::{GLOBAL_AGENT_POOL, SessionOpts};
 use crate::error::Result;
@@ -55,6 +56,44 @@ fn list_agent_entry(name: &str, entry: &crate::acp_config::AgentEntry) -> Result
     Ok(Value::Object(object))
 }
 
+fn serialize_category(category: &Option<acp::SessionConfigOptionCategory>) -> Value {
+    match category {
+        Some(acp::SessionConfigOptionCategory::Model) => json!("model"),
+        Some(acp::SessionConfigOptionCategory::Mode) => json!("mode"),
+        Some(acp::SessionConfigOptionCategory::ThoughtLevel) => json!("thought_level"),
+        Some(acp::SessionConfigOptionCategory::Other(value)) => json!(value),
+        Some(_) | None => Value::Null,
+    }
+}
+
+fn serialize_agent_info(agent_info: &Option<acp::Implementation>) -> Value {
+    match agent_info {
+        Some(info) => json!({
+            "name": info.name,
+            "version": info.version,
+            "title": info.title,
+        }),
+        None => Value::Null,
+    }
+}
+
+fn serialize_agent_capabilities(capabilities: &Option<acp::AgentCapabilities>) -> Value {
+    match capabilities {
+        Some(capabilities) => json!({
+            "promptCapabilities": {
+                "image": capabilities.prompt_capabilities.image,
+                "audio": capabilities.prompt_capabilities.audio,
+                "embeddedContext": capabilities.prompt_capabilities.embedded_context,
+            },
+            "sessionCapabilities": {
+                "list": capabilities.session_capabilities.list.is_some(),
+                "loadSession": capabilities.load_session,
+            },
+        }),
+        None => Value::Null,
+    }
+}
+
 /// Spawn an agent, initialize, create a session, and capture advertised
 /// capabilities (modes, models, configOptions).
 fn probe_agent(
@@ -87,53 +126,41 @@ fn probe_agent(
             .await
             .map_err(|e| e.to_string())?;
 
-        handle.close_session(&info.session_id).await;
-
+        let session_id = info.session_id.clone();
         let has_config_options = !info.config_options.is_empty();
+        let agent_info = handle.agent_info();
+        let agent_capabilities = handle.capabilities();
 
-        let modes: Vec<Value> = info
-            .modes
-            .iter()
-            .map(|m| {
+        let capabilities = json!({
+            "style": if has_config_options { "modern" } else { "legacy" },
+            "agentInfo": serialize_agent_info(&agent_info),
+            "agentCapabilities": serialize_agent_capabilities(&agent_capabilities),
+            "modes": info.modes.iter().map(|mode| {
                 json!({
-                    "id": m.id.to_string(),
-                    "name": m.name,
-                    "description": m.description,
+                    "id": mode.id.to_string(),
+                    "name": mode.name,
+                    "description": mode.description,
                 })
-            })
-            .collect();
-
-        let models: Vec<Value> = info
-            .models
-            .iter()
-            .map(|m| {
+            }).collect::<Vec<_>>(),
+            "models": info.models.iter().map(|model| {
                 json!({
-                    "modelId": m.model_id.to_string(),
-                    "name": m.name,
-                    "description": m.description,
+                    "modelId": model.model_id.to_string(),
+                    "name": model.name,
+                    "description": model.description,
                 })
-            })
-            .collect();
-
-        let config_options: Vec<Value> = info
-            .config_options
-            .iter()
-            .map(|opt| {
+            }).collect::<Vec<_>>(),
+            "configOptions": info.config_options.iter().map(|opt| {
                 json!({
                     "id": opt.id.to_string(),
                     "name": opt.name,
                     "description": opt.description,
-                    "category": format!("{:?}", opt.category),
+                    "category": serialize_category(&opt.category),
                 })
-            })
-            .collect();
+            }).collect::<Vec<_>>(),
+        });
 
-        Ok(json!({
-            "style": if has_config_options { "modern" } else { "legacy" },
-            "modes": modes,
-            "models": models,
-            "configOptions": config_options,
-        }))
+        handle.close_session(&session_id).await;
+        Ok(capabilities)
     });
 
     match result {

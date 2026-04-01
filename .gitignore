@@ -8,3 +8,6 @@ gate.db
 sprint-baseline.txt
 libpipeline_node_types.rlib
 target-investigate/
+todo/
+done/
+gate.db

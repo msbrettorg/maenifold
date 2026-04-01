@@ -5,8 +5,9 @@ use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
-use petgraph::Direction::{Incoming, Outgoing};
-use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use petgraph::Direction::Incoming;
+use petgraph::visit::{Bfs, Walker};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use super::super::handler_validation::workflow_node_file;
 use super::super::session_io::{
@@ -242,16 +243,10 @@ fn reachable_node_ids(
     graph: &petgraph::stable_graph::StableGraph<String, super::super::EdgeType>,
     start: petgraph::prelude::NodeIndex,
 ) -> HashSet<String> {
-    let mut visited = HashSet::new();
-    let mut queue = VecDeque::from([start]);
-    while let Some(node_index) = queue.pop_front() {
-        let node_id = graph[node_index].clone();
-        if !visited.insert(node_id) {
-            continue;
-        }
-        queue.extend(graph.neighbors_directed(node_index, Outgoing));
-    }
-    visited
+    Bfs::new(graph, start)
+        .iter(graph)
+        .map(|node_index| graph[node_index].clone())
+        .collect()
 }
 
 fn collect_fork_predecessor_context(

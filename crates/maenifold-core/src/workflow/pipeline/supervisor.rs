@@ -2,12 +2,12 @@ use crate::config::Config;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 use parking_lot::Mutex;
-use std::sync::LazyLock;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::sync::{Arc, atomic::AtomicBool};
+use std::sync::LazyLock;
 use std::time::Instant;
 use tokio::runtime::{Builder, Runtime};
+use tokio::sync::watch;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
@@ -37,7 +37,7 @@ pub(super) static TRACKED_PIPELINES: LazyLock<Mutex<HashMap<String, TrackedPipel
 pub(super) struct TrackedPipeline {
     pub(super) started_at: Instant,
     pub(super) cancel: CancellationToken,
-    pub(super) paused: Arc<AtomicBool>,
+    pub(super) paused: watch::Sender<bool>,
     pub(super) handle: JoinHandle<()>,
 }
 

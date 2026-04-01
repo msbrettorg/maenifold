@@ -1,7 +1,7 @@
 mod assumption_tools;
 mod graph_tools;
 mod memory_tools;
-mod pipeline_node_schema;
+mod params;
 mod pipeline_tools;
 mod support;
 mod system_tools;

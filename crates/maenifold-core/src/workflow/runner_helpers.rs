@@ -5,10 +5,9 @@ use super::runner::WorkflowRunStatus;
 use crate::acpx_driver::AcpxResponse;
 use crate::error::{MaenifoldError, Result};
 use regex::Regex;
-use std::sync::LazyLock;
 use serde::Deserialize;
 use serde_json::{Value, json};
-static WORKFLOW_SESSION_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"workflow-\d+").unwrap());
+use std::sync::LazyLock;
 static STEP_PROGRESS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
 
 /// Single source of truth for the XML output-block contract sent to workflow agents.
@@ -45,9 +44,6 @@ pub(crate) fn workflow_text(raw: &str) -> String {
         }
     }
     trimmed.to_string()
-}
-pub(crate) fn extract_workflow_session_id(text: &str) -> Option<String> {
-    WORKFLOW_SESSION_RE.find(text).map(|m| m.as_str().to_string())
 }
 pub(crate) fn parse_step_progress(text: &str) -> Option<(u32, u32)> {
     let captures = STEP_PROGRESS_RE.captures(text)?;

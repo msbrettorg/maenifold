@@ -10,6 +10,11 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::Path;
+use std::sync::LazyLock;
+
+static WIKILINK_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"\[\[([^\]]+)\]\]").expect("AnalyzeConceptCorruption wikilink regex")
+});
 
 // T-3.1: RTM FR-6
 pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Result<String> {
@@ -105,13 +110,11 @@ pub fn analyze_concept_corruption(context: &ToolContext, payload: &Value) -> Res
     };
     let concept_family_lower = concept_family.to_ascii_lowercase();
 
-    let wikilink_pattern =
-        Regex::new(r"\[\[([^\]]+)\]\]").expect("AnalyzeConceptCorruption wikilink regex");
     let mut counts = HashMap::<String, usize>::new();
 
     for uri in get_memory_files(&context.config, None)? {
         let (_, content, _) = read_markdown(&uri, &context.config)?;
-        for capture in wikilink_pattern.captures_iter(&content) {
+        for capture in WIKILINK_PATTERN.captures_iter(&content) {
             let Some(raw_match) = capture.get(1) else {
                 continue;
             };

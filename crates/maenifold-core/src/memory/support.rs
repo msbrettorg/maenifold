@@ -8,9 +8,17 @@ use serde_json::{Value, json};
 use serde_yaml::Value as YamlValue;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
 const ABSOLUTE_PATH_ERROR: &str = "Absolute paths are not allowed. Use relative paths only.";
 const DOT_SEQUENCE_ERROR: &str = "Path traversal components (dot sequences) are not allowed.";
+static TAG_PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<[^>]*>").expect("tag regex"));
+static PUNCTUATION_PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[:|>\-\[\]{}#&*!@`']").expect("punctuation regex"));
+static CONTROL_PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[\x00-\x1F\x7F-\x9F]").expect("control regex"));
+static WHITESPACE_PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\s+").expect("whitespace regex"));
 
 // T-12.5: RTM FR-25.2 consolidates shared [[memory.rs]] support helpers so
 // split tool modules keep the pre-existing behavior and diagnostics.
@@ -116,11 +124,9 @@ pub fn sanitize_user_input(input: &str) -> String {
         input = decoded.into_owned();
     }
 
-    let tag_pattern = Regex::new(r"<[^>]*>").expect("tag regex");
-    input = tag_pattern.replace_all(&input, "").to_string();
+    input = TAG_PATTERN.replace_all(&input, "").to_string();
 
-    let punctuation_pattern = Regex::new(r"[:|>\-\[\]{}#&*!@`']").expect("punctuation regex");
-    input = punctuation_pattern.replace_all(&input, "").to_string();
+    input = PUNCTUATION_PATTERN.replace_all(&input, "").to_string();
 
     for ch in ['$', '(', ')', ';', '&', '|', '`', '\\', '<', '>', '"'] {
         input = input.replace(ch, "");
@@ -128,11 +134,9 @@ pub fn sanitize_user_input(input: &str) -> String {
 
     input = input.replace("..", "").replace(['/', '\\'], "");
 
-    let control_pattern = Regex::new(r"[\x00-\x1F\x7F-\x9F]").expect("control regex");
-    input = control_pattern.replace_all(&input, "").to_string();
+    input = CONTROL_PATTERN.replace_all(&input, "").to_string();
 
-    let whitespace_pattern = Regex::new(r"\s+").expect("whitespace regex");
-    input = whitespace_pattern
+    input = WHITESPACE_PATTERN
         .replace_all(&input, " ")
         .trim()
         .to_string();

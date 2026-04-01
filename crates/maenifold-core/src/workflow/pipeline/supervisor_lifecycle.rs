@@ -1,12 +1,7 @@
 use crate::error::{MaenifoldError, Result};
 use std::path::Path;
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-};
-use std::time::{Duration, Instant};
-use tokio::sync::oneshot;
-use tokio::time::sleep;
+use std::time::Instant;
+use tokio::sync::{oneshot, watch};
 use tokio_util::sync::CancellationToken;
 
 use super::executor;
@@ -28,16 +23,16 @@ pub(super) fn supervisor_run(root: &Path, session_id: &str, prompt: &str) -> Res
     }
 
     let cancel = CancellationToken::new();
-    let paused = Arc::new(AtomicBool::new(false));
+    let (paused, paused_rx) = watch::channel(false);
     let task_context = supervisor_context(root);
     let root = root.to_path_buf();
     let session_id_owned = session_id.to_string();
     let prompt_owned = prompt.to_string();
     let cancel_for_task = cancel.clone();
-    let paused_for_task = paused.clone();
     let (start_tx, start_rx) = oneshot::channel();
 
     let handle = SUPERVISOR_RUNTIME.spawn(async move {
+        let _paused_rx = paused_rx;
         if start_rx.await.is_err() {
             finish_pipeline(&session_id_owned);
             return;
@@ -61,7 +56,6 @@ pub(super) fn supervisor_run(root: &Path, session_id: &str, prompt: &str) -> Res
             }
         }
 
-        drop(paused_for_task);
         finish_pipeline(&session_id_owned);
     });
 
@@ -84,7 +78,7 @@ pub(super) fn supervisor_cancel(session_id: &str) -> Result<()> {
         MaenifoldError::InvalidArgument(format!("Pipeline {session_id} isn't running"))
     })?;
 
-    tracked.paused.store(false, Ordering::SeqCst);
+    let _ = tracked.paused.send(false);
     tracked.cancel.cancel();
     let join_result = SUPERVISOR_RUNTIME.block_on(tracked.handle);
     RUNNING_PIPELINES.lock().remove(session_id);
@@ -101,7 +95,11 @@ pub(super) fn supervisor_pause(session_id: &str) -> Result<()> {
     let tracked = guard.get(session_id).ok_or_else(|| {
         MaenifoldError::InvalidArgument(format!("Pipeline {session_id} isn't running"))
     })?;
-    tracked.paused.store(true, Ordering::SeqCst);
+    tracked.paused.send(true).map_err(|_| {
+        MaenifoldError::Message(format!(
+            "ERROR: Failed to pause pipeline {session_id}: no active supervisor task"
+        ))
+    })?;
     Ok(())
 }
 
@@ -110,7 +108,11 @@ pub(super) fn supervisor_resume(session_id: &str) -> Result<()> {
     let tracked = guard.get(session_id).ok_or_else(|| {
         MaenifoldError::InvalidArgument(format!("Pipeline {session_id} isn't running"))
     })?;
-    tracked.paused.store(false, Ordering::SeqCst);
+    tracked.paused.send(false).map_err(|_| {
+        MaenifoldError::Message(format!(
+            "ERROR: Failed to resume pipeline {session_id}: no active supervisor task"
+        ))
+    })?;
     Ok(())
 }
 
@@ -126,23 +128,26 @@ pub(super) fn supervisor_is_running(session_id: &str) -> bool {
 }
 
 pub(super) async fn supervisor_wait_if_paused(session_id: &str, cancel: &CancellationToken) {
-    loop {
-        if cancel.is_cancelled() {
+    let mut paused_rx = {
+        let guard = TRACKED_PIPELINES.lock();
+        let Some(tracked) = guard.get(session_id) else {
             return;
-        }
+        };
+        tracked.paused.subscribe()
+    };
 
-        let paused = TRACKED_PIPELINES
-            .lock()
-            .get(session_id)
-            .map(|tracked| tracked.paused.load(Ordering::SeqCst))
-            .unwrap_or(false);
-        if !paused {
+    loop {
+        if cancel.is_cancelled() || !*paused_rx.borrow() {
             return;
         }
 
         tokio::select! {
             _ = cancel.cancelled() => return,
-            _ = sleep(Duration::from_millis(25)) => {}
+            changed = paused_rx.changed() => {
+                if changed.is_err() {
+                    return;
+                }
+            }
         }
     }
 }
@@ -156,7 +161,7 @@ pub(super) fn supervisor_clear_all() {
     RUNNING_PIPELINES.lock().clear();
 
     for (_, tracked) in tracked {
-        tracked.paused.store(false, Ordering::SeqCst);
+        let _ = tracked.paused.send(false);
         tracked.cancel.cancel();
         let _ = SUPERVISOR_RUNTIME.block_on(tracked.handle);
     }
@@ -167,7 +172,7 @@ pub(super) fn supervisor_is_paused(session_id: &str) -> Option<bool> {
     TRACKED_PIPELINES
         .lock()
         .get(session_id)
-        .map(|tracked| tracked.paused.load(Ordering::SeqCst))
+        .map(|tracked| *tracked.paused.borrow())
 }
 
 #[cfg(test)]
@@ -179,7 +184,7 @@ pub(super) fn supervisor_spawn_test_task(session_id: &str) -> Result<()> {
     }
 
     let cancel = CancellationToken::new();
-    let paused = Arc::new(AtomicBool::new(false));
+    let (paused, _paused_rx) = watch::channel(false);
     let session_id_owned = session_id.to_string();
     let cancel_for_task = cancel.clone();
     let handle = SUPERVISOR_RUNTIME.spawn(async move {

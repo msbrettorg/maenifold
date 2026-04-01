@@ -1,5 +1,5 @@
 use crate::util::paths::slugify_title;
-use pulldown_cmark::{Event, LinkType, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{Event, HeadingLevel, LinkType, Options, Parser, Tag, TagEnd};
 use std::collections::HashSet;
 
 pub fn slugify(text: &str) -> String {
@@ -10,24 +10,38 @@ pub fn slugify(text: &str) -> String {
 pub fn extract_h2_sections(content: &str) -> Vec<(String, String)> {
     let mut sections = Vec::new();
     let mut current_heading: Option<String> = None;
-    let mut current_lines = Vec::new();
+    let mut heading_text = String::new();
+    let mut current_body_start: Option<usize> = None;
+    let mut in_h2 = false;
 
-    for line in content.lines() {
-        if let Some(heading) = line.strip_prefix("## ") {
-            if let Some(previous_heading) = current_heading.replace(heading.trim().to_string()) {
-                sections.push((
-                    previous_heading,
-                    current_lines.join("\n").trim().to_string(),
-                ));
-                current_lines.clear();
+    for (event, range) in Parser::new_ext(content, Options::all()).into_offset_iter() {
+        match event {
+            Event::Start(Tag::Heading { level, .. }) if level == HeadingLevel::H2 => {
+                if let Some(previous_heading) = current_heading.take() {
+                    let body_start = current_body_start.unwrap_or(range.start);
+                    sections.push((
+                        previous_heading,
+                        content[body_start..range.start].trim().to_string(),
+                    ));
+                }
+                heading_text.clear();
+                in_h2 = true;
             }
-        } else if current_heading.is_some() {
-            current_lines.push(line);
+            Event::End(TagEnd::Heading(level)) if level == HeadingLevel::H2 => {
+                current_heading = Some(heading_text.trim().to_string());
+                current_body_start = Some(range.end);
+                heading_text.clear();
+                in_h2 = false;
+            }
+            Event::Text(text) | Event::Code(text) if in_h2 => heading_text.push_str(&text),
+            Event::SoftBreak | Event::HardBreak if in_h2 => heading_text.push(' '),
+            _ => {}
         }
     }
 
-    if let Some(current_heading) = current_heading {
-        sections.push((current_heading, current_lines.join("\n").trim().to_string()));
+    if let Some(current_heading) = current_heading.take() {
+        let body_start = current_body_start.unwrap_or(content.len());
+        sections.push((current_heading, content[body_start..].trim().to_string()));
     }
 
     sections

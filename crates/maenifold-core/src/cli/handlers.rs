@@ -14,6 +14,7 @@ const WORKFLOW_USAGE: &str = "Usage: maenifold workflow <workflow-id> <agent> <p
 const THINK_USAGE: &str = "Usage: maenifold think <agent> <topic>\n\nRuns a sequential thinking session through the configured ACP agent and prints the conclusion.";
 const TOOL_USAGE: &str =
     "Usage: maenifold tool <name> '<json-payload>' [--json]\n\nInvokes a maenifold tool directly.";
+
 pub(super) fn run_mcp() -> i32 {
     let config = Config::current();
     if let Err(err) = mcp::initialize_runtime(&config) {
@@ -34,7 +35,9 @@ pub(super) fn run_mcp() -> i32 {
         }
     };
 
-    match rt.block_on(MaenifoldMcpServer::serve_stdio()) {
+    let result = rt.block_on(MaenifoldMcpServer::serve_stdio());
+    rt.shutdown_timeout(std::time::Duration::from_secs(5));
+    match result {
         Ok(()) => 0,
         Err(err) => {
             eprintln!("Error running MCP stdio server: {err}");
@@ -64,7 +67,9 @@ pub(super) fn run_http(port: u16) -> i32 {
         }
     };
 
-    match rt.block_on(MaenifoldMcpServer::serve_http(port)) {
+    let result = rt.block_on(MaenifoldMcpServer::serve_http(port));
+    rt.shutdown_timeout(std::time::Duration::from_secs(5));
+    match result {
         Ok(()) => 0,
         Err(err) => {
             eprintln!("Error running MCP HTTP server: {err}");
@@ -276,7 +281,9 @@ where
             return 1;
         }
     };
-    match rt.block_on(f(context)) {
+    let result = rt.block_on(f(context));
+    rt.shutdown_timeout(std::time::Duration::from_secs(5));
+    match result {
         Ok(output) => {
             println!("{output}");
             0

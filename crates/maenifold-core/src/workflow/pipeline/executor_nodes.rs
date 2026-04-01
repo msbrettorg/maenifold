@@ -20,6 +20,7 @@ pub(super) use super::executor_run::{NodeOutcome, NodeTaskResult, classify_node_
 pub(super) enum NodeExecutionRequest {
     Workflow {
         workflow_id: String,
+        existing_session_id: Option<String>,
         prompt: String,
         timeout_seconds: Option<u64>,
     },
@@ -32,6 +33,7 @@ pub(super) enum NodeExecutionRequest {
     SequentialThinking {
         node_session_id: String,
         topic: String,
+        prompt_context: String,
         total_thoughts: u32,
         session_opts: SessionOpts,
     },
@@ -57,6 +59,7 @@ pub(super) fn build_node_execution_request(
             ..
         } => NodeExecutionRequest::Workflow {
             workflow_id: workflow_id.clone(),
+            existing_session_id: Some(node_session_id(node_states, node.id(), dispatch)),
             prompt: assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?,
             timeout_seconds: *timeout,
         },
@@ -85,6 +88,7 @@ pub(super) fn build_node_execution_request(
             ),
         },
         PipelineNode::SequentialThinking {
+            topic,
             total_thoughts,
             agent_config,
             model,
@@ -95,7 +99,14 @@ pub(super) fn build_node_execution_request(
             ..
         } => NodeExecutionRequest::SequentialThinking {
             node_session_id: node_session_id(node_states, node.id(), dispatch),
-            topic: assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?,
+            topic: topic.trim().to_string(),
+            prompt_context: assemble_node_prompt(
+                context,
+                definition,
+                node_states,
+                node,
+                ambient_prompt,
+            )?,
             total_thoughts: *total_thoughts,
             session_opts: merged_session_opts(
                 context,
@@ -169,6 +180,7 @@ pub(super) async fn execute_node_request(
     let result = match execution {
         NodeExecutionRequest::Workflow {
             workflow_id,
+            existing_session_id,
             prompt,
             timeout_seconds,
         } => match agent.as_deref() {
@@ -176,6 +188,7 @@ pub(super) async fn execute_node_request(
                 runner::run_workflow_with_pool(
                     &context,
                     &workflow_id,
+                    existing_session_id,
                     agent,
                     &prompt,
                     timeout_seconds,
@@ -210,6 +223,7 @@ pub(super) async fn execute_node_request(
         NodeExecutionRequest::SequentialThinking {
             node_session_id,
             topic,
+            prompt_context,
             total_thoughts,
             session_opts,
         } => match agent.as_deref() {
@@ -218,9 +232,11 @@ pub(super) async fn execute_node_request(
                     &context,
                     agent,
                     &topic,
+                    &prompt_context,
                     runner::ThinkOptions {
                         total_thoughts,
                         parent_workflow_id: Some(node_session_id),
+                        timeout_seconds: None,
                     },
                     session_opts,
                     pool,

@@ -131,6 +131,7 @@ mod workflow_id;
 
 pub use engine::{compute_pipeline_status, compute_ready_set, has_remaining_work};
 pub use handler::pipeline;
+pub(crate) use supervisor::SUPERVISOR_RUNTIME;
 pub use types::{
     EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
     PredecessorOutput,

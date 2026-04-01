@@ -2,8 +2,7 @@
 /// Accumulates session updates (text, thoughts, tool calls) per session.
 use agent_client_protocol as acp;
 use std::collections::HashMap;
-use std::fs;
-use std::path::{Component, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -18,19 +17,22 @@ impl HeadlessClient {
     /// Resolve and jail a path within the cwd. Rejects parent-dir traversal
     /// and ensures the canonical result stays under `self.cwd`.
     fn resolve_and_jail(&self, path: PathBuf) -> std::result::Result<PathBuf, acp::Error> {
-        if path.components().any(|c| matches!(c, Component::ParentDir)) {
-            return Err(acp::Error::new(
-                -32602,
-                format!("path contains parent traversal: {}", path.display()),
-            ));
-        }
         let resolved = if path.is_absolute() {
             path
         } else {
             self.cwd.join(path)
         };
-        let canonical_cwd = fs::canonicalize(&self.cwd).unwrap_or_else(|_| self.cwd.clone());
-        let canonical_path = fs::canonicalize(&resolved).unwrap_or_else(|_| resolved.clone());
+        if resolved
+            .components()
+            .any(|component| matches!(component, Component::ParentDir))
+        {
+            return Err(acp::Error::new(
+                -32602,
+                format!("path contains parent traversal: {}", resolved.display()),
+            ));
+        }
+        let canonical_cwd = canonicalize_or_original(&self.cwd);
+        let canonical_path = canonicalize_or_original(&resolved);
         if !canonical_path.starts_with(&canonical_cwd) {
             return Err(acp::Error::new(
                 -32602,
@@ -39,6 +41,11 @@ impl HeadlessClient {
         }
         Ok(resolved)
     }
+
+}
+
+fn canonicalize_or_original(path: &Path) -> PathBuf {
+    path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
 }
 
 #[async_trait::async_trait(?Send)]
@@ -47,7 +54,17 @@ impl acp::Client for HeadlessClient {
         &self,
         args: acp::RequestPermissionRequest,
     ) -> acp::Result<acp::RequestPermissionResponse> {
-        let option_id = args
+        let session_id = args.session_id.to_string();
+        if !self.sessions.lock().await.contains_key(&session_id) {
+            tracing::info!(
+                session_id = %session_id,
+                "Permission request cancelled - session already cancelled"
+            );
+            return Ok(acp::RequestPermissionResponse::new(
+                acp::RequestPermissionOutcome::Cancelled,
+            ));
+        }
+        let selected_option = args
             .options
             .iter()
             .find(|option| {
@@ -57,7 +74,16 @@ impl acp::Client for HeadlessClient {
                 )
             })
             .or_else(|| args.options.first())
-            .map(|option| option.option_id.clone())
+            .cloned();
+        let tool = args.tool_call.fields.title.as_deref().unwrap_or("unknown");
+        tracing::info!(
+            session_id = %args.session_id,
+            permission_kind = ?selected_option.as_ref().map(|option| option.kind),
+            tool,
+            "Auto-granting ACP permission in headless mode"
+        );
+        let option_id = selected_option
+            .map(|option| option.option_id)
             .unwrap_or_else(|| acp::PermissionOptionId::new("allow"));
         Ok(acp::RequestPermissionResponse::new(
             acp::RequestPermissionOutcome::Selected(acp::SelectedPermissionOutcome::new(option_id)),
@@ -70,7 +96,7 @@ impl acp::Client for HeadlessClient {
     ) -> acp::Result<acp::WriteTextFileResponse> {
         let path = self.resolve_and_jail(args.path)?;
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).map_err(|error| {
+            std::fs::create_dir_all(parent).map_err(|error| {
                 acp::Error::new(
                     -32603,
                     format!(
@@ -80,7 +106,7 @@ impl acp::Client for HeadlessClient {
                 )
             })?;
         }
-        fs::write(&path, args.content).map_err(|error| {
+        std::fs::write(&path, args.content).map_err(|error| {
             acp::Error::new(
                 -32603,
                 format!("failed to write {}: {error}", path.display()),
@@ -94,7 +120,7 @@ impl acp::Client for HeadlessClient {
         args: acp::ReadTextFileRequest,
     ) -> acp::Result<acp::ReadTextFileResponse> {
         let path = self.resolve_and_jail(args.path)?;
-        let content = fs::read_to_string(&path).map_err(|error| {
+        let content = std::fs::read_to_string(&path).map_err(|error| {
             acp::Error::new(
                 -32603,
                 format!("failed to read {}: {error}", path.display()),
@@ -129,10 +155,9 @@ impl acp::Client for HeadlessClient {
             }
             acp::SessionUpdate::AgentMessageChunk(chunk) => match chunk.content {
                 acp::ContentBlock::Text(text) => {
-                    self.sessions
-                        .lock()
-                        .await
-                        .entry(session_id)
+                    let mut sessions = self.sessions.lock().await;
+                    sessions
+                        .entry(session_id.clone())
                         .or_default()
                         .append_text(&text.text);
                 }
@@ -146,10 +171,9 @@ impl acp::Client for HeadlessClient {
             },
             acp::SessionUpdate::AgentThoughtChunk(chunk) => match chunk.content {
                 acp::ContentBlock::Text(text) => {
-                    self.sessions
-                        .lock()
-                        .await
-                        .entry(session_id)
+                    let mut sessions = self.sessions.lock().await;
+                    sessions
+                        .entry(session_id.clone())
                         .or_default()
                         .append_thought(&text.text);
                 }
@@ -163,9 +187,8 @@ impl acp::Client for HeadlessClient {
             },
             acp::SessionUpdate::ToolCall(tool_call) => {
                 let tool_call_id = tool_call.tool_call_id.to_string();
-                self.sessions
-                    .lock()
-                    .await
+                let mut sessions = self.sessions.lock().await;
+                sessions
                     .entry(session_id.clone())
                     .or_default()
                     .push_tool_call(tool_call);
@@ -177,15 +200,17 @@ impl acp::Client for HeadlessClient {
             }
             acp::SessionUpdate::ToolCallUpdate(update) => {
                 let tool_call_id = update.tool_call_id.to_string();
-                let apply_result = self
-                    .sessions
-                    .lock()
-                    .await
-                    .entry(session_id.clone())
-                    .or_default()
-                    .apply_tool_call_update(update);
-                if let Err(error) = apply_result {
-                    tracing::debug!(
+                let apply_result = {
+                    let mut sessions = self.sessions.lock().await;
+                    Some(
+                        sessions
+                            .entry(session_id.clone())
+                            .or_default()
+                            .apply_tool_call_update(update),
+                    )
+                };
+                if let Some(Err(error)) = apply_result {
+                    tracing::warn!(
                         session_id = %session_id,
                         tool_call_id = %tool_call_id,
                         error = %error,

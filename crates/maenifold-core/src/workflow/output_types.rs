@@ -26,14 +26,16 @@ impl ThinkingOutput {
         Ok(Self {
             response: parsed.require("response")?.to_string(),
             done: require_bool(parsed, "done")?,
-            needs_more: require_bool(parsed, "needs_more")?,
+            needs_more: parsed.get_bool("needs_more").unwrap_or(false),
             revision_of: optional_u64(parsed, "revision_of")?,
             conclusion: optional_string(parsed, "conclusion"),
         })
     }
 
     pub fn expected_shape() -> &'static str {
-        "<output>\n  <response>...</response>\n  <done>true|false</done>\n  <needs_more>true|false</needs_more>\n  <revision_of></revision_of>\n  <conclusion></conclusion>\n</output>"
+        "Respond in XML or JSON. Required: response (string), done (bool). Optional: conclusion, needs_more (bool).\n\
+         XML: <output><response>[[concept]] analysis</response><done>false</done></output>\n\
+         JSON: {\"response\":\"[[concept]] analysis\",\"done\":false}"
     }
 }
 
@@ -47,7 +49,7 @@ impl WorkflowOutput {
     }
 
     pub fn expected_shape() -> &'static str {
-        "<output>\n  <response>...</response>\n  <done>true|false</done>\n  <conclusion></conclusion>\n</output>"
+        "<output>\n  <response>...</response>\n  <done>false</done>\n  <conclusion>Required when done is true. Your final summary.</conclusion>\n</output>"
     }
 }
 

@@ -1,6 +1,6 @@
 use super::support::{
-    bool_property, enum_string_property, integer_property_with_default, object_schema,
-    string_property, tool_definition,
+    bool_property, enum_string_property, integer_property, integer_property_with_default,
+    object_schema, string_property, tool_definition,
 };
 use crate::mcp::McpToolDefinition;
 use serde_json::json;
@@ -175,6 +175,23 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
             registry_name,
             "Lists configured ACP agents and their serialized configuration fields.",
             object_schema(vec![], &[]),
+        ),
+        "AcpPrompt" => tool_definition(
+            registry_name,
+            "Spawns an ACP agent, creates a session, sends a single prompt, and returns the response text.",
+            object_schema(
+                vec![
+                    ("agent", string_property("ACP agent name from agents.json")),
+                    ("prompt", string_property("Prompt text to send to the agent")),
+                    ("model", string_property("Optional model override for the session")),
+                    ("mode", string_property("Optional session mode override")),
+                    (
+                        "timeoutSeconds",
+                        integer_property("Optional session timeout in seconds"),
+                    ),
+                ],
+                &["agent", "prompt"],
+            ),
         ),
         _ => return None,
     };

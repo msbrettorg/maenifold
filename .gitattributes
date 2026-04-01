@@ -1,0 +1,3 @@
+# Force LF line endings for all text files.
+# Prevents GPT agents from introducing CRLF on macOS.
+* text=auto eol=lf

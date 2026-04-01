@@ -346,9 +346,3 @@ fn l_20_status_update_while_running_works() {
     assert_eq!(data["data"]["ready"], json!(["b"]));
 }
 
-#[test]
-#[ignore]
-#[serial(config)]
-fn l_21_dispatch_while_running_errors_or_no_ops() {
-    // BUG: dispatch-while-running
-}

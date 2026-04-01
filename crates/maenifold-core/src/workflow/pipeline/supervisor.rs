@@ -22,7 +22,7 @@ pub(super) use super::supervisor_lifecycle::{
     supervisor_clear_all, supervisor_is_paused, supervisor_spawn_test_task,
 };
 
-pub(super) static SUPERVISOR_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+pub(crate) static SUPERVISOR_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     Builder::new_multi_thread()
         .worker_threads(2)
         .enable_all()

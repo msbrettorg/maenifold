@@ -80,6 +80,19 @@ struct SessionRef {
 }
 
 impl AcpxDriver {
+    fn map_cached_session_error(
+        handle: &AgentHandle,
+        session_id: &str,
+        error: AgentError,
+    ) -> AgentError {
+        match error {
+            AgentError::ChannelClosed if !handle.is_alive() => AgentError::AgentDied {
+                session_id: session_id.to_string(),
+            },
+            other => other,
+        }
+    }
+
     pub fn new(agent: String, timeout_seconds: u64, cwd: PathBuf) -> Result<Self> {
         let config_entry = AgentsConfig::load(&cwd)
             .agents
@@ -135,7 +148,10 @@ impl AcpxDriver {
             .ok_or_else(|| AgentError::Acp(format!("Unknown session '{session}'")))?;
         let (handle, remote_id) = (Arc::clone(&current.handle), current.remote_id.clone());
         drop(sessions);
-        let response = handle.prompt(&remote_id, prompt).await?;
+        let response = handle
+            .prompt(&remote_id, prompt)
+            .await
+            .map_err(|error| Self::map_cached_session_error(&handle, session, error))?;
         Ok(AcpxResponse {
             text: response.text,
             tool_calls: response.tool_calls,
@@ -157,7 +173,10 @@ impl AcpxDriver {
             .ok_or_else(|| AgentError::Acp(format!("Unknown session '{session}'")))?;
         let (handle, remote_id) = (Arc::clone(&current.handle), current.remote_id.clone());
         drop(sessions);
-        handle.cancel(&remote_id).await
+        handle
+            .cancel(&remote_id)
+            .await
+            .map_err(|error| Self::map_cached_session_error(&handle, session, error))
     }
 }
 

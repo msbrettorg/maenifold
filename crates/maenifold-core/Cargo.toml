@@ -29,6 +29,7 @@ sha2.workspace = true
 slug.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+tracing-subscriber.workspace = true
 tokio = { workspace = true, features = ["process", "time"] }
 tokio-util = { workspace = true, features = ["compat"] }
 agent-client-protocol = { workspace = true }
@@ -126,3 +127,15 @@ path = "tests/misc_tests.rs"
 [[test]]
 name = "http_session_restart_tests"
 path = "tests/http_session_restart_tests.rs"
+
+[[test]]
+name = "think_runner_integration"
+path = "tests/think_runner_integration.rs"
+
+[[test]]
+name = "workflow_runner_integration"
+path = "tests/workflow_runner_integration.rs"
+
+[[test]]
+name = "pipeline_e2e"
+path = "tests/pipeline_e2e.rs"

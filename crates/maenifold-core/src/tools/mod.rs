@@ -1,3 +1,4 @@
+mod acp_prompt;
 mod agents;
 mod catalog;
 mod context;
@@ -6,6 +7,7 @@ mod recent_activity;
 mod recent_activity_format;
 mod response;
 
+pub use acp_prompt::acp_prompt;
 pub use agents::list_agents;
 pub use catalog::{list_assets, read_mcp_resource};
 pub use context::{ToolContext, not_yet_implemented, render};

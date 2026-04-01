@@ -7,10 +7,13 @@ use crate::error::{MaenifoldError, Result};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::Deserialize;
-use serde_json::Value;
-use serde_json::json;
+use serde_json::{Value, json};
 static WORKFLOW_SESSION_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"workflow-\d+").unwrap());
 static STEP_PROGRESS_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
+
+/// Single source of truth for the XML output-block contract sent to workflow agents.
+const XML_FORMAT_INSTRUCTION: &str = "You MUST respond with exactly one XML <output> block using the exact tags shown below. Do NOT respond with JSON. Do NOT rename tags. Do NOT omit required tags. The parser only reads the final <output> block.\n\nRequired XML format:\n<output>\n  <response>What you did for this workflow step, with concrete detail.</response>\n  <done>true|false</done>\n  <conclusion>Leave empty until the workflow is complete. Required and non-empty only when done is true.</conclusion>\n</output>";
+
 #[derive(Debug, Deserialize)]
 pub(crate) struct Envelope<T> {
     pub(crate) success: bool,
@@ -44,9 +47,7 @@ pub(crate) fn workflow_text(raw: &str) -> String {
     trimmed.to_string()
 }
 pub(crate) fn extract_workflow_session_id(text: &str) -> Option<String> {
-    WORKFLOW_SESSION_RE
-        .find(text)
-        .map(|capture| capture.as_str().to_string())
+    WORKFLOW_SESSION_RE.find(text).map(|m| m.as_str().to_string())
 }
 pub(crate) fn parse_step_progress(text: &str) -> Option<(u32, u32)> {
     let captures = STEP_PROGRESS_RE.captures(text)?;
@@ -60,7 +61,6 @@ pub(crate) fn step_think_config(step: &str) -> Option<(String, u32)> {
     {
         return None;
     }
-
     let parsed = step
         .find('{')
         .and_then(|index| serde_json::from_str::<Value>(&step[index..]).ok());
@@ -75,8 +75,19 @@ pub(crate) fn step_think_config(step: &str) -> Option<(String, u32)> {
         .unwrap_or(5) as u32;
     let topic = parsed
         .as_ref()
-        .and_then(|value| value.get("description").and_then(Value::as_str))
-        .unwrap_or(step)
+        .and_then(|v| {
+            v.get("description")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|s| !s.is_empty() && s.chars().count() <= 300)
+                .or_else(|| {
+                    v.get("name")
+                        .and_then(Value::as_str)
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())
+                })
+        })
+        .unwrap_or("step analysis")
         .to_string();
     Some((topic, total_thoughts))
 }
@@ -94,11 +105,12 @@ pub(crate) fn terminal_workflow_status(step: &str) -> Option<WorkflowRunStatus> 
     }
 }
 pub(crate) fn workflow_prompt(prompt: &str, step: &str) -> String {
-    if prompt.trim().is_empty() {
+    let prefix = if prompt.trim().is_empty() {
         step.to_string()
     } else {
         format!("{prompt}\n{step}")
-    }
+    };
+    format!("{prefix}\n\n{XML_FORMAT_INSTRUCTION}")
 }
 pub(crate) async fn prompt_workflow_agent(
     driver: &AgentSession,
@@ -106,9 +118,9 @@ pub(crate) async fn prompt_workflow_agent(
     step: &str,
     final_step: bool,
 ) -> Result<WorkflowAgentResponse> {
-    let actual_prompt = workflow_prompt(prompt, step);
+    let base = workflow_prompt(prompt, step);
     let prompt_with_shape = format!(
-        "{actual_prompt}\n\nWrap your response in <output> tags:\n{}\n\nYour thinking can appear outside the tags. Only the <output> block is parsed.",
+        "{base}\n\nExample (in-progress):\n<output>\n  <response>Reviewed [[workflow-step]] requirements and identified the next action.</response>\n  <done>false</done>\n  <conclusion></conclusion>\n</output>\n\nExample (completed):\n<output>\n  <response>Finished the [[workflow-step]] and verified the result.</response>\n  <done>true</done>\n  <conclusion>Completed the workflow successfully.</conclusion>\n</output>\n\nWhen complete, set <done>true</done> with a non-empty <conclusion>. When not complete, set <done>false</done> and leave <conclusion> empty.\n\nRequired format:\n{}",
         WorkflowOutput::expected_shape()
     );
     let response = driver.prompt(&prompt_with_shape).await?;
@@ -146,7 +158,6 @@ pub(crate) struct WorkflowAgentResponse {
     output: WorkflowOutput,
     used_fallback: bool,
 }
-
 async fn parse_workflow_with_retry(
     driver: &AgentSession,
     initial_text: &str,
@@ -207,16 +218,13 @@ fn workflow_response_text(response: AcpxResponse) -> Result<String> {
     Ok(response.text)
 }
 fn workflow_conclusion_text(response: &WorkflowAgentResponse, final_step: bool) -> String {
-    response
-        .output
-        .conclusion
-        .clone()
+    response.output.conclusion.clone()
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| workflow_response_text_for_step(response, final_step))
 }
 fn workflow_response_text_for_step(response: &WorkflowAgentResponse, final_step: bool) -> String {
     if response.used_fallback && final_step {
-        fallback_step_tag(&response.output.response)
+        tag_fallback(&response.output.response)
     } else {
         response.output.response.clone()
     }
@@ -227,33 +235,36 @@ fn workflow_retry_prompt(error: &str) -> String {
         WorkflowOutput::expected_shape()
     )
 }
-fn fallback_step_tag(response: &str) -> String {
-    if response.contains("[[") && response.contains("]]") {
+/// Appends `[[unstructured-response]]` when the text lacks well-formed wikilinks.
+/// Shared single definition used by both workflow and think runners.
+pub(crate) fn tag_fallback(response: &str) -> String {
+    if has_well_formed_wikilink(response) {
         response.to_string()
     } else {
-        format!("{response} [[step]]")
+        format!("{response} [[unstructured-response]]")
     }
 }
-pub(crate) fn slug(topic: &str) -> String {
-    let mut slug = topic
-        .chars()
-        .map(|ch| {
-            if ch.is_ascii_alphanumeric() {
-                ch.to_ascii_lowercase()
-            } else {
-                '-'
-            }
-        })
-        .collect::<String>()
-        .trim_matches('-')
-        .to_string();
-    while slug.contains("--") {
-        slug = slug.replace("--", "-");
+pub(crate) fn has_well_formed_wikilink(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    let (mut i, mut open, mut saw) = (0usize, false, false);
+    while i + 1 < bytes.len() {
+        match (bytes[i], bytes[i + 1]) {
+            (b'[', b'[') if !open => { open = true; i += 2; }
+            (b'[', b'[') => return false,
+            (b']', b']') if open => { open = false; saw = true; i += 2; }
+            (b']', b']') => return false,
+            _ => i += 1,
+        }
     }
-    if slug.is_empty() {
+    saw && !open
+}
+
+pub(crate) fn slug(topic: &str) -> String {
+    let result = ::slug::slugify(topic);
+    if result.is_empty() {
         "topic".to_string()
     } else {
-        slug.trim_matches('-').to_string()
+        result
     }
 }
 fn json_prefix_end(text: &str) -> Option<usize> {

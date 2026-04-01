@@ -42,12 +42,6 @@ fn one(id: &str, status: NodeStatus) -> HashMap<String, NodeState> {
 }
 
 #[test]
-#[ignore]
-#[serial(config)]
-fn stm_01_delete_from_completed_state() { // BUG: delete-from-completed-state
-}
-
-#[test]
 #[serial(config)]
 fn stm_02_delete_from_stuck_state() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
@@ -413,13 +407,6 @@ fn stm_18_join_from_active_source_rejected() {
 }
 
 #[test]
-#[ignore]
-#[serial(config)]
-fn stm_19_join_into_pending_target_rejected() {
-    // BUG: join-into-pending-target-allowed
-}
-
-#[test]
 #[serial(config)]
 fn stm_20_fork_from_completed_pipeline() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
@@ -506,13 +493,6 @@ fn stm_24_dispatch_on_completed_pipeline() {
     )
     .expect("parse");
     assert_eq!(data["data"]["dispatched"], json!([]));
-}
-
-#[test]
-#[ignore]
-#[serial(config)]
-fn stm_25_dispatch_on_cancelled_pipeline() {
-    // BUG: dispatch-on-cancelled-pipeline
 }
 
 #[test]

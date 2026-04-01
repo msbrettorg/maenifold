@@ -5,6 +5,27 @@ For detailed retrospectives including lessons learned, see [RETROSPECTIVES.md](R
 
 ---
 
+## Sprint 70 — Workflow Runner Hardening + ACP Coverage
+
+Closed sequential-thinking/workflow runner regressions and added direct ACP prompt tooling plus real-agent integration coverage.
+
+### Fixed
+- **ST-1/ST-2 slug truncation**: `think_runner.rs` now truncates think seed slugs by characters (80 chars) before slugging instead of truncating raw bytes, avoiding broken multi-byte topics.
+- **ST-3 prompt context split**: Sequential-thinking pipeline nodes now pass the assembled node prompt as `prompt_context` while preserving the configured topic as the thought subject, so runner context no longer pollutes thought content.
+- **ST-4 parse_with_retry done condition**: `parse_with_retry()` fallback output now marks `done=true` only when `thought_number >= total_thoughts`, preventing premature completion on non-final fallback thoughts.
+- **ST-5 step_think_config fallback**: `runner_helpers.rs` now prefers a bounded non-empty `description`, falls back to `name`, and finally uses `"step analysis"` instead of feeding raw step JSON back into thinking prompts.
+- **WF-1/WF-2 existing_session_id threading**: Workflow pipeline nodes now carry `existing_session_id` through execution so pre-activated workflow sessions are resumed instead of starting duplicate sessions.
+- **WF-3 workflow_text preamble strip**: `workflow_text()` now strips JSON envelopes / preamble text and returns the actual workflow step body before runner parsing.
+
+### Added
+- **ACP integration coverage**: Added ignored real-agent integration tests covering session lifecycle, OpenCode smoke, Codex smoke, `AgentPool` reuse, and prompt timeout / cleanup behavior.
+- **AcpPrompt MCP tool**: Added `AcpPrompt` / `acp_prompt` as a system tool that spawns an ACP agent, opens a session, sends one prompt, and returns response text with optional model, mode, and timeout overrides.
+
+### Changed
+- **AGENTS.md trim + test policy**: Reduced `AGENTS.md` to a shorter operating guide and codified targeted test execution rules for SWE, Red-team, Blue-team, and PM roles.
+
+---
+
 ## Sprint 69 — Pipeline Node Configuration Parity (FR-52)
 
 Closed the gap between pipeline node config fields accepted at creation time and what is actually wired, visible, and discoverable at runtime.

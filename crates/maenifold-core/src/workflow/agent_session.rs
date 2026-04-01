@@ -49,11 +49,15 @@ impl AgentSession {
             .prompt(&self.remote_id, prompt)
             .await
             .map_err(agent_error)?;
+        let error = response.stop_reason.as_deref().and_then(|sr| match sr {
+            "end_turn" | "max_tokens" | "max_turn_requests" | "refusal" | "cancelled" => None,
+            other => Some(other.to_string()),
+        });
         Ok(AcpxResponse {
             text: response.text,
             tool_calls: response.tool_calls,
             thought: response.thought,
-            error: None,
+            error,
             usage: response.usage,
         })
     }

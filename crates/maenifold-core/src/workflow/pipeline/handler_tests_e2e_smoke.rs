@@ -149,13 +149,6 @@ fn e2e_02_create_dispatch_abandon_restart_complete_delete() {
 }
 
 #[test]
-#[ignore]
-#[serial(config)]
-fn e2e_03_create_run_autonomous_execution_pipeline_completes() {
-    // NEEDS-SUPERVISOR: requires running supervisor mock
-}
-
-#[test]
 #[serial(config)]
 fn e2e_04_diamond_dag_with_all_4_node_types_end_to_end() {
     let (_tmp, context, _reset) = pipeline_test_context(OutputFormat::Json);
@@ -489,20 +482,6 @@ fn e2e_09_graft_join_fork_rewind_delete_chain() {
         )
         .is_ok()
     );
-}
-
-#[test]
-#[ignore]
-#[serial(config)]
-fn e2e_10_manual_dispatch_some_run_the_rest() {
-    // NEEDS-SUPERVISOR: requires running supervisor mock
-}
-
-#[test]
-#[ignore]
-#[serial(config)]
-fn e2e_11_pipeline_with_10_plus_nodes_mixed_types_and_edges() {
-    // NEEDS-SUPERVISOR: requires larger execution harness
 }
 
 #[test]

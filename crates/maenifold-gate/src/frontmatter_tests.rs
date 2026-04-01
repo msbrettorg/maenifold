@@ -5,7 +5,7 @@ use serde_yaml::Value as YamlValue;
 fn split_frontmatter_basic() {
     let input = "---\nid: T-1\nstatus: pending\n---\n\n# Title\nBody";
     let (yaml, body) = split_frontmatter(input).unwrap();
-    assert_eq!(yaml, "id: T-1\nstatus: pending\n");
+    assert_eq!(yaml, "id: T-1\nstatus: pending");
     assert_eq!(body, "# Title\nBody");
 }
 

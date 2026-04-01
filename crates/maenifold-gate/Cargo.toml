@@ -25,8 +25,10 @@ app = [
 ]
 
 [dependencies]
+clap = { version = "4", features = ["derive"] }
 anyhow.workspace = true
 chrono.workspace = true
+gray_matter.workspace = true
 pulldown-cmark.workspace = true
 rusqlite.workspace = true
 serde.workspace = true

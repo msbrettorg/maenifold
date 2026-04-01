@@ -1,46 +1,29 @@
 use chrono::{DateTime, Utc};
+use gray_matter::engine::Engine as MatterEngine;
+use gray_matter::{Matter, ParsedEntity, Pod};
 use serde_yaml::{Mapping as YamlMapping, Value as YamlValue};
 use std::collections::BTreeMap;
 use std::path::Path;
 pub type Frontmatter = BTreeMap<String, YamlValue>;
 
+struct RawFrontmatterEngine;
+
+impl MatterEngine for RawFrontmatterEngine {
+    fn parse(_: &str) -> gray_matter::Result<Pod> {
+        Ok(Pod::Hash(Default::default()))
+    }
+}
+
 /// Split YAML frontmatter from markdown content.
 /// Returns (yaml_text, body) if frontmatter delimiters found.
-pub fn split_frontmatter(full_text: &str) -> Option<(&str, String)> {
-    let yaml_start = if full_text.starts_with("---\n") {
-        4
-    } else if full_text.starts_with("---\r\n") {
-        5
-    } else {
+pub fn split_frontmatter(full_text: &str) -> Option<(String, String)> {
+    if !starts_with_frontmatter(full_text) || !has_closing_delimiter(full_text) {
         return None;
-    };
-
-    let mut cursor = yaml_start;
-    while cursor <= full_text.len() {
-        let remaining = &full_text[cursor..];
-        match remaining.find('\n') {
-            Some(line_end) => {
-                let line = remaining[..line_end].trim_end_matches('\r');
-                if line == "---" {
-                    let yaml_text = &full_text[yaml_start..cursor];
-                    let content = remaining[line_end + 1..]
-                        .trim_start_matches(['\r', '\n'])
-                        .to_string();
-                    return Some((yaml_text, content));
-                }
-                cursor += line_end + 1;
-            }
-            None => {
-                if remaining.trim_end_matches('\r') == "---" {
-                    let yaml_text = &full_text[yaml_start..cursor];
-                    return Some((yaml_text, String::new()));
-                }
-                return None;
-            }
-        }
     }
-
-    None
+    let parsed: ParsedEntity = Matter::<RawFrontmatterEngine>::new()
+        .parse(full_text)
+        .ok()?;
+    Some((parsed.matter, parsed.content))
 }
 
 /// Parse YAML frontmatter into a Frontmatter map.
@@ -51,7 +34,7 @@ pub fn parse_frontmatter(full_text: &str) -> (Option<Frontmatter>, String) {
             return (None, content);
         }
 
-        match serde_yaml::from_str(yaml_text) {
+        match serde_yaml::from_str(&yaml_text) {
             Ok(frontmatter) => return (Some(frontmatter), content),
             Err(error) => {
                 eprintln!("[YAML WARNING] Failed to parse frontmatter: {error}");
@@ -269,7 +252,7 @@ where
 
     let (mut fm, body) = match split_frontmatter(text) {
         Some((yaml_text, body)) if !yaml_text.trim().is_empty() => {
-            let fm: Frontmatter = serde_yaml::from_str(yaml_text).map_err(|e| {
+            let fm: Frontmatter = serde_yaml::from_str(&yaml_text).map_err(|e| {
                 anyhow::anyhow!(
                     "refusing to update {}: file has frontmatter delimiters \
                      but YAML is malformed: {e}",
@@ -292,6 +275,20 @@ pub fn write_frontmatter_status(path: &Path, status: &str) -> anyhow::Result<()>
     update_task_frontmatter(path, |fm| {
         fm.insert("status".to_string(), YamlValue::String(status.to_string()));
     })
+}
+
+fn starts_with_frontmatter(full_text: &str) -> bool {
+    matches!(
+        full_text.split_once('\n'),
+        Some((first_line, _)) if first_line.trim_end_matches('\r') == "---"
+    )
+}
+
+fn has_closing_delimiter(full_text: &str) -> bool {
+    full_text
+        .lines()
+        .skip(1)
+        .any(|line| line.trim_end_matches('\r') == "---")
 }
 
 #[cfg(test)]

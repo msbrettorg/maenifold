@@ -155,7 +155,7 @@ fn warn_auto_register(root: &Path) {
 
 pub fn extract_title(content: &str) -> Option<String> {
     if let Some((yaml_text, _)) = split_frontmatter(content)
-        && let Ok(frontmatter) = serde_yaml::from_str::<Frontmatter>(yaml_text)
+        && let Ok(frontmatter) = serde_yaml::from_str::<Frontmatter>(&yaml_text)
         && let Some(title) = frontmatter.get("title").and_then(serde_yaml::Value::as_str)
     {
         return Some(title.trim().to_string());
@@ -175,7 +175,7 @@ pub fn extract_title(content: &str) -> Option<String> {
 
 pub fn extract_requirement(content: &str) -> Option<String> {
     if let Some((yaml_text, _)) = split_frontmatter(content)
-        && let Ok(frontmatter) = serde_yaml::from_str::<Frontmatter>(yaml_text)
+        && let Ok(frontmatter) = serde_yaml::from_str::<Frontmatter>(&yaml_text)
         && let Some(requirement) = frontmatter
             .get("requirement")
             .and_then(serde_yaml::Value::as_str)
@@ -231,7 +231,7 @@ fn load_validated_frontmatter(path: &Path, content: &str) -> Result<Frontmatter>
     let frontmatter = if yaml_text.trim().is_empty() {
         Frontmatter::new()
     } else {
-        serde_yaml::from_str::<Frontmatter>(yaml_text)
+        serde_yaml::from_str::<Frontmatter>(&yaml_text)
             .map_err(|error| anyhow!("{}: malformed YAML frontmatter: {error}", file))?
     };
     let errors = validate_frontmatter(&file, &frontmatter);

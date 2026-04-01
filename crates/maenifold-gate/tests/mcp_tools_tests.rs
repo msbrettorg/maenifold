@@ -1,13 +1,55 @@
 #![cfg(feature = "app")]
 
-pub use maenifold_gate::registry;
+pub use maenifold_gate::{db, pass, registry, reject};
 
 mod tools_tests {
     include!("../src/mcp/tools.rs");
 
+    use std::{fs, path::PathBuf};
+
+    use maenifold_gate::db::{GateDb, TaskUpsert};
     use rmcp::transport::streamable_http_server::session::{
         SessionId, SessionManager, never::NeverSessionManager,
     };
+    use tempfile::TempDir;
+
+    struct TaskEnv {
+        _dir: TempDir,
+        root: PathBuf,
+        db: PathBuf,
+    }
+
+    fn setup_task_env(status: &str, pipeline: &str) -> TaskEnv {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_path_buf();
+        fs::create_dir_all(root.join("todo")).unwrap();
+        fs::create_dir_all(root.join("done")).unwrap();
+        fs::write(
+            root.join("todo").join("T-55.5-mcp.md"),
+            format!("---\nstatus: {status}\npipeline: {pipeline}\n---\n\n# Task\n"),
+        )
+        .unwrap();
+
+        let db = root.join("gate.db");
+        GateDb::open(&db)
+            .unwrap()
+            .upsert_task(&TaskUpsert {
+                id: "T-55.5",
+                file: "T-55.5-mcp.md",
+                title: Some("Task"),
+                requirement: "FR-42",
+                status,
+                location: "todo",
+                attempts: 0,
+            })
+            .unwrap();
+
+        TaskEnv {
+            _dir: dir,
+            root,
+            db,
+        }
+    }
 
     fn arg_map<const N: usize>(entries: [(&str, Value); N]) -> Map<String, Value> {
         entries
@@ -147,5 +189,92 @@ mod tools_tests {
         let mut args = arg_map([("extra", json!(true))]);
         let error = dispatch("gate_list_gates", &mut args).unwrap_err();
         assert!(error.contains("unknown arguments: extra"), "got: {error}");
+    }
+
+    #[test]
+    fn gate_reject_dispatch_uses_pipeline_validated_reject_logic() {
+        let env = setup_task_env("swe", "sdd");
+        let mut args = arg_map([
+            ("id", json!("T-55.5")),
+            ("db", json!(env.db)),
+            ("root", json!(env.root)),
+        ]);
+
+        let error = dispatch("gate_reject", &mut args).unwrap_err();
+
+        assert!(
+            error.contains("pipeline 'sdd' stage 'swe' has no reject transition"),
+            "got: {error}"
+        );
+    }
+
+    #[test]
+    fn gate_reject_dispatch_updates_task_via_shared_reject_path() {
+        let env = setup_task_env("red", "sdd");
+        let mut args = arg_map([
+            ("id", json!("T-55.5")),
+            ("db", json!(env.db.clone())),
+            ("root", json!(env.root.clone())),
+            ("notes", json!("retry")),
+        ]);
+
+        let result = dispatch("gate_reject", &mut args).unwrap();
+        let task = GateDb::open(&env.db)
+            .unwrap()
+            .get_task_by_id("T-55.5")
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(result.output, "T-55.5: red → pending [REJECT]");
+        assert_eq!(task.status, "pending");
+        assert_eq!(task.attempts, 1);
+        assert!(
+            fs::read_to_string(env.root.join("todo").join("T-55.5-mcp.md"))
+                .unwrap()
+                .contains("## Orchestrator — REJECT\n\nretry")
+        );
+    }
+
+    #[test]
+    fn mcp_gate_pass_dispatch_uses_pipeline_validated_pass_logic() {
+        let env = setup_task_env("invalid-stage", "sdd");
+        let mut args = arg_map([
+            ("id", json!("T-55.5")),
+            ("db", json!(env.db)),
+            ("root", json!(env.root)),
+        ]);
+
+        let error = dispatch("gate_pass", &mut args).unwrap_err();
+
+        assert!(
+            error.contains("task status 'invalid-stage' is not a valid pipeline stage"),
+            "got: {error}"
+        );
+    }
+
+    #[test]
+    fn mcp_gate_pass_dispatch_updates_task_via_shared_pass_path() {
+        let env = setup_task_env("pending", "sdd");
+        let mut args = arg_map([
+            ("id", json!("T-55.5")),
+            ("db", json!(env.db.clone())),
+            ("root", json!(env.root.clone())),
+            ("notes", json!("to swe")),
+        ]);
+
+        let result = dispatch("gate_pass", &mut args).unwrap();
+        let task = GateDb::open(&env.db)
+            .unwrap()
+            .get_task_by_id("T-55.5")
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(result.output, "T-55.5: pending → swe [PASS]");
+        assert_eq!(task.status, "swe");
+        assert!(
+            fs::read_to_string(env.root.join("todo").join("T-55.5-mcp.md"))
+                .unwrap()
+                .contains("## Orchestrator — PASS\n\nto swe")
+        );
     }
 }

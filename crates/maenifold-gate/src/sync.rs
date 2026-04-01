@@ -7,6 +7,7 @@ use crate::{
     db::{GateDb, TaskUpsert, extract_task_id},
     frontmatter::{Frontmatter, read_attempts, split_frontmatter, validate_frontmatter},
     fs,
+    parser::pipeline_aware::validate_section_stages,
     pipeline::{PipelineDef, load_embedded_pipeline},
     registry,
     types::{TaskLocation, TaskState},
@@ -200,7 +201,7 @@ fn valid_requirement(id: &str) -> bool {
 pub fn resolve_task_state(
     path: &Path,
     content: &str,
-    _pipeline: &crate::pipeline::PipelineDef,
+    pipeline: &crate::pipeline::PipelineDef,
 ) -> Result<TaskState> {
     let location = if path.components().any(|c| c.as_os_str() == "done") {
         TaskLocation::Done
@@ -214,6 +215,8 @@ pub fn resolve_task_state(
         .and_then(serde_yaml::Value::as_str)
         .context("validated frontmatter is missing 'status'")?
         .to_string();
+    validate_section_stages(content, pipeline)?;
+    validate_status_against_pipeline(&status, pipeline)?;
     let attempts = read_attempts(&fm) as u32;
     Ok(TaskState::new(
         path.to_path_buf(),
@@ -222,6 +225,19 @@ pub fn resolve_task_state(
         attempts,
         Vec::new(),
     ))
+}
+
+fn validate_status_against_pipeline(status: &str, pipeline: &PipelineDef) -> Result<()> {
+    if matches!(status, "pending" | "done")
+        || pipeline.stages.iter().any(|stage| stage.name == status)
+    {
+        return Ok(());
+    }
+    anyhow::bail!(
+        "task status '{}' is not a valid stage in pipeline '{}'",
+        status,
+        pipeline.name
+    )
 }
 
 fn load_validated_frontmatter(path: &Path, content: &str) -> Result<Frontmatter> {

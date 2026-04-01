@@ -17,6 +17,12 @@ pub struct RejectArgs {
 }
 
 pub fn run(args: &RejectArgs) -> Result<()> {
+    let message = execute(args)?;
+    println!("{message}");
+    Ok(())
+}
+
+pub fn execute(args: &RejectArgs) -> Result<String> {
     let db = GateDb::open(&args.db_path)?;
     let task = db
         .get_task_by_id(&args.id)?
@@ -41,15 +47,22 @@ pub fn run(args: &RejectArgs) -> Result<()> {
         .find(|stage| stage.name == task.status)
         .ok_or_else(|| {
             anyhow!(
-                "task status '{}' is not a valid pipeline stage",
-                task.status
+                "task status '{}' is not a valid stage in pipeline '{}'",
+                task.status,
+                pipeline.name
             )
         })?;
     let stage_name = stage.name.clone();
     let target = stage
         .transitions
         .get("reject")
-        .ok_or_else(|| anyhow!("stage '{}' has no reject transition", stage_name))?
+        .ok_or_else(|| {
+            anyhow!(
+                "pipeline '{}' stage '{}' has no reject transition",
+                pipeline.name,
+                stage_name
+            )
+        })?
         .clone();
     append_orchestrator_section(&file_path, "REJECT", args.notes.as_deref())?;
     crate::frontmatter::write_frontmatter_status(&file_path, &target)?;
@@ -63,8 +76,7 @@ pub fn run(args: &RejectArgs) -> Result<()> {
         duration_secs: None,
         notes: args.notes.as_deref(),
     })?;
-    println!("{}: {} → {} [REJECT]", task.id, stage_name, target);
-    Ok(())
+    Ok(format!("{}: {} → {} [REJECT]", task.id, stage_name, target))
 }
 
 #[cfg(test)]

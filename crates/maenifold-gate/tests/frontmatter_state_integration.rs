@@ -296,6 +296,37 @@ fn test_status_json_reports_error_for_missing_pipeline() {
 }
 
 #[test]
+fn test_sync_warns_when_status_is_not_in_pipeline() {
+    let root = setup_root();
+    let file = task_file_name(18);
+    write_task(
+        root.path(),
+        TaskLocation::Todo,
+        &file,
+        &with_frontmatter("gsd", "swe", 0, base_task(18)),
+    );
+
+    let assert = gate_command()
+        .args(["sync", "--rebuild"])
+        .arg(root.path())
+        .assert()
+        .success();
+    let output = assert.get_output();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("task status 'swe' is not a valid stage in pipeline 'gsd'"),
+        "expected invalid-stage warning in stderr, got: {stderr}"
+    );
+    assert!(
+        GateDb::open(&root.path().join("gate.db"))
+            .unwrap()
+            .get_task_by_id(&extract_task_id(&file))
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
 fn test_status_json_reports_sections_without_state_derivation() {
     let root = setup_root();
     let file = task_file_name(19);

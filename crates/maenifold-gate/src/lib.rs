@@ -7,6 +7,7 @@ pub mod frontmatter;
 pub mod fs;
 #[cfg(feature = "app")]
 pub mod mcp;
+mod parser;
 pub mod pass;
 pub mod pipeline;
 pub mod registry;

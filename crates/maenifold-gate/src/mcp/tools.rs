@@ -1,4 +1,4 @@
-use crate::registry;
+use crate::{pass, registry, reject};
 use rmcp::model::Tool;
 use serde_json::{Map, Value, json};
 use std::{process::Command, sync::Arc};
@@ -103,24 +103,52 @@ fn dispatch_impl(name: &str, args: &mut Map<String, Value>) -> anyhow::Result<Di
         });
     }
 
+    if name == "gate_pass" {
+        let root = take_string(args, "root")?
+            .map(Into::into)
+            .unwrap_or(std::env::current_dir()?);
+        let result = pass::execute(&pass::PassArgs {
+            id: required_string(args, "id")?,
+            db_path: take_string(args, "db")?
+                .map(Into::into)
+                .unwrap_or_else(|| root.join("gate.db")),
+            root,
+            notes: take_string(args, "notes")?,
+        })?;
+
+        if !args.is_empty() {
+            let extras = args.keys().cloned().collect::<Vec<_>>().join(", ");
+            anyhow::bail!("unknown arguments: {extras}");
+        }
+
+        return Ok(DispatchResult { output: result });
+    }
+
+    if name == "gate_reject" {
+        let root = take_string(args, "root")?
+            .map(Into::into)
+            .unwrap_or(std::env::current_dir()?);
+        let result = reject::execute(&reject::RejectArgs {
+            id: required_string(args, "id")?,
+            db_path: take_string(args, "db")?
+                .map(Into::into)
+                .unwrap_or_else(|| root.join("gate.db")),
+            root,
+            notes: take_string(args, "notes")?,
+        })?;
+
+        if !args.is_empty() {
+            let extras = args.keys().cloned().collect::<Vec<_>>().join(", ");
+            anyhow::bail!("unknown arguments: {extras}");
+        }
+
+        return Ok(DispatchResult { output: result });
+    }
+
     let exe = std::env::current_exe()?;
     let mut command = Command::new(exe);
 
     match name {
-        "gate_pass" => {
-            command.arg("pass");
-            push_opt(&mut command, "--db", take_string(args, "db")?);
-            push_opt(&mut command, "--root", take_string(args, "root")?);
-            push_opt(&mut command, "--notes", take_string(args, "notes")?);
-            command.arg(required_string(args, "id")?);
-        }
-        "gate_reject" => {
-            command.arg("reject");
-            push_opt(&mut command, "--db", take_string(args, "db")?);
-            push_opt(&mut command, "--root", take_string(args, "root")?);
-            push_opt(&mut command, "--notes", take_string(args, "notes")?);
-            command.arg(required_string(args, "id")?);
-        }
         "gate_append" => {
             command.arg("append");
             push_opt(&mut command, "--db", take_string(args, "db")?);

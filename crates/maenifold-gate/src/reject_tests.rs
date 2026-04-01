@@ -107,7 +107,7 @@ fn reject_at_swe_errors() {
     .unwrap_err();
     assert!(
         err.to_string()
-            .contains("stage 'swe' has no reject transition")
+            .contains("pipeline 'sdd' stage 'swe' has no reject transition")
     );
 }
 
@@ -123,8 +123,42 @@ fn reject_at_pending_errors() {
     .unwrap_err();
     assert!(
         err.to_string()
-            .contains("task status 'pending' is not a valid pipeline stage")
+            .contains("task status 'pending' is not a valid stage in pipeline 'sdd'")
     );
+}
+
+#[test]
+fn reject_at_gsd_research_errors() {
+    let env = setup("research", "gsd");
+    let err = run(&RejectArgs {
+        id: "T-55.5".into(),
+        notes: None,
+        db_path: env.db,
+        root: env.root,
+    })
+    .unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("pipeline 'gsd' stage 'research' has no reject transition")
+    );
+}
+
+#[test]
+fn reject_at_gsd_plan_returns_to_pending() {
+    let env = setup("plan", "gsd");
+    run(&RejectArgs {
+        id: "T-55.5".into(),
+        notes: None,
+        db_path: env.db.clone(),
+        root: env.root.clone(),
+    })
+    .unwrap();
+    let task = GateDb::open(&env.db)
+        .unwrap()
+        .get_task_by_id("T-55.5")
+        .unwrap()
+        .unwrap();
+    assert_eq!((task.status, task.attempts), ("pending".into(), 1));
 }
 
 #[test]

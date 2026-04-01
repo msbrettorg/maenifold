@@ -9,14 +9,20 @@ use rusqlite::Connection;
 use tempfile::{TempDir, tempdir};
 
 fn setup() -> (TempDir, std::path::PathBuf, String, String) {
+    setup_with("pending", "sdd")
+}
+
+fn setup_with(status: &str, pipeline: &str) -> (TempDir, std::path::PathBuf, String, String) {
     let dir = tempdir().unwrap();
     fs::create_dir_all(dir.path().join("todo")).unwrap();
     fs::create_dir_all(dir.path().join("done")).unwrap();
-    let file = "T-55.4-gate-pass-command.md".to_string();
+    let file = format!("T-55.4-{pipeline}-{status}-gate-pass-command.md");
     let id = "T-55.4".to_string();
     fs::write(
         dir.path().join("todo").join(&file),
-        "---\npipeline: sdd\n---\n\n# T-55.4 — Pass\n\n**Requirement**: FR-42\n",
+        format!(
+            "---\nstatus: {status}\npipeline: {pipeline}\n---\n\n# T-55.4 — Pass\n\n**Requirement**: FR-42\n"
+        ),
     )
     .unwrap();
     let db_path = dir.path().join("gate.db");
@@ -25,7 +31,7 @@ fn setup() -> (TempDir, std::path::PathBuf, String, String) {
         file: &file,
         title: Some("Pass"),
         requirement: "FR-42",
-        status: "pending",
+        status,
         location: "todo",
         attempts: 0,
     };
@@ -53,7 +59,66 @@ fn pass_advances_pending_to_first_stage() {
         .unwrap()
         .unwrap();
     assert_eq!(task.status, "swe");
+    assert_ne!(task.status, "research");
     assert_eq!(task.location, "todo");
+}
+
+#[test]
+fn pass_gsd_pending_advances_to_research_not_swe() {
+    let (dir, db_path, id, file) = setup_with("pending", "gsd");
+    run_pass(dir.path(), &db_path, &id, None);
+    let task = GateDb::open(&db_path)
+        .unwrap()
+        .get_task(&file)
+        .unwrap()
+        .unwrap();
+    assert_eq!(task.status, "research");
+    assert_ne!(task.status, "swe");
+    assert_eq!(task.location, "todo");
+}
+
+#[test]
+fn pass_gsd_research_advances_to_plan() {
+    let (dir, db_path, id, file) = setup_with("research", "gsd");
+    run_pass(dir.path(), &db_path, &id, None);
+    let task = GateDb::open(&db_path)
+        .unwrap()
+        .get_task(&file)
+        .unwrap()
+        .unwrap();
+    assert_eq!(task.status, "plan");
+}
+
+#[test]
+fn pass_gsd_rejects_sdd_stage_status() {
+    let (dir, db_path, id, _) = setup_with("swe", "gsd");
+    let err = pass::run(&PassArgs {
+        id,
+        notes: None,
+        db_path,
+        root: dir.path().into(),
+    })
+    .unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("task status 'swe' is not a valid pipeline stage")
+    );
+}
+
+#[test]
+fn pass_sdd_rejects_gsd_stage_status() {
+    let (dir, db_path, id, _) = setup_with("research", "sdd");
+    let err = pass::run(&PassArgs {
+        id,
+        notes: None,
+        db_path,
+        root: dir.path().into(),
+    })
+    .unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("task status 'research' is not a valid pipeline stage")
+    );
 }
 
 #[test]

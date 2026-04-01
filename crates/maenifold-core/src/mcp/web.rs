@@ -1,5 +1,3 @@
-use crate::acp::config::AgentsConfig;
-use crate::acp::relay::acp_routes;
 use crate::api::routes::{ApiState, api_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
@@ -16,48 +14,20 @@ impl super::MaenifoldMcpServer {
     // T-17.3: Serve embedded SPA assets alongside the MCP HTTP transport.
     pub async fn serve_web(port: u16) -> Result<()> {
         // Reuse the same MCP setup as serve_http.
-        use super::{MaenifoldHandler, TransportKind};
-        use rmcp::transport::streamable_http_server::{
-            StreamableHttpServerConfig, StreamableHttpService,
-            session::local::{LocalSessionManager, SessionConfig},
-        };
-        use std::{sync::Arc, time::Duration};
         let ct = tokio_util::sync::CancellationToken::new();
         let config = Config::current();
         super::initialize_runtime(&config)?;
-        let config_root = config.maenifold_root.clone();
-        let agents_config = AgentsConfig::load(&config_root);
-        let api_state = ApiState::new(config.clone(), agents_config.clone());
-        let session_manager = Arc::new(LocalSessionManager {
-            session_config: SessionConfig {
-                keep_alive: Some(Duration::from_secs(300)),
-                ..Default::default()
-            },
-            ..Default::default()
-        });
-
-        let service = StreamableHttpService::new(
-            || {
-                MaenifoldHandler::new(TransportKind::Http)
-                    .map_err(|e| std::io::Error::other(e.to_string()))
-            },
-            session_manager,
-            StreamableHttpServerConfig {
-                cancellation_token: ct.child_token(),
-                ..Default::default()
-            },
-        );
+        let api_state = ApiState::new(config.clone());
 
         // FR-32-SEC: restrict CORS to localhost origins only.
         let cors = super::localhost_cors();
 
         let api = axum::Router::new()
-            .merge(acp_routes(agents_config.clone()))
             .merge(api_routes(api_state))
             .fallback(static_handler);
 
         let router = axum::Router::new()
-            .nest_service("/mcp", service)
+            .nest_service("/mcp", super::http::service(ct.child_token()))
             .merge(api)
             .layer(cors);
 

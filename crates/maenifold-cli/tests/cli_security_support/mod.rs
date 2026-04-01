@@ -25,12 +25,7 @@ pub(crate) fn run_tool_bytes(
 ) -> Vec<u8> {
     let payload = serde_json::to_string(payload).expect("payload json");
     let mut cmd = maenifold_cmd(tmp);
-    let mut args = vec![
-        "--tool".to_string(),
-        tool.to_string(),
-        "--payload".to_string(),
-        payload,
-    ];
+    let mut args = vec!["tool".to_string(), tool.to_string(), payload];
     if json_mode {
         args.push("--json".to_string());
     }

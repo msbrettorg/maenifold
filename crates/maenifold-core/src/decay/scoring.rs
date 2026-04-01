@@ -28,20 +28,20 @@ pub(crate) fn compute_decay_weight_with_created(
     let normalized_path = normalize_decay_path(file_path, config);
     let is_assumption_path = normalized_path.contains("/assumptions/");
 
-    if is_assumption_path || normalized_path.contains("/chat/") {
-        if let Some(status) = status {
-            match status.trim().to_ascii_lowercase().as_str() {
-                "validated" => return 1.0,
-                "invalidated" => {
-                    grace_period_days = 7;
-                    half_life_days = 14;
-                }
-                "active" | "refined" => {
-                    grace_period_days = 14;
-                    half_life_days = 30;
-                }
-                _ => {}
+    if (is_assumption_path || normalized_path.contains("/chat/"))
+        && let Some(status) = status
+    {
+        match status.trim().to_ascii_lowercase().as_str() {
+            "validated" => return 1.0,
+            "invalidated" => {
+                grace_period_days = 7;
+                half_life_days = 14;
             }
+            "active" | "refined" => {
+                grace_period_days = 14;
+                half_life_days = 30;
+            }
+            _ => {}
         }
     }
 
@@ -79,76 +79,6 @@ pub(crate) fn compute_decay_weight_with_created(
     (0.5f64.powf(exponent)).clamp(0.0, 1.0)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::compute_decay_weight_with_created;
-    use crate::config::Config;
-    use chrono::{Duration, Utc};
-    use tempfile::TempDir;
-
-    struct ConfigResetGuard;
-
-    impl Drop for ConfigResetGuard {
-        fn drop(&mut self) {
-            Config::reset_overrides();
-        }
-    }
-
-    fn isolated_config() -> (TempDir, Config, ConfigResetGuard) {
-        let tmp = TempDir::new().expect("tempdir");
-        Config::override_root(tmp.path());
-        Config::set_database_path(tmp.path().join("memory.db"));
-        let cfg = Config::current();
-        cfg.ensure_directories().expect("dirs");
-        (tmp, cfg, ConfigResetGuard)
-    }
-
-    // T-14.1: RTM FR-21
-    #[test]
-    fn falls_back_to_created_timestamp_when_last_accessed_is_missing() {
-        let (_tmp, cfg, _reset) = isolated_config();
-        let created = (Utc::now() - Duration::days(30)).to_rfc3339();
-
-        let weight = compute_decay_weight_with_created(
-            "memory://notes/created-fallback",
-            None,
-            Some(&created),
-            &cfg,
-            None,
-        );
-
-        assert!(weight < 1.0, "expected decayed score, got {weight}");
-    }
-
-    // T-14.1: RTM FR-21
-    #[test]
-    fn preserves_recent_last_accessed_behavior() {
-        let (_tmp, cfg, _reset) = isolated_config();
-        let last_accessed = (Utc::now() - Duration::days(1)).to_rfc3339();
-
-        let weight = compute_decay_weight_with_created(
-            "memory://notes/recent-access",
-            Some(&last_accessed),
-            None,
-            &cfg,
-            None,
-        );
-
-        assert!(weight > 0.95, "expected near-neutral score, got {weight}");
-    }
-
-    // T-14.1: RTM FR-21
-    #[test]
-    fn keeps_graceful_neutral_fallback_when_no_timestamps_exist() {
-        let (_tmp, cfg, _reset) = isolated_config();
-
-        let weight =
-            compute_decay_weight_with_created("memory://notes/no-dates", None, None, &cfg, None);
-
-        assert_eq!(weight, 1.0);
-    }
-}
-
 fn grace_period_for_path(file_path: &str, config: &Config) -> i64 {
     let normalized = normalize_decay_path(file_path, config);
     if normalized.contains("/thinking/sequential/")
@@ -177,4 +107,78 @@ fn normalize_decay_path(file_path: &str, config: &Config) -> String {
     }
 
     normalized
+}
+
+#[cfg(test)]
+mod tests {
+    use super::compute_decay_weight_with_created;
+    use crate::config::Config;
+    use chrono::{Duration, Utc};
+    use serial_test::serial;
+    use tempfile::TempDir;
+
+    struct ConfigResetGuard;
+
+    impl Drop for ConfigResetGuard {
+        fn drop(&mut self) {
+            Config::reset_overrides();
+        }
+    }
+
+    fn isolated_config() -> (TempDir, Config, ConfigResetGuard) {
+        let tmp = TempDir::new().expect("tempdir");
+        Config::override_root(tmp.path());
+        Config::set_database_path(tmp.path().join("memory.db"));
+        let cfg = Config::current();
+        cfg.ensure_directories().expect("dirs");
+        (tmp, cfg, ConfigResetGuard)
+    }
+
+    // T-14.1: RTM FR-21
+    #[test]
+    #[serial(config)]
+    fn falls_back_to_created_timestamp_when_last_accessed_is_missing() {
+        let (_tmp, cfg, _reset) = isolated_config();
+        let created = (Utc::now() - Duration::days(30)).to_rfc3339();
+
+        let weight = compute_decay_weight_with_created(
+            "memory://notes/created-fallback",
+            None,
+            Some(&created),
+            &cfg,
+            None,
+        );
+
+        assert!(weight < 1.0, "expected decayed score, got {weight}");
+    }
+
+    // T-14.1: RTM FR-21
+    #[test]
+    #[serial(config)]
+    fn preserves_recent_last_accessed_behavior() {
+        let (_tmp, cfg, _reset) = isolated_config();
+        let last_accessed = (Utc::now() - Duration::days(1)).to_rfc3339();
+
+        let weight = compute_decay_weight_with_created(
+            "memory://notes/recent-access",
+            Some(&last_accessed),
+            None,
+            &cfg,
+            None,
+        );
+
+        assert!(weight > 0.95, "expected near-neutral score, got {weight}");
+    }
+
+    // T-14.1: RTM FR-21
+    #[test]
+    #[serial(config)]
+    fn keeps_graceful_neutral_fallback_when_no_timestamps_exist() {
+        let (_tmp, cfg, _reset) = isolated_config();
+
+        let weight =
+            compute_decay_weight_with_created("memory://notes/no-dates", None, None, &cfg, None);
+
+        assert_eq!(weight, 1.0);
+    }
 }

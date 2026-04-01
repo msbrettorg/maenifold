@@ -210,6 +210,16 @@ For deeper usage details, call `gethelp` with `AnalyzeConceptCorruption` or `Rep
 
 For deeper usage details, call `gethelp` with `Workflow`, `SequentialThinking`, or `AssumptionLedger`.
 
+### Pipeline Tools
+
+| Tool | Purpose | Key Parameters |
+|------|---------|----------------|
+| **pipeline** | Create and manage DAG pipeline sessions | `definition` (nodes + edges), `maxConcurrency` |
+
+Pipeline composes workflow nodes into a directed acyclic graph. Each node references a `workflowId` and optional `acpClient` for agent dispatch. Edges define flow control (e.g. `success`). The tool validates the graph (no cycles, no duplicates, no dangling refs), creates a persistent session, and returns ready nodes for scheduling.
+
+For deeper usage details, call `gethelp` with `Pipeline`.
+
 ### System Tools
 
 | Tool | Purpose | Key Parameters |

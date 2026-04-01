@@ -124,12 +124,10 @@ fn read_assumption_returns_correct_content() {
         "modified timestamp must be present in frontmatter"
     );
     // Validate RFC 3339 / ISO 8601 format.
-    let created_dt = chrono::DateTime::parse_from_rfc3339(&created).expect(&format!(
-        "created timestamp must be valid RFC 3339: {created}"
-    ));
-    let modified_dt = chrono::DateTime::parse_from_rfc3339(&modified).expect(&format!(
-        "modified timestamp must be valid RFC 3339: {modified}"
-    ));
+    let created_dt = chrono::DateTime::parse_from_rfc3339(&created)
+        .unwrap_or_else(|_| panic!("created timestamp must be valid RFC 3339: {created}"));
+    let modified_dt = chrono::DateTime::parse_from_rfc3339(&modified)
+        .unwrap_or_else(|_| panic!("modified timestamp must be valid RFC 3339: {modified}"));
     // Fresh assumption: created and modified must refer to the same instant
     // (no update has occurred). String comparison may differ due to YAML roundtrip
     // normalisation, so compare parsed values within a 1-second tolerance.

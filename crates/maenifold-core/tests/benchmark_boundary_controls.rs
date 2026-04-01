@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "benchmark_boundary/support.rs"]
 mod support;
 

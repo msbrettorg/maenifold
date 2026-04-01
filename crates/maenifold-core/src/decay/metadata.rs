@@ -23,15 +23,15 @@ fn yaml_value_to_string(value: &YamlValue) -> Option<String> {
 }
 
 fn parse_frontmatter_map(full_text: &str) -> Result<(Option<Frontmatter>, String)> {
-    if let Some(rest) = full_text.strip_prefix("---\n") {
-        if let Some(index) = rest.find("\n---\n") {
-            let yaml_text = &rest[..index];
-            let content = rest[index + 5..]
-                .trim_start_matches(['\r', '\n'])
-                .to_string();
-            let frontmatter: Frontmatter = serde_yaml::from_str(yaml_text)?;
-            return Ok((Some(frontmatter), content));
-        }
+    if let Some(rest) = full_text.strip_prefix("---\n")
+        && let Some(index) = rest.find("\n---\n")
+    {
+        let yaml_text = &rest[..index];
+        let content = rest[index + 5..]
+            .trim_start_matches(['\r', '\n'])
+            .to_string();
+        let frontmatter: Frontmatter = serde_yaml::from_str(yaml_text)?;
+        return Ok((Some(frontmatter), content));
     }
     Ok((None, full_text.to_string()))
 }
@@ -69,7 +69,7 @@ pub(crate) fn read_created_date(file_path: &Path) -> Result<DateTime<Utc>> {
                         &Config::current(),
                         &error.to_string(),
                     );
-                    return Ok(system_time_to_datetime(file_path)?);
+                    return system_time_to_datetime(file_path);
                 }
             };
             if let Some(parsed) = frontmatter

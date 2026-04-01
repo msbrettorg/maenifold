@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "config_decay/support.rs"]
 mod support;
 

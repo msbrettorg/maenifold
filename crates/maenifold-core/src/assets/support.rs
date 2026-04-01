@@ -33,12 +33,12 @@ pub fn is_watchable_asset_json_path(assets_root: &Path, path: &Path) -> bool {
 // `CARGO_MANIFEST_DIR` so the binary works on any machine.
 pub(crate) fn resolve_packaged_assets_root() -> Option<PathBuf> {
     // 1. exe-adjacent (release/installed binary)
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(exe_dir) = exe.parent() {
-            let candidate = exe_dir.join("assets");
-            if asset_root_has_packaged_assets(&candidate) {
-                return Some(candidate);
-            }
+    if let Ok(exe) = std::env::current_exe()
+        && let Some(exe_dir) = exe.parent()
+    {
+        let candidate = exe_dir.join("assets");
+        if asset_root_has_packaged_assets(&candidate) {
+            return Some(candidate);
         }
     }
 

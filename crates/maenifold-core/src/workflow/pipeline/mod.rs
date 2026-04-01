@@ -1,291 +1,139 @@
-use crate::error::{MaenifoldError, Result};
-use std::collections::{HashMap, HashSet, VecDeque};
-
-mod engine;
-mod handler;
-mod types;
-
-pub use engine::{compute_pipeline_status, compute_ready_set};
-pub use handler::pipeline;
-pub use types::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode};
-
-pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
-    if definition.nodes.is_empty() {
-        return Err(MaenifoldError::InvalidArgument(
-            "Pipeline definition must contain at least one node".to_string(),
-        ));
-    }
-
-    let mut node_ids = HashSet::with_capacity(definition.nodes.len());
-    let mut in_degree = HashMap::with_capacity(definition.nodes.len());
-    let mut adjacency: HashMap<&str, Vec<&str>> = HashMap::with_capacity(definition.nodes.len());
-
-    for node in &definition.nodes {
-        if !node_ids.insert(node.id.as_str()) {
-            return Err(MaenifoldError::InvalidArgument(format!(
-                "Pipeline contains duplicate node ID '{}'",
-                node.id
-            )));
-        }
-
-        in_degree.insert(node.id.as_str(), 0usize);
-        adjacency.entry(node.id.as_str()).or_default();
-    }
-
-    for edge in &definition.edges {
-        if !node_ids.contains(edge.source.as_str()) {
-            return Err(MaenifoldError::InvalidArgument(format!(
-                "Pipeline edge references unknown source node '{}'",
-                edge.source
-            )));
-        }
-
-        if !node_ids.contains(edge.target.as_str()) {
-            return Err(MaenifoldError::InvalidArgument(format!(
-                "Pipeline edge references unknown target node '{}'",
-                edge.target
-            )));
-        }
-
-        adjacency
-            .entry(edge.source.as_str())
-            .or_default()
-            .push(edge.target.as_str());
-        *in_degree.entry(edge.target.as_str()).or_default() += 1;
-    }
-
-    let mut ready = VecDeque::from_iter(definition.nodes.iter().filter_map(|node| {
-        (in_degree.get(node.id.as_str()) == Some(&0)).then_some(node.id.as_str())
-    }));
-    let mut processed = 0usize;
-
-    while let Some(node_id) = ready.pop_front() {
-        processed += 1;
-
-        if let Some(targets) = adjacency.get(node_id) {
-            for target in targets {
-                if let Some(target_degree) = in_degree.get_mut(target) {
-                    *target_degree -= 1;
-                    if *target_degree == 0 {
-                        ready.push_back(target);
-                    }
-                }
-            }
-        }
-    }
-
-    if processed != definition.nodes.len() {
-        return Err(MaenifoldError::InvalidArgument(
-            "Pipeline definition contains a cycle".to_string(),
-        ));
-    }
-
-    Ok(())
-}
-
+mod dispatch;
+mod dispatch_non_workflow;
+mod dispatch_prompt;
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
+mod dispatch_tests;
+#[cfg(test)]
+mod dispatch_tests_concurrency;
+mod dispatch_thinking;
+mod dispatch_tool;
+mod dispatch_workflow;
+#[cfg(test)]
+mod e2e_tests_lifecycle;
+#[cfg(test)]
+mod e2e_tests_surgery_live;
+#[cfg(test)]
+mod e2e_tests_tool_chain;
+mod engine;
+#[cfg(test)]
+mod engine_tests;
+#[cfg(test)]
+mod engine_tests_edges_smoke;
+pub(super) mod executor;
+mod executor_helpers;
+mod executor_mapping;
+mod executor_nodes;
+mod executor_run;
+#[cfg(test)]
+mod executor_tests;
+#[cfg(test)]
+mod executor_tests_support;
+mod handler;
+mod handler_crud;
+mod handler_lifecycle;
+mod handler_nodes;
+mod handler_surgery;
+#[cfg(test)]
+mod handler_tests;
+#[cfg(test)]
+mod handler_tests_create_smoke;
+#[cfg(test)]
+mod handler_tests_create_smoke_b;
+#[cfg(test)]
+mod handler_tests_create_smoke_nodeid;
+#[cfg(test)]
+mod handler_tests_create_validation;
+#[cfg(test)]
+mod handler_tests_delete_smoke;
+#[cfg(test)]
+mod handler_tests_e2e_smoke;
+#[cfg(test)]
+mod handler_tests_graft_smoke;
+#[cfg(test)]
+mod handler_tests_lifecycle_smoke;
+#[cfg(test)]
+mod handler_tests_param_smoke;
+#[cfg(test)]
+mod handler_tests_param_smoke_b;
+#[cfg(test)]
+mod handler_tests_param_smoke_c;
+#[cfg(test)]
+mod handler_tests_rewind_smoke;
+#[cfg(test)]
+mod handler_tests_state_matrix;
+#[cfg(test)]
+mod handler_tests_surgery_smoke;
+mod handler_validation;
+mod session_io;
+#[cfg(test)]
+mod session_io_tests;
+mod session_read;
+mod session_write;
+mod supervisor;
+mod supervisor_detection;
+mod supervisor_lifecycle;
+#[cfg(test)]
+mod supervisor_test_support;
+#[cfg(test)]
+mod supervisor_tests;
+#[cfg(test)]
+mod test_context;
+#[cfg(test)]
+mod test_fixtures;
+#[cfg(test)]
+mod test_fixtures_helpers;
+#[cfg(test)]
+mod test_support;
+mod types;
+#[cfg(test)]
+mod types_tests;
+mod types_wire;
+mod update;
+mod update_context;
+mod update_restart;
+mod update_status;
+#[cfg(test)]
+mod update_tests;
+#[cfg(test)]
+mod update_tests_context;
+#[cfg(test)]
+mod update_tests_restart;
+#[cfg(test)]
+mod update_tests_restart_cleanup;
+#[cfg(test)]
+mod update_tests_sections;
+#[cfg(test)]
+mod update_tests_status_smoke;
+mod validation;
+#[cfg(test)]
+mod validation_test_support;
+#[cfg(test)]
+mod validation_tests;
+#[cfg(test)]
+mod validation_tests_fields;
+#[cfg(test)]
+mod validation_tests_fields_smoke;
+#[cfg(test)]
+mod validation_tests_fields_smoke_b;
+#[cfg(test)]
+mod validation_tests_fields_smoke_c;
+#[cfg(test)]
+mod validation_tests_fields_smoke_d;
+mod view;
+mod view_cognitive;
+mod view_mermaid;
+mod view_nodes;
+#[cfg(test)]
+mod view_tests;
+#[cfg(test)]
+mod view_tests_smoke_extra;
+mod workflow_id;
 
-    fn sample_definition() -> PipelineDefinition {
-        PipelineDefinition {
-            nodes: vec![
-                PipelineNode {
-                    id: "a".to_string(),
-                    workflow_id: "workflow-a".to_string(),
-                    acp_client: None,
-                },
-                PipelineNode {
-                    id: "b".to_string(),
-                    workflow_id: "workflow-b".to_string(),
-                    acp_client: Some("client-b".to_string()),
-                },
-                PipelineNode {
-                    id: "c".to_string(),
-                    workflow_id: "workflow-c".to_string(),
-                    acp_client: None,
-                },
-            ],
-            edges: vec![
-                PipelineEdge {
-                    source: "a".to_string(),
-                    target: "b".to_string(),
-                    edge_type: EdgeType::Success,
-                },
-                PipelineEdge {
-                    source: "b".to_string(),
-                    target: "c".to_string(),
-                    edge_type: EdgeType::Always,
-                },
-            ],
-        }
-    }
-
-    #[test]
-    fn pipeline_validation_accepts_valid_acyclic_definition() {
-        let definition = sample_definition();
-
-        assert!(validate_pipeline(&definition).is_ok());
-    }
-
-    #[test]
-    fn pipeline_validation_rejects_empty_nodes() {
-        let definition = PipelineDefinition {
-            nodes: Vec::new(),
-            edges: Vec::new(),
-        };
-
-        let err = validate_pipeline(&definition).expect_err("empty pipeline should fail");
-        assert!(
-            err.to_string().contains("at least one node"),
-            "unexpected error: {err}"
-        );
-    }
-
-    #[test]
-    fn pipeline_validation_rejects_duplicate_node_ids() {
-        let definition = PipelineDefinition {
-            nodes: vec![
-                PipelineNode {
-                    id: "duplicate".to_string(),
-                    workflow_id: "workflow-a".to_string(),
-                    acp_client: None,
-                },
-                PipelineNode {
-                    id: "duplicate".to_string(),
-                    workflow_id: "workflow-b".to_string(),
-                    acp_client: None,
-                },
-            ],
-            edges: Vec::new(),
-        };
-
-        let err = validate_pipeline(&definition).expect_err("duplicate nodes should fail");
-        assert!(
-            err.to_string().contains("duplicate node ID"),
-            "unexpected error: {err}"
-        );
-    }
-
-    #[test]
-    fn pipeline_validation_rejects_unknown_edge_source() {
-        let mut definition = sample_definition();
-        definition.edges.push(PipelineEdge {
-            source: "missing".to_string(),
-            target: "a".to_string(),
-            edge_type: EdgeType::Success,
-        });
-
-        let err = validate_pipeline(&definition).expect_err("missing source should fail");
-        assert!(
-            err.to_string().contains("unknown source node"),
-            "unexpected error: {err}"
-        );
-    }
-
-    #[test]
-    fn pipeline_validation_rejects_unknown_edge_target() {
-        let mut definition = sample_definition();
-        definition.edges.push(PipelineEdge {
-            source: "a".to_string(),
-            target: "missing".to_string(),
-            edge_type: EdgeType::Success,
-        });
-
-        let err = validate_pipeline(&definition).expect_err("missing target should fail");
-        assert!(
-            err.to_string().contains("unknown target node"),
-            "unexpected error: {err}"
-        );
-    }
-
-    #[test]
-    fn pipeline_validation_rejects_cycles() {
-        let definition = PipelineDefinition {
-            nodes: vec![
-                PipelineNode {
-                    id: "a".to_string(),
-                    workflow_id: "workflow-a".to_string(),
-                    acp_client: None,
-                },
-                PipelineNode {
-                    id: "b".to_string(),
-                    workflow_id: "workflow-b".to_string(),
-                    acp_client: None,
-                },
-            ],
-            edges: vec![
-                PipelineEdge {
-                    source: "a".to_string(),
-                    target: "b".to_string(),
-                    edge_type: EdgeType::Success,
-                },
-                PipelineEdge {
-                    source: "b".to_string(),
-                    target: "a".to_string(),
-                    edge_type: EdgeType::Always,
-                },
-            ],
-        };
-
-        let err = validate_pipeline(&definition).expect_err("cycle should fail");
-        assert!(
-            err.to_string().contains("contains a cycle"),
-            "unexpected error: {err}"
-        );
-    }
-
-    #[test]
-    fn pipeline_types_deserialize_with_camel_case_and_default_edge_type() {
-        let definition: PipelineDefinition = serde_json::from_value(json!({
-            "nodes": [
-                {
-                    "id": "node-1",
-                    "workflowId": "workflow-1",
-                    "acpClient": "acp-a"
-                },
-                {
-                    "id": "node-2",
-                    "workflowId": "workflow-2",
-                    "acpClient": null
-                }
-            ],
-            "edges": [
-                {
-                    "source": "node-1",
-                    "target": "node-2"
-                }
-            ]
-        }))
-        .expect("pipeline definition should deserialize");
-
-        assert_eq!(definition.nodes[0].workflow_id, "workflow-1");
-        assert_eq!(definition.nodes[0].acp_client.as_deref(), Some("acp-a"));
-        assert_eq!(definition.edges[0].edge_type, EdgeType::Success);
-    }
-
-    #[test]
-    fn pipeline_types_serialize_enums_and_type_field_for_json_compatibility() {
-        let edge = PipelineEdge {
-            source: "a".to_string(),
-            target: "b".to_string(),
-            edge_type: EdgeType::Always,
-        };
-        let state = NodeState {
-            session_id: "session-1".to_string(),
-            status: NodeStatus::Completed,
-            attempts: 2,
-        };
-
-        let edge_json = serde_json::to_value(&edge).expect("edge serializes");
-        let state_json = serde_json::to_value(&state).expect("state serializes");
-
-        assert_eq!(edge_json["type"], "always");
-        assert_eq!(edge_json["source"], "a");
-        assert_eq!(edge_json["target"], "b");
-        assert_eq!(state_json["sessionId"], "session-1");
-        assert_eq!(state_json["status"], "completed");
-        assert_eq!(state_json["attempts"], 2);
-    }
-}
+pub use engine::{compute_pipeline_status, compute_ready_set, has_remaining_work};
+pub use handler::pipeline;
+pub use types::{
+    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
+    PredecessorOutput,
+};
+pub use validation::validate_pipeline;
+use workflow_id::workflow_id_for_node;

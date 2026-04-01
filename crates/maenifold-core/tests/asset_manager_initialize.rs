@@ -2,7 +2,7 @@
 //
 // NOTE: PackagedAssetGuard writes to the live workspace `assets/` directory (resolved via
 // CARGO_MANIFEST_DIR), not the TempDir. This is necessary because resolve_packaged_assets_root()
-// walks up from the executable to find the assets bundle. Tests are serialized via test_mutex()
+// walks up from the executable to find the assets bundle. Tests are serialized via TEST_MUTEX
 // to prevent concurrent mutations to the shared assets directory. If a test process is killed
 // (e.g. SIGKILL from a timeout), guard cleanup will not run, potentially orphaning files in
 // the workspace assets tree.
@@ -11,8 +11,8 @@
 mod asset_manager_support;
 
 use asset_manager_support::{
-    ConfigResetGuard, PackagedAssetGuard, hide_packaged_asset_roots, initialize_assets,
-    isolated_config, test_mutex, unique_relative_path, unique_suffix, write_file,
+    ConfigResetGuard, PackagedAssetGuard, TEST_MUTEX, hide_packaged_asset_roots, initialize_assets,
+    isolated_config, unique_relative_path, unique_suffix, write_file,
 };
 use std::fs;
 #[cfg(unix)]
@@ -21,7 +21,7 @@ use std::os::unix::fs::symlink;
 // T-12.7: RTM NFR-1 - split bootstrap coverage from legacy asset_manager_tests.rs.
 #[test]
 fn initialize_assets_with_source_files_copies_files_to_target() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
 
@@ -47,7 +47,7 @@ fn initialize_assets_with_source_files_copies_files_to_target() {
 
 #[test]
 fn initialize_assets_skips_existing_files_and_does_not_overwrite() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
 
@@ -77,7 +77,7 @@ fn initialize_assets_skips_existing_files_and_does_not_overwrite() {
 // T-12.7: RTM NFR-1 - R-2: Cover Branch A (directory creation) of initialize_assets.
 #[test]
 fn initialize_assets_creates_subdirectories_for_nested_files() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
 
@@ -108,7 +108,7 @@ fn initialize_assets_creates_subdirectories_for_nested_files() {
 // T-12.7: RTM NFR-2 - R-3: Cover the graceful no-op when resolve_packaged_assets_root() returns None.
 #[test]
 fn initialize_assets_is_no_op_when_no_packaged_assets_exist() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     let _hidden = hide_packaged_asset_roots();
@@ -140,7 +140,7 @@ fn initialize_assets_skips_directory_symlinks_and_continues_copying_regular_asse
         }
     }
 
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
 

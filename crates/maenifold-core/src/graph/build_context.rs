@@ -14,6 +14,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
 
 // T-12.0: RTM NFR-1 keeps BuildContext behavior stable while the graph facade becomes a directory module.
+#[allow(clippy::too_many_lines)]
 pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
     let learn = payload
         .get("learn")
@@ -67,14 +68,14 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
         .map(|relation| relation.name.clone())
         .collect::<HashSet<_>>();
 
-    let related_concepts = expand_related_concepts(
-        &connection,
-        &context.config,
-        &concept_name,
+    let related_concepts = expand_related_concepts(ExpandRelatedConceptsArgs {
+        connection: &connection,
+        config: &context.config,
+        concept_name: &concept_name,
         depth,
         max_entities,
         include_community_data,
-    )?;
+    })?;
     let community_siblings = if include_community_data && depth > 0 {
         load_community_siblings(
             &connection,
@@ -89,16 +90,18 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
     if context.output_format == OutputFormat::Json {
         // T-1.6: RTM NFR-1 - BuildContext JSON mirrors the C# structured envelope.
         return Ok(formatter::render_build_context_json(
-            &context.config,
-            &connection,
-            &concept_name,
-            depth,
-            &direct_relations,
-            &related_concepts,
-            query_community_id,
-            &community_siblings,
-            include_content,
-            include_community_data,
+            formatter::BuildContextJsonArgs {
+                config: &context.config,
+                connection: &connection,
+                concept_name: &concept_name,
+                depth,
+                direct_relations: &direct_relations,
+                related_concepts: &related_concepts,
+                query_community_id,
+                community_siblings: &community_siblings,
+                include_content,
+                include_community_data,
+            },
         ));
     }
 
@@ -126,12 +129,14 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
         .collect();
 
     Ok(formatter::format_build_context_markdown(
-        &concept_name,
-        depth,
-        &direct_lines,
-        &related_concepts,
-        &community_siblings,
-        query_community_id,
+        formatter::BuildContextMarkdownArgs {
+            concept_name: &concept_name,
+            depth,
+            direct_relations: &direct_lines,
+            related_concepts: &related_concepts,
+            community_siblings: &community_siblings,
+            query_community_id,
+        },
     ))
 }
 
@@ -160,20 +165,23 @@ fn load_query_community_id(connection: &Connection, concept_name: &str) -> Resul
     }
 }
 
-fn expand_related_concepts(
-    connection: &Connection,
-    config: &Config,
-    concept_name: &str,
+#[allow(clippy::too_many_arguments)]
+struct ExpandRelatedConceptsArgs<'a> {
+    connection: &'a Connection,
+    config: &'a Config,
+    concept_name: &'a str,
     depth: usize,
     max_entities: usize,
     include_community_data: bool,
-) -> Result<Vec<RelatedConceptLine>> {
-    let mut related_concepts = Vec::new();
-    let mut seen_concepts = HashSet::from([concept_name.to_string()]);
-    let mut current_frontier = vec![concept_name.to_string()];
+}
 
-    for _hop_distance in 1..=depth {
-        if related_concepts.len() >= max_entities {
+fn expand_related_concepts(args: ExpandRelatedConceptsArgs<'_>) -> Result<Vec<RelatedConceptLine>> {
+    let mut related_concepts = Vec::new();
+    let mut seen_concepts = HashSet::from([args.concept_name.to_string()]);
+    let mut current_frontier = vec![args.concept_name.to_string()];
+
+    for _hop_distance in 1..=args.depth {
+        if related_concepts.len() >= args.max_entities {
             break;
         }
 
@@ -181,7 +189,7 @@ fn expand_related_concepts(
         let mut hop_candidates = BTreeMap::<String, GraphRelation>::new();
 
         for frontier_concept in &current_frontier {
-            for relation in load_graph_neighbors(connection, frontier_concept)? {
+            for relation in load_graph_neighbors(args.connection, frontier_concept)? {
                 if seen_concepts.contains(&relation.name) {
                     continue;
                 }
@@ -202,10 +210,10 @@ fn expand_related_concepts(
         }
 
         let mut hop_relations = hop_candidates.into_values().collect::<Vec<_>>();
-        sort_relations_by_weighted_score(connection, config, &mut hop_relations);
+        sort_relations_by_weighted_score(args.connection, args.config, &mut hop_relations);
 
         for relation in hop_relations {
-            if related_concepts.len() >= max_entities {
+            if related_concepts.len() >= args.max_entities {
                 break;
             }
 
@@ -216,8 +224,8 @@ fn expand_related_concepts(
                 name: relation_name.clone(),
                 co_occurrence_count: relation.co_occurrence_count,
                 source_files: relation.source_files,
-                community_id: if include_community_data {
-                    load_concept_community_id(connection, &relation_name)?
+                community_id: if args.include_community_data {
+                    load_concept_community_id(args.connection, &relation_name)?
                 } else {
                     None
                 },

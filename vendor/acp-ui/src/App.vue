@@ -4,10 +4,12 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { load } from '@tauri-apps/plugin-store';
 import { useConfigStore } from './stores/config';
 import { useSessionStore } from './stores/session';
+import { isAbsolutePath } from './lib/acp-bridge';
 import { initTelemetry } from './lib/telemetry';
 import AgentSelector from './components/AgentSelector.vue';
 import SessionList from './components/SessionList.vue';
 import ChatView from './components/ChatView.vue';
+import WorkflowTreeView from './components/WorkflowTreeView.vue';
 import PermissionDialog from './components/PermissionDialog.vue';
 import SettingsView from './components/SettingsView.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
@@ -18,16 +20,15 @@ import type { SavedSession } from './lib/types';
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();
 
+const GOLDEN_WORKFLOW_URI = 'memory://thinking/workflow/2026/02/27/workflow-1772232256568';
+
 const selectedAgent = ref('');
 const selectedCwd = ref('');
 const showSidebar = ref(true);
 const showSettings = ref(false);
 const showTrafficMonitor = ref(false);
 const showStartupDetails = ref(false);
-
-function isAbsolutePath(path: string): boolean {
-  return /^\/|^[A-Za-z]:[\\/]|^\\\\/.test(path);
-}
+const showWorkflows = ref(false);
 
 // Preferences store for persisting user selections
 let prefsStore: Awaited<ReturnType<typeof load>> | null = null;
@@ -40,6 +41,7 @@ const hasAgents = computed(() => configStore.hasAgents);
 
 // Watch for permission requests from session store
 const pendingPermission = computed(() => sessionStore.pendingPermission);
+const pendingPermissionCount = computed(() => sessionStore.pendingPermissionCount);
 
 // Watch for auth method selection requests
 const pendingAuthMethods = computed(() => sessionStore.pendingAuthMethods);
@@ -229,6 +231,17 @@ function clearError() {
             @delete="handleDeleteSession"
           />
         </div>
+
+        <!-- Workflows -->
+        <div class="section">
+          <button
+            class="workflows-btn"
+            :class="{ active: showWorkflows }"
+            @click="showWorkflows = !showWorkflows"
+          >
+            🌳 Workflows
+          </button>
+        </div>
       </div>
     </aside>
     
@@ -251,8 +264,19 @@ function clearError() {
           <button class="error-close" @click="clearError" title="Dismiss">×</button>
         </div>
         
-        <!-- Chat View when connected -->
-        <ChatView v-if="isConnected" :key="sessionStore.activeSessionId ?? 'active-session'" />
+        <!-- Chat View when connected and not showing workflows -->
+        <ChatView v-if="isConnected && !showWorkflows" :key="sessionStore.activeSessionId ?? 'active-session'" />
+        
+        <!-- Workflow Tree View -->
+        <div v-else-if="showWorkflows" class="workflow-panel">
+          <div class="workflow-panel-header">
+            <span>Workflow Tree</span>
+            <button class="workflow-close-btn" @click="showWorkflows = false" title="Close">×</button>
+          </div>
+          <div class="workflow-panel-body">
+            <WorkflowTreeView :uri="GOLDEN_WORKFLOW_URI" />
+          </div>
+        </div>
         
         <!-- Welcome screen when not connected -->
         <div v-else class="welcome-screen">
@@ -274,6 +298,7 @@ function clearError() {
     <PermissionDialog 
       v-if="pendingPermission"
       :request="pendingPermission"
+      :total-pending="pendingPermissionCount"
       @select="handlePermissionSelect"
       @cancel="handlePermissionCancel"
     />
@@ -588,5 +613,70 @@ html, body, #app {
   margin-top: 1rem;
   font-size: 0.875rem;
   color: var(--text-muted);
+}
+
+.workflows-btn {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.workflows-btn:hover {
+  background: var(--bg-hover);
+}
+
+.workflows-btn.active {
+  background: var(--bg-primary);
+  color: white;
+  border-color: var(--bg-primary);
+}
+
+.workflow-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workflow-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.workflow-close-btn {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.workflow-close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.workflow-panel-body {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
 }
 </style>

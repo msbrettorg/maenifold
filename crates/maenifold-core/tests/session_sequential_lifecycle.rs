@@ -88,9 +88,8 @@ fn new_session_without_concepts_fails_validation() {
     assert!(result.contains("Must include [[WikiLinks]]"));
 
     // T-12.7: RTM NFR-1 — validation failure must not create any session files
-    let session_count = std::fs::read_dir(&harness.config.sequential_path)
-        .map(|d| d.count())
-        .unwrap_or(0);
+    let session_count =
+        std::fs::read_dir(&harness.config.sequential_path).map_or(0, Iterator::count);
     assert_eq!(
         session_count, 0,
         "validation failure must not create any session files"

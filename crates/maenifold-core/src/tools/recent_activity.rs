@@ -105,7 +105,7 @@ fn parse_recent_activity_filter(filter: Option<&str>) -> Result<RecentActivityFi
     }
 }
 
-fn parse_recent_activity_timespan(input: &str) -> Result<TimeDelta> {
+pub fn parse_recent_activity_timespan(input: &str) -> Result<TimeDelta> {
     let trimmed = input.trim();
     if trimmed.is_empty() {
         return Err(MaenifoldError::InvalidArgument(

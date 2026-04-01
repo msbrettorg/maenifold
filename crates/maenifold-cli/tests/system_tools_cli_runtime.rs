@@ -11,13 +11,7 @@ fn recent_activity_json_flag_learn_true_returns_help_documentation() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "--tool",
-            "RecentActivity",
-            "--payload",
-            r#"{"learn":true}"#,
-            "--json",
-        ])
+        .args(["tool", "RecentActivity", r#"{"learn":true}"#, "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -46,13 +40,7 @@ fn recent_activity_json_flag_empty_database_reports_no_recent_activity() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "--tool",
-            "RecentActivity",
-            "--payload",
-            r#"{"limit":10}"#,
-            "--json",
-        ])
+        .args(["tool", "RecentActivity", r#"{"limit":10}"#, "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -70,13 +58,7 @@ fn run_full_benchmark_json_flag_learn_true_returns_help_documentation() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "--tool",
-            "RunFullBenchmark",
-            "--payload",
-            r#"{"learn":true}"#,
-            "--json",
-        ])
+        .args(["tool", "RunFullBenchmark", r#"{"learn":true}"#, "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -106,13 +88,7 @@ fn run_full_benchmark_json_flag_iterations_zero_returns_error_envelope() {
     let tmp = isolated_root();
 
     let output = maenifold_cmd(&tmp)
-        .args([
-            "--tool",
-            "RunFullBenchmark",
-            "--payload",
-            r#"{"iterations":0}"#,
-            "--json",
-        ])
+        .args(["tool", "RunFullBenchmark", r#"{"iterations":0}"#, "--json"])
         .assert()
         .code(1)
         .get_output()
@@ -154,9 +130,8 @@ Using [[tools]] and [[coding-tool]].
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "RepairConcepts",
-            "--payload",
             r#"{"conceptsToReplace":"tools","canonicalConcept":"tool","dryRun":false,"minSemanticSimilarity":0.0}"#,
             "--json",
         ])
@@ -203,9 +178,8 @@ Using [[tools]] for a dry-run.
     let original = fs::read_to_string(tmp.path().join("memory/repair/dry-run.md")).expect("read");
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "RepairConcepts",
-            "--payload",
             r#"{"conceptsToReplace":"tools","canonicalConcept":"tool","dryRun":true,"minSemanticSimilarity":0.0}"#,
             "--json",
         ])
@@ -236,9 +210,8 @@ fn repair_concepts_json_flag_learn_true_returns_help_documentation() {
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "RepairConcepts",
-            "--payload",
             r#"{"conceptsToReplace":"tools","canonicalConcept":"tool","learn":true}"#,
             "--json",
         ])

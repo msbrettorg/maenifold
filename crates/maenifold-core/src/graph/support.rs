@@ -125,15 +125,16 @@ pub(crate) fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<Strin
     .ok()
 }
 
+#[allow(dead_code)] // Used by graph visualization — retained for future use
 pub(crate) fn format_source_files_for_display(source_files: &str) -> String {
     let trimmed = source_files.trim();
     // T-0.3b: RTM NFR-4
-    if trimmed.starts_with('{') {
-        if let Ok(Value::Object(map)) = serde_json::from_str::<Value>(trimmed) {
-            let mut keys = map.keys().cloned().collect::<Vec<_>>();
-            keys.sort();
-            return keys.join(", ");
-        }
+    if trimmed.starts_with('{')
+        && let Ok(Value::Object(map)) = serde_json::from_str::<Value>(trimmed)
+    {
+        let mut keys = map.keys().cloned().collect::<Vec<_>>();
+        keys.sort();
+        return keys.join(", ");
     }
     source_files.to_string()
 }

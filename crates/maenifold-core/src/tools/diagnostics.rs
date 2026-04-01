@@ -54,6 +54,7 @@ pub fn memory_status(context: &ToolContext, payload: &Value) -> Result<String> {
 
 // T-13.4: RTM FR-7 — Render the full markdown status matching C# SystemTools.MemoryStatus.
 // T-16.2: RTM FR-7 — Fixed to only count .md files and non-hidden folders (C# parity).
+#[allow(clippy::too_many_lines)]
 fn render_memory_status_markdown(context: &ToolContext) -> String {
     let mut stats = String::from("# Memory System Status\n\n");
 

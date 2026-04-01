@@ -14,17 +14,14 @@
 //   5. with_next_steps/with_hint don't corrupt original content in real tool calls (T-13.8)
 //   6. Fulltext + Hybrid return non-empty results for valid queries (T-13.7)
 
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::memory;
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{AssetManager, Config, GraphDatabase, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use serde_json::{Value, json};
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 const TEST_FOLDER: &str = "search-status-parity";
 
@@ -63,7 +60,7 @@ fn isolated_env() -> TestEnv {
 fn invoke_json(name: &str, payload: Value) -> String {
     ToolRegistry::global()
         .try_invoke(name, &payload, OutputFormat::Json)
-        .expect(&format!("{name} should succeed"))
+        .unwrap_or_else(|_| panic!("{name} should succeed"))
 }
 
 fn seed_search_data(env: &TestEnv) {

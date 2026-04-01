@@ -1,4 +1,5 @@
 // T-12.7: RTM NFR-1
+#[allow(clippy::duplicate_mod)]
 #[path = "decay_benchmark/support.rs"]
 mod decay_benchmark_support;
 

@@ -7,14 +7,11 @@
 // T-15.23: Verify no query_only on standard connections
 // T-10.9:  Verify busy_timeout is set on every connection
 
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::db::open_connection;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::params;
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 struct TestEnv {
     _tmp: TempDir,

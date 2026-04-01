@@ -64,6 +64,7 @@ pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Res
 }
 
 // T-1.4: RTM FR-2
+#[allow(clippy::too_many_lines)]
 pub fn analyze_concept_corruption(context: &ToolContext, payload: &Value) -> Result<String> {
     let learn = payload
         .get("learn")

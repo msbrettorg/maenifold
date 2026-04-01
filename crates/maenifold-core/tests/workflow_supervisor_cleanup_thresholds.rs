@@ -1,6 +1,8 @@
 // T-12.7: RTM NFR-1
+#[allow(clippy::duplicate_mod)]
 #[path = "workflow_supervisor/support.rs"]
 mod support;
+#[allow(clippy::duplicate_mod)]
 #[path = "workflow_supervisor/sync_support.rs"]
 mod sync_support;
 

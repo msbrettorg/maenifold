@@ -38,6 +38,7 @@ export function normalizeConfigSelectOption(option: unknown): SessionConfigSelec
     value: option.value,
     name: option.name,
     description: typeof option.description === 'string' ? option.description : undefined,
+    _meta: isRecord(option._meta) ? option._meta : null,
   };
 }
 
@@ -65,6 +66,7 @@ export function normalizeConfigSelectOptions(options: unknown): SessionConfigSel
         return {
           group: group.group,
           name: group.name,
+          _meta: isRecord(group._meta) ? group._meta : null,
           options: group.options
             .map(normalizeConfigSelectOption)
             .filter((option): option is SessionConfigSelectOption => option !== null),
@@ -100,6 +102,7 @@ export function normalizeConfigOptions(configOptions: unknown): SessionConfigOpt
       type: 'select' as const,
       currentValue: option.currentValue as string,
       options: normalizeConfigSelectOptions(option.options),
+      _meta: isRecord(option._meta) ? option._meta : null,
     }));
 }
 
@@ -127,11 +130,21 @@ export function applyLegacySessionState(
   session: SessionState,
   response: {
     modes?: {
-      availableModes?: Array<{ id: string; name: string; description?: string | null }>;
+      availableModes?: Array<{
+        id: string;
+        name: string;
+        description?: string | null;
+        _meta?: Record<string, unknown> | null;
+      }>;
       currentModeId?: string | null;
     } | null;
     models?: {
-      availableModels?: Array<{ modelId: string; name: string; description?: string | null }>;
+      availableModels?: Array<{
+        modelId: string;
+        name: string;
+        description?: string | null;
+        _meta?: Record<string, unknown> | null;
+      }>;
       currentModelId?: string | null;
     } | null;
   }
@@ -149,6 +162,7 @@ export function applyLegacySessionState(
       id: m.id,
       name: m.name,
       description: m.description ?? undefined,
+      _meta: isRecord(m._meta) ? m._meta : null,
     }));
     session.currentModeId = response.modes.currentModeId || '';
   } else {
@@ -161,6 +175,7 @@ export function applyLegacySessionState(
       modelId: m.modelId,
       name: m.name,
       description: m.description ?? undefined,
+      _meta: isRecord(m._meta) ? m._meta : null,
     }));
     session.currentModelId = response.models.currentModelId || '';
   } else {
@@ -174,11 +189,21 @@ export function applySessionConfigurationState(
   response: {
     configOptions?: unknown[] | null;
     modes?: {
-      availableModes?: Array<{ id: string; name: string; description?: string | null }>;
+      availableModes?: Array<{
+        id: string;
+        name: string;
+        description?: string | null;
+        _meta?: Record<string, unknown> | null;
+      }>;
       currentModeId?: string | null;
     } | null;
     models?: {
-      availableModels?: Array<{ modelId: string; name: string; description?: string | null }>;
+      availableModels?: Array<{
+        modelId: string;
+        name: string;
+        description?: string | null;
+        _meta?: Record<string, unknown> | null;
+      }>;
       currentModelId?: string | null;
     } | null;
   }

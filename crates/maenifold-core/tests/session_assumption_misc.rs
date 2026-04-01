@@ -127,10 +127,7 @@ fn assumption_file_uses_correct_date_based_path() {
         .join("assumptions")
         .join(&year)
         .join(&month);
-    let files_before = std::fs::read_dir(&date_dir)
-        .ok()
-        .map(|entries| entries.count())
-        .unwrap_or(0);
+    let files_before = std::fs::read_dir(&date_dir).ok().map_or(0, Iterator::count);
 
     let result = harness.invoke_markdown(
         "AssumptionLedger",

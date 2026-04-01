@@ -1,15 +1,15 @@
+#![allow(dead_code, unused_imports)]
+
 // T-2.3: RTM FR-4
 use chrono::Utc;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::tools::{RecentActivityRecord, ToolContext};
 use maenifold_core::{AssetManager, Config, GraphDatabase, MaenifoldError, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::Connection;
 use std::fs;
 use tempfile::TempDir;
 
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub(crate) struct TestEnv {
     _tmp: TempDir,
@@ -121,6 +121,7 @@ pub(crate) fn sample_record(
     sample_record_with_summaries(file_path, title, last_indexed, content, status, None, None)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn sample_record_with_summaries(
     file_path: &str,
     title: &str,

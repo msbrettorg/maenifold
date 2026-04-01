@@ -62,8 +62,7 @@ fn continue_creates_proper_frontmatter_metadata() {
         frontmatter
             .get("title")
             .and_then(YamlValue::as_str)
-            .map(|t| !t.is_empty())
-            .unwrap_or(false),
+            .is_some_and(|t| !t.is_empty()),
         "title should be non-empty after continue"
     );
     assert_eq!(frontmatter_usize(&frontmatter, "currentStep"), 1);

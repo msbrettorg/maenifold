@@ -6,7 +6,10 @@ use serde_yaml::{Mapping as YamlMapping, Value as YamlValue};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
+use std::sync::Mutex;
 use std::time::SystemTime;
+
+static FRONTMATTER_WARNINGS: Mutex<Vec<(String, String)>> = Mutex::new(Vec::new());
 
 pub type Frontmatter = BTreeMap<String, YamlValue>;
 
@@ -150,11 +153,26 @@ fn parse_frontmatter(full_text: &str, uri: &str) -> (Option<Frontmatter>, String
             Err(error) => {
                 // T-14.2: RTM FR-10 — Match C# oracle: warn and continue with null frontmatter.
                 eprintln!("[YAML WARNING] Failed to parse frontmatter in '{uri}': {error}");
+                let mut warnings = FRONTMATTER_WARNINGS
+                    .lock()
+                    .unwrap_or_else(|error| error.into_inner());
+                warnings.push((uri.to_string(), error.to_string()));
+                if warnings.len() > 100 {
+                    let excess = warnings.len() - 100;
+                    warnings.drain(..excess);
+                }
                 return (None, content);
             }
         }
     }
     (None, full_text.to_string())
+}
+
+pub fn drain_frontmatter_warnings() -> Vec<(String, String)> {
+    FRONTMATTER_WARNINGS
+        .lock()
+        .map(|mut w| w.drain(..).collect())
+        .unwrap_or_default()
 }
 
 fn split_frontmatter(full_text: &str) -> Option<(&str, String)> {
@@ -255,11 +273,8 @@ fn system_time_to_iso(system_time: SystemTime) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use once_cell::sync::Lazy;
-    use parking_lot::Mutex;
+    use serial_test::serial;
     use tempfile::TempDir;
-
-    static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
     struct ConfigResetGuard;
 
@@ -286,8 +301,8 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn append_h2_section_sets_first_last_on_initial_write() {
-        let _guard = TEST_MUTEX.lock();
         let (_tmp, _reset, config) = test_config();
         let uri = "memory://append-first-last-initial";
 
@@ -315,8 +330,8 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn append_h2_section_first_last_preserve_first_and_update_last() {
-        let _guard = TEST_MUTEX.lock();
         let (_tmp, _reset, config) = test_config();
         let uri = "memory://append-first-last-update";
         let mut frontmatter = Frontmatter::new();
@@ -353,6 +368,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(config)]
     fn first_last_frontmatter_render_after_related_before_tags() {
         let mut frontmatter = Frontmatter::new();
         frontmatter.insert("tags".to_string(), YamlValue::Sequence(vec![]));

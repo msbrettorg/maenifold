@@ -48,10 +48,7 @@ fn run_text(tmp: &TempDir, args: &[&str]) -> String {
 #[test]
 fn sequential_thinking_invalid_payload_returns_cli_json_error_envelope() {
     let tmp = isolated_root();
-    let value = run_json(
-        &tmp,
-        &["--tool", "SequentialThinking", "--payload", "{", "--json"],
-    );
+    let value = run_json(&tmp, &["tool", "SequentialThinking", "{", "--json"]);
     assert_eq!(value["success"], false);
     assert_eq!(value["error"]["code"], "INVALID_PAYLOAD");
 }
@@ -59,7 +56,7 @@ fn sequential_thinking_invalid_payload_returns_cli_json_error_envelope() {
 #[test]
 fn workflow_invalid_payload_returns_cli_json_error_envelope() {
     let tmp = isolated_root();
-    let value = run_json(&tmp, &["--tool", "Workflow", "--payload", "{", "--json"]);
+    let value = run_json(&tmp, &["tool", "Workflow", "{", "--json"]);
     assert_eq!(value["success"], false);
     assert_eq!(value["error"]["code"], "INVALID_PAYLOAD");
 }
@@ -67,10 +64,7 @@ fn workflow_invalid_payload_returns_cli_json_error_envelope() {
 #[test]
 fn assumption_ledger_invalid_payload_returns_cli_json_error_envelope() {
     let tmp = isolated_root();
-    let value = run_json(
-        &tmp,
-        &["--tool", "AssumptionLedger", "--payload", "{", "--json"],
-    );
+    let value = run_json(&tmp, &["tool", "AssumptionLedger", "{", "--json"]);
     assert_eq!(value["success"], false);
     assert_eq!(value["error"]["code"], "INVALID_PAYLOAD");
 }
@@ -81,9 +75,8 @@ fn sequential_thinking_json_success_should_include_session_id_and_next_thought()
     let value = run_json(
         &tmp,
         &[
-            "--tool",
+            "tool",
             "SequentialThinking",
-            "--payload",
             r#"{"response":"Exploring [[session-paths]] and [[workflow-state]].","thoughtNumber":0,"totalThoughts":2,"nextThoughtNeeded":true}"#,
             "--json",
         ],
@@ -105,9 +98,8 @@ fn workflow_output_should_include_session_id_and_step_state() {
     let text = run_text(
         &tmp,
         &[
-            "--tool",
+            "tool",
             "Workflow",
-            "--payload",
             r#"{"workflowId":"deductive-reasoning"}"#,
             "--json",
         ],
@@ -129,9 +121,8 @@ fn assumption_ledger_append_output_should_return_memory_uri() {
     let text = run_text(
         &tmp,
         &[
-            "--tool",
+            "tool",
             "AssumptionLedger",
-            "--payload",
             r#"{"action":"append","assumption":"Track [[session-contract]] parity","concepts":["session-contract"],"confidence":"medium"}"#,
             "--json",
         ],
@@ -146,9 +137,8 @@ fn assumption_ledger_append_uses_date_based_memory_uri_path() {
     let text = run_text(
         &tmp,
         &[
-            "--tool",
+            "tool",
             "AssumptionLedger",
-            "--payload",
             r#"{"action":"append","assumption":"Track [[session-contract]] parity","concepts":["session-contract"],"confidence":"medium"}"#,
             "--json",
         ],
@@ -169,9 +159,8 @@ fn sequential_thinking_without_wikilinks_should_return_csharp_validation_error()
     let value = run_json(
         &tmp,
         &[
-            "--tool",
+            "tool",
             "SequentialThinking",
-            "--payload",
             r#"{"response":"This thought has no concepts at all.","thoughtNumber":0,"totalThoughts":1,"nextThoughtNeeded":true}"#,
             "--json",
         ],
@@ -189,10 +178,7 @@ fn sequential_thinking_without_wikilinks_should_return_csharp_validation_error()
 #[test]
 fn workflow_learn_mode_should_return_help_without_creating_session() {
     let tmp = isolated_root();
-    let text = run_text(
-        &tmp,
-        &["--tool", "Workflow", "--payload", r#"{"learn":true}"#],
-    );
+    let text = run_text(&tmp, &["tool", "Workflow", r#"{"learn":true}"#]);
     assert!(text.contains("# Workflow"), "unexpected output: {text}");
     assert!(
         !text.contains("Created session:"),
@@ -210,9 +196,8 @@ fn workflow_with_both_workflow_and_session_ids_should_return_cli_json_error() {
     let value = run_json(
         &tmp,
         &[
-            "--tool",
+            "tool",
             "Workflow",
-            "--payload",
             r#"{"workflowId":"deductive-reasoning","sessionId":"workflow-123"}"#,
             "--json",
         ],
@@ -231,9 +216,8 @@ fn assumption_ledger_append_requires_concepts() {
     let text = run_text(
         &tmp,
         &[
-            "--tool",
+            "tool",
             "AssumptionLedger",
-            "--payload",
             r#"{"action":"append","assumption":"hello"}"#,
             "--json",
         ],
@@ -248,9 +232,8 @@ fn assumption_ledger_append_rejects_concepts_with_brackets() {
     let text = run_text(
         &tmp,
         &[
-            "--tool",
+            "tool",
             "AssumptionLedger",
-            "--payload",
             r#"{"action":"append","assumption":"hello","concepts":["[[bad]]"]}"#,
             "--json",
         ],
@@ -265,9 +248,8 @@ fn assumption_ledger_update_rejects_invalid_status() {
     let text = run_text(
         &tmp,
         &[
-            "--tool",
+            "tool",
             "AssumptionLedger",
-            "--payload",
             r#"{"action":"update","uri":"memory://assumptions/2026/02/assumption-abc123","status":"bogus"}"#,
             "--json",
         ],

@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "memory_path_support/mod.rs"]
 mod memory_path_support;
 

@@ -1,0 +1,18 @@
+{
+  "path": [
+    "crates/maenifold-core/src",
+    "crates/maenifold-cli/src",
+    "crates/maenifold-gate/src"
+  ],
+  "pattern": "**/*.rs",
+  "formats": ["rust"],
+  "mode": "mild",
+  "minLines": 6,
+  "minTokens": 50,
+  "ignore": [
+    "**/target/**",
+    "**/vendor/**"
+  ],
+  "reporters": ["console", "json", "markdown"],
+  "output": "target/quality/jscpd"
+}

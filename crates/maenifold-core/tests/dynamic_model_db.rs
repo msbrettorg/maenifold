@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "dynamic_model/support.rs"]
 mod dynamic_model_support;
 

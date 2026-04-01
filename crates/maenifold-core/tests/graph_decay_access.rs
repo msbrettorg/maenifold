@@ -1,4 +1,5 @@
 // T-0.3: RTM NFR-4
+#[allow(clippy::duplicate_mod)]
 #[path = "graph_decay/support.rs"]
 mod support;
 

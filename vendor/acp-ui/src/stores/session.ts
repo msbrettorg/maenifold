@@ -3,17 +3,20 @@
 import { defineStore } from 'pinia';
 import { ref, computed, reactive } from 'vue';
 import type {
+  AgentInfo,
   SavedSession,
   ChatMessage,
+  PlanEntry,
   PermissionRequest,
+  PromptCapabilities,
   SessionMode,
-  SlashCommand,
+  AvailableCommand,
   ModelInfo,
   SessionConfigOption,
   SessionState,
 } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
-import type { AcpClientBridge } from '../lib/acp-bridge';
+import { SESSION_SET_MODEL_METHOD, type AcpClientBridge } from '../lib/acp-bridge';
 import type { AuthMethod } from '@agentclientprotocol/sdk';
 import { normalizeConfigOptions } from '../composables/session-utils';
 
@@ -22,6 +25,9 @@ import { useSessionPersistence } from '../composables/useSessionPersistence';
 import { usePermissions } from '../composables/usePermissions';
 import { useMessageHandler } from '../composables/useMessageHandler';
 import { useSessionLifecycle } from '../composables/useSessionLifecycle';
+
+// `_meta.traceparent`, `_meta.tracestate`, and `_meta.baggage` are reserved
+// for W3C trace context and must not be repurposed for custom ACP metadata.
 
 export const useSessionStore = defineStore('session', () => {
   // ── Core multi-session state (owned by orchestrator) ──────────────
@@ -126,19 +132,25 @@ export const useSessionStore = defineStore('session', () => {
     () => activeSession.value?.pendingPermissions[0] ?? null
   );
 
+  const pendingPermissions = computed<PermissionRequest[]>(
+    () => activeSession.value?.pendingPermissions ?? []
+  );
+
+  const pendingPermissionCount = computed<number>(
+    () => activeSession.value?.pendingPermissions.length ?? 0
+  );
+
   const supportsSessionList = computed<boolean>(
     () => activeSession.value?.supportsSessionList ?? false
   );
 
-  const agentInfo = computed<{ name: string; title?: string; version?: string } | null>(
+  const agentInfo = computed<AgentInfo | null>(
     () => activeSession.value?.agentInfo ?? null
   );
 
-  const agentPromptCapabilities = computed<{
-    image?: boolean;
-    audio?: boolean;
-    embeddedContext?: boolean;
-  }>(() => activeSession.value?.agentPromptCapabilities ?? {});
+  const agentPromptCapabilities = computed<PromptCapabilities>(
+    () => activeSession.value?.agentPromptCapabilities ?? {}
+  );
 
   const pendingAuthMethods = computed<AuthMethod[]>(
     () => (activeSession.value?.pendingAuthMethods ?? []) as AuthMethod[]
@@ -164,14 +176,13 @@ export const useSessionStore = defineStore('session', () => {
     () => activeSession.value?.hasConfigOptions ?? false
   );
 
-  const availableCommands = computed<SlashCommand[]>(() => {
-    const cmds = activeSession.value?.availableCommands ?? [];
-    return cmds.map((cmd) => ({
-      name: cmd.name,
-      description: cmd.description,
-      hint: cmd.input?.hint ?? undefined,
-    }));
-  });
+  const availableCommands = computed<AvailableCommand[]>(
+    () => activeSession.value?.availableCommands ?? []
+  );
+
+  const currentPlan = computed<PlanEntry[] | null>(
+    () => activeSession.value?.currentPlan ?? null
+  );
 
   const availableModels = computed<ModelInfo[]>(
     () => activeSession.value?.availableModels ?? []
@@ -196,9 +207,6 @@ export const useSessionStore = defineStore('session', () => {
   // ── Derived computeds ─────────────────────────────────────────────
   const hasActiveSession = computed(() => currentSession.value !== null);
   const messageList = computed(() => messages.value);
-  const toolCallList = computed(() =>
-    Array.from(activeSession.value?.toolCalls.values() ?? [])
-  );
 
   // ── Actions that remain in the orchestrator ───────────────────────
 
@@ -227,6 +235,9 @@ export const useSessionStore = defineStore('session', () => {
     const bridge = bridges.get(sid);
     if (!session || !bridge || !session.session) {
       throw new Error('No active session');
+    }
+    if (!bridge.supportsAgentMethod(SESSION_SET_MODEL_METHOD)) {
+      throw new Error('Active agent does not advertise support for _session/set_model');
     }
 
     await bridge.unstable_setSessionModel({
@@ -302,6 +313,8 @@ export const useSessionStore = defineStore('session', () => {
     isConnecting,
     error,
     pendingPermission,
+    pendingPermissions,
+    pendingPermissionCount,
     supportsSessionList,
     agentInfo,
     agentPromptCapabilities,
@@ -312,6 +325,7 @@ export const useSessionStore = defineStore('session', () => {
     configOptions,
     hasConfigOptions,
     availableCommands,
+    currentPlan,
     availableModels,
     currentModelId,
     startupPhase,
@@ -321,7 +335,6 @@ export const useSessionStore = defineStore('session', () => {
     // Computed (derived)
     hasActiveSession,
     messageList,
-    toolCallList,
     resumableSessions,
 
     // Actions

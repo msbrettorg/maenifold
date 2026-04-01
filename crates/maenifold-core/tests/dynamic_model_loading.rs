@@ -1,7 +1,9 @@
 #[path = "dynamic_model/support.rs"]
 mod dynamic_model_support;
 
-use dynamic_model_support::{TEST_MUTEX, TestContext, model_output_dimensions};
+use dynamic_model_support::{
+    TEST_MUTEX, TestContext, model_output_dimensions, packaged_model_fixture_available,
+};
 use maenifold_core::vector;
 
 // T-9.6: RTM FR-7 / RTM-050 / RTM-051 / RTM-053 — runtime model discovery should
@@ -9,6 +11,10 @@ use maenifold_core::vector;
 #[test]
 fn t9_6_model_discovery_finds_shadow_onnx_file() {
     let _guard = TEST_MUTEX.lock();
+    if !packaged_model_fixture_available() {
+        eprintln!("Skipping dynamic model test: packaged ONNX fixture is unavailable");
+        return;
+    }
     let ctx = TestContext::new();
     ctx.install_valid_shadow_model_with_fallback_assets("test-model.onnx");
     // T-9.6: RTM-051 — derive expected dims from ONNX tensor metadata, not a hardcoded constant.
@@ -32,6 +38,10 @@ fn t9_6_model_discovery_finds_shadow_onnx_file() {
 #[test]
 fn t9_6_embedding_dimensions_match_model_output_tensor() {
     let _guard = TEST_MUTEX.lock();
+    if !packaged_model_fixture_available() {
+        eprintln!("Skipping dynamic model test: packaged ONNX fixture is unavailable");
+        return;
+    }
     let ctx = TestContext::new();
     ctx.install_valid_shadow_model_with_fallback_assets("output-dims.onnx");
     let expected_dims = model_output_dimensions(&ctx.shadow_models_dir().join("output-dims.onnx"));
@@ -52,6 +62,10 @@ fn t9_6_embedding_dimensions_match_model_output_tensor() {
 #[test]
 fn t9_6_no_model_generate_embedding_returns_err_and_dimensions_none() {
     let _guard = TEST_MUTEX.lock();
+    if !packaged_model_fixture_available() {
+        eprintln!("Skipping dynamic model test: packaged ONNX fixture is unavailable");
+        return;
+    }
     let mut ctx = TestContext::new();
     ctx.hide_packaged_model();
 
@@ -85,6 +99,10 @@ fn t9_6_no_model_generate_embedding_returns_err_and_dimensions_none() {
 #[test]
 fn t9_6_multiple_onnx_files_select_largest() {
     let _guard = TEST_MUTEX.lock();
+    if !packaged_model_fixture_available() {
+        eprintln!("Skipping dynamic model test: packaged ONNX fixture is unavailable");
+        return;
+    }
     let ctx = TestContext::new();
     ctx.install_valid_shadow_model_with_fallback_assets("large.onnx");
     ctx.write_dummy_onnx("small.onnx", 100);

@@ -31,6 +31,7 @@ pub(crate) fn load_help_doc(assets_path: &Path, tool_name: &str) -> Option<Strin
 }
 
 // T-12.0: RTM NFR-1 - keep SequentialThinking session lifecycle rules intact across module boundaries.
+#[allow(clippy::too_many_lines)]
 pub(crate) fn validate_session_state(
     context: &ToolContext,
     input: &SequentialThinkingInput,

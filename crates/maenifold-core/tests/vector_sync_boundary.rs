@@ -1,11 +1,8 @@
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{Config, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use serde_json::json;
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 // T-12.7: RTM NFR-1 — acceptance hygiene trims smoke-only sync boundary tests that under-assert runtime behavior.
 
@@ -20,7 +17,7 @@ fn isolated_root() -> (TempDir, Config) {
 
 // T-12.7: REMOVED — vector_sync_tools_are_registered_case_insensitively
 // Zero unique assertions; fully subsumed by tool_registry_tests.rs which exhaustively
-// tests all 28 tools including case-insensitive invocation with arbitrary mixed-case forms.
+// tests all 29 tools including case-insensitive invocation with arbitrary mixed-case forms.
 
 // T-12.7: MERGED — markdown_reader_sync_should_match_single_pass_extraction_contract
 // Moved to markdown_rw_sync_tests.rs as sync_extract_excludes_wikilinks_in_all_code_contexts.

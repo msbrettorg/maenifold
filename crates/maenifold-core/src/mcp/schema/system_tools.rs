@@ -5,6 +5,7 @@ use super::support::{
 use crate::mcp::McpToolDefinition;
 use serde_json::json;
 
+#[allow(clippy::too_many_lines)]
 pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     let tool = match registry_name {
         "MemoryStatus" => tool_definition(
@@ -169,6 +170,11 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
                 ],
                 &["uri"],
             ),
+        ),
+        "ListAgents" => tool_definition(
+            registry_name,
+            "Lists configured ACP agents and their serialized configuration fields.",
+            object_schema(vec![], &[]),
         ),
         _ => return None,
     };

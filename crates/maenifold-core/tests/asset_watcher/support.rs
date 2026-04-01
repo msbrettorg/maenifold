@@ -1,12 +1,13 @@
+#![allow(dead_code, unused_imports)]
+
 // T-12.7: RTM NFR-1 - shared asset watcher harness extracted so themed test files stay focused.
+#[allow(clippy::duplicate_mod)]
 #[path = "runtime.rs"]
 mod asset_watcher_runtime;
 
 use asset_watcher_runtime::{is_relevant_event_kind, spawn_worker, wait_for};
 use maenifold_core::{AssetManager, Config};
 use notify::{Config as NotifyConfig, Event, PollWatcher, RecursiveMode, Watcher};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -16,7 +17,7 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub(crate) const DEFAULT_DEBOUNCE_MS: u64 = 150;
 

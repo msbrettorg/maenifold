@@ -1,15 +1,13 @@
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 
 use chrono::{Duration, Utc};
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, Config, GraphDatabase, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::{Connection, params};
 use serde_json::json;
 use tempfile::TempDir;
 
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub struct TestEnv {
     _tmp: TempDir,
@@ -50,6 +48,7 @@ pub fn timestamp_days_ago(days_ago: i64) -> String {
         .to_string()
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn seed_activity(
     conn: &Connection,
     file_path: &str,

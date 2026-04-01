@@ -17,6 +17,7 @@ pub(crate) struct VectorMetadataHydration {
     pub(crate) orphan_paths: BTreeSet<String>,
 }
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn query_vec_memory_files(
     connection: &Connection,
     assets_path: &Path,

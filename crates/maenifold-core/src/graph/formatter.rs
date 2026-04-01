@@ -8,44 +8,49 @@ use crate::util::json::success;
 use rusqlite::Connection;
 use serde_json::{Value, json};
 
-pub(crate) fn render_build_context_json(
-    config: &Config,
-    connection: &Connection,
-    concept_name: &str,
-    depth: usize,
-    direct_relations: &[GraphRelation],
-    related_concepts: &[RelatedConceptLine],
-    query_community_id: Option<i64>,
-    community_siblings: &[CommunitySiblingLine],
-    include_content: bool,
-    include_community_data: bool,
-) -> String {
-    let direct_relations_json = direct_relations
+pub(crate) struct BuildContextJsonArgs<'a> {
+    pub(crate) config: &'a Config,
+    pub(crate) connection: &'a Connection,
+    pub(crate) concept_name: &'a str,
+    pub(crate) depth: usize,
+    pub(crate) direct_relations: &'a [GraphRelation],
+    pub(crate) related_concepts: &'a [RelatedConceptLine],
+    pub(crate) query_community_id: Option<i64>,
+    pub(crate) community_siblings: &'a [CommunitySiblingLine],
+    pub(crate) include_content: bool,
+    pub(crate) include_community_data: bool,
+}
+
+pub(crate) fn render_build_context_json(args: BuildContextJsonArgs<'_>) -> String {
+    let direct_relations_json = args
+        .direct_relations
         .iter()
         .map(|relation| {
-            render_relation_json(
-                config,
-                connection,
-                concept_name,
+            render_relation_json(RelationJsonArgs {
+                config: args.config,
+                connection: args.connection,
+                concept_name: args.concept_name,
                 relation,
-                include_content,
-                if include_community_data {
-                    load_concept_community_id(connection, &relation.name)
+                include_content: args.include_content,
+                community_id: if args.include_community_data {
+                    load_concept_community_id(args.connection, &relation.name)
                         .ok()
                         .flatten()
                 } else {
                     None
                 },
-            )
+            })
         })
         .collect::<Vec<_>>();
     // T-15.6: RTM FR-15 — C# ExpandedRelations is List<string> (concept names only),
     // not rich objects. Emit a flat string array to match the API contract.
-    let expanded_relations_json: Vec<&str> = related_concepts
+    let expanded_relations_json: Vec<&str> = args
+        .related_concepts
         .iter()
         .map(|relation| relation.name.as_str())
         .collect();
-    let community_siblings_json = community_siblings
+    let community_siblings_json = args
+        .community_siblings
         .iter()
         .map(|sibling| {
             json!({
@@ -57,11 +62,11 @@ pub(crate) fn render_build_context_json(
         .collect::<Vec<_>>();
 
     success(json!({
-        "ConceptName": concept_name,
-        "Depth": depth,
+        "ConceptName": args.concept_name,
+        "Depth": args.depth,
         "DirectRelations": direct_relations_json,
         "ExpandedRelations": expanded_relations_json,
-        "CommunityId": query_community_id,
+        "CommunityId": args.query_community_id,
         "CommunitySiblings": community_siblings_json,
     }))
 }
@@ -76,23 +81,25 @@ pub(crate) fn format_empty_build_context(concept_name: &str, depth: usize) -> St
 }
 
 // T-PARITY-B01: RTM NFR-1 — BuildContext markdown matches C# BuildContextResult.ToString()
-pub(crate) fn format_build_context_markdown(
-    concept_name: &str,
-    depth: usize,
-    direct_relations: &[RelatedConceptLine],
-    related_concepts: &[RelatedConceptLine],
-    community_siblings: &[CommunitySiblingLine],
-    query_community_id: Option<i64>,
-) -> String {
+pub(crate) struct BuildContextMarkdownArgs<'a> {
+    pub(crate) concept_name: &'a str,
+    pub(crate) depth: usize,
+    pub(crate) direct_relations: &'a [RelatedConceptLine],
+    pub(crate) related_concepts: &'a [RelatedConceptLine],
+    pub(crate) community_siblings: &'a [CommunitySiblingLine],
+    pub(crate) query_community_id: Option<i64>,
+}
+
+pub(crate) fn format_build_context_markdown(args: BuildContextMarkdownArgs<'_>) -> String {
     // T-PARITY-B01: Header matches C# "Context for CONCEPT: {ConceptName}"
-    let mut output = format!("Context for CONCEPT: {concept_name}\n\n");
+    let mut output = format!("Context for CONCEPT: {}\n\n", args.concept_name);
 
     // T-PARITY-B01: Direct relations section — rich format with co-occurrence + files
     output.push_str(&format!(
         "Direct relations ({} CONCEPTS):\n",
-        direct_relations.len()
+        args.direct_relations.len()
     ));
-    for relation in direct_relations {
+    for relation in args.direct_relations {
         // T-PARITY-B01: Label matches C# "(co-occurs in N files)"
         output.push_str(&format!(
             "  • {} (co-occurs in {} files)",
@@ -113,23 +120,24 @@ pub(crate) fn format_build_context_markdown(
     }
 
     // T-PARITY-RES003: Expanded relations section — concept names only, up to 20, depth > 1
-    if depth > 1 {
-        output.push_str(&format!("\nExpanded relations ({depth} hops):\n"));
-        for concept in related_concepts.iter().take(20) {
+    if args.depth > 1 {
+        output.push_str(&format!("\nExpanded relations ({} hops):\n", args.depth));
+        for concept in args.related_concepts.iter().take(20) {
             output.push_str(&format!("  • {}\n", concept.name));
         }
     }
 
     // T-PARITY-B01: Community siblings section matches C# format
-    if !community_siblings.is_empty() {
-        let community_label = query_community_id
+    if !args.community_siblings.is_empty() {
+        let community_label = args
+            .query_community_id
             .map(|id| format!(" in community {id}"))
             .unwrap_or_default();
         output.push_str(&format!(
             "\nCommunity siblings ({} concepts{community_label}):\n",
-            community_siblings.len()
+            args.community_siblings.len()
         ));
-        for sibling in community_siblings {
+        for sibling in args.community_siblings {
             output.push_str(&format!(
                 "  • {} (overlap: {:.3}) [community {}]\n",
                 sibling.name, sibling.normalized_overlap, sibling.community_id
@@ -143,12 +151,12 @@ pub(crate) fn format_build_context_markdown(
 // T-PARITY-B01: RTM NFR-1 — Truncate source file list to first N entries, matching C# .Take(3)
 fn format_source_files_truncated(source_files: &str, max: usize) -> String {
     let trimmed = source_files.trim();
-    if trimmed.starts_with('{') {
-        if let Ok(Value::Object(map)) = serde_json::from_str::<Value>(trimmed) {
-            let mut keys = map.keys().cloned().collect::<Vec<_>>();
-            keys.sort();
-            return keys.into_iter().take(max).collect::<Vec<_>>().join(", ");
-        }
+    if trimmed.starts_with('{')
+        && let Ok(Value::Object(map)) = serde_json::from_str::<Value>(trimmed)
+    {
+        let mut keys = map.keys().cloned().collect::<Vec<_>>();
+        keys.sort();
+        return keys.into_iter().take(max).collect::<Vec<_>>().join(", ");
     }
     // Fallback: comma-separated string, take first max entries
     source_files
@@ -160,36 +168,39 @@ fn format_source_files_truncated(source_files: &str, max: usize) -> String {
         .join(", ")
 }
 
-fn render_relation_json(
-    config: &Config,
-    connection: &Connection,
-    concept_name: &str,
-    relation: &GraphRelation,
+#[allow(clippy::too_many_arguments)]
+struct RelationJsonArgs<'a> {
+    config: &'a Config,
+    connection: &'a Connection,
+    concept_name: &'a str,
+    relation: &'a GraphRelation,
     include_content: bool,
     community_id: Option<i64>,
-) -> Value {
+}
+
+fn render_relation_json(args: RelationJsonArgs<'_>) -> Value {
     let content_preview = load_content_preview(
-        connection,
-        concept_name,
-        &relation.source_files,
-        include_content,
+        args.connection,
+        args.concept_name,
+        &args.relation.source_files,
+        args.include_content,
     );
     let (decay_weight, weighted_score) = relation_weighted_score(
-        connection,
-        config,
-        relation.co_occurrence_count,
-        &relation.source_files,
+        args.connection,
+        args.config,
+        args.relation.co_occurrence_count,
+        &args.relation.source_files,
     )
-    .unwrap_or((1.0, relation.co_occurrence_count));
+    .unwrap_or((1.0, args.relation.co_occurrence_count));
     json!({
-        "Name": relation.name,
-        "CoOccurrenceCount": relation.co_occurrence_count,
-        "Files": preview::parse_source_files_for_json(&relation.source_files),
+        "Name": args.relation.name,
+        "CoOccurrenceCount": args.relation.co_occurrence_count,
+        "Files": preview::parse_source_files_for_json(&args.relation.source_files),
         "ContentPreview": content_preview,
         // T-GRAPH-DECAY-001.1: RTM FR-7.5
         "DecayWeight": decay_weight,
         "WeightedScore": weighted_score,
-        "CommunityId": community_id,
+        "CommunityId": args.community_id,
     })
 }
 

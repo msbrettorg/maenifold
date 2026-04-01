@@ -1,9 +1,11 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "session/session_cleanup_support.rs"]
 mod session_cleanup_support;
 
 use session_cleanup_support::{
-    TEST_MUTEX, cleanup_abandoned_sessions, create_session, file_content_row_count, isolated_env,
-    read_body, read_db_content, read_db_status, read_frontmatter_status,
+    TEST_MUTEX, cleanup_abandoned_sessions, create_pipeline_session, create_session,
+    file_content_row_count, isolated_env, read_body, read_db_content, read_db_status,
+    read_frontmatter_status,
 };
 
 // T-4.5b: RTM FR-4.2
@@ -149,4 +151,57 @@ fn empty_database_returns_zero_abandoned_sessions() {
     // Structural invariant: cleanup only SELECTs and UPDATEs — it should never INSERT rows.
     // This assertion documents intent rather than guarding against a plausible regression.
     assert_eq!(file_content_row_count(&env.cfg), 0);
+}
+
+#[test]
+fn pipeline_owned_workflow_sessions_are_not_abandoned() {
+    let _guard = TEST_MUTEX.lock();
+    let env = isolated_env();
+    let pipeline_uri = "memory://thinking/workflow/2026/03/09/workflow-pipeline-node";
+    let standalone_uri = "memory://thinking/workflow/2026/03/09/workflow-standalone";
+
+    // Pipeline-owned session: active for 60 min, but has pipelineId — must be skipped.
+    create_pipeline_session(
+        &env.cfg,
+        pipeline_uri,
+        "active",
+        60,
+        "# Workflow Session\n\n## Step 1\nPipeline [[node]] work",
+        "pipeline-1774546611412",
+    );
+    // Standalone session: same age, no pipelineId — should be abandoned normally.
+    create_session(
+        &env.cfg,
+        standalone_uri,
+        "active",
+        60,
+        "# Workflow Session\n\n## Step 1\nStandalone [[workflow]]",
+    );
+
+    let abandoned = cleanup_abandoned_sessions(&env.cfg);
+
+    assert_eq!(
+        abandoned, 1,
+        "only the standalone session should be abandoned"
+    );
+    assert_eq!(
+        read_frontmatter_status(&env.cfg, pipeline_uri),
+        "active",
+        "pipeline-owned session frontmatter must remain active"
+    );
+    assert_eq!(
+        read_db_status(&env.cfg, pipeline_uri),
+        "active",
+        "pipeline-owned session db status must remain active"
+    );
+    let pipeline_body = read_body(&env.cfg, pipeline_uri);
+    assert!(
+        !pipeline_body.contains("## Session Abandoned"),
+        "pipeline-owned session must not receive abandon notice"
+    );
+    assert_eq!(
+        read_frontmatter_status(&env.cfg, standalone_uri),
+        "abandoned",
+        "standalone session should be abandoned"
+    );
 }

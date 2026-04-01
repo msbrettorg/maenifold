@@ -1,11 +1,8 @@
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::{Config, assets, paths};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 fn isolated_config() -> (TempDir, Config) {
     let tmp = TempDir::new().expect("tmp");

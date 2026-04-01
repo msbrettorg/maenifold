@@ -1,12 +1,10 @@
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 
 use maenifold_core::json::OutputFormat;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{AssetManager, Config, GraphDatabase, MaenifoldError, ToolRegistry};
 
 pub use maenifold_core::memory;
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use serde_json::Value;
 use serde_yaml::Value as YamlValue;
 use std::collections::BTreeSet;
@@ -17,7 +15,7 @@ use walkdir::WalkDir;
 
 pub use maenifold_core::markdown;
 
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub struct TestEnv {
     _tmp: TempDir,

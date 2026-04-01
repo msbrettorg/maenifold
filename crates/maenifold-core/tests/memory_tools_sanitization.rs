@@ -191,7 +191,7 @@ fn write_memory_truncates_overlong_slug_but_preserves_title_metadata() {
         "unexpected: {result}"
     );
     let uri = extract_uri(&result);
-    let expected_slug = "a".repeat(255);
+    let expected_slug = "a".repeat(252);
     assert_eq!(uri, format!("memory://memory-tools-tests/{expected_slug}"));
 
     let raw = fs::read_to_string(raw_path_for_uri(&env, &uri)).expect("read raw file");
@@ -238,8 +238,8 @@ fn write_memory_keeps_exact_255_char_slug_unchanged() {
     let env = isolated_env();
     let title = "b".repeat(255);
 
-    // T-14.8: RTM FR-14 - slugs already at the 255-character limit should not
-    // be truncated further.
+    // T-14.8: RTM FR-14 - the persisted filename is `{slug}.md`, so a 255-char
+    // slug must truncate to the safe 252-char stem limit rather than erroring.
     let result = memory::write_memory(
         &env.ctx(),
         &json!({
@@ -254,7 +254,7 @@ fn write_memory_keeps_exact_255_char_slug_unchanged() {
         result.starts_with("Created memory FILE:"),
         "unexpected: {result}"
     );
-    let expected_slug = "b".repeat(255);
+    let expected_slug = "b".repeat(252);
     assert_eq!(
         extract_uri(&result),
         format!("memory://memory-tools-tests/{expected_slug}")

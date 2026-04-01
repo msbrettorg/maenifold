@@ -13,7 +13,7 @@ fn write_memory_json_success_includes_uri_and_checksum() {
     let payload = r#"{"title":"Contract Test","content":"Testing [[memory-boundary]] from Rust."}"#;
 
     let output = maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", payload, "--json"])
+        .args(["tool", "WriteMemory", payload, "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -43,7 +43,7 @@ fn write_memory_markdown_mode_returns_created_memory_file_prefix() {
         r#"{"title":"Simple Move Test","content":"Markdown output with [[memory-boundary]]."}"#;
 
     maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", payload])
+        .args(["tool", "WriteMemory", payload])
         .assert()
         .code(0)
         .stdout(predicate::str::contains(
@@ -58,7 +58,7 @@ fn write_memory_missing_title_uses_csharp_style_error_message() {
     let payload = r#"{"content":"no title [[test]]"}"#;
 
     let output = maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", payload, "--json"])
+        .args(["tool", "WriteMemory", payload, "--json"])
         .assert()
         .code(1)
         .get_output()
@@ -80,7 +80,7 @@ fn write_memory_rejects_traversal_folder_with_path_validation_error() {
     let payload = r#"{"title":"Traversal Rejection","content":"Traversal protection with [[path-traversal]].","folder":"safe/../escape"}"#;
 
     let output = maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", payload, "--json"])
+        .args(["tool", "WriteMemory", payload, "--json"])
         .assert()
         .code(1)
         .get_output()
@@ -98,13 +98,7 @@ fn read_memory_json_returns_content_uri_and_checksum_after_write() {
     let write_payload =
         r#"{"title":"Read Test","content":"Content with [[read-memory]] concept."}"#;
     let write_output = maenifold_cmd(&tmp)
-        .args([
-            "--tool",
-            "WriteMemory",
-            "--payload",
-            write_payload,
-            "--json",
-        ])
+        .args(["tool", "WriteMemory", write_payload, "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -118,7 +112,7 @@ fn read_memory_json_returns_content_uri_and_checksum_after_write() {
 
     let read_payload = format!(r#"{{"identifier":"{uri}","includeChecksum":true}}"#);
     let read_output = maenifold_cmd(&tmp)
-        .args(["--tool", "ReadMemory", "--payload", &read_payload, "--json"])
+        .args(["tool", "ReadMemory", &read_payload, "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -148,7 +142,7 @@ fn write_memory_creates_markdown_file_with_frontmatter_timestamps() {
     let payload = r#"{"title":"Frontmatter Test","content":"Timestamped [[frontmatter]] note.","folder":"memory-tests"}"#;
 
     maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", payload])
+        .args(["tool", "WriteMemory", payload])
         .assert()
         .code(0);
 
@@ -169,7 +163,7 @@ fn write_memory_without_wikilinks_returns_validation_error_json() {
     let payload = r#"{"title":"No Concepts","content":"This note has no concepts."}"#;
 
     let output = maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", payload, "--json"])
+        .args(["tool", "WriteMemory", payload, "--json"])
         .assert()
         .code(1)
         .get_output()
@@ -187,7 +181,7 @@ fn read_memory_missing_identifier_returns_not_found_json() {
     let payload = r#"{"identifier":"memory://does-not-exist","includeChecksum":true}"#;
 
     let output = maenifold_cmd(&tmp)
-        .args(["--tool", "ReadMemory", "--payload", payload, "--json"])
+        .args(["tool", "ReadMemory", payload, "--json"])
         .assert()
         .code(1)
         .get_output()
@@ -205,7 +199,7 @@ fn write_memory_rejects_url_encoded_traversal_folder_with_path_validation_error(
     let payload = r#"{"title":"Traversal Rejection","content":"Traversal protection with [[path-traversal]].","folder":"%2e%2e/escape"}"#;
 
     let output = maenifold_cmd(&tmp)
-        .args(["--tool", "WriteMemory", "--payload", payload, "--json"])
+        .args(["tool", "WriteMemory", payload, "--json"])
         .assert()
         .code(1)
         .get_output()

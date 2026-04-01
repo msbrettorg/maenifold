@@ -3,13 +3,11 @@ use maenifold_core::memory;
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
 // T-12.7: RTM NFR-1
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub const TEST_FOLDER: &str = "concept-graph-tests";
 pub const TEST_TAGS: &[&str] = &["ai", "ml", "test"];

@@ -21,22 +21,20 @@ fn find_similar_concepts_cli_returns_ranked_text_after_sync() {
         r#"{"title":"Similarity CLI Seed B","content":"Links [[authentication]] and [[jwt]]."}"#,
     ] {
         maenifold_cmd(&tmp)
-            .args(["--tool", "WriteMemory", "--payload", payload, "--json"])
+            .args(["tool", "WriteMemory", payload, "--json"])
             .assert()
             .code(0);
     }
     maenifold_cmd(&tmp)
-        .args(["--tool", "Sync", "--payload", "{}", "--json"])
+        .args(["tool", "Sync", "{}", "--json"])
         .assert()
         .code(0);
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "FindSimilarConcepts",
-            "--payload",
             r#"{"conceptName":"authentication","maxResults":5}"#,
-            "--json",
         ])
         .assert()
         .code(0)
@@ -58,12 +56,7 @@ fn watcher_cli_start_and_stop_should_return_lifecycle_messages() {
     let tmp = isolated_root();
 
     let start = maenifold_cmd(&tmp)
-        .args([
-            "--tool",
-            "StartWatcher",
-            "--payload",
-            r#"{"debounceMs":250}"#,
-        ])
+        .args(["tool", "StartWatcher", r#"{"debounceMs":250}"#])
         .assert()
         .code(0)
         .get_output()
@@ -80,7 +73,7 @@ fn watcher_cli_start_and_stop_should_return_lifecycle_messages() {
     );
 
     let stop = maenifold_cmd(&tmp)
-        .args(["--tool", "StopWatcher", "--payload", "{}"])
+        .args(["tool", "StopWatcher", "{}"])
         .assert()
         .code(0)
         .get_output()
@@ -98,7 +91,7 @@ fn watcher_cli_start_and_stop_should_return_lifecycle_messages() {
 fn sync_cli_json_returns_csharp_text_contract() {
     let tmp = isolated_root();
     let output = maenifold_cmd(&tmp)
-        .args(["--tool", "Sync", "--payload", "{}", "--json"])
+        .args(["tool", "Sync", "{}", "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -122,9 +115,8 @@ fn sync_and_extract_concepts_cli_should_exclude_code_block_wikilinks() {
     let tmp = isolated_root();
     maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "WriteMemory",
-            "--payload",
             r#"{"title":"Markdown Reader CLI Seed","content":"Visible [[authentication]] concept.\n\n```md\n[[ignored-in-code]]\n```\n\nInline `[[ignored-inline]]` should be excluded."}"#,
             "--json",
         ])
@@ -132,15 +124,14 @@ fn sync_and_extract_concepts_cli_should_exclude_code_block_wikilinks() {
         .code(0);
 
     maenifold_cmd(&tmp)
-        .args(["--tool", "Sync", "--payload", "{}", "--json"])
+        .args(["tool", "Sync", "{}", "--json"])
         .assert()
         .code(0);
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "ExtractConceptsFromFile",
-            "--payload",
             r#"{"identifier":"markdown-reader-cli-seed"}"#,
             "--json",
         ])

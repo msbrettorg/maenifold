@@ -1,4 +1,5 @@
 // T-12.7: RTM NFR-1 - split asset watcher filesystem event coverage into a focused test file.
+#[allow(clippy::duplicate_mod)]
 #[path = "asset_watcher/support.rs"]
 mod asset_watcher_support;
 

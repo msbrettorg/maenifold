@@ -2,16 +2,13 @@
 // Verify the Rust MemoryStatus tool returns all fields matching C# SystemTools.MemoryStatus:
 // folder count, total size, concept/relation/mention counts, DB size.
 
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::error::MaenifoldError;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{AssetManager, Config, GraphDatabase, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use serde_json::json;
 use std::fs;
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 struct TestEnv {
     _tmp: TempDir,

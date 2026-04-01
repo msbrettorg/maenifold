@@ -37,6 +37,7 @@ pub(crate) fn build_thought_section(
     (heading, content)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn build_completion_message(
     thought_number: u64,
     session_id: &str,

@@ -20,9 +20,12 @@ fn analyze_concept_corruption_reports_variant_counts_from_single_file() {
         CONCEPT_ANALYSIS_FIXTURE,
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "tool"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "tool"
+        }),
+    );
 
     assert!(
         output.contains("Concept Family Analysis"),
@@ -47,9 +50,12 @@ fn analyze_concept_corruption_classifies_variants_into_expected_categories() {
         CONCEPT_ANALYSIS_FIXTURE,
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "tool"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "tool"
+        }),
+    );
 
     assert!(
         output.contains("Singular/Plural:") && output.contains("tools"),
@@ -88,10 +94,13 @@ Variants: [[alpha-tool]], [[beta-tool]], [[gamma-tool]], [[delta-tool]].
 "#,
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "tool",
-        "maxResults": 2
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "tool",
+            "maxResults": 2
+        }),
+    );
 
     let report_body = report_body_before_repairs(&output);
 
@@ -137,9 +146,12 @@ fn analyze_concept_corruption_returns_zero_variants_for_unknown_family() {
         CONCEPT_ANALYSIS_FIXTURE,
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "zzz_nonexistent"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "zzz_nonexistent"
+        }),
+    );
 
     assert!(
         output.contains("Found 0 unique variants"),
@@ -152,12 +164,15 @@ fn analyze_concept_corruption_learn_true_returns_help_doc_instead_of_analysis() 
     // T-1.4: RTM FR-2 (TC-2.5 / RTM-012)
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
-    let (_tmp, _cfg) = isolated_config();
+    let (_tmp, cfg) = isolated_config();
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "tool",
-        "learn": true
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "tool",
+            "learn": true
+        }),
+    );
 
     assert!(
         output.contains("AnalyzeConceptCorruption"),
@@ -183,9 +198,12 @@ fn analyze_concept_corruption_suggests_repair_commands_for_safe_merges() {
         CONCEPT_ANALYSIS_FIXTURE,
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "tool"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "tool"
+        }),
+    );
 
     assert!(
         output.contains("SUGGESTED REPAIRS"),
@@ -212,9 +230,9 @@ fn analyze_concept_corruption_rejects_missing_concept_family() {
     // T-1.4: RTM FR-2 (error-path: MissingProperty)
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
-    let (_tmp, _cfg) = isolated_config();
+    let (_tmp, cfg) = isolated_config();
 
-    let result = try_analyze_concept_corruption(json!({}));
+    let result = try_analyze_concept_corruption(&cfg, json!({}));
 
     assert!(
         result.is_err(),
@@ -232,11 +250,14 @@ fn analyze_concept_corruption_rejects_empty_concept_family() {
     // T-1.4: RTM FR-2 (error-path: InvalidArgument)
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
-    let (_tmp, _cfg) = isolated_config();
+    let (_tmp, cfg) = isolated_config();
 
-    let result = try_analyze_concept_corruption(json!({
-        "conceptFamily": ""
-    }));
+    let result = try_analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": ""
+        }),
+    );
 
     assert!(
         result.is_err(),
@@ -254,12 +275,15 @@ fn analyze_concept_corruption_rejects_negative_max_results() {
     // T-1.4: RTM FR-2 (error-path: InvalidArgument)
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
-    let (_tmp, _cfg) = isolated_config();
+    let (_tmp, cfg) = isolated_config();
 
-    let result = try_analyze_concept_corruption(json!({
-        "conceptFamily": "tool",
-        "maxResults": -1
-    }));
+    let result = try_analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "tool",
+            "maxResults": -1
+        }),
+    );
 
     assert!(
         result.is_err(),

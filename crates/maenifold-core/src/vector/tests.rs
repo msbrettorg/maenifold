@@ -1,4 +1,11 @@
 use super::*;
+use crate::Config;
+use serial_test::serial;
+
+fn reset_vector_test_state() {
+    Config::reset_overrides();
+    cleanup();
+}
 
 fn cosine_similarity(left: &[f32], right: &[f32]) -> f32 {
     let dot = left
@@ -15,8 +22,9 @@ fn cosine_similarity(left: &[f32], right: &[f32]) -> f32 {
 }
 
 #[test]
+#[serial(config)]
 fn vector_generate_embedding_hello_world() {
-    cleanup();
+    reset_vector_test_state();
     load_model().expect("model loads");
     let embedding = generate_embedding("hello world").expect("embedding generated");
     assert_eq!(
@@ -35,8 +43,10 @@ fn vector_generate_embedding_hello_world() {
 }
 
 #[test]
+#[serial(config)]
 fn vector_batch_matches_individual() {
-    cleanup();
+    reset_vector_test_state();
+    load_model().expect("model loads");
     let text = "hello world";
     let individual = generate_embedding(text).expect("individual embedding");
     let batched = generate_embeddings(&[text], DEFAULT_MAX_BATCH).expect("batch embedding");
@@ -54,8 +64,10 @@ fn vector_batch_matches_individual() {
 }
 
 #[test]
+#[serial(config)]
 fn vector_base64_round_trip_preserves_embedding() {
-    cleanup();
+    reset_vector_test_state();
+    load_model().expect("model loads");
     let embedding = generate_embedding("hello world").expect("embedding generated");
     let encoded = generate_embedding_base64("hello world").expect("base64 generated");
     let decoded = decode_base64_embedding(&encoded);

@@ -1,5 +1,8 @@
 mod access;
 mod editing;
+mod editing_helpers;
+#[cfg(test)]
+mod editing_tests;
 mod lifecycle;
 mod listing;
 mod support;

@@ -1,15 +1,20 @@
 import type {
   AvailableCommand as SdkAvailableCommand,
-  PlanEntry as SdkPlanEntry,
+  ContentBlock as SdkContentBlock,
   PromptCapabilities as SdkPromptCapabilities,
+  ToolCallContent as SdkToolCallContent,
 } from '@agentclientprotocol/sdk';
 
 // Types for maenifold application
 
+export type AcpMetadata = Record<string, unknown> | null;
+
+interface AcpMetadataCarrier {
+  _meta?: AcpMetadata;
+}
+
 export interface AgentConfig {
   command: string;
-  args: string[];
-  env?: Record<string, string>;
 }
 
 export interface AgentsConfig {
@@ -45,33 +50,37 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  blocks?: ContentBlock[];
   thought?: string;
   timestamp: number;
   toolCalls?: ToolCallInfo[];
 }
 
-export interface ToolCallInfo {
+export interface ToolCallInfo extends AcpMetadataCarrier {
   toolCallId: string;
   title: string;
   kind: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  locations?: { path: string }[];
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+  locations?: { path: string; line?: number }[];
+  content?: ToolCallContentBlock[];
+  rawInput?: Record<string, unknown>;
+  rawOutput?: Record<string, unknown>;
 }
 
-export interface PermissionRequest {
+export interface PermissionRequest extends AcpMetadataCarrier {
   sessionId: string;
   toolCall: ToolCallInfo;
   options: PermissionOption[];
 }
 
-export interface PermissionOption {
+export interface PermissionOption extends AcpMetadataCarrier {
   kind: string;
   name: string;
   optionId: string;
 }
 
 // Session Modes
-export interface SessionMode {
+export interface SessionMode extends AcpMetadataCarrier {
   id: string;
   name: string;
   description?: string;
@@ -83,13 +92,13 @@ export interface SessionModeState {
 }
 
 // Session Config Options
-export interface SessionConfigSelectOption {
+export interface SessionConfigSelectOption extends AcpMetadataCarrier {
   value: string;
   name: string;
   description?: string;
 }
 
-export interface SessionConfigSelectGroup {
+export interface SessionConfigSelectGroup extends AcpMetadataCarrier {
   group: string;
   name: string;
   options: SessionConfigSelectOption[];
@@ -99,7 +108,7 @@ export type SessionConfigSelectOptions =
   | SessionConfigSelectOption[]
   | SessionConfigSelectGroup[];
 
-export interface SessionConfigOption {
+export interface SessionConfigOption extends AcpMetadataCarrier {
   id: string;
   name: string;
   description?: string;
@@ -109,25 +118,67 @@ export interface SessionConfigOption {
   options: SessionConfigSelectOptions;
 }
 
-// Slash Commands
-export interface SlashCommand {
-  name: string;
-  description: string;
-  hint?: string;
-}
-
 // Models
-export interface ModelInfo {
+export interface ModelInfo extends AcpMetadataCarrier {
   modelId: string;
   name: string;
   description?: string;
 }
 
-export type PromptCapabilities = SdkPromptCapabilities;
+export interface AgentInfo extends AcpMetadataCarrier {
+  name: string;
+  title?: string;
+  version?: string;
+}
 
-export type AvailableCommand = SdkAvailableCommand;
+export type PromptCapabilities = SdkPromptCapabilities & AcpMetadataCarrier;
 
-export type PlanEntry = SdkPlanEntry;
+export type AvailableCommand = SdkAvailableCommand & AcpMetadataCarrier;
+
+// The ACP SDK content block type is intentionally strict, but maenifold's UI
+// expects these optional fields on resource_link blocks.
+export type ResourceLinkContentBlock = Extract<SdkContentBlock, { type: 'resource_link' }> & {
+  // For resource_link blocks:
+  title?: string | null;
+  description?: string | null;
+  // ACP often encodes int64 sizes as bigint in TypeScript; allow both.
+  size?: number | bigint | null;
+};
+
+export type ContentBlock =
+  | Exclude<SdkContentBlock, { type: 'resource_link' }>
+  | ResourceLinkContentBlock;
+
+export type ToolCallInlineContentBlock = Extract<SdkToolCallContent, { type: 'content' }>;
+
+export type ToolCallDiffContentBlock = Extract<SdkToolCallContent, { type: 'diff' }>;
+
+export type ToolCallTerminalContentBlock = Extract<SdkToolCallContent, { type: 'terminal' }> & {
+  output?: string;
+  truncated?: boolean;
+  released?: boolean;
+  exitStatus?: {
+    exitCode?: number | null;
+    signal?: string | null;
+  } | null;
+};
+
+export type ToolCallUnknownContentBlock = {
+  type: string;
+  [key: string]: unknown;
+};
+
+export type ToolCallContentBlock =
+  | ToolCallInlineContentBlock
+  | ToolCallDiffContentBlock
+  | ToolCallTerminalContentBlock
+  | ToolCallUnknownContentBlock;
+
+export interface PlanEntry extends AcpMetadataCarrier {
+  content: string;
+  priority: 'high' | 'medium' | 'low';
+  status: 'pending' | 'in_progress' | 'completed';
+}
 
 export interface SessionState {
   sessionId: string;
@@ -143,7 +194,7 @@ export interface SessionState {
   pendingPermissions: PermissionRequest[];
   pendingAuthMethods: any[];
   pendingAuthAgentName: string;
-  agentInfo: { name: string; title?: string; version?: string } | null;
+  agentInfo: AgentInfo | null;
   agentPromptCapabilities: PromptCapabilities | null;
   supportsSessionList: boolean;
   availableModes: SessionMode[];
@@ -153,7 +204,7 @@ export interface SessionState {
   availableCommands: AvailableCommand[];
   configOptions: SessionConfigOption[];
   hasConfigOptions: boolean;
-  currentPlan: PlanEntry[];
+  currentPlan: PlanEntry[] | null;
   startupPhase: string;
   startupLogs: string[];
   startupElapsed: number;
@@ -192,7 +243,7 @@ export function createEmptySessionState(
     availableCommands: [],
     configOptions: [],
     hasConfigOptions: false,
-    currentPlan: [],
+    currentPlan: null,
     startupPhase: '',
     startupLogs: [],
     startupElapsed: 0,

@@ -119,13 +119,9 @@ mod tests {
     use crate::config::Config;
     use crate::db::GraphDatabase;
     use chrono::{Duration, Utc};
-    use once_cell::sync::Lazy;
-    use parking_lot::Mutex;
     use rusqlite::{Connection, params};
+    use serial_test::serial;
     use tempfile::TempDir;
-
-    // T-15.8: Serialise tests that mutate the process-wide Config singleton.
-    static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
     struct TestDb {
         _tmp: TempDir,
@@ -170,8 +166,8 @@ mod tests {
 
     // T-14.7: RTM FR-13
     #[test]
+    #[serial(config)]
     fn community_edge_weight_is_zero_when_source_files_are_empty() {
-        let _lock = TEST_MUTEX.lock();
         let db = TestDb::setup();
         assert_eq!(graph_edge_weight("{}", &db.conn, &db.cfg), 0.0);
         assert_eq!(graph_edge_weight("", &db.conn, &db.cfg), 0.0);
@@ -180,8 +176,8 @@ mod tests {
     // T-14.7: RTM FR-13
     // When source files have no DB row and no disk file, decay falls back to 1.0 (neutral).
     #[test]
+    #[serial(config)]
     fn community_edge_weight_uses_source_file_weights_when_no_db_row() {
-        let _lock = TEST_MUTEX.lock();
         let db = TestDb::setup();
         let source_files = r#"{"memory://a.md":1.25,"memory://b.md":0.75}"#;
         assert_eq!(graph_edge_weight(source_files, &db.conn, &db.cfg), 2.0);
@@ -189,8 +185,8 @@ mod tests {
 
     // T-15.8: RTM FR-13 — recent source files yield edge weight near raw proximity sum.
     #[test]
+    #[serial(config)]
     fn community_edge_weight_recent_files_near_raw_sum() {
-        let _lock = TEST_MUTEX.lock();
         let db = TestDb::setup();
         let now = Utc::now().to_rfc3339();
         db.insert_file_content("memory://recent_a.md", &now, Some(&now));
@@ -208,8 +204,8 @@ mod tests {
 
     // T-15.8: RTM FR-13 — old source files yield edge weight decayed below raw sum.
     #[test]
+    #[serial(config)]
     fn community_edge_weight_old_files_decayed_below_raw_sum() {
-        let _lock = TEST_MUTEX.lock();
         let db = TestDb::setup();
         let old = (Utc::now() - Duration::days(365)).to_rfc3339();
         db.insert_file_content("memory://old_a.md", &old, Some(&old));
@@ -231,8 +227,8 @@ mod tests {
 
     // T-15.8: RTM FR-13 — mix of old and new source files yields weighted average.
     #[test]
+    #[serial(config)]
     fn community_edge_weight_mixed_ages_reflects_decay() {
-        let _lock = TEST_MUTEX.lock();
         let db = TestDb::setup();
         let now = Utc::now().to_rfc3339();
         let old = (Utc::now() - Duration::days(365)).to_rfc3339();

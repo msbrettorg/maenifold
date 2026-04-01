@@ -18,393 +18,185 @@ The system SHALL support MCP Streamable HTTP transport alongside existing stdio 
 - **Dual transport**: Both transports can be compiled into the same binary. Only one is active at runtime based on CLI flags.
 - **Session management**: HTTP sessions managed per MCP spec with `Mcp-Session-Id` headers.
 
-### FR-31: OpenCode Plugin Runtime Config Helper
-
-The system SHALL package OpenCode local plugin shared runtime helpers inside the plugin directory so relative imports resolve correctly when `~/.config/opencode/plugins` is loaded directly by OpenCode.
-
-- **Shared helper**: `assets/integrations/opencode/plugins/lib/config.ts` SHALL provide `getMaenifoldPluginEnv(name)` and `getMaenifoldPluginFlag(name)` for all OpenCode plugin modules.
-- **Resolution order**: The helper SHALL resolve `process.env` first, then fall back to `~/.config/opencode/opencode.json` → `mcp.maenifold.environment`.
-- **Fail-open behavior**: Missing config files, malformed JSON/JSONC, or absent keys SHALL return `undefined` without throwing.
-- **Plugin-loader safety**: Runtime plugin modules SHALL expose only callable plugin factories at top level so OpenCode's plugin loader does not attempt to invoke non-plugin helper exports.
-- **Shared usage**: `persistence.ts`, `confession.ts`, and `compaction.ts` SHALL all consume the shared helper rather than duplicating config resolution logic.
-
 ### FR-32: Web UI (`--web` flag) ✅ Sprint 26
 
 The system SHALL support a `--web` CLI flag that launches a browser-accessible web interface on the same port as the MCP HTTP endpoint, combining an ACP chat panel for interacting with AI coding agents and a force-directed knowledge graph visualization.
 
-- **CLI**: `maenifold --web [--port <PORT>]` starts HTTP server with MCP endpoints at `/mcp` AND serves the web UI SPA at `/`. Superset of `--http`. Mutually exclusive with `--mcp`.
-- **Feature flag**: Gated behind `web` cargo feature flag to keep the base binary lean. `web` implies `http`.
-- **ACP integration**: WebSocket relay at `/ws/acp` provides transparent JSON-RPC passthrough to ACP agents spawned as subprocesses (stdin/stdout). No protocol translation — browser sends raw ACP JSON-RPC, relay pipes to agent.
-- **Embedded SPA**: Frontend based on [ACP UI](https://github.com/formulahendry/acp-ui) Vue 3 SPA (fork at `vendor/acp-ui`), extracted from Tauri shell, compiled to static assets and embedded in the binary via `rust-embed`. Features: multi-agent, sessions, agent thinking, slash commands, permissions, model picker, traffic monitor.
-- **Graph visualization**: Force-directed graph view of the knowledge graph (concepts as nodes, co-occurrence as edges, communities as clusters), exposed via REST API endpoints at `/api/graph/*`.
-- **Agent configuration**: `agents.json` config file (in maenifold config dir) defining available ACP agents with command, args, and env vars. Supports fetching the [ACP registry](https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json).
-
 ### ~~FR-33: Web UI — Files & History Tabs~~ (DEPRECATED)
-
-Deprecated: ACP UI (FR-39) provides native session management. The chrome-acp proxy protocol that FR-33 targeted has been removed. File browsing is handled by the ACP agent itself.
 
 ### ~~FR-34: Web UI — Community-Scoped Graph View~~ (DEPRECATED)
 
-Deprecated: GraphView was disabled due to performance issues (30s forced refresh). Future graph visualization will be implemented as an ACP UI Vue panel extension, not as the chrome-acp React component this FR targeted.
-
 ### FR-35: System Tray Icon ✅ Sprint 29
-
-The system SHALL display a system tray icon (macOS menu bar / Windows system tray / Linux notification area) when running in `--web` or `--http` mode.
-
-- **Menu items**: The tray menu SHALL include: "Open Web UI" (launches default browser to `http://localhost:{port}`), "Help" (opens `https://github.com/ma-collective/maenifold-rs/issues`), and "Quit" (graceful shutdown).
-- **Lifecycle**: The tray icon appears when the server starts and disappears on shutdown.
-- **Implementation**: Uses the `tray-icon` crate. The native event loop runs on the main thread; the tokio runtime and server run on a background thread.
-- **Applicability**: Only active in `--web` and `--http` modes. Stdio mode (`--mcp`) is headless.
 
 ### FR-36: Remove Cargo Feature Flags ✅ Sprint 29
 
-The system SHALL compile all functionality unconditionally — no cargo feature flags.
-
-- **Rationale**: All features (`http`, `web`) ship in every binary. Feature flags add build matrix complexity, conditional compilation bugs, and "forgot `--features`" friction for zero benefit.
-- **Scope**: Remove `http` and `web` feature flags from all `Cargo.toml` files. Remove all `#[cfg(feature = "...")]` gates. All deps compile unconditionally.
-- **CLI unchanged**: `--mcp`, `--http`, `--web` remain as runtime mode selectors — they choose behavior, not compilation scope.
-
 ### FR-37: MCP Server Hardening ✅ Sprint 27
-
-The MCP server SHALL be hardened against async correctness, resource leak, protocol compliance, and reliability issues identified by dual-model audit.
-
-- **Async correctness**: `call_tool`, `list_resources`, and `read_resource` handlers SHALL offload blocking work (filesystem, SQLite, ONNX) to `tokio::task::spawn_blocking` instead of executing synchronously on the async runtime.
-- **Session lifetime**: HTTP and web transports SHALL configure `LocalSessionManager` with a finite `keep_alive` (5 minutes) so abandoned sessions are reaped automatically.
-- **CORS completeness**: `serve_web` SHALL apply CORS to the top-level router (including `/mcp`), and `localhost_cors()` SHALL expose `Mcp-Session-Id` in response headers.
-- **Resource notification truthfulness**: HTTP and web transports SHALL either implement `resources/list_changed` notifications or stop advertising the capability.
-- **Error classification**: `MaenifoldError::Message` SHALL be removed from `is_validation_error` to prevent internal errors from being misclassified as user input errors.
-- **Panic elimination**: `replace_section` in `editing.rs` SHALL replace `expect("heading end set with section start")` with a proper `ok_or_else` error return.
-- **Runtime initialization dedup**: `current_asset_manager()` SHALL not re-run `initialize_runtime` on every resource request.
 
 ### FR-38: Rust MCP Expert Agent Rewrite ✅ Sprint 27
 
-The `rust-mcp-expert.agent.md` instruction file SHALL be rewritten to accurately reflect rmcp v1.1.0 APIs, transports, macros, and patterns. All code examples SHALL be compilable against the current SDK.
-
 ### FR-39: Replace chrome-acp with ACP UI ✅ Sprint 28
 
-The web UI SPA SHALL be replaced from chrome-acp (React, minimal) to ACP UI (Vue 3, feature-complete).
+### FR-40: Pipeline Active Executor ✅ Sprint 51 + Sprint 56 + Sprint 57 + Sprint 58
 
-- **Submodule swap**: Remove `vendor/chrome-acp` git submodule, add `vendor/acp-ui` (fork of [formulahendry/acp-ui](https://github.com/formulahendry/acp-ui)).
-- **Tauri extraction**: Strip all `@tauri-apps/*` dependencies from the Vue SPA. Replace Tauri `invoke()`/`listen()` with a WebSocket adapter connecting to the Rust relay. Replace `plugin-store` with `localStorage`. Replace native folder picker with text input.
-- **Relay simplification**: Replace chrome-acp proxy protocol (connect/new_session/prompt message types) with transparent JSON-RPC passthrough. Browser sends raw ACP JSON-RPC over WebSocket, relay pipes to agent stdin. Agent stdout pipes back to browser. Remove `agent-client-protocol` crate dependency.
-- **Build system**: Update `build.rs` and `Makefile` to build and embed `vendor/acp-ui/dist` instead of `vendor/chrome-acp/packages/proxy-server/public`.
-- **Features preserved**: `?agent=` query parameter enforcement, `/api/agents` REST endpoint, stderr forwarding for startup progress, agent lifecycle tied to WebSocket connection.
+The Pipeline tool SHALL become an autonomous DAG execution engine that drives ACP agents via `acpx` subprocesses, inverting the current passive state-tracker model.
 
-### FR-40: Mermaid Diagram Rendering in Chat
+- **Graph backend**: Pipeline DAG SHALL use `petgraph::StableGraph` for graph structure, cycle detection, topological ordering, and graph surgery (graft/join/fork).
+- **AcpX driver**: The system SHALL spawn and manage `acpx` subprocesses via `tokio::process::Command`, using `--format json` for structured output parsing.
+- **Execution engine**: On `run`, maenifold SHALL autonomously compute ready sets, dispatch nodes to ACP agents bounded by `maxConcurrency` (via `tokio::sync::Semaphore` + `JoinSet`), collect results, cascade state, and repeat until the DAG completes. The executor runs as a Rust-native async task (`executor.rs`) — the original bash bridge (`maenifold-acp pipeline`) was removed in Sprint 56.
+- **Lifecycle controls**: The system SHALL support `run`, `pause` (stop dispatching new nodes), `resume`, `cancel` (abort active via `CancellationToken`, abandon remaining), and `rewind` (reset subgraph to Pending and re-execute). Pause/resume use an `AtomicBool` flag checked between dispatch cycles.
+- **HSM integration**: Each pipeline node SHALL execute its workflow via the existing Workflow tool, with SequentialThinking submachines spawned when `requiresSequentialThinking=true`. Nesting: Pipeline → Workflow → SequentialThinking.
+- **Graph surgery**: The system SHALL support `graft` (add nodes/edges), `join` (merge DAGs), and `fork` (clone from a node) operations on pipeline DAGs, leveraging `StableGraph` stable indices.
+- **CRUD**: The system SHALL support `create`, `view`, `delete` pipeline operations via MCP for agents and UI.
+- **State persistence**: Pipeline state SHALL persist as markdown + YAML frontmatter (existing pattern). No database migration.
 
-The web UI SHALL render Mermaid diagram code blocks in assistant chat messages as interactive SVG diagrams.
+### FR-41: File-Authoritative Pipeline Gate Cache ✅ Sprint 53 + Sprint 54
 
-- **Detection**: Code blocks with language tag `mermaid` (` ```mermaid `) in rendered chat messages SHALL be detected and replaced with rendered SVG output.
-- **Rendering**: Uses the `mermaid` npm package for client-side SVG rendering. No server-side dependency.
-- **Lazy loading**: The mermaid library SHALL be loaded dynamically (`import('mermaid')`) only when the first mermaid code block is detected, to avoid bloating initial page load.
-- **Dark theme**: Mermaid SHALL be initialized with `{ theme: 'dark' }` to match the application's dark UI theme.
-- **Error handling**: Invalid mermaid syntax SHALL display the original code block with an error indicator rather than crashing or showing blank content.
-- **Supported diagram types**: All mermaid-supported diagram types (flowchart, sequence, class, state, ER, gantt, pie, etc.) SHALL render correctly.
+CLI tool (`gate`) making todo/done markdown files authoritative for pipeline task state, with gate.db as a rebuildable cache. Replaces raw sqlite3 gate.db commands.
 
-### FR-41: Native Desktop App via Tauri — Sprint 31
+- **Authoritative state**: Pipeline task state SHALL live entirely in markdown artifacts under `todo/` and `done/`.
+- **Cache semantics**: `gate.db` SHALL be treated as a derived cache/index used to avoid rescanning thousands of task files during normal pipeline operations.
+- **Advance enforcement**: `gate advance` SHALL validate the requested transition against the task file, append the canonical stage section, and only then update the DB cache.
+- **Sync recovery**: `gate sync` SHALL rebuild or reconcile `gate.db` from on-disk task state.
+- **Status inspection**: `gate status` SHALL report effective task state derived from disk, with optional cache cross-check metadata.
+- **Parser hardening** (Sprint 54): Parser SHALL tolerate rework cycles, out-of-order headings, emoji verdicts, implicit verdicts, no-SWE done files, and case-insensitive CLI input.
+- **Location-authoritative fallback**: Files in `done/` SHALL be treated as done regardless of incomplete audit trail, with a diagnostic note preserved in status output.
 
-The system SHALL embed the ACP UI frontend in a native Tauri v2 webview window, replacing the browser-served SPA approach.
+### FR-42: Configurable Pipeline Engine
 
-- **Single binary**: `maenifold --app` SHALL open a native desktop window (Tauri webview) instead of serving assets to a browser.
-- **Workspace integration**: A new `crates/maenifold-app` crate SHALL own the Tauri runtime, config, and build script.
-- **Tray integration**: The Tauri app SHALL provide system tray functionality (Open Window, Open at Login, Help, Quit) using Tauri's native tray APIs, replacing the current winit/tray-icon implementation for `--app` mode.
-- **Frontend embedding**: The Vue frontend dist/ from `vendor/acp-ui` SHALL be embedded at compile time via Tauri's asset codegen.
-- **Mode separation**: `--mcp` remains headless. `--http` retains axum-served UI for remote/browser access. `--app` is native desktop only.
-- **Window behavior**: Close button hides to tray. Tray click shows window. Dock icon visible only when window is visible.
+Replace the hardcoded SWE→Red→Blue pipeline with a JSON-driven process engine. Simplify the CLI to three state-changing commands with role-based separation enforced by agent tool configuration.
 
-### FR-42: ACP Protocol Compliance — Sprint 32
+#### Pipeline Definition
 
-The ACP-UI client SHALL fully comply with the Agent Client Protocol specification across all protocol areas. This encompasses initialization, session setup, prompt turn lifecycle, session configuration, slash commands, tool calls, content blocks, agent plans, session listing, file system methods, and transport compliance.
+- The system SHALL load pipeline stage definitions from a JSON file (e.g., `pipeline.json`).
+- Each stage SHALL declare: name, valid verdicts (pass/reject/fail), transition targets on each verdict, and optionally allowed/denied agent roles.
+- The JSON definition SHALL be validated as a DAG on load. Cycles SHALL be rejected.
+- Predefined pipelines SHALL be shipped (e.g., `tdd.json`: swe→red→blue; `lightweight.json`: swe→blue).
+- `--pipeline <path>` SHALL override the default; if omitted, gate SHALL look for `pipeline.json` in the root.
 
-#### FR-42.1: Initialization Compliance
+#### ID-Based CLI
 
-The client SHALL:
-- Check the `protocolVersion` returned by the agent in the `initialize` response and disconnect with a clear error if the version is unsupported.
-- Store `agentInfo` (name, title, version) from the `initialize` response for display and diagnostics.
-- Store `agentCapabilities.promptCapabilities` and gate image/audio/resource UI features accordingly.
-- Extract a shared `performInitialization()` helper to eliminate duplicate `initialize` blocks in `createSession` and `resumeSession`.
+- All state-changing commands SHALL accept a task ID (e.g., `T-54.1`), NOT a filename.
+- The database SHALL map task IDs to file paths, current stage, location, and history.
+- `gate status` and `gate status <ID>` SHALL resolve from the database. `gate sync` rebuilds the mapping.
 
-#### FR-42.2: Session Setup Compliance
+#### Command Separation
 
-The client SHALL:
-- Validate that `cwd` is an absolute path before calling `session/new`. The `'.'` fallback MUST be removed.
-- Re-check `agentCapabilities.loadSession` from the live `initialize` response before calling `session/load` in `resumeSession`.
-- Add abort guards and `isConnecting` flag to `resumeSession` matching the `createSession` pattern.
+- `gate append <ID> --notes "..." --agent <role>` — Logs work to the task file. Does NOT change pipeline state. Available to subagents.
+- `gate pass <ID> --notes "..."` — Advances the task to the next stage per the pipeline definition. Moves file to `done/` on terminal pass. Orchestrator-only.
+- `gate reject <ID> --notes "..."` — Rolls the task back per the pipeline definition (e.g., to pending). Orchestrator-only.
+- `gate advance` SHALL be removed. Its responsibilities are split across `pass`, `reject`, and `append`.
 
-#### FR-42.3: Prompt Turn Compliance
+#### Authorization Model
 
-The client SHALL:
-- Call `cancelPermission()` from within `cancelOperation()` when a permission request is pending (MUST per spec).
-- Preemptively mark all non-finished tool calls as `cancelled` when sending `session/cancel`.
-- Differentiate `stopReason` values (`refusal`, `max_tokens`, `max_turn_requests`) in the UI with appropriate feedback.
+- Authorization SHALL be enforced by agent tool configuration, NOT by the binary.
+- Subagent configs SHALL include `gate append` only. `gate pass` and `gate reject` SHALL be excluded from subagent tool lists.
+- `pass` and `reject` SHALL implicitly record `orchestrator` as the agent role.
+- The binary SHALL NOT implement authentication, tokens, or cryptographic verification.
 
-#### FR-42.4: Session Config Options
+## FR-43: Pipeline UI Frontend Components
 
-The client SHALL:
-- Render `ConfigOptionPicker` components for each `configOption` returned by the agent.
-- Suppress legacy `ModePicker`/`ModelPicker` when `configOptions` is present and non-empty.
-- Implement `unstable_setSessionConfigOption` on `AcpClientBridge` to call `session/set_config_option`.
-- Filter unrecognized option `type` values (only render `select`).
+The standalone pipeline-ui application (`/Users/brett/src/ma-collective/pipeline-ui/`) SHALL provide a visual DAG editor and runner for maenifold pipelines, communicating exclusively via MCP Streamable HTTP to the maenifold server.
 
-#### FR-42.5: Tool Call Content
+FR-43.1: The application SHALL include a PipelineInspector component that shows context-sensitive configuration (design mode) or read-only status with action buttons (server mode) for the selected node or edge.
 
-The client SHALL:
-- Store the `content` field from `tool_call` and `tool_call_update` notifications.
-- Accumulate content from successive `tool_call_update` notifications.
-- Store `locations` updates from `tool_call_update`.
-- Add `line` to the `locations` type definition.
+FR-43.2: The application SHALL include a PipelineRunner component with lifecycle control buttons (create/run/pause/resume/cancel/delete), an event log tab, and a mermaid diagram tab.
 
-#### FR-42.6: Agent Plan Support
+FR-43.3: The application SHALL include a PipelineSidebar component that lists all pipelines from the server, supports creating new pipelines, loading existing ones, and deleting them.
 
-The client SHALL:
-- Handle `plan` session update notifications and store plan entries in reactive state.
-- Render plan entries with `content`, `priority` badge, and `status` indicator.
+FR-43.4: The application SHALL include a PipelineView shell component that composes the sidebar, composer, inspector, and runner into a four-panel layout, integrated into the main App.vue via a toggle button.
 
-#### FR-42.7: Session Info Updates
+FR-44: The PipelineComposer SHALL provide a node creation toolbar in design mode enabling users to add nodes with workflow ID, optional ACP client, and connect them with edges.
 
-The client SHALL:
-- Handle `session_info_update` notifications to update session title and timestamp.
-- Remove the client-side first-message title hack in `sendPrompt`.
+FR-45: The pipeline-ui test suite SHALL use ONLY real integration tests against a live maenifold --http server. No mocked fetch, no mocked composables, no fake responses. Per TESTING_PHILOSOPHY.md.
 
-#### FR-42.8: Slash Command Hint
+FR-46: The pipeline-ui SHALL include functional smoke tests that verify UI components render, respond to user interaction, and display real data from the MCP server.
 
-The client SHALL:
-- Render the `hint` field from slash commands as textarea placeholder text after command selection.
-- Remove the dead code branch in `handleCommandSelect`.
+### FR-47: Pipeline Dataflow Architecture
 
-#### FR-42.9: File System Compliance
+The Pipeline tool SHALL support three distinct node types with per-node prompts and predecessor context propagation, replacing the current flat prompt model where every node receives the same run-level prompt.
 
-The client SHALL:
-- Validate that `path` is absolute before executing `fs/read_text_file` and `fs/write_text_file`.
-- Create parent directories before writing files (`mkdir -p` equivalent).
-- Return `null` (not `{}`) from successful `writeTextFile` calls.
+- **Node types**: `PipelineNode` SHALL be a serde-tagged enum (`#[serde(tag = "type")]`) with three variants: `Workflow` (existing, extended with per-node `prompt`), `Prompt` (new — single prompt to ACP agent), and `SequentialThinking` (new — drives a thinking session to completion).
+- **Backwards compatibility**: Existing pipeline JSON (`{ "id", "workflowId", "acpClient" }`) without a `type` field SHALL deserialize as a Workflow node via `#[default]` on the `PipelineNodeKind` enum.
+- **Per-node prompt**: Each node SHALL carry its own prompt/topic. The run-level prompt becomes optional ambient context. Prompt assembly order: predecessor context → ambient prompt → node prompt → (workflow step text for workflow nodes only).
+- **Output capture**: `NodeState` SHALL include `output: Option<String>`. On node completion, the executor SHALL capture the agent's conclusion/response into `NodeState.output` for downstream consumption.
+- **Predecessor context**: The executor SHALL build predecessor context from upstream `NodeState.output` values (not from session files). The existing `predecessor_context_content()` pattern is preserved but reads from in-memory output.
+- **Type-based dispatch**: `dispatch.rs` SHALL branch on node type — `activate_workflow_node_session` for workflow nodes only. Prompt and SequentialThinking nodes SHALL create appropriate sessions without workflow activation.
+- **Type-based execution**: `executor.rs` SHALL branch on node type — workflow → `run_workflow()`, prompt → single ACP agent prompt, sequentialThinking → `drive_think_session()`.
+- **Validation**: `validate_definition()` SHALL enforce type-specific required fields (workflow needs `workflowId`, prompt needs `prompt`+`agent`, sequentialThinking needs `topic`+`agent`).
+- **Mermaid display**: `view.rs` SHALL render different node shapes/styles per type in the Mermaid DAG diagram.
 
-#### FR-42.10: Transport & Extensibility Compliance
+### FR-49: File Size Remediation — 300 LOC Limit Enforcement
 
-The client SHALL:
-- Convert WebSocket relay out-of-band frames to valid JSON-RPC `_relay/*` notifications.
-- Fix event listener leaks in `ModePicker.vue` and `ModelPicker.vue` (add `onUnmounted` cleanup).
+All production source files SHALL be refactored to comply with the 300 LOC maximum established in AGENTS.md. The following 22 files exceed 1.5x the limit and SHALL be split into focused, single-responsibility modules without changing external behavior.
 
-### FR-43: ACP Protocol Compliance — Prompt Capabilities — Sprint 33
+**maenifold-rs (Rust):**
 
-The ACP-UI client SHALL implement all remaining ACP protocol compliance gaps identified by dual-model audit, covering prompt capabilities, content block fidelity, session management, and transport correctness. (21 specs, see CHANGELOG.md for details.)
-
-### FR-44: Multi-Tab Sessions — Sprint 34
-
-The ACP-UI client SHALL support multiple simultaneous agent sessions as tabs, replacing the singleton session model.
-
-- **Tab lifecycle**: Each `createSession` or `resumeSession` opens a new tab. Closing a tab disconnects its ACP bridge.
-- **Tab state isolation**: Each tab owns its own messages, tool calls, config options, scroll position, and input draft.
-- **Sidebar as launcher**: The sidebar agent list remains always available. Selecting an agent opens a new tab (or focuses an existing tab connected to that agent).
-- **Tab strip**: A horizontal tab bar displays all open sessions with agent name, connection status indicator, and close button.
-- **Backward compatibility**: Single-tab usage is indistinguishable from the previous singleton model.
-
-### ~~FR-44.1: Tab Reactivity Fix~~ (DEPRECATED — superseded by FR-44.12)
-
-Interim fix using `shallowRef + triggerRef`. Addressed immediate tab strip failures but created a maintenance burden: 17+ mutation sites require manual `triggerRef` calls. Superseded by FR-44.12's architectural approach.
-
-### FR-44.12: Multi-Tab State Architecture — Sprint 35
-
-The ACP-UI client SHALL restructure multi-tab state management so that per-tab mutations are naturally reactive without manual `triggerRef` calls.
-
-- **Problem**: Sprint 34 wrapped the OG single-session state in `shallowRef<Map<string, TabState>>`. This requires manual `triggerRef(tabs)` at every mutation site. Research (T-44.5b, T-44.10) identified 17+ gaps causing stale permission dialogs, broken auto-scroll during streaming, and component state bleed across tabs.
-- **Solution**: Per-tab reactive state (each tab independently reactive), keyed `<ChatView :key="activeTabId">`, per-tab UI state in store, deep scroll watch on active tab's messages, and content-version-based unseen output detection.
-- **Success criteria**: Zero `triggerRef` calls remain in `session.ts` after restructuring.
-
-### FR-45: Pipeline Engine — Sprint 35
-
-The system SHALL introduce a Pipeline entity that orchestrates workflows across multiple ACP clients as a directed acyclic graph (DAG). Workflows remain the unit of work for a single ACP client. Pipelines coordinate work across clients with dependency tracking, derived execution state, and session pre-creation.
-
-#### Conceptual Model
-
-- **Workflow** = unit of work for one ACP client. Steps execute sequentially within a single session. One agent, one session, no cross-context leakage. Existing 69 JSON definitions unchanged.
-- **Pipeline** = DAG orchestrator across multiple ACP clients. Each node references a workflow and an ACP client. Resumable, restartable, forkable. The pipeline owns session lifecycle; agents are executors handed sessions to work through.
-
-#### FR-45.1: Pipeline Definition Format
-
-The system SHALL support pipeline definitions as JSON with `nodes[]` and `edges[]` arrays.
-
-- **Node schema**: Each node SHALL have `id` (unique string), `workflowId` (reference to an existing workflow JSON asset), and optional `acpClient` (which connected ACP client executes this node).
-- **Edge schema**: Each edge SHALL have `source` (node ID), `target` (node ID), and `type` (`success` or `always` for v1).
-- **Validation**: The system SHALL reject pipeline definitions containing cycles (topological sort validation at creation time).
-- **Backward compatibility**: Existing serial workflow sessions (`queue: [A, B, C]`) SHALL continue to work unchanged. Pipelines are a new entity, not a modification of existing workflow behavior.
-
-#### FR-45.2: Session Pre-Creation
-
-When a pipeline is run, the system SHALL pre-create all workflow sessions upfront.
-
-- **Pre-creation**: On "run," the system SHALL create one workflow session file per pipeline node. Each session contains full frontmatter (step definitions, `pipelineId`, `nodeId`, `workflowId`) and starts with `status: pending`.
-- **Inspectability**: All sessions are visible and inspectable before any agent executes. The full execution plan is materialized as files on disk.
-- **Predecessor context injection**: Before a downstream node transitions to `ready`, the system SHALL read the `last` frontmatter field from each upstream node's session file and inject the content into the downstream session file as a `## Predecessor Context` section. The executing agent reads this as part of the session content.
-
-#### FR-45.3: Session Frontmatter — `first` and `last` Fields
-
-All session types (workflow, sequential thinking, pipeline) SHALL track `first` and `last` fields in YAML frontmatter.
-
-- **`first`**: Set once on the initial write to the session body. Never updated after creation. Captures the opening context.
-- **`last`**: Updated on every append to the session body (step responses, thoughts, conclusions). Always reflects the most recent content written.
-- **Scope**: Applies to all `append_h2_section` operations across session types. Both fields store the content as written, including `[[WikiLinks]]`.
-- **Use case**: The pipeline engine reads `last` from upstream node sessions for predecessor context injection. Any tool needing "what happened most recently?" reads `last` instead of parsing the markdown body. The `RecentActivity` tool SHALL be updated to use `first`/`last` fields instead of parsing markdown body content.
-
-#### FR-45.4: Workflow Session Status Lifecycle
-
-The system SHALL extend workflow session frontmatter with the following status values:
-
-- **`pending`** — session created, upstream dependencies not yet met.
-- **`ready`** — all upstream dependencies met, waiting for dispatch to an ACP client.
-- **`active`** — dispatched to an ACP client, currently executing.
-- **`completed`** — all steps finished successfully.
-- **`abandoned`** — was `active` but the agent disconnected, crashed, or timed out.
-
-Existing session cleanup logic SHALL only clean up sessions in `active` state that have been abandoned (no heartbeat, agent disconnected). `pending` and `ready` sessions SHALL NOT be cleaned. `completed` sessions are permanent audit trail artifacts.
-
-#### FR-45.5: Derived Execution State
-
-Pipeline state SHALL be derived from session files, never stored separately.
-
-- **Status derivation**: A node's status is read from its pre-created workflow session file's frontmatter `status` field.
-- **Ready computation**: A node is `ready` when all upstream nodes (per `success` edges) have `status: completed` AND the node's own status is `pending`.
-- **`always` edge semantics**: An `always` edge is satisfied when the upstream node is `completed`, `abandoned`, or `stuck`.
-- **Blocked computation**: A node is `blocked` when at least one upstream node on a `success` edge is `abandoned` or `stuck`. Nodes with unsatisfied but not terminal dependencies remain `pending`.
-- **Pure function**: The ready set is computed by a Rust function reading the pipeline definition + session file frontmatter. No database tables, no virtual tables. Dropping and recomputing yields identical results.
-- **Rebuildable**: If the pipeline session file is lost, it can be reconstructed from the node session files on disk (each carries `pipelineId` and `nodeId` in frontmatter).
-
-#### FR-45.6: Pipeline MCP Tool
-
-The system SHALL expose pipeline operations via a new `Pipeline` MCP tool, accessible by both the UI and AI agents through the same API surface.
-
-- `pipeline(definition={nodes,edges})` — validate and create a pipeline. Pre-create all node sessions. Return pipeline session ID + initial ready set.
-- `pipeline(sessionId=X, view=true)` — return current pipeline state as structured JSON (see response shape below) and a pre-rendered Mermaid diagram string. Suitable for UI rendering and chat display via FR-40.
-- `pipeline(sessionId=X, dispatch=true)` — compute ready set, atomically transition ready nodes to `active`, and return them with session IDs. Dispatch IS the claim — no separate status update needed.
-- `pipeline(sessionId=X, nodeId=Y, status="completed", conclusion="...")` — mark a node as complete, trigger ready-set recomputation and predecessor context injection for downstream nodes.
-- `pipeline(sessionId=X, nodeId=Y, status="abandoned")` — mark a node as abandoned (agent failure).
-- `pipeline(sessionId=X, nodeId=Y, restart=true)` — create a new session for an abandoned node, increment attempt count.
-- **Single API surface**: The UI (via HTTP `/mcp`), AI agents (via stdio MCP), and the PM (via MCP) SHALL all use the same Pipeline tool. No direct file or database access.
-- **Ownership boundary**: The Pipeline tool owns `pending → ready → active` transitions. The Workflow tool owns `active → completed/cancelled`. Neither crosses the boundary.
-
-**`view=true` response shape:**
-```json
-{
-  "pipelineId": "pipeline-1772717599558",
-  "status": "active",
-  "nodes": [
-    {"nodeId": "swe", "workflowId": "tdd-implement", "sessionId": "workflow-1772717601234-swe", "status": "completed", "attempts": 1},
-    {"nodeId": "red", "workflowId": "tdd-audit", "sessionId": "workflow-1772717605678-red", "status": "active", "attempts": 1},
-    {"nodeId": "blue", "workflowId": "tdd-verify", "sessionId": "workflow-1772717605679-blue", "status": "pending", "attempts": 0}
-  ],
-  "edges": [
-    {"source": "swe", "target": "red", "type": "success"},
-    {"source": "red", "target": "blue", "type": "success"}
-  ],
-  "ready": [],
-  "active": ["red"],
-  "completed": ["swe"],
-  "mermaid": "graph LR\n  swe[swe ✅] --> red[red 🔄]\n  red --> blue[blue ⏳]"
-}
-```
-
-**`dispatch=true` response shape:**
-```json
-{
-  "dispatched": [
-    {"nodeId": "swe", "sessionId": "workflow-1772717601234-swe", "workflowId": "tdd-implement"}
-  ],
-  "active": [],
-  "completed": [],
-  "remaining": 2
-}
-```
-
-**Pipeline session file format:**
-```yaml
-title: Pipeline Session pipeline-1772717599558
-permalink: pipeline-1772717599558
-type: pipeline
-status: active
-definition:
-  nodes:
-    - id: swe
-      workflowId: tdd-implement
-    - id: red
-      workflowId: tdd-audit
-    - id: blue
-      workflowId: tdd-verify
-  edges:
-    - source: swe
-      target: red
-      type: success
-    - source: red
-      target: blue
-      type: success
-nodeStates:
-  swe:
-    sessionId: workflow-1772717601234-swe
-    status: completed
-    attempts: 1
-  red:
-    sessionId: workflow-1772717605678-red
-    status: active
-    attempts: 1
-  blue:
-    sessionId: workflow-1772717605679-blue
-    status: pending
-    attempts: 0
-maxConcurrency: 8
-first: "Pipeline created with 3 nodes: swe, red, blue"
-last: "Node swe completed"
-```
-
-**Worked example — TDD pipeline:**
-1. PM: `pipeline(definition={nodes:[swe,red,blue], edges:[swe→red, red→blue]})` → creates 3 session files, returns `pipeline-17727...` + ready set `["swe"]`
-2. PM: `pipeline(sessionId=X, dispatch=true)` → atomically claims `swe` as active, returns session ID
-3. PM hands SWE agent the session ID → agent calls `workflow(sessionId=swe-session, response=...)` for each step
-4. Agent completes → `workflow(sessionId=swe-session, status="completed", conclusion="...")`
-5. PM: `pipeline(sessionId=X, dispatch=true)` → swe's `last` injected into red's `## Predecessor Context`, red claimed as active
-6. Repeat for red → blue → pipeline complete
-
-#### FR-45.7: Pipeline Dispatch Model
-
-The v1 dispatch model SHALL be pull-based (cooperative scheduling).
-
-- **Pull-based**: A supervisor (PM agent, UI user, or automation) calls `pipeline(dispatch=true)` to get the ready set, then manually hands session IDs + prompts to ACP clients.
-- **No auto-dispatch**: The pipeline engine does NOT push work to ACP clients automatically in v1. There is no ACP client module in the codebase. Auto-dispatch is a future enhancement.
-- **Dispatch-as-claim**: `dispatch=true` atomically transitions ready nodes to `active` and returns them. There is no separate "mark as active" step. This prevents double-dispatch when multiple callers poll simultaneously.
-- **Concurrency**: An optional `maxConcurrency` field on the pipeline definition limits how many nodes can be `active` simultaneously. The `dispatch` response respects this limit.
-- **`always` edge semantics**: An `always` edge allows the downstream node to become ready when the upstream node is in `completed`, `abandoned`, or `stuck` state. This enables fault-tolerant pipelines where some nodes are optional and terminal upstream failures should not strand downstream cleanup or follow-up work.
-
-#### FR-45.8: Pipeline Resume and Restart
-
-Pipelines SHALL support lifecycle operations beyond initial execution.
-
-- **Resume**: A pipeline with `active` or `ready` nodes can be resumed after interruption. The engine reads session files, derives current state, and returns the ready set. No state is lost because session files persist.
-- **Restart**: An `abandoned` node can be retried by creating a new workflow session for the same node (new session file, same workflow definition, same predecessor context). The prior session file remains as audit trail. Attempt count is tracked in the pipeline session frontmatter.
-- **Max attempts**: Nodes SHALL have a configurable `maxAttempts` (default 3). After reaching max attempts, the node transitions to a `stuck` status and blocks downstream nodes.
-- **Immutable topology**: Pipeline topology is immutable after creation in v1. No appending nodes or rewiring edges at runtime. To change topology, create a new pipeline.
-- **Status gating**: The Workflow tool SHALL gate `continue_workflow_session` on the session's `status` field. Sessions in `pending` state SHALL reject continuation attempts. Sessions in `completed` state SHALL reject re-opening.
-
-#### FR-45.9: Pipeline Fork (v2 — deferred)
-
-_Deferred to Sprint 36._ Fork creates a new session for a completed or abandoned node targeting a different ACP client, enabling A/B comparisons across agents. Forks are observational — they do not affect canonical downstream scheduling unless explicitly promoted.
-
-#### FR-45.10: Verdict-Based Edge Routing (v2 — deferred)
-
-_Deferred to Sprint 36._ The v1 engine supports `success` and `always` edge types only. Future enhancements:
-
-- `reject` edges that route based on a structured `verdict` field in the node's workflow conclusion.
-- `optional` edges where upstream failure does not block downstream.
-- Conditional edges based on conclusion content.
-
-#### FR-45.11: Vue Flow DAG Tab (v2 — deferred)
-
-_Deferred to Sprint 36._ The v1 engine is fully functional via MCP tool calls. Visual rendering in a Vue Flow tab requires:
-
-- Vue Flow dependency integration in acp-ui.
-- New tab type alongside chat tabs.
-- Real-time status notification channel (does not exist yet).
-- Node dispatch interaction UX.
-
-For Sprint 35, pipeline state can be inspected via `pipeline(view=true)` and optionally rendered as Mermaid diagrams using existing FR-40 support.
-
-### NFR-9: Non-Text Content Blocks
-
-The system SHOULD log warnings when receiving non-text content blocks instead of silently dropping them. Full rendering of image/audio/resource content blocks is deferred to a future sprint.
+| File | Current LOC | Over by |
+|------|-------------|---------|
+| `workflow/pipeline/handler.rs` | 4,784 | 16x |
+| `workflow/pipeline/executor.rs` | 1,998 | 6.7x |
+| `workflow/pipeline/dispatch.rs` | 1,372 | 4.6x |
+| `workflow/pipeline/update.rs` | 1,224 | 4.1x |
+| `workflow/pipeline/view.rs` | 1,170 | 3.9x |
+| `workflow/runner.rs` | 839 | 2.8x |
+| `workflow/pipeline/supervisor.rs` | 732 | 2.4x |
+| `search/api.rs` | 627 | 2.1x |
+| `mcp/schema/workflow_tools.rs` | 621 | 2.1x |
+| `workflow/pipeline/types.rs` | 590 | 2.0x |
+| `workflow/handler.rs` | 532 | 1.8x |
+| `workflow/pipeline/mod.rs` | 525 | 1.8x |
+| `acp/driver.rs` | 514 | 1.7x |
+| `sync/mod.rs` | 498 | 1.7x |
+| `workflow/pipeline/session_io.rs` | 486 | 1.6x |
+| `sync/watchers.rs` | 478 | 1.6x |
+| `workflow/pipeline/test_support.rs` | 474 | 1.6x |
+| `memory/editing.rs` | 464 | 1.5x |
+| `cli.rs` | 456 | 1.5x |
+| `maenifold-app/lib.rs` | 450 | 1.5x |
+
+**pipeline-ui (Vue/TypeScript):**
+
+| File | Current LOC | Over by |
+|------|-------------|---------|
+| `App.vue` | 1,024 | 3.4x |
+| `lib/acp-bridge.ts` | 590 | 2.0x |
+
+**Constraints:**
+- Pure refactoring — no behavioral changes, no new features.
+- All existing tests MUST pass before and after.
+- Inline `#[cfg(test)]` blocks count toward file LOC and should be extracted to dedicated test files where they push a file over the limit.
+- Each extracted module SHALL have a clear single responsibility documented in a module-level comment.
+
+### FR-50: Native ACP Client Hardening
+
+The native ACP client (`acp/native.rs`) SHALL be hardened to capture full protocol state, propagate pipeline configuration, and handle agent lifecycle failures gracefully.
+
+- **Capability capture**: `spawn_agent` SHALL capture `InitializeResponse` and store `AgentCapabilities`, `Implementation` (agent info), and `auth_methods` on the `AgentHandle` for downstream use.
+- **Protocol version check**: The client SHALL log a warning on protocol version mismatch (no hard disconnect).
+- **Session config passthrough**: `open_agent_session()` SHALL accept `SessionOpts` with model, thought_level, allowed_tools, max_turns — pipeline node config SHALL flow through to ACP sessions.
+- **Session update handling**: `HeadlessClient::session_notification` SHALL handle `ToolCall`, `AgentThoughtChunk`, `Plan`, `AvailableCommandsUpdate`, and non-Text `AgentMessageChunk` variants (not just text). `AcpxResponse` SHALL return populated `tool_calls` and `thought` fields.
+- **Crash recovery**: When the ACP I/O task exits, the command loop SHALL terminate, `AgentPool` SHALL evict the dead handle, and `get_or_create()` SHALL spawn a fresh agent. Agent `stderr` SHALL be captured via a spawned reader task.
+- **Prompt timeout**: `AgentHandle::prompt()` SHALL wrap with `tokio::time::timeout` (configurable, default 300s). On timeout, `cancel()` SHALL be sent and the session closed.
+- **File extraction**: If `native.rs` exceeds 300 LOC, client and pool logic SHALL be extracted to `client.rs` and `pool.rs`.
+
+### FR-51: ACP Client Hardening Phase 2
+
+The native ACP client SHALL be extended with client capabilities, MCP server passthrough, session persistence, pipeline capability-aware configuration, and usage tracking.
+
+- **Client capabilities**: `spawn_agent` SHALL advertise `ClientCapabilities` with filesystem read/write support. `HeadlessClient` SHALL implement `read_text_file`/`write_text_file` with CWD jail (parent-dir traversal guard + canonical path containment).
+- **MCP server passthrough**: `AgentEntry` SHALL carry `mcp_servers` (Stdio/Http variants). `SessionOpts` SHALL thread `mcp_servers` to `NewSessionRequest` for agent-side tool access.
+- **Session list and load**: `AgentCommand::ListSessions`/`LoadSession` SHALL be capability-guarded via `AgentCapabilities`. `AcpxSessionInfo` SHALL map from ACP `SessionInfo`.
+- **Pipeline capability-aware config**: `AgentConfig` struct SHALL allow pipeline nodes to carry model, thought_level, mode, and config_options. Flat node fields SHALL take precedence. Forward-compat warnings for unsupported fields.
+- **ACP feature flags**: `unstable_session_usage` SHALL be enabled. `UsageUpdate` SHALL be handled in `session_notification`. `AcpxUsage` SHALL surface usage metrics in responses.
+
+### FR-52: Pipeline Node Configuration Parity
+
+The pipeline node schema SHALL fully expose and preserve all ACP session configuration fields, enabling UI-driven pipeline composition with agent/model/reasoning selection.
+
+- **View serialization**: Pipeline view SHALL emit all node config fields (`model`, `thoughtLevel`, `allowedTools`, `maxTurns`, `timeout`, `toolMode`, `agentConfig`) when set. Null fields SHALL be omitted.
+- **MCP schema**: The Pipeline tool schema SHALL advertise all config fields with descriptions, enabling LLM tool-calling discoverability.
+- **Mode passthrough**: `AgentConfig.mode` SHALL be wired to `session/set_mode` via `SessionOpts`. The warning-and-drop pattern SHALL be removed.
+- **Config options passthrough**: `AgentConfig.config_options` SHALL be forwarded as `session/set_config_option` calls. Built-in keys (`thought_level`, `allowed_tools`, `max_turns`) SHALL take precedence over duplicates in `config_options`.
+- **Agent enumeration**: A `ListAgents` MCP tool SHALL enumerate configured agents with their capabilities, supported models, and MCP servers. Capabilities SHALL be sourced from the ACP pool when agents are initialized, falling back to static config.
+- **Graft guard**: Pipeline graft precondition SHALL check actual active node count, not frontmatter status string.
+- **Stuck transition**: Restart max-attempts exhaustion SHALL transition node to `Stuck` status before returning error.

@@ -1,14 +1,14 @@
+#![allow(dead_code, unused_imports)]
+
 //! T-9.6: RTM FR-7, FR-8 — shared vector sync diagnostics test support.
 
 // T-9.6: RTM FR-7, FR-8 — shared helpers for vector sync diagnostics split tests.
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub struct ConfigOverrideReset;
 

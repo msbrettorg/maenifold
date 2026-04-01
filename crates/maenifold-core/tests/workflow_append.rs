@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "workflow_support/mod.rs"]
 mod workflow_support;
 

@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "markdown_boundary/support.rs"]
 mod support;
 

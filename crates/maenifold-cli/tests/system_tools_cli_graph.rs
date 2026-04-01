@@ -71,7 +71,7 @@ Links [[lambda]], [[rho]], [[sigma]], and [[tau]].
     }
 
     let sync_output = maenifold_cmd(&tmp)
-        .args(["--tool", "Sync", "--payload", "{}", "--json"])
+        .args(["tool", "Sync", "{}", "--json"])
         .assert()
         .code(0)
         .get_output()
@@ -98,9 +98,8 @@ Links [[lambda]], [[rho]], [[sigma]], and [[tau]].
 
     let build_output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "BuildContext",
-            "--payload",
             r#"{"conceptName":"omega","depth":1}"#,
             "--json",
         ])
@@ -162,7 +161,7 @@ Links [[omega]] and [[sigma]].
     }
 
     maenifold_cmd(&tmp)
-        .args(["--tool", "Sync", "--payload", "{}"])
+        .args(["tool", "Sync", "{}"])
         .assert()
         .code(0);
 
@@ -173,9 +172,8 @@ Links [[omega]] and [[sigma]].
 
     let output = maenifold_cmd(&tmp)
         .args([
-            "--tool",
+            "tool",
             "BuildContext",
-            "--payload",
             r#"{"conceptName":"omega","depth":1}"#,
             "--json",
         ])

@@ -46,8 +46,7 @@ fn benchmark_decay_weight_distribution_produces_meaningful_separation() {
         weights
             .iter()
             .find(|(a, _)| *a == age)
-            .map(|(_, w)| *w)
-            .unwrap_or_else(|| panic!("no weight for age {age}"))
+            .map_or_else(|| panic!("no weight for age {age}"), |(_, w)| *w)
     };
 
     // --- Assert all nine checkpoints against formula-derived values (Rec 4) ---

@@ -75,6 +75,7 @@ pub(crate) fn handle_queue_exhaustion(
     Ok("✅ All workflows in queue completed".to_string())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn transition_to_next_workflow(
     context: &ToolContext,
     workflow_uri: &str,
@@ -115,10 +116,10 @@ pub(crate) fn transition_to_next_workflow(
     Ok(format!("Step 1/{}\n\n{}", next_steps.len(), rendered_step))
 }
 
-fn require_workflow_conclusion<'a>(
-    conclusion: Option<&'a str>,
+fn require_workflow_conclusion(
+    conclusion: Option<&str>,
     queue_exhausted: bool,
-) -> std::result::Result<&'a str, String> {
+) -> std::result::Result<&str, String> {
     let conclusion = match conclusion {
         Some(conclusion) if !conclusion.is_empty() => conclusion,
         _ => {
@@ -142,6 +143,7 @@ fn require_workflow_conclusion<'a>(
     Ok(conclusion)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn finalize_workflow_status(
     context: &ToolContext,
     workflow_uri: &str,

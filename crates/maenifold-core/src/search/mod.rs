@@ -1,5 +1,10 @@
 mod api;
 mod display;
+// T-64.1: RTM NFR-1 — split api.rs into focused submodules; api.rs is now the dispatcher only.
+mod fulltext;
+mod hybrid;
+mod semantic;
+mod shared;
 mod text;
 // T-12.0: RTM NFR-1 preserve the search facade while moving vector helpers under search/.
 mod vector;

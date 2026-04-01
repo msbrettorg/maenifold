@@ -135,7 +135,7 @@ PRD.md (FR-*)  →  RTM.md (FR-* → Component → TC-*)  →  TODO.md (T-* → 
 
 Each stage requires a compliant ConfessionReport before proceeding. A compliant ConfessionReport shows: all items ✅ (letter and spirit), no undisclosed gaps, no unresolved grey areas, and no policy risks taken. If a subagent did not comply, re-assign the task to a new subagent instance with clear instructions to fix the issue. Never mark a backlog item complete until all stages have been verified as compliant.
 
-The shared session ensures all agents contribute to a unified reasoning graph, enabling context recovery and institutional memory across the entire TDD pipeline.
+The shared session ensures all agents contribute to a unified reasoning graph, enabling context recovery and institutional memory across the entire SDD pipeline.
 
 **Parallelization**: Independent FR-* requirements can run through the pipeline concurrently. Within an FR-*, multiple T-* tasks can be assigned to parallel SWE instances after blue-team provides tests.
 

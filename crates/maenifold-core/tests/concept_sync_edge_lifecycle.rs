@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "concept_sync_edge/support.rs"]
 mod support;
 

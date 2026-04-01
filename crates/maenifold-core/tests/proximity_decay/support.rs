@@ -1,16 +1,17 @@
+#![allow(dead_code, unused_imports)]
+
 // T-12.0: RTM NFR-1
 use chrono::{Duration, Utc};
 use maenifold_core::json::OutputFormat;
 use maenifold_core::memory::compute_decay_weight;
 use maenifold_core::{AssetManager, Config, GraphDatabase, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::MutexGuard;
 use rusqlite::{Connection, params};
 use serde_json::{Value, json};
 use std::fs;
 use tempfile::TempDir;
 
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub struct TestEnv {
     _tmp: TempDir,

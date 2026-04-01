@@ -1,15 +1,20 @@
 // Message handler composable — session update handling, prompt, and cancel
 import type { Ref } from 'vue';
 import type {
+  ContentBlock,
   SavedSession,
   SessionState,
   ToolCallInfo,
   AvailableCommand,
 } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-bridge';
-import type { SessionNotification } from '@agentclientprotocol/sdk';
+import type {
+  SessionNotification,
+  ToolCallContent as SdkToolCallContent,
+  ToolCallLocation as SdkToolCallLocation,
+} from '@agentclientprotocol/sdk';
 import { trackEvent } from '../lib/telemetry';
-import { normalizeConfigOptions, parseUpdatedAt } from './session-utils';
+import { isRecord, normalizeConfigOptions, parseUpdatedAt } from './session-utils';
 
 interface UseMessageHandlerDeps {
   sessions: Ref<Map<string, SessionState>>;
@@ -20,9 +25,51 @@ interface UseMessageHandlerDeps {
   cancelPermission: () => void;
 }
 
-type CancellableToolCallInfo = Omit<ToolCallInfo, 'status'> & {
-  status: ToolCallInfo['status'] | 'cancelled';
+type ToolCallUpdateSnapshot = {
+  toolCallId: string;
+  title: string;
+  kind?: string | null;
+  status?: ToolCallInfo['status'] | null;
+  locations?: Array<SdkToolCallLocation> | null;
+  content?: Array<SdkToolCallContent> | null;
+  rawInput?: unknown;
+  rawOutput?: unknown;
+  _meta?: Record<string, unknown> | null;
 };
+
+function normalizeToolCallLocations(
+  locations: Array<SdkToolCallLocation> | null | undefined
+): ToolCallInfo['locations'] | undefined {
+  return locations?.map(({ path, line }) =>
+    line == null ? { path } : { path, line }
+  );
+}
+
+function normalizeToolCallContent(
+  content: Array<SdkToolCallContent> | null | undefined
+): ToolCallInfo['content'] | undefined {
+  return content?.map((item) => ({ ...item }));
+}
+
+function normalizeToolCallPayload(
+  payload: unknown
+): Record<string, unknown> | undefined {
+  return isRecord(payload) ? { ...payload } : undefined;
+}
+
+function createToolCallInfo(update: ToolCallUpdateSnapshot): ToolCallInfo {
+  return {
+    toolCallId: update.toolCallId,
+    title: update.title,
+    kind: update.kind ?? 'other',
+    status: update.status ?? 'pending',
+    locations: normalizeToolCallLocations(update.locations),
+    content: normalizeToolCallContent(update.content),
+    rawInput: normalizeToolCallPayload(update.rawInput),
+    rawOutput: normalizeToolCallPayload(update.rawOutput),
+    _meta: isRecord(update._meta) ? update._meta : null,
+  };
+}
 
 export function useMessageHandler({
   sessions,
@@ -32,6 +79,51 @@ export function useMessageHandler({
   saveSessionsToStore,
   cancelPermission,
 }: UseMessageHandlerDeps) {
+  function warnNonTextContentBlock(block: ContentBlock): void {
+    if (block.type !== 'text') {
+      console.warn('[ACP] Received non-text content block:', block.type, block);
+    }
+  }
+
+  function cloneContentBlock(block: ContentBlock): ContentBlock {
+    return {
+      ...block,
+      ...(block.type === 'resource' && block.resource
+        ? { resource: { ...block.resource } }
+        : {}),
+      ...(block.annotations ? { annotations: { ...block.annotations } } : {}),
+      ...(isRecord(block._meta) ? { _meta: { ...block._meta } } : {}),
+    };
+  }
+
+  function appendMessageBlock(message: SessionState['messages'][number], block: ContentBlock): void {
+    if (block.type === 'text') {
+      // Accumulate into the last text block instead of creating a new one per chunk
+      const existing = message.blocks;
+      const lastBlock = existing?.[existing.length - 1];
+      if (lastBlock && lastBlock.type === 'text') {
+        lastBlock.text += block.text;
+        message.blocks = [...existing!];
+      } else {
+        message.blocks = [...(existing ?? []), cloneContentBlock(block)];
+      }
+      message.content += block.text;
+    } else {
+      message.blocks = [...(message.blocks ?? []), cloneContentBlock(block)];
+      warnNonTextContentBlock(block);
+    }
+  }
+
+  function appendThoughtBlock(message: SessionState['messages'][number], block: ContentBlock): void {
+    if (block.type === 'text') {
+      message.thought = (message.thought || '') + block.text;
+      return;
+    }
+
+    warnNonTextContentBlock(block);
+    message.blocks = [...(message.blocks ?? []), cloneContentBlock(block)];
+  }
+
   function pushSystemMessage(session: SessionState, content: string): void {
     session.messages.push({
       id: crypto.randomUUID(),
@@ -43,12 +135,8 @@ export function useMessageHandler({
 
   function cancelPendingToolCalls(session: SessionState): void {
     for (const toolCall of session.toolCalls.values()) {
-      const cancellableToolCall = toolCall as CancellableToolCallInfo;
-      if (
-        cancellableToolCall.status === 'pending' ||
-        cancellableToolCall.status === 'in_progress'
-      ) {
-        cancellableToolCall.status = 'cancelled';
+      if (toolCall.status === 'pending' || toolCall.status === 'in_progress') {
+        toolCall.status = 'cancelled';
       }
     }
 
@@ -58,12 +146,8 @@ export function useMessageHandler({
       }
 
       for (const toolCall of message.toolCalls) {
-        const cancellableToolCall = toolCall as CancellableToolCallInfo;
-        if (
-          cancellableToolCall.status === 'pending' ||
-          cancellableToolCall.status === 'in_progress'
-        ) {
-          cancellableToolCall.status = 'cancelled';
+        if (toolCall.status === 'pending' || toolCall.status === 'in_progress') {
+          toolCall.status = 'cancelled';
         }
       }
     }
@@ -83,14 +167,14 @@ export function useMessageHandler({
         // Append to last user message or create new (for replay)
         const lastUserMsg = session.messages[session.messages.length - 1];
         if (lastUserMsg && lastUserMsg.role === 'user') {
-          if (update.content.type === 'text') {
-            lastUserMsg.content += update.content.text;
-          }
+          appendMessageBlock(lastUserMsg, update.content);
         } else {
+          warnNonTextContentBlock(update.content);
           session.messages.push({
             id: crypto.randomUUID(),
             role: 'user',
             content: update.content.type === 'text' ? update.content.text : '',
+            blocks: [cloneContentBlock(update.content)],
             timestamp: Date.now(),
           });
         }
@@ -101,14 +185,14 @@ export function useMessageHandler({
         // Append to last assistant message or create new
         const lastMsg = session.messages[session.messages.length - 1];
         if (lastMsg && lastMsg.role === 'assistant') {
-          if (update.content.type === 'text') {
-            lastMsg.content += update.content.text;
-          }
+          appendMessageBlock(lastMsg, update.content);
         } else {
+          warnNonTextContentBlock(update.content);
           session.messages.push({
             id: crypto.randomUUID(),
             role: 'assistant',
             content: update.content.type === 'text' ? update.content.text : '',
+            blocks: [cloneContentBlock(update.content)],
             timestamp: Date.now(),
             toolCalls: [],
           });
@@ -120,15 +204,15 @@ export function useMessageHandler({
         // Append to last assistant message's thought field or create new
         const lastAssistantMsg = session.messages[session.messages.length - 1];
         if (lastAssistantMsg && lastAssistantMsg.role === 'assistant') {
-          if (update.content.type === 'text') {
-            lastAssistantMsg.thought = (lastAssistantMsg.thought || '') + update.content.text;
-          }
+          appendThoughtBlock(lastAssistantMsg, update.content);
         } else {
+          warnNonTextContentBlock(update.content);
           session.messages.push({
             id: crypto.randomUUID(),
             role: 'assistant',
             content: '',
             thought: update.content.type === 'text' ? update.content.text : '',
+            blocks: update.content.type === 'text' ? undefined : [cloneContentBlock(update.content)],
             timestamp: Date.now(),
             toolCalls: [],
           });
@@ -137,28 +221,30 @@ export function useMessageHandler({
       }
 
       case 'tool_call': {
-        // Add tool call to the current assistant message
-        const currentAssistantMsg = session.messages[session.messages.length - 1];
-        if (currentAssistantMsg && currentAssistantMsg.role === 'assistant') {
-          if (!currentAssistantMsg.toolCalls) {
-            currentAssistantMsg.toolCalls = [];
-          }
-          currentAssistantMsg.toolCalls.push({
-            toolCallId: update.toolCallId,
-            title: update.title,
-            kind: update.kind || 'other',
-            status: update.status || 'pending',
-            locations: update.locations,
+        const toolCallInfo = createToolCallInfo(update);
+
+        // Add tool call to the current assistant message, synthesizing a
+        // tool-only assistant turn when the agent emits tool activity before
+        // any assistant text.
+        let currentAssistantMsg = session.messages[session.messages.length - 1];
+        if (!currentAssistantMsg || currentAssistantMsg.role !== 'assistant') {
+          session.messages.push({
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: '',
+            timestamp: Date.now(),
+            toolCalls: [],
           });
+          currentAssistantMsg = session.messages[session.messages.length - 1];
         }
+
+        if (!currentAssistantMsg.toolCalls) {
+          currentAssistantMsg.toolCalls = [];
+        }
+        currentAssistantMsg.toolCalls.push({ ...toolCallInfo });
+
         // Also keep in session's tool call map for updates
-        session.toolCalls.set(update.toolCallId, {
-          toolCallId: update.toolCallId,
-          title: update.title,
-          kind: update.kind || 'other',
-          status: update.status || 'pending',
-          locations: update.locations,
-        });
+        session.toolCalls.set(update.toolCallId, { ...toolCallInfo });
         break;
       }
 
@@ -167,6 +253,19 @@ export function useMessageHandler({
         if (existing) {
           if (update.status) existing.status = update.status;
           if (update.title) existing.title = update.title;
+          const nextContent = normalizeToolCallContent(update.content);
+          if (nextContent?.length) {
+            existing.content = [...(existing.content ?? []), ...nextContent];
+          }
+          if (update.locations) {
+            existing.locations = normalizeToolCallLocations(update.locations);
+          }
+          if ('rawOutput' in update) {
+            existing.rawOutput = normalizeToolCallPayload(update.rawOutput);
+          }
+          if (isRecord(update._meta)) {
+            existing._meta = update._meta;
+          }
           // Also update in the message's toolCalls array
           for (const msg of session.messages) {
             if (msg.toolCalls) {
@@ -174,6 +273,18 @@ export function useMessageHandler({
               if (tc) {
                 if (update.status) tc.status = update.status;
                 if (update.title) tc.title = update.title;
+                if (nextContent?.length) {
+                  tc.content = [...(tc.content ?? []), ...nextContent];
+                }
+                if (update.locations) {
+                  tc.locations = normalizeToolCallLocations(update.locations);
+                }
+                if ('rawOutput' in update) {
+                  tc.rawOutput = normalizeToolCallPayload(update.rawOutput);
+                }
+                if (isRecord(update._meta)) {
+                  tc._meta = update._meta;
+                }
               }
             }
           }
@@ -200,6 +311,17 @@ export function useMessageHandler({
         session.currentModelId = '';
         break;
 
+      case 'plan':
+        if ('entries' in update && Array.isArray(update.entries)) {
+          session.currentPlan = update.entries.map((entry) => ({
+            content: entry.content,
+            priority: entry.priority ?? 'medium',
+            status: entry.status ?? 'pending',
+            _meta: entry._meta ?? null,
+          }));
+        }
+        break;
+
       case 'available_commands_update':
         // Agent advertised slash commands
         if ('availableCommands' in update && Array.isArray(update.availableCommands)) {
@@ -216,10 +338,10 @@ export function useMessageHandler({
               : update.title ?? undefined
             : undefined;
         const nextLastUpdated =
-          'updatedAt' in update
+          'updatedAt' in update && update.updatedAt !== undefined
             ? update.updatedAt === null
-              ? Date.now()
-              : parseUpdatedAt(update.updatedAt) ?? Date.now()
+              ? 0
+              : parseUpdatedAt(update.updatedAt)
             : undefined;
 
         let savedSessionModified = false;
@@ -257,7 +379,7 @@ export function useMessageHandler({
     }
   }
 
-  async function sendPrompt(text: string): Promise<void> {
+  async function sendPrompt(text: string, attachments: ContentBlock[] = []): Promise<void> {
     const sid = activeSessionId.value;
     if (!sid) throw new Error('No active session');
     const session = sessions.value.get(sid);
@@ -266,11 +388,17 @@ export function useMessageHandler({
       throw new Error('No active session');
     }
 
+    const prompt = [
+      { type: 'text', text } as const,
+      ...attachments.map((attachment) => cloneContentBlock(attachment)),
+    ];
+
     // Add user message
     session.messages.push({
       id: crypto.randomUUID(),
       role: 'user',
       content: text,
+      blocks: prompt.map((block) => cloneContentBlock(block)),
       timestamp: Date.now(),
     });
 
@@ -278,12 +406,7 @@ export function useMessageHandler({
     try {
       const response = await bridge.prompt({
         sessionId: session.session.sessionId,
-        prompt: [
-          {
-            type: 'text',
-            text,
-          },
-        ],
+        prompt,
       });
 
       console.log('Prompt completed:', response.stopReason);
@@ -322,7 +445,7 @@ export function useMessageHandler({
     const bridge = bridges.get(sid);
     if (!session || !bridge || !session.session) return;
 
-    if (session.pendingPermissions.length > 0 || bridge.pendingPermissionRequest.value) {
+    if (session.pendingPermissions.length > 0 || bridge.pendingPermissionRequests.value.length > 0) {
       cancelPermission();
     }
 

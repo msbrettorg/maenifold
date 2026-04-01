@@ -20,14 +20,27 @@ import type {
   AuthenticateRequest,
   AuthenticateResponse,
 } from '@agentclientprotocol/sdk';
-import { readTextFile as tauriReadTextFile, writeTextFile as tauriWriteTextFile } from '@tauri-apps/plugin-fs';
+import {
+  mkdir,
+  readTextFile as tauriReadTextFile,
+  writeTextFile as tauriWriteTextFile,
+} from '@tauri-apps/plugin-fs';
+import { dirname } from '@tauri-apps/api/path';
 import { sendToAgent, onAgentMessage, killAgent } from './tauri';
-import type { AgentInstance, PermissionRequest as LocalPermissionRequest } from './types';
+import type {
+  AcpMetadata,
+  AgentInstance,
+  PermissionRequest as LocalPermissionRequest,
+} from './types';
 import { ref, type Ref } from 'vue';
 import { useTrafficStore } from '../stores/traffic';
 
 // Event emitter for permission requests
 type PermissionResolver = (response: RequestPermissionResponse) => void;
+type PendingPermissionEntry = {
+  request: LocalPermissionRequest;
+  resolver: PermissionResolver;
+};
 
 // Traffic store instance (lazily initialized)
 let trafficStore: ReturnType<typeof useTrafficStore> | null = null;
@@ -38,6 +51,102 @@ function getTrafficStore() {
   return trafficStore;
 }
 
+const WINDOWS_ABSOLUTE_PATH = /^[A-Za-z]:[\\/]/;
+const WINDOWS_UNC_PATH = /^\\\\/;
+const ACP_EXTENSION_META_KEY = 'maenifold/extensions';
+
+export const SESSION_SET_MODEL_METHOD = '_session/set_model';
+const SESSION_SET_CONFIG_OPTION_METHOD = 'session/set_config_option';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function cloneMeta(meta: unknown): Record<string, unknown> | null {
+  return isRecord(meta) ? { ...meta } : null;
+}
+
+function normalizePermissionToolCallPayload(
+  payload: unknown
+): Record<string, unknown> | undefined {
+  return isRecord(payload) ? { ...payload } : undefined;
+}
+
+function withAcpMeta<T>(
+  value: T,
+  extraMeta?: Record<string, unknown>
+): (T extends Record<string, unknown> ? T : Record<string, unknown>) & {
+  _meta: AcpMetadata;
+} {
+  const base: Record<string, unknown> = isRecord(value) ? { ...value } : {};
+  const existingMeta = cloneMeta(base._meta);
+  const mergedMeta =
+    existingMeta || extraMeta ? { ...(existingMeta ?? {}), ...(extraMeta ?? {}) } : null;
+  return {
+    ...base,
+    _meta: mergedMeta,
+  } as (T extends Record<string, unknown> ? T : Record<string, unknown>) & {
+    _meta: AcpMetadata;
+  };
+}
+
+function readAdvertisedAgentMethods(meta: unknown): Set<string> {
+  if (!isRecord(meta)) {
+    return new Set();
+  }
+
+  const extensions = meta[ACP_EXTENSION_META_KEY];
+  if (!isRecord(extensions) || !Array.isArray(extensions.supportedAgentMethods)) {
+    return new Set();
+  }
+
+  return new Set(
+    extensions.supportedAgentMethods.filter(
+      (method): method is string => typeof method === 'string'
+    )
+  );
+}
+
+function withExtensionCapabilities(
+  capabilities: unknown
+): Record<string, unknown> & { _meta: AcpMetadata } {
+  const existing = isRecord(capabilities) ? { ...capabilities } : {};
+  const existingMeta = cloneMeta(existing._meta);
+  const existingExtensions = isRecord(existingMeta?.[ACP_EXTENSION_META_KEY])
+    ? { ...(existingMeta?.[ACP_EXTENSION_META_KEY] as Record<string, unknown>) }
+    : {};
+  const supportedAgentMethods = Array.isArray(existingExtensions.supportedAgentMethods)
+    ? existingExtensions.supportedAgentMethods.filter(
+        (method): method is string => typeof method === 'string'
+      )
+    : [];
+
+  if (!supportedAgentMethods.includes(SESSION_SET_MODEL_METHOD)) {
+    supportedAgentMethods.push(SESSION_SET_MODEL_METHOD);
+  }
+
+  return {
+    ...existing,
+    _meta: {
+      ...(existingMeta ?? {}),
+      [ACP_EXTENSION_META_KEY]: {
+        ...existingExtensions,
+        supportedAgentMethods,
+      },
+    },
+  };
+}
+
+export function isAbsolutePath(path: string): boolean {
+  return path.startsWith('/') || WINDOWS_ABSOLUTE_PATH.test(path) || WINDOWS_UNC_PATH.test(path);
+}
+
+export function assertAbsolutePath(path: string): void {
+  if (!isAbsolutePath(path)) {
+    throw Object.assign(new Error('Path must be absolute'), { code: -32602 });
+  }
+}
+
 export class AcpClientBridge implements Client {
   private agentId: string;
   private messageResolvers: Map<number, (response: unknown) => void> = new Map();
@@ -45,10 +154,11 @@ export class AcpClientBridge implements Client {
   private pendingMethods: Map<number, string> = new Map(); // Track method names for responses
   private nextRequestId = 0;
   private unlistenMessage: (() => void) | null = null;
+  private supportedAgentMethods = new Set<string>();
   
   // Permission request handling
-  public pendingPermissionRequest: Ref<LocalPermissionRequest | null> = ref(null);
-  private permissionResolver: PermissionResolver | null = null;
+  public pendingPermissionRequests: Ref<LocalPermissionRequest[]> = ref([]);
+  private pendingPermissionResolvers: Map<string, PendingPermissionEntry> = new Map();
 
   // Session update callback
   public onSessionUpdate: ((notification: SessionNotification) => void) | null = null;
@@ -70,7 +180,13 @@ export class AcpClientBridge implements Client {
       this.unlistenMessage();
       this.unlistenMessage = null;
     }
+    this.supportedAgentMethods.clear();
+    this.cancelPermission();
     await killAgent(this.agentId);
+  }
+
+  supportsAgentMethod(method: string): boolean {
+    return this.supportedAgentMethods.has(method);
   }
 
   private handleMessage(message: string): void {
@@ -153,7 +269,11 @@ export class AcpClientBridge implements Client {
           error = { code: -32601, message: `Method not found: ${method}` };
       }
     } catch (e) {
-      error = { code: -32603, message: e instanceof Error ? e.message : String(e) };
+      const code =
+        typeof (e as { code?: unknown })?.code === 'number'
+          ? (e as { code: number }).code
+          : -32603;
+      error = { code, message: e instanceof Error ? e.message : String(e) };
     }
 
     // Send response back to agent
@@ -183,13 +303,27 @@ export class AcpClientBridge implements Client {
     }
   }
 
+  private getTimeoutForMethod(method: string): number {
+    switch (method) {
+      case 'session/prompt':
+      case 'terminal/wait_for_exit':
+        return 30 * 60 * 1000; // 30 minutes
+      case 'terminal/create':
+        return 5 * 60 * 1000; // 5 minutes
+      case 'session/load':
+        return 5 * 60 * 1000; // 5 minutes
+      default:
+        return 60 * 1000; // 60 seconds
+    }
+  }
+
   private async sendRequest<T>(method: string, params?: unknown): Promise<T> {
     const id = this.nextRequestId++;
     const request = {
       jsonrpc: '2.0',
       id,
       method,
-      params: params || {},
+      params: withAcpMeta(params ?? {}),
     };
 
     // Track outgoing request
@@ -204,6 +338,7 @@ export class AcpClientBridge implements Client {
     this.pendingMethods.set(id, method);
 
     console.log('Sending request:', request);
+    const timeoutMs = this.getTimeoutForMethod(method);
 
     return new Promise((resolve, reject) => {
       this.messageResolvers.set(id, (response) => {
@@ -218,7 +353,7 @@ export class AcpClientBridge implements Client {
         reject(e);
       });
 
-      // Timeout after 60 seconds (increased for auth flows)
+      // Apply a method-specific timeout so long-lived ACP flows can complete.
       setTimeout(() => {
         if (this.messageResolvers.has(id)) {
           this.messageResolvers.delete(id);
@@ -226,7 +361,7 @@ export class AcpClientBridge implements Client {
           this.pendingMethods.delete(id);
           reject(new Error(`Request timeout: ${method}`));
         }
-      }, 60000);
+      }, timeoutMs);
     });
   }
 
@@ -234,7 +369,7 @@ export class AcpClientBridge implements Client {
     const notification = {
       jsonrpc: '2.0',
       method,
-      params: params || {},
+      params: withAcpMeta(params ?? {}),
     };
     
     // Track outgoing notification
@@ -251,7 +386,12 @@ export class AcpClientBridge implements Client {
 
   // ACP Agent methods (client calls these to talk to agent)
   async initialize(params: InitializeRequest): Promise<InitializeResponse> {
-    return this.sendRequest<InitializeResponse>('initialize', params);
+    const response = await this.sendRequest<InitializeResponse>('initialize', {
+      ...withAcpMeta(params),
+      clientCapabilities: withExtensionCapabilities(params.clientCapabilities),
+    });
+    this.supportedAgentMethods = readAdvertisedAgentMethods(response.agentCapabilities?._meta);
+    return response;
   }
 
   async newSession(params: NewSessionRequest): Promise<NewSessionResponse> {
@@ -282,65 +422,111 @@ export class AcpClientBridge implements Client {
   }
 
   async unstable_setSessionModel(params: { sessionId: string; modelId: string }): Promise<void> {
-    await this.sendRequest('session/set_model', params);
+    await this.sendRequest(SESSION_SET_MODEL_METHOD, params);
   }
 
   async unstable_setSessionConfigOption(
     params: { sessionId: string; configId: string; value: string }
-  ): Promise<{ configOptions: unknown[] }> {
-    return this.sendRequest<{ configOptions: unknown[] }>('session/set_config_option', params);
+  ): Promise<{ configOptions: any[] }> {
+    return await this.sendRequest<{ configOptions: any[] }>(
+      SESSION_SET_CONFIG_OPTION_METHOD,
+      params
+    );
   }
 
   async authenticate(params: AuthenticateRequest): Promise<AuthenticateResponse> {
     return this.sendRequest<AuthenticateResponse>('authenticate', params);
   }
 
+  private getPermissionRequestKey(params: RequestPermissionRequest): string {
+    return params.toolCall.toolCallId;
+  }
+
+  private normalizePermissionRequest(params: RequestPermissionRequest): LocalPermissionRequest {
+    return {
+      sessionId: params.sessionId,
+      toolCall: {
+        toolCallId: params.toolCall.toolCallId,
+        title: params.toolCall.title ?? '',
+        kind: params.toolCall.kind ?? 'other',
+        status:
+          (params.toolCall.status as
+            | 'pending'
+            | 'in_progress'
+            | 'completed'
+            | 'failed'
+            | 'cancelled') ?? 'pending',
+        locations: params.toolCall.locations?.map(({ path, line }) =>
+          line == null ? { path } : { path, line }
+        ),
+        content: params.toolCall.content?.map((item) => ({ ...item })) ?? undefined,
+        rawInput: normalizePermissionToolCallPayload(params.toolCall.rawInput),
+        rawOutput: normalizePermissionToolCallPayload(params.toolCall.rawOutput),
+        _meta: params.toolCall._meta ?? null,
+      },
+      options: params.options.map((opt) => ({
+        kind: opt.kind,
+        name: opt.name,
+        optionId: opt.optionId,
+        _meta: opt._meta ?? null,
+      })),
+      _meta: params._meta ?? null,
+    };
+  }
+
+  private syncPendingPermissionRequests(): void {
+    this.pendingPermissionRequests.value = Array.from(this.pendingPermissionResolvers.values()).map(
+      ({ request }) => request
+    );
+  }
+ 
   // ACP Client interface methods (agent calls these)
   async requestPermission(
     params: RequestPermissionRequest
   ): Promise<RequestPermissionResponse> {
     return new Promise((resolve) => {
-      this.pendingPermissionRequest.value = {
-        sessionId: params.sessionId,
-        toolCall: {
-          toolCallId: params.toolCall.toolCallId,
-          title: params.toolCall.title ?? '',
-          kind: params.toolCall.kind ?? 'other',
-          status: (params.toolCall.status as 'pending' | 'in_progress' | 'completed' | 'failed') ?? 'pending',
-          locations: params.toolCall.locations ?? undefined,
-        },
-        options: params.options.map((opt) => ({
-          kind: opt.kind,
-          name: opt.name,
-          optionId: opt.optionId,
-        })),
-      };
-      this.permissionResolver = resolve;
+      const key = this.getPermissionRequestKey(params);
+      this.pendingPermissionResolvers.set(key, {
+        request: this.normalizePermissionRequest(params),
+        resolver: resolve,
+      });
+      this.syncPendingPermissionRequests();
     });
   }
-
-  resolvePermission(optionId: string): void {
-    if (this.permissionResolver) {
-      this.permissionResolver({
-        outcome: {
-          outcome: 'selected',
-          optionId,
-        },
-      });
-      this.permissionResolver = null;
-      this.pendingPermissionRequest.value = null;
+ 
+  resolvePermission(requestId: string, optionId: string): void {
+    const pendingRequest = this.pendingPermissionResolvers.get(requestId);
+    if (!pendingRequest) {
+      return;
     }
-  }
 
+    this.pendingPermissionResolvers.delete(requestId);
+    this.syncPendingPermissionRequests();
+    pendingRequest.resolver({
+      outcome: {
+        outcome: 'selected',
+        optionId,
+      },
+      _meta: null,
+    });
+  }
+ 
   cancelPermission(): void {
-    if (this.permissionResolver) {
-      this.permissionResolver({
+    if (this.pendingPermissionResolvers.size === 0) {
+      return;
+    }
+
+    const pendingRequests = Array.from(this.pendingPermissionResolvers.values());
+    this.pendingPermissionResolvers.clear();
+    this.syncPendingPermissionRequests();
+
+    for (const { resolver } of pendingRequests) {
+      resolver({
         outcome: {
           outcome: 'cancelled',
         },
+        _meta: null,
       });
-      this.permissionResolver = null;
-      this.pendingPermissionRequest.value = null;
     }
   }
 
@@ -352,9 +538,12 @@ export class AcpClientBridge implements Client {
     params: WriteTextFileRequest
   ): Promise<WriteTextFileResponse> {
     try {
+      assertAbsolutePath(params.path);
+      const dir = await dirname(params.path);
+      await mkdir(dir, { recursive: true });
       await tauriWriteTextFile(params.path, params.content);
       console.log('writeTextFile completed:', params.path);
-      return {};
+      return null as unknown as WriteTextFileResponse;
     } catch (e) {
       console.error('writeTextFile failed:', params.path, e);
       throw e;
@@ -365,6 +554,7 @@ export class AcpClientBridge implements Client {
     params: ReadTextFileRequest
   ): Promise<ReadTextFileResponse> {
     try {
+      assertAbsolutePath(params.path);
       let content = await tauriReadTextFile(params.path);
       
       // Handle line/limit parameters if specified
@@ -374,9 +564,9 @@ export class AcpClientBridge implements Client {
         const endLine = params.limit ? startLine + params.limit : lines.length;
         content = lines.slice(startLine, endLine).join('\n');
       }
-      
+       
       console.log('readTextFile completed:', params.path);
-      return { content };
+      return { content, _meta: null };
     } catch (e) {
       console.error('readTextFile failed:', params.path, e);
       throw e;

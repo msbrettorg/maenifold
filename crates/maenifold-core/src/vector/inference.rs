@@ -19,6 +19,7 @@ pub fn generate_embedding(text: &str) -> Result<Vec<f32>> {
 }
 
 /// Generate embeddings for multiple texts in batched ONNX inference (max_batch=32 default)
+#[allow(clippy::too_many_lines)]
 pub fn generate_embeddings(texts: &[&str], max_batch: usize) -> Result<Vec<Vec<f32>>> {
     // T-9.1: RTM FR-7 — keep batched [[embedding]] inference behavior identical while
     // moving execution code behind smaller vector submodules.

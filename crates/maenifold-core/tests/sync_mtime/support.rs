@@ -6,8 +6,6 @@ use maenifold_core::markdown::{normalize_concept, path_to_uri};
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::params;
 use serde_json::json;
 use std::fs;
@@ -17,7 +15,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use tempfile::TempDir;
 
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub struct ConfigOverrideReset;
 

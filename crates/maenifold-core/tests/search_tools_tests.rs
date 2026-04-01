@@ -1,14 +1,11 @@
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::json::OutputFormat;
 use maenifold_core::memory;
 use maenifold_core::search;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use serde_json::{Value, json};
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 const TEST_FOLDER: &str = "search-tools-tests";
 
@@ -426,7 +423,7 @@ fn page_size_bounds_respected_across_all_modes() {
                 "minScore": 0.0,
             }),
         )
-        .expect(&format!("{mode} search should not error"));
+        .unwrap_or_else(|_| panic!("{mode} search should not error"));
 
         let json: Value = serde_json::from_str(&raw).expect("parse JSON");
         let data = &json["data"];

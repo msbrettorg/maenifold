@@ -1,11 +1,13 @@
 # Pipeline
 
-Creates and manages pipeline sessions composed of workflow nodes.
+Creates and manages pipeline sessions composed of DAG nodes.
 
 ## Parameters
 
+- `sessionId` (string, optional): Existing pipeline session identifier for lifecycle, topology, or inspection operations.
 - `definition` (object, optional): Pipeline definition to create. Must include `nodes` and `edges`.
 - `maxConcurrency` (integer, optional, default: `8`): Maximum number of nodes the scheduler may activate concurrently.
+- `prompt` (string, optional): Ambient prompt passed to all agent-dispatched nodes during autonomous execution.
 - `learn` (bool, default: false): Return this help text.
 
 ## Create
@@ -18,19 +20,103 @@ Provide `definition` to validate the directed graph, create a persistent pipelin
 {
   "nodes": [
     { "id": "root", "workflowId": "workflow-a" },
-    { "id": "child", "workflowId": "workflow-b", "acpClient": "agent-b" }
+    { "id": "child", "type": "workflow", "workflowId": "workflow-b", "acpClient": "agent-b" },
+    { "id": "draft", "type": "prompt", "prompt": "Summarize {{input}}", "agent": "agent-c", "toolMode": "disabled" },
+    { "id": "analyze", "type": "sequentialThinking", "topic": "Evaluate tradeoffs", "agent": "agent-d", "totalThoughts": 5 },
+    { "id": "publish", "type": "tool", "toolName": "pipeline", "toolArgs": {} }
   ],
   "edges": [
-    { "source": "root", "target": "child", "type": "success" }
+    { "source": "root", "target": "child", "type": "success" },
+    { "source": "child", "target": "draft", "type": "success" },
+    { "source": "draft", "target": "analyze", "type": "success" },
+    { "source": "analyze", "target": "publish", "type": "success" }
   ]
 }
 ```
+
+Supported node shapes:
+
+- Workflow: `{ "id": "...", "workflowId": "...", "acpClient": "..." }`
+- Prompt: `{ "id": "...", "type": "prompt", "prompt": "...", "agent": "...", "toolMode": "disabled" }`
+- SequentialThinking: `{ "id": "...", "type": "sequentialThinking", "topic": "...", "agent": "...", "totalThoughts": 5 }`
+- Tool: `{ "id": "...", "type": "tool", "toolName": "...", "toolArgs": {} }`
 
 ### Returns
 
 - `pipelineId`: Created pipeline session identifier.
 - `ready`: Initial ready node IDs.
 - `nodes`: Array of `{ nodeId, workflowId, sessionId }`.
+
+## Lifecycle operations
+
+- `sessionId + run=true (+ prompt)`: Start autonomous execution for an existing pipeline session. When provided, `prompt` is passed through as ambient context for agent-dispatched nodes.
+- `sessionId + pause=true`: Pause a running pipeline after active work drains.
+- `sessionId + resume=true`: Resume a paused pipeline.
+- `sessionId + cancel=true`: Cancel a running pipeline and prevent further work from starting.
+- `sessionId + view=true`: Inspect the current pipeline state.
+- `sessionId + dispatch=true`: Claim ready nodes as active and return them.
+- `sessionId + nodeId + restart=true`: Recreate an abandoned or stuck node session.
+- `sessionId + nodeId + status`: Update a node to `completed` or `abandoned`.
+
+## Topology operations
+
+- `sessionId + rewind`: Reset the provided `nodeIds` and every downstream node.
+
+```json
+{
+  "sessionId": "pipeline-1735689600000",
+  "rewind": {
+    "nodeIds": ["child"]
+  }
+}
+```
+
+- `sessionId + graft`: Add new nodes and edges to an existing pipeline.
+
+```json
+{
+  "sessionId": "pipeline-1735689600000",
+  "graft": {
+    "nodes": [
+      { "id": "cleanup", "workflowId": "workflow-cleanup" }
+    ],
+    "edges": [
+      { "source": "child", "target": "cleanup", "type": "always" }
+    ]
+  }
+}
+```
+
+- `sessionId + join`: Merge another pipeline into the target pipeline with linking edges.
+
+```json
+{
+  "sessionId": "pipeline-target",
+  "join": {
+    "sourceSessionId": "pipeline-source",
+    "edges": [
+      { "source": "target-root", "target": "source-root" }
+    ]
+  }
+}
+```
+
+- `sessionId + fork`: Clone the selected node and downstream subgraph into a new pipeline session. `newSessionId` is optional.
+
+```json
+{
+  "sessionId": "pipeline-1735689600000",
+  "fork": {
+    "fromNodeId": "child",
+    "newSessionId": "pipeline-forked"
+  }
+}
+```
+
+## Delete
+
+- `sessionId + delete=true`: Permanently delete the pipeline session and all associated workflow sessions.
+- Running pipelines with active nodes cannot be deleted until they are paused or cancelled.
 
 ## Errors
 
@@ -40,20 +126,4 @@ Provide `definition` to validate the directed graph, create a persistent pipelin
 - Cycles in the pipeline graph
 - Missing workflow definitions
 - Invalid `maxConcurrency` values
-
-## Example
-
-```json
-{
-  "definition": {
-    "nodes": [
-      { "id": "root", "workflowId": "workflow-a" },
-      { "id": "child", "workflowId": "workflow-b" }
-    ],
-    "edges": [
-      { "source": "root", "target": "child" }
-    ]
-  },
-  "maxConcurrency": 4
-}
-```
+- Invalid lifecycle/topology parameter combinations

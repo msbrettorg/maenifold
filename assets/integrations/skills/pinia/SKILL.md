@@ -63,7 +63,7 @@ app.use(pinia)
 app.mount('#app')
 ```
 
-See `sample_codes/getting-started/create-pinia.ts` and `sample_codes/getting-started/counter-store.ts`.
+See `sample_codes/getting-started/create-pinia.md` and `sample_codes/getting-started/counter-store.md`.
 
 ## Core concepts
 
@@ -136,7 +136,7 @@ For server-rendered apps:
 - hydrate `pinia.state.value` on the client
 - hydrate **before** calling any `useStore()` function client-side
 
-See `sample_codes/common-patterns/ssr-hydration.ts`.
+See `sample_codes/common-patterns/ssr-hydration.md`.
 
 ## Common patterns
 
@@ -181,11 +181,11 @@ Start here before browsing external docs:
 |---|---|
 | Core mental model and trade-offs | `references/core-concepts.md` |
 | Official links and lookup prompts | `references/official-links.md` |
-| Bootstrap Pinia in a Vue app | `sample_codes/getting-started/create-pinia.ts` |
-| Basic Option Store | `sample_codes/getting-started/counter-store.ts` |
-| Setup Store pattern | `sample_codes/common-patterns/setup-store.ts` |
-| Persistence plugin | `sample_codes/common-patterns/persist-plugin.ts` |
-| SSR hydration | `sample_codes/common-patterns/ssr-hydration.ts` |
+| Bootstrap Pinia in a Vue app | `sample_codes/getting-started/create-pinia.md` |
+| Basic Option Store | `sample_codes/getting-started/counter-store.md` |
+| Setup Store pattern | `sample_codes/common-patterns/setup-store.md` |
+| Persistence plugin | `sample_codes/common-patterns/persist-plugin.md` |
+| SSR hydration | `sample_codes/common-patterns/ssr-hydration.md` |
 
 ## Dynamic lookup guidance
 

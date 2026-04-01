@@ -28,10 +28,7 @@ pub fn run_output(
     expected_code: i32,
 ) -> Vec<u8> {
     let mut cmd = maenifold_cmd(tmp);
-    cmd.arg("--tool")
-        .arg(tool)
-        .arg("--payload")
-        .arg(payload.to_string());
+    cmd.arg("tool").arg(tool).arg(payload.to_string());
     if json_mode {
         cmd.arg("--json");
     }

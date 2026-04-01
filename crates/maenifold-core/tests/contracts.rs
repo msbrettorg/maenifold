@@ -1,12 +1,9 @@
 // NFR-2, NFR-3: Integration smoke tests for core subsystem contracts.
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::{AssetManager, Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::Connection;
 use std::fs;
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 fn isolated_config() -> (TempDir, Config) {
     let tmp = TempDir::new().expect("tmp");

@@ -23,6 +23,7 @@ pub(crate) fn load_all_concept_names(connection: &Connection) -> Result<Vec<Stri
 }
 
 // T-QUAL-002.6b: RTM FR-25.2
+#[allow(clippy::too_many_lines)]
 pub fn generate_concept_embeddings(
     connection: &Connection,
     concepts: &[String],

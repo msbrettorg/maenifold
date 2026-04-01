@@ -4,20 +4,23 @@ version = "0.1.0"
 edition = "2024"
 autotests = false
 
+[features]
+default = ["app"]
+app = []
+
 [dependencies]
 anyhow.workspace = true
-axum = { workspace = true, features = ["ws"] }
+axum.workspace = true
 base64.workspace = true
 chrono.workspace = true
 gray_matter.workspace = true
 libc.workspace = true
-mime_guess = { version = "2" }
 notify = { version = "7", features = ["macos_fsevent"] }
 once_cell.workspace = true
 parking_lot.workspace = true
+petgraph = { version = "0.8", features = ["stable_graph", "serde-1"] }
 pulldown-cmark.workspace = true
 regex.workspace = true
-rust-embed = { version = "8", features = ["interpolate-folder-path"] }
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -25,8 +28,11 @@ serde_yaml.workspace = true
 sha2.workspace = true
 slug.workspace = true
 thiserror.workspace = true
+tracing.workspace = true
 tokio = { workspace = true, features = ["process", "time"] }
 tokio-util = { workspace = true, features = ["compat"] }
+agent-client-protocol = { workspace = true }
+async-trait = { workspace = true }
 rmcp = { workspace = true, features = ["transport-streamable-http-server"] }
 tower-http.workspace = true
 uuid.workspace = true
@@ -47,11 +53,76 @@ assert_cmd.workspace = true
 ctor = "0.4"
 predicates.workspace = true
 reqwest.workspace = true
+serial_test = "3"
 similar-asserts.workspace = true
 tempfile.workspace = true
 filetime = "0.2.25"
 
 [[test]]
 # T-HOTFIX: RTM NFR-3
-name = "integration_tests"
-path = "tests/main.rs"
+name = "vector_integration_tests"
+path = "tests/vector_integration_tests.rs"
+
+[[test]]
+name = "asset_tests"
+path = "tests/asset_tests.rs"
+
+[[test]]
+name = "community_tests"
+path = "tests/community_tests.rs"
+
+[[test]]
+name = "concept_tests"
+path = "tests/concept_tests.rs"
+
+[[test]]
+name = "sync_tests"
+path = "tests/sync_tests.rs"
+
+[[test]]
+name = "memory_tests"
+path = "tests/memory_tests.rs"
+
+[[test]]
+name = "decay_tests"
+path = "tests/decay_tests.rs"
+
+[[test]]
+name = "workflow_tests"
+path = "tests/workflow_tests.rs"
+
+[[test]]
+name = "session_tests"
+path = "tests/session_tests.rs"
+
+[[test]]
+name = "markdown_tests"
+path = "tests/markdown_tests.rs"
+
+[[test]]
+name = "search_tests"
+path = "tests/search_tests.rs"
+
+[[test]]
+name = "graph_tests"
+path = "tests/graph_tests.rs"
+
+[[test]]
+name = "recent_activity_tests"
+path = "tests/recent_activity_tests.rs"
+
+[[test]]
+name = "repair_tests"
+path = "tests/repair_tests.rs"
+
+[[test]]
+name = "frontmatter_tests"
+path = "tests/frontmatter_tests.rs"
+
+[[test]]
+name = "misc_tests"
+path = "tests/misc_tests.rs"
+
+[[test]]
+name = "http_session_restart_tests"
+path = "tests/http_session_restart_tests.rs"

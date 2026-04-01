@@ -2,14 +2,12 @@
 #![allow(dead_code)]
 
 use maenifold_core::{Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::{Connection, params};
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
 // T-W1-8: RTM NFR-2 — serialise all tests: they share a process-wide Config singleton.
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 // T-W1-8: RTM NFR-2
 pub(crate) struct TestEnv {

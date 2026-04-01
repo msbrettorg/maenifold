@@ -1,18 +1,18 @@
 // T-12.0: RTM NFR-1
+#[allow(clippy::duplicate_mod)]
 #[path = "proximity_weight/support.rs"]
 mod support;
 
 use std::fs;
 use support::{
-    TestEnv, acquire_test_lock, assert_approx_eq, invoke_sync, open_db, relation_count,
-    relation_exists, relation_source_files, write_memory_file,
+    TestEnv, assert_approx_eq, invoke_sync, open_db, relation_count, relation_exists,
+    relation_source_files, write_memory_file,
 };
 
 // T-4.3: RTM FR-23.5 — NOTE: FR-23 in RTM.md is HTTP Transport (collision);
 // proximity weight cleanup requires PM RTM reconciliation.
 #[test]
 fn sync_removes_edge_when_last_source_file_is_deleted() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
 
     let relative = "tests/to-remove.md";
@@ -52,7 +52,6 @@ fn sync_removes_edge_when_last_source_file_is_deleted() {
 // proximity weight cleanup requires PM RTM reconciliation.
 #[test]
 fn sync_preserves_remaining_source_file_weights_after_partial_delete() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
 
     let remove_relative = "tests/remove-me.md";
@@ -100,7 +99,6 @@ fn sync_preserves_remaining_source_file_weights_after_partial_delete() {
 // proximity weight cleanup requires PM RTM reconciliation.
 #[test]
 fn sync_preserves_cross_section_weight_after_partial_delete() {
-    let _guard = acquire_test_lock();
     let env = TestEnv::isolated();
 
     let remove_relative = "tests/remove-cross.md";

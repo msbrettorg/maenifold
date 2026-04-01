@@ -4,5 +4,6 @@
 **/*.rs.bk
 /target
 /test-outputs
-pipeline.db
+gate.db
 sprint-baseline.txt
+libpipeline_node_types.rlib

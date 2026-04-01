@@ -125,10 +125,10 @@ impl WikiLinkFilter {
         }
         let modified = metadata.modified()?;
 
-        if let Some(cached) = WIKILINK_FILTER_CACHE.lock().get(&self.filter_path).cloned() {
-            if cached.modified == modified {
-                return Ok(cached);
-            }
+        if let Some(cached) = WIKILINK_FILTER_CACHE.lock().get(&self.filter_path).cloned()
+            && cached.modified == modified
+        {
+            return Ok(cached);
         }
 
         // T-15.24: RTM FR-19 partition entries into exact matches and prefix patterns.

@@ -12,11 +12,14 @@ fn analyze_concept_corruption_empty_memory_directory_reports_zero_unique_variant
     // T-1.4: RTM FR-2
     let _guard = TEST_MUTEX.lock();
     let _reset = ConfigOverrideReset;
-    let (_tmp, _cfg) = isolated_config();
+    let (_tmp, cfg) = isolated_config();
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow"
+        }),
+    );
 
     assert!(
         output.contains("=== Concept Family Analysis: 'workflow' ==="),
@@ -40,9 +43,12 @@ fn analyze_concept_corruption_extracts_wikilinks_from_markdown_content() {
         "---\ntags: []\n---\n# Test\n\nUsing [[workflow]] here.\n",
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow"
+        }),
+    );
 
     assert!(
         output.contains("Found 1 unique variants"),
@@ -66,9 +72,12 @@ fn analyze_concept_corruption_counts_multiple_wikilinks_in_the_same_file() {
         "# Test\n\n[[workflow]] again [[workflow]] and [[workflow]].\n",
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow"
+        }),
+    );
 
     assert!(
         output.contains("Found 1 unique variants"),
@@ -92,9 +101,12 @@ fn analyze_concept_corruption_counts_multiple_matching_variants_in_one_file() {
         "[[workflow]] is used here and [[workflow-dispatch]] is used there.\n",
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow"
+        }),
+    );
 
     assert!(
         output.contains("Found 2 unique variants"),
@@ -128,9 +140,12 @@ fn analyze_concept_corruption_aggregates_counts_across_multiple_files() {
         "# File C\n\n[[workflows]] is a plural form.\n",
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow"
+        }),
+    );
 
     assert!(
         output.contains("Found 2 unique variants"),
@@ -158,10 +173,13 @@ fn analyze_concept_corruption_reports_total_unique_variants_before_max_results_t
         "[[workflow]] [[workflow-a]] [[workflow-b]] [[workflow-c]] [[workflow-d]]\n",
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow",
-        "maxResults": 2
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow",
+            "maxResults": 2
+        }),
+    );
 
     assert!(
         output.contains("Found 5 unique variants"),
@@ -195,9 +213,12 @@ fn analyze_concept_corruption_excludes_files_in_git_directories() {
         "# Visible\n\nUsing [[workflow]] in a non-hidden file.\n",
     );
 
-    let output = analyze_concept_corruption(json!({
-        "conceptFamily": "workflow"
-    }));
+    let output = analyze_concept_corruption(
+        &cfg,
+        json!({
+            "conceptFamily": "workflow"
+        }),
+    );
 
     assert!(
         output.contains("Found 1 unique variants"),

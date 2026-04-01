@@ -20,7 +20,7 @@ pub fn maenifold_cmd(tmp: &TempDir) -> Command {
 
 pub fn invoke_json(tmp: &TempDir, tool: &str, payload: &str) -> (Value, i32) {
     let output = maenifold_cmd(tmp)
-        .args(["--tool", tool, "--payload", payload, "--json"])
+        .args(["tool", tool, payload, "--json"])
         .output()
         .expect("run maenifold");
     let code = output.status.code().unwrap_or(-1);

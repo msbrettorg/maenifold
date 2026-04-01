@@ -138,7 +138,7 @@ fn file_operations_work_with_mixed_path_styles() {
 
     let original_full = platform_path
         .canonicalize()
-        .unwrap_or(platform_path.clone());
+        .unwrap_or_else(|_| platform_path.clone());
     let converted_full = converted_path
         .canonicalize()
         .unwrap_or_else(|_| converted_path.clone());

@@ -54,6 +54,7 @@ pub fn cleanup_abandoned_sessions(config: &Config) -> Result<usize> {
     Ok(abandoned_count)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn abandon_session_candidate(
     connection: &rusqlite::Connection,
     config: &Config,
@@ -66,14 +67,22 @@ fn abandon_session_candidate(
     // T-4.6: RTM FR-4.2 - explicit post-index filesystem touches override stale DB timestamps
     // without letting freshly-created test/session fixtures suppress legitimate stale cleanup.
     let path = crate::markdown::uri_to_path(file_uri, &config.memory_path)?;
-    if let Ok(metadata) = fs::metadata(&path) {
-        if should_preserve_recent_filesystem_edit(&metadata, abandonment_minutes) {
-            return Ok(false);
-        }
+    if let Ok(metadata) = fs::metadata(&path)
+        && should_preserve_recent_filesystem_edit(&metadata, abandonment_minutes)
+    {
+        return Ok(false);
     }
 
     let (frontmatter, content, _) = read_markdown(file_uri, config)?;
     let mut frontmatter = frontmatter.unwrap_or_default();
+
+    // Pipeline-owned workflow sessions have their own lifecycle management.
+    // The pipeline engine controls state transitions with guards (e.g. must be Active
+    // to transition to Abandoned). Session cleanup must not bypass those guards.
+    if frontmatter.contains_key("pipelineId") {
+        return Ok(false);
+    }
+
     frontmatter.insert(
         "status".to_string(),
         YamlValue::String("abandoned".to_string()),

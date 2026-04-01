@@ -43,6 +43,7 @@ fn fisher_yates_shuffle(order: &mut [usize], rng: &mut SplitMix64) {
 // T-12.0: RTM FR-23.7
 // T-15.9: RTM FR-23.7 — gain formula factor-of-2 fix
 // T-15.10: RTM FR-23.7 — node visit order shuffle
+#[allow(clippy::too_many_lines)]
 pub(crate) fn run_louvain(graph: &GraphData, gamma: f64, seed: Option<u64>) -> (Vec<usize>, f64) {
     let node_count = graph.concepts.len();
     if node_count == 0 {
@@ -243,6 +244,7 @@ fn neighbor_community_weights(
 
 // T-15.9: RTM FR-23.7 — Modularity gain formula matching Blondel 2008 and C#.
 // The first term uses kiIn/m (= 2*kiIn/(2m)), not kiIn/(2m).
+#[allow(clippy::too_many_arguments)]
 fn insertion_gain(
     sum_in: f64,
     sum_tot: f64,

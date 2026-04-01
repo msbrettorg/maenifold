@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue';
 import { useConfigStore } from '../stores/config';
 import { addAgent, removeAgent, updateAgent } from '../lib/tauri';
-import EnvVarEditor from './EnvVarEditor.vue';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -14,8 +13,6 @@ const agents = computed(() => {
   return Object.entries(configStore.config.agents).map(([name, config]) => ({
     name,
     command: config.command,
-    args: config.args.join(' '),
-    env: config.env || {},
   }));
 });
 
@@ -24,16 +21,12 @@ const showAddForm = ref(false);
 const editingAgent = ref<string | null>(null);
 const formName = ref('');
 const formCommand = ref('');
-const formArgs = ref('');
-const formEnv = ref<Record<string, string>>({});
 const formError = ref('');
 const isSubmitting = ref(false);
 
 function resetForm() {
   formName.value = '';
   formCommand.value = '';
-  formArgs.value = '';
-  formEnv.value = {};
   formError.value = '';
   showAddForm.value = false;
   editingAgent.value = null;
@@ -44,42 +37,11 @@ function startAdd() {
   showAddForm.value = true;
 }
 
-function startEdit(agent: { name: string; command: string; args: string; env: Record<string, string> }) {
+function startEdit(agent: { name: string; command: string }) {
   resetForm();
   editingAgent.value = agent.name;
   formName.value = agent.name;
   formCommand.value = agent.command;
-  formArgs.value = agent.args;
-  formEnv.value = { ...agent.env };
-}
-
-function parseArgs(argsString: string): string[] {
-  // Simple arg parsing - split on spaces but respect quotes
-  const args: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  let quoteChar = '';
-
-  for (const char of argsString) {
-    if ((char === '"' || char === "'") && !inQuotes) {
-      inQuotes = true;
-      quoteChar = char;
-    } else if (char === quoteChar && inQuotes) {
-      inQuotes = false;
-      quoteChar = '';
-    } else if (char === ' ' && !inQuotes) {
-      if (current.trim()) {
-        args.push(current.trim());
-      }
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  if (current.trim()) {
-    args.push(current.trim());
-  }
-  return args;
 }
 
 async function handleSubmit() {
@@ -100,12 +62,11 @@ async function handleSubmit() {
     return;
   }
 
-  const args = parseArgs(formArgs.value);
   isSubmitting.value = true;
 
   try {
     if (editingAgent.value) {
-      const newConfig = await updateAgent(formName.value, formCommand.value, args, formEnv.value);
+      const newConfig = await updateAgent(formName.value, formCommand.value);
       configStore.updateFromEvent(newConfig);
     } else {
       // Check for duplicates
@@ -114,7 +75,7 @@ async function handleSubmit() {
         isSubmitting.value = false;
         return;
       }
-      const newConfig = await addAgent(formName.value, formCommand.value, args, formEnv.value);
+      const newConfig = await addAgent(formName.value, formCommand.value);
       configStore.updateFromEvent(newConfig);
     }
     resetForm();
@@ -173,22 +134,9 @@ async function handleDelete(name: string) {
               <input 
                 v-model="formCommand" 
                 type="text" 
-                placeholder="npx"
+                placeholder="npx -y @example/agent --acp"
               />
-            </div>
-
-            <div class="form-group">
-              <label>Arguments</label>
-              <input 
-                v-model="formArgs" 
-                type="text" 
-                placeholder="-y @example/agent"
-              />
-              <small>Space-separated. Use quotes for args with spaces.</small>
-            </div>
-
-            <div class="form-group">
-              <EnvVarEditor v-model="formEnv" />
+              <small>Enter the full command string in acpx format.</small>
             </div>
 
             <div v-if="formError" class="form-error">
@@ -219,7 +167,7 @@ async function handleDelete(name: string) {
               <div class="agent-info">
                 <div class="agent-name">{{ agent.name }}</div>
                 <div class="agent-command">
-                  <code>{{ agent.command }} {{ agent.args }}</code>
+                  <code>{{ agent.command }}</code>
                 </div>
               </div>
               <div class="agent-actions">

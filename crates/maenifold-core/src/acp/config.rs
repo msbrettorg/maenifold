@@ -1,3 +1,4 @@
+use agent_client_protocol as acp;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fs;
@@ -5,13 +6,53 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", tag = "type")]
+pub enum McpServerEntry {
+    #[serde(rename = "stdio")]
+    Stdio {
+        name: String,
+        command: String,
+        #[serde(default)]
+        args: Vec<String>,
+    },
+    #[serde(rename = "http")]
+    Http { name: String, url: String },
+}
+
+impl McpServerEntry {
+    pub fn to_acp(&self) -> acp::McpServer {
+        match self {
+            McpServerEntry::Stdio {
+                name,
+                command,
+                args,
+            } => acp::McpServer::Stdio(
+                acp::McpServerStdio::new(name.clone(), command.clone()).args(args.clone()),
+            ),
+            McpServerEntry::Http { name, url } => {
+                acp::McpServer::Http(acp::McpServerHttp::new(name.clone(), url.clone()))
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentEntry {
     pub command: String,
-    #[serde(default)]
-    pub args: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub env: HashMap<String, String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mcp_servers: Vec<McpServerEntry>,
+}
+
+impl AgentEntry {
+    pub fn command_parts(&self) -> (&str, Vec<&str>) {
+        let mut parts = self.command.split_whitespace();
+        let binary = parts.next().unwrap_or("");
+        let args = parts.collect();
+        (binary, args)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -20,28 +61,17 @@ pub struct AgentsConfig {
     pub agents: HashMap<String, AgentEntry>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct AgentInfo {
-    pub name: String,
-    pub status: String,
-}
-
 impl AgentsConfig {
     pub fn load(root: &Path) -> AgentsConfig {
-        let config_path: PathBuf = root.join("agents.json");
-        let contents = match fs::read_to_string(&config_path) {
-            Ok(contents) => contents,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                return Self::default();
-            }
-            Err(error) => {
-                eprintln!(
-                    "Warning: failed to read agents config '{}': {error}",
-                    config_path.display()
-                );
-                return Self::default();
-            }
+        let primary_path = root.join("agents.json");
+        let fallback_path = root.join(".acpxrc.json");
+        let Some((config_path, contents)) = read_config_contents(&primary_path, &fallback_path)
+        else {
+            return Self::default();
         };
+
+        #[cfg(unix)]
+        ensure_acpx_symlink(root, &config_path);
 
         let parsed: AgentsConfig = match serde_json::from_str(&contents) {
             Ok(config) => config,
@@ -63,24 +93,59 @@ impl AgentsConfig {
 
         Self { agents }
     }
+}
 
-    pub fn list_agents(&self) -> Vec<AgentInfo> {
-        let mut agents = self
-            .agents
-            .keys()
-            .cloned()
-            .map(|name| AgentInfo {
-                name,
-                status: "available".to_string(),
-            })
-            .collect::<Vec<_>>();
-        agents.sort_by(|left, right| left.name.cmp(&right.name));
-        agents
+fn read_config_contents(primary_path: &Path, fallback_path: &Path) -> Option<(PathBuf, String)> {
+    match fs::read_to_string(primary_path) {
+        Ok(contents) => Some((primary_path.to_path_buf(), contents)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            match fs::read_to_string(fallback_path) {
+                Ok(contents) => Some((fallback_path.to_path_buf(), contents)),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+                Err(error) => {
+                    eprintln!(
+                        "Warning: failed to read agents config '{}': {error}",
+                        fallback_path.display()
+                    );
+                    None
+                }
+            }
+        }
+        Err(error) => {
+            eprintln!(
+                "Warning: failed to read agents config '{}': {error}",
+                primary_path.display()
+            );
+            None
+        }
+    }
+}
+
+#[cfg(unix)]
+fn ensure_acpx_symlink(root: &Path, loaded_path: &Path) {
+    use std::os::unix::fs::symlink;
+
+    let agents_path = root.join("agents.json");
+    let acpx_path = root.join(".acpxrc.json");
+    if loaded_path != agents_path || acpx_path.exists() {
+        return;
+    }
+
+    if let Err(error) = symlink("agents.json", &acpx_path) {
+        eprintln!(
+            "Warning: failed to create ACP config symlink '{}': {error}",
+            acpx_path.display()
+        );
     }
 }
 
 fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
-    let command_path = Path::new(&entry.command);
+    let (command_path, _) = entry.command_parts();
+    if command_path.is_empty() {
+        eprintln!("Warning: excluding agent '{name}': command must not be empty");
+        return false;
+    }
+    let command_path = Path::new(command_path);
     if !command_path.is_absolute() {
         eprintln!(
             "Warning: excluding agent '{name}': command path must be absolute ('{}')",
@@ -107,10 +172,8 @@ fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
         }
     };
 
-    // FR-32-SEC: Check real user execute permission via access(2) instead of
-    // inspecting mode bits, which don't account for file ownership or ACLs.
     let c_path = match CString::new(command_path.as_os_str().as_encoded_bytes()) {
-        Ok(p) => p,
+        Ok(path) => path,
         Err(_) => {
             eprintln!(
                 "Warning: excluding agent '{name}': command path contains interior NUL ('{}')",
@@ -132,4 +195,88 @@ fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
     }
 
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn write_config(root: &Path, file_name: &str, content: &str) {
+        fs::write(root.join(file_name), content).expect("write config");
+    }
+
+    fn write_executable(root: &Path, file_name: &str) -> PathBuf {
+        let path = root.join(file_name);
+        fs::write(&path, "#!/bin/sh\n").expect("write dummy");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("chmod");
+        }
+        path
+    }
+
+    #[test]
+    fn command_parts_splits_binary_and_args() {
+        let entry = AgentEntry {
+            command: "/usr/bin/test-agent serve --acp".to_string(),
+            env: HashMap::new(),
+            mcp_servers: vec![],
+        };
+
+        let (binary, args) = entry.command_parts();
+        assert_eq!(binary, "/usr/bin/test-agent");
+        assert_eq!(args, vec!["serve", "--acp"]);
+    }
+
+    #[test]
+    fn load_reads_agents_json_and_creates_acpx_symlink() {
+        let tmp = tempdir().expect("tempdir");
+        let root = tmp.path();
+        let dummy = write_executable(root, "test-agent");
+        let json = serde_json::json!({
+            "agents": {
+                "TestAgent": {
+                    "command": format!("{} serve --acp", dummy.display())
+                }
+            }
+        });
+        write_config(
+            root,
+            "agents.json",
+            &serde_json::to_string_pretty(&json).unwrap(),
+        );
+
+        let config = AgentsConfig::load(root);
+        assert!(config.agents.contains_key("TestAgent"));
+
+        #[cfg(unix)]
+        assert!(
+            root.join(".acpxrc.json").exists(),
+            ".acpxrc.json symlink must be created"
+        );
+    }
+
+    #[test]
+    fn load_falls_back_to_acpxrc_when_agents_json_is_absent() {
+        let tmp = tempdir().expect("tempdir");
+        let root = tmp.path();
+        let dummy = write_executable(root, "test-agent");
+        let json = serde_json::json!({
+            "agents": {
+                "FallbackAgent": {
+                    "command": format!("{} serve --acp", dummy.display())
+                }
+            }
+        });
+        write_config(
+            root,
+            ".acpxrc.json",
+            &serde_json::to_string_pretty(&json).unwrap(),
+        );
+
+        let config = AgentsConfig::load(root);
+        assert!(config.agents.contains_key("FallbackAgent"));
+    }
 }

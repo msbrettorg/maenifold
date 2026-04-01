@@ -1,14 +1,14 @@
+#![allow(dead_code, unused_imports)]
+
 use maenifold_core::json::OutputFormat;
 use maenifold_core::tools::ToolContext;
 use maenifold_core::{Config, GraphDatabase, memory, repair};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use serde_json::json;
 use std::fs;
 use tempfile::TempDir;
 
 // T-0.1: RTM NFR-3 — Shared harness preserves memory path coverage while splitting the oversized test file.
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 pub(crate) const TEST_FOLDER: &str = "memory-path-tests";
 
 pub(crate) struct TestEnv {

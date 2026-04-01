@@ -28,7 +28,7 @@ cargo build -p maenifold-cli
 
 ```bash
 cargo fmt --all
-cargo clippy --workspace --all-targets -- -D warnings
+make quality-lint
 ```
 
 ## Test
@@ -56,7 +56,13 @@ cargo test --test workspace_cli_smoke
 ### Full suite
 
 ```bash
-cargo test
+MAENIFOLD_FULL_SUITE=1 cargo test
+```
+
+### Vector / embedding suite
+
+```bash
+MAENIFOLD_VECTOR_SUITE=1 cargo test -p maenifold-core --test vector_integration_tests
 ```
 
 ### Single exact test
@@ -64,6 +70,36 @@ cargo test
 ```bash
 cargo test --test workspace_cli_smoke workspace_cli_smoke_is_rust_only -- --exact
 ```
+
+## Quality reports
+
+Install the extra analysis tools when you want coverage and code-health reports:
+
+```bash
+rustup component add llvm-tools-preview
+cargo install cargo-llvm-cov cargo-machete rust-code-analysis-cli
+npm install -g jscpd
+```
+
+Then run the focused targets from the repository root:
+
+```bash
+make quality-coverage       # LCOV summary under target/quality/coverage/
+make quality-coverage-html  # HTML coverage report
+make quality-metrics        # rust-code-analysis JSON metrics
+make quality-dead-code      # clippy dead/unused findings as JSON lines
+make quality-unused-deps    # cargo machete report
+make quality-duplicates     # jscpd duplicate-code report
+make quality-report         # aggregate all of the above + approximate file-level CRAP
+```
+
+Notes:
+- `quality-lint` keeps correctness-oriented Clippy checks as a gate while letting the dedicated quality report own complexity/size signals such as `too_many_lines`, `too_many_arguments`, and `cognitive_complexity`.
+- `quality-report` opts into the full Rust suite explicitly via `MAENIFOLD_FULL_SUITE=1` when generating coverage.
+- The vector/embedding suite now lives in `vector_integration_tests` and stays opt-in unless you set `MAENIFOLD_VECTOR_SUITE=1` or target an exact vector test by name.
+- `quality-dead-code` intentionally scopes Clippy to library/binary targets so production-code dead/unused findings stay usable even when test-only modules are noisy.
+- The CRAP section is file-level and approximate: it combines LCOV line coverage with `rust-code-analysis` complexity metrics.
+- Raw artifacts land under `target/quality/`.
 
 ## Workspace structure
 

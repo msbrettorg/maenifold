@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "markdown_rw_support/mod.rs"]
 mod markdown_rw_support;
 

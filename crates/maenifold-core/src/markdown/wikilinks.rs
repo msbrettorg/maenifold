@@ -33,6 +33,7 @@ pub fn extract_h2_sections(content: &str) -> Vec<(String, String)> {
     sections
 }
 
+#[allow(clippy::too_many_lines)]
 pub fn extract_wikilinks(content: &str) -> Vec<String> {
     let mut links = Vec::new();
     let mut seen = HashSet::new();

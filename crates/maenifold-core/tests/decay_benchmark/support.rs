@@ -228,8 +228,7 @@ pub fn find_document_rank(search_result: &Value, title_fragment: &str) -> Option
         .position(|entry| {
             entry["title"]
                 .as_str()
-                .map(|title| title.contains(title_fragment))
-                .unwrap_or(false)
+                .is_some_and(|title| title.contains(title_fragment))
         })
 }
 
@@ -242,14 +241,15 @@ pub fn find_result<'a>(search_result: &'a Value, title_fragment: &str) -> Option
         .find(|entry| {
             entry["title"]
                 .as_str()
-                .map(|title| title.contains(title_fragment))
-                .unwrap_or(false)
+                .is_some_and(|title| title.contains(title_fragment))
         })
 }
 
 pub fn format_rank(rank: Option<usize>) -> String {
-    rank.map(|value| format!("#{}", value + 1))
-        .unwrap_or_else(|| "NOT FOUND".to_string())
+    rank.map_or_else(
+        || "NOT FOUND".to_string(),
+        |value| format!("#{}", value + 1),
+    )
 }
 
 pub fn assert_approx_eq(actual: f64, expected: f64, tolerance: f64) {

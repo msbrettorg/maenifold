@@ -1,4 +1,4 @@
-//! T-29.2: RTM FR-35 — System tray icon for `--app` / `--http` modes on macOS.
+//! T-29.2: RTM FR-35 — System tray icon for `--http` mode on macOS.
 //!
 //! Architecture (required by macOS):
 //! - **Main thread**: winit event loop driving the tray icon + menu.
@@ -9,8 +9,9 @@
 //!
 //! `--mcp` mode never enters this module — it remains fully headless.
 
+use crate::tray_menu::{build_tray_menu, restart_daemon, toggle_login_item};
 use tokio_util::sync::CancellationToken;
-use tray_icon::menu::{Menu, MenuEvent, MenuId, MenuItem, PredefinedMenuItem};
+use tray_icon::menu::{MenuEvent, MenuId, MenuItem};
 use tray_icon::{Icon, TrayIconBuilder};
 use winit::application::ApplicationHandler;
 use winit::event::StartCause;
@@ -22,18 +23,13 @@ use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 #[derive(Debug, Clone, Copy)]
 pub enum ServerMode {
     Http(u16),
-    App(u16),
 }
 
 impl ServerMode {
     pub fn port(self) -> u16 {
         match self {
-            Self::Http(p) | Self::App(p) => p,
+            Self::Http(p) => p,
         }
-    }
-
-    pub fn is_app(self) -> bool {
-        matches!(self, Self::App(_))
     }
 }
 
@@ -58,35 +54,6 @@ fn open_url(url: &str) {
     }
 }
 
-fn launch_agent_path() -> std::path::PathBuf {
-    std::env::var_os("HOME")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("Library/LaunchAgents/com.ma-collective.maenifold.plist")
-}
-
-fn is_login_enabled() -> bool {
-    launch_agent_path().exists()
-}
-
-fn login_menu_text(enabled: bool) -> &'static str {
-    if enabled {
-        "✓ Open at Login"
-    } else {
-        "Open at Login"
-    }
-}
-
-#[cfg(target_os = "macos")]
-fn xml_escape(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
-}
-
 // ── TrayApp (winit ApplicationHandler) ────────────────────────────────
 
 /// State for the winit `ApplicationHandler` that drives the tray icon.
@@ -98,107 +65,24 @@ struct TrayApp {
     tray_icon: Option<tray_icon::TrayIcon>,
     quit_id: Option<MenuId>,
     help_id: Option<MenuId>,
-    open_id: Option<MenuId>,
     login_id: Option<MenuId>,
+    restart_id: Option<MenuId>,
     login_item: Option<MenuItem>,
     exit_code: i32,
 }
 
 impl TrayApp {
-    #[cfg(target_os = "macos")]
-    fn write_launch_agent(&self) -> std::io::Result<()> {
-        let path = launch_agent_path();
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-
-        let exe_path = std::env::current_exe()?;
-        let mode_flag = if self.mode.is_app() {
-            "--app"
-        } else {
-            "--http"
-        };
-        let plist = format!(
-            r#"<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.ma-collective.maenifold</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>{exe_path}</string>
-        <string>{mode_flag}</string>
-        <string>--port</string>
-        <string>{port}</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <false/>
-</dict>
-</plist>
-"#,
-            exe_path = xml_escape(&exe_path.display().to_string()),
-            mode_flag = mode_flag,
-            port = self.mode.port(),
-        );
-
-        std::fs::write(path, plist)
-    }
-
-    #[cfg(target_os = "macos")]
-    fn remove_launch_agent(&self) -> std::io::Result<()> {
-        let path = launch_agent_path();
-        match std::fs::remove_file(path) {
-            Ok(()) => Ok(()),
-            Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(err) => Err(err),
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    fn refresh_login_item(&self) {
-        if let Some(item) = &self.login_item {
-            item.set_text(login_menu_text(is_login_enabled()));
-        }
-    }
-
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
-        let port = self.mode.port();
-        let is_app = self.mode.is_app();
-        let login_enabled = is_login_enabled();
-
-        let menu = Menu::new();
-        let open_item = if is_app {
-            let item = MenuItem::new(format!("Open Desktop App (:{port})"), true, None);
-            let _ = menu.append(&item);
-            Some(item)
-        } else {
-            None
-        };
-
-        #[cfg(target_os = "macos")]
-        let login_item = MenuItem::new(login_menu_text(login_enabled), true, None);
-        #[cfg(not(target_os = "macos"))]
-        let login_item = MenuItem::new(login_menu_text(login_enabled), false, None);
-        let _ = menu.append(&login_item);
-
-        let help_item = MenuItem::new("Help", true, None);
-        let _ = menu.append(&help_item);
-        let _ = menu.append(&PredefinedMenuItem::separator());
-        let quit_item = MenuItem::new("Quit", true, None);
-        let _ = menu.append(&quit_item);
-
-        self.quit_id = Some(quit_item.id().clone());
-        self.help_id = Some(help_item.id().clone());
-        self.open_id = open_item.as_ref().map(|item| item.id().clone());
-        self.login_id = Some(login_item.id().clone());
-        self.login_item = Some(login_item);
+        let menu_state = build_tray_menu();
+        self.quit_id = Some(menu_state.quit_id);
+        self.help_id = Some(menu_state.help_id);
+        self.login_id = Some(menu_state.login_id);
+        self.restart_id = menu_state.restart_id;
+        self.login_item = Some(menu_state.login_item);
 
         let icon = build_icon();
         match TrayIconBuilder::new()
-            .with_menu(Box::new(menu))
+            .with_menu(Box::new(menu_state.menu))
             .with_tooltip("maenifold")
             .with_icon(icon)
             .build()
@@ -239,25 +123,12 @@ impl TrayApp {
             open_url("https://github.com/ma-collective/maenifold-rs/issues");
         }
 
-        if self.open_id.as_ref().is_some_and(|id| event.id == *id) {
-            open_url(&format!("http://localhost:{}", self.mode.port()));
+        if self.restart_id.as_ref().is_some_and(|id| event.id == *id) {
+            restart_daemon("com.ma-collective.maenifold");
         }
 
         if self.login_id.as_ref().is_some_and(|id| event.id == *id) {
-            #[cfg(target_os = "macos")]
-            {
-                let result = if is_login_enabled() {
-                    self.remove_launch_agent()
-                } else {
-                    self.write_launch_agent()
-                };
-
-                if let Err(err) = result {
-                    eprintln!("Warning: failed to toggle launch agent: {err}");
-                }
-
-                self.refresh_login_item();
-            }
+            toggle_login_item(self.mode.port(), self.login_item.as_ref());
         }
     }
 }
@@ -296,29 +167,24 @@ impl ApplicationHandler for TrayApp {
 
 /// Run the server with a system-tray icon on the main thread.
 ///
-/// 1. Initialises storage / watchers (matching `CliApp::run_http` / `run_app`).
+/// 1. Initialises storage / watchers (matching `CliApp::run_http`).
 /// 2. Spawns the tokio/axum server on a background `std::thread`.
 /// 3. Builds a winit `EventLoop` and drives the tray icon via `ApplicationHandler`.
 /// 4. On "Quit", cancels the shared shutdown token so the server thread exits.
 /// 5. Joins the server thread and returns its exit code.
+#[allow(clippy::too_many_lines)]
 pub fn run_with_tray(mode: ServerMode) -> i32 {
-    // ── Initialise runtime (mirrors cli::run_http / run_app patterns) ──
-    // serve_web handles its own initialize_runtime internally.
-    // serve_http expects callers to initialise first (as run_http does).
-    if !mode.is_app() {
-        let config = crate::config::Config::current();
-        if let Err(err) = crate::mcp::initialize_runtime(&config) {
-            eprintln!("Error initializing storage: {err}");
-            return 1;
-        }
-        if let Err(err) = crate::cli::start_mcp_watchers(&config) {
-            eprintln!("Error starting MCP watchers: {err}");
-            return 1;
-        }
+    let config = crate::config::Config::current();
+    if let Err(err) = crate::mcp::initialize_runtime(&config) {
+        eprintln!("Error initializing storage: {err}");
+        return 1;
+    }
+    if let Err(err) = crate::cli::start_mcp_watchers(&config) {
+        eprintln!("Error starting MCP watchers: {err}");
+        return 1;
     }
 
     let port = mode.port();
-    let is_app = mode.is_app();
     let shutdown_token = CancellationToken::new();
 
     // ── Spawn server on background thread ──────────────────────────────
@@ -335,13 +201,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
             };
             let result = rt.block_on(async move {
                 tokio::select! {
-                    result = async {
-                        if is_app {
-                            crate::mcp::MaenifoldMcpServer::serve_web(port).await
-                        } else {
-                            crate::mcp::MaenifoldMcpServer::serve_http(port).await
-                        }
-                    } => result,
+                    result = crate::mcp::MaenifoldMcpServer::serve_http(port) => result,
                     _ = server_shutdown_token.cancelled() => Ok(()),
                 }
             });
@@ -367,8 +227,8 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
         tray_icon: None,
         quit_id: None,
         help_id: None,
-        open_id: None,
         login_id: None,
+        restart_id: None,
         login_item: None,
         exit_code: 0,
     };

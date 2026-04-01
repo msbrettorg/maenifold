@@ -1,12 +1,10 @@
 // T-DATE-001: RTM-001, RTM-002 — Ported DateDetectionPathTests.cs coverage for thinking session path dates.
 
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 use maenifold_core::Config;
 use maenifold_core::paths::{dated_sequential_path, dated_thinking_path};
-use once_cell::sync::Lazy;
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::MutexGuard;
 use tempfile::TempDir;
-
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 struct TestEnv {
     _guard: MutexGuard<'static, ()>,

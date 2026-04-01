@@ -1,4 +1,5 @@
 // T-12.0: RTM NFR-2
+#[allow(clippy::duplicate_mod)]
 #[path = "proximity_decay/support.rs"]
 mod support;
 

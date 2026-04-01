@@ -33,6 +33,7 @@ Required per step:
 - `name` (string)
 - `description` (string)
 - `requiresSequentialThinking` (boolean)
+- `subWorkflows` (array of strings, optional) — workflow IDs referenced by this step (escape hatches, recursive expansions). Used by the pipeline DAG expander to recursively load and expand sub-workflow definitions into the execution graph. Each string must be a valid workflow ID matching a file in `assets/workflows/`.
 
 Required per step:
 
@@ -47,7 +48,7 @@ Required metadata fields:
 
 Optional metadata fields:
 
-- `escape_hatches` (object)
+- `escape_hatches` (object keyed by hatch names; each value is an object with `workflowId` and `condition` fields)
 - `quality_gates` (object)
 - `success_criteria` (object)
 
@@ -87,6 +88,40 @@ Optional metadata fields:
         "next_actions": [
           "Proceed to analysis"
         ]
+      }
+    },
+    {
+      "id": "analyze-results",
+      "name": "Analyze Results",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nAnalyze experimental data and determine next steps.",
+      "requiresSequentialThinking": true,
+      "subWorkflows": ["strong-inference", "paradigm-analysis"],
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Statistical and interpretive analysis",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "All hypotheses evaluated",
+          "Posteriors computed"
+        ],
+        "next_actions": [
+          "Draw conclusions or escalate to sub-workflow"
+        ],
+        "escape_hatches": {
+          "multiple_survivors": {
+            "workflowId": "strong-inference",
+            "condition": "Multiple hypotheses survive with similar posteriors"
+          },
+          "anomalous_results": {
+            "workflowId": "paradigm-analysis",
+            "condition": "Results challenge existing frameworks"
+          }
+        }
       }
     }
   ]

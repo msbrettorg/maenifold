@@ -1,12 +1,10 @@
 use maenifold_core::json::OutputFormat;
 use maenifold_core::{Config, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use serde_json::{Value, json};
 use std::fs;
 use tempfile::TempDir;
 
-static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 fn isolated_config() -> (Config, TempDir) {
     let tmp = TempDir::new().expect("tmp");

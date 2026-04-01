@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "incremental_sync_unification/support.rs"]
 mod incremental_sync_unification_support;
 

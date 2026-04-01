@@ -65,7 +65,7 @@ fn sync_when_mtime_unchanged_skips_without_read_and_does_not_restore_mentions_on
         path: file_path.clone(),
         mode: original_mode,
     };
-    fs::set_permissions(&file_path, fs::Permissions::from_mode(0)).expect("make file unreadable");
+    fs::set_permissions(&file_path, fs::Permissions::from_mode(0o0)).expect("make file unreadable");
 
     assert_eq!(
         file_mtime(&file_path),

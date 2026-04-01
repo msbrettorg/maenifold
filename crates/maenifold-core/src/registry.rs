@@ -237,4 +237,9 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         aliases: &["readmcpresource"],
         invoke: tools::read_mcp_resource,
     },
+    ToolDescriptor {
+        name: "ListAgents",
+        aliases: &["listagents", "list_agents"],
+        invoke: tools::list_agents,
+    },
 ];

@@ -1,15 +1,16 @@
+#![allow(dead_code, unused_imports)]
+
 use chrono::{Duration, Timelike, Utc};
 use maenifold_core::db;
 use maenifold_core::markdown::{Frontmatter, read_markdown, write_markdown};
 use maenifold_core::sessions;
 use maenifold_core::{AssetManager, Config, GraphDatabase};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use rusqlite::{Connection, params};
 use serde_yaml::Value as YamlValue;
 use tempfile::TempDir;
 
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+// Re-export the process-wide mutex so tests across all modules are serialised on the same lock.
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub struct TestEnv {
     _tmp: TempDir,
@@ -85,6 +86,16 @@ pub fn align_to_second_boundary() {
 }
 
 pub fn write_session_markdown(cfg: &Config, file_uri: &str, status: &str, body: &str) {
+    write_session_markdown_with_pipeline(cfg, file_uri, status, body, None)
+}
+
+pub fn write_session_markdown_with_pipeline(
+    cfg: &Config,
+    file_uri: &str,
+    status: &str,
+    body: &str,
+    pipeline_id: Option<&str>,
+) {
     let mut frontmatter = Frontmatter::new();
     let title = file_uri
         .trim_start_matches("memory://")
@@ -102,6 +113,9 @@ pub fn write_session_markdown(cfg: &Config, file_uri: &str, status: &str, body: 
         "type".to_string(),
         YamlValue::String(session_type.to_string()),
     );
+    if let Some(pid) = pipeline_id {
+        frontmatter.insert("pipelineId".to_string(), YamlValue::String(pid.to_string()));
+    }
     write_markdown(file_uri, Some(&frontmatter), body, cfg).expect("write markdown");
 }
 
@@ -136,6 +150,19 @@ pub fn seed_file_content(
 
 pub fn create_session(cfg: &Config, file_uri: &str, status: &str, minutes_ago: i64, body: &str) {
     write_session_markdown(cfg, file_uri, status, body);
+    seed_file_content(cfg, file_uri, status, body, &iso_minutes_ago(minutes_ago));
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn create_pipeline_session(
+    cfg: &Config,
+    file_uri: &str,
+    status: &str,
+    minutes_ago: i64,
+    body: &str,
+    pipeline_id: &str,
+) {
+    write_session_markdown_with_pipeline(cfg, file_uri, status, body, Some(pipeline_id));
     seed_file_content(cfg, file_uri, status, body, &iso_minutes_ago(minutes_ago));
 }
 

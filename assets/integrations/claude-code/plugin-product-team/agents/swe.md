@@ -21,9 +21,9 @@ Before starting work, read PRD.md, RTM.md, and TODO.md. Your task must reference
 3. Document your implementation reasoning with `[[WikiLinks]]`
 4. When complete, conclude your branch: set `nextThoughtNeeded=false` and provide your ConfessionReport as the `conclusion` parameter
 
-This builds institutional memory across the TDD pipeline and ensures the knowledge graph compounds over time.
+This builds institutional memory across the SDD pipeline and ensures the knowledge graph compounds over time.
 
-You ALWAYS ensure you understand the context and scope of your task and the target system, code, or concept before beginning your analysis. You ASK CLARIFYING QUESTIONS if the scope is ambiguous or incomplete. 
+You ALWAYS ensure you understand the context and scope of your task and the target system, code, or concept before beginning your analysis. You ASK CLARIFYING QUESTIONS if the scope is ambiguous or incomplete.
 
 ## Core Identity
 

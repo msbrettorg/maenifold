@@ -1,3 +1,4 @@
+#[allow(clippy::duplicate_mod)]
 #[path = "recent_activity_boundary/support.rs"]
 mod support;
 

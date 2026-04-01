@@ -1,12 +1,13 @@
+#![allow(dead_code, unused_imports)]
+
 use maenifold_core::json::OutputFormat;
-use maenifold_core::{AssetManager, Config, ToolRegistry};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
+use maenifold_core::tools::ToolContext;
+use maenifold_core::{AssetManager, Config, repair};
 use std::fs;
 use tempfile::TempDir;
 
 // T-1.4: RTM FR-2
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub(crate) const CONCEPT_ANALYSIS_FIXTURE: &str = r#"---
 title: Test Note
@@ -41,17 +42,24 @@ pub(crate) fn write_memory_fixture(cfg: &Config, relative_path: &str, content: &
     fs::write(path, content).expect("write memory fixture");
 }
 
-pub(crate) fn analyze_concept_corruption(payload: serde_json::Value) -> String {
-    ToolRegistry::global()
-        .try_invoke("AnalyzeConceptCorruption", &payload, OutputFormat::Markdown)
-        .expect("registry invoke")
+pub(crate) fn analyze_concept_corruption(cfg: &Config, payload: serde_json::Value) -> String {
+    repair::analyze_concept_corruption(
+        &ToolContext::new(cfg.clone(), OutputFormat::Markdown),
+        &payload,
+    )
+    .expect("analyze concept corruption")
 }
 
 /// Fallible variant for testing error paths (missing/empty params, invalid maxResults).
-pub(crate) fn try_analyze_concept_corruption(payload: serde_json::Value) -> Result<String, String> {
-    ToolRegistry::global()
-        .try_invoke("AnalyzeConceptCorruption", &payload, OutputFormat::Markdown)
-        .map_err(|e| e.to_string())
+pub(crate) fn try_analyze_concept_corruption(
+    cfg: &Config,
+    payload: serde_json::Value,
+) -> Result<String, String> {
+    repair::analyze_concept_corruption(
+        &ToolContext::new(cfg.clone(), OutputFormat::Markdown),
+        &payload,
+    )
+    .map_err(|e| e.to_string())
 }
 
 pub(crate) fn report_body_before_repairs(output: &str) -> &str {
@@ -59,8 +67,7 @@ pub(crate) fn report_body_before_repairs(output: &str) -> &str {
     // (e.g., "=== SUGGESTED REPAIRS ===" → "=== SUGGESTED FIXES ===").
     output
         .find("=== SUGGESTED")
-        .map(|idx| &output[..idx])
-        .unwrap_or(output)
+        .map_or(output, |idx| &output[..idx])
 }
 
 pub(crate) fn bullet_count(output: &str) -> usize {

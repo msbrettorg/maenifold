@@ -3,6 +3,7 @@
 // only after accumulated file changes reach the Config.incremental_optimize_every threshold,
 // matching C# IncrementalSyncTools.ScheduleMaintenanceIfNeeded() batching strategy.
 
+#[allow(clippy::duplicate_mod)]
 #[path = "incremental_sync_tools/support.rs"]
 mod support;
 

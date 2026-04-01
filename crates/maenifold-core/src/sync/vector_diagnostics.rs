@@ -1,14 +1,9 @@
 use crate::config::env_bool;
-use crate::error::Result;
-use crate::markdown::extract_wikilinks;
 use rusqlite::Connection;
-use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-use std::path::PathBuf;
+use std::collections::BTreeMap;
 
 // T-QUAL-002.6b: RTM FR-25.2
 pub struct VectorFailureReasonCodes;
-
 impl VectorFailureReasonCodes {
     pub const CONCEPT_LOOKUP_FAILED: &'static str = "CONCEPT_LOOKUP_FAILED";
     pub const FILE_EMBEDDING_FAILED: &'static str = "FILE_EMBEDDING_FAILED";
@@ -19,7 +14,6 @@ impl VectorFailureReasonCodes {
 
 // T-QUAL-002.6b: RTM FR-25.2
 pub struct VectorUnavailableReasonCodes;
-
 impl VectorUnavailableReasonCodes {
     pub const DISABLED_BY_CONFIG: &'static str = "VECTOR_DISABLED_BY_CONFIG";
     pub const UNKNOWN: &'static str = "VECTOR_UNAVAILABLE_UNKNOWN";
@@ -35,7 +29,6 @@ pub struct VectorSyncDiagnostics {
     failure_reasons: BTreeMap<String, usize>,
     concept_failure_details: BTreeMap<String, Vec<String>>,
 }
-
 impl VectorSyncDiagnostics {
     pub fn record_concept_failure(&mut self, reason: &str) {
         self.concept_embedding_failures += 1;
@@ -228,23 +221,6 @@ pub(crate) fn vector_sync_disabled_by_config() -> bool {
     // T-11.2: RTM FR-15
     env_bool("MAENIFOLD_DISABLE_VECTOR", false)
 }
-
-pub(crate) fn collect_vector_skip_diagnostics_for_paths(
-    file_paths: &[PathBuf],
-) -> Result<VectorSyncDiagnostics> {
-    let mut diagnostics = VectorSyncDiagnostics::default();
-    let mut concepts = BTreeSet::new();
-
-    for file_path in file_paths {
-        let content = fs::read_to_string(file_path)?;
-        diagnostics.record_file_skipped();
-        concepts.extend(extract_wikilinks(&content));
-    }
-
-    diagnostics.record_concept_skipped(concepts.len());
-    Ok(diagnostics)
-}
-
 fn normalize_vector_unavailable_reason(reason: &str) -> &'static str {
     let normalized = reason.trim().to_ascii_uppercase();
     if normalized == VectorUnavailableReasonCodes::DISABLED_BY_CONFIG {

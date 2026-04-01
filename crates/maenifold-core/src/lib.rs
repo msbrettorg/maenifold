@@ -1,8 +1,8 @@
-#![warn(clippy::too_many_lines)]
-#![warn(clippy::cognitive_complexity)]
-
-pub mod acp;
-pub mod api;
+#[path = "acp/config.rs"]
+pub(crate) mod acp_config;
+#[path = "acp/native/mod.rs"]
+pub mod acp_native;
+pub use acp_native as acpx_driver;
 pub mod assets;
 pub mod benchmark;
 pub mod cli;
@@ -29,8 +29,11 @@ pub mod similar;
 pub mod sync;
 pub mod thinking;
 pub mod tools;
-// T-29.2: RTM FR-35 — system tray icon for --app/--http modes.
+// T-29.2: RTM FR-35 — system tray icon for --http mode.
+#[cfg(feature = "app")]
 pub mod tray;
+#[cfg(feature = "app")]
+pub mod tray_menu;
 pub mod vector;
 pub mod workflow;
 

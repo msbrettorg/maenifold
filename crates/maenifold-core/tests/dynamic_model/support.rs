@@ -1,9 +1,7 @@
 #![allow(dead_code)]
 
 use maenifold_core::{Config, vector};
-use once_cell::sync::Lazy;
 use ort::session::Session;
-use parking_lot::Mutex;
 use rusqlite::Connection;
 use std::env;
 use std::fs;
@@ -14,7 +12,7 @@ use tokenizers::{
     pre_tokenizers::bert::BertPreTokenizer, processors::template::TemplateProcessing,
 };
 
-pub(crate) static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 fn isolated_root() -> (TempDir, Config) {
     let tmp = TempDir::new().expect("tmp");
@@ -32,6 +30,10 @@ fn packaged_models_dir() -> PathBuf {
 
 fn packaged_model_path() -> PathBuf {
     packaged_models_dir().join("all-MiniLM-L6-v2.onnx")
+}
+
+pub(crate) fn packaged_model_fixture_available() -> bool {
+    packaged_model_path().is_file()
 }
 
 pub(crate) fn packaged_assets_root() -> PathBuf {

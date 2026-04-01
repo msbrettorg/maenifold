@@ -2,12 +2,10 @@
 
 use chrono::{Duration, Utc};
 use maenifold_core::{Config, memory::compute_decay_weight};
-use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use tempfile::TempDir;
 
 // T-12.7: RTM NFR-1
-pub static TEST_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+pub(crate) use crate::GLOBAL_CONFIG_TEST_MUTEX as TEST_MUTEX;
 
 pub struct TestEnv {
     _tmp: TempDir,

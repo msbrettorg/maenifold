@@ -99,7 +99,7 @@ fn run_louvain_triangle_plus_isolated_pair_two_communities() {
         "modularity must be finite for a valid partition, got {modularity}"
     );
     assert!(
-        modularity >= -0.5 && modularity < 1.0,
+        (-0.5..1.0).contains(&modularity),
         "modularity must be in theoretical range [-0.5, 1.0), got {modularity}"
     );
 }
@@ -221,7 +221,7 @@ fn run_louvain_disconnected_components_separate_communities() {
         "modularity must be finite for disconnected components, got {modularity}"
     );
     assert!(
-        modularity >= -0.5 && modularity < 1.0,
+        (-0.5..1.0).contains(&modularity),
         "modularity must be in theoretical range [-0.5, 1.0), got {modularity}"
     );
 }

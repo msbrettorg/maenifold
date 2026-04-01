@@ -3,6 +3,7 @@
 // Valid-destination regression also covered here (merged from
 // memory_tools_move_read_write.rs).
 
+#[allow(clippy::duplicate_mod)]
 #[path = "memory_tools/support.rs"]
 mod support;
 

@@ -15,6 +15,7 @@ pub(crate) struct SimilarConceptMatch {
     pub(crate) similarity: f64,
 }
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn query_vec_similar_concepts(
     connection: &Connection,
     assets_path: &Path,

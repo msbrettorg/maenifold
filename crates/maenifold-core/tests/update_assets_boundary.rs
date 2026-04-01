@@ -8,7 +8,7 @@
 mod asset_manager_support;
 
 use asset_manager_support::{
-    ConfigResetGuard, PackagedAssetGuard, isolated_config, test_mutex, unique_relative_path,
+    ConfigResetGuard, PackagedAssetGuard, TEST_MUTEX, isolated_config, unique_relative_path,
     write_file,
 };
 use maenifold_core::json::OutputFormat;
@@ -21,7 +21,7 @@ use std::path::Path;
 // (count + name + section heading + not-copied).
 #[test]
 fn update_assets_dry_run_detects_files_missing_from_target() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     AssetManager::initialize_assets(&cfg).expect("seed runtime assets");
@@ -71,7 +71,7 @@ fn update_assets_dry_run_detects_files_missing_from_target() {
 // target-modification direction.
 #[test]
 fn update_assets_dry_run_detects_sha_changes_for_existing_files() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
 
@@ -120,7 +120,7 @@ fn update_assets_dry_run_detects_sha_changes_for_existing_files() {
 // misclassification. Content-equality assertion is the load-bearing value of this test.
 #[test]
 fn update_assets_non_dry_run_copies_added_files_into_runtime_assets() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     AssetManager::initialize_assets(&cfg).expect("seed runtime assets");
@@ -151,7 +151,7 @@ fn update_assets_non_dry_run_copies_added_files_into_runtime_assets() {
 // stray count lines.
 #[test]
 fn update_assets_reports_no_changes_when_source_and_target_match() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     AssetManager::initialize_assets(&cfg).expect("seed runtime assets");
@@ -183,7 +183,7 @@ fn update_assets_reports_no_changes_when_source_and_target_match() {
 // filesystem access.
 #[test]
 fn update_assets_learn_mode_returns_help_instead_of_update_summary() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
     AssetManager::initialize_assets(&cfg).expect("seed runtime assets");
@@ -213,7 +213,7 @@ fn update_assets_learn_mode_returns_help_instead_of_update_summary() {
 // would be missed and this test would fail.
 #[test]
 fn update_assets_uses_sha256_not_file_size_for_equal_length_content() {
-    let _guard = test_mutex().lock().expect("mutex");
+    let _guard = TEST_MUTEX.lock();
     let _reset = ConfigResetGuard;
     let (_tmp, cfg) = isolated_config();
 

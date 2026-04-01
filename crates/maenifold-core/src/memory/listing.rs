@@ -20,6 +20,7 @@ struct DecayMetadata {
 
 // T-12.5: RTM FR-25.2 moves listing/decay metadata concerns into a focused
 // submodule while preserving the public `memory::list_memories` surface.
+#[allow(clippy::too_many_lines)]
 pub fn list_memories(context: &ToolContext, payload: &serde_json::Value) -> Result<String> {
     let learn = payload
         .get("learn")
@@ -157,6 +158,7 @@ fn count_top_level_markdown_files(dir: &Path, memory_root: &Path) -> Result<usiz
         .count())
 }
 
+#[allow(clippy::too_many_lines)]
 fn load_last_accessed_timestamps(
     config: &crate::config::Config,
 ) -> Result<BTreeMap<String, DateTime<Utc>>> {

@@ -3,7 +3,7 @@
 
 mod mcp_test_support;
 
-use mcp_test_support::{EXPECTED_TOOL_COUNT, McpTestHarness, isolated_root};
+use mcp_test_support::{McpTestHarness, expected_tool_count, isolated_root};
 use serde_json::{Value, json};
 
 #[test]
@@ -36,7 +36,7 @@ fn mcp_initialize_returns_server_info() {
 }
 
 #[test]
-fn mcp_tools_list_returns_all_28_tools_with_schemas() {
+fn mcp_tools_list_returns_all_registered_tools_with_schemas() {
     let tmp = isolated_root();
     let mut h = McpTestHarness::spawn(&tmp);
     h.initialize();
@@ -52,10 +52,11 @@ fn mcp_tools_list_returns_all_28_tools_with_schemas() {
     let tools = resp["result"]["tools"]
         .as_array()
         .expect("result.tools must be an array");
+    let expected_tool_count = expected_tool_count();
     assert_eq!(
         tools.len(),
-        EXPECTED_TOOL_COUNT,
-        "expected {EXPECTED_TOOL_COUNT} tools, got {}",
+        expected_tool_count,
+        "expected {expected_tool_count} tools, got {}",
         tools.len()
     );
 

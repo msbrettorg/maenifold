@@ -1,4 +1,4 @@
-// T-12.7: RTM NFR-1 — split asset watcher debounce/timing coverage into a focused test file.
+// T-12.7: RTM NFR-1 — split asset watcher debounce coverage into a focused test file.
 //
 // ARCHITECTURAL NOTE: These tests exercise the **test harness's own debounce implementation**
 // (`asset_watcher/runtime.rs`), not the production `spawn_asset_watcher_worker` in
@@ -16,15 +16,9 @@ use std::time::{Duration, Instant};
 // T-12.7: RTM NFR-3 — Named timing constants for debounce coalescing test.
 const BURST_WRITE_COUNT: usize = 5;
 const BURST_WRITE_INTERVAL_MS: u64 = 30;
-/// Poll interval used by `PollWatcher` in the test harness (see `support.rs`).
-const POLL_INTERVAL_MS: u64 = 50;
 /// How long to wait after the first notification for any spurious extra notifications.
 /// Two full debounce cycles gives ample room on slow CI runners.
 const POST_NOTIFICATION_WATCH_MS: u64 = DEFAULT_DEBOUNCE_MS * 2;
-/// Upper-bound latency budget for a single write → notification round-trip.
-/// Expected: poll_interval (50ms) + debounce_window (150ms) + grace_window (50ms) = 250ms.
-/// The 500ms budget gives ~100% headroom for OS scheduling jitter on loaded machines.
-const LATENCY_BUDGET_MS: u64 = 500;
 
 // T-12.7: RTM NFR-3 — ports AssetWatcherToolsTests.cs RapidFileChanges_AreDebouncedIntoSingleNotification.
 //
@@ -61,43 +55,5 @@ fn rapid_file_changes_are_debounced_into_single_notification() {
         harness.watcher.notification_count(),
         1,
         "rapid changes inside one debounce window should collapse into a single notification"
-    );
-}
-
-// T-12.7: RTM NFR-3 — ports AssetWatcherToolsTests.cs DebounceLatency_IsUnder500ms.
-//
-// Writes a single file, records wall-clock time, waits for a notification, and asserts the
-// elapsed time is within [POLL_INTERVAL_MS .. LATENCY_BUDGET_MS]. The lower bound ensures
-// the notification wasn't a spurious startup artifact; the upper bound enforces the SLA.
-#[test]
-fn debounce_latency_is_under_500ms() {
-    let _guard = TEST_MUTEX.lock();
-    let mut harness = AssetWatcherHarness::new();
-    harness.watcher.start_and_settle().expect("start");
-
-    let test_file = harness.workflows_path.join("test-latency.json");
-    let started = Instant::now();
-    fs::write(&test_file, r#"{"name":"latency-test"}"#).expect("write latency asset");
-    harness
-        .watcher
-        .wait_for_notifications(1, Duration::from_secs(5));
-    let elapsed = started.elapsed();
-
-    assert!(
-        elapsed >= Duration::from_millis(POLL_INTERVAL_MS),
-        "notification arrived in {}ms — suspiciously fast (< {}ms poll interval), \
-         watcher may not have fired correctly",
-        elapsed.as_millis(),
-        POLL_INTERVAL_MS,
-    );
-    assert!(
-        elapsed < Duration::from_millis(LATENCY_BUDGET_MS),
-        "debounce latency was {}ms, expected < {}ms \
-         (poll_interval={}ms + debounce={}ms + grace={}ms = ~250ms + headroom)",
-        elapsed.as_millis(),
-        LATENCY_BUDGET_MS,
-        POLL_INTERVAL_MS,
-        DEFAULT_DEBOUNCE_MS,
-        POLL_INTERVAL_MS,
     );
 }

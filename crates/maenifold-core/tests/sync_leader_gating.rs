@@ -1,4 +1,5 @@
 // T-12.7: RTM NFR-1 - keep sync leader is_leader status coverage split from lease lifecycle checks.
+#[allow(clippy::duplicate_mod)]
 #[path = "support/sync_leader.rs"]
 mod sync_leader_support;
 

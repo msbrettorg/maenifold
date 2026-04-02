@@ -35,7 +35,7 @@ pub(super) async fn initialize(conn: &acp::ClientSideConnection) -> Result<InitI
                 .fs(acp::FileSystemCapabilities::new()
                     .read_text_file(true)
                     .write_text_file(true))
-                .terminal(true)
+                .terminal(false)
                 .meta(prompt_meta()),
         );
 

@@ -30,6 +30,20 @@ impl TaskStatusDeriver {
                     let outcome = record.outcome.as_deref().ok_or_else(|| {
                         GateError::TaskMetadataParse("outcome record missing Outcome".to_string())
                     })?;
+                    let current = definition
+                        .find_state(&state)
+                        .ok_or_else(|| GateError::UnknownState(state.clone()))?;
+                    if current.terminal {
+                        if outcome != "fail" || record.stage != state {
+                            return Err(GateError::IllegalTransition {
+                                state: state.clone(),
+                                outcome: outcome.to_string(),
+                            });
+                        }
+                        attempts += 1;
+                        state = initial.clone();
+                        continue;
+                    }
                     let transition = match outcome {
                         "pass" => StateMachine::next_on_pass(&state, definition)?,
                         "fail" => StateMachine::next_on_fail(&state, definition)?,

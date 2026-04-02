@@ -1,7 +1,5 @@
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{
-    append_h2_section, extract_wikilinks, file_exists, read_markdown, write_markdown,
-};
+use crate::markdown::{append_h2_section, file_exists, read_markdown, write_markdown};
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 use serde_json::{Value, json};
@@ -24,10 +22,6 @@ pub(crate) fn continue_workflow_session(
     conclusion: Option<&str>,
     submachine_session_id: Option<&str>,
 ) -> Result<String> {
-    if let Some(message) = validate_workflow_response_concepts(response, thoughts) {
-        return Ok(message);
-    }
-
     let uri = workflow_session_uri(session_id);
     if !file_exists(&uri, &context.config)? {
         return Err(MaenifoldError::Message(format!(
@@ -189,15 +183,4 @@ fn advance_to_next_workflow_step(
         steps.len(),
         rendered_step,
     ))
-}
-
-fn validate_workflow_response_concepts(response: &str, thoughts: Option<&str>) -> Option<String> {
-    let total_concepts = extract_wikilinks(response).len()
-        + thoughts.map(extract_wikilinks).unwrap_or_default().len();
-    if total_concepts == 0 {
-        return Some(
-            "ERROR: Response or thoughts must contain at least one [[WikiLink]] in double brackets.\nExample: 'Implementing [[REST API]] using [[ASP.NET Core]]'\nThis ensures your workflow contributions build the knowledge graph.".to_string(),
-        );
-    }
-    None
 }

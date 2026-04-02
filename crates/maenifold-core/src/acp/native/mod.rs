@@ -171,6 +171,7 @@ async fn run_agent(
             AgentCommand::Prompt {
                 session_id,
                 prompt,
+                inject_wikilinks,
                 reply,
             } => {
                 if io_task.is_none() {
@@ -179,13 +180,14 @@ async fn run_agent(
                     }));
                     continue;
                 }
-                let result = prompt::prompt_session(&conn, &sessions, session_id, prompt, true).await;
+                let result = prompt::prompt_session(&conn, &sessions, session_id, prompt, inject_wikilinks).await;
                 let _ = reply.send(result);
             }
             AgentCommand::PromptWithContext {
                 session_id,
                 prompt,
                 context_blocks,
+                inject_wikilinks,
                 reply,
             } => {
                 if io_task.is_none() {
@@ -200,7 +202,7 @@ async fn run_agent(
                     session_id,
                     prompt,
                     context_blocks,
-                    true,
+                    inject_wikilinks,
                 )
                 .await;
                 let _ = reply.send(result);

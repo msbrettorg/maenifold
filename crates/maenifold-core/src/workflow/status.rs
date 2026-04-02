@@ -1,7 +1,5 @@
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{
-    Frontmatter, append_h2_section, extract_wikilinks, read_markdown, write_markdown,
-};
+use crate::markdown::{Frontmatter, append_h2_section, read_markdown, write_markdown};
 use crate::sessions::now_iso8601_roundtrip;
 use crate::tools::ToolContext;
 use crate::workflow::{format_workflow_step, read_workflow_definition, workflow_steps};
@@ -127,18 +125,11 @@ fn require_workflow_conclusion(
                 "ERROR: All workflows complete. Call workflow tool again with conclusion parameter to finalize."
                     .to_string()
             } else {
-                "ERROR: Conclusion required when completing session. Must synthesize findings with [[WikiLinks]]."
+                "ERROR: Conclusion required when completing session."
                     .to_string()
             });
         }
     };
-
-    if extract_wikilinks(conclusion).is_empty() {
-        return Err(
-            "ERROR: Conclusion must include [[WikiLinks]] for knowledge graph integration."
-                .to_string(),
-        );
-    }
 
     Ok(conclusion)
 }

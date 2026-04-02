@@ -68,6 +68,45 @@ fn append_requires_agent_flag() {
 }
 
 #[test]
+fn append_on_done_task_fails_with_explicit_message() {
+    let root = new_pipeline_root();
+    let task = write_pending_task(root.path(), "T-1.1");
+
+    for notes in ["swe completed", "red approved", "blue verified"] {
+        gate_command(root.path())
+            .args([
+                "pass",
+                "T-1.1",
+                "--root",
+                root.path().to_str().expect("root utf8"),
+                "--agent",
+                "test-agent",
+                "--notes",
+                notes,
+            ])
+            .assert()
+            .success();
+    }
+
+    assert!(!task.exists());
+
+    gate_command(root.path())
+        .args([
+            "append",
+            "T-1.1",
+            "--root",
+            root.path().to_str().expect("root utf8"),
+            "--agent",
+            "test-agent",
+            "--notes",
+            "post completion note",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("already done").and(predicate::str::contains("append")));
+}
+
+#[test]
 fn pass_requires_agent_flag() {
     let root = new_pipeline_root();
     write_pending_task(root.path(), "T-1.1");
@@ -84,6 +123,58 @@ fn pass_requires_agent_flag() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("--agent"));
+}
+
+#[test]
+fn fail_on_done_task_reopens_it_in_todo_pending() {
+    let root = new_pipeline_root();
+    let todo_path = write_pending_task(root.path(), "T-1.1");
+
+    for notes in ["swe completed", "red approved", "blue verified"] {
+        gate_command(root.path())
+            .args([
+                "pass",
+                "T-1.1",
+                "--root",
+                root.path().to_str().expect("root utf8"),
+                "--agent",
+                "test-agent",
+                "--notes",
+                notes,
+            ])
+            .assert()
+            .success();
+    }
+
+    assert!(!todo_path.exists());
+    assert!(support::done_task_path(root.path(), "T-1.1").exists());
+
+    gate_command(root.path())
+        .args([
+            "fail",
+            "T-1.1",
+            "--root",
+            root.path().to_str().expect("root utf8"),
+            "--agent",
+            "test-agent",
+            "--notes",
+            "reopen for rework",
+        ])
+        .assert()
+        .success();
+
+    let reopened_path = support::task_path(root.path(), "T-1.1");
+    assert!(reopened_path.exists());
+    assert!(!support::done_task_path(root.path(), "T-1.1").exists());
+
+    let task_text = read_task(&reopened_path);
+    assert!(task_text.contains("## Done"));
+    assert!(task_text.contains("FAIL"));
+
+    let output = status_json(root.path());
+    let rendered = serde_json::to_string(&output).expect("render status JSON");
+    assert!(rendered.contains("pending"));
+    assert!(rendered.contains("\"attempts\":1") || rendered.contains("\"attempts\": 1"));
 }
 
 #[test]

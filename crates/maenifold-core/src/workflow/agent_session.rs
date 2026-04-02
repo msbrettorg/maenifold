@@ -61,7 +61,7 @@ impl AgentSession {
     ) -> Result<AcpxResponse> {
         let response = self
             .handle
-            .prompt_with_context(&self.remote_id, prompt, context)
+            .prompt_with_context(&self.remote_id, prompt, context, false)
             .await
             .map_err(agent_error)?;
         Ok(response)

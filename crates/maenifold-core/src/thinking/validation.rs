@@ -1,5 +1,4 @@
 use crate::error::Result;
-use crate::markdown::extract_wikilinks;
 use crate::tools::ToolContext;
 use serde_json::Value;
 
@@ -96,23 +95,9 @@ pub(crate) fn validate_payload(
     context: &ToolContext,
     input: &SequentialThinkingInput,
 ) -> Result<Option<String>> {
+    // WikiLink validation removed — concepts are encouraged but no longer block requests.
     if !input.cancel {
-        // PARITY-T07: RTM NFR-1 — treat missing response as empty string so WikiLink
-        // validation produces the same "Must include [[WikiLinks]]" message as C#.
-        let response_text = input.response.as_deref().unwrap_or("");
-
-        let total_concepts = extract_wikilinks(response_text).len()
-            + input
-                .thoughts
-                .as_deref()
-                .map(extract_wikilinks)
-                .unwrap_or_default()
-                .len();
-        if total_concepts == 0 {
-            let message =
-                "Must include [[WikiLinks]]. Example: 'Analyzing [[Machine Learning]] algorithms'";
-            return Ok(Some(render_failure(context, "WIKILINK_REQUIRED", message)));
-        }
+        tracing::debug!("Skipping WikiLink validation for sequential thinking request");
     }
 
     if input.branch_from_thought.is_some() && input.branch_id.is_none() {
@@ -132,8 +117,8 @@ pub(crate) fn validate_completion(
         return Ok(None);
     }
 
-    let Some(conclusion) = input.conclusion.as_deref() else {
-        let message = "Conclusion required when completing session. Must synthesize findings with [[WikiLinks]].";
+    let Some(_conclusion) = input.conclusion.as_deref() else {
+        let message = "Conclusion required when completing session.";
         return Ok(Some(render_failure(
             context,
             "CONCLUSION_REQUIRED",
@@ -141,14 +126,8 @@ pub(crate) fn validate_completion(
         )));
     };
 
-    if extract_wikilinks(conclusion).is_empty() {
-        let message = "Conclusion must include [[WikiLinks]] for knowledge graph integration.";
-        return Ok(Some(render_failure(
-            context,
-            "CONCLUSION_WIKILINK_REQUIRED",
-            message,
-        )));
-    }
+    // WikiLink validation removed — conclusions no longer require [[WikiLinks]].
+    tracing::debug!("Skipping WikiLink validation for sequential thinking conclusion");
 
     Ok(None)
 }

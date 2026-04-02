@@ -53,6 +53,7 @@ If a value controls behavior, the caller must name it. If the caller doesn't kno
 
 - **Answer questions immediately.** No tool calls, no side work. Answer, then ask if they want you to continue.
 - **P0 escalation:** any code violating Ma principles (silent defaults, hidden recovery, fake confidence) — stop, report to PM, create backlog item. Non-negotiable.
+- **Completion requires a release build.** If you changed runnable code, you are not done until you have produced the relevant `cargo build --release -p <crate>` artifact and reported that result. Debug builds, analysis, and tests are not sufficient for completion.
 
 ## Banned Models
 
@@ -66,10 +67,12 @@ If a value controls behavior, the caller must name it. If the caller doesn't kno
 
 ```bash
 cargo build --release -p maenifold-cli     # CLI/app changes
+cargo build --release -p maenifold-gate    # gate changes
 make app                                    # frontend + CLI (touch lib.rs forces re-embed)
 ```
 
 Binary: `target/release/maenifold` → symlinked at `/usr/local/bin/maenifold`.
+Binary: `target/release/gate` for gate runtime changes.
 
 **Words are not delivery. A rebuilt, runnable binary is delivery.**
 

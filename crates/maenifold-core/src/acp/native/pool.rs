@@ -209,7 +209,7 @@ impl AcpxDriver {
         let (handle, remote_id) = (Arc::clone(&current.handle), current.remote_id.clone());
         drop(sessions);
         let response = handle
-            .prompt(&remote_id, prompt)
+            .prompt(&remote_id, prompt, true)
             .await
             .map_err(|error| Self::map_cached_session_error(&handle, session, error))?;
         Ok(response)

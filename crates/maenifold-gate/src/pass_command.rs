@@ -43,6 +43,21 @@ fn apply_outcome(args: OutcomeArgs, outcome: &str) -> Result<(), GateError> {
         args.context.requested_pipeline_name.as_deref(),
     )?;
     let state = TaskStatusDeriver::derive(&document, &definition, &task.location)?;
+    let current_state = definition
+        .find_state(&state.state)
+        .ok_or_else(|| GateError::UnknownState(state.state.clone()))?;
+
+    if current_state.terminal {
+        return match outcome {
+            "fail" => reopen_completed_task(args, task, &state.state),
+            "pass" => Err(GateError::Cli(format!(
+                "task '{}' is already done; use `gate fail {}` to reopen it",
+                args.task_id, args.task_id
+            ))),
+            _ => unreachable!(),
+        };
+    }
+
     let transition = match outcome {
         "pass" => StateMachine::next_on_pass(&state.state, &definition)?,
         "fail" => StateMachine::next_on_fail(&state.state, &definition)?,
@@ -64,5 +79,22 @@ fn apply_outcome(args: OutcomeArgs, outcome: &str) -> Result<(), GateError> {
     {
         TaskRepository::move_to_done(&task)?;
     }
+    Ok(())
+}
+
+fn reopen_completed_task(
+    args: OutcomeArgs,
+    task: crate::task_repository::TaskPathSet,
+    terminal_state: &str,
+) -> Result<(), GateError> {
+    let section = CanonicalSectionFactory::build_outcome_section(
+        terminal_state,
+        "fail",
+        &args.agent,
+        &args.notes,
+        args.model.as_deref(),
+    );
+    TaskFileWriter::append_section(&task.path, &section)?;
+    TaskRepository::move_to_todo(&task)?;
     Ok(())
 }

@@ -67,6 +67,22 @@ impl TaskRepository {
             return Ok(());
         }
 
+        let destination = Self::destination_path(task, "done")?;
+        fs::rename(&task.path, destination)?;
+        Ok(())
+    }
+
+    pub fn move_to_todo(task: &TaskPathSet) -> Result<(), GateError> {
+        if task.location == "todo" {
+            return Ok(());
+        }
+
+        let destination = Self::destination_path(task, "todo")?;
+        fs::rename(&task.path, destination)?;
+        Ok(())
+    }
+
+    fn destination_path(task: &TaskPathSet, location: &str) -> Result<PathBuf, GateError> {
         let parent = task
             .path
             .parent()
@@ -74,8 +90,6 @@ impl TaskRepository {
         let root = parent
             .parent()
             .ok_or_else(|| GateError::MissingTaskPath(task.path.clone()))?;
-        let destination = root.join("done").join(format!("{}.md", task.task_id));
-        fs::rename(&task.path, destination)?;
-        Ok(())
+        Ok(root.join(location).join(format!("{}.md", task.task_id)))
     }
 }

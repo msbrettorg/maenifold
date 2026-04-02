@@ -27,6 +27,16 @@ pub(crate) fn append_task(args: AppendArgs) -> Result<(), GateError> {
         args.context.requested_pipeline_name.as_deref(),
     )?;
     let state = TaskStatusDeriver::derive(&document, &definition, &task.location)?;
+    if definition
+        .find_state(&state.state)
+        .ok_or_else(|| GateError::UnknownState(state.state.clone()))?
+        .terminal
+    {
+        return Err(GateError::Cli(format!(
+            "task '{}' is already done; append is not allowed on completed tasks",
+            args.task_id
+        )));
+    }
     let acting_stage = StateMachine::acting_stage_name(&state.state, &definition)?;
 
     let section = CanonicalSectionFactory::build_append_section(

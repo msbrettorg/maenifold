@@ -45,7 +45,6 @@ pub enum CommandRequest {
     Status(StatusArgs),
     Append(AppendArgs),
     Pass(VerdictArgs),
-    Reject(VerdictArgs),
     Fail(VerdictArgs),
     Sync(SyncArgs),
 }
@@ -87,7 +86,6 @@ impl GateCli {
                 model: args.model,
             }),
             GateSubcommand::Pass(args) => CommandRequest::Pass(args.into_verdict_args()),
-            GateSubcommand::Reject(args) => CommandRequest::Reject(args.into_verdict_args()),
             GateSubcommand::Fail(args) => CommandRequest::Fail(args.into_verdict_args()),
             GateSubcommand::Sync(args) => CommandRequest::Sync(SyncArgs {
                 context: args.shared.into_context(false),
@@ -102,7 +100,6 @@ enum GateSubcommand {
     Status(StatusCliArgs),
     Append(AppendCliArgs),
     Pass(VerdictCliArgs),
-    Reject(VerdictCliArgs),
     Fail(VerdictCliArgs),
     Sync(SyncCliArgs),
 }

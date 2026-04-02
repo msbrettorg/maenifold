@@ -8,7 +8,6 @@ mod gate_definition;
 mod json_output;
 mod pass_command;
 mod prd_parser;
-mod reject_command;
 mod rtm_parser;
 mod section_factory;
 mod state_machine;
@@ -40,7 +39,6 @@ fn run() -> Result<(), GateError> {
         CommandRequest::Status(args) => status_command::StatusCommand::execute(args),
         CommandRequest::Append(args) => append_command::AppendCommand::execute(args),
         CommandRequest::Pass(args) => pass_command::PassCommand::execute(args),
-        CommandRequest::Reject(args) => reject_command::RejectCommand::execute(args),
         CommandRequest::Fail(args) => fail_command::FailCommand::execute(args),
         CommandRequest::Sync(args) => sync_command::SyncCommand::execute(args),
     }

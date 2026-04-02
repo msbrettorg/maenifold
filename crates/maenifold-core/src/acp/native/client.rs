@@ -171,12 +171,24 @@ impl acp::Client for HeadlessClient {
 
     async fn session_notification(&self, args: acp::SessionNotification) -> acp::Result<()> {
         let session_id = args.session_id.to_string();
+        let update_type = match &args.update {
+            acp::SessionUpdate::UserMessageChunk(_) => "user_message_chunk",
+            acp::SessionUpdate::AgentMessageChunk(_) => "agent_message_chunk",
+            acp::SessionUpdate::AgentThoughtChunk(_) => "agent_thought_chunk",
+            acp::SessionUpdate::ToolCall(_) => "tool_call",
+            acp::SessionUpdate::ToolCallUpdate(_) => "tool_call_update",
+            acp::SessionUpdate::Plan(_) => "plan",
+            acp::SessionUpdate::AvailableCommandsUpdate(_) => "available_commands_update",
+            acp::SessionUpdate::CurrentModeUpdate(_) => "current_mode_update",
+            acp::SessionUpdate::ConfigOptionUpdate(_) => "config_option_update",
+            acp::SessionUpdate::SessionInfoUpdate(_) => "session_info_update",
+            _ => "unknown",
+        };
+        eprintln!("[ACP] session_notification: session={session_id} update={update_type}");
+
         let mut sessions = self.sessions.lock().await;
         let Some(accumulator) = sessions.get_mut(&session_id) else {
-            tracing::debug!(
-                session_id = %session_id,
-                "Dropping ACP session update for inactive accumulator"
-            );
+            eprintln!("[ACP] DROPPED: no accumulator for session={session_id} update={update_type}");
             return Ok(());
         };
 
@@ -203,7 +215,9 @@ impl acp::Client for HeadlessClient {
                     );
                 }
             }
-            _ => {}
+            _ => {
+                tracing::debug!(session_id = %session_id, update = update_type, "Unhandled SessionUpdate variant");
+            }
         }
 
         Ok(())

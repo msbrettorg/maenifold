@@ -19,7 +19,6 @@ This document is the authoritative implementation spec for rebuilding `gate`.
   - `status`
   - `append`
   - `pass`
-  - `reject`
   - `fail`
   - `sync`
 - First required enforced process: `sdd`
@@ -37,6 +36,8 @@ This document is the authoritative implementation spec for rebuilding `gate`.
 - File parsing must be isolated from file mutation.
 - Cache rebuilding must never override file authority.
 - Every task file must bind itself to a specific pipeline name and pipeline digest.
+- Built-in process definitions use explicit state-machine JSON with `schemaVersion`, `id`, `name`, `initial`, `states`, `on`, and `terminal`.
+- There is no backward compatibility for legacy built-in process JSON.
 - Section heading prose must not be used as a substitute for legal transition state.
 - Illegal transitions must fail closed.
 - Silent fallback to a different pipeline definition is forbidden.
@@ -71,10 +72,6 @@ class PassCommand {
   +execute(context) Result
 }
 
-class RejectCommand {
-  +execute(context) Result
-}
-
 class FailCommand {
   +execute(context) Result
 }
@@ -100,17 +97,18 @@ class GateDefinitionValidator {
 }
 
 class GateDefinition {
+  +id: String
   +name: String
   +digest: String
-  +stages: Vec~GateStage~
-  +entryStage() String
-  +findStage(name) GateStage
+  +initial: String
+  +states: Map~String,GateState~
+  +initialState() String
+  +findState(id) GateState
 }
 
-class GateStage {
-  +name: String
-  +verdicts: Vec~String~
-  +transitions: Map~String,String~
+class GateState {
+  +terminal: bool
+  +on: Map~String,String~
 }
 
 class TaskRepository {
@@ -152,7 +150,7 @@ class TaskSectionParser {
 class TaskStageRecord {
   +stage: String
   +recordKind: String
-  +verdict: Option~String~
+  +outcome: Option~String~
   +agent: String
   +model: Option~String~
   +recordedAt: String
@@ -164,14 +162,13 @@ class TaskStatusDeriver {
 
 class StateMachine {
   +nextOnPass(state, definition) TransitionResult
-  +nextOnReject(state, definition) TransitionResult
   +nextOnFail(state, definition) TransitionResult
-  +validateVerdict(state, verdict, definition) Result
+  +validateOutcome(state, outcome, definition) Result
 }
 
 class CanonicalSectionFactory {
   +buildAppendSection(stage, agent, notes, model) String
-  +buildVerdictSection(stage, verdict, notes, model) String
+  +buildOutcomeSection(stage, outcome, notes, model) String
 }
 
 class GateCacheDb {
@@ -204,21 +201,18 @@ CliParser --> CommandRouter
 CommandRouter --> StatusCommand
 CommandRouter --> AppendCommand
 CommandRouter --> PassCommand
-CommandRouter --> RejectCommand
 CommandRouter --> FailCommand
 CommandRouter --> SyncCommand
 
 StatusCommand --> GateContext
 AppendCommand --> GateContext
 PassCommand --> GateContext
-RejectCommand --> GateContext
 FailCommand --> GateContext
 SyncCommand --> GateContext
 
 StatusCommand --> GateDefinitionCatalog
 AppendCommand --> GateDefinitionCatalog
 PassCommand --> GateDefinitionCatalog
-RejectCommand --> GateDefinitionCatalog
 FailCommand --> GateDefinitionCatalog
 SyncCommand --> GateDefinitionCatalog
 
@@ -228,7 +222,6 @@ GateDefinitionCatalog --> GateDefinition
 StatusCommand --> TaskRepository
 AppendCommand --> TaskRepository
 PassCommand --> TaskRepository
-RejectCommand --> TaskRepository
 SyncCommand --> TaskRepository
 
 TaskRepository --> TaskFileReader
@@ -237,17 +230,14 @@ TaskFileReader --> TaskSectionParser
 
 StatusCommand --> TaskStatusDeriver
 PassCommand --> StateMachine
-RejectCommand --> StateMachine
 FailCommand --> StateMachine
 
 AppendCommand --> CanonicalSectionFactory
 PassCommand --> CanonicalSectionFactory
-RejectCommand --> CanonicalSectionFactory
 FailCommand --> CanonicalSectionFactory
 
 AppendCommand --> TaskFileWriter
 PassCommand --> TaskFileWriter
-RejectCommand --> TaskFileWriter
 FailCommand --> TaskFileWriter
 
 SyncCommand --> GateCacheDb
@@ -257,7 +247,6 @@ SyncCommand --> RtmParser
 StatusCommand --> JsonRenderer
 AppendCommand --> JsonRenderer
 PassCommand --> JsonRenderer
-RejectCommand --> JsonRenderer
 SyncCommand --> JsonRenderer
 ```
 

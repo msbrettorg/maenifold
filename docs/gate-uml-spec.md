@@ -20,6 +20,7 @@ This document is the authoritative implementation spec for rebuilding `gate`.
   - `append`
   - `pass`
   - `reject`
+  - `fail`
   - `sync`
 - First required enforced process: `sdd`
 - Required built-in process support:
@@ -35,6 +36,7 @@ This document is the authoritative implementation spec for rebuilding `gate`.
 - Transition logic must exist only in `state_machine.rs`.
 - File parsing must be isolated from file mutation.
 - Cache rebuilding must never override file authority.
+- Every task file must bind itself to a specific pipeline name and pipeline digest.
 - Section heading prose must not be used as a substitute for legal transition state.
 - Illegal transitions must fail closed.
 - Silent fallback to a different pipeline definition is forbidden.
@@ -73,13 +75,17 @@ class RejectCommand {
   +execute(context) Result
 }
 
+class FailCommand {
+  +execute(context) Result
+}
+
 class SyncCommand {
   +execute(context) Result
 }
 
 class GateContext {
   +root: Path
-  +pipelineName: String
+  +requestedPipelineName: Option~String~
   +jsonOutput: bool
 }
 
@@ -95,6 +101,7 @@ class GateDefinitionValidator {
 
 class GateDefinition {
   +name: String
+  +digest: String
   +stages: Vec~GateStage~
   +entryStage() String
   +findStage(name) GateStage
@@ -116,6 +123,20 @@ class TaskFileReader {
   +read(path) TaskDocument
 }
 
+class TaskDocument {
+  +metadata: TaskMetadata
+  +records: Vec~TaskStageRecord~
+}
+
+class TaskMetadata {
+  +title: String
+  +requirement: String
+  +testCases: Vec~String~
+  +component: String
+  +pipeline: String
+  +pipelineDigest: String
+}
+
 class TaskFileWriter {
   +appendSection(path, section) Result
 }
@@ -126,6 +147,14 @@ class TaskMetadataParser {
 
 class TaskSectionParser {
   +parse(lines) Vec~TaskStageRecord~
+}
+
+class TaskStageRecord {
+  +stage: String
+  +recordKind: String
+  +verdict: Option~String~
+  +agent: String
+  +model: Option~String~
 }
 
 class TaskStatusDeriver {
@@ -175,18 +204,21 @@ CommandRouter --> StatusCommand
 CommandRouter --> AppendCommand
 CommandRouter --> PassCommand
 CommandRouter --> RejectCommand
+CommandRouter --> FailCommand
 CommandRouter --> SyncCommand
 
 StatusCommand --> GateContext
 AppendCommand --> GateContext
 PassCommand --> GateContext
 RejectCommand --> GateContext
+FailCommand --> GateContext
 SyncCommand --> GateContext
 
 StatusCommand --> GateDefinitionCatalog
 AppendCommand --> GateDefinitionCatalog
 PassCommand --> GateDefinitionCatalog
 RejectCommand --> GateDefinitionCatalog
+FailCommand --> GateDefinitionCatalog
 SyncCommand --> GateDefinitionCatalog
 
 GateDefinitionCatalog --> GateDefinitionValidator
@@ -206,14 +238,17 @@ StatusCommand --> TaskStatusDeriver
 AppendCommand --> StateMachine
 PassCommand --> StateMachine
 RejectCommand --> StateMachine
+FailCommand --> StateMachine
 
 AppendCommand --> CanonicalSectionFactory
 PassCommand --> CanonicalSectionFactory
 RejectCommand --> CanonicalSectionFactory
+FailCommand --> CanonicalSectionFactory
 
 AppendCommand --> TaskFileWriter
 PassCommand --> TaskFileWriter
 RejectCommand --> TaskFileWriter
+FailCommand --> TaskFileWriter
 
 SyncCommand --> GateCacheDb
 SyncCommand --> PrdParser
@@ -250,6 +285,7 @@ Only these source files are allowed in `crates/maenifold-gate/src`:
 - `append_command.rs`
 - `pass_command.rs`
 - `reject_command.rs`
+- `fail_command.rs`
 - `sync_command.rs`
 
 If implementation requires a new file, the UML must be updated first.
@@ -301,12 +337,15 @@ If implementation requires a new file, the UML must be updated first.
 - Parse `Requirement`
 - Parse `Test Cases`
 - Parse `Component`
+- Parse `Pipeline`
+- Parse `Pipeline Digest`
 
 ### `task_sections.rs`
 
-- Parse canonical stage sections
+- Parse canonical stage event sections
 - Parse canonical verdict markers
 - Return ordered stage records
+- Support repeated sections for the same stage across retries and rework
 
 ### `task_status.rs`
 
@@ -314,6 +353,8 @@ If implementation requires a new file, the UML must be updated first.
   - task file contents
   - directory location
   - active gate definition
+- Replay ordered stage event records against the bound gate definition
+- Reject non-reconstructible or mismatched task histories
 
 ### `state_machine.rs`
 
@@ -336,6 +377,9 @@ If implementation requires a new file, the UML must be updated first.
 - Upsert tasks
 - Insert work log entries
 - No authority over task truth
+- Persist pipeline name and pipeline digest from the task file
+- Use non-empty free-text stage and status columns
+- Forbid hardcoded SQL stage enums tied to one pipeline family
 
 ### `prd_parser.rs`
 
@@ -364,6 +408,10 @@ If implementation requires a new file, the UML must be updated first.
 ### `reject_command.rs`
 
 - `reject` command execution only
+
+### `fail_command.rs`
+
+- `fail` command execution only
 
 ### `sync_command.rs`
 
@@ -420,12 +468,12 @@ participant Writer as TaskFileWriter
 participant DB as GateCacheDb
 
 PM->>CLI: gate pass T-1.1 --root .
-CLI->>Catalog: resolve(root, "sdd")
-Catalog-->>CLI: GateDefinition
 CLI->>Repo: findTask(root, "T-1.1")
 Repo-->>CLI: task path
 CLI->>Reader: read(task path)
 Reader-->>CLI: TaskDocument
+CLI->>Catalog: resolve(root, TaskDocument.metadata.pipeline)
+Catalog-->>CLI: GateDefinition
 CLI->>Deriver: derive(document, definition, todo)
 Deriver-->>CLI: EffectiveTaskState
 CLI->>SM: nextOnPass(state, definition)
@@ -446,18 +494,37 @@ These rules are mandatory.
 4. A local custom `pipeline.json` must not silently override a reserved built-in.
 5. In-repo `assets/pipelines/*.json` must not be used for gate enforcement.
 6. Missing or malformed authoritative gate JSON is an error.
+7. For task-bound commands, the task file pipeline binding is authoritative.
+8. A CLI-requested pipeline name may filter or validate, but it must not override the task-bound pipeline.
+9. A task whose bound pipeline digest does not match the authoritative definition digest is invalid until migrated.
 
 ## File Authority Rules
 
 - If a task file is in `done/`, effective location is `done`.
 - If a task file is in `todo/`, effective location is `todo`.
+- Every task file must include:
+  - `**Pipeline**: <name>`
+  - `**Pipeline Digest**: <sha256>`
 - If a task in `todo/` has no stage sections, effective state is `pending`.
 - If a task in `done/` is not terminal under the active definition, this is an error condition.
+- If a task file has no pipeline binding or digest, it is invalid for active enforcement.
+- Legacy scaffold examples without explicit pipeline binding are illustrative only and are not normative for implementation.
 - The presence of later-stage prose must not advance state unless the active state machine and canonical recorded verdict permit it.
+
+## Reconstructible Event Log Rules
+
+- Every mutating command appends exactly one canonical stage event section.
+- `append` appends a stage work event with no verdict.
+- `pass` appends a stage verdict event with `PASS`.
+- `reject` appends a stage verdict event with `REJECT`.
+- `fail` appends a stage verdict event with `FAIL`.
+- Multiple sections for the same stage are legal and expected across retries.
+- Effective task state is derived by replaying ordered stage event records from the beginning of the task history against the bound gate definition.
+- The implementation must not infer legal transitions from missing verdicts in legacy prose.
 
 ## Canonical Section Rules
 
-### Special SDD Section Names
+### Special Stage-ID Section Names
 
 - `swe` -> `## SWE Remediation`
 - `red` -> `## Red-team Audit`
@@ -476,10 +543,13 @@ Each appended section must include:
 - notes
 - verdict when applicable
 - model if provided
+- stage id
+- record kind
 
 ## Invariants
 
 - One authoritative gate definition per command invocation.
+- One authoritative gate definition binding per task file.
 - All legal transitions are derived from `current_stage + verdict -> next_stage`.
 - Verdicts not declared by a stage are illegal.
 - `append` must not change stage.
@@ -489,6 +559,8 @@ Each appended section must include:
 - `sync` rebuilds cache from files and active definitions.
 - Cache mismatch must never silently override file truth.
 - Duplicate task IDs are fatal.
+- Missing pipeline binding is fatal.
+- Pipeline digest mismatch is fatal.
 - Unknown transition targets are fatal.
 - Duplicate stage names are fatal.
 - Hidden defaults are forbidden.
@@ -540,6 +612,10 @@ All implementation must be testable against these required named tests.
 - `lightweight_pass_from_swe_skips_to_blue`
 - `pipeline_definition_rejects_unknown_transition_target`
 - `pipeline_definition_rejects_duplicate_stage_names`
+- `task_file_requires_explicit_pipeline_binding`
+- `task_file_requires_pipeline_digest`
+- `status_errors_when_pipeline_digest_mismatches_authoritative_asset`
+- `task_bound_pipeline_cannot_be_overridden_by_cli_filter`
 - `status_derivation_prefers_done_location_over_partial_audit_trail`
 
 ### Integration Tests
@@ -555,6 +631,7 @@ All implementation must be testable against these required named tests.
 - `sync_rebuild_recovers_cache_from_authoritative_markdown_files`
 - `sync_rebuild_recovers_done_location_from_done_directory`
 - `status_ignores_stale_cache_when_files_disagree`
+- `legacy_task_without_pipeline_binding_is_rejected`
 - `external_authoritative_gate_asset_wins_over_stale_workspace_pipeline_asset`
 - `illegal_reject_from_swe_returns_error_and_leaves_files_unchanged`
 - `illegal_fail_from_red_returns_error_and_leaves_files_unchanged`

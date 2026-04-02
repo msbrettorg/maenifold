@@ -165,7 +165,7 @@ fn run_http(port: u16) -> i32 {
             return 1;
         }
     };
-    let result = rt.block_on(GateMcpServer::serve_http(port));
+    let result = rt.block_on(GateMcpServer::serve_web(port));
     rt.shutdown_timeout(std::time::Duration::from_secs(5));
     match result {
         Ok(()) => 0,

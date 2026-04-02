@@ -1,5 +1,7 @@
 use chrono::Utc;
 
+use crate::stage_labels::record_heading;
+
 #[derive(Debug, Clone)]
 pub struct CanonicalSectionFactory;
 
@@ -31,7 +33,7 @@ impl CanonicalSectionFactory {
         notes: &str,
         model: Option<&str>,
     ) -> String {
-        let heading = canonical_heading(stage);
+        let heading = record_heading(stage);
         let mut section = format!(
             "## {heading}\n\n- Stage ID: {stage}\n- Record Kind: {record_kind}\n- Agent: {agent}\n- Recorded At: {}\n",
             Utc::now().to_rfc3339()
@@ -45,20 +47,5 @@ impl CanonicalSectionFactory {
         }
         section.push_str(&format!("- Notes: {notes}\n"));
         section
-    }
-}
-
-fn canonical_heading(stage: &str) -> String {
-    match stage {
-        "swe" => "SWE Remediation".to_string(),
-        "red" => "Red-team Audit".to_string(),
-        "blue" => "Blue-team Verification".to_string(),
-        other => {
-            let mut chars = other.chars();
-            match chars.next() {
-                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-                None => String::new(),
-            }
-        }
     }
 }

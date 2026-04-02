@@ -9,7 +9,7 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
 use crate::mcp::GateMcpServer;
-use crate::tray_menu::{build_tray_menu, toggle_login_item};
+use crate::tray_menu::{build_tray_menu, open_ui, toggle_login_item};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GateServerMode {
@@ -32,7 +32,9 @@ struct TrayApp {
     server_handle: Option<std::thread::JoinHandle<i32>>,
     tray_icon: Option<tray_icon::TrayIcon>,
     quit_id: Option<tray_icon::menu::MenuId>,
+    open_ui_id: Option<tray_icon::menu::MenuId>,
     login_id: Option<tray_icon::menu::MenuId>,
+    open_ui_item: Option<tray_icon::menu::MenuItem>,
     login_item: Option<tray_icon::menu::MenuItem>,
     exit_code: i32,
 }
@@ -41,7 +43,9 @@ impl TrayApp {
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
         let menu_state = build_tray_menu(self.mode);
         self.quit_id = Some(menu_state.quit_id);
+        self.open_ui_id = menu_state.open_ui_id;
         self.login_id = menu_state.login_id;
+        self.open_ui_item = menu_state.open_ui_item;
         self.login_item = menu_state.login_item;
 
         match TrayIconBuilder::new()
@@ -79,6 +83,13 @@ impl TrayApp {
             self.shutdown_token.cancel();
             self.tray_icon.take();
             event_loop.exit();
+            return;
+        }
+
+        if self.open_ui_id.as_ref().is_some_and(|id| event.id == *id) {
+            if let Some(port) = self.mode.port() {
+                open_ui(port);
+            }
             return;
         }
 
@@ -167,7 +178,9 @@ pub fn run_with_tray(mode: GateServerMode) -> i32 {
             server_handle: Some(server_handle),
             tray_icon: None,
             quit_id: None,
+            open_ui_id: None,
             login_id: None,
+            open_ui_item: None,
             login_item: None,
             exit_code: 0,
         };
@@ -214,7 +227,7 @@ fn run_headless(mode: GateServerMode) -> i32 {
 async fn run_mode(mode: GateServerMode) -> Result<(), crate::error::GateError> {
     match mode {
         GateServerMode::Stdio => GateMcpServer::serve_stdio().await,
-        GateServerMode::Http(port) => GateMcpServer::serve_http(port).await,
+        GateServerMode::Http(port) => GateMcpServer::serve_web(port).await,
     }
 }
 

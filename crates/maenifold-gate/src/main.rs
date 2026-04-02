@@ -1,4 +1,5 @@
 mod append_command;
+mod board_data;
 mod cache_db;
 mod cli;
 mod error;
@@ -10,6 +11,7 @@ mod json_output;
 mod mcp;
 mod pass_command;
 mod section_factory;
+mod stage_labels;
 mod state_machine;
 mod status_command;
 mod sync_command;
@@ -20,6 +22,7 @@ mod task_sections;
 mod task_status;
 mod tray;
 mod tray_menu;
+mod web;
 
 use std::process::ExitCode;
 

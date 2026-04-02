@@ -14,6 +14,8 @@ clap = { version = "4", features = ["derive"] }
 regex.workspace = true
 rmcp = { workspace = true, features = ["transport-streamable-http-server"] }
 rusqlite.workspace = true
+pulldown-cmark.workspace = true
+rust-embed.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true

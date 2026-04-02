@@ -135,9 +135,7 @@ pub(crate) async fn run_workflow_with_pool(
 
             maybe_run_step_thinking(&run_ctx, &step).await?;
             let final_step = step_index >= total_steps;
-            let response =
-                prompt_workflow_agent(&driver, prompt, &step, final_step, first_context.take())
-                    .await?;
+            let response = prompt_workflow_agent(&driver, prompt, &step, first_context.take()).await?;
             if let Some(value) = workflow_completion_text(&response, final_step) {
                 conclusion = Some(value);
             }
@@ -202,7 +200,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
 
             maybe_run_step_thinking(&run_ctx, &step).await?;
             let final_step = step_index >= total_steps;
-            let response = prompt_workflow_agent(&driver, prompt, &step, final_step, None).await?;
+            let response = prompt_workflow_agent(&driver, prompt, &step, None).await?;
             if let Some(value) = workflow_completion_text(&response, final_step) {
                 conclusion = Some(value);
             }

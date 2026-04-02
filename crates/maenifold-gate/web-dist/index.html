@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gate Board</title>
+    <style>
+      :root {
+        --bg: #f3efe6;
+        --panel: rgba(255, 252, 246, 0.92);
+        --ink: #1d1a16;
+        --muted: #6f675d;
+        --line: rgba(29, 26, 22, 0.12);
+        --accent: #cf5c36;
+        --accent-soft: rgba(207, 92, 54, 0.12);
+        --ok: #276749;
+        --shadow: 0 24px 70px rgba(35, 27, 18, 0.12);
+        --radius: 22px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(207, 92, 54, 0.14), transparent 28%),
+          radial-gradient(circle at top right, rgba(39, 103, 73, 0.12), transparent 24%),
+          linear-gradient(180deg, #f7f3eb 0%, var(--bg) 100%);
+      }
+
+      .shell {
+        width: min(100%, 31rem);
+        margin: 0 auto;
+        padding: 1rem 0.9rem 2rem;
+      }
+
+      .hero {
+        padding: 1.1rem 0.4rem 1rem;
+      }
+
+      .eyebrow {
+        margin: 0 0 0.35rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 2rem;
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+
+      .subhead {
+        margin: 0.55rem 0 0;
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.45;
+      }
+
+      .task-list {
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .task-card {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        padding: 0.95rem;
+        text-align: left;
+        cursor: pointer;
+        transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+      }
+
+      .task-card:hover {
+        transform: translateY(-1px);
+        border-color: rgba(207, 92, 54, 0.35);
+        background: rgba(255, 252, 246, 0.98);
+      }
+
+      .card-top,
+      .card-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: baseline;
+      }
+
+      .task-id {
+        font-family: "SF Mono", "IBM Plex Mono", monospace;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .phase-pill,
+      .pipeline-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0.3rem 0.55rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .phase-pill {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .pipeline-pill {
+        background: rgba(29, 26, 22, 0.06);
+        color: var(--ink);
+      }
+
+      .title {
+        margin: 0.55rem 0 0.7rem;
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+
+      .progress {
+        display: grid;
+        grid-template-columns: repeat(var(--step-count), minmax(0, 1fr));
+        gap: 0.4rem;
+        align-items: start;
+      }
+
+      .step {
+        min-width: 0;
+      }
+
+      .dot {
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 999px;
+        border: 1px solid rgba(29, 26, 22, 0.18);
+        background: rgba(29, 26, 22, 0.08);
+        box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.7);
+      }
+
+      .step.complete .dot {
+        background: var(--ok);
+        border-color: var(--ok);
+        box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.8);
+      }
+
+      .step.current .dot {
+        background: var(--accent);
+        border-color: var(--accent);
+        transform: scale(1.08);
+      }
+
+      .step-label {
+        margin-top: 0.35rem;
+        font-size: 0.66rem;
+        line-height: 1.2;
+        color: var(--muted);
+        word-break: break-word;
+      }
+
+      .step.current .step-label {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .card-meta {
+        margin-top: 0.8rem;
+      }
+
+      .meta-text {
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+
+      .empty,
+      .error {
+        border-radius: var(--radius);
+        border: 1px dashed var(--line);
+        padding: 1rem;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      dialog {
+        width: min(100vw - 1rem, 34rem);
+        border: none;
+        border-radius: 28px;
+        padding: 0;
+        box-shadow: 0 35px 90px rgba(18, 16, 13, 0.28);
+      }
+
+      dialog::backdrop {
+        background: rgba(18, 16, 13, 0.35);
+        backdrop-filter: blur(6px);
+      }
+
+      .dialog-shell {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        max-height: min(85vh, 52rem);
+        background: #fffdf9;
+      }
+
+      .dialog-head {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: grid;
+        gap: 0.7rem;
+        padding: 1rem 1rem 0.8rem;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 253, 249, 0.96);
+        backdrop-filter: blur(10px);
+      }
+
+      .dialog-close {
+        justify-self: end;
+        border: none;
+        background: rgba(29, 26, 22, 0.06);
+        color: var(--ink);
+        border-radius: 999px;
+        width: 2rem;
+        height: 2rem;
+        font-size: 1.1rem;
+        cursor: pointer;
+      }
+
+      .dialog-body {
+        overflow: auto;
+        padding: 0 1rem 1.15rem;
+      }
+
+      .detail-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+
+      .detail-markdown {
+        color: #28231d;
+        line-height: 1.55;
+      }
+
+      .detail-markdown h1,
+      .detail-markdown h2,
+      .detail-markdown h3 {
+        letter-spacing: -0.04em;
+        line-height: 1.02;
+      }
+
+      .detail-markdown pre,
+      .detail-markdown code {
+        font-family: "SF Mono", "IBM Plex Mono", monospace;
+      }
+
+      .detail-markdown pre {
+        overflow: auto;
+        border-radius: 16px;
+        padding: 0.8rem;
+        background: #f3efe6;
+      }
+
+      @media (min-width: 760px) {
+        .shell {
+          width: min(100%, 42rem);
+          padding-top: 1.4rem;
+        }
+
+        .task-list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Read Only Pipeline View</p>
+        <h1>Gate Board</h1>
+        <p class="subhead">
+          Compact mobile-first visibility into task state, process, and full markdown detail.
+        </p>
+      </section>
+
+      <section id="task-list" class="task-list" aria-live="polite"></section>
+    </main>
+
+    <dialog id="task-dialog">
+      <div class="dialog-shell">
+        <div class="dialog-head">
+          <button id="dialog-close" class="dialog-close" aria-label="Close">×</button>
+          <div id="dialog-header"></div>
+        </div>
+        <div class="dialog-body">
+          <article id="dialog-markdown" class="detail-markdown"></article>
+        </div>
+      </div>
+    </dialog>
+
+    <script>
+      const listEl = document.getElementById("task-list");
+      const dialog = document.getElementById("task-dialog");
+      const dialogClose = document.getElementById("dialog-close");
+      const dialogHeader = document.getElementById("dialog-header");
+      const dialogMarkdown = document.getElementById("dialog-markdown");
+
+      dialogClose.addEventListener("click", () => dialog.close());
+      dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) dialog.close();
+      });
+
+      renderBoard();
+
+      async function renderBoard() {
+        listEl.innerHTML = "";
+
+        try {
+          const response = await fetch("/api/gate/tasks");
+          if (!response.ok) throw new Error("Failed to load tasks.");
+          const tasks = await response.json();
+
+          if (!tasks.length) {
+            listEl.innerHTML = '<div class="empty">No tasks found in <code>todo/</code> or <code>done/</code>.</div>';
+            return;
+          }
+
+          for (const task of tasks) {
+            listEl.appendChild(buildCard(task));
+          }
+        } catch (error) {
+          listEl.innerHTML = `<div class="error">${escapeHtml(error.message)}</div>`;
+        }
+      }
+
+      function buildCard(task) {
+        const button = document.createElement("button");
+        button.className = "task-card";
+        button.type = "button";
+        button.innerHTML = `
+          <div class="card-top">
+            <span class="task-id">${escapeHtml(task.taskId)}</span>
+            <span class="phase-pill">${escapeHtml(task.phaseLabel)}</span>
+          </div>
+          <h2 class="title">${escapeHtml(task.title)}</h2>
+          <div class="card-meta">
+            <span class="pipeline-pill">${escapeHtml(task.pipeline)}</span>
+            <span class="meta-text">${escapeHtml(task.location)} · attempts ${task.attempts}</span>
+          </div>
+          ${renderProgress(task.steps)}
+        `;
+        button.addEventListener("click", () => openTask(task.taskId));
+        return button;
+      }
+
+      function renderProgress(steps) {
+        return `
+          <div class="progress" style="--step-count:${steps.length}">
+            ${steps.map((step) => `
+              <div class="step ${escapeHtml(step.status)}">
+                <div class="dot" aria-hidden="true"></div>
+                <div class="step-label">${escapeHtml(step.label)}</div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      async function openTask(taskId) {
+        const response = await fetch(`/api/gate/tasks/${encodeURIComponent(taskId)}`);
+        if (!response.ok) return;
+        const detail = await response.json();
+        const task = detail.task;
+
+        dialogHeader.innerHTML = `
+          <div class="card-top">
+            <span class="task-id">${escapeHtml(task.taskId)}</span>
+            <span class="phase-pill">${escapeHtml(task.phaseLabel)}</span>
+          </div>
+          <h2 class="title">${escapeHtml(task.title)}</h2>
+          <div class="detail-meta">
+            <span class="pipeline-pill">${escapeHtml(task.pipeline)}</span>
+            <span class="pipeline-pill">${escapeHtml(task.location)}</span>
+            <span class="pipeline-pill">${escapeHtml(task.path)}</span>
+          </div>
+          ${renderProgress(task.steps)}
+        `;
+        dialogMarkdown.innerHTML = detail.markdownHtml;
+        dialog.showModal();
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+    </script>
+  </body>
+</html>

@@ -76,6 +76,12 @@ Binary: `target/release/gate` for gate runtime changes.
 
 **Words are not delivery. A rebuilt, runnable binary is delivery.**
 
+## ACP Architecture
+
+The ACP client architecture is specified in [docs/acp-client-architecture.md](docs/acp-client-architecture.md). That document is law — do not invent architecture outside it.
+
+Key invariant: **`prompt` is the only primitive.** Think and workflow are orchestration loops that chain prompt calls. Neither should have a direct path to the ACP agent.
+
 ## ACP Model Policy
 
 All ACP agent interactions MUST specify `model` explicitly. Never rely on agent defaults — different agents default to different models with wildly different latency and cost profiles.

@@ -1,20 +1,14 @@
 use std::sync::Arc;
 
-use axum::Router;
 use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };
 
-use super::{GateMcpHandler, TransportKind, localhost_cors};
-use crate::error::GateError;
+use super::{GateMcpHandler, TransportKind};
 
-pub(super) type GateHttpService = StreamableHttpService<GateMcpHandler, NeverSessionManager>;
+pub(crate) type GateHttpService = StreamableHttpService<GateMcpHandler, NeverSessionManager>;
 
-pub(super) fn router(service: GateHttpService) -> Router {
-    Router::new().nest_service("/mcp", service)
-}
-
-pub(super) fn service(cancellation_token: tokio_util::sync::CancellationToken) -> GateHttpService {
+pub(crate) fn service(cancellation_token: tokio_util::sync::CancellationToken) -> GateHttpService {
     let session_manager = Arc::new(NeverSessionManager::default());
     StreamableHttpService::new(
         || {
@@ -31,50 +25,19 @@ pub(super) fn service(cancellation_token: tokio_util::sync::CancellationToken) -
     )
 }
 
-impl super::GateMcpServer {
-    pub async fn serve_http(port: u16) -> Result<(), GateError> {
-        let bind_addr = format!("127.0.0.1:{port}");
-        let tcp_listener = tokio::net::TcpListener::bind(&bind_addr)
-            .await
-            .map_err(|e| GateError::Cli(format!("HTTP bind failed on {bind_addr}: {e}")))?;
-        Self::serve_http_listener(tcp_listener).await
-    }
-
-    pub async fn serve_http_listener(
-        tcp_listener: tokio::net::TcpListener,
-    ) -> Result<(), GateError> {
-        let ct = tokio_util::sync::CancellationToken::new();
-        let bind_addr = tcp_listener
-            .local_addr()
-            .map_err(|e| GateError::Cli(format!("HTTP listener address lookup failed: {e}")))?;
-        let router = router(service(ct.child_token())).layer(localhost_cors());
-
-        eprintln!("gate MCP HTTP server listening on http://{bind_addr}/mcp");
-
-        axum::serve(tcp_listener, router)
-            .with_graceful_shutdown(async move {
-                let _ = tokio::signal::ctrl_c().await;
-                ct.cancel();
-            })
-            .await
-            .map_err(|e| GateError::Cli(format!("HTTP server error: {e}")))?;
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use axum::Router;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use tokio_util::sync::CancellationToken;
     use tower::util::ServiceExt;
 
-    use super::{router, service};
+    use super::service;
 
     #[tokio::test]
     async fn http_router_mounts_mcp_endpoint() {
-        let app = router(service(CancellationToken::new()));
+        let app = Router::new().nest_service("/mcp", service(CancellationToken::new()));
         let response = app
             .oneshot(
                 Request::builder()

@@ -10,11 +10,15 @@ use regex::Regex;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::LazyLock;
-static STEP_PROGRESS_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
+static STEP_PROGRESS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
 
 /// Single source of truth for the XML output-block contract sent to workflow agents.
-const XML_FORMAT_INSTRUCTION: &str = "You MUST respond with exactly one XML <output> block using the exact tags shown below. Do NOT respond with JSON. Do NOT rename tags. Do NOT omit required tags. The parser only reads the final <output> block.\n\nRequired XML format:\n<output>\n  <response>What you did for this workflow step, with concrete detail.</response>\n  <done>true|false</done>\n  <conclusion>Leave empty until the workflow is complete. Required and non-empty only when done is true.</conclusion>\n</output>";
+const XML_FORMAT_INSTRUCTION: &str = r#"Respond using this XML format:
+<output>
+  <response>What you did for this step, with detail.</response>
+  <done>true or false</done>
+  <conclusion>Summary when done is true. Leave empty otherwise.</conclusion>
+</output>"#;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Envelope<T> {
@@ -23,9 +27,7 @@ pub(crate) struct Envelope<T> {
     pub(crate) error: Option<EnvelopeError>,
 }
 #[derive(Debug, Deserialize)]
-pub(crate) struct EnvelopeError {
-    pub(crate) message: String,
-}
+pub(crate) struct EnvelopeError { pub(crate) message: String }
 pub(crate) fn workflow_text(raw: &str) -> String {
     let trimmed = raw.trim();
     if let Ok(envelope) = serde_json::from_str::<Envelope<String>>(trimmed) {
@@ -50,9 +52,10 @@ pub(crate) fn workflow_text(raw: &str) -> String {
 }
 pub(crate) fn parse_step_progress(text: &str) -> Option<(u32, u32)> {
     let captures = STEP_PROGRESS_RE.captures(text)?;
-    let current = captures.get(1)?.as_str().parse().ok()?;
-    let total = captures.get(2)?.as_str().parse().ok()?;
-    Some((current, total))
+    Some((
+        captures.get(1)?.as_str().parse().ok()?,
+        captures.get(2)?.as_str().parse().ok()?,
+    ))
 }
 pub(crate) fn step_think_config(step: &str) -> Option<(String, u32)> {
     if !step.contains(r#""requiresSequentialThinking":true"#)
@@ -104,34 +107,25 @@ pub(crate) fn terminal_workflow_status(step: &str) -> Option<WorkflowRunStatus> 
     }
 }
 pub(crate) fn workflow_prompt(prompt: &str, step: &str) -> String {
-    let prefix = if prompt.trim().is_empty() {
-        step.to_string()
-    } else {
-        format!("{prompt}\n{step}")
-    };
+    let prefix = if prompt.trim().is_empty() { step.to_string() } else { format!("{prompt}\n{step}") };
     format!("{prefix}\n\n{WIKILINK_CONTEXT}\n\n{XML_FORMAT_INSTRUCTION}")
 }
 pub(crate) async fn prompt_workflow_agent(
     driver: &AgentSession,
     prompt: &str,
     step: &str,
-    final_step: bool,
     content_blocks: Option<Vec<acp::ContentBlock>>,
 ) -> Result<WorkflowAgentResponse> {
-    let base = workflow_prompt(prompt, step);
-    let prompt_with_shape = format!(
-        "{base}\n\nExample (in-progress):\n<output>\n  <response>Reviewed [[workflow-step]] requirements and identified the next action.</response>\n  <done>false</done>\n  <conclusion></conclusion>\n</output>\n\nExample (completed):\n<output>\n  <response>Finished the [[workflow-step]] and verified the result.</response>\n  <done>true</done>\n  <conclusion>Completed the workflow successfully.</conclusion>\n</output>\n\nWhen complete, set <done>true</done> with a non-empty <conclusion>. When not complete, set <done>false</done> and leave <conclusion> empty.\n\nRequired format:\n{}",
-        WorkflowOutput::expected_shape()
-    );
+    let full_prompt = workflow_prompt(prompt, step);
     let response = if let Some(blocks) = content_blocks {
         driver
-            .prompt_with_context(&prompt_with_shape, blocks)
+            .prompt_with_context(&full_prompt, blocks)
             .await?
     } else {
-        driver.prompt(&prompt_with_shape).await?
+        driver.prompt(&full_prompt).await?
     };
     let text = workflow_response_text(response)?;
-    parse_workflow_with_retry(driver, &text, 3, final_step).await
+    parse_workflow_with_retry(driver, &text, 3).await
 }
 pub(crate) fn workflow_step_payload(
     session_id: &str,
@@ -150,15 +144,8 @@ pub(crate) fn workflow_step_payload(
         json!({ "sessionId": session_id, "response": response.output.response })
     }
 }
-pub(crate) fn workflow_completion_text(
-    response: &WorkflowAgentResponse,
-    final_step: bool,
-) -> Option<String> {
-    if final_step {
-        Some(workflow_conclusion_text(response, final_step))
-    } else {
-        None
-    }
+pub(crate) fn workflow_completion_text(response: &WorkflowAgentResponse, final_step: bool) -> Option<String> {
+    final_step.then(|| workflow_conclusion_text(response, final_step))
 }
 pub(crate) struct WorkflowAgentResponse {
     output: WorkflowOutput,
@@ -168,7 +155,6 @@ async fn parse_workflow_with_retry(
     driver: &AgentSession,
     initial_text: &str,
     max_retries: usize,
-    final_step: bool,
 ) -> Result<WorkflowAgentResponse> {
     let mut text = initial_text.trim().to_string();
     for attempt in 0..=max_retries {
@@ -179,7 +165,7 @@ async fn parse_workflow_with_retry(
                     used_fallback: false,
                 });
             }
-            Err(error) if attempt < max_retries && !final_step => {
+            Err(error) if attempt < max_retries => {
                 let retry_prompt = workflow_retry_prompt(&error);
                 let response = driver.prompt(&retry_prompt).await?;
                 text = workflow_response_text(response)?.trim().to_string();

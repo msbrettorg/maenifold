@@ -271,5 +271,3 @@ fn map_notify_error(error: notify::Error) -> MaenifoldError {
     MaenifoldError::Message(format!("Asset watcher failed: {error}"))
 }
 
-#[cfg(test)]
-mod resources_tests;

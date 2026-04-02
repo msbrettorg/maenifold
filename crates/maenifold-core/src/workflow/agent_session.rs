@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::acp_config::AgentsConfig;
 use crate::acp_native::{AcpxResponse, AgentError, AgentHandle, AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
+use agent_client_protocol as acp;
 
 pub(crate) struct AgentSession {
     handle: Arc<AgentHandle>,
@@ -44,9 +45,17 @@ pub(crate) async fn open_agent_session(
 
 impl AgentSession {
     pub(crate) async fn prompt(&self, prompt: &str) -> Result<AcpxResponse> {
+        self.prompt_with_context(prompt, vec![]).await
+    }
+
+    pub(crate) async fn prompt_with_context(
+        &self,
+        prompt: &str,
+        context: Vec<acp::ContentBlock>,
+    ) -> Result<AcpxResponse> {
         let response = self
             .handle
-            .prompt(&self.remote_id, prompt)
+            .prompt_with_context(&self.remote_id, prompt, context)
             .await
             .map_err(agent_error)?;
         let error = response.stop_reason.as_deref().and_then(|sr| match sr {

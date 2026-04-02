@@ -1,4 +1,4 @@
-use crate::error::Result;
+use crate::error::{MaenifoldError, Result};
 use std::collections::HashMap;
 
 use super::view::node_state_for;
@@ -12,7 +12,7 @@ pub(super) fn render_pipeline_mermaid(
 
     for node in &definition.nodes {
         let state = node_state_for(node_states, node.id())?;
-        lines.push(render_pipeline_mermaid_node(node, &state.status));
+        lines.push(render_pipeline_mermaid_node(node, &state.status)?);
     }
     for edge in &definition.edges {
         let arrow = match edge.edge_type {
@@ -32,25 +32,29 @@ pub(super) fn edge_type_name(edge_type: &EdgeType) -> &'static str {
     }
 }
 
-fn render_pipeline_mermaid_node(node: &PipelineNode, status: &NodeStatus) -> String {
-    let label = mermaid_node_label(node, status);
+fn render_pipeline_mermaid_node(node: &PipelineNode, status: &NodeStatus) -> Result<String> {
+    let label = mermaid_node_label(node, status)?;
     let wrapped_label = match node {
-        PipelineNode::Workflow { .. } => format!("[\"{label}\"]"),
-        PipelineNode::Prompt { .. } => format!("(\"{label}\")"),
-        PipelineNode::SequentialThinking { .. } => format!("{{{{\"{label}\"}}}}"),
+        PipelineNode::Workflow { .. } => format!(r#"[\"{label}\"]"#),
+        PipelineNode::Prompt { .. } => format!(r#"(\"{label}\")"#),
+        PipelineNode::SequentialThinking { .. } => format!(r#"{{{{\"{label}\"}}}}"#),
         PipelineNode::Tool { .. } => format!(">{label}]"),
     };
 
-    format!("  {}{}", node.id(), wrapped_label)
+    Ok(format!("  {}{}", node.id(), wrapped_label))
 }
 
-fn mermaid_node_label(node: &PipelineNode, status: &NodeStatus) -> String {
+fn mermaid_node_label(node: &PipelineNode, status: &NodeStatus) -> Result<String> {
     let node_label = match node {
-        PipelineNode::Workflow { .. } => format!(
-            "wf: {}",
-            node.workflow_id()
-                .expect("workflow nodes always have workflow ids")
-        ),
+        PipelineNode::Workflow { .. } => {
+            let workflow_id = node.workflow_id().ok_or_else(|| {
+                MaenifoldError::Message(format!(
+                    "ERROR: Workflow pipeline node '{}' is missing a workflow id",
+                    node.id()
+                ))
+            })?;
+            format!("wf: {workflow_id}")
+        }
         PipelineNode::Prompt { .. } => {
             format!(
                 "prompt: {}",
@@ -61,7 +65,7 @@ fn mermaid_node_label(node: &PipelineNode, status: &NodeStatus) -> String {
         PipelineNode::Tool { tool_name, .. } => format!("tool: {tool_name}"),
     };
 
-    format!("{} {}", status_emoji(status), node_label)
+    Ok(format!("{} {}", status_emoji(status), node_label))
 }
 
 fn truncated_prompt_label(prompt: &str) -> String {

@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 use parking_lot::Mutex;
@@ -22,13 +23,21 @@ pub(super) use super::supervisor_lifecycle::{
     supervisor_clear_all, supervisor_is_paused, supervisor_spawn_test_task,
 };
 
-pub(crate) static SUPERVISOR_RUNTIME: LazyLock<Runtime> = LazyLock::new(|| {
-    Builder::new_multi_thread()
-        .worker_threads(2)
-        .enable_all()
-        .build()
-        .expect("build pipeline supervisor runtime")
-});
+static SUPERVISOR_RUNTIME_INNER: LazyLock<std::result::Result<Runtime, String>> =
+    LazyLock::new(|| {
+        Builder::new_multi_thread()
+            .worker_threads(2)
+            .enable_all()
+            .build()
+            .map_err(|error| format!("ERROR: Failed to build pipeline supervisor runtime: {error}"))
+    });
+
+pub(crate) fn supervisor_runtime() -> Result<&'static Runtime> {
+    SUPERVISOR_RUNTIME_INNER
+        .as_ref()
+        .map_err(|message| MaenifoldError::Message(message.clone()))
+}
+
 pub(super) static RUNNING_PIPELINES: LazyLock<Mutex<HashSet<String>>> =
     LazyLock::new(|| Mutex::new(HashSet::new()));
 pub(super) static TRACKED_PIPELINES: LazyLock<Mutex<HashMap<String, TrackedPipeline>>> =

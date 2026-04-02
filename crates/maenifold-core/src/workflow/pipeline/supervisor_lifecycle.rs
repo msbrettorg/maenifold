@@ -6,8 +6,8 @@ use tokio_util::sync::CancellationToken;
 
 use super::executor;
 use super::supervisor::{
-    RUNNING_PIPELINES, SUPERVISOR_RUNTIME, TRACKED_PIPELINES, TrackedPipeline, finish_pipeline,
-    supervisor_context,
+    RUNNING_PIPELINES, TRACKED_PIPELINES, TrackedPipeline, finish_pipeline, supervisor_context,
+    supervisor_runtime,
 };
 use super::supervisor_detection::{
     mark_pipeline_stuck, pipeline_has_non_terminal_nodes, supervisor_detect_orphans_excluding,
@@ -31,7 +31,7 @@ pub(super) fn supervisor_run(root: &Path, session_id: &str, prompt: &str) -> Res
     let cancel_for_task = cancel.clone();
     let (start_tx, start_rx) = oneshot::channel();
 
-    let handle = SUPERVISOR_RUNTIME.spawn(async move {
+    let handle = supervisor_runtime()?.spawn(async move {
         let _paused_rx = paused_rx;
         if start_rx.await.is_err() {
             finish_pipeline(&session_id_owned);
@@ -80,7 +80,7 @@ pub(super) fn supervisor_cancel(session_id: &str) -> Result<()> {
 
     let _ = tracked.paused.send(false);
     tracked.cancel.cancel();
-    let join_result = SUPERVISOR_RUNTIME.block_on(tracked.handle);
+    let join_result = supervisor_runtime()?.block_on(tracked.handle);
     RUNNING_PIPELINES.lock().remove(session_id);
     join_result.map_err(|error| {
         MaenifoldError::Message(format!(
@@ -163,7 +163,9 @@ pub(super) fn supervisor_clear_all() {
     for (_, tracked) in tracked {
         let _ = tracked.paused.send(false);
         tracked.cancel.cancel();
-        let _ = SUPERVISOR_RUNTIME.block_on(tracked.handle);
+        if let Ok(runtime) = supervisor_runtime() {
+            let _ = runtime.block_on(tracked.handle);
+        }
     }
 }
 
@@ -187,7 +189,7 @@ pub(super) fn supervisor_spawn_test_task(session_id: &str) -> Result<()> {
     let (paused, _paused_rx) = watch::channel(false);
     let session_id_owned = session_id.to_string();
     let cancel_for_task = cancel.clone();
-    let handle = SUPERVISOR_RUNTIME.spawn(async move {
+    let handle = supervisor_runtime()?.spawn(async move {
         cancel_for_task.cancelled().await;
         finish_pipeline(&session_id_owned);
     });

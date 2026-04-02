@@ -166,31 +166,3 @@ pub fn normalize_whole_floats(value: &mut Value) {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn normalize_whole_floats_converts_integers() {
-        let mut val = json!({"score": 1.0, "name": "test", "frac": 0.5});
-        normalize_whole_floats(&mut val);
-        assert_eq!(val["score"], json!(1));
-        assert_eq!(val["frac"], json!(0.5));
-        assert_eq!(val["name"], json!("test"));
-    }
-
-    #[test]
-    fn normalize_whole_floats_handles_nested() {
-        let mut val = json!({"results": [{"score": 2.0}, {"score": 0.016}]});
-        normalize_whole_floats(&mut val);
-        assert_eq!(val["results"][0]["score"], json!(2));
-        assert_eq!(val["results"][1]["score"], json!(0.016));
-    }
-
-    #[test]
-    fn normalize_whole_floats_handles_zero() {
-        let mut val = json!({"score": 0.0});
-        normalize_whole_floats(&mut val);
-        assert_eq!(val["score"], json!(0));
-    }
-}

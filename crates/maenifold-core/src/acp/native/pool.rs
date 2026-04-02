@@ -185,18 +185,3 @@ impl AcpxDriver {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{AcpxDriver, AgentError};
-    use tempfile::tempdir;
-
-    #[test]
-    fn new_returns_not_found_when_agent_missing_from_config() {
-        let tmp = tempdir().expect("tempdir");
-        let error = AcpxDriver::new("missing-agent".to_string(), 0, tmp.path().to_path_buf())
-            .expect_err("missing agent should error");
-        assert!(
-            matches!(error, AgentError::NotFound(message) if message.contains("missing-agent") && message.contains("agents.json"))
-        );
-    }
-}

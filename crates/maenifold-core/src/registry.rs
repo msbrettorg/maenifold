@@ -16,8 +16,8 @@ use crate::tools::{self, ToolContext};
 use crate::util::json::OutputFormat;
 use crate::workflow;
 use serde_json::Value;
-use std::sync::LazyLock;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 
 pub type ToolFn = fn(&ToolContext, &Value) -> Result<String>;
 

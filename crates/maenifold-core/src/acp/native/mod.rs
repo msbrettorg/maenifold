@@ -49,7 +49,9 @@ fn log_io_task_exit<E: std::fmt::Display>(
     }
 }
 
-async fn initialize_connection(conn: &acp::ClientSideConnection) -> Result<acp::InitializeResponse> {
+async fn initialize_connection(
+    conn: &acp::ClientSideConnection,
+) -> Result<acp::InitializeResponse> {
     let request = acp::InitializeRequest::new(acp::ProtocolVersion::V1)
         .client_info(acp::Implementation::new(
             "maenifold",
@@ -57,11 +59,9 @@ async fn initialize_connection(conn: &acp::ClientSideConnection) -> Result<acp::
         ))
         .client_capabilities(
             acp::ClientCapabilities::new()
-                .fs(
-                    acp::FileSystemCapabilities::new()
-                        .read_text_file(true)
-                        .write_text_file(true),
-                )
+                .fs(acp::FileSystemCapabilities::new()
+                    .read_text_file(true)
+                    .write_text_file(true))
                 .terminal(false),
         );
 
@@ -262,7 +262,13 @@ async fn apply_modern_config(
     }
     if let Some(thought_level) = opts.thought_level.as_deref() {
         if let Some(config_id) = find_config_id_by_category(config_options, "thought_level") {
-            set_config_option(conn, session_id.clone(), config_id, thought_level.to_string()).await;
+            set_config_option(
+                conn,
+                session_id.clone(),
+                config_id,
+                thought_level.to_string(),
+            )
+            .await;
         } else {
             set_config_option(
                 conn,
@@ -293,13 +299,7 @@ async fn apply_legacy_config(
     .await;
 
     if let Some(thought_level) = opts.thought_level.clone() {
-        set_config_option(
-            conn,
-            session_id,
-            "thought_level".to_string(),
-            thought_level,
-        )
-        .await;
+        set_config_option(conn, session_id, "thought_level".to_string(), thought_level).await;
     }
 }
 
@@ -425,6 +425,17 @@ async fn prompt_session(
     session_id: String,
     prompt: String,
 ) -> Result<AgentResponse> {
+    prompt_session_with_blocks(conn, sessions, session_timeouts, session_id, prompt, vec![]).await
+}
+
+async fn prompt_session_with_blocks(
+    conn: &acp::ClientSideConnection,
+    sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>,
+    session_timeouts: &Arc<Mutex<HashMap<String, u64>>>,
+    session_id: String,
+    prompt: String,
+    extra_blocks: Vec<acp::ContentBlock>,
+) -> Result<AgentResponse> {
     let timeout_seconds = session_timeouts
         .lock()
         .await
@@ -437,11 +448,14 @@ async fn prompt_session(
         .await
         .insert(session_id.clone(), SessionAccumulator::default());
 
+    let mut content = vec![acp::ContentBlock::Text(acp::TextContent::new(prompt))];
+    content.extend(extra_blocks);
+
     let result = tokio::time::timeout(
         Duration::from_secs(timeout_seconds),
         conn.prompt(acp::PromptRequest::new(
             acp::SessionId::new(session_id.clone()),
-            vec![acp::ContentBlock::Text(acp::TextContent::new(prompt))],
+            content,
         )),
     )
     .await;
@@ -642,12 +656,31 @@ async fn run_agent(
                     prompt_session(&conn, &sessions, &session_timeouts, session_id, prompt).await;
                 let _ = reply.send(result);
             }
+            AgentCommand::PromptWithContext {
+                session_id,
+                prompt,
+                context_blocks,
+                reply,
+            } => {
+                let result = prompt_session_with_blocks(
+                    &conn,
+                    &sessions,
+                    &session_timeouts,
+                    session_id,
+                    prompt,
+                    context_blocks,
+                )
+                .await;
+                let _ = reply.send(result);
+            }
             AgentCommand::Cancel { session_id, reply } => {
                 if let Some(accumulator) = sessions.lock().await.get_mut(&session_id) {
                     accumulator.mark_in_progress_cancelled();
                 }
                 let result = conn
-                    .cancel(acp::CancelNotification::new(acp::SessionId::new(session_id)))
+                    .cancel(acp::CancelNotification::new(acp::SessionId::new(
+                        session_id,
+                    )))
                     .await
                     .map_err(AgentError::from);
                 let _ = reply.send(result);

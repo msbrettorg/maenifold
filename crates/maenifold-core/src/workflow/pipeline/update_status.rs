@@ -65,7 +65,11 @@ pub(super) fn update_pipeline_node_status(
                 Some(conclusion),
             )?;
             {
-                let state = node_states.get_mut(node_id).expect("checked above");
+                let state = node_states.get_mut(node_id).ok_or_else(|| {
+                    MaenifoldError::Message(format!(
+                        "ERROR: Pipeline session missing node state for '{node_id}'"
+                    ))
+                })?;
                 state.status = NodeStatus::Completed;
                 state.thinking_session_id = thinking_session_id.map(str::to_string);
                 state.output = Some(conclusion.to_string());
@@ -74,7 +78,11 @@ pub(super) fn update_pipeline_node_status(
         }
         "abandoned" => {
             update_workflow_node_frontmatter(context, &workflow_session_id, "abandoned", None)?;
-            let state = node_states.get_mut(node_id).expect("checked above");
+            let state = node_states.get_mut(node_id).ok_or_else(|| {
+                MaenifoldError::Message(format!(
+                    "ERROR: Pipeline session missing node state for '{node_id}'"
+                ))
+            })?;
             state.status = NodeStatus::Abandoned;
             state.thinking_session_id = None;
             state.output = None;

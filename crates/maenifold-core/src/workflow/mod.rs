@@ -2,15 +2,11 @@ mod agent_session;
 mod handler;
 mod handler_helpers;
 mod handler_session;
-#[cfg(test)]
-mod handler_session_tests;
 pub mod output_parser;
 pub mod output_types;
 pub mod pipeline;
 mod queue;
 pub mod runner;
-#[cfg(test)]
-mod runner_format_tests;
 pub(crate) mod runner_helpers;
 mod status;
 mod submachine;

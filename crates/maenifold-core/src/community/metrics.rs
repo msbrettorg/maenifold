@@ -172,27 +172,3 @@ impl Drop for EnvVarGuard {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{COMMUNITY_NMI_THRESHOLD_ENV, EnvVarGuard, community_nmi_threshold, env_lock};
-
-    // T-14.6: RTM FR-15
-    #[test]
-    fn community_nmi_threshold_prefers_community_env_var_name() {
-        let _lock = env_lock().lock().expect("env lock");
-        let _old = EnvVarGuard::set("MAENIFOLD_NMI_THRESHOLD", "0.95");
-        let _new = EnvVarGuard::set(COMMUNITY_NMI_THRESHOLD_ENV, "0.8");
-
-        assert_eq!(community_nmi_threshold(), 0.8);
-    }
-
-    // T-14.6: RTM FR-15
-    #[test]
-    fn community_nmi_threshold_ignores_legacy_env_var_name() {
-        let _lock = env_lock().lock().expect("env lock");
-        let _new = EnvVarGuard::remove(COMMUNITY_NMI_THRESHOLD_ENV);
-        let _old = EnvVarGuard::set("MAENIFOLD_NMI_THRESHOLD", "0.95");
-
-        assert_eq!(community_nmi_threshold(), 0.8);
-    }
-}

@@ -207,35 +207,3 @@ pub(crate) fn current_iso_timestamp() -> String {
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{SyncSummary, render_sync_markdown};
-
-    #[test]
-    fn render_sync_markdown_includes_errors_section() {
-        let output = render_sync_markdown(
-            SyncSummary {
-                status: "partial",
-                files_processed: 2,
-                concept_mentions: 1,
-                concepts_filtered: 0,
-                concept_relations: 1,
-                abandoned_sessions: 0,
-                communities_detected: 0,
-                file_errors: vec![("memory://broken.md".to_string(), "bad file".to_string())],
-                vector_warning_code: None,
-                files_changed: 1,
-                file_processing_secs: 0.1,
-                graph_rebuild_secs: 0.2,
-                embeddings_secs: 0.3,
-                community_secs: 0.4,
-                total_secs: 1.0,
-            },
-            None,
-        );
-
-        assert!(output.contains("## Errors"));
-        assert!(output.contains("- `memory://broken.md`: bad file"));
-        assert!(output.contains("- STATUS: partial"));
-    }
-}

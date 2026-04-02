@@ -23,12 +23,10 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
             registry_name,
             "Repairs concept variants across memory files by replacing them with a canonical form.",
         ),
-        "AnalyzeConceptCorruption" => {
-            derived_tool_definition::<AnalyzeConceptCorruptionParams>(
-                registry_name,
-                "Analyzes concept families to find duplicate or corrupted WikiLink variants.",
-            )
-        }
+        "AnalyzeConceptCorruption" => derived_tool_definition::<AnalyzeConceptCorruptionParams>(
+            registry_name,
+            "Analyzes concept families to find duplicate or corrupted WikiLink variants.",
+        ),
         "FindSimilarConcepts" => derived_tool_definition::<FindSimilarConceptsParams>(
             registry_name,
             "Finds semantically similar concepts using vector embeddings.",

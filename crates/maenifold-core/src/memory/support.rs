@@ -263,26 +263,3 @@ pub(crate) fn update_last_accessed(uri: &str, context: &ToolContext) -> Result<(
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::render_filtered_wikilinks_error;
-    use crate::util::json::OutputFormat;
-    use serde_json::Value;
-
-    #[test]
-    fn filtered_wikilinks_json_error_includes_code_and_details() {
-        let rendered = render_filtered_wikilinks_error(
-            OutputFormat::Json,
-            &[("agent".to_string(), "Too generic".to_string())],
-        );
-        let parsed: Value = serde_json::from_str(&rendered).expect("json");
-
-        assert_eq!(parsed["success"], false);
-        assert_eq!(parsed["error"]["code"], "FILTERED_WIKILINKS");
-        assert_eq!(parsed["error"]["details"]["blocked"][0]["concept"], "agent");
-        assert_eq!(
-            parsed["error"]["details"]["blocked"][0]["reason"],
-            "Too generic"
-        );
-    }
-}

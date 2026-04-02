@@ -1,11 +1,11 @@
 mod handlers;
 
-use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, parser::ValueSource};
 use crate::config::Config;
 use crate::error::MaenifoldError;
 use crate::mcp;
 use crate::registry::ToolRegistry;
 use crate::util::json::{OutputFormat, failure, from_str_safe, success};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, parser::ValueSource};
 use handlers::{
     run_http, run_mcp, run_prompt_command, run_think_command, run_tool_command,
     run_workflow_command,
@@ -126,7 +126,11 @@ impl CliApp {
             return 1;
         }
 
-        let ParsedCli { cli, warn_deprecated_tool, .. } = parsed;
+        let ParsedCli {
+            cli,
+            warn_deprecated_tool,
+            ..
+        } = parsed;
 
         if cli.http {
             return run_http(cli.port);
@@ -141,16 +145,27 @@ impl CliApp {
         }
 
         match cli.command {
-            Some(CliCommand::Prompt { agent, message, model }) => {
-                run_prompt_command(agent, message, model)
-            }
-            Some(CliCommand::Workflow { workflow_id, agent, prompt, model }) => {
-                run_workflow_command(workflow_id, agent, prompt, model)
-            }
-            Some(CliCommand::Think { agent, topic, model }) => run_think_command(agent, topic, model),
-            Some(CliCommand::Tool { name, payload, json }) => {
-                run_tool_command(name, payload, json, warn_deprecated_tool)
-            }
+            Some(CliCommand::Prompt {
+                agent,
+                message,
+                model,
+            }) => run_prompt_command(agent, message, model),
+            Some(CliCommand::Workflow {
+                workflow_id,
+                agent,
+                prompt,
+                model,
+            }) => run_workflow_command(workflow_id, agent, prompt, model),
+            Some(CliCommand::Think {
+                agent,
+                topic,
+                model,
+            }) => run_think_command(agent, topic, model),
+            Some(CliCommand::Tool {
+                name,
+                payload,
+                json,
+            }) => run_tool_command(name, payload, json, warn_deprecated_tool),
             None => {
                 println!("{}", usage());
                 1
@@ -297,7 +312,11 @@ fn parse_cli(args: &[String]) -> Result<ParsedCli, clap::Error> {
     let matches = Cli::command().try_get_matches_from(argv)?;
     let port_was_explicit = matches.value_source("port") == Some(ValueSource::CommandLine);
     let cli = Cli::from_arg_matches(&matches)?;
-    Ok(ParsedCli { cli, port_was_explicit, warn_deprecated_tool: normalized.warn_deprecated_tool })
+    Ok(ParsedCli {
+        cli,
+        port_was_explicit,
+        warn_deprecated_tool: normalized.warn_deprecated_tool,
+    })
 }
 
 fn validate_cli(parsed: &ParsedCli) -> Result<(), String> {
@@ -345,7 +364,10 @@ struct NormalizedArgs {
 
 fn normalize_args(args: &[String]) -> NormalizedArgs {
     let Some(tool_index) = args.iter().position(|arg| arg == "--tool") else {
-        return NormalizedArgs { args: args.to_vec(), warn_deprecated_tool: false };
+        return NormalizedArgs {
+            args: args.to_vec(),
+            warn_deprecated_tool: false,
+        };
     };
 
     let mut normalized = vec!["tool".to_string()];
@@ -370,7 +392,10 @@ fn normalize_args(args: &[String]) -> NormalizedArgs {
         }
     }
 
-    NormalizedArgs { args: normalized, warn_deprecated_tool: true }
+    NormalizedArgs {
+        args: normalized,
+        warn_deprecated_tool: true,
+    }
 }
 
 #[cfg(feature = "app")]

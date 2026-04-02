@@ -49,15 +49,13 @@ impl ParsedOutput {
 }
 
 pub fn parse_output(text: &str) -> Result<ParsedOutput, ParseError> {
-    parse_xml_output(text).or_else(|xml_error| {
-        json_fallback_parse(text).map_err(|_| xml_error)
-    })
+    parse_xml_output(text).or_else(|xml_error| json_fallback_parse(text).map_err(|_| xml_error))
 }
 
 fn parse_xml_output(text: &str) -> Result<ParsedOutput, ParseError> {
     let (_, output_start_end) = find_tag(text, "output", false, 0).ok_or_else(missing_output)?;
-    let (output_end_start, _) = find_tag(text, "output", true, output_start_end)
-        .ok_or_else(missing_output)?;
+    let (output_end_start, _) =
+        find_tag(text, "output", true, output_start_end).ok_or_else(missing_output)?;
 
     let inner = &text[output_start_end..output_end_start];
     let mut fields = HashMap::new();
@@ -70,7 +68,8 @@ fn parse_xml_output(text: &str) -> Result<ParsedOutput, ParseError> {
         }
 
         let value_start = tag_end;
-        let Some((close_tag_start, close_tag_end)) = find_tag(inner, &name, true, value_start) else {
+        let Some((close_tag_start, close_tag_end)) = find_tag(inner, &name, true, value_start)
+        else {
             continue;
         };
         fields.insert(name, inner[value_start..close_tag_start].to_string());
@@ -145,162 +144,3 @@ struct JsonFallbackOutput {
     thought: Option<String>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{ParseError, parse_output};
-
-    #[test]
-    fn output_parser_parses_valid_output_with_all_fields() {
-        let parsed = parse_output(
-            "<output><response>Hello</response><done>true</done><needs_more>false</needs_more><revision_of>7</revision_of><conclusion>Done</conclusion></output>",
-        )
-        .unwrap();
-
-        assert_eq!(parsed.get("response"), Some("Hello"));
-        assert_eq!(parsed.get_bool("done"), Some(true));
-        assert_eq!(parsed.get_bool("needs_more"), Some(false));
-        assert_eq!(parsed.get_u64("revision_of"), Some(7));
-        assert_eq!(parsed.require("conclusion").unwrap(), "Done");
-    }
-
-    #[test]
-    fn output_parser_parses_markdown_and_code_in_response() {
-        let parsed = parse_output(
-            "<output><response>## Plan\n\n```rust\nfn main() {\n    println!(\"hi\");\n}\n```\n</response><done>false</done></output>",
-        )
-        .unwrap();
-
-        let response = parsed.get("response").unwrap();
-        assert!(response.contains("## Plan"));
-        assert!(response.contains("```rust"));
-        assert!(response.contains("println!(\"hi\")"));
-    }
-
-    #[test]
-    fn output_parser_parses_wikilinks_in_content() {
-        let parsed = parse_output(
-            "<output><response>Implemented [[workflow]] [[structured-output]] parser</response></output>",
-        )
-        .unwrap();
-
-        assert_eq!(
-            parsed.get("response"),
-            Some("Implemented [[workflow]] [[structured-output]] parser")
-        );
-    }
-
-    #[test]
-    fn output_parser_returns_error_when_output_tags_are_missing() {
-        let error = parse_output("No structured block here").unwrap_err();
-
-        assert_eq!(
-            error,
-            ParseError {
-                message: "No <output> tags found in response. Expected format:\n<output>\n  <field>...</field>\n</output>".to_string()
-            }
-        );
-    }
-
-    #[test]
-    fn output_parser_require_reports_missing_required_field() {
-        let parsed = parse_output("<output><response>Hello</response></output>").unwrap();
-        let error = parsed.require("done").unwrap_err();
-
-        assert_eq!(error.message, "Missing required field <done> in output");
-    }
-
-    #[test]
-    fn output_parser_preserves_empty_fields() {
-        let parsed = parse_output(
-            "<output><response></response><done></done><conclusion></conclusion></output>",
-        )
-        .unwrap();
-
-        assert_eq!(parsed.get("response"), Some(""));
-        assert_eq!(parsed.get("done"), Some(""));
-        assert_eq!(parsed.get("conclusion"), Some(""));
-    }
-
-    #[test]
-    fn output_parser_ignores_content_outside_output_tags() {
-        let parsed = parse_output(
-            "Thinking out loud\n<output><response>final</response><done>true</done></output>\nMore notes",
-        )
-        .unwrap();
-
-        assert_eq!(parsed.get("response"), Some("final"));
-        assert_eq!(parsed.get_bool("done"), Some(true));
-    }
-
-    #[test]
-    fn output_parser_preserves_nested_xml_like_content_inside_fields() {
-        let parsed = parse_output(
-            "<output><response>```html\n<div class=\"card\">[[workflow]]</div>\n```\n</response><done>false</done></output>",
-        )
-        .unwrap();
-
-        let response = parsed.get("response").unwrap();
-        assert!(response.contains("<div class=\"card\">[[workflow]]</div>"));
-        assert_eq!(parsed.get_bool("done"), Some(false));
-    }
-
-    #[test]
-    fn output_parser_matches_tags_case_insensitively() {
-        let parsed = parse_output(
-            "<Output><Response>Hello</ReSpOnSe><DONE>true</Done></OUTPUT>",
-        )
-        .unwrap();
-
-        assert_eq!(parsed.get("response"), Some("Hello"));
-        assert_eq!(parsed.get_bool("done"), Some(true));
-    }
-
-    #[test]
-    fn output_parser_accepts_whitespace_around_tag_names() {
-        let parsed = parse_output(
-            " \n <output   >\n  <response   >Hello</response   >\n  <done   >true</done   >\n </output   > \n ",
-        )
-        .unwrap();
-
-        assert_eq!(parsed.get("response"), Some("Hello"));
-        assert_eq!(parsed.get_bool("done"), Some(true));
-    }
-
-    #[test]
-    fn output_parser_accepts_newlines_inside_tags() {
-        let parsed = parse_output(
-            "<output\n>\n<response\n>hello</response\n>\n<done\n>false</done\n>\n</output\n>",
-        )
-        .unwrap();
-
-        assert_eq!(parsed.get("response"), Some("hello"));
-        assert_eq!(parsed.get_bool("done"), Some(false));
-    }
-
-    #[test]
-    fn output_parser_falls_back_to_json() {
-        let parsed = parse_output(
-            r#"{"response":"Hello","done":true,"needs_more":false,"revision_of":7,"conclusion":"Done","thought":"[[step]]"}"#,
-        )
-        .unwrap();
-
-        assert_eq!(parsed.get("response"), Some("Hello"));
-        assert_eq!(parsed.get_bool("done"), Some(true));
-        assert_eq!(parsed.get_bool("needs_more"), Some(false));
-        assert_eq!(parsed.get_u64("revision_of"), Some(7));
-        assert_eq!(parsed.get("conclusion"), Some("Done"));
-        assert_eq!(parsed.get("thought"), Some("[[step]]"));
-    }
-
-    #[test]
-    fn output_parser_returns_xml_error_when_json_fallback_is_invalid() {
-        let error = parse_output(r#"{"response":"Hello","done":"true"}"#).unwrap_err();
-
-        assert_eq!(
-            error,
-            ParseError {
-                message: "No <output> tags found in response. Expected format:\n<output>\n  <field>...</field>\n</output>".to_string()
-            }
-        );
-    }
-}

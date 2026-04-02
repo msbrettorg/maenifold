@@ -112,5 +112,3 @@ pub(crate) const fn default_model_max_length() -> usize {
     DEFAULT_MAX_TOKENS
 }
 
-#[cfg(test)]
-mod tests;

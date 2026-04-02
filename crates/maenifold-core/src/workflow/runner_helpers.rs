@@ -4,11 +4,13 @@ use super::output_types::WorkflowOutput;
 use super::runner::WorkflowRunStatus;
 use crate::acpx_driver::AcpxResponse;
 use crate::error::{MaenifoldError, Result};
+use agent_client_protocol as acp;
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::LazyLock;
-static STEP_PROGRESS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
+static STEP_PROGRESS_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
 
 /// Single source of truth for the XML output-block contract sent to workflow agents.
 const XML_FORMAT_INSTRUCTION: &str = "You MUST respond with exactly one XML <output> block using the exact tags shown below. Do NOT respond with JSON. Do NOT rename tags. Do NOT omit required tags. The parser only reads the final <output> block.\n\nRequired XML format:\n<output>\n  <response>What you did for this workflow step, with concrete detail.</response>\n  <done>true|false</done>\n  <conclusion>Leave empty until the workflow is complete. Required and non-empty only when done is true.</conclusion>\n</output>";
@@ -113,13 +115,20 @@ pub(crate) async fn prompt_workflow_agent(
     prompt: &str,
     step: &str,
     final_step: bool,
+    content_blocks: Option<Vec<acp::ContentBlock>>,
 ) -> Result<WorkflowAgentResponse> {
     let base = workflow_prompt(prompt, step);
     let prompt_with_shape = format!(
         "{base}\n\nExample (in-progress):\n<output>\n  <response>Reviewed [[workflow-step]] requirements and identified the next action.</response>\n  <done>false</done>\n  <conclusion></conclusion>\n</output>\n\nExample (completed):\n<output>\n  <response>Finished the [[workflow-step]] and verified the result.</response>\n  <done>true</done>\n  <conclusion>Completed the workflow successfully.</conclusion>\n</output>\n\nWhen complete, set <done>true</done> with a non-empty <conclusion>. When not complete, set <done>false</done> and leave <conclusion> empty.\n\nRequired format:\n{}",
         WorkflowOutput::expected_shape()
     );
-    let response = driver.prompt(&prompt_with_shape).await?;
+    let response = if let Some(blocks) = content_blocks {
+        driver
+            .prompt_with_context(&prompt_with_shape, blocks)
+            .await?
+    } else {
+        driver.prompt(&prompt_with_shape).await?
+    };
     let text = workflow_response_text(response)?;
     parse_workflow_with_retry(driver, &text, 3, final_step).await
 }
@@ -214,7 +223,10 @@ fn workflow_response_text(response: AcpxResponse) -> Result<String> {
     Ok(response.text)
 }
 fn workflow_conclusion_text(response: &WorkflowAgentResponse, final_step: bool) -> String {
-    response.output.conclusion.clone()
+    response
+        .output
+        .conclusion
+        .clone()
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| workflow_response_text_for_step(response, final_step))
 }
@@ -245,9 +257,16 @@ pub(crate) fn has_well_formed_wikilink(text: &str) -> bool {
     let (mut i, mut open, mut saw) = (0usize, false, false);
     while i + 1 < bytes.len() {
         match (bytes[i], bytes[i + 1]) {
-            (b'[', b'[') if !open => { open = true; i += 2; }
+            (b'[', b'[') if !open => {
+                open = true;
+                i += 2;
+            }
             (b'[', b'[') => return false,
-            (b']', b']') if open => { open = false; saw = true; i += 2; }
+            (b']', b']') if open => {
+                open = false;
+                saw = true;
+                i += 2;
+            }
             (b']', b']') => return false,
             _ => i += 1,
         }

@@ -71,7 +71,12 @@ pub(super) fn run_http(port: u16) -> i32 {
     }
 }
 
-pub(super) fn run_workflow_command(workflow_id: String, agent: String, prompt: String, model: Option<String>) -> i32 {
+pub(super) fn run_workflow_command(
+    workflow_id: String,
+    agent: String,
+    prompt: String,
+    model: Option<String>,
+) -> i32 {
     let model = model.or_else(|| Some("gpt-5.4".to_string()));
     run_async_command(move |context| async move {
         run_workflow(&context, &workflow_id, &agent, &prompt, model)
@@ -105,7 +110,10 @@ pub(super) fn run_think_command(agent: String, topic: String, model: Option<Stri
             &context,
             &agent,
             &topic,
-            ThinkOptions { model, ..ThinkOptions::default() },
+            ThinkOptions {
+                model,
+                ..ThinkOptions::default()
+            },
         )
         .await
         .map(|result| result.conclusion.unwrap_or_default())
@@ -118,9 +126,12 @@ pub(super) fn run_tool_command(
     json: bool,
     warn_deprecated: bool,
 ) -> i32 {
-    let output_format = if json { OutputFormat::Json } else { OutputFormat::Markdown };
-    match super::CliApp::run_tool_inner(&name, payload.as_deref(), output_format, warn_deprecated)
-    {
+    let output_format = if json {
+        OutputFormat::Json
+    } else {
+        OutputFormat::Markdown
+    };
+    match super::CliApp::run_tool_inner(&name, payload.as_deref(), output_format, warn_deprecated) {
         Ok(output) => {
             println!("{output}");
             0

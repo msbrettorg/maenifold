@@ -12,11 +12,11 @@ use std::sync::LazyLock;
 use super::executor::{assemble_node_prompt, predecessor_context_content};
 use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
-static THOUGHT_HEADING_RE: LazyLock<Regex> = LazyLock::new(|| {
+static THOUGHT_HEADING_RE: LazyLock<Option<Regex>> = LazyLock::new(|| {
     Regex::new(
         r"^Thought (\d+)/(\d+) \[([^\]]*)\](?:\s*\(Revises:\s*(\d+)\)|\s*\(Branch:\s*([^)]+)\))?$",
     )
-    .expect("thinking trace heading regex")
+    .ok()
 });
 
 #[allow(clippy::too_many_arguments)]
@@ -111,12 +111,14 @@ pub(super) fn parse_thinking_trace(context: &ToolContext, session_id: &str) -> O
     .ok()?;
     let sections = extract_h2_sections(&content);
 
+    let thought_heading_re = THOUGHT_HEADING_RE.as_ref()?;
+
     Some(
         sections
             .iter()
             .filter(|(heading, _)| !heading.starts_with("Conclusion"))
             .filter_map(|(heading, body)| {
-                let caps = THOUGHT_HEADING_RE.captures(heading)?;
+                let caps = thought_heading_re.captures(heading)?;
                 let thought_number: u64 = caps.get(1)?.as_str().parse().ok()?;
                 let total_thoughts: u64 = caps.get(2)?.as_str().parse().ok()?;
                 let agent = caps.get(3).map(|m| m.as_str().to_string());

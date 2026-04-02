@@ -163,6 +163,12 @@ pub enum AgentCommand {
         prompt: String,
         reply: Reply<AgentResponse>,
     },
+    PromptWithContext {
+        session_id: String,
+        prompt: String,
+        context_blocks: Vec<acp::ContentBlock>,
+        reply: Reply<AgentResponse>,
+    },
     Cancel {
         session_id: String,
         reply: Reply<()>,
@@ -236,6 +242,20 @@ impl AgentHandle {
         self.request(|reply| AgentCommand::Prompt {
             session_id: session_id.to_string(),
             prompt: prompt.to_string(),
+            reply,
+        })
+        .await
+    }
+    pub async fn prompt_with_context(
+        &self,
+        session_id: &str,
+        prompt: &str,
+        context_blocks: Vec<acp::ContentBlock>,
+    ) -> Result<AgentResponse> {
+        self.request(|reply| AgentCommand::PromptWithContext {
+            session_id: session_id.to_string(),
+            prompt: prompt.to_string(),
+            context_blocks,
             reply,
         })
         .await

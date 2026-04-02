@@ -22,7 +22,7 @@ pub(super) enum NodeExecutionRequest {
         workflow_id: String,
         existing_session_id: Option<String>,
         prompt: String,
-        timeout_seconds: Option<u64>,
+        session_opts: SessionOpts,
     },
     Prompt {
         session_id: String,
@@ -61,7 +61,16 @@ pub(super) fn build_node_execution_request(
             workflow_id: workflow_id.clone(),
             existing_session_id: Some(node_session_id(node_states, node.id(), dispatch)),
             prompt: assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?,
-            timeout_seconds: *timeout,
+            session_opts: merged_session_opts(
+                context,
+                node.id(),
+                None,
+                &None,
+                &None,
+                &None,
+                None,
+                *timeout,
+            ),
         },
         PipelineNode::Prompt {
             tool_mode,
@@ -182,17 +191,16 @@ pub(super) async fn execute_node_request(
             workflow_id,
             existing_session_id,
             prompt,
-            timeout_seconds,
+            session_opts,
         } => match agent.as_deref() {
             Some(agent) => NodeTaskResult::Workflow(
-                runner::run_workflow_with_pool(
+                runner::run_workflow_with_pool_session_opts(
                     &context,
                     &workflow_id,
                     existing_session_id,
                     agent,
                     &prompt,
-                    timeout_seconds,
-                    None,
+                    session_opts,
                     pool.clone(),
                 )
                 .await,
@@ -237,11 +245,11 @@ pub(super) async fn execute_node_request(
                     runner::ThinkOptions {
                         total_thoughts,
                         parent_workflow_id: Some(node_session_id),
-                        timeout_seconds: None,
                         model: None,
                     },
                     session_opts,
                     pool,
+                    None,
                 )
                 .await,
             ),

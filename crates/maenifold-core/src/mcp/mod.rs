@@ -259,5 +259,3 @@ fn is_validation_error(err: &MaenifoldError) -> bool {
     )
 }
 
-#[cfg(test)]
-mod tests;

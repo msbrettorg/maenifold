@@ -70,7 +70,11 @@ pub(super) fn restart_pipeline_node(
         state.thinking_session_id = None;
     }
 
-    let state = node_states.get(node_id).expect("node state checked above");
+    let state = node_states.get(node_id).ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "ERROR: Pipeline session missing node state for '{node_id}'"
+        ))
+    })?;
     write_workflow_node_session(
         context,
         session_id,

@@ -642,6 +642,54 @@ pub struct ListAgentsParams {
     pub probe: bool,
 }
 
+/// Additional content blocks included alongside an ACP prompt request.
+#[derive(Deserialize, JsonSchema)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum AcpExecContextBlock {
+    /// Plain text context block.
+    Text(AcpExecTextContext),
+    /// Base64-encoded image context block.
+    Image(AcpExecImageContext),
+    /// Embedded resource context block.
+    Resource(AcpExecResourceContext),
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct AcpExecTextContext {
+    /// Additional text supplied with the prompt.
+    pub text: String,
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AcpExecImageContext {
+    /// Base64-encoded image data.
+    pub data: String,
+    /// Media type of the image, for example `image/png`.
+    #[serde(alias = "mimeType")]
+    pub media_type: String,
+    /// Optional source URI for the image.
+    #[serde(default)]
+    pub uri: Option<String>,
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AcpExecResourceContext {
+    /// Absolute or logical URI for the embedded resource.
+    pub uri: String,
+    /// Text file content. Provide exactly one of `text` or `blob`.
+    #[serde(default)]
+    pub text: Option<String>,
+    /// Base64-encoded binary content. Provide exactly one of `text` or `blob`.
+    #[serde(default)]
+    pub blob: Option<String>,
+    /// Optional media type for the resource, for example `text/plain`.
+    #[serde(default, alias = "mimeType")]
+    pub media_type: Option<String>,
+}
+
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AcpExecParams {
@@ -841,8 +889,8 @@ pub struct PipelineAgentConfigSchema {
     pub config_options: Option<Map<String, Value>>,
 }
 
-#[derive(Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[derive(Deserialize)]
+#[serde(untagged)]
 pub enum PipelineNodeSchema {
     Workflow(PipelineWorkflowNodeSchema),
     Prompt(PipelinePromptNodeSchema),

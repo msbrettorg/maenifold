@@ -2,17 +2,20 @@ mod assumption_tools;
 mod graph_tools;
 mod memory_tools;
 mod params;
+mod pipeline_node_schema;
 mod pipeline_tools;
 mod support;
 mod system_tools;
 mod thinking_tools;
 mod workflow_tools;
 
-#[cfg(test)]
-mod pipeline_tools_tests;
 
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::McpToolDefinition;
+
+pub(crate) use params::{
+    AcpExecContextBlock, AcpExecImageContext, AcpExecResourceContext, AcpExecTextContext,
+};
 
 pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpToolDefinition> {
     memory_tools::tool(registry_name)

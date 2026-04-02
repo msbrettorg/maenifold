@@ -73,9 +73,7 @@ impl acp::Client for HeadlessClient {
             .unwrap_or_else(|| acp::PermissionOptionId::new("allow"));
 
         Ok(acp::RequestPermissionResponse::new(
-            acp::RequestPermissionOutcome::Selected(acp::SelectedPermissionOutcome::new(
-                option_id,
-            )),
+            acp::RequestPermissionOutcome::Selected(acp::SelectedPermissionOutcome::new(option_id)),
         ))
     }
 

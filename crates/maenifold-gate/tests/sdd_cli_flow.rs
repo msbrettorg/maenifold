@@ -2,7 +2,7 @@ mod support;
 
 use predicates::prelude::*;
 use support::{
-    gate_command, new_pipeline_root, read_task, status_json,
+    gate_command, gate_db_path, gitignore_path, new_pipeline_root, read_task, status_json,
     write_legacy_task_without_pipeline_binding, write_pending_task,
     write_task_with_mismatched_digest, write_task_without_pipeline_digest,
 };
@@ -194,4 +194,45 @@ fn legacy_task_without_pipeline_binding_is_rejected() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("Pipeline").or(predicate::str::contains("binding")));
+}
+
+#[test]
+fn sync_rebuild_writes_db_under_dot_gate_and_updates_gitignore_idempotently() {
+    let root = new_pipeline_root();
+    write_pending_task(root.path(), "T-1.2");
+
+    gate_command(root.path())
+        .args([
+            "sync",
+            "--root",
+            root.path().to_str().expect("root utf8"),
+            "--rebuild",
+        ])
+        .assert()
+        .success();
+
+    assert!(gate_db_path(root.path()).exists());
+    assert!(!root.path().join("gate.db").exists());
+
+    let first_gitignore =
+        std::fs::read_to_string(gitignore_path(root.path())).expect("read .gitignore");
+    assert!(first_gitignore.contains(".gate/"));
+
+    gate_command(root.path())
+        .args([
+            "sync",
+            "--root",
+            root.path().to_str().expect("root utf8"),
+            "--rebuild",
+        ])
+        .assert()
+        .success();
+
+    let second_gitignore =
+        std::fs::read_to_string(gitignore_path(root.path())).expect("read .gitignore after second sync");
+    let occurrences = second_gitignore
+        .lines()
+        .filter(|line| line.trim() == ".gate/")
+        .count();
+    assert_eq!(occurrences, 1);
 }

@@ -142,6 +142,7 @@ async fn run_agent(
 
     loop {
         let cmd = tokio::select! {
+            biased;
             io_result = async {
                 match io_task.as_mut() {
                     Some(task) => task.await,
@@ -195,6 +196,12 @@ async fn run_agent(
                 prompt,
                 reply,
             } => {
+                if io_task.is_none() {
+                    let _ = reply.send(Err(AgentError::AgentDied {
+                        session_id: session_id.clone(),
+                    }));
+                    continue;
+                }
                 let result = prompt::prompt_session(
                     &conn,
                     &sessions,
@@ -211,6 +218,12 @@ async fn run_agent(
                 context_blocks,
                 reply,
             } => {
+                if io_task.is_none() {
+                    let _ = reply.send(Err(AgentError::AgentDied {
+                        session_id: session_id.clone(),
+                    }));
+                    continue;
+                }
                 let result = prompt::prompt_session_with_blocks(
                     &conn,
                     &sessions,

@@ -72,7 +72,7 @@ pub fn list() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "sync",
-            description: "Rebuild or refresh gate.db from the authoritative markdown files.",
+            description: "Rebuild or refresh .gate/gate.db from the authoritative markdown files.",
             input_schema: json!({
                 "type": "object",
                 "properties": {

@@ -34,6 +34,14 @@ pub fn runtime_assets_dir(root: &Path) -> PathBuf {
     root.join(".gate-assets")
 }
 
+pub fn gate_db_path(root: &Path) -> PathBuf {
+    root.join(".gate").join("gate.db")
+}
+
+pub fn gitignore_path(root: &Path) -> PathBuf {
+    root.join(".gitignore")
+}
+
 pub fn new_pipeline_root() -> TempDir {
     let temp = tempfile::tempdir().expect("create temp pipeline root");
     let root = temp.path();

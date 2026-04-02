@@ -1,3 +1,4 @@
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use rusqlite::{Connection, params};
@@ -19,7 +20,7 @@ pub struct GateCacheDb {
 impl GateCacheDb {
     pub fn open(root: &Path) -> Result<Self, GateError> {
         Ok(Self {
-            path: root.join("gate.db"),
+            path: root.join(".gate").join("gate.db"),
         })
     }
 
@@ -29,7 +30,7 @@ impl GateCacheDb {
         tasks: &[TaskPathSet],
     ) -> Result<(), GateError> {
         let db = Self::open(root)?;
-        let connection = Connection::open(&db.path)?;
+        let connection = db.connection()?;
         initialize_schema(&connection)?;
         clear_tables(&connection)?;
         insert_requirements(&connection, root)?;
@@ -74,7 +75,7 @@ impl GateCacheDb {
     }
 
     pub fn upsert_task(&self, task: &TaskPathSet) -> Result<(), GateError> {
-        let connection = Connection::open(&self.path)?;
+        let connection = self.connection()?;
         initialize_schema(&connection)?;
         connection.execute(
             "INSERT INTO tasks (file, location) VALUES (?1, ?2)
@@ -85,7 +86,7 @@ impl GateCacheDb {
     }
 
     pub fn insert_work_log(&self, entry: &str) -> Result<(), GateError> {
-        let connection = Connection::open(&self.path)?;
+        let connection = self.connection()?;
         initialize_schema(&connection)?;
         connection.execute(
             "INSERT INTO work_log (file, stage, notes, created_at)
@@ -93,6 +94,13 @@ impl GateCacheDb {
             params![entry],
         )?;
         Ok(())
+    }
+
+    fn connection(&self) -> Result<Connection, GateError> {
+        if let Some(parent) = self.path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        Ok(Connection::open(&self.path)?)
     }
 }
 

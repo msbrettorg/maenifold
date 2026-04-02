@@ -1,5 +1,6 @@
 use crate::cli::OutcomeArgs;
 use crate::error::GateError;
+use crate::gate_tool_service::GateToolService;
 use crate::gate_catalog::GateDefinitionCatalog;
 use crate::section_factory::CanonicalSectionFactory;
 use crate::state_machine::StateMachine;
@@ -12,11 +13,28 @@ pub struct PassCommand;
 
 impl PassCommand {
     pub fn execute(args: OutcomeArgs) -> Result<(), GateError> {
-        execute_shared_outcome(args, "pass")
+        let _ = GateToolService::pass(args)?;
+        Ok(())
     }
 }
 
 pub(crate) fn execute_shared_outcome(args: OutcomeArgs, outcome: &str) -> Result<(), GateError> {
+    match outcome {
+        "pass" => pass_task(args),
+        "fail" => fail_task(args),
+        _ => unreachable!(),
+    }
+}
+
+pub(crate) fn pass_task(args: OutcomeArgs) -> Result<(), GateError> {
+    apply_outcome(args, "pass")
+}
+
+pub(crate) fn fail_task(args: OutcomeArgs) -> Result<(), GateError> {
+    apply_outcome(args, "fail")
+}
+
+fn apply_outcome(args: OutcomeArgs, outcome: &str) -> Result<(), GateError> {
     let task = TaskRepository::find_task(args.context.root.clone(), &args.task_id)?;
     let document = TaskFileReader::read(&task.path)?;
     let definition = GateDefinitionCatalog::resolve_for_task(

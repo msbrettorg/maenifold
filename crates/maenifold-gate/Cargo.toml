@@ -8,17 +8,28 @@ name = "gate"
 path = "src/main.rs"
 
 [dependencies]
+axum.workspace = true
 chrono.workspace = true
 clap = { version = "4", features = ["derive"] }
 regex.workspace = true
+rmcp = { workspace = true, features = ["transport-streamable-http-server"] }
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
 thiserror.workspace = true
+tower-http.workspace = true
+tray-icon = "0.21"
 walkdir.workspace = true
+winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
 
 [dev-dependencies]
 assert_cmd.workspace = true
 predicates.workspace = true
 tempfile.workspace = true
+tower = { version = "0.5", features = ["util"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFRunLoop"] }

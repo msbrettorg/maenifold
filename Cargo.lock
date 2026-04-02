@@ -2256,17 +2256,26 @@ name = "maenifold-gate"
 version = "0.1.0"
 dependencies = [
  "assert_cmd",
+ "axum",
  "chrono",
  "clap",
+ "objc2-core-foundation",
  "predicates",
  "regex",
+ "rmcp",
  "rusqlite",
  "serde",
  "serde_json",
  "sha2",
  "tempfile",
  "thiserror 2.0.18",
+ "tokio",
+ "tokio-util",
+ "tower",
+ "tower-http",
+ "tray-icon",
  "walkdir",
+ "winit",
 ]
 
 [[package]]

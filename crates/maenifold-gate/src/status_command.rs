@@ -1,45 +1,21 @@
-use serde_json::json;
-
 use crate::cli::StatusArgs;
 use crate::error::GateError;
-use crate::gate_catalog::GateDefinitionCatalog;
+use crate::gate_tool_service::GateToolService;
 use crate::json_output::JsonRenderer;
-use crate::task_file::TaskFileReader;
-use crate::task_repository::TaskRepository;
-use crate::task_status::TaskStatusDeriver;
 
 #[derive(Debug, Clone)]
 pub struct StatusCommand;
 
 impl StatusCommand {
     pub fn execute(args: StatusArgs) -> Result<(), GateError> {
-        let tasks = TaskRepository::list_tasks(args.context.root.clone())?;
-        let mut values = Vec::with_capacity(tasks.len());
-
-        for task in tasks {
-            let document = TaskFileReader::read(&task.path)?;
-            let definition = GateDefinitionCatalog::resolve_for_task(
-                &args.context.root,
-                &document.metadata,
-                args.context.requested_pipeline_name.as_deref(),
-            )?;
-            let state = TaskStatusDeriver::derive(&document, &definition, &task.location)?;
-            values.push(json!({
-                "taskId": task.task_id,
-                "title": document.metadata.title,
-                "pipeline": document.metadata.pipeline,
-                "pipelineDigest": document.metadata.pipeline_digest,
-                "status": state.state,
-                "state": state.state,
-                "attempts": state.attempts,
-                "location": state.location,
-                "path": task.path,
-            }));
-        }
+        let value = GateToolService::status(args.clone())?;
 
         if args.context.json_output {
-            println!("{}", JsonRenderer::render_status(serde_json::Value::Array(values))?);
+            println!("{}", JsonRenderer::render_status(value)?);
         } else {
+            let values = value
+                .as_array()
+                .ok_or_else(|| GateError::TaskMetadataParse("status output must be an array".to_string()))?;
             for value in values {
                 println!(
                     "{} {} {}",

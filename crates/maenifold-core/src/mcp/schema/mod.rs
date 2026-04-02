@@ -1,14 +1,19 @@
+mod assumption_params;
 mod assumption_tools;
+mod graph_params;
 mod graph_tools;
+mod memory_params;
 mod memory_tools;
 mod params;
 mod pipeline_node_schema;
+mod pipeline_params;
 mod pipeline_tools;
 mod support;
+mod system_params;
 mod system_tools;
 mod thinking_tools;
+mod thinking_workflow_params;
 mod workflow_tools;
-
 
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::McpToolDefinition;

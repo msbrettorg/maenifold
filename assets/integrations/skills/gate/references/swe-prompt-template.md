@@ -23,14 +23,9 @@ Example: `{scoped_test_command_example}`
 ## Process
 
 1. Read the spec file at the given path.
-2. Note the source file(s), verdicts table, and recommendations.
-3. If prior red-team/blue-team **rejection sections** exist at the bottom of the spec, fix those issues first — they describe exactly what was wrong with the previous attempt.
-4. Implement the verdicts:
-   - **KEEP**: don't touch it.
-   - **REWRITE**: rewrite per the detailed findings.
-   - **REMOVE**: delete it.
-   - **MERGE**: collapse identified items into one, delete originals.
-   - **ADD**: create the new item per the spec.
+2. Note the source file(s), acceptance criteria, and recommendations.
+3. If prior red-team/blue-team failure sections exist at the bottom of the spec, fix those issues first.
+4. Implement the required behavior from the spec.
 5. Apply recommendations by priority: P0 mandatory, P1–P2 should-do, P3+ only if small.
 6. Verify your changes compile and pass with the scoped test command.
 7. Append your results to the spec file:
@@ -38,8 +33,8 @@ Example: `{scoped_test_command_example}`
 ```markdown
 ---
 ## SWE Remediation
-- REWRITE item_X: strengthened per P0
-- REMOVE item_Y: confirmed subsumed
+- Acceptance criteria 1: implemented
+- Prior failure X: addressed
 - All tests pass: N passed, 0 failed
 - Commit: {sha}
 ```
@@ -49,6 +44,6 @@ Example: `{scoped_test_command_example}`
 ## Don't
 
 - Run the full test suite. Only the scoped command.
-- Change items marked KEEP (unless rejection feedback specifically requires it).
+- Add speculative work beyond the spec.
 - Add work beyond what the spec recommends.
 - Move any files. The PM manages pipeline state.

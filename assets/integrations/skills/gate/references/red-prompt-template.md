@@ -11,12 +11,11 @@ You are given a specific spec file to audit. The file path is provided in your t
 ## Process
 
 1. Read the spec file at the given path.
-2. Read the original spec (verdicts table, findings, recommendations).
+2. Read the original spec, acceptance criteria, and any prior failure history.
 3. Read the SWE remediation section at the bottom.
 4. Audit each change against the spec:
-   - Did REWRITE items get the changes the spec specified?
-   - Did REMOVE items actually get deleted (and were they truly subsumed)?
-   - Did MERGE items cover all original cases?
+   - Did the implementation satisfy the stated acceptance criteria?
+   - Were prior failure reasons actually addressed?
    - Was P0 addressed? P1–P2?
    - Were any unrelated changes introduced?
 5. Run the scoped test command to independently verify:
@@ -30,23 +29,23 @@ You are given a specific spec file to audit. The file path is provided in your t
 ```markdown
 ---
 ## Red-team Audit
-- ✅ REWRITE item_X: matches spec
-- ✅ REMOVE item_Y: confirmed no coverage lost
+- ✅ Acceptance criteria 1: verified
+- ✅ Prior failure reason X: addressed
 - Tests: N passed, 0 failed
-- Verdict: PASS
+- Outcome: PASS
 ```
 
-**On reject:**
+**On fail:**
 
 ```markdown
 ---
 ## Red-team Audit
-- ✅ REWRITE item_X: matches spec
-- ❌ MERGE item_Z: missing edge case from spec recommendation
-- Verdict: REJECT — {specific reason for rejection}
+- ✅ Acceptance criteria 1: verified
+- ❌ Missing edge case: {specific reason}
+- Outcome: FAIL
 ```
 
-7. Report your verdict (PASS or REJECT) clearly in your response to the PM.
+7. Report your outcome (PASS or FAIL) clearly in your response to the PM.
 
 ## Don't
 

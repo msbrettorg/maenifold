@@ -13,7 +13,8 @@ Step-by-step instructions for initializing a new dispatch pipeline.
 │   ├── T-1.2-feature-b.md
 │   └── T-1.3-bug-fix-c.md
 ├── done/               # Archive — completed specs with audit trails
-├── gate.db         # SQLite state tracker (gitignored)
+├── .gate/              # Rebuildable cache directory (auto-created)
+│   └── gate.db         # SQLite cache (gitignored)
 ├── swe-prompt.md       # SWE agent instructions (from template)
 ├── red-prompt.md       # Red-team agent instructions (from template)
 └── blue-prompt.md      # Blue-team agent instructions (from template)
@@ -35,6 +36,8 @@ Create `PRD.md` first, then write your spec files into `todo/`. The pipeline is 
 gate sync --rebuild .
 ```
 
+This creates `.gate/gate.db` and adds `.gate/` to `.gitignore` if missing.
+
 ## 4. Write Agent Prompts
 
 Copy the templates from this skill's `references/` directory and replace `{placeholders}`:
@@ -44,11 +47,9 @@ Copy the templates from this skill's `references/` directory and replace `{place
 
 The scoped test command is the single most important thing to get right. If agents can't run targeted tests, they'll either run the full suite (slow, noisy) or skip testing (dangerous).
 
-## 5. Gitignore the DB
+## 5. Gitignore
 
-```bash
-echo "gate.db" >> .gitignore
-```
+You should not need to do anything manually here. `gate sync` handles the `.gate/` ignore entry idempotently.
 
 The cache is rebuildable operational state, not source code. The spec files with their accumulated audit trails are the persistent record.
 
@@ -77,7 +78,7 @@ Good spec files include:
 
 - **What to change** — specific files, functions, behaviors
 - **Acceptance criteria** — what "done" looks like
-- **Verdicts** (if applicable) — KEEP, REWRITE, REMOVE, MERGE, ADD
+- **State-specific expectations** — what the current stage must prove
 - **Recommendations** — prioritized (P0 = mandatory, P1–P2 = should-do)
 
 The agents append their sections to the bottom of the spec file as they work, creating a linear audit trail per work item.

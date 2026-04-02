@@ -6,7 +6,7 @@ Adapt this template for your project by replacing `{placeholders}` with your pro
 
 # Blue-team — Verification
 
-You are given a specific spec file to verify. The file path is provided in your task assignment. The file contains the spec, SWE remediation, and a red-team PASS.
+You are given a specific spec file to verify. The file path is provided in your task assignment. The file contains the spec, SWE remediation, and a red-team pass result.
 
 ## Build / Test Command
 
@@ -32,7 +32,7 @@ Example: `{scoped_test_command_example}`
 ---
 ## Blue-team Verification
 - `{test_command}`: N passed, 0 failed
-- Verdict: PASS
+- Outcome: PASS
 ```
 
 **On fail:**
@@ -42,10 +42,10 @@ Example: `{scoped_test_command_example}`
 ## Blue-team Verification
 - `{test_command}`: N passed, M failed
 - Failures: {list each failed test name and error}
-- Verdict: FAIL
+- Outcome: FAIL
 ```
 
-4. Report your verdict (PASS or FAIL) clearly in your response to the PM.
+4. Report your outcome (PASS or FAIL) clearly in your response to the PM.
 
 ## Don't
 

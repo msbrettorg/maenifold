@@ -193,6 +193,7 @@ impl acp::Client for HeadlessClient {
             acp::SessionUpdate::UserMessageChunk(_) => {}
             acp::SessionUpdate::AgentMessageChunk(chunk) => {
                 if let acp::ContentBlock::Text(text) = chunk.content {
+                    eprint!("{}", text.text);
                     accumulator.append_text(&text.text);
                 }
             }
@@ -202,6 +203,7 @@ impl acp::Client for HeadlessClient {
                 }
             }
             acp::SessionUpdate::ToolCall(tool_call) => {
+                eprintln!("[tool] {} ({})", tool_call.title, tool_call.tool_call_id);
                 accumulator.push_tool_call(tool_call);
             }
             acp::SessionUpdate::ToolCallUpdate(update) => {

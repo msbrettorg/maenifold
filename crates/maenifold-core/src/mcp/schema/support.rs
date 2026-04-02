@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+
 use crate::mcp::McpToolDefinition;
 use schemars::{JsonSchema, schema::RootSchema};
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 pub(super) fn tool_definition(
     name: &str,
@@ -39,6 +41,47 @@ pub(super) fn schema_value_no_null_options<T: JsonSchema>() -> Value {
     root_schema_to_value(generator.into_root_schema_for::<T>())
 }
 
+fn inline_refs(schema: &mut Value) {
+    let defs = match schema.get("definitions").cloned() {
+        Some(d) => d,
+        None => return,
+    };
+    resolve_refs(schema, &defs, &mut HashSet::new());
+    schema.as_object_mut().map(|o| o.remove("definitions"));
+}
+
+fn resolve_refs(node: &mut Value, defs: &Value, visited: &mut HashSet<String>) {
+    if let Some(obj) = node.as_object() {
+        if let Some(ref_val) = obj.get("$ref").and_then(|v| v.as_str()) {
+            let name = ref_val.trim_start_matches("#/definitions/");
+            if visited.contains(name) {
+                return;
+            }
+            if let Some(def) = defs.get(name) {
+                visited.insert(name.to_string());
+                let mut replacement = def.clone();
+                resolve_refs(&mut replacement, defs, visited);
+                visited.remove(name);
+                *node = replacement;
+                return;
+            }
+        }
+    }
+    match node {
+        Value::Object(map) => {
+            for v in map.values_mut() {
+                resolve_refs(v, defs, visited);
+            }
+        }
+        Value::Array(arr) => {
+            for v in arr.iter_mut() {
+                resolve_refs(v, defs, visited);
+            }
+        }
+        _ => {}
+    }
+}
+
 /// Serialises a schemars `RootSchema` to a `serde_json::Value` and post-processes it
 /// so that the output is safe for strict JSON Schema validators (e.g. GPT-5.4):
 ///
@@ -49,59 +92,10 @@ pub(super) fn schema_value_no_null_options<T: JsonSchema>() -> Value {
 pub(super) fn root_schema_to_value(schema: RootSchema) -> Value {
     let mut value = serde_json::to_value(schema).expect("schemars root schema should serialize");
 
-    // Snapshot the definitions map before mutating `value`.
-    let definitions: Map<String, Value> = value
-        .get("definitions")
-        .and_then(Value::as_object)
-        .cloned()
-        .unwrap_or_default();
-
-    // Replace every $ref with its inlined definition body.
-    inline_refs(&mut value, &definitions);
-
-    // Strip keys that strict validators reject.
     if let Value::Object(ref mut map) = value {
-        map.remove("definitions");
         map.remove("$schema");
     }
 
+    inline_refs(&mut value);
     value
-}
-
-/// Recursively walks `value` and replaces every JSON object of the form
-/// `{"$ref": "#/definitions/TypeName"}` with the corresponding entry from
-/// `definitions`.  After substitution the replacement node is itself walked,
-/// which handles multi-level ref chains.
-///
-/// Objects that have a `$ref` key alongside other keys (unusual in schemars 0.8
-/// output but legal JSON Schema) are replaced wholesale with the definition body;
-/// the sibling keys are discarded, which is the standard JSON Schema `$ref`
-/// semantics for draft-07.
-fn inline_refs(value: &mut Value, definitions: &Map<String, Value>) {
-    match value {
-        Value::Object(map) => {
-            // If this object IS a $ref, replace the whole node and recurse into
-            // the replacement (to handle chained / nested refs).
-            if let Some(Value::String(ref_str)) = map.get("$ref").cloned() {
-                if let Some(type_name) = ref_str.strip_prefix("#/definitions/") {
-                    if let Some(definition) = definitions.get(type_name) {
-                        *value = definition.clone();
-                        inline_refs(value, definitions);
-                        return;
-                    }
-                }
-            }
-            // Otherwise recurse into every value in the object.
-            for v in map.values_mut() {
-                inline_refs(v, definitions);
-            }
-        }
-        Value::Array(items) => {
-            for v in items.iter_mut() {
-                inline_refs(v, definitions);
-            }
-        }
-        // Primitives (string, number, bool, null) contain no refs.
-        _ => {}
-    }
 }

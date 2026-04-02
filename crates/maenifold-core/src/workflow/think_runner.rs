@@ -10,6 +10,26 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// WikiLink tagging instructions injected as context for all ACP think/workflow sessions.
+/// Sourced from the concept-as-protocol ontology. Agents see this before their task prompt.
+pub(crate) const WIKILINK_CONTEXT: &str = r#"Tag important concepts as [[WikiLinks]] using these rules:
+- Double brackets: [[WikiLink]] never [WikiLink]
+- Normalized to lowercase-with-hyphens internally
+- PRIMARY concept only: [[MCP]] not [[MCP-server]]
+- GENERAL terms: [[authentication]] not [[auth-system]]
+- NO file paths, code elements, or trivial words
+- TAG substance: [[machine-learning]], [[GraphRAG]], [[vector-embeddings]]
+- REUSE existing concepts before inventing near-duplicates
+- HYPHENATE multiword: [[null-reference-exception]] not [[Null Reference Exception]]
+
+Anti-patterns (avoid):
+- Underscores: [[my_concept]] → use [[my-concept]]
+- Slashes: [[foo/bar]] → use [[foo-bar]]
+- Double hyphens: [[foo--bar]] → use [[foo-bar]]
+
+WikiLinks become knowledge graph nodes. Bad tagging = graph corruption.
+Only tag concepts worth a wiki page. Never tag meta-terms like [[code]], [[bug]], [[fix]]."#;
+
 use super::agent_session::{AgentSession, open_agent_session};
 use super::output_parser::parse_output;
 use super::output_types::ThinkingOutput;
@@ -161,7 +181,7 @@ pub async fn run_think(
         context,
         agent,
         topic,
-        "",
+        WIKILINK_CONTEXT,
         opts,
         SessionOpts {
             cwd: context.config.maenifold_root.clone(),

@@ -2,7 +2,6 @@
 name = "maenifold-gate"
 version = "0.1.0"
 edition = "2024"
-autotests = false
 
 [[bin]]
 name = "gate"
@@ -18,3 +17,8 @@ serde_json.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
 walkdir.workspace = true
+
+[dev-dependencies]
+assert_cmd.workspace = true
+predicates.workspace = true
+tempfile.workspace = true

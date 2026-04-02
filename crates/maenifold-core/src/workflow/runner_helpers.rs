@@ -2,6 +2,7 @@ use super::agent_session::AgentSession;
 use super::output_parser::parse_output;
 use super::output_types::WorkflowOutput;
 use super::runner::WorkflowRunStatus;
+use super::think_runner::WIKILINK_CONTEXT;
 use crate::acpx_driver::AcpxResponse;
 use crate::error::{MaenifoldError, Result};
 use agent_client_protocol as acp;
@@ -108,7 +109,7 @@ pub(crate) fn workflow_prompt(prompt: &str, step: &str) -> String {
     } else {
         format!("{prompt}\n{step}")
     };
-    format!("{prefix}\n\n{XML_FORMAT_INSTRUCTION}")
+    format!("{prefix}\n\n{WIKILINK_CONTEXT}\n\n{XML_FORMAT_INSTRUCTION}")
 }
 pub(crate) async fn prompt_workflow_agent(
     driver: &AgentSession,

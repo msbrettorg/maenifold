@@ -9,6 +9,19 @@ use super::{
     usage_to_response,
 };
 
+/// WikiLink tagging instructions injected as context for all ACP sessions.
+const WIKILINK_CONTEXT: &str = r#"Tag important concepts as [[WikiLinks]] using these rules:
+- Double brackets: [[WikiLink]] never [WikiLink]
+- Normalized to lowercase-with-hyphens internally
+- PRIMARY concept only: [[MCP]] not [[MCP-server]]
+- GENERAL terms: [[authentication]] not [[auth-system]]
+- NO file paths, code elements, or trivial words
+- TAG substance: [[machine-learning]], [[GraphRAP]], [[vector-embeddings]]
+- REUSE existing concepts before inventing near-duplicates
+- HYPHENATE multiword: [[null-reference-exception]] not [[Null Reference Exception]]
+WikiLinks become knowledge graph nodes. Bad tagging = graph corruption.
+Only tag concepts worth a wiki page."#;
+
 pub(super) async fn prompt_session(
     conn: &acp::ClientSideConnection,
     sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>,
@@ -47,8 +60,9 @@ pub(super) async fn prompt_session_with_blocks(
         .await
         .insert(session_id.clone(), SessionAccumulator::default());
 
-    let mut content = vec![acp::ContentBlock::Text(acp::TextContent::new(prompt))];
+    let mut content = vec![acp::ContentBlock::Text(acp::TextContent::new(WIKILINK_CONTEXT))];
     content.extend(content_blocks);
+    content.push(acp::ContentBlock::Text(acp::TextContent::new(prompt)));
 
     let result = tokio::time::timeout(
         Duration::from_secs(timeout_seconds),

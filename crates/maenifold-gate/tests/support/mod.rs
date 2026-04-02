@@ -46,8 +46,8 @@ pub fn new_pipeline_root() -> TempDir {
     temp
 }
 
-pub fn write_pending_task(root: &Path, task_id: &str, pipeline: &str) -> PathBuf {
-    write_bound_task(root, task_id, pipeline, authoritative_digest(pipeline))
+pub fn write_pending_task(root: &Path, task_id: &str) -> PathBuf {
+    write_bound_task(root, task_id, "sdd", authoritative_digest("sdd"))
 }
 
 pub fn write_bound_task(root: &Path, task_id: &str, pipeline: &str, pipeline_digest: &str) -> PathBuf {
@@ -74,6 +74,27 @@ pub fn write_legacy_task_without_pipeline_binding(root: &Path, task_id: &str) ->
     path
 }
 
+pub fn write_task_without_pipeline_digest(root: &Path, task_id: &str, pipeline: &str) -> PathBuf {
+    let path = root.join("todo").join(format!("{task_id}.md"));
+    fs::write(
+        &path,
+        format!(
+            "# {task_id} — Auth Login JWT\n\n**Requirement**: FR-1\n**Test Cases**: TC-1\n**Component**: src/auth/\n**Pipeline**: {pipeline}\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
+        ),
+    )
+    .expect("write task without digest");
+    path
+}
+
+pub fn write_task_with_mismatched_digest(root: &Path, task_id: &str, pipeline: &str) -> PathBuf {
+    write_bound_task(
+        root,
+        task_id,
+        pipeline,
+        "0000000000000000000000000000000000000000000000000000000000000000",
+    )
+}
+
 pub fn task_path(root: &Path, task_id: &str) -> PathBuf {
     root.join("todo").join(format!("{task_id}.md"))
 }
@@ -91,11 +112,11 @@ pub fn gate_command() -> Command {
     Command::cargo_bin("gate").expect("gate binary should be present for integration tests")
 }
 
-pub fn status_json(root: &Path, pipeline: &str) -> Value {
+pub fn status_json(root: &Path) -> Value {
     let output = gate_command()
         .args(["status", "--root"])
         .arg(root)
-        .args(["--pipeline", pipeline, "--json"])
+        .arg("--json")
         .assert()
         .success()
         .get_output()

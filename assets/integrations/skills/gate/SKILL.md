@@ -1,6 +1,6 @@
 ---
 name: gate
-description: "The team's gated delivery process and gate CLI/MCP runtime. Use this skill when the user asks to run or set up gate, SDD, TDD, GSD, lightweight, PRD/RTM traceability, todo/done task orchestration, `.gate/gate.db`, `gate --mcp`, `gate --http`, tray/runtime behavior, open-at-login, or custom gate process JSON."
+description: "The team's gated delivery process and gate CLI/MCP runtime. Use this skill when the user asks to run or set up gate, SDD, TDD, GSD, lightweight, task pipeline orchestration, `.gate/gate.db`, `gate --mcp`, `gate --http`, tray/runtime behavior, open-at-login, or custom gate process JSON."
 ---
 
 # Gate
@@ -10,7 +10,6 @@ description: "The team's gated delivery process and gate CLI/MCP runtime. Use th
 - Task files in `todo/` and `done/` are the source of truth.
 - `.gate/gate.db` is a rebuildable cache only.
 - The only mutating commands are `append`, `pass`, `fail`, and `sync`.
-- There is no `reject` command anymore.
 - Built-in process JSON uses the new explicit state-machine schema only.
 
 If you are changing the gate implementation itself, read [docs/gate-uml-spec.md](../../../../../docs/gate-uml-spec.md) first. That document is the implementation spec.
@@ -121,8 +120,6 @@ Minimum project layout:
 
 ```text
 project/
-├── PRD.md
-├── RTM.md
 ├── todo/
 ├── done/
 └── .gate/        # created by gate sync when needed
@@ -145,9 +142,7 @@ Do not manually commit `.gate/gate.db`.
 
 For a fuller walkthrough, read `references/setup-template.md`.
 
-## PM Loop
-
-The PM owns gate state changes.
+## Orchestration Loop
 
 Loop:
 
@@ -175,10 +170,10 @@ gate status --root . --json
 gate append T-1.1 --root . --agent swe --notes "implemented auth flow"
 
 # advance current stage
-gate pass T-1.1 --root . --notes "stage passed"
+gate pass T-1.1 --root . --agent red --notes "stage passed"
 
 # return according to the active state's fail edge
-gate fail T-1.1 --root . --notes "needs rework"
+gate fail T-1.1 --root . --agent blue --notes "needs rework"
 
 # rebuild cache
 gate sync --root . --rebuild
@@ -198,7 +193,7 @@ Use:
 
 ```bash
 gate --mcp
-gate --http --port 8080
+gate --http --port 8081
 ```
 
 HTTP MCP serves at `http://127.0.0.1:<port>/mcp`.
@@ -245,8 +240,4 @@ If gate internals change, keep this skill aligned with:
 - the actual CLI help for `gate`
 - the actual service-mode behavior for `--mcp` and `--http`
 
-Do not leave stale references to:
-
-- `gate reject`
-- root-level `gate.db`
-- old pipeline JSON with `stages` / `verdicts` / `transitions`
+Do not leave stale references to obsolete commands, old cache paths, or legacy pipeline schema fields.

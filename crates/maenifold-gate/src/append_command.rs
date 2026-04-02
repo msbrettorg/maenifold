@@ -28,15 +28,9 @@ pub(crate) fn append_task(args: AppendArgs) -> Result<(), GateError> {
     )?;
     let state = TaskStatusDeriver::derive(&document, &definition, &task.location)?;
     let acting_stage = StateMachine::acting_stage_name(&state.state, &definition)?;
-    if args.agent != acting_stage {
-        return Err(GateError::IllegalTransition {
-            state: state.state,
-            outcome: format!("append by {}", args.agent),
-        });
-    }
 
     let section = CanonicalSectionFactory::build_append_section(
-        &args.agent,
+        &acting_stage,
         &args.agent,
         &args.notes,
         args.model.as_deref(),

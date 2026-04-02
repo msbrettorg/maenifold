@@ -47,10 +47,11 @@ pub fn list() -> Vec<McpToolDefinition> {
                     "taskId": { "type": "string" },
                     "root": { "type": "string" },
                     "pipeline": { "type": "string" },
+                    "agent": { "type": "string" },
                     "notes": { "type": "string" },
                     "model": { "type": "string" }
                 },
-                "required": ["taskId", "notes"],
+                "required": ["taskId", "agent", "notes"],
                 "additionalProperties": false
             }),
         },
@@ -63,10 +64,11 @@ pub fn list() -> Vec<McpToolDefinition> {
                     "taskId": { "type": "string" },
                     "root": { "type": "string" },
                     "pipeline": { "type": "string" },
+                    "agent": { "type": "string" },
                     "notes": { "type": "string" },
                     "model": { "type": "string" }
                 },
-                "required": ["taskId", "notes"],
+                "required": ["taskId", "agent", "notes"],
                 "additionalProperties": false
             }),
         },

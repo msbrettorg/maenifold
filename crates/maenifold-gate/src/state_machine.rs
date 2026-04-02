@@ -27,22 +27,6 @@ impl StateMachine {
         Self::transition(state, "fail", definition)
     }
 
-    pub fn validate_outcome(
-        state: &str,
-        outcome: &str,
-        definition: &GateDefinition,
-    ) -> Result<(), GateError> {
-        let (_, gate_state) = Self::acting_state(state, definition)?;
-        if gate_state.allows_outcome(outcome) {
-            Ok(())
-        } else {
-            Err(GateError::IllegalTransition {
-                state: state.to_string(),
-                outcome: outcome.to_string(),
-            })
-        }
-    }
-
     fn transition(
         state: &str,
         outcome: &str,

@@ -33,7 +33,13 @@ pub(crate) async fn open_agent_session(
             .collect();
     }
     let handle = pool
-        .get_or_create(agent_name, &command, &opts.cwd, env)
+        .get_or_create(
+            agent_name,
+            &command,
+            &opts.cwd,
+            env,
+            opts.auto_grant_permissions,
+        )
         .await;
     let remote_id = handle
         .new_session(opts)

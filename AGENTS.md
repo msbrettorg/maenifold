@@ -38,6 +38,17 @@ At session start you are required to read /Users/brett/src/ma-collective/maenifo
 
 Agents running full test suites in parallel is a waste and creates race conditions. Violating this policy is grounds for the PM to kill the agent immediately.
 
+## Default Value Policy
+
+No silent defaults. Every policy decision surfaces as a **required parameter** that the caller must explicitly set. We provide mechanism, not policy.
+
+- WRONG: `timeout.unwrap_or(3600)` — the system decided for the caller.
+- WRONG: `Option<u32>` with an undocumented `None` meaning "use 5" — hidden default.
+- RIGHT: `total_thoughts: u32` — required field, caller states their intent.
+- RIGHT: `auto_grant_permissions: bool` — required flag, caller decides yes or no.
+
+If a value controls behavior, the caller must name it. If the caller doesn't know what value to use, that's a documentation problem, not a reason to pick one for them.
+
 ## Operating Rules
 
 - **Answer questions immediately.** No tool calls, no side work. Answer, then ask if they want you to continue.
@@ -64,9 +75,9 @@ Binary: `target/release/maenifold` → symlinked at `/usr/local/bin/maenifold`.
 
 ## ACP Model Policy
 
-All ACP agent interactions MUST specify `model: gpt-5.4` unless explicitly overridden. Never rely on agent defaults — different agents default to different models with wildly different latency and cost profiles.
+All ACP agent interactions MUST specify `model` explicitly. Never rely on agent defaults — different agents default to different models with wildly different latency and cost profiles.
 
-CLI commands (`think`, `prompt`, `workflow`) default to `gpt-5.4`. Pipeline nodes should specify model in their node definition.
+The only valid ACP invocation path is `AcpExec` (via MCP `--tool` or the MCP protocol). There are no CLI aliases. `model` is a required parameter with no default.
 
 ## Web UI / ACP Rules
 

@@ -1,23 +1,21 @@
 use std::sync::Arc;
 
-use crate::acp_native::{AgentPool, GLOBAL_AGENT_POOL, SessionOpts};
+use crate::acp_native::{AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::read_markdown;
-use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 use agent_client_protocol as acp;
 use serde_json::json;
 
 use super::agent_session::open_agent_session;
+use super::runner_state::{current_step_index, init_workflow_session, workflow_total_steps};
 use super::runner_helpers::{
-    parse_step_progress, prompt_workflow_agent, step_think_config, terminal_workflow_status,
-    workflow_completion_text, workflow_step_payload, workflow_text,
+    prompt_workflow_agent, step_think_config, terminal_workflow_status, workflow_completion_text,
+    workflow_step_payload, workflow_text,
 };
 use super::think_runner::{drive_think_session, seed_think_session};
-use super::{frontmatter_usize, read_workflow_definition, workflow_steps};
 
 pub(crate) use super::think_runner::run_think_with_pool;
-pub use super::think_runner::{ThinkOptions, ThinkResult, run_think};
+pub use super::think_runner::{ThinkOptions, ThinkResult};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WorkflowRunStatus {
@@ -47,6 +45,7 @@ impl RunContext<'_> {
     fn default_session_opts(&self) -> SessionOpts {
         SessionOpts {
             cwd: self.tool_context.config.maenifold_root.clone(),
+            auto_grant_permissions: true,
             model: self.model.clone(),
             mode: None,
             thought_level: None,
@@ -57,12 +56,6 @@ impl RunContext<'_> {
             mcp_servers: vec![],
         }
     }
-}
-
-/// Send a single prompt to an ACP agent and return the response text.
-/// Uses the global pool for agent reuse.
-pub async fn run_prompt(agent: &str, prompt: &str, opts: SessionOpts) -> Result<String> {
-    run_prompt_with_pool(&GLOBAL_AGENT_POOL, agent, prompt, opts).await
 }
 
 /// Send a single prompt to an ACP agent using a specific pool.
@@ -94,27 +87,6 @@ pub(crate) async fn run_prompt_with_pool_context(
         return Err(MaenifoldError::Message(error));
     }
     Ok(response.text.trim().to_string())
-}
-
-pub async fn run_workflow(
-    context: &ToolContext,
-    workflow_id: &str,
-    agent: &str,
-    prompt: &str,
-    model: Option<String>,
-) -> Result<WorkflowResult> {
-    run_workflow_with_pool(
-        context,
-        workflow_id,
-        None,
-        agent,
-        prompt,
-        None,
-        model,
-        None,
-        Arc::clone(&GLOBAL_AGENT_POOL),
-    )
-    .await
 }
 
 pub(crate) async fn run_workflow_with_pool(
@@ -248,71 +220,6 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         (Ok(_), Err(error)) | (Err(_), Err(error)) => Err(error),
         (Err(error), Ok(())) => Err(error),
     }
-}
-
-/// Initializes a workflow session, returning `(session_id, handler_output)`.
-/// Resumes an existing session when provided, otherwise starts a new one.
-fn init_workflow_session(
-    context: &ToolContext,
-    workflow_id: &str,
-    existing_session_id: Option<String>,
-) -> Result<(String, String)> {
-    if let Some(sid) = existing_session_id {
-        let text = super::handler::workflow(
-            context,
-            &json!({
-                "sessionId": sid,
-                "response": "Resuming pre-activated pipeline session"
-            }),
-        )?;
-        return Ok((sid, text));
-    }
-    let text = super::handler::workflow(context, &json!({ "workflowId": workflow_id }))?;
-    let sid = parse_session_id_from_creation(&text).ok_or_else(|| {
-        MaenifoldError::Message("Workflow session ID missing from response".to_string())
-    })?;
-    Ok((sid, text))
-}
-
-/// Extracts the session ID from the structured `"Created session: workflow-XXXX"` prefix
-/// produced by `start_workflow_session`, replacing the previous regex-based approach.
-fn parse_session_id_from_creation(text: &str) -> Option<String> {
-    text.strip_prefix("Created session: ")
-        .and_then(|rest| rest.split_whitespace().next())
-        .filter(|id| id.starts_with("workflow-"))
-        .map(str::to_string)
-}
-
-/// Returns total step count, preferring the `"Step X/Y"` text already in `step_text`
-/// to avoid re-reading and re-parsing the workflow definition file.
-fn workflow_total_steps(
-    context: &ToolContext,
-    workflow_id: &str,
-    step_text: &str,
-) -> Result<usize> {
-    if let Some((_, total)) = parse_step_progress(step_text) {
-        return Ok(total as usize);
-    }
-    let workflow_value = read_workflow_definition(&context.config, workflow_id)?;
-    Ok(workflow_steps(&workflow_value, workflow_id)?.len())
-}
-
-/// Determines the current step index using frontmatter `currentStep` with a text fallback.
-fn current_step_index(context: &ToolContext, session_id: &str, step: &str) -> usize {
-    if let Ok((Some(fm), _, _)) = read_markdown(&workflow_session_uri(session_id), &context.config)
-    {
-        let index = frontmatter_usize(&fm, "currentStep").saturating_add(1);
-        if index > 0 {
-            return index;
-        }
-    }
-    if let Some((current, _)) = parse_step_progress(step) {
-        let index = current as usize;
-        if index > 0 {
-            return index;
-        }
-    }
-    1
 }
 
 async fn maybe_run_step_thinking(run_ctx: &RunContext<'_>, step: &str) -> Result<()> {

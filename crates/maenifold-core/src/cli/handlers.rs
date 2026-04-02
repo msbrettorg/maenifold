@@ -1,11 +1,9 @@
-use crate::acp_native::SessionOpts;
 use crate::config::Config;
 use crate::error::MaenifoldError;
 use crate::mcp::{self, MaenifoldMcpServer};
 use crate::sync::watchers;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
-use crate::workflow::runner::{ThinkOptions, run_prompt, run_think, run_workflow};
 use serde_json::json;
 
 pub(super) fn run_mcp() -> i32 {
@@ -71,53 +69,6 @@ pub(super) fn run_http(port: u16) -> i32 {
     }
 }
 
-pub(super) fn run_workflow_command(
-    workflow_id: String,
-    agent: String,
-    prompt: String,
-    model: Option<String>,
-) -> i32 {
-    let model = model.or_else(|| Some("gpt-5.4".to_string()));
-    run_async_command(move |context| async move {
-        run_workflow(&context, &workflow_id, &agent, &prompt, model)
-            .await
-            .map(|result| result.conclusion.unwrap_or_default())
-    })
-}
-
-pub(super) fn run_prompt_command(agent: String, message: String, model: Option<String>) -> i32 {
-    run_async_command(move |context| async move {
-        let opts = SessionOpts {
-            cwd: context.config.maenifold_root.clone(),
-            model,
-            mode: None,
-            thought_level: None,
-            config_options: None,
-            allowed_tools: None,
-            max_turns: None,
-            timeout_seconds: None,
-            mcp_servers: vec![],
-        };
-        run_prompt(&agent, &message, opts).await
-    })
-}
-
-pub(super) fn run_think_command(agent: String, topic: String, model: Option<String>) -> i32 {
-    run_async_command(move |context| async move {
-        run_think(
-            &context,
-            &agent,
-            &topic,
-            ThinkOptions {
-                model,
-                ..ThinkOptions::default()
-            },
-        )
-        .await
-        .map(|result| result.conclusion.unwrap_or_default())
-    })
-}
-
 pub(super) fn run_tool_command(
     name: String,
     payload: Option<String>,
@@ -137,38 +88,6 @@ pub(super) fn run_tool_command(
         Err((output, code)) => {
             println!("{output}");
             code
-        }
-    }
-}
-
-fn run_async_command<F, Fut>(f: F) -> i32
-where
-    F: FnOnce(ToolContext) -> Fut,
-    Fut: std::future::Future<Output = crate::error::Result<String>>,
-{
-    let config = Config::current();
-    if let Err(err) = mcp::initialize_runtime(&config) {
-        eprintln!("Error initializing storage: {err}");
-        return 1;
-    }
-    let context = ToolContext::new(config, OutputFormat::Markdown);
-    let rt = match tokio::runtime::Runtime::new() {
-        Ok(rt) => rt,
-        Err(err) => {
-            eprintln!("Error creating async runtime: {err}");
-            return 1;
-        }
-    };
-    let result = rt.block_on(f(context));
-    rt.shutdown_timeout(std::time::Duration::from_secs(5));
-    match result {
-        Ok(output) => {
-            println!("{output}");
-            0
-        }
-        Err(err) => {
-            eprintln!("{err}");
-            1
         }
     }
 }

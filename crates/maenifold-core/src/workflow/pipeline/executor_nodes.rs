@@ -164,6 +164,7 @@ fn merged_session_opts(
 ) -> SessionOpts {
     SessionOpts {
         cwd: context.config.maenifold_root.clone(),
+        auto_grant_permissions: true,
         model: model
             .clone()
             .or_else(|| agent_config.and_then(|config| config.model.clone())),

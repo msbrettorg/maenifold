@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 use clap::{Args, CommandFactory, FromArgMatches, Parser, Subcommand, parser::ValueSource};
@@ -36,6 +35,7 @@ pub struct AppendArgs {
 pub struct OutcomeArgs {
     pub context: GateContext,
     pub task_id: String,
+    pub agent: String,
     pub notes: String,
     pub model: Option<String>,
 }
@@ -62,32 +62,12 @@ pub enum CliAction {
     Http(u16),
 }
 
-#[derive(Debug)]
-pub struct CliParser;
-
 pub struct GateCliApp;
 
 #[derive(Debug)]
 struct ParsedCli {
     cli: GateCli,
     port_was_explicit: bool,
-}
-
-impl CliParser {
-    pub fn parse<I, T>(argv: I) -> Result<CommandRequest, GateError>
-    where
-        I: IntoIterator<Item = T>,
-        T: Into<OsString> + Clone,
-    {
-        let cli =
-            GateCli::try_parse_from(argv).map_err(|error| GateError::Cli(error.to_string()))?;
-        if cli.mcp || cli.http {
-            return Err(GateError::Cli(
-                "service modes must be handled through GateCliApp".to_string(),
-            ));
-        }
-        cli.into_request()
-    }
 }
 
 impl GateCliApp {
@@ -213,15 +193,6 @@ struct GateCli {
     port: u16,
 }
 
-impl GateCli {
-    fn into_request(self) -> Result<CommandRequest, GateError> {
-        match self.command {
-            Some(command) => command.into_request(),
-            None => Err(GateError::Cli("missing gate subcommand".to_string())),
-        }
-    }
-}
-
 #[derive(Debug, Subcommand)]
 enum GateSubcommand {
     Status(StatusCliArgs),
@@ -299,6 +270,8 @@ struct OutcomeCliArgs {
     #[command(flatten)]
     shared: SharedCliArgs,
     #[arg(long)]
+    agent: String,
+    #[arg(long)]
     notes: String,
     #[arg(long)]
     model: Option<String>,
@@ -309,6 +282,7 @@ impl OutcomeCliArgs {
         OutcomeArgs {
             context: self.shared.into_context(false),
             task_id: self.task_id,
+            agent: self.agent,
             notes: self.notes,
             model: self.model,
         }

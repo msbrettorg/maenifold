@@ -50,15 +50,17 @@ impl AgentPool {
         command: &str,
         cwd: &Path,
         env: HashMap<String, String>,
+        auto_grant_permissions: bool,
     ) -> Arc<AgentHandle> {
+        let pool_key = format!("{agent_name}::auto-grant={auto_grant_permissions}");
         let mut agents = self.agents.lock().await;
-        if let Some(entry) = agents.get_mut(agent_name) {
+        if let Some(entry) = agents.get_mut(&pool_key) {
             if entry.handle.is_alive() {
                 entry.last_used = Instant::now();
                 return Arc::clone(&entry.handle);
             }
         }
-        agents.remove(agent_name);
+        agents.remove(&pool_key);
 
         if agents.len() >= self.max_agents {
             let evicted_name = agents
@@ -79,9 +81,14 @@ impl AgentPool {
             }
         }
 
-        let handle = Arc::new(spawn_agent(command.to_string(), cwd.to_path_buf(), env));
+        let handle = Arc::new(spawn_agent(
+            command.to_string(),
+            cwd.to_path_buf(),
+            env,
+            auto_grant_permissions,
+        ));
         agents.insert(
-            agent_name.to_string(),
+            pool_key,
             PoolEntry {
                 handle: Arc::clone(&handle),
                 last_used: Instant::now(),
@@ -165,11 +172,12 @@ impl AcpxDriver {
     pub async fn create_session(&self, name: &str) -> Result<()> {
         let handle = self
             .pool
-            .get_or_create(&self.command, &self.command, &self.cwd, self.env.clone())
+            .get_or_create(&self.command, &self.command, &self.cwd, self.env.clone(), true)
             .await;
         let remote_id = handle
             .new_session(SessionOpts {
                 cwd: self.cwd.clone(),
+                auto_grant_permissions: true,
                 model: None,
                 mode: None,
                 thought_level: None,

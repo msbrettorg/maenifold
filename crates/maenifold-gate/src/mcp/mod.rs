@@ -117,10 +117,6 @@ impl ServerHandler for GateMcpHandler {
 }
 
 impl GateMcpServer {
-    pub fn list_tools() -> Vec<McpToolDefinition> {
-        list()
-    }
-
     pub async fn serve_stdio() -> Result<(), GateError> {
         let handler = GateMcpHandler::new(TransportKind::Stdio)?;
         let transport = rmcp::transport::io::stdio();
@@ -167,12 +163,14 @@ fn call_gate_tool(tool_name: &str, arguments: Value) -> Result<String, GateError
         "pass" => GateToolService::pass(OutcomeArgs {
             context: context_from_value(&arguments, false)?,
             task_id: required_string(&arguments, "taskId")?,
+            agent: required_string(&arguments, "agent")?,
             notes: required_string(&arguments, "notes")?,
             model: optional_string(&arguments, "model")?,
         })?,
         "fail" => GateToolService::fail(OutcomeArgs {
             context: context_from_value(&arguments, false)?,
             task_id: required_string(&arguments, "taskId")?,
+            agent: required_string(&arguments, "agent")?,
             notes: required_string(&arguments, "notes")?,
             model: optional_string(&arguments, "model")?,
         })?,
@@ -256,6 +254,7 @@ mod tests {
             json!({
                 "root": root.path(),
                 "taskId": "T-9.1",
+                "agent": "swe",
                 "notes": "swe completed"
             }),
         )
@@ -298,7 +297,7 @@ mod tests {
 
     fn task_markdown(task_id: &str, pipeline: &str, digest: &str) -> String {
         format!(
-            "# {task_id} — MCP Test\n\n**Requirement**: FR-1\n**Test Cases**: TC-1\n**Component**: src/gate/\n**Pipeline**: {pipeline}\n**Pipeline Digest**: {digest}\n\n## Acceptance Criteria\n\n1. tool call succeeds\n"
+            "# {task_id} — MCP Test\n\n**Pipeline**: {pipeline}\n**Pipeline Digest**: {digest}\n\n## Acceptance Criteria\n\n1. tool call succeeds\n"
         )
     }
 

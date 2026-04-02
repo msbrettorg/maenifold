@@ -6,8 +6,6 @@ Step-by-step instructions for initializing a new dispatch pipeline.
 
 ```
 {pipeline_root}/
-├── PRD.md              # Requirements (FR-*, NFR-*)
-├── RTM.md              # Traceability matrix (FR-* → TC-*)
 ├── todo/               # Backlog — pending spec files (inbox)
 │   ├── T-1.1-feature-a.md
 │   ├── T-1.2-feature-b.md
@@ -20,15 +18,20 @@ Step-by-step instructions for initializing a new dispatch pipeline.
 └── blue-prompt.md      # Blue-team agent instructions (from template)
 ```
 
-`PRD.md` defines what to build. `RTM.md` traces requirements to components and test cases. `todo/` is the inbox — each file is one backlog item (a T-* spec referencing FR-* from PRD.md). `done/` is the archive — completed files with their full audit trails. Both folders are committed. There is no TODO.md — `ls todo/` is the backlog.
+`todo/` is the inbox — each file is one backlog item. `done/` is the archive — completed files with their accumulated history sections. Both folders are committed. There is no TODO.md — `ls todo/` is the backlog.
 
-## 2. Create Requirements + Backlog Files
+## 2. Create Backlog Files
 
 ```bash
 mkdir -p todo done
 ```
 
-Create `PRD.md` first, then write your spec files into `todo/`. The pipeline is file-authoritative, so the backlog is whatever markdown task files exist in `todo/`.
+Write task files into `todo/`. Each task must at minimum bind to a pipeline with:
+
+- `**Pipeline**: <name>`
+- `**Pipeline Digest**: <sha256>`
+
+The pipeline is file-authoritative, so the backlog is whatever markdown task files exist in `todo/`.
 
 ## 3. Initialize the Cache
 

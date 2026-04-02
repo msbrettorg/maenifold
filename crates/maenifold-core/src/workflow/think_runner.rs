@@ -1,14 +1,26 @@
 use std::sync::Arc;
 
+use agent_client_protocol as acp;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
 use crate::acp_native::{AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
 use crate::thinking::sequential_thinking;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
-use agent_client_protocol as acp;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use super::agent_session::open_agent_session;
+use super::output_types::ThinkingOutput;
+use super::runner_helpers::{slug, Envelope};
+use super::think_helpers::{
+    ensure_conclusion_for_completed_output, force_completion_output, parse_with_retry,
+};
+
+/// Canonical default for sequential thinking depth.
+/// Callers who don't have a strong preference reference this constant explicitly.
+pub const DEFAULT_TOTAL_THOUGHTS: u32 = 5;
 
 /// WikiLink tagging instructions injected as context for all ACP think/workflow sessions.
 /// Sourced from the concept-as-protocol ontology. Agents see this before their task prompt.
@@ -21,19 +33,12 @@ pub(crate) const WIKILINK_CONTEXT: &str = r#"Tag important concepts as [[WikiLin
 - TAG substance: [[machine-learning]], [[GraphRAG]], [[vector-embeddings]]
 - REUSE existing concepts before inventing near-duplicates
 - HYPHENATE multiword: [[null-reference-exception]] not [[Null Reference Exception]]
-
 Anti-patterns (avoid):
 - Underscores: [[my_concept]] → use [[my-concept]]
 - Slashes: [[foo/bar]] → use [[foo-bar]]
 - Double hyphens: [[foo--bar]] → use [[foo-bar]]
-
 WikiLinks become knowledge graph nodes. Bad tagging = graph corruption.
 Only tag concepts worth a wiki page. Never tag meta-terms like [[code]], [[bug]], [[fix]]."#;
-
-use super::agent_session::{AgentSession, open_agent_session};
-use super::output_parser::parse_output;
-use super::output_types::ThinkingOutput;
-use super::runner_helpers::{Envelope, slug};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ThinkResult {
@@ -51,11 +56,7 @@ pub struct ThinkOptions {
 
 impl Default for ThinkOptions {
     fn default() -> Self {
-        Self {
-            total_thoughts: 5,
-            parent_workflow_id: None,
-            model: None,
-        }
+        Self { total_thoughts: DEFAULT_TOTAL_THOUGHTS, parent_workflow_id: None, model: None }
     }
 }
 
@@ -94,14 +95,9 @@ struct ThinkProgressPayload<'a> {
     revises_thought: Option<u64>,
 }
 
-pub(crate) async fn seed_think_session(
-    context: &ToolContext,
-    topic: &str,
-    opts: &ThinkOptions,
-) -> Result<String> {
+pub(crate) async fn seed_think_session(context: &ToolContext, topic: &str, opts: &ThinkOptions) -> Result<String> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
-    let ThinkSessionData { session_id } =
-        think_call(&json_context, &think_seed_payload(topic, opts))?;
+    let ThinkSessionData { session_id } = think_call(&json_context, &think_seed_payload(topic, opts))?;
     Ok(session_id)
 }
 
@@ -117,9 +113,7 @@ pub(crate) async fn drive_think_session(
     content_blocks: Option<Vec<acp::ContentBlock>>,
 ) -> Result<ThinkResult> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
-    let acpx_session = format!("think-{session_id}");
-    let driver = open_agent_session(pool, agent, &acpx_session, session_opts).await?;
-
+    let driver = open_agent_session(pool, agent, &format!("think-{session_id}"), session_opts).await?;
     let mut thought_number = 1u32;
     let mut first_context = content_blocks;
     let result: Result<ThinkResult> = async {
@@ -130,27 +124,14 @@ pub(crate) async fn drive_think_session(
             } else {
                 driver.prompt(&prompt).await?
             };
-            let thinking_output = parse_with_retry(
-                &driver,
-                &response.text,
-                0,
-                thought_number,
-                opts.total_thoughts,
-            )
-            .await?;
-            let capped_output =
-                if !thinking_output.done && thought_number >= opts.total_thoughts + 3 {
-                    force_completion_output(&thinking_output)
-                } else {
-                    thinking_output
-                };
+            let thinking_output = parse_with_retry(&driver, &response.text, 0, thought_number, opts.total_thoughts).await?;
+            let capped_output = if !thinking_output.done && thought_number >= opts.total_thoughts + 3 {
+                force_completion_output(&thinking_output)
+            } else {
+                thinking_output
+            };
             let capped_output = ensure_conclusion_for_completed_output(capped_output);
-            let payload = think_progress_payload_from_output(
-                session_id,
-                &capped_output,
-                thought_number,
-                opts,
-            );
+            let payload = think_progress_payload_from_output(session_id, &capped_output, thought_number, opts);
             let _: Value = think_call(&json_context, &payload)?;
             if capped_output.done {
                 break Ok(ThinkResult {
@@ -168,36 +149,6 @@ pub(crate) async fn drive_think_session(
         (Ok(_), Err(error)) | (Err(_), Err(error)) => Err(error),
         (Err(error), Ok(())) => Err(error),
     }
-}
-
-pub async fn run_think(
-    context: &ToolContext,
-    agent: &str,
-    topic: &str,
-    opts: ThinkOptions,
-) -> Result<ThinkResult> {
-    let model = opts.model.clone();
-    run_think_with_pool(
-        context,
-        agent,
-        topic,
-        WIKILINK_CONTEXT,
-        opts,
-        SessionOpts {
-            cwd: context.config.maenifold_root.clone(),
-            model,
-            mode: None,
-            thought_level: None,
-            config_options: None,
-            allowed_tools: None,
-            max_turns: None,
-            timeout_seconds: None,
-            mcp_servers: vec![],
-        },
-        Arc::clone(&crate::acp_native::GLOBAL_AGENT_POOL),
-        None,
-    )
-    .await
 }
 
 pub(crate) async fn run_think_with_pool(
@@ -260,97 +211,16 @@ fn think_call<T: DeserializeOwned>(context: &ToolContext, payload: &Value) -> Re
         Ok(envelope.data)
     } else {
         Err(MaenifoldError::Message(
-            envelope
-                .error
-                .map(|error| error.message)
-                .unwrap_or_else(|| "SequentialThinking failed".to_string()),
+            envelope.error.map(|error| error.message).unwrap_or_else(|| "SequentialThinking failed".to_string()),
         ))
     }
 }
 
-fn think_prompt(
-    thought_number: u32,
-    total_thoughts: u32,
-    topic: &str,
-    prompt_context: &str,
-) -> String {
+fn think_prompt(thought_number: u32, total_thoughts: u32, topic: &str, prompt_context: &str) -> String {
     format!(
         "Context:\n{prompt_context}\n\nTask: {topic}\n\nThought {thought_number}/~{total_thoughts}. Include [[WikiLinks]] for key concepts.\n\n{shape}\n\nSet done=true with a conclusion on your final thought.",
         shape = ThinkingOutput::expected_shape()
     )
-}
-
-async fn parse_with_retry(
-    driver: &AgentSession,
-    initial_text: &str,
-    max_retries: u32,
-    thought_number: u32,
-    total_thoughts: u32,
-) -> Result<ThinkingOutput> {
-    let original_text = initial_text.to_string();
-    let mut text = original_text.clone();
-
-    for retries_remaining in (0..=max_retries).rev() {
-        match parse_output(&text).and_then(|parsed| ThinkingOutput::from_parsed(&parsed)) {
-            Ok(output) => return Ok(output),
-            Err(parse_error) if retries_remaining > 0 => {
-                let retry_prompt = format!(
-                    "Your response could not be parsed. Error: {}\n\n{}\n\nPlease rewrite your response in the correct format.",
-                    parse_error.message,
-                    ThinkingOutput::expected_shape()
-                );
-                text = driver.prompt(&retry_prompt).await?.text;
-            }
-            Err(_) => break,
-        }
-    }
-
-    let done = thought_number >= total_thoughts;
-    Ok(ThinkingOutput {
-        response: original_text.clone(),
-        done,
-        needs_more: false,
-        revision_of: None,
-        conclusion: done.then(|| original_text.clone()),
-    })
-}
-
-fn force_completion_output(output: &ThinkingOutput) -> ThinkingOutput {
-    let response = output.response.clone();
-    let conclusion = output
-        .conclusion
-        .clone()
-        .unwrap_or_else(|| response.clone());
-    ThinkingOutput {
-        response,
-        done: true,
-        needs_more: false,
-        revision_of: output.revision_of,
-        conclusion: Some(conclusion),
-    }
-}
-
-fn ensure_conclusion_for_completed_output(mut output: ThinkingOutput) -> ThinkingOutput {
-    if output.done && output.conclusion.is_none() {
-        output.conclusion = Some(synthesize_conclusion(&output.response));
-    }
-    output
-}
-
-fn synthesize_conclusion(response: &str) -> String {
-    const MAX_LEN: usize = 500;
-    let trimmed = response.trim();
-    if trimmed.is_empty() {
-        return "Session completed.".to_string();
-    }
-    let prefix = truncate_to_char_boundary(trimmed, MAX_LEN);
-    let truncated = if prefix.len() == trimmed.len() {
-        prefix.to_string()
-    } else {
-        let boundary = prefix.rfind(char::is_whitespace).unwrap_or(prefix.len());
-        format!("{}…", &prefix[..boundary])
-    };
-    truncated
 }
 
 fn serialize_payload<T: Serialize>(payload: T) -> Value {
@@ -359,15 +229,4 @@ fn serialize_payload<T: Serialize>(payload: T) -> Value {
 
 fn is_false(value: &bool) -> bool {
     !value
-}
-
-fn truncate_to_char_boundary(text: &str, max_len: usize) -> &str {
-    if text.len() <= max_len {
-        return text;
-    }
-    let mut end = max_len;
-    while !text.is_char_boundary(end) {
-        end -= 1;
-    }
-    &text[..end]
 }

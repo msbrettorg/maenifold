@@ -34,6 +34,7 @@ pub(super) async fn prompt_session(
     sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>,
     session_id: String,
     prompt: String,
+    inject_wikilinks: bool,
 ) -> Result<AgentResponse> {
     prompt_session_with_blocks(
         conn,
@@ -41,6 +42,7 @@ pub(super) async fn prompt_session(
         session_id,
         prompt,
         vec![],
+        inject_wikilinks,
     )
     .await
 }
@@ -51,15 +53,20 @@ pub(super) async fn prompt_session_with_blocks(
     session_id: String,
     prompt: String,
     content_blocks: Vec<acp::ContentBlock>,
+    inject_wikilinks: bool,
 ) -> Result<AgentResponse> {
     sessions
         .lock()
         .await
         .insert(session_id.clone(), SessionAccumulator::default());
 
-    let full_prompt = format!("{prompt}\n\n{WIKILINK_CONTEXT}");
+    let final_prompt = if inject_wikilinks {
+        format!("{prompt}\n\n{WIKILINK_CONTEXT}")
+    } else {
+        prompt
+    };
     let mut content = content_blocks;
-    content.push(acp::ContentBlock::Text(acp::TextContent::new(full_prompt)));
+    content.push(acp::ContentBlock::Text(acp::TextContent::new(final_prompt)));
 
 
     let result = conn

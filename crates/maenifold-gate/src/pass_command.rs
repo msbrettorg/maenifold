@@ -52,7 +52,7 @@ fn apply_outcome(args: OutcomeArgs, outcome: &str) -> Result<(), GateError> {
     let section = CanonicalSectionFactory::build_outcome_section(
         &transition.acting_stage,
         outcome,
-        &transition.acting_stage,
+        &args.agent,
         &args.notes,
         args.model.as_deref(),
     );

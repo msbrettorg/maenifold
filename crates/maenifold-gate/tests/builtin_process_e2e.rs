@@ -128,6 +128,7 @@ fn pass(root: &std::path::Path, task_id: &str, notes: &str) {
     gate_command(root)
         .args(["pass", task_id, "--root"])
         .arg(root)
+        .args(["--agent", "test-agent"])
         .args(["--notes", notes])
         .assert()
         .success();
@@ -137,6 +138,7 @@ fn fail(root: &std::path::Path, task_id: &str, notes: &str) {
     gate_command(root)
         .args(["fail", task_id, "--root"])
         .arg(root)
+        .args(["--agent", "test-agent"])
         .args(["--notes", notes])
         .assert()
         .success();

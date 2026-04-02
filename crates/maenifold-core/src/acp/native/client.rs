@@ -1,5 +1,6 @@
 use agent_client_protocol as acp;
 use std::collections::HashMap;
+use std::io::{stdout, Write};
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -9,6 +10,7 @@ use super::accumulator::SessionAccumulator;
 pub(super) struct HeadlessClient {
     pub(super) cwd: PathBuf,
     pub(super) sessions: Arc<Mutex<HashMap<String, SessionAccumulator>>>,
+    pub(super) auto_grant_permissions: bool,
 }
 
 impl HeadlessClient {
@@ -59,11 +61,19 @@ impl acp::Client for HeadlessClient {
             ));
         }
 
-        let option_id = args
-            .options
-            .first()
-            .map(|option| option.option_id.clone())
-            .unwrap_or_else(|| acp::PermissionOptionId::new("allow"));
+        let option_id = if self.auto_grant_permissions {
+            args.options.first().map(|option| option.option_id.clone())
+        } else {
+            args.options.iter().find_map(|option| {
+                matches!(
+                    option.kind,
+                    acp::PermissionOptionKind::RejectOnce
+                        | acp::PermissionOptionKind::RejectAlways
+                )
+                .then(|| option.option_id.clone())
+            })
+        }
+        .ok_or_else(acp::Error::method_not_found)?;
 
         Ok(acp::RequestPermissionResponse::new(
             acp::RequestPermissionOutcome::Selected(acp::SelectedPermissionOutcome::new(option_id)),
@@ -185,7 +195,8 @@ impl acp::Client for HeadlessClient {
             acp::SessionUpdate::UserMessageChunk(_) => {}
             acp::SessionUpdate::AgentMessageChunk(chunk) => {
                 if let acp::ContentBlock::Text(text) = chunk.content {
-                    eprint!("{}", text.text);
+                    print!("{}", text.text);
+                    stdout().flush().unwrap();
                     accumulator.append_text(&text.text);
                 }
             }

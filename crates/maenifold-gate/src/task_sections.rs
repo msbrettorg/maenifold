@@ -8,6 +8,7 @@ pub struct TaskStageRecord {
     pub agent: String,
     pub model: Option<String>,
     pub recorded_at: String,
+    pub notes: String,
 }
 
 #[derive(Debug, Clone)]
@@ -31,6 +32,7 @@ impl TaskSectionParser {
             let mut agent = None;
             let mut model = None;
             let mut recorded_at = None;
+            let mut notes = None;
 
             while index < lines.len() && !lines[index].starts_with("## ") {
                 if let Some(rest) = lines[index].strip_prefix("- ") {
@@ -48,6 +50,7 @@ impl TaskSectionParser {
                         "Recorded At" => recorded_at = Some(value),
                         "Model" => model = Some(value),
                         "Outcome" => outcome = Some(value.to_ascii_lowercase()),
+                        "Notes" => notes = Some(value),
                         _ => {}
                     }
                 }
@@ -67,6 +70,9 @@ impl TaskSectionParser {
                     model,
                     recorded_at: recorded_at.ok_or_else(|| {
                         GateError::TaskMetadataParse("missing section Recorded At".to_string())
+                    })?,
+                    notes: notes.ok_or_else(|| {
+                        GateError::TaskMetadataParse("missing section Notes".to_string())
                     })?,
                 });
             }

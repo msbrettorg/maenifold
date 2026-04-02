@@ -105,12 +105,13 @@ fn probe_agent(root: &std::path::Path, name: &str, entry: &crate::acp_config::Ag
     let result: std::result::Result<Value, String> = match supervisor_runtime() {
         Ok(runtime) => runtime.block_on(async move {
             let handle = GLOBAL_AGENT_POOL
-                .get_or_create(&agent_name, &command, &cwd, env)
+                .get_or_create(&agent_name, &command, &cwd, env, true)
                 .await;
 
             let info = handle
                 .new_session(SessionOpts {
                     cwd: cwd.clone(),
+                    auto_grant_permissions: true,
                     model: None,
                     mode: None,
                     thought_level: None,
@@ -167,4 +168,3 @@ fn probe_agent(root: &std::path::Path, name: &str, entry: &crate::acp_config::Ag
         Err(error) => json!({ "error": error }),
     }
 }
-

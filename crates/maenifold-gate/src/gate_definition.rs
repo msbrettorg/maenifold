@@ -6,8 +6,6 @@ use crate::error::GateError;
 
 #[derive(Debug, Clone)]
 pub struct GateDefinition {
-    pub id: String,
-    pub name: String,
     pub digest: String,
     pub initial: String,
     pub states: BTreeMap<String, GateState>,
@@ -50,10 +48,18 @@ impl GateDefinition {
                 file.schema_version
             )));
         }
+        if file.id.trim().is_empty() {
+            return Err(GateError::TaskMetadataParse(
+                "gate definition id must not be empty".to_string(),
+            ));
+        }
+        if file.name.trim().is_empty() {
+            return Err(GateError::TaskMetadataParse(
+                "gate definition name must not be empty".to_string(),
+            ));
+        }
 
         let definition = Self {
-            id: file.id,
-            name: file.name,
             digest,
             initial: file.initial,
             states: file.states,
@@ -72,12 +78,6 @@ impl GateDefinition {
 
     pub fn find_state(&self, id: &str) -> Option<&GateState> {
         self.states.get(id)
-    }
-}
-
-impl GateState {
-    pub fn allows_outcome(&self, outcome: &str) -> bool {
-        self.on.contains_key(outcome)
     }
 }
 

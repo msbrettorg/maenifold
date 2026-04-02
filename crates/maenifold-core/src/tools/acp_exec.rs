@@ -6,6 +6,7 @@ use crate::mcp::schema::{
 };
 use crate::workflow::pipeline::supervisor_runtime;
 use crate::workflow::runner::{self, ThinkOptions};
+use crate::workflow::think_runner::{DEFAULT_TOTAL_THOUGHTS, WIKILINK_CONTEXT};
 use agent_client_protocol as acp;
 use serde_json::Value;
 use std::path::PathBuf;
@@ -37,7 +38,7 @@ pub fn acp_exec(context: &ToolContext, payload: &Value) -> Result<String> {
 
 fn exec_prompt(context: &ToolContext, payload: &Value, agent: &str) -> Result<String> {
     let prompt = required_str(payload, "prompt")?;
-    let opts = session_opts_from(context.config.maenifold_root.clone(), payload);
+    let opts = session_opts_from(context.config.maenifold_root.clone(), payload)?;
     let context_blocks = optional_context_blocks(payload)?;
     let prompt_owned = prompt.to_string();
     supervisor_runtime()?.block_on(async move {
@@ -57,13 +58,13 @@ fn exec_think(context: &ToolContext, payload: &Value, agent: &str) -> Result<Str
     let total_thoughts = payload
         .get("totalThoughts")
         .and_then(Value::as_u64)
-        .unwrap_or(5) as u32;
+        .unwrap_or(DEFAULT_TOTAL_THOUGHTS as u64) as u32;
     let context_blocks = optional_context_blocks(payload)?;
-    let opts = session_opts_from(context.config.maenifold_root.clone(), payload);
+    let opts = session_opts_from(context.config.maenifold_root.clone(), payload)?;
     let think_opts = ThinkOptions {
         total_thoughts,
         model: opts.model.clone(),
-        ..ThinkOptions::default()
+        parent_workflow_id: None,
     };
 
     let topic_owned = topic.to_string();
@@ -74,14 +75,18 @@ fn exec_think(context: &ToolContext, payload: &Value, agent: &str) -> Result<Str
             &ctx,
             &agent_owned,
             &topic_owned,
-            &topic_owned,
+            WIKILINK_CONTEXT,
             think_opts,
             opts,
             Arc::clone(&GLOBAL_AGENT_POOL),
             context_blocks,
         )
         .await
-        .map(|result| result.conclusion.unwrap_or_default())
+        .map(|result| {
+            result
+                .conclusion
+                .unwrap_or_else(|| "[no conclusion produced]".to_string())
+        })
     })
 }
 
@@ -89,7 +94,7 @@ fn exec_workflow(context: &ToolContext, payload: &Value, agent: &str) -> Result<
     let workflow_id = required_str(payload, "workflowId")?;
     let prompt = payload.get("prompt").and_then(Value::as_str).unwrap_or("");
     let context_blocks = optional_context_blocks(payload)?;
-    let opts = session_opts_from(context.config.maenifold_root.clone(), payload);
+    let opts = session_opts_from(context.config.maenifold_root.clone(), payload)?;
 
     let workflow_id_owned = workflow_id.to_string();
     let prompt_owned = prompt.to_string();
@@ -108,13 +113,18 @@ fn exec_workflow(context: &ToolContext, payload: &Value, agent: &str) -> Result<
             Arc::clone(&GLOBAL_AGENT_POOL),
         )
         .await
-        .map(|result| result.conclusion.unwrap_or_default())
+        .map(|result| {
+            result
+                .conclusion
+                .unwrap_or_else(|| "[no conclusion produced]".to_string())
+        })
     })
 }
 
-pub(crate) fn session_opts_from(cwd: PathBuf, payload: &Value) -> SessionOpts {
-    SessionOpts {
+pub(crate) fn session_opts_from(cwd: PathBuf, payload: &Value) -> Result<SessionOpts> {
+    Ok(SessionOpts {
         cwd,
+        auto_grant_permissions: required_bool(payload, "autoGrantPermissions")?,
         model: optional_string(payload, "model"),
         mode: optional_string(payload, "sessionMode"),
         thought_level: optional_string(payload, "thoughtLevel"),
@@ -135,9 +145,9 @@ pub(crate) fn session_opts_from(cwd: PathBuf, payload: &Value) -> SessionOpts {
             .get("maxTurns")
             .and_then(Value::as_u64)
             .map(|v| v as u32),
-        timeout_seconds: None,
+        timeout_seconds: payload.get("timeoutSeconds").and_then(Value::as_u64),
         mcp_servers: vec![],
-    }
+    })
 }
 
 fn required_str<'a>(payload: &'a Value, field: &'static str) -> Result<&'a str> {
@@ -149,6 +159,13 @@ fn required_str<'a>(payload: &'a Value, field: &'static str) -> Result<&'a str> 
 
 fn optional_string(payload: &Value, field: &str) -> Option<String> {
     payload.get(field).and_then(Value::as_str).map(String::from)
+}
+
+fn required_bool(payload: &Value, field: &'static str) -> Result<bool> {
+    payload
+        .get(field)
+        .and_then(Value::as_bool)
+        .ok_or(MaenifoldError::MissingProperty(field))
 }
 
 pub(crate) fn optional_context_blocks(payload: &Value) -> Result<Option<Vec<acp::ContentBlock>>> {
@@ -215,4 +232,3 @@ fn context_block_into_acp(index: usize, block: AcpExecContextBlock) -> Result<ac
         }
     })
 }
-

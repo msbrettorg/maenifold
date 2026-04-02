@@ -136,7 +136,7 @@ Schema invariants:
 - The initial state must declare `on.pass` to the first actionable stage
 - The initial state must not dispatch directly to a terminal state
 
-## Component UML
+## Module UML
 
 ```mermaid
 classDiagram
@@ -289,9 +289,6 @@ class TaskDocument {
 
 class TaskMetadata {
   +title: String
-  +requirement: String
-  +testCases: Vec~String~
-  +component: String
   +pipeline: String
   +pipelineDigest: String
 }
@@ -331,14 +328,6 @@ class GateCacheDb {
   +rebuild(root, definition, tasks) Result
   +upsertTask(task) Result
   +insertWorkLog(entry) Result
-}
-
-class PrdParser {
-  +parse(path) Vec~Requirement~
-}
-
-class RtmParser {
-  +parse(path) Vec~TraceabilityRow~
 }
 
 class JsonRenderer {
@@ -383,8 +372,6 @@ GateToolService --> TaskStatusDeriver
 GateToolService --> StateMachine
 GateToolService --> CanonicalSectionFactory
 GateToolService --> GateCacheDb
-GateToolService --> PrdParser
-GateToolService --> RtmParser
 GateToolService --> JsonRenderer
 
 GateDefinitionCatalog --> GateDefinitionValidator
@@ -415,8 +402,6 @@ Only these source files are allowed in `crates/maenifold-gate/src`:
 - `state_machine.rs`
 - `section_factory.rs`
 - `cache_db.rs`
-- `prd_parser.rs`
-- `rtm_parser.rs`
 - `status_command.rs`
 - `append_command.rs`
 - `pass_command.rs`
@@ -512,9 +497,6 @@ If implementation requires a new file, this spec must be updated first.
 ### `task_metadata.rs`
 
 - Parse title
-- Parse `Requirement`
-- Parse `Test Cases`
-- Parse `Component`
 - Parse `Pipeline`
 - Parse `Pipeline Digest`
 
@@ -554,17 +536,9 @@ If implementation requires a new file, this spec must be updated first.
 ### `cache_db.rs`
 
 - Create and rebuild `gate.db`
-- Upsert tasks
-- Insert work log entries
+- Cache task pipeline/status snapshots
+- Cache work log history entries
 - No authority over task truth
-
-### `prd_parser.rs`
-
-- Parse `PRD.md` requirements for `sync`
-
-### `rtm_parser.rs`
-
-- Parse `RTM.md` traceability rows for `sync`
 
 ### `status_command.rs`
 
@@ -766,7 +740,7 @@ Output:
 
 - For non-special stages, use capitalized stage IDs as canonical headings
 
-### Canonical Data Requirements
+### Canonical Record Fields
 
 Each appended section must include:
 
@@ -824,7 +798,7 @@ Optional:
 - `predicates`
 - `reqwest`
 
-## Verification Requirements
+## Verification Matrix
 
 All implementation must be testable against these required named tests.
 

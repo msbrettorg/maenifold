@@ -49,6 +49,63 @@ fn append_records_swe_work_without_advancing_state() {
 }
 
 #[test]
+fn append_requires_agent_flag() {
+    let root = new_pipeline_root();
+    write_pending_task(root.path(), "T-1.1");
+
+    gate_command(root.path())
+        .args([
+            "append",
+            "T-1.1",
+            "--root",
+            root.path().to_str().expect("root utf8"),
+            "--notes",
+            "implemented auth flow",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--agent"));
+}
+
+#[test]
+fn pass_requires_agent_flag() {
+    let root = new_pipeline_root();
+    write_pending_task(root.path(), "T-1.1");
+
+    gate_command(root.path())
+        .args([
+            "pass",
+            "T-1.1",
+            "--root",
+            root.path().to_str().expect("root utf8"),
+            "--notes",
+            "swe completed",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--agent"));
+}
+
+#[test]
+fn fail_requires_agent_flag() {
+    let root = new_pipeline_root();
+    write_pending_task(root.path(), "T-1.1");
+
+    gate_command(root.path())
+        .args([
+            "fail",
+            "T-1.1",
+            "--root",
+            root.path().to_str().expect("root utf8"),
+            "--notes",
+            "needs rework",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--agent"));
+}
+
+#[test]
 fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
     let root = new_pipeline_root();
     let task = write_pending_task(root.path(), "T-1.1");
@@ -59,6 +116,8 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
             "T-1.1",
             "--root",
             root.path().to_str().expect("root utf8"),
+            "--agent",
+            "test-agent",
             "--notes",
             "swe completed",
         ])
@@ -71,6 +130,8 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
             "T-1.1",
             "--root",
             root.path().to_str().expect("root utf8"),
+            "--agent",
+            "test-agent",
             "--notes",
             "red approved",
         ])
@@ -83,6 +144,8 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
             "T-1.1",
             "--root",
             root.path().to_str().expect("root utf8"),
+            "--agent",
+            "test-agent",
             "--notes",
             "blue verification failed",
         ])
@@ -109,6 +172,8 @@ fn fail_from_pending_dispatch_state_returns_to_pending_and_increments_attempts()
             "T-1.1",
             "--root",
             root.path().to_str().expect("root utf8"),
+            "--agent",
+            "test-agent",
             "--notes",
             "cannot fail before swe runs",
         ])

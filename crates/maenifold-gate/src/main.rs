@@ -9,8 +9,6 @@ mod gate_tool_service;
 mod json_output;
 mod mcp;
 mod pass_command;
-mod prd_parser;
-mod rtm_parser;
 mod section_factory;
 mod state_machine;
 mod status_command;

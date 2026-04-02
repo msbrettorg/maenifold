@@ -47,16 +47,6 @@ pub fn new_pipeline_root() -> TempDir {
     let root = temp.path();
     fs::create_dir_all(root.join("todo")).expect("create todo");
     fs::create_dir_all(root.join("done")).expect("create done");
-    fs::write(
-        root.join("PRD.md"),
-        "# Product Requirements Document\n\n## Functional Requirements\n\n- **FR-1**: System SHALL provide user authentication via JWT tokens\n",
-    )
-    .expect("write PRD");
-    fs::write(
-        root.join("RTM.md"),
-        "# Requirements Traceability Matrix\n\n| Requirement | Component | Test Case | Type |\n|-------------|-----------|-----------|------|\n| FR-1 | src/auth/ | TC-1: login returns JWT | integration |\n",
-    )
-    .expect("write RTM");
     temp
 }
 
@@ -74,7 +64,7 @@ pub fn write_bound_task(
     fs::write(
         &path,
         format!(
-            "# {task_id} — Auth Login JWT\n\n**Requirement**: FR-1\n**Test Cases**: TC-1\n**Component**: src/auth/\n**Pipeline**: {pipeline}\n**Pipeline Digest**: {pipeline_digest}\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
+            "# {task_id} — Auth Login JWT\n\n**Pipeline**: {pipeline}\n**Pipeline Digest**: {pipeline_digest}\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
         ),
     )
     .expect("write task");
@@ -86,7 +76,7 @@ pub fn write_legacy_task_without_pipeline_binding(root: &Path, task_id: &str) ->
     fs::write(
         &path,
         format!(
-            "# {task_id} — Auth Login JWT\n\n**Requirement**: FR-1\n**Test Cases**: TC-1\n**Component**: src/auth/\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
+            "# {task_id} — Auth Login JWT\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
         ),
     )
     .expect("write legacy task");
@@ -98,7 +88,7 @@ pub fn write_task_without_pipeline_digest(root: &Path, task_id: &str, pipeline: 
     fs::write(
         &path,
         format!(
-            "# {task_id} — Auth Login JWT\n\n**Requirement**: FR-1\n**Test Cases**: TC-1\n**Component**: src/auth/\n**Pipeline**: {pipeline}\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
+            "# {task_id} — Auth Login JWT\n\n**Pipeline**: {pipeline}\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
         ),
     )
     .expect("write task without digest");

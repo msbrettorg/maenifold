@@ -38,6 +38,7 @@ impl From<acp::Error> for AgentError {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionOpts {
     pub cwd: PathBuf,
+    pub auto_grant_permissions: bool,
     pub model: Option<String>,
     pub mode: Option<String>,
     pub thought_level: Option<String>,

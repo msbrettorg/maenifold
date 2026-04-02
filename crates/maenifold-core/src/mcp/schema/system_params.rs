@@ -190,6 +190,8 @@ pub struct AcpExecResourceContext {
 pub struct AcpExecParams {
     /// ACP agent name from agents.json
     pub agent: String,
+    /// Whether ACP permission requests should be auto-granted by the native client.
+    pub auto_grant_permissions: bool,
     /// Execution mode
     #[serde(default = "default_prompt_mode")]
     #[schemars(default = "default_prompt_mode")]

@@ -7,9 +7,11 @@ pub mod output_types;
 pub mod pipeline;
 mod queue;
 pub mod runner;
+mod runner_state;
 pub(crate) mod runner_helpers;
 mod status;
 mod submachine;
+mod think_helpers;
 pub(crate) mod think_runner;
 
 // T-12.0: RTM NFR-1 consolidates the workflow facade, helpers, and session logic under one module.
@@ -22,7 +24,7 @@ pub(crate) use queue::{
     append_workflow_queue, frontmatter_usize, initial_workflow_frontmatter, read_workflow_queue,
     start_workflow_session, view_workflow_session,
 };
-pub use runner::{WorkflowResult, WorkflowRunStatus, run_prompt, run_workflow};
+pub use runner::{WorkflowResult, WorkflowRunStatus};
 #[allow(unused_imports)]
 pub(crate) use status::{
     handle_cancelled_workflow_status, handle_completed_workflow_status, handle_queue_exhaustion,
@@ -32,4 +34,4 @@ pub(crate) use status::{
 pub(crate) use submachine::{
     ResumeWorkflowResult, maybe_resume_workflow_submachine, register_workflow_submachine,
 };
-pub use think_runner::{ThinkOptions, ThinkResult, run_think};
+pub use think_runner::{ThinkOptions, ThinkResult};

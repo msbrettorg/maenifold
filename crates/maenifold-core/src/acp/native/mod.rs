@@ -51,6 +51,7 @@ async fn run_agent(
     command: String,
     cwd: PathBuf,
     env: HashMap<String, String>,
+    auto_grant_permissions: bool,
     init: Arc<StdMutex<Option<InitInfo>>>,
     alive: Arc<AtomicBool>,
     mut cmd_rx: mpsc::UnboundedReceiver<AgentCommand>,
@@ -98,6 +99,7 @@ async fn run_agent(
         HeadlessClient {
             cwd: cwd.clone(),
             sessions: Arc::clone(&sessions),
+            auto_grant_permissions,
         },
         stdin,
         stdout,
@@ -177,7 +179,7 @@ async fn run_agent(
                     }));
                     continue;
                 }
-                let result = prompt::prompt_session(&conn, &sessions, session_id, prompt).await;
+                let result = prompt::prompt_session(&conn, &sessions, session_id, prompt, true).await;
                 let _ = reply.send(result);
             }
             AgentCommand::PromptWithContext {
@@ -198,6 +200,7 @@ async fn run_agent(
                     session_id,
                     prompt,
                     context_blocks,
+                    true,
                 )
                 .await;
                 let _ = reply.send(result);
@@ -233,7 +236,12 @@ async fn run_agent(
     reap_child(&mut child, stderr_task, io_task.take()).await;
 }
 
-pub fn spawn_agent(command: String, cwd: PathBuf, env: HashMap<String, String>) -> AgentHandle {
+pub fn spawn_agent(
+    command: String,
+    cwd: PathBuf,
+    env: HashMap<String, String>,
+    auto_grant_permissions: bool,
+) -> AgentHandle {
     let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
     let init = Arc::new(StdMutex::new(None));
     let alive = Arc::new(AtomicBool::new(true));
@@ -255,7 +263,7 @@ pub fn spawn_agent(command: String, cwd: PathBuf, env: HashMap<String, String>) 
             };
 
             tokio::task::LocalSet::new().block_on(&runtime, async move {
-                run_agent(command, cwd, env, init, alive, cmd_rx).await;
+                run_agent(command, cwd, env, auto_grant_permissions, init, alive, cmd_rx).await;
             });
         }
     });

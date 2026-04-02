@@ -13,9 +13,9 @@ impl StatusCommand {
         if args.context.json_output {
             println!("{}", JsonRenderer::render_status(value)?);
         } else {
-            let values = value
-                .as_array()
-                .ok_or_else(|| GateError::TaskMetadataParse("status output must be an array".to_string()))?;
+            let values = value.as_array().ok_or_else(|| {
+                GateError::TaskMetadataParse("status output must be an array".to_string())
+            })?;
             for value in values {
                 println!(
                     "{} {} {}",

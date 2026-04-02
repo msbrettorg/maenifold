@@ -5,20 +5,33 @@ use crate::gate_definition::{GateDefinition, GateState, TransitionResult};
 pub struct StateMachine;
 
 impl StateMachine {
-    pub fn acting_stage_name(state: &str, definition: &GateDefinition) -> Result<String, GateError> {
+    pub fn acting_stage_name(
+        state: &str,
+        definition: &GateDefinition,
+    ) -> Result<String, GateError> {
         let (acting_stage, _) = Self::acting_state(state, definition)?;
         Ok(acting_stage)
     }
 
-    pub fn next_on_pass(state: &str, definition: &GateDefinition) -> Result<TransitionResult, GateError> {
+    pub fn next_on_pass(
+        state: &str,
+        definition: &GateDefinition,
+    ) -> Result<TransitionResult, GateError> {
         Self::transition(state, "pass", definition)
     }
 
-    pub fn next_on_fail(state: &str, definition: &GateDefinition) -> Result<TransitionResult, GateError> {
+    pub fn next_on_fail(
+        state: &str,
+        definition: &GateDefinition,
+    ) -> Result<TransitionResult, GateError> {
         Self::transition(state, "fail", definition)
     }
 
-    pub fn validate_outcome(state: &str, outcome: &str, definition: &GateDefinition) -> Result<(), GateError> {
+    pub fn validate_outcome(
+        state: &str,
+        outcome: &str,
+        definition: &GateDefinition,
+    ) -> Result<(), GateError> {
         let (_, gate_state) = Self::acting_state(state, definition)?;
         if gate_state.allows_outcome(outcome) {
             Ok(())
@@ -30,16 +43,21 @@ impl StateMachine {
         }
     }
 
-    fn transition(state: &str, outcome: &str, definition: &GateDefinition) -> Result<TransitionResult, GateError> {
+    fn transition(
+        state: &str,
+        outcome: &str,
+        definition: &GateDefinition,
+    ) -> Result<TransitionResult, GateError> {
         let (acting_stage, gate_state) = Self::acting_state(state, definition)?;
-        let next_state = gate_state
-            .on
-            .get(outcome)
-            .cloned()
-            .ok_or_else(|| GateError::IllegalTransition {
-                state: state.to_string(),
-                outcome: outcome.to_string(),
-            })?;
+        let next_state =
+            gate_state
+                .on
+                .get(outcome)
+                .cloned()
+                .ok_or_else(|| GateError::IllegalTransition {
+                    state: state.to_string(),
+                    outcome: outcome.to_string(),
+                })?;
 
         Ok(TransitionResult {
             acting_stage,

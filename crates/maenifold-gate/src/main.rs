@@ -25,8 +25,6 @@ mod tray_menu;
 
 use std::process::ExitCode;
 
-use cli::CommandRequest;
-
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let code = match cli::GateCliApp::classify(&args) {
@@ -35,22 +33,4 @@ fn main() -> ExitCode {
         cli::CliAction::Headless => cli::GateCliApp::run(&args),
     };
     ExitCode::from(code as u8)
-}
-
-pub(crate) fn run_command(request: CommandRequest) -> i32 {
-    let result = match request {
-        CommandRequest::Status(args) => status_command::StatusCommand::execute(args),
-        CommandRequest::Append(args) => append_command::AppendCommand::execute(args),
-        CommandRequest::Pass(args) => pass_command::PassCommand::execute(args),
-        CommandRequest::Fail(args) => fail_command::FailCommand::execute(args),
-        CommandRequest::Sync(args) => sync_command::SyncCommand::execute(args),
-    };
-
-    match result {
-        Ok(()) => 0,
-        Err(error) => {
-            eprintln!("{error}");
-            1
-        }
-    }
 }

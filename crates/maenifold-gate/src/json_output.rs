@@ -11,6 +11,8 @@ impl JsonRenderer {
     }
 
     pub fn render_error(error: &GateError) -> Result<String, GateError> {
-        Ok(serde_json::to_string_pretty(&json!({ "error": error.to_string() }))?)
+        Ok(serde_json::to_string_pretty(
+            &json!({ "error": error.to_string() }),
+        )?)
     }
 }

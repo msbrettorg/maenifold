@@ -56,7 +56,12 @@ pub fn write_pending_task(root: &Path, task_id: &str) -> PathBuf {
     write_bound_task(root, task_id, "sdd", &authoritative_digest("sdd"))
 }
 
-pub fn write_bound_task(root: &Path, task_id: &str, pipeline: &str, pipeline_digest: &str) -> PathBuf {
+pub fn write_bound_task(
+    root: &Path,
+    task_id: &str,
+    pipeline: &str,
+    pipeline_digest: &str,
+) -> PathBuf {
     let path = root.join("todo").join(format!("{task_id}.md"));
     fs::write(
         &path,
@@ -115,7 +120,8 @@ pub fn read_task(path: &Path) -> String {
 }
 
 pub fn gate_command(root: &Path) -> Command {
-    let mut command = Command::cargo_bin("gate").expect("gate binary should be present for integration tests");
+    let mut command =
+        Command::cargo_bin("gate").expect("gate binary should be present for integration tests");
     command.env("MAENIFOLD_GATE_ASSETS_DIR", runtime_assets_dir(root));
     command
 }

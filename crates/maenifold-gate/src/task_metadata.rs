@@ -18,14 +18,14 @@ pub struct TaskMetadataParser;
 impl TaskMetadataParser {
     pub fn parse(lines: &[&str]) -> Result<TaskMetadata, GateError> {
         let title = parse_title(lines)?.to_string();
-        let requirement =
-            parse_labeled_value(lines, "Requirement")?.ok_or(GateError::MissingMetadataField("Requirement"))?;
-        let test_cases_raw =
-            parse_labeled_value(lines, "Test Cases")?.ok_or(GateError::MissingMetadataField("Test Cases"))?;
-        let component =
-            parse_labeled_value(lines, "Component")?.ok_or(GateError::MissingMetadataField("Component"))?;
-        let pipeline =
-            parse_labeled_value(lines, "Pipeline")?.ok_or(GateError::MissingMetadataField("Pipeline"))?;
+        let requirement = parse_labeled_value(lines, "Requirement")?
+            .ok_or(GateError::MissingMetadataField("Requirement"))?;
+        let test_cases_raw = parse_labeled_value(lines, "Test Cases")?
+            .ok_or(GateError::MissingMetadataField("Test Cases"))?;
+        let component = parse_labeled_value(lines, "Component")?
+            .ok_or(GateError::MissingMetadataField("Component"))?;
+        let pipeline = parse_labeled_value(lines, "Pipeline")?
+            .ok_or(GateError::MissingMetadataField("Pipeline"))?;
         let pipeline_digest = parse_labeled_value(lines, "Pipeline Digest")?
             .ok_or(GateError::MissingMetadataField("Pipeline Digest"))?;
 
@@ -66,7 +66,9 @@ fn parse_labeled_value(lines: &[&str], label: &str) -> Result<Option<String>, Ga
         let captures = pattern.captures(line)?;
         let found_label = captures.name("label")?.as_str();
         if found_label == label {
-            captures.name("value").map(|value| value.as_str().to_string())
+            captures
+                .name("value")
+                .map(|value| value.as_str().to_string())
         } else {
             None
         }

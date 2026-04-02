@@ -25,8 +25,9 @@ impl GateDefinitionCatalog {
         let asset_path = Self::runtime_gates_dir().join(format!("{name}.json"));
         let bytes = fs::read(&asset_path)?;
         let digest = digest_hex(&bytes);
-        let text = String::from_utf8(bytes)
-            .map_err(|error| GateError::TaskMetadataParse(format!("gate asset is not utf-8: {error}")))?;
+        let text = String::from_utf8(bytes).map_err(|error| {
+            GateError::TaskMetadataParse(format!("gate asset is not utf-8: {error}"))
+        })?;
         GateDefinition::from_json_text(&text, digest)
     }
 
@@ -49,7 +50,11 @@ impl GateDefinitionCatalog {
         Self::load_builtin(name)
     }
 
-    pub fn resolve_bound(root: &Path, name: &str, digest: &str) -> Result<GateDefinition, GateError> {
+    pub fn resolve_bound(
+        root: &Path,
+        name: &str,
+        digest: &str,
+    ) -> Result<GateDefinition, GateError> {
         let definition = Self::resolve(root, name)?;
         if definition.digest != digest {
             return Err(GateError::PipelineDigestMismatch {

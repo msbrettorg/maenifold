@@ -70,7 +70,11 @@ impl TrayApp {
         }
     }
 
-    fn handle_menu_event(&mut self, event_loop: &ActiveEventLoop, event: tray_icon::menu::MenuEvent) {
+    fn handle_menu_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        event: tray_icon::menu::MenuEvent,
+    ) {
         if self.quit_id.as_ref().is_some_and(|id| event.id == *id) {
             self.shutdown_token.cancel();
             self.tray_icon.take();
@@ -96,7 +100,11 @@ impl ApplicationHandler for TrayApp {
             self.handle_menu_event(event_loop, event);
         }
 
-        if self.server_handle.as_ref().is_some_and(|handle| handle.is_finished()) {
+        if self
+            .server_handle
+            .as_ref()
+            .is_some_and(|handle| handle.is_finished())
+        {
             self.tray_icon.take();
             event_loop.exit();
         }
@@ -183,6 +191,7 @@ pub fn run_with_tray(mode: GateServerMode) -> i32 {
     }
 }
 
+#[cfg(not(target_os = "macos"))]
 fn run_headless(mode: GateServerMode) -> i32 {
     let rt = match tokio::runtime::Runtime::new() {
         Ok(rt) => rt,
@@ -240,6 +249,9 @@ mod tests {
 
     #[test]
     fn tray_tooltip_renders_http_port_mode() {
-        assert_eq!(tooltip_for_mode(GateServerMode::Http(8080)), "gate MCP :8080");
+        assert_eq!(
+            tooltip_for_mode(GateServerMode::Http(8080)),
+            "gate MCP :8080"
+        );
     }
 }

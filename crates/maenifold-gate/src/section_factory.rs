@@ -4,7 +4,12 @@ use chrono::Utc;
 pub struct CanonicalSectionFactory;
 
 impl CanonicalSectionFactory {
-    pub fn build_append_section(stage: &str, agent: &str, notes: &str, model: Option<&str>) -> String {
+    pub fn build_append_section(
+        stage: &str,
+        agent: &str,
+        notes: &str,
+        model: Option<&str>,
+    ) -> String {
         Self::build(stage, "append", None, agent, notes, model)
     }
 

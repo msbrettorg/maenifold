@@ -60,9 +60,9 @@ pub(super) async fn prompt_session_with_blocks(
         .await
         .insert(session_id.clone(), SessionAccumulator::default());
 
-    let mut content = vec![acp::ContentBlock::Text(acp::TextContent::new(WIKILINK_CONTEXT))];
-    content.extend(content_blocks);
-    content.push(acp::ContentBlock::Text(acp::TextContent::new(prompt)));
+    let full_prompt = format!("{prompt}\n\n{WIKILINK_CONTEXT}");
+    let mut content = content_blocks;
+    content.push(acp::ContentBlock::Text(acp::TextContent::new(full_prompt)));
 
     eprintln!("[ACP] prompt: session={session_id} content_blocks={} timeout={timeout_seconds}s", content.len());
 

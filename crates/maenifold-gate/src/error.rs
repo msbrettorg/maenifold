@@ -25,7 +25,9 @@ pub enum GateError {
     #[error("task pipeline binding '{bound}' does not match requested pipeline '{requested}'")]
     PipelineOverrideMismatch { requested: String, bound: String },
 
-    #[error("pipeline digest mismatch for '{pipeline}': task binds '{task_digest}' but authoritative asset is '{authoritative_digest}'")]
+    #[error(
+        "pipeline digest mismatch for '{pipeline}': task binds '{task_digest}' but authoritative asset is '{authoritative_digest}'"
+    )]
     PipelineDigestMismatch {
         pipeline: String,
         task_digest: String,

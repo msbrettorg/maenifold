@@ -37,7 +37,8 @@ impl GateCacheDb {
 
         for task in tasks {
             let document = TaskFileReader::read(&task.path)?;
-            let definition = GateDefinitionCatalog::resolve_for_task(root, &document.metadata, None)?;
+            let definition =
+                GateDefinitionCatalog::resolve_for_task(root, &document.metadata, None)?;
             let state = TaskStatusDeriver::derive(&document, &definition, &task.location)?;
 
             connection.execute(

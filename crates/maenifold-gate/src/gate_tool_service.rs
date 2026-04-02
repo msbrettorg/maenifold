@@ -35,7 +35,11 @@ impl GateToolService {
         let root = args.context.root.clone();
         let requested_pipeline = args.context.requested_pipeline_name.clone();
         append_task(args)?;
-        render_task_status(&root, &TaskRepository::find_task(root.clone(), &task_id)?, requested_pipeline.as_deref())
+        render_task_status(
+            &root,
+            &TaskRepository::find_task(root.clone(), &task_id)?,
+            requested_pipeline.as_deref(),
+        )
     }
 
     pub fn pass(args: OutcomeArgs) -> Result<Value, GateError> {
@@ -43,7 +47,11 @@ impl GateToolService {
         let root = args.context.root.clone();
         let requested_pipeline = args.context.requested_pipeline_name.clone();
         pass_task(args)?;
-        render_task_status(&root, &TaskRepository::find_task(root.clone(), &task_id)?, requested_pipeline.as_deref())
+        render_task_status(
+            &root,
+            &TaskRepository::find_task(root.clone(), &task_id)?,
+            requested_pipeline.as_deref(),
+        )
     }
 
     pub fn fail(args: OutcomeArgs) -> Result<Value, GateError> {
@@ -51,7 +59,11 @@ impl GateToolService {
         let root = args.context.root.clone();
         let requested_pipeline = args.context.requested_pipeline_name.clone();
         fail_task(args)?;
-        render_task_status(&root, &TaskRepository::find_task(root.clone(), &task_id)?, requested_pipeline.as_deref())
+        render_task_status(
+            &root,
+            &TaskRepository::find_task(root.clone(), &task_id)?,
+            requested_pipeline.as_deref(),
+        )
     }
 
     pub fn sync(args: SyncArgs) -> Result<Value, GateError> {
@@ -75,7 +87,8 @@ fn render_task_status(
     requested_pipeline_name: Option<&str>,
 ) -> Result<Value, GateError> {
     let document = TaskFileReader::read(&task.path)?;
-    let definition = GateDefinitionCatalog::resolve_for_task(root, &document.metadata, requested_pipeline_name)?;
+    let definition =
+        GateDefinitionCatalog::resolve_for_task(root, &document.metadata, requested_pipeline_name)?;
     let state = TaskStatusDeriver::derive(&document, &definition, &task.location)?;
     Ok(json!({
         "taskId": task.task_id,
@@ -88,4 +101,101 @@ fn render_task_status(
         "location": state.location,
         "path": task.path,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    use sha2::{Digest, Sha256};
+    use tempfile::TempDir;
+
+    use crate::cli::{GateContext, OutcomeArgs, StatusArgs};
+
+    use super::GateToolService;
+
+    #[test]
+    fn mcp_status_tool_returns_task_array() {
+        let root = new_pipeline_root();
+        write_pending_task(root.path(), "T-1.1");
+
+        let result = GateToolService::status(StatusArgs {
+            context: GateContext {
+                root: root.path().to_path_buf(),
+                requested_pipeline_name: None,
+                json_output: true,
+            },
+        })
+        .expect("status should succeed");
+
+        let rows = result.as_array().expect("status should return array");
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["taskId"], "T-1.1");
+        assert_eq!(rows[0]["state"], "pending");
+    }
+
+    #[test]
+    fn mcp_pass_tool_advances_bound_task() {
+        let root = new_pipeline_root();
+        write_pending_task(root.path(), "T-1.1");
+
+        let result = GateToolService::pass(OutcomeArgs {
+            context: GateContext {
+                root: root.path().to_path_buf(),
+                requested_pipeline_name: None,
+                json_output: false,
+            },
+            task_id: "T-1.1".to_string(),
+            notes: "dispatch".to_string(),
+            model: None,
+        })
+        .expect("pass should succeed");
+
+        assert_eq!(result["taskId"], "T-1.1");
+        assert_eq!(result["state"], "red");
+    }
+
+    fn new_pipeline_root() -> TempDir {
+        let temp = tempfile::tempdir().expect("create temp pipeline root");
+        let root = temp.path();
+        fs::create_dir_all(root.join("todo")).expect("create todo");
+        fs::create_dir_all(root.join("done")).expect("create done");
+        fs::write(
+            root.join("PRD.md"),
+            "# Product Requirements Document\n\n## Functional Requirements\n\n- **FR-1**: System SHALL provide user authentication via JWT tokens\n",
+        )
+        .expect("write PRD");
+        fs::write(
+            root.join("RTM.md"),
+            "# Requirements Traceability Matrix\n\n| Requirement | Component | Test Case | Type |\n|-------------|-----------|-----------|------|\n| FR-1 | src/auth/ | TC-1: login returns JWT | integration |\n",
+        )
+        .expect("write RTM");
+        temp
+    }
+
+    fn write_pending_task(root: &Path, task_id: &str) -> PathBuf {
+        let path = root.join("todo").join(format!("{task_id}.md"));
+        let digest = authoritative_digest("sdd");
+        fs::write(
+            &path,
+            format!(
+                "# {task_id} — Auth Login JWT\n\n**Requirement**: FR-1\n**Test Cases**: TC-1\n**Component**: src/auth/\n**Pipeline**: sdd\n**Pipeline Digest**: {digest}\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
+            ),
+        )
+        .expect("write task");
+        path
+    }
+
+    fn authoritative_digest(name: &str) -> String {
+        let bytes = fs::read(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("assets")
+                .join(format!("{name}.json")),
+        )
+        .expect("read bundled asset");
+        let mut hasher = Sha256::new();
+        hasher.update(bytes);
+        format!("{:x}", hasher.finalize())
+    }
 }

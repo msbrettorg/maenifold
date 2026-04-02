@@ -3,8 +3,8 @@ mod support;
 use predicates::prelude::*;
 use support::{
     gate_command, new_pipeline_root, read_task, status_json,
-    write_legacy_task_without_pipeline_binding, write_pending_task, write_task_with_mismatched_digest,
-    write_task_without_pipeline_digest,
+    write_legacy_task_without_pipeline_binding, write_pending_task,
+    write_task_with_mismatched_digest, write_task_without_pipeline_digest,
 };
 
 #[test]

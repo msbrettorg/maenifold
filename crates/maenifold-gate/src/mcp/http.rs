@@ -17,7 +17,10 @@ pub(super) fn router(service: GateHttpService) -> Router {
 pub(super) fn service(cancellation_token: tokio_util::sync::CancellationToken) -> GateHttpService {
     let session_manager = Arc::new(NeverSessionManager::default());
     StreamableHttpService::new(
-        || GateMcpHandler::new(TransportKind::Http).map_err(|e| std::io::Error::other(e.to_string())),
+        || {
+            GateMcpHandler::new(TransportKind::Http)
+                .map_err(|e| std::io::Error::other(e.to_string()))
+        },
         session_manager,
         StreamableHttpServerConfig {
             stateful_mode: false,
@@ -31,13 +34,15 @@ pub(super) fn service(cancellation_token: tokio_util::sync::CancellationToken) -
 impl super::GateMcpServer {
     pub async fn serve_http(port: u16) -> Result<(), GateError> {
         let bind_addr = format!("127.0.0.1:{port}");
-        let tcp_listener = tokio::net::TcpListener::bind(&bind_addr).await.map_err(|e| {
-            GateError::Cli(format!("HTTP bind failed on {bind_addr}: {e}"))
-        })?;
+        let tcp_listener = tokio::net::TcpListener::bind(&bind_addr)
+            .await
+            .map_err(|e| GateError::Cli(format!("HTTP bind failed on {bind_addr}: {e}")))?;
         Self::serve_http_listener(tcp_listener).await
     }
 
-    pub async fn serve_http_listener(tcp_listener: tokio::net::TcpListener) -> Result<(), GateError> {
+    pub async fn serve_http_listener(
+        tcp_listener: tokio::net::TcpListener,
+    ) -> Result<(), GateError> {
         let ct = tokio_util::sync::CancellationToken::new();
         let bind_addr = tcp_listener
             .local_addr()
@@ -55,5 +60,31 @@ impl super::GateMcpServer {
             .map_err(|e| GateError::Cli(format!("HTTP server error: {e}")))?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use tokio_util::sync::CancellationToken;
+    use tower::util::ServiceExt;
+
+    use super::{router, service};
+
+    #[tokio::test]
+    async fn http_router_mounts_mcp_endpoint() {
+        let app = router(service(CancellationToken::new()));
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/mcp")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_ne!(response.status(), StatusCode::NOT_FOUND);
     }
 }

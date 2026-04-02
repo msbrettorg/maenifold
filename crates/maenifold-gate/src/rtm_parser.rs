@@ -21,7 +21,10 @@ impl RtmParser {
 
         for line in text.lines() {
             let trimmed = line.trim();
-            if !trimmed.starts_with('|') || trimmed.contains("Requirement") || trimmed.contains("---") {
+            if !trimmed.starts_with('|')
+                || trimmed.contains("Requirement")
+                || trimmed.contains("---")
+            {
                 continue;
             }
 

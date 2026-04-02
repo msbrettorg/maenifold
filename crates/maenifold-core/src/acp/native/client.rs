@@ -225,6 +225,6 @@ impl acp::Client for HeadlessClient {
     }
 
     async fn ext_notification(&self, _args: acp::ExtNotification) -> acp::Result<()> {
-        Err(acp::Error::method_not_found())
+        Ok(())
     }
 }

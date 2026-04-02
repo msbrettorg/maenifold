@@ -23,7 +23,11 @@ fn sdd_e2e_bootstraps_assets_retries_from_red_and_completes() {
     assert!(runtime_assets_dir(root.path()).join("sdd.json").exists());
     assert!(runtime_assets_dir(root.path()).join("tdd.json").exists());
     assert!(runtime_assets_dir(root.path()).join("gsd.json").exists());
-    assert!(runtime_assets_dir(root.path()).join("lightweight.json").exists());
+    assert!(
+        runtime_assets_dir(root.path())
+            .join("lightweight.json")
+            .exists()
+    );
 
     pass(root.path(), task_id, "swe remediation completed");
     pass(root.path(), task_id, "red approved");

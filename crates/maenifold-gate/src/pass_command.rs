@@ -1,7 +1,7 @@
 use crate::cli::OutcomeArgs;
 use crate::error::GateError;
-use crate::gate_tool_service::GateToolService;
 use crate::gate_catalog::GateDefinitionCatalog;
+use crate::gate_tool_service::GateToolService;
 use crate::section_factory::CanonicalSectionFactory;
 use crate::state_machine::StateMachine;
 use crate::task_file::{TaskFileReader, TaskFileWriter};

@@ -30,17 +30,19 @@ pub(crate) enum TransportKind {
 
 pub(crate) fn localhost_cors() -> CorsLayer {
     let origin_predicate =
-        AllowOrigin::predicate(|origin: &HeaderValue, _parts: &Parts| match origin.to_str() {
-            Ok(value) => {
-                value == "http://localhost"
-                    || value.starts_with("http://localhost:")
-                    || value == "http://127.0.0.1"
-                    || value.starts_with("http://127.0.0.1:")
-                    || value == "http://[::1]"
-                    || value.starts_with("http://[::1]:")
-            }
-            Err(_) => false,
-        });
+        AllowOrigin::predicate(
+            |origin: &HeaderValue, _parts: &Parts| match origin.to_str() {
+                Ok(value) => {
+                    value == "http://localhost"
+                        || value.starts_with("http://localhost:")
+                        || value == "http://127.0.0.1"
+                        || value.starts_with("http://127.0.0.1:")
+                        || value == "http://[::1]"
+                        || value.starts_with("http://[::1]:")
+                }
+                Err(_) => false,
+            },
+        );
 
     CorsLayer::new()
         .allow_origin(origin_predicate)
@@ -67,7 +69,9 @@ impl GateMcpHandler {
 impl ServerHandler for GateMcpHandler {
     fn get_info(&self) -> ServerInfo {
         let capabilities = match self.transport {
-            TransportKind::Stdio | TransportKind::Http => ServerCapabilities::builder().enable_tools().build(),
+            TransportKind::Stdio | TransportKind::Http => {
+                ServerCapabilities::builder().enable_tools().build()
+            }
         };
 
         ServerInfo::new(capabilities)
@@ -82,7 +86,8 @@ impl ServerHandler for GateMcpHandler {
         &self,
         _request: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-    ) -> impl Future<Output = std::result::Result<ListToolsResult, rmcp::ErrorData>> + Send + '_ {
+    ) -> impl Future<Output = std::result::Result<ListToolsResult, rmcp::ErrorData>> + Send + '_
+    {
         std::future::ready(Ok(ListToolsResult {
             tools: self.tools.clone(),
             next_cursor: None,
@@ -94,7 +99,8 @@ impl ServerHandler for GateMcpHandler {
         &self,
         request: CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
-    ) -> impl Future<Output = std::result::Result<CallToolResult, rmcp::ErrorData>> + Send + '_ {
+    ) -> impl Future<Output = std::result::Result<CallToolResult, rmcp::ErrorData>> + Send + '_
+    {
         let tool_name = request.name.to_string();
         let arguments = match request.arguments {
             Some(map) => Value::Object(map),
@@ -175,7 +181,9 @@ fn call_gate_tool(tool_name: &str, arguments: Value) -> Result<String, GateError
             rebuild: optional_bool(&arguments, "rebuild")?.unwrap_or(false),
         })?,
         _ => {
-            return Err(GateError::Cli(format!("unknown gate MCP tool: {tool_name}")));
+            return Err(GateError::Cli(format!(
+                "unknown gate MCP tool: {tool_name}"
+            )));
         }
     };
 
@@ -193,9 +201,8 @@ fn context_from_value(arguments: &Value, json_output: bool) -> Result<GateContex
 }
 
 fn required_string(arguments: &Value, key: &str) -> Result<String, GateError> {
-    optional_string(arguments, key)?.ok_or_else(|| {
-        GateError::Cli(format!("missing required MCP argument '{key}'"))
-    })
+    optional_string(arguments, key)?
+        .ok_or_else(|| GateError::Cli(format!("missing required MCP argument '{key}'")))
 }
 
 fn optional_string(arguments: &Value, key: &str) -> Result<Option<String>, GateError> {
@@ -215,5 +222,94 @@ fn optional_bool(arguments: &Value, key: &str) -> Result<Option<bool>, GateError
         Some(_) => Err(GateError::Cli(format!(
             "MCP argument '{key}' must be a boolean"
         ))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::Path;
+
+    use serde_json::json;
+    use sha2::{Digest, Sha256};
+    use tempfile::TempDir;
+
+    use super::call_gate_tool;
+
+    #[test]
+    fn mcp_status_tool_returns_task_array() {
+        let root = new_custom_pipeline_root();
+        let output = call_gate_tool("status", json!({ "root": root.path() }))
+            .expect("status tool should succeed");
+        let value: serde_json::Value = serde_json::from_str(&output).expect("valid JSON output");
+        let tasks = value.as_array().expect("status should return an array");
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0]["taskId"], "T-9.1");
+        assert_eq!(tasks[0]["status"], "pending");
+    }
+
+    #[test]
+    fn mcp_pass_tool_advances_bound_task() {
+        let root = new_custom_pipeline_root();
+        let output = call_gate_tool(
+            "pass",
+            json!({
+                "root": root.path(),
+                "taskId": "T-9.1",
+                "notes": "swe completed"
+            }),
+        )
+        .expect("pass tool should succeed");
+        let value: serde_json::Value = serde_json::from_str(&output).expect("valid JSON output");
+        assert_eq!(value["taskId"], "T-9.1");
+        assert_eq!(value["status"], "red");
+    }
+
+    fn new_custom_pipeline_root() -> TempDir {
+        let temp = tempfile::tempdir().expect("create temp root");
+        let root = temp.path();
+        fs::create_dir_all(root.join("todo")).expect("create todo");
+        fs::create_dir_all(root.join("done")).expect("create done");
+
+        let pipeline_json = json!({
+            "schemaVersion": 1,
+            "id": "custom",
+            "name": "Custom",
+            "initial": "pending",
+            "states": {
+                "pending": { "on": { "pass": "swe" } },
+                "swe": { "on": { "fail": "pending", "pass": "red" } },
+                "red": { "on": { "fail": "pending", "pass": "done" } },
+                "done": { "terminal": true }
+            }
+        });
+        let pipeline_text =
+            serde_json::to_string_pretty(&pipeline_json).expect("serialize pipeline json");
+        fs::write(root.join("pipeline.json"), &pipeline_text).expect("write pipeline");
+        let digest = digest_hex(pipeline_text.as_bytes());
+
+        fs::write(
+            root.join("todo").join("T-9.1.md"),
+            task_markdown("T-9.1", "custom", &digest),
+        )
+        .expect("write task");
+        temp
+    }
+
+    fn task_markdown(task_id: &str, pipeline: &str, digest: &str) -> String {
+        format!(
+            "# {task_id} — MCP Test\n\n**Requirement**: FR-1\n**Test Cases**: TC-1\n**Component**: src/gate/\n**Pipeline**: {pipeline}\n**Pipeline Digest**: {digest}\n\n## Acceptance Criteria\n\n1. tool call succeeds\n"
+        )
+    }
+
+    fn digest_hex(bytes: &[u8]) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(bytes);
+        format!("{:x}", hasher.finalize())
+    }
+
+    #[allow(dead_code)]
+    fn _assert_exists(path: &Path) {
+        assert!(path.exists(), "missing path {}", path.display());
     }
 }

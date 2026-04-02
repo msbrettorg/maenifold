@@ -17,8 +17,11 @@ pub struct PrdParser;
 impl PrdParser {
     pub fn parse(path: &Path) -> Result<Vec<Requirement>, GateError> {
         let text = fs::read_to_string(path)?;
-        let pattern = Regex::new(r"^\s*-\s+\*\*(?P<id>(?:FR|NFR)-\d+)\*\*:\s*(?P<description>.+?)\s*$")
-            .map_err(|error| GateError::TaskMetadataParse(format!("invalid PRD regex: {error}")))?;
+        let pattern =
+            Regex::new(r"^\s*-\s+\*\*(?P<id>(?:FR|NFR)-\d+)\*\*:\s*(?P<description>.+?)\s*$")
+                .map_err(|error| {
+                    GateError::TaskMetadataParse(format!("invalid PRD regex: {error}"))
+                })?;
         let mut requirements = Vec::new();
 
         for line in text.lines() {

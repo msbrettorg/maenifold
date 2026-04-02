@@ -79,7 +79,8 @@ impl CliParser {
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
-        let cli = GateCli::try_parse_from(argv).map_err(|error| GateError::Cli(error.to_string()))?;
+        let cli =
+            GateCli::try_parse_from(argv).map_err(|error| GateError::Cli(error.to_string()))?;
         if cli.mcp || cli.http {
             return Err(GateError::Cli(
                 "service modes must be handled through GateCliApp".to_string(),
@@ -369,4 +370,37 @@ fn render_clap_error(error: clap::Error) -> i32 {
         println!("{error}");
     }
     code
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CliAction, GateCliApp, parse_cli, validate_cli};
+
+    #[test]
+    fn classify_mcp_mode_as_tray_enabled() {
+        let args = vec!["--mcp".to_string()];
+        assert_eq!(GateCliApp::classify(&args), CliAction::Mcp);
+    }
+
+    #[test]
+    fn classify_http_mode_as_tray_enabled() {
+        let args = vec![
+            "--http".to_string(),
+            "--port".to_string(),
+            "8181".to_string(),
+        ];
+        assert_eq!(GateCliApp::classify(&args), CliAction::Http(8181));
+    }
+
+    #[test]
+    fn reject_port_without_http() {
+        let args = vec!["--port".to_string(), "8181".to_string()];
+        let parsed = parse_cli(&args).expect("CLI should parse");
+        let error = validate_cli(&parsed).expect_err("port without --http must fail");
+        assert!(
+            error
+                .to_string()
+                .contains("--port may only be used with --http")
+        );
+    }
 }

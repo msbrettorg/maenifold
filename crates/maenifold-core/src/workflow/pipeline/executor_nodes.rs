@@ -174,7 +174,7 @@ fn merged_session_opts(
         config_options: agent_config.and_then(|config| config.config_options.clone()),
         allowed_tools: allowed_tools.clone(),
         max_turns,
-        timeout_seconds,
+        timeout_seconds: timeout_seconds.unwrap_or(3600),
         mcp_servers: vec![],
     }
 }

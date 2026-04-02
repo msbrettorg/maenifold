@@ -102,7 +102,7 @@ fn exec_workflow(context: &ToolContext, payload: &Value, agent: &str) -> Result<
             None,
             &agent_owned,
             &prompt_owned,
-            opts.timeout_seconds,
+            Some(opts.timeout_seconds),
             opts.model.clone(),
             context_blocks,
             Arc::clone(&GLOBAL_AGENT_POOL),
@@ -135,7 +135,10 @@ pub(crate) fn session_opts_from(cwd: PathBuf, payload: &Value) -> SessionOpts {
             .get("maxTurns")
             .and_then(Value::as_u64)
             .map(|v| v as u32),
-        timeout_seconds: payload.get("timeoutSeconds").and_then(Value::as_u64),
+        timeout_seconds: payload
+            .get("timeoutSeconds")
+            .and_then(Value::as_u64)
+            .unwrap_or(3600),
         mcp_servers: vec![],
     }
 }

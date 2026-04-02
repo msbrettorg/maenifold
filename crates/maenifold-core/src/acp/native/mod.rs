@@ -163,7 +163,7 @@ async fn run_agent(
         match cmd {
             AgentCommand::Shutdown => break,
             AgentCommand::NewSession { opts, reply } => {
-                let timeout_seconds = opts.resolved_timeout_seconds();
+                let timeout_seconds = opts.timeout_seconds;
                 let result = session_new::session_new(&conn, opts).await;
                 if let Ok(info) = &result {
                     session_timeouts
@@ -181,7 +181,7 @@ async fn run_agent(
                 opts,
                 reply,
             } => {
-                let timeout_seconds = opts.resolved_timeout_seconds();
+                let timeout_seconds = opts.timeout_seconds;
                 let result = session_list::load_session(&conn, &init, session_id.clone(), opts).await;
                 if result.is_ok() {
                     session_timeouts
@@ -202,12 +202,19 @@ async fn run_agent(
                     }));
                     continue;
                 }
+                let timeout_seconds = session_timeouts
+                    .lock()
+                    .await
+                    .get(&session_id)
+                    .copied()
+                    .unwrap_or(3600);
                 let result = prompt::prompt_session(
                     &conn,
                     &sessions,
                     &session_timeouts,
                     session_id,
                     prompt,
+                    timeout_seconds,
                 )
                 .await;
                 let _ = reply.send(result);
@@ -224,6 +231,12 @@ async fn run_agent(
                     }));
                     continue;
                 }
+                let timeout_seconds = session_timeouts
+                    .lock()
+                    .await
+                    .get(&session_id)
+                    .copied()
+                    .unwrap_or(3600);
                 let result = prompt::prompt_session_with_blocks(
                     &conn,
                     &sessions,
@@ -231,6 +244,7 @@ async fn run_agent(
                     session_id,
                     prompt,
                     context_blocks,
+                    timeout_seconds,
                 )
                 .await;
                 let _ = reply.send(result);

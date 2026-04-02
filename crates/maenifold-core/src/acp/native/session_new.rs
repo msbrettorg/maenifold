@@ -10,7 +10,7 @@ pub(super) async fn session_new(
     conn: &acp::ClientSideConnection,
     opts: SessionOpts,
 ) -> Result<SessionInfo> {
-    let timeout_seconds = opts.resolved_timeout_seconds();
+    let timeout_seconds = opts.timeout_seconds;
     let cwd = opts.cwd.clone();
     let mcp_servers = opts.mcp_servers.clone();
     let response = tokio::time::timeout(

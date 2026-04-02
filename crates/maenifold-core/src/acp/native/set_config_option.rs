@@ -1,6 +1,5 @@
 use agent_client_protocol::{self as acp, Agent as _};
 use super::types::SessionOpts;
-use tracing::warn;
 
 pub(super) async fn apply_session_config(
     conn: &acp::ClientSideConnection,

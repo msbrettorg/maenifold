@@ -117,7 +117,7 @@ fn probe_agent(root: &std::path::Path, name: &str, entry: &crate::acp_config::Ag
                     config_options: None,
                     allowed_tools: None,
                     max_turns: None,
-                    timeout_seconds: Some(30),
+                    timeout_seconds: 30,
                     mcp_servers: vec![],
                 })
                 .await

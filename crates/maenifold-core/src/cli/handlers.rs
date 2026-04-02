@@ -95,7 +95,7 @@ pub(super) fn run_prompt_command(agent: String, message: String, model: Option<S
             config_options: None,
             allowed_tools: None,
             max_turns: None,
-            timeout_seconds: None,
+            timeout_seconds: 14400,
             mcp_servers: vec![],
         };
         run_prompt(&agent, &message, opts).await

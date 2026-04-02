@@ -9,8 +9,6 @@ use std::{
 };
 use tokio::sync::{mpsc, oneshot};
 
-pub(super) const DEFAULT_SESSION_TIMEOUT_SECONDS: u64 = 1800;
-
 pub type Result<T> = std::result::Result<T, AgentError>;
 pub type AcpxError = AgentError;
 type Reply<T> = oneshot::Sender<Result<T>>;
@@ -46,15 +44,8 @@ pub struct SessionOpts {
     pub config_options: Option<serde_json::Map<String, serde_json::Value>>,
     pub allowed_tools: Option<Vec<String>>,
     pub max_turns: Option<u32>,
-    pub timeout_seconds: Option<u64>,
+    pub timeout_seconds: u64,
     pub mcp_servers: Vec<acp::McpServer>,
-}
-
-impl SessionOpts {
-    pub fn resolved_timeout_seconds(&self) -> u64 {
-        self.timeout_seconds
-            .unwrap_or(DEFAULT_SESSION_TIMEOUT_SECONDS)
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

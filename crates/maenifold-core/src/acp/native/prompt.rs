@@ -5,7 +5,7 @@ use tokio::{sync::Mutex, time::Duration};
 use super::{
     accumulator::SessionAccumulator,
     format_stop_reason,
-    types::{AgentError, AgentResponse, Result, DEFAULT_SESSION_TIMEOUT_SECONDS},
+    types::{AgentError, AgentResponse, Result},
     usage_to_response,
 };
 
@@ -25,17 +25,19 @@ Only tag concepts worth a wiki page."#;
 pub(super) async fn prompt_session(
     conn: &acp::ClientSideConnection,
     sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>,
-    timeout_overrides: &Arc<Mutex<HashMap<String, u64>>>,
+    _timeout_overrides: &Arc<Mutex<HashMap<String, u64>>>,
     session_id: String,
     prompt: String,
+    timeout_seconds: u64,
 ) -> Result<AgentResponse> {
     prompt_session_with_blocks(
         conn,
         sessions,
-        timeout_overrides,
+        _timeout_overrides,
         session_id,
         prompt,
         vec![],
+        timeout_seconds,
     )
     .await
 }
@@ -43,18 +45,12 @@ pub(super) async fn prompt_session(
 pub(super) async fn prompt_session_with_blocks(
     conn: &acp::ClientSideConnection,
     sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>,
-    timeout_overrides: &Arc<Mutex<HashMap<String, u64>>>,
+    _timeout_overrides: &Arc<Mutex<HashMap<String, u64>>>,
     session_id: String,
     prompt: String,
     content_blocks: Vec<acp::ContentBlock>,
+    timeout_seconds: u64,
 ) -> Result<AgentResponse> {
-    let timeout_seconds = timeout_overrides
-        .lock()
-        .await
-        .get(&session_id)
-        .copied()
-        .unwrap_or(DEFAULT_SESSION_TIMEOUT_SECONDS);
-
     sessions
         .lock()
         .await

@@ -60,7 +60,7 @@ pub(super) async fn load_session(
         ));
     }
 
-    let timeout_seconds = opts.timeout_seconds;
+    let timeout_seconds = opts.timeout_seconds.unwrap_or(3600);
     let response = tokio::time::timeout(
         Duration::from_secs(timeout_seconds),
         conn.load_session(

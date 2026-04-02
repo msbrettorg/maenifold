@@ -94,7 +94,6 @@ async fn run_agent(
     };
 
     let sessions = Arc::new(Mutex::new(HashMap::<String, SessionAccumulator>::new()));
-    let session_timeouts = Arc::new(Mutex::new(HashMap::<String, u64>::new()));
     let (conn, io_future) = acp::ClientSideConnection::new(
         HeadlessClient {
             cwd: cwd.clone(),
@@ -163,14 +162,7 @@ async fn run_agent(
         match cmd {
             AgentCommand::Shutdown => break,
             AgentCommand::NewSession { opts, reply } => {
-                let timeout_seconds = opts.timeout_seconds;
                 let result = session_new::session_new(&conn, opts).await;
-                if let Ok(info) = &result {
-                    session_timeouts
-                        .lock()
-                        .await
-                        .insert(info.session_id.clone(), timeout_seconds);
-                }
                 let _ = reply.send(result);
             }
             AgentCommand::ListSessions { cwd, reply } => {
@@ -181,14 +173,7 @@ async fn run_agent(
                 opts,
                 reply,
             } => {
-                let timeout_seconds = opts.timeout_seconds;
-                let result = session_list::load_session(&conn, &init, session_id.clone(), opts).await;
-                if result.is_ok() {
-                    session_timeouts
-                        .lock()
-                        .await
-                        .insert(session_id, timeout_seconds);
-                }
+                let result = session_list::load_session(&conn, &init, session_id, opts).await;
                 let _ = reply.send(result);
             }
             AgentCommand::Prompt {
@@ -202,21 +187,7 @@ async fn run_agent(
                     }));
                     continue;
                 }
-                let timeout_seconds = session_timeouts
-                    .lock()
-                    .await
-                    .get(&session_id)
-                    .copied()
-                    .unwrap_or(3600);
-                let result = prompt::prompt_session(
-                    &conn,
-                    &sessions,
-                    &session_timeouts,
-                    session_id,
-                    prompt,
-                    timeout_seconds,
-                )
-                .await;
+                let result = prompt::prompt_session(&conn, &sessions, session_id, prompt).await;
                 let _ = reply.send(result);
             }
             AgentCommand::PromptWithContext {
@@ -231,20 +202,12 @@ async fn run_agent(
                     }));
                     continue;
                 }
-                let timeout_seconds = session_timeouts
-                    .lock()
-                    .await
-                    .get(&session_id)
-                    .copied()
-                    .unwrap_or(3600);
                 let result = prompt::prompt_session_with_blocks(
                     &conn,
                     &sessions,
-                    &session_timeouts,
                     session_id,
                     prompt,
                     context_blocks,
-                    timeout_seconds,
                 )
                 .await;
                 let _ = reply.send(result);
@@ -263,7 +226,6 @@ async fn run_agent(
             }
             AgentCommand::CloseSession { session_id } => {
                 sessions.lock().await.remove(&session_id);
-                session_timeouts.lock().await.remove(&session_id);
                 if let Err(error) = conn
                     .close_session(acp::CloseSessionRequest::new(acp::SessionId::new(
                         session_id,

@@ -44,7 +44,7 @@ pub struct SessionOpts {
     pub config_options: Option<serde_json::Map<String, serde_json::Value>>,
     pub allowed_tools: Option<Vec<String>>,
     pub max_turns: Option<u32>,
-    pub timeout_seconds: u64,
+    pub timeout_seconds: Option<u64>,
     pub mcp_servers: Vec<acp::McpServer>,
 }
 

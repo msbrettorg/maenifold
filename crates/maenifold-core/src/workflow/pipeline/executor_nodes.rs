@@ -160,7 +160,7 @@ fn merged_session_opts(
     thought_level: &Option<String>,
     allowed_tools: &Option<Vec<String>>,
     max_turns: Option<u32>,
-    timeout_seconds: Option<u64>,
+    _timeout_seconds: Option<u64>,
 ) -> SessionOpts {
     SessionOpts {
         cwd: context.config.maenifold_root.clone(),
@@ -174,7 +174,7 @@ fn merged_session_opts(
         config_options: agent_config.and_then(|config| config.config_options.clone()),
         allowed_tools: allowed_tools.clone(),
         max_turns,
-        timeout_seconds: timeout_seconds.unwrap_or(3600),
+        timeout_seconds: None,
         mcp_servers: vec![],
     }
 }

@@ -219,16 +219,8 @@ async fn run_mode(mode: GateServerMode) -> Result<(), crate::error::GateError> {
 }
 
 fn build_icon() -> Icon {
-    let width = 16u32;
-    let height = 16u32;
-    let mut rgba = Vec::with_capacity((width * height * 4) as usize);
-    for y in 0..height {
-        for x in 0..width {
-            let blue = 160 + ((x + y) % 32) as u8;
-            rgba.extend_from_slice(&[24, 96, blue, 255]);
-        }
-    }
-    Icon::from_rgba(rgba, width, height).expect("valid RGBA tray icon")
+    let rgba = include_bytes!("tray_icon.rgba");
+    Icon::from_rgba(rgba.to_vec(), 64, 64).expect("valid 64x64 RGBA tray icon")
 }
 
 pub(crate) fn tooltip_for_mode(mode: GateServerMode) -> String {

@@ -176,7 +176,7 @@ impl AcpxDriver {
                 config_options: None,
                 allowed_tools: None,
                 max_turns: None,
-                timeout_seconds: self.timeout_seconds,
+                timeout_seconds: None,
                 mcp_servers: vec![],
             })
             .await?

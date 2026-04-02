@@ -191,7 +191,7 @@ pub async fn run_think(
             config_options: None,
             allowed_tools: None,
             max_turns: None,
-            timeout_seconds: 14400,
+            timeout_seconds: None,
             mcp_servers: vec![],
         },
         Arc::clone(&crate::acp_native::GLOBAL_AGENT_POOL),

@@ -3,7 +3,7 @@ use super::output_parser::parse_output;
 use super::output_types::WorkflowOutput;
 use super::runner::WorkflowRunStatus;
 use super::think_runner::WIKILINK_CONTEXT;
-use crate::acpx_driver::AcpxResponse;
+use crate::acp_native::AcpxResponse;
 use crate::error::{MaenifoldError, Result};
 use agent_client_protocol as acp;
 use regex::Regex;

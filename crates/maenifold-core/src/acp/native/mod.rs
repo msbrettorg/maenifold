@@ -9,7 +9,7 @@ mod prompt;
 mod set_config_option;
 mod process;
 
-pub use pool::{AcpxDriver, AgentPool, GLOBAL_AGENT_POOL};
+pub use pool::{AgentPool, GLOBAL_AGENT_POOL};
 pub use types::*;
 
 use accumulator::SessionAccumulator;
@@ -171,7 +171,6 @@ async fn run_agent(
             AgentCommand::Prompt {
                 session_id,
                 prompt,
-                inject_wikilinks,
                 reply,
             } => {
                 if io_task.is_none() {
@@ -180,14 +179,13 @@ async fn run_agent(
                     }));
                     continue;
                 }
-                let result = prompt::prompt_session(&conn, &sessions, session_id, prompt, inject_wikilinks).await;
+                let result = prompt::prompt_session(&conn, &sessions, session_id, prompt).await;
                 let _ = reply.send(result);
             }
             AgentCommand::PromptWithContext {
                 session_id,
                 prompt,
                 context_blocks,
-                inject_wikilinks,
                 reply,
             } => {
                 if io_task.is_none() {
@@ -202,7 +200,6 @@ async fn run_agent(
                     session_id,
                     prompt,
                     context_blocks,
-                    inject_wikilinks,
                 )
                 .await;
                 let _ = reply.send(result);

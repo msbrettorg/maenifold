@@ -148,14 +148,12 @@ pub enum AgentCommand {
     Prompt {
         session_id: String,
         prompt: String,
-        inject_wikilinks: bool,
         reply: Reply<AgentResponse>,
     },
     PromptWithContext {
         session_id: String,
         prompt: String,
         context_blocks: Vec<acp::ContentBlock>,
-        inject_wikilinks: bool,
         reply: Reply<AgentResponse>,
     },
     Cancel {
@@ -227,11 +225,10 @@ impl AgentHandle {
         })
         .await
     }
-    pub async fn prompt(&self, session_id: &str, prompt: &str, inject_wikilinks: bool) -> Result<AgentResponse> {
+    pub async fn prompt(&self, session_id: &str, prompt: &str) -> Result<AgentResponse> {
         self.request(|reply| AgentCommand::Prompt {
             session_id: session_id.to_string(),
             prompt: prompt.to_string(),
-            inject_wikilinks,
             reply,
         })
         .await
@@ -241,13 +238,11 @@ impl AgentHandle {
         session_id: &str,
         prompt: &str,
         context_blocks: Vec<acp::ContentBlock>,
-        inject_wikilinks: bool,
     ) -> Result<AgentResponse> {
         self.request(|reply| AgentCommand::PromptWithContext {
             session_id: session_id.to_string(),
             prompt: prompt.to_string(),
             context_blocks,
-            inject_wikilinks,
             reply,
         })
         .await

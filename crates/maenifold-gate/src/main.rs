@@ -22,7 +22,7 @@ mod task_sections;
 mod task_status;
 mod tray;
 mod tray_menu;
-mod web;
+mod ui_window;
 
 use std::process::ExitCode;
 

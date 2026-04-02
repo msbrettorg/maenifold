@@ -9,19 +9,6 @@ use super::{
     usage_to_response,
 };
 
-/// WikiLink tagging instructions injected as context for all ACP sessions.
-const WIKILINK_CONTEXT: &str = r#"Tag important concepts as [[WikiLinks]] using these rules:
-- Double brackets: [[WikiLink]] never [WikiLink]
-- Normalized to lowercase-with-hyphens internally
-- PRIMARY concept only: [[MCP]] not [[MCP-server]]
-- GENERAL terms: [[authentication]] not [[auth-system]]
-- NO file paths, code elements, or trivial words
-- TAG substance: [[machine-learning]], [[GraphRAP]], [[vector-embeddings]]
-- REUSE existing concepts before inventing near-duplicates
-- HYPHENATE multiword: [[null-reference-exception]] not [[Null Reference Exception]]
-WikiLinks become knowledge graph nodes. Bad tagging = graph corruption.
-Only tag concepts worth a wiki page."#;
-
 fn stop_reason_error(stop_reason: Option<&str>) -> Option<String> {
     match stop_reason {
         Some("end_turn" | "max_tokens" | "max_turn_requests" | "refusal" | "cancelled") | None => None,
@@ -34,17 +21,8 @@ pub(super) async fn prompt_session(
     sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>,
     session_id: String,
     prompt: String,
-    inject_wikilinks: bool,
 ) -> Result<AgentResponse> {
-    prompt_session_with_blocks(
-        conn,
-        sessions,
-        session_id,
-        prompt,
-        vec![],
-        inject_wikilinks,
-    )
-    .await
+    prompt_session_with_blocks(conn, sessions, session_id, prompt, vec![]).await
 }
 
 pub(super) async fn prompt_session_with_blocks(
@@ -53,20 +31,14 @@ pub(super) async fn prompt_session_with_blocks(
     session_id: String,
     prompt: String,
     content_blocks: Vec<acp::ContentBlock>,
-    inject_wikilinks: bool,
 ) -> Result<AgentResponse> {
     sessions
         .lock()
         .await
         .insert(session_id.clone(), SessionAccumulator::default());
 
-    let final_prompt = if inject_wikilinks {
-        format!("{prompt}\n\n{WIKILINK_CONTEXT}")
-    } else {
-        prompt
-    };
     let mut content = content_blocks;
-    content.push(acp::ContentBlock::Text(acp::TextContent::new(final_prompt)));
+    content.push(acp::ContentBlock::Text(acp::TextContent::new(prompt)));
 
 
     let result = conn

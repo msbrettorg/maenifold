@@ -1,13 +1,15 @@
-# ACP Client Architecture — Spec-Aligned Greenfield (v2)
+# ACP Client Architecture — As Built
 
-Corrected after dual red-team audit (GPT-5.4 + Sonnet-4.6).
-All types from `agent-client-protocol` Rust crate. Spec is law.
+This document describes the code that actually exists in `crates/maenifold-core/src/acp/native/`.
+Type authority is the Rust `agent-client-protocol` crate; local code adds orchestration, pooling,
+stream accumulation, and a headless ACP client.
 
 ## Design Principle
 
-Use the `agent-client-protocol` crate (`acp` in Cargo.toml) as the type authority.
-Do NOT hand-write wire types. Re-export from the crate. Only add our own
-orchestration types (AgentHandle, ResponseAccumulator).
+- Use `agent-client-protocol` as the wire/type authority.
+- `prompt` is the only primitive operation. `think` and `workflow` are orchestration layers that
+  open an `AgentSession` and chain prompt turns through the same session.
+- `AgentSession` is the workflow-layer chokepoint (`workflow/agent_session.rs`), not the transport.
 
 ## ACP Protocol Methods (from spec — COMPLETE stable catalog)
 
@@ -37,122 +39,23 @@ orchestration types (AgentHandle, ResponseAccumulator).
 | `terminal/kill` | `{ sessionId, terminalId }` | terminals |
 | `terminal/release` | `{ sessionId, terminalId }` | terminals |
 
-### Unstable (in use, needs capability gate)
-| Method | Feature flag | Note |
-|---|---|---|
-| `session/close` | `unstable_session_close` | Actively used in event_loop. Gate on cap. |
-
-## Types — From `agent-client-protocol` crate
-
-types.rs re-exports from the crate. We do NOT redefine these:
-
-- `ContentBlock` (Text, Image, Audio, EmbeddedResource, ResourceLink)
-- `StopReason` (EndTurn, MaxTokens, MaxTurnRequests, Refusal, Cancelled)
-- `SessionUpdate` — ALL 9 stable variants:
-  - `user_message_chunk` — needed for session/load replay
-  - `agent_message_chunk`
-  - `agent_thought_chunk`
-  - `tool_call`
-  - `tool_call_update`
-  - `plan` (field: `entries`, not `commands`)
-  - `current_mode_update` (field: `currentModeId`, not `mode`)
-  - `config_option_update` — agent changed its own config
-  - `session_info_update` — session metadata changed
-  - `available_commands_update`
-- `ClientCapabilities` { fs: { readTextFile, writeTextFile }, terminal }
-- `AgentCapabilities` { loadSession, promptCapabilities, mcpCapabilities, sessionCapabilities }
-- `McpServerConfig` — stdio + HTTP + SSE transport union
-- `ImplementationInfo` { name, title?, version } — title is OPTIONAL per spec
-- `SessionConfigOption` — config options declared by agent
-- `PermissionOption` { optionId, name, kind } — for request_permission
-- `_meta` — built-in on all types, NOT an extension to be banned
-
-Our own types (in types.rs):
-- `AgentHandle` { conn, tx, init_info, is_running }
-- `ResponseAccumulator` — accumulates session/update stream into response
-- `AgentCommand` — internal command enum for event loop
-
 ## Component Diagram
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        acp/native/                              │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                      types.rs                            │   │
-│  │  re-export from agent-client-protocol crate              │   │
-│  │  + AgentHandle, ResponseAccumulator, AgentCommand        │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌──────────────────┐  ┌────────────────────────────────────┐   │
-│  │  transport.rs    │  │         initialize.rs              │   │
-│  │                  │  │                                    │   │
-│  │  spawn_agent()   │  │  initialize(conn, caps, info)     │   │
-│  │  reap_child()    │  │    → InitializeResponse           │   │
-│  │  spawn_stderr()  │  │  authenticate(conn, auth)         │   │
-│  └────────┬─────────┘  │    → AuthResponse                 │   │
-│           │            └──────────────┬─────────────────────┘   │
-│           ▼                           ▼                         │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                   session_new.rs                         │   │
-│  │  session_new(conn, cwd, mcp_servers)                     │   │
-│  │    → { sessionId, configOptions, modes }                 │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                   session_load.rs                        │   │
-│  │  session_load(conn, sid, cwd, mcp_servers) → ()          │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                   session_list.rs                        │   │
-│  │  session_list(conn) → Vec<SessionInfo>                   │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │               set_config_option.rs                       │   │
-│  │  set_config_option(conn, sid, optionId, value)           │   │
-│  │    → Vec<SessionConfigOption>                            │   │
-│  │  apply_config_batch(conn, sid, opts, caps) → ()          │   │
-│  │    [batch helper: calls set_config_option per field]     │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    set_mode.rs                           │   │
-│  │  set_mode(conn, sid, modeId) → ()                        │   │
-│  │  [DEPRECATED — backwards compat only]                    │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                     prompt.rs                            │   │
-│  │  session_prompt(conn, sid, prompt: Vec<ContentBlock>)    │   │
-│  │    → PromptResponse { stopReason }                       │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                     cancel.rs                            │   │
-│  │  session_cancel(conn, sid) → ()                          │   │
-│  │  [MUST cancel pending request_permission too]            │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                  update_handler.rs                       │   │
-│  │  handle_session_update(update, acc) → ()                 │   │
-│  │  [handles ALL 9 SessionUpdate variants]                  │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    event_loop.rs                         │   │
-│  │  run_agent(cmd, cwd, env, rx) → orchestrate lifecycle    │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌──────────────┐                                               │
-│  │   mod.rs     │  ← re-exports only, zero logic                │
-│  └──────────────┘                                               │
-└─────────────────────────────────────────────────────────────────┘
-```
+| File | Lines | Actual public surface |
+|---|---:|---|
+| `mod.rs` | 278 | `pub use pool::{AcpxDriver, AgentPool, GLOBAL_AGENT_POOL}`; `pub use types::*`; `pub fn spawn_agent(command: String, cwd: PathBuf, env: HashMap<String, String>, auto_grant_permissions: bool) -> AgentHandle`; `pub(super) fn format_stop_reason(stop_reason: acp::StopReason) -> String`; `pub(super) fn usage_to_response(usage: acp::Usage) -> AcpxUsage` |
+| `types.rs` | 267 | `pub type Result<T> = std::result::Result<T, AgentError>`; `pub type AcpxError = AgentError`; `pub enum AgentError`; `pub struct SessionOpts`; `pub struct SessionInfo`; `pub struct AcpxSessionInfo`; `pub struct AgentResponse`; `pub type AcpxResponse = AgentResponse`; `pub struct AcpxUsage`; `pub struct ToolCallRecord`; `pub enum AgentCommand`; `pub struct AgentHandle`; `pub fn agent_info(&self) -> Option<acp::Implementation>`; `pub fn capabilities(&self) -> Option<acp::AgentCapabilities>`; `pub fn auth_methods(&self) -> Option<Vec<acp::AuthMethod>>`; `pub fn is_alive(&self) -> bool`; `pub async fn new_session(&self, opts: SessionOpts) -> Result<SessionInfo>`; `pub async fn list_sessions(&self, cwd: Option<PathBuf>) -> Result<Vec<AcpxSessionInfo>>`; `pub async fn load_session(&self, session_id: &str, opts: SessionOpts) -> Result<SessionInfo>`; `pub async fn prompt(&self, session_id: &str, prompt: &str, inject_wikilinks: bool) -> Result<AgentResponse>`; `pub async fn prompt_with_context(&self, session_id: &str, prompt: &str, context_blocks: Vec<acp::ContentBlock>, inject_wikilinks: bool) -> Result<AgentResponse>`; `pub async fn cancel(&self, session_id: &str) -> Result<()>`; `pub async fn close_session(&self, session_id: &str)` |
+| `accumulator.rs` | 105 | `pub(super) struct SessionAccumulator`; `pub(super) fn append_text(&mut self, text: &str)`; `pub(super) fn append_thought(&mut self, text: &str)`; `pub(super) fn push_tool_call(&mut self, tool_call: acp::ToolCall)`; `pub(super) fn apply_tool_call_update(&mut self, update: acp::ToolCallUpdate) -> std::result::Result<(), acp::Error>`; `pub(super) fn mark_in_progress_cancelled(&mut self)`; `pub(super) fn into_response(self) -> AgentResponse` |
+| `client.rs` | 235 | `pub(super) struct HeadlessClient`; ACP client trait impl for permission, FS, terminal stubs, `session_notification`, `ext_method`, `ext_notification` |
+| `initialize.rs` | 65 | `pub(super) async fn initialize(conn: &acp::ClientSideConnection) -> Result<InitInfo>` |
+| `pool.rs` | 235 | `pub static GLOBAL_AGENT_POOL: LazyLock<Arc<AgentPool>>`; `pub struct AgentPool`; `pub fn new() -> Self`; `pub async fn get_or_create(&self, agent_name: &str, command: &str, cwd: &Path, env: HashMap<String, String>, auto_grant_permissions: bool) -> Arc<AgentHandle>`; `pub async fn remove_dead(&self)`; `pub async fn close_all(&self)`; `pub struct AcpxDriver`; `pub fn new(agent: String, timeout_seconds: u64, cwd: PathBuf) -> Result<Self>`; `pub async fn create_session(&self, name: &str) -> Result<()>`; `pub async fn prompt(&self, session: &str, prompt: &str) -> Result<AcpxResponse>`; `pub async fn close_session(&self, name: &str) -> Result<()>`; `pub async fn cancel(&self, session: &str) -> Result<()>` |
+| `process.rs` | 41 | `pub(super) fn log_io_task_exit<E: std::fmt::Display>(result: std::result::Result<std::result::Result<(), E>, tokio::task::JoinError>)`; `pub(super) fn spawn_stderr_reader(stderr: tokio::process::ChildStderr) -> JoinHandle<()>`; `pub(super) async fn reap_child(child: &mut tokio::process::Child, stderr_task: Option<JoinHandle<()>>, io_task: Option<JoinHandle<acp::Result<()>>>)` |
+| `prompt.rs` | 97 | `pub(super) async fn prompt_session(conn: &acp::ClientSideConnection, sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>, session_id: String, prompt: String, inject_wikilinks: bool) -> Result<AgentResponse>`; `pub(super) async fn prompt_session_with_blocks(conn: &acp::ClientSideConnection, sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>, session_id: String, prompt: String, content_blocks: Vec<acp::ContentBlock>, inject_wikilinks: bool) -> Result<AgentResponse>` |
+| `session_list.rs` | 103 | `pub(super) async fn list_sessions(conn: &acp::ClientSideConnection, init_info: &StdMutex<Option<InitInfo>>, cwd: Option<PathBuf>) -> Result<Vec<AcpxSessionInfo>>`; `pub(super) async fn load_session(conn: &acp::ClientSideConnection, init_info: &StdMutex<Option<InitInfo>>, session_id: String, opts: SessionOpts) -> Result<SessionInfo>` |
+| `session_new.rs` | 46 | `pub(super) async fn session_new(conn: &acp::ClientSideConnection, opts: SessionOpts) -> Result<SessionInfo>` |
+| `set_config_option.rs` | 172 | `pub(super) async fn apply_session_config(conn: &acp::ClientSideConnection, session_id: acp::SessionId, opts: &SessionOpts, is_modern: bool, config_options: &[acp::SessionConfigOption])` |
 
-## Sequence Diagram — ACP Lifecycle (spec-compliant)
+## Sequence Diagram — ACP Lifecycle
 
 ```mermaid
 sequenceDiagram
@@ -196,179 +99,91 @@ sequenceDiagram
 
 ## File Contracts
 
-### types.rs
-**Responsibility:** Re-export ACP crate types + our orchestration types.
-```rust
-// Re-exports from agent-client-protocol crate
-pub use acp::{ContentBlock, StopReason, SessionUpdate, ClientCapabilities, AgentCapabilities, ...};
+### `mod.rs` — 278 lines
+- Responsibility: module root; re-exports pool/types; owns subprocess + ACP connection lifecycle.
+- Signatures: `pub fn spawn_agent(...) -> AgentHandle`; `pub(super) fn format_stop_reason(...) -> String`; `pub(super) fn usage_to_response(...) -> AcpxUsage`.
 
-// Our types
-pub struct AgentHandle { ... }
-pub struct ResponseAccumulator { ... }
-pub enum AgentCommand { ... }
-```
+### `types.rs` — 267 lines
+- Responsibility: all native ACP result/error/session handle types and command enum.
+- Key signatures: all `AgentHandle` methods listed in the component table above.
 
-### transport.rs
-**Responsibility:** Spawn stdio subprocess. Reap on exit.
-```rust
-pub fn spawn_agent(cmd: String, cwd: PathBuf, env: HashMap<String,String>) -> AgentHandle
-async fn reap_child(child: &mut Child, stderr_task: JoinHandle<()>, io_task: JoinHandle<Result<()>>)
-fn spawn_stderr_reader(stderr: ChildStderr) -> JoinHandle<()>
-```
+### `accumulator.rs` — 105 lines
+- Responsibility: rebuild one prompt turn from `session/update` notifications.
+- Signatures: `append_text`, `append_thought`, `push_tool_call`, `apply_tool_call_update`, `mark_in_progress_cancelled`, `into_response`.
 
-### initialize.rs
-**Responsibility:** ACP `initialize` + `authenticate`. Two functions.
-```rust
-pub(crate) async fn initialize(conn: &ClientSideConnection, caps: ClientCapabilities, info: ImplementationInfo) -> Result<InitializeResponse>
-pub(crate) async fn authenticate(conn: &ClientSideConnection, auth: AuthenticateParams) -> Result<AuthenticateResponse>
-```
+### `client.rs` — 235 lines
+- Responsibility: headless ACP client implementation.
+- ACP trait methods implemented: `request_permission`, `write_text_file`, `read_text_file`, `create_terminal`, `terminal_output`, `release_terminal`, `wait_for_terminal_exit`, `kill_terminal`, `session_notification`, `ext_method`, `ext_notification`.
+- Notes: file access is jailed to `cwd`; terminal methods currently return `method_not_found`.
 
-### session_new.rs
-**Responsibility:** ACP `session/new`. Returns configOptions + modes.
-```rust
-pub(crate) async fn session_new(conn: &ClientSideConnection, cwd: &str, mcp_servers: Vec<McpServerConfig>) -> Result<NewSessionResponse>
-// NewSessionResponse: { session_id, config_options: Vec<SessionConfigOption>, modes: Vec<Mode> }
-```
+### `initialize.rs` — 65 lines
+- Responsibility: send `initialize`, advertise capabilities, capture agent info/capabilities/auth methods.
+- Signature: `pub(super) async fn initialize(conn: &acp::ClientSideConnection) -> Result<InitInfo>`.
 
-### session_load.rs
-**Responsibility:** ACP `session/load`. One function.
-```rust
-pub(crate) async fn session_load(conn: &ClientSideConnection, session_id: &str, cwd: &str, mcp_servers: Vec<McpServerConfig>) -> Result<()>
-```
+### `pool.rs` — 235 lines
+- Responsibility: process reuse and high-level driver API.
+- Signatures: `AgentPool::{new,get_or_create,remove_dead,close_all}` and `AcpxDriver::{new,create_session,prompt,close_session,cancel}`.
 
-### session_list.rs
-**Responsibility:** ACP `session/list`. Gated on sessionCapabilities.list.
-```rust
-pub(crate) async fn session_list(conn: &ClientSideConnection) -> Result<Vec<SessionInfo>>
-```
+### `process.rs` — 41 lines
+- Responsibility: stderr reader + child cleanup helpers.
+- Signatures: `log_io_task_exit`, `spawn_stderr_reader`, `reap_child`.
 
-### set_config_option.rs
-**Responsibility:** ACP `session/set_config_option` + batch helper.
-```rust
-pub(crate) async fn set_config_option(conn: &ClientSideConnection, session_id: &str, option_id: &str, value: &str) -> Result<Vec<SessionConfigOption>>
-pub(crate) async fn apply_config_batch(conn: &ClientSideConnection, session_id: &str, options: &[(String, String)], caps: &[SessionConfigOption]) -> Result<()>
-// apply_config_batch: finds option_id by category, calls set_config_option for each
-```
+### `prompt.rs` — 97 lines
+- Responsibility: submit `session/prompt`, optionally append WikiLink instructions, accumulate final `AgentResponse`.
+- Signatures: `prompt_session`, `prompt_session_with_blocks`.
 
-### set_mode.rs
-**Responsibility:** ACP `session/set_mode` (DEPRECATED). Backwards compat.
-```rust
-pub(crate) async fn set_mode(conn: &ClientSideConnection, session_id: &str, mode_id: &str) -> Result<()>
-```
+### `session_list.rs` — 103 lines
+- Responsibility: capability-gated `session/list` and `session/load`.
+- Signatures: `list_sessions`, `load_session`.
 
-### prompt.rs
-**Responsibility:** ACP `session/prompt`. Wire field is `prompt`, not `content`.
-```rust
-pub(crate) async fn session_prompt(conn: &ClientSideConnection, session_id: &str, prompt: Vec<ContentBlock>) -> Result<PromptResponse>
-```
+### `session_new.rs` — 46 lines
+- Responsibility: create ACP session, map response into `SessionInfo`, then apply config.
+- Signature: `session_new`.
 
-### cancel.rs
-**Responsibility:** ACP `session/cancel`. MUST also cancel pending permissions.
-```rust
-pub(crate) fn session_cancel(conn: &ClientSideConnection, session_id: &str)
-// Spec requirement: Client MUST respond to all pending session/request_permission with cancelled
-// Spec requirement: Client SHOULD still accept tool_call updates after cancel
-```
+### `set_config_option.rs` — 172 lines
+- Responsibility: modern vs legacy session configuration dispatch.
+- Public surface: `pub(super) async fn apply_session_config(...)`.
+- Internal helpers present today: `apply_modern_config`, `apply_legacy_config`, `apply_extra_config_options`, `find_config_id_by_category`, `config_option_value`, `apply_optional`, `set_config_option`.
 
-### update_handler.rs
-**Responsibility:** Handle ALL 9 `session/update` variants.
-```rust
-pub(crate) fn handle_session_update(update: SessionUpdate, accumulator: &mut ResponseAccumulator)
-// Handles: user_message_chunk, agent_message_chunk, agent_thought_chunk,
-//          tool_call, tool_call_update, plan, current_mode_update,
-//          config_option_update, session_info_update, available_commands_update
-```
+## Our Types
 
-### event_loop.rs
-**Responsibility:** Orchestrate the lifecycle. The only file with a loop.
-```rust
-pub(crate) async fn run_agent(cmd: String, cwd: PathBuf, env: HashMap<String,String>, is_running: Arc<AtomicBool>, rx: Receiver<AgentCommand>)
-```
+- `SessionOpts { cwd, auto_grant_permissions, model, mode, thought_level, config_options, allowed_tools, max_turns, timeout_seconds, mcp_servers }`
+- `SessionInfo { session_id, modes, models, config_options }`
+- `AcpxSessionInfo { session_id, title, updated_at }`
+- `AgentResponse { text, tool_calls, thought, stop_reason, error, usage }`
+- `AcpxUsage { input_tokens, output_tokens, total_tokens, thought_tokens }`
+- `ToolCallRecord { id, name, title, status, arguments, output, content, locations }`
+- `AgentCommand::{NewSession,ListSessions,LoadSession,Prompt,PromptWithContext,Cancel,CloseSession,Shutdown}`
+- `AgentHandle { cmd_tx, init, alive }`
+- Internal support types: `InitInfo` in `types.rs`, `SessionAccumulator` in `accumulator.rs`.
+- There is no `ResponseAccumulator`; the actual accumulator type is `SessionAccumulator`.
 
-## What Gets Deleted (implementation helpers, NOT protocol methods)
+## Key Invariants
 
-| Current code | Why it's deleted | What replaces it |
-|---|---|---|
-| `SessionOpts` struct | Bundles what should be individual set_config_option calls | Per-field set_config_option calls via apply_config_batch |
-| `apply_session_config` | Internal helper, not a protocol method | set_config_option.rs |
-| `apply_modern_config` | Internal helper detecting config path | apply_config_batch in set_config_option.rs |
-| `apply_legacy_config` | Internal helper for old agents | set_mode.rs for deprecated path |
-| `apply_extra_config_options` | Internal helper for custom options | apply_config_batch |
-| `find_config_id_by_category` | Internal helper | Absorbed into apply_config_batch |
-| `config_option_value` | Internal helper | Absorbed into set_config_option.rs |
-| `apply_optional` | Generic helper | Deleted, inline the pattern |
-| `format_stop_reason` | Display impl on StopReason | `impl Display for StopReason` |
-| `usage_to_response` | Internal concern | Moved to response module, not protocol |
+- Prompt is the only primitive; higher-level think/workflow logic chains prompt turns through `workflow::AgentSession`.
+- `SessionOpts` has no `Default`; callers must supply policy explicitly.
+- `auto_grant_permissions` is required, not defaulted. `tools/acp_exec.rs::session_opts_from` requires `autoGrantPermissions`.
+- Streaming agent text chunks are written to `stderr` in `HeadlessClient::session_notification`; the final accumulated result is returned structurally to the caller for final output handling.
+- `inject_wikilinks` exists only as a prompt/session flag on `AgentCommand` and `AgentHandle`; there is no transport-layer `inject_wikilinks(...)` helper.
+- Desired invariant: one canonical `WIKILINK_CONTEXT` in `workflow/think_runner.rs`. Current code does **not** satisfy this yet because `prompt.rs` also defines its own copy.
 
-## What Is KEPT (spec methods wrongly deleted in v1 draft)
+## Implementation Status
 
-| Method | Why it was wrongly deleted | Status |
-|---|---|---|
-| `session/set_config_option` | Confused helper deletion with protocol deletion | STABLE since v0.10.8 |
-| `session/list` | Local spec docs were stale | STABLE since v0.11.1 |
-| `authenticate` | Simply missed | BASELINE method |
-| `config_option_update` variant | Didn't know about it | STABLE SessionUpdate variant |
-| `user_message_chunk` variant | Didn't know about it | STABLE, needed for load replay |
-| `session_info_update` variant | Didn't know about it | STABLE SessionUpdate variant |
+### Working now
+- ACP subprocess spawn over stdio with cleanup and dead-process detection.
+- `initialize` with explicit client capabilities: FS read/write enabled, terminal disabled, prompt caps carried in `_meta`.
+- `session/new`, `session/load`, `session/list`, prompt execution, cooperative cancel, and `session/close`.
+- Session config application for both modern config-option agents and legacy mode/model agents.
+- `session/update` accumulation for text, thoughts, tool calls, and tool-call updates.
+- File read/write client methods with CWD jail and 1-based line handling.
+- Agent pooling and simple named-session driver (`AcpxDriver`).
 
-## Config Option Categories (reserved by spec)
+### Missing / limited
+- No `authenticate` helper is implemented in `native/`; auth methods are captured but not used.
+- Terminal client support is not implemented: all `terminal/*` trait methods return `method_not_found`, and `initialize` advertises `terminal(false)`.
+- `ext_method` is unsupported.
+- The documented single-source WikiLink context invariant is currently violated by duplicated constants.
 
-| Category | Meaning | Set via |
-|---|---|---|
-| `mode` | Session mode selector | set_config_option (preferred) or set_mode (deprecated) |
-| `model` | Model selector | set_config_option |
-| `thought_level` | Reasoning level | set_config_option |
-
-These are NOT "agent-internal concerns." They are first-class ACP protocol concepts
-declared by agents in configOptions and set by clients via session/set_config_option.
-
-## Rules
-
-1. **Types from crate, not hand-written** — `agent-client-protocol` crate is the type authority
-2. **Every function maps to one ACP spec method** — helpers go in the same file as the method they serve
-3. **Wire field names match spec exactly** — `prompt` not `content`, `modeId` not `mode`, `mcpCapabilities` not `mcp`
-4. **One file per method** (except types.rs for re-exports + our types)
-5. **mod.rs is re-exports only** — zero logic
-6. **Every file ≤ 300 lines**
-7. **`_meta` is built-in ACP surface** — available on all types, not banned
-8. **Unstable methods gated on capability** — check before calling
-9. **Cancel MUST cancel pending permissions** — spec requirement on Client
-
-## Implementation Status (Sprint Current)
-
-### Completed
-- Module split: mod.rs 740→279 lines, 11 files all ≤300 lines
-- WikiLink context injection: every ACP prompt gets ontology instructions as first content block
-- Content ordering: WikiLink context → caller context → prompt text (last)
-- Accumulator timing fix: entry().or_default() — no more dropped notifications
-- Error propagation fix: prompt.rs returns Err on ACP errors
-- Default model removed: no more hardcoded gpt-5.4 breaking unstable set_session_model
-- Wire tracing: subscribe() + eprintln for all ACP messages
-
-### Verified Working
-- prompt: Copilot ✅, Codex ✅, OpenCode ✅ (MemoryStatus tool call)
-- think: Copilot ✅ (single session, conclusion + memory artifact)
-- workflow: Copilot ✅ step 1 + submachine (memory artifacts for both)
-- submachine: workflow→think auto-spawn with parent/related linking
-
-### P0 Bug: Multi-Turn Session Hang
-- 2nd prompt on same session gets ZERO notifications, hangs 300s
-- Affects: workflow step 2+, think multi-turn (if session reused)
-- Root cause: suspected LocalSet single-threaded execution / SDK state
-- pipeline-ui works (transparent relay, no SDK)
-- Written to memory://bugs/p0-multi-turn-acp-session-prompt-hang
-
-### Files (current state)
-| File | Lines | Responsibility |
-|---|---|---|
-| mod.rs | 279 | Event loop + spawn_agent |
-| types.rs | 275 | Public API types |
-| client.rs | 227 | HeadlessClient (Client trait impl) |
-| pool.rs | 187 | AgentPool + AcpxDriver |
-| set_config_option.rs | 179 | Config routing (modern/legacy) |
-| session_list.rs | 103 | list_sessions + load_session |
-| accumulator.rs | 104 | SessionAccumulator |
-| prompt.rs | 107 | prompt_session + prompt_session_with_blocks |
-| session_new.rs | 47 | session_new |
-| initialize.rs | 44 | initialize |
-| process.rs | 41 | spawn_stderr, reap_child |
+### Practical consequence for OpenCode
+- Prompt-only flows can work if the agent stays within ACP prompt + FS + permission calls.
+- Anything that requires ACP terminal support will fail today because terminal capability is disabled. In practice, OpenCode needs terminal support for full parity.

@@ -9,7 +9,7 @@ use std::{
 };
 use tokio::sync::{mpsc, oneshot};
 
-use super::DEFAULT_SESSION_TIMEOUT_SECONDS;
+pub(super) const DEFAULT_SESSION_TIMEOUT_SECONDS: u64 = 300;
 
 pub type Result<T> = std::result::Result<T, AgentError>;
 pub type AcpxError = AgentError;

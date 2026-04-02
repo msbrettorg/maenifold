@@ -24,7 +24,7 @@ fn append_records_swe_work_without_advancing_state() {
     let root = new_pipeline_root();
     let task = write_pending_task(root.path(), "T-1.1");
 
-    gate_command()
+    gate_command(root.path())
         .args([
             "append",
             "T-1.1",
@@ -45,7 +45,7 @@ fn append_records_swe_work_without_advancing_state() {
 
     let output = status_json(root.path());
     let rendered = serde_json::to_string(&output).expect("render status JSON");
-    assert!(rendered.contains("pending") || rendered.contains("swe"));
+    assert!(rendered.contains("pending"));
 }
 
 #[test]
@@ -53,7 +53,7 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
     let root = new_pipeline_root();
     let task = write_pending_task(root.path(), "T-1.1");
 
-    gate_command()
+    gate_command(root.path())
         .args([
             "pass",
             "T-1.1",
@@ -65,7 +65,7 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
         .assert()
         .success();
 
-    gate_command()
+    gate_command(root.path())
         .args([
             "pass",
             "T-1.1",
@@ -77,7 +77,7 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
         .assert()
         .success();
 
-    gate_command()
+    gate_command(root.path())
         .args([
             "fail",
             "T-1.1",
@@ -99,32 +99,19 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
 }
 
 #[test]
-fn illegal_fail_from_red_returns_error_and_leaves_files_unchanged() {
+fn illegal_fail_from_pending_dispatch_state_returns_error_and_leaves_files_unchanged() {
     let root = new_pipeline_root();
     let task = write_pending_task(root.path(), "T-1.1");
-
-    gate_command()
-        .args([
-            "pass",
-            "T-1.1",
-            "--root",
-            root.path().to_str().expect("root utf8"),
-            "--notes",
-            "swe completed",
-        ])
-        .assert()
-        .success();
-
     let before = read_task(&task);
 
-    gate_command()
+    gate_command(root.path())
         .args([
             "fail",
             "T-1.1",
             "--root",
             root.path().to_str().expect("root utf8"),
             "--notes",
-            "red cannot fail in sdd",
+            "cannot fail before swe runs",
         ])
         .assert()
         .failure()
@@ -138,7 +125,7 @@ fn task_file_requires_explicit_pipeline_binding() {
     let root = new_pipeline_root();
     write_legacy_task_without_pipeline_binding(root.path(), "T-1.1");
 
-    gate_command()
+    gate_command(root.path())
         .args([
             "status",
             "--root",
@@ -155,7 +142,7 @@ fn task_file_requires_pipeline_digest() {
     let root = new_pipeline_root();
     write_task_without_pipeline_digest(root.path(), "T-1.1", "sdd");
 
-    gate_command()
+    gate_command(root.path())
         .args([
             "status",
             "--root",
@@ -172,7 +159,7 @@ fn status_errors_when_pipeline_digest_mismatches_authoritative_asset() {
     let root = new_pipeline_root();
     write_task_with_mismatched_digest(root.path(), "T-1.1", "sdd");
 
-    gate_command()
+    gate_command(root.path())
         .args([
             "status",
             "--root",
@@ -189,7 +176,7 @@ fn legacy_task_without_pipeline_binding_is_rejected() {
     let root = new_pipeline_root();
     write_legacy_task_without_pipeline_binding(root.path(), "T-1.1");
 
-    gate_command()
+    gate_command(root.path())
         .args([
             "append",
             "T-1.1",

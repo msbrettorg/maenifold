@@ -4,7 +4,7 @@ use crate::error::GateError;
 pub struct TaskStageRecord {
     pub stage: String,
     pub record_kind: String,
-    pub verdict: Option<String>,
+    pub outcome: Option<String>,
     pub agent: String,
     pub model: Option<String>,
     pub recorded_at: String,
@@ -19,15 +19,15 @@ impl TaskSectionParser {
         let mut index = 0;
 
         while index < lines.len() {
-            let Some(_heading) = lines[index].strip_prefix("## ") else {
+            if !lines[index].starts_with("## ") {
                 index += 1;
                 continue;
-            };
+            }
 
             index += 1;
             let mut stage = None;
             let mut record_kind = None;
-            let mut verdict = None;
+            let mut outcome = None;
             let mut agent = None;
             let mut model = None;
             let mut recorded_at = None;
@@ -45,9 +45,9 @@ impl TaskSectionParser {
                         "Stage ID" => stage = Some(value),
                         "Record Kind" => record_kind = Some(value),
                         "Agent" => agent = Some(value),
-                        "Recorded At" | "Date" => recorded_at = Some(value),
+                        "Recorded At" => recorded_at = Some(value),
                         "Model" => model = Some(value),
-                        "Verdict" => verdict = Some(value.to_ascii_lowercase()),
+                        "Outcome" => outcome = Some(value.to_ascii_lowercase()),
                         _ => {}
                     }
                 }
@@ -60,7 +60,7 @@ impl TaskSectionParser {
                     record_kind: record_kind.ok_or_else(|| {
                         GateError::TaskMetadataParse("missing section Record Kind".to_string())
                     })?,
-                    verdict,
+                    outcome,
                     agent: agent.ok_or_else(|| {
                         GateError::TaskMetadataParse("missing section Agent".to_string())
                     })?,

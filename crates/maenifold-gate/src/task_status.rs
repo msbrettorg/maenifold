@@ -1,5 +1,6 @@
 use crate::error::GateError;
 use crate::gate_definition::GateDefinition;
+use crate::state_machine::StateMachine;
 use crate::task_file::TaskDocument;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,36 +19,36 @@ impl TaskStatusDeriver {
         definition: &GateDefinition,
         location: &str,
     ) -> Result<EffectiveTaskState, GateError> {
-        let mut state = String::from("pending");
+        let initial = definition.initial_state()?.to_string();
+        let mut state = initial.clone();
         let mut attempts = 0;
 
         for record in &document.records {
             match record.record_kind.as_str() {
                 "append" => {}
-                "verdict" => {
-                    let verdict = record.verdict.as_deref().ok_or_else(|| {
-                        GateError::TaskMetadataParse("verdict record missing Verdict".to_string())
+                "outcome" => {
+                    let outcome = record.outcome.as_deref().ok_or_else(|| {
+                        GateError::TaskMetadataParse("outcome record missing Outcome".to_string())
                     })?;
-                    let transition = match verdict {
-                        "pass" => crate::state_machine::StateMachine::next_on_pass(&state, definition)?,
-                        "reject" => crate::state_machine::StateMachine::next_on_reject(&state, definition)?,
-                        "fail" => crate::state_machine::StateMachine::next_on_fail(&state, definition)?,
+                    let transition = match outcome {
+                        "pass" => StateMachine::next_on_pass(&state, definition)?,
+                        "fail" => StateMachine::next_on_fail(&state, definition)?,
                         other => {
                             return Err(GateError::IllegalTransition {
                                 state: state.clone(),
-                                verdict: other.to_string(),
-                            })
+                                outcome: other.to_string(),
+                            });
                         }
                     };
 
                     if transition.acting_stage != record.stage {
                         return Err(GateError::IllegalTransition {
                             state: state.clone(),
-                            verdict: verdict.to_string(),
+                            outcome: outcome.to_string(),
                         });
                     }
 
-                    if transition.next_state == "pending" {
+                    if transition.next_state == initial {
                         attempts += 1;
                     }
                     state = transition.next_state;
@@ -55,20 +56,27 @@ impl TaskStatusDeriver {
                 other => {
                     return Err(GateError::TaskMetadataParse(format!(
                         "unknown record kind: {other}"
-                    )))
+                    )));
                 }
             }
         }
 
         if location == "done" {
-            if state != "done" {
+            let done = definition
+                .find_state(&state)
+                .ok_or_else(|| GateError::UnknownState(state.clone()))?;
+            if !done.terminal {
                 return Err(GateError::UnknownState(format!(
                     "task archived in done/ but effective state is {state}"
                 )));
             }
-        } else if state == "done" {
+        } else if definition
+            .find_state(&state)
+            .ok_or_else(|| GateError::UnknownState(state.clone()))?
+            .terminal
+        {
             return Err(GateError::UnknownState(
-                "task remains in todo/ but effective state is done".to_string(),
+                "task remains in todo/ but effective state is terminal".to_string(),
             ));
         }
 

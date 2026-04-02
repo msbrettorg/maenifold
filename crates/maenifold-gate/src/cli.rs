@@ -27,7 +27,7 @@ pub struct AppendArgs {
 }
 
 #[derive(Debug, Clone)]
-pub struct VerdictArgs {
+pub struct OutcomeArgs {
     pub context: GateContext,
     pub task_id: String,
     pub notes: String,
@@ -44,8 +44,8 @@ pub struct SyncArgs {
 pub enum CommandRequest {
     Status(StatusArgs),
     Append(AppendArgs),
-    Pass(VerdictArgs),
-    Fail(VerdictArgs),
+    Pass(OutcomeArgs),
+    Fail(OutcomeArgs),
     Sync(SyncArgs),
 }
 
@@ -58,8 +58,7 @@ impl CliParser {
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
-        let cli = GateCli::try_parse_from(argv)
-            .map_err(|error| GateError::Cli(error.to_string()))?;
+        let cli = GateCli::try_parse_from(argv).map_err(|error| GateError::Cli(error.to_string()))?;
         Ok(cli.into_request())
     }
 }
@@ -85,8 +84,8 @@ impl GateCli {
                 notes: args.notes,
                 model: args.model,
             }),
-            GateSubcommand::Pass(args) => CommandRequest::Pass(args.into_verdict_args()),
-            GateSubcommand::Fail(args) => CommandRequest::Fail(args.into_verdict_args()),
+            GateSubcommand::Pass(args) => CommandRequest::Pass(args.into_outcome_args()),
+            GateSubcommand::Fail(args) => CommandRequest::Fail(args.into_outcome_args()),
             GateSubcommand::Sync(args) => CommandRequest::Sync(SyncArgs {
                 context: args.shared.into_context(false),
                 rebuild: args.rebuild,
@@ -99,8 +98,8 @@ impl GateCli {
 enum GateSubcommand {
     Status(StatusCliArgs),
     Append(AppendCliArgs),
-    Pass(VerdictCliArgs),
-    Fail(VerdictCliArgs),
+    Pass(OutcomeCliArgs),
+    Fail(OutcomeCliArgs),
     Sync(SyncCliArgs),
 }
 
@@ -144,7 +143,7 @@ struct AppendCliArgs {
 }
 
 #[derive(Debug, Args)]
-struct VerdictCliArgs {
+struct OutcomeCliArgs {
     task_id: String,
     #[command(flatten)]
     shared: SharedCliArgs,
@@ -154,9 +153,9 @@ struct VerdictCliArgs {
     model: Option<String>,
 }
 
-impl VerdictCliArgs {
-    fn into_verdict_args(self) -> VerdictArgs {
-        VerdictArgs {
+impl OutcomeCliArgs {
+    fn into_outcome_args(self) -> OutcomeArgs {
+        OutcomeArgs {
             context: self.shared.into_context(false),
             task_id: self.task_id,
             notes: self.notes,

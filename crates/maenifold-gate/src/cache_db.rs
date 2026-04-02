@@ -55,13 +55,13 @@ impl GateCacheDb {
 
             for record in document.records {
                 connection.execute(
-                    "INSERT INTO work_log (file, stage, agent_model, verdict, notes, created_at)
+                    "INSERT INTO work_log (file, stage, agent_model, outcome, notes, created_at)
                      VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
                     params![
                         format!("{}.md", task.task_id),
                         record.stage,
                         record.model,
-                        record.verdict,
+                        record.outcome,
                         record.record_kind,
                         record.recorded_at
                     ],
@@ -126,7 +126,7 @@ fn initialize_schema(connection: &Connection) -> Result<(), GateError> {
             file TEXT NOT NULL,
             stage TEXT NOT NULL,
             agent_model TEXT,
-            verdict TEXT,
+            outcome TEXT,
             duration_seconds INTEGER,
             notes TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))

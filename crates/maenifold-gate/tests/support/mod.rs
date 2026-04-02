@@ -1,31 +1,37 @@
+#![allow(dead_code)]
+#![allow(deprecated)]
+
 use assert_cmd::Command;
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
-pub const AUTHORITATIVE_GATES_DIR: &str = "/Users/brett/maenifold/assets/gates";
-pub const SDD_DIGEST: &str = "be8eeb63ff6a14122e5e6947da52c1fcf5f9f8f92143a0ed3894365d5cfd0523";
-pub const GSD_DIGEST: &str = "106827fc4c14b40978efdd984a1ea24b46d308737a63189508a9f7f44f07bc75";
-pub const LIGHTWEIGHT_DIGEST: &str = "0a24c3261daac16e36fa23d80010e4358bb3e3b41d1f70389107b9c08238848d";
-pub const TDD_DIGEST: &str = "c9e323f48e25e2b2206ea79f83e8eb1e57548824cb5c77282034e3f01b88e7ab";
-
-pub fn read_authoritative_asset(name: &str) -> Value {
-    let path = Path::new(AUTHORITATIVE_GATES_DIR).join(format!("{name}.json"));
-    let text = fs::read_to_string(&path)
-        .unwrap_or_else(|error| panic!("failed to read authoritative asset {}: {error}", path.display()));
-    serde_json::from_str(&text)
-        .unwrap_or_else(|error| panic!("failed to parse authoritative asset {}: {error}", path.display()))
+pub fn bundled_asset_path(name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("assets")
+        .join(format!("{name}.json"))
 }
 
-pub fn authoritative_digest(name: &str) -> &'static str {
-    match name {
-        "sdd" => SDD_DIGEST,
-        "gsd" => GSD_DIGEST,
-        "lightweight" => LIGHTWEIGHT_DIGEST,
-        "tdd" => TDD_DIGEST,
-        _ => panic!("unknown authoritative digest for pipeline {name}"),
-    }
+pub fn read_authoritative_asset(name: &str) -> Value {
+    let path = bundled_asset_path(name);
+    let text = fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("failed to read bundled asset {}: {error}", path.display()));
+    serde_json::from_str(&text)
+        .unwrap_or_else(|error| panic!("failed to parse bundled asset {}: {error}", path.display()))
+}
+
+pub fn authoritative_digest(name: &str) -> String {
+    let bytes = fs::read(bundled_asset_path(name))
+        .unwrap_or_else(|error| panic!("failed to read bundled asset for digest: {error}"));
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    format!("{:x}", hasher.finalize())
+}
+
+pub fn runtime_assets_dir(root: &Path) -> PathBuf {
+    root.join(".gate-assets")
 }
 
 pub fn new_pipeline_root() -> TempDir {
@@ -47,7 +53,7 @@ pub fn new_pipeline_root() -> TempDir {
 }
 
 pub fn write_pending_task(root: &Path, task_id: &str) -> PathBuf {
-    write_bound_task(root, task_id, "sdd", authoritative_digest("sdd"))
+    write_bound_task(root, task_id, "sdd", &authoritative_digest("sdd"))
 }
 
 pub fn write_bound_task(root: &Path, task_id: &str, pipeline: &str, pipeline_digest: &str) -> PathBuf {
@@ -108,12 +114,14 @@ pub fn read_task(path: &Path) -> String {
         .unwrap_or_else(|error| panic!("failed to read task {}: {error}", path.display()))
 }
 
-pub fn gate_command() -> Command {
-    Command::cargo_bin("gate").expect("gate binary should be present for integration tests")
+pub fn gate_command(root: &Path) -> Command {
+    let mut command = Command::cargo_bin("gate").expect("gate binary should be present for integration tests");
+    command.env("MAENIFOLD_GATE_ASSETS_DIR", runtime_assets_dir(root));
+    command
 }
 
 pub fn status_json(root: &Path) -> Value {
-    let output = gate_command()
+    let output = gate_command(root)
         .args(["status", "--root"])
         .arg(root)
         .arg("--json")

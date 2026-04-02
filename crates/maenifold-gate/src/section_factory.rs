@@ -8,19 +8,20 @@ impl CanonicalSectionFactory {
         Self::build(stage, "append", None, agent, notes, model)
     }
 
-    pub fn build_verdict_section(
+    pub fn build_outcome_section(
         stage: &str,
-        verdict: &str,
+        outcome: &str,
+        agent: &str,
         notes: &str,
         model: Option<&str>,
     ) -> String {
-        Self::build(stage, "verdict", Some(verdict), stage, notes, model)
+        Self::build(stage, "outcome", Some(outcome), agent, notes, model)
     }
 
     fn build(
         stage: &str,
         record_kind: &str,
-        verdict: Option<&str>,
+        outcome: Option<&str>,
         agent: &str,
         notes: &str,
         model: Option<&str>,
@@ -34,8 +35,8 @@ impl CanonicalSectionFactory {
         if let Some(model) = model {
             section.push_str(&format!("- Model: {model}\n"));
         }
-        if let Some(verdict) = verdict {
-            section.push_str(&format!("- Verdict: {}\n", verdict.to_uppercase()));
+        if let Some(outcome) = outcome {
+            section.push_str(&format!("- Outcome: {}\n", outcome.to_uppercase()));
         }
         section.push_str(&format!("- Notes: {notes}\n"));
         section

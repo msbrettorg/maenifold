@@ -38,21 +38,18 @@ pub enum GateError {
     #[error("unknown built-in gate definition: {0}")]
     UnknownBuiltinGate(String),
 
-    #[error("duplicate stage name in pipeline definition: {0}")]
+    #[error("duplicate state id in pipeline definition: {0}")]
     DuplicateStageName(String),
 
-    #[error("pipeline definition stage '{stage}' points to unknown transition target '{target}'")]
+    #[error("pipeline definition state '{stage}' points to unknown transition target '{target}'")]
     UnknownTransitionTarget { stage: String, target: String },
 
     #[error("unknown state '{0}' for active pipeline")]
     UnknownState(String),
 
-    #[error("illegal transition: state '{state}' does not allow verdict '{verdict}'")]
-    IllegalTransition { state: String, verdict: String },
+    #[error("illegal transition: state '{state}' does not allow outcome '{outcome}'")]
+    IllegalTransition { state: String, outcome: String },
 
     #[error("task path does not exist: {0}")]
     MissingTaskPath(PathBuf),
-
-    #[error("{0} is not implemented in this slice")]
-    NotYetImplemented(&'static str),
 }

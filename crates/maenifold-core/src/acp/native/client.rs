@@ -187,10 +187,7 @@ impl acp::Client for HeadlessClient {
         eprintln!("[ACP] session_notification: session={session_id} update={update_type}");
 
         let mut sessions = self.sessions.lock().await;
-        let Some(accumulator) = sessions.get_mut(&session_id) else {
-            eprintln!("[ACP] DROPPED: no accumulator for session={session_id} update={update_type}");
-            return Ok(());
-        };
+        let accumulator = sessions.entry(session_id.clone()).or_default();
 
         match args.update {
             acp::SessionUpdate::UserMessageChunk(_) => {}

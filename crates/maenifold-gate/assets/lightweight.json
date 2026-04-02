@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "lightweight",
+  "name": "Lightweight",
+  "initial": "pending",
+  "states": {
+    "pending": {
+      "on": {
+        "pass": "swe"
+      }
+    },
+    "swe": {
+      "on": {
+        "fail": "pending",
+        "pass": "blue"
+      }
+    },
+    "blue": {
+      "on": {
+        "fail": "pending",
+        "pass": "done"
+      }
+    },
+    "done": {
+      "terminal": true
+    }
+  }
+}

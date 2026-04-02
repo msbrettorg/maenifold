@@ -64,6 +64,8 @@ pub(super) async fn prompt_session_with_blocks(
     content.extend(content_blocks);
     content.push(acp::ContentBlock::Text(acp::TextContent::new(prompt)));
 
+    eprintln!("[ACP] prompt: session={session_id} content_blocks={} timeout={timeout_seconds}s", content.len());
+
     let result = tokio::time::timeout(
         Duration::from_secs(timeout_seconds),
         conn.prompt(acp::PromptRequest::new(
@@ -73,6 +75,8 @@ pub(super) async fn prompt_session_with_blocks(
     )
     .await;
 
+    eprintln!("[ACP] prompt result: session={session_id} ok={}", result.is_ok());
+
     let mut response = sessions
         .lock()
         .await
@@ -80,8 +84,11 @@ pub(super) async fn prompt_session_with_blocks(
         .unwrap_or_default()
         .into_response();
 
+    eprintln!("[ACP] accumulated: session={session_id} text_len={} tool_calls={}", response.text.len(), response.tool_calls.len());
+
     match result {
         Ok(Ok(prompt_response)) => {
+            eprintln!("[ACP] stop_reason: {:?}", prompt_response.stop_reason);
             response.stop_reason = Some(format_stop_reason(prompt_response.stop_reason));
             response.usage = prompt_response.usage.map(usage_to_response);
             Ok(response)

@@ -24,16 +24,12 @@ impl AppendCommand {
         if args.agent != acting_stage {
             return Err(GateError::IllegalTransition {
                 state: state.state,
-                verdict: format!("append by {}", args.agent),
+                outcome: format!("append by {}", args.agent),
             });
         }
 
-        let section = CanonicalSectionFactory::build_append_section(
-            &args.agent,
-            &args.agent,
-            &args.notes,
-            args.model.as_deref(),
-        );
+        let section =
+            CanonicalSectionFactory::build_append_section(&args.agent, &args.agent, &args.notes, args.model.as_deref());
         TaskFileWriter::append_section(&task.path, &section)?;
         Ok(())
     }

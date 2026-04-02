@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "gsd",
+  "name": "Get Shit Done",
+  "initial": "pending",
+  "states": {
+    "pending": {
+      "on": {
+        "pass": "research"
+      }
+    },
+    "research": {
+      "on": {
+        "fail": "pending",
+        "pass": "plan"
+      }
+    },
+    "plan": {
+      "on": {
+        "fail": "pending",
+        "pass": "execute"
+      }
+    },
+    "execute": {
+      "on": {
+        "fail": "pending",
+        "pass": "verify"
+      }
+    },
+    "verify": {
+      "on": {
+        "fail": "execute",
+        "pass": "done"
+      }
+    },
+    "done": {
+      "terminal": true
+    }
+  }
+}

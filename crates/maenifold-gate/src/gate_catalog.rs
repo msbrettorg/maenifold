@@ -1,5 +1,6 @@
+use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
@@ -7,20 +8,22 @@ use crate::error::GateError;
 use crate::gate_definition::GateDefinition;
 use crate::task_metadata::TaskMetadata;
 
-const BUILTIN_GATES_DIR: &str = "/Users/brett/maenifold/assets/gates";
+const DEFAULT_RUNTIME_GATES_DIR: &str = "/Users/brett/maenifold/assets/gates";
+const GATES_DIR_ENV: &str = "MAENIFOLD_GATE_ASSETS_DIR";
 const RESERVED_BUILTIN_NAMES: &[&str] = &["sdd", "tdd", "gsd", "lightweight"];
+const SDD_JSON: &str = include_str!("../assets/sdd.json");
+const TDD_JSON: &str = include_str!("../assets/tdd.json");
+const GSD_JSON: &str = include_str!("../assets/gsd.json");
+const LIGHTWEIGHT_JSON: &str = include_str!("../assets/lightweight.json");
 
 #[derive(Debug, Clone)]
 pub struct GateDefinitionCatalog;
 
 impl GateDefinitionCatalog {
     pub fn load_builtin(name: &str) -> Result<GateDefinition, GateError> {
-        let path = Path::new(BUILTIN_GATES_DIR).join(format!("{name}.json"));
-        if !path.exists() {
-            return Err(GateError::UnknownBuiltinGate(name.to_string()));
-        }
-
-        let bytes = fs::read(&path)?;
+        Self::ensure_all_builtin_assets()?;
+        let asset_path = Self::runtime_gates_dir().join(format!("{name}.json"));
+        let bytes = fs::read(&asset_path)?;
         let digest = digest_hex(&bytes);
         let text = String::from_utf8(bytes)
             .map_err(|error| GateError::TaskMetadataParse(format!("gate asset is not utf-8: {error}")))?;
@@ -74,6 +77,36 @@ impl GateDefinitionCatalog {
         }
 
         Self::resolve_bound(root, &metadata.pipeline, &metadata.pipeline_digest)
+    }
+
+    fn runtime_gates_dir() -> PathBuf {
+        env::var_os(GATES_DIR_ENV)
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from(DEFAULT_RUNTIME_GATES_DIR))
+    }
+
+    fn ensure_all_builtin_assets() -> Result<(), GateError> {
+        let dir = Self::runtime_gates_dir();
+        fs::create_dir_all(&dir)?;
+        for name in RESERVED_BUILTIN_NAMES {
+            let path = dir.join(format!("{name}.json"));
+            if path.exists() {
+                continue;
+            }
+            let content = builtin_asset_text(name)?;
+            fs::write(&path, content)?;
+        }
+        Ok(())
+    }
+}
+
+fn builtin_asset_text(name: &str) -> Result<&'static str, GateError> {
+    match name {
+        "sdd" => Ok(SDD_JSON),
+        "tdd" => Ok(TDD_JSON),
+        "gsd" => Ok(GSD_JSON),
+        "lightweight" => Ok(LIGHTWEIGHT_JSON),
+        _ => Err(GateError::UnknownBuiltinGate(name.to_string())),
     }
 }
 

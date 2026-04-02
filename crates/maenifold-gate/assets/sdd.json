@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "sdd",
+  "name": "Spec Driven Development",
+  "initial": "pending",
+  "states": {
+    "pending": {
+      "on": {
+        "pass": "swe"
+      }
+    },
+    "swe": {
+      "on": {
+        "fail": "pending",
+        "pass": "red"
+      }
+    },
+    "red": {
+      "on": {
+        "fail": "pending",
+        "pass": "blue"
+      }
+    },
+    "blue": {
+      "on": {
+        "fail": "pending",
+        "pass": "done"
+      }
+    },
+    "done": {
+      "terminal": true
+    }
+  }
+}

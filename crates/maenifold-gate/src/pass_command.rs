@@ -1,4 +1,4 @@
-use crate::cli::VerdictArgs;
+use crate::cli::OutcomeArgs;
 use crate::error::GateError;
 use crate::gate_catalog::GateDefinitionCatalog;
 use crate::section_factory::CanonicalSectionFactory;
@@ -11,12 +11,12 @@ use crate::task_status::TaskStatusDeriver;
 pub struct PassCommand;
 
 impl PassCommand {
-    pub fn execute(args: VerdictArgs) -> Result<(), GateError> {
-        execute_verdict(args, "pass")
+    pub fn execute(args: OutcomeArgs) -> Result<(), GateError> {
+        execute_shared_outcome(args, "pass")
     }
 }
 
-fn execute_verdict(args: VerdictArgs, verdict: &str) -> Result<(), GateError> {
+pub(crate) fn execute_shared_outcome(args: OutcomeArgs, outcome: &str) -> Result<(), GateError> {
     let task = TaskRepository::find_task(args.context.root.clone(), &args.task_id)?;
     let document = TaskFileReader::read(&task.path)?;
     let definition = GateDefinitionCatalog::resolve_for_task(
@@ -25,26 +25,26 @@ fn execute_verdict(args: VerdictArgs, verdict: &str) -> Result<(), GateError> {
         args.context.requested_pipeline_name.as_deref(),
     )?;
     let state = TaskStatusDeriver::derive(&document, &definition, &task.location)?;
-    let transition = match verdict {
+    let transition = match outcome {
         "pass" => StateMachine::next_on_pass(&state.state, &definition)?,
-        "reject" => StateMachine::next_on_reject(&state.state, &definition)?,
         "fail" => StateMachine::next_on_fail(&state.state, &definition)?,
         _ => unreachable!(),
     };
 
-    let section = CanonicalSectionFactory::build_verdict_section(
+    let section = CanonicalSectionFactory::build_outcome_section(
         &transition.acting_stage,
-        verdict,
+        outcome,
+        &transition.acting_stage,
         &args.notes,
         args.model.as_deref(),
     );
     TaskFileWriter::append_section(&task.path, &section)?;
-    if transition.next_state == "done" {
+    if definition
+        .find_state(&transition.next_state)
+        .ok_or_else(|| GateError::UnknownState(transition.next_state.clone()))?
+        .terminal
+    {
         TaskRepository::move_to_done(&task)?;
     }
     Ok(())
-}
-
-pub(crate) fn execute_shared_verdict(args: VerdictArgs, verdict: &str) -> Result<(), GateError> {
-    execute_verdict(args, verdict)
 }

@@ -156,7 +156,7 @@ where
     if let Some(value) = value
         && let Err(error) = apply(value).await
     {
-        warn!("Failed to set {description}: {error}");
+        eprintln!("[ACP] Failed to set {description}: {error}");
     }
 }
 
@@ -166,6 +166,7 @@ async fn set_config_option(
     config_id: String,
     value: String,
 ) {
+    eprintln!("[ACP] set_config_option: {config_id}={value}");
     if let Err(error) = conn
         .set_session_config_option(acp::SetSessionConfigOptionRequest::new(
             session_id,
@@ -174,6 +175,6 @@ async fn set_config_option(
         ))
         .await
     {
-        warn!("Failed to set ACP session config {config_id}: {error}");
+        eprintln!("[ACP] Failed to set ACP session config {config_id}: {error}");
     }
 }

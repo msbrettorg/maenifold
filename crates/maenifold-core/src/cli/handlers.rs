@@ -86,7 +86,6 @@ pub(super) fn run_workflow_command(
 }
 
 pub(super) fn run_prompt_command(agent: String, message: String, model: Option<String>) -> i32 {
-    let model = model.or_else(|| Some("gpt-5.4".to_string()));
     run_async_command(move |context| async move {
         let opts = SessionOpts {
             cwd: context.config.maenifold_root.clone(),
@@ -104,7 +103,6 @@ pub(super) fn run_prompt_command(agent: String, message: String, model: Option<S
 }
 
 pub(super) fn run_think_command(agent: String, topic: String, model: Option<String>) -> i32 {
-    let model = model.or_else(|| Some("gpt-5.4".to_string()));
     run_async_command(move |context| async move {
         run_think(
             &context,

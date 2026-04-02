@@ -1,0 +1,105 @@
+use assert_cmd::Command;
+use serde_json::Value;
+use std::fs;
+use std::path::{Path, PathBuf};
+use tempfile::TempDir;
+
+pub const AUTHORITATIVE_GATES_DIR: &str = "/Users/brett/maenifold/assets/gates";
+pub const SDD_DIGEST: &str = "be8eeb63ff6a14122e5e6947da52c1fcf5f9f8f92143a0ed3894365d5cfd0523";
+pub const GSD_DIGEST: &str = "106827fc4c14b40978efdd984a1ea24b46d308737a63189508a9f7f44f07bc75";
+pub const LIGHTWEIGHT_DIGEST: &str = "0a24c3261daac16e36fa23d80010e4358bb3e3b41d1f70389107b9c08238848d";
+pub const TDD_DIGEST: &str = "c9e323f48e25e2b2206ea79f83e8eb1e57548824cb5c77282034e3f01b88e7ab";
+
+pub fn read_authoritative_asset(name: &str) -> Value {
+    let path = Path::new(AUTHORITATIVE_GATES_DIR).join(format!("{name}.json"));
+    let text = fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("failed to read authoritative asset {}: {error}", path.display()));
+    serde_json::from_str(&text)
+        .unwrap_or_else(|error| panic!("failed to parse authoritative asset {}: {error}", path.display()))
+}
+
+pub fn authoritative_digest(name: &str) -> &'static str {
+    match name {
+        "sdd" => SDD_DIGEST,
+        "gsd" => GSD_DIGEST,
+        "lightweight" => LIGHTWEIGHT_DIGEST,
+        "tdd" => TDD_DIGEST,
+        _ => panic!("unknown authoritative digest for pipeline {name}"),
+    }
+}
+
+pub fn new_pipeline_root() -> TempDir {
+    let temp = tempfile::tempdir().expect("create temp pipeline root");
+    let root = temp.path();
+    fs::create_dir_all(root.join("todo")).expect("create todo");
+    fs::create_dir_all(root.join("done")).expect("create done");
+    fs::write(
+        root.join("PRD.md"),
+        "# Product Requirements Document\n\n## Functional Requirements\n\n- **FR-1**: System SHALL provide user authentication via JWT tokens\n",
+    )
+    .expect("write PRD");
+    fs::write(
+        root.join("RTM.md"),
+        "# Requirements Traceability Matrix\n\n| Requirement | Component | Test Case | Type |\n|-------------|-----------|-----------|------|\n| FR-1 | src/auth/ | TC-1: login returns JWT | integration |\n",
+    )
+    .expect("write RTM");
+    temp
+}
+
+pub fn write_pending_task(root: &Path, task_id: &str, pipeline: &str) -> PathBuf {
+    write_bound_task(root, task_id, pipeline, authoritative_digest(pipeline))
+}
+
+pub fn write_bound_task(root: &Path, task_id: &str, pipeline: &str, pipeline_digest: &str) -> PathBuf {
+    let path = root.join("todo").join(format!("{task_id}.md"));
+    fs::write(
+        &path,
+        format!(
+            "# {task_id} — Auth Login JWT\n\n**Requirement**: FR-1\n**Test Cases**: TC-1\n**Component**: src/auth/\n**Pipeline**: {pipeline}\n**Pipeline Digest**: {pipeline_digest}\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
+        ),
+    )
+    .expect("write task");
+    path
+}
+
+pub fn write_legacy_task_without_pipeline_binding(root: &Path, task_id: &str) -> PathBuf {
+    let path = root.join("todo").join(format!("{task_id}.md"));
+    fs::write(
+        &path,
+        format!(
+            "# {task_id} — Auth Login JWT\n\n**Requirement**: FR-1\n**Test Cases**: TC-1\n**Component**: src/auth/\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
+        ),
+    )
+    .expect("write legacy task");
+    path
+}
+
+pub fn task_path(root: &Path, task_id: &str) -> PathBuf {
+    root.join("todo").join(format!("{task_id}.md"))
+}
+
+pub fn done_task_path(root: &Path, task_id: &str) -> PathBuf {
+    root.join("done").join(format!("{task_id}.md"))
+}
+
+pub fn read_task(path: &Path) -> String {
+    fs::read_to_string(path)
+        .unwrap_or_else(|error| panic!("failed to read task {}: {error}", path.display()))
+}
+
+pub fn gate_command() -> Command {
+    Command::cargo_bin("gate").expect("gate binary should be present for integration tests")
+}
+
+pub fn status_json(root: &Path, pipeline: &str) -> Value {
+    let output = gate_command()
+        .args(["status", "--root"])
+        .arg(root)
+        .args(["--pipeline", pipeline, "--json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    serde_json::from_slice(&output).expect("status output should be valid JSON")
+}

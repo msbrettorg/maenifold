@@ -155,6 +155,7 @@ class TaskStageRecord {
   +verdict: Option~String~
   +agent: String
   +model: Option~String~
+  +recordedAt: String
 }
 
 class TaskStatusDeriver {
@@ -235,7 +236,6 @@ TaskFileReader --> TaskMetadataParser
 TaskFileReader --> TaskSectionParser
 
 StatusCommand --> TaskStatusDeriver
-AppendCommand --> StateMachine
 PassCommand --> StateMachine
 RejectCommand --> StateMachine
 FailCommand --> StateMachine
@@ -346,6 +346,7 @@ If implementation requires a new file, the UML must be updated first.
 - Parse canonical verdict markers
 - Return ordered stage records
 - Support repeated sections for the same stage across retries and rework
+- Extract explicit recorded timestamps for each event section
 
 ### `task_status.rs`
 
@@ -370,6 +371,7 @@ If implementation requires a new file, the UML must be updated first.
   - `pass`
   - `reject`
   - `fail`
+- `append` sections are informational work events only and must not encode a stage transition
 
 ### `cache_db.rs`
 
@@ -400,6 +402,9 @@ If implementation requires a new file, the UML must be updated first.
 ### `append_command.rs`
 
 - `append` command execution only
+- Validates that the task is currently actionable for the specified stage/agent
+- Appends a non-advancing work event only
+- Must not change effective task state, location, or attempts
 
 ### `pass_command.rs`
 
@@ -520,6 +525,7 @@ These rules are mandatory.
 - `fail` appends a stage verdict event with `FAIL`.
 - Multiple sections for the same stage are legal and expected across retries.
 - Effective task state is derived by replaying ordered stage event records from the beginning of the task history against the bound gate definition.
+- Replay order is file order, with each event carrying its own explicit `recordedAt` timestamp for audit fidelity.
 - The implementation must not infer legal transitions from missing verdicts in legacy prose.
 
 ## Canonical Section Rules
@@ -545,6 +551,7 @@ Each appended section must include:
 - model if provided
 - stage id
 - record kind
+- recorded timestamp
 
 ## Invariants
 
@@ -553,6 +560,7 @@ Each appended section must include:
 - All legal transitions are derived from `current_stage + verdict -> next_stage`.
 - Verdicts not declared by a stage are illegal.
 - `append` must not change stage.
+- `append` must not call or simulate any transition path.
 - `pass`, `reject`, and `fail` must be atomic with respect to file mutation.
 - Terminal `done` has no outgoing transition.
 - Final-stage `pass` must move the file into `done/`.

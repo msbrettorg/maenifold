@@ -99,10 +99,9 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
 }
 
 #[test]
-fn illegal_fail_from_pending_dispatch_state_returns_error_and_leaves_files_unchanged() {
+fn fail_from_pending_dispatch_state_returns_to_pending_and_increments_attempts() {
     let root = new_pipeline_root();
     let task = write_pending_task(root.path(), "T-1.1");
-    let before = read_task(&task);
 
     gate_command(root.path())
         .args([
@@ -114,10 +113,15 @@ fn illegal_fail_from_pending_dispatch_state_returns_error_and_leaves_files_uncha
             "cannot fail before swe runs",
         ])
         .assert()
-        .failure()
-        .stderr(predicate::str::contains("illegal").or(predicate::str::contains("fail")));
+        .success();
 
-    assert_eq!(read_task(&task), before);
+    let output = status_json(root.path());
+    let rendered = serde_json::to_string(&output).expect("render status JSON");
+    assert!(rendered.contains("pending"));
+    assert!(rendered.contains("\"attempts\":1") || rendered.contains("\"attempts\": 1"));
+    let task_text = read_task(&task);
+    assert!(task_text.contains("## SWE Remediation"));
+    assert!(task_text.contains("FAIL"));
 }
 
 #[test]

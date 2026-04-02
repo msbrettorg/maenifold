@@ -87,12 +87,6 @@ async fn apply_extra_config_options(
 ) {
     if let Some(config_options) = opts.config_options.clone() {
         for (config_id, value) in config_options {
-            if matches!(
-                config_id.as_str(),
-                "thought_level" | "allowed_tools" | "max_turns"
-            ) {
-                continue;
-            }
             set_config_option(
                 conn,
                 session_id.clone(),
@@ -155,7 +149,7 @@ where
     if let Some(value) = value
         && let Err(error) = apply(value).await
     {
-        eprintln!("[ACP] Failed to set {description}: {error}");
+        tracing::warn!("Failed to set {description}: {error}");
     }
 }
 
@@ -165,7 +159,6 @@ async fn set_config_option(
     config_id: String,
     value: String,
 ) {
-    eprintln!("[ACP] set_config_option: {config_id}={value}");
     if let Err(error) = conn
         .set_session_config_option(acp::SetSessionConfigOptionRequest::new(
             session_id,
@@ -174,6 +167,6 @@ async fn set_config_option(
         ))
         .await
     {
-        eprintln!("[ACP] Failed to set ACP session config {config_id}: {error}");
+        tracing::warn!("Failed to set ACP session config {config_id}: {error}");
     }
 }

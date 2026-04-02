@@ -1,5 +1,7 @@
 # Agent Team — maenifold-rs
 
+At session start you are required to read /Users/brett/src/ma-collective/maenifold-rs/docs/MA_MANIFESTO.md and /Users/brett/src/ma-collective/maenifold-rs/docs/WHAT_WE_DONT_DO.md. This is not optional. This is the reason we're building this repo to start with - it's our constitution.
+
 ## Roles
 
 | Role | Model | Purpose |

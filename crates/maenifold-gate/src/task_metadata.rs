@@ -5,9 +5,6 @@ use crate::error::GateError;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskMetadata {
     pub title: String,
-    pub requirement: String,
-    pub test_cases: Vec<String>,
-    pub component: String,
     pub pipeline: String,
     pub pipeline_digest: String,
 }
@@ -18,12 +15,6 @@ pub struct TaskMetadataParser;
 impl TaskMetadataParser {
     pub fn parse(lines: &[&str]) -> Result<TaskMetadata, GateError> {
         let title = parse_title(lines)?.to_string();
-        let requirement = parse_labeled_value(lines, "Requirement")?
-            .ok_or(GateError::MissingMetadataField("Requirement"))?;
-        let test_cases_raw = parse_labeled_value(lines, "Test Cases")?
-            .ok_or(GateError::MissingMetadataField("Test Cases"))?;
-        let component = parse_labeled_value(lines, "Component")?
-            .ok_or(GateError::MissingMetadataField("Component"))?;
         let pipeline = parse_labeled_value(lines, "Pipeline")?
             .ok_or(GateError::MissingMetadataField("Pipeline"))?;
         let pipeline_digest = parse_labeled_value(lines, "Pipeline Digest")?
@@ -33,18 +24,8 @@ impl TaskMetadataParser {
             return Err(GateError::InvalidPipelineDigest(pipeline_digest));
         }
 
-        let test_cases = test_cases_raw
-            .split(',')
-            .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .map(ToOwned::to_owned)
-            .collect();
-
         Ok(TaskMetadata {
             title,
-            requirement,
-            test_cases,
-            component,
             pipeline,
             pipeline_digest,
         })

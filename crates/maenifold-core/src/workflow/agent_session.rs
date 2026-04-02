@@ -58,17 +58,7 @@ impl AgentSession {
             .prompt_with_context(&self.remote_id, prompt, context)
             .await
             .map_err(agent_error)?;
-        let error = response.stop_reason.as_deref().and_then(|sr| match sr {
-            "end_turn" | "max_tokens" | "max_turn_requests" | "refusal" | "cancelled" => None,
-            other => Some(other.to_string()),
-        });
-        Ok(AcpxResponse {
-            text: response.text,
-            tool_calls: response.tool_calls,
-            thought: response.thought,
-            error,
-            usage: response.usage,
-        })
+        Ok(response)
     }
 
     pub(crate) async fn close(self) -> Result<()> {

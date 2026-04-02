@@ -61,14 +61,7 @@ impl acp::Client for HeadlessClient {
 
         let option_id = args
             .options
-            .iter()
-            .find(|option| {
-                matches!(
-                    option.kind,
-                    acp::PermissionOptionKind::AllowOnce | acp::PermissionOptionKind::AllowAlways
-                )
-            })
-            .or_else(|| args.options.first())
+            .first()
             .map(|option| option.option_id.clone())
             .unwrap_or_else(|| acp::PermissionOptionId::new("allow"));
 
@@ -184,7 +177,6 @@ impl acp::Client for HeadlessClient {
             acp::SessionUpdate::SessionInfoUpdate(_) => "session_info_update",
             _ => "unknown",
         };
-        eprintln!("[ACP] session_notification: session={session_id} update={update_type}");
 
         let mut sessions = self.sessions.lock().await;
         let accumulator = sessions.entry(session_id.clone()).or_default();

@@ -204,13 +204,7 @@ impl AcpxDriver {
             .prompt(&remote_id, prompt)
             .await
             .map_err(|error| Self::map_cached_session_error(&handle, session, error))?;
-        Ok(AcpxResponse {
-            text: response.text,
-            tool_calls: response.tool_calls,
-            thought: response.thought,
-            error: None,
-            usage: response.usage,
-        })
+        Ok(response)
     }
     pub async fn close_session(&self, name: &str) -> Result<()> {
         if let Some(session) = self.sessions.lock().await.remove(name) {

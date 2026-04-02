@@ -65,6 +65,7 @@ impl SessionAccumulator {
                 .collect(),
             thought: (!self.thought.trim().is_empty()).then_some(self.thought),
             stop_reason: None,
+            error: None,
             usage: None,
         }
     }

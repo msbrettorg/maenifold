@@ -63,22 +63,17 @@ pub struct AcpxSessionInfo {
     pub updated_at: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct AgentResponse {
     pub text: String,
     pub tool_calls: Vec<ToolCallRecord>,
     pub thought: Option<String>,
     pub stop_reason: Option<String>,
-    pub usage: Option<AcpxUsage>,
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct AcpxResponse {
-    pub text: String,
-    pub tool_calls: Vec<ToolCallRecord>,
-    pub thought: Option<String>,
     pub error: Option<String>,
     pub usage: Option<AcpxUsage>,
 }
+
+pub type AcpxResponse = AgentResponse;
 
 /// Token usage summary for an ACP prompt turn.
 #[derive(Debug, Clone, PartialEq, Default)]

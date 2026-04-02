@@ -209,7 +209,7 @@ struct GateCli {
     #[arg(long)]
     http: bool,
 
-    #[arg(long, default_value_t = 8080)]
+    #[arg(long, default_value_t = 8081)]
     port: u16,
 }
 

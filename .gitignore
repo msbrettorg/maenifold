@@ -11,3 +11,4 @@ target-investigate/
 todo/
 done/
 gate.db
+.gate/

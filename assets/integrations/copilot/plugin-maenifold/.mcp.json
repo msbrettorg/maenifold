@@ -6,7 +6,7 @@
       "tools": ["*"]
     },
     "gate": {
-      "url": "http://127.0.0.1:9879/mcp",
+      "url": "http://127.0.0.1:8081/mcp",
       "type": "http",
       "tools": ["*"]
     }

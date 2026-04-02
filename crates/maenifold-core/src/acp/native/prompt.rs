@@ -22,6 +22,13 @@ const WIKILINK_CONTEXT: &str = r#"Tag important concepts as [[WikiLinks]] using 
 WikiLinks become knowledge graph nodes. Bad tagging = graph corruption.
 Only tag concepts worth a wiki page."#;
 
+fn stop_reason_error(stop_reason: Option<&str>) -> Option<String> {
+    match stop_reason {
+        Some("end_turn" | "max_tokens" | "max_turn_requests" | "refusal" | "cancelled") | None => None,
+        Some(other) => Some(other.to_string()),
+    }
+}
+
 pub(super) async fn prompt_session(
     conn: &acp::ClientSideConnection,
     sessions: &Arc<Mutex<HashMap<String, SessionAccumulator>>>,
@@ -54,7 +61,6 @@ pub(super) async fn prompt_session_with_blocks(
     let mut content = content_blocks;
     content.push(acp::ContentBlock::Text(acp::TextContent::new(full_prompt)));
 
-    eprintln!("[ACP] prompt: session={session_id} content_blocks={}", content.len());
 
     let result = conn
         .prompt(acp::PromptRequest::new(
@@ -63,7 +69,6 @@ pub(super) async fn prompt_session_with_blocks(
         ))
         .await;
 
-    eprintln!("[ACP] prompt result: session={session_id} ok={}", result.is_ok());
 
     let mut response = sessions
         .lock()
@@ -72,12 +77,11 @@ pub(super) async fn prompt_session_with_blocks(
         .unwrap_or_default()
         .into_response();
 
-    eprintln!("[ACP] accumulated: session={session_id} text_len={} tool_calls={}", response.text.len(), response.tool_calls.len());
 
     match result {
         Ok(prompt_response) => {
-            eprintln!("[ACP] stop_reason: {:?}", prompt_response.stop_reason);
             response.stop_reason = Some(format_stop_reason(prompt_response.stop_reason));
+            response.error = stop_reason_error(response.stop_reason.as_deref());
             response.usage = prompt_response.usage.map(usage_to_response);
             Ok(response)
         }

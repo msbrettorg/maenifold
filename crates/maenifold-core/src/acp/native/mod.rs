@@ -106,16 +106,6 @@ async fn run_agent(
         },
     );
     let conn = Rc::new(conn);
-    let mut stream = conn.subscribe();
-    tokio::task::spawn_local(async move {
-        while let Ok(msg) = stream.recv().await {
-            let dir = match msg.direction {
-                acp::StreamMessageDirection::Incoming => "IN",
-                acp::StreamMessageDirection::Outgoing => "OUT",
-            };
-            eprintln!("[ACP-WIRE] {dir}: {:?}", msg.message);
-        }
-    });
     let mut io_task = Some(tokio::task::spawn_local(io_future));
 
     let init_info = match initialize::initialize(&conn).await {

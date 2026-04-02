@@ -1,6 +1,6 @@
 use agent_client_protocol as acp;
 use std::collections::HashMap;
-use std::io::{stdout, Write};
+use std::io::{stderr, Write};
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -195,8 +195,8 @@ impl acp::Client for HeadlessClient {
             acp::SessionUpdate::UserMessageChunk(_) => {}
             acp::SessionUpdate::AgentMessageChunk(chunk) => {
                 if let acp::ContentBlock::Text(text) = chunk.content {
-                    print!("{}", text.text);
-                    stdout().flush().unwrap();
+                    eprint!("{}", text.text);
+                    stderr().flush().unwrap();
                     accumulator.append_text(&text.text);
                 }
             }

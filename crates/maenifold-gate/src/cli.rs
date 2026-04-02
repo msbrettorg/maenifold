@@ -9,6 +9,7 @@ use crate::mcp::GateMcpServer;
 use crate::pass_command::PassCommand;
 use crate::status_command::StatusCommand;
 use crate::sync_command::SyncCommand;
+use crate::ui_window::GateUiWindow;
 
 #[derive(Debug, Clone)]
 pub struct GateContext {
@@ -105,6 +106,7 @@ impl GateCliApp {
         }
 
         match parsed.cli.command {
+            Some(GateSubcommand::Ui(args)) => GateUiWindow::run(args.shared.root),
             Some(command) => match command.into_request() {
                 Ok(request) => run_command(request),
                 Err(err) => {
@@ -165,7 +167,7 @@ fn run_http(port: u16) -> i32 {
             return 1;
         }
     };
-    let result = rt.block_on(GateMcpServer::serve_web(port));
+    let result = rt.block_on(GateMcpServer::serve_http(port));
     rt.shutdown_timeout(std::time::Duration::from_secs(5));
     match result {
         Ok(()) => 0,
@@ -200,6 +202,7 @@ enum GateSubcommand {
     Pass(OutcomeCliArgs),
     Fail(OutcomeCliArgs),
     Sync(SyncCliArgs),
+    Ui(UiCliArgs),
 }
 
 impl GateSubcommand {
@@ -221,6 +224,11 @@ impl GateSubcommand {
                 context: args.shared.into_context(false),
                 rebuild: args.rebuild,
             }),
+            Self::Ui(_) => {
+                return Err(GateError::Cli(
+                    "ui subcommand must be handled directly".to_string(),
+                ));
+            }
         })
     }
 }
@@ -295,6 +303,12 @@ struct SyncCliArgs {
     shared: SharedCliArgs,
     #[arg(long)]
     rebuild: bool,
+}
+
+#[derive(Debug, Args)]
+struct UiCliArgs {
+    #[command(flatten)]
+    shared: SharedCliArgs,
 }
 
 fn parse_cli(args: &[String]) -> Result<ParsedCli, clap::Error> {

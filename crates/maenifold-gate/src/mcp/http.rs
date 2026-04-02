@@ -5,6 +5,7 @@ use rmcp::transport::streamable_http_server::{
 };
 
 use super::{GateMcpHandler, TransportKind};
+use crate::error::GateError;
 
 pub(crate) type GateHttpService = StreamableHttpService<GateMcpHandler, NeverSessionManager>;
 
@@ -25,9 +26,42 @@ pub(crate) fn service(cancellation_token: tokio_util::sync::CancellationToken) -
     )
 }
 
+impl super::GateMcpServer {
+    pub async fn serve_http(port: u16) -> Result<(), GateError> {
+        let bind_addr = format!("127.0.0.1:{port}");
+        let tcp_listener = tokio::net::TcpListener::bind(&bind_addr)
+            .await
+            .map_err(|e| GateError::Cli(format!("HTTP bind failed on {bind_addr}: {e}")))?;
+        Self::serve_http_listener(tcp_listener).await
+    }
+
+    pub async fn serve_http_listener(
+        tcp_listener: tokio::net::TcpListener,
+    ) -> Result<(), GateError> {
+        let ct = tokio_util::sync::CancellationToken::new();
+        let bind_addr = tcp_listener
+            .local_addr()
+            .map_err(|e| GateError::Cli(format!("HTTP listener address lookup failed: {e}")))?;
+        let router = axum::Router::new()
+            .nest_service("/mcp", service(ct.child_token()))
+            .layer(super::localhost_cors());
+
+        eprintln!("gate MCP HTTP server listening on http://{bind_addr}/mcp");
+
+        axum::serve(tcp_listener, router)
+            .with_graceful_shutdown(async move {
+                let _ = tokio::signal::ctrl_c().await;
+                ct.cancel();
+            })
+            .await
+            .map_err(|e| GateError::Cli(format!("HTTP server error: {e}")))?;
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use axum::Router;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use tokio_util::sync::CancellationToken;
@@ -37,7 +71,7 @@ mod tests {
 
     #[tokio::test]
     async fn http_router_mounts_mcp_endpoint() {
-        let app = Router::new().nest_service("/mcp", service(CancellationToken::new()));
+        let app = axum::Router::new().nest_service("/mcp", service(CancellationToken::new()));
         let response = app
             .oneshot(
                 Request::builder()

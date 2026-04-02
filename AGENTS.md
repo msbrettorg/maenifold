@@ -1,6 +1,10 @@
 # Agent Team — maenifold-rs
 
-At session start you are required to read /Users/brett/src/ma-collective/maenifold-rs/docs/MA_MANIFESTO.md and /Users/brett/src/ma-collective/maenifold-rs/docs/WHAT_WE_DONT_DO.md. This is not optional. This is the reason we're building this repo to start with - it's our constitution.
+MANDATORY:
+- At session start you are required to read /Users/brett/src/ma-collective/maenifold-rs/docs/MA_MANIFESTO.md and /Users/brett/src/ma-collective/maenifold-rs/docs/WHAT_WE_DONT_DO.md. This is not optional. This is the reason we're building this repo to start with - it's our constitution.
+- Load the `maenifold` skill at session start and after every compaction. In this environment prefer using the MCP server, fall back to CLI.",
+- Use your LSP server. If it's unavailable inform the user, do not fall back to rg/grep.
+- Using `maenifold` is required and expected. `buildcontext` and `sequentialThinking` are your primary tools. Do not attempt to start work without both tools online.
 
 ## Roles
 

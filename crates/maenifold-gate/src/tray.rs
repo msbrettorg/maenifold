@@ -28,13 +28,13 @@ impl GateServerMode {
 
 struct TrayApp {
     mode: GateServerMode,
+    root: std::path::PathBuf,
     shutdown_token: CancellationToken,
     server_handle: Option<std::thread::JoinHandle<i32>>,
     tray_icon: Option<tray_icon::TrayIcon>,
     quit_id: Option<tray_icon::menu::MenuId>,
     open_ui_id: Option<tray_icon::menu::MenuId>,
     login_id: Option<tray_icon::menu::MenuId>,
-    open_ui_item: Option<tray_icon::menu::MenuItem>,
     login_item: Option<tray_icon::menu::MenuItem>,
     exit_code: i32,
 }
@@ -45,7 +45,6 @@ impl TrayApp {
         self.quit_id = Some(menu_state.quit_id);
         self.open_ui_id = menu_state.open_ui_id;
         self.login_id = menu_state.login_id;
-        self.open_ui_item = menu_state.open_ui_item;
         self.login_item = menu_state.login_item;
 
         match TrayIconBuilder::new()
@@ -87,9 +86,7 @@ impl TrayApp {
         }
 
         if self.open_ui_id.as_ref().is_some_and(|id| event.id == *id) {
-            if let Some(port) = self.mode.port() {
-                open_ui(port);
-            }
+            open_ui(&self.root);
             return;
         }
 
@@ -174,13 +171,13 @@ pub fn run_with_tray(mode: GateServerMode) -> i32 {
         let event_loop = builder.build().expect("build tray event loop");
         let mut app = TrayApp {
             mode,
+            root: std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
             shutdown_token,
             server_handle: Some(server_handle),
             tray_icon: None,
             quit_id: None,
             open_ui_id: None,
             login_id: None,
-            open_ui_item: None,
             login_item: None,
             exit_code: 0,
         };
@@ -227,7 +224,7 @@ fn run_headless(mode: GateServerMode) -> i32 {
 async fn run_mode(mode: GateServerMode) -> Result<(), crate::error::GateError> {
     match mode {
         GateServerMode::Stdio => GateMcpServer::serve_stdio().await,
-        GateServerMode::Http(port) => GateMcpServer::serve_web(port).await,
+        GateServerMode::Http(port) => GateMcpServer::serve_http(port).await,
     }
 }
 

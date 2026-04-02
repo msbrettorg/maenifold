@@ -50,6 +50,9 @@ impl TaskRepository {
                 let Some(task_id) = path.file_stem().and_then(|value| value.to_str()) else {
                     continue;
                 };
+                if !task_id.starts_with("T-") {
+                    continue;
+                }
                 tasks.push(TaskPathSet {
                     task_id: task_id.to_string(),
                     path,

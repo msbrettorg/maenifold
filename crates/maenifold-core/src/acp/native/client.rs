@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    io::{Write, stderr},
+    io::{ErrorKind, Write, stderr},
     path::{Component, Path, PathBuf},
     sync::Arc,
 };
@@ -78,7 +78,7 @@ impl HeadlessClient {
         }
     }
 
-    fn resolve_and_jail(&self, path: PathBuf) -> std::result::Result<PathBuf, sacp::Error> {
+    fn resolve_path(&self, path: PathBuf) -> std::result::Result<PathBuf, sacp::Error> {
         let resolved = if path.is_absolute() {
             path
         } else {
@@ -95,9 +95,35 @@ impl HeadlessClient {
             )));
         }
 
-        let canonical_cwd = canonicalize_or_original(&self.cwd);
-        let canonical_path = canonicalize_or_original(&resolved);
+        Ok(resolved)
+    }
+
+    fn resolve_and_jail_existing(
+        &self,
+        path: PathBuf,
+    ) -> std::result::Result<PathBuf, sacp::Error> {
+        let resolved = self.resolve_path(path)?;
+        let canonical_cwd = canonicalize_or_error(&self.cwd, "working directory")?;
+        let canonical_path = canonicalize_or_error(&resolved, "path")?;
         if !canonical_path.starts_with(&canonical_cwd) {
+            return Err(sacp::Error::invalid_params().data(format!(
+                "path escapes working directory: {}",
+                resolved.display()
+            )));
+        }
+
+        Ok(resolved)
+    }
+
+    fn resolve_and_jail_for_write(
+        &self,
+        path: PathBuf,
+    ) -> std::result::Result<PathBuf, sacp::Error> {
+        let resolved = self.resolve_path(path)?;
+        let canonical_cwd = canonicalize_or_error(&self.cwd, "working directory")?;
+        let existing_ancestor = nearest_existing_ancestor(&resolved)?;
+        let canonical_ancestor = canonicalize_or_error(&existing_ancestor, "path ancestor")?;
+        if !canonical_ancestor.starts_with(&canonical_cwd) {
             return Err(sacp::Error::invalid_params().data(format!(
                 "path escapes working directory: {}",
                 resolved.display()
@@ -143,7 +169,7 @@ impl HeadlessClient {
         &self,
         args: sacps::WriteTextFileRequest,
     ) -> std::result::Result<sacps::WriteTextFileResponse, sacp::Error> {
-        let path = self.resolve_and_jail(args.path)?;
+        let path = self.resolve_and_jail_for_write(args.path)?;
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|error| {
                 sacp::Error::internal_error().data(format!(
@@ -151,6 +177,14 @@ impl HeadlessClient {
                     path.display()
                 ))
             })?;
+            let canonical_cwd = canonicalize_or_error(&self.cwd, "working directory")?;
+            let canonical_parent = canonicalize_or_error(parent, "write parent directory")?;
+            if !canonical_parent.starts_with(&canonical_cwd) {
+                return Err(sacp::Error::invalid_params().data(format!(
+                    "path escapes working directory after directory creation: {}",
+                    path.display()
+                )));
+            }
         }
         std::fs::write(&path, args.content).map_err(|error| {
             sacp::Error::internal_error()
@@ -163,7 +197,7 @@ impl HeadlessClient {
         &self,
         args: sacps::ReadTextFileRequest,
     ) -> std::result::Result<sacps::ReadTextFileResponse, sacp::Error> {
-        let path = self.resolve_and_jail(args.path)?;
+        let path = self.resolve_and_jail_existing(args.path)?;
         let content = std::fs::read_to_string(&path).map_err(|error| {
             sacp::Error::internal_error()
                 .data(format!("failed to read {}: {error}", path.display()))
@@ -242,6 +276,34 @@ impl HeadlessClient {
     }
 }
 
-fn canonicalize_or_original(path: &Path) -> PathBuf {
-    path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
+fn canonicalize_or_error(path: &Path, context: &str) -> std::result::Result<PathBuf, sacp::Error> {
+    path.canonicalize().map_err(|error| {
+        sacp::Error::internal_error().data(format!(
+            "failed to canonicalize {context} {}: {error}",
+            path.display()
+        ))
+    })
+}
+
+fn nearest_existing_ancestor(path: &Path) -> std::result::Result<PathBuf, sacp::Error> {
+    let mut current = path;
+    loop {
+        match std::fs::symlink_metadata(current) {
+            Ok(_) => return Ok(current.to_path_buf()),
+            Err(error) if error.kind() == ErrorKind::NotFound => {
+                current = current.parent().ok_or_else(|| {
+                    sacp::Error::internal_error().data(format!(
+                        "failed to find existing ancestor for {}",
+                        path.display()
+                    ))
+                })?;
+            }
+            Err(error) => {
+                return Err(sacp::Error::internal_error().data(format!(
+                    "failed to inspect path {}: {error}",
+                    current.display()
+                )));
+            }
+        }
+    }
 }

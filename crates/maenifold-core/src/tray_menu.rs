@@ -2,9 +2,12 @@ use std::process::Command;
 
 use tray_icon::menu::{Menu, MenuId, MenuItem, PredefinedMenuItem};
 
+const ENDOPHASIA_MENU_TITLE: &str = "Endophasia";
+
 pub(crate) struct TrayMenuState {
     pub menu: Menu,
     pub quit_id: MenuId,
+    pub endophasia_id: MenuId,
     pub help_id: MenuId,
     pub login_id: MenuId,
     pub restart_id: Option<MenuId>,
@@ -14,6 +17,8 @@ pub(crate) struct TrayMenuState {
 pub(crate) fn build_tray_menu() -> TrayMenuState {
     let menu = Menu::new();
     let login_enabled = is_login_enabled();
+    let endophasia_item = MenuItem::new(ENDOPHASIA_MENU_TITLE, true, None);
+    let _ = menu.append(&endophasia_item);
 
     #[cfg(target_os = "macos")]
     let login_item = MenuItem::new(login_menu_text(login_enabled), true, None);
@@ -40,11 +45,16 @@ pub(crate) fn build_tray_menu() -> TrayMenuState {
     TrayMenuState {
         menu,
         quit_id: quit_item.id().clone(),
+        endophasia_id: endophasia_item.id().clone(),
         help_id: help_item.id().clone(),
         login_id: login_item.id().clone(),
         restart_id: restart_item.map(|item| item.id().clone()),
         login_item,
     }
+}
+
+pub(crate) fn endophasia_url(port: u16) -> String {
+    format!("http://127.0.0.1:{port}/endophasia")
 }
 
 pub(crate) fn toggle_login_item(port: u16, login_item: Option<&MenuItem>) {
@@ -181,4 +191,19 @@ fn xml_escape(value: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ENDOPHASIA_MENU_TITLE, endophasia_url};
+
+    #[test]
+    fn endophasia_url_uses_runtime_port() {
+        assert_eq!(endophasia_url(8087), "http://127.0.0.1:8087/endophasia");
+    }
+
+    #[test]
+    fn endophasia_menu_title_is_stable() {
+        assert_eq!(ENDOPHASIA_MENU_TITLE, "Endophasia");
+    }
 }

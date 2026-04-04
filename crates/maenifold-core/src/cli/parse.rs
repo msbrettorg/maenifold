@@ -87,9 +87,10 @@ pub(super) fn render_error(
                     "Error invoking {tool_name}: Required property '{msg}' is missing from payload."
                 ),
             ),
-            MaenifoldError::InvalidPayload(msg) => {
-                failure("INVALID_PAYLOAD", format!("Error invoking {tool_name}: {msg}"))
-            }
+            MaenifoldError::InvalidPayload(msg) => failure(
+                "INVALID_PAYLOAD",
+                format!("Error invoking {tool_name}: {msg}"),
+            ),
             MaenifoldError::Io(ref io_err)
                 if io_err.raw_os_error() == Some(63)
                     || io_err.to_string().contains("name too long") =>

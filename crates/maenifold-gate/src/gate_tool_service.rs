@@ -238,6 +238,7 @@ mod tests {
             filter: StatusFilter {
                 state: None,
                 ready_only: false,
+                include_done: false,
             },
         })
         .expect_err("status should fail when the cache DB is missing");
@@ -265,6 +266,7 @@ mod tests {
             filter: StatusFilter {
                 state: None,
                 ready_only: false,
+                include_done: false,
             },
         })
         .expect_err("status should fail on a corrupt cache DB");

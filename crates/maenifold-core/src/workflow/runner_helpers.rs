@@ -10,7 +10,8 @@ use regex::Regex;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::LazyLock;
-static STEP_PROGRESS_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
+static STEP_PROGRESS_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
 
 /// Single source of truth for the XML output-block contract sent to workflow agents.
 const XML_FORMAT_INSTRUCTION: &str = r#"Respond using this XML format:
@@ -27,7 +28,9 @@ pub(crate) struct Envelope<T> {
     pub(crate) error: Option<EnvelopeError>,
 }
 #[derive(Debug, Deserialize)]
-pub(crate) struct EnvelopeError { pub(crate) message: String }
+pub(crate) struct EnvelopeError {
+    pub(crate) message: String,
+}
 pub(crate) fn workflow_text(raw: &str) -> String {
     let trimmed = raw.trim();
     if let Ok(envelope) = serde_json::from_str::<Envelope<String>>(trimmed) {
@@ -107,7 +110,11 @@ pub(crate) fn terminal_workflow_status(step: &str) -> Option<WorkflowRunStatus> 
     }
 }
 pub(crate) fn workflow_prompt(prompt: &str, step: &str) -> String {
-    let prefix = if prompt.trim().is_empty() { step.to_string() } else { format!("{prompt}\n{step}") };
+    let prefix = if prompt.trim().is_empty() {
+        step.to_string()
+    } else {
+        format!("{prompt}\n{step}")
+    };
     format!("{prefix}\n\n{WIKILINK_CONTEXT}\n\n{XML_FORMAT_INSTRUCTION}")
 }
 pub(crate) async fn prompt_workflow_agent(
@@ -118,9 +125,7 @@ pub(crate) async fn prompt_workflow_agent(
 ) -> Result<WorkflowAgentResponse> {
     let full_prompt = workflow_prompt(prompt, step);
     let response = if let Some(blocks) = content_blocks {
-        driver
-            .prompt_with_context(&full_prompt, blocks)
-            .await?
+        driver.prompt_with_context(&full_prompt, blocks).await?
     } else {
         driver.prompt(&full_prompt).await?
     };
@@ -144,7 +149,10 @@ pub(crate) fn workflow_step_payload(
         json!({ "sessionId": session_id, "response": response.output.response })
     }
 }
-pub(crate) fn workflow_completion_text(response: &WorkflowAgentResponse, final_step: bool) -> Option<String> {
+pub(crate) fn workflow_completion_text(
+    response: &WorkflowAgentResponse,
+    final_step: bool,
+) -> Option<String> {
     final_step.then(|| workflow_conclusion_text(response, final_step))
 }
 pub(crate) struct WorkflowAgentResponse {
@@ -171,15 +179,12 @@ async fn parse_workflow_with_retry(
                 text = workflow_response_text(response)?.trim().to_string();
             }
             Err(error) => {
-                eprintln!("workflow output parse failed after retries: {error}");
-                return Ok(WorkflowAgentResponse {
-                    output: WorkflowOutput {
-                        response: text,
-                        done: false,
-                        conclusion: None,
-                    },
-                    used_fallback: true,
-                });
+                return Err(MaenifoldError::Message(format!(
+                    "workflow output parse failed after {} attempt(s): {}. Last response preview: {}",
+                    max_retries + 1,
+                    error,
+                    preview_response(&text),
+                )));
             }
         }
     }
@@ -230,6 +235,23 @@ fn workflow_retry_prompt(error: &str) -> String {
         WorkflowOutput::expected_shape()
     )
 }
+
+fn preview_response(text: &str) -> String {
+    const MAX_PREVIEW_CHARS: usize = 500;
+
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return "<empty response>".to_string();
+    }
+
+    let preview: String = trimmed.chars().take(MAX_PREVIEW_CHARS).collect();
+    if trimmed.chars().count() > MAX_PREVIEW_CHARS {
+        format!("{preview}…")
+    } else {
+        preview
+    }
+}
+
 /// Appends `[[unstructured-response]]` when the text lacks well-formed wikilinks.
 /// Shared single definition used by both workflow and think runners.
 pub(crate) fn tag_fallback(response: &str) -> String {

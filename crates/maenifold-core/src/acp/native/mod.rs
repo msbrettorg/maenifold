@@ -29,7 +29,14 @@ use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 use types::InitInfo;
 
 fn trace_enabled() -> bool {
-    std::env::var("MAENIFOLD_TRACE").is_ok()
+    std::env::var("MAENIFOLD_TRACE")
+        .map(|value| {
+            !matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "0" | "false" | "off"
+            )
+        })
+        .unwrap_or(true)
 }
 
 pub(super) fn format_stop_reason(stop_reason: sacps::StopReason) -> String {
@@ -200,7 +207,22 @@ async fn run_agent(
     if trace_enabled() {
         eprintln!("[acp] agent initialized");
     }
-    let _ = init.lock().map(|mut slot| *slot = Some(init_info));
+    match init.lock() {
+        Ok(mut slot) => *slot = Some(init_info),
+        Err(error) => {
+            alive.store(false, Ordering::SeqCst);
+            if trace_enabled() {
+                eprintln!("[acp] error: Failed to store ACP init info: {}", error);
+            }
+            tracing::error!("Failed to store ACP init info: {error}");
+            if let Some(task) = io_task.take() {
+                task.abort();
+                log_io_task_exit(task.await);
+            }
+            reap_child(&mut child, stderr_task, None).await;
+            return;
+        }
+    }
 
     loop {
         let cmd = tokio::select! {
@@ -270,19 +292,25 @@ async fn run_agent(
                     .map_err(|error| AgentError::Acp(error.to_string()));
                 let _ = reply.send(result);
             }
-            AgentCommand::CloseSession { session_id } => {
-                client.remove_session(&session_id).await;
-                if let Err(error) = conn
+            AgentCommand::CloseSession { session_id, reply } => {
+                let close_session_id = session_id.clone();
+                let result = conn
                     .send_request(agent_client_protocol::ClientRequest::CloseSessionRequest(
                         agent_client_protocol::CloseSessionRequest::new(
-                            agent_client_protocol::SessionId::new(session_id),
+                            agent_client_protocol::SessionId::new(close_session_id),
                         ),
                     ))
                     .block_task()
                     .await
-                {
-                    tracing::warn!("Failed to close ACP session: {error}");
+                    .map_err(|error| {
+                        tracing::warn!("Failed to close ACP session: {error}");
+                        AgentError::Acp(error.to_string())
+                    })
+                    .map(|_| ());
+                if result.is_ok() {
+                    client.remove_session(&session_id).await;
                 }
+                let _ = reply.send(result);
             }
         }
     }

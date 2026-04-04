@@ -165,4 +165,3 @@ pub fn normalize_whole_floats(value: &mut Value) {
         _ => {}
     }
 }
-

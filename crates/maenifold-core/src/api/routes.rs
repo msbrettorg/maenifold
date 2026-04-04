@@ -29,29 +29,29 @@ impl ApiState {
     }
 }
 
-type ApiResult<T> = std::result::Result<T, ApiError>;
+pub(crate) type ApiResult<T> = std::result::Result<T, ApiError>;
 
-struct ApiError {
+pub(crate) struct ApiError {
     status: StatusCode,
     message: String,
 }
 
 impl ApiError {
-    fn bad_request(message: impl Into<String>) -> Self {
+    pub(crate) fn bad_request(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::BAD_REQUEST,
             message: message.into(),
         }
     }
 
-    fn not_found(message: impl Into<String>) -> Self {
+    pub(crate) fn not_found(message: impl Into<String>) -> Self {
         Self {
             status: StatusCode::NOT_FOUND,
             message: message.into(),
         }
     }
 
-    fn internal(error: impl Display) -> Self {
+    pub(crate) fn internal(error: impl Display) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             message: error.to_string(),
@@ -368,5 +368,48 @@ pub fn api_routes(state: ApiState) -> Router {
         .route("/api/memory/read", get(memory_read))
         .route("/api/memory/recent", get(memory_recent))
         .route("/api/memory/search", get(memory_search))
+        .with_state(state)
+}
+
+// T-92.7: RTM FR-36 — Endophasia frontend + API routes for /endophasia,
+// /api/endophasia/communities, and /api/endophasia/stream.
+// Kept separate from api_routes so serve_http can mount these without
+// pulling in the full REST surface.
+
+async fn endophasia_frontend() -> axum::response::Response {
+    crate::endophasia::frontend::index_html_response()
+}
+
+async fn endophasia_communities_handler(
+    State(state): State<ApiState>,
+    Query(params): Query<HashMap<String, String>>,
+) -> ApiResult<Json<crate::api::endophasia_communities::EndophasiaCommunitiesResponse>> {
+    let connection =
+        db::open_connection(&state.config.database_path).map_err(ApiError::internal)?;
+    let response =
+        crate::api::endophasia_communities::load_response(&connection, &params)
+            .map_err(ApiError::internal)?;
+    Ok(Json(response))
+}
+
+async fn endophasia_stream_handler() -> impl IntoResponse {
+    crate::api::endophasia_stream::endophasia_stream().await
+}
+
+/// Routes for the Endophasia visualization UI and its backing API.
+///
+/// Mounts:
+/// - `GET /endophasia`                         — embedded SPA (`index.html`)
+/// - `GET /api/endophasia/communities`          — concept-community graph JSON
+/// - `GET /api/endophasia/stream`               — SSE stream of `ConceptEvent`s
+#[must_use]
+pub fn endophasia_routes(state: ApiState) -> Router {
+    Router::new()
+        .route("/endophasia", get(endophasia_frontend))
+        .route(
+            "/api/endophasia/communities",
+            get(endophasia_communities_handler),
+        )
+        .route("/api/endophasia/stream", get(endophasia_stream_handler))
         .with_state(state)
 }

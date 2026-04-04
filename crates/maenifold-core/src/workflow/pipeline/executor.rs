@@ -137,10 +137,10 @@ fn log_incomplete_execution(context: &ToolContext, session_id: &str) -> Result<(
         })
         .collect::<Vec<_>>();
     if !non_terminal.is_empty() {
-        eprintln!(
-            "[pipeline] executor exited before all nodes reached terminal states for session \
-             {session_id}: {}",
-            non_terminal.join(", ")
+        tracing::error!(
+            session_id = %session_id,
+            non_terminal = ?non_terminal,
+            "[pipeline] executor exited before all nodes reached terminal states"
         );
     }
     Ok(())

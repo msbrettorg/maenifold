@@ -36,4 +36,3 @@ pub fn with_next_steps(result: &str, next_tools: &[&str]) -> String {
 pub fn with_hint(result: &str, tool_name: &str, hint: &str) -> String {
     format!("{result}\n💡 {hint} Run GetHelp(\"{tool_name}\") for complete documentation.")
 }
-

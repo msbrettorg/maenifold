@@ -292,4 +292,3 @@ fn generate_sequential_session_id_with_entropy(millis: i64, entropy: u32) -> Str
     let suffix = 10_000 + (entropy % 90_000);
     format!("session-{millis}-{suffix}")
 }
-

@@ -324,4 +324,3 @@ fn compute_modularity(
         })
         .sum()
 }
-

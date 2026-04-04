@@ -68,6 +68,7 @@ fn gate_status(root: &Path) -> Value {
         .env("MAENIFOLD_GATE_ASSETS_DIR", assets_dir.path())
         .args(["status", "--root"])
         .arg(fixture_root.path())
+        .arg("--all")
         .arg("--json")
         .assert()
         .success()

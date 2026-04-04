@@ -9,7 +9,7 @@
 //!
 //! `--mcp` mode never enters this module — it remains fully headless.
 
-use crate::tray_menu::{build_tray_menu, restart_daemon, toggle_login_item};
+use crate::tray_menu::{build_tray_menu, endophasia_url, restart_daemon, toggle_login_item};
 use tokio_util::sync::CancellationToken;
 use tray_icon::menu::{MenuEvent, MenuId, MenuItem};
 use tray_icon::{Icon, TrayIconBuilder};
@@ -82,6 +82,7 @@ struct TrayApp {
     // Tray state — initialised in `new_events` when `cause == StartCause::Init`.
     tray_icon: Option<tray_icon::TrayIcon>,
     quit_id: Option<MenuId>,
+    endophasia_id: Option<MenuId>,
     help_id: Option<MenuId>,
     login_id: Option<MenuId>,
     restart_id: Option<MenuId>,
@@ -93,6 +94,7 @@ impl TrayApp {
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
         let menu_state = build_tray_menu();
         self.quit_id = Some(menu_state.quit_id);
+        self.endophasia_id = Some(menu_state.endophasia_id);
         self.help_id = Some(menu_state.help_id);
         self.login_id = Some(menu_state.login_id);
         self.restart_id = menu_state.restart_id;
@@ -134,6 +136,17 @@ impl TrayApp {
             self.shutdown_token.cancel();
             self.tray_icon.take();
             event_loop.exit();
+            return;
+        }
+
+        if self
+            .endophasia_id
+            .as_ref()
+            .is_some_and(|id| event.id == *id)
+        {
+            if let Err(err) = open_url(&endophasia_url(self.mode.port())) {
+                eprintln!("Error opening Endophasia URL: {err}");
+            }
             return;
         }
 
@@ -246,6 +259,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
         server_handle: Some(server_handle),
         tray_icon: None,
         quit_id: None,
+        endophasia_id: None,
         help_id: None,
         login_id: None,
         restart_id: None,

@@ -22,8 +22,8 @@ pub(super) fn update_pipeline_node_status(
 ) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
-    let mut node_states =
-        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    let raw_node_states = frontmatter_value(&frontmatter, "nodeStates")?;
+    let mut node_states = derive_pipeline_node_states(context, &raw_node_states)?;
     definition
         .nodes
         .iter()
@@ -34,7 +34,7 @@ pub(super) fn update_pipeline_node_status(
             ))
         })?;
     let workflow_session_id = {
-        let state = node_states.get(node_id).ok_or_else(|| {
+        let state = raw_node_states.get(node_id).ok_or_else(|| {
             MaenifoldError::Message(format!(
                 "ERROR: Pipeline session missing node state for '{node_id}'"
             ))
@@ -101,6 +101,12 @@ pub(super) fn update_pipeline_node_status(
         &pipeline_content,
         context,
     )?;
+    tracing::info!(
+        session_id = %session_id,
+        node_id = %node_id,
+        status = %status,
+        "[pipeline] node transitioned"
+    );
 
     let ambient_prompt = frontmatter.get("prompt").and_then(YamlValue::as_str);
     let result = build_pipeline_view_result(

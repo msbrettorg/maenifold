@@ -108,4 +108,3 @@ fn normalize_decay_path(file_path: &str, config: &Config) -> String {
 
     normalized
 }
-

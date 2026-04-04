@@ -166,4 +166,3 @@ pub(crate) fn flush_relation_counts(
         }
     }
 }
-

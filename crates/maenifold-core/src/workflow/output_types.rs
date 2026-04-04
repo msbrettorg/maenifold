@@ -99,4 +99,3 @@ fn optional_string(parsed: &ParsedOutput, field: &str) -> Option<String> {
         Some(value.to_string())
     }
 }
-

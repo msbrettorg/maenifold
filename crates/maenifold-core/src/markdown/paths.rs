@@ -175,4 +175,3 @@ pub fn markdown_path_from_relative(relative: &str, config: &Config) -> Result<Pa
     }
     Ok(path)
 }
-

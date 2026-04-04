@@ -13,13 +13,22 @@ use crate::util::json::OutputFormat;
 
 use super::agent_session::open_agent_session;
 use super::output_types::ThinkingOutput;
+use super::runner::append_close_error_context;
+use super::runner::sanitize_workflow_session_opts;
 use super::runner_helpers::{Envelope, slug};
 use super::think_helpers::{
     ensure_conclusion_for_completed_output, force_completion_output, parse_with_retry,
 };
 
 fn trace_enabled() -> bool {
-    std::env::var("MAENIFOLD_TRACE").is_ok()
+    std::env::var("MAENIFOLD_TRACE")
+        .map(|value| {
+            !matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "0" | "false" | "off"
+            )
+        })
+        .unwrap_or(true)
 }
 
 /// Canonical default for sequential thinking depth.
@@ -129,8 +138,13 @@ pub(crate) async fn drive_think_session(
     content_blocks: Option<Vec<acp::ContentBlock>>,
 ) -> Result<ThinkResult> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
-    let driver =
-        open_agent_session(pool, agent, &format!("think-{session_id}"), session_opts).await?;
+    let driver = open_agent_session(
+        pool,
+        agent,
+        &format!("think-{session_id}"),
+        sanitize_workflow_session_opts(session_opts),
+    )
+    .await?;
     let mut thought_number = 1u32;
     let mut first_context = content_blocks;
     let result: Result<ThinkResult> = async {
@@ -158,7 +172,7 @@ pub(crate) async fn drive_think_session(
                 } else {
                     thinking_output
                 };
-            let capped_output = ensure_conclusion_for_completed_output(capped_output);
+            let capped_output = ensure_conclusion_for_completed_output(capped_output)?;
             let payload = think_progress_payload_from_output(
                 session_id,
                 &capped_output,
@@ -182,7 +196,8 @@ pub(crate) async fn drive_think_session(
     .await;
     match (result, driver.close().await) {
         (Ok(value), Ok(())) => Ok(value),
-        (Ok(_), Err(error)) | (Err(_), Err(error)) => Err(error),
+        (Ok(_), Err(error)) => Err(error),
+        (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
         (Err(error), Ok(())) => Err(error),
     }
 }

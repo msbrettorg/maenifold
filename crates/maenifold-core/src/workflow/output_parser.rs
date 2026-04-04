@@ -143,4 +143,3 @@ struct JsonFallbackOutput {
     #[serde(default)]
     thought: Option<String>,
 }
-

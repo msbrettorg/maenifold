@@ -2,9 +2,24 @@ use super::context::{ToolContext, render};
 use crate::acp_config::AgentsConfig;
 use crate::acp_native::{GLOBAL_AGENT_POOL, SessionOpts};
 use crate::error::Result;
-use crate::workflow::pipeline::supervisor_runtime;
 use agent_client_protocol as acp;
 use serde_json::{Map, Value, json};
+use std::future::Future;
+use std::sync::LazyLock;
+use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
+use tokio::task;
+
+static AGENTS_RUNTIME: LazyLock<std::result::Result<Runtime, String>> = LazyLock::new(|| {
+    Builder::new_multi_thread()
+        .worker_threads(2)
+        .enable_all()
+        .build()
+        .map_err(|error| format!("Failed to build agents runtime: {error}"))
+});
+
+fn agents_runtime() -> std::result::Result<&'static Runtime, String> {
+    AGENTS_RUNTIME.as_ref().map_err(|message| message.clone())
+}
 
 pub fn list_agents(context: &ToolContext, payload: &Value) -> Result<String> {
     let probe = payload
@@ -94,6 +109,24 @@ fn serialize_agent_capabilities(capabilities: &Option<acp::AgentCapabilities>) -
     }
 }
 
+fn run_agent_future<F, T>(future: F) -> std::result::Result<T, String>
+where
+    F: Future<Output = std::result::Result<T, String>>,
+{
+    match Handle::try_current() {
+        Ok(handle) => {
+            if !matches!(handle.runtime_flavor(), RuntimeFlavor::MultiThread) {
+                return Err(
+                    "agent probing requires a multi-thread Tokio runtime when invoked from async context"
+                        .to_string(),
+                );
+            }
+            task::block_in_place(|| handle.block_on(future))
+        }
+        Err(_) => agents_runtime()?.block_on(future),
+    }
+}
+
 /// Spawn an agent, initialize, create a session, and capture advertised
 /// capabilities (modes, models, configOptions).
 fn probe_agent(root: &std::path::Path, name: &str, entry: &crate::acp_config::AgentEntry) -> Value {
@@ -102,8 +135,7 @@ fn probe_agent(root: &std::path::Path, name: &str, entry: &crate::acp_config::Ag
     let cwd = root.to_path_buf();
     let agent_name = name.to_string();
 
-    let result: std::result::Result<Value, String> = match supervisor_runtime() {
-        Ok(runtime) => runtime.block_on(async move {
+    let result: std::result::Result<Value, String> = run_agent_future(async move {
             let handle = GLOBAL_AGENT_POOL
                 .get_or_create(&agent_name, &command, &cwd, env, true)
                 .await;
@@ -129,7 +161,7 @@ fn probe_agent(root: &std::path::Path, name: &str, entry: &crate::acp_config::Ag
             let agent_info = handle.agent_info();
             let agent_capabilities = handle.capabilities();
 
-            let capabilities = json!({
+            let mut capabilities = json!({
                 "style": if has_config_options { "modern" } else { "legacy" },
                 "agentInfo": serialize_agent_info(&agent_info),
                 "agentCapabilities": serialize_agent_capabilities(&agent_capabilities),
@@ -157,11 +189,13 @@ fn probe_agent(root: &std::path::Path, name: &str, entry: &crate::acp_config::Ag
                 }).collect::<Vec<_>>(),
             });
 
-            handle.close_session(&session_id).await;
+            if let Err(error) = handle.close_session(&session_id).await {
+                if let Value::Object(ref mut object) = capabilities {
+                    object.insert("closeSessionError".to_string(), json!(error.to_string()));
+                }
+            }
             Ok(capabilities)
-        }),
-        Err(error) => Err(error.to_string()),
-    };
+        });
 
     match result {
         Ok(value) => value,

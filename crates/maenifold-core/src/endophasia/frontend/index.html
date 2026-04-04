@@ -683,7 +683,10 @@
 
     function scheduleCommunities() {
       if (state.communitiesTimer) clearInterval(state.communitiesTimer);
-      state.communitiesTimer = setInterval(() => fetchCommunities().catch(err => console.error("[endophasia] community fetch failed:", err)), 20000);
+      state.communitiesTimer = setInterval(() => fetchCommunities().catch(err => {
+        console.error("[endophasia] community fetch failed:", err);
+        setStatus("Communities unavailable", "reconnecting");
+      }), 20000);
     }
 
     function connectStream(delay = 0) {
@@ -813,6 +816,9 @@
         await fetchCommunities();
       } catch (err) {
         console.error("[endophasia] community fetch failed:", err);
+        setStatus("Communities unavailable", "reconnecting");
+        emptyNote.textContent = "Community graph unavailable — check server logs";
+        emptyNote.style.display = "block";
       }
       scheduleCommunities();
       connectStream();

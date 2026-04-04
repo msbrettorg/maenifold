@@ -68,8 +68,10 @@ impl AgentSession {
     }
 
     pub(crate) async fn close(self) -> Result<()> {
-        self.handle.close_session(&self.remote_id).await;
-        Ok(())
+        self.handle
+            .close_session(&self.remote_id)
+            .await
+            .map_err(agent_error)
     }
 }
 

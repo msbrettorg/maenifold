@@ -112,4 +112,3 @@ pub(crate) fn parse_source_file_weights(source_files: &str) -> Result<BTreeMap<S
         _ => Ok(BTreeMap::new()),
     }
 }
-

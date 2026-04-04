@@ -193,4 +193,3 @@ fn sql_placeholders(count: usize) -> String {
         .collect::<Vec<_>>()
         .join(", ")
 }
-

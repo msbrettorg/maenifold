@@ -251,4 +251,3 @@ fn should_skip_initialize_asset_copy(src: &Path, error: &std::io::Error) -> bool
         .map(|metadata| metadata.is_dir())
         .unwrap_or(false)
 }
-

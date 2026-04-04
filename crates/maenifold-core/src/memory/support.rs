@@ -262,4 +262,3 @@ pub(crate) fn update_last_accessed(uri: &str, context: &ToolContext) -> Result<(
     )?;
     Ok(())
 }
-

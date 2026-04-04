@@ -14,6 +14,7 @@ axum.workspace = true
 base64.workspace = true
 chrono.workspace = true
 clap = { version = "4", features = ["derive"] }
+futures-util = "0.3"
 libc.workspace = true
 notify.workspace = true
 once_cell.workspace = true
@@ -28,8 +29,10 @@ schemars.workspace = true
 serde_yaml.workspace = true
 sha2.workspace = true
 slug.workspace = true
+rust-embed.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+tracing-appender.workspace = true
 tracing-subscriber.workspace = true
 tokio = { workspace = true, features = ["process", "time"] }
 tokio-util = { workspace = true, features = ["compat"] }
@@ -60,10 +63,8 @@ reqwest.workspace = true
 serial_test = "3"
 similar-asserts.workspace = true
 tempfile.workspace = true
+tower = "0.5"
 filetime = "0.2.25"
-
-
-
 
 
 

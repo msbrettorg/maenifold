@@ -34,7 +34,8 @@ serde_yaml = "0.9.34"
 slug = "0.1.6"
 thiserror = "2.0.17"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 # T-17.2: RTM FR-23 (RTM-127, RTM-129, RTM-130) - HTTP transport needs networking and
 # SIGINT handling for graceful shutdown.
 tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "io-std", "sync", "net", "signal"] }

@@ -87,6 +87,7 @@ fn load_tasks(root: &PathBuf) -> Result<Vec<TaskEntry>, String> {
         filter: StatusFilter {
             state: None,
             ready_only: false,
+            include_done: true,
         },
     })
     .map_err(|e| e.to_string())?;

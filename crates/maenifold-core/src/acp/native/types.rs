@@ -162,6 +162,7 @@ pub enum AgentCommand {
     },
     CloseSession {
         session_id: String,
+        reply: Reply<()>,
     },
     Shutdown,
 }
@@ -254,9 +255,11 @@ impl AgentHandle {
         })
         .await
     }
-    pub async fn close_session(&self, session_id: &str) {
-        let _ = self.cmd_tx.send(AgentCommand::CloseSession {
+    pub async fn close_session(&self, session_id: &str) -> Result<()> {
+        self.request(|reply| AgentCommand::CloseSession {
             session_id: session_id.to_string(),
-        });
+            reply,
+        })
+        .await
     }
 }

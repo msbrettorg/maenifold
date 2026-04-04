@@ -102,6 +102,7 @@ pub fn status_json(root: &Path) -> Value {
     let output = gate_command(root)
         .args(["status", "--root"])
         .arg(root)
+        .arg("--all")
         .arg("--json")
         .assert()
         .success()

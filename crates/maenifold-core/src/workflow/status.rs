@@ -125,8 +125,7 @@ fn require_workflow_conclusion(
                 "ERROR: All workflows complete. Call workflow tool again with conclusion parameter to finalize."
                     .to_string()
             } else {
-                "ERROR: Conclusion required when completing session."
-                    .to_string()
+                "ERROR: Conclusion required when completing session.".to_string()
             });
         }
     };

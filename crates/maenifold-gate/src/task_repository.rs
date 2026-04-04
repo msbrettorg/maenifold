@@ -42,9 +42,7 @@ impl TaskRepository {
                 continue;
             }
 
-            for entry in std::fs::read_dir(&directory)
-                .map_err(GateError::Io)?
-            {
+            for entry in std::fs::read_dir(&directory).map_err(GateError::Io)? {
                 let entry = entry.map_err(GateError::Io)?;
                 let path = entry.path();
                 if !path.is_file() {

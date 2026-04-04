@@ -61,15 +61,16 @@ pub fn compute_pipeline_status(node_states: &HashMap<String, NodeState>) -> &'st
         return "completed";
     }
 
-    let has_stuck = node_states
+    if node_states
         .values()
-        .any(|state| matches!(state.status, NodeStatus::Stuck));
-    let has_active_or_ready = node_states
-        .values()
-        .any(|state| matches!(state.status, NodeStatus::Active | NodeStatus::Ready));
-
-    if has_stuck && !has_active_or_ready {
+        .any(|state| matches!(state.status, NodeStatus::Stuck))
+    {
         "stuck"
+    } else if node_states
+        .values()
+        .any(|state| matches!(state.status, NodeStatus::Abandoned))
+    {
+        "abandoned"
     } else {
         "active"
     }

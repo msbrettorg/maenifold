@@ -191,6 +191,7 @@ fn call_gate_tool(
             filter: StatusFilter {
                 state: optional_string(arguments, "state")?,
                 ready_only: optional_bool(arguments, "ready")?.unwrap_or(false),
+                include_done: optional_bool(arguments, "includeDone")?.unwrap_or(false),
             },
         })?,
         "append" => GateToolService::append(AppendArgs {
@@ -369,6 +370,95 @@ mod tests {
             .expect("state status should return an array");
         assert_eq!(swe_tasks.len(), 1);
         assert_eq!(swe_tasks[0]["taskId"], "T-9.2");
+    }
+
+    #[test]
+    fn mcp_status_excludes_done_by_default_and_restores_them_with_include_done() {
+        let root = new_custom_pipeline_root();
+        let root_path = root.path().to_path_buf();
+        fs::write(
+            root.path().join("todo").join("T-9.2.md"),
+            task_markdown("T-9.2", "custom"),
+        )
+        .expect("write second task");
+        call_gate_tool(
+            "sync",
+            &json!({ "root": root.path(), "rebuild": true }),
+            Some(&root_path),
+        )
+        .expect("sync tool should succeed");
+        call_gate_tool(
+            "pass",
+            &json!({
+                "root": root.path(),
+                "taskId": "T-9.2",
+                "agent": "swe",
+                "notes": "advanced to swe"
+            }),
+            Some(&root_path),
+        )
+        .expect("advance to swe");
+        call_gate_tool(
+            "pass",
+            &json!({
+                "root": root.path(),
+                "taskId": "T-9.2",
+                "agent": "red-team",
+                "notes": "advanced to red-team"
+            }),
+            Some(&root_path),
+        )
+        .expect("advance to red-team");
+        call_gate_tool(
+            "pass",
+            &json!({
+                "root": root.path(),
+                "taskId": "T-9.2",
+                "agent": "red-team",
+                "notes": "completed task"
+            }),
+            Some(&root_path),
+        )
+        .expect("complete task");
+
+        let default_output =
+            call_gate_tool("status", &json!({ "root": root.path() }), Some(&root_path))
+                .expect("default status should succeed");
+        let default_value: serde_json::Value =
+            serde_json::from_str(&default_output).expect("valid default status json");
+        let default_tasks = default_value
+            .as_array()
+            .expect("default status should return an array");
+        assert_eq!(default_tasks.len(), 1);
+        assert_eq!(default_tasks[0]["taskId"], "T-9.1");
+
+        let all_output = call_gate_tool(
+            "status",
+            &json!({ "root": root.path(), "includeDone": true }),
+            Some(&root_path),
+        )
+        .expect("includeDone status should succeed");
+        let all_value: serde_json::Value =
+            serde_json::from_str(&all_output).expect("valid includeDone status json");
+        let all_tasks = all_value
+            .as_array()
+            .expect("includeDone status should return an array");
+        assert_eq!(all_tasks.len(), 2);
+        assert!(all_tasks.iter().any(|task| task["taskId"] == "T-9.2"));
+
+        let done_output = call_gate_tool(
+            "status",
+            &json!({ "root": root.path(), "state": "done" }),
+            Some(&root_path),
+        )
+        .expect("done state status should succeed");
+        let done_value: serde_json::Value =
+            serde_json::from_str(&done_output).expect("valid done status json");
+        let done_tasks = done_value
+            .as_array()
+            .expect("done state status should return an array");
+        assert_eq!(done_tasks.len(), 1);
+        assert_eq!(done_tasks[0]["taskId"], "T-9.2");
     }
 
     #[test]

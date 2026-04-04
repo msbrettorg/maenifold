@@ -10,7 +10,14 @@ use super::{
 };
 
 fn trace_enabled() -> bool {
-    std::env::var("MAENIFOLD_TRACE").is_ok()
+    std::env::var("MAENIFOLD_TRACE")
+        .map(|value| {
+            !matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "0" | "false" | "off"
+            )
+        })
+        .unwrap_or(true)
 }
 
 fn stop_reason_error(stop_reason: Option<&str>) -> Option<String> {

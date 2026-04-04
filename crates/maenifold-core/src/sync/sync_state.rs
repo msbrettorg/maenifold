@@ -206,4 +206,3 @@ pub(crate) fn current_iso_timestamp() -> String {
         now.timestamp_subsec_nanos() / 100,
     )
 }
-

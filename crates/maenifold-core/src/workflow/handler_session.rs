@@ -2,7 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::markdown::{append_h2_section, file_exists, read_markdown, write_markdown};
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
-use serde_json::{Value, json};
+use serde_json::Value;
 use serde_yaml::Value as YamlValue;
 
 use super::{
@@ -110,6 +110,8 @@ pub(crate) fn continue_workflow_session(
     advance_to_next_workflow_step(
         context,
         &uri,
+        session_id,
+        current_workflow_id,
         frontmatter,
         &existing_content,
         current_step,
@@ -155,22 +157,26 @@ fn gate_workflow_session_status(
 fn advance_to_next_workflow_step(
     context: &ToolContext,
     workflow_uri: &str,
+    session_id: &str,
+    workflow_id: &str,
     frontmatter: crate::markdown::Frontmatter,
     existing_content: &str,
     current_step: usize,
     steps: &[Value],
 ) -> Result<String> {
+    let next_step = steps.get(current_step).ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "Workflow session {session_id} advanced to invalid step index {current_step} for workflow '{workflow_id}' with {} steps",
+            steps.len()
+        ))
+    })?;
+    let rendered_step = format_workflow_step(next_step)?;
     write_markdown(
         workflow_uri,
         Some(&frontmatter),
         existing_content,
         &context.config,
     )?;
-    let next_step = steps
-        .get(current_step)
-        .cloned()
-        .unwrap_or_else(|| json!({}));
-    let rendered_step = format_workflow_step(&next_step)?;
     append_h2_section(
         workflow_uri,
         &format!("Step {}/{}", current_step + 1, steps.len()),

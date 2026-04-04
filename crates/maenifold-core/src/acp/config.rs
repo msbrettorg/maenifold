@@ -196,4 +196,3 @@ fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
 
     true
 }
-

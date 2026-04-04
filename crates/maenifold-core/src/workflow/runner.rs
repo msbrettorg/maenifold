@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::acp_native::{AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
+use crate::registry::ToolRegistry;
 use crate::tools::ToolContext;
 use agent_client_protocol as acp;
 use serde_json::json;
@@ -15,11 +16,27 @@ use super::runner_state::{current_step_index, init_workflow_session, workflow_to
 use super::think_runner::{drive_think_session, seed_think_session};
 
 fn trace_enabled() -> bool {
-    std::env::var("MAENIFOLD_TRACE").is_ok()
+    std::env::var("MAENIFOLD_TRACE")
+        .map(|value| {
+            !matches!(
+                value.trim().to_ascii_lowercase().as_str(),
+                "0" | "false" | "off"
+            )
+        })
+        .unwrap_or(true)
 }
 
 pub(crate) use super::think_runner::run_think_with_pool;
 pub use super::think_runner::{ThinkOptions, ThinkResult};
+
+pub(crate) fn append_close_error_context(
+    primary: MaenifoldError,
+    close_error: MaenifoldError,
+) -> MaenifoldError {
+    MaenifoldError::Message(format!(
+        "{primary}\nAdditionally, closing the workflow agent session failed: {close_error}"
+    ))
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WorkflowRunStatus {
@@ -47,7 +64,7 @@ struct RunContext<'a> {
 
 impl RunContext<'_> {
     fn default_session_opts(&self) -> SessionOpts {
-        SessionOpts {
+        sanitize_workflow_session_opts(SessionOpts {
             cwd: self.tool_context.config.maenifold_root.clone(),
             auto_grant_permissions: true,
             model: self.model.clone(),
@@ -58,8 +75,32 @@ impl RunContext<'_> {
             max_turns: None,
             timeout_seconds: None,
             mcp_servers: vec![],
-        }
+        })
     }
+}
+
+pub(crate) fn sanitize_workflow_session_opts(mut opts: SessionOpts) -> SessionOpts {
+    let allowed_tools = opts.allowed_tools.take().unwrap_or_else(|| {
+        ToolRegistry::global()
+            .canonical_names()
+            .into_iter()
+            .map(str::to_string)
+            .collect()
+    });
+    opts.allowed_tools = Some(
+        allowed_tools
+            .into_iter()
+            .filter(|tool| !is_reentrant_workflow_tool(tool))
+            .collect(),
+    );
+    opts
+}
+
+pub(crate) fn is_reentrant_workflow_tool(tool: &str) -> bool {
+    matches!(
+        tool.to_ascii_lowercase().as_str(),
+        "workflow" | "sequentialthinking" | "pipeline" | "acpexec" | "acp_exec"
+    )
 }
 
 /// Send a single prompt to an ACP agent using a specific pool.
@@ -81,16 +122,27 @@ pub(crate) async fn run_prompt_with_pool_context(
     opts: SessionOpts,
 ) -> Result<String> {
     let session = open_agent_session(pool, agent, "prompt", opts).await?;
-    let response = match context {
+    let response_result = match context {
         Some(blocks) => session.prompt_with_context(prompt, blocks).await,
         None => session.prompt(prompt).await,
     };
-    let _ = session.close().await;
-    let response = response?;
-    if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
-        return Err(MaenifoldError::Message(error));
+    let close_result = session.close().await;
+    let prompt_result = match response_result {
+        Ok(response) => {
+            if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
+                Err(MaenifoldError::Message(error))
+            } else {
+                Ok(response.text.trim().to_string())
+            }
+        }
+        Err(error) => Err(error),
+    };
+    match (prompt_result, close_result) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Ok(_), Err(error)) => Err(error),
+        (Err(error), Ok(())) => Err(error),
+        (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
     }
-    Ok(response.text.trim().to_string())
 }
 
 pub(crate) async fn run_workflow_with_pool(
@@ -129,7 +181,12 @@ pub(crate) async fn run_workflow_with_pool(
     let result: Result<WorkflowResult> = async {
         loop {
             if trace_enabled() {
-                eprintln!("[workflow] loop: step_index={} total={} step_preview={:?}", step_index, total_steps, &step[..step.len().min(120)]);
+                eprintln!(
+                    "[workflow] loop: step_index={} total={} step_preview={:?}",
+                    step_index,
+                    total_steps,
+                    &step[..step.len().min(120)]
+                );
             }
             if let Some(status) = terminal_workflow_status(&step) {
                 if trace_enabled() {
@@ -160,7 +217,10 @@ pub(crate) async fn run_workflow_with_pool(
             let response =
                 prompt_workflow_agent(&driver, prompt, &step, first_context.take()).await?;
             if trace_enabled() {
-                eprintln!("[workflow] agent responded (used_fallback={})", response.used_fallback);
+                eprintln!(
+                    "[workflow] agent responded (used_fallback={})",
+                    response.used_fallback
+                );
             }
             if let Some(value) = workflow_completion_text(&response, final_step) {
                 if trace_enabled() {
@@ -168,13 +228,19 @@ pub(crate) async fn run_workflow_with_pool(
                 }
                 conclusion = Some(value);
             } else if trace_enabled() {
-                eprintln!("[workflow] no conclusion extracted (final_step={})", final_step);
+                eprintln!(
+                    "[workflow] no conclusion extracted (final_step={})",
+                    final_step
+                );
             }
 
             let payload = workflow_step_payload(&run_ctx.session_id, &response, final_step);
             let handler_result = super::handler::workflow(context, &payload)?;
             if trace_enabled() {
-                eprintln!("[workflow] handler returned: {:?}", &handler_result[..handler_result.len().min(200)]);
+                eprintln!(
+                    "[workflow] handler returned: {:?}",
+                    &handler_result[..handler_result.len().min(200)]
+                );
             }
             step = workflow_text(&handler_result);
             steps_completed += 1;
@@ -185,7 +251,8 @@ pub(crate) async fn run_workflow_with_pool(
     let close_result = driver.close().await;
     match (result, close_result) {
         (Ok(value), Ok(())) => Ok(value),
-        (Ok(_), Err(error)) | (Err(_), Err(error)) => Err(error),
+        (Ok(_), Err(error)) => Err(error),
+        (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
         (Err(error), Ok(())) => Err(error),
     }
 }
@@ -214,8 +281,13 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         pool,
         model: session_opts.model.clone(),
     };
-    let driver =
-        open_agent_session(&run_ctx.pool, agent, &run_ctx.session_id, session_opts).await?;
+    let driver = open_agent_session(
+        &run_ctx.pool,
+        agent,
+        &run_ctx.session_id,
+        sanitize_workflow_session_opts(session_opts),
+    )
+    .await?;
     let mut step = workflow_text(&start_text);
     let total_steps = workflow_total_steps(context, workflow_id, &step)?;
     let mut step_index = current_step_index(context, &run_ctx.session_id, &step);
@@ -259,7 +331,8 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     let close_result = driver.close().await;
     match (result, close_result) {
         (Ok(value), Ok(())) => Ok(value),
-        (Ok(_), Err(error)) | (Err(_), Err(error)) => Err(error),
+        (Ok(_), Err(error)) => Err(error),
+        (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
         (Err(error), Ok(())) => Err(error),
     }
 }
@@ -295,4 +368,75 @@ async fn maybe_run_step_thinking(run_ctx: &RunContext<'_>, step: &str) -> Result
     )
     .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        append_close_error_context, is_reentrant_workflow_tool, sanitize_workflow_session_opts,
+    };
+    use crate::acp_native::SessionOpts;
+    use std::path::PathBuf;
+
+    fn session_opts(allowed_tools: Option<Vec<&str>>) -> SessionOpts {
+        SessionOpts {
+            cwd: PathBuf::from("."),
+            auto_grant_permissions: true,
+            model: None,
+            mode: None,
+            thought_level: None,
+            config_options: None,
+            allowed_tools: allowed_tools.map(|tools| {
+                tools
+                    .into_iter()
+                    .map(std::string::ToString::to_string)
+                    .collect()
+            }),
+            max_turns: None,
+            timeout_seconds: None,
+            mcp_servers: vec![],
+        }
+    }
+
+    #[test]
+    fn sanitize_workflow_session_opts_filters_reentrant_tools_from_explicit_allowlist() {
+        let sanitized = sanitize_workflow_session_opts(session_opts(Some(vec![
+            "ReadMemory",
+            "workflow",
+            "SequentialThinking",
+        ])));
+
+        assert_eq!(
+            sanitized.allowed_tools,
+            Some(vec!["ReadMemory".to_string()])
+        );
+    }
+
+    #[test]
+    fn sanitize_workflow_session_opts_defaults_to_registry_without_reentrant_tools() {
+        let sanitized = sanitize_workflow_session_opts(session_opts(None));
+        let allowed_tools = sanitized
+            .allowed_tools
+            .expect("workflow sessions should always have an explicit allowlist");
+
+        assert!(allowed_tools.iter().any(|tool| tool == "ReadMemory"));
+        assert!(
+            allowed_tools
+                .iter()
+                .all(|tool| !is_reentrant_workflow_tool(tool))
+        );
+    }
+
+    #[test]
+    fn append_close_error_context_preserves_primary_error_and_close_context() {
+        let combined = append_close_error_context(
+            crate::error::MaenifoldError::Message("primary failure".to_string()),
+            crate::error::MaenifoldError::Message("close failure".to_string()),
+        );
+
+        assert_eq!(
+            combined.to_string(),
+            "primary failure\nAdditionally, closing the workflow agent session failed: close failure"
+        );
+    }
 }

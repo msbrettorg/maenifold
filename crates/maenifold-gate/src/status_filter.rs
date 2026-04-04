@@ -4,6 +4,7 @@ use serde_json::Value;
 pub struct StatusFilter {
     pub state: Option<String>,
     pub ready_only: bool,
+    pub include_done: bool,
 }
 
 impl StatusFilter {
@@ -15,10 +16,15 @@ impl StatusFilter {
             return false;
         }
 
-        match &self.state {
-            Some(expected) => row["state"].as_str() == Some(expected.as_str()),
-            None => true,
+        if let Some(expected) = &self.state {
+            return row["state"].as_str() == Some(expected.as_str());
         }
+
+        if !self.include_done && row["state"].as_str() == Some("done") {
+            return false;
+        }
+
+        true
     }
 }
 
@@ -33,6 +39,7 @@ mod tests {
         let filter = StatusFilter {
             state: None,
             ready_only: true,
+            include_done: false,
         };
         assert!(filter.matches(&json!({ "state": "pending", "location": "todo" })));
         assert!(!filter.matches(&json!({ "state": "pending", "location": "done" })));
@@ -44,8 +51,41 @@ mod tests {
         let filter = StatusFilter {
             state: Some("red-team".to_string()),
             ready_only: false,
+            include_done: false,
         };
         assert!(filter.matches(&json!({ "state": "red-team", "location": "todo" })));
         assert!(!filter.matches(&json!({ "state": "swe", "location": "todo" })));
+    }
+
+    #[test]
+    fn default_filter_excludes_done_rows() {
+        let filter = StatusFilter {
+            state: None,
+            ready_only: false,
+            include_done: false,
+        };
+        assert!(!filter.matches(&json!({ "state": "done", "location": "done" })));
+        assert!(filter.matches(&json!({ "state": "pending", "location": "todo" })));
+    }
+
+    #[test]
+    fn include_done_opt_in_restores_done_rows() {
+        let filter = StatusFilter {
+            state: None,
+            ready_only: false,
+            include_done: true,
+        };
+        assert!(filter.matches(&json!({ "state": "done", "location": "done" })));
+    }
+
+    #[test]
+    fn state_filter_for_done_preserves_done_lookup() {
+        let filter = StatusFilter {
+            state: Some("done".to_string()),
+            ready_only: false,
+            include_done: false,
+        };
+        assert!(filter.matches(&json!({ "state": "done", "location": "done" })));
+        assert!(!filter.matches(&json!({ "state": "pending", "location": "todo" })));
     }
 }

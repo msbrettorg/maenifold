@@ -35,6 +35,13 @@ pub fn load_response(
     connection: &Connection,
     params: &HashMap<String, String>,
 ) -> Result<EndophasiaCommunitiesResponse> {
+    if !has_any_communities(connection)? {
+        return Ok(EndophasiaCommunitiesResponse {
+            communities: Vec::new(),
+            edges: Vec::new(),
+        });
+    }
+
     let context_concepts = parse_context_concepts(params.get("context"));
     let matching_community_ids = if context_concepts.is_empty() {
         None
@@ -65,6 +72,11 @@ pub fn load_response(
     let edges = load_edges(connection, &concept_names)?;
 
     Ok(EndophasiaCommunitiesResponse { communities, edges })
+}
+
+fn has_any_communities(connection: &Connection) -> Result<bool> {
+    let mut statement = connection.prepare("SELECT 1 FROM concept_communities LIMIT 1")?;
+    Ok(statement.exists([])?)
 }
 
 fn parse_context_concepts(raw: Option<&String>) -> Vec<String> {

@@ -179,6 +179,7 @@ impl GateSubcommand {
                 filter: StatusFilter {
                     state: args.state,
                     ready_only: args.ready,
+                    include_done: args.all,
                 },
             }),
             Self::Append(args) => CommandRequest::Append(AppendArgs {
@@ -231,6 +232,8 @@ struct StatusCliArgs {
     shared: SharedCliArgs,
     #[arg(long)]
     json: bool,
+    #[arg(long)]
+    all: bool,
     #[arg(long)]
     state: Option<String>,
     #[arg(long)]
@@ -390,6 +393,7 @@ mod tests {
         };
         assert!(args.filter.ready_only);
         assert_eq!(args.filter.state, None);
+        assert!(!args.filter.include_done);
     }
 
     #[test]
@@ -404,5 +408,21 @@ mod tests {
         };
         assert_eq!(args.filter.state.as_deref(), Some("swe"));
         assert!(!args.filter.ready_only);
+        assert!(!args.filter.include_done);
+    }
+
+    #[test]
+    fn parse_status_all_flag() {
+        let cli = GateCli::parse_from(["gate", "status", "--all"]);
+        let Some(command) = cli.command else {
+            panic!("status subcommand should be present");
+        };
+        let request = command.into_request().expect("status request should build");
+        let CommandRequest::Status(args) = request else {
+            panic!("status subcommand should produce a status request");
+        };
+        assert!(args.filter.include_done);
+        assert!(!args.filter.ready_only);
+        assert_eq!(args.filter.state, None);
     }
 }

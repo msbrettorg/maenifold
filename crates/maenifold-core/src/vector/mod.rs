@@ -111,4 +111,3 @@ pub(crate) const fn default_true() -> bool {
 pub(crate) const fn default_model_max_length() -> usize {
     DEFAULT_MAX_TOKENS
 }
-

@@ -64,7 +64,12 @@ impl Config {
     }
 
     pub fn ensure_directories(&self) -> Result<()> {
-        for path in [&self.maenifold_root, &self.memory_path, &self.assets_path] {
+        for path in [
+            &self.maenifold_root,
+            &self.memory_path,
+            &self.assets_path,
+            &self.maenifold_root.join("logs"),
+        ] {
             fs::create_dir_all(path)?;
         }
         Ok(())
@@ -76,6 +81,11 @@ impl Config {
             .to_str()
             .ok_or_else(|| MaenifoldError::NonUtf8Path(self.database_path.clone()))?;
         Ok(format!("file:{path}?mode=rwc"))
+    }
+
+    // T-92.2: rolling log rotation strategy.
+    pub fn log_rotation(&self) -> String {
+        env_string("MAENIFOLD_LOG_ROTATION", "daily")
     }
 
     // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x

@@ -62,6 +62,10 @@ pub fn list() -> Vec<McpToolDefinition> {
                     "ready": {
                         "type": "boolean",
                         "description": "Optional flag to show only ready-to-work tasks, currently defined as tasks in todo/ whose effective state is 'pending'. Defaults to false."
+                    },
+                    "includeDone": {
+                        "type": "boolean",
+                        "description": "Optional flag to include tasks whose effective state is 'done'. Defaults to false so status focuses on actionable work."
                     }
                 },
                 "additionalProperties": false
@@ -350,7 +354,11 @@ mod tests {
             .find(|tool| tool.name == "history")
             .expect("history tool should exist");
         assert!(history.description.contains("stage journey"));
-        assert!(history.description.contains("JSON array of history records"));
+        assert!(
+            history
+                .description
+                .contains("JSON array of history records")
+        );
 
         let sync = tools
             .iter()

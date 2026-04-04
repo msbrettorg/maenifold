@@ -269,4 +269,3 @@ fn system_time_to_iso(system_time: SystemTime) -> String {
     let date_time: DateTime<Utc> = system_time.into();
     format_iso(date_time)
 }
-

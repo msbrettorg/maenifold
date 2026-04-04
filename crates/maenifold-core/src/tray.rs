@@ -18,6 +18,8 @@ use winit::event::StartCause;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
+#[cfg(target_os = "macos")]
+use wry;
 
 /// Which HTTP-based server mode was requested.
 #[derive(Debug, Clone, Copy)]
@@ -79,6 +81,10 @@ struct TrayApp {
     mode: ServerMode,
     shutdown_token: CancellationToken,
     server_handle: Option<std::thread::JoinHandle<i32>>,
+    #[cfg(target_os = "macos")]
+    endophasia_wv: Option<wry::WebView>,
+    #[cfg(target_os = "macos")]
+    endophasia_wv_window: Option<winit::window::Window>,
     // Tray state — initialised in `new_events` when `cause == StartCause::Init`.
     tray_icon: Option<tray_icon::TrayIcon>,
     quit_id: Option<MenuId>,
@@ -91,6 +97,12 @@ struct TrayApp {
 }
 
 impl TrayApp {
+    #[cfg(target_os = "macos")]
+    fn close_endophasia_window(&mut self) {
+        self.endophasia_wv.take();
+        self.endophasia_wv_window.take();
+    }
+
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
         let menu_state = build_tray_menu();
         self.quit_id = Some(menu_state.quit_id);
@@ -127,6 +139,39 @@ impl TrayApp {
         }
     }
 
+    #[cfg(target_os = "macos")]
+    fn toggle_endophasia_window(&mut self, event_loop: &ActiveEventLoop) {
+        if self.endophasia_wv_window.is_some() {
+            self.close_endophasia_window();
+            return;
+        }
+
+        let attrs = winit::window::Window::default_attributes()
+            .with_title("Endophasia")
+            .with_inner_size(winit::dpi::LogicalSize::new(420.0, 760.0))
+            .with_resizable(true);
+
+        let window = match event_loop.create_window(attrs) {
+            Ok(window) => window,
+            Err(err) => {
+                eprintln!("Error creating Endophasia window: {err}");
+                return;
+            }
+        };
+
+        let url = format!("{}?portrait=1", endophasia_url(self.mode.port()));
+        let webview = match wry::WebViewBuilder::new().with_url(&url).build(&window) {
+            Ok(webview) => webview,
+            Err(err) => {
+                eprintln!("Error creating Endophasia webview: {err}");
+                return;
+            }
+        };
+
+        self.endophasia_wv = Some(webview);
+        self.endophasia_wv_window = Some(window);
+    }
+
     fn handle_menu_event(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -134,6 +179,8 @@ impl TrayApp {
     ) {
         if self.quit_id.as_ref().is_some_and(|id| event.id == *id) {
             self.shutdown_token.cancel();
+            #[cfg(target_os = "macos")]
+            self.close_endophasia_window();
             self.tray_icon.take();
             event_loop.exit();
             return;
@@ -144,8 +191,15 @@ impl TrayApp {
             .as_ref()
             .is_some_and(|id| event.id == *id)
         {
-            if let Err(err) = open_url(&endophasia_url(self.mode.port())) {
-                eprintln!("Error opening Endophasia URL: {err}");
+            #[cfg(target_os = "macos")]
+            {
+                self.toggle_endophasia_window(event_loop);
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                if let Err(err) = open_url(&endophasia_url(self.mode.port())) {
+                    eprintln!("Error opening Endophasia URL: {err}");
+                }
             }
             return;
         }
@@ -177,6 +231,8 @@ impl ApplicationHandler for TrayApp {
         }
 
         if self.server_handle.as_ref().is_some_and(|h| h.is_finished()) {
+            #[cfg(target_os = "macos")]
+            self.close_endophasia_window();
             self.tray_icon.take();
             event_loop.exit();
         }
@@ -189,10 +245,19 @@ impl ApplicationHandler for TrayApp {
     fn window_event(
         &mut self,
         _event_loop: &ActiveEventLoop,
-        _window_id: winit::window::WindowId,
-        _event: winit::event::WindowEvent,
+        window_id: winit::window::WindowId,
+        event: winit::event::WindowEvent,
     ) {
-        // No windows — nothing to do.
+        #[cfg(target_os = "macos")]
+        {
+            if let Some(ref window) = self.endophasia_wv_window {
+                if window.id() == window_id
+                    && matches!(event, winit::event::WindowEvent::CloseRequested)
+                {
+                    self.close_endophasia_window();
+                }
+            }
+        }
     }
 }
 
@@ -257,6 +322,10 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
         mode,
         shutdown_token,
         server_handle: Some(server_handle),
+        #[cfg(target_os = "macos")]
+        endophasia_wv: None,
+        #[cfg(target_os = "macos")]
+        endophasia_wv_window: None,
         tray_icon: None,
         quit_id: None,
         endophasia_id: None,
@@ -270,6 +339,8 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
     if let Err(err) = event_loop.run_app(&mut app) {
         eprintln!("Error running tray event loop: {err}");
         app.shutdown_token.cancel();
+        #[cfg(target_os = "macos")]
+        app.close_endophasia_window();
         app.exit_code = 1;
     }
 

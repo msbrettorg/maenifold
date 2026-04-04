@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Endophasia V2</title>
+  <!-- TODO: inline D3 for production native-webview builds instead of loading from CDN. -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     :root {
@@ -37,6 +38,13 @@
     body {
       min-height: 100vh;
       display: flex;
+    }
+
+    html.portrait,
+    body.portrait {
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
     }
 
     .shell {
@@ -322,6 +330,163 @@
     .legend-exploring { color: var(--exploring); }
     .legend-remembering { color: var(--remembering); }
 
+    body.portrait .shell {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      min-height: 100vh;
+      min-height: 100dvh;
+      border-radius: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 50%, transparent 40%, rgba(0,0,0,0.6)),
+        radial-gradient(ellipse 30% 80% at 8% 50%, rgba(0,120,212,0.06), transparent),
+        radial-gradient(ellipse 30% 80% at 92% 50%, rgba(16,124,16,0.04), transparent),
+        var(--panel);
+    }
+
+    body.portrait .shell::before {
+      opacity: 0.06;
+      background-size: 32px 32px;
+    }
+
+    body.portrait .header {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      justify-content: center;
+      gap: 10px;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 999px;
+      background: rgba(10, 10, 14, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4);
+      width: auto;
+      min-width: 0;
+    }
+
+    body.portrait .header-title {
+      gap: 8px;
+    }
+
+    body.portrait .header-build {
+      display: none;
+    }
+
+    body.portrait .status {
+      padding: 0;
+      border: none;
+      background: transparent;
+      font-size: 8px;
+      letter-spacing: 0.12em;
+      color: rgba(255, 255, 255, 0.74);
+    }
+
+    body.portrait .footer {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      justify-content: center;
+      padding: 6px 16px;
+      border: none;
+      border-radius: 999px;
+      background: rgba(10, 10, 14, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4);
+      width: auto;
+      max-width: calc(100vw - 24px);
+    }
+
+    body.portrait .legend {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 12px;
+    }
+
+    body.portrait .legend-item {
+      gap: 4px;
+    }
+
+    body.portrait .legend-arrow {
+      text-shadow: 0 0 10px currentColor;
+    }
+
+    body.portrait .workspace {
+      display: block;
+      position: absolute;
+      inset: 0;
+      grid-template-columns: unset;
+    }
+
+    body.portrait .pane + .pane {
+      border-left: none;
+    }
+
+    body.portrait .substrate-pane {
+      position: absolute;
+      inset: 0;
+      background: transparent;
+    }
+
+    body.portrait .substrate {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    body.portrait .stream-pane {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 52px;
+      z-index: 5;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      min-width: 0;
+    }
+
+    body.portrait .stream-pane.left {
+      left: 0;
+    }
+
+    body.portrait .stream-pane.right {
+      right: 0;
+    }
+
+    body.portrait .stream-item {
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      max-width: 48px;
+      text-shadow: 0 0 8px currentColor;
+    }
+
+    body.portrait .stream-item .neighbors {
+      display: none;
+    }
+
+    body.portrait .stream-item.left {
+      right: 2px;
+    }
+
+    body.portrait .stream-item.right {
+      left: 2px;
+    }
+
+    body.portrait .lane-mark {
+      font-size: 7px;
+      opacity: 0.3;
+    }
+
     @media (max-width: 720px) {
       .header,
       .footer {
@@ -361,7 +526,7 @@
       </section>
 
       <section id="substrate-pane" class="pane substrate-pane" aria-label="Community substrate">
-        <svg id="substrate" role="img" aria-label="Community substrate showing Louvain concept clusters"></svg>
+        <svg id="substrate" class="substrate" role="img" aria-label="Community substrate showing Louvain concept clusters"></svg>
         <div id="empty-note" class="empty-note">No communities detected</div>
       </section>
 
@@ -389,7 +554,6 @@
       remembering: { color: "#D83B01", lane: "right" }
     };
 
-    const MAX_STREAM_ITEMS = 42;
     const COMMUNITY_REFRESH_MS = 30000;
     const SSE_RECONNECT_MS = 1800;
 
@@ -435,11 +599,61 @@
       communityLinks: [],
       conceptNodes: [],
       conceptIndex: new Map(),
+      conceptCommunities: new Map(),
+      substrateDirty: true,
       resizeFrame: null
     };
 
     const normalize = value => String(value || "").trim().toLowerCase();
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    function isPortrait() {
+      return document.body.classList.contains("portrait");
+    }
+
+    function maxStreamItems() {
+      return isPortrait() ? 16 : 42;
+    }
+
+    function layoutLimits() {
+      return {
+        maxCommunities: isPortrait() ? 6 : 10,
+        maxConceptsPerCommunity: isPortrait() ? 5 : 10
+      };
+    }
+
+    function markSubstrateDirty() {
+      state.substrateDirty = true;
+    }
+
+    function hasActiveGlows() {
+      const now = Date.now();
+      return state.communityNodes.some(node => now < node.glowUntil)
+        || state.conceptNodes.some(node => now < node.glowUntil);
+    }
+
+    function pruneOverflowLanes() {
+      pruneLane(leftStream);
+      pruneLane(rightStream);
+    }
+
+    function updatePortraitMode() {
+      const portrait = new URLSearchParams(window.location.search).has("portrait")
+        || window.innerHeight > window.innerWidth * 1.2;
+      const changed = document.body.classList.contains("portrait") !== portrait;
+      document.documentElement.classList.toggle("portrait", portrait);
+      document.body.classList.toggle("portrait", portrait);
+      if (changed) {
+        pruneOverflowLanes();
+        markSubstrateDirty();
+        if (state.latestCommunityPayload && state.width && state.height) {
+          buildCommunityScene(state.latestCommunityPayload);
+        } else {
+          requestResize();
+        }
+      }
+      return portrait;
+    }
 
     function setStatus(text, mode) {
       statusEl.textContent = text;
@@ -468,7 +682,7 @@
     }
 
     function pruneLane(laneEl) {
-      while (laneEl.children.length >= MAX_STREAM_ITEMS) {
+      while (laneEl.children.length >= maxStreamItems()) {
         laneEl.removeChild(laneEl.firstElementChild);
       }
     }
@@ -543,17 +757,20 @@
       state.communityLinks = [];
       state.conceptNodes = [];
       state.conceptIndex = new Map();
+      state.conceptCommunities = new Map();
       layers.links.selectAll("*").remove();
       layers.clusters.selectAll("*").remove();
       layers.concepts.selectAll("*").remove();
       layers.labels.selectAll("*").remove();
       emptyNote.textContent = "No communities detected";
       emptyNote.style.display = "block";
+      markSubstrateDirty();
     }
 
     function buildCommunityScene(payload) {
       state.latestCommunityPayload = payload;
-      const communities = (payload && Array.isArray(payload.communities) ? payload.communities : []).slice(0, 10);
+      const { maxCommunities, maxConceptsPerCommunity } = layoutLimits();
+      const communities = (payload && Array.isArray(payload.communities) ? payload.communities : []).slice(0, maxCommunities);
       if (!communities.length || !state.width || !state.height) {
         clearCommunities();
         return;
@@ -580,12 +797,14 @@
         const row = Math.floor(index / cols);
         const tx = d3.interpolateNumber(x0, x1)(cols === 1 ? 0.5 : col / Math.max(1, cols - 1));
         const ty = d3.interpolateNumber(y0, y1)(rows === 1 ? 0.5 : row / Math.max(1, rows - 1));
-        const concepts = Array.isArray(community.concepts) ? community.concepts.slice(0, 10) : [];
+        const allConcepts = Array.isArray(community.concepts) ? community.concepts : [];
+        const concepts = allConcepts.slice(0, maxConceptsPerCommunity);
         return {
           id: Number(community.id),
           key: `community-${community.id}`,
+          allConcepts,
           concepts,
-          anchor: concepts[0] || `community-${community.id}`,
+          anchor: allConcepts[0] || concepts[0] || `community-${community.id}`,
           r: radiusScale(Number(community.anchor_score) || 1),
           tx,
           ty,
@@ -598,9 +817,14 @@
 
       const communityById = new Map(communityNodes.map(node => [node.id, node]));
       const conceptToCommunity = new Map();
+      const conceptCommunities = new Map();
       communityNodes.forEach(community => {
-        community.concepts.forEach(concept => {
+        community.allConcepts.forEach(concept => {
+          const normalized = normalize(concept);
           conceptToCommunity.set(normalize(concept), community.id);
+          const communityIds = conceptCommunities.get(normalized) || [];
+          communityIds.push(community.id);
+          conceptCommunities.set(normalized, communityIds);
         });
       });
 
@@ -652,6 +876,9 @@
       state.communityLinks = links;
       state.conceptNodes = conceptNodes;
       state.conceptIndex = conceptIndex;
+      state.conceptCommunities = conceptCommunities;
+      markSubstrateDirty();
+      renderSubstrate();
     }
 
     function pulseOpacity(now, until, base, peak) {
@@ -737,15 +964,18 @@
         .attr("letter-spacing", "0.08em")
         .attr("opacity", d => pulseOpacity(now, d.glowUntil, 0.7, 1))
         .text(d => String(d.concept || "").toUpperCase());
+
+      state.substrateDirty = false;
     }
 
     function glowMatch(rawConcept, signal) {
       const matches = state.conceptIndex.get(normalize(rawConcept)) || [];
-      if (!matches.length) return;
+      const communityIds = state.conceptCommunities.get(normalize(rawConcept)) || [];
+      if (!matches.length && !communityIds.length) return;
 
       const until = Date.now() + 1400;
       const color = SIGNALS[signal].color;
-      const touchedCommunities = new Set();
+      const touchedCommunities = new Set(communityIds);
 
       matches.forEach(node => {
         node.glowUntil = until;
@@ -759,6 +989,8 @@
         community.glowUntil = until;
         community.glowColor = color;
       });
+
+      markSubstrateDirty();
     }
 
     function handleConceptEvent(event) {
@@ -873,6 +1105,7 @@
       state.width = nextWidth;
       state.height = nextHeight;
       svg.attr("viewBox", `0 0 ${state.width} ${state.height}`);
+      markSubstrateDirty();
 
       if (state.latestCommunityPayload) {
         buildCommunityScene(state.latestCommunityPayload);
@@ -887,6 +1120,7 @@
     }
 
     async function boot() {
+      updatePortraitMode();
       updateStatus();
       resize();
 
@@ -902,7 +1136,12 @@
 
       scheduleCommunityRefresh();
       connectStream();
-      d3.timer(() => renderSubstrate(Date.now()));
+      d3.timer(() => {
+        if (isPortrait() && !state.substrateDirty && !hasActiveGlows()) return;
+        renderSubstrate(Date.now());
+      });
+      window.addEventListener("resize", updatePortraitMode);
+      window.addEventListener("orientationchange", updatePortraitMode);
       new ResizeObserver(requestResize).observe(substratePane);
     }
 

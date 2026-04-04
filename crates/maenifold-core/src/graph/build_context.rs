@@ -35,6 +35,10 @@ pub fn build_context(context: &ToolContext, payload: &Value) -> Result<String> {
             .and_then(Value::as_str)
             .ok_or(MaenifoldError::MissingProperty("conceptName"))?,
     );
+    let _ = crate::endophasia::channel::sender().send(crate::endophasia::ConceptEvent::new(
+        crate::endophasia::SignalType::Thinking,
+        concept_name.to_string(),
+    ));
     let depth = parse_non_negative(payload, "depth")?.unwrap_or(2);
     let max_entities = parse_non_negative(payload, "maxEntities")?.unwrap_or(20);
     // T-1.6: RTM NFR-1 - ported ConceptGraphTests require C#-compatible content preview opt-in.

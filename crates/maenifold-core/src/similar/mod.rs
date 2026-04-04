@@ -91,6 +91,10 @@ pub fn find_similar_concepts(context: &ToolContext, payload: &Value) -> Result<S
         )));
     }
 
+    let _ = crate::endophasia::channel::sender().send(crate::endophasia::ConceptEvent::new(
+        crate::endophasia::SignalType::Exploring,
+        concept_name.to_string(),
+    ));
     GraphDatabase::initialize_database(&context.config)?;
     let connection = db::open_connection(&context.config.database_path)?;
 

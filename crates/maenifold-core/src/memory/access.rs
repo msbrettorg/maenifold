@@ -84,6 +84,13 @@ This ensures your note is connected to the knowledge graph and not orphaned.".to
         });
     }
 
+    // T-89.3: Endophasia writing tap — emit concepts on successful write path only.
+    for concept in &concepts {
+        let _ = crate::endophasia::channel::sender().send(
+            crate::endophasia::ConceptEvent::new(crate::endophasia::SignalType::Writing, concept.clone()),
+        );
+    }
+
     // T-0.3c: RTM NFR-4 / RTM-047
     if let Some(folder) = folder
         && let Some(error) = validate_relative_folder(folder)
@@ -170,6 +177,10 @@ pub fn read_memory(context: &ToolContext, payload: &Value) -> Result<String> {
         .get("identifier")
         .and_then(Value::as_str)
         .ok_or(MaenifoldError::MissingProperty("identifier"))?;
+    let _ = crate::endophasia::channel::sender().send(crate::endophasia::ConceptEvent::new(
+        crate::endophasia::SignalType::Remembering,
+        identifier.to_string(),
+    ));
     let include_checksum = payload
         .get("includeChecksum")
         .and_then(Value::as_bool)

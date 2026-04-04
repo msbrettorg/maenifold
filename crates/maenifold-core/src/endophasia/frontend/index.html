@@ -3,53 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Endophasia</title>
+  <title>Endophasia V2</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     :root {
-      --bg: #131313;
-      --panel: #171717;
+      --bg: #0a0a0e;
+      --panel: rgba(255, 255, 255, 0.03);
+      --line: rgba(255, 255, 255, 0.08);
       --text: rgba(255, 255, 255, 0.92);
       --muted: rgba(255, 255, 255, 0.52);
+      --cluster: rgba(255, 255, 255, 0.16);
       --writing: #0078d4;
       --thinking: #107c10;
       --exploring: #ffb900;
       --remembering: #d83b01;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     html, body {
       margin: 0;
       min-height: 100%;
       background:
-        radial-gradient(circle at 50% 18%, rgba(255,255,255,0.03), transparent 34%),
-        radial-gradient(circle at 50% 78%, rgba(0,120,212,0.06), transparent 28%),
+        radial-gradient(circle at 50% 18%, rgba(255,255,255,0.035), transparent 34%),
+        radial-gradient(circle at 50% 72%, rgba(0,120,212,0.055), transparent 28%),
         var(--bg);
       color: var(--text);
-      font-family: Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-family: "JetBrains Mono", "SFMono-Regular", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
     }
 
     body {
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: clamp(12px, 2vw, 24px);
+      display: flex;
     }
 
     .shell {
       position: relative;
-      width: min(100%, 1200px);
-      height: min(88vh, 760px);
-      min-height: 420px;
+      flex: 1;
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
       overflow: hidden;
-      border-radius: 18px;
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0) 24%),
-        linear-gradient(90deg, rgba(0,120,212,0.035), transparent 22%, transparent 78%, rgba(216,59,1,0.035)),
-        var(--panel);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.45);
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0) 20%),
+        linear-gradient(90deg, rgba(0,120,212,0.05), transparent 18%, transparent 82%, rgba(16,124,16,0.05)),
+        rgba(255, 255, 255, 0.01);
     }
 
     .shell::before {
@@ -57,173 +57,363 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
-      opacity: 0.16;
+      opacity: 0.2;
       background-image:
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 28px 28px;
-      mask-image: radial-gradient(circle at center, black, transparent 78%);
+        linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+      background-size: 24px 24px;
+      mask-image: radial-gradient(circle at center, black, transparent 82%);
     }
 
-    .chrome {
-      position: absolute;
-      inset: 0 0 auto 0;
+    .header,
+    .footer {
+      position: relative;
+      z-index: 2;
       display: flex;
+      align-items: center;
       justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(10, 10, 14, 0.72);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      border-bottom: none;
+      color: var(--muted);
+      flex-wrap: wrap;
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+    .header-title {
+      display: inline-flex;
       align-items: center;
       gap: 12px;
-      padding: 14px 16px 10px;
-      z-index: 4;
+      min-width: 0;
+      font-weight: 600;
+    }
+
+    .header-title strong,
+    .header-build {
+      white-space: nowrap;
+    }
+
+    .status {
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      white-space: nowrap;
+    }
+
+    .status.waiting {
+      border-color: rgba(0, 120, 212, 0.24);
+      background: rgba(0, 120, 212, 0.1);
+    }
+
+    .status.live {
+      border-color: rgba(16, 124, 16, 0.24);
+      background: rgba(16, 124, 16, 0.1);
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .status.reconnecting {
+      border-color: rgba(255, 185, 0, 0.24);
+      background: rgba(255, 185, 0, 0.1);
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .workspace {
+      position: relative;
+      z-index: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: clamp(64px, 15vw, 110px) minmax(0, 1fr) clamp(64px, 15vw, 110px);
+    }
+
+    .pane {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .pane + .pane {
+      border-left: 1px solid var(--line);
+    }
+
+    .stream-pane {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+        rgba(255, 255, 255, 0.015);
+    }
+
+    .stream-pane.left {
+      box-shadow: inset -1px 0 0 rgba(0, 120, 212, 0.14);
+    }
+
+    .stream-pane.right {
+      box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .substrate-pane {
+      background:
+        radial-gradient(circle at 50% 45%, rgba(255,255,255,0.03), transparent 48%),
+        rgba(255, 255, 255, 0.01);
+    }
+
+    .lane-mark {
+      position: absolute;
+      top: 16px;
+      bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 11px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .left .lane-mark {
+      right: 8px;
+      color: rgba(0, 120, 212, 0.62);
+      transform: rotate(180deg);
+    }
+
+    .right .lane-mark {
+      left: 8px;
+      color: rgba(255, 255, 255, 0.38);
+    }
+
+    .stream-lane {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .stream-item {
+      position: absolute;
+      max-width: calc(100% - 18px);
+      font-size: 9px;
+      line-height: 1.25;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      opacity: 0;
+      text-shadow: 0 0 14px rgba(255, 255, 255, 0.12);
+      will-change: transform, opacity;
+      animation-duration: var(--duration, 9600ms);
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+    }
+
+    .stream-item.left {
+      top: -18px;
+      right: 10px;
+      text-align: right;
+      animation-name: drift-down;
+    }
+
+    .stream-item.right {
+      bottom: -18px;
+      left: 10px;
+      text-align: left;
+      animation-name: drift-up;
+    }
+
+    .stream-item .neighbors {
+      display: block;
+      margin-top: 2px;
+      color: rgba(255, 255, 255, 0.28);
+      letter-spacing: 0.1em;
+      font-size: 8px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    @keyframes drift-down {
+      0% {
+        transform: translate3d(var(--offset-x, 0px), 0, 0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.95;
+      }
+      80% {
+        opacity: 0.46;
+      }
+      100% {
+        transform: translate3d(calc(var(--offset-x, 0px) * 0.28), var(--travel-y, 520px), 0);
+        opacity: 0;
+      }
+    }
+
+    @keyframes drift-up {
+      0% {
+        transform: translate3d(var(--offset-x, 0px), 0, 0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.95;
+      }
+      80% {
+        opacity: 0.46;
+      }
+      100% {
+        transform: translate3d(calc(var(--offset-x, 0px) * 0.28), var(--travel-y, -520px), 0);
+        opacity: 0;
+      }
+    }
+
+    #substrate {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .empty-note {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0, 0, 0, 0.28);
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      display: none;
       pointer-events: none;
     }
 
     .legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px 18px;
-      color: var(--muted);
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      gap: 10px 16px;
+      align-items: center;
     }
 
     .legend-item {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
+      gap: 6px;
     }
 
-    .legend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      box-shadow: 0 0 14px currentColor;
-    }
-
-    .status {
-      padding: 7px 11px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.04);
-      color: var(--muted);
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      backdrop-filter: blur(10px);
-    }
-
-    .status.live {
-      color: rgba(255,255,255,0.85);
-      border-color: rgba(16,124,16,0.28);
-      background: rgba(16,124,16,0.11);
-    }
-
-    .status.reconnecting {
-      color: rgba(255,255,255,0.85);
-      border-color: rgba(255,185,0,0.26);
-      background: rgba(255,185,0,0.12);
-    }
-
-    .status.waiting {
-      border-color: rgba(0,120,212,0.22);
-      background: rgba(0,120,212,0.11);
-    }
-
-    .viz-wrap {
-      position: absolute;
-      inset: 0;
-    }
-
-    #viz {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .overlay-note {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      padding: 10px 14px;
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.34);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: var(--muted);
+    .legend-arrow {
       font-size: 12px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      display: none;
-      pointer-events: none;
-      backdrop-filter: blur(8px);
     }
 
-    .wordmark {
-      position: absolute;
-      bottom: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: rgba(255,255,255,0.14);
-      font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
-      font-style: italic;
-      font-size: clamp(16px, 1.8vw, 22px);
-      letter-spacing: 0.3em;
-      text-transform: lowercase;
-      pointer-events: none;
-      z-index: 3;
-    }
+    .legend-writing { color: var(--writing); }
+    .legend-thinking { color: var(--thinking); }
+    .legend-exploring { color: var(--exploring); }
+    .legend-remembering { color: var(--remembering); }
 
     @media (max-width: 720px) {
-      .shell { min-height: 360px; border-radius: 14px; }
-      .chrome { align-items: flex-start; flex-direction: column; }
-      .status { align-self: flex-start; }
-      .wordmark { bottom: 10px; font-size: 14px; }
+      .header,
+      .footer {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .header {
+        flex-wrap: wrap;
+      }
+
+      .header-title {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .stream-item .neighbors {
+        display: none;
+      }
     }
   </style>
 </head>
 <body>
   <div class="shell">
-    <div class="chrome">
-      <div class="legend" aria-label="Legend">
-        <span class="legend-item"><span class="legend-dot" style="color: var(--writing); background: var(--writing);"></span>Writing</span>
-        <span class="legend-item"><span class="legend-dot" style="color: var(--thinking); background: var(--thinking);"></span>Thinking</span>
-        <span class="legend-item"><span class="legend-dot" style="color: var(--exploring); background: var(--exploring);"></span>Exploring</span>
-        <span class="legend-item"><span class="legend-dot" style="color: var(--remembering); background: var(--remembering);"></span>Remembering</span>
+    <header class="header">
+      <div class="header-title">
+        <strong>ENDOPHASIA_V2</strong>
+        <span class="header-build">[SYS_V2.04]</span>
       </div>
       <div id="status" class="status waiting">Waiting for activity...</div>
-    </div>
-    <div class="viz-wrap">
-      <svg id="viz" role="img" aria-label="Endophasia concept activity streams over community substrate"></svg>
-      <div id="empty-note" class="overlay-note">No communities detected</div>
-    </div>
-    <div class="wordmark">endophasia</div>
+    </header>
+
+    <main class="workspace">
+      <section class="pane stream-pane left" aria-label="Inbound concept stream">
+        <div class="lane-mark">Inbound</div>
+        <div id="left-stream" class="stream-lane" aria-hidden="true"></div>
+      </section>
+
+      <section id="substrate-pane" class="pane substrate-pane" aria-label="Community substrate">
+        <svg id="substrate" role="img" aria-label="Community substrate showing Louvain concept clusters"></svg>
+        <div id="empty-note" class="empty-note">No communities detected</div>
+      </section>
+
+      <section class="pane stream-pane right" aria-label="Outbound concept stream">
+        <div class="lane-mark">Outbound</div>
+        <div id="right-stream" class="stream-lane" aria-hidden="true"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="legend" aria-label="Signal legend">
+        <span class="legend-item legend-writing"><span class="legend-arrow">↓</span>writing</span>
+        <span class="legend-item legend-thinking"><span class="legend-arrow">↑</span>thinking</span>
+        <span class="legend-item legend-exploring"><span class="legend-arrow">↑</span>exploring</span>
+        <span class="legend-item legend-remembering"><span class="legend-arrow">↑</span>remembering</span>
+      </div>
+    </footer>
   </div>
 
   <script>
     const SIGNALS = {
-      writing: { color: "#0078d4", lane: "left" },
-      thinking: { color: "#107c10", lane: "right" },
-      exploring: { color: "#ffb900", lane: "right" },
-      remembering: { color: "#d83b01", lane: "right" }
+      writing: { color: "#0078D4", lane: "left" },
+      thinking: { color: "#107C10", lane: "right" },
+      exploring: { color: "#FFB900", lane: "right" },
+      remembering: { color: "#D83B01", lane: "right" }
     };
 
-    const svg = d3.select("#viz");
-    const statusEl = document.getElementById("status");
-    const emptyNote = document.getElementById("empty-note");
-    const root = svg.append("g");
-    const defs = svg.append("defs");
-    const glow = defs.append("filter").attr("id", "glow");
-    glow.append("feGaussianBlur").attr("stdDeviation", 4).attr("result", "blur");
-    glow.append("feMerge").selectAll("feMergeNode").data(["blur", "SourceGraphic"]).join("feMergeNode").attr("in", d => d);
+    const MAX_STREAM_ITEMS = 42;
+    const COMMUNITY_REFRESH_MS = 30000;
+    const SSE_RECONNECT_MS = 1800;
 
+    const statusEl = document.getElementById("status");
+    const leftStream = document.getElementById("left-stream");
+    const rightStream = document.getElementById("right-stream");
+    const substratePane = document.getElementById("substrate-pane");
+    const emptyNote = document.getElementById("empty-note");
+
+    const svg = d3.select("#substrate");
+    const defs = svg.append("defs");
+    const glowFilter = defs.append("filter").attr("id", "concept-glow");
+    glowFilter.append("feGaussianBlur").attr("stdDeviation", 3).attr("result", "blur");
+    glowFilter.append("feMerge")
+      .selectAll("feMergeNode")
+      .data(["blur", "SourceGraphic"])
+      .join("feMergeNode")
+      .attr("in", d => d);
+
+    const root = svg.append("g");
     const layers = {
-      guides: root.append("g"),
       links: root.append("g"),
-      halos: root.append("g"),
+      clusters: root.append("g"),
       concepts: root.append("g"),
-      tugs: root.append("g"),
-      particles: root.append("g"),
       labels: root.append("g")
     };
 
@@ -232,29 +422,24 @@
       height: 0,
       hasSeenEvent: false,
       isReconnecting: false,
-      communityData: { communities: [], edges: [] },
-      communityCache: new Map(),
-      communityAbsenceCounts: new Map(),
-      communitySnapshots: new Map(),
-      previousCommunityIds: new Set(),
-      communityFetchGeneration: 0,
-      communityNodes: [],
-      conceptNodes: [],
-      conceptIndex: new Map(),
-      particles: [],
-      tugs: [],
-      recentConcepts: [],
       eventSource: null,
       reconnectTimer: null,
+      connectionGeneration: 0,
+      lagStatusToken: 0,
       communitiesTimer: null,
-      particleId: 0,
-      tugId: 0
+      communityFetchGeneration: 0,
+      communityAbort: null,
+      latestCommunityPayload: null,
+      communityNodes: [],
+      communityById: new Map(),
+      communityLinks: [],
+      conceptNodes: [],
+      conceptIndex: new Map(),
+      resizeFrame: null
     };
 
     const normalize = value => String(value || "").trim().toLowerCase();
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    const laneX = side => side === "left" ? state.width * 0.16 : state.width * 0.84;
-    const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
     function setStatus(text, mode) {
       statusEl.textContent = text;
@@ -262,568 +447,463 @@
     }
 
     function updateStatus() {
-      if (state.isReconnecting) return setStatus("Reconnecting...", "reconnecting");
-      if (!state.hasSeenEvent) return setStatus("Waiting for activity...", "waiting");
+      if (state.isReconnecting) {
+        setStatus("Reconnecting...", "reconnecting");
+        return;
+      }
+      if (!state.hasSeenEvent) {
+        setStatus("Waiting for activity...", "waiting");
+        return;
+      }
       setStatus("Streaming", "live");
     }
 
-    function rememberConcept(concept) {
-      const normalized = normalize(concept);
-      if (!normalized) return;
-      state.recentConcepts = [normalized, ...state.recentConcepts.filter(item => item !== normalized)].slice(0, 12);
+    function showLaggedStatus(skipped) {
+      const token = ++state.lagStatusToken;
+      setStatus(`Streaming · catching up (${skipped || 0})`, "live");
+      window.setTimeout(() => {
+        if (token !== state.lagStatusToken) return;
+        updateStatus();
+      }, 1800);
     }
 
-    function spawnParticle(event) {
-      const signal = normalize(event.signal);
-      if (!SIGNALS[signal]) return;
+    function pruneLane(laneEl) {
+      while (laneEl.children.length >= MAX_STREAM_ITEMS) {
+        laneEl.removeChild(laneEl.firstElementChild);
+      }
+    }
+
+    function streamText(event) {
+      const concept = String(event.concept || "").trim();
+      if (!concept) return null;
+      const neighbors = Array.isArray(event.neighbors)
+        ? event.neighbors.map(value => String(value || "").trim()).filter(Boolean).slice(0, 3)
+        : [];
+      return {
+        concept: concept.toUpperCase(),
+        neighbors: neighbors.map(value => value.toUpperCase())
+      };
+    }
+
+    function addStreamItem(event, signal) {
       const lane = SIGNALS[signal].lane;
-      state.particles.push({
-        id: ++state.particleId,
-        concept: event.concept,
-        signal,
-        lane,
-        color: SIGNALS[signal].color,
-        bornAt: Date.now(),
-        ttl: 9000 + Math.random() * 2200,
-        xBase: laneX(lane) + (Math.random() - 0.5) * 26,
-        sway: 6 + Math.random() * 10,
-        phase: Math.random() * Math.PI * 2
-      });
-      rememberConcept(event.concept);
-      state.hasSeenEvent = true;
-      state.isReconnecting = false;
-      updateStatus();
-      triggerTug(event.concept, signal);
+      const laneEl = lane === "left" ? leftStream : rightStream;
+      const text = streamText(event);
+      if (!text) return;
+
+      pruneLane(laneEl);
+
+      const item = document.createElement("div");
+      item.className = `stream-item ${lane}`;
+      item.style.color = SIGNALS[signal].color;
+      item.style.setProperty("--offset-x", `${(Math.random() - 0.5) * 14}px`);
+      item.style.setProperty("--travel-y", `${lane === "left" ? laneEl.clientHeight + 42 : -(laneEl.clientHeight + 42)}px`);
+      item.style.setProperty("--duration", `${9000 + Math.random() * 2200}ms`);
+      item.style[lane === "left" ? "right" : "left"] = `${10 + Math.random() * 8}px`;
+
+      const conceptLabel = document.createElement("span");
+      conceptLabel.textContent = text.concept;
+      item.appendChild(conceptLabel);
+
+      if (text.neighbors.length) {
+        const neighborsLabel = document.createElement("span");
+        neighborsLabel.className = "neighbors";
+        neighborsLabel.textContent = text.neighbors.join(" · ");
+        item.appendChild(neighborsLabel);
+      }
+
+      const cleanup = () => {
+        if (item.parentNode) item.parentNode.removeChild(item);
+      };
+
+      item.addEventListener("animationend", cleanup, { once: true });
+      window.setTimeout(cleanup, 12000);
+      laneEl.appendChild(item);
     }
 
-    function aggregateLinks(edges, conceptToCommunity) {
+    function aggregateCommunityLinks(edges, conceptToCommunity) {
       const grouped = new Map();
       (edges || []).forEach(edge => {
-        const a = conceptToCommunity.get(normalize(edge.source));
-        const b = conceptToCommunity.get(normalize(edge.target));
-        if (a == null || b == null || a === b) return;
-        const key = a < b ? `${a}:${b}` : `${b}:${a}`;
+        const sourceId = conceptToCommunity.get(normalize(edge.source));
+        const targetId = conceptToCommunity.get(normalize(edge.target));
+        if (sourceId == null || targetId == null || sourceId === targetId) return;
+        const key = sourceId < targetId ? `${sourceId}:${targetId}` : `${targetId}:${sourceId}`;
         grouped.set(key, (grouped.get(key) || 0) + Number(edge.weight || 0));
       });
+
       return [...grouped.entries()].map(([key, weight]) => {
         const [source, target] = key.split(":").map(Number);
-        return { source, target, weight };
+        return { key, source, target, weight };
       });
     }
 
-    function communityTransform(node, scale = 1) {
-      return `translate(${node.x},${node.y}) scale(${scale})`;
+    function clearCommunities() {
+      state.communityNodes = [];
+      state.communityById = new Map();
+      state.communityLinks = [];
+      state.conceptNodes = [];
+      state.conceptIndex = new Map();
+      layers.links.selectAll("*").remove();
+      layers.clusters.selectAll("*").remove();
+      layers.concepts.selectAll("*").remove();
+      layers.labels.selectAll("*").remove();
+      emptyNote.textContent = "No communities detected";
+      emptyNote.style.display = "block";
     }
 
-    function finalizeEmptyState() {
-      if (!state.communityNodes.length && layers.halos.selectAll("g.community").empty()) {
-        emptyNote.style.display = "block";
-      }
-    }
-
-    function clearCommunityTransitionState(node, token) {
-      requestAnimationFrame(() => {
-        if (node.__communityTransitionToken === token && node.isConnected) {
-          d3.select(node).attr("data-transition-state", null);
-        }
-      });
-    }
-
-    function renderCommunities(links, exitingNodes = []) {
-      layers.guides.selectAll("*").remove();
-      layers.guides.append("line")
-        .attr("x1", laneX("left")).attr("x2", laneX("left"))
-        .attr("y1", state.height * 0.08).attr("y2", state.height * 0.92)
-        .attr("stroke", "rgba(0,120,212,0.24)").attr("stroke-width", 1);
-      layers.guides.append("line")
-        .attr("x1", laneX("right")).attr("x2", laneX("right"))
-        .attr("y1", state.height * 0.08).attr("y2", state.height * 0.92)
-        .attr("stroke", "rgba(216,59,1,0.18)").attr("stroke-width", 1);
-
-      const reducedMotion = prefersReducedMotion();
-      const renderNodes = [...state.communityNodes, ...exitingNodes];
-      const communityById = new Map(renderNodes.map(node => [node.id, node]));
-      layers.links.selectAll("line")
-        .data(links || [], d => `${d.source}-${d.target}`)
-        .join("line")
-        .attr("x1", d => communityById.get(d.source)?.x || 0)
-        .attr("y1", d => communityById.get(d.source)?.y || 0)
-        .attr("x2", d => communityById.get(d.target)?.x || 0)
-        .attr("y2", d => communityById.get(d.target)?.y || 0)
-        .attr("stroke", "rgba(255,255,255,0.08)")
-        .attr("stroke-width", d => Math.max(0.6, Math.min(2.4, (d.weight || 1) / 14)));
-
-      const groups = layers.halos.selectAll("g.community")
-        .data(renderNodes, d => d.id);
-
-      groups.exit().each(function() {
-        const group = d3.select(this);
-        const hasActiveCommunityUpdate = Boolean(d3.active(this, "community-update"));
-        const isExiting = group.attr("data-transition-state") === "exiting";
-
-        if (hasActiveCommunityUpdate && isExiting) {
-          return;
-        }
-
-        group.remove();
-      });
-
-      const entered = groups.enter()
-        .append("g")
-        .attr("class", "community")
-        .attr("data-community-id", d => d.id);
-
-      entered.append("circle")
-        .attr("cx", 0)
-        .attr("cy", 0)
-        .attr("fill", "rgba(255,255,255,0.028)");
-
-      entered.append("text")
-        .attr("x", 0)
-        .attr("text-anchor", "middle")
-        .attr("fill", "rgba(255,255,255,0.34)")
-        .attr("font-size", 9)
-        .attr("letter-spacing", "0.16em");
-
-      entered.merge(groups)
-        .attr("data-community-id", d => d.id)
-        .each(function(d) {
-          const group = d3.select(this);
-          const node = this;
-          const token = `${Date.now()}:${d.id}:${d.transitionState || "stable"}`;
-          node.__communityTransitionToken = token;
-
-          group.select("circle")
-            .attr("r", d.r);
-
-          group.select("text")
-            .attr("y", -d.r - 10)
-            .text(d.anchor);
-
-          if (d.transitionState === "entering") {
-            group
-              .attr("data-transition-state", "entering")
-              .attr("opacity", reducedMotion ? 1 : 0.05)
-              .attr("transform", reducedMotion ? communityTransform(d, 1) : communityTransform(d, 0.85));
-
-            if (reducedMotion) {
-              group
-                .attr("opacity", 1)
-                .attr("transform", communityTransform(d, 1))
-                .attr("data-transition-state", null);
-              return;
-            }
-
-            group.transition("community-update")
-              .duration(3200)
-              .ease(d3.easeCubicOut)
-              .attr("opacity", 1)
-              .attr("transform", communityTransform(d, 1))
-              .on("end", function() {
-                if (this.__communityTransitionToken === token) {
-                  d3.select(this).attr("data-transition-state", null);
-                }
-              });
-            return;
-          }
-
-          if (d.transitionState === "exiting") {
-            group
-              .attr("data-transition-state", "exiting")
-              .attr("opacity", 1)
-              .attr("transform", communityTransform(d, 1));
-
-            if (reducedMotion) {
-              group.remove();
-              finalizeEmptyState();
-              return;
-            }
-
-            group.transition("community-update")
-              .duration(2800)
-              .ease(d3.easeCubicIn)
-              .attr("opacity", 0.05)
-              .attr("transform", communityTransform(d, 0.72))
-              .on("end", function() {
-                if (this.__communityTransitionToken === token) {
-                  d3.select(this).remove();
-                  finalizeEmptyState();
-                }
-              });
-            return;
-          }
-
-          group.interrupt("community-update");
-          group
-            .attr("data-transition-state", "persistent")
-            .attr("opacity", 1)
-            .attr("transform", communityTransform(d, 1));
-          clearCommunityTransitionState(node, token);
-        });
-    }
-
-    function buildLayout(data, options = {}) {
-      const reflowOnly = options.reflowOnly === true;
-      const incomingCommunities = reflowOnly ? (data.communities || []).slice() : (data.communities || []).slice(0, 10);
-      const previousSnapshots = state.communitySnapshots;
-      const previousCommunityIds = new Set(state.previousCommunityIds);
-      const incomingById = new Map(incomingCommunities.map(community => [Number(community.id), community]));
-      const persistentIds = new Set();
-      const enteringIds = new Set();
-      const exitingIds = new Set();
-      const activeCommunities = incomingCommunities.slice();
-
-      if (!reflowOnly) {
-        incomingCommunities.forEach(community => {
-          const id = Number(community.id);
-          state.communityCache.set(id, community);
-          state.communityAbsenceCounts.delete(id);
-          if (previousCommunityIds.has(id)) {
-            persistentIds.add(id);
-          } else {
-            enteringIds.add(id);
-          }
-        });
-
-        previousCommunityIds.forEach(id => {
-          if (incomingById.has(id)) return;
-          const misses = (state.communityAbsenceCounts.get(id) || 0) + 1;
-          state.communityAbsenceCounts.set(id, misses);
-          if (misses >= 2) {
-            exitingIds.add(id);
-            state.communityAbsenceCounts.delete(id);
-            state.communityCache.delete(id);
-            return;
-          }
-
-          const cachedCommunity = state.communityCache.get(id);
-          if (cachedCommunity) {
-            persistentIds.add(id);
-            activeCommunities.push(cachedCommunity);
-          }
-        });
-      } else {
-        incomingCommunities.forEach(community => persistentIds.add(Number(community.id)));
-      }
-
-      const exitingNodes = [...exitingIds]
-        .map(id => previousSnapshots.get(id))
-        .filter(Boolean)
-        .map(snapshot => ({ ...snapshot, transitionState: "exiting" }));
-
-      if (!activeCommunities.length) {
-        state.communityData = { communities: [], edges: data.edges || [] };
-        state.communityNodes = [];
-        state.conceptNodes = [];
-        state.conceptIndex = new Map();
-        layers.links.selectAll("*").remove();
-        layers.concepts.selectAll("*").remove();
-        layers.labels.selectAll("*").remove();
-        layers.tugs.selectAll("*").remove();
-        if (exitingNodes.length) {
-          emptyNote.style.display = "none";
-          renderCommunities([], exitingNodes);
-        } else {
-          layers.halos.selectAll("*").remove();
-          emptyNote.style.display = "block";
-        }
-        state.communitySnapshots = new Map();
-        state.previousCommunityIds = new Set();
+    function buildCommunityScene(payload) {
+      state.latestCommunityPayload = payload;
+      const communities = (payload && Array.isArray(payload.communities) ? payload.communities : []).slice(0, 10);
+      if (!communities.length || !state.width || !state.height) {
+        clearCommunities();
         return;
       }
 
       emptyNote.style.display = "none";
-      const scores = activeCommunities.map(d => Number(d.anchor_score) || 0.01);
+
+      const scores = communities.map(item => Number(item.anchor_score) || 1);
+      const minScore = d3.min(scores) || 1;
+      const maxScore = d3.max(scores) || minScore + 1;
       const radiusScale = d3.scaleSqrt()
-        .domain([d3.min(scores), Math.max(d3.max(scores), d3.min(scores) + 0.0001)])
-        .range([34, 58]);
+        .domain([minScore, maxScore === minScore ? minScore + 1 : maxScore])
+        .range([28, state.width < 420 ? 42 : 56]);
 
-      const cols = state.width < 720 ? 2 : 3;
-      const rows = Math.ceil(activeCommunities.length / cols);
-      const x0 = state.width * 0.33;
-      const x1 = state.width * 0.67;
+      const cols = state.width < 540 ? 2 : 3;
+      const rows = Math.ceil(communities.length / cols);
+      const x0 = state.width * 0.22;
+      const x1 = state.width * 0.78;
       const y0 = state.height * 0.22;
-      const y1 = state.height * 0.74;
+      const y1 = state.height * 0.8;
 
-      const communityNodes = activeCommunities.map((community, index) => {
+      const communityNodes = communities.map((community, index) => {
         const col = index % cols;
         const row = Math.floor(index / cols);
-        const tx = d3.interpolateNumber(x0, x1)(cols === 1 ? 0.5 : col / (cols - 1 || 1));
-        const ty = d3.interpolateNumber(y0, y1)(rows === 1 ? 0.5 : row / (rows - 1 || 1));
-        const id = Number(community.id);
-        const previous = previousSnapshots.get(id);
+        const tx = d3.interpolateNumber(x0, x1)(cols === 1 ? 0.5 : col / Math.max(1, cols - 1));
+        const ty = d3.interpolateNumber(y0, y1)(rows === 1 ? 0.5 : row / Math.max(1, rows - 1));
+        const concepts = Array.isArray(community.concepts) ? community.concepts.slice(0, 10) : [];
         return {
-          id,
-          concepts: community.concepts || [],
-          anchor: community.concepts && community.concepts[0] ? community.concepts[0] : `community-${community.id}`,
-          r: radiusScale(Number(community.anchor_score) || 0.01),
-          x: previous && persistentIds.has(id) ? previous.x : tx,
-          y: previous && persistentIds.has(id) ? previous.y : ty,
+          id: Number(community.id),
+          key: `community-${community.id}`,
+          concepts,
+          anchor: concepts[0] || `community-${community.id}`,
+          r: radiusScale(Number(community.anchor_score) || 1),
           tx,
           ty,
-          transitionState: enteringIds.has(id) ? "entering" : "persistent"
+          x: tx,
+          y: ty,
+          glowUntil: 0,
+          glowColor: null
         };
       });
 
+      const communityById = new Map(communityNodes.map(node => [node.id, node]));
       const conceptToCommunity = new Map();
-      activeCommunities.forEach(community => (community.concepts || []).forEach(concept => conceptToCommunity.set(normalize(concept), Number(community.id))));
-      const links = aggregateLinks(data.edges, conceptToCommunity);
-
-      d3.forceSimulation(communityNodes)
-        .force("x", d3.forceX(d => d.tx).strength(0.18))
-        .force("y", d3.forceY(d => d.ty).strength(0.18))
-        .force("charge", d3.forceManyBody().strength(-260))
-        .force("collide", d3.forceCollide().radius(d => d.r + 34))
-        .force("link", d3.forceLink(links.map(link => ({ ...link }))).id(d => d.id).distance(link => 100 - Math.min(link.weight || 0, 40)).strength(0.22))
-        .stop()
-        .tick(220);
-
       communityNodes.forEach(community => {
-        const previous = previousSnapshots.get(community.id);
-        if (!previous || !persistentIds.has(community.id)) return;
-        const dx = community.x - previous.x;
-        const dy = community.y - previous.y;
-        const distance = Math.hypot(dx, dy);
-        if (distance > 8) {
-          const factor = 8 / distance;
-          community.x = previous.x + dx * factor;
-          community.y = previous.y + dy * factor;
-        }
-      });
-
-      const conceptNodes = [];
-      const conceptIndex = new Map();
-      const anchorPositions = new Map();
-      communityNodes.forEach((community, communityIndex) => {
-        const spiral = Math.PI * (3 - Math.sqrt(5));
-        const previous = previousSnapshots.get(community.id);
-        community.concepts.forEach((concept, index) => {
-          const radius = 18 + Math.sqrt(index + 1) * 10 + Math.min(community.r * 0.15, 8);
-          const angle = spiral * index + communityIndex * 0.7;
-          const preserveAnchorPosition = index === 0 && previous && persistentIds.has(community.id) && Number.isFinite(previous.anchorBaseX) && Number.isFinite(previous.anchorBaseY);
-          const node = {
-            key: `${community.id}:${concept}`,
-            concept,
-            normalized: normalize(concept),
-            communityId: community.id,
-            anchor: index === 0,
-            baseX: preserveAnchorPosition
-              ? previous.anchorBaseX
-              : clamp(community.x + Math.cos(angle) * radius * 1.1, state.width * 0.24, state.width * 0.76),
-            baseY: preserveAnchorPosition
-              ? previous.anchorBaseY
-              : clamp(community.y + Math.sin(angle) * radius * 0.82, state.height * 0.14, state.height * 0.86),
-            ox: 0,
-            oy: 0,
-            vx: 0,
-            vy: 0,
-            glowColor: null,
-            glowUntil: 0
-          };
-          conceptNodes.push(node);
-          conceptIndex.set(node.normalized, node);
-          if (node.anchor) {
-            anchorPositions.set(community.id, { baseX: node.baseX, baseY: node.baseY });
-          }
+        community.concepts.forEach(concept => {
+          conceptToCommunity.set(normalize(concept), community.id);
         });
       });
 
-      state.communityData = { communities: activeCommunities, edges: data.edges || [] };
+      const links = aggregateCommunityLinks(payload.edges, conceptToCommunity)
+        .filter(link => communityById.has(link.source) && communityById.has(link.target));
+
+      d3.forceSimulation(communityNodes)
+        .force("x", d3.forceX(node => node.tx).strength(0.2))
+        .force("y", d3.forceY(node => node.ty).strength(0.2))
+        .force("charge", d3.forceManyBody().strength(state.width < 540 ? -180 : -250))
+        .force("collide", d3.forceCollide().radius(node => node.r + 22))
+        .force("link", d3.forceLink(links.map(link => ({ ...link })))
+          .id(node => node.id)
+          .distance(link => 112 - Math.min(link.weight || 0, 36))
+          .strength(0.18))
+        .stop()
+        .tick(180);
+
+      const conceptNodes = [];
+      const conceptIndex = new Map();
+
+      communityNodes.forEach((community, communityIndex) => {
+        const total = Math.max(community.concepts.length, 1);
+        community.concepts.forEach((concept, index) => {
+          const ring = Math.floor(index / 5);
+          const inRing = index % 5;
+          const itemsInRing = Math.min(5, total - ring * 5);
+          const angle = ((Math.PI * 2) / Math.max(itemsInRing, 1)) * inRing + communityIndex * 0.42 + ring * 0.18;
+          const radius = 14 + ring * 13 + Math.min(community.r * 0.18, 10);
+          const node = {
+            key: `${community.id}:${concept}`,
+            communityId: community.id,
+            concept,
+            normalized: normalize(concept),
+            localAngle: angle,
+            localRadius: radius,
+            glowUntil: 0,
+            glowColor: null
+          };
+          conceptNodes.push(node);
+          const matches = conceptIndex.get(node.normalized) || [];
+          matches.push(node);
+          conceptIndex.set(node.normalized, matches);
+        });
+      });
+
       state.communityNodes = communityNodes;
+      state.communityById = communityById;
+      state.communityLinks = links;
       state.conceptNodes = conceptNodes;
       state.conceptIndex = conceptIndex;
-
-      state.communitySnapshots = new Map(communityNodes.map(community => {
-        const anchorPosition = anchorPositions.get(community.id) || {};
-        return [community.id, {
-          id: community.id,
-          anchor: community.anchor,
-          concepts: community.concepts,
-          r: community.r,
-          x: community.x,
-          y: community.y,
-          anchorBaseX: anchorPosition.baseX,
-          anchorBaseY: anchorPosition.baseY
-        }];
-      }));
-      state.previousCommunityIds = new Set(communityNodes.map(community => community.id));
-      renderCommunities(links, exitingNodes);
     }
 
-    function triggerTug(concept, signal) {
-      const node = state.conceptIndex.get(normalize(concept));
-      if (!node) return;
-      const direction = signal === "writing" ? -1 : 1;
-      const impulse = signal === "exploring" ? 17 : signal === "remembering" ? 15 : 13;
-      node.vx += direction * impulse;
-      node.vy += (Math.random() - 0.5) * 3;
-      node.glowColor = SIGNALS[signal].color;
-      node.glowUntil = Date.now() + 1450;
-      state.tugs.push({
-        id: ++state.tugId,
-        concept: node.normalized,
-        side: direction < 0 ? "left" : "right",
-        color: SIGNALS[signal].color,
-        bornAt: Date.now(),
-        ttl: 900
+    function pulseOpacity(now, until, base, peak) {
+      if (now >= until) return base;
+      const progress = 1 - (until - now) / 1400;
+      const wave = 0.5 + 0.5 * Math.sin(progress * Math.PI * 4);
+      return peak - (peak - base) * (1 - wave);
+    }
+
+    function conceptPosition(node) {
+      const community = state.communityById.get(node.communityId);
+      if (!community) return { x: 0, y: 0 };
+      return {
+        x: clamp(community.x + Math.cos(node.localAngle) * node.localRadius, 12, state.width - 12),
+        y: clamp(community.y + Math.sin(node.localAngle) * node.localRadius, 12, state.height - 12)
+      };
+    }
+
+    function renderSubstrate(now = Date.now()) {
+      if (!state.width || !state.height) return;
+
+      layers.links.selectAll("line")
+        .data(state.communityLinks, d => d.key)
+        .join("line")
+        .attr("x1", d => state.communityById.get(d.source)?.x || 0)
+        .attr("y1", d => state.communityById.get(d.source)?.y || 0)
+        .attr("x2", d => state.communityById.get(d.target)?.x || 0)
+        .attr("y2", d => state.communityById.get(d.target)?.y || 0)
+        .attr("stroke", "rgba(255,255,255,0.08)")
+        .attr("stroke-width", d => clamp((d.weight || 1) / 24, 0.6, 1.8))
+        .attr("opacity", 0.9);
+
+      const clusters = layers.clusters.selectAll("g.cluster")
+        .data(state.communityNodes, d => d.id)
+        .join(enter => {
+          const group = enter.append("g").attr("class", "cluster");
+          group.append("circle").attr("class", "cluster-halo");
+          group.append("circle").attr("class", "cluster-core");
+          group.append("text").attr("class", "cluster-label");
+          return group;
+        });
+
+      clusters
+        .attr("transform", d => `translate(${d.x},${d.y})`);
+
+      clusters.select(".cluster-halo")
+        .attr("r", d => d.r)
+        .attr("fill", "rgba(255,255,255,0.018)")
+        .attr("stroke", d => now < d.glowUntil ? d.glowColor : "rgba(255,255,255,0.12)")
+        .attr("stroke-width", d => now < d.glowUntil ? 1.6 : 1)
+        .attr("opacity", d => pulseOpacity(now, d.glowUntil, 0.7, 1))
+        .attr("filter", d => now < d.glowUntil ? "url(#concept-glow)" : null);
+
+      clusters.select(".cluster-core")
+        .attr("r", 2.8)
+        .attr("fill", "rgba(255,255,255,0.75)");
+
+      clusters.select(".cluster-label")
+        .attr("y", d => -d.r - 10)
+        .attr("text-anchor", "middle")
+        .attr("fill", d => now < d.glowUntil ? d.glowColor : "rgba(255,255,255,0.25)")
+        .attr("font-size", 9)
+        .attr("letter-spacing", "0.14em")
+        .text(d => String(d.anchor || "").toUpperCase());
+
+      layers.concepts.selectAll("circle")
+        .data(state.conceptNodes, d => d.key)
+        .join("circle")
+        .attr("cx", d => conceptPosition(d).x)
+        .attr("cy", d => conceptPosition(d).y)
+        .attr("r", 2.5)
+        .attr("fill", d => now < d.glowUntil ? d.glowColor : "rgba(255,255,255,0.62)")
+        .attr("opacity", d => pulseOpacity(now, d.glowUntil, 0.62, 0.98))
+        .attr("filter", d => now < d.glowUntil ? "url(#concept-glow)" : null);
+
+      layers.labels.selectAll("text")
+        .data(state.conceptNodes, d => d.key)
+        .join("text")
+        .attr("x", d => conceptPosition(d).x + 4)
+        .attr("y", d => conceptPosition(d).y + 2)
+        .attr("fill", d => now < d.glowUntil ? d.glowColor : "rgba(255,255,255,0.25)")
+        .attr("font-size", 8)
+        .attr("letter-spacing", "0.08em")
+        .attr("opacity", d => pulseOpacity(now, d.glowUntil, 0.7, 1))
+        .text(d => String(d.concept || "").toUpperCase());
+    }
+
+    function glowMatch(rawConcept, signal) {
+      const matches = state.conceptIndex.get(normalize(rawConcept)) || [];
+      if (!matches.length) return;
+
+      const until = Date.now() + 1400;
+      const color = SIGNALS[signal].color;
+      const touchedCommunities = new Set();
+
+      matches.forEach(node => {
+        node.glowUntil = until;
+        node.glowColor = color;
+        touchedCommunities.add(node.communityId);
       });
+
+      touchedCommunities.forEach(communityId => {
+        const community = state.communityNodes.find(node => node.id === communityId);
+        if (!community) return;
+        community.glowUntil = until;
+        community.glowColor = color;
+      });
+    }
+
+    function handleConceptEvent(event) {
+      const signal = normalize(event.signal);
+      if (!SIGNALS[signal]) return;
+
+      addStreamItem(event, signal);
+
+      state.hasSeenEvent = true;
+      state.isReconnecting = false;
+      state.lagStatusToken += 1;
+      updateStatus();
+
+      glowMatch(event.concept, signal);
+      if (Array.isArray(event.neighbors)) {
+        event.neighbors.forEach(neighbor => glowMatch(neighbor, signal));
+      }
     }
 
     async function fetchCommunities() {
       const generation = ++state.communityFetchGeneration;
-      const params = new URLSearchParams();
-      if (state.recentConcepts.length) params.set("context", state.recentConcepts.join(","));
-      const url = "/api/endophasia/communities" + (params.toString() ? `?${params}` : "");
-      const response = await fetch(url, { headers: { Accept: "application/json" } });
-      if (!response.ok) throw new Error(`communities ${response.status}`);
+      if (state.communityAbort) state.communityAbort.abort();
+      const controller = new AbortController();
+      state.communityAbort = controller;
+
+      const response = await fetch("/api/endophasia/communities", {
+        headers: { Accept: "application/json" },
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`communities ${response.status}`);
+      }
+
       const payload = await response.json();
       if (generation !== state.communityFetchGeneration) return;
-      buildLayout(payload);
+      buildCommunityScene(payload);
     }
 
-    function scheduleCommunities() {
+    function scheduleCommunityRefresh() {
       if (state.communitiesTimer) clearInterval(state.communitiesTimer);
-      state.communitiesTimer = setInterval(() => fetchCommunities().catch(err => {
-        console.error("[endophasia] community fetch failed:", err);
-        setStatus("Communities unavailable", "reconnecting");
-      }), 20000);
+      state.communitiesTimer = window.setInterval(() => {
+        fetchCommunities().catch(err => {
+          if (err && err.name === "AbortError") return;
+          console.error("[endophasia] community fetch failed:", err);
+          if (!state.communityNodes.length) {
+            emptyNote.textContent = "Community graph unavailable";
+            emptyNote.style.display = "block";
+          }
+        });
+      }, COMMUNITY_REFRESH_MS);
     }
 
     function connectStream(delay = 0) {
       if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
-      state.reconnectTimer = setTimeout(() => {
-        if (state.eventSource) state.eventSource.close();
-        state.eventSource = new EventSource("/api/endophasia/stream");
-        state.eventSource.onopen = () => {
+      const generation = ++state.connectionGeneration;
+
+      state.reconnectTimer = window.setTimeout(() => {
+        if (generation !== state.connectionGeneration) return;
+
+        if (state.eventSource) {
+          state.eventSource.close();
+          state.eventSource = null;
+        }
+
+        const source = new EventSource("/api/endophasia/stream");
+        state.eventSource = source;
+
+        source.onopen = () => {
+          if (generation !== state.connectionGeneration || state.eventSource !== source) return;
           state.isReconnecting = false;
           updateStatus();
         };
-        state.eventSource.onmessage = event => {
+
+        source.onmessage = event => {
+          if (generation !== state.connectionGeneration || state.eventSource !== source) return;
           try {
-            spawnParticle(JSON.parse(event.data));
+            handleConceptEvent(JSON.parse(event.data));
           } catch (err) {
             console.error("[endophasia] SSE parse error:", err);
           }
         };
-        state.eventSource.addEventListener("lagged", event => {
+
+        source.addEventListener("lagged", event => {
+          if (generation !== state.connectionGeneration || state.eventSource !== source) return;
           try {
             const payload = JSON.parse(event.data);
-            setStatus(`Streaming · catching up (${payload.skipped || 0})`, "live");
-            setTimeout(updateStatus, 1800);
+            showLaggedStatus(payload.skipped);
           } catch (err) {
-            console.error("[endophasia] SSE parse error:", err);
+            console.error("[endophasia] SSE lag parse error:", err);
           }
         });
-        state.eventSource.onerror = () => {
+
+        source.onerror = () => {
+          if (generation !== state.connectionGeneration || state.eventSource !== source) return;
           state.isReconnecting = true;
           updateStatus();
-          if (state.eventSource) state.eventSource.close();
-          connectStream(1800);
+          source.close();
+          if (state.eventSource === source) state.eventSource = null;
+          connectStream(SSE_RECONNECT_MS);
         };
       }, delay);
     }
 
     function resize() {
-      const box = svg.node().getBoundingClientRect();
-      state.width = Math.max(320, box.width);
-      state.height = Math.max(280, box.height);
+      state.resizeFrame = null;
+      const box = substratePane.getBoundingClientRect();
+      const nextWidth = Math.max(240, Math.floor(box.width));
+      const nextHeight = Math.max(240, Math.floor(box.height));
+      if (nextWidth === state.width && nextHeight === state.height) return;
+
+      state.width = nextWidth;
+      state.height = nextHeight;
       svg.attr("viewBox", `0 0 ${state.width} ${state.height}`);
-      if (state.communityData.communities.length) buildLayout(state.communityData, { reflowOnly: true });
+
+      if (state.latestCommunityPayload) {
+        buildCommunityScene(state.latestCommunityPayload);
+      } else {
+        renderSubstrate();
+      }
     }
 
-    function tick() {
-      const now = Date.now();
-
-      state.conceptNodes.forEach(node => {
-        node.vx += -node.ox * 0.11;
-        node.vy += -node.oy * 0.11;
-        node.vx *= 0.76;
-        node.vy *= 0.76;
-        node.ox += node.vx;
-        node.oy += node.vy;
-        if (Math.abs(node.ox) < 0.02 && Math.abs(node.vx) < 0.02) node.ox = node.vx = 0;
-        if (Math.abs(node.oy) < 0.02 && Math.abs(node.vy) < 0.02) node.oy = node.vy = 0;
-      });
-
-      state.tugs = state.tugs.filter(tug => now - tug.bornAt < tug.ttl);
-      state.particles = state.particles.filter(p => now - p.bornAt < p.ttl);
-
-      layers.tugs.selectAll("line")
-        .data(state.tugs, d => d.id)
-        .join("line")
-        .attr("x1", d => laneX(d.side))
-        .attr("y1", d => state.height * 0.12)
-        .attr("x2", d => (state.conceptIndex.get(d.concept)?.baseX || 0) + (state.conceptIndex.get(d.concept)?.ox || 0))
-        .attr("y2", d => (state.conceptIndex.get(d.concept)?.baseY || 0) + (state.conceptIndex.get(d.concept)?.oy || 0))
-        .attr("stroke", d => d.color)
-        .attr("stroke-width", 1.2)
-        .attr("opacity", d => 0.55 * (1 - (now - d.bornAt) / d.ttl));
-
-      layers.concepts.selectAll("circle")
-        .data(state.conceptNodes, d => d.key)
-        .join("circle")
-        .attr("cx", d => d.baseX + d.ox)
-        .attr("cy", d => d.baseY + d.oy)
-        .attr("r", d => d.anchor ? 4.1 : 3.1)
-        .attr("fill", d => now < d.glowUntil ? d.glowColor : (d.anchor ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.72)"))
-        .attr("filter", d => now < d.glowUntil ? "url(#glow)" : null)
-        .attr("opacity", d => d.anchor ? 1 : 0.78);
-
-      layers.labels.selectAll("text")
-        .data(state.conceptNodes.filter(d => d.anchor || d.communityId % 2 === 0), d => d.key)
-        .join("text")
-        .attr("x", d => d.baseX + d.ox + 7)
-        .attr("y", d => d.baseY + d.oy + 2)
-        .attr("fill", d => now < d.glowUntil ? d.glowColor : "rgba(255,255,255,0.34)")
-        .attr("font-size", 8)
-        .attr("letter-spacing", "0.04em")
-        .attr("opacity", d => d.anchor ? 0.9 : 0.55)
-        .text(d => d.concept);
-
-      layers.particles.selectAll("circle")
-        .data(state.particles, d => d.id)
-        .join("circle")
-        .attr("cx", d => d.xBase + Math.sin((now - d.bornAt) / 420 + d.phase) * d.sway)
-        .attr("cy", d => ((now - d.bornAt) / d.ttl) * (state.height + 48) - 24)
-        .attr("r", d => d.signal === "writing" ? 4.2 : 3.8)
-        .attr("fill", d => d.color)
-        .attr("opacity", d => {
-          const age = now - d.bornAt;
-          const fade = 1 - age / d.ttl;
-          return Math.max(0, Math.min(1, age < 500 ? age / 500 : fade * 0.95));
-        });
-
-      layers.particles.selectAll("text")
-        .data(state.particles, d => d.id)
-        .join("text")
-        .attr("x", d => d.xBase + Math.sin((now - d.bornAt) / 420 + d.phase) * d.sway + (d.lane === "left" ? 10 : -10))
-        .attr("y", d => ((now - d.bornAt) / d.ttl) * (state.height + 48) - 28)
-        .attr("text-anchor", d => d.lane === "left" ? "start" : "end")
-        .attr("fill", d => d.color)
-        .attr("font-size", 9)
-        .attr("letter-spacing", "0.08em")
-        .attr("opacity", d => {
-          const age = now - d.bornAt;
-          if (age > 4600) return 0;
-          return 0.7 * (1 - age / 4600);
-        })
-        .text(d => d.concept);
+    function requestResize() {
+      if (state.resizeFrame != null) cancelAnimationFrame(state.resizeFrame);
+      state.resizeFrame = requestAnimationFrame(resize);
     }
 
     async function boot() {
+      updateStatus();
       resize();
+
       try {
         await fetchCommunities();
       } catch (err) {
-        console.error("[endophasia] community fetch failed:", err);
-        setStatus("Communities unavailable", "reconnecting");
-        emptyNote.textContent = "Community graph unavailable — check server logs";
-        emptyNote.style.display = "block";
+        if (!(err && err.name === "AbortError")) {
+          console.error("[endophasia] community fetch failed:", err);
+          emptyNote.textContent = "Community graph unavailable";
+          emptyNote.style.display = "block";
+        }
       }
-      scheduleCommunities();
+
+      scheduleCommunityRefresh();
       connectStream();
-      d3.timer(tick);
-      new ResizeObserver(resize).observe(svg.node());
+      d3.timer(() => renderSubstrate(Date.now()));
+      new ResizeObserver(requestResize).observe(substratePane);
     }
 
     boot();

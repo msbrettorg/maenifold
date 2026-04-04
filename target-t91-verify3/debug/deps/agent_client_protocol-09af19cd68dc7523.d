@@ -1,0 +1,9 @@
+/Users/brett/src/ma-collective/maenifold-rs/target-t91-verify3/debug/deps/agent_client_protocol-09af19cd68dc7523.d: /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/lib.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/agent.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/client.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/rpc.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/stream_broadcast.rs
+
+/Users/brett/src/ma-collective/maenifold-rs/target-t91-verify3/debug/deps/libagent_client_protocol-09af19cd68dc7523.rmeta: /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/lib.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/agent.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/client.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/rpc.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/stream_broadcast.rs
+
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/lib.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/agent.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/client.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/rpc.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/agent-client-protocol-0.10.4/src/stream_broadcast.rs:

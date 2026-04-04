@@ -1,0 +1,11 @@
+/Users/brett/src/ma-collective/maenifold-rs/target-t91-verify3/debug/deps/console-a03e9c9e6b38d203.d: /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/lib.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/common_term.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/kb.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/term.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/unix_term.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/utils.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/ansi.rs
+
+/Users/brett/src/ma-collective/maenifold-rs/target-t91-verify3/debug/deps/libconsole-a03e9c9e6b38d203.rmeta: /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/lib.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/common_term.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/kb.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/term.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/unix_term.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/utils.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/ansi.rs
+
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/lib.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/common_term.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/kb.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/term.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/unix_term.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/utils.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/console-0.16.2/src/ansi.rs:

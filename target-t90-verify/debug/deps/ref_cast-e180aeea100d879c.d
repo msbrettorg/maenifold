@@ -1,0 +1,14 @@
+/Users/brett/src/ma-collective/maenifold-rs/target-t90-verify/debug/deps/ref_cast-e180aeea100d879c.d: /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/lib.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/custom.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/layout.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/trivial.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/private.rs /Users/brett/src/ma-collective/maenifold-rs/target-t90-verify/debug/build/ref-cast-46626cb56caa61f3/out/private.rs
+
+/Users/brett/src/ma-collective/maenifold-rs/target-t90-verify/debug/deps/libref_cast-e180aeea100d879c.rlib: /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/lib.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/custom.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/layout.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/trivial.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/private.rs /Users/brett/src/ma-collective/maenifold-rs/target-t90-verify/debug/build/ref-cast-46626cb56caa61f3/out/private.rs
+
+/Users/brett/src/ma-collective/maenifold-rs/target-t90-verify/debug/deps/libref_cast-e180aeea100d879c.rmeta: /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/lib.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/custom.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/layout.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/trivial.rs /Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/private.rs /Users/brett/src/ma-collective/maenifold-rs/target-t90-verify/debug/build/ref-cast-46626cb56caa61f3/out/private.rs
+
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/lib.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/custom.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/layout.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/trivial.rs:
+/Users/brett/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.25/src/private.rs:
+/Users/brett/src/ma-collective/maenifold-rs/target-t90-verify/debug/build/ref-cast-46626cb56caa61f3/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/brett/src/ma-collective/maenifold-rs/target-t90-verify/debug/build/ref-cast-46626cb56caa61f3/out

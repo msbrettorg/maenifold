@@ -1,37 +1,9 @@
 # Agent Team — maenifold-rs
 
-MANDATORY:
-- At session start you are required to read /Users/brett/src/ma-collective/maenifold-rs/docs/MA_MANIFESTO.md and /Users/brett/src/ma-collective/maenifold-rs/docs/WHAT_WE_DONT_DO.md. This is not optional. This is the reason we're building this repo to start with - it's our constitution.
-- Load the `maenifold` skill at session start and after every compaction. In this environment prefer using the MCP server, fall back to CLI.",
-- Use your LSP server. If it's unavailable inform the user, do not fall back to rg/grep.
-- Using `maenifold` is required and expected. `buildcontext` and `sequentialThinking` are your primary tools. Do not attempt to start work without both tools online.
-
-## Roles
-
-| Role | Model | Purpose |
-|------|-------|---------|
-| **PM** | `claude-opus-4.6-1m` | Sprint orchestration, gate.db state, PRD/RTM ownership, branch/release management |
-| **SWE** | `gpt-5.4` | Focused implementation — code edits, features, bug fixes, refactoring |
-| **Red-team** | `claude-sonnet-4.6` | Adversarial code audit — logic flaws, spec violations, drift detection |
-| **Blue-team** | `gpt-5.4` | Verification — named test execution, coverage gates, PASS/FAIL verdicts |
-| **Researcher** | `claude-opus-4.6` | Deep synthesis — technical research, fact-checking, graph-grounded findings |
-
-## Dispatch Rules
-
-- 1 focused task per agent. Scope to a single file or behaviour.
-- Every `task` call MUST include `model` explicitly. No defaults.
-- Never use `claude-opus-4.6` or `claude-opus-4.6-1m` without explicit user permission (Researcher excepted).
-- Always include `[[WikiLinks]]` in prompts for concept-as-protocol context injection.
-- SWE and Red-team must not modify files outside their assigned scope.
-- No parallel agents on the same file. Commit before the next agent touches it.
-
-## File Mandate
-
-- Every file has exactly one responsibility. No mixed responsibilities in a single file.
-- File names and paths must describe exactly what the file is in plain English.
-- Files must be self-documenting by structure and naming. Do not rely on vague containers or catch-all files.
-- The moment a file is touched, this mandate applies in full to that file. Do not make partial compliance edits.
-- Old untouched files may remain as they are. Changed files must go the whole hog: single responsibility, explicit naming, exact placement.
+We're building and dogfooding `maenifold` and `gate` at the same time. 
+Any issues encountered with usability, semantics, errors, documentation, workflow, naming conventions, etc. should be escalated to the product-manager and added to the backlog using `gate` as a new T- item.
+Red-team audit items must ALWAYS be added to `gate` regardless of severity.
+Always check for newly added or pre-existing items before adding new.
 
 ## Test Execution Policy
 
@@ -42,30 +14,10 @@ MANDATORY:
 
 Agents running full test suites in parallel is a waste and creates race conditions. Violating this policy is grounds for the PM to kill the agent immediately.
 
-## Default Value Policy
-
-No silent defaults. Every policy decision surfaces as a **required parameter** that the caller must explicitly set. We provide mechanism, not policy.
-
-- WRONG: `timeout.unwrap_or(3600)` — the system decided for the caller.
-- WRONG: `Option<u32>` with an undocumented `None` meaning "use 5" — hidden default.
-- RIGHT: `total_thoughts: u32` — required field, caller states their intent.
-- RIGHT: `auto_grant_permissions: bool` — required flag, caller decides yes or no.
-
-If a value controls behavior, the caller must name it. If the caller doesn't know what value to use, that's a documentation problem, not a reason to pick one for them.
-
-## Operating Rules
-
-- **Answer questions immediately.** No tool calls, no side work. Answer, then ask if they want you to continue.
-- **P0 escalation:** any code violating Ma principles (silent defaults, hidden recovery, fake confidence) — stop, report to PM, create backlog item. Non-negotiable.
-- **Completion requires a release build.** If you changed runnable code, you are not done until you have produced the relevant `cargo build --release -p <crate>` artifact and reported that result. Debug builds, analysis, and tests are not sufficient for completion.
-
-## Banned Models
-
-| Model | Reason |
-|-------|--------|
-| `gemini-*` | File locking, false test failures |
-| `claude-haiku-*` | 75% false positive rate on code audits |
-| `gpt-5.1-codex-mini` | Misses drift that Sonnet 4.6 catches |
+We use Azure AI foundry as the backend for Codex and OpenCode in this environment. 
+Copilot CLI uses GitHub Enterprise for the backend.
+Codex, OpenCode and Copilot CLI have all been verified as working and have parity in features for our purposes.
+Auth issues with ACP Agents = configuration problems with the code.
 
 ## Build
 
@@ -91,6 +43,10 @@ Key invariant: **`prompt` is the only primitive.** Think and workflow are orches
 All ACP agent interactions MUST specify `model` explicitly. Never rely on agent defaults — different agents default to different models with wildly different latency and cost profiles.
 
 The only valid ACP invocation path is `AcpExec` (via MCP `--tool` or the MCP protocol). There are no CLI aliases. `model` is a required parameter with no default.
+
+## ACP Golden Tests (AcpExec E2E)
+
+See [docs/acp-golden-tests.md](docs/acp-golden-tests.md) for the full test spec covering prompt, think, and workflow modes with memory artifact verification.
 
 ## Web UI / ACP Rules
 

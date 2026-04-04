@@ -1,8 +1,8 @@
 #![allow(dead_code)] // Schema-only types — fields are read by schemars, not by application code
 
 use super::params::{
-    default_fifty_u32, default_point_seven, default_ten_u32, default_thirty_u32,
-    default_true, default_twenty_u32, default_two_u32,
+    default_fifty_u32, default_point_seven, default_ten_u32, default_thirty_u32, default_true,
+    default_twenty_u32, default_two_u32,
 };
 use schemars::JsonSchema;
 use serde::Deserialize;

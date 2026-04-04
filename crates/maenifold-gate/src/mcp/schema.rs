@@ -24,6 +24,10 @@ const FAIL_DESCRIPTION: &str = "Apply a FAIL outcome to the active gate stage fo
      tracker. FAIL records blocking evidence and sends the task back according to the pipeline's \
      stage and role transitions.";
 
+const HISTORY_DESCRIPTION: &str = "Return the stage journey for a gate task from the authoritative markdown task file as a \
+     JSON array of history records. Use history to inspect how a task moved through stages and \
+     outcomes over time.";
+
 const SYNC_DESCRIPTION: &str = "Refresh the .gate/gate.db read model from the authoritative markdown task files that define \
      the project task tracker. Use gate instead of ad-hoc todo lists and SQL todo-table tracking. \
      Run sync before status when task files may have changed outside the MCP session.";
@@ -169,6 +173,25 @@ pub fn list() -> Vec<McpToolDefinition> {
             }),
         },
         McpToolDefinition {
+            name: "history",
+            description: HISTORY_DESCRIPTION,
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "taskId": {
+                        "type": "string",
+                        "description": "Required gate task identifier to inspect stage history for, for example 'T-90.20'."
+                    },
+                    "root": {
+                        "type": "string",
+                        "description": ROOT_PARAMETER_DESCRIPTION
+                    }
+                },
+                "required": ["taskId"],
+                "additionalProperties": false
+            }),
+        },
+        McpToolDefinition {
             name: "sync",
             description: SYNC_DESCRIPTION,
             input_schema: json!({
@@ -199,10 +222,13 @@ mod tests {
     use serde_json::Value;
 
     #[test]
-    fn mcp_tool_list_exposes_exactly_five_gate_tools() {
+    fn mcp_tool_list_exposes_exactly_six_gate_tools() {
         let tools = list();
         let names: Vec<_> = tools.iter().map(|tool| tool.name).collect();
-        assert_eq!(names, vec!["status", "append", "pass", "fail", "sync"]);
+        assert_eq!(
+            names,
+            vec!["status", "append", "pass", "fail", "history", "sync"]
+        );
     }
 
     #[test]
@@ -318,6 +344,13 @@ mod tests {
             .find(|tool| tool.name == "fail")
             .expect("fail tool should exist");
         assert!(fail.description.contains("sends the task back"));
+
+        let history = tools
+            .iter()
+            .find(|tool| tool.name == "history")
+            .expect("history tool should exist");
+        assert!(history.description.contains("stage journey"));
+        assert!(history.description.contains("JSON array of history records"));
 
         let sync = tools
             .iter()

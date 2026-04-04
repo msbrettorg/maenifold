@@ -4,12 +4,13 @@ use serde_json::{Value, json};
 
 use crate::append_command::append_task;
 use crate::cache_db::GateCacheDb;
-use crate::cli::{AppendArgs, GateContext, OutcomeArgs, StatusArgs, SyncArgs};
+use crate::cli::{AppendArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs};
 use crate::error::GateError;
 use crate::fail_command::fail_task;
 use crate::pass_command::pass_task;
 use crate::status_filter::StatusFilter;
 use crate::sync_command::sync_gate;
+use crate::task_file::TaskFileReader;
 use crate::task_repository::TaskRepository;
 
 #[derive(Debug, Clone)]
@@ -42,6 +43,27 @@ impl GateToolService {
         fail_task(args)?;
         refresh_read_model(&context)?;
         task_status_from_read_model(&context, &task_id)
+    }
+
+    pub fn history(args: HistoryArgs) -> Result<Value, GateError> {
+        let task = TaskRepository::find_task(args.context.root, &args.task_id)?;
+        let document = TaskFileReader::read(&task.path)?;
+        Ok(Value::Array(
+            document
+                .records
+                .into_iter()
+                .map(|record| {
+                    json!({
+                        "stage": record.stage,
+                        "event": history_event(&record.record_kind, record.outcome.as_deref()),
+                        "agent": record.agent,
+                        "model": record.model,
+                        "notes": record.notes,
+                        "timestamp": record.recorded_at,
+                    })
+                })
+                .collect(),
+        ))
     }
 
     pub fn sync(args: SyncArgs) -> Result<Value, GateError> {
@@ -160,6 +182,12 @@ fn status_read_model_error(db_path: &Path, err: GateError) -> GateError {
     } else {
         err
     }
+}
+
+fn history_event(record_kind: &str, outcome: Option<&str>) -> String {
+    outcome
+        .map(|value| value.to_uppercase())
+        .unwrap_or_else(|| record_kind.to_string())
 }
 
 #[cfg(test)]

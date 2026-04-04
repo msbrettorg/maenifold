@@ -270,4 +270,3 @@ fn asset_uri(kind: AssetKind, id: &str) -> String {
 fn map_notify_error(error: notify::Error) -> MaenifoldError {
     MaenifoldError::Message(format!("Asset watcher failed: {error}"))
 }
-

@@ -15,7 +15,7 @@ use serde_json::{Map, Value};
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
 use self::schema::{McpToolDefinition, list};
-use crate::cli::{AppendArgs, GateContext, OutcomeArgs, StatusArgs, SyncArgs};
+use crate::cli::{AppendArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs};
 use crate::error::GateError;
 use crate::gate_tool_service::GateToolService;
 use crate::status_filter::StatusFilter;
@@ -214,6 +214,10 @@ fn call_gate_tool(
             notes: required_string(&arguments, "notes")?,
             model: optional_string(&arguments, "model")?,
         })?,
+        "history" => GateToolService::history(HistoryArgs {
+            context: context_from_value(&arguments, false, root)?,
+            task_id: required_string(&arguments, "taskId")?,
+        })?,
         "sync" => GateToolService::sync(SyncArgs {
             context: context_from_value(&arguments, false, root)?,
             rebuild: optional_bool(&arguments, "rebuild")?.unwrap_or(false),
@@ -385,6 +389,69 @@ mod tests {
         let value: serde_json::Value = serde_json::from_str(&output).expect("valid JSON output");
         assert_eq!(value["taskId"], "T-9.1");
         assert_eq!(value["state"], "swe");
+    }
+
+    #[test]
+    fn mcp_history_tool_returns_stage_journey() {
+        let root = new_custom_pipeline_root();
+        let root_path = root.path().to_path_buf();
+
+        call_gate_tool(
+            "append",
+            &json!({
+                "root": root.path(),
+                "taskId": "T-9.1",
+                "agent": "swe",
+                "notes": "started implementation",
+                "model": "claude-sonnet-4.5"
+            }),
+            Some(&root_path),
+        )
+        .expect("append tool should succeed");
+        call_gate_tool(
+            "pass",
+            &json!({
+                "root": root.path(),
+                "taskId": "T-9.1",
+                "agent": "swe",
+                "notes": "completed implementation"
+            }),
+            Some(&root_path),
+        )
+        .expect("pass tool should succeed");
+        call_gate_tool(
+            "fail",
+            &json!({
+                "root": root.path(),
+                "taskId": "T-9.1",
+                "agent": "red-team",
+                "notes": "requested rework"
+            }),
+            Some(&root_path),
+        )
+        .expect("fail tool should succeed");
+
+        let output = call_gate_tool(
+            "history",
+            &json!({ "root": root.path(), "taskId": "T-9.1" }),
+            Some(&root_path),
+        )
+        .expect("history tool should succeed");
+        let value: serde_json::Value = serde_json::from_str(&output).expect("valid JSON output");
+        let history = value.as_array().expect("history should return an array");
+        assert_eq!(history.len(), 3);
+        assert_eq!(history[0]["stage"], "pending");
+        assert_eq!(history[0]["event"], "append");
+        assert_eq!(history[0]["agent"], "swe");
+        assert_eq!(history[0]["model"], "claude-sonnet-4.5");
+        assert_eq!(history[0]["notes"], "started implementation");
+        assert!(history[0]["timestamp"].as_str().is_some());
+        assert_eq!(history[1]["event"], "PASS");
+        assert_eq!(history[1]["notes"], "completed implementation");
+        assert_eq!(history[2]["stage"], "swe");
+        assert_eq!(history[2]["event"], "FAIL");
+        assert_eq!(history[2]["agent"], "red-team");
+        assert_eq!(history[2]["notes"], "requested rework");
     }
 
     #[test]

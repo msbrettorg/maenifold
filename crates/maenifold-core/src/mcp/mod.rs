@@ -47,6 +47,7 @@ use rmcp::{ServerHandler, ServiceExt};
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 
 pub struct MaenifoldMcpServer;
 
@@ -192,7 +193,7 @@ impl MaenifoldMcpServer {
     }
 
     // T-5.1: RTM FR-22.1 — serve MCP over stdio using rmcp transport.
-    pub async fn serve_stdio() -> Result<()> {
+    pub async fn serve_stdio(shutdown: CancellationToken) -> Result<()> {
         let config = Config::current();
         initialize_runtime(&config)?;
         let handler = MaenifoldHandler::new(TransportKind::Stdio)?;
@@ -204,10 +205,14 @@ impl MaenifoldMcpServer {
         // T-12.0: RTM FR-11 / RTM-071 — delegate asset-resource change watching to
         // resources.rs so mod.rs stays focused on MCP server lifecycle and tool dispatch.
         let asset_watcher = self::resources::start_asset_watcher(&config, service.peer().clone())?;
-        let wait_result = service
-            .waiting()
-            .await
-            .map_err(|e| MaenifoldError::Message(format!("MCP server error: {e}")));
+        let wait_result = tokio::select! {
+            result = service.waiting() => {
+                result
+                    .map(|_| ())
+                    .map_err(|e| MaenifoldError::Message(format!("MCP server error: {e}")))
+            }
+            _ = shutdown.cancelled() => Ok(())
+        };
         asset_watcher.stop();
         wait_result?;
         Ok(())
@@ -258,4 +263,3 @@ fn is_validation_error(err: &MaenifoldError) -> bool {
             | MaenifoldError::MissingProperty(_)
     )
 }
-

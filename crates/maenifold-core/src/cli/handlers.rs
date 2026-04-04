@@ -5,6 +5,7 @@ use crate::sync::watchers;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 use serde_json::json;
+use tokio_util::sync::CancellationToken;
 
 pub(super) fn run_mcp() -> i32 {
     let config = Config::current();
@@ -26,7 +27,8 @@ pub(super) fn run_mcp() -> i32 {
         }
     };
 
-    let result = rt.block_on(MaenifoldMcpServer::serve_stdio());
+    let shutdown = CancellationToken::new();
+    let result = rt.block_on(MaenifoldMcpServer::serve_stdio(shutdown));
     rt.shutdown_timeout(std::time::Duration::from_secs(5));
     match result {
         Ok(()) => 0,

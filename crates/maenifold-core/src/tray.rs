@@ -43,14 +43,32 @@ fn build_icon() -> Icon {
 
 // ── URL helpers ───────────────────────────────────────────────────────
 
-fn open_url(url: &str) {
+fn open_url(url: &str) -> crate::Result<()> {
     #[cfg(target_os = "macos")]
     {
-        let _ = std::process::Command::new("open").arg(url).spawn();
+        std::process::Command::new("open").arg(url).spawn()?;
+        return Ok(());
     }
-    #[cfg(not(target_os = "macos"))]
+
+    #[cfg(target_os = "linux")]
     {
-        let _ = url; // suppress unused warning on non-macOS
+        std::process::Command::new("xdg-open").arg(url).spawn()?;
+        return Ok(());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", url])
+            .spawn()?;
+        return Ok(());
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+    {
+        Err(crate::error::MaenifoldError::Message(format!(
+            "No URL launcher configured for this platform; cannot open {url}"
+        )))
     }
 }
 
@@ -120,7 +138,9 @@ impl TrayApp {
         }
 
         if self.help_id.as_ref().is_some_and(|id| event.id == *id) {
-            open_url("https://github.com/ma-collective/maenifold-rs/issues");
+            if let Err(err) = open_url("https://github.com/ma-collective/maenifold-rs/issues") {
+                eprintln!("Error opening help URL: {err}");
+            }
         }
 
         if self.restart_id.as_ref().is_some_and(|id| event.id == *id) {

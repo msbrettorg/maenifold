@@ -180,7 +180,10 @@ pub struct PipelineWorkflowNodeSchema {
     pub timeout: Option<u32>,
 }
 #[derive(Deserialize, JsonSchema)]
-pub enum PipelineWorkflowNodeType { #[serde(rename = "workflow")] Workflow }
+pub enum PipelineWorkflowNodeType {
+    #[serde(rename = "workflow")]
+    Workflow,
+}
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PipelinePromptNodeSchema {
@@ -215,7 +218,10 @@ pub struct PipelinePromptNodeSchema {
     pub agent_config: Option<PipelineAgentConfigSchema>,
 }
 #[derive(Deserialize, JsonSchema)]
-pub enum PipelinePromptNodeType { #[serde(rename = "prompt")] Prompt }
+pub enum PipelinePromptNodeType {
+    #[serde(rename = "prompt")]
+    Prompt,
+}
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PipelineSequentialThinkingNodeSchema {
@@ -252,7 +258,10 @@ pub struct PipelineSequentialThinkingNodeSchema {
     pub agent_config: Option<PipelineAgentConfigSchema>,
 }
 #[derive(Deserialize, JsonSchema)]
-pub enum PipelineSequentialThinkingNodeType { #[serde(rename = "sequentialThinking")] SequentialThinking }
+pub enum PipelineSequentialThinkingNodeType {
+    #[serde(rename = "sequentialThinking")]
+    SequentialThinking,
+}
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PipelineToolNodeSchema {
@@ -285,4 +294,7 @@ pub struct PipelineToolNodeSchema {
     pub agent_config: Option<PipelineAgentConfigSchema>,
 }
 #[derive(Deserialize, JsonSchema)]
-pub enum PipelineToolNodeType { #[serde(rename = "tool")] Tool }
+pub enum PipelineToolNodeType {
+    #[serde(rename = "tool")]
+    Tool,
+}

@@ -2,8 +2,6 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use walkdir::WalkDir;
-
 use crate::error::GateError;
 use crate::task_id;
 use crate::task_metadata::TaskMetadataParser;
@@ -44,9 +42,11 @@ impl TaskRepository {
                 continue;
             }
 
-            for entry in WalkDir::new(&directory).into_iter() {
-                let entry = entry.map_err(|error| GateError::Io(std::io::Error::other(error)))?;
-                let path = entry.into_path();
+            for entry in std::fs::read_dir(&directory)
+                .map_err(GateError::Io)?
+            {
+                let entry = entry.map_err(GateError::Io)?;
+                let path = entry.path();
                 if !path.is_file() {
                     continue;
                 }
@@ -169,44 +169,5 @@ mod tests {
             }
             other => panic!("expected duplicate canonical task id error, got {other}"),
         }
-    }
-
-    #[test]
-    fn list_tasks_includes_nested_done_legacy_files() {
-        let temp = tempdir().expect("create temp root");
-        let root = temp.path();
-        fs::create_dir_all(root.join("todo")).expect("create todo");
-        fs::create_dir_all(root.join("done").join("legacy")).expect("create done legacy");
-
-        fs::write(
-            root.join("done").join("legacy").join("T-90.18.md"),
-            "---\nid: T-90.18\ntitle: Legacy done task\npipeline: sdd\nstate: done\n---\n# Legacy done task\n",
-        )
-        .expect("write nested done task");
-
-        let tasks = TaskRepository::list_tasks(root.to_path_buf()).expect("list tasks");
-        assert_eq!(tasks.len(), 1);
-        assert_eq!(tasks[0].task_id, "T-90.18");
-        assert_eq!(tasks[0].location, "done");
-        assert!(tasks[0].path.ends_with("done/legacy/T-90.18.md"));
-    }
-
-    #[test]
-    fn move_to_todo_handles_nested_done_paths() {
-        let temp = tempdir().expect("create temp root");
-        let root = temp.path();
-        fs::create_dir_all(root.join("todo")).expect("create todo");
-        fs::create_dir_all(root.join("done").join("legacy")).expect("create done legacy");
-
-        let path = root.join("done").join("legacy").join("T-90.18.md");
-        fs::write(
-            &path,
-            "---\nid: T-90.18\ntitle: Legacy done task\npipeline: sdd\nstate: done\n---\n# Legacy done task\n",
-        )
-        .expect("write nested done task");
-
-        let task = TaskRepository::find_task(root.to_path_buf(), "T-90.18").expect("find task");
-        TaskRepository::move_to_todo(&task).expect("move nested task to todo");
-        assert!(root.join("todo").join("T-90.18.md").exists());
     }
 }

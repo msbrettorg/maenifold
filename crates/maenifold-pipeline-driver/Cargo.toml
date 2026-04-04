@@ -1,0 +1,11 @@
+[package]
+name = "maenifold-pipeline-driver"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+maenifold-core = { path = "../maenifold-core", default-features = false }
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true

@@ -3343,6 +3343,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "maenifold-pipeline-driver"
+version = "0.1.0"
+dependencies = [
+ "maenifold-core",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "maenifold-rs-workspace"
 version = "0.1.0"
 dependencies = [

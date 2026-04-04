@@ -3,6 +3,7 @@ members = [
   "crates/maenifold-core",
   "crates/maenifold-cli",
   "crates/maenifold-gate",
+  "crates/maenifold-pipeline-driver",
 ]
 resolver = "2"
 

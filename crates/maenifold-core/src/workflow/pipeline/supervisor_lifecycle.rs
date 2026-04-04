@@ -5,15 +5,13 @@ use tokio::sync::{oneshot, watch};
 use tokio_util::sync::CancellationToken;
 
 use super::executor;
-use super::session_io::{
-    frontmatter_value, persist_pipeline_state_with_status, read_pipeline_session,
-};
+use super::session_write::persist_final_pipeline_status;
 use super::supervisor::{
     RUNNING_PIPELINES, TRACKED_PIPELINES, TrackedPipeline, finish_pipeline, supervisor_context,
     supervisor_runtime,
 };
 use super::supervisor_detection::{
-    mark_pipeline_stuck, pipeline_has_non_terminal_nodes, supervisor_detect_orphans_excluding,
+    finalize_failed_pipeline_execution, supervisor_detect_orphans_excluding,
 };
 
 pub(super) fn supervisor_run(root: &Path, session_id: &str, prompt: &str) -> Result<()> {
@@ -28,7 +26,6 @@ pub(super) fn supervisor_run(root: &Path, session_id: &str, prompt: &str) -> Res
     let cancel = CancellationToken::new();
     let (paused, paused_rx) = watch::channel(false);
     let task_context = supervisor_context(root);
-    let root = root.to_path_buf();
     let session_id_owned = session_id.to_string();
     let prompt_owned = prompt.to_string();
     let cancel_for_task = cancel.clone();
@@ -51,44 +48,17 @@ pub(super) fn supervisor_run(root: &Path, session_id: &str, prompt: &str) -> Res
 
         match result {
             Ok(execution_result) => {
-                match read_pipeline_session(&task_context, &session_id_owned) {
-                    Ok((uri, mut frontmatter, pipeline_content)) => {
-                        match frontmatter_value(&frontmatter, "nodeStates") {
-                            Ok(node_states) => {
-                                if let Err(error) = persist_pipeline_state_with_status(
-                                    &mut frontmatter,
-                                    &node_states,
-                                    Some(execution_result.status.as_str()),
-                                    &uri,
-                                    &pipeline_content,
-                                    &task_context,
-                                ) {
-                                    tracing::error!(
-                                        session_id = %session_id_owned,
-                                        error = %error,
-                                        status = %execution_result.status,
-                                        "[pipeline-supervisor] failed to persist final pipeline status"
-                                    );
-                                }
-                            }
-                            Err(error) => {
-                                tracing::error!(
-                                    session_id = %session_id_owned,
-                                    error = %error,
-                                    status = %execution_result.status,
-                                    "[pipeline-supervisor] failed to load pipeline node states for final status persistence"
-                                );
-                            }
-                        }
-                    }
-                    Err(error) => {
-                        tracing::error!(
-                            session_id = %session_id_owned,
-                            error = %error,
-                            status = %execution_result.status,
-                            "[pipeline-supervisor] failed to read pipeline session for final status persistence"
-                        );
-                    }
+                if let Err(error) = persist_final_pipeline_status(
+                    &task_context,
+                    &session_id_owned,
+                    &execution_result.status,
+                ) {
+                    tracing::error!(
+                        session_id = %session_id_owned,
+                        error = %error,
+                        status = %execution_result.status,
+                        "[pipeline-supervisor] failed to persist final pipeline status"
+                    );
                 }
             }
             Err(error) => {
@@ -97,9 +67,7 @@ pub(super) fn supervisor_run(root: &Path, session_id: &str, prompt: &str) -> Res
                     error = %error,
                     "[pipeline-supervisor] pipeline failed"
                 );
-                if pipeline_has_non_terminal_nodes(root.as_path(), &session_id_owned) {
-                    mark_pipeline_stuck(root.as_path(), &session_id_owned);
-                }
+                finalize_failed_pipeline_execution(&task_context, &session_id_owned);
             }
         }
 

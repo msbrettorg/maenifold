@@ -36,8 +36,10 @@ mod view_nodes;
 mod workflow_id;
 
 pub use engine::{compute_pipeline_status, compute_ready_set, has_remaining_work};
+pub use executor::{ExecutionResult, execute_pipeline};
 pub use handler::pipeline;
-pub(crate) use supervisor::supervisor_runtime;
+pub use session_write::persist_final_pipeline_status;
+pub use supervisor_detection::finalize_failed_pipeline_execution;
 pub use types::{
     EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
     PredecessorOutput,

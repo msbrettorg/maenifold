@@ -1,5 +1,6 @@
 use crate::markdown::{get_memory_files, read_markdown};
 use crate::sessions::pipeline_session_uri;
+use crate::tools::ToolContext;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -60,14 +61,19 @@ pub(super) fn supervisor_detect_orphans_excluding(
         .collect::<Vec<_>>();
 
     for session_id in &orphan_session_ids {
-        mark_pipeline_stuck(root, session_id);
+        mark_pipeline_stuck(&context, session_id);
     }
 
     orphan_session_ids.len()
 }
 
-pub(super) fn pipeline_has_non_terminal_nodes(root: &Path, session_id: &str) -> bool {
-    let context = supervisor_context(root);
+pub fn finalize_failed_pipeline_execution(context: &ToolContext, session_id: &str) {
+    if pipeline_has_non_terminal_nodes(context, session_id) {
+        mark_pipeline_stuck(context, session_id);
+    }
+}
+
+fn pipeline_has_non_terminal_nodes(context: &ToolContext, session_id: &str) -> bool {
     let uri = pipeline_session_uri(session_id);
     let Ok((frontmatter, _, _)) = read_markdown(&uri, &context.config) else {
         return false;
@@ -86,8 +92,7 @@ pub(super) fn pipeline_has_non_terminal_nodes(root: &Path, session_id: &str) -> 
         .any(|state| is_non_terminal(&state.status))
 }
 
-pub(super) fn mark_pipeline_stuck(root: &Path, session_id: &str) {
-    let context = supervisor_context(root);
+fn mark_pipeline_stuck(context: &ToolContext, session_id: &str) {
     let uri = pipeline_session_uri(session_id);
     let Ok((frontmatter, pipeline_content, _)) = read_markdown(&uri, &context.config) else {
         eprintln!(

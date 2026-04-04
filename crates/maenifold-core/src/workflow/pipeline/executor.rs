@@ -19,14 +19,13 @@ use super::executor_nodes::{
     NodeOutcome, NodeTaskResult, build_node_execution_request, classify_node_result,
     execute_node_request,
 };
-use super::supervisor::supervisor_wait_if_paused;
 use super::update::update_pipeline_node_status;
 use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
 pub(super) use super::executor_mapping::{assemble_node_prompt, predecessor_context_content};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct ExecutionResult {
+pub struct ExecutionResult {
     pub completed: usize,
     pub abandoned: usize,
     pub status: String,
@@ -36,7 +35,7 @@ type NodeJoinResult = (String, NodeTaskResult);
 
 #[allow(clippy::cognitive_complexity)]
 #[allow(clippy::too_many_lines)]
-pub(super) async fn execute_pipeline(
+pub async fn execute_pipeline(
     context: &ToolContext,
     session_id: &str,
     prompt: &str,
@@ -64,11 +63,6 @@ async fn execute_pipeline_inner(
     let prompt = prompt.to_string();
 
     loop {
-        if cancel.is_cancelled() {
-            break;
-        }
-
-        supervisor_wait_if_paused(session_id, &cancel).await;
         if cancel.is_cancelled() {
             break;
         }

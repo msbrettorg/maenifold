@@ -56,6 +56,26 @@ pub(super) fn persist_pipeline_state(
     )
 }
 
+pub fn persist_final_pipeline_status(
+    context: &ToolContext,
+    session_id: &str,
+    final_status: &str,
+) -> Result<()> {
+    let (uri, mut frontmatter, pipeline_content) = super::session_read::read_pipeline_session(
+        context, session_id,
+    )?;
+    let node_states =
+        super::session_read::frontmatter_value::<HashMap<String, NodeState>>(&frontmatter, "nodeStates")?;
+    persist_pipeline_state_with_status(
+        &mut frontmatter,
+        &node_states,
+        Some(final_status),
+        &uri,
+        &pipeline_content,
+        context,
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn persist_pipeline_state_with_status(
     frontmatter: &mut Frontmatter,

@@ -67,7 +67,12 @@ fn exec_prompt(context: &ToolContext, payload: &Value, agent: &str) -> Result<St
     let opts = session_opts_from(context.config.maenifold_root.clone(), payload)?;
     let context_blocks = optional_context_blocks(payload)?;
     let prompt_owned = prompt.to_string();
-    run_acp_future(exec_prompt_async(agent, &prompt_owned, context_blocks, opts))
+    run_acp_future(exec_prompt_async(
+        agent,
+        &prompt_owned,
+        context_blocks,
+        opts,
+    ))
 }
 
 fn exec_think(context: &ToolContext, payload: &Value, agent: &str) -> Result<String> {
@@ -141,7 +146,8 @@ async fn exec_prompt_async(
     context_blocks: Option<Vec<acp::ContentBlock>>,
     opts: SessionOpts,
 ) -> Result<String> {
-    runner::run_prompt_with_pool_context(&GLOBAL_AGENT_POOL, agent, prompt, context_blocks, opts).await
+    runner::run_prompt_with_pool_context(&GLOBAL_AGENT_POOL, agent, prompt, context_blocks, opts)
+        .await
 }
 
 async fn exec_think_async(
@@ -242,11 +248,9 @@ fn mode_or_default<'a>(payload: &'a Value) -> Result<&'a str> {
 
 fn workflow_conclusion_text(result: runner::WorkflowResult) -> Result<String> {
     match result.status {
-        runner::WorkflowRunStatus::Completed => Ok(
-            result
-                .conclusion
-                .unwrap_or_else(|| "[no conclusion produced]".to_string()),
-        ),
+        runner::WorkflowRunStatus::Completed => Ok(result
+            .conclusion
+            .unwrap_or_else(|| "[no conclusion produced]".to_string())),
         runner::WorkflowRunStatus::Failed(reason) => Err(MaenifoldError::Message(reason)),
         runner::WorkflowRunStatus::Cancelled => Err(MaenifoldError::Message(
             "workflow run was cancelled".to_string(),

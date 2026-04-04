@@ -136,66 +136,66 @@ fn probe_agent(root: &std::path::Path, name: &str, entry: &crate::acp_config::Ag
     let agent_name = name.to_string();
 
     let result: std::result::Result<Value, String> = run_agent_future(async move {
-            let handle = GLOBAL_AGENT_POOL
-                .get_or_create(&agent_name, &command, &cwd, env, true)
-                .await;
+        let handle = GLOBAL_AGENT_POOL
+            .get_or_create(&agent_name, &command, &cwd, env, true)
+            .await;
 
-            let info = handle
-                .new_session(SessionOpts {
-                    cwd: cwd.clone(),
-                    auto_grant_permissions: true,
-                    model: None,
-                    mode: None,
-                    thought_level: None,
-                    config_options: None,
-                    allowed_tools: None,
-                    max_turns: None,
-                    timeout_seconds: None,
-                    mcp_servers: vec![],
+        let info = handle
+            .new_session(SessionOpts {
+                cwd: cwd.clone(),
+                auto_grant_permissions: true,
+                model: None,
+                mode: None,
+                thought_level: None,
+                config_options: None,
+                allowed_tools: None,
+                max_turns: None,
+                timeout_seconds: None,
+                mcp_servers: vec![],
+            })
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let session_id = info.session_id.clone();
+        let has_config_options = !info.config_options.is_empty();
+        let agent_info = handle.agent_info();
+        let agent_capabilities = handle.capabilities();
+
+        let mut capabilities = json!({
+            "style": if has_config_options { "modern" } else { "legacy" },
+            "agentInfo": serialize_agent_info(&agent_info),
+            "agentCapabilities": serialize_agent_capabilities(&agent_capabilities),
+            "modes": info.modes.iter().map(|mode| {
+                json!({
+                    "id": mode.id.to_string(),
+                    "name": mode.name,
+                    "description": mode.description,
                 })
-                .await
-                .map_err(|e| e.to_string())?;
-
-            let session_id = info.session_id.clone();
-            let has_config_options = !info.config_options.is_empty();
-            let agent_info = handle.agent_info();
-            let agent_capabilities = handle.capabilities();
-
-            let mut capabilities = json!({
-                "style": if has_config_options { "modern" } else { "legacy" },
-                "agentInfo": serialize_agent_info(&agent_info),
-                "agentCapabilities": serialize_agent_capabilities(&agent_capabilities),
-                "modes": info.modes.iter().map(|mode| {
-                    json!({
-                        "id": mode.id.to_string(),
-                        "name": mode.name,
-                        "description": mode.description,
-                    })
-                }).collect::<Vec<_>>(),
-                "models": info.models.iter().map(|model| {
-                    json!({
-                        "modelId": model.model_id.to_string(),
-                        "name": model.name,
-                        "description": model.description,
-                    })
-                }).collect::<Vec<_>>(),
-                "configOptions": info.config_options.iter().map(|opt| {
-                    json!({
-                        "id": opt.id.to_string(),
-                        "name": opt.name,
-                        "description": opt.description,
-                        "category": serialize_category(&opt.category),
-                    })
-                }).collect::<Vec<_>>(),
-            });
-
-            if let Err(error) = handle.close_session(&session_id).await {
-                if let Value::Object(ref mut object) = capabilities {
-                    object.insert("closeSessionError".to_string(), json!(error.to_string()));
-                }
-            }
-            Ok(capabilities)
+            }).collect::<Vec<_>>(),
+            "models": info.models.iter().map(|model| {
+                json!({
+                    "modelId": model.model_id.to_string(),
+                    "name": model.name,
+                    "description": model.description,
+                })
+            }).collect::<Vec<_>>(),
+            "configOptions": info.config_options.iter().map(|opt| {
+                json!({
+                    "id": opt.id.to_string(),
+                    "name": opt.name,
+                    "description": opt.description,
+                    "category": serialize_category(&opt.category),
+                })
+            }).collect::<Vec<_>>(),
         });
+
+        if let Err(error) = handle.close_session(&session_id).await {
+            if let Value::Object(ref mut object) = capabilities {
+                object.insert("closeSessionError".to_string(), json!(error.to_string()));
+            }
+        }
+        Ok(capabilities)
+    });
 
     match result {
         Ok(value) => value,

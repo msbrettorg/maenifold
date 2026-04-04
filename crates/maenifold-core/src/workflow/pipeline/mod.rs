@@ -20,6 +20,7 @@ mod lease;
 mod session_io;
 mod session_read;
 mod session_write;
+pub mod stream;
 mod types;
 mod types_wire;
 mod update;

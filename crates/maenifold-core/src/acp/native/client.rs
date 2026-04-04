@@ -249,6 +249,46 @@ impl HeadlessClient {
             return Ok(());
         };
 
+        let pipeline_event = match &args.update {
+            sacps::SessionUpdate::AgentMessageChunk(chunk) => {
+                if let sacps::ContentBlock::Text(text) = &chunk.content {
+                    Some(
+                        crate::workflow::pipeline::stream::PipelineEvent::AgentMessage {
+                            session_id: session_id.clone(),
+                            text: text.text.clone(),
+                        },
+                    )
+                } else {
+                    None
+                }
+            }
+            sacps::SessionUpdate::AgentThoughtChunk(chunk) => {
+                if let sacps::ContentBlock::Text(text) = &chunk.content {
+                    Some(
+                        crate::workflow::pipeline::stream::PipelineEvent::ThoughtChunk {
+                            session_id: session_id.clone(),
+                            text: text.text.clone(),
+                        },
+                    )
+                } else {
+                    None
+                }
+            }
+            sacps::SessionUpdate::ToolCall(tc) => {
+                Some(crate::workflow::pipeline::stream::PipelineEvent::ToolCall {
+                    session_id: session_id.clone(),
+                    tool_name: tc.title.clone(),
+                })
+            }
+            sacps::SessionUpdate::ToolCallUpdate(tcu) => Some(
+                crate::workflow::pipeline::stream::PipelineEvent::ToolCallUpdate {
+                    session_id: session_id.clone(),
+                    tool_name: tcu.tool_call_id.to_string(),
+                },
+            ),
+            _ => None,
+        };
+
         match args.update {
             sacps::SessionUpdate::UserMessageChunk(_) => {}
             sacps::SessionUpdate::AgentMessageChunk(chunk) => {
@@ -270,6 +310,10 @@ impl HeadlessClient {
             _ => {
                 tracing::debug!(session_id = %session_id, update = update_type, "Unhandled SessionUpdate variant");
             }
+        }
+
+        if let Some(event) = pipeline_event {
+            let _ = crate::workflow::pipeline::stream::sender().send(event);
         }
 
         Ok(())

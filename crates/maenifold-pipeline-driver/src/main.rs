@@ -145,8 +145,7 @@ fn parse_args() -> Result<(String, String)> {
 /// Falls back to "unknown" if the hostname cannot be determined.
 fn hostname_string() -> String {
     let mut buf = [0u8; 256];
-    let result =
-        unsafe { libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf.len()) };
+    let result = unsafe { libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf.len()) };
     if result != 0 {
         return "unknown".to_string();
     }

@@ -45,7 +45,8 @@ impl TaskRepository {
             }
 
             for entry in WalkDir::new(&directory).into_iter() {
-                let entry = entry?;
+                let entry =
+                    entry.map_err(|error| GateError::Io(std::io::Error::other(error)))?;
                 let path = entry.into_path();
                 if !path.is_file() {
                     continue;

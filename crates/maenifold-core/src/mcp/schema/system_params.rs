@@ -56,7 +56,11 @@ pub struct StartWatcherParams {
 
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct StopWatcherParams {}
+pub struct StopWatcherParams {
+    /// Return help documentation instead of executing
+    #[serde(default)]
+    pub learn: bool,
+}
 
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

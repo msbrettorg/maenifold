@@ -37,15 +37,11 @@ pub fn natural_cmp(a: &str, b: &str) -> Ordering {
     }
 }
 
-pub fn compare(left: &str, right: &str) -> Ordering {
-    natural_cmp(left, right)
-}
-
 #[cfg(test)]
 mod tests {
     use std::cmp::Ordering;
 
-    use super::{compare, natural_cmp};
+    use super::natural_cmp;
 
     #[test]
     fn natural_sort_orders_numerically() {
@@ -74,7 +70,7 @@ mod tests {
             "alpha-2".to_string(),
             "alpha".to_string(),
         ];
-        ids.sort_by(|left, right| compare(left, right));
+        ids.sort_by(|left, right| natural_cmp(left, right));
         assert_eq!(ids, ["alpha", "alpha-2", "alpha-10"]);
     }
 }

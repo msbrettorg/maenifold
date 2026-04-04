@@ -24,14 +24,7 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
             registry_name,
             "Refreshes runtime assets from packaged assets with optional dry-run mode.",
         ),
-        "StartWatcher" => derived_tool_definition::<StartWatcherParams>(
-            registry_name,
-            "Starts background watching of the memory directory for incremental sync.",
-        ),
-        "StopWatcher" => derived_tool_definition::<StopWatcherParams>(
-            registry_name,
-            "Stops the background watcher used for incremental sync.",
-        ),
+        // StartWatcher/StopWatcher removed — vestigial, caused empty schema errors
         "RunFullBenchmark" => derived_tool_definition::<RunFullBenchmarkParams>(
             registry_name,
             "Runs system performance benchmarks across search, sync, and graph traversal.",

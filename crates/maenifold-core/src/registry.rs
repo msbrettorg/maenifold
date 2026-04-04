@@ -200,17 +200,7 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         aliases: &["findsimilarconcepts"],
         invoke: similar::find_similar_concepts,
     },
-    ToolDescriptor {
-        name: "StartWatcher",
-        aliases: &["startwatcher"],
-        invoke: watchers::start_watcher,
-    },
-    ToolDescriptor {
-        name: "StopWatcher",
-        aliases: &["stopwatcher"],
-        // T-5.7: RTM FR-5.7 — compat shim removed; registry invokes stop_watcher directly.
-        invoke: watchers::stop_watcher,
-    },
+    // StartWatcher/StopWatcher removed — vestigial tools with no purpose
     ToolDescriptor {
         name: "RunFullBenchmark",
         aliases: &["runfullbenchmark"],

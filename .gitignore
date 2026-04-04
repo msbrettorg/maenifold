@@ -12,3 +12,4 @@ todo/
 done/
 gate.db
 .gate/
+target-*/

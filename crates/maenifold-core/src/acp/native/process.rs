@@ -1,4 +1,3 @@
-use agent_client_protocol as acp;
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     task::JoinHandle,
@@ -15,7 +14,7 @@ pub(super) fn log_io_task_exit<E: std::fmt::Display>(
 }
 
 pub(super) fn spawn_stderr_reader(stderr: tokio::process::ChildStderr) -> JoinHandle<()> {
-    tokio::task::spawn_local(async move {
+    tokio::task::spawn(async move {
         let mut lines = BufReader::new(stderr).lines();
         while let Ok(Some(line)) = lines.next_line().await {
             tracing::debug!("ACP stderr: {line}");
@@ -26,7 +25,7 @@ pub(super) fn spawn_stderr_reader(stderr: tokio::process::ChildStderr) -> JoinHa
 pub(super) async fn reap_child(
     child: &mut tokio::process::Child,
     stderr_task: Option<JoinHandle<()>>,
-    io_task: Option<JoinHandle<acp::Result<()>>>,
+    io_task: Option<JoinHandle<std::result::Result<(), sacp::Error>>>,
 ) {
     if let Err(error) = child.start_kill() {
         tracing::debug!("Failed to kill ACP child: {error}");

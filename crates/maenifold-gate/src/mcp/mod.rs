@@ -19,6 +19,13 @@ use crate::cli::{AppendArgs, GateContext, OutcomeArgs, StatusArgs, SyncArgs};
 use crate::error::GateError;
 use crate::gate_tool_service::GateToolService;
 
+const GATE_SERVER_INSTRUCTIONS: &str = "Gate is the authoritative project task tracker. Task state lives in markdown files under \
+     the workspace, while .gate/gate.db is only a read model produced by sync. Recommended \
+     workflow for first-time agents: run sync when files may be stale, run status to inspect the \
+     current stage, use append for non-advancing work notes within the current stage, then use \
+     pass to move the task forward or fail to send it back per the pipeline. Prefer exact tool \
+     names from tools/list and pass JSON arguments matching the tool schema.";
+
 #[derive(Debug, Clone)]
 pub struct GateMcpServer;
 
@@ -84,10 +91,7 @@ impl ServerHandler for GateMcpHandler {
 
         ServerInfo::new(capabilities)
             .with_server_info(Implementation::new("gate", env!("CARGO_PKG_VERSION")))
-            .with_instructions(
-                "Use the gate tools to inspect and mutate file-authoritative task state. \
-                 Prefer exact tool names from tools/list and pass JSON arguments matching the tool schema.",
-            )
+            .with_instructions(GATE_SERVER_INSTRUCTIONS)
     }
 
     fn list_tools(
@@ -269,11 +273,14 @@ fn optional_bool(arguments: &Value, key: &str) -> Result<Option<bool>, GateError
 mod tests {
     use std::fs;
     use std::path::Path;
+    use std::sync::{Arc, RwLock};
 
     use serde_json::json;
     use tempfile::TempDir;
 
-    use super::{call_gate_tool, context_from_value};
+    use super::{
+        GATE_SERVER_INSTRUCTIONS, GateMcpHandler, TransportKind, call_gate_tool, context_from_value,
+    };
 
     #[test]
     fn mcp_status_tool_returns_task_array() {
@@ -321,6 +328,24 @@ mod tests {
             err.to_string()
                 .contains("gate root is not set; pass MCP argument 'root'")
         );
+    }
+
+    #[test]
+    fn server_instructions_explain_authoritative_gate_workflow() {
+        let handler = GateMcpHandler::new(TransportKind::Stdio, Arc::new(RwLock::new(None)))
+            .expect("handler should build");
+        let info = <GateMcpHandler as rmcp::ServerHandler>::get_info(&handler);
+        let instructions = info
+            .instructions
+            .expect("server instructions should be present");
+
+        assert_eq!(instructions, GATE_SERVER_INSTRUCTIONS);
+        assert!(instructions.contains("authoritative project task tracker"));
+        assert!(instructions.contains("run sync"));
+        assert!(instructions.contains("run status"));
+        assert!(instructions.contains("use append"));
+        assert!(instructions.contains("pass to move the task forward"));
+        assert!(instructions.contains("fail to send it back"));
     }
 
     fn new_custom_pipeline_root() -> TempDir {

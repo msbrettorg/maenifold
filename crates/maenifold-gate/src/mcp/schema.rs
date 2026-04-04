@@ -1,5 +1,28 @@
 use serde_json::{Value, json};
 
+pub const ROOT_PARAMETER_DESCRIPTION: &str = "Optional workspace root directory containing the gate project. If omitted, gate reuses the \
+     root already selected for this MCP session; otherwise the call fails and you must pass \
+     'root' explicitly.";
+
+const STATUS_DESCRIPTION: &str = "Read the project task tracker by listing gate task status from the .gate/gate.db read model \
+     derived from authoritative task files. Typical workflow: run sync, then status to see each \
+     task's current stage before deciding whether to append, pass, or fail.";
+
+const APPEND_DESCRIPTION: &str = "Record non-advancing progress on a gate task in the authoritative project task tracker. Use \
+     append for notes and evidence within the current stage when work should stay in the same \
+     stage rather than advance or fail.";
+
+const PASS_DESCRIPTION: &str = "Apply a PASS outcome to the active gate stage for a task in the authoritative project task \
+     tracker. PASS moves the task forward to the next stage in the pipeline workflow.";
+
+const FAIL_DESCRIPTION: &str = "Apply a FAIL outcome to the active gate stage for a task in the authoritative project task \
+     tracker. FAIL records blocking evidence and sends the task back according to the pipeline's \
+     stage transitions.";
+
+const SYNC_DESCRIPTION: &str = "Refresh the .gate/gate.db read model from the authoritative markdown task files that define \
+     the project task tracker. Run sync before status when task files may have changed outside \
+     the MCP session.";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct McpToolDefinition {
     pub name: &'static str,
@@ -11,13 +34,13 @@ pub fn list() -> Vec<McpToolDefinition> {
     vec![
         McpToolDefinition {
             name: "status",
-            description: "List gate task status from the .gate/gate.db read model derived from authoritative task files.",
+            description: STATUS_DESCRIPTION,
             input_schema: json!({
                 "type": "object",
                 "properties": {
                     "root": {
                         "type": "string",
-                        "description": "Optional workspace root directory containing the gate project. Defaults to the current working directory ('.')."
+                        "description": ROOT_PARAMETER_DESCRIPTION
                     },
                     "pipeline": {
                         "type": "string",
@@ -29,7 +52,7 @@ pub fn list() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "append",
-            description: "Append a non-advancing stage work record to a gate task.",
+            description: APPEND_DESCRIPTION,
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -39,7 +62,7 @@ pub fn list() -> Vec<McpToolDefinition> {
                     },
                     "root": {
                         "type": "string",
-                        "description": "Optional workspace root directory containing the gate project. Defaults to the current working directory ('.')."
+                        "description": ROOT_PARAMETER_DESCRIPTION
                     },
                     "pipeline": {
                         "type": "string",
@@ -64,7 +87,7 @@ pub fn list() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "pass",
-            description: "Apply a PASS outcome to the active gate stage for a task.",
+            description: PASS_DESCRIPTION,
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -74,7 +97,7 @@ pub fn list() -> Vec<McpToolDefinition> {
                     },
                     "root": {
                         "type": "string",
-                        "description": "Optional workspace root directory containing the gate project. Defaults to the current working directory ('.')."
+                        "description": ROOT_PARAMETER_DESCRIPTION
                     },
                     "pipeline": {
                         "type": "string",
@@ -99,7 +122,7 @@ pub fn list() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "fail",
-            description: "Apply a FAIL outcome to the active gate stage for a task.",
+            description: FAIL_DESCRIPTION,
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -109,7 +132,7 @@ pub fn list() -> Vec<McpToolDefinition> {
                     },
                     "root": {
                         "type": "string",
-                        "description": "Optional workspace root directory containing the gate project. Defaults to the current working directory ('.')."
+                        "description": ROOT_PARAMETER_DESCRIPTION
                     },
                     "pipeline": {
                         "type": "string",
@@ -134,13 +157,13 @@ pub fn list() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "sync",
-            description: "Refresh the .gate/gate.db read model in place from the authoritative markdown files.",
+            description: SYNC_DESCRIPTION,
             input_schema: json!({
                 "type": "object",
                 "properties": {
                     "root": {
                         "type": "string",
-                        "description": "Optional workspace root directory containing the gate project. Defaults to the current working directory ('.')."
+                        "description": ROOT_PARAMETER_DESCRIPTION
                     },
                     "pipeline": {
                         "type": "string",
@@ -191,5 +214,81 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn every_root_parameter_description_matches_runtime_behavior() {
+        for tool in list() {
+            let Some(root_schema) = tool
+                .input_schema
+                .get("properties")
+                .and_then(Value::as_object)
+                .and_then(|properties| properties.get("root"))
+            else {
+                continue;
+            };
+
+            let description = root_schema
+                .get("description")
+                .and_then(Value::as_str)
+                .expect("root description should be present");
+
+            assert!(
+                description.contains("reuses the root already selected for this MCP session"),
+                "tool '{}' root description should explain stored-root reuse",
+                tool.name
+            );
+            assert!(
+                description.contains("call fails"),
+                "tool '{}' root description should explain failure without a root",
+                tool.name
+            );
+            assert!(
+                !description.contains("Defaults to the current working directory"),
+                "tool '{}' root description must not claim '.' defaulting",
+                tool.name
+            );
+        }
+    }
+
+    #[test]
+    fn tool_descriptions_explain_gate_workflow() {
+        let tools = list();
+        let status = tools
+            .iter()
+            .find(|tool| tool.name == "status")
+            .expect("status tool should exist");
+        assert!(status.description.contains("project task tracker"));
+        assert!(status.description.contains("run sync, then status"));
+        assert!(status.description.contains("append, pass, or fail"));
+
+        let append = tools
+            .iter()
+            .find(|tool| tool.name == "append")
+            .expect("append tool should exist");
+        assert!(append.description.contains("non-advancing progress"));
+        assert!(append.description.contains("current stage"));
+
+        let pass = tools
+            .iter()
+            .find(|tool| tool.name == "pass")
+            .expect("pass tool should exist");
+        assert!(pass.description.contains("moves the task forward"));
+
+        let fail = tools
+            .iter()
+            .find(|tool| tool.name == "fail")
+            .expect("fail tool should exist");
+        assert!(fail.description.contains("sends the task back"));
+
+        let sync = tools
+            .iter()
+            .find(|tool| tool.name == "sync")
+            .expect("sync tool should exist");
+        assert!(
+            sync.description
+                .contains("authoritative markdown task files")
+        );
+        assert!(sync.description.contains("project task tracker"));
     }
 }

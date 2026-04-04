@@ -30,7 +30,10 @@ pub(crate) fn service(
 }
 
 impl super::GateMcpServer {
-    pub async fn serve_http(port: u16, root: Arc<RwLock<Option<PathBuf>>>) -> Result<(), GateError> {
+    pub async fn serve_http(
+        port: u16,
+        root: Arc<RwLock<Option<PathBuf>>>,
+    ) -> Result<(), GateError> {
         let bind_addr = format!("127.0.0.1:{port}");
         let tcp_listener = tokio::net::TcpListener::bind(&bind_addr)
             .await

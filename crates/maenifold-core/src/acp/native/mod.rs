@@ -1,44 +1,41 @@
-mod types;
 mod accumulator;
-mod pool;
 mod client;
+mod convert;
 mod initialize;
-mod session_new;
-mod session_list;
-mod prompt;
-mod set_config_option;
+mod pool;
 mod process;
+mod prompt;
+mod session_list;
+mod session_new;
+mod set_config_option;
+mod types;
 
 pub use pool::{AgentPool, GLOBAL_AGENT_POOL};
 pub use types::*;
 
-use accumulator::SessionAccumulator;
-use acp::Agent;
-use agent_client_protocol as acp;
 use client::HeadlessClient;
 use process::{log_io_task_exit, reap_child, spawn_stderr_reader};
-use set_config_option::apply_session_config;
+use sacp::{Client, ConnectionTo, schema as sacps};
 use std::{
     collections::HashMap,
     path::PathBuf,
-    rc::Rc,
     sync::{
         Arc, Mutex as StdMutex,
         atomic::{AtomicBool, Ordering},
     },
 };
-use tokio::sync::{Mutex, mpsc};
+use tokio::sync::{mpsc, oneshot};
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 use types::InitInfo;
 
-pub(super) fn format_stop_reason(stop_reason: acp::StopReason) -> String {
+pub(super) fn format_stop_reason(stop_reason: sacps::StopReason) -> String {
     serde_json::to_value(stop_reason)
         .ok()
         .and_then(|value| value.as_str().map(ToOwned::to_owned))
         .unwrap_or_else(|| "unknown".to_string())
 }
 
-pub(super) fn usage_to_response(usage: acp::Usage) -> AcpxUsage {
+pub(super) fn usage_to_response(usage: sacps::Usage) -> AcpxUsage {
     AcpxUsage {
         input_tokens: usage.input_tokens,
         output_tokens: usage.output_tokens,
@@ -94,32 +91,82 @@ async fn run_agent(
         }
     };
 
-    let sessions = Arc::new(Mutex::new(HashMap::<String, SessionAccumulator>::new()));
-    let (conn, io_future) = acp::ClientSideConnection::new(
-        HeadlessClient {
-            cwd: cwd.clone(),
-            sessions: Arc::clone(&sessions),
-            auto_grant_permissions,
-        },
-        stdin,
-        stdout,
-        |fut| {
-            tokio::task::spawn_local(fut);
-        },
-    );
-    let conn = Rc::new(conn);
-    let mut io_task = Some(tokio::task::spawn_local(io_future));
+    let client = HeadlessClient::new(cwd.clone(), auto_grant_permissions);
+    let transport = sacp::ByteStreams::new(stdin, stdout);
+    let (ready_tx, ready_rx) =
+        oneshot::channel::<std::result::Result<(ConnectionTo<sacp::Agent>, InitInfo), AgentError>>();
+    let handler_client = client.clone();
+    let mut ready_tx = Some(ready_tx);
 
-    let init_info = match initialize::initialize(&conn).await {
-        Ok(init_info) => init_info,
-        Err(error) => {
+    let mut io_task = Some(tokio::spawn(async move {
+        let permission_client = handler_client.clone();
+        let write_client = handler_client.clone();
+        let read_client = handler_client.clone();
+        let notification_client = handler_client.clone();
+
+        Client
+            .builder()
+            .on_receive_request(
+                async move |request: sacps::RequestPermissionRequest, responder, _cx| {
+                    responder
+                        .respond_with_result(permission_client.request_permission(request).await)
+                },
+                sacp::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: sacps::WriteTextFileRequest, responder, _cx| {
+                    responder.respond_with_result(write_client.write_text_file(request).await)
+                },
+                sacp::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: sacps::ReadTextFileRequest, responder, _cx| {
+                    responder.respond_with_result(read_client.read_text_file(request).await)
+                },
+                sacp::on_receive_request!(),
+            )
+            .on_receive_notification(
+                async move |notification: sacps::SessionNotification, _cx| {
+                    notification_client.session_notification(notification).await
+                },
+                sacp::on_receive_notification!(),
+            )
+            .connect_with(transport, move |conn: ConnectionTo<sacp::Agent>| {
+                let mut ready_tx = ready_tx.take();
+                async move {
+                    let init_result = initialize::initialize(&conn)
+                        .await
+                        .map(|info| (conn.clone(), info));
+                    if let Some(tx) = ready_tx.take() {
+                        let _ = tx.send(init_result.clone());
+                    }
+                    init_result
+                        .map(|_| ())
+                        .map_err(|error| sacp::util::internal_error(error.to_string()))?;
+                    std::future::pending::<std::result::Result<(), sacp::Error>>().await
+                }
+            })
+            .await
+    }));
+
+    let (conn, init_info) = match ready_rx.await {
+        Ok(Ok((conn, init_info))) => (conn, init_info),
+        Ok(Err(error)) => {
             alive.store(false, Ordering::SeqCst);
-            match &error {
-                AgentError::Timeout { message } => tracing::warn!("{message}"),
-                other => tracing::error!("{other}"),
+            tracing::error!("{error}");
+            if let Some(task) = io_task.take() {
+                let _ = task.await;
             }
-            drop(conn);
-            reap_child(&mut child, stderr_task, io_task.take()).await;
+            reap_child(&mut child, stderr_task, None).await;
+            return;
+        }
+        Err(_) => {
+            alive.store(false, Ordering::SeqCst);
+            tracing::error!("ACP connection closed before initialize completed");
+            if let Some(task) = io_task.take() {
+                log_io_task_exit(task.await);
+            }
+            reap_child(&mut child, stderr_task, None).await;
             return;
         }
     };
@@ -127,9 +174,7 @@ async fn run_agent(
     if let Some(info) = init_info.agent_info.as_ref() {
         tracing::info!("Connected to {} v{}", info.name, info.version);
     }
-    let _ = init.lock().map(|mut slot| {
-        *slot = Some(init_info);
-    });
+    let _ = init.lock().map(|mut slot| *slot = Some(init_info));
 
     loop {
         let cmd = tokio::select! {
@@ -154,8 +199,7 @@ async fn run_agent(
         match cmd {
             AgentCommand::Shutdown => break,
             AgentCommand::NewSession { opts, reply } => {
-                let result = session_new::session_new(&conn, opts).await;
-                let _ = reply.send(result);
+                let _ = reply.send(session_new::session_new(&conn, &client, opts).await);
             }
             AgentCommand::ListSessions { cwd, reply } => {
                 let _ = reply.send(session_list::list_sessions(&conn, &init, cwd).await);
@@ -165,21 +209,16 @@ async fn run_agent(
                 opts,
                 reply,
             } => {
-                let result = session_list::load_session(&conn, &init, session_id, opts).await;
-                let _ = reply.send(result);
+                let _ = reply.send(
+                    session_list::load_session(&conn, &client, &init, session_id, opts).await,
+                );
             }
             AgentCommand::Prompt {
                 session_id,
                 prompt,
                 reply,
             } => {
-                if io_task.is_none() {
-                    let _ = reply.send(Err(AgentError::AgentDied {
-                        session_id: session_id.clone(),
-                    }));
-                    continue;
-                }
-                let result = prompt::prompt_session(&conn, &sessions, session_id, prompt).await;
+                let result = prompt::prompt_session(&conn, &client, session_id, prompt).await;
                 let _ = reply.send(result);
             }
             AgentCommand::PromptWithContext {
@@ -188,15 +227,9 @@ async fn run_agent(
                 context_blocks,
                 reply,
             } => {
-                if io_task.is_none() {
-                    let _ = reply.send(Err(AgentError::AgentDied {
-                        session_id: session_id.clone(),
-                    }));
-                    continue;
-                }
                 let result = prompt::prompt_session_with_blocks(
                     &conn,
-                    &sessions,
+                    &client,
                     session_id,
                     prompt,
                     context_blocks,
@@ -205,23 +238,21 @@ async fn run_agent(
                 let _ = reply.send(result);
             }
             AgentCommand::Cancel { session_id, reply } => {
-                if let Some(accumulator) = sessions.lock().await.get_mut(&session_id) {
-                    accumulator.mark_in_progress_cancelled();
-                }
+                client.mark_cancelled(&session_id).await;
                 let result = conn
-                    .cancel(acp::CancelNotification::new(acp::SessionId::new(
-                        session_id,
-                    )))
-                    .await
-                    .map_err(AgentError::from);
+                    .send_notification(sacps::CancelNotification::new(session_id))
+                    .map_err(|error| AgentError::Acp(error.to_string()));
                 let _ = reply.send(result);
             }
             AgentCommand::CloseSession { session_id } => {
-                sessions.lock().await.remove(&session_id);
+                client.remove_session(&session_id).await;
                 if let Err(error) = conn
-                    .close_session(acp::CloseSessionRequest::new(acp::SessionId::new(
-                        session_id,
-                    )))
+                    .send_request(agent_client_protocol::ClientRequest::CloseSessionRequest(
+                        agent_client_protocol::CloseSessionRequest::new(
+                            agent_client_protocol::SessionId::new(session_id),
+                        ),
+                    ))
+                    .block_task()
                     .await
                 {
                     tracing::warn!("Failed to close ACP session: {error}");
@@ -231,8 +262,10 @@ async fn run_agent(
     }
 
     alive.store(false, Ordering::SeqCst);
-    drop(conn);
-    reap_child(&mut child, stderr_task, io_task.take()).await;
+    if let Some(task) = io_task.take() {
+        task.abort();
+    }
+    reap_child(&mut child, stderr_task, None).await;
 }
 
 pub fn spawn_agent(
@@ -261,7 +294,7 @@ pub fn spawn_agent(
                 }
             };
 
-            tokio::task::LocalSet::new().block_on(&runtime, async move {
+            runtime.block_on(async move {
                 run_agent(command, cwd, env, auto_grant_permissions, init, alive, cmd_rx).await;
             });
         }

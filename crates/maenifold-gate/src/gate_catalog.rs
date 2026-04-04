@@ -70,7 +70,13 @@ impl GateDefinitionCatalog {
             let content = builtin_asset_text(name)?;
             match fs::read_to_string(&path) {
                 Ok(existing) if existing == content => continue,
-                Ok(_) => fs::write(path, content)?,
+                Ok(_) => {
+                    eprintln!(
+                        "warning: refreshed bundled built-in gate definition '{name}' at {}",
+                        path.display()
+                    );
+                    fs::write(path, content)?
+                }
                 Err(err) if err.kind() == std::io::ErrorKind::NotFound => fs::write(path, content)?,
                 Err(err) => return Err(err.into()),
             }

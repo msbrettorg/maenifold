@@ -1,22 +1,20 @@
-use super::types::{AgentError, InitInfo, Result};
-use agent_client_protocol::{self as acp, Agent as _};
+use sacp::{ConnectionTo, schema as sacps};
 use tokio::time::Duration;
+
+use super::{
+    convert::bridge,
+    types::{AgentError, InitInfo, Result},
+};
 
 const INIT_TIMEOUT_SECONDS: u64 = 30;
 
-/// Build prompt capabilities as `_meta` for `ClientCapabilities`.
-///
-/// The Rust ACP SDK (0.11.x) does not yet expose a `prompt` field on
-/// [`acp::ClientCapabilities`] — the TypeScript SDK already does.  We bridge
-/// the gap via the `_meta` extensibility mechanism using the crate's own
-/// [`acp::PromptCapabilities`] type so the wire format stays close to acp-ui.
-fn prompt_meta() -> acp::Meta {
-    let caps = acp::PromptCapabilities::new()
+fn prompt_meta() -> sacps::Meta {
+    let caps = sacps::PromptCapabilities::new()
         .image(true)
         .audio(true)
         .embedded_context(true);
 
-    let mut meta = acp::Meta::new();
+    let mut meta = sacps::Meta::new();
     meta.insert(
         "prompt".into(),
         serde_json::to_value(caps).expect("PromptCapabilities serializes"),
@@ -24,42 +22,48 @@ fn prompt_meta() -> acp::Meta {
     meta
 }
 
-pub(super) async fn initialize(conn: &acp::ClientSideConnection) -> Result<InitInfo> {
-    let request = acp::InitializeRequest::new(acp::ProtocolVersion::V1)
-        .client_info(acp::Implementation::new(
+pub(super) async fn initialize(conn: &ConnectionTo<sacp::Agent>) -> Result<InitInfo> {
+    let request = sacps::InitializeRequest::new(sacps::ProtocolVersion::V1)
+        .client_info(sacps::Implementation::new(
             "maenifold",
             env!("CARGO_PKG_VERSION"),
         ))
         .client_capabilities(
-            acp::ClientCapabilities::new()
-                .fs(acp::FileSystemCapabilities::new()
-                    .read_text_file(true)
-                    .write_text_file(true))
+            sacps::ClientCapabilities::new()
+                .fs(
+                    sacps::FileSystemCapabilities::new()
+                        .read_text_file(true)
+                        .write_text_file(true),
+                )
                 .terminal(false)
                 .meta(prompt_meta()),
         );
 
     let response = tokio::time::timeout(
         Duration::from_secs(INIT_TIMEOUT_SECONDS),
-        conn.initialize(request),
+        conn.send_request(request).block_task(),
     )
     .await
     .map_err(|_| AgentError::Timeout {
         message: format!("ACP initialize timed out after {INIT_TIMEOUT_SECONDS}s"),
     })?
-    .map_err(AgentError::from)?;
+    .map_err(|error| AgentError::Acp(error.to_string()))?;
 
-    if response.protocol_version != acp::ProtocolVersion::V1 {
+    if response.protocol_version != sacps::ProtocolVersion::V1 {
         return Err(AgentError::Acp(format!(
             "ACP protocol mismatch: requested {}, got {}",
-            acp::ProtocolVersion::V1,
+            sacps::ProtocolVersion::V1,
             response.protocol_version
         )));
     }
 
     Ok(InitInfo {
-        agent_info: response.agent_info,
-        capabilities: response.agent_capabilities,
-        auth_methods: response.auth_methods,
+        agent_info: response.agent_info.map(bridge).transpose()?,
+        capabilities: bridge(response.agent_capabilities)?,
+        auth_methods: response
+            .auth_methods
+            .into_iter()
+            .map(bridge)
+            .collect::<Result<Vec<_>>>()?,
     })
 }

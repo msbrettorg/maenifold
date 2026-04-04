@@ -13,7 +13,7 @@ pub type Result<T> = std::result::Result<T, AgentError>;
 pub type AcpxError = AgentError;
 type Reply<T> = oneshot::Sender<Result<T>>;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum AgentError {
     #[error("ACP error: {0}")]
     Acp(String),

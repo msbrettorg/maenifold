@@ -1,12 +1,17 @@
 use agent_client_protocol as acp;
+use sacp::schema as sacps;
 
-use super::{AgentResponse, ToolCallRecord};
+use super::{
+    ToolCallRecord,
+    convert::bridge,
+    types::AgentResponse,
+};
 
 #[derive(Debug, Default)]
 pub(super) struct SessionAccumulator {
     text: String,
     thought: String,
-    tool_calls: Vec<acp::ToolCall>,
+    tool_calls: Vec<sacps::ToolCall>,
 }
 
 impl SessionAccumulator {
@@ -18,7 +23,7 @@ impl SessionAccumulator {
         self.thought.push_str(text);
     }
 
-    pub(super) fn push_tool_call(&mut self, tool_call: acp::ToolCall) {
+    pub(super) fn push_tool_call(&mut self, tool_call: sacps::ToolCall) {
         if let Some(existing) = self
             .tool_calls
             .iter_mut()
@@ -30,10 +35,7 @@ impl SessionAccumulator {
         }
     }
 
-    pub(super) fn apply_tool_call_update(
-        &mut self,
-        update: acp::ToolCallUpdate,
-    ) -> std::result::Result<(), acp::Error> {
+    pub(super) fn apply_tool_call_update(&mut self, update: sacps::ToolCallUpdate) {
         let tool_call_id = update.tool_call_id.clone();
         if let Some(existing) = self
             .tool_calls
@@ -41,16 +43,24 @@ impl SessionAccumulator {
             .find(|existing| existing.tool_call_id == tool_call_id)
         {
             existing.update(update.fields);
-            return Ok(());
+            return;
         }
-        self.tool_calls.push(acp::ToolCall::try_from(update)?);
-        Ok(())
+        self.tool_calls.push(sacps::ToolCall::new(tool_call_id, "").status(
+            update
+                .fields
+                .status
+                .clone()
+                .unwrap_or(sacps::ToolCallStatus::default()),
+        ));
+        if let Some(existing) = self.tool_calls.last_mut() {
+            existing.update(update.fields);
+        }
     }
 
     pub(super) fn mark_in_progress_cancelled(&mut self) {
         for tool_call in &mut self.tool_calls {
-            if matches!(tool_call.status, acp::ToolCallStatus::InProgress) {
-                tool_call.status = acp::ToolCallStatus::Failed;
+            if matches!(tool_call.status, sacps::ToolCallStatus::InProgress) {
+                tool_call.status = sacps::ToolCallStatus::Failed;
             }
         }
     }
@@ -58,11 +68,7 @@ impl SessionAccumulator {
     pub(super) fn into_response(self) -> AgentResponse {
         AgentResponse {
             text: self.text,
-            tool_calls: self
-                .tool_calls
-                .into_iter()
-                .map(ToolCallRecord::from)
-                .collect(),
+            tool_calls: self.tool_calls.into_iter().map(tool_call_record).collect(),
             thought: (!self.thought.trim().is_empty()).then_some(self.thought),
             stop_reason: None,
             error: None,
@@ -71,8 +77,34 @@ impl SessionAccumulator {
     }
 }
 
-fn merge_tool_call(existing: &mut acp::ToolCall, update: acp::ToolCall) {
-    let acp::ToolCall {
+fn tool_call_record(tool_call: sacps::ToolCall) -> ToolCallRecord {
+    match bridge::<_, acp::ToolCall>(tool_call.clone()) {
+        Ok(tool_call) => ToolCallRecord::from(tool_call),
+        Err(error) => {
+            tracing::warn!("Failed to bridge tool call: {error}");
+            ToolCallRecord {
+                id: Some(tool_call.tool_call_id.to_string()),
+                name: serialized_name(tool_call.kind),
+                title: Some(tool_call.title),
+                status: serialized_name(tool_call.status),
+                arguments: tool_call.raw_input,
+                output: tool_call.raw_output,
+                content: vec![],
+                locations: vec![],
+            }
+        }
+    }
+}
+
+fn serialized_name<T: serde::Serialize>(value: T) -> Option<String> {
+    match serde_json::to_value(value).ok()? {
+        serde_json::Value::String(value) => Some(value),
+        _ => None,
+    }
+}
+
+fn merge_tool_call(existing: &mut sacps::ToolCall, update: sacps::ToolCall) {
+    let sacps::ToolCall {
         title,
         kind,
         status,
@@ -85,10 +117,10 @@ fn merge_tool_call(existing: &mut acp::ToolCall, update: acp::ToolCall) {
     } = update;
 
     existing.update(
-        acp::ToolCallUpdateFields::new()
+        sacps::ToolCallUpdateFields::new()
             .title((!title.is_empty()).then_some(title))
-            .kind((!matches!(kind, acp::ToolKind::Other)).then_some(kind))
-            .status((!matches!(status, acp::ToolCallStatus::Pending)).then_some(status))
+            .kind((!matches!(kind, sacps::ToolKind::Other)).then_some(kind))
+            .status((!matches!(status, sacps::ToolCallStatus::Pending)).then_some(status))
             .content((!content.is_empty()).then_some(content))
             .locations((!locations.is_empty()).then_some(locations))
             .raw_input(raw_input.filter(|value| {
@@ -102,4 +134,3 @@ fn merge_tool_call(existing: &mut acp::ToolCall, update: acp::ToolCall) {
         existing.meta = Some(meta);
     }
 }
-

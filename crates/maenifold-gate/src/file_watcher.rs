@@ -95,7 +95,11 @@ fn watch_loop(
             {
                 flush_pending_sync(&mut pending_root, &mut last_event_at);
             }
-            update_watches(&mut watcher, previous_root.as_deref(), current_root.as_deref())?;
+            update_watches(
+                &mut watcher,
+                previous_root.as_deref(),
+                current_root.as_deref(),
+            )?;
             watched_root = current_root;
         }
 

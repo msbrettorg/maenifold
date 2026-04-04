@@ -1,27 +1,37 @@
-use agent_client_protocol::{self as acp, Agent as _};
+use sacp::{ConnectionTo, schema as sacps};
 use tokio::time::Duration;
 
 use super::{
-    apply_session_config,
+    client::HeadlessClient,
+    convert::bridge,
+    set_config_option::apply_session_config,
     types::{AgentError, Result, SessionInfo, SessionOpts},
 };
 
 pub(super) async fn session_new(
-    conn: &acp::ClientSideConnection,
+    conn: &ConnectionTo<sacp::Agent>,
+    client: &HeadlessClient,
     opts: SessionOpts,
 ) -> Result<SessionInfo> {
     let timeout_seconds = opts.timeout_seconds.unwrap_or(3600);
     let cwd = opts.cwd.clone();
-    let mcp_servers = opts.mcp_servers.clone();
+    let mcp_servers = opts
+        .mcp_servers
+        .clone()
+        .into_iter()
+        .map(bridge)
+        .collect::<Result<Vec<sacps::McpServer>>>()?;
+
     let response = tokio::time::timeout(
         Duration::from_secs(timeout_seconds),
-        conn.new_session(acp::NewSessionRequest::new(cwd).mcp_servers(mcp_servers)),
+        conn.send_request(sacps::NewSessionRequest::new(cwd).mcp_servers(mcp_servers))
+            .block_task(),
     )
     .await
     .map_err(|_| AgentError::Timeout {
         message: format!("new_session timed out after {timeout_seconds}s"),
     })?
-    .map_err(AgentError::from)?;
+    .map_err(|error| AgentError::Acp(error.to_string()))?;
 
     let session_id = response.session_id.clone();
     let has_config_options = response.config_options.is_some();
@@ -31,16 +41,42 @@ pub(super) async fn session_new(
         modes: response
             .modes
             .as_ref()
-            .map(|state| state.available_modes.clone())
+            .map(|state| {
+                state.available_modes
+                    .clone()
+                    .into_iter()
+                    .map(bridge)
+                    .collect::<Result<Vec<_>>>()
+            })
+            .transpose()?
             .unwrap_or_default(),
         models: response
             .models
             .as_ref()
-            .map(|state| state.available_models.clone())
+            .map(|state| {
+                state.available_models
+                    .clone()
+                    .into_iter()
+                    .map(bridge)
+                    .collect::<Result<Vec<_>>>()
+            })
+            .transpose()?
             .unwrap_or_default(),
-        config_options: config_options.clone(),
+        config_options: config_options
+            .clone()
+            .into_iter()
+            .map(bridge)
+            .collect::<Result<Vec<_>>>()?,
     };
 
-    apply_session_config(conn, session_id, &opts, has_config_options, &config_options).await;
+    client.register_session(session_id.to_string()).await;
+    apply_session_config(
+        conn,
+        session_id.to_string(),
+        &opts,
+        has_config_options,
+        &session_info.config_options,
+    )
+    .await;
     Ok(session_info)
 }

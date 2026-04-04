@@ -34,8 +34,10 @@ tracing-subscriber.workspace = true
 tokio = { workspace = true, features = ["process", "time"] }
 tokio-util = { workspace = true, features = ["compat"] }
 agent-client-protocol = { workspace = true }
+agent-client-protocol-schema = { workspace = true }
 async-trait = { workspace = true }
 rmcp = { workspace = true, features = ["transport-streamable-http-server"] }
+sacp.workspace = true
 tower-http.workspace = true
 uuid.workspace = true
 walkdir.workspace = true
@@ -59,7 +61,6 @@ serial_test = "3"
 similar-asserts.workspace = true
 tempfile.workspace = true
 filetime = "0.2.25"
-
 
 
 

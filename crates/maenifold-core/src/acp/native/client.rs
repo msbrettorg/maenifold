@@ -1,20 +1,87 @@
-use agent_client_protocol as acp;
-use std::collections::HashMap;
-use std::io::{stderr, Write};
-use std::path::{Component, Path, PathBuf};
-use std::sync::Arc;
+use std::{
+    collections::HashMap,
+    io::{Write, stderr},
+    path::{Component, Path, PathBuf},
+    sync::Arc,
+};
+
+use sacp::schema as sacps;
 use tokio::sync::Mutex;
 
-use super::accumulator::SessionAccumulator;
+use super::{
+    accumulator::SessionAccumulator,
+    types::AgentResponse,
+};
 
+#[derive(Default)]
+struct SessionState {
+    turn: Option<SessionAccumulator>,
+}
+
+#[derive(Clone)]
 pub(super) struct HeadlessClient {
-    pub(super) cwd: PathBuf,
-    pub(super) sessions: Arc<Mutex<HashMap<String, SessionAccumulator>>>,
-    pub(super) auto_grant_permissions: bool,
+    cwd: PathBuf,
+    sessions: Arc<Mutex<HashMap<String, SessionState>>>,
+    auto_grant_permissions: bool,
 }
 
 impl HeadlessClient {
-    fn resolve_and_jail(&self, path: PathBuf) -> std::result::Result<PathBuf, acp::Error> {
+    pub(super) fn new(cwd: PathBuf, auto_grant_permissions: bool) -> Self {
+        Self {
+            cwd,
+            sessions: Arc::new(Mutex::new(HashMap::new())),
+            auto_grant_permissions,
+        }
+    }
+
+    pub(super) async fn register_session(&self, session_id: impl Into<String>) {
+        self.sessions
+            .lock()
+            .await
+            .entry(session_id.into())
+            .or_default();
+    }
+
+    pub(super) async fn remove_session(&self, session_id: &str) {
+        self.sessions.lock().await.remove(session_id);
+    }
+
+    pub(super) async fn begin_turn(&self, session_id: &str) {
+        self.sessions
+            .lock()
+            .await
+            .entry(session_id.to_string())
+            .or_default()
+            .turn = Some(SessionAccumulator::default());
+    }
+
+    pub(super) async fn finish_turn(&self, session_id: &str) -> AgentResponse {
+        self.sessions
+            .lock()
+            .await
+            .entry(session_id.to_string())
+            .or_default()
+            .turn
+            .take()
+            .unwrap_or_default()
+            .into_response()
+    }
+
+    pub(super) async fn mark_cancelled(&self, session_id: &str) {
+        if let Some(turn) = self
+            .sessions
+            .lock()
+            .await
+            .entry(session_id.to_string())
+            .or_default()
+            .turn
+            .as_mut()
+        {
+            turn.mark_in_progress_cancelled();
+        }
+    }
+
+    fn resolve_and_jail(&self, path: PathBuf) -> std::result::Result<PathBuf, sacp::Error> {
         let resolved = if path.is_absolute() {
             path
         } else {
@@ -25,39 +92,32 @@ impl HeadlessClient {
             .components()
             .any(|component| matches!(component, Component::ParentDir))
         {
-            return Err(acp::Error::new(
-                -32602,
-                format!("path contains parent traversal: {}", resolved.display()),
-            ));
+            return Err(sacp::Error::invalid_params().data(format!(
+                "path contains parent traversal: {}",
+                resolved.display()
+            )));
         }
 
         let canonical_cwd = canonicalize_or_original(&self.cwd);
         let canonical_path = canonicalize_or_original(&resolved);
         if !canonical_path.starts_with(&canonical_cwd) {
-            return Err(acp::Error::new(
-                -32602,
-                format!("path escapes working directory: {}", resolved.display()),
-            ));
+            return Err(sacp::Error::invalid_params().data(format!(
+                "path escapes working directory: {}",
+                resolved.display()
+            )));
         }
 
         Ok(resolved)
     }
-}
 
-fn canonicalize_or_original(path: &Path) -> PathBuf {
-    path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
-}
-
-#[async_trait::async_trait(?Send)]
-impl acp::Client for HeadlessClient {
-    async fn request_permission(
+    pub(super) async fn request_permission(
         &self,
-        args: acp::RequestPermissionRequest,
-    ) -> acp::Result<acp::RequestPermissionResponse> {
+        args: sacps::RequestPermissionRequest,
+    ) -> std::result::Result<sacps::RequestPermissionResponse, sacp::Error> {
         let session_id = args.session_id.to_string();
         if !self.sessions.lock().await.contains_key(&session_id) {
-            return Ok(acp::RequestPermissionResponse::new(
-                acp::RequestPermissionOutcome::Cancelled,
+            return Ok(sacps::RequestPermissionResponse::new(
+                sacps::RequestPermissionOutcome::Cancelled,
             ));
         }
 
@@ -67,58 +127,49 @@ impl acp::Client for HeadlessClient {
             args.options.iter().find_map(|option| {
                 matches!(
                     option.kind,
-                    acp::PermissionOptionKind::RejectOnce
-                        | acp::PermissionOptionKind::RejectAlways
+                    sacps::PermissionOptionKind::RejectOnce
+                        | sacps::PermissionOptionKind::RejectAlways
                 )
                 .then(|| option.option_id.clone())
             })
         }
-        .ok_or_else(acp::Error::method_not_found)?;
+        .ok_or_else(sacp::Error::method_not_found)?;
 
-        Ok(acp::RequestPermissionResponse::new(
-            acp::RequestPermissionOutcome::Selected(acp::SelectedPermissionOutcome::new(option_id)),
+        Ok(sacps::RequestPermissionResponse::new(
+            sacps::RequestPermissionOutcome::Selected(sacps::SelectedPermissionOutcome::new(
+                option_id,
+            )),
         ))
     }
 
-    async fn write_text_file(
+    pub(super) async fn write_text_file(
         &self,
-        args: acp::WriteTextFileRequest,
-    ) -> acp::Result<acp::WriteTextFileResponse> {
+        args: sacps::WriteTextFileRequest,
+    ) -> std::result::Result<sacps::WriteTextFileResponse, sacp::Error> {
         let path = self.resolve_and_jail(args.path)?;
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|error| {
-                acp::Error::new(
-                    -32603,
-                    format!(
-                        "failed to create parent directories for {}: {error}",
-                        path.display()
-                    ),
-                )
+                sacp::Error::internal_error()
+                    .data(format!("failed to create parent directories for {}: {error}", path.display()))
             })?;
         }
         std::fs::write(&path, args.content).map_err(|error| {
-            acp::Error::new(
-                -32603,
-                format!("failed to write {}: {error}", path.display()),
-            )
+            sacp::Error::internal_error().data(format!("failed to write {}: {error}", path.display()))
         })?;
-        Ok(acp::WriteTextFileResponse::new())
+        Ok(sacps::WriteTextFileResponse::new())
     }
 
-    async fn read_text_file(
+    pub(super) async fn read_text_file(
         &self,
-        args: acp::ReadTextFileRequest,
-    ) -> acp::Result<acp::ReadTextFileResponse> {
+        args: sacps::ReadTextFileRequest,
+    ) -> std::result::Result<sacps::ReadTextFileResponse, sacp::Error> {
         let path = self.resolve_and_jail(args.path)?;
         let content = std::fs::read_to_string(&path).map_err(|error| {
-            acp::Error::new(
-                -32603,
-                format!("failed to read {}: {error}", path.display()),
-            )
+            sacp::Error::internal_error().data(format!("failed to read {}: {error}", path.display()))
         })?;
 
         let start_line = match args.line {
-            Some(0) => return Err(acp::Error::new(-32602, "line must be 1-based")),
+            Some(0) => return Err(sacp::Error::invalid_params().data("line must be 1-based")),
             Some(line) => line as usize - 1,
             None => 0,
         };
@@ -134,89 +185,51 @@ impl acp::Client for HeadlessClient {
                 .collect()
         };
 
-        Ok(acp::ReadTextFileResponse::new(content))
+        Ok(sacps::ReadTextFileResponse::new(content))
     }
 
-    async fn create_terminal(
+    pub(super) async fn session_notification(
         &self,
-        _args: acp::CreateTerminalRequest,
-    ) -> acp::Result<acp::CreateTerminalResponse> {
-        Err(acp::Error::method_not_found())
-    }
-
-    async fn terminal_output(
-        &self,
-        _args: acp::TerminalOutputRequest,
-    ) -> acp::Result<acp::TerminalOutputResponse> {
-        Err(acp::Error::method_not_found())
-    }
-
-    async fn release_terminal(
-        &self,
-        _args: acp::ReleaseTerminalRequest,
-    ) -> acp::Result<acp::ReleaseTerminalResponse> {
-        Err(acp::Error::method_not_found())
-    }
-
-    async fn wait_for_terminal_exit(
-        &self,
-        _args: acp::WaitForTerminalExitRequest,
-    ) -> acp::Result<acp::WaitForTerminalExitResponse> {
-        Err(acp::Error::method_not_found())
-    }
-
-    async fn kill_terminal(
-        &self,
-        _args: acp::KillTerminalRequest,
-    ) -> acp::Result<acp::KillTerminalResponse> {
-        Err(acp::Error::method_not_found())
-    }
-
-    async fn session_notification(&self, args: acp::SessionNotification) -> acp::Result<()> {
+        args: sacps::SessionNotification,
+    ) -> std::result::Result<(), sacp::Error> {
         let session_id = args.session_id.to_string();
         let update_type = match &args.update {
-            acp::SessionUpdate::UserMessageChunk(_) => "user_message_chunk",
-            acp::SessionUpdate::AgentMessageChunk(_) => "agent_message_chunk",
-            acp::SessionUpdate::AgentThoughtChunk(_) => "agent_thought_chunk",
-            acp::SessionUpdate::ToolCall(_) => "tool_call",
-            acp::SessionUpdate::ToolCallUpdate(_) => "tool_call_update",
-            acp::SessionUpdate::Plan(_) => "plan",
-            acp::SessionUpdate::AvailableCommandsUpdate(_) => "available_commands_update",
-            acp::SessionUpdate::CurrentModeUpdate(_) => "current_mode_update",
-            acp::SessionUpdate::ConfigOptionUpdate(_) => "config_option_update",
-            acp::SessionUpdate::SessionInfoUpdate(_) => "session_info_update",
+            sacps::SessionUpdate::UserMessageChunk(_) => "user_message_chunk",
+            sacps::SessionUpdate::AgentMessageChunk(_) => "agent_message_chunk",
+            sacps::SessionUpdate::AgentThoughtChunk(_) => "agent_thought_chunk",
+            sacps::SessionUpdate::ToolCall(_) => "tool_call",
+            sacps::SessionUpdate::ToolCallUpdate(_) => "tool_call_update",
+            sacps::SessionUpdate::Plan(_) => "plan",
+            sacps::SessionUpdate::AvailableCommandsUpdate(_) => "available_commands_update",
+            sacps::SessionUpdate::CurrentModeUpdate(_) => "current_mode_update",
+            sacps::SessionUpdate::ConfigOptionUpdate(_) => "config_option_update",
+            sacps::SessionUpdate::SessionInfoUpdate(_) => "session_info_update",
             _ => "unknown",
         };
 
         let mut sessions = self.sessions.lock().await;
-        let accumulator = sessions.entry(session_id.clone()).or_default();
+        let state = sessions.entry(session_id.clone()).or_default();
+        let Some(accumulator) = state.turn.as_mut() else {
+            tracing::trace!(session_id = %session_id, update = update_type, "Ignoring session update without active turn");
+            return Ok(());
+        };
 
         match args.update {
-            acp::SessionUpdate::UserMessageChunk(_) => {}
-            acp::SessionUpdate::AgentMessageChunk(chunk) => {
-                if let acp::ContentBlock::Text(text) = chunk.content {
+            sacps::SessionUpdate::UserMessageChunk(_) => {}
+            sacps::SessionUpdate::AgentMessageChunk(chunk) => {
+                if let sacps::ContentBlock::Text(text) = chunk.content {
                     eprint!("{}", text.text);
-                    stderr().flush().unwrap();
+                    let _ = stderr().flush();
                     accumulator.append_text(&text.text);
                 }
             }
-            acp::SessionUpdate::AgentThoughtChunk(chunk) => {
-                if let acp::ContentBlock::Text(text) = chunk.content {
+            sacps::SessionUpdate::AgentThoughtChunk(chunk) => {
+                if let sacps::ContentBlock::Text(text) = chunk.content {
                     accumulator.append_thought(&text.text);
                 }
             }
-            acp::SessionUpdate::ToolCall(tool_call) => {
-                eprintln!("[tool] {} ({})", tool_call.title, tool_call.tool_call_id);
-                accumulator.push_tool_call(tool_call);
-            }
-            acp::SessionUpdate::ToolCallUpdate(update) => {
-                if let Err(error) = accumulator.apply_tool_call_update(update) {
-                    tracing::warn!(
-                        session_id = %session_id,
-                        "Failed to reconstruct ACP tool call from update: {error}"
-                    );
-                }
-            }
+            sacps::SessionUpdate::ToolCall(tool_call) => accumulator.push_tool_call(tool_call),
+            sacps::SessionUpdate::ToolCallUpdate(update) => accumulator.apply_tool_call_update(update),
             _ => {
                 tracing::debug!(session_id = %session_id, update = update_type, "Unhandled SessionUpdate variant");
             }
@@ -224,12 +237,8 @@ impl acp::Client for HeadlessClient {
 
         Ok(())
     }
+}
 
-    async fn ext_method(&self, _args: acp::ExtRequest) -> acp::Result<acp::ExtResponse> {
-        Err(acp::Error::method_not_found())
-    }
-
-    async fn ext_notification(&self, _args: acp::ExtNotification) -> acp::Result<()> {
-        Ok(())
-    }
+fn canonicalize_or_original(path: &Path) -> PathBuf {
+    path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
 }

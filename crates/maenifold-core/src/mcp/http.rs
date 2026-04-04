@@ -30,12 +30,10 @@ pub(super) fn service(
                 .map_err(|e| std::io::Error::other(e.to_string()))
         },
         session_manager,
-        StreamableHttpServerConfig {
-            stateful_mode: false,
-            json_response: true,
-            cancellation_token,
-            ..Default::default()
-        },
+        StreamableHttpServerConfig::default()
+            .with_stateful_mode(false)
+            .with_json_response(true)
+            .with_cancellation_token(cancellation_token),
     )
 }
 

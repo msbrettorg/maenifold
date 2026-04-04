@@ -368,6 +368,7 @@ pub fn api_routes(state: ApiState) -> Router {
         .route("/api/memory/read", get(memory_read))
         .route("/api/memory/recent", get(memory_recent))
         .route("/api/memory/search", get(memory_search))
+        .route("/api/pipeline/stream", get(pipeline_stream_handler))
         .with_state(state)
 }
 
@@ -405,7 +406,6 @@ async fn pipeline_stream_handler() -> impl IntoResponse {
 /// - `GET /endophasia`                         — embedded SPA (`index.html`)
 /// - `GET /api/endophasia/communities`          — concept-community graph JSON
 /// - `GET /api/endophasia/stream`               — SSE stream of `ConceptEvent`s
-/// - `GET /api/pipeline/stream`                 — SSE stream of `PipelineEvent`s
 #[must_use]
 pub fn endophasia_routes(state: ApiState) -> Router {
     Router::new()
@@ -415,6 +415,5 @@ pub fn endophasia_routes(state: ApiState) -> Router {
             get(endophasia_communities_handler),
         )
         .route("/api/endophasia/stream", get(endophasia_stream_handler))
-        .route("/api/pipeline/stream", get(pipeline_stream_handler))
         .with_state(state)
 }

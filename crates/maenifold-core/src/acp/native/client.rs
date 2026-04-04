@@ -244,11 +244,9 @@ impl HeadlessClient {
 
         let mut sessions = self.sessions.lock().await;
         let state = sessions.entry(session_id.clone()).or_default();
-        let Some(accumulator) = state.turn.as_mut() else {
-            tracing::trace!(session_id = %session_id, update = update_type, "Ignoring session update without active turn");
-            return Ok(());
-        };
 
+        // T-93.5: Broadcast pipeline event BEFORE the accumulator guard so events
+        // are emitted even when no active turn exists (e.g. session setup notifications).
         let pipeline_event = match &args.update {
             sacps::SessionUpdate::AgentMessageChunk(chunk) => {
                 if let sacps::ContentBlock::Text(text) = &chunk.content {
@@ -288,6 +286,14 @@ impl HeadlessClient {
             ),
             _ => None,
         };
+        if let Some(event) = pipeline_event {
+            let _ = crate::workflow::pipeline::stream::sender().send(event);
+        }
+
+        let Some(accumulator) = state.turn.as_mut() else {
+            tracing::trace!(session_id = %session_id, update = update_type, "Ignoring session update without active turn");
+            return Ok(());
+        };
 
         match args.update {
             sacps::SessionUpdate::UserMessageChunk(_) => {}
@@ -310,10 +316,6 @@ impl HeadlessClient {
             _ => {
                 tracing::debug!(session_id = %session_id, update = update_type, "Unhandled SessionUpdate variant");
             }
-        }
-
-        if let Some(event) = pipeline_event {
-            let _ = crate::workflow::pipeline::stream::sender().send(event);
         }
 
         Ok(())

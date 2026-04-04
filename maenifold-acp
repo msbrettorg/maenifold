@@ -1,0 +1,469 @@
+#!/usr/bin/env bash
+# maenifold-acp — maenifold drives agents via ACP
+#
+# Usage:
+#   maenifold-acp workflow <workflow-id> <agent> <prompt> [acpx-flags...]
+#   maenifold-acp think <agent> <topic> [acpx-flags...]
+set -euo pipefail
+
+je() { python3 -c "import json,sys;print(json.dumps(sys.stdin.read()))"; }
+jv() { python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get('data','') if isinstance(d.get('data'),str) else json.dumps(d.get('data','')))"; }
+jk() { python3 -c "import json,sys;print(json.loads(sys.stdin.read()).get('$1',''))"; }
+log() { echo "[macp] $*" >&2; }
+# Strip acpx transport chrome ([client], [tool]+indented blocks, [done]) — keep [thinking]
+strip() { python3 -c "
+import sys,re
+skip=False; blanks=0
+for l in sys.stdin:
+    if re.match(r'^\[(client|tool|done)\]',l): skip=True; continue
+    if skip and l.startswith('  '): continue
+    skip=False
+    if l.strip()=='': blanks+=1
+    else: blanks=0
+    if blanks<3: sys.stdout.write(l)
+"; }
+
+mf() { maenifold --tool "$1" --payload "$2" --json | jv; }
+acp() { local a="$1" s="$2" p="$3"; shift 3; acpx --format text --timeout 300 "$@" "$a" -s "$s" "$p" 2>/dev/null | strip || echo "Agent error [[step]]"; }
+tag() { grep -q '\[\[' <<< "$1" && echo "$1" || echo "$1 [[step]]"; }
+
+# ── think: drive a sequential thinking submachine ──
+# $1=agent $2=acpx-session $3=mf-session-id $4=topic $5=total, rest=acpx-flags
+run_think() {
+  local agent="$1" acpx_s="$2" mf_s="$3" topic="$4" total="${5:-5}"; shift 4; shift || true
+  local n=1
+  while true; do
+    log "thought $n/$total"
+    local r; r=$(acp "$agent" "$acpx_s" "Thought $n/~$total on: $topic. Include [[WikiLinks]]. Say DONE when complete." "$@")
+    r=$(tag "$r"); local e; e=$(je <<< "$r")
+    if grep -qi '^DONE' <<< "$r" || [[ $n -ge $((total + 3)) ]]; then
+      mf SequentialThinking "{\"sessionId\":\"$mf_s\",\"response\":$e,\"thoughtNumber\":$n,\"totalThoughts\":$total,\"nextThoughtNeeded\":false,\"conclusion\":$e}" >/dev/null
+      break
+    fi
+    mf SequentialThinking "{\"sessionId\":\"$mf_s\",\"response\":$e,\"thoughtNumber\":$n,\"totalThoughts\":$total,\"nextThoughtNeeded\":true}" >/dev/null
+    n=$((n + 1))
+  done
+}
+
+# ── workflow: drive steps, spawn submachines as HSM ──
+run_workflow() {
+  local wf_id="$1" agent="$2" prompt="$3"; shift 3
+  local step; step=$(mf Workflow "{\"workflowId\":\"$wf_id\"}")
+  local sid; sid=$(grep -oE 'workflow-[0-9]+' <<< "$step")
+  log "workflow $sid"
+  acpx "$agent" sessions new --name "$sid" >/dev/null 2>&1 || true
+
+  while true; do
+    grep -qE '^(✅|❌)' <<< "$step" && { log "$step"; break; }
+    local info; info=$(grep -oE 'Step [0-9]+/[0-9]+' <<< "$step" || true)
+    log "${info:-step}"
+
+    # Does this step need a thinking submachine?
+    if grep -q '"requiresSequentialThinking": true' <<< "$step"; then
+      local est; est=$(python3 -c "import re,json,sys;m=re.search(r'\{.*\}',sys.stdin.read(),re.DOTALL);d=json.loads(m.group());print(d.get('metadata',{}).get('toolHints',{}).get('SequentialThinking',{}).get('estimated_thoughts',5))" <<< "$step" 2>/dev/null || echo 5)
+      log "submachine: thinking ($est thoughts)"
+
+      # Start thinking session linked to workflow
+      local tseed; tseed=$(maenifold --tool SequentialThinking --payload "{\"response\":\"[[analysis]] for workflow step\",\"thoughtNumber\":0,\"totalThoughts\":$est,\"nextThoughtNeeded\":true,\"parentWorkflowId\":\"$sid\"}" --json | jv)
+      local tsid; tsid=$(jk sessionId <<< "$tseed")
+
+      # Register submachine — workflow blocks
+      mf Workflow "{\"sessionId\":\"$sid\",\"response\":\"Spawning [[thinking]] submachine\",\"submachineSessionId\":\"$tsid\"}" >/dev/null
+
+      # Drive the submachine (acpx session = workflow session, mf session = thinking session)
+      run_think "$agent" "$sid" "$tsid" "$(python3 -c "import re,json,sys;m=re.search(r'\{.*\}',sys.stdin.read(),re.DOTALL);print(json.loads(m.group()).get('description',''))" <<< "$step")" "$est" "$@"
+
+      # Workflow auto-resumes — continue with agent response
+      local r; r=$(acp "$agent" "$sid" "$prompt
+$step" "$@")
+      r=$(tag "$r"); local e; e=$(je <<< "$r")
+    else
+      local r; r=$(acp "$agent" "$sid" "$prompt
+$step" "$@")
+      r=$(tag "$r"); local e; e=$(je <<< "$r")
+    fi
+
+    # Advance workflow
+    local cur tot
+    cur=$(sed -n 's/Step \([0-9]*\)\/.*/\1/p' <<< "$info")
+    tot=$(sed -n 's/Step [0-9]*\/\([0-9]*\)/\1/p' <<< "$info")
+    if [[ "$cur" == "$tot" && -n "$cur" ]]; then
+      step=$(mf Workflow "{\"sessionId\":\"$sid\",\"response\":$e,\"status\":\"completed\",\"conclusion\":$e}")
+    else
+      step=$(mf Workflow "{\"sessionId\":\"$sid\",\"response\":$e}")
+    fi
+  done
+  log "done $sid"
+}
+
+declare -A PIPELINE_PID_TO_NODE_ID=()
+declare -A PIPELINE_NODE_TO_PID=()
+declare -A PIPELINE_PID_TO_AGENT=()
+declare -A PIPELINE_PID_TO_LOG=()
+declare -A PIPELINE_PID_TO_STATE_KEY=()
+PIPELINE_SESSION_ID=""
+PIPELINE_STATE_DIR=""
+PIPELINE_CANCELLED=0
+
+json_get() { python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+current = data
+for part in sys.argv[1:]:
+    if isinstance(current, dict):
+        current = current.get(part)
+    elif isinstance(current, list):
+        try:
+            current = current[int(part)]
+        except Exception:
+            current = None
+    else:
+        current = None
+    if current is None:
+        break
+if current is None:
+    print("")
+elif isinstance(current, (dict, list)):
+    print(json.dumps(current))
+else:
+    print(current)
+' "$@"; }
+
+json_array_items() { python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+items = data.get(sys.argv[1], [])
+if not isinstance(items, list):
+    items = []
+for item in items:
+    print(json.dumps(item))
+' "$1"; }
+
+pipeline_state_key() {
+  local node_id="$1"
+  node_id="${node_id//\//__}"
+  node_id="${node_id// /_}"
+  echo "$node_id"
+}
+
+pipeline_state_path() {
+  local node_id="$1" ext="$2"
+  printf '%s/%s.%s' "$PIPELINE_STATE_DIR" "$(pipeline_state_key "$node_id")" "$ext"
+}
+
+pipeline_find_state_node() {
+  local node_id="$1"
+  python3 -c '
+import json, sys
+node_id = sys.argv[1]
+data = json.load(sys.stdin)
+for node in data.get("nodes", []):
+    if node.get("nodeId") == node_id or node.get("id") == node_id:
+        print(json.dumps(node))
+        sys.exit(0)
+for node in data.get("definition", {}).get("nodes", []):
+    if node.get("nodeId") == node_id or node.get("id") == node_id:
+        print(json.dumps(node))
+        sys.exit(0)
+print("")
+' "$node_id"
+}
+
+pipeline_resolve_agent() {
+  local node_json="$1" state_json="$2"
+  local agent
+  agent=$(json_get acpClient <<< "$node_json")
+  if [[ -n "$agent" ]]; then
+    echo "$agent"
+    return
+  fi
+
+  local node_id state_node
+  node_id=$(json_get nodeId <<< "$node_json")
+  [[ -n "$node_id" ]] || node_id=$(json_get id <<< "$node_json")
+  [[ -n "$node_id" ]] || { echo ""; return; }
+
+  state_node=$(pipeline_find_state_node "$node_id" <<< "$state_json")
+  if [[ -n "$state_node" ]]; then
+    agent=$(json_get acpClient <<< "$state_node")
+  fi
+  echo "${agent:-}"
+}
+
+pipeline_all_terminal() { python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+nodes = data.get("nodes", [])
+terminal = {"completed", "abandoned", "stuck"}
+sys.exit(0 if nodes and all(node.get("status") in terminal for node in nodes) else 1)
+'; }
+
+pipeline_extract_session_name() {
+  local log_file="$1"
+  [[ -f "$log_file" ]] || return 0
+  python3 -c '
+import re, sys
+path = sys.argv[1]
+try:
+    text = open(path, encoding="utf-8", errors="replace").read()
+except OSError:
+    print("")
+    sys.exit(0)
+matches = re.findall(r"^\[macp\] workflow (\S+)", text, re.MULTILINE)
+print(matches[-1] if matches else "")
+' "$log_file"
+}
+
+pipeline_extract_conclusion() {
+  local node_id="$1" log_file="$2"
+  python3 -c '
+import sys
+node_id, path = sys.argv[1], sys.argv[2]
+fallback = f"Pipeline node {node_id} completed [[step]]"
+try:
+    lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+except OSError:
+    print(fallback)
+    sys.exit(0)
+for line in reversed(lines):
+    if line.startswith("[macp] ✅") or line.startswith("[macp] ❌"):
+        print(line.replace("[macp] ", "", 1).strip())
+        sys.exit(0)
+print(fallback)
+' "$node_id" "$log_file"
+}
+
+pipeline_mark_completed() {
+  local session_id="$1" node_id="$2" conclusion="$3"
+  local encoded
+  encoded=$(je <<< "$conclusion")
+  mf Pipeline "{\"sessionId\":\"$session_id\",\"nodeId\":\"$node_id\",\"status\":\"completed\",\"conclusion\":$encoded}" >/dev/null
+}
+
+pipeline_mark_abandoned() {
+  local session_id="$1" node_id="$2"
+  mf Pipeline "{\"sessionId\":\"$session_id\",\"nodeId\":\"$node_id\",\"status\":\"abandoned\"}" >/dev/null
+}
+
+pipeline_worker() {
+  local exit_file="$1" log_file="$2" workflow_id="$3" agent="$4" prompt="$5"; shift 5
+  local rc=0
+  if run_workflow "$workflow_id" "$agent" "$prompt" "$@" >"$log_file" 2>&1; then
+    rc=0
+  else
+    rc=$?
+  fi
+  printf '%s\n' "$rc" >"$exit_file"
+  return "$rc"
+}
+
+pipeline_launch_node() {
+  local node_id="$1" workflow_id="$2" session_id="$3" agent="$4" prompt="$5"; shift 5
+  local state_key log_file exit_file
+  state_key=$(pipeline_state_key "$node_id")
+  log_file=$(pipeline_state_path "$node_id" log)
+  exit_file=$(pipeline_state_path "$node_id" exit)
+
+  log "dispatch $node_id ($workflow_id) via ${agent} [session ${session_id:-unknown}]"
+  set -m
+  pipeline_worker "$exit_file" "$log_file" "$workflow_id" "$agent" "$prompt" "$@" &
+  local pid=$!
+  set +m
+  PIPELINE_PID_TO_NODE_ID["$pid"]="$node_id"
+  PIPELINE_NODE_TO_PID["$node_id"]="$pid"
+  PIPELINE_PID_TO_AGENT["$pid"]="$agent"
+  PIPELINE_PID_TO_LOG["$pid"]="$log_file"
+  PIPELINE_PID_TO_STATE_KEY["$pid"]="$state_key"
+}
+
+pipeline_finish_node() {
+  local pid="$1"
+  local node_id="${PIPELINE_PID_TO_NODE_ID[$pid]}"
+  local log_file="${PIPELINE_PID_TO_LOG[$pid]}"
+  local state_key="${PIPELINE_PID_TO_STATE_KEY[$pid]}"
+  local exit_file="${PIPELINE_STATE_DIR}/${state_key}.exit"
+  local rc=1
+
+  if [[ -f "$exit_file" ]]; then
+    rc=$(<"$exit_file")
+  fi
+
+  wait "$pid" 2>/dev/null || true
+
+  if [[ "$rc" == "0" ]]; then
+    local conclusion
+    conclusion=$(pipeline_extract_conclusion "$node_id" "$log_file")
+    log "complete $node_id"
+    pipeline_mark_completed "$PIPELINE_SESSION_ID" "$node_id" "$conclusion"
+  else
+    log "abandon $node_id (exit $rc)"
+    pipeline_mark_abandoned "$PIPELINE_SESSION_ID" "$node_id"
+  fi
+
+  unset 'PIPELINE_NODE_TO_PID[$node_id]'
+  unset 'PIPELINE_PID_TO_NODE_ID[$pid]'
+  unset 'PIPELINE_PID_TO_AGENT[$pid]'
+  unset 'PIPELINE_PID_TO_LOG[$pid]'
+  unset 'PIPELINE_PID_TO_STATE_KEY[$pid]'
+}
+
+pipeline_reap_finished() {
+  local pid found=1
+  while (( found )); do
+    found=0
+    for pid in "${!PIPELINE_PID_TO_NODE_ID[@]}"; do
+      local state_key exit_file
+      state_key="${PIPELINE_PID_TO_STATE_KEY[$pid]}"
+      exit_file="${PIPELINE_STATE_DIR}/${state_key}.exit"
+      if [[ -f "$exit_file" ]]; then
+        pipeline_finish_node "$pid"
+        found=1
+      fi
+    done
+  done
+}
+
+pipeline_wait_for_any() {
+  [[ ${#PIPELINE_PID_TO_NODE_ID[@]} -gt 0 ]] || return 0
+  if wait -n; then
+    :
+  fi
+  pipeline_reap_finished
+}
+
+pipeline_cancel_active() {
+  local signal_name="$1"
+  PIPELINE_CANCELLED=1
+  trap - INT TERM
+  log "signal $signal_name; cancelling active pipeline nodes"
+
+  local pid
+  for pid in "${!PIPELINE_PID_TO_NODE_ID[@]}"; do
+    local node_id="${PIPELINE_PID_TO_NODE_ID[$pid]}"
+    local agent="${PIPELINE_PID_TO_AGENT[$pid]}"
+    local session_name=""
+    session_name=$(pipeline_extract_session_name "${PIPELINE_PID_TO_LOG[$pid]}")
+    if [[ -n "$agent" && -n "$session_name" ]]; then
+      acpx "$agent" cancel -s "$session_name" >/dev/null 2>&1 || true
+    fi
+    pipeline_mark_abandoned "$PIPELINE_SESSION_ID" "$node_id" || true
+    kill -- "-$pid" >/dev/null 2>&1 || kill "$pid" >/dev/null 2>&1 || true
+  done
+}
+
+run_pipeline() {
+  local pipeline_id="$1" prompt="$2"; shift 2
+  local state_json dispatch_json max_concurrency status dispatch_count
+
+  if (( BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 3) )); then
+    echo "Error: pipeline requires bash 4.3+ (for wait -n). Install with: brew install bash" >&2
+    exit 1
+  fi
+
+  PIPELINE_SESSION_ID="$pipeline_id"
+  PIPELINE_STATE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/maenifold-acp-${pipeline_id}.XXXXXX")
+  trap 'rm -rf "$PIPELINE_STATE_DIR"' EXIT
+  PIPELINE_CANCELLED=0
+  PIPELINE_PID_TO_NODE_ID=()
+  PIPELINE_NODE_TO_PID=()
+  PIPELINE_PID_TO_AGENT=()
+  PIPELINE_PID_TO_LOG=()
+  PIPELINE_PID_TO_STATE_KEY=()
+
+  state_json=$(mf Pipeline "{\"sessionId\":\"$pipeline_id\",\"view\":true}")
+  max_concurrency=$(json_get maxConcurrency <<< "$state_json")
+  [[ "$max_concurrency" =~ ^[1-9][0-9]*$ ]] || max_concurrency=8
+  log "pipeline $pipeline_id (maxConcurrency=$max_concurrency)"
+
+  trap 'pipeline_cancel_active INT' INT
+  trap 'pipeline_cancel_active TERM' TERM
+
+  while true; do
+    (( PIPELINE_CANCELLED )) && break
+
+    state_json=$(mf Pipeline "{\"sessionId\":\"$pipeline_id\",\"view\":true}")
+    status=$(json_get status <<< "$state_json")
+    if [[ "$status" == "completed" || "$status" == "stuck" ]] || pipeline_all_terminal <<< "$state_json"; then
+      log "pipeline status ${status:-terminal}"
+      break
+    fi
+
+    dispatch_json=$(mf Pipeline "{\"sessionId\":\"$pipeline_id\",\"dispatch\":true}")
+    dispatch_count=$(json_array_items dispatched <<< "$dispatch_json" | awk 'END { print NR + 0 }')
+    (( dispatch_count > 0 )) && log "dispatched $dispatch_count node(s)"
+
+    while IFS= read -r node_json; do
+      [[ -n "$node_json" ]] || continue
+      local node_id workflow_id session_id agent
+      node_id=$(json_get nodeId <<< "$node_json")
+      workflow_id=$(json_get workflowId <<< "$node_json")
+      session_id=$(json_get sessionId <<< "$node_json")
+      agent=$(pipeline_resolve_agent "$node_json" "$state_json")
+
+      if [[ -z "$node_id" || -z "$workflow_id" ]]; then
+        log "skipping malformed dispatch payload"
+        continue
+      fi
+
+      if [[ -z "$agent" ]]; then
+        log "node $node_id missing acpClient; abandoning"
+        pipeline_mark_abandoned "$pipeline_id" "$node_id"
+        continue
+      fi
+
+      if [[ -n "${PIPELINE_NODE_TO_PID[$node_id]+x}" ]]; then
+        log "node $node_id already running, skipping"
+        continue
+      fi
+
+      while (( ${#PIPELINE_PID_TO_NODE_ID[@]} >= max_concurrency )); do
+        pipeline_wait_for_any
+        (( PIPELINE_CANCELLED )) && break 2
+      done
+
+      pipeline_launch_node "$node_id" "$workflow_id" "$session_id" "$agent" "$prompt" "$@"
+    done < <(json_array_items dispatched <<< "$dispatch_json")
+
+    (( PIPELINE_CANCELLED )) && break
+
+    if (( ${#PIPELINE_PID_TO_NODE_ID[@]} >= max_concurrency )); then
+      pipeline_wait_for_any
+    elif (( dispatch_count == 0 && ${#PIPELINE_PID_TO_NODE_ID[@]} > 0 )); then
+      pipeline_wait_for_any
+    elif (( dispatch_count == 0 )); then
+      state_json=$(mf Pipeline "{\"sessionId\":\"$pipeline_id\",\"view\":true}")
+      status=$(json_get status <<< "$state_json")
+      if [[ "$status" == "completed" || "$status" == "stuck" ]] || pipeline_all_terminal <<< "$state_json"; then
+        log "pipeline status ${status:-terminal}"
+        break
+      fi
+    fi
+  done
+
+  if (( ! PIPELINE_CANCELLED )); then
+    while (( ${#PIPELINE_PID_TO_NODE_ID[@]} > 0 )); do
+      pipeline_wait_for_any
+    done
+  fi
+
+  trap - INT TERM
+  rm -rf "$PIPELINE_STATE_DIR"
+  trap - EXIT
+  PIPELINE_SESSION_ID=""
+  PIPELINE_STATE_DIR=""
+
+  if (( PIPELINE_CANCELLED )); then
+    return 130
+  fi
+}
+
+case "${1:?Usage: maenifold-acp <workflow|think|pipeline> ...}" in
+  workflow) shift; run_workflow "$@" ;;
+  think) shift; a="$1" t="$2"; shift 2
+    seed=$(maenifold --tool SequentialThinking --payload "{\"response\":\"[[${t// /-}]]\",\"thoughtNumber\":0,\"totalThoughts\":5,\"nextThoughtNeeded\":true}" --json | jv)
+    sid=$(jk sessionId <<< "$seed"); log "thinking $sid"
+    acpx "$a" sessions new --name "think-$sid" >/dev/null 2>&1 || true
+    run_think "$a" "think-$sid" "$sid" "$t" 5 "$@"; log "done $sid" ;;
+  pipeline) shift; run_pipeline "$@" ;;
+  *) echo "Unknown: $1" >&2; exit 1 ;;
+esac

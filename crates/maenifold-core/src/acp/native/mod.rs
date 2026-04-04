@@ -302,14 +302,9 @@ async fn run_agent(
                     ))
                     .block_task()
                     .await
-                    .map_err(|error| {
-                        tracing::warn!("Failed to close ACP session: {error}");
-                        AgentError::Acp(error.to_string())
-                    })
+                    .map_err(|error| AgentError::Acp(error.to_string()))
                     .map(|_| ());
-                if result.is_ok() {
-                    client.remove_session(&session_id).await;
-                }
+                client.remove_session(&session_id).await;
                 let _ = reply.send(result);
             }
         }

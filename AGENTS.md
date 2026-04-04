@@ -6,7 +6,7 @@ We do not write code. This is not a guideline. This is not aspirational. This is
 
 Every problem has already been solved by someone else. Find that solution. Use it. If you cannot find it, you are looking wrong. Reframe the problem and search again.
 
-We wasted 4 days hand-rolling an ACP client when Goose Desktop already had a working implementation. That will never happen again.
+We wasted 4 days hand-rolling an ACP client when Goose Desktop already had a working implementation. That will never happen again. If we encounter ANY issues whatsoever related to ACP or lifecycle it's because we're still not following this simple mandate - the ACP client has ALREADY BEEN WRITTEN!
 
 **The rule:**
 1. **Find it.** Search GitHub, crates.io, npm, docs, papers. Someone has solved this.

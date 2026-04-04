@@ -68,10 +68,14 @@ impl AgentSession {
     }
 
     pub(crate) async fn close(self) -> Result<()> {
-        self.handle
-            .close_session(&self.remote_id)
-            .await
-            .map_err(agent_error)
+        if let Err(error) = self.handle.close_session(&self.remote_id).await {
+            tracing::warn!(
+                session_id = %self.remote_id,
+                error = %error,
+                "Failed to close ACP session"
+            );
+        }
+        Ok(())
     }
 }
 

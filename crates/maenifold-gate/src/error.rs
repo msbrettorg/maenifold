@@ -19,20 +19,8 @@ pub enum GateError {
     #[error("missing task metadata field: {0}")]
     MissingMetadataField(&'static str),
 
-    #[error("invalid pipeline digest: {0}")]
-    InvalidPipelineDigest(String),
-
     #[error("task pipeline binding '{bound}' does not match requested pipeline '{requested}'")]
     PipelineOverrideMismatch { requested: String, bound: String },
-
-    #[error(
-        "pipeline digest mismatch for '{pipeline}': task binds '{task_digest}' but authoritative asset is '{authoritative_digest}'"
-    )]
-    PipelineDigestMismatch {
-        pipeline: String,
-        task_digest: String,
-        authoritative_digest: String,
-    },
 
     #[error("failed to parse task metadata: {0}")]
     TaskMetadataParse(String),
@@ -52,6 +40,25 @@ pub enum GateError {
     #[error("illegal transition: state '{state}' does not allow outcome '{outcome}'")]
     IllegalTransition { state: String, outcome: String },
 
+    #[error(
+        "task '{task_id}' not found. searched directories: {searched_directories}. Task lookup matches frontmatter `id:` (falling back to the filename stem when no `id:` is present)."
+    )]
+    TaskNotFound {
+        task_id: String,
+        searched_directories: String,
+    },
+
     #[error("task path does not exist: {0}")]
     MissingTaskPath(PathBuf),
+
+    #[error(
+        "duplicate canonical task id '{task_id}' found in both {} and {}",
+        first_path.display(),
+        second_path.display()
+    )]
+    DuplicateCanonicalTaskId {
+        task_id: String,
+        first_path: PathBuf,
+        second_path: PathBuf,
+    },
 }

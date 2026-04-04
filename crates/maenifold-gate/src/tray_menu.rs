@@ -16,12 +16,11 @@ pub(crate) struct TrayMenuState {
 
 pub(crate) fn build_tray_menu(mode: GateServerMode) -> TrayMenuState {
     let menu = Menu::new();
+    let open_item = MenuItem::new("Open Gate UI", true, None);
+    let _ = menu.append(&open_item);
 
     let (open_ui_id, login_id, login_item) = match mode {
         GateServerMode::Http(port) => {
-            let open_item = MenuItem::new("Open Gate UI", true, None);
-            let _ = menu.append(&open_item);
-
             #[cfg(target_os = "macos")]
             let item = MenuItem::new(login_menu_text(is_login_enabled()), true, None);
             #[cfg(not(target_os = "macos"))]
@@ -29,17 +28,19 @@ pub(crate) fn build_tray_menu(mode: GateServerMode) -> TrayMenuState {
             let _ = menu.append(&item);
             let _ = port;
             (
-                Some(open_item.id().clone()),
+                open_ui_enabled(mode).then(|| open_item.id().clone()),
                 Some(item.id().clone()),
                 Some(item),
             )
         }
         GateServerMode::Stdio => {
-            let open_item = MenuItem::new("Open Gate UI (HTTP only)", false, None);
             let item = MenuItem::new("Open at Login (HTTP only)", false, None);
-            let _ = menu.append(&open_item);
             let _ = menu.append(&item);
-            (None, None, None)
+            (
+                open_ui_enabled(mode).then(|| open_item.id().clone()),
+                None,
+                None,
+            )
         }
     };
 
@@ -55,7 +56,14 @@ pub(crate) fn build_tray_menu(mode: GateServerMode) -> TrayMenuState {
     }
 }
 
-pub(crate) fn open_ui(root: &Path) {
+pub(crate) fn open_ui(root: Option<&Path>) {
+    let Some(root) = root else {
+        eprintln!(
+            "Warning: gate root is not set; pass an explicit root to the gate service before opening the UI"
+        );
+        return;
+    };
+
     if let Err(err) = spawn_ui_process(root) {
         eprintln!("Warning: failed to open gate UI: {err}");
     }
@@ -95,9 +103,7 @@ pub(crate) fn ui_args(root: &Path) -> Vec<String> {
 fn spawn_ui_process(root: &Path) -> std::io::Result<()> {
     let exe_path = std::env::current_exe()?;
     let args = ui_args(root);
-    std::process::Command::new(exe_path)
-        .args(args)
-        .spawn()?;
+    std::process::Command::new(exe_path).args(args).spawn()?;
     Ok(())
 }
 
@@ -182,17 +188,24 @@ fn xml_escape(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(target_os = "macos")]
     use std::path::Path;
 
-    use super::ui_args;
     #[cfg(target_os = "macos")]
     use super::launch_agent_plist;
+    use super::open_ui_enabled;
+    use super::ui_args;
+    use crate::tray::GateServerMode;
 
     #[test]
     fn ui_args_target_requested_root() {
         let args = ui_args(Path::new("/tmp/example"));
         assert_eq!(args, vec!["ui", "--root", "/tmp/example"]);
+    }
+
+    #[test]
+    fn open_ui_is_enabled_for_stdio_and_http_modes() {
+        assert!(open_ui_enabled(GateServerMode::Stdio));
+        assert!(open_ui_enabled(GateServerMode::Http(8081)));
     }
 
     #[cfg(target_os = "macos")]
@@ -203,4 +216,8 @@ mod tests {
         assert!(plist.contains("--http"));
         assert!(plist.contains("<string>8181</string>"));
     }
+}
+
+pub(crate) fn open_ui_enabled(mode: GateServerMode) -> bool {
+    matches!(mode, GateServerMode::Stdio | GateServerMode::Http(_))
 }

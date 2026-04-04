@@ -6,22 +6,22 @@
   "states": {
     "pending": {
       "on": {
+        "pass": "blue-team"
+      }
+    },
+    "blue-team": {
+      "on": {
+        "fail": "pending",
         "pass": "swe"
       }
     },
     "swe": {
       "on": {
         "fail": "pending",
-        "pass": "red"
+        "pass": "red-team"
       }
     },
-    "red": {
-      "on": {
-        "fail": "pending",
-        "pass": "blue"
-      }
-    },
-    "blue": {
+    "red-team": {
       "on": {
         "fail": "pending",
         "pass": "done"

@@ -1,24 +1,25 @@
 mod support;
 
 use support::{
-    authoritative_digest, done_task_path, gate_command, runtime_assets_dir, status_json, task_path,
-    write_bound_task,
+    done_task_path, gate_command, runtime_assets_dir, status_json, task_path, write_bound_task,
 };
 
 #[test]
 fn sdd_e2e_bootstraps_assets_retries_from_red_and_completes() {
     let root = support::new_pipeline_root();
     let task_id = "T-2.1";
-    let todo_path = write_bound_task(root.path(), task_id, "sdd", &authoritative_digest("sdd"));
+    let todo_path = write_bound_task(root.path(), task_id, "sdd");
 
     assert!(!runtime_assets_dir(root.path()).exists());
 
+    // pending → swe → red-team, then fail red-team → pending
+    pass(root.path(), task_id, "pending gate");
     pass(root.path(), task_id, "swe completed");
     fail(root.path(), task_id, "red requested rework");
 
     let status = status_json(root.path());
     let task = find_task(&status, task_id);
-    assert_eq!(task["status"], "pending");
+    assert_eq!(task["state"], "pending");
     assert_eq!(task["attempts"], 1);
     assert!(runtime_assets_dir(root.path()).join("sdd.json").exists());
     assert!(runtime_assets_dir(root.path()).join("tdd.json").exists());
@@ -29,6 +30,8 @@ fn sdd_e2e_bootstraps_assets_retries_from_red_and_completes() {
             .exists()
     );
 
+    // pending → swe → red-team → blue-team → done
+    pass(root.path(), task_id, "pending gate");
     pass(root.path(), task_id, "swe remediation completed");
     pass(root.path(), task_id, "red approved");
     pass(root.path(), task_id, "blue verified");
@@ -38,42 +41,48 @@ fn sdd_e2e_bootstraps_assets_retries_from_red_and_completes() {
     let final_status = status_json(root.path());
     let task = find_task(&final_status, task_id);
     assert_eq!(task["pipeline"], "sdd");
-    assert_eq!(task["status"], "done");
+    assert_eq!(task["state"], "done");
 }
 
 #[test]
-fn tdd_e2e_retries_from_red_and_completes() {
+fn tdd_e2e_retries_from_red_team_and_completes() {
     let root = support::new_pipeline_root();
     let task_id = "T-2.2";
-    let todo_path = write_bound_task(root.path(), task_id, "tdd", &authoritative_digest("tdd"));
+    let todo_path = write_bound_task(root.path(), task_id, "tdd");
 
-    pass(root.path(), task_id, "swe completed");
-    fail(root.path(), task_id, "red failed test review");
+    // TDD order: pending → blue-team → swe → red-team → done
+    pass(root.path(), task_id, "pending gate");
+    pass(root.path(), task_id, "blue-team: tests written");
+    pass(root.path(), task_id, "swe: implementation completed");
+    fail(root.path(), task_id, "red-team: audit failed");
 
     let status = status_json(root.path());
     let task = find_task(&status, task_id);
-    assert_eq!(task["status"], "pending");
+    assert_eq!(task["state"], "pending");
     assert_eq!(task["attempts"], 1);
     assert!(task_path(root.path(), task_id).exists());
 
-    pass(root.path(), task_id, "swe remediation completed");
-    pass(root.path(), task_id, "red approved");
-    pass(root.path(), task_id, "blue verified");
+    pass(root.path(), task_id, "pending gate");
+    pass(root.path(), task_id, "blue-team: tests re-verified");
+    pass(root.path(), task_id, "swe: remediation completed");
+    pass(root.path(), task_id, "red-team: approved");
 
     assert!(!todo_path.exists());
     assert!(done_task_path(root.path(), task_id).exists());
     let final_status = status_json(root.path());
     let task = find_task(&final_status, task_id);
     assert_eq!(task["pipeline"], "tdd");
-    assert_eq!(task["status"], "done");
+    assert_eq!(task["state"], "done");
 }
 
 #[test]
 fn gsd_e2e_retries_from_verify_and_completes() {
     let root = support::new_pipeline_root();
     let task_id = "T-2.3";
-    write_bound_task(root.path(), task_id, "gsd", &authoritative_digest("gsd"));
+    write_bound_task(root.path(), task_id, "gsd");
 
+    // pending → research → plan → execute → verify, then fail verify → execute
+    pass(root.path(), task_id, "pending gate");
     pass(root.path(), task_id, "research done");
     pass(root.path(), task_id, "plan done");
     pass(root.path(), task_id, "execute done");
@@ -82,7 +91,7 @@ fn gsd_e2e_retries_from_verify_and_completes() {
     let status = status_json(root.path());
     let task = find_task(&status, task_id);
     assert_eq!(task["pipeline"], "gsd");
-    assert_eq!(task["status"], "execute");
+    assert_eq!(task["state"], "execute");
     assert_eq!(task["attempts"], 0);
     assert!(task_path(root.path(), task_id).exists());
 
@@ -91,7 +100,7 @@ fn gsd_e2e_retries_from_verify_and_completes() {
 
     let final_status = status_json(root.path());
     let task = find_task(&final_status, task_id);
-    assert_eq!(task["status"], "done");
+    assert_eq!(task["state"], "done");
     assert!(done_task_path(root.path(), task_id).exists());
 }
 
@@ -99,28 +108,27 @@ fn gsd_e2e_retries_from_verify_and_completes() {
 fn lightweight_e2e_retries_from_blue_and_completes() {
     let root = support::new_pipeline_root();
     let task_id = "T-2.4";
-    write_bound_task(
-        root.path(),
-        task_id,
-        "lightweight",
-        &authoritative_digest("lightweight"),
-    );
+    write_bound_task(root.path(), task_id, "lightweight");
 
+    // pending → swe → blue-team, then fail blue-team → pending
+    pass(root.path(), task_id, "pending gate");
     pass(root.path(), task_id, "swe completed");
     fail(root.path(), task_id, "blue failed");
 
     let status = status_json(root.path());
     let task = find_task(&status, task_id);
     assert_eq!(task["pipeline"], "lightweight");
-    assert_eq!(task["status"], "pending");
+    assert_eq!(task["state"], "pending");
     assert_eq!(task["attempts"], 1);
 
+    // pending → swe → blue-team → done
+    pass(root.path(), task_id, "pending gate");
     pass(root.path(), task_id, "swe remediation completed");
     pass(root.path(), task_id, "blue verified");
 
     let final_status = status_json(root.path());
     let task = find_task(&final_status, task_id);
-    assert_eq!(task["status"], "done");
+    assert_eq!(task["state"], "done");
     assert!(done_task_path(root.path(), task_id).exists());
 }
 

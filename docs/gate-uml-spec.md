@@ -5,11 +5,11 @@ This document is the authoritative implementation spec for `gate`.
 ## Authority
 
 - `SPEC = this document + the bundled built-in gate JSON files in crates/maenifold-gate/assets/*.json`
-- Runtime authoritative gate JSON lives in `MAENIFOLD_GATE_ASSETS_DIR` when set, otherwise `/Users/brett/maenifold/assets/gates`
+- Runtime authoritative gate JSON lives in `MAENIFOLD_GATE_ASSETS_DIR` when set; otherwise resolve a platform config base and append `maenifold/gates` (`~/Library/Application Support/maenifold/gates` on macOS, `%APPDATA%\maenifold\gates` or `~/AppData/Roaming/maenifold/gates` on Windows, `$XDG_CONFIG_HOME/maenifold/gates` or `~/.config/maenifold/gates` on other platforms, with a temp-backed `maenifold` base only as a last-resort fallback)
 - Bundled built-ins must be copied to the runtime gate directory only when missing
 - Existing runtime gate JSON files are authoritative and must never be overwritten by bootstrap
 - Files under `todo/` and `done/` are authoritative task state
-- `gate.db` is a rebuildable cache only
+- `gate.db` is a rebuildable read model derived from authoritative files and has no authority over task truth
 - No source module may exist unless it is named in this spec
 
 ## Scope
@@ -19,9 +19,11 @@ This document is the authoritative implementation spec for `gate`.
 - Command surface:
   - `status`
   - `append`
+  - `history`
   - `pass`
   - `fail`
   - `sync`
+  - `ui`
 - Service modes:
   - `--mcp` for MCP over stdio
   - `--http` for MCP over streamable HTTP
@@ -40,10 +42,14 @@ This document is the authoritative implementation spec for `gate`.
 - Gate asset resolution and bootstrap must exist only in `gate_catalog.rs`
 - File parsing must be isolated from file mutation
 - Cache rebuilding must never override file authority
+- `status` and UI read paths must consume `gate.db`, not derive status directly from task files
+- Every successful mutating command must refresh `gate.db` before returning to the caller
+- Long-lived runtimes must reconcile out-of-band file changes through a debounced watcher on `todo/` and `done/`
+- Cache refresh must preserve the existing `gate.db` file and SQLite WAL/SHM sidecars; destructive unlink-and-recreate is forbidden
 - Command business logic must be reusable by CLI and MCP transports
 - MCP tool execution must call the same business logic as CLI commands
 - Tray/runtime code must not duplicate gate command logic
-- Every task file must bind itself to a specific pipeline name and pipeline digest
+- Every task file must bind itself to a specific pipeline name
 - Built-in process definitions use explicit state-machine JSON with `schemaVersion`, `id`, `name`, `initial`, `states`, `on`, and `terminal`
 - There is no backward compatibility for legacy built-in process JSON
 - The only legal outcomes are `pass` and `fail`
@@ -55,8 +61,8 @@ This document is the authoritative implementation spec for `gate`.
 
 - Bundled built-ins live in `crates/maenifold-gate/assets/`
 - On built-in load, `gate_catalog.rs` must ensure all four bundled assets exist in the runtime directory
-- Missing runtime assets are written from the bundled copies
-- Existing runtime assets are preserved byte-for-byte
+- Bundled assets are written to the runtime directory only when the runtime copy is missing
+- The compiled binary seeds missing built-ins; existing runtime copies remain authoritative
 - Built-in names are reserved:
   - `sdd`
   - `tdd`
@@ -85,6 +91,9 @@ This document is the authoritative implementation spec for `gate`.
 - Open-at-login support is a tray action backed by a macOS LaunchAgent plist
 - Open-at-login applies to HTTP mode only
 - The LaunchAgent service label must be `com.ma-collective.gate`
+- Long-lived tray/server runtimes must host the debounced file watcher that reconciles external file mutations into `gate.db`
+- `gate ui` launches the native task board window
+- The tray menu "Open UI" item spawns `gate ui --root <current_root>` as a subprocess
 
 ## JSON Schema
 
@@ -105,16 +114,16 @@ Every gate definition must have this shape:
     "swe": {
       "on": {
         "fail": "pending",
-        "pass": "red"
+        "pass": "red-team"
       }
     },
-    "red": {
+    "red-team": {
       "on": {
         "fail": "pending",
-        "pass": "blue"
+        "pass": "blue-team"
       }
     },
-    "blue": {
+    "blue-team": {
       "on": {
         "fail": "pending",
         "pass": "done"
@@ -152,7 +161,7 @@ class GateCliApp {
 }
 
 class CliParser {
-  +parse(argv) CommandRequest
+  +parse(argv) ParsedCli
 }
 
 class CliAction {
@@ -162,8 +171,14 @@ class CliAction {
   Http
 }
 
-class CommandRouter {
-  +run(request) Result
+class CommandRequest {
+  <<enum>>
+  Status
+  Append
+  History
+  Pass
+  Fail
+  Sync
 }
 
 class StatusCommand {
@@ -171,6 +186,10 @@ class StatusCommand {
 }
 
 class AppendCommand {
+  +execute(args) Result
+}
+
+class HistoryCommand {
   +execute(args) Result
 }
 
@@ -201,9 +220,8 @@ class GateToolService {
 }
 
 class GateMcpServer {
-  +serveStdio() Result
-  +serveHttp(port) Result
-  +listTools() Vec~McpToolDefinition~
+  +serveStdio(root) Result
+  +serveHttp(port, root) Result
 }
 
 class GateMcpHandler {
@@ -212,8 +230,18 @@ class GateMcpHandler {
 }
 
 class GateMcpHttp {
-  +service(cancellationToken) HttpService
-  +router(service) Router
+  +service(cancellationToken, root) HttpService
+  +serveHttpListener(listener, root) Result
+}
+
+class GateUiWindow {
+  +run(root) int
+}
+
+class GateUiApp {
+  -tasks: Vec~TaskEntry~
+  +new(root, tasks) GateUiApp
+  +visible_tasks() Vec~TaskEntry~
 }
 
 class GateToolSchema {
@@ -229,6 +257,11 @@ class GateTrayMenu {
   +toggleLoginItem(port, item) Result
 }
 
+class GateFileWatcher {
+  +start(root) Result
+  +handleDebouncedChange(root) Result
+}
+
 class GateServerMode {
   <<enum>>
   Stdio
@@ -239,8 +272,10 @@ class GateDefinitionCatalog {
   +loadBuiltin(name) GateDefinition
   +loadCustom(root) GateDefinition
   +resolve(root, name) GateDefinition
-  +resolveBound(root, name, digest) GateDefinition
   +resolveForTask(root, metadata, requestedPipelineName) GateDefinition
+  -runtimeGatesDir() Path
+  -ensureAllBuiltinAssets() Result
+  -builtinAssetText(name) str
 }
 
 class GateDefinitionValidator {
@@ -248,13 +283,11 @@ class GateDefinitionValidator {
 }
 
 class GateDefinition {
-  +id: String
-  +name: String
-  +digest: String
   +initial: String
   +states: Map~String,GateState~
   +initialState() String
   +findState(id) GateState
+  +orderedStageIds() Vec~String~
 }
 
 class GateState {
@@ -288,9 +321,10 @@ class TaskDocument {
 }
 
 class TaskMetadata {
+  +id: Option~String~
   +title: String
   +pipeline: String
-  +pipelineDigest: String
+  +status: Option~String~
 }
 
 class TaskStageRecord {
@@ -324,9 +358,10 @@ class CanonicalSectionFactory {
 }
 
 class GateCacheDb {
-  +open(root) Db
+  +open(root) GateCacheDb
+  +pathForRoot(root) Path
   +rebuild(root, definition, tasks) Result
-  +upsertTask(task) Result
+  +listTaskStatus(root, pipeline) Vec~Value~
   +insertWorkLog(entry) Result
 }
 
@@ -340,18 +375,22 @@ class GateError {
 }
 
 GateCliMain --> GateCliApp
+GateCliMain --> GateTray
 GateCliApp --> CliParser
-CliParser --> CommandRouter
-GateCliApp --> GateTray
+GateCliApp --> CommandRequest
+GateCliApp --> GateUiWindow
 
-CommandRouter --> StatusCommand
-CommandRouter --> AppendCommand
-CommandRouter --> PassCommand
-CommandRouter --> FailCommand
-CommandRouter --> SyncCommand
+CommandRequest --> StatusCommand
+CommandRequest --> AppendCommand
+CommandRequest --> HistoryCommand
+CommandRequest --> PassCommand
+CommandRequest --> FailCommand
+CommandRequest --> SyncCommand
 
 StatusCommand --> GateToolService
 AppendCommand --> GateToolService
+HistoryCommand --> TaskFileReader
+HistoryCommand --> TaskRepository
 PassCommand --> GateToolService
 FailCommand --> GateToolService
 SyncCommand --> GateToolService
@@ -363,6 +402,12 @@ GateMcpHandler --> GateToolService
 
 GateTray --> GateTrayMenu
 GateTray --> GateMcpServer
+GateTray --> GateFileWatcher
+
+GateUiWindow --> GateUiApp
+GateUiWindow --> GateToolService
+
+GateFileWatcher --> GateToolService
 
 GateToolService --> GateDefinitionCatalog
 GateToolService --> TaskRepository
@@ -394,6 +439,8 @@ Only these source files are allowed in `crates/maenifold-gate/src`:
 - `mcp/schema.rs`
 - `tray.rs`
 - `tray_menu.rs`
+- `file_watcher.rs`
+- `ui_window.rs`
 - `task_repository.rs`
 - `task_file.rs`
 - `task_metadata.rs`
@@ -441,7 +488,7 @@ If implementation requires a new file, this spec must be updated first.
 - Bootstrap missing runtime assets only
 - Resolve built-in definitions from the runtime gate directory
 - Resolve custom `{root}/pipeline.json` only for explicit non-reserved names
-- Enforce pipeline precedence and digest checks
+- Enforce reserved-name precedence and pipeline binding checks
 
 ### `gate_tool_service.rs`
 
@@ -482,6 +529,22 @@ If implementation requires a new file, this spec must be updated first.
 - Open-at-login toggle
 - macOS LaunchAgent plist generation and removal
 
+### `file_watcher.rs`
+
+- Debounced watcher over `todo/` and `done/`
+- Trigger `sync` reconciliation for out-of-band file mutations
+- Never mutate task files directly
+
+### `ui_window.rs`
+
+- Native egui task board window
+- Calls `GateToolService::status()` for DB-backed task data
+- No direct file parsing or status derivation
+- Loads task rows once at window startup; no in-window auto-refresh loop exists
+- Table view with filtering, sorting, search
+- Task detail panel with markdown rendering
+- Launched as subprocess via tray menu or `gate ui`
+
 ### `task_repository.rs`
 
 - Enumerate `todo/` and `done/`
@@ -496,9 +559,13 @@ If implementation requires a new file, this spec must be updated first.
 
 ### `task_metadata.rs`
 
+- Parse frontmatter `id`
+- Parse frontmatter `title`
+- Parse frontmatter `pipeline`
+- Parse frontmatter `status`
 - Parse title
 - Parse `Pipeline`
-- Parse `Pipeline Digest`
+- Parse canonical task ID from frontmatter (`parse_task_id`)
 
 ### `task_sections.rs`
 
@@ -515,7 +582,7 @@ If implementation requires a new file, this spec must be updated first.
   - directory location
   - active gate definition
 - Replay ordered stage event records against the bound gate definition
-- Treat `pending` as a dispatch state whose acting stage is the initial `on.pass` target
+- Treat `pending` as both the initial dispatch state and its own acting stage; legacy histories that omitted the bootstrap `pending` PASS are handled by backward-compat seeding in `maybe_seed_legacy_entry_stage`
 - Reject non-reconstructible or mismatched task histories
 
 ### `state_machine.rs`
@@ -535,9 +602,11 @@ If implementation requires a new file, this spec must be updated first.
 
 ### `cache_db.rs`
 
-- Create and rebuild `gate.db`
-- Cache task pipeline/status snapshots
+- Open and maintain the `gate.db` read model
+- Rebuild task pipeline/status snapshots in place
 - Cache work log history entries
+- Preserve the existing DB file and WAL/SHM sidecars during refresh
+- Serve task status rows for `status` and UI consumers
 - No authority over task truth
 
 ### `status_command.rs`
@@ -559,15 +628,16 @@ If implementation requires a new file, this spec must be updated first.
 ### `sync_command.rs`
 
 - CLI presentation for `sync`
+- Reconcile `gate.db` from authoritative files without deleting the live DB file or sidecars
 
 ## State Models
 
 ### Shared Dispatch Semantics
 
-- `pending` is the initial dispatch state
-- The acting stage for `pending` is the state reached by `pending.on.pass`
-- `pass` from `pending` advances into the first actionable stage
-- `fail` from `pending` is legal when the first actionable stage itself declares `fail`
+- `pending` is the initial dispatch state and a real acting stage
+- `append` while the effective state is `pending` records `Stage ID: pending`
+- `pass` from `pending` records a `pending` outcome and advances exactly one edge into `pending.on.pass`
+- Replay starts at `pending`; legacy histories that omitted the bootstrap `pending` PASS may be seeded to `pending.on.pass` before validating the first recorded entry-stage outcome
 - A terminal state has no legal outgoing transition
 
 ### SDD
@@ -577,12 +647,12 @@ stateDiagram-v2
 [*] --> pending
 
 pending --> swe: pass
-swe --> red: pass
+swe --> red-team: pass
 swe --> pending: fail
-red --> blue: pass
-red --> pending: fail
-blue --> done: pass
-blue --> pending: fail
+red-team --> blue-team: pass
+red-team --> pending: fail
+blue-team --> done: pass
+blue-team --> pending: fail
 
 done --> [*]
 ```
@@ -593,13 +663,13 @@ done --> [*]
 stateDiagram-v2
 [*] --> pending
 
-pending --> swe: pass
-swe --> red: pass
+pending --> blue-team: pass
+blue-team --> swe: pass
+blue-team --> pending: fail
+swe --> red-team: pass
 swe --> pending: fail
-red --> blue: pass
-red --> pending: fail
-blue --> done: pass
-blue --> pending: fail
+red-team --> done: pass
+red-team --> pending: fail
 
 done --> [*]
 ```
@@ -630,10 +700,10 @@ stateDiagram-v2
 [*] --> pending
 
 pending --> swe: pass
-swe --> blue: pass
+swe --> blue-team: pass
 swe --> pending: fail
-blue --> done: pass
-blue --> pending: fail
+blue-team --> done: pass
+blue-team --> pending: fail
 
 done --> [*]
 ```
@@ -651,6 +721,11 @@ Output:
 
 - array of task status objects
 
+Behavior:
+
+- Read task status from the `gate.db` read model
+- Never derive task status directly from task files on the status read path
+
 ### `append`
 
 Input:
@@ -666,6 +741,11 @@ Output:
 
 - object describing the task after append
 
+Behavior:
+
+- Append the canonical file event first
+- Refresh `gate.db` before returning success
+
 ### `pass`
 
 Input:
@@ -679,6 +759,11 @@ Input:
 Output:
 
 - object describing the task after transition
+
+Behavior:
+
+- Append the canonical file event first
+- Refresh `gate.db` before returning success
 
 ### `fail`
 
@@ -694,6 +779,11 @@ Output:
 
 - object describing the task after transition
 
+Behavior:
+
+- Append the canonical file event first
+- Refresh `gate.db` before returning success
+
 ### `sync`
 
 Input:
@@ -706,16 +796,26 @@ Output:
 
 - object describing rebuild mode, pipeline, and task count
 
+Behavior:
+
+- Reconcile the `gate.db` read model from authoritative files and active definitions
+- Refresh in place under the live database path
+- Never delete the existing `gate.db`, `gate.db-wal`, or `gate.db-shm` files as part of normal sync
+
 ## File Authority Rules
 
 - If a task file is in `done/`, effective location is `done`
 - If a task file is in `todo/`, effective location is `todo`
-- Every task file must include:
-  - `**Pipeline**: <name>`
-  - `**Pipeline Digest**: <sha256>`
-- If a task in `todo/` has no stage sections, effective state is `pending`
+- Every task file must bind a pipeline via exactly one supported source:
+  - frontmatter `pipeline: <name>`
+  - markdown `**Pipeline**: <name>`
+- Canonical task ID comes from frontmatter `id` when present; otherwise the filename stem is used
+- If a task has no stage sections, effective state is:
+  - frontmatter `state` when present
+  - otherwise frontmatter `status` when present
+  - otherwise the active definition's initial state
 - If a task in `done/` is not terminal under the active definition, that is an error
-- If a task file has no pipeline binding or digest, it is invalid for active enforcement
+- If a task file has no pipeline binding, it is invalid for active enforcement
 - The presence of later-stage prose must not advance state unless the active state machine and canonical recorded outcome permit it
 
 ## Reconstructible Event Log Rules
@@ -730,15 +830,12 @@ Output:
 
 ## Canonical Section Rules
 
-### Special Stage-ID Section Names
+### Section Heading Rule
 
-- `swe` -> `## SWE Remediation`
-- `red` -> `## Red-team Audit`
-- `blue` -> `## Blue-team Verification`
-
-### Generic Section Rule
-
-- For non-special stages, use capitalized stage IDs as canonical headings
+- Shipped built-in stage IDs use canonical headings such as `Pending`, `SWE`, `Red-Team`, `Blue-Team`, `Research`, `Plan`, `Execute`, `Verify`, and `Done`
+- Unknown stage IDs fall back to title-casing each `-`-separated segment
+- Examples: `swe` → `## SWE`, `red-team` → `## Red-Team`, `blue-team` → `## Blue-Team`
+- The heading is for human readability only; the parser uses the `- Stage ID:` field inside the section
 
 ### Canonical Record Fields
 
@@ -761,28 +858,31 @@ Each appended section must include:
 - `append` must not change stage
 - `append` must not call or simulate any transition path
 - `pass` and `fail` must be atomic with respect to file mutation
+- Successful `append`, `pass`, and `fail` must leave the `gate.db` read model current before returning
 - Terminal `done` has no outgoing transition
 - Final-stage `pass` must move the file into `done/`
-- `sync` rebuilds cache from files and active definitions
+- `sync` rebuilds the `gate.db` read model from files and active definitions in place
 - Cache mismatch must never silently override file truth
 - Duplicate task IDs are fatal
 - Missing pipeline binding is fatal
-- Pipeline digest mismatch is fatal
 - Unknown transition targets are fatal
 - Duplicate state names are fatal
 - Hidden defaults are forbidden
+- Errors are informational — every error that rejects a value must list the valid alternatives
 
 ## Required Off-the-Shelf Crates
 
 - `clap`
 - `serde`
 - `serde_json`
+- `serde_yaml`
 - `rusqlite`
 - `walkdir`
 - `regex`
 - `thiserror`
 - `chrono`
-- `sha2`
+- `indexmap`
+- `notify`
 - `tokio`
 - `rmcp`
 - `axum`
@@ -790,29 +890,37 @@ Each appended section must include:
 - `tower-http`
 - `tray-icon`
 - `winit`
+- `eframe`
+- `egui`
+- `egui_extras`
+- `egui-commonmark`
 
 Optional:
 
+- `objc2-core-foundation` (macOS only)
 - `tempfile`
 - `assert_cmd`
 - `predicates`
-- `reqwest`
+- `tower`
 
 ## Verification Matrix
 
 All implementation must be testable against these required named tests.
 
-### Asset and Definition Tests
+### Asset, Definition, and Cache Tests
 
+- `builtin_assets_are_bootstrapped_only_when_missing`
 - `builtin_sdd_definition_matches_authoritative_asset`
 - `builtin_gsd_definition_matches_authoritative_asset`
 - `builtin_lightweight_definition_matches_authoritative_asset`
 - `builtin_tdd_definition_matches_authoritative_asset`
+- `ordered_stage_ids_follow_pass_path`
+- `gate_cache_connections_enable_wal_mode`
 
 ### End-to-End Process Tests
 
 - `sdd_e2e_bootstraps_assets_retries_from_red_and_completes`
-- `tdd_e2e_retries_from_red_and_completes`
+- `tdd_e2e_retries_from_red_team_and_completes`
 - `gsd_e2e_retries_from_verify_and_completes`
 - `lightweight_e2e_retries_from_blue_and_completes`
 
@@ -820,15 +928,26 @@ All implementation must be testable against these required named tests.
 
 - `status_reports_new_todo_task_as_pending`
 - `append_records_swe_work_without_advancing_state`
+- `append_requires_agent_flag`
+- `append_on_done_task_fails_with_explicit_message`
+- `pass_requires_agent_flag`
+- `fail_on_done_task_reopens_it_in_todo_pending`
+- `fail_requires_agent_flag`
 - `fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts`
 - `fail_from_pending_dispatch_state_returns_to_pending_and_increments_attempts`
 - `task_file_requires_explicit_pipeline_binding`
-- `task_file_requires_pipeline_digest`
-- `status_errors_when_pipeline_digest_mismatches_authoritative_asset`
 - `legacy_task_without_pipeline_binding_is_rejected`
+- `sync_rebuild_writes_db_under_dot_gate_and_updates_gitignore_idempotently`
 - `classify_mcp_mode_as_tray_enabled`
 - `classify_http_mode_as_tray_enabled`
 - `reject_port_without_http`
+
+### Repository Behavior Tests
+
+- `status_loads_every_shipped_repo_task`
+- `status_uses_canonical_frontmatter_id_for_slugged_repo_task`
+- `status_respects_frontmatter_done_state_for_repo_tasks`
+- `sync_rebuild_succeeds_for_shipped_repo_tasks`
 
 ### MCP and Runtime Tests
 
@@ -836,6 +955,8 @@ All implementation must be testable against these required named tests.
 - `mcp_status_tool_returns_task_array`
 - `mcp_pass_tool_advances_bound_task`
 - `http_router_mounts_mcp_endpoint`
+- `ui_args_target_requested_root`
+- `open_ui_is_enabled_for_stdio_and_http_modes`
 - `tray_tooltip_renders_stdio_mode`
 - `tray_tooltip_renders_http_port_mode`
 - `http_login_item_plist_contains_gate_service_label_and_port`

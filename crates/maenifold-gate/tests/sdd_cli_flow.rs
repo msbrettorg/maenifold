@@ -1,16 +1,17 @@
 mod support;
 
 use predicates::prelude::*;
+use std::thread;
 use support::{
     gate_command, gate_db_path, gitignore_path, new_pipeline_root, read_task, status_json,
-    write_legacy_task_without_pipeline_binding, write_pending_task,
-    write_task_with_mismatched_digest, write_task_without_pipeline_digest,
+    sync_gate, write_legacy_task_without_pipeline_binding, write_pending_task,
 };
 
 #[test]
 fn status_reports_new_todo_task_as_pending() {
     let root = new_pipeline_root();
     write_pending_task(root.path(), "T-1.1");
+    sync_gate(root.path());
 
     let output = status_json(root.path());
     let rendered = serde_json::to_string(&output).expect("render status JSON");
@@ -23,6 +24,20 @@ fn status_reports_new_todo_task_as_pending() {
 fn append_records_swe_work_without_advancing_state() {
     let root = new_pipeline_root();
     let task = write_pending_task(root.path(), "T-1.1");
+
+    gate_command(root.path())
+        .args([
+            "pass",
+            "T-1.1",
+            "--root",
+            root.path().to_str().expect("root utf8"),
+            "--agent",
+            "test-agent",
+            "--notes",
+            "pending gate",
+        ])
+        .assert()
+        .success();
 
     gate_command(root.path())
         .args([
@@ -39,13 +54,59 @@ fn append_records_swe_work_without_advancing_state() {
         .success();
 
     let task_text = read_task(&task);
-    assert!(task_text.contains("## SWE Remediation"));
+    assert!(task_text.contains("## SWE"));
     assert!(task_text.contains("**Pipeline**: sdd"));
-    assert!(task_text.contains("**Pipeline Digest**:"));
 
     let output = status_json(root.path());
     let rendered = serde_json::to_string(&output).expect("render status JSON");
-    assert!(rendered.contains("pending"));
+    assert!(rendered.contains("swe"));
+}
+
+#[test]
+fn concurrent_append_operations_preserve_both_sections() {
+    let root = new_pipeline_root();
+    let task = write_pending_task(root.path(), "T-1.1");
+    let left_root = root.path().to_path_buf();
+    let right_root = root.path().to_path_buf();
+
+    let left = thread::spawn(move || {
+        gate_command(&left_root)
+            .args([
+                "append",
+                "T-1.1",
+                "--root",
+                left_root.to_str().expect("root utf8"),
+                "--agent",
+                "swe",
+                "--notes",
+                "first concurrent append",
+            ])
+            .assert()
+            .success();
+    });
+
+    let right = thread::spawn(move || {
+        gate_command(&right_root)
+            .args([
+                "append",
+                "T-1.1",
+                "--root",
+                right_root.to_str().expect("root utf8"),
+                "--agent",
+                "swe",
+                "--notes",
+                "second concurrent append",
+            ])
+            .assert()
+            .success();
+    });
+
+    left.join().expect("join first append");
+    right.join().expect("join second append");
+
+    let task_text = read_task(&task);
+    assert!(task_text.contains("first concurrent append"));
+    assert!(task_text.contains("second concurrent append"));
 }
 
 #[test]
@@ -72,7 +133,12 @@ fn append_on_done_task_fails_with_explicit_message() {
     let root = new_pipeline_root();
     let task = write_pending_task(root.path(), "T-1.1");
 
-    for notes in ["swe completed", "red approved", "blue verified"] {
+    for notes in [
+        "pending gate",
+        "swe completed",
+        "red approved",
+        "blue verified",
+    ] {
         gate_command(root.path())
             .args([
                 "pass",
@@ -130,7 +196,12 @@ fn fail_on_done_task_reopens_it_in_todo_pending() {
     let root = new_pipeline_root();
     let todo_path = write_pending_task(root.path(), "T-1.1");
 
-    for notes in ["swe completed", "red approved", "blue verified"] {
+    for notes in [
+        "pending gate",
+        "swe completed",
+        "red approved",
+        "blue verified",
+    ] {
         gate_command(root.path())
             .args([
                 "pass",
@@ -210,6 +281,20 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
             "--agent",
             "test-agent",
             "--notes",
+            "pending gate",
+        ])
+        .assert()
+        .success();
+
+    gate_command(root.path())
+        .args([
+            "pass",
+            "T-1.1",
+            "--root",
+            root.path().to_str().expect("root utf8"),
+            "--agent",
+            "test-agent",
+            "--notes",
             "swe completed",
         ])
         .assert()
@@ -248,7 +333,7 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
     assert!(rendered.contains("pending"));
     assert!(rendered.contains("\"attempts\":1") || rendered.contains("\"attempts\": 1"));
     let task_text = read_task(&task);
-    assert!(task_text.contains("## Blue-team Verification"));
+    assert!(task_text.contains("## Blue-Team"));
     assert!(task_text.contains("FAIL"));
 }
 
@@ -256,6 +341,20 @@ fn fail_returns_sdd_task_from_blue_to_pending_and_increments_attempts() {
 fn fail_from_pending_dispatch_state_returns_to_pending_and_increments_attempts() {
     let root = new_pipeline_root();
     let task = write_pending_task(root.path(), "T-1.1");
+
+    gate_command(root.path())
+        .args([
+            "pass",
+            "T-1.1",
+            "--root",
+            root.path().to_str().expect("root utf8"),
+            "--agent",
+            "test-agent",
+            "--notes",
+            "pending gate",
+        ])
+        .assert()
+        .success();
 
     gate_command(root.path())
         .args([
@@ -276,7 +375,7 @@ fn fail_from_pending_dispatch_state_returns_to_pending_and_increments_attempts()
     assert!(rendered.contains("pending"));
     assert!(rendered.contains("\"attempts\":1") || rendered.contains("\"attempts\": 1"));
     let task_text = read_task(&task);
-    assert!(task_text.contains("## SWE Remediation"));
+    assert!(task_text.contains("## SWE"));
     assert!(task_text.contains("FAIL"));
 }
 
@@ -284,8 +383,17 @@ fn fail_from_pending_dispatch_state_returns_to_pending_and_increments_attempts()
 fn task_file_requires_explicit_pipeline_binding() {
     let root = new_pipeline_root();
     write_legacy_task_without_pipeline_binding(root.path(), "T-1.1");
-
     gate_command(root.path())
+        .args(["sync", "--root"])
+        .arg(root.path())
+        .arg("--rebuild")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "missing task metadata field: Pipeline",
+        ));
+
+    let output = gate_command(root.path())
         .args([
             "status",
             "--root",
@@ -293,42 +401,14 @@ fn task_file_requires_explicit_pipeline_binding() {
             "--json",
         ])
         .assert()
-        .failure()
-        .stderr(predicate::str::contains("Pipeline").or(predicate::str::contains("binding")));
-}
+        .success()
+        .get_output()
+        .stdout
+        .clone();
 
-#[test]
-fn task_file_requires_pipeline_digest() {
-    let root = new_pipeline_root();
-    write_task_without_pipeline_digest(root.path(), "T-1.1", "sdd");
-
-    gate_command(root.path())
-        .args([
-            "status",
-            "--root",
-            root.path().to_str().expect("root utf8"),
-            "--json",
-        ])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("Pipeline Digest").or(predicate::str::contains("digest")));
-}
-
-#[test]
-fn status_errors_when_pipeline_digest_mismatches_authoritative_asset() {
-    let root = new_pipeline_root();
-    write_task_with_mismatched_digest(root.path(), "T-1.1", "sdd");
-
-    gate_command(root.path())
-        .args([
-            "status",
-            "--root",
-            root.path().to_str().expect("root utf8"),
-            "--json",
-        ])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("digest").or(predicate::str::contains("mismatch")));
+    let rendered = String::from_utf8(output).expect("status utf8");
+    assert!(rendered.contains("\"pipeline\": null"));
+    assert!(rendered.contains("missing task metadata field: Pipeline"));
 }
 
 #[test]
@@ -384,8 +464,8 @@ fn sync_rebuild_writes_db_under_dot_gate_and_updates_gitignore_idempotently() {
         .assert()
         .success();
 
-    let second_gitignore =
-        std::fs::read_to_string(gitignore_path(root.path())).expect("read .gitignore after second sync");
+    let second_gitignore = std::fs::read_to_string(gitignore_path(root.path()))
+        .expect("read .gitignore after second sync");
     let occurrences = second_gitignore
         .lines()
         .filter(|line| line.trim() == ".gate/")

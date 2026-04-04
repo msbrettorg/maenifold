@@ -17,12 +17,16 @@ impl StatusCommand {
                 GateError::TaskMetadataParse("status output must be an array".to_string())
             })?;
             for value in values {
-                println!(
-                    "{} {} {}",
-                    value["taskId"].as_str().unwrap_or_default(),
-                    value["pipeline"].as_str().unwrap_or_default(),
-                    value["state"].as_str().unwrap_or_default()
-                );
+                let task_id = value["taskId"].as_str().unwrap_or_default();
+                let pipeline = value["pipeline"].as_str().unwrap_or("-");
+                let state = value["state"].as_str().unwrap_or_default();
+                let issue = value["issue"].as_str().unwrap_or_default();
+                if issue.is_empty() {
+                    println!("{task_id} {pipeline} {state}");
+                } else {
+                    let path = value["path"].as_str().unwrap_or_default();
+                    println!("{task_id} {pipeline} {state} {path}: {issue}");
+                }
             }
         }
 

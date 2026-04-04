@@ -3,7 +3,7 @@ pub mod schema;
 
 use std::future::Future;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use axum::http::{HeaderName, HeaderValue, request::Parts};
 use rmcp::model::{
@@ -54,15 +54,23 @@ pub(crate) fn localhost_cors() -> CorsLayer {
 pub(crate) struct GateMcpHandler {
     transport: TransportKind,
     tools: Vec<Tool>,
+    root: Arc<RwLock<Option<PathBuf>>>,
 }
 
 impl GateMcpHandler {
-    pub(crate) fn new(transport: TransportKind) -> Result<Self, GateError> {
+    pub(crate) fn new(
+        transport: TransportKind,
+        root: Arc<RwLock<Option<PathBuf>>>,
+    ) -> Result<Self, GateError> {
         let tools = list()
             .into_iter()
             .map(to_rmcp_tool)
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(Self { transport, tools })
+        Ok(Self {
+            transport,
+            tools,
+            root,
+        })
     }
 }
 
@@ -106,10 +114,24 @@ impl ServerHandler for GateMcpHandler {
             Some(map) => Value::Object(map),
             None => Value::Object(Map::new()),
         };
+        let shared_root = self.root.clone();
 
         async move {
-            match call_gate_tool(&tool_name, arguments) {
-                Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
+            let default_root = shared_root.read().unwrap().clone();
+            let explicit_root = match optional_path(&arguments, "root") {
+                Ok(root) => root,
+                Err(err) => {
+                    return Ok(CallToolResult::error(vec![Content::text(err.to_string())]));
+                }
+            };
+            match call_gate_tool(&tool_name, &arguments, default_root.as_ref()) {
+                Ok(output) => {
+                    if let Some(explicit_root) = explicit_root {
+                        let mut root_guard = shared_root.write().unwrap();
+                        *root_guard = Some(explicit_root);
+                    }
+                    Ok(CallToolResult::success(vec![Content::text(output)]))
+                }
                 Err(err) => Ok(CallToolResult::error(vec![Content::text(err.to_string())])),
             }
         }
@@ -117,8 +139,8 @@ impl ServerHandler for GateMcpHandler {
 }
 
 impl GateMcpServer {
-    pub async fn serve_stdio() -> Result<(), GateError> {
-        let handler = GateMcpHandler::new(TransportKind::Stdio)?;
+    pub async fn serve_stdio(root: Arc<RwLock<Option<PathBuf>>>) -> Result<(), GateError> {
+        let handler = GateMcpHandler::new(TransportKind::Stdio, root)?;
         let transport = rmcp::transport::io::stdio();
         let service = handler
             .serve(transport)
@@ -148,34 +170,38 @@ fn to_rmcp_tool(definition: McpToolDefinition) -> Result<Tool, GateError> {
     ))
 }
 
-fn call_gate_tool(tool_name: &str, arguments: Value) -> Result<String, GateError> {
+fn call_gate_tool(
+    tool_name: &str,
+    arguments: &Value,
+    root: Option<&PathBuf>,
+) -> Result<String, GateError> {
     let result = match tool_name {
         "status" => GateToolService::status(StatusArgs {
-            context: context_from_value(&arguments, false)?,
+            context: context_from_value(&arguments, false, root)?,
         })?,
         "append" => GateToolService::append(AppendArgs {
-            context: context_from_value(&arguments, false)?,
+            context: context_from_value(&arguments, false, root)?,
             task_id: required_string(&arguments, "taskId")?,
             agent: required_string(&arguments, "agent")?,
             notes: required_string(&arguments, "notes")?,
             model: optional_string(&arguments, "model")?,
         })?,
         "pass" => GateToolService::pass(OutcomeArgs {
-            context: context_from_value(&arguments, false)?,
+            context: context_from_value(&arguments, false, root)?,
             task_id: required_string(&arguments, "taskId")?,
             agent: required_string(&arguments, "agent")?,
             notes: required_string(&arguments, "notes")?,
             model: optional_string(&arguments, "model")?,
         })?,
         "fail" => GateToolService::fail(OutcomeArgs {
-            context: context_from_value(&arguments, false)?,
+            context: context_from_value(&arguments, false, root)?,
             task_id: required_string(&arguments, "taskId")?,
             agent: required_string(&arguments, "agent")?,
             notes: required_string(&arguments, "notes")?,
             model: optional_string(&arguments, "model")?,
         })?,
         "sync" => GateToolService::sync(SyncArgs {
-            context: context_from_value(&arguments, false)?,
+            context: context_from_value(&arguments, false, root)?,
             rebuild: optional_bool(&arguments, "rebuild")?.unwrap_or(false),
         })?,
         _ => {
@@ -188,14 +214,30 @@ fn call_gate_tool(tool_name: &str, arguments: Value) -> Result<String, GateError
     serde_json::to_string_pretty(&result).map_err(GateError::from)
 }
 
-fn context_from_value(arguments: &Value, json_output: bool) -> Result<GateContext, GateError> {
+fn context_from_value(
+    arguments: &Value,
+    json_output: bool,
+    default_root: Option<&PathBuf>,
+) -> Result<GateContext, GateError> {
+    let root = match optional_path(arguments, "root")? {
+        Some(root) => root,
+        None => default_root.cloned().ok_or_else(|| {
+            GateError::Cli(
+                "gate root is not set; pass MCP argument 'root' to select a workspace root"
+                    .to_string(),
+            )
+        })?,
+    };
+
     Ok(GateContext {
-        root: optional_string(arguments, "root")?
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from(".")),
+        root,
         requested_pipeline_name: optional_string(arguments, "pipeline")?,
         json_output,
     })
+}
+
+fn optional_path(arguments: &Value, key: &str) -> Result<Option<PathBuf>, GateError> {
+    Ok(optional_string(arguments, key)?.map(PathBuf::from))
 }
 
 fn required_string(arguments: &Value, key: &str) -> Result<String, GateError> {
@@ -229,39 +271,56 @@ mod tests {
     use std::path::Path;
 
     use serde_json::json;
-    use sha2::{Digest, Sha256};
     use tempfile::TempDir;
 
-    use super::call_gate_tool;
+    use super::{call_gate_tool, context_from_value};
 
     #[test]
     fn mcp_status_tool_returns_task_array() {
         let root = new_custom_pipeline_root();
-        let output = call_gate_tool("status", json!({ "root": root.path() }))
+        let root_path = root.path().to_path_buf();
+        call_gate_tool(
+            "sync",
+            &json!({ "root": root.path(), "rebuild": true }),
+            Some(&root_path),
+        )
+        .expect("sync tool should succeed");
+        let output = call_gate_tool("status", &json!({ "root": root.path() }), Some(&root_path))
             .expect("status tool should succeed");
         let value: serde_json::Value = serde_json::from_str(&output).expect("valid JSON output");
         let tasks = value.as_array().expect("status should return an array");
         assert_eq!(tasks.len(), 1);
         assert_eq!(tasks[0]["taskId"], "T-9.1");
-        assert_eq!(tasks[0]["status"], "pending");
+        assert_eq!(tasks[0]["state"], "pending");
     }
 
     #[test]
     fn mcp_pass_tool_advances_bound_task() {
         let root = new_custom_pipeline_root();
+        let root_path = root.path().to_path_buf();
         let output = call_gate_tool(
             "pass",
-            json!({
+            &json!({
                 "root": root.path(),
                 "taskId": "T-9.1",
                 "agent": "swe",
                 "notes": "swe completed"
             }),
+            Some(&root_path),
         )
         .expect("pass tool should succeed");
         let value: serde_json::Value = serde_json::from_str(&output).expect("valid JSON output");
         assert_eq!(value["taskId"], "T-9.1");
-        assert_eq!(value["status"], "red");
+        assert_eq!(value["state"], "swe");
+    }
+
+    #[test]
+    fn context_requires_explicit_root_when_service_default_is_unset() {
+        let err = context_from_value(&json!({}), false, None).expect_err("missing root must fail");
+        assert!(
+            err.to_string()
+                .contains("gate root is not set; pass MCP argument 'root'")
+        );
     }
 
     fn new_custom_pipeline_root() -> TempDir {
@@ -277,34 +336,27 @@ mod tests {
             "initial": "pending",
             "states": {
                 "pending": { "on": { "pass": "swe" } },
-                "swe": { "on": { "fail": "pending", "pass": "red" } },
-                "red": { "on": { "fail": "pending", "pass": "done" } },
+                "swe": { "on": { "fail": "pending", "pass": "red-team" } },
+                "red-team": { "on": { "fail": "pending", "pass": "done" } },
                 "done": { "terminal": true }
             }
         });
         let pipeline_text =
             serde_json::to_string_pretty(&pipeline_json).expect("serialize pipeline json");
         fs::write(root.join("pipeline.json"), &pipeline_text).expect("write pipeline");
-        let digest = digest_hex(pipeline_text.as_bytes());
 
         fs::write(
             root.join("todo").join("T-9.1.md"),
-            task_markdown("T-9.1", "custom", &digest),
+            task_markdown("T-9.1", "custom"),
         )
         .expect("write task");
         temp
     }
 
-    fn task_markdown(task_id: &str, pipeline: &str, digest: &str) -> String {
+    fn task_markdown(task_id: &str, pipeline: &str) -> String {
         format!(
-            "# {task_id} — MCP Test\n\n**Pipeline**: {pipeline}\n**Pipeline Digest**: {digest}\n\n## Acceptance Criteria\n\n1. tool call succeeds\n"
+            "# {task_id} — MCP Test\n\n**Pipeline**: {pipeline}\n\n## Acceptance Criteria\n\n1. tool call succeeds\n"
         )
-    }
-
-    fn digest_hex(bytes: &[u8]) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(bytes);
-        format!("{:x}", hasher.finalize())
     }
 
     #[allow(dead_code)]

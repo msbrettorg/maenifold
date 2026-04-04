@@ -13,9 +13,9 @@ fn builtin_sdd_definition_matches_authoritative_asset() {
         "initial": "pending",
         "states": {
             "pending": { "on": { "pass": "swe" } },
-            "swe": { "on": { "fail": "pending", "pass": "red" } },
-            "red": { "on": { "fail": "pending", "pass": "blue" } },
-            "blue": { "on": { "fail": "pending", "pass": "done" } },
+            "swe": { "on": { "fail": "pending", "pass": "red-team" } },
+            "red-team": { "on": { "fail": "pending", "pass": "blue-team" } },
+            "blue-team": { "on": { "fail": "pending", "pass": "done" } },
             "done": { "terminal": true }
         }
     });
@@ -40,8 +40,8 @@ fn builtin_lightweight_definition_matches_authoritative_asset() {
     assert_eq!(actual["schemaVersion"], 1);
     assert_eq!(actual["id"], "lightweight");
     assert_eq!(actual["states"]["pending"]["on"]["pass"], "swe");
-    assert_eq!(actual["states"]["swe"]["on"]["pass"], "blue");
-    assert_eq!(actual["states"]["blue"]["on"]["pass"], "done");
+    assert_eq!(actual["states"]["swe"]["on"]["pass"], "blue-team");
+    assert_eq!(actual["states"]["blue-team"]["on"]["pass"], "done");
 }
 
 #[test]
@@ -50,6 +50,6 @@ fn builtin_tdd_definition_matches_authoritative_asset() {
     assert_eq!(actual["schemaVersion"], 1);
     assert_eq!(actual["id"], "tdd");
     assert_eq!(actual["name"], "Test Driven Development");
-    assert_eq!(actual["states"]["pending"]["on"]["pass"], "swe");
-    assert_eq!(actual["states"]["red"]["on"]["pass"], "blue");
+    assert_eq!(actual["states"]["pending"]["on"]["pass"], "blue-team");
+    assert_eq!(actual["states"]["red-team"]["on"]["pass"], "done");
 }

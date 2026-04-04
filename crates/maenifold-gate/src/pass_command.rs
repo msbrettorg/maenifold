@@ -4,7 +4,7 @@ use crate::gate_catalog::GateDefinitionCatalog;
 use crate::gate_tool_service::GateToolService;
 use crate::section_factory::CanonicalSectionFactory;
 use crate::state_machine::StateMachine;
-use crate::task_file::{TaskFileReader, TaskFileWriter};
+use crate::task_file::{TaskFileLock, TaskFileReader, TaskFileWriter};
 use crate::task_repository::TaskRepository;
 use crate::task_status::TaskStatusDeriver;
 
@@ -18,14 +18,6 @@ impl PassCommand {
     }
 }
 
-pub(crate) fn execute_shared_outcome(args: OutcomeArgs, outcome: &str) -> Result<(), GateError> {
-    match outcome {
-        "pass" => pass_task(args),
-        "fail" => fail_task(args),
-        _ => unreachable!(),
-    }
-}
-
 pub(crate) fn pass_task(args: OutcomeArgs) -> Result<(), GateError> {
     apply_outcome(args, "pass")
 }
@@ -35,6 +27,7 @@ pub(crate) fn fail_task(args: OutcomeArgs) -> Result<(), GateError> {
 }
 
 fn apply_outcome(args: OutcomeArgs, outcome: &str) -> Result<(), GateError> {
+    let _task_lock = TaskFileLock::acquire(&args.context.root, &args.task_id)?;
     let task = TaskRepository::find_task(args.context.root.clone(), &args.task_id)?;
     let document = TaskFileReader::read(&task.path)?;
     let definition = GateDefinitionCatalog::resolve_for_task(

@@ -12,16 +12,16 @@
     "swe": {
       "on": {
         "fail": "pending",
-        "pass": "red"
+        "pass": "red-team"
       }
     },
-    "red": {
+    "red-team": {
       "on": {
         "fail": "pending",
-        "pass": "blue"
+        "pass": "blue-team"
       }
     },
-    "blue": {
+    "blue-team": {
       "on": {
         "fail": "pending",
         "pass": "done"

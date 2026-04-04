@@ -1,3 +1,6 @@
+use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
+
 use tokio_util::sync::CancellationToken;
 use tray_icon::menu::MenuEvent;
 use tray_icon::{Icon, TrayIconBuilder};
@@ -8,6 +11,7 @@ use winit::event_loop::{ActiveEventLoop, EventLoop};
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
+use crate::file_watcher::GateFileWatcher;
 use crate::mcp::GateMcpServer;
 use crate::tray_menu::{build_tray_menu, open_ui, toggle_login_item};
 
@@ -28,8 +32,9 @@ impl GateServerMode {
 
 struct TrayApp {
     mode: GateServerMode,
-    root: std::path::PathBuf,
+    root: Arc<RwLock<Option<PathBuf>>>,
     shutdown_token: CancellationToken,
+    _file_watcher: Option<GateFileWatcher>,
     server_handle: Option<std::thread::JoinHandle<i32>>,
     tray_icon: Option<tray_icon::TrayIcon>,
     quit_id: Option<tray_icon::menu::MenuId>,
@@ -86,7 +91,8 @@ impl TrayApp {
         }
 
         if self.open_ui_id.as_ref().is_some_and(|id| event.id == *id) {
-            open_ui(&self.root);
+            let root = self.root.read().unwrap().clone();
+            open_ui(root.as_deref());
             return;
         }
 
@@ -137,8 +143,17 @@ pub fn run_with_tray(mode: GateServerMode) -> i32 {
 
     #[cfg(target_os = "macos")]
     {
+        let root = Arc::new(RwLock::new(None));
         let shutdown_token = CancellationToken::new();
+        let file_watcher = match GateFileWatcher::start(root.clone(), &shutdown_token) {
+            Ok(watcher) => watcher,
+            Err(err) => {
+                eprintln!("Error starting gate file watcher: {err}");
+                return 1;
+            }
+        };
         let server_shutdown_token = shutdown_token.clone();
+        let server_root = root.clone();
         let server_handle = std::thread::Builder::new()
             .name("gate-mcp-server".into())
             .spawn(move || {
@@ -151,7 +166,7 @@ pub fn run_with_tray(mode: GateServerMode) -> i32 {
                 };
                 let result = rt.block_on(async move {
                     tokio::select! {
-                        result = run_mode(mode) => result,
+                        result = run_mode(mode, server_root) => result,
                         _ = server_shutdown_token.cancelled() => Ok(()),
                     }
                 });
@@ -171,8 +186,9 @@ pub fn run_with_tray(mode: GateServerMode) -> i32 {
         let event_loop = builder.build().expect("build tray event loop");
         let mut app = TrayApp {
             mode,
-            root: std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
+            root,
             shutdown_token,
+            _file_watcher: Some(file_watcher),
             server_handle: Some(server_handle),
             tray_icon: None,
             quit_id: None,
@@ -203,6 +219,15 @@ pub fn run_with_tray(mode: GateServerMode) -> i32 {
 
 #[cfg(not(target_os = "macos"))]
 fn run_headless(mode: GateServerMode) -> i32 {
+    let root = Arc::new(RwLock::new(None));
+    let shutdown_token = CancellationToken::new();
+    let _file_watcher = match GateFileWatcher::start(root.clone(), &shutdown_token) {
+        Ok(watcher) => watcher,
+        Err(err) => {
+            eprintln!("Error starting gate file watcher: {err}");
+            return 1;
+        }
+    };
     let rt = match tokio::runtime::Runtime::new() {
         Ok(rt) => rt,
         Err(err) => {
@@ -210,7 +235,8 @@ fn run_headless(mode: GateServerMode) -> i32 {
             return 1;
         }
     };
-    let result = rt.block_on(run_mode(mode));
+    let result = rt.block_on(run_mode(mode, root));
+    shutdown_token.cancel();
     rt.shutdown_timeout(std::time::Duration::from_secs(5));
     match result {
         Ok(()) => 0,
@@ -221,10 +247,13 @@ fn run_headless(mode: GateServerMode) -> i32 {
     }
 }
 
-async fn run_mode(mode: GateServerMode) -> Result<(), crate::error::GateError> {
+async fn run_mode(
+    mode: GateServerMode,
+    root: Arc<RwLock<Option<PathBuf>>>,
+) -> Result<(), crate::error::GateError> {
     match mode {
-        GateServerMode::Stdio => GateMcpServer::serve_stdio().await,
-        GateServerMode::Http(port) => GateMcpServer::serve_http(port).await,
+        GateServerMode::Stdio => GateMcpServer::serve_stdio(root).await,
+        GateServerMode::Http(port) => GateMcpServer::serve_http(port, root).await,
     }
 }
 

@@ -33,25 +33,43 @@ impl TaskSectionParser {
             let mut model = None;
             let mut recorded_at = None;
             let mut notes = None;
+            let mut saw_gate_field = false;
 
             while index < lines.len() && !lines[index].starts_with("## ") {
                 if let Some(rest) = lines[index].strip_prefix("- ") {
-                    let Some((label, value)) = rest.split_once(':') else {
-                        return Err(GateError::TaskMetadataParse(format!(
-                            "invalid section line: {}",
-                            lines[index]
-                        )));
-                    };
-                    let value = value.trim().to_string();
-                    match label.trim() {
-                        "Stage ID" => stage = Some(value),
-                        "Record Kind" => record_kind = Some(value),
-                        "Agent" => agent = Some(value),
-                        "Recorded At" => recorded_at = Some(value),
-                        "Model" => model = Some(value),
-                        "Outcome" => outcome = Some(value.to_ascii_lowercase()),
-                        "Notes" => notes = Some(value),
-                        _ => {}
+                    if let Some((label, value)) = rest.split_once(':') {
+                        let value = value.trim().to_string();
+                        match label.trim() {
+                            "Stage ID" => {
+                                saw_gate_field = true;
+                                stage = Some(value);
+                            }
+                            "Record Kind" => {
+                                saw_gate_field = true;
+                                record_kind = Some(value);
+                            }
+                            "Agent" => {
+                                saw_gate_field = true;
+                                agent = Some(value);
+                            }
+                            "Recorded At" => {
+                                saw_gate_field = true;
+                                recorded_at = Some(value);
+                            }
+                            "Model" => {
+                                saw_gate_field = true;
+                                model = Some(value);
+                            }
+                            "Outcome" => {
+                                saw_gate_field = true;
+                                outcome = Some(value.to_ascii_lowercase());
+                            }
+                            "Notes" => {
+                                saw_gate_field = true;
+                                notes = Some(value);
+                            }
+                            _ => {}
+                        }
                     }
                 }
                 index += 1;
@@ -75,6 +93,10 @@ impl TaskSectionParser {
                         GateError::TaskMetadataParse("missing section Notes".to_string())
                     })?,
                 });
+            } else if saw_gate_field {
+                return Err(GateError::TaskMetadataParse(
+                    "gate section is missing Stage ID".to_string(),
+                ));
             }
         }
 

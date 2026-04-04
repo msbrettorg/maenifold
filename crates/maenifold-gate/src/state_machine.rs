@@ -67,27 +67,48 @@ impl StateMachine {
             });
         }
 
-        if normalized_state == initial {
-            let entry_state = gate_state
-                .on
-                .get("pass")
-                .ok_or_else(|| {
-                    GateError::TaskMetadataParse(format!(
-                        "initial state '{initial}' must declare an on.pass transition"
-                    ))
-                })?
-                .clone();
-            let entry = definition
-                .find_state(&entry_state)
-                .ok_or_else(|| GateError::UnknownState(entry_state.clone()))?;
-            if entry.terminal {
-                return Err(GateError::TaskMetadataParse(format!(
-                    "initial state '{initial}' cannot dispatch directly to terminal state '{entry_state}'"
-                )));
-            }
-            return Ok((entry_state, entry));
-        }
-
         Ok((normalized_state.to_string(), gate_state))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::StateMachine;
+    use crate::gate_definition::GateDefinition;
+
+    fn sdd_definition() -> GateDefinition {
+        GateDefinition::from_json_text(
+            r#"{
+              "schemaVersion": 1,
+              "id": "sdd",
+              "name": "Spec Driven Development",
+              "initial": "pending",
+              "states": {
+                "pending": { "on": { "pass": "swe" } },
+                "swe": { "on": { "fail": "pending", "pass": "red-team" } },
+                "red-team": { "on": { "fail": "pending", "pass": "blue-team" } },
+                "blue-team": { "on": { "fail": "pending", "pass": "done" } },
+                "done": { "terminal": true }
+              }
+            }"#,
+        )
+        .expect("valid definition")
+    }
+
+    #[test]
+    fn pending_pass_advances_exactly_one_stage() {
+        let transition =
+            StateMachine::next_on_pass("pending", &sdd_definition()).expect("pending pass");
+
+        assert_eq!(transition.acting_stage, "pending");
+        assert_eq!(transition.next_state, "swe");
+    }
+
+    #[test]
+    fn pending_append_uses_pending_stage() {
+        let acting_stage =
+            StateMachine::acting_stage_name("pending", &sdd_definition()).expect("pending stage");
+
+        assert_eq!(acting_stage, "pending");
     }
 }

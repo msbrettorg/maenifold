@@ -1,14 +1,14 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 
+use indexmap::IndexMap;
 use serde::Deserialize;
 
 use crate::error::GateError;
 
 #[derive(Debug, Clone)]
 pub struct GateDefinition {
-    pub digest: String,
     pub initial: String,
-    pub states: BTreeMap<String, GateState>,
+    pub states: IndexMap<String, GateState>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -18,7 +18,7 @@ struct GateDefinitionFile {
     id: String,
     name: String,
     initial: String,
-    states: BTreeMap<String, GateState>,
+    states: IndexMap<String, GateState>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -26,7 +26,7 @@ pub struct GateState {
     #[serde(default)]
     pub terminal: bool,
     #[serde(default)]
-    pub on: BTreeMap<String, String>,
+    pub on: IndexMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,7 +40,7 @@ pub struct TransitionResult {
 pub struct GateDefinitionValidator;
 
 impl GateDefinition {
-    pub fn from_json_text(text: &str, digest: String) -> Result<Self, GateError> {
+    pub fn from_json_text(text: &str) -> Result<Self, GateError> {
         let file: GateDefinitionFile = serde_json::from_str(text)?;
         if file.schema_version != 1 {
             return Err(GateError::TaskMetadataParse(format!(
@@ -60,7 +60,6 @@ impl GateDefinition {
         }
 
         let definition = Self {
-            digest,
             initial: file.initial,
             states: file.states,
         };
@@ -78,6 +77,11 @@ impl GateDefinition {
 
     pub fn find_state(&self, id: &str) -> Option<&GateState> {
         self.states.get(id)
+    }
+
+    pub fn ordered_stage_ids(&self) -> Result<Vec<String>, GateError> {
+        self.initial_state()?;
+        Ok(self.states.keys().cloned().collect())
     }
 }
 
@@ -110,5 +114,35 @@ impl GateDefinitionValidator {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GateDefinition;
+
+    #[test]
+    fn ordered_stage_ids_follow_pass_path() {
+        let definition = GateDefinition::from_json_text(
+            r#"{
+              "schemaVersion": 1,
+              "id": "sdd",
+              "name": "Spec Driven Development",
+              "initial": "pending",
+              "states": {
+                "pending": { "on": { "pass": "swe" } },
+                "swe": { "on": { "fail": "pending", "pass": "red-team" } },
+                "red-team": { "on": { "fail": "pending", "pass": "blue-team" } },
+                "blue-team": { "on": { "fail": "pending", "pass": "done" } },
+                "done": { "terminal": true }
+              }
+            }"#,
+        )
+        .expect("valid definition");
+
+        assert_eq!(
+            definition.ordered_stage_ids().expect("stage order"),
+            vec!["pending", "swe", "red-team", "blue-team", "done"]
+        );
     }
 }

@@ -5,7 +5,7 @@ use clap::{Args, CommandFactory, FromArgMatches, Parser, Subcommand, parser::Val
 use crate::append_command::AppendCommand;
 use crate::error::GateError;
 use crate::fail_command::FailCommand;
-use crate::mcp::GateMcpServer;
+use crate::history_command::HistoryCommand;
 use crate::pass_command::PassCommand;
 use crate::status_command::StatusCommand;
 use crate::sync_command::SyncCommand;
@@ -33,6 +33,12 @@ pub struct AppendArgs {
 }
 
 #[derive(Debug, Clone)]
+pub struct HistoryArgs {
+    pub context: GateContext,
+    pub task_id: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct OutcomeArgs {
     pub context: GateContext,
     pub task_id: String,
@@ -51,6 +57,7 @@ pub struct SyncArgs {
 pub enum CommandRequest {
     Status(StatusArgs),
     Append(AppendArgs),
+    History(HistoryArgs),
     Pass(OutcomeArgs),
     Fail(OutcomeArgs),
     Sync(SyncArgs),
@@ -98,13 +105,6 @@ impl GateCliApp {
             return 1;
         }
 
-        if parsed.cli.http {
-            return run_http(parsed.cli.port);
-        }
-        if parsed.cli.mcp {
-            return run_mcp();
-        }
-
         match parsed.cli.command {
             Some(GateSubcommand::Ui(args)) => GateUiWindow::run(args.shared.root),
             Some(command) => match command.into_request() {
@@ -126,6 +126,7 @@ fn run_command(request: CommandRequest) -> i32 {
     let result = match request {
         CommandRequest::Status(args) => StatusCommand::execute(args),
         CommandRequest::Append(args) => AppendCommand::execute(args),
+        CommandRequest::History(args) => HistoryCommand::execute(args),
         CommandRequest::Pass(args) => PassCommand::execute(args),
         CommandRequest::Fail(args) => FailCommand::execute(args),
         CommandRequest::Sync(args) => SyncCommand::execute(args),
@@ -135,44 +136,6 @@ fn run_command(request: CommandRequest) -> i32 {
         Ok(()) => 0,
         Err(err) => {
             eprintln!("{err}");
-            1
-        }
-    }
-}
-
-fn run_mcp() -> i32 {
-    let rt = match tokio::runtime::Runtime::new() {
-        Ok(rt) => rt,
-        Err(err) => {
-            eprintln!("Error creating async runtime: {err}");
-            return 1;
-        }
-    };
-    let result = rt.block_on(GateMcpServer::serve_stdio());
-    rt.shutdown_timeout(std::time::Duration::from_secs(5));
-    match result {
-        Ok(()) => 0,
-        Err(err) => {
-            eprintln!("Error running MCP stdio server: {err}");
-            1
-        }
-    }
-}
-
-fn run_http(port: u16) -> i32 {
-    let rt = match tokio::runtime::Runtime::new() {
-        Ok(rt) => rt,
-        Err(err) => {
-            eprintln!("Error creating async runtime: {err}");
-            return 1;
-        }
-    };
-    let result = rt.block_on(GateMcpServer::serve_http(port));
-    rt.shutdown_timeout(std::time::Duration::from_secs(5));
-    match result {
-        Ok(()) => 0,
-        Err(err) => {
-            eprintln!("Error running MCP HTTP server: {err}");
             1
         }
     }
@@ -199,6 +162,7 @@ struct GateCli {
 enum GateSubcommand {
     Status(StatusCliArgs),
     Append(AppendCliArgs),
+    History(HistoryCliArgs),
     Pass(OutcomeCliArgs),
     Fail(OutcomeCliArgs),
     Sync(SyncCliArgs),
@@ -217,6 +181,10 @@ impl GateSubcommand {
                 agent: args.agent,
                 notes: args.notes,
                 model: args.model,
+            }),
+            Self::History(args) => CommandRequest::History(HistoryArgs {
+                context: args.shared.into_context(false),
+                task_id: args.task_id,
             }),
             Self::Pass(args) => CommandRequest::Pass(args.into_outcome_args()),
             Self::Fail(args) => CommandRequest::Fail(args.into_outcome_args()),
@@ -270,6 +238,13 @@ struct AppendCliArgs {
     notes: String,
     #[arg(long)]
     model: Option<String>,
+}
+
+#[derive(Debug, Args)]
+struct HistoryCliArgs {
+    task_id: String,
+    #[command(flatten)]
+    shared: SharedCliArgs,
 }
 
 #[derive(Debug, Args)]

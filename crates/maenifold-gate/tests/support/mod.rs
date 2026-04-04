@@ -3,7 +3,6 @@
 
 use assert_cmd::Command;
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
@@ -20,14 +19,6 @@ pub fn read_authoritative_asset(name: &str) -> Value {
         .unwrap_or_else(|error| panic!("failed to read bundled asset {}: {error}", path.display()));
     serde_json::from_str(&text)
         .unwrap_or_else(|error| panic!("failed to parse bundled asset {}: {error}", path.display()))
-}
-
-pub fn authoritative_digest(name: &str) -> String {
-    let bytes = fs::read(bundled_asset_path(name))
-        .unwrap_or_else(|error| panic!("failed to read bundled asset for digest: {error}"));
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    format!("{:x}", hasher.finalize())
 }
 
 pub fn runtime_assets_dir(root: &Path) -> PathBuf {
@@ -51,20 +42,15 @@ pub fn new_pipeline_root() -> TempDir {
 }
 
 pub fn write_pending_task(root: &Path, task_id: &str) -> PathBuf {
-    write_bound_task(root, task_id, "sdd", &authoritative_digest("sdd"))
+    write_bound_task(root, task_id, "sdd")
 }
 
-pub fn write_bound_task(
-    root: &Path,
-    task_id: &str,
-    pipeline: &str,
-    pipeline_digest: &str,
-) -> PathBuf {
+pub fn write_bound_task(root: &Path, task_id: &str, pipeline: &str) -> PathBuf {
     let path = root.join("todo").join(format!("{task_id}.md"));
     fs::write(
         &path,
         format!(
-            "# {task_id} — Auth Login JWT\n\n**Pipeline**: {pipeline}\n**Pipeline Digest**: {pipeline_digest}\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
+            "# {task_id} — Auth Login JWT\n\n**Pipeline**: {pipeline}\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
         ),
     )
     .expect("write task");
@@ -81,27 +67,6 @@ pub fn write_legacy_task_without_pipeline_binding(root: &Path, task_id: &str) ->
     )
     .expect("write legacy task");
     path
-}
-
-pub fn write_task_without_pipeline_digest(root: &Path, task_id: &str, pipeline: &str) -> PathBuf {
-    let path = root.join("todo").join(format!("{task_id}.md"));
-    fs::write(
-        &path,
-        format!(
-            "# {task_id} — Auth Login JWT\n\n**Pipeline**: {pipeline}\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
-        ),
-    )
-    .expect("write task without digest");
-    path
-}
-
-pub fn write_task_with_mismatched_digest(root: &Path, task_id: &str, pipeline: &str) -> PathBuf {
-    write_bound_task(
-        root,
-        task_id,
-        pipeline,
-        "0000000000000000000000000000000000000000000000000000000000000000",
-    )
 }
 
 pub fn task_path(root: &Path, task_id: &str) -> PathBuf {
@@ -122,6 +87,15 @@ pub fn gate_command(root: &Path) -> Command {
         Command::cargo_bin("gate").expect("gate binary should be present for integration tests");
     command.env("MAENIFOLD_GATE_ASSETS_DIR", runtime_assets_dir(root));
     command
+}
+
+pub fn sync_gate(root: &Path) {
+    gate_command(root)
+        .args(["sync", "--root"])
+        .arg(root)
+        .arg("--rebuild")
+        .assert()
+        .success();
 }
 
 pub fn status_json(root: &Path) -> Value {

@@ -1,9 +1,19 @@
 use chrono::Utc;
 
-use crate::stage_labels::record_heading;
-
 #[derive(Debug, Clone)]
 pub struct CanonicalSectionFactory;
+
+const STAGE_HEADINGS: &[(&str, &str)] = &[
+    ("pending", "Pending"),
+    ("swe", "SWE"),
+    ("red-team", "Red-Team"),
+    ("blue-team", "Blue-Team"),
+    ("research", "Research"),
+    ("plan", "Plan"),
+    ("execute", "Execute"),
+    ("verify", "Verify"),
+    ("done", "Done"),
+];
 
 impl CanonicalSectionFactory {
     pub fn build_append_section(
@@ -47,5 +57,31 @@ impl CanonicalSectionFactory {
         }
         section.push_str(&format!("- Notes: {notes}\n"));
         section
+    }
+}
+
+fn record_heading(stage: &str) -> String {
+    if let Some((_, heading)) = STAGE_HEADINGS
+        .iter()
+        .find(|(candidate, _)| *candidate == stage)
+    {
+        return (*heading).to_string();
+    }
+
+    stage
+        .split('-')
+        .map(title_case_segment)
+        .collect::<Vec<_>>()
+        .join("-")
+}
+
+fn title_case_segment(segment: &str) -> String {
+    let mut chars = segment.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(first) => {
+            let rest = chars.as_str().to_ascii_lowercase();
+            first.to_uppercase().to_string() + &rest
+        }
     }
 }

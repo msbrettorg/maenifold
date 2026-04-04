@@ -63,6 +63,16 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
         )?;
     }
 
+    // T-93.4: Increment cursor once per completed dispatch cycle.
+    // cursor is used for crash-recovery: on restart the driver can read cursor to know
+    // how many cycles completed successfully. Nodes already in Active/Completed state
+    // are naturally skipped by compute_ready_set, preventing duplicate dispatch.
+    let cursor = frontmatter
+        .get("cursor")
+        .and_then(YamlValue::as_u64)
+        .unwrap_or(0);
+    frontmatter.insert("cursor".to_string(), serde_yaml::to_value(cursor + 1)?);
+
     persist_pipeline_state(
         &mut frontmatter,
         &node_states,

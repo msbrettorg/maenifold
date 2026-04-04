@@ -249,6 +249,8 @@ pub(super) fn write_pipeline_session(
     );
     frontmatter.insert("first".to_string(), serde_yaml::to_value(0u64)?);
     frontmatter.insert("last".to_string(), serde_yaml::to_value(0u64)?);
+    // T-93.4: cursor tracks completed dispatch cycles for crash-recovery continuity.
+    frontmatter.insert("cursor".to_string(), serde_yaml::to_value(0u64)?);
 
     write_markdown(
         &uri,

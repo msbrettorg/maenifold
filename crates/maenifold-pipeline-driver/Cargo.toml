@@ -6,6 +6,8 @@ publish = false
 
 [dependencies]
 maenifold-core = { path = "../maenifold-core", default-features = false }
+fd-lock.workspace = true
+libc.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true
 tracing.workspace = true

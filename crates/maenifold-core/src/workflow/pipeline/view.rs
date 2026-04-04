@@ -5,8 +5,8 @@ use serde_json::{Value, json};
 use serde_yaml::Value as YamlValue;
 use std::collections::HashMap;
 
+use super::lease;
 use super::session_io::{derive_pipeline_node_states, frontmatter_value, read_pipeline_session};
-use super::supervisor::supervisor_status;
 use super::view_mermaid::{edge_type_name, render_pipeline_mermaid};
 use super::view_nodes::pipeline_nodes_json;
 use super::{
@@ -76,7 +76,7 @@ pub(super) fn build_pipeline_view_result(
     )?;
     let edges = pipeline_edges_json(definition);
     let mermaid = render_pipeline_mermaid(definition, node_states)?;
-    let running = supervisor_status(session_id).is_some();
+    let running = lease::session_lock_is_held(session_id, &context.config);
 
     Ok(json!({
         "pipelineId": session_id,

@@ -16,12 +16,10 @@ mod handler_lifecycle;
 mod handler_nodes;
 mod handler_surgery;
 mod handler_validation;
+mod lease;
 mod session_io;
 mod session_read;
 mod session_write;
-mod supervisor;
-mod supervisor_detection;
-mod supervisor_lifecycle;
 mod types;
 mod types_wire;
 mod update;
@@ -37,9 +35,10 @@ mod workflow_id;
 
 pub use engine::{compute_pipeline_status, compute_ready_set, has_remaining_work};
 pub use executor::{ExecutionResult, execute_pipeline};
+pub use executor_helpers::{abandon_active_nodes, finalize_failed_pipeline_execution};
 pub use handler::pipeline;
+pub use lease::pipeline_lock_path;
 pub use session_write::persist_final_pipeline_status;
-pub use supervisor_detection::finalize_failed_pipeline_execution;
 pub use types::{
     EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
     PredecessorOutput,

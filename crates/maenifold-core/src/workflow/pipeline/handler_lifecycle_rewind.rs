@@ -9,11 +9,11 @@ use serde_yaml::Value as YamlValue;
 use std::collections::{HashSet, VecDeque};
 
 use super::super::handler_validation::workflow_node_file;
+use super::super::lease;
 use super::super::session_io::{
     allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,
     persist_pipeline_state_with_status, read_pipeline_session, write_workflow_node_session,
 };
-use super::super::supervisor::supervisor_is_running;
 use super::super::view::build_pipeline_view_result;
 use super::super::{NodeStatus, PipelineDefinition};
 
@@ -40,7 +40,10 @@ fn rewind_pipeline(
 ) -> Result<String> {
     AssetManager::initialize_assets(&context.config)?;
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
-    if supervisor_is_running(session_id) {
+    // T-93.4: Replace in-process supervisor check with OS lock check.
+    // An external pipeline-driver holds the fd-lock advisory lock while running;
+    // if the lock is held, refuse the rewind to prevent concurrent state mutation.
+    if lease::session_lock_is_held(session_id, &context.config) {
         return Err(MaenifoldError::Message(format!(
             "Pipeline {session_id} is running; pause or cancel before rewinding"
         )));

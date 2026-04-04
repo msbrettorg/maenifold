@@ -6,6 +6,7 @@ use serde_yaml::{Mapping as YamlMapping, Value as YamlValue};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::Write as _;
 use std::sync::Mutex;
 use std::time::SystemTime;
 
@@ -85,7 +86,23 @@ pub fn write_markdown(
     }
     markdown.push_str(content);
 
-    fs::write(path, markdown)?;
+    // T-93.4: Atomic write via tempfile::NamedTempFile + persist() — same pattern as Cargo's
+    // write_atomic(). Prevents torn reads: the file is either the old version or the new one.
+    let parent = path.parent().ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "Cannot determine parent directory for: {}",
+            path.display()
+        ))
+    })?;
+    let mut tmp = tempfile::NamedTempFile::new_in(parent)?;
+    tmp.write_all(markdown.as_bytes())?;
+    tmp.persist(&path).map_err(|e| {
+        MaenifoldError::Message(format!(
+            "Atomic write failed for {}: {}",
+            path.display(),
+            e.error
+        ))
+    })?;
     Ok(())
 }
 

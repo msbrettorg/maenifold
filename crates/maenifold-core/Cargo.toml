@@ -45,6 +45,8 @@ tower-http.workspace = true
 uuid.workspace = true
 walkdir.workspace = true
 urlencoding.workspace = true
+tempfile.workspace = true
+fd-lock.workspace = true
 ort.workspace = true
 tokenizers.workspace = true
 ndarray = "0.16"
@@ -62,7 +64,6 @@ predicates.workspace = true
 reqwest.workspace = true
 serial_test = "3"
 similar-asserts.workspace = true
-tempfile.workspace = true
 tower = "0.5"
 filetime = "0.2.25"
 

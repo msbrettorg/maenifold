@@ -1,11 +1,7 @@
 use agent_client_protocol as acp;
 use sacp::schema as sacps;
 
-use super::{
-    ToolCallRecord,
-    convert::bridge,
-    types::AgentResponse,
-};
+use super::{ToolCallRecord, convert::bridge, types::AgentResponse};
 
 #[derive(Debug, Default)]
 pub(super) struct SessionAccumulator {
@@ -45,13 +41,15 @@ impl SessionAccumulator {
             existing.update(update.fields);
             return;
         }
-        self.tool_calls.push(sacps::ToolCall::new(tool_call_id, "").status(
-            update
-                .fields
-                .status
-                .clone()
-                .unwrap_or(sacps::ToolCallStatus::default()),
-        ));
+        self.tool_calls.push(
+            sacps::ToolCall::new(tool_call_id, "").status(
+                update
+                    .fields
+                    .status
+                    .clone()
+                    .unwrap_or(sacps::ToolCallStatus::default()),
+            ),
+        );
         if let Some(existing) = self.tool_calls.last_mut() {
             existing.update(update.fields);
         }

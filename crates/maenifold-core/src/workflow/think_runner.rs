@@ -13,10 +13,14 @@ use crate::util::json::OutputFormat;
 
 use super::agent_session::open_agent_session;
 use super::output_types::ThinkingOutput;
-use super::runner_helpers::{slug, Envelope};
+use super::runner_helpers::{Envelope, slug};
 use super::think_helpers::{
     ensure_conclusion_for_completed_output, force_completion_output, parse_with_retry,
 };
+
+fn trace_enabled() -> bool {
+    std::env::var("MAENIFOLD_TRACE").is_ok()
+}
 
 /// Canonical default for sequential thinking depth.
 /// Callers who don't have a strong preference reference this constant explicitly.
@@ -56,7 +60,11 @@ pub struct ThinkOptions {
 
 impl Default for ThinkOptions {
     fn default() -> Self {
-        Self { total_thoughts: DEFAULT_TOTAL_THOUGHTS, parent_workflow_id: None, model: None }
+        Self {
+            total_thoughts: DEFAULT_TOTAL_THOUGHTS,
+            parent_workflow_id: None,
+            model: None,
+        }
     }
 }
 
@@ -95,9 +103,17 @@ struct ThinkProgressPayload<'a> {
     revises_thought: Option<u64>,
 }
 
-pub(crate) async fn seed_think_session(context: &ToolContext, topic: &str, opts: &ThinkOptions) -> Result<String> {
+pub(crate) async fn seed_think_session(
+    context: &ToolContext,
+    topic: &str,
+    opts: &ThinkOptions,
+) -> Result<String> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
-    let ThinkSessionData { session_id } = think_call(&json_context, &think_seed_payload(topic, opts))?;
+    let ThinkSessionData { session_id } =
+        think_call(&json_context, &think_seed_payload(topic, opts))?;
+    if trace_enabled() {
+        eprintln!("[think] seed session");
+    }
     Ok(session_id)
 }
 
@@ -113,27 +129,47 @@ pub(crate) async fn drive_think_session(
     content_blocks: Option<Vec<acp::ContentBlock>>,
 ) -> Result<ThinkResult> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
-    let driver = open_agent_session(pool, agent, &format!("think-{session_id}"), session_opts).await?;
+    let driver =
+        open_agent_session(pool, agent, &format!("think-{session_id}"), session_opts).await?;
     let mut thought_number = 1u32;
     let mut first_context = content_blocks;
     let result: Result<ThinkResult> = async {
         loop {
+            if trace_enabled() {
+                eprintln!("[think] thought {}/{}", thought_number, opts.total_thoughts);
+            }
             let prompt = think_prompt(thought_number, opts.total_thoughts, topic, prompt_context);
             let response = if let Some(blocks) = first_context.take() {
                 driver.prompt_with_context(&prompt, blocks).await?
             } else {
                 driver.prompt(&prompt).await?
             };
-            let thinking_output = parse_with_retry(&driver, &response.text, 0, thought_number, opts.total_thoughts).await?;
-            let capped_output = if !thinking_output.done && thought_number >= opts.total_thoughts + 3 {
-                force_completion_output(&thinking_output)
-            } else {
-                thinking_output
-            };
+            let thinking_output = parse_with_retry(
+                &driver,
+                &response.text,
+                0,
+                thought_number,
+                opts.total_thoughts,
+            )
+            .await?;
+            let capped_output =
+                if !thinking_output.done && thought_number >= opts.total_thoughts + 3 {
+                    force_completion_output(&thinking_output)
+                } else {
+                    thinking_output
+                };
             let capped_output = ensure_conclusion_for_completed_output(capped_output);
-            let payload = think_progress_payload_from_output(session_id, &capped_output, thought_number, opts);
+            let payload = think_progress_payload_from_output(
+                session_id,
+                &capped_output,
+                thought_number,
+                opts,
+            );
             let _: Value = think_call(&json_context, &payload)?;
             if capped_output.done {
+                if trace_enabled() {
+                    eprintln!("[think] complete");
+                }
                 break Ok(ThinkResult {
                     session_id: session_id.to_string(),
                     conclusion: capped_output.conclusion,
@@ -211,12 +247,20 @@ fn think_call<T: DeserializeOwned>(context: &ToolContext, payload: &Value) -> Re
         Ok(envelope.data)
     } else {
         Err(MaenifoldError::Message(
-            envelope.error.map(|error| error.message).unwrap_or_else(|| "SequentialThinking failed".to_string()),
+            envelope
+                .error
+                .map(|error| error.message)
+                .unwrap_or_else(|| "SequentialThinking failed".to_string()),
         ))
     }
 }
 
-fn think_prompt(thought_number: u32, total_thoughts: u32, topic: &str, prompt_context: &str) -> String {
+fn think_prompt(
+    thought_number: u32,
+    total_thoughts: u32,
+    topic: &str,
+    prompt_context: &str,
+) -> String {
     format!(
         "Context:\n{prompt_context}\n\nTask: {topic}\n\nThought {thought_number}/~{total_thoughts}. Include [[WikiLinks]] for key concepts.\n\n{shape}\n\nSet done=true with a conclusion on your final thought.",
         shape = ThinkingOutput::expected_shape()

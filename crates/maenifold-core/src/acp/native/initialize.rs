@@ -30,11 +30,9 @@ pub(super) async fn initialize(conn: &ConnectionTo<sacp::Agent>) -> Result<InitI
         ))
         .client_capabilities(
             sacps::ClientCapabilities::new()
-                .fs(
-                    sacps::FileSystemCapabilities::new()
-                        .read_text_file(true)
-                        .write_text_file(true),
-                )
+                .fs(sacps::FileSystemCapabilities::new()
+                    .read_text_file(true)
+                    .write_text_file(true))
                 .terminal(false)
                 .meta(prompt_meta()),
         );

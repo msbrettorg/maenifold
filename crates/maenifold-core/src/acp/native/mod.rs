@@ -28,6 +28,10 @@ use tokio::sync::{mpsc, oneshot};
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 use types::InitInfo;
 
+fn trace_enabled() -> bool {
+    std::env::var("MAENIFOLD_TRACE").is_ok()
+}
+
 pub(super) fn format_stop_reason(stop_reason: sacps::StopReason) -> String {
     serde_json::to_value(stop_reason)
         .ok()
@@ -53,6 +57,9 @@ async fn run_agent(
     alive: Arc<AtomicBool>,
     mut cmd_rx: mpsc::UnboundedReceiver<AgentCommand>,
 ) {
+    if trace_enabled() {
+        eprintln!("[acp] spawning agent: {}", command);
+    }
     let mut child = match tokio::process::Command::new("sh")
         .args(["-c", &command])
         .stdin(std::process::Stdio::piped())
@@ -66,6 +73,9 @@ async fn run_agent(
         Ok(child) => child,
         Err(error) => {
             alive.store(false, Ordering::SeqCst);
+            if trace_enabled() {
+                eprintln!("[acp] error: {}", error);
+            }
             tracing::error!("Failed to spawn agent: {error}");
             return;
         }
@@ -76,6 +86,9 @@ async fn run_agent(
         Some(stdin) => stdin.compat_write(),
         None => {
             alive.store(false, Ordering::SeqCst);
+            if trace_enabled() {
+                eprintln!("[acp] error: Failed to acquire ACP child stdin");
+            }
             tracing::error!("Failed to acquire ACP child stdin");
             reap_child(&mut child, stderr_task, None).await;
             return;
@@ -85,6 +98,9 @@ async fn run_agent(
         Some(stdout) => stdout.compat(),
         None => {
             alive.store(false, Ordering::SeqCst);
+            if trace_enabled() {
+                eprintln!("[acp] error: Failed to acquire ACP child stdout");
+            }
             tracing::error!("Failed to acquire ACP child stdout");
             reap_child(&mut child, stderr_task, None).await;
             return;
@@ -93,8 +109,9 @@ async fn run_agent(
 
     let client = HeadlessClient::new(cwd.clone(), auto_grant_permissions);
     let transport = sacp::ByteStreams::new(stdin, stdout);
-    let (ready_tx, ready_rx) =
-        oneshot::channel::<std::result::Result<(ConnectionTo<sacp::Agent>, InitInfo), AgentError>>();
+    let (ready_tx, ready_rx) = oneshot::channel::<
+        std::result::Result<(ConnectionTo<sacp::Agent>, InitInfo), AgentError>,
+    >();
     let handler_client = client.clone();
     let mut ready_tx = Some(ready_tx);
 
@@ -153,6 +170,9 @@ async fn run_agent(
         Ok(Ok((conn, init_info))) => (conn, init_info),
         Ok(Err(error)) => {
             alive.store(false, Ordering::SeqCst);
+            if trace_enabled() {
+                eprintln!("[acp] error: {}", error);
+            }
             tracing::error!("{error}");
             if let Some(task) = io_task.take() {
                 let _ = task.await;
@@ -162,6 +182,9 @@ async fn run_agent(
         }
         Err(_) => {
             alive.store(false, Ordering::SeqCst);
+            if trace_enabled() {
+                eprintln!("[acp] error: ACP connection closed before initialize completed");
+            }
             tracing::error!("ACP connection closed before initialize completed");
             if let Some(task) = io_task.take() {
                 log_io_task_exit(task.await);
@@ -173,6 +196,9 @@ async fn run_agent(
 
     if let Some(info) = init_info.agent_info.as_ref() {
         tracing::info!("Connected to {} v{}", info.name, info.version);
+    }
+    if trace_enabled() {
+        eprintln!("[acp] agent initialized");
     }
     let _ = init.lock().map(|mut slot| *slot = Some(init_info));
 
@@ -289,13 +315,25 @@ pub fn spawn_agent(
                 Ok(runtime) => runtime,
                 Err(error) => {
                     alive.store(false, Ordering::SeqCst);
+                    if trace_enabled() {
+                        eprintln!("[acp] error: {}", error);
+                    }
                     tracing::error!("Failed to build ACP runtime: {error}");
                     return;
                 }
             };
 
             runtime.block_on(async move {
-                run_agent(command, cwd, env, auto_grant_permissions, init, alive, cmd_rx).await;
+                run_agent(
+                    command,
+                    cwd,
+                    env,
+                    auto_grant_permissions,
+                    init,
+                    alive,
+                    cmd_rx,
+                )
+                .await;
             });
         }
     });

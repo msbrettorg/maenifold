@@ -1,7 +1,6 @@
 use super::params::{
     AcpExecParams, AdoptParams, GetConfigParams, GetHelpParams, ListAgentsParams, ListAssetsParams,
-    MemoryStatusParams, ReadMcpResourceParams, RunFullBenchmarkParams, StartWatcherParams,
-    StopWatcherParams, UpdateAssetsParams,
+    MemoryStatusParams, ReadMcpResourceParams, RunFullBenchmarkParams, UpdateAssetsParams,
 };
 use super::support::derived_tool_definition;
 use crate::mcp::McpToolDefinition;

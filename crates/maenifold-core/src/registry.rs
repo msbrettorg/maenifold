@@ -10,7 +10,6 @@ use crate::search;
 use crate::sessions;
 use crate::similar;
 use crate::sync;
-use crate::sync::watchers;
 use crate::thinking;
 use crate::tools::{self, ToolContext};
 use crate::util::json::OutputFormat;

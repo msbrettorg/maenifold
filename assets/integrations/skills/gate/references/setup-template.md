@@ -36,7 +36,7 @@ The pipeline is file-authoritative, so the backlog is whatever markdown task fil
 ## 3. Initialize the Cache
 
 ```bash
-gate sync --rebuild .
+gate sync --root . --rebuild
 ```
 
 This creates `.gate/gate.db` and adds `.gate/` to `.gitignore` if missing.

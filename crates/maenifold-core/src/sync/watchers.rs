@@ -8,7 +8,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
@@ -18,19 +18,7 @@ pub use super::watcher_health::WatcherHealth;
 static WATCHER: Lazy<Mutex<Option<WatcherState>>> = Lazy::new(|| Mutex::new(None));
 
 struct WatcherState {
-    watcher: notify::RecommendedWatcher,
-    control_tx: Sender<WatcherSignal>,
-    worker: Option<JoinHandle<()>>,
-}
-
-impl WatcherState {
-    fn stop(mut self) {
-        let _ = self.control_tx.send(WatcherSignal::Stop);
-        drop(self.watcher);
-        if let Some(worker) = self.worker.take() {
-            let _ = worker.join();
-        }
-    }
+    _watcher: notify::RecommendedWatcher,
 }
 
 enum WatcherSignal {
@@ -38,6 +26,7 @@ enum WatcherSignal {
     Stop,
 }
 
+#[deprecated(note = "Watcher functionality removed from tool surface. Scheduled for deletion.")]
 pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
     let debounce_ms = payload
         .get("debounceMs")
@@ -58,7 +47,10 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
     let mut watcher = notify::recommended_watcher(move |event: notify::Result<Event>| {
         let Ok(event) = event else {
             if let Err(error) = event {
-                eprintln!("{}", format_watcher_error_message(&error.to_string()));
+                eprintln!(
+                    "{}",
+                    super::watcher_batch::format_watcher_error_message(&error.to_string())
+                );
             }
             return;
         };
@@ -78,11 +70,7 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
     WATCHER
         .lock()
         .unwrap_or_else(|e| e.into_inner())
-        .replace(WatcherState {
-            watcher,
-            control_tx: event_tx,
-            worker: Some(worker),
-        });
+        .replace(WatcherState { _watcher: watcher });
 
     Ok(format!(
         "Started watching {} for incremental sync (debounce: {}ms)",
@@ -91,49 +79,49 @@ pub fn start_watcher(context: &ToolContext, payload: &Value) -> Result<String> {
     ))
 }
 
-pub fn stop_watcher(_context: &ToolContext, _payload: &Value) -> Result<String> {
-    if let Some(state) = WATCHER.lock().unwrap_or_else(|e| e.into_inner()).take() {
-        state.stop();
-        return Ok("Stopped incremental sync watcher".to_string());
-    }
-    Ok("Watcher not running".to_string())
-}
-
 // T-COV-001.3: RTM FR-17.5 — expose watcher state so integration tests can verify lifecycle guards.
 #[doc(hidden)]
+#[deprecated(note = "Watcher functionality removed from tool surface. Scheduled for deletion.")]
 pub fn watcher_is_running() -> bool {
     WATCHER.lock().unwrap_or_else(|e| e.into_inner()).is_some()
 }
 
 #[doc(hidden)]
+#[deprecated(note = "Watcher functionality removed from tool surface. Scheduled for deletion.")]
 pub fn changes_since_last_optimize() -> u32 {
     super::watcher_health::changes_since_last_optimize()
 }
 
+#[deprecated(note = "Watcher functionality removed from tool surface. Scheduled for deletion.")]
 pub fn watcher_health() -> WatcherHealth {
-    super::watcher_health::snapshot(watcher_is_running())
+    super::watcher_health::snapshot(WATCHER.lock().unwrap_or_else(|e| e.into_inner()).is_some())
 }
 
+#[deprecated(note = "Watcher functionality removed from tool surface. Scheduled for deletion.")]
 pub fn reset_health_counters() {
     super::watcher_health::reset_health_counters();
 }
 
 #[doc(hidden)]
+#[deprecated(note = "Watcher functionality removed from tool surface. Scheduled for deletion.")]
 pub fn reset_optimize_counter() {
     super::watcher_health::reset_optimize_counter();
 }
 
 #[doc(hidden)]
+#[deprecated(note = "Watcher functionality removed from tool surface. Scheduled for deletion.")]
 pub fn process_path_for_test(context: &ToolContext, path: &Path) -> Result<()> {
     super::watcher_batch::process_path_for_test(context, path)
 }
 
 #[doc(hidden)]
+#[deprecated(note = "Watcher functionality removed from tool surface. Scheduled for deletion.")]
 pub fn process_pending_paths_for_test(context: &ToolContext, paths: &[PathBuf]) -> Result<()> {
     super::watcher_batch::process_pending_paths_for_test(context, paths)
 }
 
 #[doc(hidden)]
+#[deprecated(note = "Watcher functionality removed from tool surface. Scheduled for deletion.")]
 pub fn format_watcher_error_message(error: &str) -> String {
     super::watcher_batch::format_watcher_error_message(error)
 }

@@ -8,10 +8,7 @@ use std::{
 use sacp::schema as sacps;
 use tokio::sync::Mutex;
 
-use super::{
-    accumulator::SessionAccumulator,
-    types::AgentResponse,
-};
+use super::{accumulator::SessionAccumulator, types::AgentResponse};
 
 #[derive(Default)]
 struct SessionState {
@@ -149,12 +146,15 @@ impl HeadlessClient {
         let path = self.resolve_and_jail(args.path)?;
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|error| {
-                sacp::Error::internal_error()
-                    .data(format!("failed to create parent directories for {}: {error}", path.display()))
+                sacp::Error::internal_error().data(format!(
+                    "failed to create parent directories for {}: {error}",
+                    path.display()
+                ))
             })?;
         }
         std::fs::write(&path, args.content).map_err(|error| {
-            sacp::Error::internal_error().data(format!("failed to write {}: {error}", path.display()))
+            sacp::Error::internal_error()
+                .data(format!("failed to write {}: {error}", path.display()))
         })?;
         Ok(sacps::WriteTextFileResponse::new())
     }
@@ -165,7 +165,8 @@ impl HeadlessClient {
     ) -> std::result::Result<sacps::ReadTextFileResponse, sacp::Error> {
         let path = self.resolve_and_jail(args.path)?;
         let content = std::fs::read_to_string(&path).map_err(|error| {
-            sacp::Error::internal_error().data(format!("failed to read {}: {error}", path.display()))
+            sacp::Error::internal_error()
+                .data(format!("failed to read {}: {error}", path.display()))
         })?;
 
         let start_line = match args.line {
@@ -229,7 +230,9 @@ impl HeadlessClient {
                 }
             }
             sacps::SessionUpdate::ToolCall(tool_call) => accumulator.push_tool_call(tool_call),
-            sacps::SessionUpdate::ToolCallUpdate(update) => accumulator.apply_tool_call_update(update),
+            sacps::SessionUpdate::ToolCallUpdate(update) => {
+                accumulator.apply_tool_call_update(update)
+            }
             _ => {
                 tracing::debug!(session_id = %session_id, update = update_type, "Unhandled SessionUpdate variant");
             }

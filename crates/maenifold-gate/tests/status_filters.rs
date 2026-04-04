@@ -50,7 +50,10 @@ fn status_includes_nested_done_legacy_tasks() {
 
     sync_gate(root.path());
 
-    let rows = status_json(root.path()).as_array().expect("status array").clone();
+    let rows = status_json(root.path())
+        .as_array()
+        .expect("status array")
+        .clone();
     let task = rows
         .iter()
         .find(|row| row["taskId"] == "T-90.18")

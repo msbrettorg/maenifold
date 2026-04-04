@@ -8,7 +8,7 @@ The sample files in this scaffold use the default SDD flow (`swe → red → blu
 1. Copy this scaffold to your project root
 2. Write your task files (use stable task IDs such as `T-1.1-description.md`)
 3. Place pending specs in `todo/`
-4. Run `gate sync --rebuild .` to initialize the cache
+4. Run `gate sync --root . --rebuild` to initialize the cache
 
 ## File Structure
 
@@ -25,7 +25,7 @@ project/
 ## Commands
 
 - `gate status --root .` — View pipeline status
-- `gate append <FILE> --root . --agent swe` — Record SDD SWE completion
-- `gate pass <FILE> --root . --agent red` — Advance the current stage
-- `gate fail <FILE> --root . --agent blue` — Follow the active state's fail edge
-- `gate sync --rebuild .` — Rebuild `.gate/gate.db` from files and ensure `.gate/` is gitignored
+- `gate append T-1.1 --root . --agent swe --notes "Implemented scoped changes"` — Record SDD SWE completion
+- `gate pass T-1.1 --root . --agent red --notes "Reviewed and approved"` — Advance the current stage
+- `gate fail T-1.1 --root . --agent blue --notes "Scoped test failed"` — Follow the active state's fail edge
+- `gate sync --root . --rebuild` — Rebuild `.gate/gate.db` from files and ensure `.gate/` is gitignored

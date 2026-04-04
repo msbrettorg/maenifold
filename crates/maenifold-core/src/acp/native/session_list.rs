@@ -76,9 +76,8 @@ pub(super) async fn load_session(
     let response = tokio::time::timeout(
         Duration::from_secs(timeout_seconds),
         conn.send_request(
-            sacps::LoadSessionRequest::new(session_id.clone(), opts.cwd.clone()).mcp_servers(
-                mcp_servers,
-            ),
+            sacps::LoadSessionRequest::new(session_id.clone(), opts.cwd.clone())
+                .mcp_servers(mcp_servers),
         )
         .block_task(),
     )
@@ -112,7 +111,8 @@ pub(super) async fn load_session(
             .modes
             .as_ref()
             .map(|state| {
-                state.available_modes
+                state
+                    .available_modes
                     .clone()
                     .into_iter()
                     .map(bridge)
@@ -124,7 +124,8 @@ pub(super) async fn load_session(
             .models
             .as_ref()
             .map(|state| {
-                state.available_models
+                state
+                    .available_models
                     .clone()
                     .into_iter()
                     .map(bridge)

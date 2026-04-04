@@ -9,7 +9,8 @@ pub struct StatusFilter {
 impl StatusFilter {
     pub fn matches(&self, row: &Value) -> bool {
         if self.ready_only
-            && (row["location"].as_str() != Some("todo") || row["state"].as_str() != Some("pending"))
+            && (row["location"].as_str() != Some("todo")
+                || row["state"].as_str() != Some("pending"))
         {
             return false;
         }

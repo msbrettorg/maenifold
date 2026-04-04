@@ -45,8 +45,7 @@ impl TaskRepository {
             }
 
             for entry in WalkDir::new(&directory).into_iter() {
-                let entry =
-                    entry.map_err(|error| GateError::Io(std::io::Error::other(error)))?;
+                let entry = entry.map_err(|error| GateError::Io(std::io::Error::other(error)))?;
                 let path = entry.into_path();
                 if !path.is_file() {
                     continue;
@@ -83,7 +82,7 @@ impl TaskRepository {
             }
         }
 
-        tasks.sort_by(|left, right| task_id::compare(&left.task_id, &right.task_id));
+        tasks.sort_by(|left, right| task_id::natural_cmp(&left.task_id, &right.task_id));
         Ok(tasks)
     }
 
@@ -111,7 +110,9 @@ impl TaskRepository {
         let location_directory = task
             .path
             .ancestors()
-            .find(|path| path.file_name().and_then(|value| value.to_str()) == Some(task.location.as_str()))
+            .find(|path| {
+                path.file_name().and_then(|value| value.to_str()) == Some(task.location.as_str())
+            })
             .ok_or_else(|| GateError::MissingTaskPath(task.path.clone()))?;
         let root = location_directory
             .parent()

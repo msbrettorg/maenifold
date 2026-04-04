@@ -38,8 +38,11 @@ async fn apply_modern_config(
             set_config_option(conn, session_id, config_id, mode.to_string()).await;
         } else {
             apply_optional(Some(mode.to_string()), "ACP session mode", |mode| {
-                conn.send_request(sacps::SetSessionModeRequest::new(session_id.to_string(), mode))
-                    .block_task()
+                conn.send_request(sacps::SetSessionModeRequest::new(
+                    session_id.to_string(),
+                    mode,
+                ))
+                .block_task()
             })
             .await;
         }
@@ -69,13 +72,16 @@ async fn apply_legacy_config(
         conn.send_request(acp::ClientRequest::SetSessionModelRequest(
             acp::SetSessionModelRequest::new(acp::SessionId::new(session_id.to_string()), model),
         ))
-            .block_task()
+        .block_task()
     })
     .await;
 
     apply_optional(opts.mode.clone(), "ACP session mode", |mode| {
-        conn.send_request(sacps::SetSessionModeRequest::new(session_id.to_string(), mode))
-            .block_task()
+        conn.send_request(sacps::SetSessionModeRequest::new(
+            session_id.to_string(),
+            mode,
+        ))
+        .block_task()
     })
     .await;
 

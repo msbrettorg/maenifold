@@ -1,8 +1,7 @@
 #![allow(dead_code)] // Schema-only types — fields are read by schemars, not by application code
 
 use super::params::{
-    default_five_u32, default_one_hundred_fifty_u32, default_one_thousand_u32,
-    default_prompt_mode, default_true,
+    default_five_u32, default_one_thousand_u32, default_prompt_mode, default_true,
 };
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -40,23 +39,6 @@ pub struct UpdateAssetsParams {
     #[serde(default = "default_true")]
     #[schemars(default = "default_true")]
     pub dry_run: bool,
-    /// Return help documentation instead of executing
-    #[serde(default)]
-    pub learn: bool,
-}
-
-#[derive(Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct StartWatcherParams {
-    /// Debounce interval in milliseconds
-    #[serde(default = "default_one_hundred_fifty_u32")]
-    #[schemars(default = "default_one_hundred_fifty_u32")]
-    pub debounce_ms: u32,
-}
-
-#[derive(Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct StopWatcherParams {
     /// Return help documentation instead of executing
     #[serde(default)]
     pub learn: bool,

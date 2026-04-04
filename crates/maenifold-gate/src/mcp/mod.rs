@@ -346,7 +346,9 @@ mod tests {
         .expect("ready status should succeed");
         let ready_value: serde_json::Value =
             serde_json::from_str(&ready_output).expect("valid ready JSON output");
-        let ready_tasks = ready_value.as_array().expect("ready status should return an array");
+        let ready_tasks = ready_value
+            .as_array()
+            .expect("ready status should return an array");
         assert_eq!(ready_tasks.len(), 1);
         assert_eq!(ready_tasks[0]["taskId"], "T-9.1");
 
@@ -358,7 +360,9 @@ mod tests {
         .expect("state status should succeed");
         let swe_value: serde_json::Value =
             serde_json::from_str(&swe_output).expect("valid state JSON output");
-        let swe_tasks = swe_value.as_array().expect("state status should return an array");
+        let swe_tasks = swe_value
+            .as_array()
+            .expect("state status should return an array");
         assert_eq!(swe_tasks.len(), 1);
         assert_eq!(swe_tasks[0]["taskId"], "T-9.2");
     }

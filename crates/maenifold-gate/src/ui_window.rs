@@ -478,7 +478,7 @@ fn sort_tasks(tasks: &mut [TaskEntry], sort_state: SortState) {
         Some(column) => {
             tasks.sort_by(|left, right| {
                 let ordering = match column {
-                    SortColumn::Id => task_id::compare(&left.task_id, &right.task_id),
+                    SortColumn::Id => task_id::natural_cmp(&left.task_id, &right.task_id),
                     SortColumn::Name => left.title.cmp(&right.title),
                     SortColumn::Process => left.pipeline.cmp(&right.pipeline),
                     SortColumn::Progress => progress_rank(left)
@@ -505,7 +505,7 @@ fn default_task_order(left: &TaskEntry, right: &TaskEntry) -> std::cmp::Ordering
     location_rank(&left.location)
         .cmp(&location_rank(&right.location))
         .then(left.state.cmp(&right.state))
-        .then_with(|| task_id::compare(&left.task_id, &right.task_id))
+        .then_with(|| task_id::natural_cmp(&left.task_id, &right.task_id))
 }
 
 fn location_rank(location: &str) -> u8 {
@@ -717,7 +717,10 @@ mod tests {
             },
         ];
         sort_tasks(&mut tasks, SortState::default());
-        let ids = tasks.iter().map(|task| task.task_id.as_str()).collect::<Vec<_>>();
+        let ids = tasks
+            .iter()
+            .map(|task| task.task_id.as_str())
+            .collect::<Vec<_>>();
         assert_eq!(ids, vec!["T-90.2", "T-90.9", "T-90.10"]);
     }
 

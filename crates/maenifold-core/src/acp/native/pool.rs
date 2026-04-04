@@ -93,7 +93,10 @@ impl AgentPool {
         handle
     }
     pub async fn remove_dead(&self) {
-        self.agents.lock().await.retain(|_, entry| entry.handle.is_alive());
+        self.agents
+            .lock()
+            .await
+            .retain(|_, entry| entry.handle.is_alive());
     }
     pub async fn close_all(&self) {
         for (_, entry) in self.agents.lock().await.drain() {

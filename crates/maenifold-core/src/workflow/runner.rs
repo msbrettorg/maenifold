@@ -7,12 +7,16 @@ use agent_client_protocol as acp;
 use serde_json::json;
 
 use super::agent_session::open_agent_session;
-use super::runner_state::{current_step_index, init_workflow_session, workflow_total_steps};
 use super::runner_helpers::{
     prompt_workflow_agent, step_think_config, terminal_workflow_status, workflow_completion_text,
     workflow_step_payload, workflow_text,
 };
+use super::runner_state::{current_step_index, init_workflow_session, workflow_total_steps};
 use super::think_runner::{drive_think_session, seed_think_session};
+
+fn trace_enabled() -> bool {
+    std::env::var("MAENIFOLD_TRACE").is_ok()
+}
 
 pub(crate) use super::think_runner::run_think_with_pool;
 pub use super::think_runner::{ThinkOptions, ThinkResult};
@@ -102,6 +106,9 @@ pub(crate) async fn run_workflow_with_pool(
 ) -> Result<WorkflowResult> {
     let (session_id, start_text) =
         init_workflow_session(context, workflow_id, existing_session_id)?;
+    if trace_enabled() {
+        eprintln!("[workflow] init session");
+    }
     let run_ctx = RunContext {
         tool_context: context,
         agent,
@@ -122,6 +129,9 @@ pub(crate) async fn run_workflow_with_pool(
     let result: Result<WorkflowResult> = async {
         loop {
             if let Some(status) = terminal_workflow_status(&step) {
+                if trace_enabled() {
+                    eprintln!("[workflow] complete");
+                }
                 break Ok(WorkflowResult {
                     session_id: run_ctx.session_id.clone(),
                     conclusion,
@@ -133,9 +143,13 @@ pub(crate) async fn run_workflow_with_pool(
                 break Err(MaenifoldError::Message(step));
             }
 
+            if trace_enabled() {
+                eprintln!("[workflow] step {}/{}", step_index, total_steps);
+            }
             maybe_run_step_thinking(&run_ctx, &step).await?;
             let final_step = step_index >= total_steps;
-            let response = prompt_workflow_agent(&driver, prompt, &step, first_context.take()).await?;
+            let response =
+                prompt_workflow_agent(&driver, prompt, &step, first_context.take()).await?;
             if let Some(value) = workflow_completion_text(&response, final_step) {
                 conclusion = Some(value);
             }
@@ -169,6 +183,9 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
 ) -> Result<WorkflowResult> {
     let (session_id, start_text) =
         init_workflow_session(context, workflow_id, existing_session_id)?;
+    if trace_enabled() {
+        eprintln!("[workflow] init session");
+    }
     let run_ctx = RunContext {
         tool_context: context,
         agent,
@@ -187,6 +204,9 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     let result: Result<WorkflowResult> = async {
         loop {
             if let Some(status) = terminal_workflow_status(&step) {
+                if trace_enabled() {
+                    eprintln!("[workflow] complete");
+                }
                 break Ok(WorkflowResult {
                     session_id: run_ctx.session_id.clone(),
                     conclusion,
@@ -198,6 +218,9 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
                 break Err(MaenifoldError::Message(step));
             }
 
+            if trace_enabled() {
+                eprintln!("[workflow] step {}/{}", step_index, total_steps);
+            }
             maybe_run_step_thinking(&run_ctx, &step).await?;
             let final_step = step_index >= total_steps;
             let response = prompt_workflow_agent(&driver, prompt, &step, None).await?;

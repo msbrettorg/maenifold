@@ -8,6 +8,10 @@ use super::{
     types::{AgentError, Result, SessionInfo, SessionOpts},
 };
 
+fn trace_enabled() -> bool {
+    std::env::var("MAENIFOLD_TRACE").is_ok()
+}
+
 pub(super) async fn session_new(
     conn: &ConnectionTo<sacp::Agent>,
     client: &HeadlessClient,
@@ -34,6 +38,9 @@ pub(super) async fn session_new(
     .map_err(|error| AgentError::Acp(error.to_string()))?;
 
     let session_id = response.session_id.clone();
+    if trace_enabled() {
+        eprintln!("[acp] new session: {}", session_id);
+    }
     let has_config_options = response.config_options.is_some();
     let config_options = response.config_options.clone().unwrap_or_default();
     let session_info = SessionInfo {
@@ -42,7 +49,8 @@ pub(super) async fn session_new(
             .modes
             .as_ref()
             .map(|state| {
-                state.available_modes
+                state
+                    .available_modes
                     .clone()
                     .into_iter()
                     .map(bridge)
@@ -54,7 +62,8 @@ pub(super) async fn session_new(
             .models
             .as_ref()
             .map(|state| {
-                state.available_models
+                state
+                    .available_models
                     .clone()
                     .into_iter()
                     .map(bridge)

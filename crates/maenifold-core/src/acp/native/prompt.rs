@@ -9,6 +9,10 @@ use super::{
     usage_to_response,
 };
 
+fn trace_enabled() -> bool {
+    std::env::var("MAENIFOLD_TRACE").is_ok()
+}
+
 fn stop_reason_error(stop_reason: Option<&str>) -> Option<String> {
     match stop_reason {
         Some("end_turn" | "max_tokens" | "max_turn_requests" | "refusal" | "cancelled") | None => {
@@ -35,6 +39,9 @@ pub(super) async fn prompt_session_with_blocks(
     content_blocks: Vec<acp::ContentBlock>,
 ) -> Result<AgentResponse> {
     client.begin_turn(&session_id).await;
+    if trace_enabled() {
+        eprintln!("[acp] prompt turn start");
+    }
 
     let mut content = content_blocks
         .into_iter()
@@ -53,6 +60,12 @@ pub(super) async fn prompt_session_with_blocks(
             response.stop_reason = Some(format_stop_reason(prompt_response.stop_reason));
             response.error = stop_reason_error(response.stop_reason.as_deref());
             response.usage = prompt_response.usage.map(usage_to_response);
+            if trace_enabled() {
+                eprintln!(
+                    "[acp] prompt turn complete ({} chars)",
+                    response.text.chars().count()
+                );
+            }
             Ok(response)
         }
         Err(error) => Err(AgentError::Acp(error.to_string())),

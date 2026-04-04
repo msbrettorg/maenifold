@@ -148,8 +148,8 @@ pub(crate) fn workflow_completion_text(response: &WorkflowAgentResponse, final_s
     final_step.then(|| workflow_conclusion_text(response, final_step))
 }
 pub(crate) struct WorkflowAgentResponse {
-    output: WorkflowOutput,
-    used_fallback: bool,
+    pub(super) output: WorkflowOutput,
+    pub(super) used_fallback: bool,
 }
 async fn parse_workflow_with_retry(
     driver: &AgentSession,

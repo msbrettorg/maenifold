@@ -128,9 +128,12 @@ pub(crate) async fn run_workflow_with_pool(
 
     let result: Result<WorkflowResult> = async {
         loop {
+            if trace_enabled() {
+                eprintln!("[workflow] loop: step_index={} total={} step_preview={:?}", step_index, total_steps, &step[..step.len().min(120)]);
+            }
             if let Some(status) = terminal_workflow_status(&step) {
                 if trace_enabled() {
-                    eprintln!("[workflow] complete");
+                    eprintln!("[workflow] terminal status detected: {:?}", status);
                 }
                 break Ok(WorkflowResult {
                     session_id: run_ctx.session_id.clone(),
@@ -140,6 +143,9 @@ pub(crate) async fn run_workflow_with_pool(
                 });
             }
             if step.starts_with("ERROR:") {
+                if trace_enabled() {
+                    eprintln!("[workflow] ERROR in step: {}", &step[..step.len().min(200)]);
+                }
                 break Err(MaenifoldError::Message(step));
             }
 
@@ -148,14 +154,29 @@ pub(crate) async fn run_workflow_with_pool(
             }
             maybe_run_step_thinking(&run_ctx, &step).await?;
             let final_step = step_index >= total_steps;
+            if trace_enabled() {
+                eprintln!("[workflow] prompting agent (final_step={})", final_step);
+            }
             let response =
                 prompt_workflow_agent(&driver, prompt, &step, first_context.take()).await?;
+            if trace_enabled() {
+                eprintln!("[workflow] agent responded (used_fallback={})", response.used_fallback);
+            }
             if let Some(value) = workflow_completion_text(&response, final_step) {
+                if trace_enabled() {
+                    eprintln!("[workflow] conclusion extracted: {} chars", value.len());
+                }
                 conclusion = Some(value);
+            } else if trace_enabled() {
+                eprintln!("[workflow] no conclusion extracted (final_step={})", final_step);
             }
 
             let payload = workflow_step_payload(&run_ctx.session_id, &response, final_step);
-            step = workflow_text(&super::handler::workflow(context, &payload)?);
+            let handler_result = super::handler::workflow(context, &payload)?;
+            if trace_enabled() {
+                eprintln!("[workflow] handler returned: {:?}", &handler_result[..handler_result.len().min(200)]);
+            }
+            step = workflow_text(&handler_result);
             steps_completed += 1;
             step_index = step_index.saturating_add(1);
         }

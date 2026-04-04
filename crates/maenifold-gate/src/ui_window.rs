@@ -614,6 +614,7 @@ fn stage_dot(stage: &str, task: &TaskEntry) -> (&'static str, Color32) {
     match stage_progress(stage, task) {
         StageProgress::Completed => ("●", completed_progress_color()),
         StageProgress::Active => ("◉", progress_color(task)),
+        StageProgress::Failed => ("●", failed_progress_color()),
         StageProgress::Pending => ("○", pending_progress_color()),
     }
 }
@@ -623,6 +624,24 @@ fn stage_progress(stage: &str, task: &TaskEntry) -> StageProgress {
         return StageProgress::Completed;
     }
 
+    let stage_index = task.stages.iter().position(|candidate| candidate == stage);
+
+    if is_failed_state(&task.state) {
+        let Some(failed_index) = task
+            .stages
+            .iter()
+            .rposition(|candidate| !matches!(candidate.as_str(), "done" | "completed"))
+        else {
+            return StageProgress::Pending;
+        };
+
+        return match stage_index.unwrap_or(failed_index) {
+            index if index < failed_index => StageProgress::Completed,
+            index if index == failed_index => StageProgress::Failed,
+            _ => StageProgress::Pending,
+        };
+    }
+
     let Some(active_index) = task
         .stages
         .iter()
@@ -630,11 +649,7 @@ fn stage_progress(stage: &str, task: &TaskEntry) -> StageProgress {
     else {
         return StageProgress::Pending;
     };
-    let stage_index = task
-        .stages
-        .iter()
-        .position(|candidate| candidate == stage)
-        .unwrap_or(active_index);
+    let stage_index = stage_index.unwrap_or(active_index);
 
     if stage_index < active_index {
         StageProgress::Completed
@@ -661,6 +676,7 @@ fn progress_rank(task: &TaskEntry) -> usize {
 enum StageProgress {
     Completed,
     Active,
+    Failed,
     Pending,
 }
 

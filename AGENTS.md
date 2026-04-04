@@ -4,7 +4,7 @@ We're building and dogfooding `maenifold` and `gate` at the same time.
 Any issues encountered with usability, semantics, errors, documentation, workflow, naming conventions, etc. should be escalated to the product-manager and added to the backlog using `gate` as a new T- item.
 Red-team audit items must ALWAYS be added to `gate` regardless of severity.
 Always check for newly added or pre-existing items before adding new.
-Default to the TDD process when using `gate`
+Default to the TDD process when using `gate`.
 
 ## Test Execution Policy
 

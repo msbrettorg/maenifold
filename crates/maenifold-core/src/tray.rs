@@ -102,24 +102,7 @@ impl TrayApp {
     fn close_endophasia_window(&mut self) {
         if let Some(webview) = self.endophasia_wv.as_ref() {
             if let Err(err) = webview.evaluate_script(
-                r#"(() => {
-                    const appState =
-                        typeof state !== "undefined" ? state : globalThis.state;
-                    if (!appState) {
-                        return;
-                    }
-
-                    try {
-                        appState.eventSource?.close?.();
-                    } catch (_) {}
-
-                    appState.eventSource = null;
-
-                    if (appState.reconnectTimer !== undefined && appState.reconnectTimer !== null) {
-                        clearTimeout(appState.reconnectTimer);
-                    }
-                    appState.reconnectTimer = null;
-                })();"#,
+                r#"window.__closeEndophasia && window.__closeEndophasia();"#,
             ) {
                 eprintln!("Warning: failed to close Endophasia EventSource before window teardown: {err}");
             }

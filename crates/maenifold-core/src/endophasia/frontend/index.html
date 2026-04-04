@@ -604,6 +604,19 @@
       resizeFrame: null
     };
 
+    window.__closeEndophasia = function() {
+      try {
+        state.eventSource?.close?.();
+      } catch (_) {}
+
+      state.eventSource = null;
+
+      if (state.reconnectTimer !== undefined && state.reconnectTimer !== null) {
+        clearTimeout(state.reconnectTimer);
+      }
+      state.reconnectTimer = null;
+    };
+
     const normalize = value => String(value || "").trim().toLowerCase();
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 

@@ -8,6 +8,8 @@ use serde::Deserialize;
 
 use crate::cli::{GateContext, StatusArgs};
 use crate::gate_tool_service::GateToolService;
+use crate::status_filter::StatusFilter;
+use crate::task_id;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,6 +83,10 @@ fn load_tasks(root: &PathBuf) -> Result<Vec<TaskEntry>, String> {
             root: root.clone(),
             requested_pipeline_name: None,
             json_output: false,
+        },
+        filter: StatusFilter {
+            state: None,
+            ready_only: false,
         },
     })
     .map_err(|e| e.to_string())?;
@@ -472,7 +478,7 @@ fn sort_tasks(tasks: &mut [TaskEntry], sort_state: SortState) {
         Some(column) => {
             tasks.sort_by(|left, right| {
                 let ordering = match column {
-                    SortColumn::Id => left.task_id.cmp(&right.task_id),
+                    SortColumn::Id => task_id::compare(&left.task_id, &right.task_id),
                     SortColumn::Name => left.title.cmp(&right.title),
                     SortColumn::Process => left.pipeline.cmp(&right.pipeline),
                     SortColumn::Progress => progress_rank(left)
@@ -499,7 +505,7 @@ fn default_task_order(left: &TaskEntry, right: &TaskEntry) -> std::cmp::Ordering
     location_rank(&left.location)
         .cmp(&location_rank(&right.location))
         .then(left.state.cmp(&right.state))
-        .then(left.task_id.cmp(&right.task_id))
+        .then_with(|| task_id::compare(&left.task_id, &right.task_id))
 }
 
 fn location_rank(location: &str) -> u8 {
@@ -692,6 +698,70 @@ mod tests {
             .map(|task| task.task_id.as_str())
             .collect::<Vec<_>>();
         assert_eq!(ids, vec!["T-1", "T-2", "T-3"]);
+    }
+
+    #[test]
+    fn default_task_order_uses_natural_task_id_sort() {
+        let mut tasks = vec![
+            TaskEntry {
+                task_id: "T-90.10".to_string(),
+                ..sample_tasks()[0].clone()
+            },
+            TaskEntry {
+                task_id: "T-90.2".to_string(),
+                ..sample_tasks()[0].clone()
+            },
+            TaskEntry {
+                task_id: "T-90.9".to_string(),
+                ..sample_tasks()[0].clone()
+            },
+        ];
+        sort_tasks(&mut tasks, SortState::default());
+        let ids = tasks.iter().map(|task| task.task_id.as_str()).collect::<Vec<_>>();
+        assert_eq!(ids, vec!["T-90.2", "T-90.9", "T-90.10"]);
+    }
+
+    #[test]
+    fn id_column_sort_uses_natural_task_id_order_in_both_directions() {
+        let mut ascending = vec![
+            TaskEntry {
+                task_id: "misc-10".to_string(),
+                ..sample_tasks()[0].clone()
+            },
+            TaskEntry {
+                task_id: "misc-2".to_string(),
+                ..sample_tasks()[0].clone()
+            },
+            TaskEntry {
+                task_id: "misc".to_string(),
+                ..sample_tasks()[0].clone()
+            },
+        ];
+        sort_tasks(
+            &mut ascending,
+            SortState {
+                column: Some(SortColumn::Id),
+                direction: SortDirection::Asc,
+            },
+        );
+        let ascending_ids = ascending
+            .iter()
+            .map(|task| task.task_id.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(ascending_ids, vec!["misc", "misc-2", "misc-10"]);
+
+        sort_tasks(
+            &mut ascending,
+            SortState {
+                column: Some(SortColumn::Id),
+                direction: SortDirection::Desc,
+            },
+        );
+        let descending_ids = ascending
+            .iter()
+            .map(|task| task.task_id.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(descending_ids, vec!["misc-10", "misc-2", "misc"]);
     }
 
     #[test]

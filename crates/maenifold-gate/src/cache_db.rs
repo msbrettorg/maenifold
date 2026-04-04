@@ -7,6 +7,7 @@ use serde_json::{Value, json};
 
 use crate::error::GateError;
 use crate::gate_catalog::GateDefinitionCatalog;
+use crate::task_id;
 use crate::task_file::TaskFileReader;
 use crate::task_repository::TaskPathSet;
 use crate::task_status::TaskStatusDeriver;
@@ -122,6 +123,12 @@ impl GateCacheDb {
         for row in rows {
             results.push(row?.into_status_value(root, requested_pipeline_name)?);
         }
+        results.sort_by(|left, right| {
+            task_id::compare(
+                left["taskId"].as_str().unwrap_or_default(),
+                right["taskId"].as_str().unwrap_or_default(),
+            )
+        });
         validate_unique_cached_task_ids(&results)?;
         Ok(results)
     }

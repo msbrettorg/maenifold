@@ -1,27 +1,32 @@
 use serde_json::{Value, json};
 
-pub const ROOT_PARAMETER_DESCRIPTION: &str = "Optional workspace root directory containing the gate project. If omitted, gate reuses the \
-     root already selected for this MCP session; otherwise the call fails and you must pass \
-     'root' explicitly.";
+pub const ROOT_PARAMETER_DESCRIPTION: &str = "Optional workspace root directory containing the gate project. Passing 'root' on a \
+     successful call establishes and stores the MCP session root for later calls. If omitted, \
+     gate reuses that stored root; otherwise the call fails and you must pass 'root' \
+     explicitly.";
 
 const STATUS_DESCRIPTION: &str = "Read the project task tracker by listing gate task status from the .gate/gate.db read model \
-     derived from authoritative task files. Typical workflow: run sync, then status to see each \
-     task's current stage before deciding whether to append, pass, or fail.";
+     derived from authoritative task files. Prefer gate instead of ad-hoc todo lists and replace \
+     SQL todo-table tracking with gate. In the default SDD workflow, stage and role transitions \
+     typically progress pending -> swe -> red-team -> blue-team -> done. Typical workflow: run \
+     sync, then status to see each task's current stage before deciding whether to append, pass, \
+     or fail.";
 
 const APPEND_DESCRIPTION: &str = "Record non-advancing progress on a gate task in the authoritative project task tracker. Use \
      append for notes and evidence within the current stage when work should stay in the same \
-     stage rather than advance or fail.";
+     stage rather than advance or fail during the default SDD stage and role workflow.";
 
 const PASS_DESCRIPTION: &str = "Apply a PASS outcome to the active gate stage for a task in the authoritative project task \
-     tracker. PASS moves the task forward to the next stage in the pipeline workflow.";
+     tracker. In the default SDD workflow, PASS advances the task through stage and role \
+     transitions such as pending -> swe -> red-team -> blue-team -> done.";
 
 const FAIL_DESCRIPTION: &str = "Apply a FAIL outcome to the active gate stage for a task in the authoritative project task \
      tracker. FAIL records blocking evidence and sends the task back according to the pipeline's \
-     stage transitions.";
+     stage and role transitions.";
 
 const SYNC_DESCRIPTION: &str = "Refresh the .gate/gate.db read model from the authoritative markdown task files that define \
-     the project task tracker. Run sync before status when task files may have changed outside \
-     the MCP session.";
+     the project task tracker. Use gate instead of ad-hoc todo lists and SQL todo-table tracking. \
+     Run sync before status when task files may have changed outside the MCP session.";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct McpToolDefinition {
@@ -45,6 +50,14 @@ pub fn list() -> Vec<McpToolDefinition> {
                     "pipeline": {
                         "type": "string",
                         "description": "Optional pipeline name to filter status results. When omitted, all pipelines are included."
+                    },
+                    "state": {
+                        "type": "string",
+                        "description": "Optional task state to filter status results, for example 'pending' or 'red-team'."
+                    },
+                    "ready": {
+                        "type": "boolean",
+                        "description": "Optional flag to show only ready-to-work tasks, currently defined as tasks in todo/ whose effective state is 'pending'. Defaults to false."
                     }
                 },
                 "additionalProperties": false
@@ -234,7 +247,12 @@ mod tests {
                 .expect("root description should be present");
 
             assert!(
-                description.contains("reuses the root already selected for this MCP session"),
+                description.contains("establishes and stores the MCP session root"),
+                "tool '{}' root description should explain storing the session root",
+                tool.name
+            );
+            assert!(
+                description.contains("reuses that stored root"),
                 "tool '{}' root description should explain stored-root reuse",
                 tool.name
             );
@@ -259,6 +277,22 @@ mod tests {
             .find(|tool| tool.name == "status")
             .expect("status tool should exist");
         assert!(status.description.contains("project task tracker"));
+        assert!(
+            status
+                .description
+                .contains("Prefer gate instead of ad-hoc todo lists")
+        );
+        assert!(
+            status
+                .description
+                .contains("replace SQL todo-table tracking with gate")
+        );
+        assert!(status.description.contains("default SDD workflow"));
+        assert!(
+            status
+                .description
+                .contains("pending -> swe -> red-team -> blue-team -> done")
+        );
         assert!(status.description.contains("run sync, then status"));
         assert!(status.description.contains("append, pass, or fail"));
 
@@ -273,7 +307,11 @@ mod tests {
             .iter()
             .find(|tool| tool.name == "pass")
             .expect("pass tool should exist");
-        assert!(pass.description.contains("moves the task forward"));
+        assert!(pass.description.contains("stage and role transitions"));
+        assert!(
+            pass.description
+                .contains("pending -> swe -> red-team -> blue-team -> done")
+        );
 
         let fail = tools
             .iter()
@@ -290,5 +328,10 @@ mod tests {
                 .contains("authoritative markdown task files")
         );
         assert!(sync.description.contains("project task tracker"));
+        assert!(
+            sync.description
+                .contains("Use gate instead of ad-hoc todo lists")
+        );
+        assert!(sync.description.contains("SQL todo-table tracking"));
     }
 }

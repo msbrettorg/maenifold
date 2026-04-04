@@ -18,13 +18,19 @@ use self::schema::{McpToolDefinition, list};
 use crate::cli::{AppendArgs, GateContext, OutcomeArgs, StatusArgs, SyncArgs};
 use crate::error::GateError;
 use crate::gate_tool_service::GateToolService;
+use crate::status_filter::StatusFilter;
 
 const GATE_SERVER_INSTRUCTIONS: &str = "Gate is the authoritative project task tracker. Task state lives in markdown files under \
      the workspace, while .gate/gate.db is only a read model produced by sync. Recommended \
-     workflow for first-time agents: run sync when files may be stale, run status to inspect the \
+     workflow for first-time agents: prefer gate instead of ad-hoc todo lists and replace SQL \
+     todo-table tracking with gate, run sync when files may be stale, run status to inspect the \
      current stage, use append for non-advancing work notes within the current stage, then use \
-     pass to move the task forward or fail to send it back per the pipeline. Prefer exact tool \
-     names from tools/list and pass JSON arguments matching the tool schema.";
+     pass to move the task forward or fail to send it back per the pipeline. In the default SDD \
+     workflow, these are stage and role transitions that typically progress pending -> swe -> \
+     red-team -> blue-team -> done. Passing 'root' on a successful call establishes and stores \
+     the MCP session root for later calls; omitting 'root' reuses that stored root, otherwise the \
+     call fails. Prefer exact tool names from tools/list and pass JSON arguments matching the \
+     tool schema.";
 
 #[derive(Debug, Clone)]
 pub struct GateMcpServer;
@@ -182,6 +188,10 @@ fn call_gate_tool(
     let result = match tool_name {
         "status" => GateToolService::status(StatusArgs {
             context: context_from_value(&arguments, false, root)?,
+            filter: StatusFilter {
+                state: optional_string(arguments, "state")?,
+                ready_only: optional_bool(arguments, "ready")?.unwrap_or(false),
+            },
         })?,
         "append" => GateToolService::append(AppendArgs {
             context: context_from_value(&arguments, false, root)?,
@@ -302,6 +312,58 @@ mod tests {
     }
 
     #[test]
+    fn mcp_status_tool_supports_ready_and_state_filters() {
+        let root = new_custom_pipeline_root();
+        let root_path = root.path().to_path_buf();
+        fs::write(
+            root.path().join("todo").join("T-9.2.md"),
+            task_markdown("T-9.2", "custom"),
+        )
+        .expect("write second task");
+        call_gate_tool(
+            "sync",
+            &json!({ "root": root.path(), "rebuild": true }),
+            Some(&root_path),
+        )
+        .expect("sync tool should succeed");
+        call_gate_tool(
+            "pass",
+            &json!({
+                "root": root.path(),
+                "taskId": "T-9.2",
+                "agent": "swe",
+                "notes": "advanced"
+            }),
+            Some(&root_path),
+        )
+        .expect("pass tool should succeed");
+
+        let ready_output = call_gate_tool(
+            "status",
+            &json!({ "root": root.path(), "ready": true }),
+            Some(&root_path),
+        )
+        .expect("ready status should succeed");
+        let ready_value: serde_json::Value =
+            serde_json::from_str(&ready_output).expect("valid ready JSON output");
+        let ready_tasks = ready_value.as_array().expect("ready status should return an array");
+        assert_eq!(ready_tasks.len(), 1);
+        assert_eq!(ready_tasks[0]["taskId"], "T-9.1");
+
+        let swe_output = call_gate_tool(
+            "status",
+            &json!({ "root": root.path(), "state": "swe" }),
+            Some(&root_path),
+        )
+        .expect("state status should succeed");
+        let swe_value: serde_json::Value =
+            serde_json::from_str(&swe_output).expect("valid state JSON output");
+        let swe_tasks = swe_value.as_array().expect("state status should return an array");
+        assert_eq!(swe_tasks.len(), 1);
+        assert_eq!(swe_tasks[0]["taskId"], "T-9.2");
+    }
+
+    #[test]
     fn mcp_pass_tool_advances_bound_task() {
         let root = new_custom_pipeline_root();
         let root_path = root.path().to_path_buf();
@@ -341,11 +403,18 @@ mod tests {
 
         assert_eq!(instructions, GATE_SERVER_INSTRUCTIONS);
         assert!(instructions.contains("authoritative project task tracker"));
+        assert!(instructions.contains("prefer gate instead of ad-hoc todo lists"));
+        assert!(instructions.contains("replace SQL todo-table tracking with gate"));
         assert!(instructions.contains("run sync"));
         assert!(instructions.contains("run status"));
         assert!(instructions.contains("use append"));
         assert!(instructions.contains("pass to move the task forward"));
         assert!(instructions.contains("fail to send it back"));
+        assert!(instructions.contains("default SDD workflow"));
+        assert!(instructions.contains("stage and role transitions"));
+        assert!(instructions.contains("pending -> swe -> red-team -> blue-team -> done"));
+        assert!(instructions.contains("establishes and stores"));
+        assert!(instructions.contains("reuses that stored root"));
     }
 
     fn new_custom_pipeline_root() -> TempDir {

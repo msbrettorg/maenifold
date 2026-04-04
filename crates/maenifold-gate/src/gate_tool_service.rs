@@ -8,6 +8,7 @@ use crate::cli::{AppendArgs, GateContext, OutcomeArgs, StatusArgs, SyncArgs};
 use crate::error::GateError;
 use crate::fail_command::fail_task;
 use crate::pass_command::pass_task;
+use crate::status_filter::StatusFilter;
 use crate::sync_command::sync_gate;
 use crate::task_repository::TaskRepository;
 
@@ -16,7 +17,7 @@ pub struct GateToolService;
 
 impl GateToolService {
     pub fn status(args: StatusArgs) -> Result<Value, GateError> {
-        status_from_existing_read_model(&args.context)
+        status_from_existing_read_model(&args.context, &args.filter)
     }
 
     pub fn append(args: AppendArgs) -> Result<Value, GateError> {
@@ -70,8 +71,15 @@ fn task_status_from_read_model(context: &GateContext, task_id: &str) -> Result<V
         .ok_or_else(|| GateError::Cli(format!("task '{task_id}' missing from gate DB read model")))
 }
 
-fn status_from_existing_read_model(context: &GateContext) -> Result<Value, GateError> {
-    Ok(Value::Array(status_rows_read_only(context)?))
+fn status_from_existing_read_model(
+    context: &GateContext,
+    filter: &StatusFilter,
+) -> Result<Value, GateError> {
+    let rows = status_rows_read_only(context)?
+        .into_iter()
+        .filter(|row| filter.matches(row))
+        .collect();
+    Ok(Value::Array(rows))
 }
 
 fn status_rows_read_only(context: &GateContext) -> Result<Vec<Value>, GateError> {
@@ -162,6 +170,7 @@ mod tests {
     use tempfile::TempDir;
 
     use crate::cli::{GateContext, OutcomeArgs, StatusArgs};
+    use crate::status_filter::StatusFilter;
 
     use super::GateToolService;
 
@@ -198,6 +207,10 @@ mod tests {
                 requested_pipeline_name: None,
                 json_output: false,
             },
+            filter: StatusFilter {
+                state: None,
+                ready_only: false,
+            },
         })
         .expect_err("status should fail when the cache DB is missing");
 
@@ -220,6 +233,10 @@ mod tests {
                 root: root.path().to_path_buf(),
                 requested_pipeline_name: None,
                 json_output: false,
+            },
+            filter: StatusFilter {
+                state: None,
+                ready_only: false,
             },
         })
         .expect_err("status should fail on a corrupt cache DB");

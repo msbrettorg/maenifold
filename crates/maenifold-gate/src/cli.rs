@@ -8,6 +8,7 @@ use crate::fail_command::FailCommand;
 use crate::history_command::HistoryCommand;
 use crate::pass_command::PassCommand;
 use crate::status_command::StatusCommand;
+use crate::status_filter::StatusFilter;
 use crate::sync_command::SyncCommand;
 use crate::ui_window::GateUiWindow;
 
@@ -21,6 +22,7 @@ pub struct GateContext {
 #[derive(Debug, Clone)]
 pub struct StatusArgs {
     pub context: GateContext,
+    pub filter: StatusFilter,
 }
 
 #[derive(Debug, Clone)]
@@ -174,6 +176,10 @@ impl GateSubcommand {
         Ok(match self {
             Self::Status(args) => CommandRequest::Status(StatusArgs {
                 context: args.shared.into_context(args.json),
+                filter: StatusFilter {
+                    state: args.state,
+                    ready_only: args.ready,
+                },
             }),
             Self::Append(args) => CommandRequest::Append(AppendArgs {
                 context: args.shared.into_context(false),
@@ -225,6 +231,10 @@ struct StatusCliArgs {
     shared: SharedCliArgs,
     #[arg(long)]
     json: bool,
+    #[arg(long)]
+    state: Option<String>,
+    #[arg(long)]
+    ready: bool,
 }
 
 #[derive(Debug, Args)]

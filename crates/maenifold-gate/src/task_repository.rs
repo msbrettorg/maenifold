@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use walkdir::WalkDir;
+
 use crate::error::GateError;
+use crate::task_id;
 use crate::task_metadata::TaskMetadataParser;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,9 +44,12 @@ impl TaskRepository {
                 continue;
             }
 
-            for entry in fs::read_dir(&directory)? {
+            for entry in WalkDir::new(&directory).into_iter() {
                 let entry = entry?;
-                let path = entry.path();
+                let path = entry.into_path();
+                if !path.is_file() {
+                    continue;
+                }
                 if path.extension().and_then(|value| value.to_str()) != Some("md") {
                     continue;
                 }
@@ -76,7 +82,7 @@ impl TaskRepository {
             }
         }
 
-        tasks.sort_by(|left, right| left.task_id.cmp(&right.task_id));
+        tasks.sort_by(|left, right| task_id::compare(&left.task_id, &right.task_id));
         Ok(tasks)
     }
 
@@ -101,11 +107,12 @@ impl TaskRepository {
     }
 
     fn destination_path(task: &TaskPathSet, location: &str) -> Result<PathBuf, GateError> {
-        let parent = task
+        let location_directory = task
             .path
-            .parent()
+            .ancestors()
+            .find(|path| path.file_name().and_then(|value| value.to_str()) == Some(task.location.as_str()))
             .ok_or_else(|| GateError::MissingTaskPath(task.path.clone()))?;
-        let root = parent
+        let root = location_directory
             .parent()
             .ok_or_else(|| GateError::MissingTaskPath(task.path.clone()))?;
         Ok(root.join(location).join(format!("{}.md", task.task_id)))
@@ -160,5 +167,44 @@ mod tests {
             }
             other => panic!("expected duplicate canonical task id error, got {other}"),
         }
+    }
+
+    #[test]
+    fn list_tasks_includes_nested_done_legacy_files() {
+        let temp = tempdir().expect("create temp root");
+        let root = temp.path();
+        fs::create_dir_all(root.join("todo")).expect("create todo");
+        fs::create_dir_all(root.join("done").join("legacy")).expect("create done legacy");
+
+        fs::write(
+            root.join("done").join("legacy").join("T-90.18.md"),
+            "---\nid: T-90.18\ntitle: Legacy done task\npipeline: sdd\nstate: done\n---\n# Legacy done task\n",
+        )
+        .expect("write nested done task");
+
+        let tasks = TaskRepository::list_tasks(root.to_path_buf()).expect("list tasks");
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].task_id, "T-90.18");
+        assert_eq!(tasks[0].location, "done");
+        assert!(tasks[0].path.ends_with("done/legacy/T-90.18.md"));
+    }
+
+    #[test]
+    fn move_to_todo_handles_nested_done_paths() {
+        let temp = tempdir().expect("create temp root");
+        let root = temp.path();
+        fs::create_dir_all(root.join("todo")).expect("create todo");
+        fs::create_dir_all(root.join("done").join("legacy")).expect("create done legacy");
+
+        let path = root.join("done").join("legacy").join("T-90.18.md");
+        fs::write(
+            &path,
+            "---\nid: T-90.18\ntitle: Legacy done task\npipeline: sdd\nstate: done\n---\n# Legacy done task\n",
+        )
+        .expect("write nested done task");
+
+        let task = TaskRepository::find_task(root.to_path_buf(), "T-90.18").expect("find task");
+        TaskRepository::move_to_todo(&task).expect("move nested task to todo");
+        assert!(root.join("todo").join("T-90.18.md").exists());
     }
 }

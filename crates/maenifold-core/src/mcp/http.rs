@@ -45,6 +45,13 @@ impl super::MaenifoldMcpServer {
     // T-17.2: RTM FR-23 (RTM-127, RTM-129, RTM-130) — expose Streamable HTTP MCP
     // endpoints with rmcp session management and browser-friendly CORS.
     pub async fn serve_http(port: u16) -> Result<()> {
+        Self::serve_http_with_shutdown(port, tokio_util::sync::CancellationToken::new()).await
+    }
+
+    pub async fn serve_http_with_shutdown(
+        port: u16,
+        shutdown_token: tokio_util::sync::CancellationToken,
+    ) -> Result<()> {
         let bind_addr = format!("127.0.0.1:{port}");
         let tcp_listener = tokio::net::TcpListener::bind(&bind_addr)
             .await
@@ -52,14 +59,27 @@ impl super::MaenifoldMcpServer {
                 MaenifoldError::Message(format!("HTTP bind failed on {bind_addr}: {e}"))
             })?;
 
-        Self::serve_http_listener(tcp_listener).await
+        Self::serve_http_listener_with_shutdown(tcp_listener, shutdown_token).await
     }
 
     pub async fn serve_http_listener(tcp_listener: tokio::net::TcpListener) -> Result<()> {
-        let ct = tokio_util::sync::CancellationToken::new();
+        Self::serve_http_listener_with_shutdown(
+            tcp_listener,
+            tokio_util::sync::CancellationToken::new(),
+        )
+        .await
+    }
+
+    async fn serve_http_listener_with_shutdown(
+        tcp_listener: tokio::net::TcpListener,
+        shutdown_token: tokio_util::sync::CancellationToken,
+    ) -> Result<()> {
         let config = Config::current();
         super::initialize_runtime(&config)?;
-        let router = router(service(ct.child_token()), ApiState::new(config.clone()))
+        let router = router(
+            service(shutdown_token.child_token()),
+            ApiState::new(config.clone()),
+        )
             // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
             // shared tool surface over HTTP.
             // FR-32-SEC: restrict CORS to localhost origins only.
@@ -70,10 +90,16 @@ impl super::MaenifoldMcpServer {
 
         eprintln!("maenifold MCP HTTP server listening on http://{bind_addr}/mcp");
 
+        let graceful_shutdown_token = shutdown_token.clone();
         axum::serve(tcp_listener, router)
             .with_graceful_shutdown(async move {
-                let _ = tokio::signal::ctrl_c().await;
-                ct.cancel();
+                tokio::select! {
+                    _ = tokio::signal::ctrl_c() => {}
+                    _ = graceful_shutdown_token.cancelled() => {}
+                }
+                // Bounded drain: give open connections 3 seconds to close,
+                // then force-stop so block_on returns and shutdown_timeout is reachable.
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             })
             .await
             .map_err(|e| MaenifoldError::Message(format!("HTTP server error: {e}")))?;

@@ -4,6 +4,7 @@ use futures_util::stream::{self as fut_stream, Stream};
 use serde::Serialize;
 use serde_json::json;
 use std::convert::Infallible;
+use std::time::Duration;
 use tokio::sync::broadcast::error::RecvError;
 
 fn safe_json_event<T>(event_name: Option<&str>, payload: &T) -> Event
@@ -46,5 +47,9 @@ pub async fn pipeline_stream() -> Sse<impl Stream<Item = Result<Event, Infallibl
         Some((Ok(event), receiver))
     });
 
-    Sse::new(stream)
+    Sse::new(stream).keep_alive(
+        axum::response::sse::KeepAlive::new()
+            .interval(Duration::from_secs(30))
+            .text("ping"),
+    )
 }

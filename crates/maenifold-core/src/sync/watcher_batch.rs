@@ -175,6 +175,7 @@ pub(crate) fn is_watchable_markdown_path(memory_path: &Path, path: &Path) -> boo
     path.extension().and_then(|ext| ext.to_str()) == Some("md")
         && path.starts_with(memory_path)
         && !is_hidden_relative_path(memory_path, path)
+        && !is_top_level_pipelines_relative_path(memory_path, path)
 }
 
 fn is_hidden_relative_path(memory_path: &Path, path: &Path) -> bool {
@@ -185,4 +186,14 @@ fn is_hidden_relative_path(memory_path: &Path, path: &Path) -> bool {
         let text = component.as_os_str().to_string_lossy();
         text.starts_with('.') && text.len() > 1
     })
+}
+
+fn is_top_level_pipelines_relative_path(memory_path: &Path, path: &Path) -> bool {
+    let Ok(relative) = path.strip_prefix(memory_path) else {
+        return true;
+    };
+    matches!(
+        relative.components().next(),
+        Some(component) if component.as_os_str() == "pipelines"
+    )
 }

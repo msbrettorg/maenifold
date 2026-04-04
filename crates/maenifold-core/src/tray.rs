@@ -10,6 +10,7 @@
 //! `--mcp` mode never enters this module — it remains fully headless.
 
 use crate::tray_menu::{build_tray_menu, endophasia_url, restart_daemon, toggle_login_item};
+use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 use tray_icon::menu::{MenuEvent, MenuId, MenuItem};
 use tray_icon::{Icon, TrayIconBuilder};
@@ -99,6 +100,30 @@ struct TrayApp {
 impl TrayApp {
     #[cfg(target_os = "macos")]
     fn close_endophasia_window(&mut self) {
+        if let Some(webview) = self.endophasia_wv.as_ref() {
+            if let Err(err) = webview.evaluate_script(
+                r#"(() => {
+                    const appState =
+                        typeof state !== "undefined" ? state : globalThis.state;
+                    if (!appState) {
+                        return;
+                    }
+
+                    try {
+                        appState.eventSource?.close?.();
+                    } catch (_) {}
+
+                    appState.eventSource = null;
+
+                    if (appState.reconnectTimer !== undefined && appState.reconnectTimer !== null) {
+                        clearTimeout(appState.reconnectTimer);
+                    }
+                    appState.reconnectTimer = null;
+                })();"#,
+            ) {
+                eprintln!("Warning: failed to close Endophasia EventSource before window teardown: {err}");
+            }
+        }
         self.endophasia_wv.take();
         self.endophasia_wv_window.take();
     }
@@ -164,6 +189,9 @@ impl TrayApp {
             Ok(webview) => webview,
             Err(err) => {
                 eprintln!("Error creating Endophasia webview: {err}");
+                if let Err(open_err) = open_url(&url) {
+                    eprintln!("Error opening Endophasia URL fallback: {open_err}");
+                }
                 return;
             }
         };
@@ -178,9 +206,9 @@ impl TrayApp {
         event: tray_icon::menu::MenuEvent,
     ) {
         if self.quit_id.as_ref().is_some_and(|id| event.id == *id) {
-            self.shutdown_token.cancel();
             #[cfg(target_os = "macos")]
             self.close_endophasia_window();
+            self.shutdown_token.cancel();
             self.tray_icon.take();
             event_loop.exit();
             return;
@@ -298,11 +326,13 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
                 }
             };
             let result = rt.block_on(async move {
-                tokio::select! {
-                    result = crate::mcp::MaenifoldMcpServer::serve_http(port) => result,
-                    _ = server_shutdown_token.cancelled() => Ok(()),
-                }
+                crate::mcp::MaenifoldMcpServer::serve_http_with_shutdown(
+                    port,
+                    server_shutdown_token,
+                )
+                .await
             });
+            rt.shutdown_timeout(Duration::from_secs(5));
             match result {
                 Ok(()) => 0,
                 Err(err) => {
@@ -338,9 +368,9 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
 
     if let Err(err) = event_loop.run_app(&mut app) {
         eprintln!("Error running tray event loop: {err}");
-        app.shutdown_token.cancel();
         #[cfg(target_os = "macos")]
         app.close_endophasia_window();
+        app.shutdown_token.cancel();
         app.exit_code = 1;
     }
 

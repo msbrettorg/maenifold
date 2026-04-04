@@ -34,6 +34,8 @@ pub fn open_connection(path: &Path) -> Result<Connection> {
     // opened after a VACUUM stays in DELETE mode until the next init.
     conn.pragma_update(None, "journal_mode", journal_mode())?;
     conn.pragma_update(None, "synchronous", "NORMAL")?;
+    conn.pragma_update(None, "wal_autocheckpoint", 256)?;
+    conn.pragma_update(None, "journal_size_limit", 67108864)?;
     // T-15.23: RTM FR-11 — C# distinguishes read vs write connections via
     // OpenReadOnly() (sets PRAGMA query_only=ON) vs OpenWithWAL(). The Rust
     // implementation uses a single open_connection() for all callers. This is an
@@ -69,7 +71,7 @@ pub fn run_full_maintenance(conn: &mut Connection) -> Result<()> {
 // T-QUAL-SYNC-001.3: RTM FR-25.6
 pub fn run_light_maintenance(conn: &Connection) -> Result<()> {
     conn.execute_batch(
-        "INSERT INTO file_search(file_search) VALUES('optimize');\n         PRAGMA wal_checkpoint(PASSIVE);",
+        "INSERT INTO file_search(file_search) VALUES('optimize');\n         PRAGMA wal_checkpoint(FULL);",
     )?;
     Ok(())
 }

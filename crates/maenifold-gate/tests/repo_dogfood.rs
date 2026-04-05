@@ -55,17 +55,17 @@ fn repo_fixture_root(root: &Path) -> tempfile::TempDir {
 }
 
 fn gate_status(root: &Path) -> Value {
-    let assets_dir = tempfile::tempdir().expect("temp assets dir");
+    let maenifold_root = tempfile::tempdir().expect("temp maenifold root");
     let fixture_root = repo_fixture_root(root);
     cargo_bin_cmd!("gate")
-        .env("MAENIFOLD_GATE_ASSETS_DIR", assets_dir.path())
+        .env("MAENIFOLD_ROOT", maenifold_root.path())
         .args(["sync", "--root"])
         .arg(fixture_root.path())
         .arg("--rebuild")
         .assert()
         .success();
     let output = cargo_bin_cmd!("gate")
-        .env("MAENIFOLD_GATE_ASSETS_DIR", assets_dir.path())
+        .env("MAENIFOLD_ROOT", maenifold_root.path())
         .args(["status", "--root"])
         .arg(fixture_root.path())
         .arg("--all")
@@ -131,10 +131,10 @@ fn status_respects_frontmatter_done_state_for_repo_tasks() {
 #[test]
 fn sync_rebuild_succeeds_for_shipped_repo_tasks() {
     let root = workspace_root();
-    let assets_dir = tempfile::tempdir().expect("temp assets dir");
+    let maenifold_root = tempfile::tempdir().expect("temp maenifold root");
 
     cargo_bin_cmd!("gate")
-        .env("MAENIFOLD_GATE_ASSETS_DIR", assets_dir.path())
+        .env("MAENIFOLD_ROOT", maenifold_root.path())
         .args(["sync", "--root"])
         .arg(&root)
         .arg("--rebuild")

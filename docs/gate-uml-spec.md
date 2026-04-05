@@ -5,8 +5,8 @@ This document is the authoritative implementation spec for `gate`.
 ## Authority
 
 - `SPEC = this document + the bundled built-in gate JSON files in crates/maenifold-gate/assets/*.json`
-- Runtime authoritative gate JSON lives in `MAENIFOLD_GATE_ASSETS_DIR` when set; otherwise resolve a platform config base and append `maenifold/gates` (`~/Library/Application Support/maenifold/gates` on macOS, `%APPDATA%\maenifold\gates` or `~/AppData/Roaming/maenifold/gates` on Windows, `$XDG_CONFIG_HOME/maenifold/gates` or `~/.config/maenifold/gates` on other platforms, with a temp-backed `maenifold` base only as a last-resort fallback)
-- Bundled built-ins must be copied to the runtime gate directory only when missing
+- Runtime authoritative gate JSON lives in `$MAENIFOLD_ROOT/assets/gates/` (defaults to `~/maenifold/assets/gates/`)
+- Bundled built-ins are copied to the gate directory only when missing or stale
 - Existing runtime gate JSON files are authoritative and must never be overwritten by bootstrap
 - Files under `todo/` and `done/` are authoritative task state
 - `gate.db` is a rebuildable read model derived from authoritative files and has no authority over task truth

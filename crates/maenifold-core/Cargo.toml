@@ -56,7 +56,6 @@ winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFRunLoop"] }
-wry = { workspace = true }
 
 [dev-dependencies]
 assert_cmd.workspace = true
@@ -67,7 +66,6 @@ serial_test = "3"
 similar-asserts.workspace = true
 tower = "0.5"
 filetime = "0.2.25"
-
 
 
 

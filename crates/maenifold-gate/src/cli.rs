@@ -68,13 +68,8 @@ pub enum CommandRequest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliAction {
     Headless,
-    Mcp {
-        root: Option<PathBuf>,
-    },
-    Http {
-        port: u16,
-        root: Option<PathBuf>,
-    },
+    Mcp { root: Option<PathBuf> },
+    Http { port: u16, root: Option<PathBuf> },
 }
 
 pub struct GateCliApp;
@@ -425,7 +420,8 @@ mod tests {
     fn reject_top_level_root_without_service_mode() {
         let args = vec!["--root".to_string(), "/workspace/project".to_string()];
         let parsed = parse_cli(&args).expect("CLI should parse");
-        let error = validate_cli(&parsed).expect_err("top-level root without service mode must fail");
+        let error =
+            validate_cli(&parsed).expect_err("top-level root without service mode must fail");
         assert!(
             error
                 .to_string()

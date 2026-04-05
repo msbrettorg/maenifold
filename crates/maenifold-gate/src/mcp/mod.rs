@@ -64,16 +64,39 @@ pub(crate) fn localhost_cors() -> CorsLayer {
         .expose_headers([HeaderName::from_static("mcp-session-id")])
 }
 
+/// Shared map of known workspace roots. Each entry is a canonical path
+/// registered when any tool call succeeds with an explicit `root` argument.
+/// The most recently used root is stored at the end.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct KnownRoots(Arc<RwLock<Vec<PathBuf>>>);
+
+impl KnownRoots {
+    pub(crate) fn with_initial(root: Option<PathBuf>) -> Self {
+        let roots = root.into_iter().collect();
+        Self(Arc::new(RwLock::new(roots)))
+    }
+
+    fn current(&self) -> Option<PathBuf> {
+        self.0.read().unwrap().last().cloned()
+    }
+
+    fn register(&self, root: PathBuf) {
+        let mut roots = self.0.write().unwrap();
+        roots.retain(|r| r != &root);
+        roots.push(root);
+    }
+}
+
 pub(crate) struct GateMcpHandler {
     transport: TransportKind,
     tools: Vec<Tool>,
-    root: Arc<RwLock<Option<PathBuf>>>,
+    known_roots: KnownRoots,
 }
 
 impl GateMcpHandler {
     pub(crate) fn new(
         transport: TransportKind,
-        root: Arc<RwLock<Option<PathBuf>>>,
+        known_roots: KnownRoots,
     ) -> Result<Self, GateError> {
         let tools = list()
             .into_iter()
@@ -82,7 +105,7 @@ impl GateMcpHandler {
         Ok(Self {
             transport,
             tools,
-            root,
+            known_roots,
         })
     }
 }
@@ -124,21 +147,19 @@ impl ServerHandler for GateMcpHandler {
             Some(map) => Value::Object(map),
             None => Value::Object(Map::new()),
         };
-        let shared_root = self.root.clone();
 
         async move {
-            let default_root = shared_root.read().unwrap().clone();
+            let current_root = self.known_roots.current();
             let explicit_root = match optional_path(&arguments, "root") {
                 Ok(root) => root,
                 Err(err) => {
                     return Ok(CallToolResult::error(vec![Content::text(err.to_string())]));
                 }
             };
-            match call_gate_tool(&tool_name, &arguments, default_root.as_ref()) {
+            match call_gate_tool(&tool_name, &arguments, current_root.as_ref()) {
                 Ok(output) => {
                     if let Some(explicit_root) = explicit_root {
-                        let mut root_guard = shared_root.write().unwrap();
-                        *root_guard = Some(explicit_root);
+                        self.known_roots.register(explicit_root);
                     }
                     Ok(CallToolResult::success(vec![Content::text(output)]))
                 }
@@ -149,8 +170,8 @@ impl ServerHandler for GateMcpHandler {
 }
 
 impl GateMcpServer {
-    pub async fn serve_stdio(root: Arc<RwLock<Option<PathBuf>>>) -> Result<(), GateError> {
-        let handler = GateMcpHandler::new(TransportKind::Stdio, root)?;
+    pub async fn serve_stdio(known_roots: KnownRoots) -> Result<(), GateError> {
+        let handler = GateMcpHandler::new(TransportKind::Stdio, known_roots)?;
         let transport = rmcp::transport::io::stdio();
         let service = handler
             .serve(transport)
@@ -242,7 +263,7 @@ fn context_from_value(
         Some(root) => root,
         None => default_root.cloned().ok_or_else(|| {
             GateError::Cli(
-                "gate root is not set; pass MCP argument 'root' to select a workspace root"
+                "no root bound to this session; pass 'root' argument on any tool call to bind a workspace"
                     .to_string(),
             )
         })?,
@@ -288,7 +309,6 @@ fn optional_bool(arguments: &Value, key: &str) -> Result<Option<bool>, GateError
 mod tests {
     use std::fs;
     use std::path::Path;
-    use std::sync::{Arc, RwLock};
 
     use serde_json::json;
     use tempfile::TempDir;
@@ -547,15 +567,12 @@ mod tests {
     #[test]
     fn context_requires_explicit_root_when_service_default_is_unset() {
         let err = context_from_value(&json!({}), false, None).expect_err("missing root must fail");
-        assert!(
-            err.to_string()
-                .contains("gate root is not set; pass MCP argument 'root'")
-        );
+        assert!(err.to_string().contains("no root bound to this session"));
     }
 
     #[test]
     fn server_instructions_explain_authoritative_gate_workflow() {
-        let handler = GateMcpHandler::new(TransportKind::Stdio, Arc::new(RwLock::new(None)))
+        let handler = GateMcpHandler::new(TransportKind::Stdio, KnownRoots::default())
             .expect("handler should build");
         let info = <GateMcpHandler as rmcp::ServerHandler>::get_info(&handler);
         let instructions = info

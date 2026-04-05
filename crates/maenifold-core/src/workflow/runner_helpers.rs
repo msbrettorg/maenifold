@@ -9,7 +9,6 @@ use serde_json::{Value, json};
 use std::sync::LazyLock;
 static STEP_PROGRESS_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
-const AGENT_ERROR_RESPONSE: &str = "Agent error [[step]]";
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Envelope<T> {
@@ -118,9 +117,7 @@ pub(crate) async fn prompt_workflow_agent(
     } else {
         driver.prompt(&full_prompt).await
     };
-    Ok(tag_fallback(&response.and_then(workflow_response_text).unwrap_or_else(
-        |_| AGENT_ERROR_RESPONSE.to_string(),
-    )))
+    normalize_workflow_prompt_response(response)
 }
 pub(crate) fn workflow_step_payload(
     session_id: &str,
@@ -138,10 +135,7 @@ pub(crate) fn workflow_step_payload(
         json!({ "sessionId": session_id, "response": response })
     }
 }
-pub(crate) fn workflow_completion_text(
-    response: &str,
-    final_step: bool,
-) -> Option<String> {
+pub(crate) fn workflow_completion_text(response: &str, final_step: bool) -> Option<String> {
     final_step.then(|| response.to_string())
 }
 fn workflow_response_text(response: AcpxResponse) -> Result<String> {
@@ -149,6 +143,12 @@ fn workflow_response_text(response: AcpxResponse) -> Result<String> {
         return Err(MaenifoldError::Message(error));
     }
     Ok(response.text)
+}
+
+fn normalize_workflow_prompt_response(response: Result<AcpxResponse>) -> Result<String> {
+    response
+        .and_then(workflow_response_text)
+        .map(|text| tag_fallback(&text))
 }
 
 pub(crate) fn tag_fallback(response: &str) -> String {
@@ -216,4 +216,47 @@ fn json_prefix_end(text: &str) -> Option<usize> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_workflow_prompt_response;
+    use crate::acp_native::AcpxResponse;
+    use crate::error::MaenifoldError;
+
+    #[test]
+    fn normalize_workflow_prompt_response_keeps_success_text() {
+        let response = normalize_workflow_prompt_response(Ok(AcpxResponse {
+            text: "Completed [[step]]".to_string(),
+            ..AcpxResponse::default()
+        }))
+        .expect("success response should remain ok");
+
+        assert_eq!(response, "Completed [[step]]");
+    }
+
+    #[test]
+    fn normalize_workflow_prompt_response_propagates_prompt_failure() {
+        let response = normalize_workflow_prompt_response(Ok(AcpxResponse {
+            error: Some("refusal".to_string()),
+            ..AcpxResponse::default()
+        }));
+
+        assert!(
+            response.is_err(),
+            "workflow prompt failures should propagate instead of falling back to agent error text"
+        );
+    }
+
+    #[test]
+    fn normalize_workflow_prompt_response_propagates_transport_failure() {
+        let response = normalize_workflow_prompt_response(Err(MaenifoldError::Message(
+            "transport failed".to_string(),
+        )));
+
+        assert!(
+            response.is_err(),
+            "workflow transport failures should propagate instead of falling back to agent error text"
+        );
+    }
 }

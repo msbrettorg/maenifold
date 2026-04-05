@@ -75,6 +75,13 @@ pub(super) fn restart_pipeline_node(
             "ERROR: Pipeline session missing node state for '{node_id}'"
         ))
     })?;
+    persist_pipeline_state(
+        &mut frontmatter,
+        &node_states,
+        &uri,
+        &pipeline_content,
+        context,
+    )?;
     write_workflow_node_session(
         context,
         session_id,
@@ -85,13 +92,6 @@ pub(super) fn restart_pipeline_node(
         },
     )?;
     inject_predecessor_context_for_node(context, &definition, &node_states, node_id)?;
-    persist_pipeline_state(
-        &mut frontmatter,
-        &node_states,
-        &uri,
-        &pipeline_content,
-        context,
-    )?;
 
     let ambient_prompt = frontmatter.get("prompt").and_then(YamlValue::as_str);
     let result = build_pipeline_view_result(

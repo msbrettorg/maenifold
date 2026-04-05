@@ -43,6 +43,11 @@ impl HeadlessClient {
         self.sessions.lock().await.remove(session_id);
     }
 
+    #[cfg(test)]
+    pub(super) async fn has_session(&self, session_id: &str) -> bool {
+        self.sessions.lock().await.contains_key(session_id)
+    }
+
     pub(super) async fn begin_turn(&self, session_id: &str) {
         self.sessions
             .lock()

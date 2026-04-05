@@ -217,7 +217,8 @@ impl GateUiApp {
     fn reset_stale_filters(&mut self) {
         self.process_filter
             .reset_if_missing(&process_values(&self.tasks));
-        self.state_filter.reset_if_missing(&state_values(&self.tasks));
+        self.state_filter
+            .reset_if_missing(&state_values(&self.tasks));
         self.location_filter
             .reset_if_missing(&location_values(&self.tasks));
     }

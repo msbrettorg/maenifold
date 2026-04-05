@@ -197,7 +197,7 @@ pub struct AcpExecParams {
     /// Optional model override for the session
     #[serde(default)]
     pub model: Option<String>,
-    /// Optional session mode override
+    /// Optional thinking effort level, applied via session/set_config_option if the agent advertises it.
     #[serde(default)]
     pub thought_level: Option<String>,
     /// Optional allowed tools override

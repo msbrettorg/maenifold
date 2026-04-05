@@ -170,6 +170,7 @@ pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32
 
     #[cfg(target_os = "macos")]
     {
+        let server_initial_root = initial_root.clone();
         let root = Arc::new(RwLock::new(initial_root));
         let shutdown_token = CancellationToken::new();
         let file_watcher = match GateFileWatcher::start(root.clone(), &shutdown_token) {
@@ -180,7 +181,7 @@ pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32
             }
         };
         let server_shutdown_token = shutdown_token.clone();
-        let server_root = root.clone();
+        let known_roots = crate::mcp::KnownRoots::with_initial(server_initial_root);
         let server_handle = std::thread::Builder::new()
             .name("gate-mcp-server".into())
             .spawn(move || {
@@ -193,7 +194,7 @@ pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32
                 };
                 let result = rt.block_on(async move {
                     tokio::select! {
-                        result = run_mode(mode, server_root) => result,
+                        result = run_mode(mode, known_roots) => result,
                         _ = server_shutdown_token.cancelled() => Ok(()),
                     }
                 });
@@ -257,7 +258,7 @@ pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32
 
 #[cfg(not(target_os = "macos"))]
 fn run_headless(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32 {
-    let root = Arc::new(RwLock::new(initial_root));
+    let root = Arc::new(RwLock::new(initial_root.clone()));
     let shutdown_token = CancellationToken::new();
     let _file_watcher = match GateFileWatcher::start(root.clone(), &shutdown_token) {
         Ok(watcher) => watcher,
@@ -273,7 +274,8 @@ fn run_headless(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32 {
             return 1;
         }
     };
-    let result = rt.block_on(run_mode(mode, root));
+    let known_roots = crate::mcp::KnownRoots::with_initial(initial_root);
+    let result = rt.block_on(run_mode(mode, known_roots));
     shutdown_token.cancel();
     rt.shutdown_timeout(std::time::Duration::from_secs(5));
     match result {
@@ -287,11 +289,11 @@ fn run_headless(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32 {
 
 async fn run_mode(
     mode: GateServerMode,
-    root: Arc<RwLock<Option<PathBuf>>>,
+    known_roots: crate::mcp::KnownRoots,
 ) -> Result<(), crate::error::GateError> {
     match mode {
-        GateServerMode::Stdio => GateMcpServer::serve_stdio(root).await,
-        GateServerMode::Http(port) => GateMcpServer::serve_http(port, root).await,
+        GateServerMode::Stdio => GateMcpServer::serve_stdio(known_roots).await,
+        GateServerMode::Http(port) => GateMcpServer::serve_http(port, known_roots).await,
     }
 }
 

@@ -6,7 +6,6 @@ use crate::error::GateError;
 use crate::gate_definition::GateDefinition;
 use crate::task_metadata::TaskMetadata;
 
-const GATES_DIR_ENV: &str = "MAENIFOLD_GATE_ASSETS_DIR";
 const RESERVED_BUILTIN_NAMES: &[&str] = &["sdd", "tdd", "gsd", "lightweight"];
 const SDD_JSON: &str = include_str!("../assets/sdd.json");
 const TDD_JSON: &str = include_str!("../assets/tdd.json");
@@ -19,7 +18,7 @@ pub struct GateDefinitionCatalog;
 impl GateDefinitionCatalog {
     pub fn load_builtin(name: &str) -> Result<GateDefinition, GateError> {
         Self::ensure_all_builtin_assets()?;
-        let asset_path = Self::runtime_gates_dir().join(format!("{name}.json"));
+        let asset_path = Self::gates_dir().join(format!("{name}.json"));
         let text = fs::read_to_string(&asset_path)?;
         GateDefinition::from_json_text(&text)
     }
@@ -56,14 +55,21 @@ impl GateDefinitionCatalog {
         Self::resolve(root, &metadata.pipeline)
     }
 
-    fn runtime_gates_dir() -> PathBuf {
-        env::var_os(GATES_DIR_ENV)
+    fn gates_dir() -> PathBuf {
+        env::var_os("MAENIFOLD_ROOT")
             .map(PathBuf::from)
-            .unwrap_or_else(default_runtime_gates_dir)
+            .unwrap_or_else(|| {
+                env::var_os("HOME")
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| PathBuf::from("."))
+                    .join("maenifold")
+            })
+            .join("assets")
+            .join("gates")
     }
 
     fn ensure_all_builtin_assets() -> Result<(), GateError> {
-        let dir = Self::runtime_gates_dir();
+        let dir = Self::gates_dir();
         fs::create_dir_all(&dir)?;
         for name in RESERVED_BUILTIN_NAMES {
             let path = dir.join(format!("{name}.json"));
@@ -85,46 +91,6 @@ impl GateDefinitionCatalog {
     }
 }
 
-fn default_runtime_gates_dir() -> PathBuf {
-    #[cfg(target_os = "macos")]
-    {
-        home_dir_from_env()
-            .unwrap_or_else(fallback_runtime_base_dir)
-            .join("Library")
-            .join("Application Support")
-            .join("maenifold")
-            .join("gates")
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        env::var_os("APPDATA")
-            .map(PathBuf::from)
-            .or_else(|| home_dir_from_env().map(|home| home.join("AppData").join("Roaming")))
-            .unwrap_or_else(fallback_runtime_base_dir)
-            .join("maenifold")
-            .join("gates")
-    }
-
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    {
-        env::var_os("XDG_CONFIG_HOME")
-            .map(PathBuf::from)
-            .or_else(|| home_dir_from_env().map(|home| home.join(".config")))
-            .unwrap_or_else(fallback_runtime_base_dir)
-            .join("maenifold")
-            .join("gates")
-    }
-}
-
-fn home_dir_from_env() -> Option<PathBuf> {
-    env::var_os("HOME").map(PathBuf::from)
-}
-
-fn fallback_runtime_base_dir() -> PathBuf {
-    env::temp_dir().join("maenifold")
-}
-
 fn builtin_asset_text(name: &str) -> Result<&'static str, GateError> {
     match name {
         "sdd" => Ok(SDD_JSON),
@@ -142,16 +108,36 @@ mod tests {
 
     use tempfile::TempDir;
 
-    use super::{GATES_DIR_ENV, GateDefinitionCatalog, SDD_JSON, default_runtime_gates_dir};
+    use super::{GateDefinitionCatalog, SDD_JSON};
 
     static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+    fn set_maenifold_root(temp: &std::path::Path) -> (Option<OsString>, std::path::PathBuf) {
+        let previous = std::env::var_os("MAENIFOLD_ROOT");
+        unsafe {
+            std::env::set_var("MAENIFOLD_ROOT", temp);
+        }
+        let gates_dir = temp.join("assets").join("gates");
+        std::fs::create_dir_all(&gates_dir).expect("create gates dir");
+        (previous, gates_dir)
+    }
+
+    fn restore_maenifold_root(previous: Option<OsString>) {
+        match previous {
+            Some(value) => unsafe {
+                std::env::set_var("MAENIFOLD_ROOT", value);
+            },
+            None => unsafe {
+                std::env::remove_var("MAENIFOLD_ROOT");
+            },
+        }
+    }
 
     #[test]
     fn builtin_assets_refresh_reserved_runtime_copies_when_bundled_content_changes() {
         let _guard = ENV_LOCK.lock().expect("lock env guard");
         let temp = TempDir::new().expect("create temp dir");
-        let gates_dir = temp.path().join("gates");
-        std::fs::create_dir_all(&gates_dir).expect("create gates dir");
+        let (previous, gates_dir) = set_maenifold_root(temp.path());
 
         let sdd_path = gates_dir.join("sdd.json");
         let stale_sdd = r#"{
@@ -166,15 +152,10 @@ mod tests {
 }"#;
         std::fs::write(&sdd_path, stale_sdd).expect("write stale runtime asset");
 
-        let previous = std::env::var_os(GATES_DIR_ENV);
-        unsafe {
-            std::env::set_var(GATES_DIR_ENV, &gates_dir);
-        }
-
         let definition = GateDefinitionCatalog::load_builtin("sdd").expect("load builtin");
         let preserved = std::fs::read_to_string(&sdd_path).expect("read runtime asset");
 
-        restore_env(previous);
+        restore_maenifold_root(previous);
 
         assert_eq!(
             definition.ordered_stage_ids().expect("stage ids"),
@@ -190,8 +171,7 @@ mod tests {
     fn builtin_bootstrap_does_not_overwrite_non_reserved_runtime_definitions() {
         let _guard = ENV_LOCK.lock().expect("lock env guard");
         let temp = TempDir::new().expect("create temp dir");
-        let gates_dir = temp.path().join("gates");
-        std::fs::create_dir_all(&gates_dir).expect("create gates dir");
+        let (previous, gates_dir) = set_maenifold_root(temp.path());
 
         let custom_path = gates_dir.join("custom.json");
         let custom_definition = r#"{
@@ -206,85 +186,54 @@ mod tests {
 }"#;
         std::fs::write(&custom_path, custom_definition).expect("write custom runtime definition");
 
-        let previous = std::env::var_os(GATES_DIR_ENV);
-        unsafe {
-            std::env::set_var(GATES_DIR_ENV, &gates_dir);
-        }
-
         GateDefinitionCatalog::load_builtin("tdd").expect("load builtin");
         let preserved =
             std::fs::read_to_string(&custom_path).expect("read custom runtime definition");
 
-        restore_env(previous);
+        restore_maenifold_root(previous);
 
         assert_eq!(preserved, custom_definition);
     }
 
     #[test]
-    fn default_runtime_gates_dir_uses_platform_config_location() {
+    fn loads_custom_definition_by_name_from_gates_dir() {
         let _guard = ENV_LOCK.lock().expect("lock env guard");
-        let home = TempDir::new().expect("create temp home");
-        let previous_home = std::env::var_os("HOME");
-        let previous_gate_dir = std::env::var_os(GATES_DIR_ENV);
-        let previous_xdg = std::env::var_os("XDG_CONFIG_HOME");
-        #[cfg(target_os = "windows")]
-        let previous_appdata = std::env::var_os("APPDATA");
+        let temp = TempDir::new().expect("create temp dir");
+        let (previous, gates_dir) = set_maenifold_root(temp.path());
 
-        unsafe {
-            std::env::remove_var(GATES_DIR_ENV);
-            std::env::set_var("HOME", home.path());
-            std::env::remove_var("XDG_CONFIG_HOME");
-            #[cfg(target_os = "windows")]
-            std::env::remove_var("APPDATA");
-        }
+        let dkd = r#"{
+  "schemaVersion": 1,
+  "id": "dkd",
+  "name": "Dunning Kruger Development",
+  "initial": "pending",
+  "states": {
+    "pending": { "on": { "pass": "swe-plan" } },
+    "swe-plan": { "on": { "pass": "done" } },
+    "done": { "terminal": true }
+  }
+}"#;
+        std::fs::write(gates_dir.join("dkd.json"), dkd).expect("write dkd");
 
-        let runtime_dir = default_runtime_gates_dir();
+        let definition = GateDefinitionCatalog::load_builtin("dkd").expect("load dkd");
 
-        restore_env_var("HOME", previous_home);
-        restore_env_var(GATES_DIR_ENV, previous_gate_dir);
-        restore_env_var("XDG_CONFIG_HOME", previous_xdg);
-        #[cfg(target_os = "windows")]
-        restore_env_var("APPDATA", previous_appdata);
+        restore_maenifold_root(previous);
 
-        #[cfg(target_os = "macos")]
         assert_eq!(
-            runtime_dir,
-            home.path()
-                .join("Library")
-                .join("Application Support")
-                .join("maenifold")
-                .join("gates")
-        );
-
-        #[cfg(target_os = "windows")]
-        assert_eq!(
-            runtime_dir,
-            home.path()
-                .join("AppData")
-                .join("Roaming")
-                .join("maenifold")
-                .join("gates")
-        );
-
-        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-        assert_eq!(
-            runtime_dir,
-            home.path().join(".config").join("maenifold").join("gates")
+            definition.ordered_stage_ids().expect("stage ids"),
+            vec!["pending", "swe-plan", "done"]
         );
     }
 
-    fn restore_env(previous: Option<OsString>) {
-        restore_env_var(GATES_DIR_ENV, previous);
-    }
+    #[test]
+    fn gates_dir_uses_maenifold_root() {
+        let _guard = ENV_LOCK.lock().expect("lock env guard");
+        let temp = TempDir::new().expect("create temp dir");
+        let (previous, _gates_dir) = set_maenifold_root(temp.path());
 
-    fn restore_env_var(name: &str, previous: Option<OsString>) {
-        match previous {
-            Some(value) => unsafe {
-                std::env::set_var(name, value);
-            },
-            None => unsafe {
-                std::env::remove_var(name);
-            },
-        }
+        let dir = GateDefinitionCatalog::gates_dir();
+
+        restore_maenifold_root(previous);
+
+        assert_eq!(dir, temp.path().join("assets").join("gates"));
     }
 }

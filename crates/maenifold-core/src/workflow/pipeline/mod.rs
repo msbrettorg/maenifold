@@ -17,10 +17,20 @@ mod handler_nodes;
 mod handler_surgery;
 mod handler_validation;
 mod lease;
+#[cfg(test)]
+mod orphan_cascade_tests;
 mod session_io;
 mod session_read;
 mod session_write;
 pub mod stream;
+#[cfg(test)]
+mod test_context;
+#[cfg(test)]
+mod test_fixtures;
+#[cfg(test)]
+mod test_fixtures_helpers;
+#[cfg(test)]
+mod test_support;
 mod types;
 mod types_wire;
 mod update;

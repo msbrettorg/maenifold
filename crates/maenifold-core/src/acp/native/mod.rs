@@ -26,7 +26,9 @@ use std::{
 };
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
-use types::InitInfo;
+use types::{InitInfo, reply_agent_died};
+
+const REQUEST_QUEUE_CAPACITY: usize = 64;
 
 fn trace_enabled() -> bool {
     std::env::var("MAENIFOLD_TRACE")
@@ -59,10 +61,12 @@ async fn run_agent(
     command: String,
     cwd: PathBuf,
     env: HashMap<String, String>,
-    auto_grant_permissions: bool,
+    client: HeadlessClient,
     init: Arc<StdMutex<Option<InitInfo>>>,
+    shared_conn: Arc<StdMutex<Option<ConnectionTo<sacp::Agent>>>>,
     alive: Arc<AtomicBool>,
-    mut cmd_rx: mpsc::UnboundedReceiver<AgentCommand>,
+    mut request_rx: mpsc::Receiver<AgentCommand>,
+    mut control_rx: mpsc::UnboundedReceiver<AgentCommand>,
 ) {
     if trace_enabled() {
         eprintln!("[acp] spawning agent: {}", command);
@@ -114,7 +118,6 @@ async fn run_agent(
         }
     };
 
-    let client = HeadlessClient::new(cwd.clone(), auto_grant_permissions);
     let transport = sacp::ByteStreams::new(stdin, stdout);
     let (ready_tx, ready_rx) = oneshot::channel::<
         std::result::Result<(ConnectionTo<sacp::Agent>, InitInfo), AgentError>,
@@ -176,6 +179,7 @@ async fn run_agent(
     let (conn, init_info) = match ready_rx.await {
         Ok(Ok((conn, init_info))) => (conn, init_info),
         Ok(Err(error)) => {
+            clear_shared_conn(&shared_conn);
             alive.store(false, Ordering::SeqCst);
             if trace_enabled() {
                 eprintln!("[acp] error: {}", error);
@@ -188,6 +192,7 @@ async fn run_agent(
             return;
         }
         Err(_) => {
+            clear_shared_conn(&shared_conn);
             alive.store(false, Ordering::SeqCst);
             if trace_enabled() {
                 eprintln!("[acp] error: ACP connection closed before initialize completed");
@@ -210,6 +215,7 @@ async fn run_agent(
     match init.lock() {
         Ok(mut slot) => *slot = Some(init_info),
         Err(error) => {
+            clear_shared_conn(&shared_conn);
             alive.store(false, Ordering::SeqCst);
             if trace_enabled() {
                 eprintln!("[acp] error: Failed to store ACP init info: {}", error);
@@ -223,6 +229,25 @@ async fn run_agent(
             return;
         }
     }
+    match shared_conn.lock() {
+        Ok(mut slot) => *slot = Some(conn.clone()),
+        Err(error) => {
+            alive.store(false, Ordering::SeqCst);
+            if trace_enabled() {
+                eprintln!("[acp] error: Failed to store ACP connection: {}", error);
+            }
+            tracing::error!("Failed to store ACP connection: {error}");
+            if let Some(task) = io_task.take() {
+                task.abort();
+                log_io_task_exit(task.await);
+            }
+            reap_child(&mut child, stderr_task, None).await;
+            return;
+        }
+    }
+
+    let mut request_closed = false;
+    let mut control_closed = false;
 
     loop {
         let cmd = tokio::select! {
@@ -235,9 +260,30 @@ async fn run_agent(
             } => {
                 log_io_task_exit(io_result);
                 io_task = None;
+                clear_shared_conn(&shared_conn);
+                alive.store(false, Ordering::SeqCst);
+                drain_session_commands_after_io_task_death(&mut request_rx, &mut control_rx);
                 break;
             }
-            cmd = cmd_rx.recv() => cmd,
+            cmd = control_rx.recv(), if !control_closed => {
+                match cmd {
+                    Some(cmd) => Some(cmd),
+                    None => {
+                        control_closed = true;
+                        continue;
+                    }
+                }
+            }
+            cmd = request_rx.recv(), if !request_closed => {
+                match cmd {
+                    Some(cmd) => Some(cmd),
+                    None => {
+                        request_closed = true;
+                        continue;
+                    }
+                }
+            }
+            else => break,
         };
 
         let Some(cmd) = cmd else {
@@ -285,36 +331,40 @@ async fn run_agent(
                 .await;
                 let _ = reply.send(result);
             }
-            AgentCommand::Cancel { session_id, reply } => {
-                client.mark_cancelled(&session_id).await;
-                let result = conn
-                    .send_notification(sacps::CancelNotification::new(session_id))
-                    .map_err(|error| AgentError::Acp(error.to_string()));
-                let _ = reply.send(result);
-            }
-            AgentCommand::CloseSession { session_id, reply } => {
-                let close_session_id = session_id.clone();
-                let result = conn
-                    .send_request(agent_client_protocol::ClientRequest::CloseSessionRequest(
-                        agent_client_protocol::CloseSessionRequest::new(
-                            agent_client_protocol::SessionId::new(close_session_id),
-                        ),
-                    ))
-                    .block_task()
-                    .await
-                    .map_err(|error| AgentError::Acp(error.to_string()))
-                    .map(|_| ());
-                client.remove_session(&session_id).await;
-                let _ = reply.send(result);
-            }
         }
     }
 
+    clear_shared_conn(&shared_conn);
     alive.store(false, Ordering::SeqCst);
     if let Some(task) = io_task.take() {
         task.abort();
     }
     reap_child(&mut child, stderr_task, None).await;
+}
+
+#[cfg(test)]
+async fn close_session_with(client: &HeadlessClient, session_id: String) -> Result<()> {
+    client.remove_session(&session_id).await;
+    Ok(())
+}
+
+fn drain_session_commands_after_io_task_death(
+    request_rx: &mut mpsc::Receiver<AgentCommand>,
+    control_rx: &mut mpsc::UnboundedReceiver<AgentCommand>,
+) {
+    while let Ok(command) = control_rx.try_recv() {
+        let _ = reply_agent_died(command);
+    }
+
+    while let Ok(command) = request_rx.try_recv() {
+        let _ = reply_agent_died(command);
+    }
+}
+
+fn clear_shared_conn(shared_conn: &Arc<StdMutex<Option<ConnectionTo<sacp::Agent>>>>) {
+    if let Ok(mut slot) = shared_conn.lock() {
+        slot.take();
+    }
 }
 
 pub fn spawn_agent(
@@ -323,13 +373,18 @@ pub fn spawn_agent(
     env: HashMap<String, String>,
     auto_grant_permissions: bool,
 ) -> AgentHandle {
-    let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
+    let (request_tx, request_rx) = mpsc::channel(REQUEST_QUEUE_CAPACITY);
+    let (control_tx, control_rx) = mpsc::unbounded_channel();
     let init = Arc::new(StdMutex::new(None));
+    let conn = Arc::new(StdMutex::new(None));
     let alive = Arc::new(AtomicBool::new(true));
+    let client = HeadlessClient::new(cwd.clone(), auto_grant_permissions);
 
     tokio::task::spawn_blocking({
         let init = Arc::clone(&init);
+        let conn = Arc::clone(&conn);
         let alive = Arc::clone(&alive);
+        let client = client.clone();
         move || {
             let runtime = match tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -348,13 +403,7 @@ pub fn spawn_agent(
 
             runtime.block_on(async move {
                 run_agent(
-                    command,
-                    cwd,
-                    env,
-                    auto_grant_permissions,
-                    init,
-                    alive,
-                    cmd_rx,
+                    command, cwd, env, client, init, conn, alive, request_rx, control_rx,
                 )
                 .await;
             });
@@ -362,8 +411,177 @@ pub fn spawn_agent(
     });
 
     AgentHandle {
-        cmd_tx,
+        mailbox: CommandMailbox::new(request_tx, control_tx),
         init,
+        conn,
         alive,
+        client,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use agent_client_protocol as acp;
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum AgentLoopExit {
+        IoTaskDied,
+        Shutdown,
+        MailboxesClosed,
+    }
+
+    fn test_session_opts() -> SessionOpts {
+        SessionOpts {
+            cwd: PathBuf::from("."),
+            auto_grant_permissions: true,
+            model: None,
+            mode: None,
+            thought_level: None,
+            config_options: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout_seconds: None,
+            mcp_servers: Vec::new(),
+        }
+    }
+
+    fn assert_agent_died(error: AgentError, expected_session_id: &str) {
+        match error {
+            AgentError::AgentDied { session_id } => {
+                assert_eq!(session_id, expected_session_id);
+            }
+            other => {
+                panic!("expected AgentDied for session '{expected_session_id}', got {other:?}")
+            }
+        }
+    }
+
+    fn maybe_drain_queued_command(command: AgentCommand, exit: AgentLoopExit) -> bool {
+        if exit != AgentLoopExit::IoTaskDied {
+            return false;
+        }
+
+        reply_agent_died(command)
+    }
+
+    #[tokio::test]
+    async fn queued_prompt_with_context_only_maps_to_agent_died_for_io_task_exit() {
+        let (shutdown_reply, shutdown_rx) = oneshot::channel();
+        assert!(!maybe_drain_queued_command(
+            AgentCommand::PromptWithContext {
+                session_id: "session-shutdown".to_string(),
+                prompt: "hello".to_string(),
+                context_blocks: vec![acp::ContentBlock::Text(acp::TextContent::new(
+                    "ctx".to_string(),
+                ))],
+                reply: shutdown_reply,
+            },
+            AgentLoopExit::Shutdown,
+        ));
+        assert!(
+            shutdown_rx.await.is_err(),
+            "explicit shutdown should not synthesize AgentDied"
+        );
+
+        let (closed_reply, closed_rx) = oneshot::channel();
+        assert!(!maybe_drain_queued_command(
+            AgentCommand::PromptWithContext {
+                session_id: "session-closed".to_string(),
+                prompt: "hello".to_string(),
+                context_blocks: vec![acp::ContentBlock::Text(acp::TextContent::new(
+                    "ctx".to_string(),
+                ))],
+                reply: closed_reply,
+            },
+            AgentLoopExit::MailboxesClosed,
+        ));
+        assert!(
+            closed_rx.await.is_err(),
+            "ordinary mailbox closure should not synthesize AgentDied"
+        );
+
+        let (died_reply, died_rx) = oneshot::channel();
+        assert!(maybe_drain_queued_command(
+            AgentCommand::PromptWithContext {
+                session_id: "session-died".to_string(),
+                prompt: "hello".to_string(),
+                context_blocks: vec![acp::ContentBlock::Text(acp::TextContent::new(
+                    "ctx".to_string(),
+                ))],
+                reply: died_reply,
+            },
+            AgentLoopExit::IoTaskDied,
+        ));
+        assert_agent_died(
+            died_rx
+                .await
+                .expect("io_task death reply should be delivered")
+                .expect_err("io_task death should map queued prompt_with_context to AgentDied"),
+            "session-died",
+        );
+    }
+
+    #[tokio::test]
+    async fn io_task_drain_skips_non_session_scoped_commands() {
+        let (new_session_reply, new_session_rx) = oneshot::channel();
+        assert!(!maybe_drain_queued_command(
+            AgentCommand::NewSession {
+                opts: test_session_opts(),
+                reply: new_session_reply,
+            },
+            AgentLoopExit::IoTaskDied,
+        ));
+        assert!(
+            new_session_rx.await.is_err(),
+            "new_session should not be rewritten as AgentDied"
+        );
+
+        let (list_sessions_reply, list_sessions_rx) = oneshot::channel();
+        assert!(!maybe_drain_queued_command(
+            AgentCommand::ListSessions {
+                cwd: None,
+                reply: list_sessions_reply,
+            },
+            AgentLoopExit::IoTaskDied,
+        ));
+        assert!(
+            list_sessions_rx.await.is_err(),
+            "list_sessions should not be rewritten as AgentDied"
+        );
+
+        assert!(!maybe_drain_queued_command(
+            AgentCommand::Shutdown,
+            AgentLoopExit::IoTaskDied,
+        ));
+    }
+
+    #[tokio::test]
+    async fn close_session_cleanup_is_local_only() {
+        let client = HeadlessClient::new(PathBuf::from("."), true);
+        client.register_session("session-local-only").await;
+
+        close_session_with(&client, "session-local-only".to_string())
+            .await
+            .expect("close session should succeed as local cleanup");
+
+        assert!(
+            !client.has_session("session-local-only").await,
+            "local cleanup should remove tracked session state"
+        );
+    }
+
+    #[tokio::test]
+    async fn close_session_cleanup_is_idempotent() {
+        let client = HeadlessClient::new(PathBuf::from("."), true);
+
+        close_session_with(&client, "session-idempotent".to_string())
+            .await
+            .expect("closing a missing session should still succeed");
+
+        assert!(
+            !client.has_session("session-idempotent").await,
+            "idempotent cleanup should leave no tracked session state behind"
+        );
     }
 }

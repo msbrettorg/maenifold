@@ -50,7 +50,6 @@ uuid = { version = "1.18.1", features = ["v4", "serde"] }
 ort = { version = "2.0.0-rc.12", default-features = false, features = ["std", "ndarray", "download-binaries", "copy-dylibs", "tls-rustls"] }
 tokenizers = "0.22.2"
 tray-icon = "0.19"
-wry = "0.50"
 notify = { version = "7", features = ["macos_fsevent"] }
 rust-embed = "8"
 tempfile = "3.23.0"

@@ -22,9 +22,7 @@ fn trace_enabled() -> bool {
 
 fn stop_reason_error(stop_reason: Option<&str>) -> Option<String> {
     match stop_reason {
-        Some("end_turn" | "max_tokens" | "max_turn_requests" | "refusal" | "cancelled") | None => {
-            None
-        }
+        Some("end_turn" | "cancelled") | None => None,
         Some(other) => Some(other.to_string()),
     }
 }
@@ -76,5 +74,31 @@ pub(super) async fn prompt_session_with_blocks(
             Ok(response)
         }
         Err(error) => Err(AgentError::Acp(error.to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::stop_reason_error;
+
+    #[test]
+    fn stop_reason_error_treats_only_end_turn_and_cancelled_as_non_error() {
+        let cases = [
+            (Some("end_turn"), None),
+            (Some("cancelled"), None),
+            (Some("max_tokens"), Some("max_tokens")),
+            (Some("max_turn_requests"), Some("max_turn_requests")),
+            (Some("refusal"), Some("refusal")),
+            (Some("unexpected"), Some("unexpected")),
+            (None, None),
+        ];
+
+        for (stop_reason, expected) in cases {
+            assert_eq!(
+                stop_reason_error(stop_reason),
+                expected.map(str::to_string),
+                "unexpected classification for {stop_reason:?}"
+            );
+        }
     }
 }

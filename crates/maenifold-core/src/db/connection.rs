@@ -33,6 +33,7 @@ pub fn open_connection(path: &Path) -> Result<Connection> {
     // every connection open (SqliteExtensions.cs). Without this, any connection
     // opened after a VACUUM stays in DELETE mode until the next init.
     conn.pragma_update(None, "journal_mode", journal_mode())?;
+    conn.pragma_update(None, "temp_store", 2)?;
     conn.pragma_update(None, "synchronous", "NORMAL")?;
     conn.pragma_update(None, "wal_autocheckpoint", 256)?;
     conn.pragma_update(None, "journal_size_limit", 67108864)?;

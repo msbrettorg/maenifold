@@ -77,7 +77,6 @@ pub(super) fn update_pipeline_node_status(
             inject_predecessor_context(context, &definition, &node_states, node_id)?;
         }
         "abandoned" => {
-            update_workflow_node_frontmatter(context, &workflow_session_id, "abandoned", None)?;
             let state = node_states.get_mut(node_id).ok_or_else(|| {
                 MaenifoldError::Message(format!(
                     "ERROR: Pipeline session missing node state for '{node_id}'"
@@ -86,6 +85,15 @@ pub(super) fn update_pipeline_node_status(
             state.status = NodeStatus::Abandoned;
             state.thinking_session_id = None;
             state.output = None;
+
+            persist_pipeline_state(
+                &mut frontmatter,
+                &node_states,
+                &uri,
+                &pipeline_content,
+                context,
+            )?;
+            update_workflow_node_frontmatter(context, &workflow_session_id, "abandoned", None)?;
         }
         _ => {
             return Err(MaenifoldError::InvalidArgument(format!(
@@ -94,13 +102,15 @@ pub(super) fn update_pipeline_node_status(
         }
     }
 
-    persist_pipeline_state(
-        &mut frontmatter,
-        &node_states,
-        &uri,
-        &pipeline_content,
-        context,
-    )?;
+    if status != "abandoned" {
+        persist_pipeline_state(
+            &mut frontmatter,
+            &node_states,
+            &uri,
+            &pipeline_content,
+            context,
+        )?;
+    }
     tracing::info!(
         session_id = %session_id,
         node_id = %node_id,

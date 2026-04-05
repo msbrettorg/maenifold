@@ -86,9 +86,10 @@ This ensures your note is connected to the knowledge graph and not orphaned.".to
 
     // T-89.3: Endophasia writing tap — emit concepts on successful write path only.
     for concept in &concepts {
-        let _ = crate::endophasia::channel::sender().send(
-            crate::endophasia::ConceptEvent::new(crate::endophasia::SignalType::Writing, concept.clone()),
-        );
+        let _ = crate::endophasia::channel::sender().send(crate::endophasia::ConceptEvent::new(
+            crate::endophasia::SignalType::Writing,
+            concept.clone(),
+        ));
     }
 
     // T-0.3c: RTM NFR-4 / RTM-047

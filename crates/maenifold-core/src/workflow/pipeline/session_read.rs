@@ -67,7 +67,16 @@ pub(super) fn derive_pipeline_node_states(
             .and_then(YamlValue::as_str)
             .and_then(workflow_status_to_node_status)
         {
-            state.status = status;
+            let preserves_authoritative_terminal = matches!(
+                (&state.status, &status),
+                (
+                    NodeStatus::Abandoned | NodeStatus::Stuck,
+                    NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active
+                )
+            );
+            if !preserves_authoritative_terminal {
+                state.status = status;
+            }
         }
     }
 

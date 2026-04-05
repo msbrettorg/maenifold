@@ -273,3 +273,100 @@ fn missing_agent_configuration(node_id: &str, node_type: &str) -> crate::error::
         "ERROR: Pipeline node '{node_id}' of type '{node_type}' is missing required agent configuration"
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use crate::util::json::OutputFormat;
+
+    use super::super::executor_helpers::DispatchedNode;
+    use super::super::test_support::pipeline_test_context;
+    use super::*;
+
+    #[test]
+    fn build_node_execution_request_propagates_timeout_seconds() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let definition = PipelineDefinition {
+            nodes: vec![],
+            edges: vec![],
+        };
+        let node_states = HashMap::new();
+
+        for (node, expected_timeout) in [
+            (
+                PipelineNode::Workflow {
+                    id: "workflow".to_string(),
+                    workflow_id: "test-workflow-a".to_string(),
+                    acp_client: Some("agent-workflow".to_string()),
+                    prompt: None,
+                    timeout: Some(11),
+                },
+                11,
+            ),
+            (
+                PipelineNode::Prompt {
+                    id: "prompt".to_string(),
+                    prompt: "Prompt".to_string(),
+                    agent: "agent-prompt".to_string(),
+                    tool_mode: "auto".to_string(),
+                    model: None,
+                    thought_level: None,
+                    allowed_tools: None,
+                    max_turns: None,
+                    timeout: Some(22),
+                    agent_config: None,
+                },
+                22,
+            ),
+            (
+                PipelineNode::SequentialThinking {
+                    id: "think".to_string(),
+                    topic: "Topic".to_string(),
+                    total_thoughts: 3,
+                    analysis_type: None,
+                    agent: "agent-think".to_string(),
+                    model: None,
+                    thought_level: None,
+                    allowed_tools: None,
+                    max_turns: None,
+                    timeout: Some(33),
+                    agent_config: None,
+                },
+                33,
+            ),
+        ] {
+            let dispatch = DispatchedNode {
+                node_id: node.id().to_string(),
+                session_id: Some(format!("workflow-1700000000000-{}", node.id())),
+            };
+            let request = build_node_execution_request(
+                &context,
+                &definition,
+                &node_states,
+                &node,
+                &dispatch,
+                "",
+            )
+            .expect("build request");
+
+            let timeout_seconds = match request {
+                NodeExecutionRequest::Workflow { session_opts, .. }
+                | NodeExecutionRequest::Prompt { session_opts, .. }
+                | NodeExecutionRequest::SequentialThinking { session_opts, .. } => {
+                    session_opts.timeout_seconds
+                }
+                NodeExecutionRequest::Tool { .. } => {
+                    unreachable!("tool nodes do not use session opts")
+                }
+            };
+
+            assert_eq!(
+                timeout_seconds,
+                Some(expected_timeout),
+                "node {}",
+                node.id()
+            );
+        }
+    }
+}

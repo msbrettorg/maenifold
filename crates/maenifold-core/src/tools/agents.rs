@@ -1,6 +1,6 @@
 use super::context::{ToolContext, render};
 use crate::acp_config::AgentsConfig;
-use crate::acp_native::{GLOBAL_AGENT_POOL, SessionOpts};
+use crate::acp_native::{GLOBAL_AGENT_POOL, SessionInfo, SessionOpts};
 use crate::error::Result;
 use agent_client_protocol as acp;
 use serde_json::{Map, Value, json};
@@ -109,6 +109,41 @@ fn serialize_agent_capabilities(capabilities: &Option<acp::AgentCapabilities>) -
     }
 }
 
+fn build_probe_capabilities(
+    info: &SessionInfo,
+    agent_info: &Option<acp::Implementation>,
+    agent_capabilities: &Option<acp::AgentCapabilities>,
+) -> Value {
+    let has_config_options = !info.config_options.is_empty();
+    json!({
+        "style": if has_config_options { "modern" } else { "legacy" },
+        "agentInfo": serialize_agent_info(agent_info),
+        "agentCapabilities": serialize_agent_capabilities(agent_capabilities),
+        "modes": info.modes.iter().map(|mode| {
+            json!({
+                "id": mode.id.to_string(),
+                "name": mode.name,
+                "description": mode.description,
+            })
+        }).collect::<Vec<_>>(),
+        "models": info.models.iter().map(|model| {
+            json!({
+                "modelId": model.model_id.to_string(),
+                "name": model.name,
+                "description": model.description,
+            })
+        }).collect::<Vec<_>>(),
+        "configOptions": info.config_options.iter().map(|opt| {
+            json!({
+                "id": opt.id.to_string(),
+                "name": opt.name,
+                "description": opt.description,
+                "category": serialize_category(&opt.category),
+            })
+        }).collect::<Vec<_>>(),
+    })
+}
+
 fn run_agent_future<F, T>(future: F) -> std::result::Result<T, String>
 where
     F: Future<Output = std::result::Result<T, String>>,
@@ -157,48 +192,34 @@ fn probe_agent(root: &std::path::Path, name: &str, entry: &crate::acp_config::Ag
             .map_err(|e| e.to_string())?;
 
         let session_id = info.session_id.clone();
-        let has_config_options = !info.config_options.is_empty();
         let agent_info = handle.agent_info();
         let agent_capabilities = handle.capabilities();
-
-        let mut capabilities = json!({
-            "style": if has_config_options { "modern" } else { "legacy" },
-            "agentInfo": serialize_agent_info(&agent_info),
-            "agentCapabilities": serialize_agent_capabilities(&agent_capabilities),
-            "modes": info.modes.iter().map(|mode| {
-                json!({
-                    "id": mode.id.to_string(),
-                    "name": mode.name,
-                    "description": mode.description,
-                })
-            }).collect::<Vec<_>>(),
-            "models": info.models.iter().map(|model| {
-                json!({
-                    "modelId": model.model_id.to_string(),
-                    "name": model.name,
-                    "description": model.description,
-                })
-            }).collect::<Vec<_>>(),
-            "configOptions": info.config_options.iter().map(|opt| {
-                json!({
-                    "id": opt.id.to_string(),
-                    "name": opt.name,
-                    "description": opt.description,
-                    "category": serialize_category(&opt.category),
-                })
-            }).collect::<Vec<_>>(),
-        });
-
-        if let Err(error) = handle.close_session(&session_id).await {
-            if let Value::Object(ref mut object) = capabilities {
-                object.insert("closeSessionError".to_string(), json!(error.to_string()));
-            }
-        }
-        Ok(capabilities)
+        let _ = handle.close_session(&session_id).await;
+        Ok(build_probe_capabilities(
+            &info,
+            &agent_info,
+            &agent_capabilities,
+        ))
     });
 
     match result {
         Ok(value) => value,
         Err(error) => json!({ "error": error }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn probe_capabilities_ignore_unsupported_close_session_errors() {
+        let capabilities = build_probe_capabilities(&SessionInfo::default(), &None, &None);
+
+        assert_eq!(capabilities["style"], json!("legacy"));
+        assert!(
+            capabilities.get("closeSessionError").is_none(),
+            "unsupported close_session cleanup must not poison otherwise-valid probe results"
+        );
     }
 }

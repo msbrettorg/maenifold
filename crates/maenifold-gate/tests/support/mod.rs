@@ -22,7 +22,7 @@ pub fn read_authoritative_asset(name: &str) -> Value {
 }
 
 pub fn runtime_assets_dir(root: &Path) -> PathBuf {
-    root.join(".gate-assets")
+    root.join(".gate-maenifold-root")
 }
 
 pub fn gate_db_path(root: &Path) -> PathBuf {
@@ -85,7 +85,7 @@ pub fn read_task(path: &Path) -> String {
 pub fn gate_command(root: &Path) -> Command {
     let mut command =
         Command::cargo_bin("gate").expect("gate binary should be present for integration tests");
-    command.env("MAENIFOLD_GATE_ASSETS_DIR", runtime_assets_dir(root));
+    command.env("MAENIFOLD_ROOT", runtime_assets_dir(root));
     command
 }
 

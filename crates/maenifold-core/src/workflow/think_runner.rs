@@ -15,7 +15,6 @@ use super::agent_session::{AgentSession, open_agent_session};
 use super::runner::append_close_error_context;
 use super::runner::sanitize_workflow_session_opts;
 use super::runner_helpers::{Envelope, slug, tag_fallback};
-const AGENT_ERROR_RESPONSE: &str = "Agent error [[step]]";
 
 fn trace_enabled() -> bool {
     std::env::var("MAENIFOLD_TRACE")
@@ -175,11 +174,7 @@ pub(crate) async fn drive_think_session_with_driver(
         } else {
             driver.prompt(&prompt).await
         };
-        let response_text = tag_fallback(
-            &response
-                .and_then(think_response_text)
-                .unwrap_or_else(|_| AGENT_ERROR_RESPONSE.to_string()),
-        );
+        let response_text = normalize_think_prompt_response(response)?;
         let done = is_completion_response(&response_text)
             || thought_number >= opts.total_thoughts.saturating_add(3);
         let _: Value = think_call(
@@ -279,15 +274,19 @@ fn think_response_text(response: AcpxResponse) -> Result<String> {
     Ok(response.text)
 }
 
-fn is_completion_response(response: &str) -> bool {
+fn normalize_think_prompt_response(response: Result<AcpxResponse>) -> Result<String> {
     response
-        .lines()
-        .any(|line| {
-            line.as_bytes()
-                .get(..4)
-                .map(|prefix| prefix.eq_ignore_ascii_case(b"DONE"))
-                .unwrap_or(false)
-        })
+        .and_then(think_response_text)
+        .map(|text| tag_fallback(&text))
+}
+
+fn is_completion_response(response: &str) -> bool {
+    response.lines().any(|line| {
+        line.as_bytes()
+            .get(..4)
+            .map(|prefix| prefix.eq_ignore_ascii_case(b"DONE"))
+            .unwrap_or(false)
+    })
 }
 
 fn think_prompt(
@@ -313,7 +312,9 @@ fn serialize_payload<T: Serialize>(payload: T) -> Value {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_completion_response, think_prompt};
+    use super::{is_completion_response, normalize_think_prompt_response, think_prompt};
+    use crate::acp_native::AcpxResponse;
+    use crate::error::MaenifoldError;
 
     #[test]
     fn completion_response_matches_done_at_start_of_any_line() {
@@ -332,6 +333,42 @@ mod tests {
         assert_eq!(
             think_prompt(2, 5, "topic", "upstream context"),
             "upstream context\n\nThought 2/~5 on: topic. Include [[WikiLinks]]. Say DONE when complete."
+        );
+    }
+
+    #[test]
+    fn normalize_think_prompt_response_keeps_success_text() {
+        let response = normalize_think_prompt_response(Ok(AcpxResponse {
+            text: "DONE final synthesis [[step]]".to_string(),
+            ..AcpxResponse::default()
+        }))
+        .expect("success response should remain ok");
+
+        assert_eq!(response, "DONE final synthesis [[step]]");
+    }
+
+    #[test]
+    fn normalize_think_prompt_response_propagates_prompt_failure() {
+        let response = normalize_think_prompt_response(Ok(AcpxResponse {
+            error: Some("max_turn_requests".to_string()),
+            ..AcpxResponse::default()
+        }));
+
+        assert!(
+            response.is_err(),
+            "think prompt failures should propagate instead of falling back to agent error text"
+        );
+    }
+
+    #[test]
+    fn normalize_think_prompt_response_propagates_transport_failure() {
+        let response = normalize_think_prompt_response(Err(MaenifoldError::Message(
+            "transport failed".to_string(),
+        )));
+
+        assert!(
+            response.is_err(),
+            "think transport failures should propagate instead of falling back to agent error text"
         );
     }
 }

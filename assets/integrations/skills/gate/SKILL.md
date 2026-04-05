@@ -62,8 +62,7 @@ Built-in definitions are bundled into `maenifold-gate`, then copied into the run
 
 Runtime gate asset directory:
 
-- `MAENIFOLD_GATE_ASSETS_DIR` when set
-- otherwise `/Users/brett/maenifold/assets/gates`
+- `$MAENIFOLD_ROOT/assets/gates/` (defaults to `~/maenifold/assets/gates/`)
 
 ## Process JSON Schema
 

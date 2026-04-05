@@ -80,10 +80,10 @@ impl super::MaenifoldMcpServer {
             service(shutdown_token.child_token()),
             ApiState::new(config.clone()),
         )
-            // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
-            // shared tool surface over HTTP.
-            // FR-32-SEC: restrict CORS to localhost origins only.
-            .layer(super::localhost_cors());
+        // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
+        // shared tool surface over HTTP.
+        // FR-32-SEC: restrict CORS to localhost origins only.
+        .layer(super::localhost_cors());
         let bind_addr = tcp_listener.local_addr().map_err(|e| {
             MaenifoldError::Message(format!("HTTP listener address lookup failed: {e}"))
         })?;

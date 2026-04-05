@@ -248,6 +248,34 @@ fn blocks_headless_pipeline_run(tool_name: &str, payload: &Value) -> bool {
         .is_some_and(|session_id| !session_id.is_empty())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::blocks_headless_pipeline_run;
+    use serde_json::json;
+
+    #[test]
+    fn blocks_headless_pipeline_run_allows_run_requests() {
+        assert!(!blocks_headless_pipeline_run(
+            "Pipeline",
+            &json!({
+                "sessionId": "pipeline-1700000000000-cli",
+                "run": true
+            }),
+        ));
+    }
+
+    #[test]
+    fn blocks_headless_pipeline_run_still_blocks_resume_requests() {
+        assert!(blocks_headless_pipeline_run(
+            "Pipeline",
+            &json!({
+                "sessionId": "pipeline-1700000000000-cli",
+                "resume": true
+            }),
+        ));
+    }
+}
+
 #[cfg(feature = "app")]
 fn run_app(port: u16) -> i32 {
     crate::tray::run_with_tray(crate::tray::ServerMode::Http(port))

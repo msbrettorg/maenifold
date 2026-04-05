@@ -80,10 +80,26 @@ fn parse_xml_output(text: &str) -> Result<ParsedOutput, ParseError> {
 }
 
 fn json_fallback_parse(text: &str) -> Result<ParsedOutput, ParseError> {
-    let parsed: JsonFallbackOutput = serde_json::from_str(text).map_err(|error| ParseError {
-        message: format!("JSON fallback parse failed: {error}"),
-    })?;
+    let original_error = match serde_json::from_str(text) {
+        Ok(parsed) => return Ok(parsed_json_fallback_output(parsed)),
+        Err(error) => ParseError {
+            message: format!("JSON fallback parse failed: {error}"),
+        },
+    };
 
+    let Some(json_text) = trailing_json_object(text) else {
+        return Err(original_error);
+    };
+
+    let parsed: JsonFallbackOutput = match serde_json::from_str(json_text) {
+        Ok(parsed) => parsed,
+        Err(_) => return Err(original_error),
+    };
+
+    Ok(parsed_json_fallback_output(parsed))
+}
+
+fn parsed_json_fallback_output(parsed: JsonFallbackOutput) -> ParsedOutput {
     let fields = [
         ("response", Some(parsed.response)),
         ("done", Some(parsed.done.to_string())),
@@ -96,7 +112,46 @@ fn json_fallback_parse(text: &str) -> Result<ParsedOutput, ParseError> {
     .filter_map(|(key, value)| value.map(|v| (key.to_string(), v)))
     .collect();
 
-    Ok(ParsedOutput { fields })
+    ParsedOutput { fields }
+}
+
+fn trailing_json_object(text: &str) -> Option<&str> {
+    let text = text.trim_end();
+    if !text.ends_with('}') {
+        return None;
+    }
+
+    let mut brace_depth = 0usize;
+    let mut in_string = false;
+
+    for (idx, ch) in text.char_indices().rev() {
+        match ch {
+            '"' if !is_escaped_quote(text, idx) => in_string = !in_string,
+            '}' if !in_string => brace_depth += 1,
+            '{' if !in_string => {
+                brace_depth = brace_depth.checked_sub(1)?;
+                if brace_depth == 0 {
+                    return Some(&text[idx..]);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    None
+}
+
+fn is_escaped_quote(text: &str, quote_index: usize) -> bool {
+    let bytes = text.as_bytes();
+    let mut slash_count = 0usize;
+    let mut idx = quote_index;
+
+    while idx > 0 && bytes[idx - 1] == b'\\' {
+        slash_count += 1;
+        idx -= 1;
+    }
+
+    slash_count % 2 == 1
 }
 
 fn find_tag(text: &str, name: &str, is_closing: bool, from: usize) -> Option<(usize, usize)> {
@@ -142,4 +197,31 @@ struct JsonFallbackOutput {
     revision_of: Option<i64>,
     #[serde(default)]
     thought: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{json_fallback_parse, trailing_json_object};
+
+    #[test]
+    fn json_fallback_parse_accepts_trailing_json_after_leading_text() {
+        let parsed =
+            json_fallback_parse(r#"Using skills now...{"response":"x","done":true}"#).unwrap();
+
+        assert_eq!(parsed.get("response"), Some("x"));
+        assert_eq!(parsed.get_bool("done"), Some(true));
+    }
+
+    #[test]
+    fn trailing_json_object_ignores_braces_inside_strings() {
+        let json = trailing_json_object(
+            r#"note {"response":"brace } and escaped quote \" here","done":true}"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            json,
+            r#"{"response":"brace } and escaped quote \" here","done":true}"#
+        );
+    }
 }

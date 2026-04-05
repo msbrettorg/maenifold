@@ -152,6 +152,7 @@ fn node_session_id(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn merged_session_opts(
     context: &ToolContext,
     _node_id: &str,

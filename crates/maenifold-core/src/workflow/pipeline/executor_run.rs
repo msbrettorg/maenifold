@@ -115,6 +115,7 @@ fn log_node_execution_error(node_id: &str, error: &dyn StdError) -> String {
     rendered
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) async fn run_prompt_node(
     _context: &ToolContext,
     pool: &AgentPool,

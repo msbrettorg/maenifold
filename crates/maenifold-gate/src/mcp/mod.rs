@@ -208,7 +208,7 @@ fn call_gate_tool(
 ) -> Result<String, GateError> {
     let result = match tool_name {
         "status" => GateToolService::status(StatusArgs {
-            context: context_from_value(&arguments, false, root)?,
+            context: context_from_value(arguments, false, root)?,
             filter: StatusFilter {
                 state: optional_string(arguments, "state")?,
                 ready_only: optional_bool(arguments, "ready")?.unwrap_or(false),
@@ -216,33 +216,33 @@ fn call_gate_tool(
             },
         })?,
         "append" => GateToolService::append(AppendArgs {
-            context: context_from_value(&arguments, false, root)?,
-            task_id: required_string(&arguments, "taskId")?,
-            agent: required_string(&arguments, "agent")?,
-            notes: required_string(&arguments, "notes")?,
-            model: optional_string(&arguments, "model")?,
+            context: context_from_value(arguments, false, root)?,
+            task_id: required_string(arguments, "taskId")?,
+            agent: required_string(arguments, "agent")?,
+            notes: required_string(arguments, "notes")?,
+            model: optional_string(arguments, "model")?,
         })?,
         "pass" => GateToolService::pass(OutcomeArgs {
-            context: context_from_value(&arguments, false, root)?,
-            task_id: required_string(&arguments, "taskId")?,
-            agent: required_string(&arguments, "agent")?,
-            notes: required_string(&arguments, "notes")?,
-            model: optional_string(&arguments, "model")?,
+            context: context_from_value(arguments, false, root)?,
+            task_id: required_string(arguments, "taskId")?,
+            agent: required_string(arguments, "agent")?,
+            notes: required_string(arguments, "notes")?,
+            model: optional_string(arguments, "model")?,
         })?,
         "fail" => GateToolService::fail(OutcomeArgs {
-            context: context_from_value(&arguments, false, root)?,
-            task_id: required_string(&arguments, "taskId")?,
-            agent: required_string(&arguments, "agent")?,
-            notes: required_string(&arguments, "notes")?,
-            model: optional_string(&arguments, "model")?,
+            context: context_from_value(arguments, false, root)?,
+            task_id: required_string(arguments, "taskId")?,
+            agent: required_string(arguments, "agent")?,
+            notes: required_string(arguments, "notes")?,
+            model: optional_string(arguments, "model")?,
         })?,
         "history" => GateToolService::history(HistoryArgs {
-            context: context_from_value(&arguments, false, root)?,
-            task_id: required_string(&arguments, "taskId")?,
+            context: context_from_value(arguments, false, root)?,
+            task_id: required_string(arguments, "taskId")?,
         })?,
         "sync" => GateToolService::sync(SyncArgs {
-            context: context_from_value(&arguments, false, root)?,
-            rebuild: optional_bool(&arguments, "rebuild")?.unwrap_or(false),
+            context: context_from_value(arguments, false, root)?,
+            rebuild: optional_bool(arguments, "rebuild")?.unwrap_or(false),
         })?,
         _ => {
             return Err(GateError::Cli(format!(
@@ -314,7 +314,8 @@ mod tests {
     use tempfile::TempDir;
 
     use super::{
-        GATE_SERVER_INSTRUCTIONS, GateMcpHandler, TransportKind, call_gate_tool, context_from_value,
+        GATE_SERVER_INSTRUCTIONS, GateMcpHandler, KnownRoots, TransportKind, call_gate_tool,
+        context_from_value,
     };
 
     #[test]

@@ -88,10 +88,10 @@ impl GateUiWindow {
     }
 }
 
-fn load_tasks(root: &PathBuf) -> Result<Vec<TaskEntry>, String> {
+fn load_tasks(root: &Path) -> Result<Vec<TaskEntry>, String> {
     let value = GateToolService::status(StatusArgs {
         context: GateContext {
-            root: root.clone(),
+            root: root.to_path_buf(),
             requested_pipeline_name: None,
             json_output: false,
         },
@@ -447,10 +447,10 @@ impl FilterValue {
     }
 
     fn reset_if_missing(&mut self, values: &[String]) {
-        if let Some(selected) = &self.0 {
-            if !values.iter().any(|value| value == selected) {
-                *self = Self::all();
-            }
+        if let Some(selected) = &self.0
+            && !values.iter().any(|value| value == selected)
+        {
+            *self = Self::all();
         }
     }
 }
@@ -764,7 +764,7 @@ mod tests {
 
     #[test]
     fn filters_match_id_title_and_issue_toggle() {
-        let mut app = GateUiApp::new(PathBuf::from("."), sample_tasks());
+        let mut app = GateUiApp::new(PathBuf::from("."), sample_tasks(), None);
         app.search_text = "acp".to_string();
         assert_eq!(app.visible_tasks().len(), 1);
 

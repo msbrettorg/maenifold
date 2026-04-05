@@ -1,26 +1,27 @@
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{LazyLock, Mutex};
 
 use crate::error::GateError;
 use crate::gate_definition::GateDefinition;
 use crate::task_metadata::TaskMetadata;
 
-const RESERVED_BUILTIN_NAMES: &[&str] = &["sdd", "tdd", "gsd", "lightweight"];
+const RESERVED_BUILTIN_NAMES: &[&str] = &["sdd", "tdd", "gsd", "lightweight", "mdd"];
 const SDD_JSON: &str = include_str!("../assets/sdd.json");
 const TDD_JSON: &str = include_str!("../assets/tdd.json");
 const GSD_JSON: &str = include_str!("../assets/gsd.json");
 const LIGHTWEIGHT_JSON: &str = include_str!("../assets/lightweight.json");
+const MDD_JSON: &str = include_str!("../assets/mdd.json");
+static MAENIFOLD_ROOT_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 #[derive(Debug, Clone)]
 pub struct GateDefinitionCatalog;
 
 impl GateDefinitionCatalog {
     pub fn load_builtin(name: &str) -> Result<GateDefinition, GateError> {
-        Self::ensure_all_builtin_assets()?;
-        let asset_path = Self::gates_dir().join(format!("{name}.json"));
-        let text = fs::read_to_string(&asset_path)?;
-        GateDefinition::from_json_text(&text)
+        let _guard = maenifold_root_lock().lock().unwrap_or_else(|e| e.into_inner());
+        load_builtin_inner(name)
     }
 
     pub fn load_custom(root: &Path) -> Result<GateDefinition, GateError> {
@@ -43,13 +44,13 @@ impl GateDefinitionCatalog {
         metadata: &TaskMetadata,
         requested_pipeline_name: Option<&str>,
     ) -> Result<GateDefinition, GateError> {
-        if let Some(requested) = requested_pipeline_name {
-            if requested != metadata.pipeline {
-                return Err(GateError::PipelineOverrideMismatch {
-                    requested: requested.to_string(),
-                    bound: metadata.pipeline.clone(),
-                });
-            }
+        if let Some(requested) = requested_pipeline_name
+            && requested != metadata.pipeline
+        {
+            return Err(GateError::PipelineOverrideMismatch {
+                requested: requested.to_string(),
+                bound: metadata.pipeline.clone(),
+            });
         }
 
         Self::resolve(root, &metadata.pipeline)
@@ -91,12 +92,24 @@ impl GateDefinitionCatalog {
     }
 }
 
+fn load_builtin_inner(name: &str) -> Result<GateDefinition, GateError> {
+    GateDefinitionCatalog::ensure_all_builtin_assets()?;
+    let asset_path = GateDefinitionCatalog::gates_dir().join(format!("{name}.json"));
+    let text = fs::read_to_string(&asset_path)?;
+    GateDefinition::from_json_text(&text)
+}
+
+fn maenifold_root_lock() -> &'static Mutex<()> {
+    &MAENIFOLD_ROOT_LOCK
+}
+
 fn builtin_asset_text(name: &str) -> Result<&'static str, GateError> {
     match name {
         "sdd" => Ok(SDD_JSON),
         "tdd" => Ok(TDD_JSON),
         "gsd" => Ok(GSD_JSON),
         "lightweight" => Ok(LIGHTWEIGHT_JSON),
+        "mdd" => Ok(MDD_JSON),
         _ => Err(GateError::UnknownBuiltinGate(name.to_string())),
     }
 }
@@ -104,13 +117,10 @@ fn builtin_asset_text(name: &str) -> Result<&'static str, GateError> {
 #[cfg(test)]
 mod tests {
     use std::ffi::OsString;
-    use std::sync::{LazyLock, Mutex};
 
     use tempfile::TempDir;
 
     use super::{GateDefinitionCatalog, SDD_JSON};
-
-    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     fn set_maenifold_root(temp: &std::path::Path) -> (Option<OsString>, std::path::PathBuf) {
         let previous = std::env::var_os("MAENIFOLD_ROOT");
@@ -135,7 +145,9 @@ mod tests {
 
     #[test]
     fn builtin_assets_refresh_reserved_runtime_copies_when_bundled_content_changes() {
-        let _guard = ENV_LOCK.lock().expect("lock env guard");
+        let _guard = super::maenifold_root_lock()
+            .lock()
+            .expect("lock env guard");
         let temp = TempDir::new().expect("create temp dir");
         let (previous, gates_dir) = set_maenifold_root(temp.path());
 
@@ -152,7 +164,7 @@ mod tests {
 }"#;
         std::fs::write(&sdd_path, stale_sdd).expect("write stale runtime asset");
 
-        let definition = GateDefinitionCatalog::load_builtin("sdd").expect("load builtin");
+        let definition = super::load_builtin_inner("sdd").expect("load builtin");
         let preserved = std::fs::read_to_string(&sdd_path).expect("read runtime asset");
 
         restore_maenifold_root(previous);
@@ -169,7 +181,9 @@ mod tests {
 
     #[test]
     fn builtin_bootstrap_does_not_overwrite_non_reserved_runtime_definitions() {
-        let _guard = ENV_LOCK.lock().expect("lock env guard");
+        let _guard = super::maenifold_root_lock()
+            .lock()
+            .expect("lock env guard");
         let temp = TempDir::new().expect("create temp dir");
         let (previous, gates_dir) = set_maenifold_root(temp.path());
 
@@ -186,7 +200,7 @@ mod tests {
 }"#;
         std::fs::write(&custom_path, custom_definition).expect("write custom runtime definition");
 
-        GateDefinitionCatalog::load_builtin("tdd").expect("load builtin");
+        super::load_builtin_inner("tdd").expect("load builtin");
         let preserved =
             std::fs::read_to_string(&custom_path).expect("read custom runtime definition");
 
@@ -197,7 +211,9 @@ mod tests {
 
     #[test]
     fn loads_custom_definition_by_name_from_gates_dir() {
-        let _guard = ENV_LOCK.lock().expect("lock env guard");
+        let _guard = super::maenifold_root_lock()
+            .lock()
+            .expect("lock env guard");
         let temp = TempDir::new().expect("create temp dir");
         let (previous, gates_dir) = set_maenifold_root(temp.path());
 
@@ -214,7 +230,7 @@ mod tests {
 }"#;
         std::fs::write(gates_dir.join("dkd.json"), dkd).expect("write dkd");
 
-        let definition = GateDefinitionCatalog::load_builtin("dkd").expect("load dkd");
+        let definition = super::load_builtin_inner("dkd").expect("load dkd");
 
         restore_maenifold_root(previous);
 
@@ -226,7 +242,9 @@ mod tests {
 
     #[test]
     fn gates_dir_uses_maenifold_root() {
-        let _guard = ENV_LOCK.lock().expect("lock env guard");
+        let _guard = super::maenifold_root_lock()
+            .lock()
+            .expect("lock env guard");
         let temp = TempDir::new().expect("create temp dir");
         let (previous, _gates_dir) = set_maenifold_root(temp.path());
 

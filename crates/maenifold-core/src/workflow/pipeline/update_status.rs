@@ -12,6 +12,7 @@ use super::view::build_pipeline_view_result;
 use super::{NodeStatus, PipelineDefinition};
 
 #[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_arguments)]
 pub(super) fn update_pipeline_node_status(
     context: &ToolContext,
     session_id: &str,

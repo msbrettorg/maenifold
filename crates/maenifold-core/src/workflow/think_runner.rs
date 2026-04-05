@@ -116,6 +116,7 @@ pub(crate) async fn seed_think_session(
     Ok(session_id)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn drive_think_session(
     context: &ToolContext,
     agent: &str,
@@ -152,6 +153,7 @@ pub(crate) async fn drive_think_session(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn drive_think_session_with_driver(
     context: &ToolContext,
     driver: &AgentSession,
@@ -201,6 +203,7 @@ pub(crate) async fn drive_think_session_with_driver(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_think_with_pool(
     context: &ToolContext,
     agent: &str,

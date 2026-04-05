@@ -1,6 +1,6 @@
 use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition};
 use petgraph::{Direction::Incoming, prelude::NodeIndex};
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+use std::collections::HashMap;
 
 pub fn compute_ready_set(
     definition: &PipelineDefinition,
@@ -74,80 +74,6 @@ pub fn compute_pipeline_status(node_states: &HashMap<String, NodeState>) -> &'st
     } else {
         "active"
     }
-}
-
-pub(super) fn has_failed_success_predecessor(
-    definition: &PipelineDefinition,
-    node_states: &HashMap<String, NodeState>,
-    node_id: &str,
-) -> bool {
-    has_failed_success_predecessor_including(definition, node_states, node_id, &HashSet::new())
-}
-
-fn has_failed_success_predecessor_including(
-    definition: &PipelineDefinition,
-    node_states: &HashMap<String, NodeState>,
-    node_id: &str,
-    abandoned: &HashSet<String>,
-) -> bool {
-    definition
-        .edges
-        .iter()
-        .filter(|edge| edge.target == node_id && matches!(edge.edge_type, EdgeType::Success))
-        .any(|edge| {
-            abandoned.contains(&edge.source)
-                || matches!(
-                    node_states.get(&edge.source).map(|state| &state.status),
-                    Some(NodeStatus::Abandoned | NodeStatus::Stuck)
-                )
-        })
-}
-
-pub(super) fn collect_abandoned_descendants(
-    definition: &PipelineDefinition,
-    node_states: &HashMap<String, NodeState>,
-    node_id: &str,
-) -> Vec<String> {
-    let mut queue = definition
-        .edges
-        .iter()
-        .filter(|edge| edge.source == node_id && matches!(edge.edge_type, EdgeType::Success))
-        .map(|edge| edge.target.clone())
-        .collect::<VecDeque<_>>();
-    let mut visited = HashSet::new();
-    let mut abandoned = BTreeSet::new();
-    let mut cascading_failures = HashSet::new();
-
-    while let Some(target_id) = queue.pop_front() {
-        if !visited.insert(target_id.clone()) {
-            continue;
-        }
-
-        if has_failed_success_predecessor_including(
-            definition,
-            node_states,
-            &target_id,
-            &cascading_failures,
-        ) && matches!(
-            node_states.get(&target_id).map(|state| &state.status),
-            Some(NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active)
-        ) {
-            cascading_failures.insert(target_id.clone());
-            abandoned.insert(target_id.clone());
-        }
-
-        queue.extend(
-            definition
-                .edges
-                .iter()
-                .filter(|edge| {
-                    edge.source == target_id && matches!(edge.edge_type, EdgeType::Success)
-                })
-                .map(|edge| edge.target.clone()),
-        );
-    }
-
-    abandoned.into_iter().collect()
 }
 
 fn is_node_blocked(

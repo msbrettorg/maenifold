@@ -1,7 +1,5 @@
 use super::data::parse_source_file_weights;
 use std::collections::BTreeMap;
-#[cfg(test)]
-use std::sync::{Mutex, OnceLock};
 
 pub(crate) const EPSILON: f64 = 1e-12;
 // T-14.6: RTM FR-15
@@ -125,49 +123,4 @@ fn community_nmi_threshold() -> f64 {
         .and_then(|value| value.parse::<f64>().ok())
         .filter(|value| value.is_finite())
         .unwrap_or(0.8)
-}
-
-#[cfg(test)]
-fn env_lock() -> &'static Mutex<()> {
-    static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    ENV_LOCK.get_or_init(|| Mutex::new(()))
-}
-
-#[cfg(test)]
-struct EnvVarGuard {
-    key: &'static str,
-    previous: Option<String>,
-}
-
-#[cfg(test)]
-impl EnvVarGuard {
-    fn set(key: &'static str, value: &str) -> Self {
-        let previous = std::env::var(key).ok();
-        unsafe {
-            std::env::set_var(key, value);
-        }
-        Self { key, previous }
-    }
-
-    fn remove(key: &'static str) -> Self {
-        let previous = std::env::var(key).ok();
-        unsafe {
-            std::env::remove_var(key);
-        }
-        Self { key, previous }
-    }
-}
-
-#[cfg(test)]
-impl Drop for EnvVarGuard {
-    fn drop(&mut self) {
-        match &self.previous {
-            Some(value) => unsafe {
-                std::env::set_var(self.key, value);
-            },
-            None => unsafe {
-                std::env::remove_var(self.key);
-            },
-        }
-    }
 }

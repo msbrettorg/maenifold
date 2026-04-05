@@ -62,6 +62,7 @@ impl TaskFileLock {
         fs::create_dir_all(lock_dir)?;
         let file = OpenOptions::new()
             .create(true)
+            .truncate(false)
             .read(true)
             .write(true)
             .open(lock_path)?;

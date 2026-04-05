@@ -24,6 +24,7 @@ pub(crate) fn render_insufficient_search_data_report(
     Ok(render_output(context.output_format, report))
 }
 
+#[allow(deprecated)]
 pub(crate) fn render_system_health(context: &ToolContext) -> Result<String> {
     let connection = db::open_connection(&context.config.database_path)?;
     let concept_count = query_scalar_i64(&connection, "SELECT COUNT(*) FROM concepts")?;

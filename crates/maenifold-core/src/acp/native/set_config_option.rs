@@ -32,13 +32,11 @@ async fn apply_modern_config(
 
     if let Some(model) = opts.model.as_deref()
         && let Some(config_id) = find_config_id_by_category(&config_options, "model")
-    {
-        if let Some(updated_config_options) =
+        && let Some(updated_config_options) =
             set_config_option(conn, session_id, config_id, model.to_string()).await
-        {
-            config_options =
-                preserve_config_option_categories(&config_options, updated_config_options);
-        }
+    {
+        config_options =
+            preserve_config_option_categories(&config_options, updated_config_options);
     }
     if let Some(mode) = opts.mode.as_deref() {
         if let Some(config_id) = find_config_id_by_category(&config_options, "mode") {

@@ -350,6 +350,7 @@ fn error_status_row(root: &Path, file: &str, task_id: &str, location: &str, issu
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn pipeline_mismatch_row(
     root: &Path,
     file: &str,

@@ -108,15 +108,15 @@ pub fn get_nodes(
     let mut nodes = Vec::new();
     for row in rows {
         let node = row?;
-        if let Some(cid) = community {
-            if node.community_id != Some(cid) {
-                continue;
-            }
+        if let Some(cid) = community
+            && node.community_id != Some(cid)
+        {
+            continue;
         }
-        if let Some(ref ego) = ego_set {
-            if !ego.contains(&node.name) {
-                continue;
-            }
+        if let Some(ref ego) = ego_set
+            && !ego.contains(&node.name)
+        {
+            continue;
         }
         nodes.push(node);
     }

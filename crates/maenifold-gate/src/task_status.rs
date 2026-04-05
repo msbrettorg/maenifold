@@ -2,6 +2,7 @@ use crate::error::GateError;
 use crate::gate_definition::GateDefinition;
 use crate::state_machine::StateMachine;
 use crate::task_file::TaskDocument;
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveTaskState {
@@ -38,11 +39,9 @@ impl TaskStatusDeriver {
                     let outcome = record.outcome.as_deref().ok_or_else(|| {
                         GateError::TaskMetadataParse("outcome record missing Outcome".to_string())
                     })?;
-                    maybe_seed_legacy_entry_stage(
+                    maybe_seed_recorded_stage(
                         &mut state,
-                        &initial,
                         record.stage.as_str(),
-                        outcome,
                         definition,
                     )?;
                     let current = definition
@@ -117,36 +116,40 @@ impl TaskStatusDeriver {
     }
 }
 
-/// Tasks may have work-log histories whose first outcome record references the
-/// entry stage (e.g. `swe`) without an explicit bootstrap record that advanced
-/// from the initial state (e.g. `pending → swe` PASS).  This happens for
-/// several reasons:
+/// Tasks may have work-log histories that omit one or more PASS transitions
+/// before the next recorded outcome. This happens for several reasons:
 ///
-/// * Legacy tasks recorded before `pending` became the canonical bootstrap
-///   stage.
-/// * Tasks where `gate pass` had a double-advance bug.
-/// * Histories that begin with a FAIL on the entry stage (e.g.
-///   `Stage ID: swe, Outcome: FAIL`) — the bootstrap record was never written
-///   because the first work cycle failed before one could be recorded.
+/// * Legacy tasks recorded before every transition was written explicitly.
+/// * Human-edited backlog histories that summarize a later review/result
+///   without the intermediate PASS record.
+/// * Historical tooling bugs that skipped stage-advance records.
 ///
-/// When the replay cursor is still at the initial state and the recorded stage
-/// equals the initial state's pass-target, this function seeds the cursor
-/// forward so the remaining history — regardless of whether the first outcome
-/// is PASS or FAIL — validates correctly.
-fn maybe_seed_legacy_entry_stage(
+/// To keep those histories replayable, seed the cursor forward along the
+/// definition's PASS path until it reaches the recorded stage, if reachable.
+fn maybe_seed_recorded_stage(
     state: &mut String,
-    initial: &str,
     recorded_stage: &str,
-    _outcome: &str,
     definition: &GateDefinition,
 ) -> Result<(), GateError> {
-    if state != initial || recorded_stage == initial {
+    if *state == recorded_stage {
         return Ok(());
     }
 
-    let entry_transition = StateMachine::next_on_pass(initial, definition)?;
-    if recorded_stage == entry_transition.next_state {
-        *state = recorded_stage.to_string();
+    if definition.find_state(recorded_stage).is_none() {
+        return Ok(());
+    }
+
+    let mut cursor = state.clone();
+    let mut visited = HashSet::new();
+    while visited.insert(cursor.clone()) {
+        let Ok(transition) = StateMachine::next_on_pass(&cursor, definition) else {
+            break;
+        };
+        if transition.next_state == recorded_stage {
+            *state = recorded_stage.to_string();
+            break;
+        }
+        cursor = transition.next_state;
     }
 
     Ok(())
@@ -230,5 +233,19 @@ mod tests {
 
         assert_eq!(effective.state, "red-team");
         assert_eq!(effective.attempts, 1);
+    }
+
+    #[test]
+    fn replay_tolerates_missing_intermediate_pass_record() {
+        let document = task_document(vec![
+            outcome("swe", "pass", "2025-01-01T00:00:00Z"),
+            outcome("blue-team", "pass", "2025-01-01T00:10:00Z"),
+        ]);
+
+        let effective = TaskStatusDeriver::derive(&document, &sdd_definition(), "done")
+            .expect("forward seeding should tolerate missing red-team pass");
+
+        assert_eq!(effective.state, "done");
+        assert_eq!(effective.attempts, 0);
     }
 }

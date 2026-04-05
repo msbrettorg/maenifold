@@ -43,11 +43,7 @@ impl SessionAccumulator {
         }
         self.tool_calls.push(
             sacps::ToolCall::new(tool_call_id, "").status(
-                update
-                    .fields
-                    .status
-                    .clone()
-                    .unwrap_or(sacps::ToolCallStatus::default()),
+                update.fields.status.unwrap_or_default(),
             ),
         );
         if let Some(existing) = self.tool_calls.last_mut() {

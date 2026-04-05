@@ -275,8 +275,7 @@ fn load_edges(connection: &Connection, concept_names: &[String]) -> Result<Vec<E
 }
 
 fn repeat_placeholders(count: usize) -> String {
-    std::iter::repeat("?")
-        .take(count)
+    std::iter::repeat_n("?", count)
         .collect::<Vec<_>>()
         .join(", ")
 }

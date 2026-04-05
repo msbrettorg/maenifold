@@ -1,4 +1,4 @@
-use crate::markdown::{Frontmatter, write_markdown};
+use crate::markdown::{Frontmatter, uri_to_path, write_markdown};
 use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 use serde_yaml::Value as YamlValue;
@@ -7,148 +7,12 @@ use std::collections::{BTreeMap, HashMap};
 use super::test_fixtures_helpers::{
     node_status_string, pipeline_session_frontmatter, write_workflow_sessions,
 };
-use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition};
+use super::{NodeState, PipelineDefinition};
 
-#[allow(clippy::too_many_lines)]
-pub(super) fn seed_pipeline_view_session(
-    context: &ToolContext,
-    session_id: &str,
-    session_type: &str,
-) -> PipelineDefinition {
-    let definition = PipelineDefinition {
-        nodes: vec![
-            crate::workflow::pipeline::PipelineNode::Workflow {
-                id: "root".to_string(),
-                workflow_id: "test-workflow-a".to_string(),
-                acp_client: Some("agent-root".to_string()),
-                prompt: None,
-
-                timeout: None,
-            },
-            crate::workflow::pipeline::PipelineNode::Workflow {
-                id: "cleanup".to_string(),
-                workflow_id: "test-workflow-b".to_string(),
-                acp_client: Some("agent-b".to_string()),
-                prompt: None,
-
-                timeout: None,
-            },
-            crate::workflow::pipeline::PipelineNode::Workflow {
-                id: "child".to_string(),
-                workflow_id: "test-workflow-b".to_string(),
-                acp_client: Some("agent-child".to_string()),
-                prompt: None,
-
-                timeout: None,
-            },
-        ],
-        edges: vec![
-            crate::workflow::pipeline::PipelineEdge {
-                source: "root".to_string(),
-                target: "child".to_string(),
-                edge_type: EdgeType::Success,
-                mapping: None,
-            },
-            crate::workflow::pipeline::PipelineEdge {
-                source: "root".to_string(),
-                target: "cleanup".to_string(),
-                edge_type: EdgeType::Always,
-                mapping: None,
-            },
-        ],
-    };
-    let node_states = HashMap::from([
-        (
-            "root".to_string(),
-            NodeState {
-                session_id: "workflow-1735689600000-root".to_string(),
-                status: NodeStatus::Completed,
-                attempts: 1,
-                thinking_session_id: None,
-                output: None,
-                failure_reason: None,
-            },
-        ),
-        (
-            "cleanup".to_string(),
-            NodeState {
-                session_id: "workflow-1735689600000-cleanup".to_string(),
-                status: NodeStatus::Active,
-                attempts: 2,
-                thinking_session_id: None,
-                output: None,
-                failure_reason: None,
-            },
-        ),
-        (
-            "child".to_string(),
-            NodeState {
-                session_id: "workflow-1735689600000-child".to_string(),
-                status: NodeStatus::Pending,
-                attempts: 0,
-                thinking_session_id: None,
-                output: None,
-                failure_reason: None,
-            },
-        ),
-    ]);
-
-    let frontmatter =
-        pipeline_session_frontmatter(session_id, session_type, &definition, &node_states, None);
-    write_markdown(
-        &pipeline_session_uri(session_id),
-        Some(&frontmatter),
-        "# Pipeline Session\n",
-        &context.config,
-    )
-    .expect("write pipeline session");
-    write_workflow_sessions(context, session_id, &definition, &node_states);
-
-    definition
-}
-
-pub(super) fn seed_dispatch_pipeline(
-    context: &ToolContext,
-    pipeline_id: &str,
-    node_states: HashMap<String, NodeState>,
-    max_concurrency: u64,
-) -> PipelineDefinition {
-    let definition = PipelineDefinition {
-        nodes: vec![
-            crate::workflow::pipeline::PipelineNode::Workflow {
-                id: "root".to_string(),
-                workflow_id: "test-workflow-a".to_string(),
-                acp_client: Some("agent-root".to_string()),
-                prompt: None,
-
-                timeout: None,
-            },
-            crate::workflow::pipeline::PipelineNode::Workflow {
-                id: "child".to_string(),
-                workflow_id: "test-workflow-b".to_string(),
-                acp_client: Some("agent-child".to_string()),
-                prompt: None,
-
-                timeout: None,
-            },
-        ],
-        edges: vec![crate::workflow::pipeline::PipelineEdge {
-            source: "root".to_string(),
-            target: "child".to_string(),
-            edge_type: EdgeType::Success,
-            mapping: None,
-        }],
-    };
-
-    seed_pipeline_session_with_workflows(
-        context,
-        pipeline_id,
-        definition.clone(),
-        node_states,
-        max_concurrency,
-    );
-
-    definition
+fn ensure_uri_parent_exists(context: &ToolContext, uri: &str) {
+    let path = uri_to_path(uri, &context.config.memory_path).expect("resolve markdown path");
+    let parent = path.parent().expect("markdown parent");
+    std::fs::create_dir_all(parent).expect("create markdown parent");
 }
 
 pub(super) fn seed_pipeline_session_with_workflows(
@@ -165,8 +29,10 @@ pub(super) fn seed_pipeline_session_with_workflows(
         &node_states,
         Some(max_concurrency),
     );
+    let pipeline_uri = pipeline_session_uri(pipeline_id);
+    ensure_uri_parent_exists(context, &pipeline_uri);
     write_markdown(
-        &pipeline_session_uri(pipeline_id),
+        &pipeline_uri,
         Some(&frontmatter),
         "# Pipeline Session\n",
         &context.config,
@@ -226,8 +92,10 @@ pub(super) fn seed_pipeline_session_with_node_sessions(
         serde_yaml::to_value(max_concurrency).expect("yaml"),
     );
 
+    let pipeline_uri = pipeline_session_uri(pipeline_id);
+    ensure_uri_parent_exists(context, &pipeline_uri);
     write_markdown(
-        &pipeline_session_uri(pipeline_id),
+        &pipeline_uri,
         Some(&frontmatter),
         "# Pipeline Session\n",
         &context.config,
@@ -268,8 +136,10 @@ pub(super) fn seed_pipeline_session_with_node_sessions(
             );
         }
 
+        let workflow_uri = workflow_session_uri(&state.session_id);
+        ensure_uri_parent_exists(context, &workflow_uri);
         write_markdown(
-            &workflow_session_uri(&state.session_id),
+            &workflow_uri,
             Some(&session_frontmatter),
             "# Workflow Session\n",
             &context.config,

@@ -109,11 +109,11 @@ impl TrayApp {
             return;
         }
 
-        if self.login_id.as_ref().is_some_and(|id| event.id == *id) {
-            if let Some(port) = self.mode.port() {
-                let root = self.root.read().unwrap().clone();
-                toggle_login_item(port, root.as_deref(), self.login_item.as_ref());
-            }
+        if self.login_id.as_ref().is_some_and(|id| event.id == *id)
+            && let Some(port) = self.mode.port()
+        {
+            let root = self.root.read().unwrap().clone();
+            toggle_login_item(port, root.as_deref(), self.login_item.as_ref());
         }
     }
 

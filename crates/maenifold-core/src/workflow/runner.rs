@@ -144,6 +144,7 @@ pub(crate) async fn run_prompt_with_pool_context(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_workflow_with_pool(
     context: &ToolContext,
     workflow_id: &str,
@@ -252,6 +253,7 @@ pub(crate) async fn run_workflow_with_pool(
 /// Like [`run_workflow_with_pool`] but accepts a fully constructed [`SessionOpts`] directly,
 /// forwarding all session configuration (model, mode, thought_level, allowed_tools, etc.)
 /// instead of building a stripped-down one internally.
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_workflow_with_pool_session_opts(
     context: &ToolContext,
     workflow_id: &str,

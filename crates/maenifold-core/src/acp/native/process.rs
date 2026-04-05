@@ -85,11 +85,11 @@ async fn kill_process_group(child: &mut tokio::process::Child) -> bool {
         return true;
     }
 
-    if let Err(error) = signal_process_group(leader_pid, libc::SIGKILL) {
-        if error.raw_os_error() != Some(libc::ESRCH) {
-            tracing::debug!("Failed to SIGKILL ACP process group {leader_pid}: {error}");
-            return false;
-        }
+    if let Err(error) = signal_process_group(leader_pid, libc::SIGKILL)
+        && error.raw_os_error() != Some(libc::ESRCH)
+    {
+        tracing::debug!("Failed to SIGKILL ACP process group {leader_pid}: {error}");
+        return false;
     }
 
     let _ = wait_for_child_exit(child, PROCESS_GROUP_TERM_WAIT).await;

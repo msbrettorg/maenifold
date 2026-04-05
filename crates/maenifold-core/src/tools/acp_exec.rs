@@ -150,6 +150,7 @@ async fn exec_prompt_async(
         .await
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn exec_think_async(
     ctx: ToolContext,
     agent: String,
@@ -176,6 +177,7 @@ async fn exec_think_async(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn exec_workflow_async(
     ctx: ToolContext,
     workflow_id: String,
@@ -235,7 +237,7 @@ fn required_str<'a>(payload: &'a Value, field: &'static str) -> Result<&'a str> 
         .ok_or(MaenifoldError::MissingProperty(field))
 }
 
-fn mode_or_default<'a>(payload: &'a Value) -> Result<&'a str> {
+fn mode_or_default(payload: &Value) -> Result<&str> {
     match payload.get("mode") {
         Some(value) => value.as_str().ok_or_else(|| {
             MaenifoldError::InvalidArgument(

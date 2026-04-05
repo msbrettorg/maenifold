@@ -16,7 +16,10 @@ pub fn extract_h2_sections(content: &str) -> Vec<(String, String)> {
 
     for (event, range) in Parser::new_ext(content, Options::all()).into_offset_iter() {
         match event {
-            Event::Start(Tag::Heading { level, .. }) if level == HeadingLevel::H2 => {
+            Event::Start(Tag::Heading {
+                level: HeadingLevel::H2,
+                ..
+            }) => {
                 if let Some(previous_heading) = current_heading.take() {
                     let body_start = current_body_start.unwrap_or(range.start);
                     sections.push((
@@ -27,7 +30,7 @@ pub fn extract_h2_sections(content: &str) -> Vec<(String, String)> {
                 heading_text.clear();
                 in_h2 = true;
             }
-            Event::End(TagEnd::Heading(level)) if level == HeadingLevel::H2 => {
+            Event::End(TagEnd::Heading(HeadingLevel::H2)) => {
                 current_heading = Some(heading_text.trim().to_string());
                 current_body_start = Some(range.end);
                 heading_text.clear();

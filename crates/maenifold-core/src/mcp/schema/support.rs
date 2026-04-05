@@ -51,20 +51,20 @@ fn inline_refs(schema: &mut Value) {
 }
 
 fn resolve_refs(node: &mut Value, defs: &Value, visited: &mut HashSet<String>) {
-    if let Some(obj) = node.as_object() {
-        if let Some(ref_val) = obj.get("$ref").and_then(|v| v.as_str()) {
-            let name = ref_val.trim_start_matches("#/definitions/");
-            if visited.contains(name) {
-                return;
-            }
-            if let Some(def) = defs.get(name) {
-                visited.insert(name.to_string());
-                let mut replacement = def.clone();
-                resolve_refs(&mut replacement, defs, visited);
-                visited.remove(name);
-                *node = replacement;
-                return;
-            }
+    if let Some(obj) = node.as_object()
+        && let Some(ref_val) = obj.get("$ref").and_then(|v| v.as_str())
+    {
+        let name = ref_val.trim_start_matches("#/definitions/");
+        if visited.contains(name) {
+            return;
+        }
+        if let Some(def) = defs.get(name) {
+            visited.insert(name.to_string());
+            let mut replacement = def.clone();
+            resolve_refs(&mut replacement, defs, visited);
+            visited.remove(name);
+            *node = replacement;
+            return;
         }
     }
     match node {

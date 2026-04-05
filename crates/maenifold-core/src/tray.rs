@@ -48,7 +48,7 @@ fn open_url(url: &str) -> crate::Result<()> {
     #[cfg(target_os = "macos")]
     {
         std::process::Command::new("open").arg(url).spawn()?;
-        return Ok(());
+        Ok(())
     }
 
     #[cfg(target_os = "linux")]

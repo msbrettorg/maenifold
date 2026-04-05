@@ -94,6 +94,7 @@ pub(super) fn run_tool_command(
     }
 }
 
+#[allow(deprecated)]
 pub(crate) fn start_mcp_watchers(config: &Config) -> Result<(), MaenifoldError> {
     // T-10.4: RTM FR-12 — mirror C# Program.cs by auto-starting incremental sync
     // before entering MCP stdio mode when auto sync is enabled.

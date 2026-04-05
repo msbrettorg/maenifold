@@ -72,6 +72,7 @@ impl AgentPool {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn get_or_create(
         &self,
         agent_name: &str,
@@ -82,11 +83,11 @@ impl AgentPool {
     ) -> Arc<AgentHandle> {
         let pool_key = Self::pool_key(agent_name, command, cwd, &env, auto_grant_permissions);
         let mut agents = self.agents.lock().await;
-        if let Some(entry) = agents.get_mut(&pool_key) {
-            if entry.handle.is_alive() {
-                entry.last_used = Instant::now();
-                return Arc::clone(&entry.handle);
-            }
+        if let Some(entry) = agents.get_mut(&pool_key)
+            && entry.handle.is_alive()
+        {
+            entry.last_used = Instant::now();
+            return Arc::clone(&entry.handle);
         }
         agents.remove(&pool_key);
 
@@ -102,10 +103,10 @@ impl AgentPool {
                         .map(|(name, _)| name.clone())
                 });
 
-            if let Some(name) = evicted_name {
-                if let Some(entry) = agents.remove(&name) {
-                    let _ = entry.handle.shutdown_nowait();
-                }
+            if let Some(name) = evicted_name
+                && let Some(entry) = agents.remove(&name)
+            {
+                let _ = entry.handle.shutdown_nowait();
             }
         }
 

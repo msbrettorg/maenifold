@@ -129,26 +129,26 @@ pub(super) fn delete_pipeline_session_files(
                 }
             }
         }
-        if let Some(thinking_session_id) = &state.thinking_session_id {
-            if workflow_session_ids.insert(thinking_session_id.clone()) {
-                let thinking_uri = sequential_session_uri(thinking_session_id);
-                let exists = file_exists(&thinking_uri, &context.config).unwrap_or(false);
-                if !exists {
-                    skipped_files += 1;
-                    eprintln!(
-                        "Warning: thinking session {} not found, skipping",
-                        thinking_session_id
-                    );
-                    continue;
-                }
-                match delete_file(&thinking_uri, &context.config) {
-                    Ok(()) => cleaned_up_files += 1,
-                    Err(err) => {
-                        return Err(MaenifoldError::Message(format!(
-                            "Failed to delete thinking session {}: {}",
-                            thinking_session_id, err
-                        )));
-                    }
+        if let Some(thinking_session_id) = &state.thinking_session_id
+            && workflow_session_ids.insert(thinking_session_id.clone())
+        {
+            let thinking_uri = sequential_session_uri(thinking_session_id);
+            let exists = file_exists(&thinking_uri, &context.config).unwrap_or(false);
+            if !exists {
+                skipped_files += 1;
+                eprintln!(
+                    "Warning: thinking session {} not found, skipping",
+                    thinking_session_id
+                );
+                continue;
+            }
+            match delete_file(&thinking_uri, &context.config) {
+                Ok(()) => cleaned_up_files += 1,
+                Err(err) => {
+                    return Err(MaenifoldError::Message(format!(
+                        "Failed to delete thinking session {}: {}",
+                        thinking_session_id, err
+                    )));
                 }
             }
         }

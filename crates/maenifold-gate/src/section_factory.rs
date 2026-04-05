@@ -35,6 +35,7 @@ impl CanonicalSectionFactory {
         Self::build(stage, "outcome", Some(outcome), agent, notes, model)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn build(
         stage: &str,
         record_kind: &str,

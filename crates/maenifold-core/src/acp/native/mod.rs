@@ -57,6 +57,7 @@ pub(super) fn usage_to_response(usage: sacps::Usage) -> AcpxUsage {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn run_agent(
     command: String,
     cwd: PathBuf,

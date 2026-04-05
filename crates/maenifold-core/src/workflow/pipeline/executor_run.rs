@@ -18,6 +18,20 @@ pub(super) enum NodeTaskResult {
     Tool(Result<String>),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)] // T-107.3 will use PreExecution + is_retryable in the retry state machine
+pub(super) enum FailurePhase {
+    PreExecution,
+    PostPrompt,
+}
+
+impl FailurePhase {
+    #[allow(dead_code)] // T-107.3 will call is_retryable for retry eligibility
+    pub(super) fn is_retryable(&self) -> bool {
+        matches!(self, FailurePhase::PreExecution)
+    }
+}
+
 pub(super) enum NodeOutcome {
     Completed {
         conclusion: String,
@@ -25,6 +39,8 @@ pub(super) enum NodeOutcome {
     },
     Abandoned {
         reason: String,
+        #[allow(dead_code)] // T-107.3 will read phase for retry eligibility decisions
+        phase: FailurePhase,
     },
 }
 
@@ -51,17 +67,20 @@ fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult
                 eprintln!("[pipeline] node {node_id} workflow failed: {msg}");
                 NodeOutcome::Abandoned {
                     reason: msg.clone(),
+                    phase: FailurePhase::PostPrompt,
                 }
             }
             WorkflowRunStatus::Cancelled => {
                 eprintln!("[pipeline] node {node_id} workflow was cancelled, marking abandoned");
                 NodeOutcome::Abandoned {
                     reason: "workflow cancelled".to_string(),
+                    phase: FailurePhase::PostPrompt,
                 }
             }
         },
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
+            phase: FailurePhase::PostPrompt,
         },
     }
 }
@@ -74,9 +93,11 @@ fn classify_prompt_result(node_id: &str, result: Result<String>) -> NodeOutcome 
         },
         Ok(_) => NodeOutcome::Abandoned {
             reason: "empty response".to_string(),
+            phase: FailurePhase::PostPrompt,
         },
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
+            phase: FailurePhase::PostPrompt,
         },
     }
 }
@@ -93,9 +114,11 @@ fn classify_think_result(node_id: &str, result: Result<runner::ThinkResult>) -> 
             })
             .unwrap_or(NodeOutcome::Abandoned {
                 reason: "missing conclusion".to_string(),
+                phase: FailurePhase::PostPrompt,
             }),
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
+            phase: FailurePhase::PostPrompt,
         },
     }
 }
@@ -165,7 +188,7 @@ mod tests {
         let outcome = classify_prompt_result("prompt-node", Ok("  \n\t  ".to_string()));
 
         match outcome {
-            NodeOutcome::Abandoned { reason } => assert_eq!(reason, "empty response"),
+            NodeOutcome::Abandoned { reason, .. } => assert_eq!(reason, "empty response"),
             NodeOutcome::Completed { .. } => {
                 panic!("whitespace-only prompt output should be abandoned")
             }
@@ -178,9 +201,13 @@ mod tests {
 
         match outcome {
             NodeOutcome::Completed { conclusion, .. } => assert_eq!(conclusion, "  kept  "),
-            NodeOutcome::Abandoned { reason } => {
+            NodeOutcome::Abandoned { reason, .. } => {
                 panic!("non-empty prompt output should complete, got: {reason}")
             }
         }
     }
 }
+
+#[cfg(test)]
+#[path = "failure_classification_tests.rs"]
+mod failure_classification_tests;

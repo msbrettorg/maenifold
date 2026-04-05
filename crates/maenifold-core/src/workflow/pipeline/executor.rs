@@ -173,6 +173,36 @@ fn build_node_index(definition: &PipelineDefinition) -> HashMap<String, Pipeline
         .collect()
 }
 
+fn extract_timeout(
+    request: &super::executor_nodes::NodeExecutionRequest,
+) -> Option<std::time::Duration> {
+    let seconds = match request {
+        super::executor_nodes::NodeExecutionRequest::Workflow { session_opts, .. }
+        | super::executor_nodes::NodeExecutionRequest::Prompt { session_opts, .. }
+        | super::executor_nodes::NodeExecutionRequest::SequentialThinking {
+            session_opts, ..
+        } => session_opts.timeout_seconds,
+        super::executor_nodes::NodeExecutionRequest::Tool { .. } => None,
+    };
+
+    seconds
+        .filter(|&seconds| seconds > 0)
+        .map(std::time::Duration::from_secs)
+}
+
+fn strip_node_timeout(request: &mut super::executor_nodes::NodeExecutionRequest) {
+    match request {
+        super::executor_nodes::NodeExecutionRequest::Workflow { session_opts, .. }
+        | super::executor_nodes::NodeExecutionRequest::Prompt { session_opts, .. }
+        | super::executor_nodes::NodeExecutionRequest::SequentialThinking {
+            session_opts, ..
+        } => {
+            session_opts.timeout_seconds = None;
+        }
+        super::executor_nodes::NodeExecutionRequest::Tool { .. } => {}
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn schedule_dispatched_node(
     json_context: &ToolContext,
@@ -211,7 +241,7 @@ async fn schedule_dispatched_node(
             )));
         }
     };
-    let execution = build_node_execution_request(
+    let mut execution = build_node_execution_request(
         json_context,
         definition,
         node_states,
@@ -220,9 +250,33 @@ async fn schedule_dispatched_node(
         ambient_prompt,
     )?;
     let ctx = ToolContext::new(output_context.config.clone(), output_context.output_format);
+    let timeout = extract_timeout(&execution);
+    // Strip timeout_seconds from session opts so the outer wrapper owns node TTL.
+    // Inner ACP operations (session_new, load_session) use their default timeouts (3600s).
+    strip_node_timeout(&mut execution);
     join_set.spawn(async move {
         let _permit = permit;
-        execute_node_request(ctx, node_id, execution, agent, pool).await
+        match timeout {
+            Some(duration) => {
+                match tokio::time::timeout(
+                    duration,
+                    execute_node_request(ctx, node_id.clone(), execution, agent, pool),
+                )
+                .await
+                {
+                    Ok(result) => result,
+                    Err(_elapsed) => {
+                        let reason = format!("node timed out after {}s", duration.as_secs());
+                        eprintln!("[pipeline] node {node_id} {reason}");
+                        (
+                            node_id,
+                            NodeTaskResult::Prompt(Err(MaenifoldError::Message(reason))),
+                        )
+                    }
+                }
+            }
+            None => execute_node_request(ctx, node_id, execution, agent, pool).await,
+        }
     });
     Ok(())
 }
@@ -267,7 +321,7 @@ fn apply_node_outcome(
             )?;
             counts.completed += 1;
         }
-        NodeOutcome::Abandoned { reason } => {
+        NodeOutcome::Abandoned { reason, .. } => {
             update_pipeline_node_status(
                 context,
                 session_id,

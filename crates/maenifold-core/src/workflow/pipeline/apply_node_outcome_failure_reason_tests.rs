@@ -4,7 +4,7 @@ use serial_test::serial;
 
 use crate::util::json::OutputFormat;
 
-use super::super::executor_nodes::NodeOutcome;
+use super::super::executor_nodes::{FailurePhase, NodeOutcome};
 use super::super::session_read::{frontmatter_value, read_pipeline_session};
 use super::super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
 use super::super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
@@ -52,6 +52,7 @@ fn apply_node_outcome_forwards_abandoned_failure_reason() {
         "node",
         NodeOutcome::Abandoned {
             reason: "runner crashed".to_string(),
+            phase: FailurePhase::PostPrompt,
         },
         &mut counts,
     )

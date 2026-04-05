@@ -15,6 +15,8 @@ use super::types::AgentConfig;
 use super::{NodeState, PipelineDefinition, PipelineNode};
 
 pub(super) use super::executor_run::{NodeOutcome, NodeTaskResult, classify_node_result};
+#[cfg(test)]
+pub(super) use super::executor_run::FailurePhase;
 
 #[derive(Debug)]
 pub(super) enum NodeExecutionRequest {
@@ -277,102 +279,218 @@ fn missing_agent_configuration(node_id: &str, node_type: &str) -> crate::error::
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, fs, time::Duration};
 
+    use serial_test::serial;
+    use serde_json::json;
+    use tokio_util::sync::CancellationToken;
+
+    use crate::error::MaenifoldError;
     use crate::util::json::OutputFormat;
 
+    use super::super::executor::execute_pipeline;
     use super::super::executor_helpers::DispatchedNode;
-    use super::super::test_support::pipeline_test_context;
+    use super::super::session_read::{frontmatter_value, read_pipeline_session};
+    use super::super::test_support::{
+        pipeline_test_context, seed_pipeline_session_with_node_sessions,
+    };
+    use super::super::{NodeState, PipelineDefinition, PipelineNode};
     use super::super::types::NodeStatus;
     use super::*;
 
+    fn read_raw_node_states(
+        context: &crate::tools::ToolContext,
+        session_id: &str,
+    ) -> HashMap<String, NodeState> {
+        let (_, frontmatter, _) = read_pipeline_session(context, session_id).expect("read pipeline");
+        frontmatter_value(&frontmatter, "nodeStates").expect("node states")
+    }
+
+    fn write_sleep_agent_config(context: &crate::tools::ToolContext, agent_name: &str) {
+        fs::write(
+            context.config.maenifold_root.join("agents.json"),
+            serde_json::to_vec_pretty(&json!({
+                "agents": {
+                    agent_name: {
+                        "command": "/bin/sleep 5"
+                    }
+                }
+            }))
+            .expect("serialize agents config"),
+        )
+        .expect("write agents config");
+    }
+
     #[test]
-    fn build_node_execution_request_propagates_timeout_seconds() {
+    #[serial]
+    fn timeout_seconds_is_extracted_from_prompt_node() {
         let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
         let definition = PipelineDefinition {
             nodes: vec![],
             edges: vec![],
         };
         let node_states = HashMap::new();
+        let node = PipelineNode::Prompt {
+            id: "prompt".to_string(),
+            prompt: "Prompt".to_string(),
+            agent: "agent-prompt".to_string(),
+            tool_mode: "auto".to_string(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: Some(30),
+            agent_config: None,
+        };
+        let dispatch = DispatchedNode {
+            node_id: node.id().to_string(),
+            session_id: Some("workflow-1700000000000-prompt".to_string()),
+        };
 
-        for (node, expected_timeout) in [
-            (
-                PipelineNode::Workflow {
-                    id: "workflow".to_string(),
-                    workflow_id: "test-workflow-a".to_string(),
-                    acp_client: Some("agent-workflow".to_string()),
-                    prompt: None,
-                    timeout: Some(11),
-                },
-                11,
-            ),
-            (
-                PipelineNode::Prompt {
-                    id: "prompt".to_string(),
-                    prompt: "Prompt".to_string(),
-                    agent: "agent-prompt".to_string(),
-                    tool_mode: "auto".to_string(),
-                    model: None,
-                    thought_level: None,
-                    allowed_tools: None,
-                    max_turns: None,
-                    timeout: Some(22),
-                    agent_config: None,
-                },
-                22,
-            ),
-            (
-                PipelineNode::SequentialThinking {
-                    id: "think".to_string(),
-                    topic: "Topic".to_string(),
-                    total_thoughts: 3,
-                    analysis_type: None,
-                    agent: "agent-think".to_string(),
-                    model: None,
-                    thought_level: None,
-                    allowed_tools: None,
-                    max_turns: None,
-                    timeout: Some(33),
-                    agent_config: None,
-                },
-                33,
-            ),
-        ] {
-            let dispatch = DispatchedNode {
-                node_id: node.id().to_string(),
-                session_id: Some(format!("workflow-1700000000000-{}", node.id())),
-            };
-            let request = build_node_execution_request(
-                &context,
-                &definition,
-                &node_states,
-                &node,
-                &dispatch,
-                "",
-            )
-            .expect("build request");
+        let request =
+            build_node_execution_request(&context, &definition, &node_states, &node, &dispatch, "")
+                .expect("build request");
 
-            let timeout_seconds = match request {
-                NodeExecutionRequest::Workflow { session_opts, .. }
-                | NodeExecutionRequest::Prompt { session_opts, .. }
-                | NodeExecutionRequest::SequentialThinking { session_opts, .. } => {
-                    session_opts.timeout_seconds
-                }
-                NodeExecutionRequest::Tool { .. } => {
-                    unreachable!("tool nodes do not use session opts")
-                }
-            };
-
-            assert_eq!(
-                timeout_seconds,
-                Some(expected_timeout),
-                "node {}",
-                node.id()
-            );
+        match request {
+            NodeExecutionRequest::Prompt { session_opts, .. } => {
+                assert_eq!(session_opts.timeout_seconds, Some(30));
+            }
+            NodeExecutionRequest::Workflow { .. }
+            | NodeExecutionRequest::SequentialThinking { .. }
+            | NodeExecutionRequest::Tool { .. } => {
+                panic!("expected prompt node execution request")
+            }
         }
     }
 
     #[test]
+    #[serial]
+    fn timeout_seconds_is_none_when_not_configured() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let definition = PipelineDefinition {
+            nodes: vec![],
+            edges: vec![],
+        };
+        let node_states = HashMap::new();
+        let node = PipelineNode::Prompt {
+            id: "prompt".to_string(),
+            prompt: "Prompt".to_string(),
+            agent: "agent-prompt".to_string(),
+            tool_mode: "auto".to_string(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: None,
+            agent_config: None,
+        };
+        let dispatch = DispatchedNode {
+            node_id: node.id().to_string(),
+            session_id: Some("workflow-1700000000000-prompt".to_string()),
+        };
+
+        let request =
+            build_node_execution_request(&context, &definition, &node_states, &node, &dispatch, "")
+                .expect("build request");
+
+        match request {
+            NodeExecutionRequest::Prompt { session_opts, .. } => {
+                assert_eq!(session_opts.timeout_seconds, None);
+            }
+            NodeExecutionRequest::Workflow { .. }
+            | NodeExecutionRequest::SequentialThinking { .. }
+            | NodeExecutionRequest::Tool { .. } => {
+                panic!("expected prompt node execution request")
+            }
+        }
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn execute_node_request_respects_timeout() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        write_sleep_agent_config(&context, "sleep-agent");
+
+        let session_id = "pipeline-1735689600000-node-timeout";
+        let definition = PipelineDefinition {
+            nodes: vec![PipelineNode::Prompt {
+                id: "prompt-timeout".to_string(),
+                prompt: "Block until cancelled".to_string(),
+                agent: "sleep-agent".to_string(),
+                tool_mode: "auto".to_string(),
+                model: None,
+                thought_level: None,
+                allowed_tools: None,
+                max_turns: None,
+                timeout: Some(1),
+                agent_config: None,
+            }],
+            edges: vec![],
+        };
+        let node_states = HashMap::from([(
+            "prompt-timeout".to_string(),
+            NodeState {
+                session_id: "workflow-1735689600001-prompt-timeout".to_string(),
+                status: NodeStatus::Pending,
+                attempts: 0,
+                thinking_session_id: None,
+                output: None,
+                failure_reason: None,
+            },
+        )]);
+        seed_pipeline_session_with_node_sessions(&context, session_id, definition, node_states, 1);
+
+        let result = tokio::time::timeout(
+            Duration::from_secs(2),
+            execute_pipeline(&context, session_id, "", CancellationToken::new()),
+        )
+        .await
+        .expect("pipeline execution should complete within the configured node timeout")
+        .expect("pipeline execution should return a result");
+
+        assert_eq!(result.completed, 0);
+        assert_eq!(result.abandoned, 1);
+        assert_eq!(result.status, "abandoned");
+
+        let node_states = read_raw_node_states(&context, session_id);
+        let state = &node_states["prompt-timeout"];
+        assert_eq!(state.status, NodeStatus::Abandoned);
+        let reason = state
+            .failure_reason
+            .as_deref()
+            .expect("timeout should persist a failure reason")
+            .to_ascii_lowercase();
+        assert!(
+            reason.contains("timeout") || reason.contains("timed out"),
+            "unexpected timeout reason: {reason}"
+        );
+    }
+
+    #[test]
+    fn node_timeout_produces_abandoned_outcome() {
+        let outcome = classify_node_result(
+            "prompt-timeout",
+            NodeTaskResult::Prompt(Err(MaenifoldError::Message(
+                "node timed out after 1s".to_string(),
+            ))),
+        );
+
+        match outcome {
+            NodeOutcome::Abandoned { reason, .. } => {
+                let reason = reason.to_ascii_lowercase();
+                assert!(
+                    reason.contains("timeout") || reason.contains("timed out"),
+                    "unexpected timeout reason: {reason}"
+                );
+            }
+            NodeOutcome::Completed { .. } => {
+                panic!("timeout errors should abandon the node")
+            }
+        }
+    }
+
+    #[test]
+    #[serial]
     fn build_node_execution_request_errors_when_tool_mapping_fails() {
         let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
         let definition = PipelineDefinition {

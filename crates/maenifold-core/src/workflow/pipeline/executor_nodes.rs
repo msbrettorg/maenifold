@@ -134,7 +134,7 @@ pub(super) fn build_node_execution_request(
             ..
         } => NodeExecutionRequest::Tool {
             tool_name: tool_name.clone(),
-            tool_args: mapped_tool_args(definition, node_states, node.id(), tool_args.clone()),
+            tool_args: mapped_tool_args(definition, node_states, node.id(), tool_args.clone())?,
         },
     })
 }
@@ -160,7 +160,7 @@ fn merged_session_opts(
     thought_level: &Option<String>,
     allowed_tools: &Option<Vec<String>>,
     max_turns: Option<u32>,
-    _timeout_seconds: Option<u64>,
+    timeout_seconds: Option<u64>,
 ) -> SessionOpts {
     SessionOpts {
         cwd: context.config.maenifold_root.clone(),
@@ -175,7 +175,7 @@ fn merged_session_opts(
         config_options: agent_config.and_then(|config| config.config_options.clone()),
         allowed_tools: allowed_tools.clone(),
         max_turns,
-        timeout_seconds: None,
+        timeout_seconds,
         mcp_servers: vec![],
     }
 }
@@ -282,6 +282,7 @@ mod tests {
 
     use super::super::executor_helpers::DispatchedNode;
     use super::super::test_support::pipeline_test_context;
+    use super::super::types::NodeStatus;
     use super::*;
 
     #[test]
@@ -368,5 +369,60 @@ mod tests {
                 node.id()
             );
         }
+    }
+
+    #[test]
+    fn build_node_execution_request_errors_when_tool_mapping_fails() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let definition = PipelineDefinition {
+            nodes: vec![PipelineNode::Tool {
+                id: "target".to_string(),
+                tool_name: "noop".to_string(),
+                tool_args: None,
+                agent: None,
+                model: None,
+                thought_level: None,
+                allowed_tools: None,
+                max_turns: None,
+                agent_config: None,
+            }],
+            edges: vec![super::super::types::PipelineEdge {
+                source: "source".to_string(),
+                target: "target".to_string(),
+                edge_type: super::super::types::EdgeType::Success,
+                mapping: Some(HashMap::from([(
+                    "payload".to_string(),
+                    "result.value".to_string(),
+                )])),
+            }],
+        };
+        let node_states = HashMap::from([(
+            "source".to_string(),
+            NodeState {
+                session_id: "pipeline-source".to_string(),
+                status: NodeStatus::Completed,
+                attempts: 1,
+                thinking_session_id: None,
+                output: Some("not-json".to_string()),
+                failure_reason: None,
+            },
+        )]);
+        let node = definition.nodes.first().expect("target node");
+        let dispatch = DispatchedNode {
+            node_id: "target".to_string(),
+            session_id: Some("pipeline-target".to_string()),
+        };
+
+        let error = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            node,
+            &dispatch,
+            "",
+        )
+        .expect_err("invalid mapped tool args should abort dispatch");
+
+        assert!(error.to_string().contains("could not parse node 'source' output as JSON"));
     }
 }

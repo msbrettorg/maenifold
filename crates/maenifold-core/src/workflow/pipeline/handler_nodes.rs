@@ -33,7 +33,15 @@ pub(super) fn handle_node_operation(
         && matches!(status, "completed" | "abandoned")
     {
         let conclusion = payload.get("conclusion").and_then(Value::as_str);
-        return update_pipeline_node_status(context, session_id, node_id, status, conclusion, None)
+        return update_pipeline_node_status(
+            context,
+            session_id,
+            node_id,
+            status,
+            conclusion,
+            None,
+            None,
+        )
             .map(Some);
     }
 

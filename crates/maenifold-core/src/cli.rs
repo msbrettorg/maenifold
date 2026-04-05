@@ -238,10 +238,7 @@ fn blocks_headless_pipeline_run(tool_name: &str, payload: &Value) -> bool {
 
     payload
         .as_object()
-        .filter(|object| {
-            object.get("run").and_then(Value::as_bool) == Some(true)
-                || object.get("resume").and_then(Value::as_bool) == Some(true)
-        })
+        .filter(|object| object.get("resume").and_then(Value::as_bool) == Some(true))
         .and_then(|object| object.get("sessionId"))
         .and_then(Value::as_str)
         .map(str::trim)

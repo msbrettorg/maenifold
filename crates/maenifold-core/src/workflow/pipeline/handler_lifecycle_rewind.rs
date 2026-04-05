@@ -81,6 +81,7 @@ fn rewind_pipeline(
         state.attempts = 0;
         state.output = None;
         state.thinking_session_id = None;
+        state.failure_reason = None;
         new_node_files.push(workflow_node_file(node, workflow_session_id));
     }
 

@@ -195,6 +195,8 @@ pub struct NodeState {
     pub thinking_session_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_reason: Option<String>,
 }
 
 /// A snapshot of a completed predecessor node's output, captured at fork time

@@ -87,7 +87,15 @@ pub fn abandon_active_nodes(context: &ToolContext, session_id: &str) -> Result<u
         .collect::<Vec<_>>();
 
     for node_id in &active_nodes {
-        update_pipeline_node_status(context, session_id, node_id, "abandoned", None, None)?;
+        update_pipeline_node_status(
+            context,
+            session_id,
+            node_id,
+            "abandoned",
+            None,
+            None,
+            None,
+        )?;
     }
 
     Ok(active_nodes.len())

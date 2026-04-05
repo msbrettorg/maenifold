@@ -23,7 +23,9 @@ pub(super) enum NodeOutcome {
         conclusion: String,
         thinking_session_id: Option<String>,
     },
-    Abandoned,
+    Abandoned {
+        reason: String,
+    },
 }
 
 pub(super) fn classify_node_result(node_id: &str, result: NodeTaskResult) -> NodeOutcome {
@@ -47,16 +49,21 @@ fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult
             },
             WorkflowRunStatus::Failed(ref msg) => {
                 eprintln!("[pipeline] node {node_id} workflow failed: {msg}");
-                NodeOutcome::Abandoned
+                NodeOutcome::Abandoned {
+                    reason: msg.clone(),
+                }
             }
             WorkflowRunStatus::Cancelled => {
                 eprintln!("[pipeline] node {node_id} workflow was cancelled, marking abandoned");
-                NodeOutcome::Abandoned
+                NodeOutcome::Abandoned {
+                    reason: "workflow cancelled".to_string(),
+                }
             }
         },
         Err(error) => {
-            log_node_execution_error(node_id, &error);
-            NodeOutcome::Abandoned
+            NodeOutcome::Abandoned {
+                reason: log_node_execution_error(node_id, &error),
+            }
         }
     }
 }
@@ -67,10 +74,13 @@ fn classify_prompt_result(node_id: &str, result: Result<String>) -> NodeOutcome 
             conclusion: response,
             thinking_session_id: None,
         },
-        Ok(_) => NodeOutcome::Abandoned,
+        Ok(_) => NodeOutcome::Abandoned {
+            reason: "empty response".to_string(),
+        },
         Err(error) => {
-            log_node_execution_error(node_id, &error);
-            NodeOutcome::Abandoned
+            NodeOutcome::Abandoned {
+                reason: log_node_execution_error(node_id, &error),
+            }
         }
     }
 }
@@ -85,15 +95,18 @@ fn classify_think_result(node_id: &str, result: Result<runner::ThinkResult>) -> 
                 conclusion,
                 thinking_session_id: Some(think.session_id),
             })
-            .unwrap_or(NodeOutcome::Abandoned),
+            .unwrap_or(NodeOutcome::Abandoned {
+                reason: "missing conclusion".to_string(),
+            }),
         Err(error) => {
-            log_node_execution_error(node_id, &error);
-            NodeOutcome::Abandoned
+            NodeOutcome::Abandoned {
+                reason: log_node_execution_error(node_id, &error),
+            }
         }
     }
 }
 
-fn log_node_execution_error(node_id: &str, error: &dyn StdError) {
+fn log_node_execution_error(node_id: &str, error: &dyn StdError) -> String {
     let mut rendered = error.to_string();
     let mut source = error.source();
     while let Some(next) = source {
@@ -105,6 +118,7 @@ fn log_node_execution_error(node_id: &str, error: &dyn StdError) {
         source = next.source();
     }
     eprintln!("[pipeline] node {node_id} failed: {rendered}");
+    rendered
 }
 
 pub(super) async fn run_prompt_node(
@@ -145,4 +159,33 @@ pub(super) async fn run_tool_node(
                 MaenifoldError::Message(format!("Error invoking {tool_name}: {error}"))
             }
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classify_prompt_result_abandons_whitespace_only_output() {
+        let outcome = classify_prompt_result("prompt-node", Ok("  \n\t  ".to_string()));
+
+        match outcome {
+            NodeOutcome::Abandoned { reason } => assert_eq!(reason, "empty response"),
+            NodeOutcome::Completed { .. } => {
+                panic!("whitespace-only prompt output should be abandoned")
+            }
+        }
+    }
+
+    #[test]
+    fn classify_prompt_result_completes_non_empty_output() {
+        let outcome = classify_prompt_result("prompt-node", Ok("  kept  ".to_string()));
+
+        match outcome {
+            NodeOutcome::Completed { conclusion, .. } => assert_eq!(conclusion, "  kept  "),
+            NodeOutcome::Abandoned { reason } => {
+                panic!("non-empty prompt output should complete, got: {reason}")
+            }
+        }
+    }
 }

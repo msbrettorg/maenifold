@@ -33,6 +33,7 @@ fn states(specs: &[(&str, NodeStatus, u32, Option<&str>)]) -> HashMap<String, No
                     attempts: *attempts,
                     thinking_session_id: None,
                     output: output.map(str::to_string),
+                    failure_reason: None,
                 },
             )
         })

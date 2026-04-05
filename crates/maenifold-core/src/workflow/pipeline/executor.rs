@@ -263,13 +263,26 @@ fn apply_node_outcome(
                 "completed",
                 Some(&conclusion),
                 thinking_session_id.as_deref(),
+                None,
             )?;
             counts.completed += 1;
         }
-        NodeOutcome::Abandoned => {
-            update_pipeline_node_status(context, session_id, node_id, "abandoned", None, None)?;
+        NodeOutcome::Abandoned { reason } => {
+            update_pipeline_node_status(
+                context,
+                session_id,
+                node_id,
+                "abandoned",
+                None,
+                None,
+                Some(&reason),
+            )?;
             counts.abandoned += 1;
         }
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "apply_node_outcome_failure_reason_tests.rs"]
+mod apply_node_outcome_failure_reason_tests;

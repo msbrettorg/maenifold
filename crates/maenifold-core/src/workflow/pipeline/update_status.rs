@@ -19,6 +19,7 @@ pub(super) fn update_pipeline_node_status(
     status: &str,
     conclusion: Option<&str>,
     thinking_session_id: Option<&str>,
+    failure_reason: Option<&str>,
 ) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
@@ -73,6 +74,7 @@ pub(super) fn update_pipeline_node_status(
                 state.status = NodeStatus::Completed;
                 state.thinking_session_id = thinking_session_id.map(str::to_string);
                 state.output = Some(conclusion.to_string());
+                state.failure_reason = None;
             }
             inject_predecessor_context(context, &definition, &node_states, node_id)?;
         }
@@ -85,6 +87,10 @@ pub(super) fn update_pipeline_node_status(
             state.status = NodeStatus::Abandoned;
             state.thinking_session_id = None;
             state.output = None;
+            state.failure_reason = failure_reason
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string);
 
             persist_pipeline_state(
                 &mut frontmatter,

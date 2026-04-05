@@ -183,6 +183,7 @@ pub(super) fn fork_pipeline(
             attempts: 0,
             thinking_session_id: None,
             output: None,
+            failure_reason: None,
         };
         node_states.insert(node.id().to_string(), state.clone());
         node_states_frontmatter.insert(node.id().to_string(), serde_yaml::to_value(&state)?);

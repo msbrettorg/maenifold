@@ -66,6 +66,7 @@ pub(super) fn seed_pipeline_view_session(
                 attempts: 1,
                 thinking_session_id: None,
                 output: None,
+                failure_reason: None,
             },
         ),
         (
@@ -76,6 +77,7 @@ pub(super) fn seed_pipeline_view_session(
                 attempts: 2,
                 thinking_session_id: None,
                 output: None,
+                failure_reason: None,
             },
         ),
         (
@@ -86,6 +88,7 @@ pub(super) fn seed_pipeline_view_session(
                 attempts: 0,
                 thinking_session_id: None,
                 output: None,
+                failure_reason: None,
             },
         ),
     ]);

@@ -3,38 +3,47 @@ use std::collections::HashMap;
 use serde_json::Value as JsonValue;
 use serde_yaml::Value as YamlValue;
 
-use crate::error::Result;
+use crate::error::{MaenifoldError, Result};
 use crate::markdown::read_markdown;
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 
 use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
-pub(super) fn resolve_dot_path(value: &JsonValue, path: &str) -> JsonValue {
-    let Some(segments) = parse_dot_path(path) else {
-        return JsonValue::Null;
-    };
+pub(super) fn resolve_dot_path(value: &JsonValue, path: &str) -> Result<JsonValue> {
+    let segments = parse_dot_path(path).ok_or_else(|| {
+        MaenifoldError::InvalidArgument(format!("Invalid pipeline mapping path: {path}"))
+    })?;
     let mut current = value;
 
     for segment in segments {
         current = match current {
-            JsonValue::Object(map) => match map.get(segment.as_str()) {
-                Some(value) => value,
-                None => return JsonValue::Null,
-            },
-            JsonValue::Array(items) => match segment
-                .parse::<usize>()
-                .ok()
-                .and_then(|index| items.get(index))
-            {
-                Some(value) => value,
-                None => return JsonValue::Null,
-            },
-            _ => return JsonValue::Null,
+            JsonValue::Object(map) => map.get(segment.as_str()).ok_or_else(|| {
+                MaenifoldError::InvalidArgument(format!(
+                    "Pipeline mapping path '{path}' is missing segment '{segment}'"
+                ))
+            })?,
+            JsonValue::Array(items) => {
+                let index = segment.parse::<usize>().map_err(|_| {
+                    MaenifoldError::InvalidArgument(format!(
+                        "Pipeline mapping path '{path}' expected an array index, got '{segment}'"
+                    ))
+                })?;
+                items.get(index).ok_or_else(|| {
+                    MaenifoldError::InvalidArgument(format!(
+                        "Pipeline mapping path '{path}' is missing array index {index}"
+                    ))
+                })?
+            }
+            _ => {
+                return Err(MaenifoldError::InvalidArgument(format!(
+                    "Pipeline mapping path '{path}' cannot traverse '{segment}'"
+                )));
+            }
         };
     }
 
-    current.clone()
+    Ok(current.clone())
 }
 
 fn parse_dot_path(path: &str) -> Option<Vec<String>> {
@@ -98,7 +107,7 @@ pub(super) fn mapped_tool_args(
     node_states: &HashMap<String, NodeState>,
     target_node_id: &str,
     static_args: Option<JsonValue>,
-) -> Option<JsonValue> {
+) -> Result<Option<JsonValue>> {
     let mut merged_args = match static_args.clone() {
         Some(JsonValue::Object(map)) => map,
         _ => serde_json::Map::new(),
@@ -120,24 +129,31 @@ pub(super) fn mapped_tool_args(
             continue;
         }
 
-        let source_output = source_state
-            .output
-            .as_deref()
-            .and_then(|value| serde_json::from_str::<JsonValue>(value).ok())
-            .unwrap_or(JsonValue::Null);
+        let source_output = match source_state.output.as_deref() {
+            Some(value) => serde_json::from_str::<JsonValue>(value).map_err(|error| {
+                MaenifoldError::InvalidArgument(format!(
+                    "Pipeline mapping from '{}' to '{}' could not parse node '{}' output as JSON: {error}",
+                    edge.source, edge.target, edge.source
+                ))
+            })?,
+            None => JsonValue::Null,
+        };
         for (target_key, source_path) in mapping {
             applied_mapping = true;
-            merged_args.insert(
-                target_key.clone(),
-                resolve_dot_path(&source_output, source_path),
-            );
+            let mapped_value = resolve_dot_path(&source_output, source_path).map_err(|error| {
+                MaenifoldError::InvalidArgument(format!(
+                    "Pipeline mapping from '{}' to '{}' for target '{}' failed: {error}",
+                    edge.source, edge.target, target_key
+                ))
+            })?;
+            merged_args.insert(target_key.clone(), mapped_value);
         }
     }
 
     if applied_mapping {
-        Some(JsonValue::Object(merged_args))
+        Ok(Some(JsonValue::Object(merged_args)))
     } else {
-        static_args
+        Ok(static_args)
     }
 }
 
@@ -246,4 +262,126 @@ fn predecessor_context_source(
         .map(str::trim)
         .filter(|last| !last.is_empty())
         .map(ToOwned::to_owned))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use serde_json::json;
+
+    use super::*;
+    use crate::workflow::pipeline::{PipelineEdge, PipelineNode};
+
+    #[test]
+    fn mapped_tool_args_returns_error_for_invalid_source_json() {
+        let definition = PipelineDefinition {
+            nodes: vec![],
+            edges: vec![PipelineEdge {
+                source: "source".to_string(),
+                target: "target".to_string(),
+                edge_type: EdgeType::Success,
+                mapping: Some(HashMap::from([(
+                    "payload".to_string(),
+                    "result.value".to_string(),
+                )])),
+            }],
+        };
+        let node_states = HashMap::from([(
+            "source".to_string(),
+            NodeState {
+                session_id: "pipeline-source".to_string(),
+                status: NodeStatus::Completed,
+                attempts: 1,
+                thinking_session_id: None,
+                output: Some("not-json".to_string()),
+                failure_reason: None,
+            },
+        )]);
+
+        let error = mapped_tool_args(&definition, &node_states, "target", None)
+            .expect_err("invalid source output should error");
+
+        assert!(error.to_string().contains("could not parse node 'source' output as JSON"));
+    }
+
+    #[test]
+    fn mapped_tool_args_returns_error_for_missing_source_path() {
+        let definition = PipelineDefinition {
+            nodes: vec![],
+            edges: vec![PipelineEdge {
+                source: "source".to_string(),
+                target: "target".to_string(),
+                edge_type: EdgeType::Success,
+                mapping: Some(HashMap::from([(
+                    "payload".to_string(),
+                    "result.value".to_string(),
+                )])),
+            }],
+        };
+        let node_states = HashMap::from([(
+            "source".to_string(),
+            NodeState {
+                session_id: "pipeline-source".to_string(),
+                status: NodeStatus::Completed,
+                attempts: 1,
+                thinking_session_id: None,
+                output: Some(json!({ "result": {} }).to_string()),
+                failure_reason: None,
+            },
+        )]);
+
+        let error = mapped_tool_args(&definition, &node_states, "target", None)
+            .expect_err("missing mapping path should error");
+
+        assert!(error.to_string().contains("target 'payload' failed"));
+        assert!(error.to_string().contains("missing segment 'value'"));
+    }
+
+    #[test]
+    fn mapped_tool_args_merges_resolved_values_into_static_args() {
+        let definition = PipelineDefinition {
+            nodes: vec![PipelineNode::Tool {
+                id: "target".to_string(),
+                tool_name: "noop".to_string(),
+                tool_args: None,
+                agent: None,
+                model: None,
+                thought_level: None,
+                allowed_tools: None,
+                max_turns: None,
+                agent_config: None,
+            }],
+            edges: vec![PipelineEdge {
+                source: "source".to_string(),
+                target: "target".to_string(),
+                edge_type: EdgeType::Success,
+                mapping: Some(HashMap::from([(
+                    "payload".to_string(),
+                    "result.value".to_string(),
+                )])),
+            }],
+        };
+        let node_states = HashMap::from([(
+            "source".to_string(),
+            NodeState {
+                session_id: "pipeline-source".to_string(),
+                status: NodeStatus::Completed,
+                attempts: 1,
+                thinking_session_id: None,
+                output: Some(json!({ "result": { "value": 7 } }).to_string()),
+                failure_reason: None,
+            },
+        )]);
+
+        let mapped = mapped_tool_args(
+            &definition,
+            &node_states,
+            "target",
+            Some(json!({ "static": true })),
+        )
+        .expect("mapping should succeed");
+
+        assert_eq!(mapped, Some(json!({ "static": true, "payload": 7 })));
+    }
 }

@@ -1,4 +1,6 @@
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
 
 use eframe::egui;
 use eframe::egui::{Color32, RichText};
@@ -10,6 +12,8 @@ use crate::cli::{GateContext, StatusArgs};
 use crate::gate_tool_service::GateToolService;
 use crate::status_filter::StatusFilter;
 use crate::task_id;
+
+const READ_MODEL_POLL_INTERVAL: Duration = Duration::from_secs(2);
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -39,6 +43,7 @@ pub struct GateUiWindow;
 
 impl GateUiWindow {
     pub fn run(root: PathBuf) -> i32 {
+        let initial_read_model_timestamp = read_model_timestamp(&root);
         let entries = match load_tasks(&root) {
             Ok(entries) => entries,
             Err(err) => {
@@ -64,7 +69,13 @@ impl GateUiWindow {
         let result = eframe::run_native(
             "Gate UI",
             options,
-            Box::new(move |_cc| Ok(Box::new(GateUiApp::new(app_root, entries)))),
+            Box::new(move |_cc| {
+                Ok(Box::new(GateUiApp::new(
+                    app_root,
+                    entries,
+                    initial_read_model_timestamp,
+                )))
+            }),
         );
 
         match result {
@@ -97,10 +108,28 @@ fn load_tasks(root: &PathBuf) -> Result<Vec<TaskEntry>, String> {
     Ok(entries)
 }
 
+fn read_model_timestamp(root: &Path) -> Option<SystemTime> {
+    latest_modified_time([
+        root.join(".gate").join("gate.db"),
+        root.join(".gate").join("gate.db-wal"),
+    ])
+}
+
+fn latest_modified_time(paths: [PathBuf; 2]) -> Option<SystemTime> {
+    paths
+        .into_iter()
+        .filter_map(|path| fs::metadata(path).ok()?.modified().ok())
+        .fold(None, |latest, modified| match latest {
+            Some(current) if current >= modified => Some(current),
+            _ => Some(modified),
+        })
+}
+
 #[allow(dead_code)]
 struct GateUiApp {
     root: PathBuf,
     tasks: Vec<TaskEntry>,
+    read_model_timestamp: Option<SystemTime>,
     selected: Option<TaskDetail>,
     detail_open: bool,
     markdown_cache: CommonMarkCache,
@@ -113,10 +142,11 @@ struct GateUiApp {
 }
 
 impl GateUiApp {
-    fn new(root: PathBuf, tasks: Vec<TaskEntry>) -> Self {
+    fn new(root: PathBuf, tasks: Vec<TaskEntry>, read_model_timestamp: Option<SystemTime>) -> Self {
         Self {
             root,
             tasks,
+            read_model_timestamp,
             selected: None,
             detail_open: false,
             markdown_cache: CommonMarkCache::default(),
@@ -157,10 +187,46 @@ impl GateUiApp {
         sort_tasks(&mut tasks, self.sort_state);
         tasks
     }
+
+    fn refresh_tasks_if_needed(&mut self) {
+        let Some(current_timestamp) = read_model_timestamp(&self.root) else {
+            return;
+        };
+
+        let should_reload = match self.read_model_timestamp {
+            Some(previous_timestamp) => current_timestamp > previous_timestamp,
+            None => true,
+        };
+
+        if !should_reload {
+            return;
+        }
+
+        match load_tasks(&self.root) {
+            Ok(tasks) => {
+                self.tasks = tasks;
+                self.read_model_timestamp = Some(current_timestamp);
+                self.reset_stale_filters();
+            }
+            Err(err) => {
+                eprintln!("gate UI failed to refresh tasks: {err}");
+            }
+        }
+    }
+
+    fn reset_stale_filters(&mut self) {
+        self.process_filter
+            .reset_if_missing(&process_values(&self.tasks));
+        self.state_filter.reset_if_missing(&state_values(&self.tasks));
+        self.location_filter
+            .reset_if_missing(&location_values(&self.tasks));
+    }
 }
 
 impl eframe::App for GateUiApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        ctx.request_repaint_after(READ_MODEL_POLL_INTERVAL);
+        self.refresh_tasks_if_needed();
         ctx.set_visuals(egui::Visuals::dark());
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -376,6 +442,14 @@ impl FilterValue {
         match &self.0 {
             Some(expected) => expected == value,
             None => true,
+        }
+    }
+
+    fn reset_if_missing(&mut self, values: &[String]) {
+        if let Some(selected) = &self.0 {
+            if !values.iter().any(|value| value == selected) {
+                *self = Self::all();
+            }
         }
     }
 }

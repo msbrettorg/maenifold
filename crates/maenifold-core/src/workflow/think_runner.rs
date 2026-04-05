@@ -5,20 +5,17 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::acp_native::{AgentPool, SessionOpts};
+use crate::acp_native::{AcpxResponse, AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
 use crate::thinking::sequential_thinking;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
-use super::agent_session::open_agent_session;
-use super::output_types::ThinkingOutput;
+use super::agent_session::{AgentSession, open_agent_session};
 use super::runner::append_close_error_context;
 use super::runner::sanitize_workflow_session_opts;
-use super::runner_helpers::{Envelope, slug};
-use super::think_helpers::{
-    ensure_conclusion_for_completed_output, force_completion_output, parse_with_retry,
-};
+use super::runner_helpers::{Envelope, slug, tag_fallback};
+const AGENT_ERROR_RESPONSE: &str = "Agent error [[step]]";
 
 fn trace_enabled() -> bool {
     std::env::var("MAENIFOLD_TRACE")
@@ -104,12 +101,6 @@ struct ThinkProgressPayload<'a> {
     next_thought_needed: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     conclusion: Option<&'a str>,
-    #[serde(skip_serializing_if = "is_false")]
-    needs_more_thoughts: bool,
-    #[serde(skip_serializing_if = "is_false")]
-    is_revision: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    revises_thought: Option<u64>,
 }
 
 pub(crate) async fn seed_think_session(
@@ -137,7 +128,6 @@ pub(crate) async fn drive_think_session(
     pool: &AgentPool,
     content_blocks: Option<Vec<acp::ContentBlock>>,
 ) -> Result<ThinkResult> {
-    let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
     let driver = open_agent_session(
         pool,
         agent,
@@ -145,60 +135,74 @@ pub(crate) async fn drive_think_session(
         sanitize_workflow_session_opts(session_opts),
     )
     .await?;
-    let mut thought_number = 1u32;
-    let mut first_context = content_blocks;
-    let result: Result<ThinkResult> = async {
-        loop {
-            if trace_enabled() {
-                eprintln!("[think] thought {}/{}", thought_number, opts.total_thoughts);
-            }
-            let prompt = think_prompt(thought_number, opts.total_thoughts, topic, prompt_context);
-            let response = if let Some(blocks) = first_context.take() {
-                driver.prompt_with_context(&prompt, blocks).await?
-            } else {
-                driver.prompt(&prompt).await?
-            };
-            let thinking_output = parse_with_retry(
-                &driver,
-                &response.text,
-                2,
-                thought_number,
-                opts.total_thoughts,
-            )
-            .await?;
-            let capped_output =
-                if !thinking_output.done && thought_number >= opts.total_thoughts + 3 {
-                    force_completion_output(&thinking_output)
-                } else {
-                    thinking_output
-                };
-            let capped_output = ensure_conclusion_for_completed_output(capped_output)?;
-            let payload = think_progress_payload_from_output(
-                session_id,
-                &capped_output,
-                thought_number,
-                opts,
-            );
-            let _: Value = think_call(&json_context, &payload)?;
-            if capped_output.done {
-                if trace_enabled() {
-                    eprintln!("[think] complete");
-                }
-                break Ok(ThinkResult {
-                    session_id: session_id.to_string(),
-                    conclusion: capped_output.conclusion,
-                    thoughts_completed: thought_number,
-                });
-            }
-            thought_number += 1;
-        }
-    }
+    let result = drive_think_session_with_driver(
+        context,
+        &driver,
+        session_id,
+        topic,
+        prompt_context,
+        opts,
+        content_blocks,
+    )
     .await;
     match (result, driver.close().await) {
         (Ok(value), Ok(())) => Ok(value),
         (Ok(_), Err(error)) => Err(error),
         (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
         (Err(error), Ok(())) => Err(error),
+    }
+}
+
+pub(crate) async fn drive_think_session_with_driver(
+    context: &ToolContext,
+    driver: &AgentSession,
+    session_id: &str,
+    topic: &str,
+    prompt_context: &str,
+    opts: &ThinkOptions,
+    content_blocks: Option<Vec<acp::ContentBlock>>,
+) -> Result<ThinkResult> {
+    let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
+    let mut thought_number = 1u32;
+    let mut first_context = content_blocks;
+    loop {
+        if trace_enabled() {
+            eprintln!("[think] thought {}/{}", thought_number, opts.total_thoughts);
+        }
+        let prompt = think_prompt(thought_number, opts.total_thoughts, topic, prompt_context);
+        let response = if let Some(blocks) = first_context.take() {
+            driver.prompt_with_context(&prompt, blocks).await
+        } else {
+            driver.prompt(&prompt).await
+        };
+        let response_text = tag_fallback(
+            &response
+                .and_then(think_response_text)
+                .unwrap_or_else(|_| AGENT_ERROR_RESPONSE.to_string()),
+        );
+        let done = is_completion_response(&response_text)
+            || thought_number >= opts.total_thoughts.saturating_add(3);
+        let _: Value = think_call(
+            &json_context,
+            &think_progress_payload(
+                session_id,
+                &response_text,
+                thought_number,
+                opts.total_thoughts,
+                done,
+            ),
+        )?;
+        if done {
+            if trace_enabled() {
+                eprintln!("[think] complete");
+            }
+            return Ok(ThinkResult {
+                session_id: session_id.to_string(),
+                conclusion: Some(response_text),
+                thoughts_completed: thought_number,
+            });
+        }
+        thought_number += 1;
     }
 }
 
@@ -237,25 +241,6 @@ fn think_seed_payload(topic: &str, opts: &ThinkOptions) -> Value {
     })
 }
 
-pub(crate) fn think_progress_payload_from_output(
-    session_id: &str,
-    output: &ThinkingOutput,
-    thought_number: u32,
-    opts: &ThinkOptions,
-) -> Value {
-    serialize_payload(ThinkProgressPayload {
-        session_id,
-        response: &output.response,
-        thought_number,
-        total_thoughts: opts.total_thoughts,
-        next_thought_needed: !output.done,
-        conclusion: output.conclusion.as_deref().filter(|_| output.done),
-        needs_more_thoughts: output.needs_more,
-        is_revision: output.revision_of.is_some(),
-        revises_thought: output.revision_of,
-    })
-}
-
 fn think_call<T: DeserializeOwned>(context: &ToolContext, payload: &Value) -> Result<T> {
     let envelope: Envelope<T> = serde_json::from_str(&sequential_thinking(context, payload)?)?;
     if envelope.success {
@@ -270,22 +255,83 @@ fn think_call<T: DeserializeOwned>(context: &ToolContext, payload: &Value) -> Re
     }
 }
 
+fn think_progress_payload(
+    session_id: &str,
+    response: &str,
+    thought_number: u32,
+    total_thoughts: u32,
+    done: bool,
+) -> Value {
+    serialize_payload(ThinkProgressPayload {
+        session_id,
+        response,
+        thought_number,
+        total_thoughts,
+        next_thought_needed: !done,
+        conclusion: done.then_some(response),
+    })
+}
+
+fn think_response_text(response: AcpxResponse) -> Result<String> {
+    if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
+        return Err(MaenifoldError::Message(error));
+    }
+    Ok(response.text)
+}
+
+fn is_completion_response(response: &str) -> bool {
+    response
+        .lines()
+        .any(|line| {
+            line.as_bytes()
+                .get(..4)
+                .map(|prefix| prefix.eq_ignore_ascii_case(b"DONE"))
+                .unwrap_or(false)
+        })
+}
+
 fn think_prompt(
     thought_number: u32,
     total_thoughts: u32,
     topic: &str,
     prompt_context: &str,
 ) -> String {
-    format!(
-        "Context:\n{prompt_context}\n\nTask: {topic}\n\nThought {thought_number}/~{total_thoughts}. Include [[WikiLinks]] for key concepts.\n\n{shape}\n\nSet done=true with a conclusion on your final thought.",
-        shape = ThinkingOutput::expected_shape()
-    )
+    let prompt = format!(
+        "Thought {thought_number}/~{total_thoughts} on: {topic}. Include [[WikiLinks]]. Say DONE when complete."
+    );
+    let context = prompt_context.trim();
+    if context.is_empty() {
+        prompt
+    } else {
+        format!("{context}\n\n{prompt}")
+    }
 }
 
 fn serialize_payload<T: Serialize>(payload: T) -> Value {
     serde_json::to_value(payload).expect("serializing think payload should be infallible")
 }
 
-fn is_false(value: &bool) -> bool {
-    !value
+#[cfg(test)]
+mod tests {
+    use super::{is_completion_response, think_prompt};
+
+    #[test]
+    fn completion_response_matches_done_at_start_of_any_line() {
+        assert!(is_completion_response(
+            "preamble line\nDONE final synthesis [[step]]"
+        ));
+    }
+
+    #[test]
+    fn completion_response_does_not_match_indented_done() {
+        assert!(!is_completion_response("preamble\n DONE later"));
+    }
+
+    #[test]
+    fn think_prompt_preserves_context_as_plain_text_prefix() {
+        assert_eq!(
+            think_prompt(2, 5, "topic", "upstream context"),
+            "upstream context\n\nThought 2/~5 on: topic. Include [[WikiLinks]]. Say DONE when complete."
+        );
+    }
 }

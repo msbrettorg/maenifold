@@ -1,8 +1,5 @@
 use super::agent_session::AgentSession;
-use super::output_parser::parse_output;
-use super::output_types::WorkflowOutput;
 use super::runner::WorkflowRunStatus;
-use super::think_runner::WIKILINK_CONTEXT;
 use crate::acp_native::AcpxResponse;
 use crate::error::{MaenifoldError, Result};
 use agent_client_protocol as acp;
@@ -12,14 +9,7 @@ use serde_json::{Value, json};
 use std::sync::LazyLock;
 static STEP_PROGRESS_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
-
-/// Single source of truth for the XML output-block contract sent to workflow agents.
-const XML_FORMAT_INSTRUCTION: &str = r#"Respond using this XML format:
-<output>
-  <response>What you did for this step, with detail.</response>
-  <done>true or false</done>
-  <conclusion>Summary when done is true. Leave empty otherwise.</conclusion>
-</output>"#;
+const AGENT_ERROR_RESPONSE: &str = "Agent error [[step]]";
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Envelope<T> {
@@ -110,103 +100,49 @@ pub(crate) fn terminal_workflow_status(step: &str) -> Option<WorkflowRunStatus> 
     }
 }
 pub(crate) fn workflow_prompt(prompt: &str, step: &str) -> String {
-    let prefix = if prompt.trim().is_empty() {
+    if prompt.trim().is_empty() {
         step.to_string()
     } else {
         format!("{prompt}\n{step}")
-    };
-    format!("{prefix}\n\n{WIKILINK_CONTEXT}\n\n{XML_FORMAT_INSTRUCTION}")
+    }
 }
 pub(crate) async fn prompt_workflow_agent(
     driver: &AgentSession,
     prompt: &str,
     step: &str,
     content_blocks: Option<Vec<acp::ContentBlock>>,
-) -> Result<WorkflowAgentResponse> {
+) -> Result<String> {
     let full_prompt = workflow_prompt(prompt, step);
     let response = if let Some(blocks) = content_blocks {
-        driver.prompt_with_context(&full_prompt, blocks).await?
+        driver.prompt_with_context(&full_prompt, blocks).await
     } else {
-        driver.prompt(&full_prompt).await?
+        driver.prompt(&full_prompt).await
     };
-    let text = workflow_response_text(response)?;
-    parse_workflow_with_retry(driver, &text, 3).await
+    Ok(tag_fallback(&response.and_then(workflow_response_text).unwrap_or_else(
+        |_| AGENT_ERROR_RESPONSE.to_string(),
+    )))
 }
 pub(crate) fn workflow_step_payload(
     session_id: &str,
-    response: &WorkflowAgentResponse,
+    response: &str,
     final_step: bool,
 ) -> serde_json::Value {
-    let response_text = workflow_response_text_for_step(response, final_step);
     if final_step {
         json!({
             "sessionId": session_id,
-            "response": response_text,
+            "response": response,
             "status": "completed",
-            "conclusion": workflow_conclusion_text(response, final_step)
+            "conclusion": response
         })
     } else {
-        json!({ "sessionId": session_id, "response": response.output.response })
+        json!({ "sessionId": session_id, "response": response })
     }
 }
 pub(crate) fn workflow_completion_text(
-    response: &WorkflowAgentResponse,
+    response: &str,
     final_step: bool,
 ) -> Option<String> {
-    final_step.then(|| workflow_conclusion_text(response, final_step))
-}
-pub(crate) struct WorkflowAgentResponse {
-    pub(super) output: WorkflowOutput,
-    pub(super) used_fallback: bool,
-}
-async fn parse_workflow_with_retry(
-    driver: &AgentSession,
-    initial_text: &str,
-    max_retries: usize,
-) -> Result<WorkflowAgentResponse> {
-    let mut text = initial_text.trim().to_string();
-    for attempt in 0..=max_retries {
-        match parse_workflow_output(&text) {
-            Ok(output) => {
-                return Ok(WorkflowAgentResponse {
-                    output,
-                    used_fallback: false,
-                });
-            }
-            Err(error) if attempt < max_retries => {
-                let retry_prompt = workflow_retry_prompt(&error);
-                let response = driver.prompt(&retry_prompt).await?;
-                text = workflow_response_text(response)?.trim().to_string();
-            }
-            Err(error) => {
-                return Err(MaenifoldError::Message(format!(
-                    "workflow output parse failed after {} attempt(s): {}. Last response preview: {}",
-                    max_retries + 1,
-                    error,
-                    preview_response(&text),
-                )));
-            }
-        }
-    }
-    Err(MaenifoldError::Message(
-        "workflow parsing retry loop exhausted unexpectedly".to_string(),
-    ))
-}
-fn parse_workflow_output(text: &str) -> std::result::Result<WorkflowOutput, String> {
-    let parsed = parse_output(text).map_err(|error| error.to_string())?;
-    let output = WorkflowOutput::from_parsed(&parsed).map_err(|error| error.to_string())?;
-    let conclusion = output
-        .conclusion
-        .clone()
-        .filter(|value| !value.trim().is_empty());
-    if output.done && conclusion.is_none() {
-        return Err("missing required <conclusion> when <done>true</done>".to_string());
-    }
-    Ok(WorkflowOutput {
-        response: output.response,
-        done: output.done,
-        conclusion,
-    })
+    final_step.then(|| response.to_string())
 }
 fn workflow_response_text(response: AcpxResponse) -> Result<String> {
     if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
@@ -214,51 +150,12 @@ fn workflow_response_text(response: AcpxResponse) -> Result<String> {
     }
     Ok(response.text)
 }
-fn workflow_conclusion_text(response: &WorkflowAgentResponse, final_step: bool) -> String {
-    response
-        .output
-        .conclusion
-        .clone()
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| workflow_response_text_for_step(response, final_step))
-}
-fn workflow_response_text_for_step(response: &WorkflowAgentResponse, final_step: bool) -> String {
-    if response.used_fallback && final_step {
-        tag_fallback(&response.output.response)
-    } else {
-        response.output.response.clone()
-    }
-}
-fn workflow_retry_prompt(error: &str) -> String {
-    format!(
-        "Your response could not be parsed. Error: {error}\nExpected format:\n{}\n\nPlease rewrite your response with the correct <output> tags.",
-        WorkflowOutput::expected_shape()
-    )
-}
 
-fn preview_response(text: &str) -> String {
-    const MAX_PREVIEW_CHARS: usize = 500;
-
-    let trimmed = text.trim();
-    if trimmed.is_empty() {
-        return "<empty response>".to_string();
-    }
-
-    let preview: String = trimmed.chars().take(MAX_PREVIEW_CHARS).collect();
-    if trimmed.chars().count() > MAX_PREVIEW_CHARS {
-        format!("{preview}…")
-    } else {
-        preview
-    }
-}
-
-/// Appends `[[unstructured-response]]` when the text lacks well-formed wikilinks.
-/// Shared single definition used by both workflow and think runners.
 pub(crate) fn tag_fallback(response: &str) -> String {
     if has_well_formed_wikilink(response) {
         response.to_string()
     } else {
-        format!("{response} [[unstructured-response]]")
+        format!("{response} [[step]]")
     }
 }
 pub(crate) fn has_well_formed_wikilink(text: &str) -> bool {

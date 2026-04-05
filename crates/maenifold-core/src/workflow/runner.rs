@@ -13,7 +13,7 @@ use super::runner_helpers::{
     workflow_step_payload, workflow_text,
 };
 use super::runner_state::{current_step_index, init_workflow_session, workflow_total_steps};
-use super::think_runner::{drive_think_session, seed_think_session};
+use super::think_runner::{drive_think_session_with_driver, seed_think_session};
 
 fn trace_enabled() -> bool {
     std::env::var("MAENIFOLD_TRACE")
@@ -56,7 +56,6 @@ pub struct WorkflowResult {
 /// Shared state carried through the workflow run loop.
 struct RunContext<'a> {
     tool_context: &'a ToolContext,
-    agent: &'a str,
     session_id: String,
     pool: Arc<AgentPool>,
     model: Option<String>,
@@ -163,7 +162,6 @@ pub(crate) async fn run_workflow_with_pool(
     }
     let run_ctx = RunContext {
         tool_context: context,
-        agent,
         session_id,
         pool,
         model,
@@ -209,19 +207,13 @@ pub(crate) async fn run_workflow_with_pool(
             if trace_enabled() {
                 eprintln!("[workflow] step {}/{}", step_index, total_steps);
             }
-            maybe_run_step_thinking(&run_ctx, &step).await?;
+            maybe_run_step_thinking(&run_ctx, &driver, &step).await?;
             let final_step = step_index >= total_steps;
             if trace_enabled() {
                 eprintln!("[workflow] prompting agent (final_step={})", final_step);
             }
             let response =
                 prompt_workflow_agent(&driver, prompt, &step, first_context.take()).await?;
-            if trace_enabled() {
-                eprintln!(
-                    "[workflow] agent responded (used_fallback={})",
-                    response.used_fallback
-                );
-            }
             if let Some(value) = workflow_completion_text(&response, final_step) {
                 if trace_enabled() {
                     eprintln!("[workflow] conclusion extracted: {} chars", value.len());
@@ -276,7 +268,6 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     }
     let run_ctx = RunContext {
         tool_context: context,
-        agent,
         session_id,
         pool,
         model: session_opts.model.clone(),
@@ -314,7 +305,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
             if trace_enabled() {
                 eprintln!("[workflow] step {}/{}", step_index, total_steps);
             }
-            maybe_run_step_thinking(&run_ctx, &step).await?;
+            maybe_run_step_thinking(&run_ctx, &driver, &step).await?;
             let final_step = step_index >= total_steps;
             let response = prompt_workflow_agent(&driver, prompt, &step, None).await?;
             if let Some(value) = workflow_completion_text(&response, final_step) {
@@ -337,7 +328,11 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     }
 }
 
-async fn maybe_run_step_thinking(run_ctx: &RunContext<'_>, step: &str) -> Result<()> {
+async fn maybe_run_step_thinking(
+    run_ctx: &RunContext<'_>,
+    driver: &super::agent_session::AgentSession,
+    step: &str,
+) -> Result<()> {
     let Some((topic, total_thoughts)) = step_think_config(step) else {
         return Ok(());
     };
@@ -355,15 +350,13 @@ async fn maybe_run_step_thinking(run_ctx: &RunContext<'_>, step: &str) -> Result
             "submachineSessionId": &think_session_id
         }),
     )?;
-    let _ = drive_think_session(
+    let _ = drive_think_session_with_driver(
         run_ctx.tool_context,
-        run_ctx.agent,
+        driver,
         &think_session_id,
         &topic,
-        step,
+        "",
         &think_opts,
-        run_ctx.default_session_opts(),
-        run_ctx.pool.as_ref(),
         None,
     )
     .await?;

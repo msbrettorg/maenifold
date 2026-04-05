@@ -11,7 +11,6 @@ pub(crate) mod runner_helpers;
 mod runner_state;
 mod status;
 mod submachine;
-mod think_helpers;
 pub(crate) mod think_runner;
 
 // T-12.0: RTM NFR-1 consolidates the workflow facade, helpers, and session logic under one module.

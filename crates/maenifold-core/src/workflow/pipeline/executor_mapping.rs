@@ -296,6 +296,8 @@ mod tests {
                 thinking_session_id: None,
                 output: Some("not-json".to_string()),
                 failure_reason: None,
+                retry_after: None,
+                retry_count: None,
             },
         )]);
 
@@ -332,6 +334,8 @@ mod tests {
                 thinking_session_id: None,
                 output: Some(json!({ "result": {} }).to_string()),
                 failure_reason: None,
+                retry_after: None,
+                retry_count: None,
             },
         )]);
 
@@ -375,6 +379,8 @@ mod tests {
                 thinking_session_id: None,
                 output: Some(json!({ "result": { "value": 7 } }).to_string()),
                 failure_reason: None,
+                retry_after: None,
+                retry_count: None,
             },
         )]);
 

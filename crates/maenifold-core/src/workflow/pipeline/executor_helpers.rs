@@ -116,7 +116,7 @@ fn pipeline_has_non_terminal_nodes(context: &ToolContext, session_id: &str) -> b
     node_states.values().any(|state| {
         matches!(
             state.status,
-            NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active
+            NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active | NodeStatus::Retrying
         )
     })
 }
@@ -150,7 +150,7 @@ fn mark_pipeline_stuck(context: &ToolContext, session_id: &str) {
     for state in node_states.values_mut() {
         if matches!(
             state.status,
-            NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active
+            NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active | NodeStatus::Retrying
         ) {
             state.status = NodeStatus::Stuck;
             if let Err(err) =

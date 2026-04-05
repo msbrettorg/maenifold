@@ -47,7 +47,7 @@ pub fn has_remaining_work(node_states: &HashMap<String, NodeState>) -> bool {
     node_states.values().any(|state| {
         matches!(
             state.status,
-            NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active
+            NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active | NodeStatus::Retrying
         )
     })
 }

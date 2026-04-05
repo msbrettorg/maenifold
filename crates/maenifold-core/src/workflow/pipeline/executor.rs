@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use chrono::{Duration, Utc};
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
@@ -18,6 +19,11 @@ use super::executor_helpers::{
 use super::executor_nodes::{
     NodeOutcome, NodeTaskResult, build_node_execution_request, classify_node_result,
     execute_node_request,
+};
+use super::session_io::{
+    NodeFile, allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,
+    persist_pipeline_state, read_pipeline_session, update_workflow_node_frontmatter,
+    write_workflow_node_session_with_status,
 };
 use super::update::update_pipeline_node_status;
 use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
@@ -143,7 +149,7 @@ fn log_incomplete_execution(context: &ToolContext, session_id: &str) -> Result<(
 fn is_non_terminal(status: &NodeStatus) -> bool {
     matches!(
         status,
-        NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active
+        NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active | NodeStatus::Retrying
     )
 }
 
@@ -155,6 +161,7 @@ fn node_status_name(status: &NodeStatus) -> &'static str {
         NodeStatus::Completed => "completed",
         NodeStatus::Abandoned => "abandoned",
         NodeStatus::Stuck => "stuck",
+        NodeStatus::Retrying => "retrying",
     }
 }
 
@@ -321,22 +328,115 @@ fn apply_node_outcome(
             )?;
             counts.completed += 1;
         }
-        NodeOutcome::Abandoned { reason, .. } => {
-            update_pipeline_node_status(
-                context,
-                session_id,
-                node_id,
-                "abandoned",
-                None,
-                None,
-                Some(&reason),
-            )?;
-            counts.abandoned += 1;
+        NodeOutcome::Abandoned { reason, phase } => {
+            if phase.is_retryable() {
+                schedule_node_retry(context, session_id, node_id, &reason)?;
+            } else {
+                update_pipeline_node_status(
+                    context,
+                    session_id,
+                    node_id,
+                    "abandoned",
+                    None,
+                    None,
+                    Some(&reason),
+                )?;
+                counts.abandoned += 1;
+            }
         }
     }
     Ok(())
 }
 
+fn schedule_node_retry(
+    context: &ToolContext,
+    session_id: &str,
+    node_id: &str,
+    reason: &str,
+) -> Result<()> {
+    let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let mut node_states =
+        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    let max_attempts = frontmatter
+        .get("maxAttempts")
+        .and_then(serde_yaml::Value::as_u64)
+        .unwrap_or(3) as u32;
+    let node = definition
+        .nodes
+        .iter()
+        .find(|node| node.id() == node_id)
+        .ok_or_else(|| {
+            MaenifoldError::Message(format!(
+                "ERROR: Pipeline definition missing node '{node_id}'"
+            ))
+        })?;
+    let state = node_states.get_mut(node_id).ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "ERROR: Pipeline session missing node state for '{node_id}'"
+        ))
+    })?;
+    let previous_session_id = state.session_id.clone();
+    let current_attempts = state.attempts;
+
+    if current_attempts >= max_attempts {
+        state.status = NodeStatus::Stuck;
+        state.output = None;
+        state.thinking_session_id = None;
+        state.failure_reason = Some(reason.to_string());
+        state.retry_after = None;
+        persist_pipeline_state(
+            &mut frontmatter,
+            &node_states,
+            &uri,
+            &pipeline_content,
+            context,
+        )?;
+        update_workflow_node_frontmatter(context, &previous_session_id, "stuck", None)?;
+        return Ok(());
+    }
+
+    let retry_count = state.retry_count.unwrap_or(0) + 1;
+    let next_session_id = allocate_node_session_id(context, node_id)?;
+    state.session_id = next_session_id.clone();
+    state.status = NodeStatus::Retrying;
+    state.attempts += 1;
+    state.output = None;
+    state.thinking_session_id = None;
+    state.failure_reason = None;
+    state.retry_after = Some(compute_retry_after(retry_count));
+    state.retry_count = Some(retry_count);
+
+    persist_pipeline_state(
+        &mut frontmatter,
+        &node_states,
+        &uri,
+        &pipeline_content,
+        context,
+    )?;
+    update_workflow_node_frontmatter(context, &previous_session_id, "abandoned", None)?;
+    write_workflow_node_session_with_status(
+        context,
+        session_id,
+        &NodeFile {
+            session_id: next_session_id,
+            node_id: node_id.to_string(),
+            workflow_id: node.effective_workflow_id(),
+        },
+        "retrying",
+    )?;
+    Ok(())
+}
+
+fn compute_retry_after(retry_count: u32) -> String {
+    let backoff_secs = 2u64.pow(retry_count.min(6));
+    (Utc::now() + Duration::seconds(backoff_secs as i64)).to_rfc3339()
+}
+
 #[cfg(test)]
 #[path = "apply_node_outcome_failure_reason_tests.rs"]
 mod apply_node_outcome_failure_reason_tests;
+
+#[cfg(test)]
+#[path = "retry_tests.rs"]
+mod retry_tests;

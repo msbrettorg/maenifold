@@ -48,6 +48,8 @@ fn update_pipeline_node_status_persists_abandoned_failure_reason() {
             thinking_session_id: Some("session-1735689600000-node".to_string()),
             output: Some("stale output".to_string()),
             failure_reason: None,
+            retry_after: None,
+            retry_count: None,
         },
     )]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
@@ -91,6 +93,8 @@ fn update_pipeline_node_status_clears_failure_reason_when_completed() {
             thinking_session_id: None,
             output: None,
             failure_reason: Some("stale failure".to_string()),
+            retry_after: None,
+            retry_count: None,
         },
     )]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
@@ -130,6 +134,8 @@ fn restart_pipeline_node_clears_failure_reason() {
             thinking_session_id: Some("session-1735689600002-node".to_string()),
             output: Some("bad output".to_string()),
             failure_reason: Some("tool timeout".to_string()),
+            retry_after: None,
+            retry_count: None,
         },
     )]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
@@ -168,6 +174,8 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
                 thinking_session_id: Some("session-1735689600003-root".to_string()),
                 output: Some("root output".to_string()),
                 failure_reason: Some("stale root failure".to_string()),
+                retry_after: None,
+                retry_count: None,
             },
         ),
         (
@@ -179,6 +187,8 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
                 thinking_session_id: Some("session-1735689600003-child".to_string()),
                 output: Some("child output".to_string()),
                 failure_reason: Some("child failure".to_string()),
+                retry_after: None,
+                retry_count: None,
             },
         ),
     ]);

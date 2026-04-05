@@ -50,6 +50,8 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
             thinking_session_id: None,
             output: None,
             failure_reason: None,
+            retry_after: None,
+            retry_count: None,
         };
         node_states.insert(node.id().to_string(), state.clone());
         node_states_frontmatter.insert(node.id().to_string(), serde_yaml::to_value(&state)?);

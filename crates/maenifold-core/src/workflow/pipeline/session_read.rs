@@ -71,7 +71,7 @@ pub(super) fn derive_pipeline_node_states(
                 (&state.status, &status),
                 (
                     NodeStatus::Abandoned | NodeStatus::Stuck,
-                    NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active
+                    NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active | NodeStatus::Retrying
                 )
             );
             if !preserves_authoritative_terminal {
@@ -91,6 +91,7 @@ pub(super) fn workflow_status_to_node_status(status: &str) -> Option<NodeStatus>
         "completed" => Some(NodeStatus::Completed),
         "abandoned" | "cancelled" => Some(NodeStatus::Abandoned),
         "stuck" => Some(NodeStatus::Stuck),
+        "retrying" => Some(NodeStatus::Retrying),
         _ => None,
     }
 }

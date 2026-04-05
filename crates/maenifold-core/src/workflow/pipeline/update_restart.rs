@@ -69,6 +69,8 @@ pub(super) fn restart_pipeline_node(
         state.output = None;
         state.thinking_session_id = None;
         state.failure_reason = None;
+        state.retry_after = None;
+        state.retry_count = None;
     }
 
     let state = node_states.get(node_id).ok_or_else(|| {

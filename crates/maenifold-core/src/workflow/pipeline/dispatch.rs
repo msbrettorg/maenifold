@@ -1,6 +1,7 @@
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
+use chrono::{DateTime, Utc};
 use serde_json::json;
 use serde_yaml::Value as YamlValue;
 use std::collections::HashMap;
@@ -12,6 +13,7 @@ use super::dispatch_tool::build_tool_dispatch_response;
 use super::dispatch_workflow::{activate_workflow_node_session, build_workflow_dispatch_response};
 use super::session_io::{
     derive_pipeline_node_states, frontmatter_value, persist_pipeline_state, read_pipeline_session,
+    update_workflow_node_frontmatter,
 };
 use super::view::node_ids_with_status;
 use super::{
@@ -28,6 +30,7 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
     let mut node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    release_retrying_nodes(context, &mut node_states)?;
     let max_concurrency = frontmatter
         .get("maxConcurrency")
         .and_then(YamlValue::as_u64)
@@ -88,7 +91,7 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
         .filter(|state| {
             matches!(
                 state.status,
-                NodeStatus::Pending | NodeStatus::Active | NodeStatus::Ready
+                NodeStatus::Pending | NodeStatus::Active | NodeStatus::Ready | NodeStatus::Retrying
             )
         })
         .count();
@@ -103,6 +106,34 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
     })
+}
+
+fn release_retrying_nodes(
+    context: &ToolContext,
+    node_states: &mut HashMap<String, NodeState>,
+) -> Result<()> {
+    let now = Utc::now();
+    for state in node_states.values_mut() {
+        if state.status != NodeStatus::Retrying {
+            continue;
+        }
+        let Some(retry_after) = state.retry_after.as_deref() else {
+            state.status = NodeStatus::Pending;
+            state.retry_after = None;
+            update_workflow_node_frontmatter(context, &state.session_id, "pending", None)?;
+            continue;
+        };
+        let retry_at = DateTime::parse_from_rfc3339(retry_after)
+            .map(|timestamp| timestamp.with_timezone(&Utc))
+            .ok();
+        if retry_at.is_some_and(|retry_at| retry_at > now) {
+            continue;
+        }
+        state.status = NodeStatus::Pending;
+        state.retry_after = None;
+        update_workflow_node_frontmatter(context, &state.session_id, "pending", None)?;
+    }
+    Ok(())
 }
 
 fn dispatch_node(

@@ -196,6 +196,7 @@ pub(super) fn node_status_name(status: &NodeStatus) -> &'static str {
         NodeStatus::Completed => "completed",
         NodeStatus::Abandoned => "abandoned",
         NodeStatus::Stuck => "stuck",
+        NodeStatus::Retrying => "retrying",
     }
 }
 

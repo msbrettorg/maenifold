@@ -41,6 +41,8 @@ fn apply_node_outcome_forwards_abandoned_failure_reason() {
             thinking_session_id: None,
             output: None,
             failure_reason: None,
+            retry_after: None,
+            retry_count: None,
         },
     )]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);

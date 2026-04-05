@@ -182,6 +182,8 @@ mod tests {
                 thinking_session_id: None,
                 output: None,
                 failure_reason: None,
+                retry_after: None,
+                retry_count: None,
             },
         )]);
         (definition, node_states)

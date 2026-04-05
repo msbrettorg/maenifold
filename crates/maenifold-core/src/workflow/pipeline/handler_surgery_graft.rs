@@ -53,6 +53,8 @@ pub(super) fn graft_pipeline(
             thinking_session_id: None,
             output: None,
             failure_reason: None,
+            retry_after: None,
+            retry_count: None,
         };
         node_states.insert(node.id().to_string(), state);
         new_node_files.push(workflow_node_file(node, workflow_session_id));

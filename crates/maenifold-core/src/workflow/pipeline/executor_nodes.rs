@@ -436,6 +436,8 @@ mod tests {
                 thinking_session_id: None,
                 output: None,
                 failure_reason: None,
+                retry_after: None,
+                retry_count: None,
             },
         )]);
         seed_pipeline_session_with_node_sessions(&context, session_id, definition, node_states, 1);
@@ -524,6 +526,8 @@ mod tests {
                 thinking_session_id: None,
                 output: Some("not-json".to_string()),
                 failure_reason: None,
+                retry_after: None,
+                retry_count: None,
             },
         )]);
         let node = definition.nodes.first().expect("target node");

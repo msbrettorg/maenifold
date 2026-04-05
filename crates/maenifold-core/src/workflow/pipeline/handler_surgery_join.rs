@@ -128,7 +128,7 @@ fn reject_join_for_running_pipeline(
 ) -> Result<()> {
     if node_states
         .values()
-        .any(|state| matches!(state.status, NodeStatus::Ready | NodeStatus::Active))
+        .any(|state| matches!(state.status, NodeStatus::Ready | NodeStatus::Active | NodeStatus::Retrying))
     {
         return Err(MaenifoldError::Message(format!(
             "Pipeline join rejected: {pipeline_role} pipeline {pipeline_id} is running; pause, complete, or cancel it before join."
@@ -211,6 +211,7 @@ fn workflow_status_to_node_status(status: &str) -> Option<NodeStatus> {
         "completed" => Some(NodeStatus::Completed),
         "abandoned" | "cancelled" => Some(NodeStatus::Abandoned),
         "stuck" => Some(NodeStatus::Stuck),
+        "retrying" => Some(NodeStatus::Retrying),
         _ => None,
     }
 }

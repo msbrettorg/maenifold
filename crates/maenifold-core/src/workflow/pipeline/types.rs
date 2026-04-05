@@ -197,6 +197,10 @@ pub struct NodeState {
     pub output: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub failure_reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retry_after: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retry_count: Option<u32>,
 }
 
 /// A snapshot of a completed predecessor node's output, captured at fork time
@@ -220,4 +224,5 @@ pub enum NodeStatus {
     Completed,
     Abandoned,
     Stuck,
+    Retrying,
 }

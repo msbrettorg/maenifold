@@ -65,11 +65,16 @@ pub enum CommandRequest {
     Sync(SyncArgs),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliAction {
     Headless,
-    Mcp,
-    Http(u16),
+    Mcp {
+        root: Option<PathBuf>,
+    },
+    Http {
+        port: u16,
+        root: Option<PathBuf>,
+    },
 }
 
 pub struct GateCliApp;
@@ -89,9 +94,14 @@ impl GateCliApp {
             return CliAction::Headless;
         }
         if parsed.cli.http {
-            CliAction::Http(parsed.cli.port)
+            CliAction::Http {
+                port: parsed.cli.port,
+                root: parsed.cli.service_root.clone(),
+            }
         } else if parsed.cli.mcp {
-            CliAction::Mcp
+            CliAction::Mcp {
+                root: parsed.cli.service_root.clone(),
+            }
         } else {
             CliAction::Headless
         }
@@ -158,6 +168,9 @@ struct GateCli {
 
     #[arg(long, default_value_t = 8081)]
     port: u16,
+
+    #[arg(long = "root")]
+    service_root: Option<PathBuf>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -321,6 +334,11 @@ fn validate_cli(parsed: &ParsedCli) -> Result<(), GateError> {
             "--port may only be used with --http".to_string(),
         ));
     }
+    if parsed.cli.service_root.is_some() && !(parsed.cli.mcp || parsed.cli.http) {
+        return Err(GateError::Cli(
+            "top-level --root may only be used with --mcp or --http".to_string(),
+        ));
+    }
     if (parsed.cli.mcp || parsed.cli.http) && parsed.cli.command.is_some() {
         return Err(GateError::Cli(
             "service modes do not accept gate subcommands".to_string(),
@@ -356,7 +374,7 @@ mod tests {
     #[test]
     fn classify_mcp_mode_as_tray_enabled() {
         let args = vec!["--mcp".to_string()];
-        assert_eq!(GateCliApp::classify(&args), CliAction::Mcp);
+        assert_eq!(GateCliApp::classify(&args), CliAction::Mcp { root: None });
     }
 
     #[test]
@@ -366,7 +384,29 @@ mod tests {
             "--port".to_string(),
             "8181".to_string(),
         ];
-        assert_eq!(GateCliApp::classify(&args), CliAction::Http(8181));
+        assert_eq!(
+            GateCliApp::classify(&args),
+            CliAction::Http {
+                port: 8181,
+                root: None,
+            }
+        );
+    }
+
+    #[test]
+    fn classify_service_mode_with_root() {
+        let args = vec![
+            "--http".to_string(),
+            "--root".to_string(),
+            "/workspace/project".to_string(),
+        ];
+        assert_eq!(
+            GateCliApp::classify(&args),
+            CliAction::Http {
+                port: 8081,
+                root: Some("/workspace/project".into()),
+            }
+        );
     }
 
     #[test]
@@ -379,6 +419,29 @@ mod tests {
                 .to_string()
                 .contains("--port may only be used with --http")
         );
+    }
+
+    #[test]
+    fn reject_top_level_root_without_service_mode() {
+        let args = vec!["--root".to_string(), "/workspace/project".to_string()];
+        let parsed = parse_cli(&args).expect("CLI should parse");
+        let error = validate_cli(&parsed).expect_err("top-level root without service mode must fail");
+        assert!(
+            error
+                .to_string()
+                .contains("top-level --root may only be used with --mcp or --http")
+        );
+    }
+
+    #[test]
+    fn subcommand_root_remains_valid_without_service_mode() {
+        let args = vec![
+            "status".to_string(),
+            "--root".to_string(),
+            "/workspace/project".to_string(),
+        ];
+        let parsed = parse_cli(&args).expect("CLI should parse");
+        validate_cli(&parsed).expect("subcommand root should remain valid");
     }
 
     #[test]

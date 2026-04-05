@@ -88,6 +88,7 @@ fn watch_loop(
         let current_root = root.read().unwrap().clone();
         if watched_root != current_root {
             let previous_root = watched_root.clone();
+            let initial_root_assignment = previous_root.is_none() && current_root.is_some();
             if pending_root
                 .as_ref()
                 .zip(previous_root.as_ref())
@@ -101,6 +102,10 @@ fn watch_loop(
                 current_root.as_deref(),
             )?;
             watched_root = current_root;
+            if initial_root_assignment {
+                pending_root = watched_root.clone();
+                flush_pending_sync(&mut pending_root, &mut last_event_at);
+            }
         }
 
         match event_rx.recv_timeout(poll_window) {

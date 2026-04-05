@@ -161,7 +161,7 @@ pub(crate) async fn drive_think_session(
             let thinking_output = parse_with_retry(
                 &driver,
                 &response.text,
-                0,
+                2,
                 thought_number,
                 opts.total_thoughts,
             )

@@ -55,8 +55,8 @@ impl GateUiWindow {
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_title("Gate UI")
-                .with_inner_size([600.0, 820.0])
-                .with_min_inner_size([520.0, 640.0]),
+                .with_inner_size([900.0, 820.0])
+                .with_min_inner_size([700.0, 640.0]),
             ..Default::default()
         };
 
@@ -87,7 +87,7 @@ fn load_tasks(root: &PathBuf) -> Result<Vec<TaskEntry>, String> {
         filter: StatusFilter {
             state: None,
             ready_only: false,
-            include_done: true,
+            include_done: false,
         },
     })
     .map_err(|e| e.to_string())?;

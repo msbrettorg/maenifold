@@ -1,19 +1,23 @@
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
+use std::thread::JoinHandle;
+use std::time::Duration;
 
 use tokio_util::sync::CancellationToken;
 use tray_icon::menu::MenuEvent;
 use tray_icon::{Icon, TrayIconBuilder};
 use winit::application::ApplicationHandler;
 use winit::event::StartCause;
-use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy};
 
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
 use crate::file_watcher::GateFileWatcher;
 use crate::mcp::GateMcpServer;
-use crate::tray_menu::{build_tray_menu, open_ui, toggle_login_item};
+use crate::tray_menu::{build_tray_menu, open_ui, set_open_ui_enabled, toggle_login_item};
+
+const ROOT_STATE_POLL_MS: u64 = 100;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GateServerMode {
@@ -36,19 +40,28 @@ struct TrayApp {
     shutdown_token: CancellationToken,
     _file_watcher: Option<GateFileWatcher>,
     server_handle: Option<std::thread::JoinHandle<i32>>,
+    root_monitor: Option<JoinHandle<()>>,
     tray_icon: Option<tray_icon::TrayIcon>,
     quit_id: Option<tray_icon::menu::MenuId>,
     open_ui_id: Option<tray_icon::menu::MenuId>,
+    open_item: Option<tray_icon::menu::MenuItem>,
     login_id: Option<tray_icon::menu::MenuId>,
     login_item: Option<tray_icon::menu::MenuItem>,
     exit_code: i32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TrayUserEvent {
+    RootAvailabilityChanged(bool),
+}
+
 impl TrayApp {
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
-        let menu_state = build_tray_menu(self.mode);
+        let has_root = self.root.read().unwrap().is_some();
+        let menu_state = build_tray_menu(self.mode, has_root);
         self.quit_id = Some(menu_state.quit_id);
         self.open_ui_id = menu_state.open_ui_id;
+        self.open_item = menu_state.open_item;
         self.login_id = menu_state.login_id;
         self.login_item = menu_state.login_item;
 
@@ -98,13 +111,18 @@ impl TrayApp {
 
         if self.login_id.as_ref().is_some_and(|id| event.id == *id) {
             if let Some(port) = self.mode.port() {
-                toggle_login_item(port, self.login_item.as_ref());
+                let root = self.root.read().unwrap().clone();
+                toggle_login_item(port, root.as_deref(), self.login_item.as_ref());
             }
         }
     }
+
+    fn handle_root_availability_changed(&mut self, has_root: bool) {
+        set_open_ui_enabled(self.open_item.as_ref(), has_root);
+    }
 }
 
-impl ApplicationHandler for TrayApp {
+impl ApplicationHandler<TrayUserEvent> for TrayApp {
     fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
         if matches!(cause, StartCause::Init) {
             self.initialize_tray(event_loop);
@@ -119,12 +137,21 @@ impl ApplicationHandler for TrayApp {
             .as_ref()
             .is_some_and(|handle| handle.is_finished())
         {
+            self.shutdown_token.cancel();
             self.tray_icon.take();
             event_loop.exit();
         }
     }
 
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {}
+
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: TrayUserEvent) {
+        match event {
+            TrayUserEvent::RootAvailabilityChanged(has_root) => {
+                self.handle_root_availability_changed(has_root);
+            }
+        }
+    }
 
     fn window_event(
         &mut self,
@@ -135,15 +162,15 @@ impl ApplicationHandler for TrayApp {
     }
 }
 
-pub fn run_with_tray(mode: GateServerMode) -> i32 {
+pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32 {
     #[cfg(not(target_os = "macos"))]
     {
-        return run_headless(mode);
+        return run_headless(mode, initial_root);
     }
 
     #[cfg(target_os = "macos")]
     {
-        let root = Arc::new(RwLock::new(None));
+        let root = Arc::new(RwLock::new(initial_root));
         let shutdown_token = CancellationToken::new();
         let file_watcher = match GateFileWatcher::start(root.clone(), &shutdown_token) {
             Ok(watcher) => watcher,
@@ -181,18 +208,25 @@ pub fn run_with_tray(mode: GateServerMode) -> i32 {
             })
             .expect("failed to spawn gate MCP server thread");
 
-        let mut builder = EventLoop::builder();
+        let mut builder = EventLoop::<TrayUserEvent>::with_user_event();
         builder.with_activation_policy(ActivationPolicy::Accessory);
         let event_loop = builder.build().expect("build tray event loop");
+        let root_monitor = spawn_root_monitor(
+            root.clone(),
+            shutdown_token.clone(),
+            event_loop.create_proxy(),
+        );
         let mut app = TrayApp {
             mode,
             root,
             shutdown_token,
             _file_watcher: Some(file_watcher),
             server_handle: Some(server_handle),
+            root_monitor: Some(root_monitor),
             tray_icon: None,
             quit_id: None,
             open_ui_id: None,
+            open_item: None,
             login_id: None,
             login_item: None,
             exit_code: 0,
@@ -203,11 +237,15 @@ pub fn run_with_tray(mode: GateServerMode) -> i32 {
             app.shutdown_token.cancel();
             app.exit_code = 1;
         }
+        app.shutdown_token.cancel();
 
         let server_exit_code = match app.server_handle.take() {
             Some(handle) => handle.join().unwrap_or(1),
             None => 1,
         };
+        if let Some(handle) = app.root_monitor.take() {
+            let _ = handle.join();
+        }
 
         if app.exit_code != 0 {
             app.exit_code
@@ -218,8 +256,8 @@ pub fn run_with_tray(mode: GateServerMode) -> i32 {
 }
 
 #[cfg(not(target_os = "macos"))]
-fn run_headless(mode: GateServerMode) -> i32 {
-    let root = Arc::new(RwLock::new(None));
+fn run_headless(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32 {
+    let root = Arc::new(RwLock::new(initial_root));
     let shutdown_token = CancellationToken::new();
     let _file_watcher = match GateFileWatcher::start(root.clone(), &shutdown_token) {
         Ok(watcher) => watcher,
@@ -255,6 +293,28 @@ async fn run_mode(
         GateServerMode::Stdio => GateMcpServer::serve_stdio(root).await,
         GateServerMode::Http(port) => GateMcpServer::serve_http(port, root).await,
     }
+}
+
+#[cfg(target_os = "macos")]
+fn spawn_root_monitor(
+    root: Arc<RwLock<Option<PathBuf>>>,
+    shutdown_token: CancellationToken,
+    proxy: EventLoopProxy<TrayUserEvent>,
+) -> JoinHandle<()> {
+    std::thread::Builder::new()
+        .name("gate-tray-root-monitor".into())
+        .spawn(move || {
+            let mut last_has_root = root.read().unwrap().is_some();
+            while !shutdown_token.is_cancelled() {
+                std::thread::sleep(Duration::from_millis(ROOT_STATE_POLL_MS));
+                let has_root = root.read().unwrap().is_some();
+                if has_root != last_has_root {
+                    last_has_root = has_root;
+                    let _ = proxy.send_event(TrayUserEvent::RootAvailabilityChanged(has_root));
+                }
+            }
+        })
+        .expect("failed to spawn gate tray root monitor")
 }
 
 fn build_icon() -> Icon {

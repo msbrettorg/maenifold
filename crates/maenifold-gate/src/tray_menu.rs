@@ -10,13 +10,14 @@ pub(crate) struct TrayMenuState {
     pub menu: Menu,
     pub quit_id: MenuId,
     pub open_ui_id: Option<MenuId>,
+    pub open_item: Option<MenuItem>,
     pub login_id: Option<MenuId>,
     pub login_item: Option<MenuItem>,
 }
 
-pub(crate) fn build_tray_menu(mode: GateServerMode) -> TrayMenuState {
+pub(crate) fn build_tray_menu(mode: GateServerMode, has_root: bool) -> TrayMenuState {
     let menu = Menu::new();
-    let open_item = MenuItem::new("Open Gate UI", true, None);
+    let open_item = MenuItem::new("Open Gate UI", open_ui_enabled(has_root), None);
     let _ = menu.append(&open_item);
 
     let (open_ui_id, login_id, login_item) = match mode {
@@ -28,7 +29,7 @@ pub(crate) fn build_tray_menu(mode: GateServerMode) -> TrayMenuState {
             let _ = menu.append(&item);
             let _ = port;
             (
-                open_ui_enabled(mode).then(|| open_item.id().clone()),
+                Some(open_item.id().clone()),
                 Some(item.id().clone()),
                 Some(item),
             )
@@ -36,11 +37,7 @@ pub(crate) fn build_tray_menu(mode: GateServerMode) -> TrayMenuState {
         GateServerMode::Stdio => {
             let item = MenuItem::new("Open at Login (HTTP only)", false, None);
             let _ = menu.append(&item);
-            (
-                open_ui_enabled(mode).then(|| open_item.id().clone()),
-                None,
-                None,
-            )
+            (Some(open_item.id().clone()), None, None)
         }
     };
 
@@ -51,6 +48,7 @@ pub(crate) fn build_tray_menu(mode: GateServerMode) -> TrayMenuState {
         menu,
         quit_id: quit_item.id().clone(),
         open_ui_id,
+        open_item: Some(open_item),
         login_id,
         login_item,
     }
@@ -69,13 +67,19 @@ pub(crate) fn open_ui(root: Option<&Path>) {
     }
 }
 
-pub(crate) fn toggle_login_item(port: u16, login_item: Option<&MenuItem>) {
+pub(crate) fn set_open_ui_enabled(open_item: Option<&MenuItem>, enabled: bool) {
+    if let Some(item) = open_item {
+        item.set_enabled(enabled);
+    }
+}
+
+pub(crate) fn toggle_login_item(port: u16, root: Option<&Path>, login_item: Option<&MenuItem>) {
     #[cfg(target_os = "macos")]
     {
         let result = if is_login_enabled() {
             remove_launch_agent()
         } else {
-            write_launch_agent(port)
+            write_launch_agent(port, root)
         };
 
         if let Err(err) = result {
@@ -88,7 +92,7 @@ pub(crate) fn toggle_login_item(port: u16, login_item: Option<&MenuItem>) {
     }
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (port, login_item);
+        let _ = (port, root, login_item);
     }
 }
 
@@ -128,14 +132,14 @@ fn login_menu_text(enabled: bool) -> &'static str {
 }
 
 #[cfg(target_os = "macos")]
-fn write_launch_agent(port: u16) -> std::io::Result<()> {
+fn write_launch_agent(port: u16, root: Option<&Path>) -> std::io::Result<()> {
     let path = launch_agent_path();
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
 
     let exe_path = std::env::current_exe()?;
-    std::fs::write(&path, launch_agent_plist(&exe_path, port))
+    std::fs::write(&path, launch_agent_plist(&exe_path, port, root))
 }
 
 #[cfg(target_os = "macos")]
@@ -148,7 +152,8 @@ fn remove_launch_agent() -> std::io::Result<()> {
 }
 
 #[cfg(target_os = "macos")]
-fn launch_agent_plist(exe_path: &Path, port: u16) -> String {
+fn launch_agent_plist(exe_path: &Path, port: u16, root: Option<&Path>) -> String {
+    let root_args = launch_agent_root_args(root);
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -162,18 +167,31 @@ fn launch_agent_plist(exe_path: &Path, port: u16) -> String {
         <string>--http</string>
         <string>--port</string>
         <string>{port}</string>
+{root_args}
     </array>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
     <false/>
 </dict>
-</plist>
+        </plist>
 "#,
         service_label = SERVICE_LABEL,
         exe_path = xml_escape(&exe_path.display().to_string()),
-        port = port
+        port = port,
+        root_args = root_args,
     )
+}
+
+#[cfg(target_os = "macos")]
+fn launch_agent_root_args(root: Option<&Path>) -> String {
+    root.map(|root| {
+        format!(
+            "        <string>--root</string>\n        <string>{}</string>",
+            xml_escape(&root.display().to_string())
+        )
+    })
+    .unwrap_or_default()
 }
 
 #[cfg(target_os = "macos")]
@@ -194,7 +212,6 @@ mod tests {
     use super::launch_agent_plist;
     use super::open_ui_enabled;
     use super::ui_args;
-    use crate::tray::GateServerMode;
 
     #[test]
     fn ui_args_target_requested_root() {
@@ -203,21 +220,34 @@ mod tests {
     }
 
     #[test]
-    fn open_ui_is_enabled_for_stdio_and_http_modes() {
-        assert!(open_ui_enabled(GateServerMode::Stdio));
-        assert!(open_ui_enabled(GateServerMode::Http(8081)));
+    fn open_ui_is_enabled_only_when_root_exists() {
+        assert!(open_ui_enabled(true));
+        assert!(!open_ui_enabled(false));
     }
 
     #[cfg(target_os = "macos")]
     #[test]
     fn http_login_item_plist_contains_gate_service_label_and_port() {
-        let plist = launch_agent_plist(Path::new("/usr/local/bin/gate"), 8181);
+        let plist = launch_agent_plist(Path::new("/usr/local/bin/gate"), 8181, None);
         assert!(plist.contains("com.ma-collective.gate"));
         assert!(plist.contains("--http"));
         assert!(plist.contains("<string>8181</string>"));
+        assert!(!plist.contains("--root"));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn http_login_item_plist_preserves_root_when_present() {
+        let plist = launch_agent_plist(
+            Path::new("/usr/local/bin/gate"),
+            8181,
+            Some(Path::new("/workspace/project")),
+        );
+        assert!(plist.contains("<string>--root</string>"));
+        assert!(plist.contains("<string>/workspace/project</string>"));
     }
 }
 
-pub(crate) fn open_ui_enabled(mode: GateServerMode) -> bool {
-    matches!(mode, GateServerMode::Stdio | GateServerMode::Http(_))
+pub(crate) fn open_ui_enabled(has_root: bool) -> bool {
+    has_root
 }

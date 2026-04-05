@@ -113,5 +113,8 @@ fn orphan_cascade_restart_reload_errors_when_persisted_workflow_is_missing() {
     .expect("delete restarted workflow");
 
     let reload = derive_pipeline_node_states(&context, &raw_node_states);
-    assert!(reload.is_err(), "reload should fail when restarted workflow is missing");
+    assert!(
+        reload.is_err(),
+        "reload should fail when restarted workflow is missing"
+    );
 }

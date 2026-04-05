@@ -302,7 +302,11 @@ mod tests {
         let error = mapped_tool_args(&definition, &node_states, "target", None)
             .expect_err("invalid source output should error");
 
-        assert!(error.to_string().contains("could not parse node 'source' output as JSON"));
+        assert!(
+            error
+                .to_string()
+                .contains("could not parse node 'source' output as JSON")
+        );
     }
 
     #[test]

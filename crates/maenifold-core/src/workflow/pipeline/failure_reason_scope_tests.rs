@@ -184,13 +184,21 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
     ]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
 
-    handle_lifecycle_operation(&context, session_id, &json!({ "rewind": { "nodeIds": ["root"] } }))
-        .expect("rewind root")
-        .expect("rewind response");
+    handle_lifecycle_operation(
+        &context,
+        session_id,
+        &json!({ "rewind": { "nodeIds": ["root"] } }),
+    )
+    .expect("rewind root")
+    .expect("rewind response");
 
     let node_states = read_raw_node_states(&context, session_id);
     for node_id in ["root", "child"] {
-        assert_eq!(node_states[node_id].status, NodeStatus::Pending, "{node_id}");
+        assert_eq!(
+            node_states[node_id].status,
+            NodeStatus::Pending,
+            "{node_id}"
+        );
         assert_eq!(node_states[node_id].attempts, 0, "{node_id}");
         assert_eq!(node_states[node_id].output, None, "{node_id}");
         assert_eq!(node_states[node_id].thinking_session_id, None, "{node_id}");

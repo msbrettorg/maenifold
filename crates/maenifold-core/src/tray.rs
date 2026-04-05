@@ -356,7 +356,12 @@ mod tests {
     #[test]
     fn missing_menu_ids_do_not_open_urls() {
         assert_eq!(
-            resolve_open_url(&MenuId::new("endophasia"), None, None, ServerMode::Http(1234)),
+            resolve_open_url(
+                &MenuId::new("endophasia"),
+                None,
+                None,
+                ServerMode::Http(1234)
+            ),
             None
         );
     }

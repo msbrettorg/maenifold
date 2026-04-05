@@ -413,16 +413,14 @@ mod tests {
             session_id: Some("pipeline-target".to_string()),
         };
 
-        let error = build_node_execution_request(
-            &context,
-            &definition,
-            &node_states,
-            node,
-            &dispatch,
-            "",
-        )
-        .expect_err("invalid mapped tool args should abort dispatch");
+        let error =
+            build_node_execution_request(&context, &definition, &node_states, node, &dispatch, "")
+                .expect_err("invalid mapped tool args should abort dispatch");
 
-        assert!(error.to_string().contains("could not parse node 'source' output as JSON"));
+        assert!(
+            error
+                .to_string()
+                .contains("could not parse node 'source' output as JSON")
+        );
     }
 }

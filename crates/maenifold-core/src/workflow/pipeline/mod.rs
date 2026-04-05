@@ -10,6 +10,8 @@ mod executor_helpers;
 mod executor_mapping;
 mod executor_nodes;
 mod executor_run;
+#[cfg(test)]
+mod failure_reason_scope_tests;
 mod handler;
 mod handler_crud;
 mod handler_lifecycle;
@@ -19,14 +21,12 @@ mod handler_validation;
 mod lease;
 #[cfg(test)]
 mod orphan_cascade_tests;
-#[cfg(test)]
-mod failure_reason_scope_tests;
-#[cfg(test)]
-mod t1047_scope_tests;
 mod session_io;
 mod session_read;
 mod session_write;
 pub mod stream;
+#[cfg(test)]
+mod t1047_scope_tests;
 #[cfg(test)]
 mod test_context;
 #[cfg(test)]

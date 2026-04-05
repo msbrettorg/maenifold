@@ -60,11 +60,9 @@ fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult
                 }
             }
         },
-        Err(error) => {
-            NodeOutcome::Abandoned {
-                reason: log_node_execution_error(node_id, &error),
-            }
-        }
+        Err(error) => NodeOutcome::Abandoned {
+            reason: log_node_execution_error(node_id, &error),
+        },
     }
 }
 
@@ -77,11 +75,9 @@ fn classify_prompt_result(node_id: &str, result: Result<String>) -> NodeOutcome 
         Ok(_) => NodeOutcome::Abandoned {
             reason: "empty response".to_string(),
         },
-        Err(error) => {
-            NodeOutcome::Abandoned {
-                reason: log_node_execution_error(node_id, &error),
-            }
-        }
+        Err(error) => NodeOutcome::Abandoned {
+            reason: log_node_execution_error(node_id, &error),
+        },
     }
 }
 
@@ -98,11 +94,9 @@ fn classify_think_result(node_id: &str, result: Result<runner::ThinkResult>) -> 
             .unwrap_or(NodeOutcome::Abandoned {
                 reason: "missing conclusion".to_string(),
             }),
-        Err(error) => {
-            NodeOutcome::Abandoned {
-                reason: log_node_execution_error(node_id, &error),
-            }
-        }
+        Err(error) => NodeOutcome::Abandoned {
+            reason: log_node_execution_error(node_id, &error),
+        },
     }
 }
 

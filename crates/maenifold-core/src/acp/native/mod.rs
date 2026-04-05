@@ -14,7 +14,7 @@ pub use pool::{AgentPool, GLOBAL_AGENT_POOL};
 pub use types::*;
 
 use client::HeadlessClient;
-use process::{log_io_task_exit, reap_child, spawn_stderr_reader};
+use process::{configure_new_process_group, log_io_task_exit, reap_child, spawn_stderr_reader};
 use sacp::{Client, ConnectionTo, schema as sacps};
 use std::{
     collections::HashMap,
@@ -71,16 +71,17 @@ async fn run_agent(
     if trace_enabled() {
         eprintln!("[acp] spawning agent: {}", command);
     }
-    let mut child = match tokio::process::Command::new("sh")
+    let mut command_builder = tokio::process::Command::new("sh");
+    command_builder
         .args(["-c", &command])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .current_dir(&cwd)
         .envs(&env)
-        .kill_on_drop(true)
-        .spawn()
-    {
+        .kill_on_drop(true);
+    configure_new_process_group(&mut command_builder);
+    let mut child = match command_builder.spawn() {
         Ok(child) => child,
         Err(error) => {
             alive.store(false, Ordering::SeqCst);

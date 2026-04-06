@@ -309,6 +309,10 @@ async fn schedule_dispatched_node(
                 {
                     Ok(result) => result,
                     Err(_elapsed) => {
+                        // NOTE: T-107.8 — The dropped future may leave a stale session_id in
+                        // HeadlessClient.sessions. This is bounded (max concurrent nodes) and
+                        // cleaned when the pool evicts the agent. No wire-protocol impact since
+                        // close_session is local-only (ACP has no session/close method).
                         let reason = format!("node timed out after {}s", duration.as_secs());
                         eprintln!("[pipeline] node {node_id} {reason}");
                         (
@@ -440,7 +444,7 @@ fn schedule_node_retry(
     state.output = None;
     state.thinking_session_id = None;
     state.failure_reason = None;
-    state.retry_after = Some(compute_retry_after(retry_count));
+    state.retry_after = Some(compute_retry_after(state.attempts));
     state.retry_count = Some(retry_count);
 
     persist_pipeline_state(
@@ -464,8 +468,8 @@ fn schedule_node_retry(
     Ok(())
 }
 
-fn compute_retry_after(retry_count: u32) -> String {
-    let backoff_secs = 2u64.pow(retry_count.min(6));
+fn compute_retry_after(attempts: u32) -> String {
+    let backoff_secs = 2u64.pow(attempts.min(6));
     (Utc::now() + Duration::seconds(backoff_secs as i64)).to_rfc3339()
 }
 

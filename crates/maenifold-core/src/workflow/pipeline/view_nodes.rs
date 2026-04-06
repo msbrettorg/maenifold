@@ -46,6 +46,12 @@ pub(super) fn pipeline_nodes_json(
                 ambient_prompt,
             )?;
             if let Some(node_object) = node_json.as_object_mut() {
+                if let Some(retry_after) = &state.retry_after {
+                    node_object.insert("retryAfter".to_string(), json!(retry_after));
+                }
+                if let Some(retry_count) = state.retry_count {
+                    node_object.insert("retryCount".to_string(), json!(retry_count));
+                }
                 node_object.insert(
                     "assembled_prompt".to_string(),
                     assembled_prompt.map(Value::String).unwrap_or(Value::Null),

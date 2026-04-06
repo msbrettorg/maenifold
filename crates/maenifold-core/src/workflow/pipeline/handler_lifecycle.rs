@@ -13,6 +13,10 @@ mod rewind;
 
 static RUNNING_PIPELINE_TOKENS: Lazy<DashMap<String, CancellationToken>> = Lazy::new(DashMap::new);
 
+pub(super) fn is_pipeline_running(session_id: &str) -> bool {
+    RUNNING_PIPELINE_TOKENS.contains_key(session_id)
+}
+
 pub(super) fn handle_lifecycle_operation(
     context: &ToolContext,
     session_id: &str,

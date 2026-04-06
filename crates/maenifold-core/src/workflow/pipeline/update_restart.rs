@@ -18,6 +18,11 @@ pub(super) fn restart_pipeline_node(
     node_id: &str,
 ) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    if super::handler_lifecycle::is_pipeline_running(session_id) {
+        return Err(MaenifoldError::Message(format!(
+            "Cannot restart node '{node_id}' while pipeline is running. Use 'rewind' instead, or pause the pipeline first."
+        )));
+    }
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
     let mut node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;

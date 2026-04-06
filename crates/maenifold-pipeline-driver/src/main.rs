@@ -68,6 +68,7 @@ async fn run(config: Config) -> Result<()> {
 
     // Write holder info so operators can identify the owner process.
     let holder = format!("{}-{}", hostname_string(), std::process::id());
+    lock_guard.set_len(0)?;
     lock_guard.seek(SeekFrom::Start(0))?;
     lock_guard.write_all(holder.as_bytes())?;
     lock_guard.flush()?;
@@ -93,22 +94,8 @@ async fn run(config: Config) -> Result<()> {
     let signal_cancel = cancel.clone();
     let signal_session_id = session_id.clone();
     let signal_task = tokio::spawn(async move {
-        match tokio::signal::ctrl_c().await {
-            Ok(()) => {
-                tracing::warn!(
-                    session_id = %signal_session_id,
-                    "[pipeline-driver] received ctrl-c; cancelling pipeline"
-                );
-                signal_cancel.cancel();
-            }
-            Err(error) => {
-                tracing::error!(
-                    session_id = %signal_session_id,
-                    error = %error,
-                    "[pipeline-driver] failed to listen for ctrl-c"
-                );
-            }
-        }
+        wait_for_shutdown_signal(&signal_session_id).await;
+        signal_cancel.cancel();
     });
 
     let execution_result = execute_pipeline(&context, &session_id, &prompt, cancel).await;
@@ -151,4 +138,26 @@ fn hostname_string() -> String {
     }
     let nul = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
     String::from_utf8_lossy(&buf[..nul]).into_owned()
+}
+
+async fn wait_for_shutdown_signal(session_id: &str) {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{SignalKind, signal};
+        let mut sigterm = signal(SignalKind::terminate()).expect("failed to register SIGTERM");
+        let mut sigint = signal(SignalKind::interrupt()).expect("failed to register SIGINT");
+        tokio::select! {
+            _ = sigterm.recv() => {
+                tracing::warn!(session_id = %session_id, "[pipeline-driver] received SIGTERM; cancelling");
+            }
+            _ = sigint.recv() => {
+                tracing::warn!(session_id = %session_id, "[pipeline-driver] received SIGINT; cancelling");
+            }
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        tokio::signal::ctrl_c().await.ok();
+        tracing::warn!(session_id = %session_id, "[pipeline-driver] received ctrl-c; cancelling");
+    }
 }

@@ -74,8 +74,6 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
           Create pipeline: definition\n  \
           List pipelines: list=true\n  \
           Run pipeline: sessionId + run=true\n  \
-          Pause pipeline: sessionId + pause=true\n  \
-          Resume pipeline: sessionId + resume=true\n  \
           Cancel pipeline: sessionId + cancel=true\n  \
           Rewind pipeline: sessionId + rewind\n  \
           Delete pipeline: sessionId + delete=true\n  \

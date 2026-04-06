@@ -23,12 +23,6 @@ pub struct PipelineParams {
     /// Ambient prompt for autonomous pipeline execution
     #[serde(default)]
     pub prompt: Option<String>,
-    /// Pause a running pipeline after active nodes drain
-    #[serde(default)]
-    pub pause: bool,
-    /// Resume a paused pipeline
-    #[serde(default)]
-    pub resume: bool,
     /// Cancel a running pipeline and stop future execution
     #[serde(default)]
     pub cancel: bool,

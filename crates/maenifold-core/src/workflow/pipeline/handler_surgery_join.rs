@@ -133,7 +133,7 @@ fn reject_join_for_running_pipeline(
         )
     }) {
         return Err(MaenifoldError::Message(format!(
-            "Pipeline join rejected: {pipeline_role} pipeline {pipeline_id} is running; pause, complete, or cancel it before join."
+            "Pipeline join rejected: {pipeline_role} pipeline {pipeline_id} is running; complete or cancel it before join."
         )));
     }
 

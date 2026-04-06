@@ -45,7 +45,7 @@ fn rewind_pipeline(
     // if the lock is held, refuse the rewind to prevent concurrent state mutation.
     if lease::session_lock_is_held(session_id, &context.config) {
         return Err(MaenifoldError::Message(format!(
-            "Pipeline {session_id} is running; pause or cancel before rewinding"
+            "Pipeline {session_id} is running; cancel it before rewinding"
         )));
     }
 

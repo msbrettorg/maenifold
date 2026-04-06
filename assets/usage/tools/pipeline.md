@@ -50,8 +50,6 @@ Supported node shapes:
 ## Lifecycle operations
 
 - `sessionId + run=true (+ prompt)`: Start autonomous execution for an existing pipeline session. When provided, `prompt` is passed through as ambient context for agent-dispatched nodes.
-- `sessionId + pause=true`: Pause a running pipeline after active work drains.
-- `sessionId + resume=true`: Resume a paused pipeline.
 - `sessionId + cancel=true`: Cancel a running pipeline and prevent further work from starting.
 - `sessionId + view=true`: Inspect the current pipeline state.
 - `sessionId + dispatch=true`: Claim ready nodes as active and return them.
@@ -116,7 +114,7 @@ Supported node shapes:
 ## Delete
 
 - `sessionId + delete=true`: Permanently delete the pipeline session and all associated workflow sessions.
-- Running pipelines with active nodes cannot be deleted until they are paused or cancelled.
+- Running pipelines with active nodes cannot be deleted until they are cancelled.
 
 ## Errors
 

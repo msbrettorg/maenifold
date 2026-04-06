@@ -170,16 +170,6 @@ impl CliApp {
             }
         };
 
-        if blocks_headless_pipeline_run(tool_name, &payload) {
-            let message = "Error invoking Pipeline: Pipeline run=true requires HTTP/server mode because the headless CLI process exits immediately. Use the HTTP server path instead.";
-            let output = if output_format == OutputFormat::Json {
-                failure("PIPELINE_RUN_REQUIRES_HTTP_MODE", message)
-            } else {
-                message.to_string()
-            };
-            return Err((output, 1));
-        }
-
         match ToolRegistry::global().try_invoke(tool_name, &payload, output_format) {
             Ok(output) => {
                 if output_format == OutputFormat::Json {
@@ -228,48 +218,6 @@ fn normalize_json_output(output: String) -> (String, i32) {
         }
         Ok(value) => (success(value), 0),
         Err(_) => (success(output), 0),
-    }
-}
-
-fn blocks_headless_pipeline_run(tool_name: &str, payload: &Value) -> bool {
-    if !tool_name.eq_ignore_ascii_case("Pipeline") {
-        return false;
-    }
-
-    payload
-        .as_object()
-        .filter(|object| object.get("resume").and_then(Value::as_bool) == Some(true))
-        .and_then(|object| object.get("sessionId"))
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .is_some_and(|session_id| !session_id.is_empty())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::blocks_headless_pipeline_run;
-    use serde_json::json;
-
-    #[test]
-    fn blocks_headless_pipeline_run_allows_run_requests() {
-        assert!(!blocks_headless_pipeline_run(
-            "Pipeline",
-            &json!({
-                "sessionId": "pipeline-1700000000000-cli",
-                "run": true
-            }),
-        ));
-    }
-
-    #[test]
-    fn blocks_headless_pipeline_run_still_blocks_resume_requests() {
-        assert!(blocks_headless_pipeline_run(
-            "Pipeline",
-            &json!({
-                "sessionId": "pipeline-1700000000000-cli",
-                "resume": true
-            }),
-        ));
     }
 }
 

@@ -164,7 +164,7 @@ pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result
     let node_states: HashMap<String, NodeState> = frontmatter_value(&frontmatter, "nodeStates")?;
     if has_remaining_work(&node_states) {
         return Err(MaenifoldError::InvalidArgument(format!(
-            "Pipeline {session_id} has remaining work; pause or cancel it before deleting"
+            "Pipeline {session_id} has remaining work; cancel it before deleting"
         )));
     }
 

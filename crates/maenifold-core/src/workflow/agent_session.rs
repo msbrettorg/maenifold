@@ -18,7 +18,7 @@ pub(crate) async fn open_agent_session(
 ) -> Result<AgentSession> {
     let config = AgentsConfig::load(&opts.cwd);
     let config_entry = config.agents.get(agent_name).ok_or_else(|| {
-        MaenifoldError::Message(format!(
+        MaenifoldError::AgentSetup(format!(
             "agent '{}' not configured in agents.json",
             agent_name
         ))

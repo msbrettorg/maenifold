@@ -83,13 +83,14 @@ fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null());
 
-    // Detach the driver so it survives if the parent process exits.
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
         unsafe {
             cmd.pre_exec(|| {
-                libc::setsid();
+                if libc::setsid() == -1 {
+                    return Err(std::io::Error::last_os_error());
+                }
                 Ok(())
             });
         }
@@ -132,6 +133,12 @@ fn cancel_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
             "Cannot parse PID from lock file content: {holder:?}"
         ))
     })?;
+
+    if pid <= 0 {
+        return Err(MaenifoldError::Message(format!(
+            "Invalid PID {pid} in lock file (must be positive)"
+        )));
+    }
 
     #[cfg(unix)]
     {

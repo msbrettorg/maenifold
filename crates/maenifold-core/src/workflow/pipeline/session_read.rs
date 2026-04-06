@@ -71,7 +71,10 @@ pub(super) fn derive_pipeline_node_states(
                 (&state.status, &status),
                 (
                     NodeStatus::Abandoned | NodeStatus::Stuck,
-                    NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active | NodeStatus::Retrying
+                    NodeStatus::Pending
+                        | NodeStatus::Ready
+                        | NodeStatus::Active
+                        | NodeStatus::Retrying
                 )
             );
             if !preserves_authoritative_terminal {

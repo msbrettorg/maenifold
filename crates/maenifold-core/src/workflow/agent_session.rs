@@ -44,7 +44,7 @@ pub(crate) async fn open_agent_session(
     let remote_id = handle
         .new_session(opts)
         .await
-        .map_err(agent_error)?
+        .map_err(session_setup_error)?
         .session_id;
     Ok(AgentSession { handle, remote_id })
 }
@@ -63,7 +63,7 @@ impl AgentSession {
             .handle
             .prompt_with_context(&self.remote_id, prompt, context)
             .await
-            .map_err(agent_error)?;
+            .map_err(prompt_execution_error)?;
         Ok(response)
     }
 
@@ -79,6 +79,10 @@ impl AgentSession {
     }
 }
 
-fn agent_error(error: AgentError) -> MaenifoldError {
+fn session_setup_error(error: AgentError) -> MaenifoldError {
+    MaenifoldError::AgentSetup(error.to_string())
+}
+
+fn prompt_execution_error(error: AgentError) -> MaenifoldError {
     MaenifoldError::Message(error.to_string())
 }

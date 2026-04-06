@@ -32,6 +32,24 @@ fn classify_prompt_error_produces_abandoned_with_phase() {
 }
 
 #[test]
+fn classify_agent_setup_error_is_pre_execution() {
+    let outcome = classify_node_result(
+        "prompt-node",
+        NodeTaskResult::Prompt(Err(MaenifoldError::AgentSetup(
+            "session setup failed".to_string(),
+        ))),
+    );
+
+    match outcome {
+        NodeOutcome::Abandoned { reason, phase } => {
+            assert_eq!(reason, "session setup failed");
+            assert_eq!(phase, FailurePhase::PreExecution);
+        }
+        NodeOutcome::Completed { .. } => panic!("agent setup errors should abandon the node"),
+    }
+}
+
+#[test]
 fn classify_workflow_cancelled_is_post_prompt() {
     let outcome = classify_node_result(
         "workflow-node",

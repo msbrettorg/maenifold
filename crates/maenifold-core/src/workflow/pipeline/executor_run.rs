@@ -19,14 +19,12 @@ pub(super) enum NodeTaskResult {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)] // T-107.3 will use PreExecution + is_retryable in the retry state machine
 pub(super) enum FailurePhase {
     PreExecution,
     PostPrompt,
 }
 
 impl FailurePhase {
-    #[allow(dead_code)] // T-107.3 will call is_retryable for retry eligibility
     pub(super) fn is_retryable(&self) -> bool {
         matches!(self, FailurePhase::PreExecution)
     }
@@ -39,7 +37,6 @@ pub(super) enum NodeOutcome {
     },
     Abandoned {
         reason: String,
-        #[allow(dead_code)] // T-107.3 will read phase for retry eligibility decisions
         phase: FailurePhase,
     },
 }
@@ -78,6 +75,10 @@ fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult
                 }
             }
         },
+        Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
+            reason: log_node_execution_error_str(node_id, &message),
+            phase: FailurePhase::PreExecution,
+        },
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
             phase: FailurePhase::PostPrompt,
@@ -94,6 +95,10 @@ fn classify_prompt_result(node_id: &str, result: Result<String>) -> NodeOutcome 
         Ok(_) => NodeOutcome::Abandoned {
             reason: "empty response".to_string(),
             phase: FailurePhase::PostPrompt,
+        },
+        Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
+            reason: log_node_execution_error_str(node_id, &message),
+            phase: FailurePhase::PreExecution,
         },
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
@@ -116,6 +121,10 @@ fn classify_think_result(node_id: &str, result: Result<runner::ThinkResult>) -> 
                 reason: "missing conclusion".to_string(),
                 phase: FailurePhase::PostPrompt,
             }),
+        Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
+            reason: log_node_execution_error_str(node_id, &message),
+            phase: FailurePhase::PreExecution,
+        },
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
             phase: FailurePhase::PostPrompt,
@@ -136,6 +145,11 @@ fn log_node_execution_error(node_id: &str, error: &dyn StdError) -> String {
     }
     eprintln!("[pipeline] node {node_id} failed: {rendered}");
     rendered
+}
+
+fn log_node_execution_error_str(node_id: &str, message: &str) -> String {
+    eprintln!("[pipeline] node {node_id} failed: {message}");
+    message.to_string()
 }
 
 #[allow(clippy::too_many_arguments)]

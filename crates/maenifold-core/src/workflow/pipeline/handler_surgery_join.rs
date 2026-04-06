@@ -126,10 +126,12 @@ fn reject_join_for_running_pipeline(
     pipeline_role: &str,
     node_states: &HashMap<String, NodeState>,
 ) -> Result<()> {
-    if node_states
-        .values()
-        .any(|state| matches!(state.status, NodeStatus::Ready | NodeStatus::Active | NodeStatus::Retrying))
-    {
+    if node_states.values().any(|state| {
+        matches!(
+            state.status,
+            NodeStatus::Ready | NodeStatus::Active | NodeStatus::Retrying
+        )
+    }) {
         return Err(MaenifoldError::Message(format!(
             "Pipeline join rejected: {pipeline_role} pipeline {pipeline_id} is running; pause, complete, or cancel it before join."
         )));

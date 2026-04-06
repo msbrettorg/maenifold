@@ -14,9 +14,9 @@ use super::executor_run::{run_prompt_node, run_tool_node};
 use super::types::AgentConfig;
 use super::{NodeState, PipelineDefinition, PipelineNode};
 
-pub(super) use super::executor_run::{NodeOutcome, NodeTaskResult, classify_node_result};
 #[cfg(test)]
 pub(super) use super::executor_run::FailurePhase;
+pub(super) use super::executor_run::{NodeOutcome, NodeTaskResult, classify_node_result};
 
 #[derive(Debug)]
 pub(super) enum NodeExecutionRequest {
@@ -281,8 +281,8 @@ fn missing_agent_configuration(node_id: &str, node_type: &str) -> crate::error::
 mod tests {
     use std::{collections::HashMap, fs, time::Duration};
 
-    use serial_test::serial;
     use serde_json::json;
+    use serial_test::serial;
     use tokio_util::sync::CancellationToken;
 
     use crate::error::MaenifoldError;
@@ -294,15 +294,16 @@ mod tests {
     use super::super::test_support::{
         pipeline_test_context, seed_pipeline_session_with_node_sessions,
     };
-    use super::super::{NodeState, PipelineDefinition, PipelineNode};
     use super::super::types::NodeStatus;
+    use super::super::{NodeState, PipelineDefinition, PipelineNode};
     use super::*;
 
     fn read_raw_node_states(
         context: &crate::tools::ToolContext,
         session_id: &str,
     ) -> HashMap<String, NodeState> {
-        let (_, frontmatter, _) = read_pipeline_session(context, session_id).expect("read pipeline");
+        let (_, frontmatter, _) =
+            read_pipeline_session(context, session_id).expect("read pipeline");
         frontmatter_value(&frontmatter, "nodeStates").expect("node states")
     }
 

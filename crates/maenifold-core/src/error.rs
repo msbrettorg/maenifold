@@ -32,6 +32,8 @@ pub enum MaenifoldError {
     NonUtf8Path(PathBuf),
     #[error("{0}")]
     Message(String),
+    #[error("Agent setup failed: {0}")]
+    AgentSetup(String),
 }
 
 pub type Result<T> = std::result::Result<T, MaenifoldError>;

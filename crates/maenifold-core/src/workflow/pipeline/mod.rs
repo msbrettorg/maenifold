@@ -1,3 +1,4 @@
+pub(super) mod circuit_breaker;
 mod dispatch;
 mod dispatch_non_workflow;
 mod dispatch_prompt;

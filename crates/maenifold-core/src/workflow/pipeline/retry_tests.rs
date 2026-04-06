@@ -5,12 +5,12 @@ use serial_test::serial;
 use crate::markdown::write_markdown;
 use crate::util::json::OutputFormat;
 
-use super::*;
 use super::super::engine::{compute_pipeline_status, compute_ready_set, has_remaining_work};
 use super::super::executor_nodes::{FailurePhase, NodeOutcome};
 use super::super::session_read::{frontmatter_value, read_pipeline_session};
 use super::super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
 use super::super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
+use super::*;
 
 fn workflow_node(id: &str) -> PipelineNode {
     PipelineNode::Workflow {
@@ -315,7 +315,10 @@ fn retrying_node_state_has_retry_metadata() {
     assert_eq!(state.output, None);
     assert_eq!(state.thinking_session_id, None);
     assert_eq!(state.failure_reason, None);
-    let retry_after = state.retry_after.as_deref().expect("retry_after should be set");
+    let retry_after = state
+        .retry_after
+        .as_deref()
+        .expect("retry_after should be set");
     chrono::DateTime::parse_from_rfc3339(retry_after).expect("retry_after should be ISO 8601");
     assert!(state.retry_count.expect("retry_count should be set") >= 1);
 }

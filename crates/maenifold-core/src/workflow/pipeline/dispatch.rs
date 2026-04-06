@@ -113,7 +113,7 @@ fn release_retrying_nodes(
     node_states: &mut HashMap<String, NodeState>,
 ) -> Result<()> {
     let now = Utc::now();
-    for state in node_states.values_mut() {
+    for (node_id, state) in node_states.iter_mut() {
         if state.status != NodeStatus::Retrying {
             continue;
         }
@@ -125,6 +125,15 @@ fn release_retrying_nodes(
         };
         let retry_at = DateTime::parse_from_rfc3339(retry_after)
             .map(|timestamp| timestamp.with_timezone(&Utc))
+            .inspect_err(|error| {
+                tracing::warn!(
+                    node_id,
+                    session_id = %state.session_id,
+                    retry_after,
+                    error = %error,
+                    "[pipeline] invalid retry_after timestamp, releasing node immediately"
+                );
+            })
             .ok();
         if retry_at.is_some_and(|retry_at| retry_at > now) {
             continue;

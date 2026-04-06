@@ -30,6 +30,10 @@ use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
 pub(super) use super::executor_mapping::{assemble_node_prompt, predecessor_context_content};
 
+#[cfg(test)]
+#[path = "circuit_breaker_tests.rs"]
+mod circuit_breaker_tests;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionResult {
     pub completed: usize,
@@ -98,7 +102,20 @@ async fn execute_pipeline_inner(
         }
 
         if dispatched.is_empty() && join_set.is_empty() {
-            break;
+            let node_states_check = load_pipeline_node_states(&json_context, session_id)?;
+            match earliest_retry_after(&node_states_check) {
+                Some(sleep_duration) => {
+                    eprintln!(
+                        "[pipeline] all nodes idle, sleeping {sleep_duration:?} until next retry"
+                    );
+                    tokio::select! {
+                        biased;
+                        _ = cancel.cancelled() => break,
+                        _ = tokio::time::sleep(sleep_duration) => continue,
+                    }
+                }
+                None => break,
+            }
         }
 
         let Some((node_id, result)) = join_next_result(&cancel, &mut join_set).await? else {
@@ -178,6 +195,25 @@ fn build_node_index(definition: &PipelineDefinition) -> HashMap<String, Pipeline
         .cloned()
         .map(|node| (node.id().to_string(), node))
         .collect()
+}
+
+fn earliest_retry_after(node_states: &HashMap<String, NodeState>) -> Option<std::time::Duration> {
+    let now = Utc::now();
+    node_states
+        .values()
+        .filter(|state| matches!(state.status, NodeStatus::Retrying))
+        .filter_map(|state| state.retry_after.as_deref())
+        .filter_map(|retry_after| chrono::DateTime::parse_from_rfc3339(retry_after).ok())
+        .map(|retry_at| retry_at.with_timezone(&Utc))
+        .filter_map(|retry_at| {
+            let diff = retry_at.signed_duration_since(now);
+            if diff > Duration::zero() {
+                diff.to_std().ok()
+            } else {
+                Some(std::time::Duration::ZERO)
+            }
+        })
+        .min()
 }
 
 fn extract_timeout(

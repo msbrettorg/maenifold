@@ -161,35 +161,42 @@ pub(super) fn list_pipelines(context: &ToolContext) -> Result<String> {
 }
 
 pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
-    let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
-    let node_states =
-        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    lease::with_exclusive_session_lock(
+        session_id,
+        &context.config,
+        || {
+            MaenifoldError::InvalidArgument(format!(
+                "Pipeline {session_id} is running; cancel it before deleting"
+            ))
+        },
+        || {
+            let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
+            let node_states = derive_pipeline_node_states(
+                context,
+                &frontmatter_value(&frontmatter, "nodeStates")?,
+            )?;
 
-    if lease::session_lock_is_held(session_id, &context.config) {
-        return Err(MaenifoldError::InvalidArgument(format!(
-            "Pipeline {session_id} is running; cancel it before deleting"
-        )));
-    }
+            let has_active_work = node_states
+                .values()
+                .any(|state| matches!(state.status, NodeStatus::Active | NodeStatus::Retrying));
+            if has_active_work {
+                return Err(MaenifoldError::InvalidArgument(format!(
+                    "Pipeline {session_id} has active work; cancel it before deleting"
+                )));
+            }
 
-    let has_active_work = node_states
-        .values()
-        .any(|state| matches!(state.status, NodeStatus::Active | NodeStatus::Retrying));
-    if has_active_work {
-        return Err(MaenifoldError::InvalidArgument(format!(
-            "Pipeline {session_id} has active work; cancel it before deleting"
-        )));
-    }
-
-    let deleted_files = delete_pipeline_session_files(context, session_id, &node_states)?;
-    let result = json!({
-        "deletedSessionId": session_id,
-        "cleanedUpFiles": deleted_files.cleaned_up_files,
-        "skippedFiles": deleted_files.skipped_files,
-    });
-    Ok(match context.output_format {
-        OutputFormat::Json => success(result),
-        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
-    })
+            let deleted_files = delete_pipeline_session_files(context, session_id, &node_states)?;
+            let result = json!({
+                "deletedSessionId": session_id,
+                "cleanedUpFiles": deleted_files.cleaned_up_files,
+                "skippedFiles": deleted_files.skipped_files,
+            });
+            Ok(match context.output_format {
+                OutputFormat::Json => success(result),
+                OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+            })
+        },
+    )
 }
 
 pub(super) fn view_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
@@ -242,4 +249,91 @@ fn parse_pipeline_id_prefix(payload: &Value) -> Result<&str> {
     }
 
     Ok(prefix)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::markdown::delete_file;
+    use crate::sessions::workflow_session_uri;
+    use crate::util::json::OutputFormat;
+    use serial_test::serial;
+    use std::collections::HashMap;
+    use std::io::Write as _;
+
+    use super::super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
+    use super::super::PipelineNode;
+
+    const TS: i64 = 1_735_689_600_000;
+
+    fn workflow_node(id: &str) -> PipelineNode {
+        PipelineNode::Workflow {
+            id: id.to_string(),
+            workflow_id: "test-workflow-a".to_string(),
+            acp_client: Some(format!("agent-{id}")),
+            prompt: None,
+            timeout: None,
+        }
+    }
+
+    fn states(specs: &[(&str, NodeStatus, u32)]) -> HashMap<String, NodeState> {
+        specs
+            .iter()
+            .map(|(node_id, status, attempts)| {
+                (
+                    (*node_id).to_string(),
+                    NodeState {
+                        session_id: format!("workflow-{TS}-{node_id}"),
+                        status: status.clone(),
+                        attempts: *attempts,
+                        thinking_session_id: None,
+                        output: None,
+                        failure_reason: None,
+                        retry_after: None,
+                        retry_count: None,
+                    },
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    #[serial]
+    fn delete_pipeline_refuses_running_pipeline_before_reading_pipeline_state() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let session_id = "pipeline-1735689600000-delete-running-lock-first";
+        let definition = PipelineDefinition {
+            nodes: vec![workflow_node("node")],
+            edges: vec![],
+        };
+        let node_states = states(&[("node", NodeStatus::Completed, 1)]);
+        seed_pipeline_session_with_workflows(
+            &context,
+            session_id,
+            definition,
+            node_states.clone(),
+            1,
+        );
+
+        let lock_path = lease::pipeline_lock_path(session_id, &context.config);
+        std::fs::create_dir_all(lock_path.parent().expect("lock parent")).expect("create lock dir");
+        let file = std::fs::File::create(&lock_path).expect("create lock file");
+        let mut rw = fd_lock::RwLock::new(file);
+        let mut guard = rw.try_write().expect("acquire pipeline lock");
+        guard.write_all(b"test-holder").expect("write lock holder");
+
+        delete_file(
+            &workflow_session_uri(&node_states["node"].session_id),
+            &context.config,
+        )
+        .expect("delete workflow session after lock");
+
+        let error = delete_pipeline(&context, session_id).expect_err("delete must refuse running pipeline");
+        assert!(
+            error
+                .to_string()
+                .contains("is running; cancel it before deleting"),
+            "expected running-pipeline refusal, got: {error}"
+        );
+    }
 }

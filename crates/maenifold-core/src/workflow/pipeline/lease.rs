@@ -6,7 +6,9 @@
 //
 // Lock release on process death is handled by the OS — no TTL or heartbeat needed.
 use crate::config::Config;
-use std::fs::OpenOptions;
+use crate::error::{MaenifoldError, Result};
+use std::fs::{OpenOptions, create_dir_all};
+use std::io::ErrorKind;
 use std::path::PathBuf;
 
 /// Returns the filesystem path for the advisory lock file of a pipeline session.
@@ -55,6 +57,46 @@ pub(super) fn session_lock_is_held(session_id: &str, config: &Config) -> bool {
         }
         Err(_) => false,
     }
+}
+
+/// Executes `action` while holding the session's exclusive advisory lock.
+///
+/// The lock file is created on demand so callers can serialize reads and deletes even before a
+/// driver has ever started. If another process already holds the lock, the provided
+/// `blocked_error` is returned without running `action`.
+pub(super) fn with_exclusive_session_lock<T, F, E>(
+    session_id: &str,
+    config: &Config,
+    blocked_error: E,
+    action: F,
+) -> Result<T>
+where
+    F: FnOnce() -> Result<T>,
+    E: FnOnce() -> MaenifoldError,
+{
+    let lock_path = pipeline_lock_path(session_id, config);
+    if let Some(parent) = lock_path.parent() {
+        create_dir_all(parent)?;
+    }
+
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&lock_path)?;
+    let mut rw = fd_lock::RwLock::new(file);
+    let _guard = match rw.try_write() {
+        Ok(guard) => guard,
+        Err(error) if error.kind() == ErrorKind::WouldBlock => return Err(blocked_error()),
+        Err(error) => {
+            return Err(MaenifoldError::Message(format!(
+                "Failed to acquire pipeline lock for {session_id}: {error}"
+            )));
+        }
+    };
+
+    action()
 }
 
 #[cfg(test)]

@@ -1,6 +1,9 @@
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{Frontmatter, delete_file, file_exists, read_markdown, write_markdown};
-use crate::sessions::{date_parts_from_session_id, pipeline_session_uri, workflow_session_uri};
+use crate::markdown::{Frontmatter, delete_file, file_exists, path_to_uri, read_markdown, write_markdown};
+use crate::sessions::{
+    date_parts_from_session_id, extract_session_timestamp_millis, pipeline_session_uri,
+    workflow_session_uri,
+};
 use crate::thinking::sequential_session_uri;
 use crate::tools::ToolContext;
 use crate::workflow::initial_workflow_frontmatter;
@@ -149,6 +152,60 @@ pub(super) fn delete_pipeline_session_files(
                         "Failed to delete thinking session {}: {}",
                         thinking_session_id, err
                     )));
+                }
+            }
+        }
+    }
+
+    if let Some(timestamp_millis) = extract_session_timestamp_millis(pipeline_session_id) {
+        let workflow_prefix = format!("workflow-{timestamp_millis}-");
+        let (year, month, day) = date_parts_from_session_id(pipeline_session_id);
+        let workflow_dir = context
+            .config
+            .memory_path
+            .join("thinking")
+            .join("workflow")
+            .join(format!("{year:04}"))
+            .join(format!("{month:02}"))
+            .join(format!("{day:02}"));
+
+        if workflow_dir.exists() {
+            for entry in fs::read_dir(&workflow_dir)? {
+                let entry = entry?;
+                let path = entry.path();
+                if !entry.file_type()?.is_file() || path.extension().and_then(|ext| ext.to_str()) != Some("md") {
+                    continue;
+                }
+
+                let session_id = path
+                    .file_stem()
+                    .and_then(|stem| stem.to_str())
+                    .unwrap_or_default();
+                if !session_id.starts_with(&workflow_prefix)
+                    || workflow_session_ids.contains(session_id)
+                {
+                    continue;
+                }
+
+                let workflow_uri = path_to_uri(&path, &context.config.memory_path)?;
+                let (frontmatter, _, _) = read_markdown(&workflow_uri, &context.config)?;
+                let belongs_to_pipeline = frontmatter
+                    .as_ref()
+                    .and_then(|frontmatter| frontmatter.get("pipelineId"))
+                    .and_then(YamlValue::as_str)
+                    == Some(pipeline_session_id);
+                if !belongs_to_pipeline {
+                    continue;
+                }
+
+                match delete_file(&workflow_uri, &context.config) {
+                    Ok(()) => cleaned_up_files += 1,
+                    Err(err) => {
+                        return Err(MaenifoldError::Message(format!(
+                            "Failed to delete orphaned workflow session {}: {}",
+                            session_id, err
+                        )));
+                    }
                 }
             }
         }

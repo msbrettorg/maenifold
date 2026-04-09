@@ -11,13 +11,13 @@ use std::collections::{BTreeMap, HashMap};
 
 use super::handler_validation::{validate_workflow_node_definitions, workflow_node_file};
 use super::session_io::{
-    delete_pipeline_session_files, frontmatter_value, generate_pipeline_node_session_id,
-    read_pipeline_session, write_pipeline_session, write_workflow_node_session,
+    delete_pipeline_session_files, derive_pipeline_node_states, frontmatter_value,
+    generate_pipeline_node_session_id, read_pipeline_session, write_pipeline_session,
+    write_workflow_node_session,
 };
 use super::view::view_pipeline_session;
 use super::{
-    NodeState, NodeStatus, PipelineDefinition, compute_ready_set, has_remaining_work,
-    validate_pipeline,
+    lease, NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline,
 };
 
 pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
@@ -161,10 +161,21 @@ pub(super) fn list_pipelines(context: &ToolContext) -> Result<String> {
 
 pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
-    let node_states: HashMap<String, NodeState> = frontmatter_value(&frontmatter, "nodeStates")?;
-    if has_remaining_work(&node_states) {
+    let node_states =
+        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+
+    if lease::session_lock_is_held(session_id, &context.config) {
         return Err(MaenifoldError::InvalidArgument(format!(
-            "Pipeline {session_id} has remaining work; cancel it before deleting"
+            "Pipeline {session_id} is running; cancel it before deleting"
+        )));
+    }
+
+    let has_active_work = node_states
+        .values()
+        .any(|state| matches!(state.status, NodeStatus::Active | NodeStatus::Retrying));
+    if has_active_work {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Pipeline {session_id} has active work; cancel it before deleting"
         )));
     }
 

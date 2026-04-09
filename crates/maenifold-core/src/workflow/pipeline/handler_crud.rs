@@ -235,6 +235,11 @@ fn parse_pipeline_id_prefix(payload: &Value) -> Result<&str> {
                 .to_string(),
         ));
     }
+    if prefix.len() > 64 {
+        return Err(MaenifoldError::InvalidArgument(
+            "name must be 64 characters or fewer".to_string(),
+        ));
+    }
 
     Ok(prefix)
 }

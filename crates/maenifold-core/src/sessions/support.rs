@@ -35,20 +35,26 @@ pub(crate) fn date_parts_from_session_id(session_id: &str) -> (i32, u32, u32) {
 }
 
 pub(crate) fn extract_session_timestamp_millis(session_id: &str) -> Option<i64> {
-    // T-14.10: RTM FR-16 - accept legacy suffix-free session IDs while still rejecting empty segments.
-    let mut parts = session_id.splitn(3, '-');
-    let prefix = parts.next()?;
-    let timestamp = parts.next()?;
-    let suffix = parts.next();
-    if prefix.trim().is_empty() || timestamp.trim().is_empty() {
+    // T-14.10: RTM FR-16 - accept suffix-free session IDs and scan from the right
+    // so hyphenated pipeline/workflow prefixes do not break timestamp extraction.
+    if session_id
+        .split('-')
+        .any(|segment| segment.trim().is_empty())
+    {
         return None;
     }
-    if matches!(suffix, Some(value) if value.trim().is_empty()) {
-        return None;
+
+    for segment in session_id.rsplit('-') {
+        if segment.len() == 13
+            && segment.bytes().all(|byte| byte.is_ascii_digit())
+            && let Ok(millis) = segment.parse::<i64>()
+        {
+            if Utc.timestamp_millis_opt(millis).single().is_some() {
+                return Some(millis);
+            }
+        }
     }
-    let millis = timestamp.parse::<i64>().ok()?;
-    Utc.timestamp_millis_opt(millis).single()?;
-    Some(millis)
+    None
 }
 
 pub(crate) fn now_iso8601_roundtrip() -> String {

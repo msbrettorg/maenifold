@@ -9,7 +9,7 @@ use super::session_io::{
 };
 use super::update_context::inject_predecessor_context;
 use super::view::build_pipeline_view_result;
-use super::{NodeStatus, PipelineDefinition};
+use super::{NodeStatus, PipelineDefinition, compute_blocked_cascade};
 
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::too_many_arguments)]
@@ -79,19 +79,37 @@ pub(super) fn update_pipeline_node_status(
             }
             inject_predecessor_context(context, &definition, &node_states, node_id)?;
         }
-        "abandoned" => {
+        "abandoned" | "stuck" => {
+            let transitioned_status = if status == "stuck" {
+                NodeStatus::Stuck
+            } else {
+                NodeStatus::Abandoned
+            };
             let state = node_states.get_mut(node_id).ok_or_else(|| {
                 MaenifoldError::Message(format!(
                     "ERROR: Pipeline session missing node state for '{node_id}'"
                 ))
             })?;
-            state.status = NodeStatus::Abandoned;
+            state.status = transitioned_status;
             state.thinking_session_id = None;
             state.output = None;
             state.failure_reason = failure_reason
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
                 .map(str::to_string);
+
+            let cascaded_node_ids = compute_blocked_cascade(&definition, &node_states);
+            for cascaded_node_id in &cascaded_node_ids {
+                let cascaded_state = node_states.get_mut(cascaded_node_id).ok_or_else(|| {
+                    MaenifoldError::Message(format!(
+                        "ERROR: Pipeline session missing node state for '{cascaded_node_id}'"
+                    ))
+                })?;
+                cascaded_state.status = NodeStatus::Abandoned;
+                cascaded_state.thinking_session_id = None;
+                cascaded_state.output = None;
+                cascaded_state.failure_reason = Some("predecessor abandoned".to_string());
+            }
 
             persist_pipeline_state(
                 &mut frontmatter,
@@ -100,7 +118,24 @@ pub(super) fn update_pipeline_node_status(
                 &pipeline_content,
                 context,
             )?;
-            update_workflow_node_frontmatter(context, &workflow_session_id, "abandoned", None)?;
+            update_workflow_node_frontmatter(context, &workflow_session_id, status, None)?;
+            for cascaded_node_id in &cascaded_node_ids {
+                let cascaded_session_id = node_states
+                    .get(cascaded_node_id)
+                    .ok_or_else(|| {
+                        MaenifoldError::Message(format!(
+                            "ERROR: Pipeline session missing node state for '{cascaded_node_id}'"
+                        ))
+                    })?
+                    .session_id
+                    .clone();
+                update_workflow_node_frontmatter(
+                    context,
+                    &cascaded_session_id,
+                    "abandoned",
+                    None,
+                )?;
+            }
         }
         _ => {
             return Err(MaenifoldError::InvalidArgument(format!(
@@ -109,7 +144,7 @@ pub(super) fn update_pipeline_node_status(
         }
     }
 
-    if status != "abandoned" {
+    if !matches!(status, "abandoned" | "stuck") {
         persist_pipeline_state(
             &mut frontmatter,
             &node_states,

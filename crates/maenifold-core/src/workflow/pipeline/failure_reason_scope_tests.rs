@@ -30,6 +30,19 @@ fn read_raw_node_states(
     frontmatter_value(&frontmatter, "nodeStates").expect("node states")
 }
 
+fn node_state(node_id: &str, status: NodeStatus) -> NodeState {
+    NodeState {
+        session_id: format!("workflow-1735689609999-{node_id}"),
+        status,
+        attempts: 1,
+        thinking_session_id: None,
+        output: None,
+        failure_reason: None,
+        retry_after: None,
+        retry_count: None,
+    }
+}
+
 #[test]
 #[serial]
 fn update_pipeline_node_status_persists_abandoned_failure_reason() {
@@ -214,4 +227,173 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
         assert_eq!(node_states[node_id].thinking_session_id, None, "{node_id}");
         assert_eq!(node_states[node_id].failure_reason, None, "{node_id}");
     }
+}
+
+#[test]
+#[serial]
+fn update_pipeline_node_status_cascades_abandon_only_over_success_edges_to_fixpoint() {
+    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let session_id = "pipeline-1735689600100-cascade-abandon-fixpoint";
+    let definition = PipelineDefinition {
+        nodes: vec![
+            workflow_node("root"),
+            workflow_node("pending-child"),
+            workflow_node("ready-child"),
+            workflow_node("retrying-grandchild"),
+            workflow_node("always-child"),
+            workflow_node("other-completed"),
+            workflow_node("mixed-child"),
+        ],
+        edges: vec![
+            PipelineEdge {
+                source: "root".to_string(),
+                target: "pending-child".to_string(),
+                edge_type: EdgeType::Success,
+                mapping: None,
+            },
+            PipelineEdge {
+                source: "root".to_string(),
+                target: "ready-child".to_string(),
+                edge_type: EdgeType::Success,
+                mapping: None,
+            },
+            PipelineEdge {
+                source: "ready-child".to_string(),
+                target: "retrying-grandchild".to_string(),
+                edge_type: EdgeType::Success,
+                mapping: None,
+            },
+            PipelineEdge {
+                source: "root".to_string(),
+                target: "always-child".to_string(),
+                edge_type: EdgeType::Always,
+                mapping: None,
+            },
+            PipelineEdge {
+                source: "root".to_string(),
+                target: "mixed-child".to_string(),
+                edge_type: EdgeType::Success,
+                mapping: None,
+            },
+            PipelineEdge {
+                source: "other-completed".to_string(),
+                target: "mixed-child".to_string(),
+                edge_type: EdgeType::Success,
+                mapping: None,
+            },
+        ],
+    };
+    let node_states = HashMap::from([
+        ("root".to_string(), node_state("root", NodeStatus::Active)),
+        (
+            "pending-child".to_string(),
+            node_state("pending-child", NodeStatus::Pending),
+        ),
+        (
+            "ready-child".to_string(),
+            node_state("ready-child", NodeStatus::Ready),
+        ),
+        (
+            "retrying-grandchild".to_string(),
+            NodeState {
+                status: NodeStatus::Retrying,
+                retry_after: Some("2025-01-01T00:00:00Z".to_string()),
+                retry_count: Some(1),
+                ..node_state("retrying-grandchild", NodeStatus::Retrying)
+            },
+        ),
+        (
+            "always-child".to_string(),
+            node_state("always-child", NodeStatus::Pending),
+        ),
+        (
+            "other-completed".to_string(),
+            node_state("other-completed", NodeStatus::Completed),
+        ),
+        (
+            "mixed-child".to_string(),
+            node_state("mixed-child", NodeStatus::Pending),
+        ),
+    ]);
+    seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
+
+    update_pipeline_node_status(
+        &context,
+        session_id,
+        "root",
+        "abandoned",
+        None,
+        None,
+        Some("root failed"),
+    )
+    .expect("abandon root");
+
+    let node_states = read_raw_node_states(&context, session_id);
+    assert_eq!(node_states["root"].status, NodeStatus::Abandoned);
+    assert_eq!(
+        node_states["root"].failure_reason.as_deref(),
+        Some("root failed")
+    );
+
+    for node_id in ["pending-child", "ready-child", "retrying-grandchild"] {
+        assert_eq!(
+            node_states[node_id].status,
+            NodeStatus::Abandoned,
+            "{node_id}"
+        );
+        assert_eq!(
+            node_states[node_id].failure_reason.as_deref(),
+            Some("predecessor abandoned"),
+            "{node_id}"
+        );
+    }
+
+    assert_eq!(node_states["always-child"].status, NodeStatus::Pending);
+    assert_eq!(node_states["always-child"].failure_reason, None);
+    assert_eq!(node_states["mixed-child"].status, NodeStatus::Pending);
+    assert_eq!(node_states["mixed-child"].failure_reason, None);
+}
+
+#[test]
+#[serial]
+fn update_pipeline_node_status_supports_stuck_cascade_over_success_edges() {
+    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let session_id = "pipeline-1735689600200-cascade-stuck";
+    let definition = PipelineDefinition {
+        nodes: vec![workflow_node("root"), workflow_node("child")],
+        edges: vec![PipelineEdge {
+            source: "root".to_string(),
+            target: "child".to_string(),
+            edge_type: EdgeType::Success,
+            mapping: None,
+        }],
+    };
+    let node_states = HashMap::from([
+        ("root".to_string(), node_state("root-stuck", NodeStatus::Active)),
+        ("child".to_string(), node_state("child-stuck", NodeStatus::Pending)),
+    ]);
+    seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
+
+    update_pipeline_node_status(
+        &context,
+        session_id,
+        "root",
+        "stuck",
+        None,
+        None,
+        Some("lease expired"),
+    )
+    .expect("mark root stuck");
+
+    let node_states = read_raw_node_states(&context, session_id);
+    assert_eq!(node_states["root"].status, NodeStatus::Stuck);
+    assert_eq!(
+        node_states["root"].failure_reason.as_deref(),
+        Some("lease expired")
+    );
+    assert_eq!(node_states["child"].status, NodeStatus::Abandoned);
+    assert_eq!(
+        node_states["child"].failure_reason.as_deref(),
+        Some("predecessor abandoned")
+    );
 }

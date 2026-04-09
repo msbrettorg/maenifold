@@ -49,7 +49,9 @@ mod view_mermaid;
 mod view_nodes;
 mod workflow_id;
 
-pub use engine::{compute_pipeline_status, compute_ready_set, has_remaining_work};
+pub use engine::{
+    compute_blocked_cascade, compute_pipeline_status, compute_ready_set, has_remaining_work,
+};
 pub use executor::{ExecutionResult, execute_pipeline};
 pub use executor_helpers::{abandon_active_nodes, finalize_failed_pipeline_execution};
 pub use handler::pipeline;

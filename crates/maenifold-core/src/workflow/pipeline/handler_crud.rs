@@ -34,8 +34,9 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
     validate_workflow_node_definitions(context, &definition.nodes)?;
 
     let max_concurrency = parse_max_concurrency(payload)?;
+    let prefix = parse_pipeline_id_prefix(payload)?;
     let timestamp_millis = Utc::now().timestamp_millis();
-    let pipeline_id = format!("pipeline-{timestamp_millis}");
+    let pipeline_id = format!("{prefix}-{timestamp_millis}");
     let mut node_states = HashMap::with_capacity(definition.nodes.len());
     let mut node_states_frontmatter = BTreeMap::new();
     let mut node_files = Vec::with_capacity(definition.nodes.len());
@@ -205,4 +206,35 @@ fn parse_max_concurrency(payload: &Value) -> Result<u64> {
             "maxConcurrency must be a positive integer".to_string(),
         )),
     }
+}
+
+fn parse_pipeline_id_prefix(payload: &Value) -> Result<&str> {
+    let prefix = match payload.get("name") {
+        None | Some(Value::Null) => return Ok("pipeline"),
+        Some(Value::String(value)) => {
+            let trimmed = value.trim();
+            if trimmed.is_empty() {
+                return Ok("pipeline");
+            }
+            trimmed
+        }
+        Some(_) => {
+            return Err(MaenifoldError::InvalidArgument(
+                "name must be a string".to_string(),
+            ));
+        }
+    };
+
+    let mut chars = prefix.chars();
+    let Some(first) = chars.next() else {
+        return Ok("pipeline");
+    };
+    if !first.is_ascii_alphabetic() || !chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '-') {
+        return Err(MaenifoldError::InvalidArgument(
+            "name must start with a letter and contain only alphanumeric characters or hyphens"
+                .to_string(),
+        ));
+    }
+
+    Ok(prefix)
 }

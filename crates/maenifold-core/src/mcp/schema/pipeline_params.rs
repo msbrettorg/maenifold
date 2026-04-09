@@ -10,6 +10,9 @@ pub struct PipelineParams {
     /// Existing pipeline session identifier
     #[serde(default)]
     pub session_id: Option<String>,
+    /// Optional name prefix for the pipeline session ID. Format: {name}-{epoch}. Defaults to 'pipeline'. Must start with a letter, alphanumeric and hyphens only.
+    #[serde(default)]
+    pub name: Option<String>,
     /// Pipeline definition with nodes[] and edges[]
     #[serde(default)]
     pub definition: Option<PipelineDefinitionSchema>,

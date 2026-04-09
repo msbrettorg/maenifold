@@ -4,6 +4,7 @@ Creates and manages pipeline sessions composed of DAG nodes.
 
 ## Parameters
 
+- `name` (string, optional): Name prefix for the pipeline session ID. Format: `{name}-{epoch}`. Defaults to `pipeline`. Must start with a letter; alphanumeric and hyphens only. Use to categorize runs (e.g. `sleep`, `benchmark`, `research`).
 - `sessionId` (string, optional): Existing pipeline session identifier for lifecycle, topology, or inspection operations.
 - `definition` (object, optional): Pipeline definition to create. Must include `nodes` and `edges`.
 - `maxConcurrency` (integer, optional, default: `8`): Maximum number of nodes the scheduler may activate concurrently.
@@ -13,6 +14,8 @@ Creates and manages pipeline sessions composed of DAG nodes.
 ## Create
 
 Provide `definition` to validate the directed graph, create a persistent pipeline session, and pre-create one workflow session for every node.
+
+Use `name` to set a prefix for the session ID: `{name}-{epoch}`. This enables natural run versioning — e.g. `ls sleep-*` to list all sleep cycle runs.
 
 ### Definition shape
 
@@ -124,4 +127,5 @@ Supported node shapes:
 - Cycles in the pipeline graph
 - Missing workflow definitions
 - Invalid `maxConcurrency` values
+- Invalid `name` (must start with a letter, alphanumeric and hyphens only)
 - Invalid lifecycle/topology parameter combinations

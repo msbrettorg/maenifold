@@ -1,0 +1,117 @@
+import { computed, ref, watch } from 'vue';
+import type { PipelineNodeDraftByType } from '../lib/pipeline-node-factory';
+import type { PipelineNodeType } from '../lib/pipeline-types';
+import {
+  buildPipelineNodeDraft,
+  canSubmitPipelineNodeForm,
+  DEFAULT_PIPELINE_NODE_THOUGHTS,
+  usePipelineNodeFormFields,
+} from './pipeline-node-form-helpers';
+
+interface SubmitNode {
+  (type: 'workflow', fields: PipelineNodeDraftByType['workflow']): void;
+  (type: 'prompt', fields: PipelineNodeDraftByType['prompt']): void;
+  (type: 'sequentialThinking', fields: PipelineNodeDraftByType['sequentialThinking']): void;
+  (type: 'tool', fields: PipelineNodeDraftByType['tool']): void;
+}
+
+interface UseAddNodeFormOptions {
+  submitNode: SubmitNode;
+}
+
+export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
+  const workflowListId = 'pipeline-composer-workflows';
+  const panelOpen = ref(true);
+  const nodeType = ref<PipelineNodeType>('workflow');
+  const {
+    workflowId,
+    workflowAgent,
+    workflowPrompt,
+    promptAgent,
+    promptTemplate,
+    thinkingTopic,
+    thinkingAgent,
+    thinkingTotalThoughts,
+    thinkingAnalysisType,
+    toolName,
+    toolArgs,
+    toolArgsValid,
+    getFormValues,
+  } = usePipelineNodeFormFields();
+  const canAdd = computed(() => canSubmitPipelineNodeForm(nodeType.value, getFormValues()));
+
+  watch(toolName, () => {
+    toolArgs.value = {};
+    toolArgsValid.value = true;
+  });
+
+
+  function resetCurrentDraft(): void {
+    switch (nodeType.value) {
+      case 'prompt':
+        promptAgent.value = '';
+        promptTemplate.value = '';
+        break;
+      case 'sequentialThinking':
+        thinkingTopic.value = '';
+        thinkingAgent.value = '';
+        thinkingTotalThoughts.value = DEFAULT_PIPELINE_NODE_THOUGHTS;
+        thinkingAnalysisType.value = '';
+        break;
+      case 'tool':
+        toolName.value = '';
+        toolArgs.value = {};
+        toolArgsValid.value = true;
+        break;
+      default:
+        workflowId.value = '';
+        workflowAgent.value = '';
+        workflowPrompt.value = '';
+        break;
+    }
+  }
+
+  function handleSubmit(): void {
+    if (!canAdd.value) return;
+
+    switch (nodeType.value) {
+      case 'prompt':
+        submitNode('prompt', buildPipelineNodeDraft('prompt', getFormValues()));
+        break;
+      case 'sequentialThinking':
+        submitNode(
+          'sequentialThinking',
+          buildPipelineNodeDraft('sequentialThinking', getFormValues())
+        );
+        break;
+      case 'tool':
+        submitNode('tool', buildPipelineNodeDraft('tool', getFormValues()));
+        break;
+      default:
+        submitNode('workflow', buildPipelineNodeDraft('workflow', getFormValues()));
+        break;
+    }
+
+    resetCurrentDraft();
+  }
+
+  return {
+    workflowListId,
+    panelOpen,
+    nodeType,
+    workflowId,
+    workflowAgent,
+    workflowPrompt,
+    promptAgent,
+    promptTemplate,
+    thinkingTopic,
+    thinkingAgent,
+    thinkingTotalThoughts,
+    thinkingAnalysisType,
+    toolName,
+    toolArgs,
+    toolArgsValid,
+    canAdd,
+    handleSubmit,
+  };
+}

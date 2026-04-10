@@ -1,0 +1,93 @@
+Clone found (typescript):
+ - [1m[32msrc/lib/__tests__/acp-client-core.test.ts[39m[22m [64:17 - 69:56] (5 lines, 66 tokens)
+   [1m[32msrc/lib/__tests__/acp-client-core.test.ts[39m[22m [47:2 - 52:57]
+
+Clone found (typescript):
+ - [1m[32msrc/lib/__tests__/acp-client-core.test.ts[39m[22m [75:14 - 80:53] (5 lines, 66 tokens)
+   [1m[32msrc/lib/__tests__/acp-client-core.test.ts[39m[22m [47:2 - 52:57]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/__tests__/mcpStateless.test.ts[39m[22m [135:2 - 146:10] (11 lines, 141 tokens)
+   [1m[32msrc/composables/__tests__/mcpStateless.test.ts[39m[22m [116:2 - 127:13]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/__tests__/mcpStateless.test.ts[39m[22m [168:7 - 177:7] (9 lines, 85 tokens)
+   [1m[32msrc/composables/__tests__/mcpStateless.test.ts[39m[22m [103:2 - 111:13]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/__tests__/mcpIntegration.test.ts[39m[22m [50:1 - 61:9] (11 lines, 127 tokens)
+   [1m[32msrc/composables/__tests__/memoryApiIntegration.test.ts[39m[22m [45:1 - 56:6]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/__tests__/composableIntegration.test.ts[39m[22m [29:2 - 80:6] (51 lines, 440 tokens)
+   [1m[32msrc/composables/__tests__/memoryApiIntegration.test.ts[39m[22m [28:2 - 79:9]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/__tests__/composableIntegration.test.ts[39m[22m [186:32 - 199:61] (13 lines, 93 tokens)
+   [1m[32msrc/composables/__tests__/memoryApiIntegration.test.ts[39m[22m [83:35 - 96:56]
+
+Clone found (typescript):
+ - [1m[32msrc/stores/session.ts[39m[22m [126:8 - 134:3] (8 lines, 120 tokens)
+   [1m[32msrc/stores/session.ts[39m[22m [98:7 - 107:4]
+
+Clone found (typescript):
+ - [1m[32msrc/stores/session.ts[39m[22m [141:8 - 154:15] (13 lines, 121 tokens)
+   [1m[32msrc/stores/session.ts[39m[22m [110:7 - 123:14]
+
+Clone found (typescript):
+ - [1m[32msrc/stores/session.ts[39m[22m [157:8 - 166:6] (9 lines, 118 tokens)
+   [1m[32msrc/stores/session.ts[39m[22m [98:7 - 107:4]
+
+Clone found (typescript):
+ - [1m[32msrc/stores/session.ts[39m[22m [177:10 - 190:17] (13 lines, 121 tokens)
+   [1m[32msrc/stores/session.ts[39m[22m [110:7 - 123:14]
+
+Clone found (typescript):
+ - [1m[32msrc/lib/pipeline-composer-flow.ts[39m[22m [99:5 - 107:2] (8 lines, 87 tokens)
+   [1m[32msrc/stores/pipeline-view-transforms.ts[39m[22m [63:21 - 69:5]
+
+Clone found (typescript):
+ - [1m[32msrc/lib/pipeline-composer-flow.ts[39m[22m [167:7 - 174:2] (7 lines, 84 tokens)
+   [1m[32msrc/stores/pipeline-view-transforms.ts[39m[22m [63:21 - 68:2]
+
+Clone found (typescript):
+ - [1m[32msrc/lib/acp-permissions.ts[39m[22m [42:10 - 51:12] (9 lines, 80 tokens)
+   [1m[32msrc/lib/acp-permissions.ts[39m[22m [28:9 - 37:11]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/useSessionLifecycle.ts[39m[22m [10:2 - 31:19] (21 lines, 206 tokens)
+   [1m[32msrc/composables/useSessionStartup.ts[39m[22m [12:2 - 33:14]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/useMessageHandler.ts[39m[22m [203:3 - 212:7] (9 lines, 121 tokens)
+   [1m[32msrc/stores/session.ts[39m[22m [98:7 - 166:13]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/useAddNodeForm.ts[39m[22m [21:11 - 33:8] (12 lines, 157 tokens)
+   [1m[32msrc/composables/useGraftNodes.ts[39m[22m [16:3 - 28:12]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/useAddNodeForm.ts[39m[22m [35:3 - 50:7] (15 lines, 194 tokens)
+   [1m[32msrc/composables/useGraftNodes.ts[39m[22m [47:3 - 62:10]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/useAddNodeForm.ts[39m[22m [50:2 - 63:18] (13 lines, 143 tokens)
+   [1m[32msrc/composables/useGraftNodes.ts[39m[22m [62:2 - 75:10]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/useAddNodeForm.ts[39m[22m [99:11 - 108:6] (9 lines, 109 tokens)
+   [1m[32msrc/composables/useGraftNodes.ts[39m[22m [88:11 - 93:5]
+
+Clone found (typescript):
+ - [1m[32msrc/composables/session-utils.ts[39m[22m [178:5 - 198:24] (20 lines, 180 tokens)
+   [1m[32msrc/composables/session-utils.ts[39m[22m [120:5 - 140:3]
+
+[90m┌────────────[39m[90m┬────────────────[39m[90m┬─────────────[39m[90m┬──────────────[39m[90m┬──────────────[39m[90m┬──────────────────[39m[90m┬───────────────────┐[39m
+[90m│[39m[31m Format     [39m[90m│[39m[31m Files analyzed [39m[90m│[39m[31m Total lines [39m[90m│[39m[31m Total tokens [39m[90m│[39m[31m Clones found [39m[90m│[39m[31m Duplicated lines [39m[90m│[39m[31m Duplicated tokens [39m[90m│[39m
+[90m├────────────[39m[90m┼────────────────[39m[90m┼─────────────[39m[90m┼──────────────[39m[90m┼──────────────[39m[90m┼──────────────────[39m[90m┼───────────────────┤[39m
+[90m│[39m typescript [90m│[39m 77             [90m│[39m 10555       [90m│[39m 105866       [90m│[39m 21           [90m│[39m 271 (2.57%)      [90m│[39m 2859 (2.7%)       [90m│[39m
+[90m├────────────[39m[90m┼────────────────[39m[90m┼─────────────[39m[90m┼──────────────[39m[90m┼──────────────[39m[90m┼──────────────────[39m[90m┼───────────────────┤[39m
+[90m│[39m [1mTotal:[22m     [90m│[39m 77             [90m│[39m 10555       [90m│[39m 105866       [90m│[39m 21           [90m│[39m 271 (2.57%)      [90m│[39m 2859 (2.7%)       [90m│[39m
+[90m└────────────[39m[90m┴────────────────[39m[90m┴─────────────[39m[90m┴──────────────[39m[90m┴──────────────[39m[90m┴──────────────────[39m[90m┴───────────────────┘[39m
+[90mFound 21 clones.[39m
+[3m[90mDetection time:[39m[23m: 489.15ms

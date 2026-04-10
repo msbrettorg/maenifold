@@ -1,0 +1,228 @@
+/* Scoped to App.vue via <style scoped> @import. Do not add :root or body rules. */
+.traffic-panel {
+  flex-shrink: 0;
+  border-top: 2px solid var(--border-color);
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-error);
+  color: var(--text-error);
+  border-bottom: 1px solid var(--bg-error);
+}
+
+.error-icon {
+  flex-shrink: 0;
+}
+
+.error-text {
+  flex: 1;
+}
+
+.error-close {
+  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-error);
+  font-size: var(--text-xl);
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+  border-radius: 4px;
+}
+
+.error-close:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--text-error) 12%, var(--bg-error));
+}
+
+.welcome-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.welcome-screen h2 {
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  font-family: var(--font-headline);
+  letter-spacing: 0.04em;
+}
+
+.welcome-screen .manifesto-quote {
+  margin-top: 0.5rem;
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.welcome-screen .hint {
+  margin-top: 1rem;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.workflow-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workflow-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.workflow-close-btn {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-xl);
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.workflow-close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.workflow-panel-body {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.pipeline-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gate-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pipeline-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.pipeline-close-btn {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-xl);
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.pipeline-close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.gate-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.gate-close-btn {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-xl);
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.gate-close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.graph-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.graph-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.graph-close-btn {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-xl);
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.graph-close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.view-fade-enter-active,
+.view-fade-leave-active {
+  transition: opacity 200ms var(--easing-standard);
+}
+
+.view-fade-enter-from,
+.view-fade-leave-to {
+  opacity: 0;
+}

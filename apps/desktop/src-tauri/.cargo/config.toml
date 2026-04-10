@@ -1,0 +1,4 @@
+[env]
+# Enable SQLite math functions (sqrt, log, pow) for decay-weighted anchor queries.
+# Required by the persistence.ts-derived community anchor algorithm in graph.rs.
+LIBSQLITE3_FLAGS = "-DSQLITE_ENABLE_MATH_FUNCTIONS"

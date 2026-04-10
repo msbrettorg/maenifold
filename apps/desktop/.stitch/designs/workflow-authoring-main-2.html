@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pipeline UI - Abductive Reasoning</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "secondary-container": "#0061d0",
+                        "on-secondary-fixed-variant": "#004495",
+                        "surface-container-highest": "#353534",
+                        "surface-container-lowest": "#0e0e0e",
+                        "outline": "#8e909a",
+                        "on-primary": "#122f5f",
+                        "background": "#131313",
+                        "on-error-container": "#ffdad6",
+                        "surface-container": "#201f1f",
+                        "error": "#ffb4ab",
+                        "on-tertiary-fixed-variant": "#4d3d76",
+                        "outline-variant": "#44474f",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "tertiary-fixed-dim": "#d0bcff",
+                        "on-tertiary-fixed": "#210f48",
+                        "tertiary": "#e9ddff",
+                        "surface-container-low": "#1c1b1b",
+                        "surface-variant": "#353534",
+                        "error-container": "#93000a",
+                        "on-surface-variant": "#c4c6d0",
+                        "primary-container": "#adc6ff",
+                        "on-secondary-fixed": "#001a42",
+                        "inverse-on-surface": "#313030",
+                        "on-tertiary": "#37265e",
+                        "surface-container-high": "#2a2a2a",
+                        "primary-fixed": "#d8e2ff",
+                        "on-tertiary-container": "#594983",
+                        "tertiary-container": "#d0bcff",
+                        "inverse-surface": "#e5e2e1",
+                        "on-error": "#690005",
+                        "on-primary-fixed-variant": "#2c4677",
+                        "on-secondary": "#002e6a",
+                        "inverse-primary": "#455e90",
+                        "tertiary-fixed": "#e9ddff",
+                        "on-secondary-container": "#dae4ff",
+                        "on-primary-container": "#385283",
+                        "primary-fixed-dim": "#adc6ff",
+                        "primary": "#d8e2ff",
+                        "surface-tint": "#adc6ff",
+                        "surface-bright": "#393939",
+                        "secondary-fixed": "#d8e2ff",
+                        "secondary": "#adc6ff",
+                        "surface": "#131313",
+                        "on-primary-fixed": "#001a42",
+                        "surface-dim": "#131313",
+                        "on-background": "#e5e2e1",
+                        "on-surface": "#e5e2e1"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+            font-size: 1.25rem;
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #353534; border-radius: 2px; }
+        .dashed-connector::before {
+            content: '';
+            position: absolute;
+            left: 1.5rem;
+            top: 2rem;
+            bottom: -1rem;
+            border-left: 1px dashed #44474f;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container h-screen flex flex-col overflow-hidden">
+<!-- Top Navigation Bar -->
+<header class="bg-[#131313] text-[#adc6ff] font-['Space_Grotesk'] font-bold tracking-tight text-sm uppercase docked full-width top-0 h-12 border-b border-[#44474f]/15 flex justify-between items-center px-4 w-full z-50">
+<div class="text-lg font-bold tracking-tighter text-[#adc6ff]">Pipeline UI</div>
+<nav class="hidden md:flex items-center gap-6 h-full">
+<a class="text-[#adc6ff] border-b-2 border-[#adc6ff] pb-1 h-full flex items-center" href="#">Build</a>
+<a class="text-gray-400 hover:text-white transition-colors h-full flex items-center" href="#">Deploy</a>
+<a class="text-gray-400 hover:text-white transition-colors h-full flex items-center" href="#">Logs</a>
+<a class="text-gray-400 hover:text-white transition-colors h-full flex items-center" href="#">Settings</a>
+</nav>
+<div class="flex items-center gap-3">
+<button class="hover:bg-[#1c1b1b] transition-all p-1.5 rounded"><span class="material-symbols-outlined">terminal</span></button>
+<button class="hover:bg-[#1c1b1b] transition-all p-1.5 rounded"><span class="material-symbols-outlined">help</span></button>
+<button class="hover:bg-[#1c1b1b] transition-all p-1.5 rounded relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-[#131313]"></span>
+</button>
+<div class="w-7 h-7 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant/15">
+<img alt="User profile" data-alt="close-up portrait of a developer in a dark room with subtle blue screen glow reflecting on their glasses" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIJGvI0pxh99BDQK31Qxs3Py2zrTv_r383o1WXYLj5EWIad-OuMZDdT3FjEaBHEN2CKTkHIo62Ju7pX4aIxY0LYxHgF9ZgB0P5W46dV4Ccasho1DI8gzCHdBmxVdNa_usoZQBJ3p6YOxw-vyenGkuMHIqCF_mijoUOPhyWWH2BLcVycrbA1txJyU4TWc-z8BFca4g_mwyITWnOnDIZHunKqt7Q7ek9zjnaSJJtVcRDrTtefrWWDWJAQUGl6DHybhadGe9oIEFI4wg"/>
+</div>
+</div>
+</header>
+<main class="flex flex-1 overflow-hidden">
+<!-- SIDE NAV BAR (Left Rail) -->
+<aside class="bg-[#1c1b1b] text-[#adc6ff] font-['Inter'] text-xs font-medium uppercase tracking-widest docked left-0 h-full w-[64px] border-r border-[#44474f]/15 flex flex-col items-center py-4 shrink-0">
+<div class="flex flex-col gap-6 items-center w-full">
+<div class="w-8 h-8 rounded bg-[#201f1f] border-l-2 border-[#adc6ff] flex items-center justify-center">
+<span class="material-symbols-outlined">account_tree</span>
+</div>
+<div class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-200 transition-colors">
+<span class="material-symbols-outlined">lan</span>
+</div>
+<div class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-200 transition-colors">
+<span class="material-symbols-outlined">cloud_done</span>
+</div>
+<div class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-200 transition-colors">
+<span class="material-symbols-outlined">lock</span>
+</div>
+<div class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-200 transition-colors">
+<span class="material-symbols-outlined">database</span>
+</div>
+</div>
+<div class="mt-auto flex flex-col gap-6 items-center w-full">
+<span class="material-symbols-outlined text-gray-500 hover:text-gray-200 cursor-pointer">menu_book</span>
+<span class="material-symbols-outlined text-gray-500 hover:text-gray-200 cursor-pointer">support_agent</span>
+</div>
+</aside>
+<!-- LEFT PANEL (Workflow Browser) -->
+<section class="w-[250px] bg-surface-container-low flex flex-col shrink-0">
+<div class="p-4 flex flex-col gap-4">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-sm">search</span>
+<input class="w-full bg-surface-container-lowest border-none rounded py-2 pl-9 pr-3 text-sm focus:ring-1 focus:ring-primary/40 placeholder:text-outline-variant transition-all" placeholder="Search pipelines..." type="text"/>
+</div>
+<div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar whitespace-nowrap">
+<span class="px-2.5 py-1 bg-surface-container-high text-[10px] uppercase font-bold tracking-wider rounded text-on-surface">All</span>
+<span class="px-2.5 py-1 bg-surface-container-lowest text-[10px] uppercase font-medium tracking-wider rounded text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer">Reasoning</span>
+<span class="px-2.5 py-1 bg-surface-container-lowest text-[10px] uppercase font-medium tracking-wider rounded text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer">Scientific</span>
+<span class="px-2.5 py-1 bg-surface-container-lowest text-[10px] uppercase font-medium tracking-wider rounded text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer">Multi-Agent</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto">
+<div class="flex flex-col">
+<!-- Active Item -->
+<div class="px-4 py-3 bg-surface-container border-l-4 border-[#4d8eff] flex flex-col gap-1 cursor-pointer">
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium text-white">Abductive Reasoning</span>
+<span class="px-2 py-0.5 bg-tertiary-container/10 text-tertiary-container text-[9px] font-bold uppercase rounded-full">Multi</span>
+</div>
+<span class="text-[10px] font-mono text-outline-variant uppercase">v2.4.1-stable</span>
+</div>
+<!-- Other Items -->
+<div class="px-4 py-3 hover:bg-surface-container/50 border-l-4 border-transparent transition-colors flex flex-col gap-1 cursor-pointer group">
+<span class="text-sm font-medium text-on-surface-variant group-hover:text-white">Scientific Method</span>
+<span class="text-[10px] font-mono text-outline-variant uppercase">v1.0.4</span>
+</div>
+<div class="px-4 py-3 hover:bg-surface-container/50 border-l-4 border-transparent transition-colors flex flex-col gap-1 cursor-pointer group">
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium text-on-surface-variant group-hover:text-white">Think Tank</span>
+<span class="px-2 py-0.5 bg-tertiary-container/10 text-tertiary-container text-[9px] font-bold uppercase rounded-full">Multi</span>
+</div>
+<span class="text-[10px] font-mono text-outline-variant uppercase">v0.9.0-alpha</span>
+</div>
+<div class="px-4 py-3 hover:bg-surface-container/50 border-l-4 border-transparent transition-colors flex flex-col gap-1 cursor-pointer group">
+<span class="text-sm font-medium text-on-surface-variant group-hover:text-white">Agentic Dev SDLC</span>
+<span class="text-[10px] font-mono text-outline-variant uppercase">v4.2.0</span>
+</div>
+<div class="px-4 py-3 hover:bg-surface-container/50 border-l-4 border-transparent transition-colors flex flex-col gap-1 cursor-pointer group">
+<span class="text-sm font-medium text-on-surface-variant group-hover:text-white">Memory Repair Cycle</span>
+<span class="text-[10px] font-mono text-outline-variant uppercase">v2.1.1</span>
+</div>
+<div class="px-4 py-3 hover:bg-surface-container/50 border-l-4 border-transparent transition-colors flex flex-col gap-1 cursor-pointer group">
+<span class="text-sm font-medium text-on-surface-variant group-hover:text-white">Bayesian Analysis</span>
+<span class="text-[10px] font-mono text-outline-variant uppercase">v1.2.5</span>
+</div>
+<div class="px-4 py-3 hover:bg-surface-container/50 border-l-4 border-transparent transition-colors flex flex-col gap-1 cursor-pointer group">
+<span class="text-sm font-medium text-on-surface-variant group-hover:text-white">Game Theory</span>
+<span class="text-[10px] font-mono text-outline-variant uppercase">v0.8.2</span>
+</div>
+<div class="px-4 py-3 hover:bg-surface-container/50 border-l-4 border-transparent transition-colors flex flex-col gap-1 cursor-pointer group">
+<span class="text-sm font-medium text-on-surface-variant group-hover:text-white">Code Review</span>
+<span class="text-[10px] font-mono text-outline-variant uppercase">v3.3.0</span>
+</div>
+<div class="px-4 py-3 hover:bg-surface-container/50 border-l-4 border-transparent transition-colors flex flex-col gap-1 cursor-pointer group">
+<span class="text-sm font-medium text-on-surface-variant group-hover:text-white">Graph Hygiene</span>
+<span class="text-[10px] font-mono text-outline-variant uppercase">v1.0.0</span>
+</div>
+</div>
+</div>
+<div class="p-4 mt-auto border-t border-outline-variant/10 flex flex-col gap-2">
+<button class="w-full border border-dashed border-outline-variant/40 hover:border-primary/60 hover:bg-surface-container transition-all py-2 rounded text-xs font-bold uppercase tracking-wider text-outline flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                    New Pipeline
+                </button>
+<button class="w-full py-2 text-xs font-bold uppercase tracking-wider text-outline hover:text-white flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-sm">upload_file</span>
+                    Import
+                </button>
+</div>
+</section>
+<!-- CENTER PANEL (Step Editor) -->
+<section class="flex-1 bg-surface flex flex-col relative">
+<!-- Canvas Header -->
+<header class="h-16 px-6 flex items-center justify-between z-10">
+<div class="flex flex-col">
+<h1 class="font-headline text-xl text-white tracking-tight">Abductive Reasoning</h1>
+<div class="flex items-center gap-3 text-[10px] font-mono text-outline-variant uppercase">
+<span>8 steps</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant/40"></span>
+<span class="text-tertiary-container/80">Sequential Thinking Enabled</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant/40"></span>
+<span>Last edited 2h ago</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-4 py-1.5 bg-primary-container text-on-primary-container text-xs font-bold rounded flex items-center gap-2 hover:brightness-110 transition-all">
+<span class="material-symbols-outlined text-base">save</span>
+                        Save
+                    </button>
+<button class="px-3 py-1.5 border border-outline-variant/20 text-on-surface text-xs font-bold rounded flex items-center gap-2 hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined text-base">play_arrow</span>
+                        Run
+                    </button>
+<button class="px-3 py-1.5 border border-outline-variant/20 text-on-surface text-xs font-bold rounded flex items-center gap-2 hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined text-base">ios_share</span>
+                        Export
+                    </button>
+<button class="p-1.5 text-on-surface hover:bg-surface-container rounded transition-all">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Editor Canvas -->
+<div class="flex-1 overflow-y-auto px-12 py-8 relative">
+<div class="max-w-3xl mx-auto flex flex-col gap-4 relative">
+<!-- Step 01 -->
+<div class="relative dashed-connector">
+<div class="bg-surface-container p-4 rounded-lg flex gap-4 border border-outline-variant/5 hover:border-outline-variant/20 transition-all cursor-pointer relative z-10">
+<div class="flex flex-col items-center shrink-0">
+<div class="w-8 h-8 rounded bg-surface-container-lowest border border-outline-variant/20 flex items-center justify-center font-mono text-xs font-bold text-outline">01</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<h3 class="text-sm font-semibold text-white">Define Observable Surprise</h3>
+<span class="material-symbols-outlined text-tertiary-container text-base" style="font-variation-settings: 'FILL' 1;">psychology</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Capture and formalize the unexpected data point or system behavior requiring explanation.</p>
+</div>
+</div>
+</div>
+<!-- Step 02 -->
+<div class="relative dashed-connector">
+<div class="bg-surface-container p-4 rounded-lg flex gap-4 border border-outline-variant/5 hover:border-outline-variant/20 transition-all cursor-pointer relative z-10">
+<div class="flex flex-col items-center shrink-0">
+<div class="w-8 h-8 rounded bg-surface-container-lowest border border-outline-variant/20 flex items-center justify-center font-mono text-xs font-bold text-outline">02</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<h3 class="text-sm font-semibold text-white">Generate Candidate Hypotheses</h3>
+<span class="material-symbols-outlined text-tertiary-container text-base" style="font-variation-settings: 'FILL' 1;">psychology</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Systematically list all possible causal mechanisms that could produce the observed outcome.</p>
+</div>
+</div>
+</div>
+<!-- Step 03 -->
+<div class="relative dashed-connector">
+<div class="bg-surface-container p-4 rounded-lg flex gap-4 border border-outline-variant/5 hover:border-outline-variant/20 transition-all cursor-pointer relative z-10">
+<div class="flex flex-col items-center shrink-0">
+<div class="w-8 h-8 rounded bg-surface-container-lowest border border-outline-variant/20 flex items-center justify-center font-mono text-xs font-bold text-outline">03</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<h3 class="text-sm font-semibold text-white">Evaluate Explanatory Power</h3>
+<span class="material-symbols-outlined text-tertiary-container text-base">monitoring</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Run internal simulation tests to weight which candidate hypotheses best fit current known constraints.</p>
+</div>
+</div>
+</div>
+<!-- Step 04 (Active/Focus State) -->
+<div class="relative dashed-connector">
+<div class="bg-surface-container-high p-4 rounded-lg flex gap-4 border border-primary/20 ring-1 ring-primary/20 transition-all cursor-pointer relative z-10">
+<div class="flex flex-col items-center shrink-0">
+<div class="w-8 h-8 rounded bg-primary-container text-on-primary-container flex items-center justify-center font-mono text-xs font-bold">04</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<h3 class="text-sm font-semibold text-white">Perform Abductive Selection</h3>
+<span class="material-symbols-outlined text-tertiary-container text-base" style="font-variation-settings: 'FILL' 1;">psychology</span>
+</div>
+<p class="text-xs text-on-surface leading-relaxed">Apply Ockham's Razor to select the most probable explanation for the specific context.</p>
+</div>
+<div class="shrink-0">
+<span class="material-symbols-outlined text-outline-variant">edit_note</span>
+</div>
+</div>
+</div>
+<!-- Step 05 -->
+<div class="relative">
+<div class="bg-surface-container p-4 rounded-lg flex gap-4 border border-outline-variant/5 hover:border-outline-variant/20 transition-all cursor-pointer relative z-10">
+<div class="flex flex-col items-center shrink-0">
+<div class="w-8 h-8 rounded bg-surface-container-lowest border border-outline-variant/20 flex items-center justify-center font-mono text-xs font-bold text-outline">05</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<h3 class="text-sm font-semibold text-white">Validate and Iterate</h3>
+<span class="material-symbols-outlined text-tertiary-container text-base">rule</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Construct a verification task to confirm the selected hypothesis in a sandboxed environment.</p>
+</div>
+</div>
+</div>
+<!-- Add Step -->
+<div class="mt-4 flex justify-center">
+<button class="flex items-center gap-2 px-6 py-3 border border-dashed border-outline-variant/30 hover:border-primary/40 text-xs font-bold uppercase tracking-widest text-outline hover:text-on-surface transition-all rounded">
+<span class="material-symbols-outlined text-sm">add</span>
+                            Add Step
+                        </button>
+</div>
+</div>
+</div>
+</section>
+<!-- RIGHT PANEL (Step Inspector) -->
+<section class="w-[300px] bg-surface-container-low border-l border-outline-variant/10 flex flex-col shrink-0">
+<header class="h-16 px-4 flex items-center">
+<h2 class="font-headline text-sm font-bold uppercase tracking-widest text-white">Step Properties</h2>
+</header>
+<div class="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-6">
+<!-- Name Field -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] font-bold uppercase tracking-widest text-outline-variant">Step Name</label>
+<input class="w-full bg-surface-container-lowest border-none rounded py-2 px-3 text-sm text-on-surface focus:ring-1 focus:ring-primary/40" type="text" value="Perform Abductive Selection"/>
+</div>
+<!-- Description Field -->
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] font-bold uppercase tracking-widest text-outline-variant">Description</label>
+<textarea class="w-full bg-surface-container-lowest border-none rounded py-2 px-3 text-sm text-on-surface-variant focus:ring-1 focus:ring-primary/40 h-24 resize-none leading-relaxed">Apply Ockham's Razor to select the most probable explanation for the specific context.</textarea>
+</div>
+<!-- Reasoning Effort Segmented Control -->
+<div class="flex flex-col gap-2">
+<label class="text-[10px] font-bold uppercase tracking-widest text-outline-variant">Reasoning Effort</label>
+<div class="flex bg-surface-container-lowest p-1 rounded">
+<button class="flex-1 py-1.5 text-[10px] font-bold uppercase rounded text-outline-variant hover:text-on-surface-variant transition-colors">Low</button>
+<button class="flex-1 py-1.5 text-[10px] font-bold uppercase rounded bg-[#F59E0B]/10 text-[#F59E0B]">Medium</button>
+<button class="flex-1 py-1.5 text-[10px] font-bold uppercase rounded text-outline-variant hover:text-on-surface-variant transition-colors">High</button>
+</div>
+</div>
+<!-- Sequential Thinking Toggle -->
+<div class="flex items-center justify-between p-3 bg-surface-container rounded border border-tertiary-container/10">
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-white">Sequential Thinking</span>
+<span class="text-[10px] text-tertiary-container/60 font-mono">ENFORCE_LOGIC_GATES</span>
+</div>
+<div class="w-10 h-5 bg-tertiary-container/20 rounded-full relative flex items-center px-1">
+<div class="w-3.5 h-3.5 bg-tertiary-container rounded-full shadow-[0_0_8px_rgba(208,188,255,0.4)] translate-x-4"></div>
+</div>
+</div>
+<!-- Tool Hints -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<label class="text-[10px] font-bold uppercase tracking-widest text-outline-variant">Tool Hints</label>
+<button class="p-0.5 text-primary hover:bg-primary/10 rounded transition-all">
+<span class="material-symbols-outlined text-sm">add_box</span>
+</button>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-mono text-on-surface-variant flex items-center gap-1.5">
+                            SearchMemories
+                            <span class="material-symbols-outlined text-[10px] cursor-pointer hover:text-error">close</span>
+</span>
+<span class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-mono text-on-surface-variant flex items-center gap-1.5">
+                            BuildContext
+                            <span class="material-symbols-outlined text-[10px] cursor-pointer hover:text-error">close</span>
+</span>
+<span class="px-2 py-1 bg-surface-container-high rounded text-[10px] font-mono text-on-surface-variant flex items-center gap-1.5">
+                            WriteMemory
+                            <span class="material-symbols-outlined text-[10px] cursor-pointer hover:text-error">close</span>
+</span>
+</div>
+</div>
+<!-- Advanced Sections -->
+<div class="flex flex-col gap-3 pt-4 border-t border-outline-variant/10">
+<div class="flex items-center justify-between group cursor-pointer">
+<span class="text-xs font-medium text-on-surface-variant group-hover:text-white transition-colors">Stop Conditions</span>
+<span class="material-symbols-outlined text-sm text-outline-variant group-hover:text-on-surface transition-all">expand_more</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer">
+<span class="text-xs font-medium text-on-surface-variant group-hover:text-white transition-colors">Escape Hatches</span>
+<span class="material-symbols-outlined text-sm text-outline-variant group-hover:text-on-surface transition-all">expand_more</span>
+</div>
+</div>
+</div>
+<div class="p-4 bg-surface-container-highest/20">
+<button class="w-full py-2 bg-outline-variant/15 hover:bg-outline-variant/30 text-xs font-bold uppercase tracking-widest text-on-surface transition-all rounded">
+                    Delete Step
+                </button>
+</div>
+</section>
+</main>
+</body></html>

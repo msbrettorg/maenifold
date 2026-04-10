@@ -1,15 +1,17 @@
 <script setup lang="ts">
+import { convertFileSrc } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
-import { readTextFile } from '@tauri-apps/plugin-fs'
 import { storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
 import type { WorkflowCategory } from '../lib/workflow-asset-types'
+import { usePipelineMcp } from '../composables/usePipelineMcp'
 import { usePipelineStore } from '../stores/pipeline'
 import { useWorkflowLibraryStore } from '../stores/workflow-library'
 
 const pipelineStore = usePipelineStore()
+const workflowMcp = usePipelineMcp()
 const store = useWorkflowLibraryStore()
-const { currentId, categoryFilter, error, filteredWorkflows, isDirty, searchQuery } = storeToRefs(store)
+const { currentId, categoryFilter, error, filteredWorkflows, isDirty, searchQuery, summaries } = storeToRefs(store)
 const browserError = computed(() => error.value ?? pipelineStore.error ?? null)
 
 interface CategoryChip {
@@ -34,6 +36,89 @@ function clearImportState() {
   importConflict.value = null
 }
 
+function nextCopyId(id: string) {
+  let suffix = 1
+  let candidate = `${id}-copy`
+  while (summaries.value.some((workflow) => workflow.id === candidate)) {
+    suffix += 1
+    candidate = `${id}-copy-${suffix}`
+  }
+  return candidate
+}
+
+function prepareImportedWorkflow(json: string, resolution?: 'overwrite' | 'copy') {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(json)
+  } catch {
+    throw new Error('Workflow file is not valid JSON.')
+  }
+
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error('Workflow file must be a JSON object.')
+  }
+
+  const workflow = { ...(parsed as Record<string, unknown>) }
+  const id = workflow.id
+  if (typeof id !== 'string' || !id.trim()) {
+    throw new Error('Workflow ID is required.')
+  }
+
+  if (resolution === 'copy') {
+    const copyId = nextCopyId(id)
+    workflow.id = copyId
+    workflow.name =
+      typeof workflow.name === 'string' && workflow.name.trim()
+        ? `${workflow.name} Copy`
+        : copyId
+  }
+
+  return {
+    id: workflow.id as string,
+    content: `${JSON.stringify(workflow, null, 2)}\n`,
+  }
+}
+
+async function readImportedWorkflow(path: string) {
+  const response = await fetch(convertFileSrc(path))
+  if (!response.ok) {
+    throw new Error(`Failed to read workflow file (${response.status}).`)
+  }
+  return response.text()
+}
+
+async function loadImportedWorkflow(id: string) {
+  if (currentId.value === id) {
+    store.clearSelection()
+    await store.selectWorkflow(id)
+    return
+  }
+
+  await store.requestSelectWorkflow(id)
+}
+
+async function importWorkflow(json: string, resolution?: 'overwrite' | 'copy') {
+  const prepared = prepareImportedWorkflow(json, resolution)
+  const existing = summaries.value.find((workflow) => workflow.id === prepared.id)
+
+  if (existing && !resolution) {
+    importConflict.value = { id: existing.id, json, name: existing.name }
+    return
+  }
+
+  if (!pipelineStore.connected) {
+    await pipelineStore.connect()
+  }
+
+  await workflowMcp.callTool('SaveWorkflowAsset', {
+    id: prepared.id,
+    content: prepared.content,
+  })
+  clearImportState()
+  await store.fetchSummaries()
+  await loadImportedWorkflow(prepared.id)
+}
+
 async function handleImportClick() {
   clearImportState()
   try {
@@ -43,29 +128,19 @@ async function handleImportClick() {
     })
     const path = Array.isArray(selection) ? selection[0] : selection
     if (!path) return
-    const json = await readTextFile(path)
-    const result = store.importWorkflow(json)
-    if (result.status === 'conflict') {
-      importConflict.value = { ...result, json }
-      return
-    }
-    if (result.status === 'error') {
-      importError.value = result.message
-    }
+    const json = await readImportedWorkflow(path)
+    await importWorkflow(json)
   } catch (error) {
     importError.value = error instanceof Error ? error.message : String(error)
   }
 }
 
-function handleConflictResolution(resolution: 'overwrite' | 'copy') {
+async function handleConflictResolution(resolution: 'overwrite' | 'copy') {
   if (!importConflict.value) return
-  const result = store.importWorkflow(importConflict.value.json, resolution)
-  if (result.status === 'success' || result.status === 'pending') {
-    clearImportState()
-    return
-  }
-  if (result.status === 'error') {
-    importError.value = result.message
+  try {
+    await importWorkflow(importConflict.value.json, resolution)
+  } catch (error) {
+    importError.value = error instanceof Error ? error.message : String(error)
   }
 }
 

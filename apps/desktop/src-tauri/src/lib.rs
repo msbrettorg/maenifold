@@ -1,15 +1,10 @@
 mod agent;
 mod config;
-mod gate;
 mod graph;
 mod workflow_assets;
 
 use agent::{AgentInstance, AgentManager};
 use config::{AgentConfig, AgentsConfig, ConfigManager, MaenifoldSettings};
-use gate::{
-    load_gate_snapshot, read_gate_task_markdown, start_gate_watcher, stop_gate_watcher,
-    GateWatcherManager,
-};
 use graph::{load_community_concepts, load_graph_communities};
 use parking_lot::RwLock;
 use std::sync::Arc;
@@ -207,7 +202,6 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
         .manage(app_state)
-        .manage(GateWatcherManager::default())
         .setup(|app| {
             let app_handle = app.handle().clone();
             let state: State<AppState> = app.state();
@@ -242,10 +236,6 @@ pub fn run() {
             update_maenifold_settings,
             get_machine_id,
             save_workflow_asset,
-            load_gate_snapshot,
-            read_gate_task_markdown,
-            start_gate_watcher,
-            stop_gate_watcher,
             load_graph_communities,
             load_community_concepts
         ])
@@ -273,7 +263,6 @@ pub fn run() {
             RunEvent::Exit => {
                 let state = app_handle.state::<AppState>();
                 state.agent_manager.shutdown_all();
-                app_handle.state::<GateWatcherManager>().stop();
             }
             _ => {}
         });

@@ -4,6 +4,12 @@ use rmcp::{
     transport::TokioChildProcess,
 };
 use serde_json::{Map as JsonMap, Value as JsonValue};
+use std::{
+    collections::HashSet,
+    env,
+    ffi::OsString,
+    path::{Path, PathBuf},
+};
 use tokio::process::Command;
 
 use crate::{
@@ -63,6 +69,9 @@ async fn invoke_via_stdio(
     let mut child = Command::new(command);
     child.args(args);
     child.current_dir(&context.config.maenifold_root);
+    if let Some(path) = build_child_path_env(env::var_os("PATH"), env::var_os("HOME"), command) {
+        child.env("PATH", path);
+    }
 
     let transport = TokioChildProcess::new(child).map_err(|error| {
         MaenifoldError::Message(format!(
@@ -232,9 +241,52 @@ fn extract_text_content(content: &Content) -> Option<String> {
     content.raw.as_text().map(|text| text.text.clone())
 }
 
+fn build_child_path_env(
+    existing_path: Option<OsString>,
+    home: Option<OsString>,
+    command: &str,
+) -> Option<OsString> {
+    let mut entries = Vec::new();
+    let mut seen = HashSet::new();
+    let mut push_entry = |entry: PathBuf| {
+        if !entry.as_os_str().is_empty() && seen.insert(entry.clone()) {
+            entries.push(entry);
+        }
+    };
+
+    if let Some(existing_path) = existing_path {
+        for entry in env::split_paths(&existing_path) {
+            push_entry(entry);
+        }
+    }
+
+    if let Some(home) = home.map(PathBuf::from) {
+        for relative in [".npm-global/bin", ".dotnet/tools", ".local/bin"] {
+            push_entry(home.join(relative));
+        }
+    }
+
+    for entry in [
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+        "/usr/bin",
+        "/bin",
+        "/usr/sbin",
+        "/sbin",
+    ] {
+        push_entry(PathBuf::from(entry));
+    }
+
+    if let Some(parent) = Path::new(command).parent() {
+        push_entry(parent.to_path_buf());
+    }
+
+    env::join_paths(entries).ok()
+}
+
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, ffi::OsStr};
 
     use super::*;
 
@@ -389,5 +441,50 @@ mod tests {
         .expect("successful tool output should survive close failure");
 
         assert_eq!(result, "done");
+    }
+
+    #[test]
+    fn build_child_path_env_adds_common_user_tool_dirs_and_command_parent() {
+        let path = build_child_path_env(
+            Some(OsString::from("/usr/bin:/bin")),
+            Some(OsString::from("/Users/tester")),
+            "/Users/tester/.npm-global/bin/workiq",
+        )
+        .expect("path should be constructed");
+        let entries: Vec<_> = std::env::split_paths(OsStr::new(&path))
+            .map(|entry| entry.to_string_lossy().to_string())
+            .collect();
+
+        assert!(entries.iter().any(|entry| entry == "/usr/bin"));
+        assert!(entries.iter().any(|entry| entry == "/bin"));
+        assert!(
+            entries
+                .iter()
+                .any(|entry| entry == "/Users/tester/.npm-global/bin")
+        );
+        assert!(
+            entries
+                .iter()
+                .any(|entry| entry == "/Users/tester/.dotnet/tools")
+        );
+        assert!(entries.iter().any(|entry| entry == "/opt/homebrew/bin"));
+    }
+
+    #[test]
+    fn build_child_path_env_deduplicates_existing_entries() {
+        let path = build_child_path_env(
+            Some(OsString::from("/usr/bin:/bin:/usr/bin")),
+            Some(OsString::from("/Users/tester")),
+            "/usr/bin/tool",
+        )
+        .expect("path should be constructed");
+        let entries: Vec<_> = std::env::split_paths(OsStr::new(&path))
+            .map(|entry| entry.to_string_lossy().to_string())
+            .collect();
+
+        assert_eq!(
+            entries.iter().filter(|entry| *entry == "/usr/bin").count(),
+            1
+        );
     }
 }

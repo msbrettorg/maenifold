@@ -2,11 +2,11 @@
 import { computed } from 'vue';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
-import type { GateTask } from '../lib/gate';
+import type { GateTask, GateTaskHistoryEntry } from '../lib/gate';
 
 const props = defineProps<{
   task: GateTask | null;
-  content: string;
+  history: GateTaskHistoryEntry[];
   loading: boolean;
   error: string;
 }>();
@@ -19,11 +19,17 @@ const processLabel = computed(() => {
   return props.task.location === 'done' ? `${pipeline.toUpperCase()} done` : pipeline.toUpperCase();
 });
 
-const renderedContent = computed(() => {
-  if (!props.content) return '';
-  const parsed = marked.parse(props.content, { async: false });
+function renderNotes(notes: string | null) {
+  if (!notes) return '';
+  const parsed = marked.parse(notes, { async: false });
   return DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
-});
+}
+
+function formatTimestamp(timestamp: string | null) {
+  if (!timestamp) return 'Unknown time';
+  const value = new Date(timestamp);
+  return Number.isNaN(value.getTime()) ? timestamp : value.toLocaleString();
+}
 </script>
 
 <template>
@@ -67,13 +73,34 @@ const renderedContent = computed(() => {
 
       <p v-if="task.issue" class="gate-detail__issue">{{ task.issue }}</p>
       <p v-if="error" class="gate-detail__message gate-detail__message--error">{{ error }}</p>
-      <p v-else-if="loading" class="gate-detail__message">Loading task markdown…</p>
-      <p v-else-if="!content" class="gate-detail__message">This task file is empty.</p>
-      <div v-else class="gate-detail__markdown" v-html="renderedContent" />
+      <p v-else-if="loading" class="gate-detail__message">Loading task history…</p>
+      <p v-else-if="!history.length" class="gate-detail__message">No recorded gate history yet.</p>
+      <ol v-else class="gate-detail__history">
+        <li v-for="(entry, index) in history" :key="`${entry.timestamp ?? 'unknown'}-${entry.stage}-${entry.event}-${index}`" class="gate-detail__history-item">
+          <div class="gate-detail__history-header">
+            <div>
+              <p class="gate-detail__history-stage">{{ entry.stage }}</p>
+              <h4>{{ entry.event }}</h4>
+            </div>
+            <time class="gate-detail__history-time" :datetime="entry.timestamp ?? undefined">{{ formatTimestamp(entry.timestamp) }}</time>
+          </div>
+          <dl class="gate-detail__history-meta">
+            <div>
+              <dt>Agent</dt>
+              <dd>{{ entry.agent || '—' }}</dd>
+            </div>
+            <div>
+              <dt>Model</dt>
+              <dd>{{ entry.model || '—' }}</dd>
+            </div>
+          </dl>
+          <div v-if="entry.notes" class="gate-detail__markdown" v-html="renderNotes(entry.notes)" />
+        </li>
+      </ol>
     </template>
 
     <p v-else class="gate-detail__message">
-      Select a task from the table to inspect its markdown content, path, and gate metadata.
+      Select a task from the table to inspect its gate history, path, and gate metadata.
     </p>
   </aside>
 </template>
@@ -94,7 +121,10 @@ const renderedContent = computed(() => {
 }
 
 .gate-detail__header,
-.gate-detail__meta {
+.gate-detail__meta,
+.gate-detail__history,
+.gate-detail__history-item,
+.gate-detail__history-meta {
   gap: 0.75rem;
 }
 
@@ -150,6 +180,58 @@ const renderedContent = computed(() => {
 .gate-detail__message--error,
 .gate-detail__issue {
   color: var(--color-status-abandoned);
+}
+
+.gate-detail__history {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gate-detail__history-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.9rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.gate-detail__history-header,
+.gate-detail__history-meta {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.gate-detail__history-stage,
+.gate-detail__history-time,
+.gate-detail__history-meta dt {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gate-detail__history-stage {
+  margin-bottom: 0.25rem;
+}
+
+.gate-detail__history-time {
+  white-space: nowrap;
+}
+
+.gate-detail__history-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gate-detail__history-meta dd {
+  margin-top: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
 }
 
 .gate-detail__markdown {

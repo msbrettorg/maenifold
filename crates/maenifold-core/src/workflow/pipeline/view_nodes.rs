@@ -52,6 +52,9 @@ pub(super) fn pipeline_nodes_json(
                 if let Some(retry_count) = state.retry_count {
                     node_object.insert("retryCount".to_string(), json!(retry_count));
                 }
+                if let Some(failure_reason) = &state.failure_reason {
+                    node_object.insert("failureReason".to_string(), json!(failure_reason));
+                }
                 node_object.insert(
                     "assembled_prompt".to_string(),
                     assembled_prompt.map(Value::String).unwrap_or(Value::Null),

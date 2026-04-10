@@ -1,9 +1,6 @@
 import type { Ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
-import { homeDir, join } from '@tauri-apps/api/path'
-import { save } from '@tauri-apps/plugin-dialog'
-import { writeTextFile } from '@tauri-apps/plugin-fs'
 import type { WorkflowAssetDefinition } from '../lib/workflow-asset-types'
+import { usePipelineMcp } from '../composables/usePipelineMcp'
 import {
   cloneDefinition,
   mergeDraftIntoRaw,
@@ -44,29 +41,21 @@ function validateDraft(draft: WorkflowAssetDefinition): string | null {
   return null
 }
 
-async function resolveWorkflowAssetsRoot() {
-  const envRoot = (import.meta.env as ImportMetaEnv & { VITE_MAENIFOLD_ROOT?: string }).VITE_MAENIFOLD_ROOT
-  if (typeof envRoot === 'string' && envRoot.trim()) {
-    return join(envRoot, 'assets', 'workflows')
-  }
-  return join(await homeDir(), 'maenifold', 'assets', 'workflows')
-}
-
-async function resolveSavePath(
-  root: string,
-  raw: WorkflowRaw,
-  id: string,
-  origin: WorkflowOrigin | null,
-) {
-  const currentPath = typeof raw.path === 'string' ? raw.path : null
-  if (origin === 'user' && currentPath?.startsWith(root) && typeof raw.id === 'string' && raw.id === id) {
-    return currentPath
-  }
-
-  return join(root, `${id}.json`)
+function downloadWorkflowJson(id: string, content: string) {
+  const blob = new Blob([content], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${id}.json`
+  document.body.append(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }
 
 export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
+  const workflowMcp = usePipelineMcp()
+
   async function exportWorkflow(version: 'draft' | 'saved' = 'draft') {
     if (!context.rawJson.value || !context.currentDefinition.value) return false
 
@@ -79,18 +68,7 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
           ? context.currentDefinition.value
           : (context.draftDefinition.value ?? context.currentDefinition.value)
       const merged = mergeDraftIntoRaw(context.rawJson.value, sourceDefinition)
-      const path = await save({
-        defaultPath: `${sourceDefinition.id}.json`,
-        filters: [{ name: 'Workflow JSON', extensions: ['json'] }],
-        title: 'Export workflow',
-      })
-
-      if (!path) {
-        context.exportState.value = 'idle'
-        return false
-      }
-
-      await writeTextFile(path, `${JSON.stringify(merged, null, 2)}\n`)
+      downloadWorkflowJson(sourceDefinition.id, `${JSON.stringify(merged, null, 2)}\n`)
       context.exportState.value = 'success'
       return true
     } catch (error) {
@@ -120,17 +98,22 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
       }
 
       const merged = mergeDraftIntoRaw(context.rawJson.value, nextDraft)
-      const root = await resolveWorkflowAssetsRoot()
-      const path = await resolveSavePath(root, context.rawJson.value, nextDraft.id, context.origin.value)
-      const savedPath = await invoke<string>('save_workflow_asset', {
-        json: `${JSON.stringify(merged, null, 2)}\n`,
-        path,
+      if (!workflowMcp.connected.value) {
+        await workflowMcp.connect()
+      }
+      await workflowMcp.callTool('SaveWorkflowAsset', {
+        id: nextDraft.id,
+        content: `${JSON.stringify(merged, null, 2)}\n`,
       })
 
-      const persisted = {
+      const persisted: WorkflowRaw = {
         ...merged,
-        path: savedPath,
-      } satisfies WorkflowRaw
+        uri: `asset://workflows/${nextDraft.id}`,
+        source: 'user',
+        workflowOrigin: 'user',
+        origin: 'user',
+      }
+      delete persisted.path
 
       context.rawJson.value = persisted
       context.currentDefinition.value = cloneDefinition(nextDraft)

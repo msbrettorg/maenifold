@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import type { UnlistenFn } from '@tauri-apps/api/event';
 import GateTaskDetail from './GateTaskDetail.vue';
 import GateTaskTable from './GateTaskTable.vue';
 import GateViewFilters from './GateViewFilters.vue';
 import GateViewToolbar from './GateViewToolbar.vue';
+import { useGateMcp } from '../composables/useGateMcp';
 import { useGateRegistry } from '../composables/useGateRegistry';
-import { loadGateSnapshot, onGateWatcherEvent, readGateTaskMarkdown, startGateWatcher, stopGateWatcher, type GateSnapshot, type GateTask } from '../lib/gate';
+import type { GateSnapshot, GateTask, GateTaskHistoryEntry } from '../lib/gate';
 
 const props = defineProps<{ cwd: string }>();
 const registry = useGateRegistry(() => props.cwd);
+const gate = useGateMcp();
 
 const snapshot = ref<GateSnapshot | null>(null);
 const isLoading = ref(false);
 const error = ref('');
-const watchError = ref('');
 const lastRefreshLabel = ref('');
 const searchText = ref('');
 const selectedProcess = ref('all');
@@ -22,7 +22,7 @@ const selectedState = ref('all');
 const selectedLocation = ref('todo');
 const issuesOnly = ref(false);
 const selectedTaskId = ref('');
-const selectedTaskContent = ref('');
+const selectedTaskHistory = ref<GateTaskHistoryEntry[]>([]);
 const detailLoading = ref(false);
 const detailError = ref('');
 const activeWatcherRoot = ref('');
@@ -32,9 +32,8 @@ type SortDirection = 'asc' | 'desc';
 const sortColumn = ref<SortColumn>('id');
 const sortDirection = ref<SortDirection>('asc');
 
-let unwatch: UnlistenFn | null = null;
-
 const hasGateRoot = computed(() => registry.selectedGateRoot.value.length > 0);
+const uiError = computed(() => registry.error.value || error.value || gate.error.value || '');
 const processOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map(processValue)));
 const stateOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map((task) => task.state)));
 const locationOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map((task) => task.location)));
@@ -106,23 +105,19 @@ function formatRefreshTime() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-async function stopWatcher() {
-  if (unwatch) {
-    unwatch();
-    unwatch = null;
-  }
+function stopWatcher() {
   activeWatcherRoot.value = '';
-  await stopGateWatcher();
+  gate.stopPolling();
 }
 
 async function loadTaskDetail(task: GateTask | null) {
-  selectedTaskContent.value = '';
+  selectedTaskHistory.value = [];
   detailError.value = '';
   if (!task) return;
 
   detailLoading.value = true;
   try {
-    selectedTaskContent.value = await readGateTaskMarkdown(task.path);
+    selectedTaskHistory.value = await gate.readTaskHistory(task.taskId, registry.selectedGateRoot.value);
   } catch (loadError) {
     detailError.value = loadError instanceof Error ? loadError.message : String(loadError);
   } finally {
@@ -142,7 +137,7 @@ async function refreshSnapshot(background = false) {
   error.value = '';
 
   try {
-    const nextSnapshot = await loadGateSnapshot(registry.selectedGateRoot.value);
+    const nextSnapshot = await gate.loadSnapshot(registry.selectedGateRoot.value);
     snapshot.value = nextSnapshot;
     lastRefreshLabel.value = formatRefreshTime();
     await loadTaskDetail(nextSnapshot.tasks.find((task) => task.taskId === selectedTaskId.value) ?? null);
@@ -154,26 +149,15 @@ async function refreshSnapshot(background = false) {
 }
 
 async function startWatcher(root: string) {
-  watchError.value = '';
   if (!root) {
-    await stopWatcher();
+    stopWatcher();
     return;
   }
-  if (activeWatcherRoot.value === root && unwatch) return;
+  if (activeWatcherRoot.value === root) return;
 
-  await stopWatcher();
-
-  try {
-    await startGateWatcher(root);
-    activeWatcherRoot.value = root;
-    unwatch = await onGateWatcherEvent(async ({ root: changedRoot }) => {
-      if (changedRoot !== activeWatcherRoot.value) return;
-      await refreshSnapshot(true);
-    });
-  } catch (watchLoadError) {
-    activeWatcherRoot.value = '';
-    watchError.value = watchLoadError instanceof Error ? watchLoadError.message : String(watchLoadError);
-  }
+  stopWatcher();
+  activeWatcherRoot.value = root;
+  gate.startPolling(root, () => refreshSnapshot(true));
 }
 
 async function handleTaskSelect(task: GateTask) {
@@ -193,7 +177,7 @@ async function handleRemoveCurrentGate() {
 
 function clearSelection() {
   selectedTaskId.value = '';
-  selectedTaskContent.value = '';
+  selectedTaskHistory.value = [];
   detailError.value = '';
 }
 
@@ -207,7 +191,10 @@ watch(processOptions, (options) => { if (selectedProcess.value !== 'all' && !opt
 watch(stateOptions, (options) => { if (selectedState.value !== 'all' && !options.includes(selectedState.value)) selectedState.value = 'all'; });
 watch(locationOptions, (options) => { if (selectedLocation.value !== 'all' && !options.includes(selectedLocation.value)) selectedLocation.value = 'all'; });
 
-onBeforeUnmount(() => { void stopWatcher(); });
+onBeforeUnmount(() => {
+  stopWatcher();
+  void gate.disconnect();
+});
 </script>
 
 <template>
@@ -216,15 +203,14 @@ onBeforeUnmount(() => { void stopWatcher(); });
 
     <GateViewFilters v-model:searchText="searchText" v-model:selectedProcess="selectedProcess" v-model:selectedState="selectedState" v-model:selectedLocation="selectedLocation" v-model:issuesOnly="issuesOnly" :process-options="processOptions" :state-options="stateOptions" :location-options="locationOptions" />
 
-    <p v-if="registry.error.value || error" class="gate-state gate-state--error">{{ registry.error.value || error }}</p>
-    <p v-else-if="watchError" class="gate-state">{{ watchError }}</p>
+    <p v-if="uiError" class="gate-state gate-state--error">{{ uiError }}</p>
     <p v-else-if="!hasGateRoot" class="gate-state">No Gate root selected.</p>
     <p v-else-if="isLoading && !snapshot" class="gate-state">Loading gate snapshot…</p>
     <p v-else-if="snapshot && !snapshot.exists" class="gate-state">No .gate/gate.db found in {{ registry.selectedGateRoot.value }}.</p>
 
     <div v-else class="gate-content">
       <GateTaskTable :tasks="visibleTasks" :selected-task-id="selectedTaskId" :sort-column="sortColumn" :sort-direction="sortDirection" @sort="toggleSort" @select="handleTaskSelect" />
-      <GateTaskDetail :task="activeTask" :content="selectedTaskContent" :loading="detailLoading" :error="detailError" @close="clearSelection" />
+      <GateTaskDetail :task="activeTask" :history="selectedTaskHistory" :loading="detailLoading" :error="detailError" @close="clearSelection" />
     </div>
   </section>
 </template>

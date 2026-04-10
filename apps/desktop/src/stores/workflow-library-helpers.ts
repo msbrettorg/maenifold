@@ -42,17 +42,25 @@ export function definitionsEqual(
 }
 
 export function detectWorkflowOrigin(raw: WorkflowRaw, fallbackId: string): WorkflowOrigin {
-  const id = typeof raw.id === 'string' ? raw.id : fallbackId
-  const location = [raw.path, raw.uri, raw.source, raw.workflowOrigin, raw.origin, id]
-    .filter((value): value is string => typeof value === 'string')
-    .join(' ')
+  void fallbackId
+  const metadataOrigin = [raw.workflowOrigin, raw.origin, raw.source]
+    .find((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    ?.trim()
     .toLowerCase()
 
-  return location.includes('/assets/workflows/') && location.includes('/maenifold/')
-    ? 'user'
-    : location.includes('user') || location.includes('-custom')
-      ? 'user'
-      : 'packaged'
+  if (metadataOrigin === 'draft') {
+    return 'draft'
+  }
+
+  if (metadataOrigin === 'user' || metadataOrigin === 'custom') {
+    return 'user'
+  }
+
+  if (metadataOrigin === 'packaged') {
+    return 'packaged'
+  }
+
+  return 'packaged'
 }
 
 export function mergeDraftIntoRaw(

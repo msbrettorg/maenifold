@@ -44,6 +44,7 @@ impl McpServerEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentEntry {
     pub command: String,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -300,6 +301,7 @@ impl Default for DebugSettings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentsConfig {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mcp_servers: Vec<McpServerEntry>,
@@ -517,7 +519,7 @@ mod settings_tests {
     fn settings_defaults_when_absent() {
         let config: AgentsConfig = serde_json::from_value(json!({
             "agents": {},
-            "mcp_servers": [],
+            "mcpServers": [],
             "settings": {}
         }))
         .expect("config should deserialize");
@@ -569,7 +571,7 @@ mod settings_tests {
     #[test]
     fn agents_config_includes_settings() {
         let config: AgentsConfig = serde_json::from_value(json!({
-            "mcp_servers": [
+            "mcpServers": [
                 {
                     "type": "stdio",
                     "name": "local",
@@ -588,7 +590,7 @@ mod settings_tests {
                     "env": {
                         "MODE": "test"
                     },
-                    "mcp_servers": [
+                    "mcpServers": [
                         {
                             "type": "stdio",
                             "name": "local",
@@ -616,6 +618,20 @@ mod settings_tests {
         assert_eq!(agent.env.get("MODE").map(String::as_str), Some("test"));
         assert_eq!(agent.mcp_servers.len(), 1);
         assert_eq!(agent.mcp_servers[0].name(), "local");
+    }
+
+    #[test]
+    fn test_real_maenifold_json_core() {
+        let home = std::env::var("HOME").expect("HOME should be set");
+        let root = Path::new(&home).join("maenifold");
+        let config = AgentsConfig::load(&root);
+
+        assert_eq!(
+            config.mcp_servers.len(),
+            6,
+            "expected 6 top-level mcp servers from {}",
+            root.join("maenifold.json").display()
+        );
     }
 
     #[test]

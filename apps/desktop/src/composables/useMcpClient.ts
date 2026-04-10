@@ -11,14 +11,18 @@ import type {
 } from './mcpTransport';
 import { getErrorMessage, parseJsonRpcResponse } from './mcpTransport';
 
+function resolveMcpUrl(baseUrl?: string) {
+  const resolvedBase = (baseUrl ?? getApiBase()) || DEFAULT_MCP_BASE_URL;
+  return resolvedBase.endsWith('/mcp') ? resolvedBase : `${resolvedBase}/mcp`;
+}
+
 export function useMcpClient(baseUrl?: string) {
   const sessionId = ref<string | null>(null);
   const connected = ref(false);
   const reconnecting = ref(false);
   const error = ref<string | null>(null);
 
-  const resolvedBase = (baseUrl ?? getApiBase()) || DEFAULT_MCP_BASE_URL;
-  const mcpUrl = `${resolvedBase}/mcp`;
+  const mcpUrl = resolveMcpUrl(baseUrl);
   let nextId = 1;
   let reconnectPromise: Promise<void> | null = null;
   let disconnectRequested = false;

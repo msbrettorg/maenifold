@@ -87,6 +87,7 @@ pub(super) fn graft_pipeline(
         &merged_definition,
         &node_states,
         ambient_prompt,
+        None,
     )?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),

@@ -237,6 +237,7 @@ pub(super) fn fork_pipeline(
         &forked_definition,
         &node_states,
         None,
+        None,
     )?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),

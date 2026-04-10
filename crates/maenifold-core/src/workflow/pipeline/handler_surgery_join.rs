@@ -114,6 +114,7 @@ pub(super) fn join_pipeline(
         &merged_definition,
         &merged_states,
         ambient_prompt,
+        None,
     )?;
     Ok(match context.output_format {
         OutputFormat::Json => success(result),

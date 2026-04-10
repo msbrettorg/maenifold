@@ -65,6 +65,9 @@ pub struct PipelineParams {
     /// Restart an abandoned/stuck node
     #[serde(default)]
     pub restart: bool,
+    /// Admin override: force a pipeline to completed status. The pipeline must not be actively running.
+    #[serde(default)]
+    pub force_complete: bool,
     /// Return help documentation
     #[serde(default)]
     pub learn: bool,

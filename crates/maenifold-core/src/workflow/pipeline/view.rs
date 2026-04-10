@@ -24,12 +24,21 @@ pub(super) fn view_pipeline_session(context: &ToolContext, session_id: &str) -> 
         .and_then(YamlValue::as_str)
         .map(str::trim)
         .filter(|value| !value.is_empty());
+    // Use the persisted status as the authoritative value.  It was written by
+    // the driver after each node transition (via `persist_pipeline_state_with_status`)
+    // or explicitly by `force_complete_pipeline`, so it correctly reflects any
+    // admin override that would be lost if we re-derived from node states alone.
+    let persisted_status = frontmatter
+        .get("status")
+        .and_then(YamlValue::as_str)
+        .map(str::to_owned);
     let result = build_pipeline_view_result(
         context,
         session_id,
         &definition,
         &node_states,
         ambient_prompt,
+        persisted_status.as_deref(),
     )?;
 
     Ok(match context.output_format {
@@ -64,9 +73,15 @@ pub(super) fn build_pipeline_view_result(
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
     ambient_prompt: Option<&str>,
+    persisted_status: Option<&str>,
 ) -> Result<Value> {
     let ready = compute_ready_set(definition, node_states);
-    let status = compute_pipeline_status_with_definition(definition, node_states);
+    // Prefer an explicitly persisted status (written by the driver or an admin
+    // override such as force-complete) over a freshly computed value.  Callers
+    // that are constructing the view for freshly-computed, in-memory node states
+    // (surgery, restart, status update) pass `None` and get computed status.
+    let status = persisted_status
+        .unwrap_or_else(|| compute_pipeline_status_with_definition(definition, node_states));
     let active = node_ids_with_status(definition, node_states, NodeStatus::Active)?;
     let completed = node_ids_with_status(definition, node_states, NodeStatus::Completed)?;
     let nodes = pipeline_nodes_json(

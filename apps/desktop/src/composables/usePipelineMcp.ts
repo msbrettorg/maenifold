@@ -18,7 +18,7 @@ interface PipelineListResult {
 
 const sharedMcpClients = new Map<string, ReturnType<typeof useMcpClient>>();
 
-function getSharedMcpClient(baseUrl?: string) {
+export function getSharedMcpClient(baseUrl?: string) {
   const key = baseUrl ?? '__default__';
   const existing = sharedMcpClients.get(key);
   if (existing) {

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import SettingsConnection from './SettingsConnection.vue';
+import SettingsMaenifold from './SettingsMaenifold.vue';
+import SettingsMcpServers from './SettingsMcpServers.vue';
 import SettingsPreferences from './SettingsPreferences.vue';
 
 const emit = defineEmits<{
@@ -8,7 +10,9 @@ const emit = defineEmits<{
 }>();
 
 const sections = [
-  { id: 'connection', label: 'Connection', description: 'Manage agents and config file access.' },
+  { id: 'connection', label: 'Agents', description: 'Manage ACP agents and their configuration.' },
+  { id: 'mcp-servers', label: 'MCP Servers', description: 'Configure global MCP server connections.' },
+  { id: 'maenifold', label: 'Maenifold', description: 'Configure maenifold runtime behavior and tuning.' },
   { id: 'preferences', label: 'Preferences', description: 'Control persisted application defaults.' },
 ] as const;
 
@@ -44,6 +48,8 @@ const activeSection = ref<SectionId>('connection');
 
         <main class="settings-content">
           <SettingsConnection v-if="activeSection === 'connection'" />
+          <SettingsMcpServers v-else-if="activeSection === 'mcp-servers'" />
+          <SettingsMaenifold v-else-if="activeSection === 'maenifold'" />
           <SettingsPreferences v-else />
         </main>
       </div>

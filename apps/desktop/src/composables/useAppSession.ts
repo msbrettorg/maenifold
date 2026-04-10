@@ -2,6 +2,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { open } from '@tauri-apps/plugin-dialog';
 import { load, type Store } from '@tauri-apps/plugin-store';
 import { isAbsolutePath } from '../lib/acp-meta';
+import { PREFS_STORE_PATH } from '../lib/constants';
 import type { AppAuthMethod } from '../lib/auth-methods';
 import { initTelemetry } from '../lib/telemetry';
 import type { AgentsConfig, PermissionRequest, SavedSession, SessionState } from '../lib/types';
@@ -62,7 +63,7 @@ export function useAppSession({
   // Bootstrap: load preferences, init telemetry, load config, init session store
   onMounted(async () => {
     try {
-      prefsStore = await load('preferences.json');
+      prefsStore = await load(PREFS_STORE_PATH);
       const telemetryEnabled = await prefsStore.get<boolean>('telemetryEnabled') ?? true;
       await initTelemetry(telemetryEnabled);
       await configStore.loadConfig();

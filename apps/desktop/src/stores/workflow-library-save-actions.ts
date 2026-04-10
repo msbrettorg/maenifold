@@ -45,6 +45,10 @@ function validateDraft(draft: WorkflowAssetDefinition): string | null {
 }
 
 async function resolveWorkflowAssetsRoot() {
+  const envRoot = (import.meta.env as ImportMetaEnv & { VITE_MAENIFOLD_ROOT?: string }).VITE_MAENIFOLD_ROOT
+  if (typeof envRoot === 'string' && envRoot.trim()) {
+    return join(envRoot, 'assets', 'workflows')
+  }
   return join(await homeDir(), 'maenifold', 'assets', 'workflows')
 }
 

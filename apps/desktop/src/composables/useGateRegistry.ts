@@ -1,8 +1,8 @@
 import { onMounted, ref, toValue, watch, type MaybeRefOrGetter } from 'vue';
 import { open } from '@tauri-apps/plugin-dialog';
 import { load, type Store } from '@tauri-apps/plugin-store';
+import { PREFS_STORE_PATH } from '../lib/constants';
 
-const PREFS_PATH = 'preferences.json';
 const GATE_ROOTS_KEY = 'gateRoots';
 const SELECTED_GATE_ROOT_KEY = 'selectedGateRoot';
 
@@ -79,7 +79,7 @@ export function useGateRegistry(seedRoot: MaybeRefOrGetter<string>) {
 
   onMounted(async () => {
     try {
-      prefsStore = await load(PREFS_PATH);
+      prefsStore = await load(PREFS_STORE_PATH);
       gateRoots.value = uniqueRoots((await prefsStore.get<string[]>(GATE_ROOTS_KEY)) ?? []);
       selectedGateRoot.value = normalizeRoot(
         (await prefsStore.get<string>(SELECTED_GATE_ROOT_KEY)) ?? gateRoots.value[0] ?? '',

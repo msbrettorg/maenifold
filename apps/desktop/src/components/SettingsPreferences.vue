@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { load, type Store } from '@tauri-apps/plugin-store';
+import { PREFS_STORE_PATH } from '../lib/constants';
 import { initTelemetry, setTelemetryEnabled } from '../lib/telemetry';
-
-const PREFS_PATH = 'preferences.json';
 
 const telemetryEnabled = ref(true);
 const lastCwd = ref('');
@@ -51,7 +50,7 @@ async function clearLastCwd() {
 
 onMounted(async () => {
   try {
-    prefsStore = await load(PREFS_PATH);
+    prefsStore = await load(PREFS_STORE_PATH);
     telemetryEnabled.value = (await prefsStore.get<boolean>('telemetryEnabled')) ?? true;
     lastCwd.value = (await prefsStore.get<string>('lastCwd')) ?? '';
   } catch (loadError) {
@@ -67,7 +66,7 @@ onMounted(async () => {
     <div class="section-header">
       <div>
         <h3>Preferences</h3>
-        <p>These values are persisted locally in <code>{{ PREFS_PATH }}</code>.</p>
+        <p>These values are persisted locally in <code>{{ PREFS_STORE_PATH }}</code>.</p>
       </div>
       <span class="status-chip" :class="{ saving }">
         {{ saving ? 'Saving…' : 'Local only' }}

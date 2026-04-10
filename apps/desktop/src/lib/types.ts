@@ -14,12 +14,78 @@ interface AcpMetadataCarrier {
   _meta?: AcpMetadata;
 }
 
+export type McpServerEntry =
+  | {
+      type: 'stdio';
+      name: string;
+      command: string;
+      args?: string[];
+    }
+  | {
+      type: 'http';
+      name: string;
+      url: string;
+    };
+
 export interface AgentConfig {
   command: string;
+  env?: Record<string, string>;
+  mcpServers?: McpServerEntry[];
 }
 
 export interface AgentsConfig {
+  mcpServers?: McpServerEntry[];
   agents: Record<string, AgentConfig>;
+  settings?: MaenifoldSettings;
+}
+
+export interface DecaySettings {
+  graceDaysSequential: number;
+  graceDaysWorkflows: number;
+  graceDaysDefault: number;
+  halfLifeDays: number;
+  function: string;
+}
+
+export interface CommunitySettings {
+  louvainGamma: number;
+  minSharedNeighbors: number;
+  minOverlap: number;
+  maxSiblings: number;
+  debounceMs: number;
+  nmiThreshold: number;
+  recomputeFileThreshold: number | null;
+}
+
+export interface VectorSettings {
+  embeddingLogs: boolean;
+  vectorLogs: boolean;
+  disableVector: boolean;
+}
+
+export interface DebugSettings {
+  trace: boolean;
+  pipelineDriver: string | null;
+}
+
+export interface MaenifoldSettings {
+  logRotation: string;
+  debounceMs: number;
+  autoSync: boolean;
+  syncLogging: boolean;
+  sessionCleanup: boolean;
+  sqliteBusyTimeoutMs: number;
+  syncLeaseMs: number;
+  watcherBufferSize: number;
+  incrementalOptimizeEvery: number;
+  incrementalVacuumMinutes: number;
+  sessionAbandonMinutes: number | null;
+  snippetLength: number | null;
+  syncRole: string | null;
+  decay: DecaySettings;
+  community: CommunitySettings;
+  vector: VectorSettings;
+  debug: DebugSettings;
 }
 
 export interface AgentInstance {

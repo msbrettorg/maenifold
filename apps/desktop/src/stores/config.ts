@@ -5,7 +5,7 @@ import type { AgentsConfig, AgentConfig } from '../lib/types';
 import { getConfig, reloadConfig, getConfigPath, onConfigChanged } from '../lib/tauri';
 
 export const useConfigStore = defineStore('config', () => {
-  const config = ref<AgentsConfig>({ agents: {} });
+  const config = ref<AgentsConfig>({ mcpServers: [], agents: {} });
   const configPath = ref<string>('');
   const loading = ref(false);
   const error = ref<string | null>(null);

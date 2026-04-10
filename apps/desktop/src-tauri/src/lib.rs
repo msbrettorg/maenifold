@@ -5,7 +5,7 @@ mod graph;
 mod workflow_assets;
 
 use agent::{AgentInstance, AgentManager};
-use config::{AgentConfig, AgentsConfig, ConfigManager};
+use config::{AgentConfig, AgentsConfig, ConfigManager, MaenifoldSettings};
 use gate::{
     load_gate_snapshot, read_gate_task_markdown, start_gate_watcher, stop_gate_watcher,
     GateWatcherManager,
@@ -88,14 +88,14 @@ fn list_running_agents(state: State<AppState>) -> Vec<String> {
 #[tauri::command]
 fn add_agent(
     name: String,
-    command: String,
+    config: AgentConfig,
     state: State<AppState>,
 ) -> Result<AgentsConfig, String> {
     let config_manager = state.config_manager.read();
     config_manager
         .as_ref()
         .ok_or_else(|| "Config manager not initialized".to_string())?
-        .add_agent(name, AgentConfig { command })
+        .add_agent(name, config)
 }
 
 #[tauri::command]
@@ -110,14 +110,70 @@ fn remove_agent(name: String, state: State<AppState>) -> Result<AgentsConfig, St
 #[tauri::command]
 fn update_agent(
     name: String,
-    command: String,
+    config: AgentConfig,
     state: State<AppState>,
 ) -> Result<AgentsConfig, String> {
     let config_manager = state.config_manager.read();
     config_manager
         .as_ref()
         .ok_or_else(|| "Config manager not initialized".to_string())?
-        .update_agent(name, AgentConfig { command })
+        .update_agent(name, config)
+}
+
+#[tauri::command]
+fn add_mcp_server(
+    entry: config::McpServerEntry,
+    state: State<AppState>,
+) -> Result<AgentsConfig, String> {
+    let config_manager = state.config_manager.read();
+    config_manager
+        .as_ref()
+        .ok_or_else(|| "Config manager not initialized".to_string())?
+        .add_mcp_server(entry)
+}
+
+#[tauri::command]
+fn remove_mcp_server(name: String, state: State<AppState>) -> Result<AgentsConfig, String> {
+    let config_manager = state.config_manager.read();
+    config_manager
+        .as_ref()
+        .ok_or_else(|| "Config manager not initialized".to_string())?
+        .remove_mcp_server(&name)
+}
+
+#[tauri::command]
+fn update_mcp_server(
+    name: String,
+    entry: config::McpServerEntry,
+    state: State<AppState>,
+) -> Result<AgentsConfig, String> {
+    let config_manager = state.config_manager.read();
+    config_manager
+        .as_ref()
+        .ok_or_else(|| "Config manager not initialized".to_string())?
+        .update_mcp_server(&name, entry)
+}
+
+#[tauri::command]
+fn get_maenifold_settings(state: State<'_, AppState>) -> Result<MaenifoldSettings, String> {
+    let config_manager = state.config_manager.read();
+    let config = config_manager
+        .as_ref()
+        .ok_or_else(|| "Config manager not initialized".to_string())?
+        .get_config();
+    Ok(config.settings.unwrap_or_default())
+}
+
+#[tauri::command]
+fn update_maenifold_settings(
+    settings: MaenifoldSettings,
+    state: State<'_, AppState>,
+) -> Result<AgentsConfig, String> {
+    let config_manager = state.config_manager.read();
+    config_manager
+        .as_ref()
+        .ok_or_else(|| "Config manager not initialized".to_string())?
+        .update_settings(settings)
 }
 
 #[tauri::command]
@@ -179,6 +235,11 @@ pub fn run() {
             add_agent,
             remove_agent,
             update_agent,
+            add_mcp_server,
+            remove_mcp_server,
+            update_mcp_server,
+            get_maenifold_settings,
+            update_maenifold_settings,
             get_machine_id,
             save_workflow_asset,
             load_gate_snapshot,

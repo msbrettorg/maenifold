@@ -52,8 +52,13 @@ pub struct ConceptGraph {
 }
 
 fn resolve_db_path() -> Result<PathBuf, String> {
-    let home = dirs::home_dir().ok_or_else(|| "Could not determine home directory".to_string())?;
-    let path = home.join("maenifold").join("memory.db");
+    let path = if let Ok(root) = std::env::var("MAENIFOLD_ROOT") {
+        PathBuf::from(root).join("memory.db")
+    } else {
+        let home =
+            dirs::home_dir().ok_or_else(|| "Could not determine home directory".to_string())?;
+        home.join("maenifold").join("memory.db")
+    };
     if !path.exists() {
         return Err(format!("Graph database not found at {}", path.display()));
     }

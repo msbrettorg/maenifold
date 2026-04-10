@@ -5,6 +5,7 @@ import type {
   RecentResult,
   SearchResult,
 } from '../lib/workflow-types';
+import { DEFAULT_MCP_BASE_URL } from '../lib/constants';
 import { getTauriFetch } from '../lib/http';
 
 interface SearchMemoriesOptions {
@@ -70,7 +71,7 @@ export function getApiBase(): string {
   // In tauri dev, window.location.origin is the Vite server (localhost:1420),
   // NOT the MCP backend. Returning that origin causes 404s on /mcp and /memory.
   // Both dev and production use tauri-plugin-http which bypasses CORS.
-  return import.meta.env.VITE_MCP_BASE_URL ?? 'http://127.0.0.1:8080';
+  return import.meta.env.VITE_MCP_BASE_URL ?? DEFAULT_MCP_BASE_URL;
 }
 
 async function fetchJson<T>(path: string, params: URLSearchParams): Promise<T> {

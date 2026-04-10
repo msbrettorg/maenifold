@@ -1,4 +1,5 @@
 import { readonly, ref } from 'vue';
+import { DEFAULT_MCP_BASE_URL, MCP_PROTOCOL_VERSION } from '../lib/constants';
 import { getTauriFetch } from '../lib/http';
 import { getApiBase } from './useMemoryApi';
 import type {
@@ -16,7 +17,7 @@ export function useMcpClient(baseUrl?: string) {
   const reconnecting = ref(false);
   const error = ref<string | null>(null);
 
-  const resolvedBase = (baseUrl ?? getApiBase()) || 'http://127.0.0.1:8080';
+  const resolvedBase = (baseUrl ?? getApiBase()) || DEFAULT_MCP_BASE_URL;
   const mcpUrl = `${resolvedBase}/mcp`;
   let nextId = 1;
   let reconnectPromise: Promise<void> | null = null;
@@ -31,7 +32,7 @@ export function useMcpClient(baseUrl?: string) {
     if (sessionId.value) {
       headers['Mcp-Session-Id'] = sessionId.value;
     } else {
-      headers['Mcp-Protocol-Version'] = '2025-03-26';
+      headers['Mcp-Protocol-Version'] = MCP_PROTOCOL_VERSION;
     }
 
     return headers;
@@ -163,7 +164,7 @@ export function useMcpClient(baseUrl?: string) {
 
     try {
       const { response } = await jsonRpc('initialize', {
-        protocolVersion: '2025-03-26',
+        protocolVersion: MCP_PROTOCOL_VERSION,
         capabilities: {},
         clientInfo: { name: 'pipeline-ui', version: '0.1.0' },
       }, { allowReconnect: false });

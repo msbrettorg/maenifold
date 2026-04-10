@@ -12,13 +12,17 @@
 
 **Status:** Pre-1.0 developer preview. Build from source. Desktop and pipeline features are experimental.
 
+**Product thesis:** First solve the intelligence problem. Work is a byproduct.
+
 # maenifold
 
-maenifold is a local-first Rust backend plus a Tauri desktop app for working with persistent agent memory, ACP sessions, visual pipelines, and gated delivery. The desktop app, the CLI, and external AI clients all talk to the same MCP-native tool surface. The goal is simple: one place to reason, orchestrate, and keep context alive across sessions.
+maenifold is a local-first Rust backend plus a Tauri desktop app for working with persistent agent memory, ACP sessions, reusable workflow assets, visual pipelines, and gated delivery. The desktop app, the CLI, and external AI clients all talk to the same MCP-native tool surface. The goal is simple: one place to reason, orchestrate, execute against the world, and keep context alive across sessions.
+
+Pipelines can execute MCP tools directly against real systems before any model is invoked. That means you can pull structured context from anything that speaks MCP, including local shell-backed servers and external services, then spend tokens only on the downstream steps that actually require reasoning, synthesis, or generation.
 
 The knowledge graph starts with ordinary markdown and `[[WikiLinks]]`. Each WikiLink becomes a concept node; co-occurrence becomes edges; sync turns the corpus into a graph you can search, visualize, and use to prime new sessions. Community detection clusters related concepts, and graph context can be pulled back into workflows or chat when needed. The source of truth stays readable because the memory layer is still just files plus a local database. You can inspect the graph and the underlying notes side by side.
 
-The backend centers on `crates/maenifold-core` at roughly 39K lines of Rust, with about 48K Rust lines across the repo's crates, and exposes 29 MCP tools. The desktop app has five surfaces: Agents for ACP chat, Pipelines for DAG orchestration, Gates for staged task flow, Workflows for the 70-workflow asset library, and Graph for community-level concept exploration. Current repo configuration targets `Copilot`, `Goose`, `OpenCode`, `Codex`, and `claude-code` agents. The backend and all persistent state run locally. MIT licensed.
+The backend centers on `crates/maenifold-core` and exposes 29 MCP tools. The desktop app has five surfaces: Agents for ACP chat, Pipelines for DAG orchestration, Gates for staged task flow, Workflows for the 69-workflow asset library, and Graph for community-level concept exploration. Current repo configuration targets `Copilot`, `Goose`, `OpenCode`, `Codex`, and `claude-code` agents. The backend and all persistent state run locally. MIT licensed.
 
 ## The Five Surfaces
 
@@ -32,7 +36,9 @@ The backend centers on `crates/maenifold-core` at roughly 39K lines of Rust, wit
 
 - Visual DAG editor with runtime status, logs, and inspector panels.
 - Four node types: `workflow`, `prompt`, `sequentialThinking`, and `tool`.
+- Tool nodes can execute MCP calls directly, so structured retrieval and system actions do not require model-token spend.
 - Supports pipeline surgery: `fork`, `graft`, `join`, and `rewind`.
+- North star: self-evolving pipelines that learn from execution traces and improve how they gather context, route reasoning, and shape the graph over time.
 
 ### Gates
 
@@ -43,6 +49,7 @@ The backend centers on `crates/maenifold-core` at roughly 39K lines of Rust, wit
 ### Workflows
 
 - Browse and filter 69 bundled workflows from the asset library.
+- Workflows are reusable cognitive methods, not just saved prompts or sample JSON.
 - Author and inspect workflow JSON in the desktop workflow editor.
 - Import external workflow JSON and save it back into the local library.
 
@@ -55,6 +62,8 @@ The backend centers on `crates/maenifold-core` at roughly 39K lines of Rust, wit
 ## Architecture
 
 maenifold is MCP-native by design. The desktop app, the CLI, and external agent clients all use the same protocol and meet at the same constitutional boundary: domain state lives behind MCP instead of being reimplemented in each frontend. The server speaks stdio MCP and streamable HTTP; the pipeline runtime can call external MCP servers over stdio or streamable HTTP/HTTPS. The repo is a monorepo: the Rust workspace owns the backend crates, while `apps/desktop/` lives alongside it as a Tauri + Vue app and is excluded from the Rust workspace itself.
+
+The long-term shape is a no-code intelligence environment: workflows codify reusable reasoning methods, pipelines ground those methods in real systems through direct MCP execution, and work outputs emerge as artifacts of the intelligence substrate rather than the product's sole purpose.
 
 ```text
 maenifold-rs/
@@ -129,7 +138,7 @@ The repo ships with a sizable local asset library:
 - **7 colors** in `assets/colors/`
 - **12 perspectives** in `assets/perspectives/`
 
-These assets are consumed by the workflow engine, desktop authoring tools, and MCP-facing adoption flows.
+These assets are consumed by the workflow engine, desktop authoring tools, and MCP-facing adoption flows. They are part of the product surface: reusable cognitive assets that let you compose methods of thought, not just connector configuration.
 
 ## Integrations
 

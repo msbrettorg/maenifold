@@ -5,6 +5,9 @@ members = [
   "crates/maenifold-gate",
   "crates/maenifold-pipeline-driver",
 ]
+exclude = [
+  "apps/desktop/src-tauri",
+]
 resolver = "2"
 
 [workspace.package]

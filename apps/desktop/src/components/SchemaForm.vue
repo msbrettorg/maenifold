@@ -1,29 +1,17 @@
 <script setup lang="ts">
-import type { JsonSchema } from '@jsonforms/core';
 import { JsonForms } from '@jsonforms/vue';
 import { computed, provide, ref, watch } from 'vue';
 import { frozenRenderers, themedStyles } from '../lib/jsonforms-theme';
-
-type FallbackReason = 'missing' | 'unsupported' | 'complex';
-
-interface SchemaComplexity {
-  arrayCount: number;
-  combinatorCount: number;
-  enumValueCount: number;
-  maxDepth: number;
-  objectCount: number;
-  propertyCount: number;
-}
-
-const EMPTY_RECORD: Readonly<Record<string, unknown>> = Object.freeze({});
-const COMPLEX_SCHEMA_LIMITS = Object.freeze({
-  arrayCount: 3,
-  combinatorCount: 0,
-  maxDepth: 4,
-  objectCount: 7,
-  propertyCount: 18,
-  score: 28,
-});
+import {
+  cloneRecord,
+  getFormValidationErrors,
+  inspectFormSchema,
+  isRecord,
+  normalizeFormData,
+  schemaFormAjv,
+  stringifyRecord,
+  validateFormData,
+} from '../lib/schema-form';
 
 const props = defineProps<{
   schema: unknown;
@@ -37,30 +25,43 @@ const emit = defineEmits<{
 
 const rawJson = ref('');
 const rawJsonError = ref('');
+const showAdvancedRaw = ref(false);
 const lastPublishedData = ref(stringifyRecord(props.data));
 
 provide('styles', themedStyles);
 
-const fallbackReason = computed<FallbackReason | null>(() => getFallbackReason(props.schema));
+const schemaAssessment = computed(() => inspectFormSchema(props.schema));
+const fallbackReason = computed(() => schemaAssessment.value.fallbackReason);
 const fallbackMessage = computed(() => {
   switch (fallbackReason.value) {
     case 'complex':
       return 'Schema is too large or deeply nested for the inspector — edit the payload directly.';
+    case 'unsafe':
+      return 'Schema uses external references that the inspector will not resolve — edit the payload directly.';
     case 'unsupported':
       return 'Schema shape is not supported in the inspector — edit the payload directly.';
     default:
       return 'Schema unavailable — edit the payload directly.';
   }
 });
-const showRawFallback = computed(() => fallbackReason.value !== null);
-const formSchema = computed<JsonSchema>(() => props.schema as JsonSchema);
+const rawEditorTitle = computed(() => (fallbackReason.value === null ? 'Advanced Raw JSON' : 'Raw JSON'));
+const rawEditorMessage = computed(() =>
+  fallbackReason.value === null
+    ? 'Advanced mode bypasses the form renderer and edits the payload directly.'
+    : fallbackMessage.value,
+);
+const canToggleAdvancedRaw = computed(() => fallbackReason.value === null);
+const showRawEditor = computed(() => fallbackReason.value !== null || showAdvancedRaw.value);
+const formSchema = computed(() => schemaAssessment.value.formSchema);
+const formValidator = computed(() => schemaAssessment.value.validator);
 
 watch(
   () => props.data,
   (value) => {
     const nextSerialized = stringifyRecord(value);
     lastPublishedData.value = nextSerialized;
-    if (!showRawFallback.value) {
+    if (!showRawEditor.value) {
+      emitFormValidation();
       return;
     }
 
@@ -68,21 +69,32 @@ watch(
     if (nextRawJson !== rawJson.value) {
       rawJson.value = nextRawJson;
     }
-    rawJsonError.value = '';
-    emit('validation', { valid: true });
+    emitRawValidation(normalizeFormData(value));
   },
   { deep: true, immediate: true },
 );
 
 watch(
-  () => props.schema,
+  () => fallbackReason.value,
+  (reason) => {
+    if (reason !== null) {
+      showAdvancedRaw.value = false;
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  () => [props.schema, showRawEditor.value] as const,
   () => {
-    if (showRawFallback.value) {
+    if (showRawEditor.value) {
       rawJson.value = stringifyRecord(props.data);
       lastPublishedData.value = rawJson.value;
-      rawJsonError.value = '';
-      emit('validation', { valid: true });
+      emitRawValidation(normalizeFormData(props.data));
+      return;
     }
+
+    emitFormValidation();
   },
   { immediate: true },
 );
@@ -109,9 +121,10 @@ function handleRawInput(event: Event): void {
       return;
     }
 
-    rawJsonError.value = '';
-    emit('validation', { valid: true });
     const nextData = cloneRecord(parsed);
+    if (!emitRawValidation(nextData)) {
+      return;
+    }
     const nextSerialized = stringifyRecord(nextData);
     if (nextSerialized === lastPublishedData.value) {
       return;
@@ -124,142 +137,53 @@ function handleRawInput(event: Event): void {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+function toggleAdvancedRaw(): void {
+  if (!canToggleAdvancedRaw.value) {
+    return;
+  }
+  showAdvancedRaw.value = !showAdvancedRaw.value;
 }
 
-function cloneRecord<T extends Record<string, unknown>>(value: T): T {
-  if (typeof structuredClone === 'function') {
-    return structuredClone(value);
+function emitFormValidation(): void {
+  emit('validation', {
+    valid: validateFormData(formValidator.value, normalizeFormData(props.data)),
+  });
+}
+
+function emitRawValidation(data: Record<string, unknown>): boolean {
+  const errors = getFormValidationErrors(formValidator.value, data);
+  const valid = errors?.length === 0;
+
+  if (errors == null) {
+    rawJsonError.value = 'This payload cannot be schema-validated here, so submit stays disabled.';
+    emit('validation', { valid: false });
+    return false;
   }
 
-  return JSON.parse(JSON.stringify(value)) as T;
+  rawJsonError.value = valid ? '' : formatValidationError(errors[0]);
+  emit('validation', { valid });
+  return valid;
 }
 
-function stringifyRecord(value: Record<string, unknown>): string {
-  return JSON.stringify(value, null, 2);
-}
-
-function normalizeFormData(value: unknown): Record<string, unknown> {
-  return isRecord(value) ? cloneRecord(value) : cloneRecord(EMPTY_RECORD);
-}
-
-function getFallbackReason(schema: unknown): FallbackReason | null {
-  if (schema == null) {
-    return 'missing';
-  }
-  if (!isSchemaObject(schema)) {
-    return 'unsupported';
-  }
-
-  const complexity = analyzeSchema(schema);
-  const score =
-    complexity.propertyCount
-    + complexity.objectCount * 2
-    + complexity.arrayCount * 4
-    + complexity.combinatorCount * 6
-    + Math.max(0, complexity.maxDepth - 2) * 4
-    + Math.ceil(complexity.enumValueCount / 10);
-
-  if (
-    complexity.combinatorCount > COMPLEX_SCHEMA_LIMITS.combinatorCount
-    || complexity.maxDepth > COMPLEX_SCHEMA_LIMITS.maxDepth
-    || complexity.arrayCount > COMPLEX_SCHEMA_LIMITS.arrayCount
-    || complexity.objectCount > COMPLEX_SCHEMA_LIMITS.objectCount
-    || complexity.propertyCount > COMPLEX_SCHEMA_LIMITS.propertyCount
-    || score > COMPLEX_SCHEMA_LIMITS.score
-  ) {
-    return 'complex';
-  }
-
-  return null;
-}
-
-function analyzeSchema(schema: Record<string, unknown>, depth = 1, seen = new Set<object>()): SchemaComplexity {
-  if (seen.has(schema)) {
-    return {
-      arrayCount: 0,
-      combinatorCount: 0,
-      enumValueCount: 0,
-      maxDepth: depth,
-      objectCount: 0,
-      propertyCount: 0,
-    };
-  }
-  seen.add(schema);
-
-  const properties = isSchemaObject(schema.properties) ? Object.values(schema.properties) : [];
-  const combinators = [
-    ...collectSchemaArray(schema.oneOf),
-    ...collectSchemaArray(schema.anyOf),
-    ...collectSchemaArray(schema.allOf),
-  ];
-  const prefixedItems = collectSchemaArray(schema.prefixItems);
-  const childSchemas = [
-    ...properties.filter(isSchemaObject),
-    ...combinators,
-    ...prefixedItems,
-    ...collectSingleSchema(schema.items),
-    ...collectSingleSchema(schema.additionalProperties),
-    ...collectSingleSchema(schema.contains),
-    ...collectPropertySchemas(schema.$defs),
-    ...collectPropertySchemas(schema.definitions),
-  ];
-
-  const stats: SchemaComplexity = {
-    arrayCount: hasArrayShape(schema) ? 1 : 0,
-    combinatorCount: combinators.length,
-    enumValueCount: Array.isArray(schema.enum) ? schema.enum.length : 0,
-    maxDepth: depth,
-    objectCount: hasObjectShape(schema) ? 1 : 0,
-    propertyCount: properties.length,
-  };
-
-  for (const child of childSchemas) {
-    const childStats = analyzeSchema(child, depth + 1, seen);
-    stats.arrayCount += childStats.arrayCount;
-    stats.combinatorCount += childStats.combinatorCount;
-    stats.enumValueCount += childStats.enumValueCount;
-    stats.maxDepth = Math.max(stats.maxDepth, childStats.maxDepth);
-    stats.objectCount += childStats.objectCount;
-    stats.propertyCount += childStats.propertyCount;
-  }
-
-  return stats;
-}
-
-function isSchemaObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function hasObjectShape(schema: Record<string, unknown>): boolean {
-  return schema.type === 'object' || isSchemaObject(schema.properties);
-}
-
-function hasArrayShape(schema: Record<string, unknown>): boolean {
-  return schema.type === 'array' || schema.items != null || Array.isArray(schema.prefixItems);
-}
-
-function collectSchemaArray(value: unknown): Record<string, unknown>[] {
-  return Array.isArray(value) ? value.filter(isSchemaObject) : [];
-}
-
-function collectSingleSchema(value: unknown): Record<string, unknown>[] {
-  return isSchemaObject(value) ? [value] : [];
-}
-
-function collectPropertySchemas(value: unknown): Record<string, unknown>[] {
-  return isSchemaObject(value) ? Object.values(value).filter(isSchemaObject) : [];
+function formatValidationError(error: { instancePath?: string; message?: string; keyword?: string }): string {
+  const location = error.instancePath?.trim() ? error.instancePath : '/';
+  const message = error.message?.trim() || 'Schema validation failed.';
+  return `${location}: ${message}`;
 }
 </script>
 
 <template>
   <section class="schema-form">
     <div class="schema-form__surface">
-      <div v-if="showRawFallback" class="schema-form__fallback panel">
+      <div v-if="canToggleAdvancedRaw" class="schema-form__toolbar">
+        <button type="button" class="btn btn-ghost" @click="toggleAdvancedRaw">
+          {{ showAdvancedRaw ? 'Back to Form' : 'Advanced JSON' }}
+        </button>
+      </div>
+      <div v-if="showRawEditor" class="schema-form__fallback panel">
         <div class="schema-form__fallback-header">
-          <h3>Raw JSON</h3>
-          <p>{{ fallbackMessage }}</p>
+          <h3>{{ rawEditorTitle }}</h3>
+          <p>{{ rawEditorMessage }}</p>
         </div>
         <textarea
           class="field-textarea schema-form__fallback-textarea"
@@ -272,9 +196,11 @@ function collectPropertySchemas(value: unknown): Record<string, unknown>[] {
       </div>
       <json-forms
         v-else
+        :ajv="schemaFormAjv"
         :data="props.data"
         :renderers="frozenRenderers"
-        :schema="formSchema"
+        :schema="formSchema ?? undefined"
+        validation-mode="ValidateAndShow"
         @change="handleFormChange"
       />
     </div>
@@ -296,6 +222,11 @@ function collectPropertySchemas(value: unknown): Record<string, unknown>[] {
   padding-right: var(--space-1);
   scrollbar-width: thin;
   scrollbar-color: var(--border-default) transparent;
+}
+
+.schema-form__toolbar {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .schema-form__surface::-webkit-scrollbar {

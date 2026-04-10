@@ -1,4 +1,4 @@
-import { computed, ref, type Ref } from 'vue';
+import { computed, ref, watch, type Ref } from 'vue';
 import { createNode, createNodeId } from '../lib/pipeline-node-factory';
 import type { EdgeType, PipelineEdge, PipelineNode, PipelineNodeType } from '../lib/pipeline-types';
 import {
@@ -51,6 +51,11 @@ export function useGraftNodes({ existingNodeIds, busy, onSubmit }: UseGraftNodes
   }
   const trim = (value: string) => value.trim();
   const canSubmit = computed(() => canSubmitPipelineNodeForm(nodeType.value, getFormValues()));
+
+  watch(toolName, () => {
+    toolArgs.value = {};
+    toolArgsValid.value = false;
+  });
 
   function buildNode(requestedId: string): PipelineNode {
     const id = resolveNodeId(requestedId);

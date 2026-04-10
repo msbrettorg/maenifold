@@ -105,9 +105,24 @@ async fn invoke_via_http(
     url: &str,
     arguments: Option<JsonMap<String, JsonValue>>,
 ) -> Result<String> {
-    use rmcp::transport::StreamableHttpClientTransport;
+    use rmcp::transport::{
+        StreamableHttpClientTransport,
+        streamable_http_client::StreamableHttpClientTransportConfig,
+    };
 
-    let transport = StreamableHttpClientTransport::from_uri(url);
+    // Build an explicit reqwest client with a 30-second timeout.
+    // rustls is activated transitively via rmcp's `reqwest` feature flag
+    // (`reqwest?/rustls`), so this client is rustls-capable for HTTPS endpoints.
+    let http_client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|error| {
+            MaenifoldError::Message(format!(
+                "Failed to build HTTP client for MCP server '{server_name}': {error}"
+            ))
+        })?;
+    let config = StreamableHttpClientTransportConfig::with_uri(url);
+    let transport = StreamableHttpClientTransport::with_client(http_client, config);
 
     let mut client = ().serve(transport).await.map_err(|error| {
         MaenifoldError::Message(format!(

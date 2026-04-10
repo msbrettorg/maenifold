@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { usePipelineStore } from '../stores/pipeline';
 import { useConfigStore } from '../stores/config';
-import { groupToolsByCategory } from '../lib/tool-categories';
 import type { PipelineEdge, PipelineNode, PipelineNodeType } from '../lib/pipeline-types';
 import { getNodeType, isPromptNode, isSequentialThinkingNode, isToolNode, isWorkflowNode } from '../lib/pipeline-types';
 import EdgeMappingEditor from './EdgeMappingEditor.vue';
 import PipelineInspectorServer from './PipelineInspectorServer.vue';
-import SchemaForm from './SchemaForm.vue';
+import ToolNodeFields from './ToolNodeFields.vue';
 
 const EMPTY_TOOL_ARGS: Readonly<Record<string, unknown>> = Object.freeze({});
 
@@ -21,9 +20,6 @@ const store = usePipelineStore();
 const configStore = useConfigStore();
 const capabilitiesStore = useAgentCapabilitiesStore();
 const workflowListId = 'pipeline-inspector-workflows';
-const toolOptions = computed(() => groupToolsByCategory(store.tools));
-const attemptedToolLoad = ref(false);
-const loadingToolSchemas = ref(false);
 
 const selectedDesignNode = computed(() =>
   props.selectedNodeId
@@ -50,9 +46,6 @@ const selectedThinkingDesignNode = computed(() =>
 );
 const selectedToolDesignNode = computed(() =>
   selectedDesignNode.value && isToolNode(selectedDesignNode.value) ? selectedDesignNode.value : null,
-);
-const selectedToolSchema = computed(
-  () => store.tools.find((tool) => tool.name === selectedToolDesignNode.value?.toolName)?.inputSchema ?? null,
 );
 const selectedToolArgsData = computed<Record<string, unknown>>(
   () => selectedToolDesignNode.value?.toolArgs ?? EMPTY_TOOL_ARGS,
@@ -83,21 +76,6 @@ watch(
   },
   { immediate: true },
 );
-watch(
-  () => [selectedToolDesignNode.value !== null, store.tools.length] as const,
-  async ([toolNodeSelected, toolCount]) => {
-    if (!toolNodeSelected || toolCount > 0 || attemptedToolLoad.value) return;
-    attemptedToolLoad.value = true;
-    loadingToolSchemas.value = true;
-    try {
-      await store.refreshTools();
-    } finally {
-      loadingToolSchemas.value = false;
-    }
-  },
-  { immediate: true },
-);
-
 function formatNodeType(type?: PipelineNodeType): string {
   return type === 'sequentialThinking'
     ? 'Sequential Thinking'
@@ -178,8 +156,7 @@ function updateThinkingField(event: Event, field: 'topic' | 'agent' | 'analysisT
     isSequentialThinkingNode(node) ? { ...node, [field]: getFieldValue(event) } : node,
   );
 }
-function updateToolName(event: Event): void {
-  const nextToolName = getFieldValue(event);
+function updateToolNameValue(nextToolName: string): void {
   updateDesignNode((node) => {
     if (!isToolNode(node)) return node;
     if (nextToolName === node.toolName) return node;
@@ -247,11 +224,13 @@ function updateTotalThoughts(event: Event): void {
       </template>
 
       <template v-else-if="selectedToolDesignNode">
-        <label class="field"><span>Tool name</span><select class="field-input" :value="selectedToolDesignNode.toolName" @change="updateToolName"><option value="" disabled>Select tool…</option><optgroup v-for="cat in toolOptions" :key="cat.group" :label="cat.group"><option v-for="tool in cat.tools" :key="tool.name" :value="tool.name">{{ tool.name }}</option></optgroup></select><small v-if="loadingToolSchemas">Loading tool schema…</small></label>
-        <div class="field">
-          <span>Tool args</span>
-          <SchemaForm :schema="selectedToolSchema" :data="selectedToolArgsData" @change="updateToolArgs" />
-        </div>
+        <ToolNodeFields
+          :active="selectedToolDesignNode !== null"
+          :tool-name="selectedToolDesignNode.toolName"
+          :tool-args="selectedToolArgsData"
+          @update:tool-name="updateToolNameValue"
+          @update:tool-args="updateToolArgs"
+        />
       </template>
     </section>
 

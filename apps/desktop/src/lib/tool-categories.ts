@@ -31,6 +31,27 @@ export const TOOL_CATEGORIES: Record<string, { label: string; icon: string }> = 
   RunFullBenchmark: { label: 'System', icon: '🏃' },
 };
 
+export function getBareToolName(name: string): string {
+  const trimmed = name.trim();
+  const separatorIndex = trimmed.lastIndexOf('.');
+  return separatorIndex >= 0 ? trimmed.slice(separatorIndex + 1) : trimmed;
+}
+
+export function getToolCategory(name: string): { label: string; icon: string } | undefined {
+  return TOOL_CATEGORIES[getBareToolName(name)];
+}
+
+export function resolveToolDefinition<T extends { name: string }>(
+  tools: T[],
+  toolName: string | null | undefined,
+): T | undefined {
+  if (!toolName) return undefined;
+  return (
+    tools.find((tool) => tool.name === toolName) ??
+    tools.find((tool) => tool.name === getBareToolName(toolName))
+  );
+}
+
 /** Groups tool definitions from MCP into categories using TOOL_CATEGORIES. */
 export function groupToolsByCategory(
   tools: { name: string; description?: string }[],
@@ -38,7 +59,7 @@ export function groupToolsByCategory(
   const groups = new Map<string, { name: string; description?: string }[]>();
 
   for (const tool of tools) {
-    const cat = TOOL_CATEGORIES[tool.name]?.label ?? 'Other';
+    const cat = getToolCategory(tool.name)?.label ?? 'Other';
     if (!groups.has(cat)) groups.set(cat, []);
     groups.get(cat)!.push(tool);
   }

@@ -1,11 +1,13 @@
 mod agent;
 mod config;
 mod graph;
+mod mcp_discovery;
 mod workflow_assets;
 
 use agent::{AgentInstance, AgentManager};
 use config::{AgentConfig, AgentsConfig, ConfigManager, MaenifoldSettings};
 use graph::{load_community_concepts, load_graph_communities};
+use mcp_discovery::{discover_all_mcp_tools, McpServerDiscoveryResult, DEFAULT_DISCOVERY_TIMEOUT};
 use parking_lot::RwLock;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, RunEvent, State, WindowEvent};
@@ -176,6 +178,21 @@ fn get_machine_id() -> Result<String, String> {
     machine_uid::get().map_err(|e| format!("Failed to get machine ID: {}", e))
 }
 
+#[tauri::command]
+async fn discover_mcp_tools(
+    state: State<'_, AppState>,
+) -> Result<Vec<McpServerDiscoveryResult>, String> {
+    let config = {
+        let config_manager = state.config_manager.read();
+        config_manager
+            .as_ref()
+            .ok_or_else(|| "Config manager not initialized".to_string())?
+            .get_config()
+    };
+
+    Ok(discover_all_mcp_tools(&config.mcp_servers, DEFAULT_DISCOVERY_TIMEOUT).await)
+}
+
 fn show_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
@@ -235,6 +252,7 @@ pub fn run() {
             get_maenifold_settings,
             update_maenifold_settings,
             get_machine_id,
+            discover_mcp_tools,
             save_workflow_asset,
             load_graph_communities,
             load_community_concepts

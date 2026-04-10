@@ -13,7 +13,10 @@ use super::session_io::{
     read_pipeline_session, update_workflow_node_frontmatter,
 };
 use super::update::update_pipeline_node_status;
-use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode};
+use super::{
+    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode,
+    compute_pipeline_status_with_definition,
+};
 
 pub(super) const DEFAULT_MAX_CONCURRENCY: usize = 8;
 pub(super) const MAX_CONCLUSION_CHARS: usize = 4096;
@@ -189,6 +192,15 @@ pub(super) fn derive_execution_status(
     }
 
     let node_states = load_pipeline_node_states(context, session_id)?;
+
+    // Use terminal-node-aware status when the definition is available.
+    if let Ok((definition, _)) = load_execution_config(context, session_id) {
+        return Ok(
+            compute_pipeline_status_with_definition(&definition, &node_states).to_string(),
+        );
+    }
+
+    // Fallback (definition unreadable): derive from raw node states.
     if node_states
         .values()
         .all(|state| matches!(state.status, NodeStatus::Completed))

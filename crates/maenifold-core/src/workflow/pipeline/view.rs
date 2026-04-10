@@ -10,7 +10,8 @@ use super::session_io::{derive_pipeline_node_states, frontmatter_value, read_pip
 use super::view_mermaid::{edge_type_name, render_pipeline_mermaid};
 use super::view_nodes::pipeline_nodes_json;
 use super::{
-    NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status, compute_ready_set,
+    NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status_with_definition,
+    compute_ready_set,
 };
 
 pub(super) fn view_pipeline_session(context: &ToolContext, session_id: &str) -> Result<String> {
@@ -65,7 +66,7 @@ pub(super) fn build_pipeline_view_result(
     ambient_prompt: Option<&str>,
 ) -> Result<Value> {
     let ready = compute_ready_set(definition, node_states);
-    let status = compute_pipeline_status(node_states);
+    let status = compute_pipeline_status_with_definition(definition, node_states);
     let active = node_ids_with_status(definition, node_states, NodeStatus::Active)?;
     let completed = node_ids_with_status(definition, node_states, NodeStatus::Completed)?;
     let nodes = pipeline_nodes_json(

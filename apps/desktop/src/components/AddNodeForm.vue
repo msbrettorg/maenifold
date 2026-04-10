@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
 import { useAddNodeForm } from '../composables/useAddNodeForm';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { useConfigStore } from '../stores/config';
-import { usePipelineStore } from '../stores/pipeline';
-import { groupToolsByCategory } from '../lib/tool-categories';
 import type { PipelineNodeDraftByType } from '../lib/pipeline-node-factory';
-import SchemaForm from './SchemaForm.vue';
+import ToolNodeFields from './ToolNodeFields.vue';
 
 interface SubmitNode {
   (type: 'workflow', fields: PipelineNodeDraftByType['workflow']): void;
@@ -48,13 +45,6 @@ const {
 
 const configStore = useConfigStore();
 const capabilitiesStore = useAgentCapabilitiesStore();
-const pipelineStore = usePipelineStore();
-const toolOptions = computed(() => groupToolsByCategory(pipelineStore.tools));
-const selectedToolSchema = computed(
-  () => pipelineStore.tools.find((tool) => tool.name === toolName.value)?.inputSchema ?? null,
-);
-const attemptedToolLoad = ref(false);
-const loadingToolSchemas = ref(false);
 
 function getProbe(agentName: string) {
   return capabilitiesStore.getProbe(agentName);
@@ -67,29 +57,6 @@ function formatAgentOptionLabel(agentName: string): string {
   if (probe.modes.length <= 2 && probe.modes.length > 0) return `${agentName} — ${probe.modes.join(', ')}`;
   if (probe.modes.length > 2) return `${agentName} (${probe.modes.length} modes)`;
   return probe.models.length ? `${agentName} (${probe.models.length} model${probe.models.length === 1 ? '' : 's'})` : agentName;
-}
-
-watch(
-  () => [nodeType.value === 'tool', pipelineStore.tools.length] as const,
-  async ([toolNodeSelected, toolCount]) => {
-    if (!toolNodeSelected || toolCount > 0 || attemptedToolLoad.value) return;
-    attemptedToolLoad.value = true;
-    loadingToolSchemas.value = true;
-    try {
-      await pipelineStore.refreshTools();
-    } finally {
-      loadingToolSchemas.value = false;
-    }
-  },
-  { immediate: true },
-);
-
-function onToolArgsChange(data: Record<string, unknown>): void {
-  toolArgs.value = data;
-}
-
-function onToolArgsValidation(state: { valid: boolean }): void {
-  toolArgsValid.value = state.valid;
 }
 </script>
 
@@ -201,25 +168,14 @@ function onToolArgsValidation(state: { valid: boolean }): void {
       </template>
 
       <template v-else>
-        <label>
-          <span>Tool Name</span>
-          <select v-model="toolName" class="field-input">
-            <option value="" disabled>Select tool…</option>
-            <optgroup v-for="cat in toolOptions" :key="cat.group" :label="cat.group">
-              <option v-for="tool in cat.tools" :key="tool.name" :value="tool.name">{{ tool.name }}</option>
-            </optgroup>
-          </select>
-          <small v-if="loadingToolSchemas">Loading tool schema…</small>
-        </label>
-        <div class="field-wide field-block">
-          <span>Tool Args</span>
-          <SchemaForm
-            :schema="selectedToolSchema"
-            :data="toolArgs"
-            @change="onToolArgsChange"
-            @validation="onToolArgsValidation"
-          />
-        </div>
+        <ToolNodeFields
+          :active="nodeType === 'tool'"
+          :tool-name="toolName"
+          :tool-args="toolArgs"
+          @update:tool-name="toolName = $event"
+          @update:tool-args="toolArgs = $event"
+          @validation="toolArgsValid = $event.valid"
+        />
       </template>
     </div>
   </form>

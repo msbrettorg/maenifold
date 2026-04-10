@@ -27,6 +27,20 @@ export type McpServerEntry =
       url: string;
     };
 
+export interface McpDiscoveredTool {
+  name: string;
+  description?: string | null;
+  inputSchema: Record<string, unknown>;
+}
+
+export interface McpServerDiscoveryResult {
+  server: string;
+  type: string;
+  status: 'ok' | 'error';
+  error?: string | null;
+  tools: McpDiscoveredTool[];
+}
+
 export interface AgentConfig {
   command: string;
   env?: Record<string, string>;

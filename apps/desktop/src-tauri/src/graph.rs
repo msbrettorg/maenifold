@@ -275,8 +275,7 @@ pub fn load_community_concepts(community_id: u32) -> Result<ConceptGraph, String
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| format!("Failed to decode concept rows: {e}"))?;
 
-    let concept_set: HashMap<String, bool> =
-        nodes.iter().map(|n| (n.name.clone(), true)).collect();
+    let concept_set: HashMap<String, bool> = nodes.iter().map(|n| (n.name.clone(), true)).collect();
 
     // Intra-community edges
     let mut edge_stmt = conn

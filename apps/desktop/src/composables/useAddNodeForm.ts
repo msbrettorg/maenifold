@@ -42,7 +42,7 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
 
   watch(toolName, () => {
     toolArgs.value = {};
-    toolArgsValid.value = true;
+    toolArgsValid.value = false;
   });
 
 
@@ -61,7 +61,7 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
       case 'tool':
         toolName.value = '';
         toolArgs.value = {};
-        toolArgsValid.value = true;
+        toolArgsValid.value = false;
         break;
       default:
         workflowId.value = '';

@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, toRef, watch } from 'vue';
+import { computed, toRef } from 'vue';
 import type { PipelineEdge, PipelineNode } from '../lib/pipeline-types';
 import { useGraftNodes } from '../composables/useGraftNodes';
-import { groupToolsByCategory } from '../lib/tool-categories';
-import { usePipelineStore } from '../stores/pipeline';
-import SchemaForm from './SchemaForm.vue';
+import ToolNodeFields from './ToolNodeFields.vue';
 
 const props = defineProps<{
   existingNodeIds: string[];
@@ -44,47 +42,6 @@ const {
   busy: computed(() => props.busy ?? false),
   onSubmit: (nodes, edges) => emit('submit', nodes, edges),
 });
-const pipelineStore = usePipelineStore();
-const toolListId = 'graft-nodes-tools';
-const toolSuggestions = computed(() =>
-  groupToolsByCategory(pipelineStore.tools).flatMap((group) => group.tools.map((tool) => tool.name)),
-);
-const selectedToolSchema = computed(
-  () => pipelineStore.tools.find((tool) => tool.name === toolName.value)?.inputSchema ?? null,
-);
-const attemptedToolLoad = ref(false);
-const loadingToolSchemas = ref(false);
-
-watch(
-  () => [nodeType.value === 'tool', pipelineStore.tools.length] as const,
-  async ([toolNodeSelected, toolCount]) => {
-    if (!toolNodeSelected || toolCount > 0 || attemptedToolLoad.value) return;
-    attemptedToolLoad.value = true;
-    loadingToolSchemas.value = true;
-    try {
-      await pipelineStore.refreshTools();
-    } finally {
-      loadingToolSchemas.value = false;
-    }
-  },
-  { immediate: true },
-);
-
-watch(toolName, (nextToolName, previousToolName) => {
-  const nextTool = pipelineStore.tools.find((tool) => tool.name === nextToolName);
-  const previousTool = pipelineStore.tools.find((tool) => tool.name === previousToolName);
-  if (!nextTool || nextTool.name === previousTool?.name) return;
-  toolArgs.value = {};
-  toolArgsValid.value = true;
-});
-
-function onToolArgsChange(data: Record<string, unknown>): void {
-  toolArgs.value = data;
-}
-
-function onToolArgsValidation(state: { valid: boolean }): void {
-  toolArgsValid.value = state.valid;
-}
 </script>
 
 <template>
@@ -194,23 +151,14 @@ function onToolArgsValidation(state: { valid: boolean }): void {
           </template>
 
           <template v-else>
-            <label>
-              <span>Tool Name</span>
-              <input v-model.trim="toolName" class="field-input" :list="toolListId" type="text" placeholder="Tool name" />
-              <datalist :id="toolListId">
-                <option v-for="tool in toolSuggestions" :key="tool" :value="tool" />
-              </datalist>
-              <small v-if="loadingToolSchemas">Loading tool schema…</small>
-            </label>
-            <label class="field-wide">
-              <span>Tool Args</span>
-              <SchemaForm
-                :schema="selectedToolSchema"
-                :data="toolArgs"
-                @change="onToolArgsChange"
-                @validation="onToolArgsValidation"
-              />
-            </label>
+            <ToolNodeFields
+              :active="nodeType === 'tool'"
+              :tool-name="toolName"
+              :tool-args="toolArgs"
+              @update:tool-name="toolName = $event"
+              @update:tool-args="toolArgs = $event"
+              @validation="toolArgsValid = $event.valid"
+            />
           </template>
         </div>
 
@@ -285,6 +233,14 @@ label {
 
 .field-wide {
   grid-column: 1 / -1;
+}
+
+.field-block {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
 .graft-textarea {

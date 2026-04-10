@@ -11,7 +11,7 @@ import {
   isWorkflowNode,
   nodeLabel,
 } from '../lib/pipeline-types';
-import { TOOL_CATEGORIES } from '../lib/tool-categories';
+import { getToolCategory } from '../lib/tool-categories';
 
 type NodeCardData = {
   nodeId: string;
@@ -98,7 +98,7 @@ function inferNode(data: NodeCardData): PipelineNode {
 const node = computed(() => inferNode(props.data));
 const nodeType = computed(() => getNodeType(node.value));
 const toolCategory = computed(() =>
-  isToolNode(node.value) ? (TOOL_CATEGORIES[node.value.toolName]?.label ?? 'Tool') : null,
+  isToolNode(node.value) ? (getToolCategory(node.value.toolName)?.label ?? 'Tool') : null,
 );
 const accentColor = computed(() => {
   if (nodeType.value === 'prompt') return 'var(--color-node-prompt)';
@@ -124,7 +124,7 @@ const typeLabel = computed(() =>
       : 'workflow',
 );
 const typeIcon = computed(() => {
-  if (isToolNode(node.value)) return TOOL_CATEGORIES[node.value.toolName]?.icon ?? '🔧';
+  if (isToolNode(node.value)) return getToolCategory(node.value.toolName)?.icon ?? '🔧';
   if (isPromptNode(node.value)) return '💬';
   if (isSequentialThinkingNode(node.value)) return '🧠';
   return '⚙️';

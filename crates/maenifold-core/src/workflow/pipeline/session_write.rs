@@ -14,7 +14,10 @@ use serde_yaml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 
-use super::{NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status};
+use super::{
+    NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status,
+    compute_pipeline_status_with_definition,
+};
 
 pub(super) struct NodeFile {
     pub(super) session_id: String,
@@ -92,14 +95,21 @@ pub(super) fn persist_pipeline_state_with_status(
     context: &ToolContext,
 ) -> Result<()> {
     frontmatter.insert("nodeStates".to_string(), serde_yaml::to_value(node_states)?);
-    frontmatter.insert(
-        "status".to_string(),
-        YamlValue::String(
-            status_override
-                .unwrap_or_else(|| compute_pipeline_status(node_states))
-                .to_string(),
-        ),
-    );
+
+    // Compute the status to persist: explicit override wins; otherwise use
+    // terminal-node-aware derivation when a definition is present in frontmatter.
+    let status: String = if let Some(s) = status_override {
+        s.to_string()
+    } else if let Some(def) = frontmatter
+        .get("definition")
+        .and_then(|v| serde_yaml::from_value::<PipelineDefinition>(v.clone()).ok())
+    {
+        compute_pipeline_status_with_definition(&def, node_states).to_string()
+    } else {
+        compute_pipeline_status(node_states).to_string()
+    };
+
+    frontmatter.insert("status".to_string(), YamlValue::String(status));
     write_markdown(uri, Some(frontmatter), pipeline_content, &context.config)
 }
 

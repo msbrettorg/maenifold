@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { resolveToolDefinition } from '../lib/tool-categories';
 import { usePipelineStore } from '../stores/pipeline';
 import { getNodeType, isToolNode, type PipelineEdge, type PipelineNode } from '../lib/pipeline-types';
 
@@ -35,7 +36,7 @@ const targetToolName = computed(() =>
   props.targetNode !== null && isToolNode(props.targetNode) ? props.targetNode.toolName : null,
 );
 const targetTool = computed(() =>
-  targetToolName.value ? store.tools.find((tool) => tool.name === targetToolName.value) ?? null : null,
+  resolveToolDefinition(store.tools, targetToolName.value) ?? null,
 );
 const sourceOutput = computed(() => store.currentView?.nodes.find((node) => node.nodeId === props.edge.source)?.output);
 const sourceOutputKeys = computed(() => {

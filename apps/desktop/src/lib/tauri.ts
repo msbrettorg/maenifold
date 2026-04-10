@@ -8,6 +8,7 @@ import type {
   AgentMessage,
   AgentStderr,
   MaenifoldSettings,
+  McpServerDiscoveryResult,
   McpServerEntry,
 } from './types';
 
@@ -102,4 +103,8 @@ export async function onAgentStderr(
 
 export async function getMachineId(): Promise<string> {
   return invoke<string>('get_machine_id');
+}
+
+export async function discoverMcpTools(): Promise<McpServerDiscoveryResult[]> {
+  return invoke<McpServerDiscoveryResult[]>('discover_mcp_tools');
 }

@@ -219,13 +219,17 @@ fn earliest_retry_after(node_states: &HashMap<String, NodeState>) -> Option<std:
 fn extract_timeout(
     request: &super::executor_nodes::NodeExecutionRequest,
 ) -> Option<std::time::Duration> {
+    const DEFAULT_TOOL_NODE_TIMEOUT_SECS: u64 = 60;
+
     let seconds = match request {
         super::executor_nodes::NodeExecutionRequest::Workflow { session_opts, .. }
         | super::executor_nodes::NodeExecutionRequest::Prompt { session_opts, .. }
         | super::executor_nodes::NodeExecutionRequest::SequentialThinking {
             session_opts, ..
         } => session_opts.timeout_seconds,
-        super::executor_nodes::NodeExecutionRequest::Tool { .. } => None,
+        super::executor_nodes::NodeExecutionRequest::Tool {
+            timeout_seconds, ..
+        } => timeout_seconds.or(Some(DEFAULT_TOOL_NODE_TIMEOUT_SECS)),
     };
 
     seconds
@@ -471,6 +475,78 @@ fn schedule_node_retry(
 fn compute_retry_after(attempts: u32) -> String {
     let backoff_secs = 2u64.pow(attempts.min(6));
     (Utc::now() + Duration::seconds(backoff_secs as i64)).to_rfc3339()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use crate::acp_native::SessionOpts;
+
+    use super::super::executor_nodes::NodeExecutionRequest;
+    use super::extract_timeout;
+
+    fn sample_session_opts(timeout_seconds: Option<u64>) -> SessionOpts {
+        SessionOpts {
+            cwd: PathBuf::from("."),
+            auto_grant_permissions: true,
+            model: None,
+            mode: None,
+            thought_level: None,
+            config_options: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout_seconds,
+            mcp_servers: vec![],
+        }
+    }
+
+    #[test]
+    fn tool_nodes_default_to_sixty_second_timeout() {
+        let request = NodeExecutionRequest::Tool {
+            tool_name: "GetConfig".to_string(),
+            tool_args: None,
+            agent: None,
+            allowed_tools: None,
+            timeout_seconds: None,
+        };
+
+        assert_eq!(
+            extract_timeout(&request),
+            Some(std::time::Duration::from_secs(60))
+        );
+    }
+
+    #[test]
+    fn tool_nodes_honor_explicit_timeout_override() {
+        let request = NodeExecutionRequest::Tool {
+            tool_name: "GetConfig".to_string(),
+            tool_args: None,
+            agent: None,
+            allowed_tools: None,
+            timeout_seconds: Some(12),
+        };
+
+        assert_eq!(
+            extract_timeout(&request),
+            Some(std::time::Duration::from_secs(12))
+        );
+    }
+
+    #[test]
+    fn non_tool_nodes_continue_using_session_timeout() {
+        let request = NodeExecutionRequest::Prompt {
+            session_id: "pipeline-node".to_string(),
+            prompt: "prompt".to_string(),
+            tool_mode: "disabled".to_string(),
+            session_opts: sample_session_opts(Some(7)),
+        };
+
+        assert_eq!(
+            extract_timeout(&request),
+            Some(std::time::Duration::from_secs(7))
+        );
+    }
 }
 
 #[cfg(test)]

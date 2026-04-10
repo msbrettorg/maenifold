@@ -154,6 +154,7 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             thought_level,
             allowed_tools,
             max_turns,
+            timeout,
             agent_config,
             ..
         } => json!({
@@ -164,6 +165,7 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             "thoughtLevel": thought_level,
             "allowedTools": allowed_tools,
             "maxTurns": max_turns,
+            "timeout": timeout,
             "agentConfig": agent_config,
         }),
     };

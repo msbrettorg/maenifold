@@ -144,6 +144,7 @@ pub(super) fn fork_pipeline(
                     thought_level,
                     allowed_tools,
                     max_turns,
+                    timeout,
                     agent_config,
                     ..
                 } => super::super::PipelineNode::Tool {
@@ -155,6 +156,7 @@ pub(super) fn fork_pipeline(
                     thought_level: thought_level.clone(),
                     allowed_tools: allowed_tools.clone(),
                     max_turns: *max_turns,
+                    timeout: *timeout,
                     agent_config: agent_config.clone(),
                 },
             })

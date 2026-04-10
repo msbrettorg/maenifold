@@ -358,6 +358,7 @@ mod tests {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
+                timeout: None,
                 agent_config: None,
             }],
             edges: vec![PipelineEdge {

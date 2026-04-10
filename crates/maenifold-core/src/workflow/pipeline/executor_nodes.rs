@@ -44,6 +44,7 @@ pub(super) enum NodeExecutionRequest {
         tool_args: Option<JsonValue>,
         agent: Option<String>,
         allowed_tools: Option<Vec<String>>,
+        timeout_seconds: Option<u64>,
     },
 }
 
@@ -137,12 +138,14 @@ pub(super) fn build_node_execution_request(
             tool_args,
             agent,
             allowed_tools,
+            timeout,
             ..
         } => NodeExecutionRequest::Tool {
             tool_name: tool_name.clone(),
             tool_args: mapped_tool_args(definition, node_states, node.id(), tool_args.clone())?,
             agent: agent.clone(),
             allowed_tools: allowed_tools.clone(),
+            timeout_seconds: *timeout,
         },
     })
 }
@@ -273,6 +276,7 @@ pub(super) async fn execute_node_request(
             tool_args,
             agent,
             allowed_tools,
+            ..
         } => NodeTaskResult::Tool(
             run_tool_node(
                 &context,
@@ -423,6 +427,50 @@ mod tests {
         }
     }
 
+    #[test]
+    #[serial]
+    fn timeout_seconds_is_extracted_from_tool_node() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let definition = PipelineDefinition {
+            nodes: vec![],
+            edges: vec![],
+        };
+        let node_states = HashMap::new();
+        let node = PipelineNode::Tool {
+            id: "tool".to_string(),
+            tool_name: "GetConfig".to_string(),
+            tool_args: None,
+            agent: None,
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: Some(15),
+            agent_config: None,
+        };
+        let dispatch = DispatchedNode {
+            node_id: node.id().to_string(),
+            session_id: Some("pipeline-1700000000000-tool".to_string()),
+        };
+
+        let request =
+            build_node_execution_request(&context, &definition, &node_states, &node, &dispatch, "")
+                .expect("build request");
+
+        match request {
+            NodeExecutionRequest::Tool {
+                timeout_seconds, ..
+            } => {
+                assert_eq!(timeout_seconds, Some(15));
+            }
+            NodeExecutionRequest::Workflow { .. }
+            | NodeExecutionRequest::Prompt { .. }
+            | NodeExecutionRequest::SequentialThinking { .. } => {
+                panic!("expected tool node execution request")
+            }
+        }
+    }
+
     #[tokio::test]
     #[serial]
     async fn execute_node_request_respects_timeout() {
@@ -523,6 +571,7 @@ mod tests {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
+                timeout: None,
                 agent_config: None,
             }],
             edges: vec![super::super::types::PipelineEdge {
@@ -573,6 +622,18 @@ mod tests {
         let output = run_tool_node(&context, "GetConfig", None, None, None)
             .await
             .expect("local tool should execute through ToolRegistry");
+
+        assert!(output.contains("Maenifold Configuration"));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn run_tool_node_preserves_local_tool_registry_path_for_maenifold_namespace() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+
+        let output = run_tool_node(&context, "maenifold.GetConfig", None, None, None)
+            .await
+            .expect("maenifold namespaced tool should execute through ToolRegistry");
 
         assert!(output.contains("Maenifold Configuration"));
     }

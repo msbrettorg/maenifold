@@ -174,7 +174,15 @@ pub(super) async fn run_tool_node(
     agent: Option<&str>,
     allowed_tools: Option<&[String]>,
 ) -> Result<String> {
+    let arguments = tool_args
+        .cloned()
+        .unwrap_or_else(|| JsonValue::Object(Default::default()));
+
     if let Some((server_name, remote_tool_name)) = split_namespaced_tool_name(tool_name) {
+        if server_name == "maenifold" {
+            return invoke_local_tool(remote_tool_name, &arguments);
+        }
+
         let agents_config = AgentsConfig::load(&context.config.maenifold_root);
         return invoke_external_tool(
             context,
@@ -188,9 +196,10 @@ pub(super) async fn run_tool_node(
         .await;
     }
 
-    let arguments = tool_args
-        .cloned()
-        .unwrap_or_else(|| JsonValue::Object(Default::default()));
+    invoke_local_tool(tool_name, &arguments)
+}
+
+fn invoke_local_tool(tool_name: &str, arguments: &JsonValue) -> Result<String> {
     ToolRegistry::global()
         .try_invoke(tool_name, &arguments, OutputFormat::Json)
         .map_err(|error| {

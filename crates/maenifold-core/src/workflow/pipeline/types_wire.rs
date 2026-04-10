@@ -130,6 +130,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 thought_level: wire.thought_level,
                 allowed_tools: wire.allowed_tools,
                 max_turns: wire.max_turns,
+                timeout: wire.timeout,
                 agent_config: wire.agent_config,
             },
             other => {
@@ -243,6 +244,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
+                timeout,
                 agent_config,
             } => Self {
                 kind: Some("tool".to_string()),
@@ -262,7 +264,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
-                timeout: None,
+                timeout,
             },
         }
     }
@@ -282,4 +284,47 @@ fn default_total_thoughts() -> u32 {
 
 fn is_default_total_thoughts(value: &u32) -> bool {
     *value == 5
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::super::types::PipelineNode;
+
+    #[test]
+    fn tool_node_deserialization_preserves_timeout() {
+        let node: PipelineNode = serde_json::from_value(json!({
+            "id": "tool",
+            "type": "tool",
+            "toolName": "GetConfig",
+            "timeout": 21
+        }))
+        .expect("deserialize tool node");
+
+        match node {
+            PipelineNode::Tool { timeout, .. } => assert_eq!(timeout, Some(21)),
+            other => panic!("expected tool node, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn tool_node_serialization_emits_timeout() {
+        let node = PipelineNode::Tool {
+            id: "tool".to_string(),
+            tool_name: "GetConfig".to_string(),
+            tool_args: None,
+            agent: None,
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: Some(21),
+            agent_config: None,
+        };
+
+        let value = serde_json::to_value(node).expect("serialize tool node");
+
+        assert_eq!(value["timeout"], json!(21));
+    }
 }

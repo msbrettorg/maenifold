@@ -287,6 +287,9 @@ pub struct PipelineToolNodeSchema {
     /// Maximum turns for tool nodes
     #[serde(default)]
     pub max_turns: Option<u32>,
+    /// Optional timeout in seconds
+    #[serde(default)]
+    pub timeout: Option<u32>,
     #[serde(default)]
     pub agent_config: Option<PipelineAgentConfigSchema>,
 }

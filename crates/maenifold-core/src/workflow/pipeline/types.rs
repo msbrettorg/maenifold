@@ -92,6 +92,7 @@ pub enum PipelineNode {
         thought_level: Option<String>,
         allowed_tools: Option<Vec<String>>,
         max_turns: Option<u32>,
+        timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
     },
 }

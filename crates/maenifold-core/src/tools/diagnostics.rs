@@ -148,15 +148,12 @@ fn render_memory_status_markdown(context: &ToolContext) -> String {
 }
 
 pub(crate) fn render_config_markdown(context: &ToolContext) -> String {
+    let settings = &context.config.settings;
     format!(
         "Maenifold Configuration:\n  Memory Path: {}\n  Database: {}\n  Debounce: {}ms\n  Auto Sync: {}\n  Decay Config:\n    Grace Days (Sequential): {}\n    Grace Days (Workflows): {}\n    Grace Days (Default): {}\n    Half-Life Days: {}\n    Function: {}\n  Community Detection:\n    Louvain Gamma: {}\n    Sibling Min Shared Neighbors: {}\n    Sibling Min Overlap: {}\n    Sibling Max Results: {}\n    Watcher Debounce: {}ms\n    NMI Drift Threshold: {}",
         context.config.memory_path.display(),
         context.config.database_path.display(),
-        std::env::var("MAENIFOLD_DEBOUNCE_MS")
-            .ok()
-            .and_then(|value| value.parse::<u64>().ok())
-            .filter(|value| *value > 0)
-            .unwrap_or(150),
+        settings.debounce_ms,
         // T-10.9: RTM FR-15
         if context.config.enable_auto_sync() {
             "True"
@@ -168,36 +165,13 @@ pub(crate) fn render_config_markdown(context: &ToolContext) -> String {
         context.config.decay_grace_days_default(),
         context.config.decay_half_life_days(),
         context.config.decay_function(),
-        std::env::var("MAENIFOLD_LOUVAIN_GAMMA")
-            .ok()
-            .and_then(|value| value.parse::<f64>().ok())
-            .filter(|value| value.is_finite())
-            .map(|value| value.to_string())
-            .unwrap_or_else(|| "1".to_string()),
-        std::env::var("MAENIFOLD_COMMUNITY_MIN_SHARED")
-            .ok()
-            .and_then(|value| value.parse::<usize>().ok())
-            .unwrap_or(3),
-        std::env::var("MAENIFOLD_COMMUNITY_MIN_OVERLAP")
-            .ok()
-            .and_then(|value| value.parse::<f64>().ok())
-            .unwrap_or(0.4),
-        std::env::var("MAENIFOLD_COMMUNITY_MAX_SIBLINGS")
-            .ok()
-            .and_then(|value| value.parse::<usize>().ok())
-            .unwrap_or(10),
-        std::env::var("MAENIFOLD_COMMUNITY_DEBOUNCE_MS")
-            .ok()
-            .and_then(|value| value.parse::<i64>().ok())
-            .filter(|value| *value > 0)
-            .unwrap_or(2_000),
+        settings.community.louvain_gamma,
+        settings.community.min_shared_neighbors,
+        settings.community.min_overlap,
+        settings.community.max_siblings,
+        settings.community.debounce_ms,
         // T-14.6: RTM FR-15
-        std::env::var("MAENIFOLD_COMMUNITY_NMI_THRESHOLD")
-            .ok()
-            .and_then(|value| value.parse::<f64>().ok())
-            .filter(|value| value.is_finite())
-            .map(|value| value.to_string())
-            .unwrap_or_else(|| "0.8".to_string()),
+        settings.community.nmi_threshold,
     )
 }
 

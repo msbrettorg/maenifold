@@ -1,3 +1,4 @@
+use crate::acp_config::{AgentsConfig, MaenifoldSettings};
 use crate::error::{MaenifoldError, Result};
 use parking_lot::RwLock;
 use std::env;
@@ -21,6 +22,7 @@ pub struct Config {
     pub thinking_path: PathBuf,
     pub sequential_path: PathBuf,
     pub database_path: PathBuf,
+    pub settings: MaenifoldSettings,
 }
 
 impl Config {
@@ -41,6 +43,9 @@ impl Config {
         let assets_path = maenifold_root.join("assets");
         let thinking_path = memory_path.join("thinking");
         let sequential_path = thinking_path.join("sequential");
+        let settings = AgentsConfig::load(&maenifold_root)
+            .settings
+            .unwrap_or_default();
         Self {
             maenifold_root,
             memory_path,
@@ -48,6 +53,7 @@ impl Config {
             thinking_path,
             sequential_path,
             database_path,
+            settings,
         }
     }
 
@@ -85,119 +91,123 @@ impl Config {
 
     // T-92.2: rolling log rotation strategy.
     pub fn log_rotation(&self) -> String {
-        env_string("MAENIFOLD_LOG_ROTATION", "daily")
+        env::var("MAENIFOLD_LOG_ROTATION")
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| self.settings.log_rotation.clone())
     }
 
     // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x
     pub fn decay_grace_days_sequential(&self) -> i64 {
-        env_i64("MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL", 7)
+        env::var("MAENIFOLD_DECAY_GRACE_DAYS_SEQUENTIAL")
+            .ok()
+            .and_then(|value| value.parse::<i64>().ok())
+            .unwrap_or(self.settings.decay.grace_days_sequential)
     }
 
     // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x
     pub fn decay_grace_days_workflows(&self) -> i64 {
-        env_i64("MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS", 14)
+        env::var("MAENIFOLD_DECAY_GRACE_DAYS_WORKFLOWS")
+            .ok()
+            .and_then(|value| value.parse::<i64>().ok())
+            .unwrap_or(self.settings.decay.grace_days_workflows)
     }
 
     // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x
     pub fn decay_grace_days_default(&self) -> i64 {
-        env_i64("MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT", 28)
+        env::var("MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT")
+            .ok()
+            .and_then(|value| value.parse::<i64>().ok())
+            .unwrap_or(self.settings.decay.grace_days_default)
     }
 
     // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x
     pub fn decay_half_life_days(&self) -> i64 {
-        env_i64("MAENIFOLD_DECAY_HALF_LIFE_DAYS", 30)
+        env::var("MAENIFOLD_DECAY_HALF_LIFE_DAYS")
+            .ok()
+            .and_then(|value| value.parse::<i64>().ok())
+            .unwrap_or(self.settings.decay.half_life_days)
     }
 
     // T-GRAPH-DECAY-001.2-6: RTM NFR-7.5.x
     pub fn decay_function(&self) -> String {
-        env_string("MAENIFOLD_DECAY_FUNCTION", "power-law")
+        env::var("MAENIFOLD_DECAY_FUNCTION")
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| self.settings.decay.function.clone())
     }
 
     // T-10.9: RTM FR-15
     pub fn enable_auto_sync(&self) -> bool {
-        env_bool("MAENIFOLD_AUTO_SYNC", true)
+        env_bool("MAENIFOLD_AUTO_SYNC", self.settings.auto_sync)
     }
 
     // T-10.9: RTM FR-15
     pub fn incremental_optimize_every(&self) -> u32 {
-        env_u32("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY", 40).max(1)
+        env::var("MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY")
+            .ok()
+            .and_then(|value| value.trim().parse::<u32>().ok())
+            .unwrap_or(self.settings.incremental_optimize_every)
+            .max(1)
     }
 
     // T-10.9: RTM FR-15
     pub fn incremental_vacuum_minutes(&self) -> u32 {
-        env_u32("MAENIFOLD_INCREMENTAL_VACUUM_MINUTES", 720)
+        env::var("MAENIFOLD_INCREMENTAL_VACUUM_MINUTES")
+            .ok()
+            .and_then(|value| value.trim().parse::<u32>().ok())
+            .unwrap_or(self.settings.incremental_vacuum_minutes)
     }
 
     // T-10.9: RTM FR-15
     pub fn enable_session_cleanup(&self) -> bool {
-        env_bool("MAENIFOLD_SESSION_CLEANUP", true)
+        env_bool("MAENIFOLD_SESSION_CLEANUP", self.settings.session_cleanup)
     }
 
     // T-10.9: RTM FR-15
     pub fn enable_sync_logging(&self) -> bool {
-        env_bool("MAENIFOLD_SYNC_LOGGING", true)
+        env_bool("MAENIFOLD_SYNC_LOGGING", self.settings.sync_logging)
     }
 
     // T-10.9: RTM FR-15
     pub fn watcher_buffer_size(&self) -> usize {
-        env_usize("MAENIFOLD_WATCHER_BUFFER", 65_536)
+        env::var("MAENIFOLD_WATCHER_BUFFER")
+            .ok()
+            .and_then(|value| value.trim().parse::<usize>().ok())
+            .unwrap_or(self.settings.watcher_buffer_size as usize)
     }
 
     // T-10.9: RTM FR-15
     pub fn sqlite_busy_timeout_ms(&self) -> u64 {
-        env_u64("MAENIFOLD_SQLITE_BUSY_TIMEOUT", 5_000)
+        env::var("MAENIFOLD_SQLITE_BUSY_TIMEOUT")
+            .ok()
+            .and_then(|value| value.trim().parse::<u64>().ok())
+            .unwrap_or(self.settings.sqlite_busy_timeout_ms)
     }
 
     // T-10.9: RTM FR-15
     pub fn enable_embedding_logs(&self) -> bool {
-        env_bool("MAENIFOLD_EMBEDDING_LOGS", false)
+        env_bool(
+            "MAENIFOLD_EMBEDDING_LOGS",
+            self.settings.vector.embedding_logs,
+        )
     }
 
     // T-10.9: RTM FR-15
     pub fn enable_vector_logs(&self) -> bool {
-        env_bool("MAENIFOLD_VECTOR_LOGS", false)
+        env_bool("MAENIFOLD_VECTOR_LOGS", self.settings.vector.vector_logs)
     }
 
     // T-11.2: RTM FR-15
     pub fn sync_lease_ms(&self) -> u64 {
-        env_u64("MAENIFOLD_SYNC_LEASE_MS", 10_000).clamp(1_000, 60_000)
+        env::var("MAENIFOLD_SYNC_LEASE_MS")
+            .ok()
+            .and_then(|value| value.trim().parse::<u64>().ok())
+            .unwrap_or(self.settings.sync_lease_ms)
+            .clamp(1_000, 60_000)
     }
-}
-
-fn env_i64(name: &str, default: i64) -> i64 {
-    env::var(name)
-        .ok()
-        .and_then(|value| value.parse::<i64>().ok())
-        .unwrap_or(default)
-}
-
-fn env_string(name: &str, default: &str) -> String {
-    env::var(name)
-        .ok()
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| default.to_string())
-}
-
-fn env_u32(name: &str, default: u32) -> u32 {
-    env::var(name)
-        .ok()
-        .and_then(|value| value.trim().parse::<u32>().ok())
-        .unwrap_or(default)
-}
-
-fn env_u64(name: &str, default: u64) -> u64 {
-    env::var(name)
-        .ok()
-        .and_then(|value| value.trim().parse::<u64>().ok())
-        .unwrap_or(default)
-}
-
-fn env_usize(name: &str, default: usize) -> usize {
-    env::var(name)
-        .ok()
-        .and_then(|value| value.trim().parse::<usize>().ok())
-        .unwrap_or(default)
 }
 
 // T-11.2: RTM FR-15

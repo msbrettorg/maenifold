@@ -179,7 +179,10 @@ mod tests {
 
         let result = handle_lifecycle_operation(&context, session_id, &json!({ "cancel": true }));
 
-        assert!(result.is_err(), "expected cancel to fail when pipeline is not running");
+        assert!(
+            result.is_err(),
+            "expected cancel to fail when pipeline is not running"
+        );
     }
 
     #[test]

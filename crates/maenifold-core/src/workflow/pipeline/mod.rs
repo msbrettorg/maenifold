@@ -11,6 +11,7 @@ mod executor_helpers;
 mod executor_mapping;
 mod executor_nodes;
 mod executor_run;
+mod external_mcp;
 #[cfg(test)]
 mod failure_reason_scope_tests;
 mod handler;

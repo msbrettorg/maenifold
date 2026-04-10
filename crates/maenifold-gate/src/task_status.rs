@@ -39,11 +39,7 @@ impl TaskStatusDeriver {
                     let outcome = record.outcome.as_deref().ok_or_else(|| {
                         GateError::TaskMetadataParse("outcome record missing Outcome".to_string())
                     })?;
-                    maybe_seed_recorded_stage(
-                        &mut state,
-                        record.stage.as_str(),
-                        definition,
-                    )?;
+                    maybe_seed_recorded_stage(&mut state, record.stage.as_str(), definition)?;
                     let current = definition
                         .find_state(&state)
                         .ok_or_else(|| GateError::UnknownState(state.clone()))?;

@@ -132,6 +132,18 @@ pub struct SearchMemoriesParams {
     #[serde(default = "default_zero_f64")]
     #[schemars(default = "default_zero_f64")]
     pub min_score: f64,
+    /// RRF rank constant (default 60). Lower values (10-30) sharpen ranking for small corpora. Higher values (60+) flatten ranking for large corpora.
+    #[serde(default)]
+    pub rrf_k: Option<f64>,
+    /// Weight multiplier for full-text/BM25 signal in hybrid fusion (default 1.0). Values >1 bias toward keyword matches.
+    #[serde(default)]
+    pub text_weight: Option<f64>,
+    /// Weight multiplier for semantic/vector signal in hybrid fusion (default 1.0). Values >1 bias toward meaning-based matches.
+    #[serde(default)]
+    pub semantic_weight: Option<f64>,
+    /// Minimum cosine similarity for vector results to enter fusion (default 0.0). Set to 0.3-0.5 to filter weak semantic matches.
+    #[serde(default)]
+    pub semantic_min_score: Option<f64>,
     /// Return help documentation instead of executing
     #[serde(default)]
     pub learn: bool,

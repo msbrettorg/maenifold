@@ -39,7 +39,7 @@ tokio-util = { workspace = true, features = ["compat"] }
 agent-client-protocol = { workspace = true }
 agent-client-protocol-schema = { workspace = true }
 async-trait = { workspace = true }
-rmcp = { workspace = true, features = ["transport-streamable-http-server"] }
+rmcp = { workspace = true, features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest", "transport-streamable-http-server"] }
 sacp.workspace = true
 tower-http.workspace = true
 uuid.workspace = true
@@ -66,7 +66,6 @@ serial_test = "3"
 similar-asserts.workspace = true
 tower = "0.5"
 filetime = "0.2.25"
-
 
 
 

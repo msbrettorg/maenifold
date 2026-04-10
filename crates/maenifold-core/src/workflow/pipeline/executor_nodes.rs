@@ -42,6 +42,8 @@ pub(super) enum NodeExecutionRequest {
     Tool {
         tool_name: String,
         tool_args: Option<JsonValue>,
+        agent: Option<String>,
+        allowed_tools: Option<Vec<String>>,
     },
 }
 
@@ -133,10 +135,14 @@ pub(super) fn build_node_execution_request(
         PipelineNode::Tool {
             tool_name,
             tool_args,
+            agent,
+            allowed_tools,
             ..
         } => NodeExecutionRequest::Tool {
             tool_name: tool_name.clone(),
             tool_args: mapped_tool_args(definition, node_states, node.id(), tool_args.clone())?,
+            agent: agent.clone(),
+            allowed_tools: allowed_tools.clone(),
         },
     })
 }
@@ -265,7 +271,18 @@ pub(super) async fn execute_node_request(
         NodeExecutionRequest::Tool {
             tool_name,
             tool_args,
-        } => NodeTaskResult::Tool(run_tool_node(&context, &tool_name, tool_args.as_ref()).await),
+            agent,
+            allowed_tools,
+        } => NodeTaskResult::Tool(
+            run_tool_node(
+                &context,
+                &tool_name,
+                tool_args.as_ref(),
+                agent.as_deref(),
+                allowed_tools.as_deref(),
+            )
+            .await,
+        ),
     };
 
     (node_id, result)
@@ -309,7 +326,7 @@ mod tests {
 
     fn write_sleep_agent_config(context: &crate::tools::ToolContext, agent_name: &str) {
         fs::write(
-            context.config.maenifold_root.join("agents.json"),
+            context.config.maenifold_root.join("maenifold.json"),
             serde_json::to_vec_pretty(&json!({
                 "agents": {
                     agent_name: {
@@ -545,6 +562,62 @@ mod tests {
             error
                 .to_string()
                 .contains("could not parse node 'source' output as JSON")
+        );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn run_tool_node_preserves_local_tool_registry_path_for_non_namespaced_tools() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+
+        let output = run_tool_node(&context, "GetConfig", None, None, None)
+            .await
+            .expect("local tool should execute through ToolRegistry");
+
+        assert!(output.contains("Maenifold Configuration"));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn run_tool_node_rejects_external_tool_not_in_explicit_allowlist() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+
+        let error = run_tool_node(
+            &context,
+            "server.echo",
+            Some(&json!({ "value": 1 })),
+            Some("test-agent"),
+            Some(&["server.other".to_string()]),
+        )
+        .await
+        .expect_err("external MCP tool not in explicit list should be rejected");
+
+        assert!(matches!(error, MaenifoldError::AgentSetup(_)));
+        assert!(
+            error
+                .to_string()
+                .contains("not in the explicit allowed_tools")
+        );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn run_tool_node_allows_external_tools_by_default_when_no_allowlist() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+
+        let error = run_tool_node(
+            &context,
+            "server.echo",
+            Some(&json!({ "value": 1 })),
+            None,
+            None,
+        )
+        .await
+        .expect_err("should fail at server resolution, not at tool permission");
+
+        assert!(
+            error.to_string().contains("not found"),
+            "with no allowlist restriction, the error should be about missing server config, not permissions: {error}"
         );
     }
 }

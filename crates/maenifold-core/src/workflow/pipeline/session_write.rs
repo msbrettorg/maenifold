@@ -1,5 +1,7 @@
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{Frontmatter, delete_file, file_exists, path_to_uri, read_markdown, write_markdown};
+use crate::markdown::{
+    Frontmatter, delete_file, file_exists, path_to_uri, read_markdown, write_markdown,
+};
 use crate::sessions::{
     date_parts_from_session_id, extract_session_timestamp_millis, pipeline_session_uri,
     workflow_session_uri,
@@ -173,7 +175,9 @@ pub(super) fn delete_pipeline_session_files(
             for entry in fs::read_dir(&workflow_dir)? {
                 let entry = entry?;
                 let path = entry.path();
-                if !entry.file_type()?.is_file() || path.extension().and_then(|ext| ext.to_str()) != Some("md") {
+                if !entry.file_type()?.is_file()
+                    || path.extension().and_then(|ext| ext.to_str()) != Some("md")
+                {
                     continue;
                 }
 

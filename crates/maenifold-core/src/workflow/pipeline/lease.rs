@@ -114,6 +114,7 @@ mod tests {
             thinking_path: memory.join("thinking"),
             sequential_path: memory.join("thinking").join("sequential"),
             database_path: dir.join("memory.db"),
+            settings: crate::acp_config::MaenifoldSettings::default(),
         }
     }
 

@@ -369,8 +369,14 @@ fn update_pipeline_node_status_supports_stuck_cascade_over_success_edges() {
         }],
     };
     let node_states = HashMap::from([
-        ("root".to_string(), node_state("root-stuck", NodeStatus::Active)),
-        ("child".to_string(), node_state("child-stuck", NodeStatus::Pending)),
+        (
+            "root".to_string(),
+            node_state("root-stuck", NodeStatus::Active),
+        ),
+        (
+            "child".to_string(),
+            node_state("child-stuck", NodeStatus::Pending),
+        ),
     ]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
 

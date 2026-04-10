@@ -16,5 +16,5 @@ pub use storage::{
 };
 pub use wikilinks::{
     extract_h2_sections, extract_wikilinks, extract_wikilinks_with_sections, normalize_concept,
-    slugify,
+    slugify, strip_wikilink_brackets,
 };

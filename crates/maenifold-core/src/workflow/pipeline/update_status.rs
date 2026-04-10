@@ -129,12 +129,7 @@ pub(super) fn update_pipeline_node_status(
                     })?
                     .session_id
                     .clone();
-                update_workflow_node_frontmatter(
-                    context,
-                    &cascaded_session_id,
-                    "abandoned",
-                    None,
-                )?;
+                update_workflow_node_frontmatter(context, &cascaded_session_id, "abandoned", None)?;
             }
         }
         _ => {

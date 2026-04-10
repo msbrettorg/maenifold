@@ -20,7 +20,9 @@ pub struct GateDefinitionCatalog;
 
 impl GateDefinitionCatalog {
     pub fn load_builtin(name: &str) -> Result<GateDefinition, GateError> {
-        let _guard = maenifold_root_lock().lock().unwrap_or_else(|e| e.into_inner());
+        let _guard = maenifold_root_lock()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         load_builtin_inner(name)
     }
 
@@ -145,9 +147,7 @@ mod tests {
 
     #[test]
     fn builtin_assets_refresh_reserved_runtime_copies_when_bundled_content_changes() {
-        let _guard = super::maenifold_root_lock()
-            .lock()
-            .expect("lock env guard");
+        let _guard = super::maenifold_root_lock().lock().expect("lock env guard");
         let temp = TempDir::new().expect("create temp dir");
         let (previous, gates_dir) = set_maenifold_root(temp.path());
 
@@ -181,9 +181,7 @@ mod tests {
 
     #[test]
     fn builtin_bootstrap_does_not_overwrite_non_reserved_runtime_definitions() {
-        let _guard = super::maenifold_root_lock()
-            .lock()
-            .expect("lock env guard");
+        let _guard = super::maenifold_root_lock().lock().expect("lock env guard");
         let temp = TempDir::new().expect("create temp dir");
         let (previous, gates_dir) = set_maenifold_root(temp.path());
 
@@ -211,9 +209,7 @@ mod tests {
 
     #[test]
     fn loads_custom_definition_by_name_from_gates_dir() {
-        let _guard = super::maenifold_root_lock()
-            .lock()
-            .expect("lock env guard");
+        let _guard = super::maenifold_root_lock().lock().expect("lock env guard");
         let temp = TempDir::new().expect("create temp dir");
         let (previous, gates_dir) = set_maenifold_root(temp.path());
 
@@ -242,9 +238,7 @@ mod tests {
 
     #[test]
     fn gates_dir_uses_maenifold_root() {
-        let _guard = super::maenifold_root_lock()
-            .lock()
-            .expect("lock env guard");
+        let _guard = super::maenifold_root_lock().lock().expect("lock env guard");
         let temp = TempDir::new().expect("create temp dir");
         let (previous, _gates_dir) = set_maenifold_root(temp.path());
 

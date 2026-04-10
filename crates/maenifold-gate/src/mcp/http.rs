@@ -1,22 +1,21 @@
 use std::sync::Arc;
 
 use rmcp::transport::streamable_http_server::{
-    StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
+    StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
 };
 
 use super::{GateMcpHandler, TransportKind};
 use crate::error::GateError;
 
-pub(crate) type GateHttpService = StreamableHttpService<GateMcpHandler, NeverSessionManager>;
+pub(crate) type GateHttpService = StreamableHttpService<GateMcpHandler, LocalSessionManager>;
 
 pub(crate) fn service(
     cancellation_token: tokio_util::sync::CancellationToken,
     known_roots: super::KnownRoots,
 ) -> GateHttpService {
-    let session_manager = Arc::new(NeverSessionManager::default());
+    let session_manager = Arc::new(LocalSessionManager::default());
     let mut config = StreamableHttpServerConfig::default();
-    config.stateful_mode = false;
-    config.json_response = true;
+    config.stateful_mode = true;
     config.cancellation_token = cancellation_token;
     StreamableHttpService::new(
         move || {

@@ -174,7 +174,7 @@ pub struct AcpExecResourceContext {
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AcpExecParams {
-    /// ACP agent name from agents.json
+    /// ACP agent name from maenifold.json
     pub agent: String,
     /// Whether ACP permission requests should be auto-granted by the native client.
     pub auto_grant_permissions: bool,

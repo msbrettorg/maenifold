@@ -15,6 +15,10 @@ pub(crate) struct SearchRequest {
     pub(crate) page_size: usize,
     pub(crate) page: usize,
     pub(crate) min_score: f64,
+    pub(crate) rrf_k: Option<f64>,
+    pub(crate) text_weight: Option<f64>,
+    pub(crate) semantic_weight: Option<f64>,
+    pub(crate) semantic_min_score: Option<f64>,
     pub(crate) folder_prefix: Option<String>,
     pub(crate) requested_tags: Option<Vec<String>>,
 }
@@ -40,6 +44,10 @@ impl SearchRequest {
             .get("minScore")
             .and_then(Value::as_f64)
             .unwrap_or(0.0);
+        let rrf_k = payload.get("rrfK").and_then(Value::as_f64);
+        let text_weight = payload.get("textWeight").and_then(Value::as_f64);
+        let semantic_weight = payload.get("semanticWeight").and_then(Value::as_f64);
+        let semantic_min_score = payload.get("semanticMinScore").and_then(Value::as_f64);
         let folder_prefix = payload
             .get("folder")
             .and_then(Value::as_str)
@@ -66,6 +74,10 @@ impl SearchRequest {
             page_size,
             page,
             min_score,
+            rrf_k,
+            text_weight,
+            semantic_weight,
+            semantic_min_score,
             folder_prefix,
             requested_tags,
         })

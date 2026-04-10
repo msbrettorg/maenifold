@@ -17,7 +17,7 @@ use super::session_io::{
 };
 use super::view::view_pipeline_session;
 use super::{
-    lease, NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline,
+    NodeState, NodeStatus, PipelineDefinition, compute_ready_set, lease, validate_pipeline,
 };
 
 pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
@@ -172,7 +172,8 @@ pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result
         || {
             let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
             let node_states = match frontmatter_value(&frontmatter, "nodeStates") {
-                Ok(raw_node_states) => match derive_pipeline_node_states(context, &raw_node_states) {
+                Ok(raw_node_states) => match derive_pipeline_node_states(context, &raw_node_states)
+                {
                     Ok(derived_node_states) => derived_node_states,
                     Err(err) => {
                         eprintln!(
@@ -276,8 +277,8 @@ mod tests {
     use std::collections::HashMap;
     use std::io::Write as _;
 
-    use super::super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
     use super::super::PipelineNode;
+    use super::super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
 
     const TS: i64 = 1_735_689_600_000;
 
@@ -343,7 +344,8 @@ mod tests {
         )
         .expect("delete workflow session after lock");
 
-        let error = delete_pipeline(&context, session_id).expect_err("delete must refuse running pipeline");
+        let error =
+            delete_pipeline(&context, session_id).expect_err("delete must refuse running pipeline");
         assert!(
             error
                 .to_string()
@@ -376,11 +378,15 @@ mod tests {
         )
         .expect("delete workflow session to corrupt derived state");
 
-        let response = delete_pipeline(&context, session_id).expect("delete should tolerate corruption");
+        let response =
+            delete_pipeline(&context, session_id).expect("delete should tolerate corruption");
         let payload: Value = serde_json::from_str(&response).expect("json response");
 
         assert_eq!(payload["success"], Value::Bool(true));
-        assert_eq!(payload["data"]["deletedSessionId"], Value::String(session_id.to_string()));
+        assert_eq!(
+            payload["data"]["deletedSessionId"],
+            Value::String(session_id.to_string())
+        );
         assert_eq!(
             payload["data"]["cleanedUpFiles"],
             Value::Number(serde_json::Number::from(1)),
@@ -503,7 +509,8 @@ mod tests {
         )
         .expect("write sibling orphaned workflow session");
 
-        let response = delete_pipeline(&context, target_session_id).expect("delete target pipeline");
+        let response =
+            delete_pipeline(&context, target_session_id).expect("delete target pipeline");
         let payload: Value = serde_json::from_str(&response).expect("json response");
 
         assert_eq!(payload["success"], Value::Bool(true));
@@ -520,8 +527,11 @@ mod tests {
             "sibling pipeline workflow session should be preserved"
         );
         assert!(
-            file_exists(&workflow_session_uri(sibling_orphan_session_id), &context.config)
-                .expect("check sibling orphan preservation"),
+            file_exists(
+                &workflow_session_uri(sibling_orphan_session_id),
+                &context.config
+            )
+            .expect("check sibling orphan preservation"),
             "sibling pipeline orphaned workflow session should be preserved"
         );
     }
@@ -552,11 +562,15 @@ mod tests {
         write_markdown(&pipeline_uri, Some(&frontmatter), &content, &context.config)
             .expect("write corrupted pipeline");
 
-        let response = delete_pipeline(&context, session_id).expect("delete should tolerate missing raw node states");
+        let response = delete_pipeline(&context, session_id)
+            .expect("delete should tolerate missing raw node states");
         let payload: Value = serde_json::from_str(&response).expect("json response");
 
         assert_eq!(payload["success"], Value::Bool(true));
-        assert_eq!(payload["data"]["deletedSessionId"], Value::String(session_id.to_string()));
+        assert_eq!(
+            payload["data"]["deletedSessionId"],
+            Value::String(session_id.to_string())
+        );
         assert!(
             !file_exists(&pipeline_uri, &context.config).expect("check pipeline deletion"),
             "pipeline session should be deleted"

@@ -2,6 +2,7 @@ use std::error::Error as StdError;
 
 use serde_json::Value as JsonValue;
 
+use crate::acp_config::AgentsConfig;
 use crate::acp_native::{AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
@@ -10,6 +11,7 @@ use crate::util::json::OutputFormat;
 
 use super::super::runner::{self, WorkflowRunStatus};
 use super::executor_helpers::{MAX_CONCLUSION_CHARS, truncate_chars};
+use super::external_mcp::{invoke_external_tool, split_namespaced_tool_name};
 
 pub(super) enum NodeTaskResult {
     Workflow(Result<runner::WorkflowResult>),
@@ -166,10 +168,26 @@ pub(super) async fn run_prompt_node(
 }
 
 pub(super) async fn run_tool_node(
-    _context: &ToolContext,
+    context: &ToolContext,
     tool_name: &str,
     tool_args: Option<&JsonValue>,
+    agent: Option<&str>,
+    allowed_tools: Option<&[String]>,
 ) -> Result<String> {
+    if let Some((server_name, remote_tool_name)) = split_namespaced_tool_name(tool_name) {
+        let agents_config = AgentsConfig::load(&context.config.maenifold_root);
+        return invoke_external_tool(
+            context,
+            &agents_config,
+            server_name,
+            remote_tool_name,
+            tool_args,
+            agent,
+            allowed_tools,
+        )
+        .await;
+    }
+
     let arguments = tool_args
         .cloned()
         .unwrap_or_else(|| JsonValue::Object(Default::default()));

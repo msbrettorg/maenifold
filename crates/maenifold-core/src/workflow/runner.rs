@@ -274,13 +274,8 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         pool,
         model: session_opts.model.clone(),
     };
-    let driver = open_agent_session(
-        &run_ctx.pool,
-        agent,
-        &run_ctx.session_id,
-        sanitize_workflow_session_opts(session_opts),
-    )
-    .await?;
+    let driver =
+        open_agent_session(&run_ctx.pool, agent, &run_ctx.session_id, session_opts).await?;
     let mut step = workflow_text(&start_text);
     let total_steps = workflow_total_steps(context, workflow_id, &step)?;
     let mut step_index = current_step_index(context, &run_ctx.session_id, &step);

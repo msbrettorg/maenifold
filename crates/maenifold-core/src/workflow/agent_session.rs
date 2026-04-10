@@ -19,18 +19,16 @@ pub(crate) async fn open_agent_session(
     let config = AgentsConfig::load(&opts.cwd);
     let config_entry = config.agents.get(agent_name).ok_or_else(|| {
         MaenifoldError::AgentSetup(format!(
-            "agent '{}' not configured in agents.json",
+            "agent '{}' not configured in maenifold.json",
             agent_name
         ))
     })?;
     let command = config_entry.command.clone();
     let env = config_entry.env.clone();
-    if opts.mcp_servers.is_empty() && !config_entry.mcp_servers.is_empty() {
-        opts.mcp_servers = config_entry
-            .mcp_servers
-            .iter()
-            .map(|s| s.to_acp())
-            .collect();
+    if opts.mcp_servers.is_empty() {
+        let mut servers: Vec<_> = config.mcp_servers.iter().map(|s| s.to_acp()).collect();
+        servers.extend(config_entry.mcp_servers.iter().map(|s| s.to_acp()));
+        opts.mcp_servers = servers;
     }
     let handle = pool
         .get_or_create(

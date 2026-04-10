@@ -31,7 +31,8 @@ pub(crate) fn query_vec_memory_files(
         return Ok(None);
     }
 
-    let query_embedding = match crate::vector::generate_embedding(query) {
+    let cleaned_query = crate::markdown::strip_wikilink_brackets(query);
+    let query_embedding = match crate::vector::generate_embedding(&cleaned_query) {
         Ok(embedding) if crate::repair::embedding_is_valid_for_similarity_search(&embedding) => {
             embedding
         }

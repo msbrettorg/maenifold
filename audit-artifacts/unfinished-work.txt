@@ -1,0 +1,162 @@
+src/composables/__tests__/sessionLifecycle.agentClosed.test.ts:35:  vi.mocked(onAgentClosed).mockImplementation(async (callback) => {
+src/composables/__tests__/mcpStateless.test.ts:9:vi.mock('../../lib/http', () => ({
+src/composables/__tests__/mcpStateless.test.ts:46:  return (fetchMock.mock.calls[callIndex]?.[1] as RequestInit | undefined)?.headers as Record<string, string>;
+src/composables/__tests__/mcpStateless.test.ts:51:    fetchMock.mockReset();
+src/composables/__tests__/mcpStateless.test.ts:56:      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
+src/composables/__tests__/mcpStateless.test.ts:57:      .mockResolvedValueOnce(notificationResponse());
+src/composables/__tests__/mcpStateless.test.ts:72:      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
+src/composables/__tests__/mcpStateless.test.ts:73:      .mockResolvedValueOnce(notificationResponse());
+src/composables/__tests__/mcpStateless.test.ts:86:      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
+src/composables/__tests__/mcpStateless.test.ts:87:      .mockResolvedValueOnce(notificationResponse());
+src/composables/__tests__/mcpStateless.test.ts:103:      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
+src/composables/__tests__/mcpStateless.test.ts:104:      .mockResolvedValueOnce(notificationResponse())
+src/composables/__tests__/mcpStateless.test.ts:105:      .mockResolvedValueOnce(listToolsResponse(2, ['Pipeline']));
+src/composables/__tests__/mcpStateless.test.ts:116:      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
+src/composables/__tests__/mcpStateless.test.ts:117:      .mockResolvedValueOnce(notificationResponse())
+src/composables/__tests__/mcpStateless.test.ts:118:      .mockResolvedValueOnce(toolCallResponse(2, { success: true, data: { pipelines: [] } }));
+src/composables/__tests__/mcpStateless.test.ts:132:      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
+src/composables/__tests__/mcpStateless.test.ts:133:      .mockResolvedValueOnce(notificationResponse())
+src/composables/__tests__/mcpStateless.test.ts:134:      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+src/composables/__tests__/mcpStateless.test.ts:135:      .mockResolvedValueOnce(jsonRpcResponse(3, { protocolVersion: '2025-03-26' }))
+src/composables/__tests__/mcpStateless.test.ts:136:      .mockResolvedValueOnce(notificationResponse())
+src/composables/__tests__/mcpStateless.test.ts:137:      .mockResolvedValueOnce(toolCallResponse(2, { success: true, data: { pipelines: [] } }));
+src/composables/__tests__/mcpStateless.test.ts:152:      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
+src/composables/__tests__/mcpStateless.test.ts:153:      .mockResolvedValueOnce(notificationResponse());
+src/composables/__tests__/mcpStateless.test.ts:166:      .mockResolvedValueOnce(
+src/composables/__tests__/mcpStateless.test.ts:169:      .mockResolvedValueOnce(notificationResponse())
+src/composables/__tests__/mcpStateless.test.ts:170:      .mockResolvedValueOnce(listToolsResponse(2, ['Pipeline']));
+src/composables/__tests__/useSessionBootstrap.test.ts:6:    const initialize = vi.fn().mockResolvedValue({
+src/composables/__tests__/useSessionConnection.test.ts:21:    bridge.supportsSessionClose.mockReturnValue(true);
+src/composables/__tests__/mcpIntegration.test.ts:288:    const [initializeUrl, initializeOptions] = fetchSpy.mock.calls[0] as [string | URL, RequestInit];
+src/composables/__tests__/mcpIntegration.test.ts:298:    const [, initializedOptions] = fetchSpy.mock.calls[1] as [string | URL, RequestInit];
+src/composables/__tests__/mcpIntegration.test.ts:321:    const [disconnectUrl, disconnectOptions] = fetchSpy.mock.calls[2] as [string | URL, RequestInit];
+src/composables/__tests__/mcpIntegration.test.ts:337:    const [, callOptions] = fetchSpy.mock.calls[2] as [string | URL, RequestInit];
+src/test/setup.ts:1:// Global test setup — mocks Tauri IPC layer so tests run in plain jsdom.
+src/test/setup.ts:6:// These packages require the Tauri runtime. We mock them at the npm
+src/test/setup.ts:7:// module level so every source file that imports them gets safe stubs.
+src/test/setup.ts:9:vi.mock('@tauri-apps/api/core', () => ({
+src/test/setup.ts:13:vi.mock('@tauri-apps/api/event', () => ({
+src/test/setup.ts:14:  listen: vi.fn().mockResolvedValue(() => {}),
+src/test/setup.ts:17:vi.mock('@tauri-apps/plugin-fs', () => ({
+src/test/setup.ts:18:  mkdir: vi.fn().mockResolvedValue(undefined),
+src/test/setup.ts:19:  readTextFile: vi.fn().mockResolvedValue(''),
+src/test/setup.ts:20:  writeTextFile: vi.fn().mockResolvedValue(undefined),
+src/test/setup.ts:21:  watch: vi.fn().mockResolvedValue(() => {}),
+src/test/setup.ts:24:vi.mock('@tauri-apps/api/path', () => ({
+src/test/setup.ts:25:  dirname: vi.fn().mockResolvedValue('/mock'),
+src/test/setup.ts:28:vi.mock('@tauri-apps/plugin-store', () => ({
+src/test/setup.ts:29:  load: vi.fn().mockResolvedValue({
+src/test/setup.ts:30:    get: vi.fn().mockResolvedValue(null),
+src/test/setup.ts:31:    set: vi.fn().mockResolvedValue(undefined),
+src/test/setup.ts:32:    save: vi.fn().mockResolvedValue(undefined),
+src/test/setup.ts:37:vi.mock('@tauri-apps/api/app', () => ({
+src/test/setup.ts:38:  getVersion: vi.fn().mockResolvedValue('0.1.0'),
+src/test/setup.ts:45:vi.mock('../lib/tauri', () => ({
+src/test/setup.ts:46:  getConfig: vi.fn().mockResolvedValue({ agents: {} }),
+src/test/setup.ts:47:  reloadConfig: vi.fn().mockResolvedValue({ agents: {} }),
+src/test/setup.ts:48:  getConfigPath: vi.fn().mockResolvedValue('/mock/config/path'),
+src/test/setup.ts:49:  spawnAgent: vi.fn().mockResolvedValue({ id: 'mock-agent-id', name: 'mock-agent' }),
+src/test/setup.ts:50:  sendToAgent: vi.fn().mockResolvedValue(undefined),
+src/test/setup.ts:51:  killAgent: vi.fn().mockResolvedValue(undefined),
+src/test/setup.ts:52:  listRunningAgents: vi.fn().mockResolvedValue([]),
+src/test/setup.ts:53:  addAgent: vi.fn().mockResolvedValue({ agents: {} }),
+src/test/setup.ts:54:  removeAgent: vi.fn().mockResolvedValue({ agents: {} }),
+src/test/setup.ts:55:  updateAgent: vi.fn().mockResolvedValue({ agents: {} }),
+src/test/setup.ts:56:  onAgentMessage: vi.fn().mockResolvedValue(() => {}),
+src/test/setup.ts:57:  onAgentClosed: vi.fn().mockResolvedValue(() => {}),
+src/test/setup.ts:58:  onConfigChanged: vi.fn().mockResolvedValue(() => {}),
+src/test/setup.ts:59:  onAgentStderr: vi.fn().mockResolvedValue(() => {}),
+src/test/setup.ts:60:  getMachineId: vi.fn().mockResolvedValue('mock-machine-id'),
+src/test/setup.ts:71:  constructor(agentId = 'mock-agent') {
+src/test/setup.ts:75:  connect = vi.fn().mockResolvedValue(undefined);
+src/test/setup.ts:76:  disconnect = vi.fn().mockResolvedValue(undefined);
+src/test/setup.ts:77:  initialize = vi.fn().mockResolvedValue({});
+src/test/setup.ts:78:  newSession = vi.fn().mockResolvedValue({ sessionId: 'mock-session' });
+src/test/setup.ts:79:  loadSession = vi.fn().mockResolvedValue({});
+src/test/setup.ts:80:  listSessions = vi.fn().mockResolvedValue({ sessions: [] });
+src/test/setup.ts:81:  prompt = vi.fn().mockResolvedValue({ stopReason: 'end_turn' });
+src/test/setup.ts:82:  cancel = vi.fn().mockResolvedValue(undefined);
+src/test/setup.ts:83:  setMode = vi.fn().mockResolvedValue(undefined);
+src/test/setup.ts:84:  supportsAgentMethod = vi.fn().mockReturnValue(false);
+src/test/setup.ts:85:  supportsSessionClose = vi.fn().mockReturnValue(false);
+src/test/setup.ts:86:  unstable_setSessionModel = vi.fn().mockResolvedValue(undefined);
+src/test/setup.ts:87:  unstable_setSessionConfigOption = vi.fn().mockResolvedValue({ configOptions: [] });
+src/test/setup.ts:88:  closeSession = vi.fn().mockResolvedValue(undefined);
+src/test/setup.ts:89:  authenticate = vi.fn().mockResolvedValue({});
+src/test/setup.ts:94:  writeTextFile = vi.fn().mockResolvedValue(null);
+src/test/setup.ts:95:  readTextFile = vi.fn().mockResolvedValue({ content: '' });
+src/components/PipelineInspector.vue:201:        <label class="field"><span>Prompt</span><textarea class="field-textarea" :value="selectedWorkflowDesignNode.prompt ?? ''" rows="5" placeholder="Optional per-node prompt" @input="updateWorkflowField($event, 'prompt')" /></label>
+src/components/PipelineInspector.vue:224:            placeholder='Optional JSON object, e.g. { "query": "status" }'
+src/components/TrafficMonitor.vue:88:            placeholder="Search..."
+src/components/TrafficMonitor.vue:238:.search-input::placeholder {
+src/components/GraftNodesDialog.vue:70:            <input v-model.trim="nodeId" class="field-input" type="text" placeholder="Optional custom ID" />
+src/components/GraftNodesDialog.vue:106:              <input v-model.trim="workflowId" class="field-input" :list="workflowListId" type="text" placeholder="Workflow ID" />
+src/components/GraftNodesDialog.vue:113:              <input v-model.trim="workflowAgent" class="field-input" type="text" placeholder="Optional workflow agent" />
+src/components/GraftNodesDialog.vue:117:              <textarea v-model.trim="workflowPrompt" class="field-input graft-textarea" rows="3" placeholder="Optional workflow prompt" />
+src/components/GraftNodesDialog.vue:124:              <input v-model.trim="promptAgent" class="field-input" type="text" placeholder="Agent name" />
+src/components/GraftNodesDialog.vue:128:              <textarea v-model.trim="promptTemplate" class="field-input graft-textarea" rows="4" placeholder="Required prompt template" />
+src/components/GraftNodesDialog.vue:135:              <input v-model.trim="thinkingTopic" class="field-input" type="text" placeholder="Topic" />
+src/components/GraftNodesDialog.vue:139:              <input v-model.trim="thinkingAgent" class="field-input" type="text" placeholder="Agent name" />
+src/components/GraftNodesDialog.vue:143:              <input v-model="thinkingTotalThoughts" class="field-input" type="number" min="1" inputmode="numeric" placeholder="5" />
+src/components/GraftNodesDialog.vue:147:              <input v-model.trim="thinkingAnalysisType" class="field-input" type="text" placeholder="Optional analysis type" />
+src/components/GraftNodesDialog.vue:154:              <input v-model.trim="toolName" class="field-input" type="text" placeholder="Tool name" />
+src/components/GraftNodesDialog.vue:158:              <textarea v-model="toolArgs" class="field-input graft-textarea" rows="5" placeholder='Optional JSON object, e.g. { "query": "status" }' />
+src/components/GateView.vue:259:      <input v-model="searchText" class="field-input" type="search" placeholder="Filter tasks" />
+src/components/EdgeMappingEditor.vue:182:          :placeholder="sourceOutputKeys.length > 0 ? 'Source dot-path' : 'e.g. results[0].title'"
+src/components/EdgeMappingEditor.vue:199:            placeholder="Target parameter"
+src/components/EdgeMappingEditor.vue:207:            :placeholder="sourceOutputKeys.length > 0 ? 'Source dot-path' : 'e.g. results[0].title'"
+src/components/WorkflowBrowser.vue:98:      <input v-model="searchQuery" type="text" class="search-input" placeholder="Find workflow..." />
+src/components/WorkflowBrowser.vue:167:.search-input::placeholder { color: var(--text-muted); }
+src/components/JoinPipelineDialog.vue:81:          <input v-model="sourceSessionId" class="field-input" type="text" placeholder="session-abc123" />
+src/components/JoinPipelineDialog.vue:93:              <input v-model="edge.source" class="field-input" type="text" placeholder="source-node-id" />
+src/components/JoinPipelineDialog.vue:97:              <input v-model="edge.target" class="field-input" type="text" placeholder="target-node-id" />
+src/components/ChatToolCallDetails.vue:120:          <p v-else class="tool-terminal-placeholder">Live terminal output will appear here once terminal rendering lands.</p>
+src/components/ChatToolCallDetails.vue:177:.tool-terminal-placeholder,
+src/components/ChatView.vue:200:      :placeholder="inputPlaceholder"
+src/components/SettingsConnection.vue:100:        <input v-model="formName" type="text" placeholder="My Agent" :disabled="!!editingAgent" />
+src/components/SettingsConnection.vue:104:        <input v-model="formCommand" type="text" placeholder="npx @github/copilot-language-server@latest --acp" />
+src/components/AddNodeForm.vue:90:            placeholder="Workflow ID"
+src/components/AddNodeForm.vue:109:            placeholder="Optional workflow prompt"
+src/components/AddNodeForm.vue:128:            placeholder="Required prompt template"
+src/components/AddNodeForm.vue:136:          <input v-model.trim="thinkingTopic" class="field-input" type="text" placeholder="Topic" />
+src/components/AddNodeForm.vue:153:            placeholder="5"
+src/components/AddNodeForm.vue:162:            placeholder="Optional analysis type"
+src/components/AddNodeForm.vue:183:            placeholder='Optional JSON object, e.g. { "query": "status" }'
+src/components/__tests__/PipelineSmoke.test.ts:47:    value: vi.fn().mockImplementation((query: string) => ({
+src/components/__tests__/PipelineSmoke.test.ts:103:        stubs: vueFlowStubs,
+src/components/__tests__/PipelineSmoke.test.ts:107:    expect(wrapper.find('input[placeholder="Workflow ID"]').exists()).toBe(true);
+src/components/__tests__/PipelineSmoke.test.ts:110:    await wrapper.get('input[placeholder="Workflow ID"]').setValue('workflow.alpha');
+src/components/__tests__/PipelineSmoke.test.ts:180:    vi.spyOn(store, 'connect').mockResolvedValue();
+src/components/__tests__/PipelineSmoke.test.ts:181:    vi.spyOn(store, 'refreshList').mockResolvedValue();
+src/components/__tests__/PipelineSmoke.test.ts:182:    vi.spyOn(store, 'refreshWorkflows').mockResolvedValue();
+src/components/__tests__/PipelineSmoke.test.ts:183:    vi.spyOn(store, 'refreshTools').mockResolvedValue();
+src/components/__tests__/PipelineSmoke.test.ts:188:        stubs: vueFlowStubs,
+src/components/__tests__/GateView.test.ts:16:vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn() }));
+src/components/__tests__/GateView.test.ts:17:vi.mock('../../lib/gate', () => ({
+src/components/__tests__/GateView.test.ts:20:  startGateWatcher: vi.fn().mockResolvedValue(undefined),
+src/components/__tests__/GateView.test.ts:21:  stopGateWatcher: vi.fn().mockResolvedValue(undefined),
+src/components/__tests__/GateView.test.ts:37:    save: vi.fn().mockResolvedValue(undefined),
+src/components/__tests__/GateView.test.ts:59:    vi.mocked(loadStore).mockResolvedValue(store as never);
+src/components/__tests__/GateView.test.ts:60:    vi.mocked(onGateWatcherEvent).mockImplementation(async (handler) => {
+src/components/__tests__/GateView.test.ts:64:    vi.mocked(loadGateSnapshot).mockImplementation(async (root: string) => ({
+src/components/__tests__/GateView.test.ts:69:    vi.mocked(readGateTaskMarkdown).mockResolvedValue('# Task Detail\n\nRendered markdown');
+src/components/__tests__/GateView.test.ts:109:    vi.mocked(open).mockResolvedValue('/alt' as never);
+src/components/__tests__/GateView.test.ts:158:    vi.mocked(loadGateSnapshot).mockResolvedValue({ dbPath: '/repo/.gate/gate.db', exists: false, tasks: [] });
+src/components/PipelineRunner.vue:147:        placeholder="Optional: ambient context for all nodes..."
+src/components/EnvVarEditor.vue:80:          placeholder="KEY"
+src/components/EnvVarEditor.vue:88:          placeholder="value"
+src/components/InspectorNodeActions.vue:71:    <textarea v-model="conclusionText" class="field-textarea" rows="4" placeholder="Optional conclusion for this node" />
+src/components/WorkflowTreeLoadingState.vue:25:    <div class="loading-connector-placeholder" />
+src/components/WorkflowTreeLoadingState.vue:134:.loading-connector-placeholder {
+src/components/WorkflowTreeLoadingState.vue:141:.loading-connector-placeholder::after {
+src/components/ChatInputBar.vue:16:  placeholder: string;
+src/components/ChatInputBar.vue:109:      <textarea v-model="text" :placeholder="placeholder" :disabled="disabled" rows="3" @keydown="handleKeyDown" />
+src/lib/__tests__/acp-client-core.test.ts:27:    vi.mocked(sendToAgent).mockReset().mockResolvedValue(undefined);
+src/lib/__tests__/acp-client-core.test.ts:28:    vi.mocked(killAgent).mockReset().mockResolvedValue(undefined);
+src/lib/__tests__/acp-client-core.test.ts:29:    vi.mocked(onAgentMessage).mockReset().mockResolvedValue(() => {});
+src/lib/__tests__/acp-client-core.test.ts:30:    vi.mocked(onAgentClosed).mockReset().mockResolvedValue(() => {});
+src/lib/__tests__/acp-client-core.test.ts:31:    vi.spyOn(console, 'error').mockImplementation(() => {});
+src/lib/__tests__/acp-client-core.test.ts:70:    vi.mocked(sendToAgent).mockRejectedValueOnce(new Error('send failed'));
+src/lib/__tests__/acp-client-core.test.ts:81:    vi.mocked(sendToAgent).mockImplementation(() => new Promise(() => {}));
+src/lib/__tests__/acp-client-core.test.ts:91:    expect(vi.mocked(killAgent)).toHaveBeenCalledWith('agent-1');
+src/lib/__tests__/acp-client-core.test.ts:97:    vi.mocked(onAgentClosed).mockImplementation(async (callback) => {

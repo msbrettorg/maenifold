@@ -1,0 +1,209 @@
+/* Shared component classes for pipeline-ui. Imported by App.vue. */
+
+/* ── Reset ── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+/* ============================================================
+   SHARED COMPONENT CLASSES — T-63.0
+   Global, not scoped. Any component can use these.
+   ============================================================ */
+
+/* ── Button base ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity var(--transition-fast), background-color var(--transition-fast);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.btn:disabled,
+.btn--busy {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* ── Button variants ── */
+.btn-primary {
+  background-color: var(--bg-primary);
+  color: var(--text-on-accent);
+}
+.btn-primary:hover:not(:disabled):not(.btn--busy) {
+  background-color: var(--bg-primary-hover);
+}
+
+.btn-success {
+  background-color: var(--color-status-completed);
+  color: var(--text-on-accent);
+}
+.btn-success:hover:not(:disabled):not(.btn--busy) {
+  background-color: var(--color-status-completed);
+}
+
+.btn-danger {
+  background-color: var(--color-status-abandoned);
+  color: var(--text-on-accent);
+}
+.btn-danger:hover:not(:disabled):not(.btn--busy) {
+  background-color: var(--color-status-abandoned);
+}
+
+.btn-pause {
+  background-color: var(--color-status-stuck);
+  color: var(--text-on-accent);
+}
+.btn-pause:hover:not(:disabled):not(.btn--busy) {
+  background-color: var(--color-status-active);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+.btn-ghost:hover:not(:disabled):not(.btn--busy) {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.btn-outline-danger {
+  background-color: transparent;
+  color: var(--color-status-abandoned);
+  border: 1px solid var(--color-status-abandoned);
+}
+.btn-outline-danger:hover:not(:disabled):not(.btn--busy) {
+  background-color: var(--bg-error);
+}
+
+/* ── Form field bases ── */
+.field-input,
+.field-select,
+.field-textarea {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast), outline-color var(--transition-fast);
+  width: 100%;
+}
+
+.field-input:focus-visible,
+.field-select:focus-visible,
+.field-textarea:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-color: var(--border-focus);
+}
+
+.field-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ── Status dot ── */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--color-status-pending);
+}
+
+.status-dot--pending   { background-color: var(--color-status-pending); }
+.status-dot--active    { background-color: var(--color-status-active); }
+.status-dot--completed { background-color: var(--color-status-completed); }
+.status-dot--abandoned { background-color: var(--color-status-abandoned); }
+.status-dot--stuck     { background-color: var(--color-status-stuck); }
+.status-dot--ready     { background-color: var(--color-status-ready); }
+
+.status-text--pending   { color: var(--color-status-pending); }
+.status-text--active    { color: var(--color-status-active); }
+.status-text--completed { color: var(--color-status-completed); }
+.status-text--abandoned { color: var(--color-status-abandoned); }
+.status-text--stuck     { color: var(--color-status-stuck); }
+.status-text--ready     { color: var(--color-status-ready); }
+.status-text--paused    { color: var(--color-status-ready); }
+.status-text--cancelled { color: var(--color-status-abandoned); }
+
+/* ── Panel ── */
+.panel {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.sidebar-content,
+.messages-container,
+.gate-table-wrap,
+.logs-content,
+.workflow-panel-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+}
+
+.sidebar-content::-webkit-scrollbar,
+.messages-container::-webkit-scrollbar,
+.gate-table-wrap::-webkit-scrollbar,
+.logs-content::-webkit-scrollbar,
+.workflow-panel-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar-content::-webkit-scrollbar-track,
+.messages-container::-webkit-scrollbar-track,
+.gate-table-wrap::-webkit-scrollbar-track,
+.logs-content::-webkit-scrollbar-track,
+.workflow-panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb,
+.messages-container::-webkit-scrollbar-thumb,
+.gate-table-wrap::-webkit-scrollbar-thumb,
+.logs-content::-webkit-scrollbar-thumb,
+.workflow-panel-body::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 4px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover,
+.messages-container::-webkit-scrollbar-thumb:hover,
+.gate-table-wrap::-webkit-scrollbar-thumb:hover,
+.logs-content::-webkit-scrollbar-thumb:hover,
+.workflow-panel-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

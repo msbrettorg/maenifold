@@ -1,0 +1,121 @@
+import { computed, type ComputedRef } from 'vue';
+import { normalizeAuthMethods, type AppAuthMethod } from '../lib/auth-methods';
+import type {
+  AgentInfo,
+  AvailableCommand,
+  ChatMessage,
+  ModelInfo,
+  PermissionRequest,
+  PlanEntry,
+  PromptCapabilities,
+  SavedSession,
+  SessionConfigOption,
+  SessionMode,
+  SessionState,
+} from '../lib/types';
+
+interface SessionGetterSource {
+  activeSession: ComputedRef<SessionState | null>;
+}
+
+export function createSessionGetters({ activeSession }: SessionGetterSource) {
+  const currentSession = computed<SavedSession | null>(
+    () => activeSession.value?.session ?? null
+  );
+  const messages = computed<ChatMessage[]>(() => activeSession.value?.messages ?? []);
+  const isConnected = computed<boolean>(
+    () => activeSession.value?.isConnected ?? false
+  );
+  const isLoading = computed<boolean>(() => activeSession.value?.isLoading ?? false);
+  const isConnecting = computed<boolean>(
+    () => activeSession.value?.isConnecting ?? false
+  );
+  const error = computed<string | null>(() => activeSession.value?.error ?? null);
+  const pendingPermission = computed<PermissionRequest | null>(
+    () => activeSession.value?.pendingPermissions[0] ?? null
+  );
+  const pendingPermissions = computed<PermissionRequest[]>(
+    () => activeSession.value?.pendingPermissions ?? []
+  );
+  const pendingPermissionCount = computed<number>(
+    () => activeSession.value?.pendingPermissions.length ?? 0
+  );
+  const supportsSessionList = computed<boolean>(
+    () => activeSession.value?.supportsSessionList ?? false
+  );
+  const agentInfo = computed<AgentInfo | null>(
+    () => activeSession.value?.agentInfo ?? null
+  );
+  const agentPromptCapabilities = computed<PromptCapabilities>(
+    () => activeSession.value?.agentPromptCapabilities ?? {}
+  );
+  const pendingAuthMethods = computed<AppAuthMethod[]>(
+    () => normalizeAuthMethods(activeSession.value?.pendingAuthMethods ?? [])
+  );
+  const pendingAuthAgentName = computed<string>(
+    () => activeSession.value?.pendingAuthAgentName ?? ''
+  );
+  const availableModes = computed<SessionMode[]>(
+    () => activeSession.value?.availableModes ?? []
+  );
+  const currentModeId = computed<string>(
+    () => activeSession.value?.currentModeId ?? ''
+  );
+  const configOptions = computed<SessionConfigOption[]>(
+    () => activeSession.value?.configOptions ?? []
+  );
+  const hasConfigOptions = computed<boolean>(
+    () => activeSession.value?.hasConfigOptions ?? false
+  );
+  const availableCommands = computed<AvailableCommand[]>(
+    () => activeSession.value?.availableCommands ?? []
+  );
+  const currentPlan = computed<PlanEntry[] | null>(
+    () => activeSession.value?.currentPlan ?? null
+  );
+  const availableModels = computed<ModelInfo[]>(
+    () => activeSession.value?.availableModels ?? []
+  );
+  const currentModelId = computed<string>(
+    () => activeSession.value?.currentModelId ?? ''
+  );
+  const startupPhase = computed<string>(
+    () => activeSession.value?.startupPhase ?? ''
+  );
+  const startupLogs = computed<string[]>(() => activeSession.value?.startupLogs ?? []);
+  const startupElapsed = computed<number>(
+    () => activeSession.value?.startupElapsed ?? 0
+  );
+  const hasActiveSession = computed(() => currentSession.value !== null);
+  const messageList = computed(() => messages.value);
+
+  return {
+    currentSession,
+    messages,
+    isConnected,
+    isLoading,
+    isConnecting,
+    error,
+    pendingPermission,
+    pendingPermissions,
+    pendingPermissionCount,
+    supportsSessionList,
+    agentInfo,
+    agentPromptCapabilities,
+    pendingAuthMethods,
+    pendingAuthAgentName,
+    availableModes,
+    currentModeId,
+    configOptions,
+    hasConfigOptions,
+    availableCommands,
+    currentPlan,
+    availableModels,
+    currentModelId,
+    startupPhase,
+    startupLogs,
+    startupElapsed,
+    hasActiveSession,
+    messageList,
+  };
+}

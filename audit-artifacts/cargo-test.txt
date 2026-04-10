@@ -1,0 +1,63 @@
+    Blocking waiting for file lock on package cache
+   Compiling zerocopy v0.8.47
+   Compiling fallible-iterator v0.3.0
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling libsqlite3-sys v0.28.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling ahash v0.8.12
+   Compiling hashbrown v0.14.5
+   Compiling rand_chacha v0.3.1
+   Compiling rand_chacha v0.2.2
+   Compiling rand v0.7.3
+   Compiling rand v0.8.5
+   Compiling hashlink v0.9.1
+   Compiling rusqlite v0.31.0
+   Compiling phf_generator v0.11.3
+   Compiling phf_generator v0.10.0
+   Compiling string_cache_codegen v0.5.4
+   Compiling phf_codegen v0.11.3
+   Compiling phf_macros v0.10.0
+   Compiling phf_generator v0.8.0
+   Compiling phf_macros v0.11.3
+   Compiling phf_codegen v0.8.0
+   Compiling selectors v0.24.0
+   Compiling markup5ever v0.14.1
+   Compiling phf v0.11.3
+   Compiling phf v0.10.1
+   Compiling tauri-utils v2.8.3
+   Compiling cssparser v0.29.6
+   Compiling html5ever v0.29.1
+   Compiling kuchikiki v0.8.8-speedreader
+   Compiling tauri-runtime v2.10.1
+   Compiling tauri-runtime-wry v2.10.1
+   Compiling tauri-plugin v2.5.4
+   Compiling tauri-build v2.5.6
+   Compiling tauri-codegen v2.5.5
+   Compiling tauri-plugin-fs v2.4.5
+   Compiling tauri-plugin-opener v2.5.3
+   Compiling tauri-plugin-http v2.5.7
+   Compiling tauri-plugin-dialog v2.6.0
+   Compiling tauri-plugin-store v2.4.2
+   Compiling tauri v2.10.3
+   Compiling maenifold v0.1.10 (/Users/brett/src/ma-collective/pipeline-ui/src-tauri)
+   Compiling tauri-macros v2.5.5
+   Compiling tauri-plugin-single-instance v2.4.0
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 26.01s
+     Running unittests src/lib.rs (target/debug/deps/maenifold_lib-c8be0b35421285d9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/maenifold-ef343454d104e339)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests maenifold_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

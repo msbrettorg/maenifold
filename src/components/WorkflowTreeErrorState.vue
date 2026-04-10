@@ -1,0 +1,83 @@
+<script setup lang="ts">
+defineProps<{
+  error: string;
+}>();
+
+defineEmits<{
+  retry: [];
+}>();
+</script>
+
+<template>
+  <div class="tree-error" role="alert">
+    <div class="error-icon">⚠️</div>
+    <div class="error-body">
+      <p class="error-title">Failed to load workflow tree</p>
+      <p class="error-detail">{{ error }}</p>
+    </div>
+    <button type="button" class="retry-btn" @click="$emit('retry')">
+      ↺ Retry
+    </button>
+  </div>
+</template>
+
+<style scoped>
+.tree-error {
+  --tree-error-text: color-mix(in srgb, var(--text-on-accent) 74%, var(--text-error));
+  --tree-error-detail: color-mix(in srgb, var(--text-on-accent) 62%, var(--text-error));
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  max-width: 480px;
+  background: color-mix(in srgb, var(--color-status-abandoned) 12%, var(--bg-code));
+  border: 1px solid color-mix(in srgb, var(--color-status-abandoned) 25%, transparent);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  color: var(--tree-error-text);
+}
+
+.error-icon {
+  flex-shrink: 0;
+  font-size: var(--text-xl);
+  line-height: 1.3;
+}
+
+.error-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-title {
+  margin: 0 0 0.25rem;
+  color: var(--tree-error-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.error-detail {
+  margin: 0;
+  color: var(--tree-error-detail);
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.retry-btn {
+  flex-shrink: 0;
+  align-self: center;
+  background: color-mix(in srgb, var(--color-status-abandoned) 18%, var(--bg-code));
+  border: 1px solid color-mix(in srgb, var(--color-status-abandoned) 30%, transparent);
+  border-radius: 6px;
+  padding: 0.375rem 0.75rem;
+  color: var(--tree-error-text);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.retry-btn:hover {
+  background: color-mix(in srgb, var(--color-status-abandoned) 26%, var(--bg-code));
+}
+</style>

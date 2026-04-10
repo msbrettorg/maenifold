@@ -1,0 +1,18 @@
+   Compiling maenifold v0.1.10 (/Users/brett/src/ma-collective/pipeline-ui/src-tauri)
+warning: this `map_or` can be simplified
+   --> src/config.rs:176:29
+    |
+176 |         if path.exists() || path.parent().map_or(false, |p| p.exists()) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
+    = note: `#[warn(clippy::unnecessary_map_or)]` on by default
+help: use is_some_and instead
+    |
+176 -         if path.exists() || path.parent().map_or(false, |p| p.exists()) {
+176 +         if path.exists() || path.parent().is_some_and(|p| p.exists()) {
+    |
+
+warning: `maenifold` (lib test) generated 1 warning (1 duplicate)
+warning: `maenifold` (lib) generated 1 warning (run `cargo clippy --fix --lib -p maenifold` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.66s

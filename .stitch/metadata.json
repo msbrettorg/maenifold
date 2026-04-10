@@ -1,0 +1,51 @@
+{
+  "name": "projects/8586251726963415839",
+  "projectId": "8586251726963415839",
+  "title": "Pipeline UI — Workflow Authoring",
+  "visibility": "PRIVATE",
+  "createTime": "2026-04-01T02:38:40.738066Z",
+  "updateTime": "2026-04-01T02:46:00.000Z",
+  "projectType": "PROJECT_DESIGN",
+  "origin": "STITCH",
+  "deviceType": "DESKTOP",
+  "designTheme": {
+    "colorMode": "DARK",
+    "font": "SPACE_GROTESK",
+    "headlineFont": "SPACE_GROTESK",
+    "bodyFont": "INTER",
+    "labelFont": "INTER",
+    "roundness": "ROUND_FOUR",
+    "customColor": "#4da6ff",
+    "colorVariant": "FIDELITY",
+    "overridePrimaryColor": "#4da6ff",
+    "overrideSecondaryColor": "#4d8eff",
+    "overrideTertiaryColor": "#d0bcff",
+    "overrideNeutralColor": "#131313"
+  },
+  "screens": {
+    "workflow-authoring-main-1": {
+      "id": "079141ff8a894cb0ac40e14b3e29d55e",
+      "sourceScreen": "projects/8586251726963415839/screens/079141ff8a894cb0ac40e14b3e29d55e",
+      "title": "Pipeline UI - Workflow Authoring (Variant 1)",
+      "width": 2560,
+      "height": 2048
+    },
+    "workflow-authoring-main-2": {
+      "id": "609dcb940e41463886e3aea582b54c70",
+      "sourceScreen": "projects/8586251726963415839/screens/609dcb940e41463886e3aea582b54c70",
+      "title": "Pipeline UI - Workflow Authoring (Variant 2)",
+      "width": 2560,
+      "height": 2048
+    },
+    "new-workflow-modal": {
+      "id": "6a8892d62e8542738f13b091fb4fdd51",
+      "sourceScreen": "projects/8586251726963415839/screens/6a8892d62e8542738f13b091fb4fdd51",
+      "title": "New Workflow Modal",
+      "width": 2560,
+      "height": 2048
+    }
+  },
+  "metadata": {
+    "userRole": "OWNER"
+  }
+}

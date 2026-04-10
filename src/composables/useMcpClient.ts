@@ -1,0 +1,292 @@
+import { readonly, ref } from 'vue';
+import { getTauriFetch } from '../lib/http';
+import { getApiBase } from './useMemoryApi';
+import type {
+  JsonRpcRequest,
+  JsonRpcResponse,
+  ToolCallResult,
+  ToolDefinition,
+  ToolsListResult,
+} from './mcpTransport';
+import { getErrorMessage, parseJsonRpcResponse } from './mcpTransport';
+
+export function useMcpClient(baseUrl?: string) {
+  const sessionId = ref<string | null>(null);
+  const connected = ref(false);
+  const reconnecting = ref(false);
+  const error = ref<string | null>(null);
+
+  const resolvedBase = (baseUrl ?? getApiBase()) || 'http://127.0.0.1:8080';
+  const mcpUrl = `${resolvedBase}/mcp`;
+  let nextId = 1;
+  let reconnectPromise: Promise<void> | null = null;
+  let disconnectRequested = false;
+
+  function buildHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      Accept: 'application/json, text/event-stream',
+      'Content-Type': 'application/json',
+    };
+
+    if (sessionId.value) {
+      headers['Mcp-Session-Id'] = sessionId.value;
+    } else {
+      headers['Mcp-Protocol-Version'] = '2025-03-26';
+    }
+
+    return headers;
+  }
+
+  function resetState() {
+    sessionId.value = null;
+    connected.value = false;
+  }
+
+  function createHttpError(method: string, status: number): Error {
+    return new Error(`${method} failed: HTTP ${status}`);
+  }
+
+  async function sendRequest(method: string, request: JsonRpcRequest): Promise<Response> {
+    try {
+      const httpFetch = await getTauriFetch();
+      return await httpFetch(mcpUrl, {
+        method: 'POST',
+        headers: buildHeaders(),
+        body: JSON.stringify(request),
+      });
+    } catch (err: unknown) {
+      const message = getErrorMessage(err);
+      error.value = `Network error during ${method}: ${message}`;
+      throw new Error(error.value);
+    }
+  }
+
+  async function reconnectSession(): Promise<void> {
+    if (reconnectPromise) {
+      return reconnectPromise;
+    }
+
+    connected.value = false;
+    reconnecting.value = true;
+    disconnectRequested = false;
+    reconnectPromise = (async () => {
+      let timeoutHandle: ReturnType<typeof setTimeout>;
+      try {
+        const timeout = new Promise<never>((_, reject) => {
+          timeoutHandle = setTimeout(() => reject(new Error('MCP reconnect timed out')), 30_000);
+        });
+        await Promise.race([connect({ isReconnect: true }), timeout]);
+        if (disconnectRequested) {
+          await disconnect();
+        }
+      } finally {
+        clearTimeout(timeoutHandle!);
+        reconnecting.value = false;
+        reconnectPromise = null;
+      }
+    })();
+
+    return reconnectPromise;
+  }
+
+  async function jsonRpc<T = unknown>(
+    method: string,
+    params?: unknown,
+    options: { notification?: boolean; allowReconnect?: boolean } = {},
+  ): Promise<{ response: Response; result?: T }> {
+    const request: JsonRpcRequest = {
+      jsonrpc: '2.0',
+      method,
+      params,
+    };
+
+    if (!options.notification) {
+      request.id = nextId++;
+    }
+
+    async function execute(canReconnect: boolean): Promise<{ response: Response; result?: T }> {
+      const response = await sendRequest(method, request);
+
+      if (response.status === 404 && canReconnect && options.allowReconnect !== false) {
+        const originalError = createHttpError(method, response.status);
+        error.value = originalError.message;
+
+        try {
+          await reconnectSession();
+        } catch (reconnectError: unknown) {
+          if (reconnectError instanceof Error) {
+            throw reconnectError;
+          }
+
+          throw new Error(getErrorMessage(reconnectError));
+        }
+
+        return execute(false);
+      }
+
+      if (options.notification) {
+        if (response.status !== 202) {
+          error.value = createHttpError(method, response.status).message;
+          throw new Error(error.value);
+        }
+
+        return { response };
+      }
+
+      if (!response.ok) {
+        error.value = createHttpError(method, response.status).message;
+        throw new Error(error.value);
+      }
+
+      let payload: JsonRpcResponse<T>;
+      try {
+        payload = await parseJsonRpcResponse<T>(response, method, request.id);
+      } catch (err: unknown) {
+        error.value = getErrorMessage(err);
+        throw new Error(error.value);
+      }
+
+      if (payload.error) {
+        error.value = payload.error.message || `JSON-RPC error during ${method}`;
+        throw new Error(error.value);
+      }
+
+      return { response, result: payload.result };
+    }
+
+    return execute(true);
+  }
+
+  async function connect(options: { isReconnect?: boolean } = {}): Promise<void> {
+    error.value = null;
+    resetState();
+
+    try {
+      const { response } = await jsonRpc('initialize', {
+        protocolVersion: '2025-03-26',
+        capabilities: {},
+        clientInfo: { name: 'pipeline-ui', version: '0.1.0' },
+      }, { allowReconnect: false });
+
+      const headerSessionId = response.headers.get('Mcp-Session-Id');
+      sessionId.value = headerSessionId;
+
+      try {
+        await jsonRpc('notifications/initialized', undefined, {
+          notification: true,
+          allowReconnect: false,
+        });
+      } catch (err: unknown) {
+        const message = `Initialized notification failed: ${getErrorMessage(err)}`;
+        error.value = message;
+        resetState();
+        throw new Error(message);
+      }
+
+      connected.value = true;
+      reconnecting.value = false;
+      error.value = null;
+    } catch (err: unknown) {
+      const message = error.value ?? getErrorMessage(err);
+      resetState();
+      if (!options.isReconnect) {
+        reconnecting.value = false;
+      }
+      error.value = message;
+
+      if (err instanceof Error) {
+        throw err;
+      }
+
+      throw new Error(message);
+    }
+  }
+
+  async function disconnect(): Promise<void> {
+    disconnectRequested = true;
+    const currentSessionId = sessionId.value;
+    if (!currentSessionId) {
+      reconnecting.value = false;
+      reconnectPromise = null;
+      resetState();
+      error.value = null;
+      return;
+    }
+
+    try {
+      const httpFetch = await getTauriFetch();
+      await httpFetch(mcpUrl, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json, text/event-stream',
+          'Mcp-Session-Id': currentSessionId,
+        },
+      });
+    } catch {
+      // Best-effort teardown; swallow network errors.
+    } finally {
+      reconnecting.value = false;
+      reconnectPromise = null;
+      resetState();
+      error.value = null;
+    }
+  }
+
+  async function ensureConnectedSession(): Promise<void> {
+    if (connected.value) return;
+    if (reconnecting.value && reconnectPromise) {
+      await reconnectPromise;
+    }
+    if (!connected.value) {
+      error.value = 'MCP client is not connected';
+      throw new Error(error.value);
+    }
+  }
+
+  async function callTool<T = unknown>(name: string, args: Record<string, unknown> = {}): Promise<T> {
+    error.value = null;
+    await ensureConnectedSession();
+ 
+    const { result } = await jsonRpc<ToolCallResult>('tools/call', {
+      name,
+      arguments: args,
+    });
+
+    const toolResult = result ?? {};
+    const rawText = toolResult.content?.[0]?.text;
+
+    if (toolResult.isError) {
+      error.value = rawText || 'Unknown tool error';
+      throw new Error(error.value);
+    }
+
+    if (typeof rawText !== 'string') {
+      return undefined as T;
+    }
+
+    try {
+      return JSON.parse(rawText) as T;
+    } catch {
+      return rawText as T;
+    }
+  }
+
+  async function listTools(): Promise<ToolDefinition[]> {
+    error.value = null;
+    await ensureConnectedSession();
+ 
+    const { result } = await jsonRpc<ToolsListResult>('tools/list');
+    return result?.tools ?? [];
+  }
+
+  return {
+    sessionId: readonly(sessionId),
+    connected: readonly(connected),
+    reconnecting: readonly(reconnecting),
+    error: readonly(error),
+    connect,
+    disconnect,
+    callTool,
+    listTools,
+  };
+}

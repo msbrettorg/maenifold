@@ -659,3 +659,523 @@ mod settings_tests {
         assert_eq!(config.mcp_servers.len(), raw_mcp_server_count);
     }
 }
+
+#[cfg(test)]
+mod mcp_integration_tests {
+    use super::*;
+    use reqwest::header::{ACCEPT, CONTENT_TYPE, HeaderMap, HeaderValue};
+    use serde_json::{Value, json};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWriteExt, BufReader};
+    use tokio::process::{Child, ChildStdin, ChildStdout, Command};
+    use tokio::sync::Mutex;
+    use tokio::time::timeout;
+
+    const MCP_PROTOCOL_VERSION: &str = "2025-03-26";
+    const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+    const PROCESS_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
+
+    #[derive(Debug)]
+    struct ServerCheckResult {
+        tool_count: usize,
+    }
+
+    fn build_http_headers(session_id: Option<&str>) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            ACCEPT,
+            HeaderValue::from_static("application/json, text/event-stream"),
+        );
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+
+        match session_id {
+            Some(session_id) => {
+                headers.insert(
+                    "Mcp-Session-Id",
+                    HeaderValue::from_str(session_id).expect("session id should be a valid header"),
+                );
+            }
+            None => {
+                headers.insert(
+                    "Mcp-Protocol-Version",
+                    HeaderValue::from_static(MCP_PROTOCOL_VERSION),
+                );
+            }
+        }
+
+        headers
+    }
+
+    async fn send_http_request(
+        client: &reqwest::Client,
+        url: &str,
+        session_id: Option<&str>,
+        body: &Value,
+    ) -> Result<reqwest::Response, String> {
+        client
+            .post(url)
+            .headers(build_http_headers(session_id))
+            .json(body)
+            .send()
+            .await
+            .map_err(|error| format!("request failed: {error}"))
+    }
+
+    async fn parse_http_jsonrpc_response(
+        response: reqwest::Response,
+        expected_id: u64,
+    ) -> Result<Value, String> {
+        let content_type = response
+            .headers()
+            .get(CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+
+        let payload = if content_type.contains("text/event-stream") {
+            let body = response
+                .text()
+                .await
+                .map_err(|error| format!("failed to read SSE body: {error}"))?;
+            parse_sse_jsonrpc_response(&body, expected_id)?
+        } else {
+            response
+                .json::<Value>()
+                .await
+                .map_err(|error| format!("failed to parse JSON body: {error}"))?
+        };
+
+        match payload.get("error") {
+            Some(error) if !error.is_null() => Err(format!("JSON-RPC error: {error}")),
+            _ => Ok(payload),
+        }
+    }
+
+    fn parse_sse_jsonrpc_response(body: &str, expected_id: u64) -> Result<Value, String> {
+        for block in body.split("\n\n").flat_map(|chunk| chunk.split("\r\n\r\n")) {
+            let data_lines = block
+                .lines()
+                .map(str::trim)
+                .filter_map(|line| line.strip_prefix("data:").map(str::trim_start))
+                .filter(|line| !line.is_empty())
+                .collect::<Vec<_>>();
+
+            if data_lines.is_empty() {
+                continue;
+            }
+
+            let candidate = data_lines.join("\n");
+            let parsed = match serde_json::from_str::<Value>(&candidate) {
+                Ok(parsed) => parsed,
+                Err(_) => continue,
+            };
+
+            let id_matches = parsed
+                .get("id")
+                .and_then(Value::as_u64)
+                .is_some_and(|id| id == expected_id);
+            if id_matches {
+                return Ok(parsed);
+            }
+        }
+
+        Err(format!(
+            "no valid JSON-RPC response found in SSE stream for request id {expected_id}"
+        ))
+    }
+
+    async fn send_http_initialized_notification(
+        client: &reqwest::Client,
+        url: &str,
+        session_id: Option<&str>,
+    ) -> Result<(), String> {
+        let response = client
+            .post(url)
+            .headers(build_http_headers(session_id))
+            .json(&json!({
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized"
+            }))
+            .send()
+            .await
+            .map_err(|error| format!("initialized notification failed: {error}"))?;
+
+        if !response.status().is_success() {
+            return Err(format!(
+                "initialized notification failed with HTTP {}",
+                response.status()
+            ));
+        }
+
+        Ok(())
+    }
+
+    async fn delete_http_session(
+        client: &reqwest::Client,
+        url: &str,
+        session_id: Option<&str>,
+    ) -> Result<(), String> {
+        let Some(session_id) = session_id else {
+            return Ok(());
+        };
+
+        let response = client
+            .delete(url)
+            .header(ACCEPT, "application/json, text/event-stream")
+            .header("Mcp-Session-Id", session_id)
+            .send()
+            .await
+            .map_err(|error| format!("session delete failed: {error}"))?;
+
+        let status = response.status();
+        if !status.is_success() && status != reqwest::StatusCode::METHOD_NOT_ALLOWED {
+            return Err(format!("session delete failed with HTTP {status}"));
+        }
+
+        Ok(())
+    }
+
+    async fn check_http_server(name: &str, url: &str) -> Result<ServerCheckResult, String> {
+        let client = reqwest::Client::builder()
+            .timeout(REQUEST_TIMEOUT)
+            .build()
+            .map_err(|error| format!("failed to build HTTP client: {error}"))?;
+
+        let initialize_response = send_http_request(
+            &client,
+            url,
+            None,
+            &json!({
+                "jsonrpc": "2.0",
+                "id": 1u64,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": MCP_PROTOCOL_VERSION,
+                    "capabilities": {},
+                    "clientInfo": {
+                        "name": "maenifold-desktop-test",
+                        "version": "0.1.0"
+                    }
+                }
+            }),
+        )
+        .await?;
+
+        let status = initialize_response.status();
+        let session_id = initialize_response
+            .headers()
+            .get("Mcp-Session-Id")
+            .and_then(|value| value.to_str().ok())
+            .map(ToOwned::to_owned);
+        if !status.is_success() {
+            return Err(format!("initialize failed with HTTP {status}"));
+        }
+
+        let initialize_payload = parse_http_jsonrpc_response(initialize_response, 1).await?;
+        let server_info = initialize_payload
+            .get("result")
+            .and_then(|result| result.get("serverInfo"))
+            .ok_or_else(|| "initialize response missing result.serverInfo".to_string())?;
+        let server_name = server_info
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or("<unknown>");
+
+        send_http_initialized_notification(&client, url, session_id.as_deref()).await?;
+
+        let tools_response = send_http_request(
+            &client,
+            url,
+            session_id.as_deref(),
+            &json!({
+                "jsonrpc": "2.0",
+                "id": 2u64,
+                "method": "tools/list"
+            }),
+        )
+        .await?;
+        let tools_status = tools_response.status();
+        if !tools_status.is_success() {
+            let _ = delete_http_session(&client, url, session_id.as_deref()).await;
+            return Err(format!("tools/list failed with HTTP {tools_status}"));
+        }
+
+        let tools_payload = parse_http_jsonrpc_response(tools_response, 2).await?;
+        let tools = tools_payload
+            .get("result")
+            .and_then(|result| result.get("tools"))
+            .and_then(Value::as_array)
+            .ok_or_else(|| "tools/list response missing result.tools".to_string())?;
+        if tools.is_empty() {
+            let _ = delete_http_session(&client, url, session_id.as_deref()).await;
+            return Err(format!(
+                "tools/list returned zero tools for server '{name}' (serverInfo.name='{server_name}')"
+            ));
+        }
+
+        delete_http_session(&client, url, session_id.as_deref()).await?;
+        Ok(ServerCheckResult {
+            tool_count: tools.len(),
+        })
+    }
+
+    async fn send_stdio_message(stdin: &mut ChildStdin, message: &Value) -> Result<(), String> {
+        let mut body =
+            serde_json::to_vec(message).map_err(|error| format!("failed to serialize message: {error}"))?;
+        body.push(b'\n');
+        stdin
+            .write_all(&body)
+            .await
+            .map_err(|error| format!("failed to write message body: {error}"))?;
+        stdin
+            .flush()
+            .await
+            .map_err(|error| format!("failed to flush stdin: {error}"))?;
+        Ok(())
+    }
+
+    async fn read_stdio_message<R>(reader: &mut BufReader<R>) -> Result<Value, String>
+    where
+        R: AsyncRead + Unpin,
+    {
+        let mut line = String::new();
+        let bytes = reader
+            .read_line(&mut line)
+            .await
+            .map_err(|error| format!("failed to read MCP line: {error}"))?;
+        if bytes == 0 {
+            return Err("unexpected EOF while reading MCP response".to_string());
+        }
+
+        serde_json::from_str(line.trim())
+            .map_err(|error| format!("failed to parse MCP line as JSON: {error}; line={}", line.trim()))
+    }
+
+    async fn read_stdio_response_for_id<R>(
+        reader: &mut BufReader<R>,
+        expected_id: u64,
+    ) -> Result<Value, String>
+    where
+        R: AsyncRead + Unpin,
+    {
+        loop {
+            let message = read_stdio_message(reader).await?;
+            let id_matches = message
+                .get("id")
+                .and_then(Value::as_u64)
+                .is_some_and(|id| id == expected_id);
+            if id_matches {
+                if let Some(error) = message.get("error") {
+                    if !error.is_null() {
+                        return Err(format!("JSON-RPC error: {error}"));
+                    }
+                }
+                return Ok(message);
+            }
+        }
+    }
+
+    async fn collect_stderr(
+        stderr: tokio::process::ChildStderr,
+        sink: Arc<Mutex<String>>,
+    ) -> Result<(), String> {
+        let mut reader = BufReader::new(stderr);
+        loop {
+            let mut line = String::new();
+            let bytes = reader
+                .read_line(&mut line)
+                .await
+                .map_err(|error| format!("failed to read stderr: {error}"))?;
+            if bytes == 0 {
+                break;
+            }
+            sink.lock().await.push_str(&line);
+        }
+        Ok(())
+    }
+
+    async fn shutdown_child(
+        child: &mut Child,
+        stderr_task: tokio::task::JoinHandle<Result<(), String>>,
+        stderr_text: Arc<Mutex<String>>,
+    ) -> Result<String, String> {
+        match child.try_wait() {
+            Ok(Some(_)) => {}
+            Ok(None) => {
+                child
+                    .kill()
+                    .await
+                    .map_err(|error| format!("failed to kill child process: {error}"))?;
+                timeout(PROCESS_SHUTDOWN_TIMEOUT, child.wait())
+                    .await
+                    .map_err(|_| "timed out waiting for child process to exit".to_string())?
+                    .map_err(|error| format!("failed to wait for child process: {error}"))?;
+            }
+            Err(error) => return Err(format!("failed to inspect child process: {error}")),
+        }
+
+        match timeout(Duration::from_secs(1), stderr_task).await {
+            Ok(Ok(Ok(()))) => {}
+            Ok(Ok(Err(error))) => return Err(error),
+            Ok(Err(error)) => return Err(format!("stderr task join failed: {error}")),
+            Err(_) => {}
+        }
+
+        Ok(stderr_text.lock().await.clone())
+    }
+
+    async fn check_stdio_server(
+        name: &str,
+        command: &str,
+        args: &[String],
+    ) -> Result<ServerCheckResult, String> {
+        let mut child = Command::new(command)
+            .args(args)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|error| format!("failed to spawn '{command} {}': {error}", args.join(" ")))?;
+
+        let mut stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| "child stdin was not piped".to_string())?;
+        let stdout: ChildStdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| "child stdout was not piped".to_string())?;
+        let stderr = child
+            .stderr
+            .take()
+            .ok_or_else(|| "child stderr was not piped".to_string())?;
+
+        let stderr_text = Arc::new(Mutex::new(String::new()));
+        let stderr_task = tokio::spawn(collect_stderr(stderr, Arc::clone(&stderr_text)));
+        let mut stdout = BufReader::new(stdout);
+
+        let run = async {
+            send_stdio_message(
+                &mut stdin,
+                &json!({
+                    "jsonrpc": "2.0",
+                    "id": 1u64,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": MCP_PROTOCOL_VERSION,
+                        "capabilities": {},
+                        "clientInfo": {
+                            "name": "maenifold-desktop-test",
+                            "version": "0.1.0"
+                        }
+                    }
+                }),
+            )
+            .await?;
+
+            let initialize_payload = read_stdio_response_for_id(&mut stdout, 1).await?;
+            initialize_payload
+                .get("result")
+                .and_then(|result| result.get("serverInfo"))
+                .ok_or_else(|| "initialize response missing result.serverInfo".to_string())?;
+
+            send_stdio_message(
+                &mut stdin,
+                &json!({
+                    "jsonrpc": "2.0",
+                    "method": "notifications/initialized"
+                }),
+            )
+            .await?;
+
+            send_stdio_message(
+                &mut stdin,
+                &json!({
+                    "jsonrpc": "2.0",
+                    "id": 2u64,
+                    "method": "tools/list"
+                }),
+            )
+            .await?;
+
+            let tools_payload = read_stdio_response_for_id(&mut stdout, 2).await?;
+            let tools = tools_payload
+                .get("result")
+                .and_then(|result| result.get("tools"))
+                .and_then(Value::as_array)
+                .ok_or_else(|| "tools/list response missing result.tools".to_string())?;
+            if tools.is_empty() {
+                return Err(format!("tools/list returned zero tools for server '{name}'"));
+            }
+
+            Ok(ServerCheckResult {
+                tool_count: tools.len(),
+            })
+        };
+
+        let result = timeout(REQUEST_TIMEOUT, run)
+            .await
+            .map_err(|_| format!("timed out waiting for stdio server '{name}'"))?;
+
+        let stderr_output = shutdown_child(&mut child, stderr_task, stderr_text).await?;
+        result.map_err(|error| {
+            if stderr_output.trim().is_empty() {
+                error
+            } else {
+                format!("{error}\nstderr:\n{}", stderr_output.trim())
+            }
+        })
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_all_configured_mcp_servers() {
+        let config_path = get_config_path().expect("config path should resolve");
+        let config = load_config(&config_path)
+            .unwrap_or_else(|error| panic!("failed to load {}: {error}", config_path.display()));
+
+        assert!(
+            !config.mcp_servers.is_empty(),
+            "expected at least one configured MCP server in {}",
+            config_path.display()
+        );
+
+        let mut failures = Vec::new();
+
+        for server in &config.mcp_servers {
+            match server {
+                McpServerEntry::Http { name, url } => match check_http_server(name, url).await {
+                    Ok(result) => {
+                        println!("OK  name={name} type=http tools={}", result.tool_count);
+                    }
+                    Err(error) => {
+                        println!("ERR name={name} type=http error={error}");
+                        failures.push(format!("{name} (http): {error}"));
+                    }
+                },
+                McpServerEntry::Stdio {
+                    name,
+                    command,
+                    args,
+                } => {
+                    println!("RUN name={name} type=stdio command={} args={}", command, args.join(" "));
+                    match check_stdio_server(name, command, args).await {
+                    Ok(result) => {
+                        println!("OK  name={name} type=stdio tools={}", result.tool_count);
+                    }
+                    Err(error) => {
+                        println!("ERR name={name} type=stdio error={error}");
+                        failures.push(format!("{name} (stdio): {error}"));
+                    }
+                }
+                }
+            }
+        }
+
+        assert!(
+            failures.is_empty(),
+            "configured MCP server checks failed:\n{}",
+            failures.join("\n")
+        );
+    }
+}

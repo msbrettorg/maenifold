@@ -3,39 +3,82 @@
 </p>
 
 <p align="center">
-  Domain expertise that compounds. Open. Local. Yours.
+  <strong>The reasoning console.</strong> Knowledge graph · pipeline orchestration · multi-agent coordination.
 </p>
 
 <p align="center">
-  <a href="https://github.com/msbrettorg/maenifold/releases/latest"><img src="https://img.shields.io/github/v/release/msbrettorg/maenifold?style=flat-square" alt="Latest Release"></a>
-  <a href="https://github.com/msbrettorg/maenifold/blob/main/LICENSE"><img src="https://img.shields.io/github/license/msbrettorg/maenifold?style=flat-square" alt="MIT License"></a>
+  <a href="https://github.com/msbrettorg/maenifold-rs"><img src="https://img.shields.io/github/license/msbrettorg/maenifold-rs?style=flat-square" alt="MIT License"></a>
 </p>
 
----
+**Status:** Pre-1.0 developer preview. Build from source. Desktop and pipeline features are experimental.
 
-**Persistent hierarchical state machines executing across ephemeral agents on a shared cognitive manifold, where each HSM transition produces graph artifacts that reshape the manifold for all future transitions by all threads — human and agent alike.**
+# maenifold
 
-Agents think in chains of thought — maenifold captures the important bits as `[[WikiLinks]]`, builds a graph of just those concepts and how they relate, and feeds it back into the context window. The filler is stripped. The signal compounds. You see the same graph in Obsidian. Every agent on your machine is a thread in the same mind.
+maenifold is a local-first Rust backend plus a Tauri desktop app for working with persistent agent memory, ACP sessions, visual pipelines, and gated delivery. The desktop app, the CLI, and external AI clients all talk to the same MCP-native tool surface. The goal is simple: one place to reason, orchestrate, and keep context alive across sessions.
+
+The knowledge graph starts with ordinary markdown and `[[WikiLinks]]`. Each WikiLink becomes a concept node; co-occurrence becomes edges; sync turns the corpus into a graph you can search, visualize, and use to prime new sessions. Community detection clusters related concepts, and graph context can be pulled back into workflows or chat when needed. The source of truth stays readable because the memory layer is still just files plus a local database. You can inspect the graph and the underlying notes side by side.
+
+The backend centers on `crates/maenifold-core` at roughly 39K lines of Rust, with about 48K Rust lines across the repo's crates, and exposes 29 MCP tools. The desktop app has five surfaces: Agents for ACP chat, Pipelines for DAG orchestration, Gates for staged task flow, Workflows for the 70-workflow asset library, and Graph for community-level concept exploration. Current repo configuration targets `Copilot`, `Goose`, `OpenCode`, `Codex`, and `claude-code` agents. The backend and all persistent state run locally. MIT licensed.
+
+## The Five Surfaces
+
+### Agents
+
+- ACP chat sessions against external agents from one desktop shell.
+- Mode and model pickers, permission prompts, and traffic inspection are built into the session UI.
+- Designed for multi-agent work without changing the backend protocol.
+
+### Pipelines
+
+- Visual DAG editor with runtime status, logs, and inspector panels.
+- Four node types: `workflow`, `prompt`, `sequentialThinking`, and `tool`.
+- Supports pipeline surgery: `fork`, `graft`, `join`, and `rewind`.
+
+### Gates
+
+- `gate` is a separate binary for file-authoritative task management.
+- Supports staged delivery flows through `status`, `append`, `pass`, `fail`, `history`, and `sync`.
+- The same task system can be driven from CLI, MCP, or the desktop UI.
+
+### Workflows
+
+- Browse and filter 69 bundled workflows from the asset library.
+- Author and inspect workflow JSON in the desktop workflow editor.
+- Import external workflow JSON and save it back into the local library.
+
+### Graph
+
+- Community view for the whole graph, then concept drill-down inside a selected cluster.
+- Built from local WikiLinks, not a hidden hosted service.
+- Useful for spotting domain neighborhoods before opening the underlying memory files.
+
+## Architecture
+
+maenifold is MCP-native by design. The desktop app, the CLI, and external agent clients all use the same protocol and meet at the same constitutional boundary: domain state lives behind MCP instead of being reimplemented in each frontend. The server speaks stdio MCP and streamable HTTP; the pipeline runtime can call external MCP servers over stdio or streamable HTTP/HTTPS. The repo is a monorepo: the Rust workspace owns the backend crates, while `apps/desktop/` lives alongside it as a Tauri + Vue app and is excluded from the Rust workspace itself.
+
+```text
+maenifold-rs/
+├── crates/
+│   ├── maenifold-core/              # Library — tools, search, graph, ACP, pipeline engine
+│   ├── maenifold-cli/               # Binary — CLI + MCP server
+│   ├── maenifold-gate/              # Binary — file-authoritative task management
+│   └── maenifold-pipeline-driver/   # Binary — headless pipeline executor
+├── apps/desktop/                    # Tauri + Vue 3 desktop application
+├── assets/                          # Workflows, roles, colors, perspectives, integrations
+└── docs/                            # Architecture, guides, research
+```
 
 ## Quick Start
 
+Build the CLI from source:
+
 ```bash
-# Build from source
 cargo build --release -p maenifold-cli
-
-# Or download from GitHub Releases
-# https://github.com/msbrettorg/maenifold/releases/latest
 ```
 
-**CLI**
+If the binary is not on your `PATH`, invoke it as `./target/release/maenifold`.
 
-```bash
-maenifold --tool WriteMemory --payload '{"title":"Auth Decision","content":"Using [[OAuth2]] for [[authentication]]"}'
-maenifold --tool SearchMemories --payload '{"query":"authentication","mode":"Hybrid"}'
-maenifold --tool BuildContext --payload '{"conceptName":"authentication","depth":2}'
-```
-
-**MCP** (Claude Code, Claude Desktop, Codex, etc.)
+Minimal MCP client config:
 
 ```json
 {
@@ -45,151 +88,83 @@ maenifold --tool BuildContext --payload '{"conceptName":"authentication","depth"
 }
 ```
 
-Both interfaces have full feature parity. CLI filters intermediate results and preserves context ([why this matters](https://www.anthropic.com/engineering/code-execution-with-mcp)). MCP auto-syncs the graph during interactive sessions.
+CLI examples using the current direct-tool syntax:
 
-## How It Works
+```bash
+maenifold tool WriteMemory '{"title":"Auth Decision","content":"Using [[OAuth2]] for [[authentication]]"}'
+maenifold tool SearchMemories '{"query":"authentication","mode":"Hybrid"}'
+maenifold tool BuildContext '{"conceptName":"authentication","depth":2}'
+```
 
-**`[[WikiLinks]]` are the primitive.** Each one is a compressed semantic unit — `[[authentication]]`, `[[commitment-discounts]]`, `[[null-reference-exception]]` — carrying meaning in its name alone. When agents tag concepts in their reasoning, those tags become graph nodes. Co-occurring WikiLinks become edges. Structure emerges from use.
+Desktop app:
 
-**Memory is for humans.** Readable markdown with full prose, citations, and context. Open a file, read it, audit what your agents know.
+```bash
+cd apps/desktop
+npm install && npm run tauri dev
+```
 
-**The graph is for navigation.** A navigable structure of concept names and relationships — the semantic skeleton of everything agents and humans have learned together, stripped of filler. Community detection clusters reasoning domains. Decay weights surface what's fresh. At session start, the graph is injected into the context window as a concept map — the attentional gate between persistent memory and ephemeral working memory.
-
-**The graph IS the mind's persistent memory.** Not a database the agent queries and hopes for the best. The compressed, clustered, decay-weighted concept map *is* what primes every session. The context window is ephemeral working memory — the graph is what survives. Agents traverse deeper only when they need the full document.
-
-**One graph. Every thread.** You in Obsidian, Claude Code, VS Code, Codex, cron jobs — every interface is a thread of attention in the same mind. What one thread learns, every thread knows. Knowledge compounds across clients, sessions, domains, and time.
-
-### Capabilities
-
-- **Hybrid search** — semantic vectors + full-text with RRF fusion
-- **Sequential thinking** — persistent hierarchical state machines with revision, branching; any agent can resume any thought
-- **69 workflows** — composable HSMs from deductive reasoning to multi-agent sprints
-- **Memory lifecycle** — decay, consolidation, repair modeled on cognitive neuroscience
-- **16 roles, 7 thinking colors, 12 perspectives** — composable cognitive assets
-- **Community detection** — Louvain algorithm identifies reasoning domains during sync
-- **Decay weighting** — ACT-R power-law recency bias across search, context, and similarity
-
-Six layers: WikiLinks → Graph → Search → Session State → Reasoning → Orchestration.
-
-## Platforms
-
-| Platform | Binary | Notes |
-|----------|--------|-------|
-| macOS | osx-arm64, osx-x64 | Apple Silicon or Intel |
-| Linux | linux-x64, linux-arm64 | x64 or ARM64 |
-| Windows | win-x64 | x64 only |
-
-Native Rust binary. Vector embeddings via ONNX Runtime. vec0 SQLite extension bundled per platform. No external dependencies.
+For HTTP mode, the backend also supports `maenifold --http` and exposes streamable MCP at `/mcp`.
 
 ## Tools
 
-All 28 tools are registered in `registry.rs` and resolve to real handlers.
+maenifold exposes 29 MCP tools across eight categories:
 
-| Category | Tool | Description |
-|----------|------|-------------|
-| **Memory** | `WriteMemory` | Create a new memory file with `[[WikiLinks]]` |
-| | `ReadMemory` | Read a memory file by URI or title |
-| | `EditMemory` | Append, prepend, find-replace, or replace section |
-| | `DeleteMemory` | Delete a memory file (requires confirmation) |
-| | `MoveMemory` | Rename or relocate a memory file |
-| | `ListMemories` | List files and folders under the memory root |
-| | `GetHelp` | Retrieve detailed help for a specific tool |
-| **Search** | `SearchMemories` | Hybrid/semantic/full-text search across memory files |
-| | `ExtractConceptsFromFile` | Extract `[[WikiLink]]` concepts from a file |
-| | `FindSimilarConcepts` | Find semantically similar concepts via vector embeddings |
-| **Graph** | `BuildContext` | Traverse the concept graph around a node |
-| | `Visualize` | Generate a Mermaid diagram of concept relationships |
-| | `Sync` | Synchronize WikiLink concepts into the graph database |
-| **Repair** | `RepairConcepts` | Replace concept variants with a canonical form |
-| | `AnalyzeConceptCorruption` | Find duplicate/corrupted WikiLink variants |
-| **Reasoning** | `SequentialThinking` | Structured thinking with branching and persistence |
-| | `Workflow` | Run structured workflows with submachine support |
-| | `AssumptionLedger` | Track assumptions linked to workflow context |
-| **Assets** | `Adopt` | Load a role, color, or perspective as an adoption instruction |
-| | `UpdateAssets` | Compare and sync packaged assets to runtime |
-| | `ListAssets` | List available asset catalogs |
-| | `ReadMcpResource` | Read an MCP resource by URI |
-| **System** | `RecentActivity` | Query recently indexed files with optional content |
-| | `MemoryStatus` | High-level memory system statistics |
-| | `GetConfig` | Display configuration settings and resolved paths |
-| | `RunFullBenchmark` | Performance benchmarks across 5 categories |
-| | `StartWatcher` | Start background file-system watcher for incremental sync |
-| | `StopWatcher` | Stop the background watcher |
+- **Memory** — `WriteMemory`, `ReadMemory`, `EditMemory`, `DeleteMemory`, `MoveMemory`, `ListMemories`
+- **Search** — `SearchMemories`, `ExtractConceptsFromFile`, `FindSimilarConcepts`
+- **Graph** — `Sync`, `BuildContext`, `Visualize`
+- **Repair** — `RepairConcepts`, `AnalyzeConceptCorruption`
+- **Reasoning** — `SequentialThinking`, `Workflow`, `AssumptionLedger`
+- **Pipeline / ACP** — `Pipeline`, `ListAgents`, `AcpExec`
+- **Assets** — `Adopt`, `ListAssets`, `UpdateAssets`, `ReadMcpResource`
+- **System** — `GetConfig`, `GetHelp`, `RecentActivity`, `MemoryStatus`, `RunFullBenchmark`
 
-## Skills
+Tool reference docs live under [`assets/usage/tools/`](assets/usage/tools/). The canonical registry is [`crates/maenifold-core/src/registry.rs`](crates/maenifold-core/src/registry.rs).
 
-| Skill | What You Get |
-|-------|--------------|
-| **[Maenifold](integrations/claude-code/plugin-maenifold/skills/maenifold/)** | 28 tools, 6 composable layers, sequential thinking, 69 workflows |
-| **[Product Manager](integrations/claude-code/plugin-product-team/skills/product-manager/)** | Multi-agent orchestration, graph context injection, quality gates, sprint traceability |
+## Assets
+
+The repo ships with a sizable local asset library:
+
+- **69 workflows** in `assets/workflows/`
+- **16 roles** in `assets/roles/`
+- **7 colors** in `assets/colors/`
+- **12 perspectives** in `assets/perspectives/`
+
+These assets are consumed by the workflow engine, desktop authoring tools, and MCP-facing adoption flows.
 
 ## Integrations
 
-| Integration | Purpose |
-|-------------|---------|
-| **[Claude Code](integrations/claude-code/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
+Bundled integration assets live under [`assets/integrations/`](assets/integrations/):
 
-## Documentation
-
-- **[Complete Guide](docs/README.md)** — Architecture, philosophy, detailed examples
-- **[Bootstrap Guide](docs/BOOTSTRAP.md)** — From empty graph to domain expertise
-- **[Scripting Guide](docs/SCRIPTING.md)** — CLI patterns, Graph-RAG, HYDE, FLARE
-- **[Context Engineering](docs/research/context-engineering.md)** — Theoretical foundations
-- **[Security Model](docs/SECURITY_MODEL.md)** — STRIDE analysis and data flow
-- **[Testing Philosophy](docs/TESTING_PHILOSOPHY.md)** — No mocks, real systems, real behavior
-- **[Development Guide](docs/DEVELOPMENT.md)** — Build, test, and contribution guide
-
-## Configuration
-
-All settings are read from environment variables with sensible defaults.
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MAENIFOLD_ROOT` | `~/maenifold` | Root directory for all data |
-| `MAENIFOLD_DATABASE_PATH` | `$ROOT/memory.db` | SQLite database location |
-| `MAENIFOLD_AUTO_SYNC` | `true` | Enable incremental sync watcher on MCP start |
-| `MAENIFOLD_SQLITE_BUSY_TIMEOUT` | `5000` | SQLite busy timeout in milliseconds |
-| `MAENIFOLD_SYNC_LEASE_MS` | `10000` | Sync lease duration (1000–60000 ms) |
-| `MAENIFOLD_INCREMENTAL_OPTIMIZE_EVERY` | `40` | Run OPTIMIZE after N sync cycles |
-| `MAENIFOLD_INCREMENTAL_VACUUM_MINUTES` | `720` | Auto-vacuum interval |
-| `MAENIFOLD_SESSION_CLEANUP` | `true` | Enable abandoned session cleanup |
-| `MAENIFOLD_SESSION_ABANDON_MINUTES` | — | Minutes before a session is considered abandoned |
-| `MAENIFOLD_WATCHER_BUFFER` | `65536` | File-system watcher buffer size |
-| `MAENIFOLD_DECAY_FUNCTION` | `power-law` | Access-decay scoring function |
-| `MAENIFOLD_DECAY_HALF_LIFE_DAYS` | `30` | Half-life for decay scoring |
-| `MAENIFOLD_DECAY_GRACE_DAYS_DEFAULT` | `28` | Grace period before decay applies |
-| `MAENIFOLD_SYNC_LOGGING` | `true` | Log sync operations |
-| `MAENIFOLD_EMBEDDING_LOGS` | `false` | Log embedding inference |
-| `MAENIFOLD_VECTOR_LOGS` | `false` | Log vector search queries |
+- [`assets/integrations/claude-code/`](assets/integrations/claude-code/) — Claude Code plugin assets
+- [`assets/integrations/copilot/`](assets/integrations/copilot/) — Copilot plugin assets
+- [`assets/integrations/opencode/`](assets/integrations/opencode/) — OpenCode agent and plugin assets
+- [`assets/integrations/skills/`](assets/integrations/skills/) — reusable skills, including maenifold, gate, ACP, and Pinia support
 
 ## Development
 
-See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the full guide.
+The Rust backend and the desktop app evolve together, but they build separately. Start with the narrowest relevant target:
 
 ```bash
-cargo build --workspace                                  # build
-cargo fmt --all --check                                  # format check
-make quality-lint                                        # correctness-focused lint
-MAENIFOLD_FULL_SUITE=1 cargo test                        # full test suite
-MAENIFOLD_VECTOR_SUITE=1 cargo test --test vector_integration_tests  # vector/embedding suite
-make quality-report                                      # coverage + quality artifacts
+cargo build --workspace
+make quality-lint
+cargo test -p maenifold-core
+MAENIFOLD_FULL_SUITE=1 cargo test
 ```
 
-### Workspace Structure
+Desktop work happens under `apps/desktop/` with its own Node/Tauri toolchain. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the full build, test, and quality workflow.
 
-```
-maenifold-rs/
-├── crates/
-│   ├── maenifold-core/       # Library crate — all tool logic (20 modules, ~17.6K LOC)
-│   └── maenifold-cli/        # Binary crate — CLI + MCP entrypoint
-├── integrations/claude-code/  # Claude Code plugin packages
-├── tests/                     # Workspace-level integration tests
-├── assets/                    # Workflows, roles, colors, perspectives, models, native libs
-└── docs/                      # Development guide
-```
+Release automation currently packages three targets only: macOS ARM64, Linux x64, and Windows x64. There are no release tags in this repository today, so treat source builds as the supported path.
 
-CI runs `fmt` → `clippy` → `build` → `test` on every push/PR to `dev` and `main`. A dedicated Quality Metrics workflow now publishes coverage, dead/unused findings, duplicate-code reports, `rust-code-analysis` metrics, and an approximate file-level CRAP summary as CI artifacts. Releases are built for macOS ARM64, Linux x64, and Windows x64 on `v*` tags.
+## Documentation
+
+- [`docs/README.md`](docs/README.md)
+- [`docs/BOOTSTRAP.md`](docs/BOOTSTRAP.md)
+- [`docs/SCRIPTING.md`](docs/SCRIPTING.md)
+- [`docs/acp-client-architecture.md`](docs/acp-client-architecture.md)
+- [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md)
+- [`docs/TESTING_PHILOSOPHY.md`](docs/TESTING_PHILOSOPHY.md)
+- [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
 
 ## License
 
-MIT. Contributions welcome at [github.com/msbrettorg/maenifold](https://github.com/msbrettorg/maenifold).
+MIT. Repository: [msbrettorg/maenifold-rs](https://github.com/msbrettorg/maenifold-rs)

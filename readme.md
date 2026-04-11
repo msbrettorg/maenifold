@@ -26,9 +26,21 @@ maenifold is a local-first Rust backend plus a Tauri desktop app for working wit
 
 Pipelines can mix tool calls, agent sessions, and workflow nodes in a single executable DAG.
 
-The knowledge graph starts with ordinary markdown and `[[WikiLinks]]`. Each WikiLink becomes a concept node; co-occurrence becomes edges; sync turns the corpus into a graph you can search, visualize, and use to prime new sessions. Community detection clusters related concepts, and graph context can be pulled back into workflows or chat when needed. The source of truth stays readable because the memory layer is still just files plus a local database. You can inspect the graph and the underlying notes side by side.
+The knowledge graph is built from ordinary markdown and `[[WikiLinks]]` — write notes, sync the graph, and the corpus becomes searchable and traversable. The source of truth stays readable because the memory layer is still just files plus a local database.
 
 These pieces connect through shared local state — memory, workflows, pipelines, gate records, and the graph all reference each other.
+
+## Memory & Knowledge Graph
+
+The memory layer is the operational substrate underneath everything else. Pipelines pull context from it. Workflows write conclusions back to it. Agents read from it at session start. Gates reference it for decision history.
+
+- **Graph-aware retrieval, not just search.** `BuildContext` traverses related concepts at configurable depth — direct relations at depth 1, expanded neighborhoods at depth 2+. Community detection clusters the graph into domain neighborhoods automatically without manual tagging.
+- **Hybrid search with local embeddings.** Queries fuse semantic similarity and full-text matching through reciprocal rank fusion, with configurable weights. Embeddings run locally via ONNX with no external API calls.
+- **Freshness-aware ranking.** Different content types age at different rates — thinking sessions, workflow outputs, and general notes each have their own grace periods. Validated knowledge holds its weight; invalidated assumptions fade faster. The corpus grows over time, but search stays focused on what's still relevant.
+- **Memory hygiene is built in.** `AnalyzeConceptCorruption` finds duplicate or variant WikiLinks (`[[auth]]` vs. `[[authentication]]`). `RepairConcepts` consolidates them with dry-run-by-default and semantic similarity thresholds to block unsafe merges.
+- **Reasoning artifacts persist.** Thinking sessions, assumption ledgers, and workflow outputs write back into the same memory layer — so future runs start with more context than the last one.
+
+Nearly half of maenifold's MCP tools are memory, search, graph, or repair operations. The knowledge layer is the core of the system, not a feature alongside it.
 
 ## Core Concepts
 
@@ -80,7 +92,7 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 
 - Community view for the whole graph, then concept drill-down inside a selected cluster.
 - Built from local WikiLinks, not a hidden hosted service.
-- The graph feeds sessions, workflows, and pipelines with reusable context — it's an active part of the system, not a passive note map.
+- The visual surface for the memory and graph layer described above.
 - Useful for spotting domain neighborhoods before opening the underlying memory files.
 
 ## Architecture

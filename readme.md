@@ -10,9 +10,13 @@
   <a href="https://github.com/msbrettorg/maenifold-rs"><img src="https://img.shields.io/github/license/msbrettorg/maenifold-rs?style=flat-square" alt="MIT License"></a>
 </p>
 
+<p align="center">
+  <img src="docs/branding/pipeline-screenshot.jpg" alt="18-node research pipeline with branching topology, all nodes completed, in the maenifold desktop pipeline editor" width="800">
+</p>
+
 **Status:** Pre-1.0 developer preview. Build from source. Desktop and pipeline features are experimental.
 
-For anyone with access to an agent over ACP or MCP who's tired of AI not doing what it's told.
+For anyone who spends more time gathering context and re-doing analysis than doing the actual work.
 
 ## Core Concepts
 
@@ -27,7 +31,7 @@ For anyone with access to an agent over ACP or MCP who's tired of AI not doing w
 
 # maenifold
 
-maenifold is a local-first Rust backend plus a Tauri desktop app for working with persistent agent memory, ACP sessions, reusable workflow assets, visual pipelines, and gated delivery. The desktop app, the CLI, and external AI clients all talk to the same MCP-native tool surface. The goal is simple: one place to reason, orchestrate, execute against the world, and keep context alive across sessions.
+maenifold is a local-first Rust backend plus a Tauri desktop app for working with persistent agent memory, ACP sessions, reusable workflow assets, visual pipelines, and gated delivery. The desktop app, the CLI, and external AI clients all talk to the same MCP-native tool surface — agents can do anything humans can and vice versa. The goal is simple: one place to reason, orchestrate, execute against the world, and keep context alive across sessions.
 
 Pipelines can mix tool calls, agent sessions, and workflow nodes in a single executable DAG.
 
@@ -80,6 +84,8 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 
 maenifold is MCP-native by design. The server speaks stdio MCP and streamable HTTP, and the pipeline runtime can call external MCP servers over stdio or streamable HTTP/HTTPS. All domain state lives behind MCP instead of being reimplemented in each frontend. The repo is a monorepo: the Rust workspace owns the backend crates, while `apps/desktop/` lives alongside it as a Tauri + Vue app and is excluded from the Rust workspace itself.
 
+Because MCP is the only domain interface, there is no capability gap between human and agent. An agent can write memories, create pipelines, dispatch other agents, and pass or fail gate tasks — the same operations a human performs through the desktop app. Pipelines are not static: an agent running inside a pipeline can fork the pipeline it's executing in, and completed upstream work is preserved. Mutation of a live run (graft, rewind, join) is intentionally guarded — cancel or complete first, then reshape.
+
 ## Example Flow
 
 Write a note, build a graph, search it, run a pipeline:
@@ -91,6 +97,14 @@ Write a note, build a graph, search it, run a pipeline:
 5. **Run a pipeline:** Create a DAG in the Pipelines tab with a tool node that calls SearchMemories, feeding results into a prompt node for synthesis.
 
 The graph accumulates context over time. Pipelines and workflows can pull from it automatically, so reasoning improves as the corpus grows.
+
+### In Practice
+
+A `deal-prep` pipeline pulls account data from a CRM, deployment status from workplace intelligence, and licensing docs — six tool nodes in parallel, zero model tokens on the data gathering. It routes results through a structured analysis workflow, synthesizes findings in a persistent thinking session, and generates a slide deck. The output is a deliverable for a customer meeting, not code.
+
+A research pipeline works differently: start with a hypothesis, run experiment nodes, then graft new experiments onto the living DAG as results suggest new directions. An 18-node memory subsystem benchmark grew this way — each graft extending the investigation without rerunning completed upstream work.
+
+The same pipeline structure serves any domain where the work is: gather context, apply a method, produce an output, and optionally evolve the process as you learn.
 
 ```text
 maenifold-rs/

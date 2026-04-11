@@ -35,11 +35,10 @@ function selectTemplate(template: PipelineTemplate): void {
   selectedTemplateId.value = template.id;
 }
 
-function handleInstantiate(): void {
-  if (!selectedTemplate.value || !canInstantiate.value) return;
+async function handleInstantiate(): Promise<void> {
+  if (!selectedTemplate.value || !canInstantiate.value || !hasIntentAgent.value) return;
 
-  const agents = resolveAgents(agentNames.value);
-  store.applyTemplate(selectedTemplate.value, agents);
+  await store.applyTemplate(selectedTemplate.value);
 }
 
 async function handleIntentSubmit(): Promise<void> {
@@ -85,7 +84,7 @@ async function handleIntentSubmit(): Promise<void> {
           Press Enter to create a pipeline from your request.
         </p>
         <p v-if="!hasIntentAgent" class="gallery-agent-warning" role="alert">
-          Configure an agent before creating a pipeline from an intent.
+          Configure an agent before creating a pipeline.
         </p>
       </form>
     </section>
@@ -94,6 +93,9 @@ async function handleIntentSubmit(): Promise<void> {
       <div class="gallery-card-section-header">
         <span class="gallery-card-section-label">Or start from an intent card</span>
       </div>
+      <p v-if="!hasIntentAgent" class="gallery-agent-warning" role="alert">
+        Configure an agent before creating a pipeline.
+      </p>
       <div class="gallery-cards">
         <button
           v-for="template in availableTemplates"
@@ -137,13 +139,10 @@ async function handleIntentSubmit(): Promise<void> {
       </div>
 
       <div class="gallery-actions">
-        <span v-if="agentNames.length === 0" class="gallery-agent-warning">
-          No agents configured — nodes will need manual agent assignment.
-        </span>
         <button
           type="button"
           class="btn btn-primary"
-          :disabled="!canInstantiate"
+          :disabled="!canInstantiate || !hasIntentAgent"
           @click="handleInstantiate"
         >
           Create Pipeline

@@ -19,7 +19,7 @@ import type {
   ToolNodeInput,
   WorkflowNodeInput,
 } from '../lib/pipeline-node-factory';
-import { type PipelineTemplate, type TemplateVariables } from '../lib/pipeline-templates';
+import { type PipelineTemplate } from '../lib/pipeline-templates';
 import { instantiateTemplate, resolveAgents } from '../lib/pipeline-template-runtime';
 import { createNodeId } from '../lib/pipeline-node-factory';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
@@ -224,11 +224,29 @@ export const usePipelineStore = defineStore('pipeline', () => {
 
     return appendNode(createNode(nodeOrType, fields));
   }
-  function applyTemplate(template: PipelineTemplate, variables: TemplateVariables) {
-    const result = instantiateTemplate(template, variables);
-    localDefinition.value = withLocalMetadata(result.definition, {
+  async function applyTemplate(template: PipelineTemplate): Promise<boolean> {
+    const agents = resolveAgents(configStore.agentNames);
+    const agent = agents.primaryAgent.trim();
+    if (agent.length === 0) {
+      setError('apply_template', new Error('No agent is available for template-based creation. Configure an agent before creating a pipeline.'));
+      return false;
+    }
+
+    const result = instantiateTemplate(template, agents);
+    const definition = withLocalMetadata(result.definition, {
       templateId: template.id,
     });
+    localDefinition.value = definition;
+
+    const createResult = await createPipeline(definition);
+    if (isCreateResult(createResult) && typeof createResult.pipelineId === 'string' && createResult.pipelineId.length > 0) {
+      return true;
+    }
+
+    if (!errorMessage.value) {
+      setError('apply_template', new Error('Failed to create pipeline from template.'));
+    }
+    return false;
   }
   function buildIntentDefinition(prompt: string, agent: string): PipelineDefinition {
     const nodeId = createNodeId('prompt');
